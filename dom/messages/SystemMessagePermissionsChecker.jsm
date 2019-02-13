@@ -14,6 +14,10 @@ Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
 Cu.import("resource://gre/modules/PermissionsTable.jsm");
 Cu.import("resource://gre/modules/PermissionSettings.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "dataStoreService",
+                                   "@mozilla.org/datastore-service;1",
+                                   "nsIDataStoreService");
+
 this.EXPORTED_SYMBOLS = ["SystemMessagePermissionsChecker",
                          "SystemMessagePermissionsTable"];
 
@@ -55,11 +59,15 @@ this.SystemMessagePermissionsTable = {
   "bluetooth-opp-transfer-start": {
     "bluetooth": []
   },
+  "cellbroadcast-received": {
+    "cellbroadcast": []
+  },
   "connection": { },
   "captive-portal": {
     "wifi-manage": []
   },
   "dummy-system-message": { }, // for system message testing framework
+  "dummy-system-message2": { }, // for system message testing framework
   "headset-button": { },
   "icc-stkcommand": {
     "settings": ["read", "write"]
@@ -77,7 +85,11 @@ this.SystemMessagePermissionsTable = {
   "push-register": {
   	"push": []
   },
+  "request-sync": { },
   "sms-delivery-success": {
+    "sms": []
+  },
+  "sms-delivery-error": {
     "sms": []
   },
   "sms-read-success": {
@@ -87,6 +99,9 @@ this.SystemMessagePermissionsTable = {
     "sms": []
   },
   "sms-sent": {
+    "sms": []
+  },
+  "sms-failed": {
     "sms": []
   },
   "telephony-new-call": {
@@ -104,6 +119,9 @@ this.SystemMessagePermissionsTable = {
   "cdma-info-rec-received": {
     "mobileconnection": []
   },
+  "nfc-hci-event-transaction": {
+    "nfc-hci-events": []
+  },
   "nfc-manager-tech-discovered": {
     "nfc-manager": []
   },
@@ -113,14 +131,14 @@ this.SystemMessagePermissionsTable = {
   "nfc-manager-send-file": {
     "nfc-manager": []
   },
-  "nfc-powerlevel-change": {
-    "settings": ["read", "write"]
+  "wifip2p-pairing-request": {
+    "wifi-manage": []
   },
-  "wifip2p-pairing-request": { },
   "first-run-with-sim": {
     "settings": ["read", "write"]
   }
 };
+
 
 this.SystemMessagePermissionsChecker = {
   /**
@@ -141,7 +159,7 @@ this.SystemMessagePermissionsChecker = {
     let permNames = SystemMessagePermissionsTable[aSysMsgName];
     if (permNames === undefined) {
       debug("'" + aSysMsgName + "' is not associated with permissions. " +
-            "Please add them to the SystemMessagePermissionsTable.");
+            "Please add them to the SystemMessage[Prefix]PermissionsTable.");
       return null;
     }
 
@@ -149,7 +167,7 @@ this.SystemMessagePermissionsChecker = {
     for (let permName in permNames) {
       if (PermissionsTable[permName] === undefined) {
         debug("'" + permName + "' for '" + aSysMsgName + "' is invalid. " +
-              "Please correct it in the SystemMessagePermissionsTable.");
+              "Please correct it in the SystemMessage[Prefix]PermissionsTable.");
         return null;
       }
 
@@ -157,7 +175,7 @@ this.SystemMessagePermissionsChecker = {
       let access = permNames[permName];
       if (!access || !Array.isArray(access)) {
         debug("'" + permName + "' is not associated with access array. " +
-              "Please correct it in the SystemMessagePermissionsTable.");
+              "Please correct it in the SystemMessage[Prefix]PermissionsTable.");
         return null;
       }
       object[permName] = appendAccessToPermName(permName, access);
@@ -166,23 +184,58 @@ this.SystemMessagePermissionsChecker = {
   },
 
   /**
+   * Check if the message is a datastore-update message
+   * @param string aSysMsgName
+   *        The system messsage name.
+   */
+  isDataStoreSystemMessage: function(aSysMsgName) {
+    return aSysMsgName.indexOf('datastore-update-') === 0;
+  },
+
+  /**
+   * Check if this manifest can deliver this particular datastore message.
+   */
+  canDeliverDataStoreSystemMessage: function(aSysMsgName, aManifestURL) {
+    let store = aSysMsgName.substr('datastore-update-'.length);
+
+    // Get all the manifest URLs of the apps which can access the datastore.
+    let manifestURLs = dataStoreService.getAppManifestURLsForDataStore(store);
+    let enumerate = manifestURLs.enumerate();
+    while (enumerate.hasMoreElements()) {
+      let manifestURL = enumerate.getNext().QueryInterface(Ci.nsISupportsString);
+      if (manifestURL == aManifestURL) {
+        return true;
+      }
+    }
+
+    return false;
+  },
+
+  /**
    * Check if the system message is permitted to be registered for the given
    * app at start-up based on the permissions claimed in the app's manifest.
    * @param string aSysMsgName
    *        The system messsage name.
-   * @param string aOrigin
-   *        The app's origin.
+   * @param string aManifestURL
+   *        The app's manifest URL.
    * @param object aManifest
    *        The app's manifest.
    * @returns bool
    *        Is permitted or not.
    **/
   isSystemMessagePermittedToRegister:
-    function isSystemMessagePermittedToRegister(aSysMsgName, aOrigin, aManifest) {
+    function isSystemMessagePermittedToRegister(aSysMsgName,
+                                                aManifestURL,
+                                                aManifest) {
     debug("isSystemMessagePermittedToRegister(): " +
           "aSysMsgName: " + aSysMsgName + ", " +
-          "aOrigin: " + aOrigin + ", " +
+          "aManifestURL: " + aManifestURL + ", " +
           "aManifest: " + JSON.stringify(aManifest));
+
+    if (this.isDataStoreSystemMessage(aSysMsgName) &&
+        this.canDeliverDataStoreSystemMessage(aSysMsgName, aManifestURL)) {
+      return true;
+    }
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
     if (permNames === null) {
@@ -200,6 +253,9 @@ this.SystemMessagePermissionsChecker = {
       break;
     case Ci.nsIPrincipal.APP_STATUS_INSTALLED:
       appStatus = "app";
+      if (aManifest.type == "trusted") {
+        appStatus = "trusted";
+      }
       break;
     default:
       throw new Error("SystemMessagePermissionsChecker.jsm: " +
@@ -207,20 +263,22 @@ this.SystemMessagePermissionsChecker = {
       break;
     }
 
-    let newManifest = new ManifestHelper(aManifest, aOrigin);
+    // It's ok here to not pass the origin to ManifestHelper since we only
+    // need the permission property and that doesn't depend on uri resolution.
+    let newManifest = new ManifestHelper(aManifest, aManifestURL, aManifestURL);
 
     for (let permName in permNames) {
       // The app doesn't claim valid permissions for this sytem message.
       if (!newManifest.permissions || !newManifest.permissions[permName]) {
         debug("'" + aSysMsgName + "' isn't permitted by '" + permName + "'. " +
-              "Please add the permission for app: '" + aOrigin + "'.");
+              "Please add the permission for app: '" + aManifestURL + "'.");
         return false;
       }
       let permValue = PermissionsTable[permName][appStatus];
       if (permValue != Ci.nsIPermissionManager.PROMPT_ACTION &&
           permValue != Ci.nsIPermissionManager.ALLOW_ACTION) {
         debug("'" + aSysMsgName + "' isn't permitted by '" + permName + "'. " +
-              "Please add the permission for app: '" + aOrigin + "'.");
+              "Please add the permission for app: '" + aManifestURL + "'.");
         return false;
       }
 
@@ -265,6 +323,11 @@ this.SystemMessagePermissionsChecker = {
           "aSysMsgName: " + aSysMsgName + ", " +
           "aPageURL: " + aPageURL + ", " +
           "aManifestURL: " + aManifestURL);
+
+    if (this.isDataStoreSystemMessage(aSysMsgName) &&
+        this.canDeliverDataStoreSystemMessage(aSysMsgName, aManifestURL)) {
+      return true;
+    }
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
     if (permNames === null) {

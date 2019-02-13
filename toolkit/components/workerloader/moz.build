@@ -5,3 +5,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 MOCHITEST_CHROME_MANIFESTS += ['tests/chrome.ini']
+
+EXTRA_JS_MODULES.workers += [
+    'require.js'
+]
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Async Tooling')

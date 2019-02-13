@@ -6,8 +6,8 @@
  * after a target navigation.
  */
 
-function ifWebGLSupported() {
-  let [target, debuggee, front] = yield initBackend(SIMPLE_CANVAS_URL);
+function* ifWebGLSupported() {
+  let { target, front } = yield initBackend(SIMPLE_CANVAS_URL);
 
   let navigated = once(target, "navigate");
   let linked = once(front, "program-linked");

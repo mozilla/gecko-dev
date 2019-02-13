@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,15 +26,20 @@ class nsIDocument;
 class nsIURI;
 class nsXBLDocumentInfo;
 class nsIStreamListener;
-class nsStyleSet;
 class nsXBLBinding;
 template<class E> class nsRefPtr;
 typedef nsTArray<nsRefPtr<nsXBLBinding> > nsBindingList;
 class nsIPrincipal;
-class nsCSSStyleSheet;
+class nsITimer;
 
-class nsBindingManager MOZ_FINAL : public nsStubMutationObserver
+namespace mozilla {
+class CSSStyleSheet;
+} // namespace mozilla
+
+class nsBindingManager final : public nsStubMutationObserver
 {
+  ~nsBindingManager();
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -41,8 +47,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
-  nsBindingManager(nsIDocument* aDocument);
-  ~nsBindingManager();
+  explicit nsBindingManager(nsIDocument* aDocument);
 
   nsXBLBinding* GetBindingWithContent(nsIContent* aContent);
 
@@ -116,7 +121,7 @@ public:
   nsresult MediumFeaturesChanged(nsPresContext* aPresContext,
                                  bool* aRulesChanged);
 
-  void AppendAllSheets(nsTArray<nsCSSStyleSheet*>& aArray);
+  void AppendAllSheets(nsTArray<mozilla::CSSStyleSheet*>& aArray);
 
   void Traverse(nsIContent *aContent,
                             nsCycleCollectionTraversalCallback &cb);
@@ -157,6 +162,9 @@ protected:
 
   // Post an event to process the attached queue.
   void PostProcessAttachedQueueEvent();
+
+  // Call PostProcessAttachedQueueEvent() on a timer.
+  static void PostPAQEventCallback(nsITimer* aTimer, void* aClosure);
 
 // MEMBER VARIABLES
 protected:

@@ -15,6 +15,8 @@ const TEST_URL = 'data:text/html,<script>window.onbeforeunload=' +
 let contentWindow;
 let activeGroup;
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
+
 function test() {
   waitForExplicitFinish();
 
@@ -43,7 +45,7 @@ function testStayOnPage(win, blockingTab) {
         // The other initial tab has been closed when trying to close the tab
         // group. The only tab left is the one with the onbeforeunload dialog.
         let url = win.gBrowser.browsers[0].currentURI.spec;
-        ok(url.contains("onbeforeunload"), "The open tab is the expected one");
+        ok(url.includes("onbeforeunload"), "The open tab is the expected one");
 
         is(contentWindow.GroupItems.getActiveGroupItem(), activeGroup,
            "Active group is still the same");

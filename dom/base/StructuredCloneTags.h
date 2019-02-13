@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -34,6 +36,12 @@ enum StructuredCloneTags {
 
   // This tag is for WebCrypto keys
   SCTAG_DOM_WEBCRYPTO_KEY,
+
+  SCTAG_DOM_NULL_PRINCIPAL,
+  SCTAG_DOM_SYSTEM_PRINCIPAL,
+  SCTAG_DOM_CONTENT_PRINCIPAL,
+
+  SCTAG_DOM_NFC_NDEF,
 
   SCTAG_DOM_MAX
 };

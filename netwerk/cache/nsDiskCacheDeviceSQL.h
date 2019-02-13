@@ -26,7 +26,7 @@ class nsIURI;
 class nsOfflineCacheDevice;
 class mozIStorageService;
 
-class nsApplicationCacheNamespace MOZ_FINAL : public nsIApplicationCacheNamespace
+class nsApplicationCacheNamespace final : public nsIApplicationCacheNamespace
 {
 public:
   NS_DECL_ISUPPORTS
@@ -35,17 +35,19 @@ public:
   nsApplicationCacheNamespace() : mItemType(0) {}
 
 private:
+  ~nsApplicationCacheNamespace() {}
+
   uint32_t mItemType;
   nsCString mNamespaceSpec;
   nsCString mData;
 };
 
-class nsOfflineCacheEvictionFunction MOZ_FINAL : public mozIStorageFunction {
+class nsOfflineCacheEvictionFunction final : public mozIStorageFunction {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION
 
-  nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device)
+  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device)
     : mDevice(device)
   {}
 
@@ -53,13 +55,15 @@ public:
   void Apply();
 
 private:
+  ~nsOfflineCacheEvictionFunction() {}
+
   nsOfflineCacheDevice *mDevice;
   nsCOMArray<nsIFile> mItems;
 
 };
 
-class nsOfflineCacheDevice : public nsCacheDevice
-                           , public nsISupports
+class nsOfflineCacheDevice final : public nsCacheDevice
+                                 , public nsISupports
 {
 public:
   nsOfflineCacheDevice();
@@ -70,34 +74,34 @@ public:
    * nsCacheDevice methods
    */
 
-  virtual nsresult        Init();
+  virtual nsresult        Init() override;
   nsresult                InitWithSqlite(mozIStorageService * ss);
-  virtual nsresult        Shutdown();
+  virtual nsresult        Shutdown() override;
 
-  virtual const char *    GetDeviceID(void);
-  virtual nsCacheEntry *  FindEntry(nsCString * key, bool *collision);
-  virtual nsresult        DeactivateEntry(nsCacheEntry * entry);
-  virtual nsresult        BindEntry(nsCacheEntry * entry);
-  virtual void            DoomEntry( nsCacheEntry * entry );
+  virtual const char *    GetDeviceID(void) override;
+  virtual nsCacheEntry *  FindEntry(nsCString * key, bool *collision) override;
+  virtual nsresult        DeactivateEntry(nsCacheEntry * entry) override;
+  virtual nsresult        BindEntry(nsCacheEntry * entry) override;
+  virtual void            DoomEntry( nsCacheEntry * entry ) override;
 
   virtual nsresult OpenInputStreamForEntry(nsCacheEntry *    entry,
                                            nsCacheAccessMode mode,
                                            uint32_t          offset,
-                                           nsIInputStream ** result);
+                                           nsIInputStream ** result) override;
 
   virtual nsresult OpenOutputStreamForEntry(nsCacheEntry *     entry,
                                             nsCacheAccessMode  mode,
                                             uint32_t           offset,
-                                            nsIOutputStream ** result);
+                                            nsIOutputStream ** result) override;
 
   virtual nsresult        GetFileForEntry(nsCacheEntry *    entry,
-                                          nsIFile **        result);
+                                          nsIFile **        result) override;
 
-  virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize);
+  virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize) override;
   
-  virtual nsresult        Visit(nsICacheVisitor * visitor);
+  virtual nsresult        Visit(nsICacheVisitor * visitor) override;
 
-  virtual nsresult        EvictEntries(const char * clientID);
+  virtual nsresult        EvictEntries(const char * clientID) override;
 
   /* Entry ownership */
   nsresult                GetOwnerDomains(const char *        clientID,
@@ -188,8 +192,10 @@ public:
   uint32_t                CacheCapacity() { return mCacheCapacity; }
   uint32_t                CacheSize();
   uint32_t                EntryCount();
-  
+
 private:
+  ~nsOfflineCacheDevice();
+
   friend class nsApplicationCache;
 
   static PLDHashOperator ShutdownApplicationCache(const nsACString &key,

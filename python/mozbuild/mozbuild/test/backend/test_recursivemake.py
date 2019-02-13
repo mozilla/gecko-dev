@@ -32,21 +32,21 @@ class TestRecursiveMakeTraversal(unittest.TestCase):
         traversal.add('', dirs=['D'])
         traversal.add('A')
         traversal.add('B', dirs=['E', 'F'])
-        traversal.add('C', parallel=['G', 'H'])
-        traversal.add('D', parallel=['I'], dirs=['K'])
-        traversal.add('D', parallel=['J'], dirs=['L'])
+        traversal.add('C', dirs=['G', 'H'])
+        traversal.add('D', dirs=['I', 'K'])
+        traversal.add('D', dirs=['J', 'L'])
         traversal.add('E')
         traversal.add('F')
         traversal.add('G')
         traversal.add('H')
         traversal.add('I', dirs=['M', 'N'])
-        traversal.add('J', parallel=['O', 'P'])
-        traversal.add('K', parallel=['Q', 'R'])
+        traversal.add('J', dirs=['O', 'P'])
+        traversal.add('K', dirs=['Q', 'R'])
         traversal.add('L', dirs=['S'])
         traversal.add('M')
         traversal.add('N', dirs=['T'])
         traversal.add('O')
-        traversal.add('P', parallel=['U'])
+        traversal.add('P', dirs=['U'])
         traversal.add('Q')
         traversal.add('R', dirs=['V'])
         traversal.add('S', dirs=['W'])
@@ -56,8 +56,14 @@ class TestRecursiveMakeTraversal(unittest.TestCase):
         traversal.add('W', dirs=['X'])
         traversal.add('X')
 
-        start, deps = traversal.compute_dependencies()
+        parallels = set(('G', 'H', 'I', 'J', 'O', 'P', 'Q', 'R', 'U'))
+        def filter(current, subdirs):
+            return (current, [d for d in subdirs.dirs if d in parallels],
+                [d for d in subdirs.dirs if d not in parallels])
+
+        start, deps = traversal.compute_dependencies(filter)
         self.assertEqual(start, ('X',))
+        self.maxDiff = None
         self.assertEqual(deps, {
             'A': ('',),
             'B': ('A',),
@@ -85,21 +91,21 @@ class TestRecursiveMakeTraversal(unittest.TestCase):
             'X': ('W',),
         })
 
-        self.assertEqual(list(traversal.traverse('')),
+        self.assertEqual(list(traversal.traverse('', filter)),
                          ['', 'A', 'B', 'E', 'F', 'C', 'G', 'H', 'D', 'I',
                          'M', 'N', 'T', 'J', 'O', 'P', 'U', 'K', 'Q', 'R',
                          'V', 'L', 'S', 'W', 'X'])
 
-        self.assertEqual(list(traversal.traverse('C')),
+        self.assertEqual(list(traversal.traverse('C', filter)),
                          ['C', 'G', 'H'])
 
     def test_traversal_2(self):
         traversal = RecursiveMakeTraversal()
         traversal.add('', dirs=['A', 'B', 'C'])
         traversal.add('A')
-        traversal.add('B', static=['D'], dirs=['E', 'F'])
-        traversal.add('C', parallel=['G', 'H'], dirs=['I'])
-        # Don't register D
+        traversal.add('B', dirs=['D', 'E', 'F'])
+        traversal.add('C', dirs=['G', 'H', 'I'])
+        traversal.add('D')
         traversal.add('E')
         traversal.add('F')
         traversal.add('G')
@@ -116,16 +122,16 @@ class TestRecursiveMakeTraversal(unittest.TestCase):
             'E': ('D',),
             'F': ('E',),
             'G': ('C',),
-            'H': ('C',),
-            'I': ('G', 'H'),
+            'H': ('G',),
+            'I': ('H',),
         })
 
     def test_traversal_filter(self):
         traversal = RecursiveMakeTraversal()
         traversal.add('', dirs=['A', 'B', 'C'])
         traversal.add('A')
-        traversal.add('B', static=['D'], dirs=['E', 'F'])
-        traversal.add('C', parallel=['G', 'H'], dirs=['I'])
+        traversal.add('B', dirs=['D', 'E', 'F'])
+        traversal.add('C', dirs=['G', 'H', 'I'])
         traversal.add('D')
         traversal.add('E')
         traversal.add('F')
@@ -136,18 +142,19 @@ class TestRecursiveMakeTraversal(unittest.TestCase):
         def filter(current, subdirs):
             if current == 'B':
                 current = None
-            return current, subdirs.parallel, subdirs.dirs
+            return current, [], subdirs.dirs
 
         start, deps = traversal.compute_dependencies(filter)
         self.assertEqual(start, ('I',))
         self.assertEqual(deps, {
             'A': ('',),
             'C': ('F',),
-            'E': ('A',),
+            'D': ('A',),
+            'E': ('D',),
             'F': ('E',),
             'G': ('C',),
-            'H': ('C',),
-            'I': ('G', 'H'),
+            'H': ('G',),
+            'I': ('H',),
         })
 
 class TestRecursiveMakeBackend(BackendTester):
@@ -212,8 +219,7 @@ class TestRecursiveMakeBackend(BackendTester):
 
         lines = [l.strip() for l in open(p, 'rt').readlines()[2:]]
         self.assertEqual(lines, [
-            'DIRS := dir1',
-            'PARALLEL_DIRS := dir2',
+            'DIRS := dir1 dir2',
             'TEST_DIRS := dir3',
         ])
 
@@ -254,79 +260,23 @@ class TestRecursiveMakeBackend(BackendTester):
         lines = [l.strip() for l in open(backend_path, 'rt').readlines()[2:]]
 
         expected = {
-            'ASFILES': [
-                'ASFILES += bar.s',
-                'ASFILES += foo.asm',
-            ],
-            'CMMSRCS': [
-                'CMMSRCS += bar.mm',
-                'CMMSRCS += foo.mm',
-            ],
-            'CPP_UNIT_TESTS': [
-                'CPP_UNIT_TESTS += foo.cpp',
-            ],
-            'CSRCS': [
-                'CSRCS += bar.c',
-                'CSRCS += foo.c',
-            ],
             'DISABLE_STL_WRAPPING': [
                 'DISABLE_STL_WRAPPING := 1',
             ],
             'EXTRA_COMPONENTS': [
                 'EXTRA_COMPONENTS += bar.js',
+                'EXTRA_COMPONENTS += dummy.manifest',
                 'EXTRA_COMPONENTS += foo.js',
             ],
             'EXTRA_PP_COMPONENTS': [
                 'EXTRA_PP_COMPONENTS += bar.pp.js',
                 'EXTRA_PP_COMPONENTS += foo.pp.js',
             ],
-            'EXTRA_JS_MODULES': [
-                'EXTRA_JS_MODULES += bar.jsm',
-                'EXTRA_JS_MODULES += foo.jsm',
-            ],
-            'EXTRA_PP_JS_MODULES': [
-                'EXTRA_PP_JS_MODULES += bar.pp.jsm',
-                'EXTRA_PP_JS_MODULES += foo.pp.jsm',
-            ],
             'FAIL_ON_WARNINGS': [
                 'FAIL_ON_WARNINGS := 1',
             ],
-            'HOST_CPPSRCS': [
-                'HOST_CPPSRCS += bar.cpp',
-                'HOST_CPPSRCS += foo.cpp',
-            ],
-            'HOST_CSRCS': [
-                'HOST_CSRCS += bar.c',
-                'HOST_CSRCS += foo.c',
-            ],
-            'HOST_LIBRARY_NAME': [
-                'HOST_LIBRARY_NAME := host_bar',
-            ],
-            'MSVC_ENABLE_PGO': [
-                'MSVC_ENABLE_PGO := 1',
-            ],
-            'OS_LIBS': [
-                'OS_LIBS += foo.so',
-                'OS_LIBS += -l123',
-                'OS_LIBS += bar.a',
-            ],
-            'SDK_LIBRARY': [
-                'SDK_LIBRARY += bar.sdk',
-                'SDK_LIBRARY += foo.sdk',
-            ],
-            'SSRCS': [
-                'SSRCS += baz.S',
-                'SSRCS += foo.S',
-            ],
             'VISIBILITY_FLAGS': [
                 'VISIBILITY_FLAGS :=',
-            ],
-            'DELAYLOAD_LDFLAGS': [
-                'DELAYLOAD_LDFLAGS += -DELAYLOAD:foo.dll',
-                'DELAYLOAD_LDFLAGS += -DELAYLOAD:bar.dll',
-            ],
-            'USE_DELAYIMP': [
-                'USE_DELAYIMP := 1',
             ],
             'RCFILE': [
                 'RCFILE := foo.rc',
@@ -354,6 +304,8 @@ class TestRecursiveMakeBackend(BackendTester):
             'MOZBUILD_LDFLAGS': [
                 'MOZBUILD_LDFLAGS += -framework Foo',
                 'MOZBUILD_LDFLAGS += -x',
+                'MOZBUILD_LDFLAGS += -DELAYLOAD:foo.dll',
+                'MOZBUILD_LDFLAGS += -DELAYLOAD:bar.dll',
             ],
             'WIN32_EXE_LDFLAGS': [
                 'WIN32_EXE_LDFLAGS += -subsystem:console',
@@ -362,6 +314,44 @@ class TestRecursiveMakeBackend(BackendTester):
 
         for var, val in expected.items():
             # print("test_variable_passthru[%s]" % (var))
+            found = [str for str in lines if str.startswith(var)]
+            self.assertEqual(found, val)
+
+    def test_sources(self):
+        """Ensure SOURCES and HOST_SOURCES are handled properly."""
+        env = self._consume('sources', RecursiveMakeBackend)
+
+        backend_path = mozpath.join(env.topobjdir, 'backend.mk')
+        lines = [l.strip() for l in open(backend_path, 'rt').readlines()[2:]]
+
+        expected = {
+            'ASFILES': [
+                'ASFILES += bar.s',
+                'ASFILES += foo.asm',
+            ],
+            'CMMSRCS': [
+                'CMMSRCS += bar.mm',
+                'CMMSRCS += foo.mm',
+            ],
+            'CSRCS': [
+                'CSRCS += bar.c',
+                'CSRCS += foo.c',
+            ],
+            'HOST_CPPSRCS': [
+                'HOST_CPPSRCS += bar.cpp',
+                'HOST_CPPSRCS += foo.cpp',
+            ],
+            'HOST_CSRCS': [
+                'HOST_CSRCS += bar.c',
+                'HOST_CSRCS += foo.c',
+            ],
+            'SSRCS': [
+                'SSRCS += baz.S',
+                'SSRCS += foo.S',
+            ],
+        }
+
+        for var, val in expected.items():
             found = [str for str in lines if str.startswith(var)]
             self.assertEqual(found, val)
 
@@ -376,6 +366,28 @@ class TestRecursiveMakeBackend(BackendTester):
         self.assertIn('foo.h', m)
         self.assertIn('mozilla/mozilla1.h', m)
         self.assertIn('mozilla/dom/dom2.h', m)
+
+    def test_generated_files(self):
+        """Ensure GENERATED_FILES is handled properly."""
+        env = self._consume('generated-files', RecursiveMakeBackend)
+
+        backend_path = mozpath.join(env.topobjdir, 'backend.mk')
+        lines = [l.strip() for l in open(backend_path, 'rt').readlines()[2:]]
+
+        expected = [
+            'GENERATED_FILES += bar.c',
+            'bar.c: %s/generate-bar.py' % env.topsrcdir,
+            '$(call py_action,file_generate,%s/generate-bar.py baz bar.c)' % env.topsrcdir,
+            '',
+            'GENERATED_FILES += foo.c',
+            'foo.c: %s/generate-foo.py %s/foo-data' % (env.topsrcdir, env.topsrcdir),
+            '$(call py_action,file_generate,%s/generate-foo.py main foo.c %s/foo-data)' % (env.topsrcdir, env.topsrcdir),
+            '',
+            'GENERATED_FILES += quux.c',
+        ]
+
+        self.maxDiff = None
+        self.assertEqual(lines, expected)
 
     def test_resources(self):
         """Ensure RESOURCE_FILES is handled properly."""
@@ -392,6 +404,37 @@ class TestRecursiveMakeBackend(BackendTester):
         self.assertIn('res/bar.res', m)
         self.assertIn('res/tests/test.manifest', m)
         self.assertIn('res/tests/extra.manifest', m)
+
+    def test_branding_files(self):
+        """Ensure BRANDING_FILES is handled properly."""
+        env = self._consume('branding-files', RecursiveMakeBackend)
+
+        #BRANDING_FILES should appear in the dist_branding install manifest.
+        m = InstallManifest(path=os.path.join(env.topobjdir,
+            '_build_manifests', 'install', 'dist_branding'))
+        self.assertEqual(len(m), 4)
+        self.assertIn('app.ico', m)
+        self.assertIn('bar.ico', m)
+        self.assertIn('quux.png', m)
+        self.assertIn('icons/foo.ico', m)
+
+    def test_js_preference_files(self):
+        """Ensure PREF_JS_EXPORTS is written out correctly."""
+        env = self._consume('js_preference_files', RecursiveMakeBackend)
+
+        backend_path = os.path.join(env.topobjdir, 'backend.mk')
+        lines = [l.strip() for l in open(backend_path, 'rt').readlines()]
+
+        # Avoid positional parameter and async related breakage
+        var = 'PREF_JS_EXPORTS'
+        found = [val for val in lines if val.startswith(var)]
+
+        # Assignment[aa], append[cc], conditional[valid]
+        expected = ('aa/aa.js', 'bb/bb.js', 'cc/cc.js', 'dd/dd.js', 'valid_val/prefs.js')
+        expected_top = ('ee/ee.js', 'ff/ff.js')
+        self.assertEqual(found,
+            ['PREF_JS_EXPORTS += $(topsrcdir)/%s' % val for val in expected_top] +
+            ['PREF_JS_EXPORTS += $(srcdir)/%s' % val for val in expected])
 
     def test_test_manifests_files_written(self):
         """Ensure test manifests get turned into files."""
@@ -451,7 +494,10 @@ class TestRecursiveMakeBackend(BackendTester):
 
         m = InstallManifest(path=mozpath.join(install_dir, 'xpidl'))
         self.assertIn('.deps/my_module.pp', m)
-        self.assertIn('xpt/my_module.xpt', m)
+
+        m = InstallManifest(path=os.path.join(install_dir, 'dist_bin'))
+        self.assertIn('components/my_module.xpt', m)
+        self.assertIn('components/interfaces.manifest', m)
 
         m = InstallManifest(path=mozpath.join(install_dir, 'dist_include'))
         self.assertIn('foo.h', m)
@@ -593,6 +639,21 @@ class TestRecursiveMakeBackend(BackendTester):
                 str.startswith('DIST_SUBDIR')]
             self.assertEqual(found, expected_rules)
 
+    def test_dist_files(self):
+        """Test that DIST_FILES is written to backend.mk correctly."""
+        env = self._consume('dist-files', RecursiveMakeBackend)
+
+        backend_path = mozpath.join(env.topobjdir, 'backend.mk')
+        lines = [l.strip() for l in open(backend_path, 'rt').readlines()[2:]]
+
+        expected = [
+            'DIST_FILES += install.rdf',
+            'DIST_FILES += main.js',
+        ]
+
+        found = [str for str in lines if str.startswith('DIST_FILES')]
+        self.assertEqual(found, expected)
+
     def test_config(self):
         """Test that CONFIGURE_SUBST_FILES and CONFIGURE_DEFINE_FILES are
         properly handled."""
@@ -633,6 +694,38 @@ class TestRecursiveMakeBackend(BackendTester):
         lines = [line.rstrip() for line in lines]
 
         self.assertIn('JAR_MANIFEST := %s/jar.mn' % env.topsrcdir, lines)
+
+    def test_extra_js_modules(self):
+        env = self._consume('extra-js-modules', RecursiveMakeBackend)
+
+        with open(os.path.join(env.topobjdir, 'backend.mk'), 'rb') as fh:
+            lines = fh.readlines()
+
+        lines = [line.rstrip() for line in lines]
+        self.maxDiff = None
+        expected = [
+            'extra_js__FILES := module1.js module2.js',
+            'extra_js__DEST = $(FINAL_TARGET)/modules/',
+            'extra_js__TARGET := misc',
+            'INSTALL_TARGETS += extra_js_',
+            'extra_js_submodule_FILES := module3.js module4.js',
+            'extra_js_submodule_DEST = $(FINAL_TARGET)/modules/submodule',
+            'extra_js_submodule_TARGET := misc',
+            'INSTALL_TARGETS += extra_js_submodule',
+            'extra_pp_js_ := pp-module1.js',
+            'extra_pp_js__PATH = $(FINAL_TARGET)/modules/',
+            'extra_pp_js__TARGET := misc',
+            'PP_TARGETS += extra_pp_js_',
+            'extra_pp_js_ppsub := pp-module2.js',
+            'extra_pp_js_ppsub_PATH = $(FINAL_TARGET)/modules/ppsub',
+            'extra_pp_js_ppsub_TARGET := misc',
+            'PP_TARGETS += extra_pp_js_ppsub',
+        ]
+
+        found = [line for line in lines if line.startswith(('extra_',
+                                                            'INSTALL_TARGETS',
+                                                            'PP_TARGETS'))]
+        self.assertEqual(expected, found)
 
     def test_test_manifests_duplicate_support_files(self):
         """Ensure duplicate support-files in test manifests work."""
@@ -675,6 +768,37 @@ class TestRecursiveMakeBackend(BackendTester):
             # Destination and install manifest are relative to topobjdir.
             stem = '%s/android_eclipse/%s' % (env.topobjdir, project_name)
             self.assertIn(command_template % (stem, stem), lines)
+
+    def test_install_manifests_package_tests(self):
+        """Ensure test suites honor package_tests=False."""
+        env = self._consume('test-manifests-package-tests', RecursiveMakeBackend)
+
+        tests_dir = mozpath.join(env.topobjdir, '_tests')
+
+        all_tests_path = mozpath.join(env.topobjdir, 'all-tests.json')
+        self.assertTrue(os.path.exists(all_tests_path))
+
+        with open(all_tests_path, 'rt') as fh:
+            o = json.load(fh)
+
+            self.assertIn('mochitest.js', o)
+            self.assertIn('not_packaged.java', o)
+
+        man_dir = mozpath.join(env.topobjdir, '_build_manifests', 'install')
+        self.assertTrue(os.path.isdir(man_dir))
+
+        full = mozpath.join(man_dir, 'tests')
+        self.assertTrue(os.path.exists(full))
+
+        m = InstallManifest(path=full)
+
+        # Only mochitest.js should be in the install manifest.
+        self.assertTrue('testing/mochitest/tests/mochitest.js' in m)
+
+        # The path is odd here because we do not normalize at test manifest
+        # processing time.  This is a fragile test because there's currently no
+        # way to iterate the manifest.
+        self.assertFalse('instrumentation/./not_packaged.java' in m)
 
 
 if __name__ == '__main__':

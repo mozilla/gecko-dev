@@ -56,7 +56,8 @@ AddNonJSSizeOfWindowAndItsDescendents(nsGlobalWindow* aWindow,
 
   // Measure the inner window, if there is one.
   nsWindowSizes innerWindowSizes(moz_malloc_size_of);
-  nsGlobalWindow* inner = aWindow->GetCurrentInnerWindowInternal();
+  nsGlobalWindow* inner = aWindow->IsOuterWindow() ? aWindow->GetCurrentInnerWindowInternal()
+                                                   : nullptr;
   if (inner) {
     inner->AddSizeOfIncludingThis(&innerWindowSizes);
     innerWindowSizes.addToTabSizes(aSizes);
@@ -162,20 +163,24 @@ GetWindowURI(nsIDOMWindow *aWindow)
 }
 
 static void
-AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
+AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr, bool aAnonymize)
 {
   nsCOMPtr<nsIURI> uri = GetWindowURI(aWindow);
 
   if (uri) {
-    nsCString spec;
-    uri->GetSpec(spec);
+    if (aAnonymize && !aWindow->IsChromeWindow()) {
+      aStr.AppendPrintf("<anonymized-%d>", aWindow->WindowID());
+    } else {
+      nsCString spec;
+      uri->GetSpec(spec);
 
-    // A hack: replace forward slashes with '\\' so they aren't
-    // treated as path separators.  Users of the reporters
-    // (such as about:memory) have to undo this change.
-    spec.ReplaceChar('/', '\\');
+      // A hack: replace forward slashes with '\\' so they aren't
+      // treated as path separators.  Users of the reporters
+      // (such as about:memory) have to undo this change.
+      spec.ReplaceChar('/', '\\');
 
-    aStr += spec;
+      aStr += spec;
+    }
   } else {
     // If we're unable to find a URI, we're dealing with a chrome window with
     // no document in it (or somesuch), so we call this a "system window".
@@ -236,7 +241,8 @@ CollectWindowReports(nsGlobalWindow *aWindow,
                      WindowPaths *aWindowPaths,
                      WindowPaths *aTopWindowPaths,
                      nsIMemoryReporterCallback *aCb,
-                     nsISupports *aClosure)
+                     nsISupports *aClosure,
+                     bool aAnonymize)
 {
   nsAutoCString windowPath("explicit/");
 
@@ -260,6 +266,8 @@ CollectWindowReports(nsGlobalWindow *aWindow,
     bool ok;
     nsAutoCString id;
     if (NS_SUCCEEDED(addonManager->MapURIToAddonID(location, id, &ok)) && ok) {
+      // Add-on names are not privacy-sensitive, so we can use them with
+      // impunity.
       windowPath += NS_LITERAL_CSTRING("add-ons/") + id +
                     NS_LITERAL_CSTRING("/");
     }
@@ -269,7 +277,7 @@ CollectWindowReports(nsGlobalWindow *aWindow,
 
   if (top) {
     windowPath += NS_LITERAL_CSTRING("top(");
-    AppendWindowURI(top, windowPath);
+    AppendWindowURI(top, windowPath, aAnonymize);
     windowPath += NS_LITERAL_CSTRING(", id=");
     windowPath.AppendInt(top->WindowID());
     windowPath += NS_LITERAL_CSTRING(")");
@@ -287,7 +295,7 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   }
 
   windowPath += NS_LITERAL_CSTRING("window(");
-  AppendWindowURI(aWindow, windowPath);
+  AppendWindowURI(aWindow, windowPath, aAnonymize);
   windowPath += NS_LITERAL_CSTRING(")");
 
   // Use |windowPath|, but replace "explicit/" with "event-counts/".
@@ -382,6 +390,11 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   aWindowTotalSizes->mArenaStats.mStyleContexts
     += windowSizes.mArenaStats.mStyleContexts;
 
+  REPORT_SIZE("/layout/style-structs", windowSizes.mArenaStats.mStyleStructs,
+              "Memory used by style structs within a window.");
+  aWindowTotalSizes->mArenaStats.mStyleStructs
+    += windowSizes.mArenaStats.mStyleStructs;
+
   REPORT_SIZE("/layout/style-sets", windowSizes.mLayoutStyleSetsSize,
               "Memory used by style sets within a window.");
   aWindowTotalSizes->mLayoutStyleSetsSize += windowSizes.mLayoutStyleSetsSize;
@@ -446,16 +459,17 @@ GetWindows(const uint64_t& aId, nsGlobalWindow*& aWindow, void* aClosure)
 
 struct ReportGhostWindowsEnumeratorData
 {
-  nsIMemoryReporterCallback* callback;
-  nsISupports* closure;
-  nsresult rv;
+  nsIMemoryReporterCallback* mCallback;
+  nsISupports* mData;
+  bool mAnonymize;
+  nsresult mRv;
 };
 
 static PLDHashOperator
-ReportGhostWindowsEnumerator(nsUint64HashKey* aIDHashKey, void* aClosure)
+ReportGhostWindowsEnumerator(nsUint64HashKey* aIDHashKey, void* aData)
 {
   ReportGhostWindowsEnumeratorData *data =
-    static_cast<ReportGhostWindowsEnumeratorData*>(aClosure);
+    static_cast<ReportGhostWindowsEnumeratorData*>(aData);
 
   nsGlobalWindow::WindowByIdTable* windowsById =
     nsGlobalWindow::GetWindowsTable();
@@ -472,19 +486,19 @@ ReportGhostWindowsEnumerator(nsUint64HashKey* aIDHashKey, void* aClosure)
 
   nsAutoCString path;
   path.AppendLiteral("ghost-windows/");
-  AppendWindowURI(window, path);
+  AppendWindowURI(window, path, data->mAnonymize);
 
-  nsresult rv = data->callback->Callback(
+  nsresult rv = data->mCallback->Callback(
     /* process = */ EmptyCString(),
     path,
     nsIMemoryReporter::KIND_OTHER,
     nsIMemoryReporter::UNITS_COUNT,
     /* amount = */ 1,
     /* description = */ NS_LITERAL_CSTRING("A ghost window."),
-    data->closure);
+    data->mData);
 
-  if (NS_FAILED(rv) && NS_SUCCEEDED(data->rv)) {
-    data->rv = rv;
+  if (NS_FAILED(rv) && NS_SUCCEEDED(data->mRv)) {
+    data->mRv = rv;
   }
 
   return PL_DHASH_NEXT;
@@ -492,7 +506,7 @@ ReportGhostWindowsEnumerator(nsUint64HashKey* aIDHashKey, void* aClosure)
 
 NS_IMETHODIMP
 nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
-                                       nsISupports* aClosure)
+                                       nsISupports* aClosure, bool aAnonymize)
 {
   nsGlobalWindow::WindowByIdTable* windowsById =
     nsGlobalWindow::GetWindowsTable();
@@ -508,10 +522,10 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
   nsTHashtable<nsUint64HashKey> ghostWindows;
   CheckForGhostWindows(&ghostWindows);
   ReportGhostWindowsEnumeratorData reportGhostWindowsEnumData =
-    { aCb, aClosure, NS_OK };
+    { aCb, aClosure, aAnonymize, NS_OK };
   ghostWindows.EnumerateEntries(ReportGhostWindowsEnumerator,
                                 &reportGhostWindowsEnumData);
-  nsresult rv = reportGhostWindowsEnumData.rv;
+  nsresult rv = reportGhostWindowsEnumData.mRv;
   NS_ENSURE_SUCCESS(rv, rv);
 
   WindowPaths windowPaths;
@@ -528,14 +542,14 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
     rv = CollectWindowReports(windows[i], addonManager,
                               &windowTotalSizes, &ghostWindows,
                               &windowPaths, &topWindowPaths, aCb,
-                              aClosure);
+                              aClosure, aAnonymize);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   // Report JS memory usage.  We do this from here because the JS memory
   // reporter needs to be passed |windowPaths|.
   rv = xpc::JSReporter::CollectReports(&windowPaths, &topWindowPaths,
-                                       aCb, aClosure);
+                                       aCb, aClosure, aAnonymize);
   NS_ENSURE_SUCCESS(rv, rv);
 
 #define REPORT(_path, _amount, _desc)                                         \
@@ -586,6 +600,10 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
   REPORT("window-objects/layout/style-contexts",
          windowTotalSizes.mArenaStats.mStyleContexts,
          "This is the sum of all windows' 'layout/style-contexts' numbers.");
+
+  REPORT("window-objects/layout/style-structs",
+         windowTotalSizes.mArenaStats.mStyleStructs,
+         "This is the sum of all windows' 'layout/style-structs' numbers.");
 
   REPORT("window-objects/layout/style-sets", windowTotalSizes.mLayoutStyleSetsSize,
          "This is the sum of all windows' 'layout/style-sets' numbers.");

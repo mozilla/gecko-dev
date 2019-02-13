@@ -10,7 +10,7 @@
 static int callCount = 0;
 
 static bool
-AddProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp)
+AddProperty(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v)
 {
     callCount++;
     return true;
@@ -19,13 +19,7 @@ AddProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHan
 static const JSClass AddPropertyClass = {
     "AddPropertyTester",
     0,
-    AddProperty,
-    JS_DeletePropertyStub,   /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    AddProperty
 };
 
 BEGIN_TEST(testAddPropertyHook)
@@ -36,7 +30,7 @@ BEGIN_TEST(testAddPropertyHook)
      */
     static const int ExpectedCount = 100;
 
-    JS::RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     CHECK(obj);
     JS::RootedValue proto(cx, OBJECT_TO_JSVAL(obj));
     JS_InitClass(cx, global, obj, &AddPropertyClass, nullptr, 0, nullptr, nullptr, nullptr,
@@ -46,15 +40,17 @@ BEGIN_TEST(testAddPropertyHook)
     CHECK(obj);
     JS::RootedValue arr(cx, OBJECT_TO_JSVAL(obj));
 
-    CHECK(JS_DefineProperty(cx, global, "arr", arr, JSPROP_ENUMERATE,
-                            JS_PropertyStub, JS_StrictPropertyStub));
+    CHECK(JS_DefineProperty(cx, global, "arr", arr,
+                            JSPROP_ENUMERATE,
+                            JS_STUBGETTER, JS_STUBSETTER));
 
     JS::RootedObject arrObj(cx, &arr.toObject());
     for (int i = 0; i < ExpectedCount; ++i) {
-        obj = JS_NewObject(cx, &AddPropertyClass, JS::NullPtr(), JS::NullPtr());
+        obj = JS_NewObject(cx, &AddPropertyClass);
         CHECK(obj);
-        CHECK(JS_DefineElement(cx, arrObj, i, obj, JSPROP_ENUMERATE,
-                               JS_PropertyStub, JS_StrictPropertyStub));
+        CHECK(JS_DefineElement(cx, arrObj, i, obj,
+                               JSPROP_ENUMERATE,
+                               JS_STUBGETTER, JS_STUBSETTER));
     }
 
     // Now add a prop to each of the objects, but make sure to do

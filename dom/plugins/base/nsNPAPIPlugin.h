@@ -10,8 +10,7 @@
 #include "npfunctions.h"
 #include "nsPluginHost.h"
 
-#include "nsCxPusher.h"
-
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/PluginLibrary.h"
 
 #if defined(XP_WIN)
@@ -32,7 +31,6 @@ private:
 
 public:
   nsNPAPIPlugin();
-  virtual ~nsNPAPIPlugin();
 
   NS_DECL_ISUPPORTS
 
@@ -62,6 +60,8 @@ public:
   static nsresult RetainStream(NPStream *pstream, nsISupports **aRetainedPeer);
 
 protected:
+  virtual ~nsNPAPIPlugin();
+
   NPPluginFuncs mPluginFuncs;
   PluginLibrary* mLibrary;
 };
@@ -126,7 +126,7 @@ IntToNPIdentifier(int i)
 JSContext* GetJSContext(NPP npp);
 
 inline bool
-NPStringIdentifierIsPermanent(NPP npp, NPIdentifier id)
+NPStringIdentifierIsPermanent(NPIdentifier id)
 {
   AutoSafeJSContext cx;
   return JS_StringHasBeenInterned(cx, NPIdentifierToString(id));
@@ -246,15 +246,6 @@ _unscheduletimer(NPP instance, uint32_t timerID);
 
 NPError
 _popupcontextmenu(NPP instance, NPMenu* menu);
-
-NPError
-_initasyncsurface(NPP instance, NPSize *size, NPImageFormat format, void *initData, NPAsyncSurface *surface);
-
-NPError
-_finalizeasyncsurface(NPP instance, NPAsyncSurface *surface);
-
-void
-_setcurrentasyncsurface(NPP instance, NPAsyncSurface *surface, NPRect *changed);
 
 NPBool
 _convertpoint(NPP instance, double sourceX, double sourceY, NPCoordinateSpace sourceSpace, double *destX, double *destY, NPCoordinateSpace destSpace);
@@ -380,13 +371,13 @@ class MOZ_STACK_CLASS NPPAutoPusher : public NPPStack,
                                       protected PluginDestructionGuard
 {
 public:
-  NPPAutoPusher(NPP npp)
-    : PluginDestructionGuard(npp),
+  explicit NPPAutoPusher(NPP aNpp)
+    : PluginDestructionGuard(aNpp),
       mOldNPP(sCurrentNPP)
   {
-    NS_ASSERTION(npp, "Uh, null npp passed to NPPAutoPusher!");
+    NS_ASSERTION(aNpp, "Uh, null aNpp passed to NPPAutoPusher!");
 
-    sCurrentNPP = npp;
+    sCurrentNPP = aNpp;
   }
 
   ~NPPAutoPusher()

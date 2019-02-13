@@ -7,13 +7,18 @@
 
 #include "nsFrameSetFrame.h"
 
+#include "gfxContext.h"
+#include "gfxUtils.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Helpers.h"
 #include "mozilla/Likely.h"
 
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValueInlines.h"
 #include "nsLeafFrame.h"
 #include "nsContainerFrame.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 #include "nsGkAtoms.h"
@@ -38,6 +43,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::gfx;
 
 // masks for mEdgeVisibility
 #define LEFT_VIS   0x0001
@@ -83,36 +89,36 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual nsresult GetCursor(const nsPoint&    aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                           nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          nsReflowStatus&          aStatus) override;
 
   bool GetVisibility() { return mVisibility || mVisibilityOverride; }
   void SetVisibility(bool aVisibility);
   void SetColor(nscolor aColor);
 
-  void PaintBorder(nsRenderingContext& aRenderingContext, nsPoint aPt);
+  void PaintBorder(DrawTarget* aDrawTarget, nsPoint aPt);
 
 protected:
   nsHTMLFramesetBorderFrame(nsStyleContext* aContext, int32_t aWidth, bool aVertical, bool aVisible);
   virtual ~nsHTMLFramesetBorderFrame();
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicISize() override;
+  virtual nscoord GetIntrinsicBSize() override;
 
   // the prev and next neighbors are indexes into the row (for a horizontal border) or col (for
   // a vertical border) of nsHTMLFramesetFrames or nsHTMLFrames
@@ -137,7 +143,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("FramesetBlank"), aResult);
   }
@@ -145,18 +151,18 @@ public:
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                           nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          nsReflowStatus&          aStatus) override;
 
 protected:
-  nsHTMLFramesetBlankFrame(nsStyleContext* aContext) : nsLeafFrame(aContext) {}
+  explicit nsHTMLFramesetBlankFrame(nsStyleContext* aContext) : nsLeafFrame(aContext) {}
   virtual ~nsHTMLFramesetBlankFrame();
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicISize() override;
+  virtual nscoord GetIntrinsicBSize() override;
 
   friend class nsHTMLFramesetFrame;
   friend class nsHTMLFrameset;
@@ -219,7 +225,7 @@ nsHTMLFramesetFrame::FrameResizePrefCallback(const char* aPref, void* aClosure)
   nsHTMLFramesetFrame *frame =
     reinterpret_cast<nsHTMLFramesetFrame *>(aClosure);
 
-  nsIDocument* doc = frame->mContent->GetDocument();
+  nsIDocument* doc = frame->mContent->GetComposedDoc();
   mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, true);
   if (doc) {
     nsNodeUtils::AttributeWillChange(frame->GetContent()->AsElement(),
@@ -335,16 +341,15 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
 
     // IMPORTANT: This must match the conditions in
     // nsCSSFrameConstructor::ContentAppended/Inserted/Removed
-    if (!child->IsHTML())
+    if (!child->IsHTMLElement())
       continue;
 
-    nsIAtom *tag = child->Tag();
-    if (tag == nsGkAtoms::frameset || tag == nsGkAtoms::frame) {
+    if (child->IsAnyOfHTMLElements(nsGkAtoms::frameset, nsGkAtoms::frame)) {
       nsRefPtr<nsStyleContext> kidSC;
 
       kidSC = shell->StyleSet()->ResolveStyleFor(child->AsElement(),
                                                  mStyleContext);
-      if (tag == nsGkAtoms::frameset) {
+      if (child->IsHTMLElement(nsGkAtoms::frameset)) {
         frame = NS_NewHTMLFramesetFrame(shell, kidSC);
 
         nsHTMLFramesetFrame* childFrame = (nsHTMLFramesetFrame*)frame;
@@ -619,47 +624,52 @@ nsHTMLFramesetFrame::GetDesiredSize(nsPresContext*           aPresContext,
                                     const nsHTMLReflowState& aReflowState,
                                     nsHTMLReflowMetrics&     aDesiredSize)
 {
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize desiredSize(wm);
   nsHTMLFramesetFrame* framesetParent = do_QueryFrame(GetParent());
   if (nullptr == framesetParent) {
     if (aPresContext->IsPaginated()) {
       // XXX This needs to be changed when framesets paginate properly
-      aDesiredSize.Width() = aReflowState.AvailableWidth();
-      aDesiredSize.Height() = aReflowState.AvailableHeight();
+      desiredSize.ISize(wm) = aReflowState.AvailableISize();
+      desiredSize.BSize(wm) = aReflowState.AvailableBSize();
     } else {
-      nsRect area = aPresContext->GetVisibleArea();
+      LogicalSize area(wm, aPresContext->GetVisibleArea().Size());
 
-      aDesiredSize.Width() = area.width;
-      aDesiredSize.Height() = area.height;
+      desiredSize.ISize(wm) = area.ISize(wm);
+      desiredSize.BSize(wm) = area.BSize(wm);
     }
   } else {
-    nsSize size;
-    framesetParent->GetSizeOfChild(this, size);
-    aDesiredSize.Width() = size.width;
-    aDesiredSize.Height() = size.height;
+    LogicalSize size(wm);
+    framesetParent->GetSizeOfChild(this, wm, size);
+    desiredSize.ISize(wm) = size.ISize(wm);
+    desiredSize.BSize(wm) = size.BSize(wm);
   }
+  aDesiredSize.SetSize(wm, desiredSize);
 }
 
 // only valid for non border children
 void nsHTMLFramesetFrame::GetSizeOfChildAt(int32_t  aIndexInParent,
-                                           nsSize&  aSize,
+                                           WritingMode aWM,
+                                           LogicalSize&  aSize,
                                            nsIntPoint& aCellIndex)
 {
   int32_t row = aIndexInParent / mNumCols;
   int32_t col = aIndexInParent - (row * mNumCols); // remainder from dividing index by mNumCols
   if ((row < mNumRows) && (col < mNumCols)) {
-    aSize.width  = mColSizes[col];
-    aSize.height = mRowSizes[row];
+    aSize.ISize(aWM) = mColSizes[col];
+    aSize.BSize(aWM) = mRowSizes[row];
     aCellIndex.x = col;
     aCellIndex.y = row;
   } else {
-    aSize.width = aSize.height = 0;
+    aSize.SizeTo(aWM, 0, 0);
     aCellIndex.x = aCellIndex.y = 0;
   }
 }
 
 // only valid for non border children
 void nsHTMLFramesetFrame::GetSizeOfChild(nsIFrame* aChild,
-                                         nsSize&   aSize)
+                                         WritingMode aWM,
+                                         LogicalSize& aSize)
 {
   // Reflow only creates children frames for <frameset> and <frame> content.
   // this assumption is used here
@@ -668,13 +678,12 @@ void nsHTMLFramesetFrame::GetSizeOfChild(nsIFrame* aChild,
        child = child->GetNextSibling()) {
     if (aChild == child) {
       nsIntPoint ignore;
-      GetSizeOfChildAt(i, aSize, ignore);
+      GetSizeOfChildAt(i, aWM, aSize, ignore);
       return;
     }
     i++;
   }
-  aSize.width  = 0;
-  aSize.height = 0;
+  aSize.SizeTo(aWM, 0, 0);
 }
 
 
@@ -736,7 +745,8 @@ nsHTMLFramesetFrame::ReflowPlaceChild(nsIFrame*                aChild,
                                       nsIntPoint*              aCellIndex)
 {
   // reflow the child
-  nsHTMLReflowState reflowState(aPresContext, aReflowState, aChild, aSize);
+  nsHTMLReflowState reflowState(aPresContext, aReflowState, aChild,
+                                LogicalSize(aChild->GetWritingMode(), aSize));
   reflowState.SetComputedWidth(std::max(0, aSize.width - reflowState.ComputedPhysicalBorderPadding().LeftRight()));
   reflowState.SetComputedHeight(std::max(0, aSize.height - reflowState.ComputedPhysicalBorderPadding().TopBottom()));
   nsHTMLReflowMetrics metrics(aReflowState);
@@ -845,12 +855,13 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
                             const nsHTMLReflowState& aReflowState,
                             nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsHTMLFramesetFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   nsIPresShell *shell = aPresContext->PresShell();
   nsStyleSet *styleSet = shell->StyleSet();
 
-  GetParent()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+  GetParent()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
 
   //printf("FramesetFrame2::Reflow %X (%d,%d) \n", this, aReflowState.AvailableWidth(), aReflowState.AvailableHeight());
   // Always get the size so that the caller knows how big we are
@@ -934,11 +945,14 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
   nsHTMLFramesetBorderFrame* borderFrame = nullptr;
   nsPoint offset(0,0);
   nsSize size, lastSize;
+  WritingMode wm = GetWritingMode();
+  LogicalSize logicalSize(wm);
   nsIFrame* child = mFrames.FirstChild();
 
   for (int32_t childX = 0; childX < mNonBorderChildCount; childX++) {
     nsIntPoint cellIndex;
-    GetSizeOfChildAt(childX, size, cellIndex);
+    GetSizeOfChildAt(childX, wm, logicalSize, cellIndex);
+    size = logicalSize.GetPhysicalSize(wm);
 
     if (lastRow != cellIndex.y) {  // changed to next row
       offset.x = 0;
@@ -1282,7 +1296,7 @@ nsHTMLFramesetFrame::StartMouseDrag(nsPresContext*             aPresContext,
 
   mDragger = aBorder;
 
-  mFirstDragPoint = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint);
+  mFirstDragPoint = aEvent->refPoint;
 
   // Store the original frame sizes
   if (mDragger->mVertical) {
@@ -1409,13 +1423,13 @@ nsHTMLFramesetBorderFrame::~nsHTMLFramesetBorderFrame()
 
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLFramesetBorderFrame)
 
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicWidth()
+nscoord nsHTMLFramesetBorderFrame::GetIntrinsicISize()
 {
   // No intrinsic width
   return 0;
 }
 
-nscoord nsHTMLFramesetBorderFrame::GetIntrinsicHeight()
+nscoord nsHTMLFramesetBorderFrame::GetIntrinsicBSize()
 {
   // No intrinsic height
   return 0;
@@ -1466,11 +1480,11 @@ public:
   // Receives events in its bounds
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState,
-                       nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE {
+                       nsTArray<nsIFrame*> *aOutFrames) override {
     aOutFrames->AppendElement(mFrame);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("FramesetBorder", TYPE_FRAMESET_BORDER)
 };
 
@@ -1478,7 +1492,7 @@ void nsDisplayFramesetBorder::Paint(nsDisplayListBuilder* aBuilder,
                                     nsRenderingContext* aCtx)
 {
   static_cast<nsHTMLFramesetBorderFrame*>(mFrame)->
-    PaintBorder(*aCtx, ToReferenceFrame());
+    PaintBorder(aCtx->GetDrawTarget(), ToReferenceFrame());
 }
 
 void
@@ -1490,44 +1504,52 @@ nsHTMLFramesetBorderFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     new (aBuilder) nsDisplayFramesetBorder(aBuilder, this));
 }
 
-void nsHTMLFramesetBorderFrame::PaintBorder(nsRenderingContext& aRenderingContext,
+void nsHTMLFramesetBorderFrame::PaintBorder(DrawTarget* aDrawTarget,
                                             nsPoint aPt)
 {
-  nscolor WHITE    = NS_RGB(255, 255, 255);
-
-  nscolor bgColor =
-    LookAndFeel::GetColor(LookAndFeel::eColorID_WidgetBackground,
-                          NS_RGB(200,200,200));
-  nscolor fgColor =
-    LookAndFeel::GetColor(LookAndFeel::eColorID_WidgetForeground,
-                          NS_RGB(0,0,0));
-  nscolor hltColor =
-    LookAndFeel::GetColor(LookAndFeel::eColorID_Widget3DHighlight,
-                          NS_RGB(255,255,255));
-  nscolor sdwColor =
-    LookAndFeel::GetColor(LookAndFeel::eColorID_Widget3DShadow,
-                          NS_RGB(128,128,128));
-
-  nsRenderingContext::AutoPushTranslation
-    translate(&aRenderingContext, aPt);
-
   nscoord widthInPixels = nsPresContext::AppUnitsToIntCSSPixels(mWidth);
   nscoord pixelWidth    = nsPresContext::CSSPixelsToAppUnits(1);
 
   if (widthInPixels <= 0)
     return;
 
-  nsPoint start(0,0);
-  nsPoint end((mVertical) ? 0 : mRect.width, (mVertical) ? mRect.height : 0);
+  ColorPattern bgColor(ToDeviceColor(
+                 LookAndFeel::GetColor(LookAndFeel::eColorID_WidgetBackground,
+                                       NS_RGB(200, 200, 200))));
 
-  nscolor color = WHITE;
+  ColorPattern fgColor(ToDeviceColor(
+                 LookAndFeel::GetColor(LookAndFeel::eColorID_WidgetForeground,
+                                       NS_RGB(0, 0, 0))));
+
+  ColorPattern hltColor(ToDeviceColor(
+                 LookAndFeel::GetColor(LookAndFeel::eColorID_Widget3DHighlight,
+                                       NS_RGB(255, 255, 255))));
+
+  ColorPattern sdwColor(ToDeviceColor(
+                 LookAndFeel::GetColor(LookAndFeel::eColorID_Widget3DShadow,
+                                       NS_RGB(128, 128, 128))));
+
+  ColorPattern color(ToDeviceColor(NS_RGB(255, 255, 255))); // default to white
   if (mVisibility || mVisibilityOverride) {
-    color = (NO_COLOR == mColor) ? bgColor : mColor;
+    color = (NO_COLOR == mColor) ? bgColor :
+                                   ColorPattern(ToDeviceColor(mColor));
   }
-  aRenderingContext.SetColor(color);
+
+  int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+
+  Point toRefFrame = NSPointToPoint(aPt, appUnitsPerDevPixel);
+
+  AutoRestoreTransform autoRestoreTransform(aDrawTarget);
+  aDrawTarget->SetTransform(
+    aDrawTarget->GetTransform().PreTranslate(toRefFrame));
+
+  nsPoint start(0, 0);
+  nsPoint end = mVertical ? nsPoint(0, mRect.height) : nsPoint(mRect.width, 0);
+
   // draw grey or white first
   for (int i = 0; i < widthInPixels; i++) {
-    aRenderingContext.DrawLine (start, end);
+    StrokeLineWithSnapping(start, end, appUnitsPerDevPixel, *aDrawTarget,
+                           color);
     if (mVertical) {
       start.x += pixelWidth;
       end.x =  start.x;
@@ -1541,30 +1563,30 @@ void nsHTMLFramesetBorderFrame::PaintBorder(nsRenderingContext& aRenderingContex
     return;
 
   if (widthInPixels >= 5) {
-    aRenderingContext.SetColor(hltColor);
     start.x = (mVertical) ? pixelWidth : 0;
     start.y = (mVertical) ? 0 : pixelWidth;
     end.x   = (mVertical) ? start.x : mRect.width;
     end.y   = (mVertical) ? mRect.height : start.y;
-    aRenderingContext.DrawLine(start, end);
+    StrokeLineWithSnapping(start, end, appUnitsPerDevPixel, *aDrawTarget,
+                           hltColor);
   }
 
   if (widthInPixels >= 2) {
-    aRenderingContext.SetColor(sdwColor);
     start.x = (mVertical) ? mRect.width - (2 * pixelWidth) : 0;
     start.y = (mVertical) ? 0 : mRect.height - (2 * pixelWidth);
     end.x   = (mVertical) ? start.x : mRect.width;
     end.y   = (mVertical) ? mRect.height : start.y;
-    aRenderingContext.DrawLine(start, end);
+    StrokeLineWithSnapping(start, end, appUnitsPerDevPixel, *aDrawTarget,
+                           sdwColor);
   }
 
   if (widthInPixels >= 1) {
-    aRenderingContext.SetColor(fgColor);
     start.x = (mVertical) ? mRect.width - pixelWidth : 0;
     start.y = (mVertical) ? 0 : mRect.height - pixelWidth;
     end.x   = (mVertical) ? start.x : mRect.width;
     end.y   = (mVertical) ? mRect.height : start.y;
-    aRenderingContext.DrawLine(start, end);
+    StrokeLineWithSnapping(start, end, appUnitsPerDevPixel, *aDrawTarget,
+                           fgColor);
   }
 }
 
@@ -1627,13 +1649,13 @@ nsHTMLFramesetBlankFrame::~nsHTMLFramesetBlankFrame()
   //printf("nsHTMLFramesetBlankFrame destructor %p \n", this);
 }
 
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicWidth()
+nscoord nsHTMLFramesetBlankFrame::GetIntrinsicISize()
 {
   // No intrinsic width
   return 0;
 }
 
-nscoord nsHTMLFramesetBlankFrame::GetIntrinsicHeight()
+nscoord nsHTMLFramesetBlankFrame::GetIntrinsicBSize()
 {
   // No intrinsic height
   return 0;
@@ -1669,16 +1691,19 @@ public:
 #endif
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("FramesetBlank", TYPE_FRAMESET_BLANK)
 };
 
 void nsDisplayFramesetBlank::Paint(nsDisplayListBuilder* aBuilder,
                                    nsRenderingContext* aCtx)
 {
-  nscolor white = NS_RGB(255,255,255);
-  aCtx->SetColor(white);
-  aCtx->FillRect(mVisibleRect);
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
+  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+  Rect rect =
+    NSRectToSnappedRect(mVisibleRect, appUnitsPerDevPixel, *drawTarget);
+  ColorPattern white(ToDeviceColor(Color(1.f, 1.f, 1.f, 1.f)));
+  drawTarget->FillRect(rect, white);
 }
 
 void

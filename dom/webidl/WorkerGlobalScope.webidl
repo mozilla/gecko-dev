@@ -12,7 +12,9 @@
  * this document.
  */
 
+[Exposed=(Worker)]
 interface WorkerGlobalScope : EventTarget {
+  [Constant, Cached]
   readonly attribute WorkerGlobalScope self;
 
   [Replaceable]
@@ -20,6 +22,7 @@ interface WorkerGlobalScope : EventTarget {
 
   readonly attribute WorkerLocation location;
 
+  [Throws]
   void close();
   attribute OnErrorEventHandler onerror;
 
@@ -35,12 +38,27 @@ partial interface WorkerGlobalScope {
   readonly attribute WorkerNavigator navigator;
 };
 
+// https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#self-caches
+partial interface WorkerGlobalScope {
+[Throws, Func="mozilla::dom::cache::CacheStorage::PrefEnabled"]
+readonly attribute CacheStorage caches;
+};
+
 WorkerGlobalScope implements WindowTimers;
 WorkerGlobalScope implements WindowBase64;
+WorkerGlobalScope implements GlobalFetch;
+WorkerGlobalScope implements IDBEnvironment;
+
+// Not implemented yet: bug 1072107.
+// WorkerGlobalScope implements FontFaceSource;
 
 // Mozilla extensions
 partial interface WorkerGlobalScope {
   attribute EventHandler onclose;
 
   void dump(optional DOMString str);
+
+  // XXXbz no spec for this yet, because the webperf WG is a bit dysfunctional
+  [Constant, Cached]
+  readonly attribute Performance performance;
 };

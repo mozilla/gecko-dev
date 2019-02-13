@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-(function () { // bug 673569 workaround :(
-
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.importGlobalProperties(['Blob']);
+
+Cu.import("resource://gre/modules/PageThumbUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -47,7 +47,7 @@ const backgroundPageThumbsContent = {
     // in the parent (eg, auth) aren't prevented, but alert() etc are.
     // disableDialogs only works on the current inner window, so it has
     // to be called every page load, but before scripts run.
-    if (subj == content.document) {
+    if (content && subj == content.document) {
       content.
         QueryInterface(Ci.nsIInterfaceRequestor).
         getInterface(Ci.nsIDOMWindowUtils).
@@ -84,9 +84,16 @@ const backgroundPageThumbsContent = {
     delete this._nextCapture;
     this._state = STATE_LOADING;
     this._currentCapture.pageLoadStartDate = new Date();
-    this._webNav.loadURI(this._currentCapture.url,
-                         Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
-                         null, null, null);
+
+    try {
+      this._webNav.loadURI(this._currentCapture.url,
+                           Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
+                           null, null, null);
+    } catch (e) {
+      this._failCurrentCapture("BAD_URI");
+      delete this._currentCapture;
+      this._startNextCapture();
+    }
   },
 
   onStateChange: function (webProgress, req, flags, status) {
@@ -120,13 +127,23 @@ const backgroundPageThumbsContent = {
     capture.finalURL = this._webNav.currentURI.spec;
     capture.pageLoadTime = new Date() - capture.pageLoadStartDate;
 
-    let canvas = PageThumbs._createCanvas(content);
     let canvasDrawDate = new Date();
-    PageThumbs._captureToCanvas(content, canvas);
+
+    let canvas = PageThumbUtils.createCanvas(content);
+    let [sw, sh, scale] = PageThumbUtils.determineCropSize(content, canvas);
+
+    let ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.drawWindow(content, 0, 0, sw, sh,
+                   PageThumbUtils.THUMBNAIL_BG_COLOR,
+                   ctx.DRAWWINDOW_DO_NOT_FLUSH);
+    ctx.restore();
+
     capture.canvasDrawTime = new Date() - canvasDrawDate;
 
     canvas.toBlob(blob => {
-      capture.imageBlob = blob;
+      capture.imageBlob = new Blob([blob]);
       // Load about:blank to finish the capture and wait for onStateChange.
       this._loadAboutBlank();
     });
@@ -150,6 +167,14 @@ const backgroundPageThumbsContent = {
     fileReader.readAsArrayBuffer(capture.imageBlob);
   },
 
+  _failCurrentCapture: function (reason) {
+    let capture = this._currentCapture;
+    sendAsyncMessage("BackgroundPageThumbs:didCapture", {
+      id: capture.id,
+      failReason: reason,
+    });
+  },
+
   // We load about:blank to finish all captures, even canceled captures.  Two
   // reasons: GC the captured page, and ensure it can't possibly load any more
   // resources.
@@ -167,5 +192,3 @@ const backgroundPageThumbsContent = {
 };
 
 backgroundPageThumbsContent.init();
-
-})();

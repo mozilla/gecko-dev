@@ -6,9 +6,14 @@
 
 if not CONFIG['LIBXUL_SDK']:
     if CONFIG['GAIADIR']:
-        PROGRAM = CONFIG['MOZ_APP_NAME'] + "-bin"
+        GeckoProgram(CONFIG['MOZ_APP_NAME'] + "-bin")
     else:
-        PROGRAM = CONFIG['MOZ_APP_NAME']
+        GeckoProgram(CONFIG['MOZ_APP_NAME'])
+    if CONFIG['MOZ_B2G_LOADER']:
+        SOURCES += [
+            'B2GLoader.cpp',
+        ]
+
     SOURCES += [
         'nsBrowserApp.cpp',
     ]
@@ -17,9 +22,11 @@ if not CONFIG['LIBXUL_SDK']:
         # a console application.
         WIN32_EXE_LDFLAGS += ['-ENTRY:wmainCRTStartup']
 
-DEFINES['XPCOM_GLUE'] = True
+    USE_LIBS += [
+        'zlib',
+    ]
 
-for var in ('MOZ_APP_NAME', 'MOZ_APP_VERSION', 'MOZ_UPDATER', 'MOZ_SERVICES_FXACCOUNTS'):
+for var in ('MOZ_APP_NAME', 'MOZ_APP_VERSION', 'MOZ_UPDATER'):
     DEFINES[var] = CONFIG[var]
 
 GENERATED_INCLUDES += [
@@ -39,4 +46,41 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
 
     LDFLAGS += ['-Wl,--export-dynamic']
 
+    USE_LIBS += [
+        'display',
+        'mozpng',
+    ]
+    OS_LIBS += [
+        'ui',
+        'EGL',
+        'hardware_legacy',
+        'hardware',
+        'cutils',
+    ]
+    OS_LIBS += CONFIG['MOZ_ZLIB_LIBS']
+    if CONFIG['ANDROID_VERSION'] in ('17', '18', '19', '21', '22'):
+        OS_LIBS += [
+            'gui',
+            'suspend',
+        ]
+    OS_LIBS += [
+        'binder',
+        'utils',
+    ]
+
 DISABLE_STL_WRAPPING = True
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    OS_LIBS += [
+        'version',
+    ]
+
+FAIL_ON_WARNINGS = True
+
+JS_PREFERENCE_FILES += [
+    'b2g.js',
+]
+
+DIST_FILES += [
+  'ua-update.json.in',
+]

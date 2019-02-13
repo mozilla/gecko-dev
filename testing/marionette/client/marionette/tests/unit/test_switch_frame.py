@@ -2,74 +2,70 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from marionette import JavascriptException
+from marionette import MarionetteTestCase
+from marionette_driver.errors import (JavascriptException,
+                                      NoSuchFrameException)
 
 
 class TestSwitchFrame(MarionetteTestCase):
     def test_switch_simple(self):
         start_url = "test_iframe.html"
         verify_title = "Marionette IFrame Test"
-        verify_url = "test.html"
         test_html = self.marionette.absolute_url(start_url)
         self.marionette.navigate(test_html)
         self.assertEqual(self.marionette.get_active_frame(), None)
         frame = self.marionette.find_element("id", "test_iframe")
         self.marionette.switch_to_frame(frame)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         inner_frame_element = self.marionette.get_active_frame()
         # test that we can switch back to main frame, then switch back to the
         # inner frame with the value we got from get_active_frame
         self.marionette.switch_to_frame()
         self.assertEqual(verify_title, self.marionette.title)
         self.marionette.switch_to_frame(inner_frame_element)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
 
     def test_switch_nested(self):
         start_url = "test_nested_iframe.html"
         verify_title = "Marionette IFrame Test"
-        verify_url = "test_inner_iframe.html"
         test_html = self.marionette.absolute_url(start_url)
         self.marionette.navigate(test_html)
         frame = self.marionette.find_element("id", "test_iframe")
         self.assertEqual(self.marionette.get_active_frame(), None)
         self.marionette.switch_to_frame(frame)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         inner_frame_element = self.marionette.get_active_frame()
         # test that we can switch back to main frame, then switch back to the
         # inner frame with the value we got from get_active_frame
         self.marionette.switch_to_frame()
         self.assertEqual(verify_title, self.marionette.title)
         self.marionette.switch_to_frame(inner_frame_element)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         inner_frame = self.marionette.find_element('id', 'inner_frame')
         self.marionette.switch_to_frame(inner_frame)
-        self.assertTrue("test.html" in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         self.marionette.switch_to_frame() # go back to main frame
-        self.assertTrue("test_nested_iframe.html" in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         #test that we're using the right window object server-side
         self.assertTrue("test_nested_iframe.html" in self.marionette.execute_script("return window.location.href;"))
 
     def test_stack_trace(self):
         start_url = "test_iframe.html"
         verify_title = "Marionette IFrame Test"
-        verify_url = "test.html"
         test_html = self.marionette.absolute_url(start_url)
         self.marionette.navigate(test_html)
         frame = self.marionette.find_element("id", "test_iframe")
         self.assertEqual(self.marionette.get_active_frame(), None)
         self.marionette.switch_to_frame(frame)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
         inner_frame_element = self.marionette.get_active_frame()
         # test that we can switch back to main frame, then switch back to the
         # inner frame with the value we got from get_active_frame
         self.marionette.switch_to_frame()
         self.assertEqual(verify_title, self.marionette.title)
         self.marionette.switch_to_frame(inner_frame_element)
-        self.assertTrue(verify_url in self.marionette.get_url())
+        self.assertTrue(start_url in self.marionette.get_url())
 
-        #can't use assertRaises in context manager with python2.6
-        self.assertRaises(JavascriptException, self.marionette.execute_async_script, "foo();")
         try:
             self.marionette.execute_async_script("foo();")
         except JavascriptException as e:
@@ -119,3 +115,12 @@ class TestSwitchFrame(MarionetteTestCase):
 
         element = self.marionette.find_element("id", "email")
         self.assertEquals("email", element.get_attribute("type"))
+
+    def test_switch_to_frame_with_out_of_bounds_index(self):
+        self.marionette.navigate(self.marionette.absolute_url("test_iframe.html"))
+        count = self.marionette.execute_script("return window.frames.length;")
+        self.assertRaises(NoSuchFrameException, self.marionette.switch_to_frame, count)
+
+    def test_switch_to_frame_with_negative_index(self):
+        self.marionette.navigate(self.marionette.absolute_url("test_iframe.html"))
+        self.assertRaises(NoSuchFrameException, self.marionette.switch_to_frame, -1)

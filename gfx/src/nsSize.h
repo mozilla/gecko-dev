@@ -13,7 +13,7 @@
 // Maximum allowable size
 #define NS_MAXSIZE nscoord_MAX
 
-struct nsIntSize;
+typedef mozilla::gfx::IntSize nsIntSize;
 typedef nsIntSize gfxIntSize;
 
 struct nsSize : public mozilla::gfx::BaseSize<nscoord, nsSize> {
@@ -22,44 +22,36 @@ struct nsSize : public mozilla::gfx::BaseSize<nscoord, nsSize> {
   nsSize() : Super() {}
   nsSize(nscoord aWidth, nscoord aHeight) : Super(aWidth, aHeight) {}
 
-  inline nsIntSize ScaleToNearestPixels(float aXScale, float aYScale,
+  inline mozilla::gfx::IntSize ScaleToNearestPixels(float aXScale, float aYScale,
                                         nscoord aAppUnitsPerPixel) const;
-  inline nsIntSize ToNearestPixels(nscoord aAppUnitsPerPixel) const;
+  inline mozilla::gfx::IntSize ToNearestPixels(nscoord aAppUnitsPerPixel) const;
 
-  // Converts this size from aFromAPP, an appunits per pixel ratio, to aToAPP.
-  inline nsSize ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
+  /**
+   * Return this size scaled to a different appunits per pixel (APP) ratio.
+   * @param aFromAPP the APP to scale from
+   * @param aToAPP the APP to scale to
+   */
+  MOZ_WARN_UNUSED_RESULT inline nsSize
+    ScaleToOtherAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
 };
 
-struct nsIntSize : public mozilla::gfx::BaseSize<int32_t, nsIntSize> {
-  typedef mozilla::gfx::BaseSize<int32_t, nsIntSize> Super;
-
-  nsIntSize() : Super() {}
-  nsIntSize(int32_t aWidth, int32_t aHeight) : Super(aWidth, aHeight) {}
-
-  inline nsSize ToAppUnits(nscoord aAppUnitsPerPixel) const;
-  mozilla::gfx::IntSize ToIntSize() const
-  {
-    return mozilla::gfx::IntSize(width, height);
-  };
-};
-
-inline nsIntSize
+inline mozilla::gfx::IntSize
 nsSize::ScaleToNearestPixels(float aXScale, float aYScale,
                              nscoord aAppUnitsPerPixel) const
 {
-  return nsIntSize(
+  return mozilla::gfx::IntSize(
       NSToIntRoundUp(NSAppUnitsToDoublePixels(width, aAppUnitsPerPixel) * aXScale),
       NSToIntRoundUp(NSAppUnitsToDoublePixels(height, aAppUnitsPerPixel) * aYScale));
 }
 
-inline nsIntSize
+inline mozilla::gfx::IntSize
 nsSize::ToNearestPixels(nscoord aAppUnitsPerPixel) const
 {
   return ScaleToNearestPixels(1.0f, 1.0f, aAppUnitsPerPixel);
 }
 
 inline nsSize
-nsSize::ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const {
+nsSize::ScaleToOtherAppUnits(int32_t aFromAPP, int32_t aToAPP) const {
   if (aFromAPP != aToAPP) {
     nsSize size;
     size.width = NSToCoordRound(NSCoordScale(width, aFromAPP, aToAPP));
@@ -70,10 +62,10 @@ nsSize::ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const {
 }
 
 inline nsSize
-nsIntSize::ToAppUnits(nscoord aAppUnitsPerPixel) const
+IntSizeToAppUnits(mozilla::gfx::IntSize aSize, nscoord aAppUnitsPerPixel)
 {
-  return nsSize(NSIntPixelsToAppUnits(width, aAppUnitsPerPixel),
-                NSIntPixelsToAppUnits(height, aAppUnitsPerPixel));
+  return nsSize(NSIntPixelsToAppUnits(aSize.width, aAppUnitsPerPixel),
+                NSIntPixelsToAppUnits(aSize.height, aAppUnitsPerPixel));
 }
 
 #endif /* NSSIZE_H */

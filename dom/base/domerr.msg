@@ -38,8 +38,6 @@ DOM4_MSG_DEF(RangeError, "The method parameter is out of valid range.", NS_ERROR
 
 /* StringEncoding API errors from http://wiki.whatwg.org/wiki/StringEncoding */
 DOM4_MSG_DEF(EncodingError, "The given encoding is not supported.", NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR)
-DOM4_MSG_DEF(EncodingError, "The encoding must be utf-8, utf-16, or utf-16be.", NS_ERROR_DOM_ENCODING_NOT_UTF_ERR)
-DOM4_MSG_DEF(EncodingError, "The decoder failed to convert.", NS_ERROR_DOM_ENCODING_DECODE_ERR)
 
 /* WebCrypto API errors from http://www.w3.org/TR/WebCryptoAPI/ */
 DOM4_MSG_DEF(UnknownError, "The operation failed for an unknown transient reason", NS_ERROR_DOM_UNKNOWN_ERR)
@@ -103,6 +101,19 @@ DOM_MSG_DEF(NS_ERROR_DOM_QUOTA_REACHED, "Persistent storage maximum size reached
 
 DOM4_MSG_DEF(NotFoundError, "File was not found", NS_ERROR_DOM_FILE_NOT_FOUND_ERR)
 DOM4_MSG_DEF(NotReadableError, "File could not be read", NS_ERROR_DOM_FILE_NOT_READABLE_ERR)
+
+/* Non-standard Bluetooth DOM errors. */
+DOM4_MSG_DEF(BtFailError,         "Fail",  NS_ERROR_DOM_BLUETOOTH_FAIL)
+DOM4_MSG_DEF(BtNotReadyError,     "Not ready",  NS_ERROR_DOM_BLUETOOTH_NOT_READY)
+DOM4_MSG_DEF(BtNoMemError,        "No memory",  NS_ERROR_DOM_BLUETOOTH_NOMEM)
+DOM4_MSG_DEF(BtBusyError,         "Device busy with another command",  NS_ERROR_DOM_BLUETOOTH_BUSY)
+DOM4_MSG_DEF(BtDoneError,         "Request already done",  NS_ERROR_DOM_BLUETOOTH_DONE)
+DOM4_MSG_DEF(BtUnsupportedError,  "Unsupported",  NS_ERROR_DOM_BLUETOOTH_UNSUPPORTED)
+DOM4_MSG_DEF(BtParmInvalidError,  "Invalid parameter",  NS_ERROR_DOM_BLUETOOTH_PARM_INVALID)
+DOM4_MSG_DEF(BtUnhandledError,    "Unhandled",  NS_ERROR_DOM_BLUETOOTH_UNHANDLED)
+DOM4_MSG_DEF(BtAuthFailureError,  "Authentication failure",  NS_ERROR_DOM_BLUETOOTH_AUTH_FAILURE)
+DOM4_MSG_DEF(BtRmtDevDownError,   "Remote device down",  NS_ERROR_DOM_BLUETOOTH_RMT_DEV_DOWN)
+DOM4_MSG_DEF(BtAuthRejectedError, "Authentication rejected",  NS_ERROR_DOM_BLUETOOTH_AUTH_REJECTED)
 
 /* common global codes (from nsError.h) */
 

@@ -5,6 +5,13 @@
 
 
 Cu.import("resource:///modules/experiments/Experiments.jsm");
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
+Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
+
+XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
+  () => Cc["@mozilla.org/datareporting/service;1"]
+          .getService(Ci.nsISupports)
+          .wrappedJSObject);
 
 const FILE_MANIFEST            = "experiments.manifest";
 const SEC_IN_ONE_DAY = 24 * 60 * 60;
@@ -13,7 +20,6 @@ const MS_IN_ONE_DAY  = SEC_IN_ONE_DAY * 1000;
 let gProfileDir = null;
 let gHttpServer = null;
 let gHttpRoot   = null;
-let gReporter   = null;
 let gPolicy     = null;
 
 
@@ -44,6 +50,17 @@ function applicableFromManifestData(data, policy) {
   return entry.isApplicable();
 }
 
+function initialiseTelemetry() {
+  // Send the needed startup notifications to the datareporting service
+  // to ensure that it has been initialized.
+  if ("@mozilla.org/datareporting/service;1" in Cc) {
+    gDatareportingService.observe(null, "app-startup", null);
+    gDatareportingService.observe(null, "profile-after-change", null);
+  }
+
+  return TelemetryController.setup().then(TelemetrySession.setup);
+}
+
 function run_test() {
   run_next_test();
 }
@@ -51,25 +68,19 @@ function run_test() {
 add_task(function* test_setup() {
   createAppInfo();
   gProfileDir = do_get_profile();
+  startAddonManagerOnly();
+  yield initialiseTelemetry();
   gPolicy = new Experiments.Policy();
-
-  gReporter = yield getReporter("json_payload_simple");
-  yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(false);
-  do_register_cleanup(() => gReporter._shutdown());
 
   patchPolicy(gPolicy, {
     updatechannel: () => "nightly",
     locale: () => "en-US",
-    healthReportPayload: () => Promise.resolve(payload),
     random: () => 0.5,
   });
 
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setIntPref(PREF_LOGGING_LEVEL, 0);
   Services.prefs.setBoolPref(PREF_LOGGING_DUMP, true);
-
-  let experiments = new Experiments.Experiments();
 });
 
 function arraysEqual(a, b) {
@@ -88,17 +99,11 @@ function arraysEqual(a, b) {
 
 // This function exists solely to be .toSource()d
 const sanityFilter = function filter(c) {
-  if (c.telemetryPayload === undefined) {
-    throw Error("No .telemetryPayload");
+  if (c.telemetryEnvironment === undefined) {
+    throw Error("No .telemetryEnvironment");
   }
-  if (c.telemetryPayload.simpleMeasurements === undefined) {
-    throw Error("No .simpleMeasurements");
-  }
-  if (c.healthReportPayload === undefined) {
-    throw Error("No .healthReportPayload");
-  }
-  if (c.healthReportPayload.geckoAppInfo == undefined) {
-    throw Error("No .geckoAppInfo");
+  if (c.telemetryEnvironment.build == undefined) {
+    throw Error("No .telemetryEnvironment.build");
   }
   return true;
 }
@@ -309,4 +314,8 @@ add_task(function* test_times() {
       Assert.equal(reason, entry[1], "Experiment rejection reason should match for test " + i);
     }
   }
+});
+
+add_task(function* test_shutdown() {
+  yield TelemetrySession.shutdown(false);
 });

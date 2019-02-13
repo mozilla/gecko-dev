@@ -18,16 +18,16 @@ function test() {
 
   let browser = tab.linkedBrowser;
 
-  waitForTabState(tab, tabState, function () {
-
+  promiseTabState(tab, tabState).then(() => {
     let sessionHistory = browser.sessionHistory;
     let entry = sessionHistory.getEntryAtIndex(0, false);
     entry.QueryInterface(Ci.nsISHContainer);
 
     whenChildCount(entry, 1, function () {
       whenChildCount(entry, 2, function () {
-        whenBrowserLoaded(browser, function () {
-          SyncHandlers.get(browser).flush();
+        promiseBrowserLoaded(browser).then(() => {
+          return TabStateFlusher.flush(browser);
+        }).then(() => {
           let {entries} = JSON.parse(ss.getTabState(tab));
           is(entries.length, 1, "tab has one history entry");
           ok(!entries[0].children, "history entry has no subframes");

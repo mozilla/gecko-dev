@@ -12,6 +12,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "nsAutoPtr.h"
+#include "nsNativeCharsetUtils.h"
 
 /**
  * This code uses NSPR stuff and STL containers because it must be detached
@@ -28,7 +29,7 @@ namespace {
 struct ObservationWithStack
 {
   ObservationWithStack(mozilla::IOInterposeObserver::Observation& aObs,
-                       ProfilerBacktrace *aStack)
+                       ProfilerBacktrace* aStack)
     : mObservation(aObs)
     , mStack(aStack)
   {
@@ -37,17 +38,13 @@ struct ObservationWithStack
       mFilename = filename;
     }
   }
- 
+
   mozilla::IOInterposeObserver::Observation mObservation;
   ProfilerBacktrace*                        mStack;
   nsString                                  mFilename;
 };
 
-} // anonymous namespace
-
-namespace mozilla {
-
-class MainThreadIOLoggerImpl MOZ_FINAL : public IOInterposeObserver
+class MainThreadIOLoggerImpl final : public mozilla::IOInterposeObserver
 {
 public:
   MainThreadIOLoggerImpl();
@@ -83,7 +80,8 @@ MainThreadIOLoggerImpl::~MainThreadIOLoggerImpl()
   if (!mIOThread) {
     return;
   }
-  { // Scope for lock
+  {
+    // Scope for lock
     IOInterposer::MonitorAutoLock lock(mMonitor);
     mShutdownRequired = true;
     lock.Notify();
@@ -133,7 +131,8 @@ MainThreadIOLoggerImpl::IOThreadFunc()
     return;
   }
   mLogStartTime = TimeStamp::Now();
-  { // Scope for lock
+  {
+    // Scope for lock
     IOInterposer::MonitorAutoLock lock(mMonitor);
     while (true) {
       while (!mShutdownRequired && mObservations.empty()) {
@@ -145,13 +144,12 @@ MainThreadIOLoggerImpl::IOThreadFunc()
       // Pull events off the shared array onto a local one
       std::vector<ObservationWithStack> observationsToWrite;
       observationsToWrite.swap(mObservations);
- 
+
       // Release the lock so that we're not holding anybody up during I/O
       IOInterposer::MonitorAutoUnlock unlock(mMonitor);
 
       // Now write the events.
-      for (std::vector<ObservationWithStack>::iterator
-             i = observationsToWrite.begin(), e = observationsToWrite.end();
+      for (auto i = observationsToWrite.begin(), e = observationsToWrite.end();
            i != e; ++i) {
         if (i->mObservation.ObservedOperation() == OpNextStage) {
           PR_fprintf(fd, "%f,NEXT-STAGE\n",
@@ -202,6 +200,10 @@ MainThreadIOLoggerImpl::Observe(Observation& aObservation)
   mObservations.push_back(ObservationWithStack(aObservation, nullptr));
   lock.Notify();
 }
+
+} // anonymous namespace
+
+namespace mozilla {
 
 namespace MainThreadIOLogger {
 

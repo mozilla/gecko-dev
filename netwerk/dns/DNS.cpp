@@ -204,6 +204,22 @@ bool IsIPAddrLocal(const NetAddr *addr)
   return false;
 }
 
+nsresult
+GetPort(const NetAddr *aAddr, uint16_t *aResult)
+{
+  uint16_t port;
+  if (aAddr->raw.family == PR_AF_INET) {
+    port = aAddr->inet.port;
+  } else if (aAddr->raw.family == PR_AF_INET6) {
+    port = aAddr->inet6.port;
+  } else {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  *aResult = ntohs(port);
+  return NS_OK;
+}
+
 bool
 NetAddr::operator == (const NetAddr& other) const
 {
@@ -244,18 +260,22 @@ NetAddrElement::~NetAddrElement()
 }
 
 AddrInfo::AddrInfo(const char *host, const PRAddrInfo *prAddrInfo,
-                   bool disableIPv4, const char *cname)
+                   bool disableIPv4, bool filterNameCollision, const char *cname)
 {
   MOZ_ASSERT(prAddrInfo, "Cannot construct AddrInfo with a null prAddrInfo pointer!");
+  const uint32_t nameCollisionAddr = htonl(0x7f003535); // 127.0.53.53
 
   Init(host, cname);
   PRNetAddr tmpAddr;
   void *iter = nullptr;
   do {
     iter = PR_EnumerateAddrInfo(iter, prAddrInfo, 0, &tmpAddr);
-    if (iter && (!disableIPv4 || tmpAddr.raw.family != PR_AF_INET)) {
-      NetAddrElement *addrElement = new NetAddrElement(&tmpAddr);
-      mAddresses.insertBack(addrElement);
+    bool addIt = iter &&
+        (!disableIPv4 || tmpAddr.raw.family != PR_AF_INET) &&
+        (!filterNameCollision || tmpAddr.raw.family != PR_AF_INET || (tmpAddr.inet.ip != nameCollisionAddr));
+    if (addIt) {
+        NetAddrElement *addrElement = new NetAddrElement(&tmpAddr);
+        mAddresses.insertBack(addrElement);
     }
   } while (iter);
 }
@@ -271,8 +291,8 @@ AddrInfo::~AddrInfo()
   while ((addrElement = mAddresses.popLast())) {
     delete addrElement;
   }
-  moz_free(mHostName);
-  moz_free(mCanonicalName);
+  free(mHostName);
+  free(mCanonicalName);
 }
 
 void
@@ -280,6 +300,7 @@ AddrInfo::Init(const char *host, const char *cname)
 {
   MOZ_ASSERT(host, "Cannot initialize AddrInfo with a null host pointer!");
 
+  ttl = NO_TTL_DATA;
   size_t hostlen = strlen(host);
   mHostName = static_cast<char*>(moz_xmalloc(hostlen + 1));
   memcpy(mHostName, host, hostlen + 1);

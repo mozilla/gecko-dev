@@ -6,31 +6,30 @@
 #ifndef SHARED_SURFACE_EGL_H_
 #define SHARED_SURFACE_EGL_H_
 
-#include "SharedSurfaceGL.h"
-#include "SurfaceFactory.h"
-#include "GLLibraryEGL.h"
-#include "SurfaceTypes.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
+#include "nsAutoPtr.h"
+#include "SharedSurface.h"
 
 namespace mozilla {
 namespace gl {
 
 class GLContext;
+class GLLibraryEGL;
 class TextureGarbageBin;
 
 class SharedSurface_EGLImage
-    : public SharedSurface_GL
+    : public SharedSurface
 {
 public:
-    static SharedSurface_EGLImage* Create(GLContext* prodGL,
-                                          const GLFormats& formats,
-                                          const gfx::IntSize& size,
-                                          bool hasAlpha,
-                                          EGLContext context);
+    static UniquePtr<SharedSurface_EGLImage> Create(GLContext* prodGL,
+                                                    const GLFormats& formats,
+                                                    const gfx::IntSize& size,
+                                                    bool hasAlpha,
+                                                    EGLContext context);
 
     static SharedSurface_EGLImage* Cast(SharedSurface* surf) {
-        MOZ_ASSERT(surf->Type() == SharedSurfaceType::EGLImageShare);
+        MOZ_ASSERT(surf->mType == SharedSurfaceType::EGLImageShare);
 
         return (SharedSurface_EGLImage*)surf;
     }
@@ -42,7 +41,9 @@ protected:
     GLLibraryEGL* const mEGL;
     const GLFormats mFormats;
     GLuint mProdTex;
-    EGLImage mImage;
+public:
+    const EGLImage mImage;
+protected:
     GLContext* mCurConsGL;
     GLuint mConsTex;
     nsRefPtr<TextureGarbageBin> mGarbageBin;
@@ -62,44 +63,49 @@ protected:
 public:
     virtual ~SharedSurface_EGLImage();
 
-    virtual void LockProdImpl() MOZ_OVERRIDE {}
-    virtual void UnlockProdImpl() MOZ_OVERRIDE {}
+    virtual void LockProdImpl() override {}
+    virtual void UnlockProdImpl() override {}
 
+    virtual void Fence() override;
+    virtual bool WaitSync() override;
+    virtual bool PollSync() override;
 
-    virtual void Fence() MOZ_OVERRIDE;
-    virtual bool WaitSync() MOZ_OVERRIDE;
-
-    virtual GLuint ProdTexture() MOZ_OVERRIDE {
+    virtual GLuint ProdTexture() override {
       return mProdTex;
     }
 
     // Implementation-specific functions below:
     // Returns texture and target
     void AcquireConsumerTexture(GLContext* consGL, GLuint* out_texture, GLuint* out_target);
+
+    virtual bool ToSurfaceDescriptor(layers::SurfaceDescriptor* const out_descriptor) override;
 };
 
 
 
 class SurfaceFactory_EGLImage
-    : public SurfaceFactory_GL
+    : public SurfaceFactory
 {
 public:
     // Fallible:
-    static SurfaceFactory_EGLImage* Create(GLContext* prodGL,
-                                           const SurfaceCaps& caps);
+    static UniquePtr<SurfaceFactory_EGLImage> Create(GLContext* prodGL,
+                                                     const SurfaceCaps& caps,
+                                                     const RefPtr<layers::ISurfaceAllocator>& allocator,
+                                                     const layers::TextureFlags& flags);
 
 protected:
     const EGLContext mContext;
 
-    SurfaceFactory_EGLImage(GLContext* prodGL,
-                            EGLContext context,
-                            const SurfaceCaps& caps)
-        : SurfaceFactory_GL(prodGL, SharedSurfaceType::EGLImageShare, caps)
+    SurfaceFactory_EGLImage(GLContext* prodGL, const SurfaceCaps& caps,
+                            const RefPtr<layers::ISurfaceAllocator>& allocator,
+                            const layers::TextureFlags& flags,
+                            EGLContext context)
+        : SurfaceFactory(SharedSurfaceType::EGLImageShare, prodGL, caps, allocator, flags)
         , mContext(context)
-    {}
+    { }
 
 public:
-    virtual SharedSurface* CreateShared(const gfx::IntSize& size) MOZ_OVERRIDE {
+    virtual UniquePtr<SharedSurface> CreateShared(const gfx::IntSize& size) override {
         bool hasAlpha = mReadCaps.alpha;
         return SharedSurface_EGLImage::Create(mGL, mFormats, size, hasAlpha, mContext);
     }

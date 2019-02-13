@@ -18,7 +18,6 @@ interface nsICommandLine;
  *
  * Example:
  * Category             Entry          Value
- * command-line-handler b-jsdebug      @mozilla.org/venkman/clh;1
  * command-line-handler c-extensions   @mozilla.org/extension-manager/clh;1
  * command-line-handler m-edit         @mozilla.org/composer/clh;1
  * command-line-handler m-irc          @mozilla.org/chatzilla/clh;1
@@ -44,7 +43,7 @@ interface nsICommandLineHandler : nsISupports
   void handle(in nsICommandLine aCommandLine);
 
   /**
-   * When the app is launched with the -help argument, this attribute
+   * When the app is launched with the --help argument, this attribute
    * is retrieved and displayed to the user (on stdout). The text should
    * have embedded newlines which wrap at 76 columns, and should include
    * a newline at the end. By convention, the right column which contains flag

@@ -6,6 +6,9 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#if defined(OS_MACOSX)
+#include <sched.h>
+#endif
 #include <stddef.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -22,15 +25,13 @@
 #include "base/lock.h"
 #include "base/logging.h"
 #include "base/process_util.h"
-#include "base/scoped_ptr.h"
 #include "base/string_util.h"
 #include "base/singleton.h"
-#include "base/stats_counters.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/file_descriptor_set_posix.h"
-#include "chrome/common/ipc_logging.h"
 #include "chrome/common/ipc_message_utils.h"
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/UniquePtr.h"
 
 #ifdef MOZ_TASK_TRACER
 #include "GeckoTaskTracerImpl.h"
@@ -283,6 +284,8 @@ Channel::ChannelImpl::ChannelImpl(int fd, Mode mode, Listener* listener)
 }
 
 void Channel::ChannelImpl::Init(Mode mode, Listener* listener) {
+  DCHECK(kControlBufferSlopBytes >= CMSG_SPACE(0));
+
   mode_ = mode;
   is_blocked_on_write_ = false;
   message_send_bytes_written_ = 0;
@@ -370,9 +373,9 @@ void Channel::ChannelImpl::ResetFileDescriptor(int fd) {
 }
 
 bool Channel::ChannelImpl::EnqueueHelloMessage() {
-  scoped_ptr<Message> msg(new Message(MSG_ROUTING_NONE,
-                                      HELLO_MESSAGE_TYPE,
-                                      IPC::Message::PRIORITY_NORMAL));
+  mozilla::UniquePtr<Message> msg(new Message(MSG_ROUTING_NONE,
+                                              HELLO_MESSAGE_TYPE,
+                                              IPC::Message::PRIORITY_NORMAL));
   if (!msg->WriteInt(base::GetCurrentProcId())) {
     Close();
     return false;
@@ -382,14 +385,20 @@ bool Channel::ChannelImpl::EnqueueHelloMessage() {
   return true;
 }
 
-static void
-ClearAndShrink(std::string& s, size_t capacity)
+void Channel::ChannelImpl::ClearAndShrinkInputOverflowBuf()
 {
-  // This swap trick is the closest thing C++ has to a guaranteed way to
-  // shrink the capacity of a string.
-  std::string tmp;
-  tmp.reserve(capacity);
-  s.swap(tmp);
+  // If input_overflow_buf_ has grown, shrink it back to its normal size.
+  static size_t previousCapacityAfterClearing = 0;
+  if (input_overflow_buf_.capacity() > previousCapacityAfterClearing) {
+    // This swap trick is the closest thing C++ has to a guaranteed way
+    // to shrink the capacity of a string.
+    std::string tmp;
+    tmp.reserve(Channel::kReadBufferSize);
+    input_overflow_buf_.swap(tmp);
+    previousCapacityAfterClearing = input_overflow_buf_.capacity();
+  } else {
+    input_overflow_buf_.clear();
+  }
 }
 
 bool Channel::ChannelImpl::Connect() {
@@ -518,7 +527,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
     } else {
       if (input_overflow_buf_.size() >
          static_cast<size_t>(kMaximumMessageSize - bytes_read)) {
-        ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
+        ClearAndShrinkInputOverflowBuf();
         CHROMIUM_LOG(ERROR) << "IPC message is too big";
         return false;
       }
@@ -627,7 +636,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
       }
     }
     if (end == p) {
-      ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
+      ClearAndShrinkInputOverflowBuf();
     } else if (!overflowp) {
       // p is from input_buf_
       input_overflow_buf_.assign(p, end - p);
@@ -700,11 +709,6 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
       msg->set_fd_cookie(++last_pending_fd_id_);
 #endif
     }
-#ifdef MOZ_TASK_TRACER
-    GetCurTraceInfo(&msg->header()->source_event_id,
-                    &msg->header()->parent_task_id,
-                    &msg->header()->source_event_type);
-#endif
 
     size_t amt_to_write = msg->size() - message_send_bytes_written_;
     DCHECK(amt_to_write != 0);
@@ -723,9 +727,39 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
       msg->file_descriptor_set()->CommitAll();
 #endif
 
-    if (bytes_written < 0 && errno != EAGAIN) {
-      CHROMIUM_LOG(ERROR) << "pipe error: " << strerror(errno);
-      return false;
+    if (bytes_written < 0) {
+      switch (errno) {
+      case EAGAIN:
+        // Not an error; the sendmsg would have blocked, so return to the
+        // event loop and try again later.
+        break;
+#if defined(OS_MACOSX)
+        // (Note: this comment is copied from https://crrev.com/86c3d9ef4fdf6;
+        // see also bug 1142693 comment #73.)
+        //
+        // On OS X if sendmsg() is trying to send fds between processes and
+        // there isn't enough room in the output buffer to send the fd
+        // structure over atomically then EMSGSIZE is returned.
+        //
+        // EMSGSIZE presents a problem since the system APIs can only call us
+        // when there's room in the socket buffer and not when there is
+        // "enough" room.
+        //
+        // The current behavior is to return to the event loop when EMSGSIZE
+        // is received and hopefull service another FD.  This is however still
+        // technically a busy wait since the event loop will call us right
+        // back until the receiver has read enough data to allow passing the
+        // FD over atomically.
+      case EMSGSIZE:
+        // Because this is likely to result in a busy-wait, we'll try to make
+        // it easier for the receiver to make progress.
+        sched_yield();
+        break;
+#endif
+      default:
+        CHROMIUM_LOG(ERROR) << "pipe error: " << strerror(errno);
+        return false;
+      }
     }
 
     if (static_cast<size_t>(bytes_written) != amt_to_write) {
@@ -771,9 +805,6 @@ bool Channel::ChannelImpl::Send(Message* message) {
              << " (" << output_queue_.size() << " in queue)";
 #endif
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  Logging::current()->OnSendMessage(message, L"");
-#endif
 
   // If the channel has been closed, ProcessOutgoingMessages() is never going
   // to pop anything off output_queue; output_queue will only get emptied when
@@ -846,6 +877,8 @@ void Channel::ChannelImpl::OnFileCanReadWithoutBlocking(int fd) {
     if (!ProcessIncomingMessages()) {
       Close();
       listener_->OnChannelError();
+      // The OnChannelError() call may delete this, so we need to exit now.
+      return;
     }
   }
 
@@ -879,6 +912,12 @@ void Channel::ChannelImpl::CloseDescriptors(uint32_t pending_fd_id)
 
 void Channel::ChannelImpl::OutputQueuePush(Message* msg)
 {
+#ifdef MOZ_TASK_TRACER
+  // Save the current TaskTracer info into the message header.
+  GetCurTraceInfo(&msg->header()->source_event_id,
+                  &msg->header()->parent_task_id,
+                  &msg->header()->source_event_type);
+#endif
   output_queue_.push(msg);
   output_queue_length_++;
 }
@@ -1015,6 +1054,18 @@ bool Channel::Unsound_IsClosed() const {
 
 uint32_t Channel::Unsound_NumQueuedMessages() const {
   return channel_impl_->Unsound_NumQueuedMessages();
+}
+
+// static
+std::wstring Channel::GenerateVerifiedChannelID(const std::wstring& prefix) {
+  // A random name is sufficient validation on posix systems, so we don't need
+  // an additional shared secret.
+
+  std::wstring id = prefix;
+  if (!id.empty())
+    id.append(L".");
+
+  return id.append(GenerateUniqueRandomChannelID());
 }
 
 }  // namespace IPC

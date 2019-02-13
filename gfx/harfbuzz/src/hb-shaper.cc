@@ -40,12 +40,14 @@ static const hb_shaper_pair_t all_shapers[] = {
 
 static const hb_shaper_pair_t *static_shapers;
 
-static inline
+#ifdef HB_USE_ATEXIT
+static
 void free_static_shapers (void)
 {
   if (unlikely (static_shapers != all_shapers))
     free ((void *) static_shapers);
 }
+#endif
 
 const hb_shaper_pair_t *
 _hb_shapers_get (void)
@@ -100,7 +102,7 @@ retry:
       goto retry;
     }
 
-#ifdef HAVE_ATEXIT
+#ifdef HB_USE_ATEXIT
     atexit (free_static_shapers); /* First person registers atexit() callback. */
 #endif
   }

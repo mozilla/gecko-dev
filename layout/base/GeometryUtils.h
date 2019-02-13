@@ -16,7 +16,6 @@
  */
 
 class nsINode;
-class nsIDocument;
 
 namespace mozilla {
 
@@ -26,7 +25,7 @@ struct ConvertCoordinateOptions;
 class DOMQuad;
 class DOMRectReadOnly;
 class DOMPoint;
-class DOMPointInit;
+struct DOMPointInit;
 class OwningTextOrElementOrDocument;
 class TextOrElementOrDocument;
 }

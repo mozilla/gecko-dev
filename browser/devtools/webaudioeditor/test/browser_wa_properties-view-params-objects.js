@@ -6,11 +6,11 @@
  * like AudioBuffer and Float32Array in properties of AudioNodes.
  */
 
-function spawnTest() {
-  let [target, debuggee, panel] = yield initWebAudioEditor(BUFFER_AND_ARRAY_URL);
+add_task(function*() {
+  let { target, panel } = yield initWebAudioEditor(BUFFER_AND_ARRAY_URL);
   let { panelWin } = panel;
-  let { gFront, $, $$, EVENTS, WebAudioInspectorView } = panelWin;
-  let gVars = WebAudioInspectorView._propsView;
+  let { gFront, $, $$, EVENTS, PropertiesView } = panelWin;
+  let gVars = PropertiesView._propsView;
 
   let started = once(gFront, "start-context");
 
@@ -23,17 +23,24 @@ function spawnTest() {
   let nodeIds = actors.map(actor => actor.actorID);
 
   click(panelWin, findGraphNode(panelWin, nodeIds[2]));
-  yield once(panelWin, EVENTS.UI_INSPECTOR_NODE_SET);
+  yield waitForInspectorRender(panelWin, EVENTS);
   checkVariableView(gVars, 0, {
     "curve": "Float32Array"
   }, "WaveShaper's `curve` is listed as an `Float32Array`.");
 
+  let aVar = gVars.getScopeAtIndex(0).get("curve")
+  let state = aVar.target.querySelector(".theme-twisty").hasAttribute("invisible");
+  ok(state, "Float32Array property should not have a dropdown.");
+
   click(panelWin, findGraphNode(panelWin, nodeIds[1]));
-  yield once(panelWin, EVENTS.UI_INSPECTOR_NODE_SET);
+  yield waitForInspectorRender(panelWin, EVENTS);
   checkVariableView(gVars, 0, {
     "buffer": "AudioBuffer"
   }, "AudioBufferSourceNode's `buffer` is listed as an `AudioBuffer`.");
 
-  yield teardown(panel);
-  finish();
-}
+  aVar = gVars.getScopeAtIndex(0).get("buffer")
+  state = aVar.target.querySelector(".theme-twisty").hasAttribute("invisible");
+  ok(state, "AudioBuffer property should not have a dropdown.");
+
+  yield teardown(target);
+});

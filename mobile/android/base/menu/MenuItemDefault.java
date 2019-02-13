@@ -20,13 +20,13 @@ public class MenuItemDefault extends TextView
     private static final int[] STATE_UNCHECKED = new int[] { android.R.attr.state_checkable };
 
     private Drawable mIcon;
-    private Drawable mState;
+    private final Drawable mState;
     private static Rect sIconBounds;
 
-    private boolean mCheckable = false;
-    private boolean mChecked = false;
-    private boolean mHasSubMenu = false;
-    private boolean mShowIcon = false;
+    private boolean mCheckable;
+    private boolean mChecked;
+    private boolean mHasSubMenu;
+    private boolean mShowIcon;
 
     public MenuItemDefault(Context context) {
         this(context, null);

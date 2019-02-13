@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,6 +13,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PFMRadioChild.h"
 #include "mozilla/dom/FMRadioService.h"
+#include "mozilla/dom/TypedArray.h"
 #include "DOMRequest.h"
 #include "nsDOMClassInfo.h"
 #include "nsIDocShell.h"
@@ -31,8 +32,8 @@ using mozilla::Preferences;
 
 BEGIN_FMRADIO_NAMESPACE
 
-class FMRadioRequest MOZ_FINAL : public FMRadioReplyRunnable
-                               , public DOMRequest
+class FMRadioRequest final : public FMRadioReplyRunnable
+                           , public DOMRequest
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -58,8 +59,6 @@ public:
     mFMRadio = do_GetWeakReference(static_cast<nsIDOMEventTarget*>(aFMRadio));
     mType = aType;
   }
-
-  ~FMRadioRequest() { }
 
   NS_IMETHODIMP
   Run()
@@ -96,6 +95,9 @@ public:
     return NS_OK;
   }
 
+protected:
+  ~FMRadioRequest() { }
+
 private:
   FMRadioRequestArgs::Type mType;
   nsWeakPtr mFMRadio;
@@ -105,13 +107,12 @@ NS_IMPL_ISUPPORTS_INHERITED0(FMRadioRequest, DOMRequest)
 
 FMRadio::FMRadio()
   : mHeadphoneState(SWITCH_STATE_OFF)
+  , mRdsGroupMask(0)
   , mAudioChannelAgentEnabled(false)
   , mHasInternalAntenna(false)
   , mIsShutdown(false)
 {
   LOG("FMRadio is initialized.");
-
-  SetIsDOMBinding();
 }
 
 FMRadio::~FMRadio()
@@ -184,9 +185,9 @@ FMRadio::Shutdown()
 }
 
 JSObject*
-FMRadio::WrapObject(JSContext* aCx)
+FMRadio::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return FMRadioBinding::Wrap(aCx, this);
+  return FMRadioBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
@@ -220,6 +221,28 @@ FMRadio::Notify(const FMRadioEventType& aType)
         DispatchTrustedEvent(NS_LITERAL_STRING("disabled"));
       }
       break;
+    case RDSEnabledChanged:
+      if (RdsEnabled()) {
+        DispatchTrustedEvent(NS_LITERAL_STRING("rdsenabled"));
+      } else {
+        DispatchTrustedEvent(NS_LITERAL_STRING("rdsdisabled"));
+      }
+      break;
+    case PIChanged:
+      DispatchTrustedEvent(NS_LITERAL_STRING("pichange"));
+      break;
+    case PSChanged:
+      DispatchTrustedEvent(NS_LITERAL_STRING("pschange"));
+      break;
+    case RadiotextChanged:
+      DispatchTrustedEvent(NS_LITERAL_STRING("rtchange"));
+      break;
+    case PTYChanged:
+      DispatchTrustedEvent(NS_LITERAL_STRING("ptychange"));
+      break;
+    case NewRDSGroup:
+      DispatchTrustedEvent(NS_LITERAL_STRING("newrdsgroup"));
+      break;
     default:
       MOZ_CRASH();
   }
@@ -230,6 +253,12 @@ bool
 FMRadio::Enabled()
 {
   return IFMRadioService::Singleton()->IsEnabled();
+}
+
+bool
+FMRadio::RdsEnabled()
+{
+  return IFMRadioService::Singleton()->IsRDSEnabled();
 }
 
 bool
@@ -263,6 +292,70 @@ double
 FMRadio::ChannelWidth() const
 {
   return IFMRadioService::Singleton()->GetChannelWidth();
+}
+
+uint32_t
+FMRadio::RdsGroupMask() const
+{
+  return mRdsGroupMask;
+}
+
+void
+FMRadio::SetRdsGroupMask(uint32_t aRdsGroupMask)
+{
+  mRdsGroupMask = aRdsGroupMask;
+  IFMRadioService::Singleton()->SetRDSGroupMask(aRdsGroupMask);
+}
+
+Nullable<unsigned short>
+FMRadio::GetPi() const
+{
+  return IFMRadioService::Singleton()->GetPi();
+}
+
+Nullable<uint8_t>
+FMRadio::GetPty() const
+{
+  return IFMRadioService::Singleton()->GetPty();
+}
+
+void
+FMRadio::GetPs(DOMString& aPsname) const
+{
+  if (!IFMRadioService::Singleton()->GetPs(aPsname)) {
+    aPsname.SetNull();
+  }
+}
+
+void
+FMRadio::GetRt(DOMString& aRadiotext) const
+{
+  if (!IFMRadioService::Singleton()->GetRt(aRadiotext)) {
+    aRadiotext.SetNull();
+  }
+}
+
+void
+FMRadio::GetRdsgroup(JSContext* cx, JS::MutableHandle<JSObject*> retval)
+{
+  uint64_t group;
+  if (!IFMRadioService::Singleton()->GetRdsgroup(group)) {
+    return;
+  }
+
+  JSObject *rdsgroup = Uint16Array::Create(cx, this, 4);
+  JS::AutoCheckCannotGC nogc;
+  uint16_t *data = JS_GetUint16ArrayData(rdsgroup, nogc);
+  data[3] = group & 0xFFFF;
+  group >>= 16;
+  data[2] = group & 0xFFFF;
+  group >>= 16;
+  data[1] = group & 0xFFFF;
+  group >>= 16;
+  data[0] = group & 0xFFFF;
+
+  JS::ExposeObjectToActiveJS(rdsgroup);
+  retval.set(rdsgroup);
 }
 
 already_AddRefed<DOMRequest>
@@ -350,6 +443,32 @@ FMRadio::CancelSeek()
   return r.forget();
 }
 
+already_AddRefed<DOMRequest>
+FMRadio::EnableRDS()
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetOwner();
+  if (!win) {
+    return nullptr;
+  }
+
+  nsRefPtr<FMRadioRequest> r = new FMRadioRequest(win, this);
+  IFMRadioService::Singleton()->EnableRDS(r);
+  return r.forget();
+}
+
+already_AddRefed<DOMRequest>
+FMRadio::DisableRDS()
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetOwner();
+  if (!win) {
+    return nullptr;
+  }
+
+  nsRefPtr<FMRadioRequest> r = new FMRadioRequest(win, this);
+  FMRadioService::Singleton()->DisableRDS(r);
+  return r.forget();
+}
+
 NS_IMETHODIMP
 FMRadio::HandleEvent(nsIDOMEvent* aEvent)
 {
@@ -385,7 +504,7 @@ FMRadio::EnableAudioChannelAgent()
 NS_IMETHODIMP
 FMRadio::CanPlayChanged(int32_t aCanPlay)
 {
-  SetCanPlay(aCanPlay == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL);
+  SetCanPlay(!(aCanPlay == AudioChannelState::AUDIO_CHANNEL_STATE_MUTED));
   return NS_OK;
 }
 

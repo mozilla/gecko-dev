@@ -7,55 +7,16 @@
 # Build mozglue as a shared lib on Windows, OSX and Android.
 # If this is ever changed, update MOZ_SHARED_MOZGLUE in browser/installer/Makefile.in
 if CONFIG['OS_TARGET'] in ('WINNT', 'Darwin', 'Android'):
-    FORCE_SHARED_LIB = True
+    SharedLibrary('mozglue')
 else:
-    FORCE_SHARED_LIB = False
-    FORCE_STATIC_LIB = True
+    Library('mozglue')
 
-if CONFIG['MOZ_MEMORY'] and (CONFIG['MOZ_NATIVE_JEMALLOC'] or FORCE_SHARED_LIB):
-    pass
-    # TODO: SHARED_LIBRARY_LIBS go here
-else:
-    # Temporary, until bug 662814 lands
-    NO_VISIBILITY_FLAGS = True
-    SOURCES += [
-        'dummy.cpp',
-    ]
+if not CONFIG['MOZ_CRT']:
+    SDK_LIBRARY = True
 
 if CONFIG['OS_TARGET'] == 'Android':
     SOURCES += [
         'BionicGlue.cpp',
-    ]
-
-if CONFIG['OS_TARGET'] == 'WINNT':
-    SOURCES += [
-        'WindowsDllBlocklist.cpp',
-    ]
-    DEFFILE = 'mozglue.def'
-    DISABLE_STL_WRAPPING = True
-
-if CONFIG['MOZ_NUWA_PROCESS']:
-    EXPORTS.ipc += [
-        'Nuwa.h',
-    ]
-    SOURCES += [
-        'Nuwa.cpp',
-    ]
-
-EXPORTS.mozilla += [
-    'arm.h',
-    'SSE.h',
-    'WindowsDllBlocklist.h',
-]
-
-if CONFIG['CPU_ARCH'].startswith('x86'):
-    SOURCES += [
-        'SSE.cpp',
-    ]
-
-if CONFIG['CPU_ARCH'] == 'arm':
-    SOURCES += [
-        'arm.cpp',
     ]
 
 if CONFIG['MOZ_ASAN']:
@@ -63,12 +24,87 @@ if CONFIG['MOZ_ASAN']:
         'AsanOptions.cpp',
     ]
 
-
-LIBRARY_NAME = 'mozglue'
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    SOURCES += [
-        'cpuacct.c',
+if CONFIG['OS_TARGET'] == 'WINNT':
+    DEFFILE = 'mozglue.def'
+    # We'll break the DLL blocklist if we immediately load user32.dll
+    DELAYLOAD_DLLS += [
+        'user32.dll',
     ]
 
+if not CONFIG['JS_STANDALONE']:
+
+    if CONFIG['MOZ_MEMORY'] and (CONFIG['MOZ_NATIVE_JEMALLOC'] or FORCE_SHARED_LIB):
+        pass
+        # TODO: SHARED_LIBRARY_LIBS go here
+    else:
+        # Temporary, until bug 662814 lands
+        NO_VISIBILITY_FLAGS = True
+        SOURCES += [
+            'dummy.cpp',
+        ]
+
+    if CONFIG['OS_TARGET'] == 'WINNT':
+        SOURCES += [
+            'WindowsDllBlocklist.cpp',
+        ]
+        DISABLE_STL_WRAPPING = True
+        OS_LIBS += [
+            'version',
+        ]
+
+    if CONFIG['MOZ_NUWA_PROCESS']:
+        EXPORTS.ipc += [
+            'Nuwa.h',
+        ]
+        SOURCES += [
+            'Nuwa.cpp',
+        ]
+
+    EXPORTS.mozilla += [
+        'arm.h',
+        'SSE.h',
+        'WindowsDllBlocklist.h',
+    ]
+
+    if CONFIG['CPU_ARCH'].startswith('x86'):
+        SOURCES += [
+            'SSE.cpp',
+        ]
+
+    if CONFIG['CPU_ARCH'] == 'arm':
+        SOURCES += [
+            'arm.cpp',
+        ]
+
+    if CONFIG['MOZ_LINKER']:
+        USE_LIBS += [
+            'zlib',
+        ]
+
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
+        SOURCES += [
+            'cpuacct.c',
+        ]
+
+USE_LIBS += [
+    'mfbt',
+]
+
 DEFINES['IMPL_MFBT'] = True
+
+LDFLAGS += CONFIG['MOZ_GLUE_WRAP_LDFLAGS']
+
+if not CONFIG['_MSC_VER']:
+    FAIL_ON_WARNINGS = True
+
+if CONFIG['OS_TARGET'] == 'Darwin':
+    # On OSX 10.10.3, a dead lock happens in some cases involving dynamic
+    # symbol resolution for symbols that jemalloc itself uses. While it
+    # might be possible to find a way to avoid all such symbol resolutions,
+    # it's currently not possible because at the very least there's a call
+    # to pthread_self from tsd_init_check_recursion, which is necessary
+    # because somehow clang doesn't want to accept the __thread keyword
+    # for TLS.
+    LDFLAGS += ['-Wl,-bind_at_load']
+
+DIST_INSTALL = True

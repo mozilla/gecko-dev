@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,6 +8,7 @@
 
 const {Cu, Ci} = require("chrome");
 let EventEmitter = require("devtools/toolkit/event-emitter");
+Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 
 /**
  * API
@@ -225,11 +226,18 @@ Selection.prototype = {
     if (rawNode) {
       try {
         let doc = this.document;
-        return (doc && doc.defaultView && doc.documentElement.contains(rawNode));
+        if (doc && doc.defaultView) {
+          let docEl = doc.documentElement;
+          let bindingParent = LayoutHelpers.getRootBindingParent(rawNode);
+
+          if (docEl.contains(bindingParent)) {
+            return true;
+          }
+        }
       } catch (e) {
         // "can't access dead object" error
-        return false;
       }
+      return false;
     }
 
     while(node) {
@@ -243,13 +251,21 @@ Selection.prototype = {
 
   isHTMLNode: function() {
     let xhtml_ns = "http://www.w3.org/1999/xhtml";
-    return this.isNode() && this.node.namespaceURI == xhtml_ns;
+    return this.isNode() && this.nodeFront.namespaceURI == xhtml_ns;
   },
 
   // Node type
 
   isElementNode: function() {
     return this.isNode() && this.nodeFront.nodeType == Ci.nsIDOMNode.ELEMENT_NODE;
+  },
+
+  isPseudoElementNode: function() {
+    return this.isNode() && this.nodeFront.isPseudoElement;
+  },
+
+  isAnonymousNode: function() {
+    return this.isNode() && this.nodeFront.isAnonymous;
   },
 
   isAttributeNode: function() {
@@ -282,6 +298,24 @@ Selection.prototype = {
 
   isDocumentNode: function() {
     return this.isNode() && this.nodeFront.nodeType == Ci.nsIDOMNode.DOCUMENT_NODE;
+  },
+
+  /**
+   * @returns true if the selection is the <body> HTML element.
+   */
+  isBodyNode: function() {
+    return this.isHTMLNode() &&
+           this.isConnected() &&
+           this.nodeFront.nodeName === "BODY";
+  },
+
+  /**
+   * @returns true if the selection is the <head> HTML element.
+   */
+  isHeadNode: function() {
+    return this.isHTMLNode() &&
+           this.isConnected() &&
+           this.nodeFront.nodeName === "HEAD";
   },
 
   isDocumentTypeNode: function() {

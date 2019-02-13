@@ -5,10 +5,10 @@
  * Tests more edge rendering for complex graphs.
  */
 
-function spawnTest() {
-  let [target, debuggee, panel] = yield initWebAudioEditor(COMPLEX_CONTEXT_URL);
+add_task(function*() {
+  let { target, panel } = yield initWebAudioEditor(COMPLEX_CONTEXT_URL);
   let { panelWin } = panel;
-  let { gFront, $, $$, EVENTS } = panelWin;
+  let { gFront, $, $$ } = panelWin;
 
   let started = once(gFront, "start-context");
 
@@ -45,7 +45,5 @@ function spawnTest() {
       "found edge for " + msg);
   });
 
-  yield teardown(panel);
-  finish();
-}
-
+  yield teardown(target);
+});

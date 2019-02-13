@@ -185,12 +185,24 @@ let kSpecialIds = {
     return null;
   },
 
-  get menu()    PlacesUtils.bookmarksMenuFolderId,
-  get places()  PlacesUtils.placesRootId,
-  get tags()    PlacesUtils.tagsFolderId,
-  get toolbar() PlacesUtils.toolbarFolderId,
-  get unfiled() PlacesUtils.unfiledBookmarksFolderId,
-  get mobile()  this.findMobileRoot(true),
+  get menu() {
+    return PlacesUtils.bookmarksMenuFolderId;
+  },
+  get places() {
+    return PlacesUtils.placesRootId;
+  },
+  get tags() {
+    return PlacesUtils.tagsFolderId;
+  },
+  get toolbar() {
+    return PlacesUtils.toolbarFolderId;
+  },
+  get unfiled() {
+    return PlacesUtils.unfiledBookmarksFolderId;
+  },
+  get mobile() {
+    return this.findMobileRoot(true);
+  },
 };
 
 this.BookmarksEngine = function BookmarksEngine(service) {
@@ -202,6 +214,9 @@ BookmarksEngine.prototype = {
   _storeObj: BookmarksStore,
   _trackerObj: BookmarksTracker,
   version: 2,
+  _defaultSort: "index",
+
+  syncPriority: 4,
 
   _sync: function _sync() {
     let engine = this;
@@ -232,7 +247,19 @@ BookmarksEngine.prototype = {
       // Figure out with which key to store the mapping.
       let key;
       let id = this._store.idForGUID(guid);
-      switch (PlacesUtils.bookmarks.getItemType(id)) {
+      let itemType;
+      try {
+        itemType = PlacesUtils.bookmarks.getItemType(id);
+      } catch (ex) {
+        this._log.warn("Deleting invalid bookmark record with id", id);
+        try {
+          PlacesUtils.bookmarks.removeItem(id);
+        } catch (ex) {
+          this._log.warn("Failed to delete invalid bookmark", ex);
+        }
+        continue;
+      }
+      switch (itemType) {
         case PlacesUtils.bookmarks.TYPE_BOOKMARK:
 
           // Smart bookmarks map to their annotation value.
@@ -241,12 +268,25 @@ BookmarksEngine.prototype = {
             queryId = PlacesUtils.annotations.getItemAnnotation(
               id, SMART_BOOKMARKS_ANNO);
           } catch(ex) {}
-          
-          if (queryId)
+
+          if (queryId) {
             key = "q" + queryId;
-          else
-            key = "b" + PlacesUtils.bookmarks.getBookmarkURI(id).spec + ":" +
-                  PlacesUtils.bookmarks.getItemTitle(id);
+          } else {
+            let uri;
+            try {
+              uri = PlacesUtils.bookmarks.getBookmarkURI(id);
+            } catch (ex) {
+              // Bug 1182366 - NS_ERROR_MALFORMED_URI here stops bookmarks sync.
+              this._log.warn("Deleting bookmark with invalid URI. id: " + id);
+              try {
+                PlacesUtils.bookmarks.removeItem(id);
+              } catch (ex) {
+                this._log.warn("Failed to delete invalid bookmark", ex);
+              }
+              continue;
+            }
+            key = "b" + uri.spec + ":" + PlacesUtils.bookmarks.getItemTitle(id);
+          }
           break;
         case PlacesUtils.bookmarks.TYPE_FOLDER:
           key = "f" + PlacesUtils.bookmarks.getItemTitle(id);
@@ -744,7 +784,10 @@ BookmarksStore.prototype = {
                          guid: record.id};
       PlacesUtils.livemarks.addLivemark(livemarkObj).then(
         aLivemark => { spinningCb(null, [Components.results.NS_OK, aLivemark]) },
-        () => { spinningCb(null, [Components.results.NS_ERROR_UNEXPECTED, aLivemark]) }
+        ex => {
+          this._log.error("creating livemark failed: " + ex);
+          spinningCb(null, [Components.results.NS_ERROR_UNEXPECTED, null])
+        }
       );
 
       let [status, livemark] = spinningCb.wait();
@@ -1124,6 +1167,7 @@ BookmarksStore.prototype = {
     stmt.params.guid = guid;
     stmt.params.item_id = id;
     Async.querySpinningly(stmt);
+    PlacesUtils.invalidateCachedGuidFor(id);
     return guid;
   },
 
@@ -1268,7 +1312,7 @@ BookmarksStore.prototype = {
     }
 
     // Filter out any null/undefined/empty tags.
-    tags = tags.filter(function(t) t);
+    tags = tags.filter(t => t);
 
     // Temporarily tag a dummy URI to preserve tag ids when untagging.
     let dummyURI = Utils.makeURI("about:weave#BStore_tagURI");
@@ -1442,9 +1486,9 @@ BookmarksTracker.prototype = {
   },
 
   _ensureMobileQuery: function _ensureMobileQuery() {
-    let find = function (val)
+    let find = val =>
       PlacesUtils.annotations.getItemsWithAnnotation(ORGANIZERQUERY_ANNO, {}).filter(
-        function (id) PlacesUtils.annotations.getItemAnnotation(id, ORGANIZERQUERY_ANNO) == val
+        id => PlacesUtils.annotations.getItemAnnotation(id, ORGANIZERQUERY_ANNO) == val
       );
 
     // Don't continue if the Library isn't ready

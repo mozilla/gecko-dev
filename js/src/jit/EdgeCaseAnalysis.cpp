@@ -12,7 +12,7 @@
 using namespace js;
 using namespace js::jit;
 
-EdgeCaseAnalysis::EdgeCaseAnalysis(MIRGenerator *mir, MIRGraph &graph)
+EdgeCaseAnalysis::EdgeCaseAnalysis(MIRGenerator* mir, MIRGraph& graph)
   : mir(mir), graph(graph)
 {
 }
@@ -21,7 +21,7 @@ bool
 EdgeCaseAnalysis::analyzeLate()
 {
     // Renumber definitions for NeedNegativeZeroCheck under analyzeEdgeCasesBackward.
-    uint32_t nextId = 1;
+    uint32_t nextId = 0;
 
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         if (mir->shouldCancel("Analyze Late (first loop)"))

@@ -10,15 +10,20 @@ extern "C" {
 #include "stun.h"
 }
 
+#include "mozilla/Attributes.h"
 #include "mozilla/net/DNS.h"
 #include "stun_udp_socket_filter.h"
 #include "nr_socket_prsock.h"
+#if defined(MOZILLA_XPCOMRT_API)
+#include "mozilla/Module.h"
+#include "mozilla/ModuleUtils.h"
+#endif
 
 namespace {
 
 class NetAddressAdapter {
  public:
-  NetAddressAdapter(const mozilla::net::NetAddr& netaddr)
+  MOZ_IMPLICIT NetAddressAdapter(const mozilla::net::NetAddr& netaddr)
     : addr_(ntohl(netaddr.inet.ip)),
       port_(ntohs(netaddr.inet.port)) {
     MOZ_ASSERT(netaddr.raw.family == AF_INET);
@@ -44,7 +49,7 @@ class PendingSTUNRequest {
       net_addr_(netaddr),
       is_id_set_(true) {}
 
-  PendingSTUNRequest(const NetAddressAdapter& netaddr)
+  MOZ_IMPLICIT PendingSTUNRequest(const NetAddressAdapter& netaddr)
     : id_(),
       net_addr_(netaddr),
       is_id_set_(false) {}
@@ -81,12 +86,13 @@ class STUNUDPSocketFilter : public nsIUDPSocketFilter {
     : white_list_(),
       pending_requests_() {}
 
-  virtual ~STUNUDPSocketFilter() {}
-
+  // Allocated/freed and used on the PBackground IPC thread
   NS_DECL_ISUPPORTS
   NS_DECL_NSIUDPSOCKETFILTER
 
  private:
+  virtual ~STUNUDPSocketFilter() {}
+
   bool filter_incoming_packet(const mozilla::net::NetAddr *remote_addr,
                               const uint8_t *data,
                               uint32_t len);
@@ -205,3 +211,26 @@ NS_IMETHODIMP nsStunUDPSocketFilterHandler::NewFilter(nsIUDPSocketFilter **resul
   NS_ADDREF(*result = ret);
   return NS_OK;
 }
+
+#if defined(MOZILLA_XPCOMRT_API)
+NS_DEFINE_NAMED_CID(NS_STUN_UDP_SOCKET_FILTER_HANDLER_CID)
+
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsStunUDPSocketFilterHandler)
+
+static const mozilla::Module::CIDEntry kCIDs[] = {
+  { &kNS_STUN_UDP_SOCKET_FILTER_HANDLER_CID, false, nullptr, nsStunUDPSocketFilterHandlerConstructor },
+  { nullptr }
+};
+
+static const mozilla::Module::ContractIDEntry kContracts[] = {
+  { NS_STUN_UDP_SOCKET_FILTER_HANDLER_CONTRACTID, &kNS_STUN_UDP_SOCKET_FILTER_HANDLER_CID },
+  { nullptr }
+};
+
+extern const mozilla::Module kStunUDPSocketFilterHandlerModule;
+const mozilla::Module kStunUDPSocketFilterHandlerModule = {
+  mozilla::Module::kVersion,
+  kCIDs,
+  kContracts
+};
+#endif

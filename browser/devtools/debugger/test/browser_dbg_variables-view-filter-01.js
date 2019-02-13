@@ -7,16 +7,15 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_with-frame.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gVariables, gSearchBox;
 
 function test() {
   // Debug test slaves are quite slow at this test.
   requestLongerTimeout(4);
 
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gVariables = gDebugger.DebuggerView.Variables;
@@ -37,9 +36,7 @@ function test() {
         ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
       });
 
-    EventUtils.sendMouseEvent({ type: "click" },
-      gDebuggee.document.querySelector("button"),
-      gDebuggee);
+    generateMouseClickInTab(gTab, "content.document.querySelector('button')");
   });
 }
 
@@ -78,8 +75,8 @@ function testVariablesAndPropertiesFiltering() {
       "There should be 0 variables displayed in the with scope.");
     is(functionScope.target.querySelectorAll(".variables-view-variable:not([unmatched])").length, 0,
       "There should be 0 variables displayed in the function scope.");
-    isnot(globalScope.target.querySelectorAll(".variables-view-variable:not([unmatched])").length, 0,
-      "There should be some variables displayed in the global scope.");
+    is(globalScope.target.querySelectorAll(".variables-view-variable:not([unmatched])").length, 0,
+      "There should be 0 variables displayed in the global scope.");
 
     is(withScope.target.querySelectorAll(".variables-view-property:not([unmatched])").length, 0,
       "There should be 0 properties displayed in the with scope.");
@@ -99,8 +96,10 @@ function testVariablesAndPropertiesFiltering() {
   }
 
   function firstFilter() {
+    let expanded = once(gVariables, "fetched");
     typeText(gSearchBox, "constructor");
-    testFiltered();
+    gSearchBox.doCommand();
+    return expanded.then(testFiltered);
   }
 
   function secondFilter() {
@@ -131,13 +130,13 @@ function testVariablesAndPropertiesFiltering() {
     is(constr2Var.expanded, false,
       "The constr2Var should not be expanded.");
 
+    let expanded = once(gVariables, "fetched");
     clearText(gSearchBox);
     typeText(gSearchBox, "constructor");
-    testFiltered();
+    expanded.then(testFiltered);
   }
 
-  firstFilter();
-  secondFilter();
+  firstFilter().then(secondFilter);
 }
 
 function prepareVariablesAndProperties() {
@@ -214,7 +213,6 @@ function prepareVariablesAndProperties() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gVariables = null;

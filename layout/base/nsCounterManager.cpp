@@ -7,12 +7,13 @@
 /* implementation of CSS counters (for numbering things) */
 
 #include "nsCounterManager.h"
+
+#include "mozilla/Likely.h"
+#include "mozilla/WritingModes.h"
 #include "nsBulletFrame.h" // legacy location for list style type to text code
 #include "nsContentUtils.h"
-#include "nsTArray.h"
-#include "mozilla/Likely.h"
 #include "nsIContent.h"
-#include "WritingModes.h"
+#include "nsTArray.h"
 
 using namespace mozilla;
 
@@ -39,7 +40,7 @@ nsCounterUseNode::InitTextFrame(nsGenConList* aList,
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -48,8 +49,17 @@ nsCounterUseNode::GetCounterStyle()
 {
     if (!mCounterStyle) {
         const nsCSSValue& style = mCounterFunction->Item(mAllCounters ? 2 : 1);
-        mCounterStyle = mPresContext->CounterStyleManager()->
-            BuildCounterStyle(nsDependentString(style.GetStringBufferValue()));
+        CounterStyleManager* manager = mPresContext->CounterStyleManager();
+        if (style.GetUnit() == eCSSUnit_Ident) {
+            nsString ident;
+            style.GetStringValue(ident);
+            mCounterStyle = manager->BuildCounterStyle(ident);
+        } else if (style.GetUnit() == eCSSUnit_Symbols) {
+            mCounterStyle = new AnonymousCounterStyle(style.GetArrayValue());
+        } else {
+            NS_NOTREACHED("Unknown counter style");
+            mCounterStyle = CounterStyleManager::GetDecimalStyle();
+        }
     }
     return mCounterStyle;
 }
@@ -199,7 +209,7 @@ nsCounterList::RecalcAll()
 }
 
 nsCounterManager::nsCounterManager()
-    : mNames(16)
+    : mNames()
 {
 }
 
@@ -235,10 +245,6 @@ nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
         new nsCounterChangeNode(aFrame, aType, aCounterData->mValue, aIndex);
 
     nsCounterList *counterList = CounterListFor(aCounterData->mCounter);
-    if (!counterList) {
-        NS_NOTREACHED("CounterListFor failed (should only happen on OOM)");
-        return false;
-    }
 
     counterList->Insert(node);
     if (!counterList->IsLast(node)) {
@@ -312,7 +318,7 @@ nsCounterManager::SetAllCounterStylesDirty()
 }
 
 struct DestroyNodesData {
-    DestroyNodesData(nsIFrame *aFrame)
+    explicit DestroyNodesData(nsIFrame *aFrame)
         : mFrame(aFrame)
         , mDestroyedAny(false)
     {

@@ -10,9 +10,7 @@ EXPORTS.mozilla.ipc += [
     'XPCShellEnvironment.h',
 ]
 
-# FIXME/bug 575918: out-of-process xpcshell is broken on OS X
-if CONFIG['OS_ARCH'] != 'Darwin':
-    XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']
+XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']
 
 SOURCES += [
     'TestShellChild.cpp',
@@ -31,7 +29,7 @@ include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
-# For xpcshell error messages and nsDependentJSString
+# For xpcshell error messages and nsAutoJSString
 LOCAL_INCLUDES += [
     '/dom/base',
     '/js/xpconnect/src',

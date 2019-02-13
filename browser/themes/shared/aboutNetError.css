@@ -1,0 +1,143 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/in-content/common.css");
+
+body {
+  display: flex;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 0 48px;
+  align-items: center;
+  justify-content: center;
+}
+
+ul, ol {
+  margin: 0;
+  padding: 0;
+  -moz-margin-start: 1em;
+}
+
+ul > li, ol > li {
+  margin-bottom: .5em;
+}
+
+ul {
+  list-style: disc;
+}
+
+#errorPageContainer {
+  position: relative;
+  min-width: 320px;
+  max-width: 512px;
+}
+
+#errorTitle {
+  background: url("aboutNetError_info.svg") left 0 no-repeat;
+  background-size: 3em;
+  -moz-margin-start: -5em;
+  -moz-padding-start: 5em;
+}
+
+#errorTitleText {
+  border-bottom: 1px solid #C1C1C1;
+  padding-bottom: 0.4em;
+}
+
+#errorTitleText:-moz-dir(rtl) {
+  background-position: right 0;
+}
+
+#errorTitle[sslv3=true] {
+  background-image: url("aboutNetError_alert.svg");
+}
+
+#errorTryAgain {
+  margin-top: 1.2em;
+  min-width: 150px
+}
+
+#errorContainer {
+  display: none;
+}
+
+@media (max-width: 675px) {
+  #errorTitle {
+    padding-top: 0;
+    background-image: none;
+    -moz-padding-start: 0;
+    -moz-margin-start: 0;
+  }
+}
+
+/* Pressing the retry button will cause the cursor to flicker from a pointer to
+ * not-allowed. Override the disabled cursor behaviour since we will never show
+ * the button disabled as the initial state. */
+button:disabled {
+  cursor: pointer;
+}
+
+div#certificateErrorReporting {
+  display: none;
+  float: right;
+  /* Align with the "Try Again" button */
+  margin-top: 24px;
+  -moz-margin-end: 24px;
+}
+
+div#certificateErrorReporting a {
+  text-decoration: none;
+}
+
+div#certificateErrorReporting a:hover {
+  text-decoration: underline;
+}
+
+span.downArrow {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 0.6em;
+  -moz-margin-start: 0.5em;
+  transform: scaleY(0.7);
+}
+
+div#certificateErrorReportingPanel {
+  /* Hidden until the link is clicked */
+  display: none;
+  background-color: white;
+  border: 1px lightgray solid;
+  /* Don't use top padding because the default p style has top padding, and it
+   * makes the overall div look uneven */
+  padding: 0 12px 12px 12px;
+  box-shadow: 0 0 4px #ddd;
+  font-size: 0.9em;
+  position: absolute;
+  width: 75%;
+  margin-top: 10px;
+}
+
+div#certificateErrorReportingPanel:-moz-dir(ltr) {
+  left: 34%;
+}
+
+div#certificateErrorReportingPanel:-moz-dir(rtl) {
+  right: 0;
+}
+
+#errorStatePanel {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+  align-items: flex-start;
+}
+
+span#hostname {
+  font-weight: bold;
+}
+
+#automaticallyReportInFuture {
+  cursor: pointer;
+}

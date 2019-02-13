@@ -14,10 +14,14 @@ import org.json.JSONObject;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.StubBrowserDB;
+import org.mozilla.gecko.mozglue.ContextUtils.SafeIntent;
 import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.webapp.InstallHelper.InstallCallback;
 
@@ -40,10 +44,11 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     private static final String LOGTAG = "GeckoWebappImpl";
 
     private URI mOrigin;
-    private TextView mTitlebarText = null;
-    private View mTitlebar = null;
+    private TextView mTitlebarText;
+    private View mTitlebar;
 
-    private View mSplashscreen;
+    // Must only be accessed from the UI thread.
+    View mSplashscreen;
 
     private boolean mIsApk = true;
     private ApkResources mApkResources;
@@ -55,14 +60,17 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     @Override
     public int getLayout() { return R.layout.web_app; }
 
-    @Override
-    public boolean hasTabsSideBar() { return false; }
+    public WebappImpl() {
+        GeckoProfile.setBrowserDBFactory(new BrowserDB.Factory() {
+            @Override
+            public BrowserDB get(String profileName, File profileDir) {
+                return new StubBrowserDB(profileName);
+            }
+        });
+    }
 
     @Override
-    public void onCreate(Bundle savedInstance)
-    {
-
-        String action = getIntent().getAction();
+    public void onCreate(Bundle savedInstance) {
         Bundle extras = getIntent().getExtras();
         if (extras == null) {
             extras = savedInstance;
@@ -148,15 +156,15 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
                 installHelper.registerGeckoListener();
             }
             return;
-        } else {
-            launchWebapp(origin);
         }
+
+        launchWebapp(origin);
 
         setTitle(mAppName);
     }
 
     @Override
-    protected String getURIFromIntent(Intent intent) {
+    protected String getURIFromIntent(SafeIntent intent) {
         String uri = super.getURIFromIntent(intent);
         if (uri != null) {
             return uri;
@@ -177,10 +185,18 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     }
 
     @Override
-    protected void loadStartupTab(String uri) {
+    protected void loadStartupTabWithAboutHome(final int flags) {
+        loadStartupTab(null, null, flags);
+    }
+
+    // Note: there is no support for loading with intent extras in
+    // Webapps at the moment because I don't have time to debug/test.
+    @Override
+    protected void loadStartupTab(final String uri, final SafeIntent unusedIntent, int flags) {
         // Load a tab so it's available for any code that assumes a tab
         // before the app tab itself is loaded in BrowserApp._loadWebapp.
-        super.loadStartupTab("about:blank");
+        flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
+        super.loadStartupTab("about:blank", null, flags);
     }
 
     private void showSplash() {

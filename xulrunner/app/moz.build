@@ -6,19 +6,15 @@
 
 DIRS += ['profile']
 
-PROGRAM = 'xulrunner'
+GeckoProgram('xulrunner')
 
 SOURCES += [
     'nsXULRunnerApp.cpp',
 ]
 
 DEFINES['XULRUNNER_PROGNAME'] = '"xulrunner"'
-DEFINES['XPCOM_GLUE'] = True
 if CONFIG['DEBUG']:
     DEFINES['DEBUG'] = True
-
-if CONFIG['TARGET_XPCOM_ABI']:
-    DEFINES['TARGET_XPCOM_ABI'] = '"%s"' % CONFIG['TARGET_XPCOM_ABI']
 
 LOCAL_INCLUDES += [
     '/toolkit/profile',
@@ -45,5 +41,36 @@ if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     RCINCLUDE = 'splash.rc'
+    OS_LIBS += [
+        'comctl32',
+        'comdlg32',
+        'uuid',
+        'shell32',
+        'ole32',
+        'oleaut32',
+        'version',
+        'winspool',
+    ]
 
 DISABLE_STL_WRAPPING = True
+
+FAIL_ON_WARNINGS = True
+
+JS_PREFERENCE_FILES += [
+    'xulrunner.js',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    BRANDING_FILES += [
+        'app.ico',
+        'document.ico',
+        'xulrunner.ico',
+    ]
+    BRANDING_FILES['app.ico'].source = 'xulrunner.ico'
+
+if CONFIG['MOZ_WIDGET_GTK']:
+    BRANDING_FILES += [
+        'default16.png',
+        'default32.png',
+        'default48.png',
+    ]

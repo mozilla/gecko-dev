@@ -149,18 +149,16 @@ volatile PRIntervalTime sLastLowMemoryNotificationTime;
 
 // These are function pointers to the functions we wrap in Init().
 
-void* (WINAPI* sVirtualAllocOrig)
-  (LPVOID aAddress, SIZE_T aSize, DWORD aAllocationType, DWORD aProtect);
+void* (WINAPI* sVirtualAllocOrig)(LPVOID aAddress, SIZE_T aSize,
+                                  DWORD aAllocationType, DWORD aProtect);
 
-void* (WINAPI* sMapViewOfFileOrig)
-  (HANDLE aFileMappingObject, DWORD aDesiredAccess,
-   DWORD aFileOffsetHigh, DWORD aFileOffsetLow,
-   SIZE_T aNumBytesToMap);
+void* (WINAPI* sMapViewOfFileOrig)(HANDLE aFileMappingObject,
+                                   DWORD aDesiredAccess, DWORD aFileOffsetHigh,
+                                   DWORD aFileOffsetLow, SIZE_T aNumBytesToMap);
 
-HBITMAP (WINAPI* sCreateDIBSectionOrig)
-  (HDC aDC, const BITMAPINFO* aBitmapInfo,
-   UINT aUsage, VOID** aBits,
-   HANDLE aSection, DWORD aOffset);
+HBITMAP(WINAPI* sCreateDIBSectionOrig)(HDC aDC, const BITMAPINFO* aBitmapInfo,
+                                       UINT aUsage, VOID** aBits,
+                                       HANDLE aSection, DWORD aOffset);
 
 /**
  * Fire a memory pressure event if it's been long enough since the last one we
@@ -338,13 +336,15 @@ LowMemoryEventsPhysicalDistinguishedAmount()
   return sNumLowPhysicalMemEvents;
 }
 
-class LowEventsReporter MOZ_FINAL : public nsIMemoryReporter
+class LowEventsReporter final : public nsIMemoryReporter
 {
+  ~LowEventsReporter() {}
+
 public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize)
   {
     nsresult rv;
 
@@ -394,8 +394,10 @@ NS_IMPL_ISUPPORTS(LowEventsReporter, nsIMemoryReporter)
  * other observers will synchronously free some memory that we'll be able to
  * purge here.
  */
-class nsJemallocFreeDirtyPagesRunnable MOZ_FINAL : public nsIRunnable
+class nsJemallocFreeDirtyPagesRunnable final : public nsIRunnable
 {
+  ~nsJemallocFreeDirtyPagesRunnable() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
@@ -420,8 +422,10 @@ nsJemallocFreeDirtyPagesRunnable::Run()
  * and reacting upon them. We use one instance per process currently only for
  * cleaning up dirty unused pages held by jemalloc.
  */
-class nsMemoryPressureWatcher MOZ_FINAL : public nsIObserver
+class nsMemoryPressureWatcher final : public nsIObserver
 {
+  ~nsMemoryPressureWatcher() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -465,7 +469,7 @@ nsMemoryPressureWatcher::Observe(nsISupports* aSubject, const char* aTopic,
   MOZ_ASSERT(!strcmp(aTopic, "memory-pressure"), "Unknown topic");
 
   if (sFreeDirtyPages) {
-    nsRefPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
+    nsCOMPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
 
     NS_DispatchToMainThread(runnable);
   }

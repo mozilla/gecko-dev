@@ -4,13 +4,26 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-LIBRARY_NAME = 'gkmedias'
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Video/Audio')
 
 if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
-    FORCE_SHARED_LIB = True
+    GeckoSharedLibrary('gkmedias', linkage=None)
+    USE_LIBS += [
+        'nspr',
+    ]
+else:
+    Library('gkmedias')
+
 
 if CONFIG['MOZ_WEBRTC']:
     DIRS += ['webrtc']
 
 if CONFIG['OS_TARGET'] == 'WINNT':
     DEFFILE = 'symbols.def'
+    OS_LIBS += [
+        'usp10',
+        'ole32',
+        'msimg32',
+        'winmm',
+    ]

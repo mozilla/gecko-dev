@@ -85,10 +85,12 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         }
 
         public static final Creator<FolderInfo> CREATOR = new Creator<FolderInfo>() {
+            @Override
             public FolderInfo createFromParcel(Parcel in) {
                 return new FolderInfo(in);
             }
 
+            @Override
             public FolderInfo[] newArray(int size) {
                 return new FolderInfo[size];
             }
@@ -104,7 +106,7 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
 
     // mParentStack holds folder info instances (id + title) that allow
     // us to navigate back up the folder hierarchy.
-    private LinkedList<FolderInfo> mParentStack;
+    private final LinkedList<FolderInfo> mParentStack;
 
     // Refresh folder listener.
     private OnRefreshFolderListener mListener;
@@ -288,7 +290,8 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         } else {
             final BookmarkFolderView row = (BookmarkFolderView) view;
             if (cursor == null) {
-                row.setText(mParentStack.peek().title);
+                final Resources res = context.getResources();
+                row.setText(res.getString(R.string.home_move_up_to_filter, mParentStack.get(1).title));
                 row.open();
             } else {
                 row.setText(getFolderTitle(context, cursor));

@@ -8,7 +8,6 @@
 #include "base/command_line.h"
 #include "chrome/common/child_process.h"
 #include "chrome/common/chrome_switches.h"
-#include "chrome/common/ipc_logging.h"
 
 // V8 needs a 1MB stack size.
 const size_t ChildThread::kV8StackSize = 1024 * 1024;
@@ -89,22 +88,16 @@ ChildThread* ChildThread::current() {
 }
 
 void ChildThread::Init() {
-  channel_.reset(new IPC::Channel(channel_name_,
-                                  IPC::Channel::MODE_CLIENT,
-                                  this));
+  channel_ = mozilla::MakeUnique<IPC::Channel>(channel_name_,
+                                               IPC::Channel::MODE_CLIENT,
+                                               this);
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  IPC::Logging::current()->SetIPCSender(this);
-#endif
 }
 
 void ChildThread::CleanUp() {
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  IPC::Logging::current()->SetIPCSender(NULL);
-#endif
   // Need to destruct the SyncChannel to the browser before we go away because
   // it caches a pointer to this thread.
-  channel_.reset();
+  channel_ = nullptr;
 }
 
 void ChildThread::OnProcessFinalRelease() {

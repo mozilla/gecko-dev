@@ -192,6 +192,12 @@ nsHttpResponseHead::AssignDefaultStatusText()
     case 206:
         mStatusText.AssignLiteral("Partial Content");
         break;
+    case 207:
+        mStatusText.AssignLiteral("Multi-Status");
+        break;
+    case 208:
+        mStatusText.AssignLiteral("Already Reported");
+        break;
     case 300:
         mStatusText.AssignLiteral("Multiple Choices");
         break;
@@ -257,6 +263,9 @@ nsHttpResponseHead::AssignDefaultStatusText()
         break;
     case 417:
         mStatusText.AssignLiteral("Expectation Failed");
+        break;
+    case 421:
+        mStatusText.AssignLiteral("Misdirected Request");
         break;
     case 501:
         mStatusText.AssignLiteral("Not Implemented");
@@ -372,6 +381,11 @@ nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
 
     *result = 0;
 
+    if (requestTime > now) {
+        // for calculation purposes lets not allow the request to happen in the future
+        requestTime = now;
+    }
+
     if (NS_FAILED(GetDateValue(&dateValue))) {
         LOG(("nsHttpResponseHead::ComputeCurrentAge [this=%p] "
              "Date response header not set!\n", this));
@@ -387,8 +401,6 @@ nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
     // Compute corrected received age
     if (NS_SUCCEEDED(GetAgeValue(&ageValue)))
         *result = std::max(*result, ageValue);
-
-    MOZ_ASSERT(now >= requestTime, "bogus request time");
 
     // Compute current age
     *result += (now - requestTime);
@@ -614,7 +626,8 @@ nsHttpResponseHead::Reset()
 
     mVersion = NS_HTTP_VERSION_1_1;
     mStatus = 200;
-    mContentLength = UINT64_MAX;
+    mContentLength = -1;
+    mCacheControlPrivate = false;
     mCacheControlNoStore = false;
     mCacheControlNoCache = false;
     mPragmaNoCache = false;
@@ -783,10 +796,15 @@ nsHttpResponseHead::ParseCacheControl(const char *val)
 {
     if (!(val && *val)) {
         // clear flags
+        mCacheControlPrivate = false;
         mCacheControlNoCache = false;
         mCacheControlNoStore = false;
         return;
     }
+
+    // search header value for occurrence of "private"
+    if (nsHttp::FindToken(val, "private", HTTP_HEADER_VALUE_SEPS))
+        mCacheControlPrivate = true;
 
     // search header value for occurrence(s) of "no-cache" but ignore
     // occurrence(s) of "no-cache=blah"

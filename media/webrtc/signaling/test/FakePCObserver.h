@@ -18,12 +18,11 @@
 #include "nsTArray.h"
 #include "nsIRunnable.h"
 #include "nsISupportsImpl.h"
-#include "nsIDOMMediaStream.h"
 #include "mozilla/dom/PeerConnectionObserverEnumsBinding.h"
 #include "PeerConnectionImpl.h"
 #include "nsWeakReference.h"
 
-namespace sipcc {
+namespace mozilla {
 class PeerConnectionImpl;
 }
 
@@ -48,7 +47,7 @@ public:
     stateError
   };
 
-  AFakePCObserver(sipcc::PeerConnectionImpl *peerConnection,
+  AFakePCObserver(mozilla::PeerConnectionImpl *peerConnection,
                   const std::string &aName) :
     state(stateNoResponse), addIceSuccessCount(0),
     onAddStreamCalled(false),
@@ -56,13 +55,20 @@ public:
     pc(peerConnection) {
   }
 
+  AFakePCObserver() :
+    state(stateNoResponse), addIceSuccessCount(0),
+    onAddStreamCalled(false),
+    name(""),
+    pc(nullptr) {
+  }
+
   virtual ~AFakePCObserver() {}
 
   std::vector<mozilla::DOMMediaStream *> GetStreams() { return streams; }
 
   ResponseState state;
-  char *lastString;
-  sipcc::PeerConnectionImpl::Error lastStatusCode;
+  std::string lastString;
+  mozilla::PeerConnectionImpl::Error lastStatusCode;
   mozilla::dom::PCObserverStateType lastStateType;
   int addIceSuccessCount;
   bool onAddStreamCalled;
@@ -80,16 +86,19 @@ public:
   virtual NS_IMETHODIMP NotifyDataChannel(nsIDOMDataChannel *channel, ER&) = 0;
   virtual NS_IMETHODIMP OnStateChange(mozilla::dom::PCObserverStateType state_type, ER&,
                                       void* = nullptr) = 0;
-  virtual NS_IMETHODIMP OnAddStream(nsIDOMMediaStream *stream, ER&) = 0;
-  virtual NS_IMETHODIMP OnRemoveStream(ER&) = 0;
-  virtual NS_IMETHODIMP OnAddTrack(ER&) = 0;
-  virtual NS_IMETHODIMP OnRemoveTrack(ER&) = 0;
+  virtual NS_IMETHODIMP OnAddStream(mozilla::DOMMediaStream &stream, ER&) = 0;
+  virtual NS_IMETHODIMP OnRemoveStream(mozilla::DOMMediaStream &stream, ER&) = 0;
+  virtual NS_IMETHODIMP OnAddTrack(mozilla::MediaStreamTrack &track, ER&) = 0;
+  virtual NS_IMETHODIMP OnRemoveTrack(mozilla::MediaStreamTrack &track, ER&) = 0;
+  virtual NS_IMETHODIMP OnReplaceTrackSuccess(ER&) = 0;
+  virtual NS_IMETHODIMP OnReplaceTrackError(uint32_t code, const char *msg, ER&) = 0;
   virtual NS_IMETHODIMP OnAddIceCandidateSuccess(ER&) = 0;
   virtual NS_IMETHODIMP OnAddIceCandidateError(uint32_t code, const char *msg, ER&) = 0;
   virtual NS_IMETHODIMP OnIceCandidate(uint16_t level, const char *mid,
                                        const char *candidate, ER&) = 0;
+  virtual NS_IMETHODIMP OnNegotiationNeeded(ER&) = 0;
 protected:
-  sipcc::PeerConnectionImpl *pc;
+  mozilla::PeerConnectionImpl *pc;
   std::vector<mozilla::DOMMediaStream *> streams;
 };
 }

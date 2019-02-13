@@ -107,7 +107,7 @@ FlattenedPath::QuadraticBezierTo(const Point &aCP1,
                                  const Point &aCP2)
 {
   MOZ_ASSERT(!mCalculatedLength);
-  // We need to elevate the degree of this quadratic Bézier to cubic, so we're
+  // We need to elevate the degree of this quadratic Bï¿½zier to cubic, so we're
   // going to add an intermediate control point, and recompute control point 1.
   // The first and last control points remain the same.
   // This formula can be found on http://fontforge.sourceforge.net/bezier.html
@@ -250,12 +250,19 @@ FlattenBezierCurveSegment(const BezierControlPoints &aControlPoints,
     Point cp21 = currentCP.mCP2 - currentCP.mCP3;
     Point cp31 = currentCP.mCP3 - currentCP.mCP1;
 
-    Float s3 = (cp31.x * cp21.y - cp31.y * cp21.x) / hypotf(cp21.x, cp21.y);
+    /* To remove divisions and check for divide-by-zero, this is optimized from:
+     * Float s3 = (cp31.x * cp21.y - cp31.y * cp21.x) / hypotf(cp21.x, cp21.y);
+     * t = 2 * Float(sqrt(aTolerance / (3. * std::abs(s3))));
+     */
+    Float cp21x31 = cp31.x * cp21.y - cp31.y * cp21.x;
+    Float h = hypotf(cp21.x, cp21.y);
+    if (cp21x31 * h == 0) {
+      break;
+    }
 
-    t = 2 * Float(sqrt(aTolerance / (3. * abs(s3))));
-
+    Float s3inv = h / cp21x31;
+    t = 2 * Float(sqrt(aTolerance * std::abs(s3inv) / 3.));
     if (t >= 1.0f) {
-      aSink->LineTo(aControlPoints.mCP4);
       break;
     }
 
@@ -264,6 +271,8 @@ FlattenBezierCurveSegment(const BezierControlPoints &aControlPoints,
 
     aSink->LineTo(currentCP.mCP1);
   }
+
+  aSink->LineTo(currentCP.mCP4);
 }
 
 static inline void
@@ -276,13 +285,13 @@ FindInflectionApproximationRange(BezierControlPoints aControlPoints,
     Point cp21 = aControlPoints.mCP2 - aControlPoints.mCP1;
     Point cp41 = aControlPoints.mCP4 - aControlPoints.mCP1;
 
-    if (cp21.x == 0 && cp21.y == 0) {
+    if (cp21.x == 0.f && cp21.y == 0.f) {
       // In this case s3 becomes lim[n->0] (cp41.x * n) / n - (cp41.y * n) / n = cp41.x - cp41.y.
 
       // Use the absolute value so that Min and Max will correspond with the
       // minimum and maximum of the range.
-      *aMin = aT - CubicRoot(abs(aTolerance / (cp41.x - cp41.y)));
-      *aMax = aT + CubicRoot(abs(aTolerance / (cp41.x - cp41.y)));
+      *aMin = aT - CubicRoot(std::abs(aTolerance / (cp41.x - cp41.y)));
+      *aMax = aT + CubicRoot(std::abs(aTolerance / (cp41.x - cp41.y)));
       return;
     }
 
@@ -297,7 +306,7 @@ FindInflectionApproximationRange(BezierControlPoints aControlPoints,
       return;
     }
 
-    Float tf = CubicRoot(abs(aTolerance / s3));
+    Float tf = CubicRoot(std::abs(aTolerance / s3));
 
     *aMin = aT - tf * (1 - aT);
     *aMax = aT + tf * (1 - aT);
@@ -437,7 +446,7 @@ FlattenBezier(const BezierControlPoints &aControlPoints,
   FindInflectionPoints(aControlPoints, &t1, &t2, &count);
 
   // Check that at least one of the inflection points is inside [0..1]
-  if (count == 0 || ((t1 < 0 || t1 > 1.0) && ((t2 < 0 || t2 > 1.0) || count == 1)) ) {
+  if (count == 0 || ((t1 < 0 || t1 > 1.0) && (count == 1 || (t2 < 0 || t2 > 1.0))) ) {
     FlattenBezierCurveSegment(aControlPoints, aSink, aTolerance);
     return;
   }
@@ -459,6 +468,12 @@ FlattenBezier(const BezierControlPoints &aControlPoints,
 
   // Process ranges. [t1min, t1max] and [t2min, t2max] are approximated by line
   // segments.
+  if (count == 1 && t1min <= 0 && t1max >= 1.0) {
+    // The whole range can be approximated by a line segment.
+    aSink->LineTo(aControlPoints.mCP4);
+    return;
+  }
+
   if (t1min > 0) {
     // Flatten the Bezier up until the first inflection point's approximation
     // point.

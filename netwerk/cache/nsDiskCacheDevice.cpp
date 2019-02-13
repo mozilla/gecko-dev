@@ -65,9 +65,7 @@ public:
     NS_IMETHOD Run()
     {
         nsCacheServiceAutoLock lock(LOCK_TELEM(NSDISKCACHEDEVICEDEACTIVATEENTRYEVENT_RUN));
-#ifdef PR_LOGGING
         CACHE_LOG_DEBUG(("nsDiskCacheDeviceDeactivateEntryEvent[%p]\n", this));
-#endif
         if (!mCanceled) {
             (void) mDevice->DeactivateEntry_Private(mEntry, mBinding);
         }
@@ -84,7 +82,7 @@ private:
 
 class nsEvictDiskCacheEntriesEvent : public nsRunnable {
 public:
-    nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
+    explicit nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
         : mDevice(device) {}
 
     NS_IMETHOD Run()
@@ -182,14 +180,14 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEDEVICEINFO
 
-    nsDiskCacheDeviceInfo(nsDiskCacheDevice* device)
+    explicit nsDiskCacheDeviceInfo(nsDiskCacheDevice* device)
         :   mDevice(device)
     {
     }
 
-    virtual ~nsDiskCacheDeviceInfo() {}
-    
 private:
+    virtual ~nsDiskCacheDeviceInfo() {}
+
     nsDiskCacheDevice* mDevice;
 };
 
@@ -386,13 +384,11 @@ nsDiskCacheDevice::Init()
         NS_ERROR("Disk cache already initialized!");
         return NS_ERROR_UNEXPECTED;
     }
-       
+
     if (!mCacheDirectory)
         return NS_ERROR_FAILURE;
 
-    rv = mBindery.Init();
-    if (NS_FAILED(rv))
-        return rv;
+    mBindery.Init();
 
     // Open Disk Cache
     rv = OpenDiskCache();
@@ -997,8 +993,8 @@ nsDiskCacheDevice::OpenDiskCache()
     if (!exists) {
         nsCacheService::MarkStartingFresh();
         rv = mCacheDirectory->Create(nsIFile::DIRECTORY_TYPE, 0777);
-        CACHE_LOG_PATH(PR_LOG_ALWAYS, "\ncreate cache directory: %s\n", mCacheDirectory);
-        CACHE_LOG_ALWAYS(("mCacheDirectory->Create() = %x\n", rv));
+        CACHE_LOG_PATH(LogLevel::Info, "\ncreate cache directory: %s\n", mCacheDirectory);
+        CACHE_LOG_INFO(("mCacheDirectory->Create() = %x\n", rv));
         if (NS_FAILED(rv))
             return rv;
     

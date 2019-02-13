@@ -5,13 +5,14 @@
 
 package org.mozilla.gecko.home;
 
-import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.database.Cursor;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.ExpandableListAdapter;
+import android.widget.ListAdapter;
 
 /**
  * A ContextMenuInfo for HomeListView
@@ -20,11 +21,16 @@ public class HomeContextMenuInfo extends AdapterContextMenuInfo {
 
     public String url;
     public String title;
-    public boolean isFolder = false;
-    public int display = Combined.DISPLAY_NORMAL;
+    public boolean isFolder;
     public int historyId = -1;
     public int bookmarkId = -1;
     public int readingListItemId = -1;
+    public RemoveItemType itemType = null;
+
+    // Item type to be handled with "Remove" selection.
+    public static enum RemoveItemType {
+        BOOKMARKS, HISTORY, READING_LIST
+    }
 
     public HomeContextMenuInfo(View targetView, int position, long id) {
         super(targetView, position, id);
@@ -53,10 +59,24 @@ public class HomeContextMenuInfo extends AdapterContextMenuInfo {
         return StringUtils.stripCommonSubdomains(StringUtils.stripScheme(url, StringUtils.UrlFlags.STRIP_HTTPS));
     }
 
-    /*
-     * Interface for creating ContextMenuInfo from cursors
+    /**
+     * Interface for creating ContextMenuInfo instances from cursors.
      */
     public interface Factory {
         public HomeContextMenuInfo makeInfoForCursor(View view, int position, long id, Cursor cursor);
+    }
+
+    /**
+     * Interface for creating ContextMenuInfo instances from ListAdapters.
+     */
+    public interface ListFactory extends Factory {
+        public HomeContextMenuInfo makeInfoForAdapter(View view, int position, long id, ListAdapter adapter);
+    }
+
+    /**
+     * Interface for creating ContextMenuInfo instances from ExpandableListAdapters.
+     */
+    public interface ExpandableFactory {
+        public HomeContextMenuInfo makeInfoForAdapter(View view, int position, long id, ExpandableListAdapter adapter);
     }
 }

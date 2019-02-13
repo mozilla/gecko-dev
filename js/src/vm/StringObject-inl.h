@@ -16,26 +16,26 @@
 namespace js {
 
 inline bool
-StringObject::init(JSContext *cx, HandleString str)
+StringObject::init(JSContext* cx, HandleString str)
 {
-    JS_ASSERT(numFixedSlots() == 2);
+    MOZ_ASSERT(numFixedSlots() == 2);
 
-    Rooted<StringObject *> self(cx, this);
+    Rooted<StringObject*> self(cx, this);
 
     if (!EmptyShape::ensureInitialCustomShape<StringObject>(cx, self))
         return false;
 
-    JS_ASSERT(self->nativeLookup(cx, NameToId(cx->names().length))->slot() == LENGTH_SLOT);
+    MOZ_ASSERT(self->lookup(cx, NameToId(cx->names().length))->slot() == LENGTH_SLOT);
 
     self->setStringThis(str);
 
     return true;
 }
 
-inline StringObject *
-StringObject::create(JSContext *cx, HandleString str, NewObjectKind newKind)
+inline StringObject*
+StringObject::create(JSContext* cx, HandleString str, NewObjectKind newKind)
 {
-    JSObject *obj = NewBuiltinClassInstance(cx, &class_, newKind);
+    JSObject* obj = NewBuiltinClassInstance(cx, &class_, newKind);
     if (!obj)
         return nullptr;
     Rooted<StringObject*> strobj(cx, &obj->as<StringObject>());

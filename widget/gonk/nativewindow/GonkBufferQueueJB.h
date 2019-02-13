@@ -229,7 +229,8 @@ public:
     // queued buffers will be acquired in order.  In asynchronous mode,
     // a queued buffer may be replaced by a subsequently queued buffer.
     //
-    // The default mode is asynchronous.
+    // The default mode is synchronous.
+    // This should be called only during initialization.
     virtual status_t setSynchronousMode(bool enabled);
 
     // connect attempts to connect a producer API to the GonkBufferQueue.  This
@@ -254,8 +255,8 @@ public:
     virtual status_t disconnect(int api);
 
     // dump our state in a String
-    virtual void dump(String8& result) const;
-    virtual void dump(String8& result, const char* prefix, char* buffer, size_t SIZE) const;
+    virtual void dumpToString(String8& result) const;
+    virtual void dumpToString(String8& result, const char* prefix, char* buffer, size_t SIZE) const;
 
     // public facing structure for BufferSlot
     struct BufferItem {

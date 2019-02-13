@@ -313,9 +313,9 @@ gfxFontconfigUtils::NewPattern(const nsTArray<nsString>& aFamilies,
 }
 
 gfxFontconfigUtils::gfxFontconfigUtils()
-    : mFontsByFamily(50)
-    , mFontsByFullname(50)
-    , mLangSupportTable(50)
+    : mFontsByFamily(32)
+    , mFontsByFullname(32)
+    , mLangSupportTable(32)
     , mLastConfig(nullptr)
 #ifdef MOZ_BUNDLED_FONTS
     , mBundledFontsInitialized(false)
@@ -361,7 +361,7 @@ gfxFontconfigUtils::GetFontList(nsIAtom *aLangGroup,
         NS_NOTREACHED("unexpected CSS generic font family");
 
     // The first in the list becomes the default in
-    // gFontsDialog.readFontSelection() if the preference-selected font is not
+    // FontBuilder.readFontSelection() if the preference-selected font is not
     // available, so put system configured defaults first.
     if (monospace)
         aListOfFonts.InsertElementAt(0, NS_LITERAL_STRING("monospace"));
@@ -380,9 +380,7 @@ struct MozLangGroupData {
 
 const MozLangGroupData MozLangGroups[] = {
     { nsGkAtoms::x_western,      "en" },
-    { nsGkAtoms::x_central_euro, "pl" },
     { nsGkAtoms::x_cyrillic,     "ru" },
-    { nsGkAtoms::x_baltic,       "lv" },
     { nsGkAtoms::x_devanagari,   "hi" },
     { nsGkAtoms::x_tamil,        "ta" },
     { nsGkAtoms::x_armn,         "hy" },
@@ -600,67 +598,36 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
     mFontsByFamily.Clear();
     mFontsByFullname.Clear();
     mLangSupportTable.Clear();
-    mAliasForMultiFonts.Clear();
 
     // Record the existing font families
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) { // the application set might not exist
-	    continue;
-	}
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) { // the application set might not exist
+            continue;
+        }
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    FcChar8 *family;
-	    for (int v = 0;
-		 FcPatternGetString(font, FC_FAMILY, v, &family) == FcResultMatch;
-		 ++v) {
-		FontsByFcStrEntry *entry = mFontsByFamily.PutEntry(family);
-		if (entry) {
-		    bool added = entry->AddFont(font);
+            FcChar8 *family;
+            for (int v = 0;
+             FcPatternGetString(font, FC_FAMILY, v, &family) == FcResultMatch;
+             ++v) {
+                FontsByFcStrEntry *entry = mFontsByFamily.PutEntry(family);
+                if (entry) {
+                    bool added = entry->AddFont(font);
 
-		    if (!entry->mKey) {
-			// The reference to the font pattern keeps the pointer to
-			// string for the key valid.  If adding the font failed
-			// then the entry must be removed.
-			if (added) {
-			    entry->mKey = family;
-			} else {
-			    mFontsByFamily.RawRemoveEntry(entry);
-			}
-		    }
-		}
-	    }
-	}
-    }
-
-    // XXX we don't support all alias names.
-    // Because if we don't check whether the given font name is alias name,
-    // fontconfig converts the non existing font to sans-serif.
-    // This is not good if the web page specifies font-family
-    // that has Windows font name in the first.
-    NS_ENSURE_TRUE(Preferences::GetRootBranch(), NS_ERROR_FAILURE);
-    nsAdoptingCString list = Preferences::GetCString("font.alias-list");
-
-    if (!list.IsEmpty()) {
-        const char kComma = ',';
-        const char *p, *p_end;
-        list.BeginReading(p);
-        list.EndReading(p_end);
-        while (p < p_end) {
-            while (nsCRT::IsAsciiSpace(*p)) {
-                if (++p == p_end)
-                    break;
+                    if (!entry->mKey) {
+                        // The reference to the font pattern keeps the pointer to
+                        // string for the key valid.  If adding the font failed
+                        // then the entry must be removed.
+                        if (added) {
+                            entry->mKey = family;
+                        } else {
+                            mFontsByFamily.RawRemoveEntry(entry);
+                        }
+                    }
+                }
             }
-            if (p == p_end)
-                break;
-            const char *start = p;
-            while (++p != p_end && *p != kComma)
-                /* nothing */ ;
-            nsAutoCString name(Substring(start, p));
-            name.CompressWhitespace(false, true);
-            mAliasForMultiFonts.AppendElement(name);
-            p++;
         }
     }
 
@@ -849,53 +816,54 @@ gfxFontconfigUtils::AddFullnameEntries()
     };
 
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) {
-	    continue;
-	}
-	// Record the existing font families
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) {
+            continue;
+        }
+        // Record the existing font families
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    int v = 0;
-	    FcChar8 *fullname;
-	    while (FcPatternGetString(font,
-				      FC_FULLNAME, v, &fullname) == FcResultMatch) {
-		FontsByFullnameEntry *entry = mFontsByFullname.PutEntry(fullname);
-		if (entry) {
-		    // entry always has space for one font, so the first AddFont
-		    // will always succeed, and so the entry will always have a
-		    // font from which to obtain the key.
-		    bool added = entry->AddFont(font);
-		    // The key may be nullptr either if this is the first font, or
-		    // if the first font does not have a fullname property, and so
-		    // the key is obtained from the font.  Set the key in both
-		    // cases.  The check that AddFont succeeded is required for
-		    // the second case.
-		    if (!entry->mKey && added) {
-			entry->mKey = fullname;
-		    }
-		}
+            int v = 0;
+            FcChar8 *fullname;
+            while (FcPatternGetString(font,
+                          FC_FULLNAME, v, &fullname) == FcResultMatch) {
+                FontsByFullnameEntry *entry =
+                    mFontsByFullname.PutEntry(fullname);
+                if (entry) {
+                    // entry always has space for one font, so the first
+                    // AddFont will always succeed, and so the entry will
+                    // always have a font from which to obtain the key.
+                    bool added = entry->AddFont(font);
+                    // The key may be nullptr either if this is the first
+                    // font, or if the first font does not have a fullname
+                    // property, and so the key is obtained from the font.
+                    // Set the key in both cases.  The check that AddFont
+                    // succeeded is required for the second case.
+                    if (!entry->mKey && added) {
+                        entry->mKey = fullname;
+                    }
+                }
 
-		++v;
-	    }
+                ++v;
+            }
 
-	    // Fontconfig does not provide a fullname property for all fonts.
-	    if (v == 0) {
-		nsAutoCString name;
-		if (!GetFullnameFromFamilyAndStyle(font, &name))
-		    continue;
+            // Fontconfig does not provide a fullname property for all fonts.
+            if (v == 0) {
+                nsAutoCString name;
+                if (!GetFullnameFromFamilyAndStyle(font, &name))
+                    continue;
 
-		FontsByFullnameEntry *entry =
-		    mFontsByFullname.PutEntry(ToFcChar8(name));
-		if (entry) {
-		    entry->AddFont(font);
-		    // Either entry->mKey has been set for a previous font or it
-		    // remains nullptr to indicate that the key is obtained from
-		    // the first font.
-		}
-	    }
-	}
+                FontsByFullnameEntry *entry =
+                    mFontsByFullname.PutEntry(ToFcChar8(name));
+                if (entry) {
+                    entry->AddFont(font);
+                    // Either entry->mKey has been set for a previous font or it
+                    // remains nullptr to indicate that the key is obtained from
+                    // the first font.
+                }
+            }
+        }
     }
 }
 
@@ -1020,33 +988,34 @@ gfxFontconfigUtils::GetLangSupportEntry(const FcChar8 *aLang, bool aWithFonts)
     nsAutoTArray<FcPattern*,100> fonts;
 
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) {
-	    continue;
-	}
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) {
+            continue;
+        }
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    FcLangResult support = GetLangSupport(font, aLang);
+            FcLangResult support = GetLangSupport(font, aLang);
 
-	    if (support < best) { // lower is better
-		best = support;
-		if (aWithFonts) {
-		    fonts.Clear();
-		} else if (best == FcLangEqual) {
-		    break;
-		}
-	    }
+            if (support < best) { // lower is better
+                best = support;
+                if (aWithFonts) {
+                    fonts.Clear();
+                } else if (best == FcLangEqual) {
+                    break;
+                }
+            }
 
-	    // The font list in the LangSupportEntry is expected to be used only
-	    // when no default fonts support the language.  There would be a large
-	    // number of fonts in entries for languages using Latin script but
-	    // these do not need to be created because default fonts already
-	    // support these languages.
-	    if (aWithFonts && support != FcLangDifferentLang && support == best) {
-		fonts.AppendElement(font);
-	    }
-	}
+            // The font list in the LangSupportEntry is expected to be used
+            // only when no default fonts support the language.  There would
+            // be a large number of fonts in entries for languages using Latin
+            // script but these do not need to be created because default
+            // fonts already support these languages.
+            if (aWithFonts && support != FcLangDifferentLang &&
+                support == best) {
+                fonts.AppendElement(font);
+            }
+        }
     }
 
     entry->mSupport = best;
@@ -1096,25 +1065,25 @@ void
 gfxFontconfigUtils::ActivateBundledFonts()
 {
     if (!mBundledFontsInitialized) {
-	mBundledFontsInitialized = true;
-	nsCOMPtr<nsIFile> localDir;
-	nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(localDir));
-	if (NS_FAILED(rv)) {
-	    return;
-	}
-	if (NS_FAILED(localDir->Append(NS_LITERAL_STRING("fonts")))) {
-	    return;
-	}
-	bool isDir;
-	if (NS_FAILED(localDir->IsDirectory(&isDir)) || !isDir) {
-	    return;
-	}
-	if (NS_FAILED(localDir->GetNativePath(mBundledFontsPath))) {
-	    return;
-	}
+        mBundledFontsInitialized = true;
+        nsCOMPtr<nsIFile> localDir;
+        nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(localDir));
+        if (NS_FAILED(rv)) {
+            return;
+        }
+        if (NS_FAILED(localDir->Append(NS_LITERAL_STRING("fonts")))) {
+            return;
+        }
+        bool isDir;
+        if (NS_FAILED(localDir->IsDirectory(&isDir)) || !isDir) {
+            return;
+        }
+        if (NS_FAILED(localDir->GetNativePath(mBundledFontsPath))) {
+            return;
+        }
     }
     if (!mBundledFontsPath.IsEmpty()) {
-	FcConfigAppFontAddDir(nullptr, (const FcChar8*)mBundledFontsPath.get());
+        FcConfigAppFontAddDir(nullptr, (const FcChar8*)mBundledFontsPath.get());
     }
 }
 

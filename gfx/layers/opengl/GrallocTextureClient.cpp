@@ -12,25 +12,17 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include "gfx2DGlue.h"
+#include "SharedSurfaceGralloc.h"
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+#include <ui/Fence.h>
+#endif
 
 namespace mozilla {
 namespace layers {
 
 using namespace mozilla::gfx;
 using namespace android;
-
-GrallocTextureClientOGL::GrallocTextureClientOGL(MaybeMagicGrallocBufferHandle buffer,
-                                                 gfx::IntSize aSize,
-                                                 gfx::BackendType aMoz2dBackend,
-                                                 TextureFlags aFlags)
-: BufferTextureClient(nullptr, gfx::SurfaceFormat::UNKNOWN, aMoz2dBackend, aFlags)
-, mGrallocHandle(buffer)
-, mMappedBuffer(nullptr)
-, mMediaBuffer(nullptr)
-{
-  InitWith(buffer, aSize);
-  MOZ_COUNT_CTOR(GrallocTextureClientOGL);
-}
 
 GrallocTextureClientOGL::GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
                                                  gfx::SurfaceFormat aFormat,
@@ -40,6 +32,7 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
 , mGrallocHandle(null_t())
 , mMappedBuffer(nullptr)
 , mMediaBuffer(nullptr)
+, mIsOpaque(gfx::IsOpaque(aFormat))
 {
   MOZ_COUNT_CTOR(GrallocTextureClientOGL);
 }
@@ -47,20 +40,27 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
 GrallocTextureClientOGL::~GrallocTextureClientOGL()
 {
   MOZ_COUNT_DTOR(GrallocTextureClientOGL);
-    if (ShouldDeallocateInDestructor()) {
-    ISurfaceAllocator* allocator = GetAllocator();
+  ISurfaceAllocator* allocator = GetAllocator();
+  if (ShouldDeallocateInDestructor()) {
     allocator->DeallocGrallocBuffer(&mGrallocHandle);
+  } else {
+    allocator->DropGrallocBuffer(&mGrallocHandle);
   }
 }
 
-void
-GrallocTextureClientOGL::InitWith(MaybeMagicGrallocBufferHandle aHandle, gfx::IntSize aSize)
+TemporaryRef<TextureClient>
+GrallocTextureClientOGL::CreateSimilar(TextureFlags aFlags,
+                                       TextureAllocationFlags aAllocFlags) const
 {
-  MOZ_ASSERT(!IsAllocated());
-  MOZ_ASSERT(IsValid());
-  mGrallocHandle = aHandle;
-  mGraphicBuffer = GetGraphicBufferFrom(aHandle);
-  mSize = aSize;
+  RefPtr<TextureClient> tex = new GrallocTextureClientOGL(
+    mAllocator, mFormat, mBackend, mFlags | aFlags
+  );
+
+  if (!tex->AllocateForSurface(mSize, aAllocFlags)) {
+    return nullptr;
+  }
+
+  return tex.forget();
 }
 
 bool
@@ -71,7 +71,7 @@ GrallocTextureClientOGL::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
     return false;
   }
 
-  aOutDescriptor = NewSurfaceDescriptorGralloc(mGrallocHandle, mSize);
+  aOutDescriptor = NewSurfaceDescriptorGralloc(mGrallocHandle, mSize, mIsOpaque);
   return true;
 }
 
@@ -82,20 +82,25 @@ GrallocTextureClientOGL::SetRemoveFromCompositableTracker(AsyncTransactionTracke
 }
 
 void
-GrallocTextureClientOGL::WaitForBufferOwnership()
+GrallocTextureClientOGL::WaitForBufferOwnership(bool aWaitReleaseFence)
 {
   if (mRemoveFromCompositableTracker) {
     mRemoveFromCompositableTracker->WaitComplete();
     mRemoveFromCompositableTracker = nullptr;
   }
 
+  if (!aWaitReleaseFence) {
+    return;
+  }
+
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
    if (mReleaseFenceHandle.IsValid()) {
-     android::sp<Fence> fence = mReleaseFenceHandle.mFence;
+     nsRefPtr<FenceHandle::FdObj> fdObj = mReleaseFenceHandle.GetAndResetFdObj();
+     android::sp<Fence> fence = new Fence(fdObj->GetAndResetFd());
 #if ANDROID_VERSION == 17
      fence->waitForever(1000, "GrallocTextureClientOGL::Lock");
-     // 1000 is what Android uses. It is warning timeout ms.
-     // This timeous is removed since ANDROID_VERSION 18. 
+     // 1000 is what Android uses. It is a warning timeout in ms.
+     // This timeout was removed in ANDROID_VERSION 18.
 #else
      fence->waitForever("GrallocTextureClientOGL::Lock");
 #endif
@@ -116,7 +121,11 @@ GrallocTextureClientOGL::Lock(OpenMode aMode)
     return true;
   }
 
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
+  WaitForBufferOwnership(false /* aWaitReleaseFence */);
+#else
   WaitForBufferOwnership();
+#endif
 
   uint32_t usage = 0;
   if (aMode & OpenMode::OPEN_READ) {
@@ -125,7 +134,15 @@ GrallocTextureClientOGL::Lock(OpenMode aMode)
   if (aMode & OpenMode::OPEN_WRITE) {
     usage |= GRALLOC_USAGE_SW_WRITE_OFTEN;
   }
-  int32_t rv = mGraphicBuffer->lock(usage, reinterpret_cast<void**>(&mMappedBuffer));
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
+  nsRefPtr<FenceHandle::FdObj> fdObj = mReleaseFenceHandle.GetAndResetFdObj();
+  int32_t rv = mGraphicBuffer->lockAsync(usage,
+                                         reinterpret_cast<void**>(&mMappedBuffer),
+                                         fdObj->GetAndResetFd());
+#else
+  int32_t rv = mGraphicBuffer->lock(usage,
+                                    reinterpret_cast<void**>(&mMappedBuffer));
+#endif
   if (rv) {
     mMappedBuffer = nullptr;
     NS_WARNING("Couldn't lock graphic buffer");
@@ -165,6 +182,8 @@ SurfaceFormatForPixelFormat(android::PixelFormat aFormat)
     return gfx::SurfaceFormat::R8G8B8X8;
   case PIXEL_FORMAT_RGB_565:
     return gfx::SurfaceFormat::R5G6B5;
+  case HAL_PIXEL_FORMAT_YV12:
+    return gfx::SurfaceFormat::YUV;
   default:
     MOZ_CRASH("Unknown gralloc pixel format");
   }
@@ -177,7 +196,7 @@ GrallocTextureClientOGL::BorrowDrawTarget()
   MOZ_ASSERT(IsValid());
   MOZ_ASSERT(mMappedBuffer, "Calling TextureClient::BorrowDrawTarget without locking :(");
 
-  if (!IsValid() || !IsAllocated()) {
+  if (!IsValid() || !IsAllocated() || !mMappedBuffer) {
     return nullptr;
   }
 
@@ -223,6 +242,9 @@ GrallocTextureClientOGL::AllocateForSurface(gfx::IntSize aSize,
     break;
   case gfx::SurfaceFormat::R5G6B5:
     format = android::PIXEL_FORMAT_RGB_565;
+    break;
+  case gfx::SurfaceFormat::YUV:
+    format = HAL_PIXEL_FORMAT_YV12;
     break;
   case gfx::SurfaceFormat::A8:
     NS_WARNING("gralloc does not support gfx::SurfaceFormat::A8");
@@ -327,6 +349,29 @@ GrallocTextureClientOGL::GetBufferSize() const
   // see Bug 908196
   MOZ_CRASH("This method should never be called.");
   return 0;
+}
+
+/*static*/ TemporaryRef<TextureClient>
+GrallocTextureClientOGL::FromSharedSurface(gl::SharedSurface* abstractSurf,
+                                           TextureFlags flags)
+{
+  auto surf = gl::SharedSurface_Gralloc::Cast(abstractSurf);
+
+  RefPtr<TextureClient> ret = surf->GetTextureClient();
+
+  TextureFlags mask = TextureFlags::ORIGIN_BOTTOM_LEFT |
+                      TextureFlags::RB_SWAPPED |
+                      TextureFlags::NON_PREMULTIPLIED;
+  TextureFlags required = flags & mask;
+  TextureFlags present = ret->GetFlags() & mask;
+
+  if (present != required) {
+    printf_stderr("Present flags: 0x%x. Required: 0x%x.\n",
+                  (uint32_t)present,
+                  (uint32_t)required);
+    MOZ_CRASH("Flag requirement mismatch.");
+  }
+  return ret.forget();
 }
 
 } // namesapace layers

@@ -6,12 +6,27 @@
 
 JAR_MANIFESTS += ['jar.mn']
 
-JS_MODULES_PATH = 'modules/loop'
-
 XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell/xpcshell.ini']
 
-EXTRA_JS_MODULES += [
-    'MozLoopAPI.jsm',
-    'MozLoopPushHandler.jsm',
-    'MozLoopService.jsm',
+BROWSER_CHROME_MANIFESTS += [
+    'test/mochitest/browser.ini',
 ]
+
+EXTRA_JS_MODULES.loop += [
+    'content/shared/js/crypto.js',
+    'content/shared/js/utils.js',
+    'modules/CardDavImporter.jsm',
+    'modules/GoogleImporter.jsm',
+    'modules/LoopCalls.jsm',
+    'modules/LoopContacts.jsm',
+    'modules/LoopRooms.jsm',
+    'modules/LoopRoomsCache.jsm',
+    'modules/LoopStorage.jsm',
+    'modules/MozLoopAPI.jsm',
+    'modules/MozLoopPushHandler.jsm',
+    'modules/MozLoopService.jsm',
+    'modules/MozLoopWorker.js',
+]
+
+with Files('**'):
+    BUG_COMPONENT = ('Loop', 'Client')

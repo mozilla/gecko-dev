@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef mozilla_image_encoders_bmp_nsBMPEncoder_h
+#define mozilla_image_encoders_bmp_nsBMPEncoder_h
+
 #include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
 
@@ -21,7 +24,7 @@
 // Provides BMP encoding functionality. Use InitFromData() to do the
 // encoding. See that function definition for encoding options.
 
-class nsBMPEncoder MOZ_FINAL : public imgIEncoder
+class nsBMPEncoder final : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
@@ -31,10 +34,12 @@ public:
   NS_DECL_NSIASYNCINPUTSTREAM
 
   nsBMPEncoder();
-  ~nsBMPEncoder();
 
 protected:
-  enum Version {
+  ~nsBMPEncoder();
+
+  enum Version
+  {
       VERSION_3 = 3,
       VERSION_5 = 5
   };
@@ -69,7 +74,7 @@ protected:
     return static_cast<int32_t>(mImageBufferCurr - mImageBufferStart);
   }
 
-  // These headers will always contain endian independent stuff 
+  // These headers will always contain endian independent stuff
   // They store the BMP headers which will be encoded
   mozilla::image::BMPFILEHEADER mBMPFileHeader;
   mozilla::image::BITMAPV5HEADER mBMPInfoHeader;
@@ -89,3 +94,5 @@ protected:
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
   uint32_t mNotifyThreshold;
 };
+
+#endif // mozilla_image_encoders_bmp_nsBMPEncoder_h

@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -372,12 +372,8 @@ function onAccept()
 
   if (saveToPrefs && printService != null) {
     var flags = gPrintSetInterface.kInitSavePaperSize      | 
-                gPrintSetInterface.kInitSaveColorSpace     |
                 gPrintSetInterface.kInitSaveEdges          |
                 gPrintSetInterface.kInitSaveInColor        |
-                gPrintSetInterface.kInitSaveResolutionName |
-                gPrintSetInterface.kInitSaveDownloadFonts  |
-                gPrintSetInterface.kInitSavePrintCommand   |
                 gPrintSetInterface.kInitSaveShrinkToFit    |
                 gPrintSetInterface.kInitSaveScaling;
     printService.savePrintSettingsToPrefs(gPrintSettings, true, flags);

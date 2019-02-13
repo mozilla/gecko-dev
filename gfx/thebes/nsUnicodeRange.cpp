@@ -4,47 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsUnicodeRange.h"
-#include "nsGkAtoms.h"
-#include "mozilla/NullPtr.h"
-
-// This table depends on unicode range definitions. 
-// Each item's index must correspond unicode range value
-// eg. x-cyrillic = LangGroupTable[kRangeCyrillic]
-static nsIAtom **gUnicodeRangeToLangGroupAtomTable[] =
-{
-  &nsGkAtoms::x_cyrillic,
-  &nsGkAtoms::el_,
-  &nsGkAtoms::tr,
-  &nsGkAtoms::he,
-  &nsGkAtoms::ar,
-  &nsGkAtoms::x_baltic,
-  &nsGkAtoms::th,
-  &nsGkAtoms::ko,
-  &nsGkAtoms::Japanese,
-  &nsGkAtoms::zh_cn,
-  &nsGkAtoms::zh_tw,
-  &nsGkAtoms::x_devanagari,
-  &nsGkAtoms::x_tamil,
-  &nsGkAtoms::x_armn,
-  &nsGkAtoms::x_beng,
-  &nsGkAtoms::x_cans,
-  &nsGkAtoms::x_ethi,
-  &nsGkAtoms::x_geor,
-  &nsGkAtoms::x_gujr,
-  &nsGkAtoms::x_guru,
-  &nsGkAtoms::x_khmr,
-  &nsGkAtoms::x_mlym,
-  &nsGkAtoms::x_orya,
-  &nsGkAtoms::x_telu,
-  &nsGkAtoms::x_knda,
-  &nsGkAtoms::x_sinh,
-  &nsGkAtoms::x_tibt
-};
 
 /**********************************************************************
  * Unicode subranges as defined in unicode 3.0
- * x-western, x-central-euro, tr, x-baltic  -> latin 
- *  0000 - 036f 
+ * x-western  -> latin
+ *  0000 - 036f
  *  1e00 - 1eff
  *  2000 - 206f  (general punctuation)
  *  20a0 - 20cf  (currency symbols)
@@ -452,13 +416,4 @@ uint32_t FindCharUnicodeRange(uint32_t ch)
 
   // Yet another table to look at : U+0700 - U+16FF : 128 code point blocks
   return gUnicodeTertiaryRangeTable[(ch - 0x0700) >> 7];
-}
-
-nsIAtom *LangGroupFromUnicodeRange(uint8_t unicodeRange)
-{
-  if (kRangeSpecificItemNum > unicodeRange) {
-    nsIAtom **atom = gUnicodeRangeToLangGroupAtomTable[unicodeRange];
-    return *atom;
-  }
-  return nullptr;
 }

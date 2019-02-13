@@ -81,12 +81,13 @@ nsHtml5DocumentBuilder::UpdateStyleSheet(nsIContent* aElement)
     mScriptLoader->AddExecuteBlocker();
   }
 
-  if (aElement->IsHTML(nsGkAtoms::link)) {
+  if (aElement->IsHTMLElement(nsGkAtoms::link)) {
     // look for <link rel="next" href="url">
     nsAutoString relVal;
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::rel, relVal);
     if (!relVal.IsEmpty()) {
-      uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(relVal);
+      uint32_t linkTypes =
+        nsStyleLinkElement::ParseLinkTypes(relVal, aElement->NodePrincipal());
       bool hasPrefetch = linkTypes & nsStyleLinkElement::ePREFETCH;
       if (hasPrefetch || (linkTypes & nsStyleLinkElement::eNEXT)) {
         nsAutoString hrefVal;

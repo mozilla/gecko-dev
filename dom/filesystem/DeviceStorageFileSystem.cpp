@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,11 +9,11 @@
 #include "DeviceStorage.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Directory.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsDeviceStorage.h"
-#include "nsIDOMFile.h"
 #include "nsIFile.h"
 #include "nsPIDOMWindow.h"
 
@@ -114,7 +114,7 @@ DeviceStorageFileSystem::GetLocalFile(const nsAString& aRealPath) const
 }
 
 bool
-DeviceStorageFileSystem::GetRealPath(nsIDOMFile* aFile, nsAString& aRealPath) const
+DeviceStorageFileSystem::GetRealPath(BlobImpl* aFile, nsAString& aRealPath) const
 {
   MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
              "Should be on parent process!");
@@ -123,7 +123,9 @@ DeviceStorageFileSystem::GetRealPath(nsIDOMFile* aFile, nsAString& aRealPath) co
   aRealPath.Truncate();
 
   nsAutoString filePath;
-  if (NS_FAILED(aFile->GetMozFullPathInternal(filePath))) {
+  ErrorResult rv;
+  aFile->GetMozFullPathInternal(filePath, rv);
+  if (NS_WARN_IF(rv.Failed())) {
     return false;
   }
 

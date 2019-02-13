@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,12 +16,12 @@
 #include "nsIDOMDocument.h"
 #include "nsIServiceManager.h"
 #include "nsIServiceManager.h"
-#include "GeneratedEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Services.h"
 #include "nsIPermissionManager.h"
 #include "mozilla/dom/DeviceLightEvent.h"
+#include "mozilla/dom/DeviceOrientationEvent.h"
 #include "mozilla/dom/DeviceProximityEvent.h"
 #include "mozilla/dom/UserProximityEvent.h"
 
@@ -29,13 +31,12 @@ using namespace hal;
 
 #undef near
 
-// also see sDefaultSensorHint in mobile/android/base/GeckoAppShell.java
 #define DEFAULT_SENSOR_POLL 100
 
 static const nsTArray<nsIDOMWindow*>::index_type NoIndex =
   nsTArray<nsIDOMWindow*>::NoIndex;
 
-class nsDeviceSensorData MOZ_FINAL : public nsIDeviceSensorData
+class nsDeviceSensorData final : public nsIDeviceSensorData
 {
 public:
   NS_DECL_ISUPPORTS
@@ -114,7 +115,7 @@ nsDeviceSensors::nsDeviceSensors()
 nsDeviceSensors::~nsDeviceSensors()
 {
   for (int i = 0; i < NUM_SENSOR_TYPE; i++) {
-    if (IsSensorEnabled(i))  
+    if (IsSensorEnabled(i))
       UnregisterSensorObserver((SensorType)i, this);
   }
 
@@ -226,7 +227,7 @@ nsDeviceSensors::Notify(const mozilla::hal::SensorData& aSensorData)
         type == nsIDeviceSensorData::TYPE_GYROSCOPE)
         FireDOMMotionEvent(domdoc, target, type, x, y, z);
       else if (type == nsIDeviceSensorData::TYPE_ORIENTATION)
-        FireDOMOrientationEvent(domdoc, target, x, y, z);
+        FireDOMOrientationEvent(target, x, y, z);
       else if (type == nsIDeviceSensorData::TYPE_PROXIMITY)
         FireDOMProximityEvent(target, x, y, z);
       else if (type == nsIDeviceSensorData::TYPE_LIGHT)
@@ -306,33 +307,27 @@ nsDeviceSensors::FireDOMUserProximityEvent(mozilla::dom::EventTarget* aTarget,
 }
 
 void
-nsDeviceSensors::FireDOMOrientationEvent(nsIDOMDocument* domdoc,
-                                         EventTarget* target,
-                                         double alpha,
-                                         double beta,
-                                         double gamma)
+nsDeviceSensors::FireDOMOrientationEvent(EventTarget* aTarget,
+                                         double aAlpha,
+                                         double aBeta,
+                                         double aGamma)
 {
-  nsCOMPtr<nsIDOMEvent> event;
-  bool defaultActionEnabled = true;
-  domdoc->CreateEvent(NS_LITERAL_STRING("DeviceOrientationEvent"), getter_AddRefs(event));
+  DeviceOrientationEventInit init;
+  init.mBubbles = true;
+  init.mCancelable = false;
+  init.mAlpha.SetValue(aAlpha);
+  init.mBeta.SetValue(aBeta);
+  init.mGamma.SetValue(aGamma);
+  init.mAbsolute = true;
 
-  nsCOMPtr<nsIDOMDeviceOrientationEvent> oe = do_QueryInterface(event);
-
-  if (!oe) {
-    return;
-  }
-
-  oe->InitDeviceOrientationEvent(NS_LITERAL_STRING("deviceorientation"),
-                                 true,
-                                 false,
-                                 alpha,
-                                 beta,
-                                 gamma,
-                                 true);
-
+  nsRefPtr<DeviceOrientationEvent> event =
+    DeviceOrientationEvent::Constructor(aTarget,
+                                        NS_LITERAL_STRING("deviceorientation"),
+                                        init);
   event->SetTrusted(true);
 
-  target->DispatchEvent(event, &defaultActionEnabled);
+  bool dummy;
+  aTarget->DispatchEvent(event, &dummy);
 }
 
 
@@ -349,44 +344,44 @@ nsDeviceSensors::FireDOMMotionEvent(nsIDOMDocument *domdoc,
 
   switch (type) {
   case nsIDeviceSensorData::TYPE_LINEAR_ACCELERATION:
-    if (mLastAcceleration.empty()) {
-      mLastAcceleration.construct();
+    if (!mLastAcceleration) {
+      mLastAcceleration.emplace();
     }
-    mLastAcceleration.ref().mX.SetValue(x);
-    mLastAcceleration.ref().mY.SetValue(y);
-    mLastAcceleration.ref().mZ.SetValue(z);
+    mLastAcceleration->mX.SetValue(x);
+    mLastAcceleration->mY.SetValue(y);
+    mLastAcceleration->mZ.SetValue(z);
     break;
   case nsIDeviceSensorData::TYPE_ACCELERATION:
-    if (mLastAccelerationIncluduingGravity.empty()) {
-      mLastAccelerationIncluduingGravity.construct();
+    if (!mLastAccelerationIncludingGravity) {
+      mLastAccelerationIncludingGravity.emplace();
     }
-    mLastAccelerationIncluduingGravity.ref().mX.SetValue(x);
-    mLastAccelerationIncluduingGravity.ref().mY.SetValue(y);
-    mLastAccelerationIncluduingGravity.ref().mZ.SetValue(z);
+    mLastAccelerationIncludingGravity->mX.SetValue(x);
+    mLastAccelerationIncludingGravity->mY.SetValue(y);
+    mLastAccelerationIncludingGravity->mZ.SetValue(z);
     break;
   case nsIDeviceSensorData::TYPE_GYROSCOPE:
-    if (mLastRotationRate.empty()) {
-      mLastRotationRate.construct();
+    if (!mLastRotationRate) {
+      mLastRotationRate.emplace();
     }
-    mLastRotationRate.ref().mAlpha.SetValue(x);
-    mLastRotationRate.ref().mBeta.SetValue(y);
-    mLastRotationRate.ref().mGamma.SetValue(z);
+    mLastRotationRate->mAlpha.SetValue(x);
+    mLastRotationRate->mBeta.SetValue(y);
+    mLastRotationRate->mGamma.SetValue(z);
     break;
   }
 
   if (fireEvent) {
-    if (mLastAcceleration.empty()) {
-      mLastAcceleration.construct();
+    if (!mLastAcceleration) {
+      mLastAcceleration.emplace();
     }
-    if (mLastAccelerationIncluduingGravity.empty()) {
-      mLastAccelerationIncluduingGravity.construct();
+    if (!mLastAccelerationIncludingGravity) {
+      mLastAccelerationIncludingGravity.emplace();
     }
-    if (mLastRotationRate.empty()) {
-      mLastRotationRate.construct();
+    if (!mLastRotationRate) {
+      mLastRotationRate.emplace();
     }
-  } else if (mLastAcceleration.empty() ||
-             mLastAccelerationIncluduingGravity.empty() ||
-             mLastRotationRate.empty()) {
+  } else if (!mLastAcceleration ||
+             !mLastAccelerationIncludingGravity ||
+             !mLastRotationRate) {
     return;
   }
 
@@ -399,9 +394,9 @@ nsDeviceSensors::FireDOMMotionEvent(nsIDOMDocument *domdoc,
   me->InitDeviceMotionEvent(NS_LITERAL_STRING("devicemotion"),
                             true,
                             false,
-                            mLastAcceleration.ref(),
-                            mLastAccelerationIncluduingGravity.ref(),
-                            mLastRotationRate.ref(),
+                            *mLastAcceleration,
+                            *mLastAccelerationIncludingGravity,
+                            *mLastRotationRate,
                             Nullable<double>(DEFAULT_SENSOR_POLL),
                             rv);
 
@@ -410,8 +405,8 @@ nsDeviceSensors::FireDOMMotionEvent(nsIDOMDocument *domdoc,
   bool defaultActionEnabled = true;
   target->DispatchEvent(event, &defaultActionEnabled);
 
-  mLastRotationRate.destroy();
-  mLastAccelerationIncluduingGravity.destroy();
-  mLastAcceleration.destroy();
+  mLastRotationRate.reset();
+  mLastAccelerationIncludingGravity.reset();
+  mLastAcceleration.reset();
   mLastDOMMotionEventTime = TimeStamp::Now();
 }

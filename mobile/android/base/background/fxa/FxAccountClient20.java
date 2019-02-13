@@ -4,13 +4,13 @@
 
 package org.mozilla.gecko.background.fxa;
 
-import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 import org.json.simple.JSONObject;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountClientException.FxAccountClientRemoteException;
-import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.net.BaseResource;
@@ -51,12 +51,20 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
 
   // Public for testing only; prefer login and loginAndGetKeys (without boolean parameter).
   public void login(final byte[] emailUTF8, final byte[] quickStretchedPW, final boolean getKeys,
+      final Map<String, String> queryParameters,
       final RequestDelegate<LoginResponse> delegate) {
-    BaseResource resource;
-    JSONObject body;
-    final String path = getKeys ? "account/login?keys=true" : "account/login";
+    final BaseResource resource;
+    final JSONObject body;
     try {
-      resource = new BaseResource(new URI(serverURI + path));
+      final String path = "account/login";
+      final Map<String, String> modifiedParameters = new HashMap<>();
+      if (queryParameters != null) {
+        modifiedParameters.putAll(queryParameters);
+      }
+      if (getKeys) {
+        modifiedParameters.put("keys", "true");
+      }
+      resource = getBaseResource(path, modifiedParameters);
       body = new FxAccount20LoginDelegate(emailUTF8, quickStretchedPW).getCreateBody();
     } catch (Exception e) {
       invokeHandleError(delegate, e);
@@ -94,13 +102,23 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
     post(resource, body, delegate);
   }
 
-  public void createAccount(final byte[] emailUTF8, final byte[] quickStretchedPW, final boolean getKeys, final boolean preVerified,
+  public void createAccount(final byte[] emailUTF8, final byte[] quickStretchedPW,
+      final boolean getKeys,
+      final boolean preVerified,
+      final Map<String, String> queryParameters,
       final RequestDelegate<LoginResponse> delegate) {
-    BaseResource resource;
-    JSONObject body;
-    final String path = getKeys ? "account/create?keys=true" : "account/create";
+    final BaseResource resource;
+    final JSONObject body;
     try {
-      resource = new BaseResource(new URI(serverURI + path));
+      final String path = "account/create";
+      final Map<String, String> modifiedParameters = new HashMap<>();
+      if (queryParameters != null) {
+        modifiedParameters.putAll(queryParameters);
+      }
+      if (getKeys) {
+        modifiedParameters.put("keys", "true");
+      }
+      resource = getBaseResource(path, modifiedParameters);
       body = new FxAccount20CreateDelegate(emailUTF8, quickStretchedPW, preVerified).getCreateBody();
     } catch (Exception e) {
       invokeHandleError(delegate, e);
@@ -119,7 +137,7 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
           boolean verified = false; // In production, we're definitely not verified immediately upon creation.
           Boolean tempVerified = body.getBoolean(JSON_KEY_VERIFIED);
           if (tempVerified != null) {
-            verified = tempVerified.booleanValue();
+            verified = tempVerified;
           }
           byte[] sessionToken = Utils.hex2Byte(body.getString(JSON_KEY_SESSIONTOKEN));
           byte[] keyFetchToken = null;
@@ -129,10 +147,8 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
           LoginResponse loginResponse = new LoginResponse(new String(emailUTF8, "UTF-8"), uid, verified, sessionToken, keyFetchToken);
 
           delegate.handleSuccess(loginResponse);
-          return;
         } catch (Exception e) {
           delegate.handleError(e);
-          return;
         }
       }
     };
@@ -141,19 +157,18 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
   }
 
   @Override
-  public void createAccountAndGetKeys(byte[] emailUTF8, PasswordStretcher passwordStretcher, RequestDelegate<LoginResponse> delegate) {
+  public void createAccountAndGetKeys(byte[] emailUTF8, PasswordStretcher passwordStretcher, final Map<String, String> queryParameters, RequestDelegate<LoginResponse> delegate) {
     try {
       byte[] quickStretchedPW = passwordStretcher.getQuickStretchedPW(emailUTF8);
-      createAccount(emailUTF8, quickStretchedPW, true, false, delegate);
+      createAccount(emailUTF8, quickStretchedPW, true, false, queryParameters, delegate);
     } catch (Exception e) {
       invokeHandleError(delegate, e);
-      return;
     }
   }
 
   @Override
-  public void loginAndGetKeys(byte[] emailUTF8, PasswordStretcher passwordStretcher, RequestDelegate<LoginResponse> delegate) {
-    login(emailUTF8, passwordStretcher, true, delegate);
+  public void loginAndGetKeys(byte[] emailUTF8, PasswordStretcher passwordStretcher, final Map<String, String> queryParameters, RequestDelegate<LoginResponse> delegate) {
+    login(emailUTF8, passwordStretcher, true, queryParameters, delegate);
   }
 
   /**
@@ -177,21 +192,23 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
    * @param getKeys
    *          true if a <code>keyFetchToken</code> should be returned (in
    *          addition to the standard <code>sessionToken</code>).
+   * @param queryParameters
    * @param delegate
    *          to invoke callbacks.
    */
   public void login(final byte[] emailUTF8, final PasswordStretcher stretcher, final boolean getKeys,
+      final Map<String, String> queryParameters,
       final RequestDelegate<LoginResponse> delegate) {
     byte[] quickStretchedPW;
     try {
-      FxAccountConstants.pii(LOG_TAG, "Trying user provided email: '" + new String(emailUTF8, "UTF-8") + "'" );
+      FxAccountUtils.pii(LOG_TAG, "Trying user provided email: '" + new String(emailUTF8, "UTF-8") + "'" );
       quickStretchedPW = stretcher.getQuickStretchedPW(emailUTF8);
     } catch (Exception e) {
       delegate.handleError(e);
       return;
     }
 
-    this.login(emailUTF8, quickStretchedPW, getKeys, new RequestDelegate<LoginResponse>() {
+    this.login(emailUTF8, quickStretchedPW, getKeys, queryParameters, new RequestDelegate<LoginResponse>() {
       @Override
       public void handleSuccess(LoginResponse result) {
         delegate.handleSuccess(result);
@@ -211,14 +228,14 @@ public class FxAccountClient20 extends FxAccountClient10 implements FxAccountCli
         };
 
         Logger.info(LOG_TAG, "Server returned alternate email; retrying login with provided email.");
-        FxAccountConstants.pii(LOG_TAG, "Trying server provided email: '" + alternateEmail + "'" );
+        FxAccountUtils.pii(LOG_TAG, "Trying server provided email: '" + alternateEmail + "'" );
 
         try {
           // Nota bene: this is not recursive, since we call the fixed password
           // signature here, which invokes a non-retrying version.
           byte[] alternateEmailUTF8 = alternateEmail.getBytes("UTF-8");
           byte[] alternateQuickStretchedPW = stretcher.getQuickStretchedPW(alternateEmailUTF8);
-          login(alternateEmailUTF8, alternateQuickStretchedPW, getKeys, delegate);
+          login(alternateEmailUTF8, alternateQuickStretchedPW, getKeys, queryParameters, delegate);
         } catch (Exception innerException) {
           delegate.handleError(innerException);
           return;

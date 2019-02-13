@@ -20,14 +20,13 @@
  { 0x8d, 0x70, 0x7c, 0xe6, 0x3c, 0x51, 0xc9, 0x58 } }
 
 
-class nsWindowDataSource : public nsIRDFDataSource,
-                           public nsIObserver,
-                           public nsIWindowMediatorListener,
-                           public nsIWindowDataSource
+class nsWindowDataSource final : public nsIRDFDataSource,
+                                 public nsIObserver,
+                                 public nsIWindowMediatorListener,
+                                 public nsIWindowDataSource
 {
  public:
     nsWindowDataSource() { }
-    virtual ~nsWindowDataSource();
 
     nsresult Init();
 
@@ -38,6 +37,9 @@ class nsWindowDataSource : public nsIRDFDataSource,
     NS_DECL_NSIWINDOWMEDIATORLISTENER
     NS_DECL_NSIWINDOWDATASOURCE
     NS_DECL_NSIRDFDATASOURCE
+
+ protected:
+    virtual ~nsWindowDataSource();
 
  private:
 

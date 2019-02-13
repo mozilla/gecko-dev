@@ -10,8 +10,9 @@ all_platforms = ['win64', 'win32', 'linux32', 'linux64', 'macosx-universal']
 for platform in all_platforms:
     whitelist['nightly'][platform] = [
         'ac_add_options --enable-update-channel=nightly',
+        'ac_add_options --with-branding=browser/branding/nightly',
         'ac_add_options --enable-profiling',
-        'mk_add_options CLIENT_PY_ARGS="--hg-options=\'--verbose --time\' --hgtool=../tools/buildfarm/utils/hgtool.py --skip-chatzilla --skip-comm --skip-inspector --skip-venkman --tinderbox-print"'
+        'mk_add_options CLIENT_PY_ARGS="--hg-options=\'--verbose --time\' --hgtool=../tools/buildfarm/utils/hgtool.py --skip-chatzilla --skip-comm --skip-inspector --tinderbox-print"'
     ]
 
 for platform in ['linux32', 'linux64', 'macosx-universal']:
@@ -21,7 +22,6 @@ for platform in ['linux32', 'linux64', 'macosx-universal']:
 
 for platform in ['linux32', 'linux64', 'macosx-universal', 'win32', 'win64']:
     whitelist['nightly'][platform] += ['ac_add_options --enable-signmar']
-    whitelist['nightly'][platform] += ['ac_add_options --enable-js-diagnostics']
 
 whitelist['nightly']['linux32'] += [
     'CXX=$REAL_CXX',
@@ -34,7 +34,6 @@ whitelist['nightly']['linux32'] += [
     'export MOZ_TELEMETRY_REPORTING=1',
     "mk_add_options PROFILE_GEN_SCRIPT='$(PYTHON) @MOZ_OBJDIR@/_profile/pgo/profileserver.py 10'",
     'STRIP_FLAGS="--strip-debug"',
-    'ac_add_options --disable-elf-hack # --enable-elf-hack conflicts with --enable-profiling',
 ]
 
 whitelist['nightly']['linux64'] += [
@@ -44,11 +43,12 @@ whitelist['nightly']['linux64'] += [
     'STRIP_FLAGS="--strip-debug"',
     'ac_add_options --with-ccache=/usr/bin/ccache',
     '. "$topsrcdir/build/mozconfig.cache"',
-    'ac_add_options --disable-elf-hack # --enable-elf-hack conflicts with --enable-profiling',
 ]
 
 whitelist['nightly']['macosx-universal'] += [
+    'if test "${MOZ_UPDATE_CHANNEL}" = "nightly"; then',
     'ac_add_options --with-macbundlename-prefix=Firefox',
+    'fi',
     'mk_add_options MOZ_MAKE_FLAGS="-j12"',
     'ac_add_options --with-ccache',
     '. "$topsrcdir/build/mozconfig.cache"',
@@ -67,6 +67,7 @@ whitelist['nightly']['win32'] += [
 ]
 whitelist['nightly']['win64'] += [
     '. "$topsrcdir/browser/config/mozconfigs/win64/common-win64"',
+    '. "$topsrcdir/build/mozconfig.cache"',
 ]
 
 for platform in all_platforms:

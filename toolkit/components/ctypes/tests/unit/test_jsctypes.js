@@ -1,4 +1,4 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -147,7 +147,7 @@ function run_test()
   run_char_tests(library, ctypes.char, "char", 1, true, [-0x80, 0x7f]);
   run_char_tests(library, ctypes.signed_char, "signed_char", 1, true, [-0x80, 0x7f]);
   run_char_tests(library, ctypes.unsigned_char, "unsigned_char", 1, false, [0, 0xff]);
-  run_jschar_tests(library, ctypes.jschar, "jschar", [0, 0xffff]);
+  run_char16_tests(library, ctypes.char16_t, "char16_t", [0, 0xffff]);
 
   // Test the special types.
   run_StructType_tests();
@@ -300,7 +300,7 @@ function run_abstract_class_tests()
 }
 
 function run_Int64_tests() {
-  do_check_throws(function() { ctypes.Int64(); }, Error);
+  do_check_throws(function() { ctypes.Int64(); }, TypeError);
 
   // Test that classes and prototypes are set up correctly.
   do_check_class(ctypes.Int64, "Function");
@@ -331,14 +331,14 @@ function run_Int64_tests() {
   do_check_eq(i.toString(), "0");
   for (let radix = 2; radix <= 36; ++radix)
     do_check_eq(i.toString(radix), "0");
-  do_check_throws(function() { i.toString(0); }, Error);
-  do_check_throws(function() { i.toString(1); }, Error);
-  do_check_throws(function() { i.toString(37); }, Error);
-  do_check_throws(function() { i.toString(10, 2); }, Error);
+  do_check_throws(function() { i.toString(0); }, RangeError);
+  do_check_throws(function() { i.toString(1); }, RangeError);
+  do_check_throws(function() { i.toString(37); }, RangeError);
+  do_check_throws(function() { i.toString(10, 2); }, TypeError);
 
   // Test Int64.toSource().
   do_check_eq(i.toSource(), "ctypes.Int64(\"0\")");
-  do_check_throws(function() { i.toSource(10); }, Error);
+  do_check_throws(function() { i.toSource(10); }, TypeError);
 
   i = ctypes.Int64("0x28590a1c921def71");
   do_check_eq(i.toString(), i.toString(10));
@@ -445,18 +445,18 @@ function run_Int64_tests() {
   do_check_eq(ctypes.Int64.compare(ctypes.Int64(-5), ctypes.Int64(-5)), 0);
   do_check_eq(ctypes.Int64.compare(ctypes.Int64(-5), ctypes.Int64(-4)), -1);
   do_check_eq(ctypes.Int64.compare(ctypes.Int64(-4), ctypes.Int64(-5)), 1);
-  do_check_throws(function() { ctypes.Int64.compare(ctypes.Int64(4), ctypes.UInt64(4)); }, Error);
-  do_check_throws(function() { ctypes.Int64.compare(4, 5); }, Error);
+  do_check_throws(function() { ctypes.Int64.compare(ctypes.Int64(4), ctypes.UInt64(4)); }, TypeError);
+  do_check_throws(function() { ctypes.Int64.compare(4, 5); }, TypeError);
 
   // Test ctypes.Int64.{lo,hi}.
   do_check_eq(ctypes.Int64.lo(ctypes.Int64(0x28590a1c921de000)), 0x921de000);
   do_check_eq(ctypes.Int64.hi(ctypes.Int64(0x28590a1c921de000)), 0x28590a1c);
   do_check_eq(ctypes.Int64.lo(ctypes.Int64(-0x28590a1c921de000)), 0x6de22000);
   do_check_eq(ctypes.Int64.hi(ctypes.Int64(-0x28590a1c921de000)), -0x28590a1d);
-  do_check_throws(function() { ctypes.Int64.lo(ctypes.UInt64(0)); }, Error);
-  do_check_throws(function() { ctypes.Int64.hi(ctypes.UInt64(0)); }, Error);
-  do_check_throws(function() { ctypes.Int64.lo(0); }, Error);
-  do_check_throws(function() { ctypes.Int64.hi(0); }, Error);
+  do_check_throws(function() { ctypes.Int64.lo(ctypes.UInt64(0)); }, TypeError);
+  do_check_throws(function() { ctypes.Int64.hi(ctypes.UInt64(0)); }, TypeError);
+  do_check_throws(function() { ctypes.Int64.lo(0); }, TypeError);
+  do_check_throws(function() { ctypes.Int64.hi(0); }, TypeError);
 
   // Test ctypes.Int64.join.
   do_check_eq(ctypes.Int64.join(0, 0).toString(), "0");
@@ -471,7 +471,7 @@ function run_Int64_tests() {
 }
 
 function run_UInt64_tests() {
-  do_check_throws(function() { ctypes.UInt64(); }, Error);
+  do_check_throws(function() { ctypes.UInt64(); }, TypeError);
 
   // Test that classes and prototypes are set up correctly.
   do_check_class(ctypes.UInt64, "Function");
@@ -502,14 +502,14 @@ function run_UInt64_tests() {
   do_check_eq(i.toString(), "0");
   for (let radix = 2; radix <= 36; ++radix)
     do_check_eq(i.toString(radix), "0");
-  do_check_throws(function() { i.toString(0); }, Error);
-  do_check_throws(function() { i.toString(1); }, Error);
-  do_check_throws(function() { i.toString(37); }, Error);
-  do_check_throws(function() { i.toString(10, 2); }, Error);
+  do_check_throws(function() { i.toString(0); }, RangeError);
+  do_check_throws(function() { i.toString(1); }, RangeError);
+  do_check_throws(function() { i.toString(37); }, RangeError);
+  do_check_throws(function() { i.toString(10, 2); }, TypeError);
 
   // Test UInt64.toSource().
   do_check_eq(i.toSource(), "ctypes.UInt64(\"0\")");
-  do_check_throws(function() { i.toSource(10); }, Error);
+  do_check_throws(function() { i.toSource(10); }, TypeError);
 
   i = ctypes.UInt64("0x28590a1c921def71");
   do_check_eq(i.toString(), i.toString(10));
@@ -592,18 +592,18 @@ function run_UInt64_tests() {
   do_check_eq(ctypes.UInt64.compare(ctypes.UInt64(5), ctypes.UInt64(5)), 0);
   do_check_eq(ctypes.UInt64.compare(ctypes.UInt64(5), ctypes.UInt64(4)), 1);
   do_check_eq(ctypes.UInt64.compare(ctypes.UInt64(4), ctypes.UInt64(5)), -1);
-  do_check_throws(function() { ctypes.UInt64.compare(ctypes.UInt64(4), ctypes.Int64(4)); }, Error);
-  do_check_throws(function() { ctypes.UInt64.compare(4, 5); }, Error);
+  do_check_throws(function() { ctypes.UInt64.compare(ctypes.UInt64(4), ctypes.Int64(4)); }, TypeError);
+  do_check_throws(function() { ctypes.UInt64.compare(4, 5); }, TypeError);
 
   // Test ctypes.UInt64.{lo,hi}.
   do_check_eq(ctypes.UInt64.lo(ctypes.UInt64(0x28590a1c921de000)), 0x921de000);
   do_check_eq(ctypes.UInt64.hi(ctypes.UInt64(0x28590a1c921de000)), 0x28590a1c);
   do_check_eq(ctypes.UInt64.lo(ctypes.UInt64(0xa8590a1c921de000)), 0x921de000);
   do_check_eq(ctypes.UInt64.hi(ctypes.UInt64(0xa8590a1c921de000)), 0xa8590a1c);
-  do_check_throws(function() { ctypes.UInt64.lo(ctypes.Int64(0)); }, Error);
-  do_check_throws(function() { ctypes.UInt64.hi(ctypes.Int64(0)); }, Error);
-  do_check_throws(function() { ctypes.UInt64.lo(0); }, Error);
-  do_check_throws(function() { ctypes.UInt64.hi(0); }, Error);
+  do_check_throws(function() { ctypes.UInt64.lo(ctypes.Int64(0)); }, TypeError);
+  do_check_throws(function() { ctypes.UInt64.hi(ctypes.Int64(0)); }, TypeError);
+  do_check_throws(function() { ctypes.UInt64.lo(0); }, TypeError);
+  do_check_throws(function() { ctypes.UInt64.hi(0); }, TypeError);
 
   // Test ctypes.UInt64.join.
   do_check_eq(ctypes.UInt64.join(0, 0).toString(), "0");
@@ -978,8 +978,8 @@ function run_float_tests(library, t, name, size) {
     eval("let f2 = " + f1.toSource());
     do_check_eq(f1.value, f2.value);
   }
-  let vals = [Infinity, -Infinity, -0, 0, 1, -1, 1/3, -1/3, 1/4, -1/4,
-              1e-14, -1e-14, 0xfffffffffffff000, -0xfffffffffffff000];
+  vals = [Infinity, -Infinity, -0, 0, 1, -1, 1/3, -1/3, 1/4, -1/4,
+          1e-14, -1e-14, 0xfffffffffffff000, -0xfffffffffffff000];
   for (let i = 0; i < vals.length; i++)
     test_roundtrip(t, vals[i]);
   do_check_eq(t(NaN).toSource(), t.toSource() + "(NaN)");
@@ -1166,7 +1166,7 @@ function run_char_tests(library, t, name, size, signed, limits) {
   do_check_eq(s.constructor.length, literal.length + 1);
   s = t.array(50)(literal);
   do_check_eq(s.readString(), literal);
-  do_check_throws(function() { t.array(3)(literal); }, Error);
+  do_check_throws(function() { t.array(3)(literal); }, TypeError);
 
   do_check_throws(function() { t.ptr(literal); }, TypeError);
   let p = t.ptr(s);
@@ -1188,7 +1188,7 @@ function run_char_tests(library, t, name, size, signed, limits) {
         18 ] ]);
 }
 
-function run_jschar_tests(library, t, name, limits) {
+function run_char16_tests(library, t, name, limits) {
   run_basic_class_tests(t);
 
   do_check_eq(t.name, name);
@@ -1258,7 +1258,7 @@ function run_jschar_tests(library, t, name, limits) {
   do_check_eq(s.constructor.length, literal.length + 1);
   s = t.array(50)(literal);
   do_check_eq(s.readString(), literal);
-  do_check_throws(function() { t.array(3)(literal); }, Error);
+  do_check_throws(function() { t.array(3)(literal); }, TypeError);
 
   do_check_throws(function() { t.ptr(literal); }, TypeError);
   let p = t.ptr(s);
@@ -1372,10 +1372,10 @@ function run_StructType_tests() {
     ctypes.StructType("t", [{"c": ctypes.int32_t}, {"d": ctypes.int64_t}]),
     [ "fields" ], [ "define" ], [], [ "addressOfField" ], [ "a", "b" ]);
 
-  do_check_throws(function() { ctypes.StructType(); }, Error);
-  do_check_throws(function() { ctypes.StructType("a", [], 5); }, Error);
-  do_check_throws(function() { ctypes.StructType(null, []); }, Error);
-  do_check_throws(function() { ctypes.StructType("a", null); }, Error);
+  do_check_throws(function() { ctypes.StructType(); }, TypeError);
+  do_check_throws(function() { ctypes.StructType("a", [], 5); }, TypeError);
+  do_check_throws(function() { ctypes.StructType(null, []); }, TypeError);
+  do_check_throws(function() { ctypes.StructType("a", null); }, TypeError);
 
   // Check that malformed descriptors are an error.
   do_check_throws(function() {
@@ -1424,8 +1424,8 @@ function run_StructType_tests() {
   }, TypeError);
 
   // Check that 'define' works.
-  do_check_throws(function() { opaque_t.define(); }, Error);
-  do_check_throws(function() { opaque_t.define([], 0); }, Error);
+  do_check_throws(function() { opaque_t.define(); }, TypeError);
+  do_check_throws(function() { opaque_t.define([], 0); }, TypeError);
   do_check_throws(function() { opaque_t.define([{}]); }, Error);
   do_check_throws(function() { opaque_t.define([{ a: 0 }]); }, Error);
   do_check_throws(function() {
@@ -1551,7 +1551,7 @@ function run_StructType_tests() {
   do_check_eq(g.a, 1);
   do_check_eq(g.b, 2);
   do_check_throws(function() { g_t(1); }, TypeError);
-  do_check_throws(function() { g_t(1, 2, 3); }, Error);
+  do_check_throws(function() { g_t(1, 2, 3); }, TypeError);
 
   for (let field in g)
     do_check_true(field == "a" || field == "b");
@@ -1576,9 +1576,9 @@ function run_StructType_tests() {
   g_a = s.addressOfField("b");
   do_check_true(g_a.constructor === g_t.ptr);
   do_check_eq(g_a.contents.a, s.b.a);
-  do_check_throws(function() { s.addressOfField(); }, Error);
+  do_check_throws(function() { s.addressOfField(); }, TypeError);
   do_check_throws(function() { s.addressOfField("d"); }, Error);
-  do_check_throws(function() { s.addressOfField("a", 2); }, Error);
+  do_check_throws(function() { s.addressOfField("a", 2); }, TypeError);
 
   do_check_eq(s.toSource(), "s_t(4, {\"a\": 7, \"b\": 2}, 10)");
   do_check_eq(s.toSource(), s.toString());
@@ -1587,25 +1587,25 @@ function run_StructType_tests() {
   do_check_eq(s.b.b, s2.b.b);
 
   // Test that structs can be set from an object using 'value'.
-  do_check_throws(function() { s.value; }, Error);
+  do_check_throws(function() { s.value; }, TypeError);
   let s_init = { "a": 2, "b": { "a": 9, "b": 5 }, "c": 13 };
   s.value = s_init;
   do_check_eq(s.b.a, 9);
   do_check_eq(s.c, 13);
   do_check_throws(function() { s.value = 5; }, TypeError);
   do_check_throws(function() { s.value = ctypes.int32_t(); }, TypeError);
-  do_check_throws(function() { s.value = {}; }, Error);
-  do_check_throws(function() { s.value = { "a": 2 }; }, Error);
+  do_check_throws(function() { s.value = {}; }, TypeError);
+  do_check_throws(function() { s.value = { "a": 2 }; }, TypeError);
   do_check_throws(function() { s.value = { "a": 2, "b": 5, "c": 10 }; }, TypeError);
   do_check_throws(function() {
     s.value = { "5": 2, "b": { "a": 9, "b": 5 }, "c": 13 };
-  }, Error);
+  }, TypeError);
   do_check_throws(function() {
     s.value = { "a": 2, "b": { "a": 9, "b": 5 }, "c": 13, "d": 17 };
-  }, Error);
+  }, TypeError);
   do_check_throws(function() {
     s.value = { "a": 2, "b": { "a": 9, "b": 5, "e": 9 }, "c": 13 };
-  }, Error);
+  }, TypeError);
 
   // Test that structs can be constructed similarly through ExplicitConvert,
   // and that the single-field case is disambiguated correctly.
@@ -1657,11 +1657,11 @@ function run_PointerType_tests() {
     ctypes.PointerType(ctypes.int32_t), ctypes.PointerType(ctypes.int64_t),
     [ "targetType" ], [], [ "contents" ], [ "isNull", "increment", "decrement" ], []);
 
-  do_check_throws(function() { ctypes.PointerType(); }, Error);
-  do_check_throws(function() { ctypes.PointerType(ctypes.int32_t, 5); }, Error);
-  do_check_throws(function() { ctypes.PointerType(null); }, Error);
-  do_check_throws(function() { ctypes.PointerType(ctypes.int32_t()); }, Error);
-  do_check_throws(function() { ctypes.PointerType("void"); }, Error);
+  do_check_throws(function() { ctypes.PointerType(); }, TypeError);
+  do_check_throws(function() { ctypes.PointerType(ctypes.int32_t, 5); }, TypeError);
+  do_check_throws(function() { ctypes.PointerType(null); }, TypeError);
+  do_check_throws(function() { ctypes.PointerType(ctypes.int32_t()); }, TypeError);
+  do_check_throws(function() { ctypes.PointerType("void"); }, TypeError);
 
   let name = "g_t";
   let g_t = ctypes.StructType(name, [{ a: ctypes.int32_t }, { b: ctypes.double }]);
@@ -1682,7 +1682,7 @@ function run_PointerType_tests() {
 
   // Test ExplicitConvert.
   let p = p_t();
-  do_check_throws(function() { p.value; }, Error);
+  do_check_throws(function() { p.value; }, TypeError);
   do_check_eq(ptrValue(p), 0);
   do_check_throws(function() { p.contents; }, Error);
   do_check_throws(function() { p.contents = g; }, Error);
@@ -1703,7 +1703,7 @@ function run_PointerType_tests() {
   let f = new f_t();
   do_check_throws(function() { f.contents; }, Error);
   do_check_throws(function() { f.contents = 0; }, Error);
-  let f = f_t(5);
+  f = f_t(5);
   do_check_throws(function() { f.contents = 0; }, Error);
   do_check_eq(f.toSource(), 'FILE.ptr(ctypes.UInt64("0x5"))');
 
@@ -1731,7 +1731,7 @@ function run_PointerType_tests() {
   do_check_true(n.isNull() === false);
 
   // Test 'increment'/'decrement'.
-  let g_t = ctypes.StructType("g_t", [{ a: ctypes.int32_t }, { b: ctypes.double }]);
+  g_t = ctypes.StructType("g_t", [{ a: ctypes.int32_t }, { b: ctypes.double }]);
   let a_t = ctypes.ArrayType(g_t, 2);
   let a = new a_t();
   a[0] = g_t(1, 2);
@@ -1753,7 +1753,6 @@ function run_PointerType_tests() {
   let z = ctypes.int32_t.array(0)().address();
   do_check_eq(z.contents.length, 0);
 
-  // Check that you can use an ArrayBuffer or a typed array as a pointer
   let c_arraybuffer = new ArrayBuffer(256);
   let typed_array_samples =
        [
@@ -1766,6 +1765,8 @@ function run_PointerType_tests() {
          [new Float32Array(c_arraybuffer), ctypes.float32_t],
          [new Float64Array(c_arraybuffer), ctypes.float64_t]
         ];
+
+  // Check that you can convert ArrayBuffer or typed array to a C array
   for (let i = 0; i < typed_array_samples.length; ++i) {
     for (let j = 0; j < typed_array_samples.length; ++j) {
       let view = typed_array_samples[i][0];
@@ -1775,31 +1776,11 @@ function run_PointerType_tests() {
 
       if (i != j) {
         do_print("Checking that typed array " + (view.constructor.name) +
-                 " canNOT be converted to " + item_type + " pointer/array");
-        do_check_throws(function() { item_type.ptr(view); }, TypeError);
+                 " can NOT be converted to " + item_type + " array");
         do_check_throws(function() { array_type(view); }, TypeError);
-
       } else {
         do_print("Checking that typed array " + (view.constructor.name) +
-                 " can be converted to " + item_type + " pointer/array");
-        // Fill buffer using view
-        for (let k = 0; k < number_of_items; ++k) {
-          view[k] = k;
-        }
-
-        // Convert ArrayBuffer to pointer then array and check contents
-        let c_ptr = item_type.ptr(c_arraybuffer);
-        let c_array = ctypes.cast(c_ptr, array_type.ptr).contents;
-        for (let k = 0; k < number_of_items; ++k) {
-          do_check_eq(c_array[k], view[k]);
-        }
-
-        // Convert view to pointer then array and check contents
-        c_ptr = item_type.ptr(view);
-        c_array = ctypes.cast(c_ptr, array_type.ptr).contents;
-        for (let k = 0; k < number_of_items; ++k) {
-          do_check_eq(c_array[k], view[k]);
-        }
+                 " can be converted to " + item_type + " array");
 
         // Convert ArrayBuffer to array of the right size and check contents
         c_array = array_type(c_arraybuffer);
@@ -1817,23 +1798,32 @@ function run_PointerType_tests() {
         let array_type_too_large = item_type.array(number_of_items + 1);
         let array_type_too_small = item_type.array(number_of_items - 1);
 
-        do_check_throws(function() { array_type_too_large(c_arraybuffer); }, Error);
-        do_check_throws(function() { array_type_too_small(c_arraybuffer); }, Error);
-        do_check_throws(function() { array_type_too_large(view); }, Error);
-        do_check_throws(function() { array_type_too_small(view); }, Error);
+        do_check_throws(function() { array_type_too_large(c_arraybuffer); }, TypeError);
+        do_check_throws(function() { array_type_too_small(c_arraybuffer); }, TypeError);
+        do_check_throws(function() { array_type_too_large(view); }, TypeError);
+        do_check_throws(function() { array_type_too_small(view); }, TypeError);
 
         // Convert subarray of typed array to array of right size and check contents
         c_array = array_type_too_small(view.subarray(1));
         for (let k = 1; k < number_of_items; ++k) {
           do_check_eq(c_array[k - 1], view[k]);
         }
-
-        // Convert array to void*
-        ctypes.voidptr_t(c_arraybuffer);
-
-        // Convert view to void*
-        ctypes.voidptr_t(view);
       }
+    }
+  }
+
+  // Check that you can't use an ArrayBuffer or a typed array as a pointer
+  for (let i = 0; i < typed_array_samples.length; ++i) {
+    for (let j = 0; j < typed_array_samples.length; ++j) {
+      let view = typed_array_samples[i][0];
+      let item_type = typed_array_samples[j][1];
+
+      do_print("Checking that typed array " + (view.constructor.name) +
+               " can NOT be converted to " + item_type + " pointer/array");
+      do_check_throws(function() { item_type.ptr(c_arraybuffer); }, TypeError);
+      do_check_throws(function() { item_type.ptr(view); }, TypeError);
+      do_check_throws(function() { ctypes.voidptr_t(c_arraybuffer); }, TypeError);
+      do_check_throws(function() { ctypes.voidptr_t(view); }, TypeError);
     }
   }
 }
@@ -1845,19 +1835,19 @@ function run_FunctionType_tests() {
     [ "abi", "returnType", "argTypes", "isVariadic" ],
     undefined, undefined, undefined, undefined);
 
-  do_check_throws(function() { ctypes.FunctionType(); }, Error);
+  do_check_throws(function() { ctypes.FunctionType(); }, TypeError);
   do_check_throws(function() {
     ctypes.FunctionType(ctypes.default_abi, ctypes.void_t, [ ctypes.void_t ]);
   }, Error);
   do_check_throws(function() {
     ctypes.FunctionType(ctypes.default_abi, ctypes.void_t, [ ctypes.void_t ], 5);
-  }, Error);
+  }, TypeError);
   do_check_throws(function() {
     ctypes.FunctionType(ctypes.default_abi, ctypes.void_t, ctypes.void_t);
-  }, Error);
+  }, TypeError);
   do_check_throws(function() {
     ctypes.FunctionType(ctypes.default_abi, ctypes.void_t, null);
-  }, Error);
+  }, TypeError);
   do_check_throws(function() {
     ctypes.FunctionType(ctypes.default_abi, ctypes.int32_t());
   }, Error);
@@ -1894,7 +1884,7 @@ function run_FunctionType_tests() {
 
   // Test ExplicitConvert.
   let f = fp_t();
-  do_check_throws(function() { f.value; }, Error);
+  do_check_throws(function() { f.value; }, TypeError);
   do_check_eq(ptrValue(f), 0);
   f = fp_t(5);
   do_check_eq(ptrValue(f), 5);
@@ -1970,10 +1960,10 @@ function run_ArrayType_tests() {
     ctypes.ArrayType(ctypes.int32_t, 10), ctypes.ArrayType(ctypes.int64_t),
     [ "elementType", "length" ], [], [ "length" ], [ "addressOfElement" ]);
 
-  do_check_throws(function() { ctypes.ArrayType(); }, Error);
-  do_check_throws(function() { ctypes.ArrayType(null); }, Error);
-  do_check_throws(function() { ctypes.ArrayType(ctypes.int32_t, 1, 5); }, Error);
-  do_check_throws(function() { ctypes.ArrayType(ctypes.int32_t, -1); }, Error);
+  do_check_throws(function() { ctypes.ArrayType(); }, TypeError);
+  do_check_throws(function() { ctypes.ArrayType(null); }, TypeError);
+  do_check_throws(function() { ctypes.ArrayType(ctypes.int32_t, 1, 5); }, TypeError);
+  do_check_throws(function() { ctypes.ArrayType(ctypes.int32_t, -1); }, TypeError);
 
   let name = "g_t";
   let g_t = ctypes.StructType(name, [{ a: ctypes.int32_t }, { b: ctypes.double }]);
@@ -2021,7 +2011,7 @@ function run_ArrayType_tests() {
   do_check_eq(a2.constructor.length, 5);
   do_check_eq(a2.length, 5);
   do_check_eq(a2.constructor.size, g_t.size * 5);
-  do_check_throws(function() { new a2_t(); }, Error);
+  do_check_throws(function() { new a2_t(); }, TypeError);
   do_check_throws(function() { ctypes.ArrayType(ctypes.ArrayType(g_t)); }, Error);
   do_check_throws(function() { ctypes.ArrayType(ctypes.ArrayType(g_t), 5); }, Error);
 
@@ -2035,7 +2025,7 @@ function run_ArrayType_tests() {
   if (ctypes.size_t.size == 4) {
     do_check_throws(function() {
       ctypes.ArrayType(ctypes.int8_t, 0x100000000);
-    }, Error);
+    }, TypeError);
     do_check_throws(function() {
       ctypes.ArrayType(ctypes.int16_t, 0x80000000);
     }, Error);
@@ -2046,7 +2036,7 @@ function run_ArrayType_tests() {
   } else {
     do_check_throws(function() {
       ctypes.ArrayType(ctypes.int8_t, ctypes.UInt64("0xffffffffffffffff"));
-    }, Error);
+    }, TypeError);
     do_check_throws(function() {
       ctypes.ArrayType(ctypes.int16_t, ctypes.UInt64("0x8000000000000000"));
     }, Error);
@@ -2077,11 +2067,11 @@ function run_ArrayType_tests() {
 
   c.value = c;
   do_check_eq(c[3], 4);
-  do_check_throws(function() { c.value; }, Error);
-  do_check_throws(function() { c.value = [1, 2, 3, 4, 5]; }, Error);
-  do_check_throws(function() { c.value = [1, 2, 3, 4, 5, 6, 7]; }, Error);
+  do_check_throws(function() { c.value; }, TypeError);
+  do_check_throws(function() { c.value = [1, 2, 3, 4, 5]; }, TypeError);
+  do_check_throws(function() { c.value = [1, 2, 3, 4, 5, 6, 7]; }, TypeError);
   do_check_throws(function() { c.value = [1, 2, 7.4, 4, 5, 6]; }, TypeError);
-  do_check_throws(function() { c.value = []; }, Error);
+  do_check_throws(function() { c.value = []; }, TypeError);
 }
 
 function run_type_toString_tests() {
@@ -2133,7 +2123,7 @@ function run_type_toString_tests() {
   do_check_eq(c.bool.toString(),                "type bool");
   do_check_eq(c.void_t.toString(),              "type void");
   do_check_eq(c.voidptr_t.toString(),           "type void*");
-  do_check_eq(c.jschar.toString(),              "type jschar");
+  do_check_eq(c.char16_t.toString(),            "type char16_t");
 
   var simplestruct = c.StructType("simplestruct", [{"smitty":c.voidptr_t}]);
   do_check_eq(simplestruct.toString(),          "type simplestruct");
@@ -2252,13 +2242,13 @@ function run_string_tests(library) {
   for (let i = 0; i < vals.length; i++)
     do_check_throws(function() { test_ansi_len(vals[i]); }, TypeError);
 
-  let test_wide_len = library.declare("test_wide_len", ctypes.default_abi, ctypes.int32_t, ctypes.jschar.ptr);
+  let test_wide_len = library.declare("test_wide_len", ctypes.default_abi, ctypes.int32_t, ctypes.char16_t.ptr);
   do_check_eq(test_wide_len("hello world"), 11);
 
   let test_ansi_ret = library.declare("test_ansi_ret", ctypes.default_abi, ctypes.char.ptr);
   do_check_eq(test_ansi_ret().readString(), "success");
 
-  let test_wide_ret = library.declare("test_wide_ret", ctypes.default_abi, ctypes.jschar.ptr);
+  let test_wide_ret = library.declare("test_wide_ret", ctypes.default_abi, ctypes.char16_t.ptr);
   do_check_eq(test_wide_ret().readString(), "success");
 
   let test_ansi_echo = library.declare("test_ansi_echo", ctypes.default_abi, ctypes.char.ptr, ctypes.char.ptr);
@@ -2715,7 +2705,7 @@ function run_variadic_tests(library) {
 
   do_check_eq(result.value, 3 + 5 + 7 + 11);
 
-  let result = ctypes.int32_t.array(3)([1,1,1]),
+  result = ctypes.int32_t.array(3)([1,1,1]),
       v1 = ctypes.int32_t.array(4)([1,2,3,5]),
       v2 = ctypes.int32_t.array(3)([7,11,13]),
       vector_add_va = library.declare("test_vector_add_va_cdecl",

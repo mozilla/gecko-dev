@@ -35,6 +35,7 @@ extern "C" {
 #include "nsIServiceManager.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 
 using namespace mozilla;
 
@@ -48,20 +49,20 @@ nsToolkit::nsToolkit()
 , mEventTapRLS(nullptr)
 {
   MOZ_COUNT_CTOR(nsToolkit);
-  RegisterForSleepWakeNotifcations();
+  RegisterForSleepWakeNotifications();
 }
 
 nsToolkit::~nsToolkit()
 {
   MOZ_COUNT_DTOR(nsToolkit);
-  RemoveSleepWakeNotifcations();
+  RemoveSleepWakeNotifications();
   UnregisterAllProcessMouseEventHandlers();
 }
 
 void
 nsToolkit::PostSleepWakeNotification(const char* aNotification)
 {
-  nsCOMPtr<nsIObserverService> observerService = do_GetService("@mozilla.org/observer-service;1");
+  nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
   if (observerService)
     observerService->NotifyObservers(nullptr, aNotification, nullptr);
 }
@@ -98,7 +99,7 @@ static void ToolkitSleepWakeCallback(void *refCon, io_service_t service, natural
 }
 
 nsresult
-nsToolkit::RegisterForSleepWakeNotifcations()
+nsToolkit::RegisterForSleepWakeNotifications()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -123,7 +124,7 @@ nsToolkit::RegisterForSleepWakeNotifcations()
 }
 
 void
-nsToolkit::RemoveSleepWakeNotifcations()
+nsToolkit::RemoveSleepWakeNotifications()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -184,7 +185,7 @@ static CGEventRef EventTapCallback(CGEventTapProxy proxy, CGEventType type, CGEv
   // so would break the corresponding context menu).
   if (NSPointInRect(screenLocation, [ctxMenuWindow frame]))
     return event;
-  rollupListener->Rollup(0, nullptr, nullptr);
+  rollupListener->Rollup(0, false, nullptr, nullptr);
   return event;
 
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(NULL);
@@ -205,7 +206,7 @@ nsToolkit::RegisterForAllProcessMouseEvents()
   if (getenv("MOZ_DEBUG"))
     return;
 
-  // Don't do this for apps that (like Camino) use native context menus.
+  // Don't do this for apps that use native context menus.
 #ifdef MOZ_USE_NATIVE_POPUP_WINDOWS
   return;
 #endif /* MOZ_USE_NATIVE_POPUP_WINDOWS */

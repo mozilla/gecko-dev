@@ -6,7 +6,7 @@
 
 /*
  * This file is meant to be used with |#define CSS_REPORT_PARSE_ERRORS|
- * in mozilla/content/html/style/src/nsCSSScanner.h uncommented, and the
+ * in mozilla/dom/html/style/src/nsCSSScanner.h uncommented, and the
  * |#ifdef DEBUG| block in nsCSSScanner::OutputError (in
  * nsCSSScanner.cpp in the same directory) used (even if not a debug
  * build).
@@ -19,8 +19,10 @@
 #include "nsNetUtil.h"
 
 #include "nsContentCID.h"
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/css/Loader.h"
-#include "nsCSSStyleSheet.h"
+
+using namespace mozilla;
 
 static already_AddRefed<nsIURI>
 FileToURI(const char *aFilename, nsresult *aRv = 0)
@@ -41,7 +43,7 @@ static int
 ParseCSSFile(nsIURI *aSheetURI)
 {
     nsRefPtr<mozilla::css::Loader> = new mozilla::css::Loader();
-    nsRefPtr<nsCSSStyleSheet> sheet;
+    nsRefPtr<CSSStyleSheet> sheet;
     loader->LoadSheetSync(aSheetURI, getter_AddRefs(sheet));
     NS_ASSERTION(sheet, "sheet load failed");
     /* This can happen if the file can't be found (e.g. you

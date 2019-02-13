@@ -9,6 +9,7 @@
 #include <jni.h>
 #include <android/input.h>
 #include <android/log.h>
+#include <android/api-level.h>
 
 #include "nsGeoPosition.h"
 #include "nsRect.h"
@@ -21,11 +22,11 @@
 #include "mozilla/EventForwards.h"
 #include "InputData.h"
 #include "Units.h"
+#include "FrameMetrics.h"
 
 //#define FORCE_ALOG 1
 
 class nsIAndroidDisplayport;
-class nsIAndroidViewport;
 class nsIWidget;
 
 namespace mozilla {
@@ -33,15 +34,6 @@ namespace mozilla {
 class AutoLocalJNIFrame;
 
 void InitAndroidJavaWrappers(JNIEnv *jEnv);
-
-/*
- * Note: do not store global refs to any WrappedJavaObject;
- * these are live only during a particular JNI method, as
- * NewGlobalRef is -not- called on the jobject.
- *
- * If this is needed, WrappedJavaObject can be extended to
- * handle it.
- */
 
 class RefCountedJavaObject {
 public:
@@ -64,6 +56,14 @@ private:
     jobject mObject;
 };
 
+/*
+ * Note: do not store global refs to any WrappedJavaObject;
+ * these are live only during a particular JNI method, as
+ * NewGlobalRef is -not- called on the jobject.
+ *
+ * If this is needed, WrappedJavaObject can be extended to
+ * handle it.
+ */
 class WrappedJavaObject {
 public:
     WrappedJavaObject() :
@@ -232,6 +232,7 @@ private:
 
 enum {
     // These keycode masks are not defined in android/keycodes.h:
+#if __ANDROID_API__ < 13
     AKEYCODE_ESCAPE             = 111,
     AKEYCODE_FORWARD_DEL        = 112,
     AKEYCODE_CTRL_LEFT          = 113,
@@ -325,13 +326,19 @@ enum {
     AKEYCODE_BUTTON_14          = 201,
     AKEYCODE_BUTTON_15          = 202,
     AKEYCODE_BUTTON_16          = 203,
+#endif
+#if __ANDROID_API__ < 14
     AKEYCODE_LANGUAGE_SWITCH    = 204,
     AKEYCODE_MANNER_MODE        = 205,
     AKEYCODE_3D_MODE            = 206,
+#endif
+#if __ANDROID_API__ < 15
     AKEYCODE_CONTACTS           = 207,
     AKEYCODE_CALENDAR           = 208,
     AKEYCODE_MUSIC              = 209,
     AKEYCODE_CALCULATOR         = 210,
+#endif
+#if __ANDROID_API__ < 16
     AKEYCODE_ZENKAKU_HANKAKU    = 211,
     AKEYCODE_EISU               = 212,
     AKEYCODE_MUHENKAN           = 213,
@@ -341,6 +348,7 @@ enum {
     AKEYCODE_RO                 = 217,
     AKEYCODE_KANA               = 218,
     AKEYCODE_ASSIST             = 219,
+#endif
 
     AMETA_FUNCTION_ON           = 0x00000008,
     AMETA_CTRL_ON               = 0x00001000,
@@ -359,7 +367,7 @@ enum {
     AMETA_SHIFT_MASK            = AMETA_SHIFT_LEFT_ON | AMETA_SHIFT_RIGHT_ON | AMETA_SHIFT_ON,
 };
 
-class nsAndroidDisplayport MOZ_FINAL : public nsIAndroidDisplayport
+class nsAndroidDisplayport final : public nsIAndroidDisplayport
 {
 public:
     NS_DECL_ISUPPORTS
@@ -408,6 +416,11 @@ public:
         SAMPLE_PRESSURE = 2,
         SAMPLE_SIZE = 3,
         NUM_SAMPLE_DATA = 4,
+        TOOL_TYPE_UNKNOWN = 0,
+        TOOL_TYPE_FINGER = 1,
+        TOOL_TYPE_STYLUS = 2,
+        TOOL_TYPE_MOUSE = 3,
+        TOOL_TYPE_ERASER = 4,
         dummy_java_enum_list_end
     };
 };
@@ -481,6 +494,26 @@ public:
         return event;
     }
 
+    static AndroidGeckoEvent* MakeApzInputEvent(const MultiTouchInput& aInput, const mozilla::layers::ScrollableLayerGuid& aGuid, uint64_t aInputBlockId, nsEventStatus aEventStatus) {
+        AndroidGeckoEvent* event = new AndroidGeckoEvent();
+        event->Init(APZ_INPUT_EVENT);
+        event->mApzInput = aInput;
+        event->mApzGuid = aGuid;
+        event->mApzInputBlockId = aInputBlockId;
+        event->mApzEventStatus = aEventStatus;
+        return event;
+    }
+
+    bool IsInputEvent() const {
+        return mType == AndroidGeckoEvent::MOTION_EVENT ||
+            mType == AndroidGeckoEvent::NATIVE_GESTURE_EVENT ||
+            mType == AndroidGeckoEvent::LONG_PRESS ||
+            mType == AndroidGeckoEvent::KEY_EVENT ||
+            mType == AndroidGeckoEvent::IME_EVENT ||
+            mType == AndroidGeckoEvent::IME_KEY_EVENT ||
+            mType == AndroidGeckoEvent::APZ_INPUT_EVENT;
+    }
+
     int Action() { return mAction; }
     int Type() { return mType; }
     bool AckNeeded() { return mAckNeeded; }
@@ -488,12 +521,14 @@ public:
     const nsTArray<nsIntPoint>& Points() { return mPoints; }
     const nsTArray<int>& PointIndicies() { return mPointIndicies; }
     const nsTArray<float>& Pressures() { return mPressures; }
+    const nsTArray<int>& ToolTypes() { return mToolTypes; }
     const nsTArray<float>& Orientations() { return mOrientations; }
     const nsTArray<nsIntPoint>& PointRadii() { return mPointRadii; }
     const nsTArray<nsString>& PrefNames() { return mPrefNames; }
     double X() { return mX; }
     double Y() { return mY; }
     double Z() { return mZ; }
+    double W() { return mW; }
     const nsIntRect& Rect() { return mRect; }
     nsAString& Characters() { return mCharacters; }
     nsAString& CharactersExtra() { return mCharactersExtra; }
@@ -501,7 +536,6 @@ public:
     int KeyCode() { return mKeyCode; }
     int ScanCode() { return mScanCode; }
     int MetaState() { return mMetaState; }
-    uint32_t DomKeyLocation() { return mDomKeyLocation; }
     Modifiers DOMModifiers() const;
     bool IsAltPressed() const { return (mMetaState & AMETA_ALT_MASK) != 0; }
     bool IsShiftPressed() const { return (mMetaState & AMETA_SHIFT_MASK) != 0; }
@@ -537,11 +571,16 @@ public:
     float GamepadButtonValue() { return mGamepadButtonValue; }
     const nsTArray<float>& GamepadValues() { return mGamepadValues; }
     int RequestId() { return mCount; } // for convenience
+    const AutoGlobalWrappedJavaObject& Object() { return mObject; }
+    bool CanCoalesceWith(AndroidGeckoEvent* ae);
     WidgetTouchEvent MakeTouchEvent(nsIWidget* widget);
     MultiTouchInput MakeMultiTouchInput(nsIWidget* widget);
     WidgetMouseEvent MakeMouseEvent(nsIWidget* widget);
     void UnionRect(nsIntRect const& aRect);
     nsIObserver *Observer() { return mObserver; }
+    mozilla::layers::ScrollableLayerGuid ApzGuid();
+    uint64_t ApzInputBlockId();
+    nsEventStatus ApzEventStatus();
 
 protected:
     int mAction;
@@ -553,9 +592,9 @@ protected:
     nsTArray<int> mPointIndicies;
     nsTArray<float> mOrientations;
     nsTArray<float> mPressures;
+    nsTArray<int> mToolTypes;
     nsIntRect mRect;
     int mFlags, mMetaState;
-    uint32_t mDomKeyLocation;
     int mKeyCode, mScanCode;
     int mUnicodeChar, mBaseUnicodeChar, mDOMPrintableKeyValue;
     int mRepeatCount;
@@ -564,7 +603,7 @@ protected:
     int mRangeType, mRangeStyles, mRangeLineStyle;
     bool mRangeBoldLine;
     int mRangeForeColor, mRangeBackColor, mRangeLineColor;
-    double mX, mY, mZ;
+    double mX, mY, mZ, mW;
     int mPointerIndex;
     nsString mCharacters, mCharactersExtra, mData;
     nsRefPtr<nsGeoPosition> mGeoPosition;
@@ -581,6 +620,11 @@ protected:
     nsTArray<float> mGamepadValues;
     nsCOMPtr<nsIObserver> mObserver;
     nsTArray<nsString> mPrefNames;
+    MultiTouchInput mApzInput;
+    mozilla::layers::ScrollableLayerGuid mApzGuid;
+    uint64_t mApzInputBlockId;
+    nsEventStatus mApzEventStatus;
+    AutoGlobalWrappedJavaObject mObject;
 
     void ReadIntArray(nsTArray<int> &aVals,
                       JNIEnv *jenv,
@@ -603,8 +647,6 @@ protected:
     void ReadDataField(JNIEnv *jenv);
     void ReadStringFromJString(nsString &aString, JNIEnv *jenv, jstring s);
 
-    uint32_t ReadDomKeyLocation(JNIEnv* jenv, jobject jGeckoEventObj);
-
     static jclass jGeckoEventClass;
     static jfieldID jActionField;
     static jfieldID jTypeField;
@@ -614,10 +656,12 @@ protected:
     static jfieldID jPointIndicies;
     static jfieldID jOrientations;
     static jfieldID jPressures;
+    static jfieldID jToolTypes;
     static jfieldID jPointRadii;
     static jfieldID jXField;
     static jfieldID jYField;
     static jfieldID jZField;
+    static jfieldID jWField;
     static jfieldID jDistanceField;
     static jfieldID jRectField;
     static jfieldID jNativeWindowField;
@@ -629,7 +673,6 @@ protected:
     static jfieldID jKeyCodeField;
     static jfieldID jScanCodeField;
     static jfieldID jMetaStateField;
-    static jfieldID jDomKeyLocationField;
     static jfieldID jFlagsField;
     static jfieldID jCountField;
     static jfieldID jStartField;
@@ -664,8 +707,7 @@ protected:
     static jfieldID jGamepadButtonValueField;
     static jfieldID jGamepadValuesField;
 
-    static jclass jDomKeyLocationClass;
-    static jfieldID jDomKeyLocationValueField;
+    static jfieldID jObjectField;
 
 public:
     enum {
@@ -673,6 +715,7 @@ public:
         KEY_EVENT = 1,
         MOTION_EVENT = 2,
         SENSOR_EVENT = 3,
+        PROCESS_OBJECT = 4,
         LOCATION_EVENT = 5,
         IME_EVENT = 6,
         SIZE_CHANGED = 8,
@@ -681,6 +724,7 @@ public:
         LOAD_URI = 12,
         NOOP = 15,
         FORCED_RESIZE = 16, // used internally in nsAppShell/nsWindow
+        APZ_INPUT_EVENT = 17, // used internally in AndroidJNI/nsAppShell/nsWindow
         BROADCAST = 19,
         VIEWPORT = 20,
         VISITED = 21,
@@ -706,6 +750,8 @@ public:
         TELEMETRY_UI_EVENT = 44,
         GAMEPAD_ADDREMOVE = 45,
         GAMEPAD_DATA = 46,
+        LONG_PRESS = 47,
+        ZOOMEDVIEW = 48,
         dummy_java_enum_list_end
     };
 
@@ -730,6 +776,7 @@ public:
         IME_UPDATE_COMPOSITION = 4,
         IME_REMOVE_COMPOSITION = 5,
         IME_ACKNOWLEDGE_FOCUS = 6,
+        IME_COMPOSE_TEXT = 7,
         dummy_ime_enum_list_end
     };
 
@@ -741,6 +788,11 @@ public:
     enum {
         ACTION_GAMEPAD_BUTTON = 1,
         ACTION_GAMEPAD_AXES = 2
+    };
+
+    enum {
+        ACTION_OBJECT_LAYER_CLIENT = 1,
+        dummy_object_enum_list_end
     };
 };
 

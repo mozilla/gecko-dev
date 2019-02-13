@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,9 +11,9 @@
 
 
 /*----------------------------------------------------------------------------
-	GetLinebreakString
+  GetLinebreakString
 
-	Could make this inline
+  Could make this inline
 ----------------------------------------------------------------------------*/
 static const char*
 GetLinebreakString(nsLinebreakConverter::ELinebreakType aBreakType)
@@ -34,9 +35,9 @@ GetLinebreakString(nsLinebreakConverter::ELinebreakType aBreakType)
 
 
 /*----------------------------------------------------------------------------
-	AppendLinebreak
+  AppendLinebreak
 
-	Wee inline method to append a line break. Modifies ioDest.
+  Wee inline method to append a line break. Modifies ioDest.
 ----------------------------------------------------------------------------*/
 template<class T>
 void
@@ -50,9 +51,9 @@ AppendLinebreak(T*& aIoDest, const char* aLineBreakStr)
 }
 
 /*----------------------------------------------------------------------------
-	CountChars
+  CountChars
 
-	Counts occurrences of breakStr in aSrc
+  Counts occurrences of breakStr in aSrc
 ----------------------------------------------------------------------------*/
 template<class T>
 int32_t
@@ -84,9 +85,9 @@ CountLinebreaks(const T* aSrc, int32_t aInLen, const char* aBreakStr)
 
 
 /*----------------------------------------------------------------------------
-	ConvertBreaks
+  ConvertBreaks
 
-	ioLen *includes* a terminating null, if any
+  ioLen *includes* a terminating null, if any
 ----------------------------------------------------------------------------*/
 template<class T>
 static T*
@@ -99,7 +100,7 @@ ConvertBreaks(const T* aInSrc, int32_t& aIoLen, const char* aSrcBreak,
 
   // handle the no conversion case
   if (nsCRT::strcmp(aSrcBreak, aDestBreak) == 0) {
-    resultString = (T*)nsMemory::Alloc(sizeof(T) * aIoLen);
+    resultString = (T*)malloc(sizeof(T) * aIoLen);
     if (!resultString) {
       return nullptr;
     }
@@ -113,7 +114,7 @@ ConvertBreaks(const T* aInSrc, int32_t& aIoLen, const char* aSrcBreak,
   // handle the easy case, where the string length does not change, and the
   // breaks are only 1 char long, i.e. CR <-> LF
   if (srcBreakLen == destBreakLen && srcBreakLen == 1) {
-    resultString = (T*)nsMemory::Alloc(sizeof(T) * aIoLen);
+    resultString = (T*)malloc(sizeof(T) * aIoLen);
     if (!resultString) {
       return nullptr;
     }
@@ -143,7 +144,7 @@ ConvertBreaks(const T* aInSrc, int32_t& aIoLen, const char* aSrcBreak,
 
     int32_t newBufLen =
       aIoLen - (numLinebreaks * srcBreakLen) + (numLinebreaks * destBreakLen);
-    resultString = (T*)nsMemory::Alloc(sizeof(T) * newBufLen);
+    resultString = (T*)malloc(sizeof(T) * newBufLen);
     if (!resultString) {
       return nullptr;
     }
@@ -234,7 +235,7 @@ ConvertUnknownBreaks(const T* aInSrc, int32_t& aIoLen, const char* aDestBreak)
     src++;
   }
 
-  T* resultString = (T*)nsMemory::Alloc(sizeof(T) * finalLen);
+  T* resultString = (T*)malloc(sizeof(T) * finalLen);
   if (!resultString) {
     return nullptr;
   }
@@ -269,7 +270,7 @@ ConvertUnknownBreaks(const T* aInSrc, int32_t& aIoLen, const char* aDestBreak)
 
 
 /*----------------------------------------------------------------------------
-	ConvertLineBreaks
+  ConvertLineBreaks
 
 ----------------------------------------------------------------------------*/
 char*
@@ -288,7 +289,8 @@ nsLinebreakConverter::ConvertLineBreaks(const char* aSrc,
 
   char* resultString;
   if (aSrcBreaks == eLinebreakAny) {
-    resultString = ConvertUnknownBreaks(aSrc, sourceLen, GetLinebreakString(aDestBreaks));
+    resultString = ConvertUnknownBreaks(aSrc, sourceLen,
+                                        GetLinebreakString(aDestBreaks));
   } else
     resultString = ConvertBreaks(aSrc, sourceLen,
                                  GetLinebreakString(aSrcBreaks),
@@ -302,7 +304,7 @@ nsLinebreakConverter::ConvertLineBreaks(const char* aSrc,
 
 
 /*----------------------------------------------------------------------------
-	ConvertLineBreaksInSitu
+  ConvertLineBreaksInSitu
 
 ----------------------------------------------------------------------------*/
 nsresult
@@ -355,7 +357,7 @@ nsLinebreakConverter::ConvertLineBreaksInSitu(char** aIoBuffer,
 
 
 /*----------------------------------------------------------------------------
-	ConvertUnicharLineBreaks
+  ConvertUnicharLineBreaks
 
 ----------------------------------------------------------------------------*/
 char16_t*
@@ -375,7 +377,8 @@ nsLinebreakConverter::ConvertUnicharLineBreaks(const char16_t* aSrc,
 
   char16_t* resultString;
   if (aSrcBreaks == eLinebreakAny) {
-    resultString = ConvertUnknownBreaks(aSrc, bufLen, GetLinebreakString(aDestBreaks));
+    resultString = ConvertUnknownBreaks(aSrc, bufLen,
+                                        GetLinebreakString(aDestBreaks));
   } else
     resultString = ConvertBreaks(aSrc, bufLen, GetLinebreakString(aSrcBreaks),
                                  GetLinebreakString(aDestBreaks));
@@ -388,7 +391,7 @@ nsLinebreakConverter::ConvertUnicharLineBreaks(const char16_t* aSrc,
 
 
 /*----------------------------------------------------------------------------
-	ConvertStringLineBreaks
+  ConvertStringLineBreaks
 
 ----------------------------------------------------------------------------*/
 nsresult
@@ -439,7 +442,7 @@ nsLinebreakConverter::ConvertUnicharLineBreaksInSitu(
 }
 
 /*----------------------------------------------------------------------------
-	ConvertStringLineBreaks
+  ConvertStringLineBreaks
 
 ----------------------------------------------------------------------------*/
 nsresult

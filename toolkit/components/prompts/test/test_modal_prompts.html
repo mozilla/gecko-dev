@@ -1099,7 +1099,7 @@ function runTests() {
     // ConfirmEx (buttons from args, checkbox, cancel)
     testNum++;
     startCallbackTimer();
-    let b = Ci.nsIPromptService.BUTTON_TITLE_IS_STRING;
+    b = Ci.nsIPromptService.BUTTON_TITLE_IS_STRING;
     flags = b * Ci.nsIPromptService.BUTTON_POS_2 +
             b * Ci.nsIPromptService.BUTTON_POS_1 +
             b * Ci.nsIPromptService.BUTTON_POS_0;
@@ -1118,7 +1118,7 @@ function runTests() {
     // ConfirmEx (buttons from args, checkbox, button3)
     testNum++;
     startCallbackTimer();
-    let b = Ci.nsIPromptService.BUTTON_TITLE_IS_STRING;
+    b = Ci.nsIPromptService.BUTTON_TITLE_IS_STRING;
     flags = b * Ci.nsIPromptService.BUTTON_POS_2 +
             b * Ci.nsIPromptService.BUTTON_POS_1 +
             b * Ci.nsIPromptService.BUTTON_POS_0;
@@ -1165,7 +1165,14 @@ function runTests() {
     // promptAuth already tested via password manager but do a few specific things here.
 
 
-    var channel = ioService.newChannel("http://example.com", null, null);
+    var channel = ioService.newChannel2("http://example.com",
+                                        null,
+                                        null,
+                                        null,      // aLoadingNode
+                                        SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal(),
+                                        null,      // aTriggeringPrincipal
+                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                        Ci.nsIContentPolicy.TYPE_OTHER);
     var level = Ci.nsIAuthPrompt2.LEVEL_NONE;
     var authinfo = {
         username : "",

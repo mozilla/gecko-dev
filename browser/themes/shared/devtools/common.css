@@ -6,19 +6,25 @@
 
 :root {
   font: message-box;
+%ifdef XP_MACOSX
+  --monospace-font-family: Menlo, monospace;
+%elifdef XP_WIN
+  --monospace-font-family: Consolas, monospace;
+%else
+  --monospace-font-family: monospace;
+%endif
 }
 
 .devtools-monospace {
-%ifdef XP_MACOSX
-  font-family: Menlo, monospace;
-%elifdef XP_WIN
-  font-family: Consolas, monospace;
-%else
-  font-family: monospace;
-%endif
+  font-family: var(--monospace-font-family);
 %if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
   font-size: 80%;
 %endif
+}
+
+/* Bottom-docked toolbox minimize transition */
+.devtools-toolbox-bottom-iframe {
+  transition: margin-bottom .1s;
 }
 
 /* Splitters */
@@ -45,6 +51,11 @@
   -moz-margin-start: -3px;
   position: relative;
   cursor: e-resize;
+}
+
+.devtools-horizontal-splitter.disabled,
+.devtools-side-splitter.disabled {
+  pointer-events: none;
 }
 
 .devtools-toolbox-side-iframe {
@@ -105,7 +116,7 @@
 }
 
 .devtools-autocomplete-listbox > richlistitem > .autocomplete-count {
-  text-align: right;
+  text-align: end;
 }
 
 /* Rest of the dark and light theme */
@@ -163,8 +174,23 @@
   min-width: 100px;
   max-width: 400px;
 }
-.devtools-tooltip[clamped-dimensions] .panel-arrowcontent {
+.devtools-tooltip[clamped-dimensions-no-min-height] {
+  min-height: 0;
+  max-height: 400px;
+  min-width: 100px;
+  max-width: 400px;
+}
+.devtools-tooltip[clamped-dimensions-no-max-or-min-height] {
+  min-width: 400px;
+  max-width: 400px;
+}
+.devtools-tooltip[clamped-dimensions] .panel-arrowcontent,
+.devtools-tooltip[clamped-dimensions-no-min-height] .panel-arrowcontent,
+.devtools-tooltip[clamped-dimensions-no-max-or-min-height] .panel-arrowcontent {
   overflow: hidden;
+}
+.devtools-tooltip[wide] {
+  max-width: 600px;
 }
 
 /* Tooltip: Simple Text */
@@ -231,4 +257,35 @@
   height: 120px;
   background-color: transparent;
   border: none;
+}
+
+/* links to source code, like displaying `myfile.js:45` */
+
+.devtools-source-link {
+  font-family: var(--monospace-font-family);
+  color: var(--theme-highlight-blue);
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  text-decoration: none;
+  font-size: 11px;
+  width: 12em; /* probably should be changed for each tool */
+}
+
+.devtools-source-link:hover {
+  text-decoration: underline;
+}
+
+.devtools-source-link > .filename {
+  text-overflow: ellipsis;
+  text-align: end;
+  overflow: hidden;
+  margin: 2px 0px;
+  cursor: pointer;
+}
+
+.devtools-source-link > .line-number {
+  flex: none;
+  margin: 2px 0px;
+  cursor: pointer;
 }

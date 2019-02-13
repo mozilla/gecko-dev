@@ -5,12 +5,11 @@
 
 package org.mozilla.gecko.menu;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.R;
 
 import android.content.Context;
-import android.os.Build;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.LinearLayout;
@@ -29,20 +28,11 @@ public class MenuPanel extends LinearLayout {
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        // Restrict the height to 75% of the screen-height. heightPixels changes during rotation.
-        DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
-        int restrictedHeightSpec = MeasureSpec.makeMeasureSpec((int) (0.75 * metrics.heightPixels), MeasureSpec.AT_MOST);
-
-        super.onMeasure(widthMeasureSpec, restrictedHeightSpec);
-    }
-
-    @Override
     public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
-        if (Build.VERSION.SDK_INT >= 14) // Build.VERSION_CODES.ICE_CREAM_SANDWICH
+        if (Versions.feature14Plus) {
             onPopulateAccessibilityEvent(event);
+        }
+
         return true;
     }
 }

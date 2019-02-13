@@ -4,6 +4,13 @@
 
 "use strict";
 
+///////////////////
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
+
 // Test the links from the rule-view to the styleeditor
 
 const STYLESHEET_URL = "data:text/css,"+encodeURIComponent(
@@ -14,7 +21,7 @@ const STYLESHEET_URL = "data:text/css,"+encodeURIComponent(
 const EXTERNAL_STYLESHEET_FILE_NAME = "doc_style_editor_link.css";
 const EXTERNAL_STYLESHEET_URL = TEST_URL_ROOT + EXTERNAL_STYLESHEET_FILE_NAME;
 
-const DOCUMENT_URL = "data:text/html,"+encodeURIComponent(
+const DOCUMENT_URL = "data:text/html;charset=utf-8,"+encodeURIComponent(
   ['<html>' +
    '<head>' +
    '<title>Rule view style editor link test</title>',
@@ -23,6 +30,9 @@ const DOCUMENT_URL = "data:text/html,"+encodeURIComponent(
    'div { font-variant: small-caps; color: #000000; } ',
    '.nomatches {color: #ff0000;}</style> <div id="first" style="margin: 10em; ',
    'font-size: 14pt; font-family: helvetica, sans-serif; color: #AAA">',
+   '</style>',
+   '<style>',
+   'div { font-weight: bold; }',
    '</style>',
    '<link rel="stylesheet" type="text/css" href="'+STYLESHEET_URL+'">',
    '<link rel="stylesheet" type="text/css" href="'+EXTERNAL_STYLESHEET_URL+'">',
@@ -44,7 +54,7 @@ const DOCUMENT_URL = "data:text/html,"+encodeURIComponent(
    '</body>',
    '</html>'].join("\n"));
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(DOCUMENT_URL);
   let {toolbox, inspector, view} = yield openRuleView();
 
@@ -52,42 +62,58 @@ let test = asyncTest(function*() {
   yield selectNode("div", inspector);
 
   yield testInlineStyle(view, inspector);
-  yield testInlineStyleSheet(view, toolbox);
+  yield testFirstInlineStyleSheet(view, toolbox);
+  yield testSecondInlineStyleSheet(view, toolbox);
   yield testExternalStyleSheet(view, toolbox);
 });
 
 function* testInlineStyle(view, inspector) {
   info("Testing inline style");
 
-  let onWindow = waitForWindow();
+  let onTab = waitForTab();
   info("Clicking on the first link in the rule-view");
-  let link = getRuleViewLinkByIndex(view, 0);
-  link.scrollIntoView();
-  link.click();
+  clickLinkByIndex(view, 0);
 
-  let win = yield onWindow;
+  let tab = yield onTab;
 
-  let windowType = win.document.documentElement.getAttribute("windowtype");
-  is(windowType, "navigator:view-source", "View source window is open");
-  info("Closing window");
-  win.close();
+  let tabURI = tab.linkedBrowser.documentURI.spec;
+  ok(tabURI.startsWith("view-source:"), "View source tab is open");
+  info("Closing tab");
+  gBrowser.removeTab(tab);
 }
 
-function* testInlineStyleSheet(view, toolbox) {
+function* testFirstInlineStyleSheet(view, toolbox) {
   info("Testing inline stylesheet");
 
   info("Listening for toolbox switch to the styleeditor");
   let onSwitch = waitForStyleEditor(toolbox);
 
   info("Clicking an inline stylesheet");
-  let link = getRuleViewLinkByIndex(view, 4);
-  link.scrollIntoView();
-  link.click();
+  clickLinkByIndex(view, 4);
   let editor = yield onSwitch;
 
   ok(true, "Switched to the style-editor panel in the toolbox");
 
   validateStyleEditorSheet(editor, 0);
+}
+
+function* testSecondInlineStyleSheet(view, toolbox) {
+  info("Testing second inline stylesheet");
+
+  info("Waiting for the stylesheet editor to be selected");
+  let panel = toolbox.getCurrentPanel();
+  let onSelected = panel.UI.once("editor-selected");
+
+  info("Switching back to the inspector panel in the toolbox");
+  yield toolbox.selectTool("inspector");
+
+  info("Clicking on second inline stylesheet link");
+  testRuleViewLinkLabel(view);
+  clickLinkByIndex(view, 3);
+  let editor = yield onSelected;
+
+  is(toolbox.currentToolId, "styleeditor", "The style editor is selected again");
+  validateStyleEditorSheet(editor, 1);
 }
 
 function* testExternalStyleSheet(view, toolbox) {
@@ -102,19 +128,20 @@ function* testExternalStyleSheet(view, toolbox) {
 
   info("Clicking on an external stylesheet link");
   testRuleViewLinkLabel(view);
-  let link =  getRuleViewLinkByIndex(view, 1);
-  link.scrollIntoView();
-  link.click();
+  clickLinkByIndex(view, 1);
   let editor = yield onSelected;
 
   is(toolbox.currentToolId, "styleeditor", "The style editor is selected again");
-  validateStyleEditorSheet(editor, 1);
+  validateStyleEditorSheet(editor, 2);
 }
 
 function validateStyleEditorSheet(editor, expectedSheetIndex) {
   info("validating style editor stylesheet");
+  is(editor.styleSheet.styleSheetIndex, expectedSheetIndex,
+     "loaded stylesheet index matches document stylesheet");
+
   let sheet = content.document.styleSheets[expectedSheetIndex];
-  is(editor.styleSheet.href, sheet.href, "loaded stylesheet matches document stylesheet");
+  is(editor.styleSheet.href, sheet.href, "loaded stylesheet href matches document stylesheet");
 }
 
 function testRuleViewLinkLabel(view) {
@@ -125,6 +152,12 @@ function testRuleViewLinkLabel(view) {
 
   is(value, EXTERNAL_STYLESHEET_FILE_NAME + ":1",
     "rule view stylesheet display value matches filename and line number");
-  is(tooltipText, EXTERNAL_STYLESHEET_URL,
+  is(tooltipText, EXTERNAL_STYLESHEET_URL + ":1",
     "rule view stylesheet tooltip text matches the full URI path");
+}
+
+function clickLinkByIndex(view, index) {
+  let link = getRuleViewLinkByIndex(view, index);
+  link.scrollIntoView();
+  link.click();
 }

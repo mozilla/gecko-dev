@@ -3,14 +3,7 @@
 */
 /* A testcase to make sure reading late writes stacks works.  */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
-
 Cu.import("resource://gre/modules/Services.jsm", this);
-
-const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
 // Constants from prio.h for nsIFileOutputStream.init
 const PR_WRONLY = 0x2;

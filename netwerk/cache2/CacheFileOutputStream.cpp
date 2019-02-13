@@ -27,7 +27,7 @@ CacheFileOutputStream::Release()
     mRefCnt = 1;
     {
       CacheFileAutoLock lock(mFile);
-      mFile->RemoveOutput(this);
+      mFile->RemoveOutput(this, mStatus);
     }
     delete (this);
     return 0;
@@ -103,19 +103,39 @@ CacheFileOutputStream::Write(const char * aBuf, uint32_t aCount,
     return NS_ERROR_FILE_TOO_BIG;
   }
 
+  // We use 64-bit offset when accessing the file, unfortunatelly we use 32-bit
+  // metadata offset, so we cannot handle data bigger than 4GB.
+  if (mPos + aCount > PR_UINT32_MAX) {
+    LOG(("CacheFileOutputStream::Write() - Entry's size exceeds 4GB while it "
+         "isn't too big according to CacheObserver::EntryIsTooBig(). Failing "
+         "and dooming the entry. [this=%p]", this));
+
+    mFile->DoomLocked(nullptr);
+    CloseWithStatusLocked(NS_ERROR_FILE_TOO_BIG);
+    return NS_ERROR_FILE_TOO_BIG;
+  }
+
   *_retval = aCount;
 
   while (aCount) {
     EnsureCorrectChunk(false);
-    if (NS_FAILED(mStatus))
+    if (NS_FAILED(mStatus)) {
       return mStatus;
+    }
 
     FillHole();
+    if (NS_FAILED(mStatus)) {
+      return mStatus;
+    }
 
     uint32_t chunkOffset = mPos - (mPos / kChunkSize) * kChunkSize;
     uint32_t canWrite = kChunkSize - chunkOffset;
     uint32_t thisWrite = std::min(static_cast<uint32_t>(canWrite), aCount);
-    mChunk->EnsureBufSize(chunkOffset + thisWrite);
+    nsresult rv = mChunk->EnsureBufSize(chunkOffset + thisWrite);
+    if (NS_FAILED(rv)) {
+      CloseWithStatusLocked(rv);
+      return rv;
+    }
     memcpy(mChunk->BufForWriting() + chunkOffset, aBuf, thisWrite);
 
     mPos += thisWrite;
@@ -194,7 +214,7 @@ CacheFileOutputStream::CloseWithStatusLocked(nsresult aStatus)
     NotifyListener();
   }
 
-  mFile->RemoveOutput(this);
+  mFile->RemoveOutput(this, mStatus);
 
   return NS_OK;
 }
@@ -336,7 +356,7 @@ CacheFileOutputStream::ReleaseChunk()
   LOG(("CacheFileOutputStream::ReleaseChunk() [this=%p, idx=%d]",
        this, mChunk->Index()));
 
-  mFile->ReleaseOutsideLock(mChunk.forget().take());
+  mFile->ReleaseOutsideLock(mChunk.forget());
 }
 
 void
@@ -390,7 +410,12 @@ CacheFileOutputStream::FillHole()
   LOG(("CacheFileOutputStream::FillHole() - Zeroing hole in chunk %d, range "
        "%d-%d [this=%p]", mChunk->Index(), mChunk->DataSize(), pos - 1, this));
 
-  mChunk->EnsureBufSize(pos);
+  nsresult rv = mChunk->EnsureBufSize(pos);
+  if (NS_FAILED(rv)) {
+    CloseWithStatusLocked(rv);
+    return;
+  }
+
   memset(mChunk->BufForWriting() + mChunk->DataSize(), 0,
          pos - mChunk->DataSize());
 
@@ -406,8 +431,14 @@ CacheFileOutputStream::NotifyListener()
 
   MOZ_ASSERT(mCallback);
 
-  if (!mCallbackTarget)
-    mCallbackTarget = NS_GetCurrentThread();
+  if (!mCallbackTarget) {
+    mCallbackTarget = CacheFileIOManager::IOTarget();
+    if (!mCallbackTarget) {
+      LOG(("CacheFileOutputStream::NotifyListener() - Cannot get Cache I/O "
+           "thread! Using main thread for callback."));
+      mCallbackTarget = do_GetMainThread();
+    }
+  }
 
   nsCOMPtr<nsIOutputStreamCallback> asyncCallback =
     NS_NewOutputStreamReadyEvent(mCallback, mCallbackTarget);

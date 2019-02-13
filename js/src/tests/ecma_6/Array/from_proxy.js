@@ -6,20 +6,21 @@ var log = [];
 function LoggingProxy(target) {
     var h = {
         defineProperty: function (t, id) {
-            log.push("define " + id);
-            return undefined;
+            log.push("define", id);
+            return true;
         },
         has: function (t, id) {
-            log.push("has " + id);
+            log.push("has", id);
             return id in t;
         },
         get: function (t, id) {
-            log.push("get " + id);
+            log.push("get", id);
             return t[id];
         },
         set: function (t, id, v) {
-            log.push("set " + id);
+            log.push("set", id);
             t[id] = v;
+            return true;
         }
     };
     return new Proxy(target || [], h);
@@ -30,23 +31,25 @@ function LoggingProxy(target) {
 // but handler.set to set the length.
 LoggingProxy.from = Array.from;
 LoggingProxy.from([3, 4, 5]);
-assertDeepEq(log, ["define 0", "define 1", "define 2", "set length"]);
+assertDeepEq(log, ["define", "0", "define", "1", "define", "2", "set", "length"]);
 
 // When the argument passed to Array.from is a Proxy, Array.from
 // calls handler.get on it.
 log = [];
 assertDeepEq(Array.from(new LoggingProxy([3, 4, 5])), [3, 4, 5]);
-assertDeepEq(log, ["get @@iterator",
-                   "get length", "get 0", "get length", "get 1", "get length", "get 2",
-                   "get length"]);
+assertDeepEq(log, ["get", Symbol.iterator,
+                   "get", "length", "get", "0",
+                   "get", "length", "get", "1",
+                   "get", "length", "get", "2",
+                   "get", "length"]);
 
 // Array-like iteration only gets the length once.
 log = [];
 var arr = [5, 6, 7];
-arr["@@iterator"] = undefined;
+arr[Symbol.iterator] = undefined;
 assertDeepEq(Array.from(new LoggingProxy(arr)), [5, 6, 7]);
-assertDeepEq(log, ["get @@iterator",
-                   "get length", "get 0", "get 1", "get 2"]);
+assertDeepEq(log, ["get", Symbol.iterator,
+                   "get", "length", "get", "0", "get", "1", "get", "2"]);
 
 if (typeof reportCompare === 'function')
     reportCompare(0, 0);

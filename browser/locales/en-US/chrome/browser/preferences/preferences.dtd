@@ -4,6 +4,8 @@
 
 
 <!ENTITY  prefWindow.titleWin     "Options">
+<!ENTITY  prefWindow.title        "Preferences">
+<!-- LOCALIZATION NOTE (prefWindow.titleGNOME): This is not used for in-content preferences -->
 <!ENTITY  prefWindow.titleGNOME   "&brandShortName; Preferences">
 <!-- When making changes to prefWindow.styleWin test both Windows Classic and
      Luna since widget heights are different based on the OS theme -->
@@ -13,6 +15,7 @@
 
 <!ENTITY  paneGeneral.title       "General">
 <!ENTITY  paneTabs.title          "Tabs">
+<!ENTITY  paneSearch.title        "Search">
 <!ENTITY  paneContent.title       "Content">
 <!ENTITY  paneApplications.title  "Applications">
 <!ENTITY  panePrivacy.title       "Privacy">
@@ -21,7 +24,5 @@
 
 <!-- LOCALIZATION NOTE (paneSync.title): This should match syncBrand.shortName.label in ../syncBrand.dtd -->
 <!ENTITY  paneSync.title          "Sync">
-<!ENTITY  buttonForward.tooltip   "Go forward one page">
-<!ENTITY  buttonBack.tooltip      "Go back one page">
 
 <!ENTITY  helpButton.label        "Help">

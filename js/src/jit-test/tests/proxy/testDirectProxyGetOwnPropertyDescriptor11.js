@@ -1,18 +1,14 @@
+// Bug 1133294 - Object.getOwnPropertyDescriptor should never return an incomplete descriptor.
+
 load(libdir + "asserts.js");
 
-var target = {};
-Object.getOwnPropertyDescriptor(new Proxy(target, {
-  getOwnPropertyDescriptor: function () {
-    return {value: 2, configurable: true};
-   }
-}), 'foo');
-
-var target = {};
-Object.preventExtensions(target);
-assertThrowsInstanceOf(function () {
-  Object.getOwnPropertyDescriptor(new Proxy(target, {
-    getOwnPropertyDescriptor: function () {
-        return {value: 2, configurable: true};
-    }
-  }), 'foo');
-}, TypeError);
+var p = new Proxy({}, {
+    getOwnPropertyDescriptor() { return {configurable: true}; }
+});
+var desc = Object.getOwnPropertyDescriptor(p, "x");
+assertDeepEq(desc, {
+    value: undefined,
+    writable: false,
+    enumerable: false,
+    configurable: true
+});

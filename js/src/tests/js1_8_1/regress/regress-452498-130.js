@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,20 +26,6 @@ function test()
 // =====
   ((function x()x in []) for (y in []))
 
-//Assertion failure: lexdep->frameLevel() <= funbox->level, at ../jsparse.cpp:1778
-// Opt crash [@ JSCompiler::setFunctionKinds]
-// =====
-    let(x=[]) function(){try {x} catch(x) {} }
-
-// Assertion failure: cg->upvars.lookup(atom), at ../jsemit.cpp:2034
-// =====
-  try
-  {
-    eval('for(let [y] = (let (x) (y)) in []) function(){}');
-  }
-  catch(ex)
-  {
-  }
 // Assertion failure: !(pnu->pn_dflags & PND_BOUND), at ../jsemit.cpp:1818
 // =====
 

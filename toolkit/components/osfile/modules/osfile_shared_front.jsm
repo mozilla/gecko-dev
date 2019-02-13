@@ -52,55 +52,38 @@ AbstractFile.prototype = {
   /**
    * Read bytes from this file to a new buffer.
    *
-   * @param {number=} bytes If unspecified, read all the remaining bytes from
-   * this file. If specified, read |bytes| bytes, or less if the file does notclone
-   * contain that many bytes.
+   * @param {number=} maybeBytes (deprecated, please use options.bytes)
    * @param {JSON} options
    * @return {Uint8Array} An array containing the bytes read.
    */
-  read: function read(bytes, options = {}) {
-    options = clone(options);
-    options.bytes = bytes == null ? this.stat().size : bytes;
-    let buffer = new Uint8Array(options.bytes);
-    let size = this.readTo(buffer, options);
-    if (size == options.bytes) {
-      return buffer;
+  read: function read(maybeBytes, options = {}) {
+    if (typeof maybeBytes === "object") {
+    // Caller has skipped `maybeBytes` and provided an options object.
+      options = clone(maybeBytes);
+      maybeBytes = null;
     } else {
-      return buffer.subarray(0, size);
+      options = options || {};
     }
-  },
-
-  /**
-   * Read bytes from this file to an existing buffer.
-   *
-   * Note that, by default, this function may perform several I/O
-   * operations to ensure that the buffer is as full as possible.
-   *
-   * @param {Typed Array | C pointer} buffer The buffer in which to
-   * store the bytes. The buffer must be large enough to
-   * accomodate |bytes| bytes.
-   * @param {*=} options Optionally, an object that may contain the
-   * following fields:
-   * - {number} bytes The number of |bytes| to write from the buffer. If
-   * unspecified, this is |buffer.byteLength|. Note that |bytes| is required
-   * if |buffer| is a C pointer.
-   *
-   * @return {number} The number of bytes actually read, which may be
-   * less than |bytes| if the file did not contain that many bytes left.
-   */
-  readTo: function readTo(buffer, options = {}) {
-    let {ptr, bytes} = SharedAll.normalizeToPointer(buffer, options.bytes);
+    let bytes = options.bytes || undefined;
+    if (bytes === undefined) {
+      bytes = maybeBytes == null ? this.stat().size : maybeBytes;
+    }
+    let buffer = new Uint8Array(bytes);
     let pos = 0;
     while (pos < bytes) {
-      let chunkSize = this._read(ptr, bytes - pos, options);
+      let length = bytes - pos;
+      let view = new DataView(buffer.buffer, pos, length);
+      let chunkSize = this._read(view, length, options);
       if (chunkSize == 0) {
         break;
       }
       pos += chunkSize;
-      ptr = SharedAll.offsetBy(ptr, chunkSize);
     }
-
-    return pos;
+    if (pos == bytes) {
+      return buffer;
+    } else {
+      return buffer.subarray(0, pos);
+    }
   },
 
   /**
@@ -109,27 +92,24 @@ AbstractFile.prototype = {
    * Note that, by default, this function may perform several I/O
    * operations to ensure that the buffer is fully written.
    *
-   * @param {Typed array | C pointer} buffer The buffer in which the
-   * the bytes are stored. The buffer must be large enough to
-   * accomodate |bytes| bytes.
+   * @param {Typed array} buffer The buffer in which the the bytes are
+   * stored. The buffer must be large enough to accomodate |bytes| bytes.
    * @param {*=} options Optionally, an object that may contain the
    * following fields:
    * - {number} bytes The number of |bytes| to write from the buffer. If
-   * unspecified, this is |buffer.byteLength|. Note that |bytes| is required
-   * if |buffer| is a C pointer.
+   * unspecified, this is |buffer.byteLength|.
    *
    * @return {number} The number of bytes actually written.
    */
   write: function write(buffer, options = {}) {
-
-    let {ptr, bytes} =
-      SharedAll.normalizeToPointer(buffer, options.bytes || undefined);
-
+    let bytes =
+      SharedAll.normalizeBufferArgs(buffer, ("bytes" in options) ? options.bytes : undefined);
     let pos = 0;
     while (pos < bytes) {
-      let chunkSize = this._write(ptr, bytes - pos, options);
+      let length = bytes - pos;
+      let view = new DataView(buffer.buffer, buffer.byteOffset + pos, length);
+      let chunkSize = this._write(view, length, options);
       pos += chunkSize;
-      ptr = SharedAll.offsetBy(ptr, chunkSize);
     }
     return pos;
   }
@@ -357,7 +337,7 @@ AbstractFile.read = function read(path, bytes, options = {}) {
     let decoder;
     try {
       decoder = new TextDecoder(options.encoding);
-    } catch (ex if ex instanceof TypeError) {
+    } catch (ex if ex instanceof RangeError) {
       throw OS.File.Error.invalidArgument("Decode");
     }
     return decoder.decode(buffer);
@@ -549,21 +529,29 @@ AbstractFile.removeRecursive = function(path, options = {}) {
  * does not support security descriptors.
  */
 AbstractFile.makeDir = function(path, options = {}) {
-  if (!options.from) {
+  let from = options.from;
+  if (!from) {
     OS.File._makeDir(path, options);
     return;
   }
-  if (!path.startsWith(options.from)) {
-    throw new Error("Incorrect use of option |from|: " + path + " is not a descendant of " + options.from);
+  if (!path.startsWith(from)) {
+    // Apparently, `from` is not a parent of `path`. However, we may
+    // have false negatives due to non-normalized paths, e.g.
+    // "foo//bar" is a parent of "foo/bar/sna".
+    path = Path.normalize(path);
+    from = Path.normalize(from);
+    if (!path.startsWith(from)) {
+      throw new Error("Incorrect use of option |from|: " + path + " is not a descendant of " + from);
+    }
   }
   let innerOptions = Object.create(options, {
     ignoreExisting: {
       value: true
     }
   });
-  // Compute the elements that appear in |path| but not in |options.from|.
-  let items = Path.split(path).components.slice(Path.split(options.from).components.length);
-  let current = options.from;
+  // Compute the elements that appear in |path| but not in |from|.
+  let items = Path.split(path).components.slice(Path.split(from).components.length);
+  let current = from;
   for (let item of items) {
     current = Path.join(current, item);
     OS.File._makeDir(current, innerOptions);

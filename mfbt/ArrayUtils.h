@@ -18,15 +18,23 @@
 
 #ifdef __cplusplus
 
+#include "mozilla/Alignment.h"
 #include "mozilla/Array.h"
+#include "mozilla/TypeTraits.h"
 
 namespace mozilla {
 
 /*
- * Safely subtract two pointers when it is known that aEnd >= aBegin.  This
- * avoids the common compiler bug that if (size_t(aEnd) - size_t(aBegin)) has
- * the MSB set, the unsigned subtraction followed by right shift will produce
- * -1, or size_t(-1), instead of the real difference.
+ * Safely subtract two pointers when it is known that aEnd >= aBegin, yielding a
+ * size_t result.
+ *
+ * Ordinary pointer subtraction yields a ptrdiff_t result, which, being signed,
+ * has insufficient range to express the distance between pointers at opposite
+ * ends of the address space. Furthermore, most compilers use ptrdiff_t to
+ * represent the intermediate byte address distance, before dividing by
+ * sizeof(T); if that intermediate result overflows, they'll produce results
+ * with the wrong sign even when the correct scaled distance would fit in a
+ * ptrdiff_t.
  */
 template<class T>
 MOZ_ALWAYS_INLINE size_t
@@ -80,6 +88,73 @@ MOZ_CONSTEXPR const T*
 ArrayEnd(const Array<T, N>& aArr)
 {
   return &aArr[0] + ArrayLength(aArr);
+}
+
+namespace detail {
+
+template<typename AlignType, typename Pointee,
+         typename = EnableIf<!IsVoid<AlignType>::value>>
+struct AlignedChecker
+{
+  static void
+  test(const Pointee* aPtr)
+  {
+    MOZ_ASSERT((uintptr_t(aPtr) % MOZ_ALIGNOF(AlignType)) == 0,
+               "performing a range-check with a misaligned pointer");
+  }
+};
+
+template<typename AlignType, typename Pointee>
+struct AlignedChecker<AlignType, Pointee>
+{
+  static void
+  test(const Pointee* aPtr)
+  {
+  }
+};
+
+} // namespace detail
+
+/**
+ * Determines whether |aPtr| points at an object in the range [aBegin, aEnd).
+ *
+ * |aPtr| must have the same alignment as |aBegin| and |aEnd|.  This usually
+ * should be achieved by ensuring |aPtr| points at a |U|, not just that it
+ * points at a |T|.
+ *
+ * It is a usage error for any argument to be misaligned.
+ *
+ * It's okay for T* to be void*, and if so U* may also be void*.  In the latter
+ * case no argument is required to be aligned (obviously, as void* implies no
+ * particular alignment).
+ */
+template<typename T, typename U>
+inline typename EnableIf<IsSame<T, U>::value ||
+                         IsBaseOf<T, U>::value ||
+                         IsVoid<T>::value,
+                         bool>::Type
+IsInRange(const T* aPtr, const U* aBegin, const U* aEnd)
+{
+  MOZ_ASSERT(aBegin <= aEnd);
+  detail::AlignedChecker<U, T>::test(aPtr);
+  detail::AlignedChecker<U, U>::test(aBegin);
+  detail::AlignedChecker<U, U>::test(aEnd);
+  return aBegin <= reinterpret_cast<const U*>(aPtr) &&
+         reinterpret_cast<const U*>(aPtr) < aEnd;
+}
+
+/**
+ * Convenience version of the above method when the valid range is specified as
+ * uintptr_t values.  As above, |aPtr| must be aligned, and |aBegin| and |aEnd|
+ * must be aligned with respect to |T|.
+ */
+template<typename T>
+inline bool
+IsInRange(const T* aPtr, uintptr_t aBegin, uintptr_t aEnd)
+{
+  return IsInRange(aPtr,
+                   reinterpret_cast<const T*>(aBegin),
+                   reinterpret_cast<const T*>(aEnd));
 }
 
 namespace detail {

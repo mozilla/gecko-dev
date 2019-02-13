@@ -68,33 +68,53 @@ function testUA(options, callback) {
   SpecialPowers.pushPrefEnv({
     set: [[PREF_OVERRIDES_BRANCH + domain, override]],
   }, function () {
-    // check that the UA has changed after pref change
-    if (overrideNavigator) {
-      is(navigator.userAgent, expected,
-        'Navigator UA not overridden at step ' + (++step));
-    } else {
-      is(navigator.userAgent, DEFAULT_UA,
-        'Navigator UA should not be overridden at step ' + (++step));
-    }
-    test_hosts.forEach(function (test_host) {
-      is(getUA(test_host), expected,
-        'Header UA not overridden at step ' + (++step));
-    });
-    // clear the override pref to undo overriding the UA
-    SpecialPowers.pushPrefEnv({
-      clear: [[PREF_OVERRIDES_BRANCH + domain]],
-    }, function () {
-      // check that the UA has changed back
+    var ifr = document.createElement('IFRAME');
+    ifr.src = "about:blank";
+
+    ifr.addEventListener('load', function() {
+      var nav = ifr.contentWindow.navigator;
+
+      // check that the UA has changed after pref change
       if (overrideNavigator) {
-        is(navigator.userAgent, navigator_ua,
-          'Navigator UA not restored at step ' + (++step));
+        is(nav.userAgent, expected,
+          'Navigator UA not overridden at step ' + (++step));
+      } else {
+        is(nav.userAgent, DEFAULT_UA,
+          'Navigator UA should not be overridden at step ' + (++step));
       }
-      test_hosts.forEach(function (test_host, i) {
-        is(getUA(test_host), test_ua[i],
-          'Header UA not restored at step ' + (++step));
+
+      test_hosts.forEach(function (test_host) {
+        is(getUA(test_host), expected,
+          'Header UA not overridden at step ' + (++step));
       });
-      callback();
-    });
+
+      // clear the override pref to undo overriding the UA
+      SpecialPowers.pushPrefEnv({
+        clear: [[PREF_OVERRIDES_BRANCH + domain]],
+      }, function () {
+        var ifr = document.createElement('IFRAME');
+        ifr.src = "about:blank";
+
+        ifr.addEventListener('load', function() {
+          var nav = ifr.contentWindow.navigator;
+
+          // check that the UA has changed back
+          if (overrideNavigator) {
+            is(nav.userAgent, navigator_ua,
+              'Navigator UA not restored at step ' + (++step));
+          }
+          test_hosts.forEach(function (test_host, i) {
+            is(getUA(test_host), test_ua[i],
+              'Header UA not restored at step ' + (++step));
+          });
+          callback();
+        });
+
+        document.getElementById('content').appendChild(ifr);
+      });
+    }, false);
+
+    document.getElementById('content').appendChild(ifr);
   });
 }
 
@@ -211,7 +231,7 @@ function testOverrides(callback) {
   SpecialPowers.pushPrefEnv({
     set: [[PREF_OVERRIDES_ENABLED, true]]
   }, function nextTest() {
-    testUA(tests.shift(), function () tests.length ? nextTest() : callback());
+    testUA(tests.shift(), function() { tests.length ? nextTest() : callback() });
   });
 }
 
@@ -219,12 +239,15 @@ SpecialPowers.Cu.import('resource://gre/modules/UserAgentOverrides.jsm', window)
 SpecialPowers.wrap(UserAgentOverrides).init();
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestCompleteLog();
 
-testOverrides(function ()
-  testInactive(function ()
+info(SpecialPowers.Cc["@mozilla.org/dom/site-specific-user-agent;1"].number);
+
+testOverrides(function() {
+  testInactive(function() {
     testPriority(SimpleTest.finish)
-  )
-);
+  });
+});
 
 </script>
 </pre>

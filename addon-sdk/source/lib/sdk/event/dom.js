@@ -8,7 +8,25 @@ module.metadata = {
   "stability": "unstable"
 };
 
+const { Ci } = require("chrome");
+
 let { emit } = require("./core");
+let { when: unload } = require("../system/unload");
+let listeners = new Map();
+
+let getWindowFrom = x =>
+                    x instanceof Ci.nsIDOMWindow ? x :
+                    x instanceof Ci.nsIDOMDocument ? x.defaultView :
+                    x instanceof Ci.nsIDOMNode ? x.ownerDocument.defaultView :
+                    null;
+
+function removeFromListeners() {
+  this.removeEventListener("DOMWindowClose", removeFromListeners);
+  for (let cleaner of listeners.get(this))
+    cleaner();
+
+  listeners.delete(this);
+}
 
 // Simple utility function takes event target, event type and optional
 // `options.capture` and returns node style event stream that emits "data"
@@ -16,11 +34,40 @@ let { emit } = require("./core");
 function open(target, type, options) {
   let output = {};
   let capture = options && options.capture ? true : false;
+  let listener = (event) => emit(output, "data", event);
 
-  target.addEventListener(type, function(event) {
-    emit(output, "data", event);
-  }, capture);
+  // `open` is currently used only on DOM Window objects, however it was made
+  // to be used to any kind of `target` that supports `addEventListener`,
+  // therefore is safer get the `window` from the `target` instead assuming
+  // that `target` is the `window`.
+  let window = getWindowFrom(target);
+
+  // If we're not able to get a `window` from `target`, there is something
+  // wrong. We cannot add listeners that can leak later, or results in
+  // "dead object" exception.
+  // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1001833
+  if (!window)
+    throw new Error("Unable to obtain the owner window from the target given.");
+
+  let cleaners = listeners.get(window);
+  if (!cleaners) {
+    cleaners = [];
+    listeners.set(window, cleaners);
+
+    // We need to remove from our map the `window` once is closed, to prevent
+    // memory leak
+    window.addEventListener("DOMWindowClose", removeFromListeners);
+  }
+
+  cleaners.push(() => target.removeEventListener(type, listener, capture));
+  target.addEventListener(type, listener, capture);
 
   return output;
 }
+
+unload(() => {
+  for (let window of listeners.keys())
+    removeFromListeners.call(window);
+});
+
 exports.open = open;

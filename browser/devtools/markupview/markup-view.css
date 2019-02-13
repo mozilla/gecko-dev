@@ -14,6 +14,11 @@
   min-width: 100%;
 }
 
+body.dragging .tag-line {
+  cursor: grabbing;
+  -moz-user-select: none;
+}
+
 #root-wrapper:after {
    content: "";
    display: block;
@@ -36,6 +41,9 @@
 .html-editor-inner {
   border: solid .1px;
   flex: 1 1 auto;
+
+  /* Keep the editor away from the markup view floating scrollbars */
+  -moz-margin-end: 12px;
 }
 
 .html-editor iframe {
@@ -58,6 +66,40 @@
 .child {
   margin-left: -1000em;
   padding-left: 1001em;
+}
+
+/* Normally this element takes space in the layout even if it's position: relative
+ * by adding height: 0 we let surrounding elements to fill the blank space */
+.child.dragging {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+  height: 0;
+}
+
+/* Indicates a tag-line in the markup-view as being an active drop target by
+ * drawing a horizontal line where the dragged element would be inserted if
+ * dropped here */
+.tag-line.drop-target::before, .tag-line.drag-target::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+}
+
+.tag-line.drag-target::before {
+  border-top: 2px dashed var(--theme-contrast-background);
+}
+
+.tag-line.drop-target::before {
+  border-top: 2px dashed var(--theme-content-color1);
+}
+
+/* In case the indicator is put on the closing .tag-line, the indentation level
+ * will become misleading, so we push it forward to match the indentation level */
+ul.children + .tag-line::before {
+  margin-left: 14px;
 }
 
 .tag-line {
@@ -120,14 +162,33 @@
   padding: 1px 0;
 }
 
+.attr-value .link {
+  text-decoration: underline;
+}
+
 .newattr:focus {
   margin-right: 0;
 }
 
-.tag-state.flash-out {
+.flash-out {
   transition: background .5s;
 }
 
-.tag-line .open, .tag-line .close, .comment {
+.tag-line {
   cursor: default;
 }
+
+.markupview-events {
+  display: none;
+  cursor: pointer;
+}
+
+.editor.text {
+  display: inline-block;
+}
+
+.editor.text pre,
+.editor.comment pre {
+  font: inherit;
+}
+

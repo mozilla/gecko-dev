@@ -1,7 +1,9 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
 var security = {
   // Display the server certificate (static)
@@ -34,7 +36,10 @@ var security = {
 
     var isBroken =
       (ui.state & Components.interfaces.nsIWebProgressListener.STATE_IS_BROKEN);
-    var isInsecure = 
+    var isMixed =
+      (ui.state & (Components.interfaces.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT |
+                   Components.interfaces.nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT));
+    var isInsecure =
       (ui.state & Components.interfaces.nsIWebProgressListener.STATE_IS_INSECURE);
     var isEV =
       (ui.state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL);
@@ -52,17 +57,36 @@ var security = {
         cAName : issuerName,
         encryptionAlgorithm : undefined,
         encryptionStrength : undefined,
+        version: undefined,
         isBroken : isBroken,
+        isMixed : isMixed,
         isEV : isEV,
         cert : cert,
         fullLocation : gWindow.location
       };
 
+      var version;
       try {
         retval.encryptionAlgorithm = status.cipherName;
         retval.encryptionStrength = status.secretKeyLength;
+        version = status.protocolVersion;
       }
       catch (e) {
+      }
+
+      switch (version) {
+        case nsISSLStatus.SSL_VERSION_3:
+          retval.version = "SSL 3";
+          break;
+        case nsISSLStatus.TLS_VERSION_1:
+          retval.version = "TLS 1.0";
+          break;
+        case nsISSLStatus.TLS_VERSION_1_1:
+          retval.version = "TLS 1.1";
+          break;
+        case nsISSLStatus.TLS_VERSION_1_2:
+          retval.version = "TLS 1.2"
+          break;
       }
 
       return retval;
@@ -72,10 +96,12 @@ var security = {
         cAName : "",
         encryptionAlgorithm : "",
         encryptionStrength : 0,
+        version: "",
         isBroken : isBroken,
+        isMixed : isMixed,
         isEV : isEV,
         cert : null,
-        fullLocation : gWindow.location        
+        fullLocation : gWindow.location
       };
     }
   },
@@ -111,7 +137,7 @@ var security = {
                       getService(Components.interfaces.nsIEffectiveTLDService);
 
     var eTLD;
-    var uri = gDocument.documentURIObject;
+    var uri = BrowserUtils.makeURIFromCPOW(gDocument.documentURIObject);
     try {
       eTLD = eTLDService.getBaseDomain(uri);
     }
@@ -128,7 +154,7 @@ var security = {
       window.openDialog("chrome://browser/content/preferences/cookies.xul",
                         "Browser:Cookies", "", {filterString : eTLD});
   },
-  
+
   /**
    * Open the login manager window
    */
@@ -143,7 +169,7 @@ var security = {
     }
     else
       window.openDialog("chrome://passwordmgr/content/passwordManager.xul",
-                        "Toolkit:PasswordManager", "", 
+                        "Toolkit:PasswordManager", "",
                         {filterString : this._getSecurityInfo().hostName});
   },
 
@@ -154,12 +180,10 @@ function securityOnLoad() {
   var info = security._getSecurityInfo();
   if (!info) {
     document.getElementById("securityTab").hidden = true;
-    document.getElementById("securityBox").collapsed = true;
     return;
   }
   else {
     document.getElementById("securityTab").hidden = false;
-    document.getElementById("securityBox").collapsed = false;
   }
 
   const pageInfoBundle = document.getElementById("pageinfobundle");
@@ -167,7 +191,7 @@ function securityOnLoad() {
   /* Set Identity section text */
   setText("security-identity-domain-value", info.hostName);
   
-  var owner, verifier, generalPageIdentityString;
+  var owner, verifier;
   if (info.cert && !info.isBroken) {
     // Try to pull out meaningful values.  Technically these fields are optional
     // so we'll employ fallbacks where appropriate.  The EV spec states that Org
@@ -175,8 +199,6 @@ function securityOnLoad() {
     if (info.isEV) {
       owner = info.cert.organization;
       verifier = security.mapIssuerOrganization(info.cAName);
-      generalPageIdentityString = pageInfoBundle.getFormattedString("generalSiteIdentity",
-                                                                    [owner, verifier]);
     }
     else {
       // Technically, a non-EV cert might specify an owner in the O field or not,
@@ -188,19 +210,16 @@ function securityOnLoad() {
       verifier = security.mapIssuerOrganization(info.cAName ||
                                                 info.cert.issuerCommonName ||
                                                 info.cert.issuerName);
-      generalPageIdentityString = owner;
     }
   }
   else {
     // We don't have valid identity credentials.
     owner = pageInfoBundle.getString("securityNoOwner");
     verifier = pageInfoBundle.getString("notset");
-    generalPageIdentityString = owner;
   }
 
   setText("security-identity-owner-value", owner);
   setText("security-identity-verifier-value", verifier);
-  setText("general-security-identity", generalPageIdentityString);
 
   /* Manage the View Cert button*/
   var viewCert = document.getElementById("security-view-cert");
@@ -215,7 +234,7 @@ function securityOnLoad() {
   var yesStr = pageInfoBundle.getString("yes");
   var noStr = pageInfoBundle.getString("no");
 
-  var uri = gDocument.documentURIObject;
+  var uri = BrowserUtils.makeURIFromCPOW(gDocument.documentURIObject);
   setText("security-privacy-cookies-value",
           hostHasCookies(uri) ? yesStr : noStr);
   setText("security-privacy-passwords-value",
@@ -241,22 +260,25 @@ function securityOnLoad() {
   var msg2;
 
   if (info.isBroken) {
-    hdr = pkiBundle.getString("pageInfo_MixedContent");
-    msg1 = pkiBundle.getString("pageInfo_Privacy_Mixed1");
+    if (info.isMixed) {
+      hdr = pkiBundle.getString("pageInfo_MixedContent");
+    } else {
+      hdr = pkiBundle.getFormattedString("pageInfo_BrokenEncryption",
+                                         [info.encryptionAlgorithm,
+                                          info.encryptionStrength + "",
+                                          info.version]);
+    }
+    msg1 = pkiBundle.getString("pageInfo_Privacy_Broken2");
     msg2 = pkiBundle.getString("pageInfo_Privacy_None2");
   }
-  else if (info.encryptionStrength >= 90) {
-    hdr = pkiBundle.getFormattedString("pageInfo_StrongEncryptionWithBits",
-                                       [info.encryptionAlgorithm, info.encryptionStrength + ""]);
-    msg1 = pkiBundle.getString("pageInfo_Privacy_Strong1");
-    msg2 = pkiBundle.getString("pageInfo_Privacy_Strong2");
-    security._cert = info.cert;
-  }
   else if (info.encryptionStrength > 0) {
-    hdr  = pkiBundle.getFormattedString("pageInfo_WeakEncryptionWithBits",
-                                        [info.encryptionAlgorithm, info.encryptionStrength + ""]);
-    msg1 = pkiBundle.getFormattedString("pageInfo_Privacy_Weak1", [info.hostName]);
-    msg2 = pkiBundle.getString("pageInfo_Privacy_Weak2");
+    hdr = pkiBundle.getFormattedString("pageInfo_EncryptionWithBitsAndProtocol",
+                                       [info.encryptionAlgorithm,
+                                        info.encryptionStrength + "",
+                                        info.version]);
+    msg1 = pkiBundle.getString("pageInfo_Privacy_Encrypted1");
+    msg2 = pkiBundle.getString("pageInfo_Privacy_Encrypted2");
+    security._cert = info.cert;
   }
   else {
     hdr = pkiBundle.getString("pageInfo_NoEncryption");
@@ -269,7 +291,6 @@ function securityOnLoad() {
   setText("security-technical-shortform", hdr);
   setText("security-technical-longform1", msg1);
   setText("security-technical-longform2", msg2); 
-  setText("general-security-privacy", hdr);
 }
 
 function setText(id, value)

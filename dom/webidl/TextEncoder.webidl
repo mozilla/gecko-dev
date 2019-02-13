@@ -10,15 +10,11 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-[Constructor(optional DOMString utfLabel = "utf-8")]
+[Constructor(optional DOMString utfLabel = "utf-8"),
+ Exposed=(Window,Worker,System)]
 interface TextEncoder {
   [Constant]
   readonly attribute DOMString encoding;
-  [Throws]
-  Uint8Array encode(optional DOMString input = "", optional TextEncodeOptions options);
+  [NewObject]
+  Uint8Array encode(optional USVString input = "");
 };
-
-dictionary TextEncodeOptions {
-  boolean stream = false;
-};
-

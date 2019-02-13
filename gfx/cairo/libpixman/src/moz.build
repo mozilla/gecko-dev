@@ -58,8 +58,6 @@ SOURCES += [
     'pixman.c',
 ]
 
-MSVC_ENABLE_PGO = True
-
 FINAL_LIBRARY = 'gkmedias'
 LOCAL_INCLUDES += [
     '../../cairo/src',
@@ -144,7 +142,8 @@ if use_arm_neon_gcc:
 if CONFIG['GNU_CC']:
     CFLAGS += [
         '-Wno-address',
-        '-Wno-sign-compare'
+        '-Wno-sign-compare',
+        '-Wno-missing-field-initializers',
     ]
     if CONFIG['CLANG_CXX']:
         CFLAGS += [

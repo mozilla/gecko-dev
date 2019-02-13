@@ -54,6 +54,24 @@ public:
     // for DRM
     virtual char* getDrmTrackInfo(size_t trackID, int *len);
 
+    struct TrackExtends {
+        TrackExtends(): mVersion(0), mTrackId(0),
+                mDefaultSampleDescriptionIndex(0), mDefaultSampleDuration(0),
+                mDefaultSampleSize(0), mDefaultSampleFlags(0)
+        {
+            mFlags[0] = 0;
+            mFlags[1] = 0;
+            mFlags[2] = 0;
+        }
+        uint8_t mVersion;
+        uint8_t mFlags[3];
+        uint32_t mTrackId;
+        uint32_t mDefaultSampleDescriptionIndex;
+        uint32_t mDefaultSampleDuration;
+        uint32_t mDefaultSampleSize;
+        uint32_t mDefaultSampleFlags;
+    };
+
 protected:
     virtual ~MPEG4Extractor();
 
@@ -68,6 +86,12 @@ private:
         Track *next;
         sp<MetaData> meta;
         uint32_t timescale;
+        // Temporary storage for elst until we've
+        // parsed mdhd and can interpret them.
+        uint64_t empty_duration;
+        uint64_t segment_duration;
+        int64_t media_time;
+
         sp<SampleTable> sampleTable;
         bool includes_expensive_metadata;
         bool skipTrack;
@@ -75,7 +99,6 @@ private:
 
     Vector<SidxEntry> mSidxEntries;
     uint64_t mSidxDuration;
-    off64_t mMoofOffset;
 
     Vector<PsshInfo> mPssh;
 
@@ -113,11 +136,18 @@ private:
     SINF *mFirstSINF;
 
     bool mIsDrm;
+    TrackExtends mTrackExtends;
+    uint32_t mDrmScheme;
+
     status_t parseDrmSINF(off64_t *offset, off64_t data_offset);
+
+    status_t parseTrackExtends(off64_t data_offset, off64_t data_size);
 
     status_t parseTrackHeader(off64_t data_offset, off64_t data_size);
 
     status_t parseSegmentIndex(off64_t data_offset, size_t data_size);
+
+    void storeEditList();
 
     Track *findTrackByMimePrefix(const char *mimePrefix);
 

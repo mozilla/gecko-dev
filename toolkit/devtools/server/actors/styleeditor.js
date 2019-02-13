@@ -17,6 +17,7 @@ const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const {Arg, Option, method, RetVal, types} = protocol;
 const {LongStringActor, ShortLongString} = require("devtools/server/actors/string");
+const {fetch} = require("devtools/toolkit/DevToolsUtils");
 
 loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-logic").CssLogic);
 
@@ -32,34 +33,28 @@ transition-property: all !important;\
 
 let LOAD_ERROR = "error-load";
 
-exports.register = function(handle) {
-  handle.addTabActor(StyleEditorActor, "styleEditorActor");
-  handle.addGlobalActor(StyleEditorActor, "styleEditorActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeTabActor(StyleEditorActor);
-  handle.removeGlobalActor(StyleEditorActor);
-};
-
 types.addActorType("old-stylesheet");
 
 /**
  * Creates a StyleEditorActor. StyleEditorActor provides remote access to the
  * stylesheets of a document.
  */
-let StyleEditorActor = protocol.ActorClass({
+let StyleEditorActor = exports.StyleEditorActor = protocol.ActorClass({
   typeName: "styleeditor",
 
   /**
    * The window we work with, taken from the parent actor.
    */
-  get window() this.parentActor.window,
+  get window() {
+    return this.parentActor.window;
+  },
 
   /**
    * The current content document of the window we work with.
    */
-  get document() this.window.document,
+  get document() {
+    return this.window.document;
+  },
 
   events: {
     "document-load" : {
@@ -254,8 +249,6 @@ let StyleEditorFront = protocol.FrontClass(StyleEditorActor, {
   initialize: function(client, tabForm) {
     protocol.Front.prototype.initialize.call(this, client);
     this.actorID = tabForm.styleEditorActor;
-
-    client.addActorPool(this);
     this.manage(this);
   },
 
@@ -303,17 +296,23 @@ let OldStyleSheetActor = protocol.ActorClass({
   /**
    * Window of target
    */
-  get window() this._window || this.parentActor.window,
+  get window() {
+    return this._window || this.parentActor.window;
+  },
 
   /**
    * Document of target.
    */
-  get document() this.window.document,
+  get document() {
+    return this.window.document;
+  },
 
   /**
    * URL of underlying stylesheet.
    */
-  get href() this.rawSheet.href,
+  get href() {
+    return this.rawSheet.href;
+  },
 
   /**
    * Retrieve the index (order) of stylesheet in the document.
@@ -457,6 +456,7 @@ let OldStyleSheetActor = protocol.ActorClass({
     }
 
     let options = {
+      policy: Ci.nsIContentPolicy.TYPE_STYLESHEET,
       window: this.window,
       charset: this._getCSSCharset()
     };
@@ -628,13 +628,27 @@ var OldStyleSheetFront = protocol.FrontClass(OldStyleSheetActor, {
     return promise.resolve([]);
   },
 
-  get href() this._form.href,
-  get nodeHref() this._form.nodeHref,
-  get disabled() !!this._form.disabled,
-  get title() this._form.title,
-  get isSystem() this._form.system,
-  get styleSheetIndex() this._form.styleSheetIndex,
-  get ruleCount() this._form.ruleCount
+  get href() {
+    return this._form.href;
+  },
+  get nodeHref() {
+    return this._form.nodeHref;
+  },
+  get disabled() {
+    return !!this._form.disabled;
+  },
+  get title() {
+    return this._form.title;
+  },
+  get isSystem() {
+    return this._form.system;
+  },
+  get styleSheetIndex() {
+    return this._form.styleSheetIndex;
+  },
+  get ruleCount() {
+    return this._form.ruleCount;
+  }
 });
 
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
@@ -647,136 +661,6 @@ exports.StyleEditorFront = StyleEditorFront;
 exports.OldStyleSheetActor = OldStyleSheetActor;
 exports.OldStyleSheetFront = OldStyleSheetFront;
 
-
-/**
- * Performs a request to load the desired URL and returns a promise.
- *
- * @param aURL String
- *        The URL we will request.
- * @returns Promise
- *        A promise of the document at that URL, as a string.
- */
-function fetch(aURL, aOptions={ loadFromCache: true, window: null,
-                                charset: null}) {
-  let deferred = promise.defer();
-  let scheme;
-  let url = aURL.split(" -> ").pop();
-  let charset;
-  let contentType;
-
-  try {
-    scheme = Services.io.extractScheme(url);
-  } catch (e) {
-    // In the xpcshell tests, the script url is the absolute path of the test
-    // file, which will make a malformed URI error be thrown. Add the file
-    // scheme prefix ourselves.
-    url = "file://" + url;
-    scheme = Services.io.extractScheme(url);
-  }
-
-  switch (scheme) {
-    case "file":
-    case "chrome":
-    case "resource":
-      try {
-        NetUtil.asyncFetch(url, function onFetch(aStream, aStatus, aRequest) {
-          if (!components.isSuccessCode(aStatus)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatus
-                                      + " after NetUtil.asyncFetch for url = "
-                                      + url));
-            return;
-          }
-
-          let source = NetUtil.readInputStreamToString(aStream, aStream.available());
-          contentType = aRequest.contentType;
-          deferred.resolve(source);
-          aStream.close();
-        });
-      } catch (ex) {
-        deferred.reject(ex);
-      }
-      break;
-
-    default:
-      let channel;
-      try {
-        channel = Services.io.newChannel(url, null, null);
-      } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
-        // On Windows xpcshell tests, c:/foo/bar can pass as a valid URL, but
-        // newChannel won't be able to handle it.
-        url = "file:///" + url;
-        channel = Services.io.newChannel(url, null, null);
-      }
-      let chunks = [];
-      let streamListener = {
-        onStartRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStartRequest handler for url = "
-                                      + url));
-          }
-        },
-        onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
-          chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
-        },
-        onStopRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStopRequest handler for url = "
-                                      + url));
-            return;
-          }
-
-          charset = channel.contentCharset || charset;
-          contentType = channel.contentType;
-          deferred.resolve(chunks.join(""));
-        }
-      };
-
-      if (aOptions.window) {
-        // respect private browsing
-        channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebNavigation)
-                              .QueryInterface(Ci.nsIDocumentLoader)
-                              .loadGroup;
-      }
-      channel.loadFlags = aOptions.loadFromCache
-        ? channel.LOAD_FROM_CACHE
-        : channel.LOAD_BYPASS_CACHE;
-      channel.asyncOpen(streamListener, null);
-      break;
-  }
-
-  return deferred.promise.then(source => {
-    return {
-      content: convertToUnicode(source, charset),
-      contentType: contentType
-    };
-  });
-}
-
-/**
- * Convert a given string, encoded in a given character set, to unicode.
- *
- * @param string aString
- *        A string.
- * @param string aCharset
- *        A character set.
- */
-function convertToUnicode(aString, aCharset=null) {
-  // Decoding primitives.
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-    .createInstance(Ci.nsIScriptableUnicodeConverter);
-  try {
-    converter.charset = aCharset || "UTF-8";
-    return converter.ConvertToUnicode(aString);
-  } catch(e) {
-    return aString;
-  }
-}
 
 /**
  * Normalize multiple relative paths towards the base paths on the right.

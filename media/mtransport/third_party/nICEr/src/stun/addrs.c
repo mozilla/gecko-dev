@@ -45,13 +45,11 @@ static char *RCSSTRING __UNUSED__="$Id: addrs.c,v 1.2 2008/04/28 18:21:30 ekr Ex
 #include <sys/param.h>
 #include <sys/socket.h>
 #ifndef ANDROID
-#include <sys/sysctl.h>
 #include <sys/syslog.h>
 #else
 #include <syslog.h>
 /* Work around an Android NDK < r8c bug */
 #undef __unused
-#include <linux/sysctl.h>
 #endif
 #ifndef LINUX
 #include <net/if.h>
@@ -122,6 +120,7 @@ static char *RCSSTRING __UNUSED__="$Id: addrs.c,v 1.2 2008/04/28 18:21:30 ekr Ex
  */
 
 #include <err.h>
+#include <sys/sysctl.h>
 
 static void stun_rt_xaddrs(caddr_t, caddr_t, struct rt_addrinfo *);
 static int stun_grab_addrs(char *name, int addrcount,
@@ -239,12 +238,21 @@ stun_get_mib_addrs(nr_local_addr addrs[], int maxaddrs, int *count)
     mib[4] = NET_RT_IFLIST;
     mib[5] = 0;
 
-    if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0)
+    if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
         errx(1, "iflist-sysctl-estimate");
-    if ((buf = malloc(needed)) == NULL)
+        ABORT(R_INTERNAL);
+    }
+
+    if ((buf = malloc(needed)) == NULL) {
         errx(1, "malloc");
-    if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0)
+        ABORT(R_NO_MEMORY);
+    }
+
+    if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0) {
         errx(1, "actual retrieval of interface table");
+        ABORT(R_INTERNAL);
+    }
+
     lim = buf + needed;
 
     next = buf;
@@ -606,6 +614,12 @@ stun_get_siocgifconf_addrs(nr_local_addr addrs[], int maxaddrs, int *count)
    ifc.ifc_buf = buf;
 
    e = ioctl(s,SIOCGIFCONF,&ifc);
+
+   if ( e == -1 )
+   {
+      return(R_INTERNAL);
+   }
+
    ptr = buf;
    tl = ifc.ifc_len;
    n=0;

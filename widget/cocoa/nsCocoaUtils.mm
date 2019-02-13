@@ -3,8 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <cmath>
+
+#include "gfx2DGlue.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
+#include "ImageRegion.h"
 #include "nsCocoaUtils.h"
 #include "nsChildView.h"
 #include "nsMenuBarX.h"
@@ -18,6 +22,7 @@
 #include "nsMenuUtilsX.h"
 #include "nsToolkit.h"
 #include "nsCRT.h"
+#include "SVGImageContext.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
@@ -35,6 +40,8 @@ using mozilla::gfx::IntRect;
 using mozilla::gfx::IntSize;
 using mozilla::gfx::SurfaceFormat;
 using mozilla::gfx::SourceSurface;
+using mozilla::image::ImageRegion;
+using std::ceil;
 
 static float
 MenuBarScreenHeight()
@@ -227,38 +234,24 @@ void nsCocoaUtils::GetScrollingDeltas(NSEvent* aEvent, CGFloat* aOutDeltaX, CGFl
   *aOutDeltaY = [aEvent deltaY] * lineDeltaPixels;
 }
 
-void nsCocoaUtils::HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen)
+void nsCocoaUtils::HideOSChromeOnScreen(bool aShouldHide)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   // Keep track of how many hiding requests have been made, so that they can
   // be nested.
-  static int sMenuBarHiddenCount = 0, sDockHiddenCount = 0;
+  static int sHiddenCount = 0;
 
-  // Always hide the Dock, since it's not necessarily on the primary screen.
-  sDockHiddenCount += aShouldHide ? 1 : -1;
-  NS_ASSERTION(sMenuBarHiddenCount >= 0, "Unbalanced HideMenuAndDockForWindow calls");
+  sHiddenCount += aShouldHide ? 1 : -1;
+  NS_ASSERTION(sHiddenCount >= 0, "Unbalanced HideMenuAndDockForWindow calls");
 
-  // Only hide the menu bar if the window is on the same screen.
-  // The menu bar is always on the first screen in the screen list.
-  if (aScreen == [[NSScreen screens] objectAtIndex:0]) {
-    sMenuBarHiddenCount += aShouldHide ? 1 : -1;
-    NS_ASSERTION(sDockHiddenCount >= 0, "Unbalanced HideMenuAndDockForWindow calls");
-  }
-
-  // TODO This should be upgraded to use [NSApplication setPresentationOptions:]
-  // when support for 10.5 is dropped.
-  if (sMenuBarHiddenCount > 0) {
-    ::SetSystemUIMode(kUIModeAllHidden, 0);
-  } else if (sDockHiddenCount > 0) {
-    ::SetSystemUIMode(kUIModeContentHidden, 0);
-  } else {
-    ::SetSystemUIMode(kUIModeNormal, 0);
-  }
+  NSApplicationPresentationOptions options =
+    sHiddenCount <= 0 ? NSApplicationPresentationDefault :
+    NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar;
+  [NSApp setPresentationOptions:options];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
-
 
 #define NS_APPSHELLSERVICE_CONTRACTID "@mozilla.org/appshell/appShellService;1"
 nsIWidget* nsCocoaUtils::GetHiddenWindowWidget()
@@ -389,7 +382,7 @@ nsresult nsCocoaUtils::CreateCGImageFromSurface(SourceSurface* aSurface,
   // Create a CGImageRef with the bits from the image, taking into account
   // the alpha ordering and endianness of the machine so we don't have to
   // touch the bits ourselves.
-  CGDataProviderRef dataProvider = ::CGDataProviderCreateWithData(dataSurface.forget().drop(),
+  CGDataProviderRef dataProvider = ::CGDataProviderCreateWithData(dataSurface.forget().take(),
                                                                   map.mData,
                                                                   map.mStride * height,
                                                                   data_ss_release_callback);
@@ -473,12 +466,11 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(imgIContainer *aImage, ui
 
   // Render a vector image at the correct resolution on a retina display
   if (aImage->GetType() == imgIContainer::TYPE_VECTOR && scaleFactor != 1.0f) {
-    int scaledWidth = (int)ceilf(width * scaleFactor);
-    int scaledHeight = (int)ceilf(height * scaleFactor);
+    gfxIntSize scaledSize(ceil(width * scaleFactor),
+                          ceil(height * scaleFactor));
 
     RefPtr<DrawTarget> drawTarget = gfxPlatform::GetPlatform()->
-      CreateOffscreenContentDrawTarget(IntSize(scaledWidth, scaledHeight),
-                                       SurfaceFormat::B8G8R8A8);
+      CreateOffscreenContentDrawTarget(scaledSize, SurfaceFormat::B8G8R8A8);
     if (!drawTarget) {
       NS_ERROR("Failed to create DrawTarget");
       return NS_ERROR_FAILURE;
@@ -490,11 +482,9 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(imgIContainer *aImage, ui
       return NS_ERROR_FAILURE;
     }
 
-    aImage->Draw(context, GraphicsFilter::FILTER_NEAREST, gfxMatrix(),
-      gfxRect(0.0f, 0.0f, scaledWidth, scaledHeight),
-      nsIntRect(0, 0, width, height),
-      nsIntSize(scaledWidth, scaledHeight),
-      nullptr, aWhichFrame, imgIContainer::FLAG_SYNC_DECODE);
+    aImage->Draw(context, scaledSize, ImageRegion::Create(scaledSize),
+                 aWhichFrame, GraphicsFilter::FILTER_NEAREST, Nothing(),
+                 imgIContainer::FLAG_SYNC_DECODE);
 
     surface = drawTarget->Snapshot();
   } else {
@@ -599,16 +589,6 @@ void
 nsCocoaUtils::InitNPCocoaEvent(NPCocoaEvent* aNPCocoaEvent)
 {
   memset(aNPCocoaEvent, 0, sizeof(NPCocoaEvent));
-}
-
-// static
-void
-nsCocoaUtils::InitPluginEvent(WidgetPluginEvent &aPluginEvent,
-                              NPCocoaEvent &aCocoaEvent)
-{
-  aPluginEvent.time = PR_IntervalNow();
-  aPluginEvent.pluginEvent = (void*)&aCocoaEvent;
-  aPluginEvent.retargetToFocusedDocument = false;
 }
 
 // static

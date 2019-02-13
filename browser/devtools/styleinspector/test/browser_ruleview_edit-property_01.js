@@ -4,28 +4,34 @@
 
 "use strict";
 
-// Testing various inplace-editor behaviors in the rule-view
-// FIXME: To be split in several test files, and some of the inplace-editor
-// focus/blur/commit/revert stuff should be factored out in head.js
+// Testing adding new properties via the inplace-editors in the rule
+// view.
+// FIXME: some of the inplace-editor focus/blur/commit/revert stuff
+// should be factored out in head.js
 
-let TEST_URL = 'url("' + TEST_URL_ROOT + 'doc_test_image.png")';
-let PAGE_CONTENT = [
+let BACKGROUND_IMAGE_URL = 'url("' + TEST_URL_ROOT + 'doc_test_image.png")';
+let TEST_URI = [
   '<style type="text/css">',
-  '  #testid {',
-  '    background-color: blue;',
-  '  }',
-  '  .testclass {',
-  '    background-color: green;',
-  '  }',
+  '#testid {',
+  '  color: red;',
+  '  background-color: blue;',
+  '}',
+  '.testclass, .unmatched {',
+  '  background-color: green;',
+  '}',
   '</style>',
-  '<div id="testid" class="testclass">Styled Node</div>'
+  '<div id="testid" class="testclass">Styled Node</div>',
+  '<div id="testid2">Styled Node</div>'
 ].join("\n");
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,test rule view user changes");
+let TEST_DATA = [
+  { name: "border-color", value: "red", isValid: true },
+  { name: "background-image", value: BACKGROUND_IMAGE_URL, isValid: true },
+  { name: "border", value: "solid 1px foo", isValid: false },
+];
 
-  info("Creating the test document");
-  content.document.body.innerHTML = PAGE_CONTENT;
+add_task(function*() {
+  let tab = yield addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
 
   info("Opening the rule-view");
   let {toolbox, inspector, view} = yield openRuleView();
@@ -33,15 +39,17 @@ let test = asyncTest(function*() {
   info("Selecting the test element");
   yield selectNode("#testid", inspector);
 
-  yield testEditProperty(view, "border-color", "red");
-  yield testEditProperty(view, "background-image", TEST_URL);
+  let ruleEditor = getRuleViewRuleEditor(view, 1);
+  for (let {name, value, isValid} of TEST_DATA) {
+    yield testEditProperty(ruleEditor, name, value, isValid);
+  }
 });
 
-function* testEditProperty(view, name, value) {
+function* testEditProperty(ruleEditor, name, value, isValid) {
   info("Test editing existing property name/value fields");
 
-  let idRuleEditor = view.element.children[1]._ruleEditor;
-  let propEditor = idRuleEditor.rule.textProps[0].editor;
+  let doc = ruleEditor.doc;
+  let propEditor = ruleEditor.rule.textProps[0].editor;
 
   info("Focusing an existing property name in the rule-view");
   let editor = yield focusEditableField(propEditor.nameSpan, 32, 1);
@@ -50,29 +58,36 @@ function* testEditProperty(view, name, value) {
   let input = editor.input;
 
   info("Entering a new property name, including : to commit and focus the value");
-  let onValueFocus = once(idRuleEditor.element, "focus", true);
-  let onModifications = idRuleEditor.rule._applyingModifications;
-  for (let ch of name + ":") {
-    EventUtils.sendChar(ch, view.doc.defaultView);
-  }
+  let onValueFocus = once(ruleEditor.element, "focus", true);
+  let onModifications = ruleEditor.rule._applyingModifications;
+  EventUtils.sendString(name + ":", doc.defaultView);
   yield onValueFocus;
   yield onModifications;
 
   // Getting the value editor after focus
-  editor = inplaceEditor(view.doc.activeElement);
+  editor = inplaceEditor(doc.activeElement);
   input = editor.input;
   is(inplaceEditor(propEditor.valueSpan), editor, "Focus moved to the value.");
 
   info("Entering a new value, including ; to commit and blur the value");
   let onBlur = once(input, "blur");
-  let onModifications = idRuleEditor.rule._applyingModifications;
-  for (let ch of value + ";") {
-    EventUtils.sendChar(ch, view.doc.defaultView);
-  }
+  onModifications = ruleEditor.rule._applyingModifications;
+  EventUtils.sendString(value + ";", doc.defaultView);
   yield onBlur;
   yield onModifications;
 
-  let propValue = idRuleEditor.rule.domRule._rawStyle().getPropertyValue(name);
-  is(propValue, value, name + " should have been set.");
-  is(propEditor.isValid(), true, value + " should be a valid entry");
+  is(propEditor.isValid(), isValid, value + " is " + isValid ? "valid" : "invalid");
+
+  info("Checking that the style property was changed on the content page");
+  let propValue = yield executeInContent("Test:GetRulePropertyValue", {
+    styleSheetIndex: 0,
+    ruleIndex: 0,
+    name
+  });
+
+  if (isValid) {
+    is(propValue, value, name + " should have been set.");
+  } else {
+    isnot(propValue, value, name + " shouldn't have been set.");
+  }
 }

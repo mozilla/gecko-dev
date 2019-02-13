@@ -5,7 +5,8 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 menu,
-menuitem {
+menuitem,
+menucaption {
   -moz-appearance: menuitem;
   -moz-box-align: center;
   color: MenuText;
@@ -34,6 +35,11 @@ menuitem[_moz-menuactive="true"][disabled="true"] {
 .menu-iconic-text {
   font-weight: inherit;
   color: inherit;
+}
+
+menucaption > .menu-text,
+menucaption > .menu-iconic-text {
+  font-weight: bold;
 }
 
 .menu-description {
@@ -76,47 +82,22 @@ menuitem[src] > .menu-iconic-left > .menu-iconic-icon {
 .menu-right,
 .menu-accel-container {
   -moz-margin-start: 21px;
+  -moz-margin-end: -9px;
   -moz-box-pack: end;
 }
 
-.menu-accel-container {
-  -moz-margin-end: -9px;
+/* The native menuarrow we use is 9px wide on 10.7+ and 8px wide on 10.6,
+ * so it needs to be 'pulled in' one pixel more by the negative margin in
+ * order to align properly: */
+@media not all and (-moz-mac-lion-theme) {
+  .menu-right {
+    -moz-margin-end: -10px;
+  }
 }
 
 .menu-right {
-  -moz-margin-end: -10px;
-  width: 9px;
-  list-style-image: url("chrome://global/skin/menu/menu-arrow.png");
-  -moz-image-region: rect(0, 9px, 10px, 0);
-}
-
-.menu-right[_moz-menuactive="true"]:not([disabled="true"]) {
-  -moz-image-region: rect(0, 18px, 10px, 9px);
-}
-
-.menu-right[disabled="true"] {
-  -moz-image-region: rect(0, 27px, 10px, 18px);
-}
-
-.menu-right:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
-}
-
-@media (min-resolution: 2dppx) {
-  .menu-right > image {
-    list-style-image: url("chrome://global/skin/menu/menu-arrow@2x.png");
-    -moz-image-region: rect(0, 18px, 20px, 0);
-    width: 9px;
-    height: 10px;
-  }
-
-  .menu-right[_moz-menuactive="true"]:not([disabled="true"]) > image {
-    -moz-image-region: rect(0, 36px, 20px, 18px);
-  }
-
-  .menu-right[disabled="true"] > image {
-    -moz-image-region: rect(0, 54px, 20px, 36px);
-  }
+  list-style-image: none;
+  -moz-appearance: menuarrow;
 }
 
 /* ::::: menu/menuitems in menubar ::::: */
@@ -152,7 +133,8 @@ menubar > menu[_moz-menuactive="true"][open="true"] {
 /* ::::: menu/menuitems in popups ::::: */
 
 menupopup > menu,
-menupopup > menuitem {
+menupopup > menuitem,
+menupopup > menucaption {
   max-width: 42em;
 }
 
@@ -164,9 +146,8 @@ menuitem[_moz-menuactive="true"] {
 
 /* ::::: menu/menuitems in menulist popups ::::: */
 
-.menulist-menupopup > menuitem,
 menulist > menupopup > menuitem,
-.menulist-menupopup > menu,
+menulist > menupopup > menucaption,
 menulist > menupopup > menu {
   max-width: none;
   font: inherit;
@@ -175,45 +156,20 @@ menulist > menupopup > menu {
 
 /* ::::: menuitems in editable menulist popups ::::: */
 
-menulist[editable="true"] > menupopup > menuitem {
+menulist[editable="true"] > menupopup > menuitem,
+menulist[editable="true"] > menupopup > menucaption {
   -moz-appearance: none;
 }
 
-menulist[editable="true"] > menupopup > menuitem > .menu-iconic-left {
+menulist[editable="true"] > menupopup > :-moz-any(menuitem, menucaption) > .menu-iconic-left {
   display: none;
 }
 
 /* ::::: checked menuitems ::::: */
 
-:not(menulist) > menupopup > menuitem[checked="true"] > .menu-iconic-left,
-:not(menulist) > menupopup > menuitem[selected="true"] > .menu-iconic-left {
-  padding-top: 1px;
-  -moz-margin-start: -15px;
-  -moz-padding-start: 15px;
-  background: -moz-image-rect("chrome://global/skin/menu/menu-check.png", 0, 11, 11, 0) bottom left no-repeat transparent;
-}
-
-:not(menulist) > menupopup > menuitem[checked="true"] > .menu-iconic-left:-moz-locale-dir(rtl),
-:not(menulist) > menupopup > menuitem[selected="true"] > .menu-iconic-left:-moz-locale-dir(rtl) {
-  background-position: bottom right;
-}
-
-:not(menulist) > menupopup > menuitem[checked="true"][_moz-menuactive="true"]:not([disabled="true"]) > .menu-iconic-left,
-:not(menulist) > menupopup > menuitem[selected="true"][_moz-menuactive="true"]:not([disabled="true"]) > .menu-iconic-left {
-  background-image: -moz-image-rect("chrome://global/skin/menu/menu-check.png", 0, 22, 11, 11);
-}
-
-@media (min-resolution: 2dppx) {
-  :not(menulist) > menupopup > menuitem[checked="true"] > .menu-iconic-left,
-  :not(menulist) > menupopup > menuitem[selected="true"] > .menu-iconic-left {
-    background-size: 11px 11px;
-    background-image: -moz-image-rect("chrome://global/skin/menu/menu-check@2x.png", 0, 22, 22, 0);
-  }
-
-  :not(menulist) > menupopup > menuitem[checked="true"][_moz-menuactive="true"]:not([disabled="true"]) > .menu-iconic-left,
-  :not(menulist) > menupopup > menuitem[selected="true"][_moz-menuactive="true"]:not([disabled="true"]) > .menu-iconic-left {
-    background-image: -moz-image-rect("chrome://global/skin/menu/menu-check@2x.png", 0, 44, 22, 22);
-  }
+:not(menulist) > menupopup > menuitem[checked="true"],
+:not(menulist) > menupopup > menuitem[selected="true"] {
+  -moz-appearance: checkmenuitem;
 }
 
 menulist:not([editable="true"]) > menupopup > menuitem[checked="true"]::before,
@@ -229,7 +185,7 @@ menulist:not([editable="true"]) > menupopup > menuitem[selected="true"]::before 
 menuseparator {
   -moz-appearance: menuseparator;
   margin: 5px 0;
-  padding: 1px 0 !important;
+  padding: 1px 0;
 }
 
 /* ::::: autocomplete ::::: */

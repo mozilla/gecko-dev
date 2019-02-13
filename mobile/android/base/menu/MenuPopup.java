@@ -13,17 +13,18 @@ import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.PopupWindow;
 
 /**
  * A popup to show the inflated MenuPanel.
  */
 public class MenuPopup extends PopupWindow {
-    private LinearLayout mPanel;
+    private final FrameLayout mPanel;
 
-    private int mYOffset;
-    private int mPopupWidth;
+    private final int mYOffset;
+    private final int mPopupWidth;
+    private final int mPopupMinHeight;
 
     public MenuPopup(Context context) {
         super(context);
@@ -32,14 +33,15 @@ public class MenuPopup extends PopupWindow {
 
         mYOffset = context.getResources().getDimensionPixelSize(R.dimen.menu_popup_offset);
         mPopupWidth = context.getResources().getDimensionPixelSize(R.dimen.menu_popup_width);
+        mPopupMinHeight = context.getResources().getDimensionPixelSize(R.dimen.menu_item_row_height);
 
         // Setting a null background makes the popup to not close on touching outside.
         setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        setWindowLayoutMode(View.MeasureSpec.makeMeasureSpec(mPopupWidth, View.MeasureSpec.AT_MOST),
+        setWindowLayoutMode(ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT);
 
         LayoutInflater inflater = LayoutInflater.from(context);
-        mPanel = (LinearLayout) inflater.inflate(R.layout.menu_popup, null);
+        mPanel = (FrameLayout) inflater.inflate(R.layout.menu_popup, null);
         setContentView(mPanel);
 
         setAnimationStyle(R.style.PopupAnimation);
@@ -51,8 +53,8 @@ public class MenuPopup extends PopupWindow {
      * @param view The panel view with the menu to be shown.
      */
     public void setPanelView(View view) {
-        view.setLayoutParams(new LinearLayout.LayoutParams(mPopupWidth,
-                                                           LinearLayout.LayoutParams.WRAP_CONTENT));
+        view.setLayoutParams(new FrameLayout.LayoutParams(mPopupWidth,
+                                                          FrameLayout.LayoutParams.WRAP_CONTENT));
 
         mPanel.removeAllViews();
         mPanel.addView(view);
@@ -63,6 +65,14 @@ public class MenuPopup extends PopupWindow {
      */
     @Override
     public void showAsDropDown(View anchor) {
-        showAsDropDown(anchor, 0, -mYOffset);
+        // Set a height, so that the popup will not be displayed below the bottom of the screen.
+        // We use the exact height of the internal content, which is the technique described in
+        // http://stackoverflow.com/a/7698709
+        setHeight(mPanel.getHeight());
+
+        // Attempt to align the center of the popup with the center of the anchor. If the anchor is
+        // near the edge of the screen, the popup will just align with the edge of the screen.
+        final int xOffset = anchor.getWidth()/2 - mPopupWidth/2;
+        showAsDropDown(anchor, xOffset, -mYOffset);
     }
 }

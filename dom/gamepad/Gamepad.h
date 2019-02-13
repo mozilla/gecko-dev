@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,6 +15,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
+#include "nsPerformance.h"
 
 namespace mozilla {
 namespace dom {
@@ -30,8 +33,8 @@ const int kLeftStickYAxis = 1;
 const int kRightStickXAxis = 2;
 const int kRightStickYAxis = 3;
 
-class Gamepad : public nsISupports,
-                public nsWrapperCache
+class Gamepad final : public nsISupports,
+                      public nsWrapperCache
 {
 public:
   Gamepad(nsISupports* aParent,
@@ -58,11 +61,16 @@ public:
     return mParent;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   void GetId(nsAString& aID) const
   {
     aID = mID;
+  }
+
+  DOMHighResTimeStamp Timestamp() const
+  {
+     return mTimestamp;
   }
 
   GamepadMappingType Mapping()
@@ -92,6 +100,7 @@ public:
 
 private:
   virtual ~Gamepad() {}
+  void UpdateTimestamp();
 
 protected:
   nsCOMPtr<nsISupports> mParent;
@@ -107,6 +116,7 @@ protected:
   // Current state of buttons, axes.
   nsTArray<nsRefPtr<GamepadButton>> mButtons;
   nsTArray<double> mAxes;
+  DOMHighResTimeStamp mTimestamp;
 };
 
 } // namespace dom

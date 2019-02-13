@@ -3,10 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(MOZ_LOGGING)
-#define FORCE_PR_LOG
-#endif
-
 #include "nsOfflineCacheUpdate.h"
 
 #include "nsCPrefetchService.h"
@@ -14,7 +10,6 @@
 #include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
 #include "nsIApplicationCacheService.h"
-#include "nsICache.h"
 #include "nsICachingChannel.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
@@ -37,10 +32,11 @@
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 #include "nsIConsoleService.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
+#include "nsContentUtils.h"
 
 #include "nsXULAppAPI.h"
 
@@ -55,24 +51,22 @@ static const uint32_t kParallelLoadLimit = 15;
 // Quota for offline apps when preloading
 static const int32_t  kCustomProfileQuota = 512000;
 
-#if defined(PR_LOGGING)
 //
 // To enable logging (see prlog.h for full details):
 //
 //    set NSPR_LOG_MODULES=nsOfflineCacheUpdate:5
 //    set NSPR_LOG_FILE=offlineupdate.log
 //
-// this enables PR_LOG_ALWAYS level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file offlineupdate.log
 //
 extern PRLogModuleInfo *gOfflineCacheUpdateLog;
-#endif
 
 #undef LOG
-#define LOG(args) PR_LOG(gOfflineCacheUpdateLog, 4, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() PR_LOG_TEST(gOfflineCacheUpdateLog, 4)
+#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
 
 class AutoFreeArray {
 public:
@@ -119,9 +113,9 @@ LogToConsole(const char * message, nsOfflineCacheUpdateItem * item = nullptr)
 // nsManifestCheck
 //-----------------------------------------------------------------------------
 
-class nsManifestCheck MOZ_FINAL : public nsIStreamListener
-                                , public nsIChannelEventSink
-                                , public nsIInterfaceRequestor
+class nsManifestCheck final : public nsIStreamListener
+                            , public nsIChannelEventSink
+                            , public nsIInterfaceRequestor
 {
 public:
     nsManifestCheck(nsOfflineCacheUpdate *aUpdate,
@@ -141,6 +135,8 @@ public:
     nsresult Begin();
 
 private:
+
+    ~nsManifestCheck() {}
 
     static NS_METHOD ReadManifest(nsIInputStream *aInputStream,
                                   void *aClosure,
@@ -178,11 +174,15 @@ nsManifestCheck::Begin()
 
     rv = mManifestHash->Init(nsICryptoHash::MD5);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        mURI,
-                       nullptr, nullptr, nullptr,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       nullptr,   // loadGroup
+                       nullptr,   // aCallbacks
                        nsIRequest::LOAD_BYPASS_CACHE);
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     // configure HTTP specific stuff
@@ -341,13 +341,11 @@ nsOfflineCacheUpdateItem::~nsOfflineCacheUpdateItem()
 nsresult
 nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
 {
-#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         nsAutoCString spec;
         mURI->GetSpec(spec);
         LOG(("%p: Opening channel for %s", this, spec.get()));
     }
-#endif
 
     if (mUpdate) {
         // Holding a reference to the update means this item is already
@@ -361,8 +359,7 @@ nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
     NS_ENSURE_SUCCESS(rv, rv);
 
     uint32_t flags = nsIRequest::LOAD_BACKGROUND |
-                     nsICachingChannel::LOAD_ONLY_IF_MODIFIED |
-                     nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
+                     nsICachingChannel::LOAD_ONLY_IF_MODIFIED;
 
     if (mApplicationCache == mPreviousApplicationCache) {
         // Same app cache to read from and to write to is used during
@@ -373,8 +370,13 @@ nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
 
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        mURI,
-                       nullptr, nullptr, this,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       nullptr,  // aLoadGroup
+                       this,     // aCallbacks
                        flags);
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
@@ -460,14 +462,12 @@ nsOfflineCacheUpdateItem::OnStopRequest(nsIRequest *aRequest,
                                         nsISupports *aContext,
                                         nsresult aStatus)
 {
-#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         nsAutoCString spec;
         mURI->GetSpec(spec);
         LOG(("%p: Done fetching offline item %s [status=%x]\n",
             this, spec.get(), aStatus));
     }
-#endif
 
     if (mBytesRead == 0 && aStatus == NS_OK) {
         // we didn't need to read (because LOAD_ONLY_IF_MODIFIED was
@@ -1873,13 +1873,11 @@ nsOfflineCacheUpdate::ProcessNextURI()
         return NS_OK;
     }
 
-#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         nsAutoCString spec;
         runItem->mURI->GetSpec(spec);
         LOG(("%p: Opening channel for %s", this, spec.get()));
     }
-#endif
 
     ++mItemsInProgress;
     NotifyState(nsIOfflineCacheUpdateObserver::STATE_ITEMSTARTED);
@@ -1983,13 +1981,27 @@ void
 nsOfflineCacheUpdate::SetOwner(nsOfflineCacheUpdateOwner *aOwner)
 {
     NS_ASSERTION(!mOwner, "Tried to set cache update owner twice.");
-    mOwner = aOwner->asWeakPtr();
+    mOwner = aOwner;
 }
 
 bool
 nsOfflineCacheUpdate::IsForGroupID(const nsCSubstring &groupID)
 {
     return mGroupID == groupID;
+}
+
+bool
+nsOfflineCacheUpdate::IsForProfile(nsIFile* aCustomProfileDir)
+{
+    if (!mCustomProfileDir && !aCustomProfileDir)
+        return true;
+    if (!mCustomProfileDir || !aCustomProfileDir)
+        return false;
+
+    bool equals;
+    nsresult rv = mCustomProfileDir->Equals(aCustomProfileDir, &equals);
+
+    return NS_SUCCEEDED(rv) && equals;
 }
 
 nsresult

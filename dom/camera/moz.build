@@ -4,20 +4,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    TEST_DIRS += ['test']
+if CONFIG['MOZ_B2G_CAMERA']:
+    MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 
 EXPORTS += [
     'CameraCommon.h',
-    'CameraPreviewMediaStream.h',
+    'CameraPreferences.h',
     'DOMCameraManager.h',
-    'GonkCameraControl.h',
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     'CameraControlImpl.cpp',
+    'CameraPreferences.cpp',
     'CameraPreviewMediaStream.cpp',
-    'CameraRecorderProfiles.cpp',
     'DOMCameraCapabilities.cpp',
     'DOMCameraControl.cpp',
     'DOMCameraControlListener.cpp',
@@ -26,19 +25,38 @@ SOURCES += [
 ]
 
 if CONFIG['MOZ_B2G_CAMERA']:
-    SOURCES += [
+    XPIDL_SOURCES += [
+        'nsICameraTestHardware.idl',
+    ]
+
+    XPIDL_MODULE = 'dom_camera'
+
+    UNIFIED_SOURCES += [
         'GonkCameraControl.cpp',
         'GonkCameraHwMgr.cpp',
         'GonkCameraManager.cpp',
         'GonkCameraParameters.cpp',
-        'GonkCameraSource.cpp',
-        'GonkRecorder.cpp',
         'GonkRecorderProfiles.cpp',
         'TestGonkCameraControl.cpp',
         'TestGonkCameraHardware.cpp',
     ]
+
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
+        UNIFIED_SOURCES += [
+            'GonkCameraSource.cpp',
+            'GonkRecorder.cpp',
+        ]
+    else:
+        UNIFIED_SOURCES += [
+            'FallbackCameraPlatform.cpp',
+        ]
+
+    EXTRA_COMPONENTS += [
+        'CameraTestHardware.js',
+        'CameraTestHardware.manifest',
+    ]
 else:
-    SOURCES += [
+    UNIFIED_SOURCES += [
         'FallbackCameraControl.cpp',
         'FallbackCameraManager.cpp',
     ]
@@ -47,8 +65,15 @@ FAIL_ON_WARNINGS = True
 
 LOCAL_INCLUDES += [
     '../base',
+    '/media/libyuv/include',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+# Suppress some GCC warnings being treated as errors:
+#  - about attributes on forward declarations for types that are already
+#    defined, which complains about an important MOZ_EXPORT for android::AString
+if CONFIG['GNU_CC']:
+  CXXFLAGS += ['-Wno-error=attributes']
+
+FINAL_LIBRARY = 'xul'

@@ -22,8 +22,9 @@ namespace downloads {
  * @return a guid for the item.
  * @see toolkit/components/places/SQLFunctions.h - keep this in sync
  */
-class GenerateGUIDFunction MOZ_FINAL : public mozIStorageFunction
+class GenerateGUIDFunction final : public mozIStorageFunction
 {
+  ~GenerateGUIDFunction() {}
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION

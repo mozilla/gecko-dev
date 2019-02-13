@@ -64,8 +64,8 @@ function finish_failed_download() {
 
   // Restart the install as a regular webpage install so the harness tracks it
   AddonManager.installAddonsFromWebpage("application/x-xpinstall",
-                                        gBrowser.contentWindow,
-                                        gBrowser.currentURI, [gInstall]);
+                                        gBrowser.selectedBrowser,
+                                        gBrowser.contentPrincipal, [gInstall]);
 }
 
 function install_ended(install, addon) {

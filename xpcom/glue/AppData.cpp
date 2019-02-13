@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,26 +14,24 @@
 namespace mozilla {
 
 void
-SetAllocatedString(const char *&str, const char *newvalue)
+SetAllocatedString(const char*& aStr, const char* aNewValue)
 {
-  NS_Free(const_cast<char*>(str));
-  if (newvalue) {
-    str = NS_strdup(newvalue);
-  }
-  else {
-    str = nullptr;
+  NS_Free(const_cast<char*>(aStr));
+  if (aNewValue) {
+    aStr = NS_strdup(aNewValue);
+  } else {
+    aStr = nullptr;
   }
 }
 
 void
-SetAllocatedString(const char *&str, const nsACString &newvalue)
+SetAllocatedString(const char*& aStr, const nsACString& aNewValue)
 {
-  NS_Free(const_cast<char*>(str));
-  if (newvalue.IsEmpty()) {
-    str = nullptr;
-  }
-  else {
-    str = ToNewCString(newvalue);
+  NS_Free(const_cast<char*>(aStr));
+  if (aNewValue.IsEmpty()) {
+    aStr = nullptr;
+  } else {
+    aStr = ToNewCString(aNewValue);
   }
 }
 
@@ -44,6 +43,7 @@ ScopedAppData::ScopedAppData(const nsXREAppData* aAppData)
 
   SetAllocatedString(this->vendor, aAppData->vendor);
   SetAllocatedString(this->name, aAppData->name);
+  SetAllocatedString(this->remotingName, aAppData->remotingName);
   SetAllocatedString(this->version, aAppData->version);
   SetAllocatedString(this->buildID, aAppData->buildID);
   SetAllocatedString(this->ID, aAppData->ID);
@@ -71,6 +71,7 @@ ScopedAppData::~ScopedAppData()
 {
   SetAllocatedString(this->vendor, nullptr);
   SetAllocatedString(this->name, nullptr);
+  SetAllocatedString(this->remotingName, nullptr);
   SetAllocatedString(this->version, nullptr);
   SetAllocatedString(this->buildID, nullptr);
   SetAllocatedString(this->ID, nullptr);
@@ -79,7 +80,7 @@ ScopedAppData::~ScopedAppData()
 
   NS_IF_RELEASE(this->directory);
 
-  SetStrongPtr(this->xreDirectory, (nsIFile*) nullptr);
+  SetStrongPtr(this->xreDirectory, (nsIFile*)nullptr);
   SetAllocatedString(this->minVersion, nullptr);
   SetAllocatedString(this->maxVersion, nullptr);
 

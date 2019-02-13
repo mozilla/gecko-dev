@@ -7,7 +7,8 @@ module.metadata = {
   "stability": "stable",
   "engines": {
     // TODO Fennec support Bug 788334
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
@@ -18,13 +19,15 @@ const { validateOptions, getTypeOf } = require("./deprecated/api-utils");
 const { URL, isValidURI } = require("./url");
 const { WindowTracker, browserWindowIterator } = require("./deprecated/window-utils");
 const { isBrowser, getInnerId } = require("./window/utils");
-const { Ci } = require("chrome");
 const { MatchPattern } = require("./util/match-pattern");
-const { Worker } = require("./content/worker");
 const { EventTarget } = require("./event/target");
 const { emit } = require('./event/core');
 const { when } = require('./system/unload');
-const selection = require('./selection');
+const { contract: loaderContract } = require('./content/loader');
+const { omit } = require('./util/object');
+const self = require('./self')
+const { remoteRequire, processes } = require('./remote/parent');
+remoteRequire('sdk/content/context-menu');
 
 // All user items we add have this class.
 const ITEM_CLASS = "addon-context-menu-item";
@@ -47,8 +50,9 @@ const OVERFLOW_THRESH_PREF =
 
 // The label of the overflow sub-xul:menu.
 //
-// TODO: Localize this.
+// TODO: Localize these.
 const OVERFLOW_MENU_LABEL = "Add-ons";
+const OVERFLOW_MENU_ACCESSKEY = "A";
 
 // The class of the overflow sub-xul:menu.
 const OVERFLOW_MENU_CLASS = "addon-content-menu-overflow-menu";
@@ -56,29 +60,16 @@ const OVERFLOW_MENU_CLASS = "addon-content-menu-overflow-menu";
 // The class of the overflow submenu's xul:menupopup.
 const OVERFLOW_POPUP_CLASS = "addon-content-menu-overflow-popup";
 
-//These are used by PageContext.isCurrent below. If the popupNode or any of
-//its ancestors is one of these, Firefox uses a tailored context menu, and so
-//the page context doesn't apply.
-const NON_PAGE_CONTEXT_ELTS = [
-  Ci.nsIDOMHTMLAnchorElement,
-  Ci.nsIDOMHTMLAppletElement,
-  Ci.nsIDOMHTMLAreaElement,
-  Ci.nsIDOMHTMLButtonElement,
-  Ci.nsIDOMHTMLCanvasElement,
-  Ci.nsIDOMHTMLEmbedElement,
-  Ci.nsIDOMHTMLImageElement,
-  Ci.nsIDOMHTMLInputElement,
-  Ci.nsIDOMHTMLMapElement,
-  Ci.nsIDOMHTMLMediaElement,
-  Ci.nsIDOMHTMLMenuElement,
-  Ci.nsIDOMHTMLObjectElement,
-  Ci.nsIDOMHTMLOptionElement,
-  Ci.nsIDOMHTMLSelectElement,
-  Ci.nsIDOMHTMLTextAreaElement,
-];
-
 // Holds private properties for API objects
 let internal = ns();
+
+// A little hacky but this is the last process ID that last opened the context
+// menu
+let lastContextProcessId = null;
+
+function uuid() {
+  return require('./util/uuid').uuid().toString();
+}
 
 function getScheme(spec) {
   try {
@@ -90,14 +81,18 @@ function getScheme(spec) {
 }
 
 let Context = Class({
+  initialize: function() {
+    internal(this).id = uuid();
+  },
+
   // Returns the node that made this context current
   adjustPopupNode: function adjustPopupNode(popupNode) {
     return popupNode;
   },
 
   // Returns whether this context is current for the current node
-  isCurrent: function isCurrent(popupNode) {
-    return false;
+  isCurrent: function isCurrent(state) {
+    return state;
   }
 });
 
@@ -106,21 +101,12 @@ let Context = Class({
 let PageContext = Class({
   extends: Context,
 
-  isCurrent: function isCurrent(popupNode) {
-    // If there is a selection in the window then this context does not match
-    if (!popupNode.ownerDocument.defaultView.getSelection().isCollapsed)
-      return false;
-
-    // If the clicked node or any of its ancestors is one of the blacklisted
-    // NON_PAGE_CONTEXT_ELTS then this context does not match
-    while (!(popupNode instanceof Ci.nsIDOMDocument)) {
-      if (NON_PAGE_CONTEXT_ELTS.some(function(type) popupNode instanceof type))
-        return false;
-
-      popupNode = popupNode.parentNode;
+  serialize: function() {
+    return {
+      id: internal(this).id,
+      type: "PageContext",
+      args: []
     }
-
-    return true;
   }
 });
 exports.PageContext = PageContext;
@@ -129,19 +115,11 @@ exports.PageContext = PageContext;
 let SelectionContext = Class({
   extends: Context,
 
-  isCurrent: function isCurrent(popupNode) {
-    if (!popupNode.ownerDocument.defaultView.getSelection().isCollapsed)
-      return true;
-
-    try {
-      // The node may be a text box which has selectionStart and selectionEnd
-      // properties. If not this will throw.
-      let { selectionStart, selectionEnd } = popupNode;
-      return !isNaN(selectionStart) && !isNaN(selectionEnd) &&
-             selectionStart !== selectionEnd;
-    }
-    catch (e) {
-      return false;
+  serialize: function() {
+    return {
+      id: internal(this).id,
+      type: "SelectionContext",
+      args: []
     }
   }
 });
@@ -153,6 +131,7 @@ let SelectorContext = Class({
   extends: Context,
 
   initialize: function initialize(selector) {
+    Context.prototype.initialize.call(this);
     let options = validateOptions({ selector: selector }, {
       selector: {
         is: ["string"],
@@ -162,21 +141,12 @@ let SelectorContext = Class({
     internal(this).selector = options.selector;
   },
 
-  adjustPopupNode: function adjustPopupNode(popupNode) {
-    let selector = internal(this).selector;
-
-    while (!(popupNode instanceof Ci.nsIDOMDocument)) {
-      if (popupNode.mozMatchesSelector(selector))
-        return popupNode;
-
-      popupNode = popupNode.parentNode;
+  serialize: function() {
+    return {
+      id: internal(this).id,
+      type: "SelectorContext",
+      args: [internal(this).selector]
     }
-
-    return null;
-  },
-
-  isCurrent: function isCurrent(popupNode) {
-    return !!this.adjustPopupNode(popupNode);
   }
 });
 exports.SelectorContext = SelectorContext;
@@ -186,6 +156,7 @@ let URLContext = Class({
   extends: Context,
 
   initialize: function initialize(patterns) {
+    Context.prototype.initialize.call(this);
     patterns = Array.isArray(patterns) ? patterns : [patterns];
 
     try {
@@ -195,12 +166,18 @@ let URLContext = Class({
       throw new Error("Patterns must be a string, regexp or an array of " +
                       "strings or regexps: " + err);
     }
-
   },
 
-  isCurrent: function isCurrent(popupNode) {
-    let url = popupNode.ownerDocument.URL;
+  isCurrent: function isCurrent(url) {
     return internal(this).patterns.some(function (p) p.test(url));
+  },
+
+  serialize: function() {
+    return {
+      id: internal(this).id,
+      type: "URLContext",
+      args: []
+    }
   }
 });
 exports.URLContext = URLContext;
@@ -210,6 +187,7 @@ let PredicateContext = Class({
   extends: Context,
 
   initialize: function initialize(predicate) {
+    Context.prototype.initialize.call(this);
     let options = validateOptions({ predicate: predicate }, {
       predicate: {
         is: ["function"],
@@ -219,51 +197,19 @@ let PredicateContext = Class({
     internal(this).predicate = options.predicate;
   },
 
-  isCurrent: function isCurrent(popupNode) {
-    return internal(this).predicate(populateCallbackNodeData(popupNode));
+  isCurrent: function isCurrent(state) {
+    return internal(this).predicate(state);
+  },
+
+  serialize: function() {
+    return {
+      id: internal(this).id,
+      type: "PredicateContext",
+      args: []
+    }
   }
 });
 exports.PredicateContext = PredicateContext;
-
-// List all editable types of inputs.  Or is it better to have a list
-// of non-editable inputs?
-let editableInputs = {
-  email: true,
-  number: true,
-  password: true,
-  search: true,
-  tel: true,
-  text: true,
-  textarea: true,
-  url: true
-};
-
-function populateCallbackNodeData(node) {
-  let window = node.ownerDocument.defaultView;
-  let data = {};
-
-  data.documentType = node.ownerDocument.contentType;
-
-  data.documentURL = node.ownerDocument.location.href;
-  data.targetName = node.nodeName.toLowerCase();
-  data.targetID = node.id || null ;
-
-  if ((data.targetName === 'input' && editableInputs[node.type]) ||
-      data.targetName === 'textarea') {
-    data.isEditable = !node.readOnly && !node.disabled;
-  }
-  else {
-    data.isEditable = node.isContentEditable;
-  }
-
-  data.selectionText = selection.text;
-  
-  data.srcURL = node.src || null;
-  data.linkURL = node.href || null;
-  data.value = node.value || null;
-
-  return data;
-}
 
 function removeItemFromArray(array, item) {
   return array.filter(function(i) i !== item);
@@ -272,7 +218,7 @@ function removeItemFromArray(array, item) {
 // Converts anything that isn't false, null or undefined into a string
 function stringOrNull(val) val ? String(val) : val;
 
-// Shared option validation rules for Item and Menu
+// Shared option validation rules for Item, Menu, and Separator
 let baseItemRules = {
   parentMenu: {
     is: ["object", "undefined"],
@@ -294,30 +240,11 @@ let baseItemRules = {
     msg: "The 'context' option must be a Context object or an array of " +
          "Context objects."
   },
-  contentScript: {
-    is: ["string", "array", "undefined"],
-    ok: function (v) {
-      return !Array.isArray(v) ||
-             v.every(function (s) typeof(s) === "string");
-    }
-  },
-  contentScriptFile: {
-    is: ["string", "array", "undefined"],
-    ok: function (v) {
-      if (!v)
-        return true;
-      let arr = Array.isArray(v) ? v : [v];
-      return arr.every(function (s) {
-        return getTypeOf(s) === "string" &&
-               getScheme(s) === 'resource';
-      });
-    },
-    msg: "The 'contentScriptFile' option must be a local file URL or " +
-         "an array of local file URLs."
-  },
   onMessage: {
     is: ["function", "undefined"]
-  }
+  },
+  contentScript: loaderContract.rules.contentScript,
+  contentScriptFile: loaderContract.rules.contentScriptFile
 };
 
 let labelledItemRules =  mix(baseItemRules, {
@@ -326,6 +253,17 @@ let labelledItemRules =  mix(baseItemRules, {
     is: ["string"],
     ok: function (v) !!v,
     msg: "The item must have a non-empty string label."
+  },
+  accesskey: {
+    map: stringOrNull,
+    is: ["string", "undefined", "null"],
+    ok: (v) => {
+      if (!v) {
+        return true;
+      }
+      return typeof v == "string" && v.length === 1;
+    },
+    msg: "The item must have a single character accesskey, or no accesskey."
   },
   image: {
     map: stringOrNull,
@@ -363,133 +301,78 @@ let menuRules = mix(labelledItemRules, {
   }
 });
 
-let ContextWorker = Class({
-  implements: [ Worker ],
-
-  //Returns true if any context listeners are defined in the worker's port.
-  anyContextListeners: function anyContextListeners() {
-    return this.getSandbox().hasListenerFor("context");
-  },
-
-  // Calls the context workers context listeners and returns the first result
-  // that is either a string or a value that evaluates to true. If all of the
-  // listeners returned false then returns false. If there are no listeners
-  // then returns null.
-  getMatchedContext: function getCurrentContexts(popupNode) {
-    let results = this.getSandbox().emitSync("context", popupNode);
-    return results.reduce(function(val, result) val || result, null);
-  },
-
-  // Emits a click event in the worker's port. popupNode is the node that was
-  // context-clicked, and clickedItemData is the data of the item that was
-  // clicked.
-  fireClick: function fireClick(popupNode, clickedItemData) {
-    this.getSandbox().emitSync("click", popupNode, clickedItemData);
-  }
-});
-
 // Returns true if any contexts match. If there are no contexts then a
 // PageContext is tested instead
-function hasMatchingContext(contexts, popupNode) {
-  for (let context in contexts) {
-    if (!context.isCurrent(popupNode))
+function hasMatchingContext(contexts, addonInfo) {
+  for (let context of contexts) {
+    if (!(internal(context).id in addonInfo.contextStates)) {
+      console.error("Missing state for context " + internal(context).id + " this is an error in the SDK modules.");
+      return false;
+    }
+    if (!context.isCurrent(addonInfo.contextStates[internal(context).id]))
       return false;
   }
 
   return true;
 }
 
-// Gets the matched context from any worker for this item. If there is no worker
-// or no matched context then returns false.
-function getCurrentWorkerContext(item, popupNode) {
-  let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
-  if (!worker || !worker.anyContextListeners())
-    return true;
-  return worker.getMatchedContext(popupNode);
-}
-
 // Tests whether an item should be visible or not based on its contexts and
 // content scripts
-function isItemVisible(item, popupNode, defaultVisibility) {
+function isItemVisible(item, addonInfo, usePageWorker) {
   if (!item.context.length) {
-    let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
-    if (!worker || !worker.anyContextListeners())
-      return defaultVisibility;
+    if (!addonInfo.hasWorker)
+      return usePageWorker ? addonInfo.pageContext : true;
   }
 
-  if (!hasMatchingContext(item.context, popupNode))
+  if (!hasMatchingContext(item.context, addonInfo))
     return false;
 
-  let context = getCurrentWorkerContext(item, popupNode);
+  let context = addonInfo.workerContext;
   if (typeof(context) === "string" && context != "")
     item.label = context;
 
   return !!context;
 }
 
-// Gets the item's content script worker for a window, creating one if necessary
-// Once created it will be automatically destroyed when the window unloads.
-// If there is not content scripts for the item then null will be returned.
-function getItemWorkerForWindow(item, window) {
-  if (!item.contentScript && !item.contentScriptFile)
-    return null;
-
-  let id = getInnerId(window);
-  let worker = internal(item).workerMap.get(id);
-
-  if (worker)
-    return worker;
-
-  worker = ContextWorker({
-    window: window,
-    contentScript: item.contentScript,
-    contentScriptFile: item.contentScriptFile,
-    onMessage: function(msg) {
-      emit(item, "message", msg);
-    },
-    onDetach: function() {
-      internal(item).workerMap.delete(id);
-    }
-  });
-
-  internal(item).workerMap.set(id, worker);
-
-  return worker;
-}
-
 // Called when an item is clicked to send out click events to the content
 // scripts
-function itemClicked(item, clickedItem, popupNode) {
-  let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
+function itemActivated(item, clickedNode) {
+  let items = [internal(item).id];
+  let data = item.data;
 
-  if (worker) {
-    let adjustedNode = popupNode;
-    for (let context in item.context)
-        adjustedNode = context.adjustPopupNode(adjustedNode);
-    worker.fireClick(adjustedNode, clickedItem.data);
+  while (item.parentMenu) {
+    item = item.parentMenu;
+    items.push(internal(item).id);
   }
 
-  if (item.parentMenu)
-    itemClicked(item.parentMenu, clickedItem, popupNode);
+  let process = processes.getById(lastContextProcessId);
+  if (process)
+    process.port.emit('sdk/contextmenu/activateitems', items, data);
+}
+
+function serializeItem(item) {
+  return {
+    id: internal(item).id,
+    contexts: [c.serialize() for (c of item.context)],
+    contentScript: item.contentScript,
+    contentScriptFile: item.contentScriptFile,
+  };
 }
 
 // All things that appear in the context menu extend this
 let BaseItem = Class({
   initialize: function initialize() {
-    addCollectionProperty(this, "context");
+    internal(this).id = uuid();
 
-    // Used to cache content script workers and the windows they have been
-    // created for
-    internal(this).workerMap = new Map();
-
+    internal(this).contexts = [];
     if ("context" in internal(this).options && internal(this).options.context) {
       let contexts = internal(this).options.context;
       if (Array.isArray(contexts)) {
         for (let context of contexts)
-          this.context.add(context);
+          internal(this).contexts.push(context);
       }
       else {
-        this.context.add(contexts);
+        internal(this).contexts.push(contexts);
       }
     }
 
@@ -504,21 +387,70 @@ let BaseItem = Class({
       value: internal(this).options.contentScript
     });
 
+    // Resolve URIs here as tests may have overriden self
+    let files = internal(this).options.contentScriptFile;
+    if (files) {
+      if (!Array.isArray(files))
+        files = [files];
+      files = files.map(self.data.url);
+    }
+    internal(this).options.contentScriptFile = files;
     Object.defineProperty(this, "contentScriptFile", {
       enumerable: true,
       value: internal(this).options.contentScriptFile
     });
+
+    // Notify all frames of this new item
+    sendItems([serializeItem(this)]);
   },
 
   destroy: function destroy() {
+    if (internal(this).destroyed)
+      return;
+
+    // Tell all existing frames that this item has been destroyed
+    processes.port.emit("sdk/contextmenu/destroyitems", [internal(this).id]);
+
     if (this.parentMenu)
       this.parentMenu.removeItem(this);
+
+    internal(this).destroyed = true;
+  },
+
+  get context() {
+    let contexts = internal(this).contexts.slice(0);
+    contexts.add = (context) => {
+      internal(this).contexts.push(context);
+      // Notify all frames that this item has changed
+      sendItems([serializeItem(this)]);
+    };
+    contexts.remove = (context) => {
+      internal(this).contexts = internal(this).contexts.filter(c => {
+        return c != context;
+      });
+      // Notify all frames that this item has changed
+      sendItems([serializeItem(this)]);
+    };
+    return contexts;
+  },
+
+  set context(val) {
+    internal(this).contexts = val.slice(0);
+    // Notify all frames that this item has changed
+    sendItems([serializeItem(this)]);
   },
 
   get parentMenu() {
     return internal(this).parentMenu;
   },
 });
+
+function workerMessageReceived(process, id, args) {
+  if (internal(this).id != id)
+    return;
+
+  emit(this, ...JSON.parse(args));
+}
 
 // All things that have a label on the context menu extend this
 let LabelledItem = Class({
@@ -528,11 +460,16 @@ let LabelledItem = Class({
   initialize: function initialize(options) {
     BaseItem.prototype.initialize.call(this);
     EventTarget.prototype.initialize.call(this, options);
+
+    internal(this).messageListener = workerMessageReceived.bind(this);
+    processes.port.on('sdk/worker/event', internal(this).messageListener);
   },
 
   destroy: function destroy() {
-    for (let [,worker] of internal(this).workerMap)
-      worker.destroy();
+    if (internal(this).destroyed)
+      return;
+
+    processes.port.off('sdk/worker/event', internal(this).messageListener);
 
     BaseItem.prototype.destroy.call(this);
   },
@@ -543,6 +480,16 @@ let LabelledItem = Class({
 
   set label(val) {
     internal(this).options.label = val;
+
+    MenuManager.updateItem(this);
+  },
+
+  get accesskey() {
+    return internal(this).options.accesskey;
+  },
+
+  set accesskey(val) {
+    internal(this).options.accesskey = val;
 
     MenuManager.updateItem(this);
   },
@@ -706,6 +653,31 @@ exports.Separator = Separator;
 let contentContextMenu = ItemContainer();
 exports.contentContextMenu = contentContextMenu;
 
+function getContainerItems(container) {
+  let items = [];
+  for (let item of internal(container).children) {
+    items.push(serializeItem(item));
+    if (item instanceof Menu)
+      items = items.concat(getContainerItems(item));
+  }
+  return items;
+}
+
+// Notify all frames of these new or changed items
+function sendItems(items) {
+  processes.port.emit("sdk/contextmenu/createitems", items);
+}
+
+// Called when a new process is created and needs to get the current list of items
+function remoteItemRequest(process) {
+  let items = getContainerItems(contentContextMenu);
+  if (items.length == 0)
+    return;
+
+  process.port.emit("sdk/contextmenu/createitems", items);
+}
+processes.forEvery(remoteItemRequest);
+
 when(function() {
   contentContextMenu.destroy();
 });
@@ -794,16 +766,16 @@ let MenuWrapper = Class({
 
   // Recurses through the menu setting the visibility of items. Returns true
   // if any of the items in this menu were visible
-  setVisibility: function setVisibility(menu, popupNode, defaultVisibility) {
+  setVisibility: function setVisibility(menu, addonInfo, usePageWorker) {
     let anyVisible = false;
 
     for (let item of internal(menu).children) {
-      let visible = isItemVisible(item, popupNode, defaultVisibility);
+      let visible = isItemVisible(item, addonInfo[internal(item).id], usePageWorker);
 
       // Recurse through Menus, if none of the sub-items were visible then the
       // menu is hidden too.
       if (visible && (item instanceof Menu))
-        visible = this.setVisibility(item, popupNode, true);
+        visible = this.setVisibility(item, addonInfo, false);
 
       let xulNode = this.getXULNodeForItem(item);
       xulNode.hidden = !visible;
@@ -888,6 +860,8 @@ let MenuWrapper = Class({
     xulNode.setAttribute("class", ITEM_CLASS);
     if (item instanceof LabelledItem) {
       xulNode.setAttribute("label", item.label);
+      if (item.accesskey)
+        xulNode.setAttribute("accesskey", item.accesskey);
       if (item.image) {
         xulNode.setAttribute("image", item.image);
         if (item instanceof Menu)
@@ -904,7 +878,7 @@ let MenuWrapper = Class({
         if (event.target !== xulNode)
           return;
 
-        itemClicked(item, item, self.contextMenu.triggerNode);
+        itemActivated(item, xulNode);
       }, false);
     }
 
@@ -929,6 +903,7 @@ let MenuWrapper = Class({
 
     // TODO figure out why this requires setAttribute
     xulNode.setAttribute("label", item.label);
+    xulNode.setAttribute("accesskey", item.accesskey || "");
 
     if (item.image) {
       xulNode.setAttribute("image", item.image);
@@ -1018,8 +993,15 @@ let MenuWrapper = Class({
         this.populate(this.items);
       }
 
-      let popupNode = event.target.triggerNode;
-      this.setVisibility(this.items, popupNode, PageContext().isCurrent(popupNode));
+      let mainWindow = event.target.ownerDocument.defaultView;
+      this.contextMenuContentData = mainWindow.gContextMenuContentData
+      if (!(self.id in this.contextMenuContentData.addonInfo)) {
+        console.warn("No context menu state data was provided.");
+        return;
+      }
+      let addonInfo = this.contextMenuContentData.addonInfo[self.id];
+      lastContextProcessId = addonInfo.processID;
+      this.setVisibility(this.items, addonInfo.items, true);
     }
     catch (e) {
       console.exception(e);
@@ -1064,6 +1046,7 @@ let MenuWrapper = Class({
             let overflowMenu = this.window.document.createElement("menu");
             overflowMenu.setAttribute("class", OVERFLOW_MENU_CLASS);
             overflowMenu.setAttribute("label", OVERFLOW_MENU_LABEL);
+            overflowMenu.setAttribute("accesskey", OVERFLOW_MENU_ACCESSKEY);
             this.contextMenu.insertBefore(overflowMenu, this.separator.nextSibling);
 
             overflowPopup = this.window.document.createElement("menupopup");

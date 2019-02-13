@@ -10,24 +10,29 @@ EXTRA_COMPONENTS += [
     'ActivitiesGlue.js',
     'AlertsService.js',
     'B2GAboutRedirector.js',
+    'B2GAppMigrator.js',
+    'B2GPresentationDevicePrompt.js',
+    'BootstrapCommandLine.js',
     'ContentPermissionPrompt.js',
     'FilePicker.js',
+    'FxAccountsUIGlue.js',
     'HelperAppDialog.js',
     'InterAppCommUIGlue.js',
     'MailtoProtocolHandler.js',
     'MobileIdentityUIGlue.js',
     'OMAContentHandler.js',
     'PaymentGlue.js',
+    'PaymentProviderStrategy.js',
     'ProcessGlobal.js',
     'SmsProtocolHandler.js',
     'SystemMessageGlue.js',
     'TelProtocolHandler.js',
     'WebappsUpdateTimer.js',
-    'YoutubeProtocolHandler.js',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
     EXTRA_COMPONENTS += [
+      'CommandLine.js',
       'OopCommandLine.js',
       'SimulatorScreen.js'
     ]
@@ -44,9 +49,19 @@ if CONFIG['MOZ_UPDATER']:
     ]
 
 EXTRA_JS_MODULES += [
+    'AboutServiceWorkers.jsm',
     'AlertsHelper.jsm',
+    'Bootstraper.jsm',
     'ContentRequestHelper.jsm',
+    'DebuggerActors.js',
     'ErrorPage.jsm',
+    'Frames.jsm',
+    'FxAccountsMgmtService.jsm',
+    'LogCapture.jsm',
+    'LogParser.jsm',
+    'LogShake.jsm',
+    'OrientationChangeHandler.jsm',
+    'Screenshot.jsm',
     'SignInToWebsite.jsm',
     'SystemAppProxy.jsm',
     'TelURIParser.jsm',
@@ -56,12 +71,4 @@ EXTRA_JS_MODULES += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
     EXTRA_JS_MODULES += [
       'GlobalSimulatorScreen.jsm'
-    ]
-
-if CONFIG['MOZ_SERVICES_FXACCOUNTS']:
-    EXTRA_COMPONENTS += [
-        'FxAccountsUIGlue.js'
-    ]
-    EXTRA_JS_MODULES += [
-        'FxAccountsMgmtService.jsm'
     ]

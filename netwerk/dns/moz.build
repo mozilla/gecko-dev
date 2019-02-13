@@ -4,6 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+DIRS += [
+    'mdns',
+]
+
 XPIDL_SOURCES += [
     'nsIDNSListener.idl',
     'nsIDNSRecord.idl',
@@ -26,7 +30,7 @@ EXPORTS.mozilla.net += [
 
 SOURCES += [
     'nsEffectiveTLDService.cpp', # Excluded from UNIFIED_SOURCES due to special build flags.
-    'nsHostResolver.cpp',        # Excluded from UNIFIED_SOURCES due to NSPR forced logging.
+    'nsHostResolver.cpp', # Redefines LOG
 ]
 
 UNIFIED_SOURCES += [
@@ -35,6 +39,7 @@ UNIFIED_SOURCES += [
     'DNSListenerProxy.cpp',
     'DNSRequestChild.cpp',
     'DNSRequestParent.cpp',
+    'GetAddrInfo.cpp',
     'nameprep.c',
     'nsDNSService2.cpp',
     'nsIDNService.cpp',
@@ -49,17 +54,21 @@ IPDL_SOURCES = [
 
 FAIL_ON_WARNINGS = True
 
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'necko'
+FINAL_LIBRARY = 'xul'
 
 GENERATED_FILES = [
     'etld_data.inc',
 ]
+etld_data = GENERATED_FILES['etld_data.inc']
+etld_data.script = 'prepare_tlds.py'
+etld_data.inputs = ['effective_tld_names.dat']
 
 # need to include etld_data.inc
 LOCAL_INCLUDES += [
-    '../base/src',
+    '/netwerk/base',
 ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['ANDROID_VERSION'] > '19':
+    CXXFLAGS += ['-I%s/bionic/libc/dns/include' % CONFIG['ANDROID_SOURCE']]

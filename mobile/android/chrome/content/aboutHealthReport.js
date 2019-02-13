@@ -1,4 +1,3 @@
-#filter substitution
 // -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -88,7 +87,7 @@ let healthReportWrapper = {
 
   refreshPayload: function () {
     console.log("AboutHealthReport: page requested fresh payload.");
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: EVENT_HEALTH_REQUEST,
     });
   },
@@ -120,7 +119,7 @@ let healthReportWrapper = {
 
   showSettings: function () {
     console.log("AboutHealthReport: showing settings.");
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "Settings:Show",
       resource: "preferences_vendor",
     });
@@ -128,7 +127,7 @@ let healthReportWrapper = {
 
   launchUpdater: function () {
     console.log("AboutHealthReport: launching updater.");
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "Updater:Launch",
     });
   },

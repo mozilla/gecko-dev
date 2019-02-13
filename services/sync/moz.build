@@ -4,8 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Mozilla Services', 'Firefox Sync: Backend')
+
 DIRS += ['locales']
-TEST_DIRS += ['tests']
+
+XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
 
 EXTRA_COMPONENTS += [
     'Weave.js',
@@ -14,3 +18,54 @@ EXTRA_COMPONENTS += [
 EXTRA_PP_COMPONENTS += [
     'SyncComponents.manifest',
 ]
+
+EXTRA_JS_MODULES['services-sync'] += [
+    'modules/addonsreconciler.js',
+    'modules/addonutils.js',
+    'modules/browserid_identity.js',
+    'modules/engines.js',
+    'modules/FxaMigrator.jsm',
+    'modules/healthreport.jsm',
+    'modules/identity.js',
+    'modules/jpakeclient.js',
+    'modules/keys.js',
+    'modules/main.js',
+    'modules/notifications.js',
+    'modules/policies.js',
+    'modules/record.js',
+    'modules/resource.js',
+    'modules/rest.js',
+    'modules/service.js',
+    'modules/status.js',
+    'modules/userapi.js',
+    'modules/util.js',
+]
+
+EXTRA_JS_MODULES['services-sync'].engines += [
+    'modules/engines/addons.js',
+    'modules/engines/bookmarks.js',
+    'modules/engines/clients.js',
+    'modules/engines/forms.js',
+    'modules/engines/history.js',
+    'modules/engines/passwords.js',
+    'modules/engines/prefs.js',
+    'modules/engines/tabs.js',
+]
+
+EXTRA_JS_MODULES['services-sync'].stages += [
+    'modules/stages/cluster.js',
+    'modules/stages/declined.js',
+    'modules/stages/enginesync.js',
+]
+
+TESTING_JS_MODULES.services.sync += [
+    'modules-testing/fakeservices.js',
+    'modules-testing/fxa_utils.js',
+    'modules-testing/rotaryengine.js',
+    'modules-testing/utils.js',
+]
+
+JS_PREFERENCE_FILES += [
+    'services-sync.js',
+]
+

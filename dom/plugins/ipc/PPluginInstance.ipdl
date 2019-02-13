@@ -17,7 +17,6 @@ using NPError from "npapi.h";
 using struct mozilla::plugins::NPRemoteWindow from "mozilla/plugins/PluginMessageUtils.h";
 using struct mozilla::plugins::NPRemoteEvent from "mozilla/plugins/PluginMessageUtils.h";
 using NPRect from "npapi.h";
-using NPImageFormat from "npapi.h";
 using NPNURLVariable from "npapi.h";
 using NPCoordinateSpace from "npapi.h";
 using NPNVariable from "npapi.h";
@@ -26,10 +25,8 @@ using gfxSurfaceType from "gfxTypes.h";
 using gfxIntSize from "nsSize.h";
 using struct mozilla::null_t from "ipc/IPCMessageUtils.h";
 using mozilla::plugins::WindowsSharedMemoryHandle from "mozilla/plugins/PluginMessageUtils.h";
-using mozilla::plugins::DXGISharedSurfaceHandle from "mozilla/plugins/PluginMessageUtils.h";
-using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
-using struct SurfaceDescriptorX11 from "gfxipc/ShadowLayerUtils.h";
-using struct nsIntRect from "nsRect.h";
+using mozilla::layers::SurfaceDescriptorX11 from "gfxipc/ShadowLayerUtils.h";
+using nsIntRect from "nsRect.h";
 
 namespace mozilla {
 namespace plugins {
@@ -57,21 +54,6 @@ union OptionalShmem {
   null_t;
 };
 
-union AsyncSurfaceDescriptor {
-  Shmem;
-  DXGISharedSurfaceHandle;
-};
-
-struct NPRemoteAsyncSurface
-{
-  uint32_t version;
-  gfxIntSize size;
-  NPImageFormat format;
-  uint32_t      stride;
-  AsyncSurfaceDescriptor data;
-  uintptr_t hostPtr;
-};
-
 intr protocol PPluginInstance
 {
   manager PPluginModule;
@@ -85,6 +67,14 @@ intr protocol PPluginInstance
 
 child:
   intr __delete__();
+
+  // This is only used on Windows and, for windowed plugins, must be called
+  // before the first call to NPP_SetWindow.
+  intr CreateChildPluginWindow()
+    returns (NativeWindowHandle childPluginWindow);
+
+  // This is only used on Windows and, for windowless plugins.
+  async CreateChildPopupSurrogate(NativeWindowHandle netscapeWindow);
 
   intr NPP_SetWindow(NPRemoteWindow window);
 
@@ -162,7 +152,7 @@ parent:
   intr NPN_SetValue_NPPVpluginUsesDOMForCursor(bool useDOMForCursor)
     returns (NPError result);
   intr NPN_SetValue_NPPVpluginDrawingModel(int drawingModel)
-    returns (OptionalShmem remoteImageData, CrossProcessMutexHandle mutex, NPError result);
+    returns (NPError result);
   intr NPN_SetValue_NPPVpluginEventModel(int eventModel)
     returns (NPError result);
 
@@ -220,31 +210,37 @@ parent:
 
   async RedrawPlugin();
 
-  intr NPN_InitAsyncSurface(gfxIntSize size, NPImageFormat format)
-    returns (NPRemoteAsyncSurface surfData, bool result);
-
   // Send notification that a plugin tried to negotiate Carbon NPAPI so that
   // users can be notified that restarting the browser in i386 mode may allow
   // them to use the plugin.
   sync NegotiatedCarbon();
 
-  // Notifies us we can release a Async Surface DXGI texture.
-  async ReleaseDXGISharedSurface(DXGISharedSurfaceHandle handle);
+  // Notifies the parent of its NPP_New result code.
+  async AsyncNPP_NewResult(NPError aResult);
+
+  // Sends a native window to be adopted by the native window that would be
+  // returned by NPN_GetValue_NPNVnetscapeWindow. Only used on Windows.
+  async SetNetscapeWindowAsParent(NativeWindowHandle childWindow);
 
 both:
   async PPluginScriptableObject();
 
 child:
   /* NPP_NewStream */
-  intr PBrowserStream(nsCString url,
-                     uint32_t length,
-                     uint32_t lastmodified,
-                     nullable PStreamNotify notifyData,
-                     nsCString headers,
-                     nsCString mimeType,
-                     bool seekable)
+  async PBrowserStream(nsCString url,
+                       uint32_t length,
+                       uint32_t lastmodified,
+                       nullable PStreamNotify notifyData,
+                       nsCString headers);
+
+  // Implements the legacy (synchronous) version of NPP_NewStream for when
+  // async plugin init is preffed off.
+  intr NPP_NewStream(PBrowserStream actor, nsCString mimeType, bool seekable)
     returns (NPError rv,
              uint16_t stype);
+
+  // Implements the async plugin init version of NPP_NewStream.
+  async AsyncNPP_NewStream(PBrowserStream actor, nsCString mimeType, bool seekable);
 
 parent:
   /* NPN_NewStream */

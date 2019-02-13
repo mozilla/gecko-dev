@@ -1,5 +1,5 @@
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 subscriptLoader.loadSubScript("resource://gre/modules/ril_consts.js", this);
 
@@ -7,371 +7,47 @@ function run_test() {
   run_next_test();
 }
 
-function parseMMI(mmi) {
-  let worker = newWorker({
-    postRILMessage: function(data) {
-      // Do nothing
-    },
-    postMessage: function(message) {
-      // Do nothing
-    }
-  });
-  let context = worker.ContextPool._contexts[0];
-  return context.RIL._parseMMI(mmi);
-}
-
-function getWorker() {
-  let _postedMessage;
-  let _worker = newWorker({
-    postRILMessage: function(data) {
-    },
-    postMessage: function(message) {
-      _postedMessage = message;
-    },
-  });
-
-  return {
-    get postedMessage() {
-      return _postedMessage;
-    },
-    get worker() {
-      return _worker;
-    }
+function createMMIOptions(procedure, serviceCode, sia, sib, sic) {
+  let mmi = {
+    fullMMI: Array.slice(arguments).join("*") + "#",
+    procedure: procedure,
+    serviceCode: serviceCode,
+    sia: sia,
+    sib: sib,
+    sic: sic
   };
+
+  return mmi;
 }
 
 function testSendMMI(mmi, error) {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
   do_print("worker.postMessage " + worker.postMessage);
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
   context.RIL.sendMMI({rilMessageType: "sendMMI", mmi: mmi});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(postedMessage.rilMessageType, "sendMMI");
-  do_check_eq(postedMessage.errorMsg, error);
+  equal(postedMessage.rilMessageType, "sendMMI");
+  equal(postedMessage.errorMsg, error);
 }
-
-add_test(function test_parseMMI_empty() {
-  let mmi = parseMMI("");
-
-  do_check_null(mmi);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_undefined() {
-  let mmi = parseMMI();
-
-  do_check_null(mmi);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_one_digit_short_code() {
-  let mmi = parseMMI("1");
-
-  do_check_eq(mmi.fullMMI, "1");
-  do_check_eq(mmi.procedure, undefined);
-  do_check_eq(mmi.serviceCode, undefined);
-  do_check_eq(mmi.sia, undefined);
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, undefined);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_invalid_short_code() {
-  let mmi = parseMMI("11");
-
-  do_check_null(mmi);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_short_code() {
-  let mmi = parseMMI("21");
-
-  do_check_eq(mmi.fullMMI, "21");
-  do_check_eq(mmi.procedure, undefined);
-  do_check_eq(mmi.serviceCode, undefined);
-  do_check_eq(mmi.sia, undefined);
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, undefined);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_dial_string() {
-  let mmi = parseMMI("12345");
-
-  do_check_null(mmi);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_USSD_without_asterisk_prefix() {
-  let mmi = parseMMI("123#");
-
-  do_check_eq(mmi.fullMMI, "123#");
-  do_check_eq(mmi.procedure, undefined);
-  do_check_eq(mmi.serviceCode, undefined);
-  do_check_eq(mmi.sia, undefined);
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, undefined);
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_USSD() {
-  let mmi = parseMMI("*123#");
-
-  do_check_eq(mmi.fullMMI, "*123#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, undefined);
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sia() {
-  let mmi = parseMMI("*123*1#");
-
-  do_check_eq(mmi.fullMMI, "*123*1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "1");
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sib() {
-  let mmi = parseMMI("*123**1#");
-
-  do_check_eq(mmi.fullMMI, "*123**1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "");
-  do_check_eq(mmi.sib, "1");
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sic() {
-  let mmi = parseMMI("*123***1#");
-
-  do_check_eq(mmi.fullMMI, "*123***1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "");
-  do_check_eq(mmi.sib, "");
-  do_check_eq(mmi.sic, "1");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sia_sib() {
-  let mmi = parseMMI("*123*1*1#");
-
-  do_check_eq(mmi.fullMMI, "*123*1*1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "1");
-  do_check_eq(mmi.sib, "1");
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sia_sic() {
-  let mmi = parseMMI("*123*1**1#");
-
-  do_check_eq(mmi.fullMMI, "*123*1**1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "1");
-  do_check_eq(mmi.sib, "");
-  do_check_eq(mmi.sic, "1");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_sib_sic() {
-  let mmi = parseMMI("*123**1*1#");
-
-  do_check_eq(mmi.fullMMI, "*123**1*1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "");
-  do_check_eq(mmi.sib, "1");
-  do_check_eq(mmi.sic, "1");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_pwd() {
-  let mmi = parseMMI("*123****1#");
-
-  do_check_eq(mmi.fullMMI, "*123****1#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, "");
-  do_check_eq(mmi.sib, "");
-  do_check_eq(mmi.sic, "");
-  do_check_eq(mmi.pwd, "1");
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_dial_number() {
-  let mmi = parseMMI("*123#345");
-
-  do_check_eq(mmi.fullMMI, "*123#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "123");
-  do_check_eq(mmi.sia, undefined);
-  do_check_eq(mmi.sib, undefined);
-  do_check_eq(mmi.sic, undefined);
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "345");
-
-  run_next_test();
-});
-
-
-/**
- * MMI procedures tests
- */
-
-add_test(function test_parseMMI_activation() {
-  let mmi = parseMMI("*00*12*34*56#");
-
-  do_check_eq(mmi.fullMMI, "*00*12*34*56#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_eq(mmi.serviceCode, "00");
-  do_check_eq(mmi.sia, "12");
-  do_check_eq(mmi.sib, "34");
-  do_check_eq(mmi.sic, "56");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_deactivation() {
-  let mmi = parseMMI("#00*12*34*56#");
-
-  do_check_eq(mmi.fullMMI, "#00*12*34*56#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_DEACTIVATION);
-  do_check_eq(mmi.serviceCode, "00");
-  do_check_eq(mmi.sia, "12");
-  do_check_eq(mmi.sib, "34");
-  do_check_eq(mmi.sic, "56");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_interrogation() {
-  let mmi = parseMMI("*#00*12*34*56#");
-
-  do_check_eq(mmi.fullMMI, "*#00*12*34*56#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_INTERROGATION);
-  do_check_eq(mmi.serviceCode, "00");
-  do_check_eq(mmi.sia, "12");
-  do_check_eq(mmi.sib, "34");
-  do_check_eq(mmi.sic, "56");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_registration() {
-  let mmi = parseMMI("**00*12*34*56#");
-
-  do_check_eq(mmi.fullMMI, "**00*12*34*56#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_REGISTRATION);
-  do_check_eq(mmi.serviceCode, "00");
-  do_check_eq(mmi.sia, "12");
-  do_check_eq(mmi.sib, "34");
-  do_check_eq(mmi.sic, "56");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
-
-add_test(function test_parseMMI_erasure() {
-  let mmi = parseMMI("##00*12*34*56#");
-
-  do_check_eq(mmi.fullMMI, "##00*12*34*56#");
-  do_check_eq(mmi.procedure, MMI_PROCEDURE_ERASURE);
-  do_check_eq(mmi.serviceCode, "00");
-  do_check_eq(mmi.sia, "12");
-  do_check_eq(mmi.sib, "34");
-  do_check_eq(mmi.sic, "56");
-  do_check_eq(mmi.pwd, undefined);
-  do_check_eq(mmi.dialNumber, "");
-
-  run_next_test();
-});
 
 /**
  * sendMMI tests.
  */
 
-add_test(function test_sendMMI_empty() {
-  testSendMMI("", MMI_ERROR_KS_ERROR);
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_undefined() {
-  testSendMMI({}, MMI_ERROR_KS_ERROR);
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_invalid() {
-  testSendMMI("11", MMI_ERROR_KS_ERROR);
+add_test(function test_sendMMI_null() {
+  testSendMMI(null, MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_short_code() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -379,383 +55,235 @@ add_test(function test_sendMMI_short_code() {
 
   context.RIL.sendUSSD = function fakeSendUSSD(options){
     ussdOptions = options;
-    context.RIL[REQUEST_SEND_USSD](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
-
+    context.RIL[REQUEST_SEND_USSD](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "**"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: {fullMMI: "**"}});
 
   let postedMessage = workerhelper.postedMessage;
-  do_check_eq(ussdOptions.ussd, "**");
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
-  do_check_true(context.RIL._ussdSession);
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_dial_string() {
-  testSendMMI("123", MMI_ERROR_KS_ERROR);
-
-  run_next_test();
-});
-
-function setCallForwardSuccess(mmi) {
-  let workerhelper = getWorker();
-  let worker = workerhelper.worker;
-  let context = worker.ContextPool._contexts[0];
-
-  context.RIL.setCallForward = function fakeSetCallForward(options) {
-    context.RIL[REQUEST_SET_CALL_FORWARD](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
-  };
-
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: mmi});
-
-  let postedMessage = workerhelper.postedMessage;
-
-  do_check_eq(postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
-}
-
-add_test(function test_sendMMI_call_forwarding_activation() {
-  setCallForwardSuccess("*21*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_deactivation() {
-  setCallForwardSuccess("#21*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_interrogation() {
-  let workerhelper = getWorker();
-  let worker = workerhelper.worker;
-  let context = worker.ContextPool._contexts[0];
-
-  context.Buf.readInt32 = function fakeReadUint32() {
-    return context.Buf.int32Array.pop();
-  };
-
-  context.Buf.readString = function fakeReadString() {
-    return "+34666222333";
-  };
-
-  context.RIL.queryCallForwardStatus = function fakeQueryCallForward(options) {
-    context.Buf.int32Array = [
-      0,   // rules.timeSeconds
-      145, // rules.toa
-      49,  // rules.serviceClass
-      CALL_FORWARD_REASON_UNCONDITIONAL, // rules.reason
-      1,   // rules.active
-      1    // rulesLength
-    ];
-    context.RIL[REQUEST_QUERY_CALL_FORWARD_STATUS](1, {
-      rilRequestError: ERROR_SUCCESS
-    });
-  };
-
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*#21#"});
-
-  let postedMessage = workerhelper.postedMessage;
-
-  do_check_eq(postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
-  do_check_true(Array.isArray(postedMessage.rules));
-  do_check_eq(postedMessage.rules.length, 1);
-  do_check_true(postedMessage.rules[0].active);
-  do_check_eq(postedMessage.rules[0].reason, CALL_FORWARD_REASON_UNCONDITIONAL);
-  do_check_eq(postedMessage.rules[0].number, "+34666222333");
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_interrogation_no_rules() {
-  let workerhelper = getWorker();
-  let worker = workerhelper.worker;
-  let context = worker.ContextPool._contexts[0];
-
-  context.Buf.readInt32 = function fakeReadUint32() {
-    return 0;
-  };
-
-  context.RIL.queryCallForwardStatus = function fakeQueryCallForward(options) {
-    context.RIL[REQUEST_QUERY_CALL_FORWARD_STATUS](1, {
-      rilRequestError: ERROR_SUCCESS
-    });
-  };
-
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*#21#"});
-
-  let postedMessage = workerhelper.postedMessage;
-
-  do_check_eq(postedMessage.errorMsg, GECKO_ERROR_GENERIC_FAILURE);
-  do_check_false(postedMessage.success);
-
-  run_next_test();
-});
-
-
-add_test(function test_sendMMI_call_forwarding_registration() {
-  setCallForwardSuccess("**21*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_erasure() {
-  setCallForwardSuccess("##21*12345*99#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_CFB() {
-  setCallForwardSuccess("*67*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_CFNRy() {
-  setCallForwardSuccess("*61*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_CFNRc() {
-  setCallForwardSuccess("*62*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_CFAll() {
-  setCallForwardSuccess("*004*12345*99*10#");
-
-  run_next_test();
-});
-
-add_test(function test_sendMMI_call_forwarding_CFAllConditional() {
-  setCallForwardSuccess("*002*12345*99*10#");
+  equal(ussdOptions.ussd, "**");
+  equal(postedMessage.errorMsg, undefined);
+  ok(context.RIL._ussdSession);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
   context.RIL.changeICCPIN = function fakeChangeICCPIN(options) {
-    context.RIL[REQUEST_ENTER_SIM_PIN](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_ENTER_SIM_PIN](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "**04*1234*4567*4567#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("**", "04", "1234", "4567",
+                                             "4567")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN_no_new_PIN() {
-  testSendMMI("**04*1234**4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "04", "1234", "", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN_no_old_PIN() {
-  testSendMMI("**04**1234*4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "04", "", "1234", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN_wrong_procedure() {
-  testSendMMI("*04*1234*4567*4567#", MMI_ERROR_KS_INVALID_ACTION);
+  testSendMMI(createMMIOptions("*", "04", "1234", "4567", "4567"),
+              MMI_ERROR_KS_INVALID_ACTION);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN_new_PIN_mismatch() {
-  testSendMMI("**04*4567*1234*4567#", MMI_ERROR_KS_MISMATCH_PIN);
+  testSendMMI(createMMIOptions("**", "04", "4567", "1234", "4567"),
+              MMI_ERROR_KS_MISMATCH_PIN);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN2() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
-  context.RIL.changeICCPIN2 = function fakeChangeICCPIN2(options){
-    context.RIL[REQUEST_ENTER_SIM_PIN2](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+  context.RIL.changeICCPIN2 = function fakeChangeICCPIN2(options) {
+    context.RIL[REQUEST_ENTER_SIM_PIN2](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "**042*1234*4567*4567#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("**", "042", "1234", "4567",
+                                             "4567")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN2_no_new_PIN2() {
-  testSendMMI("**042*1234**4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "042", "1234", "", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN2_no_old_PIN2() {
-  testSendMMI("**042**1234*4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "042", "", "1234", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN2_wrong_procedure() {
-  testSendMMI("*042*1234*4567*4567#", MMI_ERROR_KS_INVALID_ACTION);
+  testSendMMI(createMMIOptions("*", "042", "1234", "4567", "4567"),
+              MMI_ERROR_KS_INVALID_ACTION);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_change_PIN2_new_PIN2_mismatch() {
-  testSendMMI("**042*4567*1234*4567#", MMI_ERROR_KS_MISMATCH_PIN);
+  testSendMMI(createMMIOptions("**", "042", "4567", "1234", "4567"),
+              MMI_ERROR_KS_MISMATCH_PIN);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
-  context.RIL.enterICCPUK = function fakeEnterICCPUK(options){
-    context.RIL[REQUEST_ENTER_SIM_PUK](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+  context.RIL.enterICCPUK = function fakeEnterICCPUK(options) {
+    context.RIL[REQUEST_ENTER_SIM_PUK](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "**05*1234*4567*4567#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("**", "05", "1234", "4567",
+                                             "4567")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN_no_new_PIN() {
-  testSendMMI("**05*1234**4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "05", "1234", "", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN_no_PUK() {
-  testSendMMI("**05**1234*4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "05", "", "1234", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN_wrong_procedure() {
-  testSendMMI("*05*1234*4567*4567#", MMI_ERROR_KS_INVALID_ACTION);
+  testSendMMI(createMMIOptions("*", "05", "1234", "4567", "4567"),
+              MMI_ERROR_KS_INVALID_ACTION);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN_new_PIN_mismatch() {
-  testSendMMI("**05*4567*1234*4567#", MMI_ERROR_KS_MISMATCH_PIN);
+  testSendMMI(createMMIOptions("**", "05", "4567", "1234", "4567"),
+              MMI_ERROR_KS_MISMATCH_PIN);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN2() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
-  context.RIL.enterICCPUK2 = function fakeEnterICCPUK2(options){
-    context.RIL[REQUEST_ENTER_SIM_PUK2](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+  context.RIL.enterICCPUK2 = function fakeEnterICCPUK2(options) {
+    context.RIL[REQUEST_ENTER_SIM_PUK2](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "**052*1234*4567*4567#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("**", "052", "1234", "4567",
+                                             "4567")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN2_no_new_PIN2() {
-  testSendMMI("**052*1234**4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "052", "1234", "", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN2_no_PUK2() {
-  testSendMMI("**052**1234*4567#", MMI_ERROR_KS_ERROR);
+  testSendMMI(createMMIOptions("**", "052", "", "1234", "4567"),
+              MMI_ERROR_KS_ERROR);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN2_wrong_procedure() {
-  testSendMMI("*052*1234*4567*4567#", MMI_ERROR_KS_INVALID_ACTION);
+  testSendMMI(createMMIOptions("*", "052", "1234", "4567", "4567"),
+              MMI_ERROR_KS_INVALID_ACTION);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_unblock_PIN2_new_PIN_mismatch() {
-  testSendMMI("**052*4567*1234*4567#", MMI_ERROR_KS_MISMATCH_PIN);
+  testSendMMI(createMMIOptions("**", "052", "4567", "1234", "4567"),
+              MMI_ERROR_KS_MISMATCH_PIN);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_get_IMEI() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
 
-  context.RIL.getIMEI = function getIMEI(options){
+  context.RIL.getIMEI = function getIMEI(options) {
     mmiOptions = options;
-    context.RIL[REQUEST_SEND_USSD](0, {
-      rilRequestError: ERROR_SUCCESS,
-    });
+    context.RIL[REQUEST_SEND_USSD](0, {});
   };
 
-  context.RIL.sendMMI({mmi: "*#06#"});
+  context.RIL.sendMMI({mmi: createMMIOptions("*#", "06")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_neq(mmiOptions.mmi, null);
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  notEqual(mmiOptions.mmi, null);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_get_IMEI_error() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
@@ -763,23 +291,22 @@ add_test(function test_sendMMI_get_IMEI_error() {
   context.RIL.getIMEI = function getIMEI(options){
     mmiOptions = options;
     context.RIL[REQUEST_SEND_USSD](0, {
-      rilRequestError: ERROR_RADIO_NOT_AVAILABLE,
+      errorMsg: GECKO_ERROR_RADIO_NOT_AVAILABLE
     });
   };
 
-  context.RIL.sendMMI({mmi: "*#06#"});
+  context.RIL.sendMMI({mmi: createMMIOptions("*#", "06")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_neq(mmiOptions.mmi, null);
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_RADIO_NOT_AVAILABLE);
-  do_check_false(postedMessage.success);
+  notEqual(mmiOptions.mmi, null);
+  equal (postedMessage.errorMsg, GECKO_ERROR_RADIO_NOT_AVAILABLE);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_interrogation_voice() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -788,117 +315,111 @@ add_test(function test_sendMMI_call_barring_BAIC_interrogation_voice() {
   };
 
   context.RIL.queryICCFacilityLock =
-    function fakeQueryICCFacilityLock(options){
+    function fakeQueryICCFacilityLock(options) {
       context.RIL[REQUEST_QUERY_FACILITY_LOCK](1, {
-        rilMessageType: "sendMMI",
-        rilRequestError: ERROR_SUCCESS
+        rilMessageType: "sendMMI"
       });
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*#33#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("*#", "33")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_true(postedMessage.success);
-  do_check_true(postedMessage.enabled);
-  do_check_eq(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_ENABLED_FOR);
-  do_check_true(Array.isArray(postedMessage.additionalInformation));
-  do_check_eq(postedMessage.additionalInformation[0], "serviceClassVoice");
+  equal(postedMessage.errorMsg, undefined);
+  ok(postedMessage.enabled);
+  equal(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_ENABLED_FOR);
+  ok(Array.isArray(postedMessage.additionalInformation));
+  equal(postedMessage.additionalInformation[0], "serviceClassVoice");
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_activation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
 
   context.RIL.setICCFacilityLock =
-    function fakeSetICCFacilityLock(options){
+    function fakeSetICCFacilityLock(options) {
       mmiOptions = options;
       context.RIL[REQUEST_SET_FACILITY_LOCK](0, {
         rilMessageType: "sendMMI",
-        procedure: MMI_PROCEDURE_ACTIVATION,
-        rilRequestError: ERROR_SUCCESS
+        procedure: MMI_PROCEDURE_ACTIVATION
       });
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*33#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("*", "33")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(mmiOptions.procedure, MMI_PROCEDURE_ACTIVATION);
-  do_check_true(postedMessage.success);
-  do_check_eq(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_ENABLED);
+  equal(mmiOptions.procedure, MMI_PROCEDURE_ACTIVATION);
+  equal(postedMessage.errorMsg, undefined);
+  equal(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_ENABLED);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_deactivation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
 
   context.RIL.setICCFacilityLock =
-    function fakeSetICCFacilityLock(options){
+    function fakeSetICCFacilityLock(options) {
       mmiOptions = options;
       context.RIL[REQUEST_SET_FACILITY_LOCK](0, {
         rilMessageType: "sendMMI",
-        procedure: MMI_PROCEDURE_DEACTIVATION,
-        rilRequestError: ERROR_SUCCESS
+        procedure: MMI_PROCEDURE_DEACTIVATION
       });
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "#33#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("#", "33")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(mmiOptions.procedure, MMI_PROCEDURE_DEACTIVATION);
-  do_check_true(postedMessage.success);
-  do_check_eq(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_DISABLED);
+  equal(mmiOptions.procedure, MMI_PROCEDURE_DEACTIVATION);
+  equal(postedMessage.errorMsg, undefined);
+  equal(postedMessage.statusMessage,  MMI_SM_KS_SERVICE_DISABLED);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_procedure_not_supported() {
-  testSendMMI("**33*0000#", MMI_ERROR_KS_NOT_SUPPORTED);
+  testSendMMI(createMMIOptions("**", "33", "0000"), MMI_ERROR_KS_NOT_SUPPORTED);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_USSD() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let ussdOptions;
 
-  context.RIL.sendUSSD = function fakeSendUSSD(options){
+  context.RIL.sendUSSD = function fakeSendUSSD(options) {
     ussdOptions = options;
-    context.RIL[REQUEST_SEND_USSD](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_SEND_USSD](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*123#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("*", "123")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(ussdOptions.ussd, "*123#");
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
-  do_check_true(context.RIL._ussdSession);
+  equal(ussdOptions.ussd, "**123#");
+  equal(postedMessage.errorMsg, undefined);
+  ok(context.RIL._ussdSession);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_USSD_error() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let ussdOptions;
@@ -906,69 +427,65 @@ add_test(function test_sendMMI_USSD_error() {
   context.RIL.sendUSSD = function fakeSendUSSD(options){
     ussdOptions = options;
     context.RIL[REQUEST_SEND_USSD](0, {
-      rilRequestError: ERROR_GENERIC_FAILURE
+      errorMsg: GECKO_ERROR_GENERIC_FAILURE
     });
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*123#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("*", "123")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(ussdOptions.ussd, "*123#");
-  do_check_eq (postedMessage.errorMsg, GECKO_ERROR_GENERIC_FAILURE);
-  do_check_false(postedMessage.success);
-  do_check_false(context.RIL._ussdSession);
+  equal(ussdOptions.ussd, "**123#");
+  equal(postedMessage.errorMsg, GECKO_ERROR_GENERIC_FAILURE);
+  ok(!context.RIL._ussdSession);
 
   run_next_test();
 });
 
 function setCallWaitingSuccess(mmi) {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
   context.RIL.setCallWaiting = function fakeSetCallWaiting(options) {
-    context.RIL[REQUEST_SET_CALL_WAITING](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_SET_CALL_WAITING](0, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
   context.RIL.sendMMI({mmi: mmi});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 }
 
 add_test(function test_sendMMI_call_waiting_activation() {
-  setCallWaitingSuccess("*43*10#");
+  setCallWaitingSuccess(createMMIOptions("*", "43", "10"));
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_waiting_deactivation() {
-  setCallWaitingSuccess("#43#");
+  setCallWaitingSuccess(createMMIOptions("#", "43"));
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_waiting_registration() {
-  testSendMMI("**43#", MMI_ERROR_KS_NOT_SUPPORTED);
+  testSendMMI(createMMIOptions("**", "43"), MMI_ERROR_KS_NOT_SUPPORTED);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_waiting_erasure() {
-  testSendMMI("##43#", MMI_ERROR_KS_NOT_SUPPORTED);
+  testSendMMI(createMMIOptions("##", "43"), MMI_ERROR_KS_NOT_SUPPORTED);
 
   run_next_test();
 });
 
 add_test(function test_sendMMI_call_waiting_interrogation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -982,19 +499,15 @@ add_test(function test_sendMMI_call_waiting_interrogation() {
       1,   // enabled
       2    // length
     ];
-    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {});
   };
 
-  context.RIL.radioState = GECKO_RADIOSTATE_READY;
-  context.RIL.sendMMI({mmi: "*#43#"});
+  context.RIL.radioState = GECKO_RADIOSTATE_ENABLED;
+  context.RIL.sendMMI({mmi: createMMIOptions("*#", "43")});
 
   let postedMessage = workerhelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, GECKO_ERROR_SUCCESS);
-  do_check_true(postedMessage.success);
-  do_check_eq(postedMessage.length, 2);
-  do_check_true(postedMessage.enabled);
+  equal(postedMessage.errorMsg, undefined);
+  equal(postedMessage.serviceClass, 7);
   run_next_test();
 });

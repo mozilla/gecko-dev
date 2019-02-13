@@ -29,6 +29,9 @@
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Preferences.h"
+#include "nsIContentPolicy.h"
+#include "nsContentUtils.h"
+#include "nsINode.h"
 
 #include "WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
@@ -58,12 +61,23 @@ nsDataObj::CStream::~CStream()
 
 //-----------------------------------------------------------------------------
 // helper - initializes the stream
-nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI)
+nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI,
+                                  nsINode* aRequestingNode)
 {
+  // we can not create a channel without a requestingNode
+  if (!aRequestingNode) {
+    return NS_ERROR_FAILURE;
+  }
   nsresult rv;
-  rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI,
-                     nullptr, nullptr, nullptr,
+  rv = NS_NewChannel(getter_AddRefs(mChannel),
+                     pSourceURI,
+                     aRequestingNode,
+                     nsILoadInfo::SEC_NORMAL,
+                     nsIContentPolicy::TYPE_OTHER,
+                     nullptr,   // loadGroup
+                     nullptr,   // aCallbacks
                      nsIRequest::LOAD_FROM_CACHE);
+
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mChannel->AsyncOpen(this, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -324,7 +338,13 @@ HRESULT nsDataObj::CreateStream(IStream **outStream)
 
   pStream->AddRef();
 
-  rv = pStream->Init(sourceURI);
+  // query the requestingNode from the transferable and add it to the new channel
+  nsCOMPtr<nsIDOMNode> requestingDomNode;
+  mTransferable->GetRequestingNode(getter_AddRefs(requestingDomNode));
+  nsCOMPtr<nsINode> requestingNode = do_QueryInterface(requestingDomNode);
+  MOZ_ASSERT(requestingNode, "can not create channel without a node");
+
+  rv = pStream->Init(sourceURI, requestingNode);
   if (NS_FAILED(rv))
   {
     pStream->Release();
@@ -526,7 +546,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
           return GetFileContents ( *aFormat, *pSTM );
         if ( format == PreferredDropEffect )
           return GetPreferredDropEffect( *aFormat, *pSTM );
-        //PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
+        //MOZ_LOG(gWindowsLog, LogLevel::Info, 
         //       ("***** nsDataObj::GetData - Unknown format %u\n", format));
         return GetText(df, *aFormat, *pSTM);
       } //switch
@@ -573,7 +593,7 @@ STDMETHODIMP nsDataObj::QueryGetData(LPFORMATETC pFE)
 STDMETHODIMP nsDataObj::GetCanonicalFormatEtc
 	 (LPFORMATETC pFEIn, LPFORMATETC pFEOut)
 {
-  return E_FAIL;
+  return E_NOTIMPL;
 }
 
 //-----------------------------------------------------
@@ -726,20 +746,20 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
 STDMETHODIMP nsDataObj::DAdvise(LPFORMATETC pFE, DWORD dwFlags,
 										            LPADVISESINK pIAdviseSink, DWORD* pdwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::DUnadvise(DWORD dwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::EnumDAdvise(LPENUMSTATDATA *ppEnum)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 // IAsyncOperation methods
@@ -1271,19 +1291,19 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   if ( aFE.cfFormat == CF_TEXT ) {
     // Someone is asking for text/plain; convert the unicode (assuming it's present)
     // to text with the correct platform encoding.
-    char* plainTextData = nullptr;
+    size_t bufferSize = sizeof(char)*(len + 2);
+    char* plainTextData = static_cast<char*>(moz_xmalloc(bufferSize));
     char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
-    int32_t plainTextLen = 0;
-    nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
-   
+    int32_t plainTextLen = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)castedUnicode, len / 2 + 1, plainTextData, bufferSize, NULL, NULL);
     // replace the unicode data with our plaintext data. Recall that |plainTextLen| doesn't include
     // the null in the length.
-    nsMemory::Free(data);
-    if ( plainTextData ) {
+    free(data);
+    if ( plainTextLen ) {
       data = plainTextData;
-      allocLen = plainTextLen + sizeof(char);
+      allocLen = plainTextLen;
     }
     else {
+      free(plainTextData);
       NS_WARNING ( "Oh no, couldn't convert unicode to plain text" );
       return S_OK;
     }
@@ -1295,7 +1315,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     char* utf8HTML = nullptr;
     nsresult rv = BuildPlatformHTML ( converter.get(), &utf8HTML );      // null terminates
     
-    nsMemory::Free(data);
+    free(data);
     if ( NS_SUCCEEDED(rv) && utf8HTML ) {
       // replace the unicode data with our HTML data. Don't forget the null.
       data = utf8HTML;
@@ -1324,7 +1344,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   aSTG.hGlobal = hGlobalMemory;
 
   // Now, delete the memory that was created by CreateDataFromPrimitive (or our text/plain data)
-  nsMemory::Free(data);
+  free(data);
 
   return S_OK;
 }

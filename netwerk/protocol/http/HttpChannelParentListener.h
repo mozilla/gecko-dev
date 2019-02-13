@@ -12,17 +12,15 @@
 #include "nsIChannelEventSink.h"
 #include "nsIRedirectResultListener.h"
 
-class nsIParentChannel;
-
 namespace mozilla {
 namespace net {
 
 class HttpChannelParent;
 
-class HttpChannelParentListener : public nsIInterfaceRequestor
-                                 , public nsIChannelEventSink
-                                 , public nsIRedirectResultListener
-                                 , public nsIStreamListener
+class HttpChannelParentListener final : public nsIInterfaceRequestor
+                                      , public nsIChannelEventSink
+                                      , public nsIRedirectResultListener
+                                      , public nsIStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -32,14 +30,15 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
 
-  HttpChannelParentListener(HttpChannelParent* aInitialChannel);
-  virtual ~HttpChannelParentListener();
+  explicit HttpChannelParentListener(HttpChannelParent* aInitialChannel);
 
   // For channel diversion from child to parent.
   nsresult DivertTo(nsIStreamListener *aListener);
   nsresult SuspendForDiversion();
 
 private:
+  virtual ~HttpChannelParentListener();
+
   // Private partner function to SuspendForDiversion.
   nsresult ResumeForDiversion();
 

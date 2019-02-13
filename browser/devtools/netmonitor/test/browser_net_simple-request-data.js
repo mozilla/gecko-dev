@@ -65,6 +65,8 @@ function test() {
 
       is(requestItem.attachment.headersSize, undefined,
         "The headersSize should not yet be set.");
+      is(requestItem.attachment.transferredSize, undefined,
+        "The transferredSize should not yet be set.");
       is(requestItem.attachment.contentSize, undefined,
         "The contentSize should not yet be set.");
 
@@ -86,7 +88,7 @@ function test() {
 
       ok(requestItem.attachment.requestHeaders,
         "There should be a requestHeaders attachment available.");
-      is(requestItem.attachment.requestHeaders.headers.length, 8,
+      is(requestItem.attachment.requestHeaders.headers.length, 9,
         "The requestHeaders attachment has an incorrect |headers| property.");
       isnot(requestItem.attachment.requestHeaders.headersSize, 0,
         "The requestHeaders attachment has an incorrect |headersSize| property.");
@@ -101,7 +103,7 @@ function test() {
 
       ok(requestItem.attachment.requestCookies,
         "There should be a requestCookies attachment available.");
-      is(requestItem.attachment.requestCookies.cookies.length, 0,
+      is(requestItem.attachment.requestCookies.cookies.length, 2,
         "The requestCookies attachment has an incorrect |cookies| property.");
 
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS);
@@ -116,9 +118,9 @@ function test() {
 
       ok(requestItem.attachment.responseHeaders,
         "There should be a responseHeaders attachment available.");
-      is(requestItem.attachment.responseHeaders.headers.length, 9,
+      is(requestItem.attachment.responseHeaders.headers.length, 10,
         "The responseHeaders attachment has an incorrect |headers| property.");
-      is(requestItem.attachment.responseHeaders.headersSize, 255,
+      is(requestItem.attachment.responseHeaders.headersSize, 330,
         "The responseHeaders attachment has an incorrect |headersSize| property.");
 
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS);
@@ -129,7 +131,7 @@ function test() {
 
       ok(requestItem.attachment.responseCookies,
         "There should be a responseCookies attachment available.");
-      is(requestItem.attachment.responseCookies.cookies.length, 0,
+      is(requestItem.attachment.responseCookies.cookies.length, 2,
         "The responseCookies attachment has an incorrect |cookies| property.");
 
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS);
@@ -144,7 +146,7 @@ function test() {
         "The status attachment has an incorrect value.");
       is(requestItem.attachment.statusText, "Och Aye",
         "The statusText attachment has an incorrect value.");
-      is(requestItem.attachment.headersSize, 255,
+      is(requestItem.attachment.headersSize, 330,
         "The headersSize attachment has an incorrect value.");
 
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS, {
@@ -156,6 +158,8 @@ function test() {
     aMonitor.panelWin.once(aMonitor.panelWin.EVENTS.UPDATING_RESPONSE_CONTENT, () => {
       let requestItem = RequestsMenu.getItemAtIndex(0);
 
+      is(requestItem.attachment.transferredSize, "12",
+        "The transferredSize attachment has an incorrect value.");
       is(requestItem.attachment.contentSize, "12",
         "The contentSize attachment has an incorrect value.");
       is(requestItem.attachment.mimeType, "text/plain; charset=utf-8",
@@ -164,6 +168,7 @@ function test() {
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS, {
         type: "plain",
         fullMimeType: "text/plain; charset=utf-8",
+        transferred: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.01),
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.01),
       });
     });
@@ -183,6 +188,7 @@ function test() {
       verifyRequestItemTarget(requestItem, "GET", SIMPLE_SJS, {
         type: "plain",
         fullMimeType: "text/plain; charset=utf-8",
+        transferred: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.01),
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.01),
       });
     });

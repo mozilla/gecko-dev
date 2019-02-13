@@ -14,16 +14,19 @@
 
 // [Constructor(DOMString url, optional (URL or DOMString) base = "about:blank")]
 [Constructor(DOMString url, URL base),
- Constructor(DOMString url, optional DOMString base = "about:blank")]
+ Constructor(DOMString url, optional DOMString base),
+ Exposed=(Window,Worker)]
 interface URL {
 };
 URL implements URLUtils;
+URL implements URLUtilsSearchParams;
 
 partial interface URL {
   [Throws]
   static DOMString? createObjectURL(Blob blob, optional objectURLOptions options);
   [Throws]
   static DOMString? createObjectURL(MediaStream stream, optional objectURLOptions options);
+  [Throws]
   static void revokeObjectURL(DOMString url);
 };
 

@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 load(libdir + "asserts.js");
 
@@ -9,19 +10,34 @@ assertAsmTypeFail(USE_ASM + 'function f(){} return 0');
 assertAsmTypeFail(USE_ASM + 'function f() 0; return 0');
 assertAsmTypeFail(USE_ASM + 'function f(){} return g');
 assertAsmTypeFail(USE_ASM + 'function f(){} function f(){} return f');
+assertAsmTypeFail(USE_ASM + 'function f(){}; function g(){}; return {f, g}');
+assertAsmTypeFail(USE_ASM + 'var f = f;');
 assertAsmTypeFail(USE_ASM + 'var f=0; function f(){} return f');
+assertAsmTypeFail(USE_ASM + 'var f=glob.Math.imul; return {}');
 assertAsmTypeFail('glob', USE_ASM + 'var f=glob.Math.imul; function f(){} return f');
 assertAsmTypeFail('glob','foreign', USE_ASM + 'var f=foreign.foo; function f(){} return f');
 assertAsmTypeFail(USE_ASM + 'function f(){} var f=[f,f]; return f');
 assertAsmTypeFail(USE_ASM + 'function f() 0; return f');
 assertAsmTypeFail('"use strict";' + USE_ASM + 'function f() {} return f');
 assertAsmTypeFail(USE_ASM + '"use strict"; function f() {} return f');
+assertAsmTypeFail(USE_ASM + '"use foopy" + 1; function f() {} return f');
+assertAsmTypeFail(USE_ASM + 'function f() { "use strict"; } return f');
+assertEq(asmLink(asmCompile(USE_ASM + '"use asm"; function f() {} return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + '"use foopy"; function f() {} return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + '"use foopy"; "use blarg"; function f() {} return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + 'function f() { "use asm"; } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + 'function f() { "use foopy"; } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + 'function f() { "use foopy"; "use blarg"; } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + 'function f(i) { "use foopy"; i=i|0; } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + 'function f(i) { "use foopy"; "use asm"; i=i|0; } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + '"use warm"; function f(i) { "use cold"; i=i|0 } function g() { "use hot"; return 0 } return f'))(), undefined);
+assertEq(asmLink(asmCompile(USE_ASM + '"use warm"; function f(i) { "use cold"; i=i|0 } function g() { "use asm"; return 0 } return f'))(), undefined);
 assertEq(asmLink(asmCompile(USE_ASM + 'function f(){} return f'))(), undefined);
 assertEq(asmLink(asmCompile(USE_ASM + 'function f(){;} return f'))(), undefined);
 assertAsmTypeFail(USE_ASM + 'function f(i,j){;} return f');
 assertEq(asmLink(asmCompile('"use asm";; function f(){};;; return f;;'))(), undefined);
 assertAsmTypeFail(USE_ASM + 'function f(x){} return f');
-assertAsmTypeFail(USE_ASM + 'function f(){return; return 1} return f');
+assertAsmTypeFail(USE_ASM + 'function f(){if (0) return; return 1} return f');
 assertEq(asmLink(asmCompile(USE_ASM + 'function f(x){x=x|0} return f'))(42), undefined);
 assertEq(asmLink(asmCompile(USE_ASM + 'function f(x){x=x|0; return x|0} return f'))(42), 42);
 assertEq(asmLink(asmCompile(USE_ASM + 'function f(x){x=x|0; return x|0;;;} return f'))(42), 42);
@@ -52,20 +68,27 @@ assertAsmLinkAlwaysFail(asmCompile('glob', USE_ASM + 'var im=glob.Math.imul; fun
 assertEq(asmLink(asmCompile('glob', USE_ASM + 'var im=glob.Math.imul; function f(i,j) {i=i|0;j=j|0; return im(i,j)|0} return f'), {Math:{imul:Math.imul}})(2,3), 6);
 assertEq(asmLink(asmCompile('glob', USE_ASM + 'var im=glob.Math.imul; function f(i,j) {i=i|0;j=j|0; return im(i,j)|0} return f'), this)(8,4), 32);
 
-assertAsmLinkAlwaysFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), null, null);
-assertAsmLinkAlwaysFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, null);
-assertAsmLinkAlwaysFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, null);
-assertAsmLinkAlwaysFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, new ArrayBuffer(1));
-assertAsmLinkFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, new ArrayBuffer(100));
-assertAsmLinkFail(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, new ArrayBuffer(4000));
-assertEq(asmLink(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, new ArrayBuffer(4096))(), undefined);
-assertEq(asmLink(asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f'), this, null, new ArrayBuffer(2*4096))(), undefined);
+var module = asmCompile('glob','i','b', USE_ASM + 'var i32=new glob.Int32Array(b); function f(){} return f');
+assertAsmLinkAlwaysFail(module, null, null);
+assertAsmLinkAlwaysFail(module, this, null, null);
+assertAsmLinkAlwaysFail(module, this, null, null);
+assertAsmLinkAlwaysFail(module, this, null, new ArrayBuffer(1));
+assertAsmLinkFail(module, this, null, new ArrayBuffer(4));
+assertAsmLinkFail(module, this, null, new ArrayBuffer(100));
+assertAsmLinkFail(module, this, null, new ArrayBuffer(4092));
+assertAsmLinkFail(module, this, null, new ArrayBuffer(64000));
+assertAsmLinkFail(module, this, null, new ArrayBuffer(BUF_MIN+4));
+assertAsmLinkDeprecated(module, this, null, new ArrayBuffer(4096));
+assertAsmLinkDeprecated(module, this, null, new ArrayBuffer(2*4096));
+assertAsmLinkDeprecated(module, this, null, new ArrayBuffer(4*4096));
+assertAsmLinkDeprecated(module, this, null, new ArrayBuffer(32*1024));
+assertEq(asmLink(module, this, null, new ArrayBuffer(BUF_MIN))(), undefined);
 
 assertAsmTypeFail('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i]|0; return i|0}; return f');
 assertAsmTypeFail('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>1]|0; return i|0}; return f');
 assertAsmTypeFail('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>1]|0; return i|0}; return f');
-assertAsmLinkAlwaysFail(asmCompile('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>2]|0; return i|0}; return f'), this, null, new ArrayBuffer(4095));
-assertEq(asmCompile('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>2]|0; return i|0}; return f')(this, null, new ArrayBuffer(4096))(), 0);
+assertAsmLinkAlwaysFail(asmCompile('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>2]|0; return i|0}; return f'), this, null, new ArrayBuffer(BUF_MIN-1));
+assertEq(asmCompile('glob', 'imp', 'b', USE_ASM + HEAP_IMPORTS + 'function f(i) {i=i|0; i = i32[i>>2]|0; return i|0}; return f')(this, null, new ArrayBuffer(BUF_MIN))(), 0);
 
 var exp = asmLink(asmCompile(USE_ASM + "return {}"));
 assertEq(Object.keys(exp).length, 0);
@@ -108,6 +131,15 @@ assertTypeFailInEval('function f(global, {imports}) { "use asm"; function g() {}
 assertTypeFailInEval('function f(g = 2) { "use asm"; function g() {} return g }');
 assertTypeFailInEval('function *f() { "use asm"; function g() {} return g }');
 assertTypeFailInEval('f => { "use asm"; function g() {} return g }');
+
+assertAsmTypeFail(USE_ASM + 'function f(i) {i=i|0; (i for (x in [1,2,3])) } return f');
+assertAsmTypeFail(USE_ASM + 'function f(i) {i=i|0; [i for (x in [1,2,3])] } return f');
+assertAsmTypeFail(USE_ASM + 'function f() { (x for (x in [1,2,3])) } return f');
+assertAsmTypeFail(USE_ASM + 'function f() { [x for (x in [1,2,3])] } return f');
+assertTypeFailInEval('function f() { "use asm"; function g(i) {i=i|0; (i for (x in [1,2,3])) } return g }');
+assertTypeFailInEval('function f() { "use asm"; function g(i) {i=i|0; [i for (x in [1,2,3])] } return g }');
+assertTypeFailInEval('function f() { "use asm"; function g() { (x for (x in [1,2,3])) } return g }');
+assertTypeFailInEval('function f() { "use asm"; function g() { [x for (x in [1,2,3])] } return g }');
 
 assertThrowsInstanceOf(function() { new Function(USE_ASM + 'var)') }, SyntaxError);
 assertThrowsInstanceOf(function() { new Function(USE_ASM + 'return)') }, SyntaxError);

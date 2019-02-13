@@ -7,13 +7,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_recursion-stack.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
-let gNewTab, gFocusedWindow, gToolbox, gToolboxTab;
+let gTab, gPanel, gDebugger;
+let gFocusedWindow, gToolbox, gToolboxTab;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gToolbox = gPanel._toolbox;
@@ -30,7 +29,6 @@ function performTest() {
     is(gBrowser.selectedTab, aTab,
       "Debugger's tab is not the selected tab.");
 
-    gNewTab = aTab;
     gFocusedWindow = window;
     testPause();
   });
@@ -64,9 +62,10 @@ function testPause() {
     "Main window is the top level window before pause.");
 
   if (gToolbox.hostType == devtools.Toolbox.HostType.WINDOW) {
-    gToolbox._host._window.onfocus = () => {
+    gToolbox._host._window.addEventListener("focus", function onFocus() {
+      gToolbox._host._window.removeEventListener("focus", onFocus, true);
       gFocusedWindow = gToolbox._host._window;
-    };
+    }, true);
   }
 
   gDebugger.gThreadClient.addOneTimeListener("paused", () => {
@@ -132,12 +131,9 @@ registerCleanupFunction(function() {
   Services.prefs.setCharPref("devtools.toolbox.host", devtools.Toolbox.HostType.BOTTOM);
 
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
 
-  removeTab(gNewTab);
-  gNewTab = null;
   gFocusedWindow = null;
   gToolbox = null;
   gToolboxTab = null;

@@ -10,21 +10,12 @@
  * http://www.whatwg.org/specs/web-apps/current-work/multipage/network.html#closeevent
  */
 
-[Constructor(DOMString type, optional CloseEventInit eventInitDict), HeaderFile="GeneratedEventClasses.h"]
+[Constructor(DOMString type, optional CloseEventInit eventInitDict),LegacyEventInit]
 interface CloseEvent : Event
 {
   readonly attribute boolean wasClean;
   readonly attribute unsigned short code;
-  readonly attribute DOMString? reason;
-
-  // initCloseEvent is a Gecko specific deprecated method.
-  [Throws]
-  void initCloseEvent(DOMString type,
-                      boolean canBubble,
-                      boolean cancelable,
-                      boolean wasClean,
-                      unsigned short code,
-                      DOMString? reason);
+  readonly attribute DOMString reason;
 };
 
 dictionary CloseEventInit : EventInit

@@ -15,7 +15,7 @@ cat <<EOF > conftest.c
 #if defined(__clang__)
 COMPILER clang-cl _MSC_VER
 #else
-COMPILER msvc _MSC_VER
+COMPILER msvc _MSC_FULL_VER
 #endif
 #elif defined(__clang__)
 COMPILER clang __clang_major__.__clang_minor__.__clang_patchlevel__
@@ -26,13 +26,19 @@ COMPILER icc __INTEL_COMPILER
 #endif
 EOF
 read dummy compiler CC_VERSION <<EOF
-$($CC -E conftest.c 2>/dev/null | grep COMPILER)
+$($CC -E $CPPFLAGS $CFLAGS conftest.c 2>/dev/null | grep COMPILER)
 EOF
 read dummy cxxcompiler CXX_VERSION <<EOF
-$($CXX -E conftest.c 2>/dev/null | grep COMPILER)
+$($CXX -E $CPPFLAGS $CXXFLAGS conftest.c 2>/dev/null | grep COMPILER)
 EOF
 if test "$compiler" != "$cxxcompiler"; then
     AC_MSG_ERROR([Your C and C++ compilers are different.  You need to use the same compiler.])
+fi
+if test "$CC_VERSION" != "$CXX_VERSION"; then
+    # This may not be strictly necessary, but if we want to drop it, we
+    # should make sure any version checks below apply to both the C and
+    # C++ compiler versions.
+    AC_MSG_ERROR([Your C and C++ compiler versions are different.  You need to use the same compiler version.])
 fi
 CC_VERSION=`echo "$CC_VERSION" | sed 's/ //g'`
 CXX_VERSION=`echo "$CXX_VERSION" | sed 's/ //g'`
@@ -55,10 +61,11 @@ rm -f conftest.out
 if test "`echo | $LD -v 2>&1 | grep -c GNU`" != "0"; then
     GNU_LD=1
 fi
-if test "$GNU_CC"; then
-    if `$CC -print-prog-name=ld` -v 2>&1 | grep -c GNU >/dev/null; then
-        GCC_USE_GNU_LD=1
-    fi
+
+if test "$compiler" = "msvc"; then
+     MSVC_VERSION_FULL="$CXX_VERSION"
+     CC_VERSION=`echo ${CC_VERSION} | cut -c 1-4`
+     CXX_VERSION=`echo ${CXX_VERSION} | cut -c 1-4`
 fi
 
 INTEL_CC=
@@ -79,10 +86,32 @@ if test "$compiler" = "clang"; then
 fi
 if test "$compiler" = "clang-cl"; then
     CLANG_CL=1
+    # We force clang-cl to emulate Visual C++ 2013 in configure.in, but that
+    # is based on the CLANG_CL variable defined here, so make sure that we're
+    # getting the right version here manually.
+    CC_VERSION=1800
+    CXX_VERSION=1800
+    MSVC_VERSION_FULL=180030723
+    # Build on clang-cl with MSVC 2013 Update 3 with fallback emulation.
+    CFLAGS="$CFLAGS -fms-compatibility-version=18.00.30723 -fallback"
+    CXXFLAGS="$CXXFLAGS -fms-compatibility-version=18.00.30723 -fallback"
+fi
+
+if test "$GNU_CC"; then
+    if `$CC -print-prog-name=ld` -v 2>&1 | grep -c GNU >/dev/null; then
+        GCC_USE_GNU_LD=1
+    fi
 fi
 
 AC_SUBST(CLANG_CXX)
 AC_SUBST(CLANG_CL)
+
+if test -n "$GNU_CC" -a -z "$CLANG_CC" ; then
+    if test "$GCC_MAJOR_VERSION" -eq 4 -a "$GCC_MINOR_VERSION" -lt 7 ||
+       test "$GCC_MAJOR_VERSION" -lt 4; then
+        AC_MSG_ERROR([Only GCC 4.7 or newer supported])
+    fi
+fi
 ])
 
 AC_DEFUN([MOZ_CROSS_COMPILER],
@@ -149,10 +178,11 @@ AC_PROG_CXX
 
 AC_CHECK_PROGS(RANLIB, "${target_alias}-ranlib" "${target}-ranlib", :)
 AC_CHECK_PROGS(AR, "${target_alias}-ar" "${target}-ar", :)
-MOZ_PATH_PROGS(AS, "${target_alias}-as" "${target}-as", :)
+AC_CHECK_PROGS(AS, "${target_alias}-as" "${target}-as", :)
 AC_CHECK_PROGS(LD, "${target_alias}-ld" "${target}-ld", :)
 AC_CHECK_PROGS(STRIP, "${target_alias}-strip" "${target}-strip", :)
 AC_CHECK_PROGS(WINDRES, "${target_alias}-windres" "${target}-windres", :)
+AC_CHECK_PROGS(OTOOL, "${target_alias}-otool" "${target}-otool", :)
 AC_DEFINE(CROSS_COMPILE)
 CROSS_COMPILE=1
 
@@ -199,14 +229,43 @@ if test -n "$CROSS_COMPILE"; then
     dnl When cross compile, we have no variable telling us what the host compiler is. Figure it out.
     cat > conftest.C <<EOF
 #if defined(__clang__)
-CLANG
+COMPILER CLANG __clang_major__.__clang_minor__.__clang_patchlevel__
 #elif defined(__GNUC__)
-GCC
+COMPILER GCC __GNUC__.__GNUC_MINOR__.__GNUC_PATCHLEVEL__
 #endif
 EOF
-    host_compiler=`$HOST_CXX -E conftest.C | egrep '(CLANG|GCC)'`
+read dummy host_compiler HOST_CC_VERSION <<EOF
+$($HOST_CC -E conftest.C 2>/dev/null | grep COMPILER)
+EOF
+read dummy host_cxxcompiler HOST_CXX_VERSION <<EOF
+$($HOST_CXX -E conftest.C 2>/dev/null | grep COMPILER)
+EOF
     rm conftest.C
+    if test "$host_compiler" != "$host_cxxcompiler"; then
+        AC_MSG_ERROR([Your C and C++ host compilers are different.  You need to use the same compiler.])
+    fi
+    if test "$HOST_CC_VERSION" != "$HOST_CXX_VERSION"; then
+        # This may not be strictly necessary, but if we want to drop it,
+        # we should make sure any version checks below apply to both the
+        # C and C++ compiler versions.
+        AC_MSG_ERROR([Your C and C++ host compiler versions are different.  You need to use the same compiler version.])
+    fi
     if test -n "$host_compiler"; then
+        if test "$host_compiler" = "GCC" ; then
+            changequote(<<,>>)
+            HOST_GCC_VERSION_FULL="$HOST_CXX_VERSION"
+            HOST_GCC_VERSION=`echo "$HOST_GCC_VERSION_FULL" | $PERL -pe '(split(/\./))[0]>=4&&s/(^\d*\.\d*).*/<<$>>1/;'`
+
+            HOST_GCC_MAJOR_VERSION=`echo ${HOST_GCC_VERSION} | $AWK -F\. '{ print <<$>>1 }'`
+            HOST_GCC_MINOR_VERSION=`echo ${HOST_GCC_VERSION} | $AWK -F\. '{ print <<$>>2 }'`
+            changequote([,])
+
+            if test "$HOST_GCC_MAJOR_VERSION" -eq 4 -a "$HOST_GCC_MINOR_VERSION" -lt 7 ||
+               test "$HOST_GCC_MAJOR_VERSION" -lt 4; then
+                AC_MSG_ERROR([Only GCC 4.7 or newer supported for host compiler])
+            fi
+        fi
+
         HOST_CXXFLAGS="$HOST_CXXFLAGS -std=gnu++0x"
 
         _SAVE_CXXFLAGS="$CXXFLAGS"

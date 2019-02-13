@@ -90,6 +90,15 @@ nsURLFormatterService.prototype = {
     LOCALE:           function() Cc["@mozilla.org/chrome/chrome-registry;1"].
                                  getService(Ci.nsIXULChromeRegistry).
                                  getSelectedLocale('global'),
+    REGION:           function() {
+      try {
+        // When the geoip lookup failed to identify the region, we fallback to
+        // the 'ZZ' region code to mean 'unknown'.
+        return Services.prefs.getCharPref("browser.search.region") || "ZZ";
+      } catch(e) {
+        return "ZZ";
+      }
+    },
     VENDOR:           function() this.appInfo.vendor,
     NAME:             function() this.appInfo.name,
     ID:               function() this.appInfo.ID,
@@ -105,6 +114,8 @@ nsURLFormatterService.prototype = {
     CHANNEL:          function() UpdateChannel.get(),
     MOZILLA_API_KEY:   function() "@MOZ_MOZILLA_API_KEY@",
     GOOGLE_API_KEY:   function() "@MOZ_GOOGLE_API_KEY@",
+    GOOGLE_OAUTH_API_CLIENTID:function() "@MOZ_GOOGLE_OAUTH_API_CLIENTID@",
+    GOOGLE_OAUTH_API_KEY:     function() "@MOZ_GOOGLE_OAUTH_API_KEY@",
     BING_API_CLIENTID:function() "@MOZ_BING_API_CLIENTID@",
     BING_API_KEY:     function() "@MOZ_BING_API_KEY@",
     DISTRIBUTION:     function() this.distribution.id,

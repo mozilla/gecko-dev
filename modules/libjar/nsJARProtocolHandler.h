@@ -20,8 +20,8 @@
 class nsIHashable;
 class nsIRemoteOpenFileListener;
 
-class nsJARProtocolHandler : public nsIJARProtocolHandler
-                           , public nsSupportsWeakReference
+class nsJARProtocolHandler final : public nsIJARProtocolHandler
+                                 , public nsSupportsWeakReference
 {
     typedef nsAutoTArray<nsCOMPtr<nsIRemoteOpenFileListener>, 5>
             RemoteFileListenerArray;
@@ -33,7 +33,6 @@ public:
 
     // nsJARProtocolHandler methods:
     nsJARProtocolHandler();
-    virtual ~nsJARProtocolHandler();
 
     static nsJARProtocolHandler *GetSingleton();
 
@@ -50,6 +49,8 @@ public:
     void RemoteOpenFileComplete(nsIHashable *aRemoteFile, nsresult aStatus);
 
 protected:
+    virtual ~nsJARProtocolHandler();
+
     nsCOMPtr<nsIZipReaderCache> mJARCache;
     nsCOMPtr<nsIMIMEService> mMimeService;
 

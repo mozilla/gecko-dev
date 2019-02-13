@@ -8,10 +8,10 @@ module.metadata = {
 };
 
 const { Ci } = require("chrome");
-const method = require("../../method/core");
+const { dispatcher } = require("../util/dispatcher");
 const { add, remove, iterator } = require("../lang/weak-set");
 
-let getTargetWindow = method("getTargetWindow");
+let getTargetWindow = dispatcher("getTargetWindow");
 
 getTargetWindow.define(function (target) {
   if (target instanceof Ci.nsIDOMWindow)
@@ -24,10 +24,10 @@ getTargetWindow.define(function (target) {
 
 exports.getTargetWindow = getTargetWindow;
 
-let attachTo = method("attachTo");
+let attachTo = dispatcher("attachTo");
 exports.attachTo = attachTo;
 
-let detachFrom = method("detatchFrom");
+let detachFrom = dispatcher("detatchFrom");
 exports.detachFrom = detachFrom;
 
 function attach(modification, target) {
@@ -56,6 +56,10 @@ function detach(modification, target) {
   else {
     let documents = iterator(modification);
     for (let document of documents) {
+      let window = document.defaultView;
+      // The window might have already gone away
+      if (!window)
+        continue;
       detachFrom(modification, document.defaultView);
       remove(modification, document);
     }

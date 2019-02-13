@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -238,8 +238,8 @@ function runTest() {
   // And give it time to close
   executeSoon(moveAlong);
   yield;
-  let pbWin = yield createWindow({private: true});
-  let pbDownloadLastDir = new DownloadLastDir(pbWin);
+  pbWin = yield createWindow({private: true});
+  pbDownloadLastDir = new DownloadLastDir(pbWin);
 
   is((yield checkDownloadLastDir(pbDownloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
 

@@ -27,6 +27,10 @@ body {
   flex: 1;
 }
 
+.row-striped {
+  background: var(--theme-body-background);
+}
+
 .property-view-hidden,
 .property-content-hidden {
   display: none;
@@ -57,7 +61,7 @@ body {
   background-size: 5px 8px;
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.25dppx) {
   .property-value, .other-property-value {
     background-image: url(arrow-e@2x.png);
   }
@@ -147,8 +151,9 @@ body {
   margin: 0 5px;
 }
 
-.devtools-toolbar {
+#root .devtools-toolbar {
   width: 100%;
+  display: flex;
 }
 
 .link {
@@ -178,9 +183,9 @@ body {
 
 .computedview-colorswatch {
   border-radius: 50%;
-  width: 1em;
-  height: 1em;
-  vertical-align: text-top;
+  width: 0.9em;
+  height: 0.9em;
+  vertical-align: middle;
   -moz-margin-end: 5px;
   display: inline-block;
   position: relative;

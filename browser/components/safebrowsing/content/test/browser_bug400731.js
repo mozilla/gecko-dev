@@ -20,7 +20,11 @@ function test() {
   content.location = "http://www.itisatrap.org/firefox/its-an-attack.html";
 }
 
-function testMalware() {
+function testMalware(event) {
+  if (event.target != gBrowser.selectedBrowser.contentDocument) {
+    return;
+  }
+
   window.removeEventListener("DOMContentLoaded", testMalware, true);
 
   // Confirm that "Ignore this warning" is visible - bug 422410
@@ -30,12 +34,35 @@ function testMalware() {
   var style = content.getComputedStyle(el, null);
   is(style.display, "inline-block", "Ignore Warning button should be display:inline-block for malware");
   
+  // Now launch the unwanted software test
+  window.addEventListener("DOMContentLoaded", testUnwanted, true);
+  content.location = "http://www.itisatrap.org/firefox/unwanted.html";
+}
+
+function testUnwanted(event) {
+  if (event.target != gBrowser.selectedBrowser.contentDocument) {
+    return;
+  }
+
+  window.removeEventListener("DOMContentLoaded", testUnwanted, true);
+
+  // Confirm that "Ignore this warning" is visible - bug 422410
+  var el = content.document.getElementById("ignoreWarningButton");
+  ok(el, "Ignore warning button should be present for unwanted software");
+
+  var style = content.getComputedStyle(el, null);
+  is(style.display, "inline-block", "Ignore Warning button should be display:inline-block for unwanted software");
+
   // Now launch the phishing test
   window.addEventListener("DOMContentLoaded", testPhishing, true);
   content.location = "http://www.itisatrap.org/firefox/its-a-trap.html";
 }
 
-function testPhishing() {
+function testPhishing(event) {
+  if (event.target != gBrowser.selectedBrowser.contentDocument) {
+    return;
+  }
+
   window.removeEventListener("DOMContentLoaded", testPhishing, true);
   
   var el = content.document.getElementById("ignoreWarningButton");

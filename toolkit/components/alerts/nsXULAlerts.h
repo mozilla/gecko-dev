@@ -25,7 +25,7 @@ public:
                                  const nsAString& aAlertText, bool aAlertTextClickable,
                                  const nsAString& aAlertCookie, nsIObserver* aAlertListener,
                                  const nsAString& aAlertName, const nsAString& aBidi,
-                                 const nsAString& aLang);
+                                 const nsAString& aLang, bool aInPrivateBrowsing);
 
   nsresult CloseAlert(const nsAString& aAlertName);
 protected:
@@ -49,8 +49,9 @@ public:
 
   void SetAlertWindow(nsIDOMWindow* aWindow) { mAlertWindow = aWindow; }
 
-  virtual ~nsXULAlertObserver() {}
 protected:
+  virtual ~nsXULAlertObserver() {}
+
   nsXULAlerts* mXULAlerts;
   nsString mAlertName;
   nsCOMPtr<nsIDOMWindow> mAlertWindow;

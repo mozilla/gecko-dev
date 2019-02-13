@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,14 +9,14 @@
 
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
-#include "nsNameSpaceManager.h"
+#include "mozilla/dom/NameSpaceConstants.h"
 #include "js/TypeDecls.h"
 
 typedef uint8_t XBLBindingSerializeDetails;
 
 // A version number to ensure we don't load cached data in a different
 // file format.
-#define XBLBinding_Serialize_Version 0x00000003
+#define XBLBinding_Serialize_Version 0x00000004
 
 // Set for the first binding in a document
 #define XBLBinding_Serialize_IsFirstBinding 1
@@ -25,6 +26,9 @@ typedef uint8_t XBLBindingSerializeDetails;
 
 // Set to indicate that nsXBLPrototypeBinding::mChromeOnlyContent should be true
 #define XBLBinding_Serialize_ChromeOnlyContent 4
+
+// Set to indicate that nsXBLPrototypeBinding::mBindToUntrustedContent should be true
+#define XBLBinding_Serialize_BindToUntrustedContent 8
 
 // Appears at the end of the serialized data to indicate that no more bindings
 // are present for this document.

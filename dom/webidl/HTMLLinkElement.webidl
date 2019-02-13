@@ -18,7 +18,7 @@ interface HTMLLinkElement : HTMLElement {
   [SetterThrows, Pure]
            attribute DOMString href;
   [SetterThrows, Pure]
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
   [SetterThrows, Pure]
            attribute DOMString rel;
   readonly attribute DOMTokenList relList;
@@ -44,7 +44,7 @@ partial interface HTMLLinkElement {
 
 // http://w3c.github.io/webcomponents/spec/imports/#interface-import
 partial interface HTMLLinkElement {
-    [Pref="dom.webcomponents.enabled"]
+    [Func="nsDocument::IsWebComponentsEnabled"]
     readonly attribute Document? import;
 };
 

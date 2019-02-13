@@ -32,6 +32,8 @@ const PREF_DISCOVER_ENABLED = "extensions.getAddons.showPane";
 const PREF_XPI_ENABLED = "xpinstall.enabled";
 const PREF_UPDATEURL = "extensions.update.url";
 const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
+const PREF_CUSTOM_XPINSTALL_CONFIRMATION_UI = "xpinstall.customConfirmationUI";
+const PREF_UI_LASTCATEGORY = "extensions.ui.lastCategory";
 
 const MANAGER_URI = "about:addons";
 const INSTALL_URI = "chrome://mozapps/content/xpinstall/xpinstallConfirm.xul";
@@ -62,9 +64,12 @@ var gTestStart = null;
 var gUseInContentUI = !gTestInWindow && ("switchToTabHavingURI" in window);
 
 var gRestorePrefs = [{name: PREF_LOGGING_ENABLED},
+                     {name: PREF_CUSTOM_XPINSTALL_CONFIRMATION_UI},
                      {name: "extensions.webservice.discoverURL"},
                      {name: "extensions.update.url"},
                      {name: "extensions.update.background.url"},
+                     {name: "extensions.update.enabled"},
+                     {name: "extensions.update.autoUpdateDefault"},
                      {name: "extensions.getAddons.get.url"},
                      {name: "extensions.getAddons.getWithPerformance.url"},
                      {name: "extensions.getAddons.search.browseURL"},
@@ -93,6 +98,8 @@ for (let pref of gRestorePrefs) {
 // Turn logging on for all tests
 Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
 
+Services.prefs.setBoolPref(PREF_CUSTOM_XPINSTALL_CONFIRMATION_UI, false);
+
 // Helper to register test failures and close windows if any are left open
 function checkOpenWindows(aWindowID) {
   let windows = Services.wm.getEnumerator(aWindowID);
@@ -106,6 +113,41 @@ function checkOpenWindows(aWindowID) {
   }
   if (found)
     ok(false, "Found unexpected " + aWindowID + " window still open");
+}
+
+// Tools to disable and re-enable the background update and blocklist timers
+// so that tests can protect themselves from unwanted timer events.
+let gCatMan = Components.classes["@mozilla.org/categorymanager;1"]
+                           .getService(Components.interfaces.nsICategoryManager);
+// Default values from toolkit/mozapps/extensions/extensions.manifest, but disable*UpdateTimer()
+// records the actual value so we can put it back in enable*UpdateTimer()
+let backgroundUpdateConfig = "@mozilla.org/addons/integration;1,getService,addon-background-update-timer,extensions.update.interval,86400";
+let blocklistUpdateConfig = "@mozilla.org/extensions/blocklist;1,getService,blocklist-background-update-timer,extensions.blocklist.interval,86400";
+
+let UTIMER = "update-timer";
+let AMANAGER = "addonManager";
+let BLOCKLIST = "nsBlocklistService";
+
+function disableBackgroundUpdateTimer() {
+  info("Disabling " + UTIMER + " " + AMANAGER);
+  backgroundUpdateConfig = gCatMan.getCategoryEntry(UTIMER, AMANAGER);
+  gCatMan.deleteCategoryEntry(UTIMER, AMANAGER, true);
+}
+
+function enableBackgroundUpdateTimer() {
+  info("Enabling " + UTIMER + " " + AMANAGER);
+  gCatMan.addCategoryEntry(UTIMER, AMANAGER, backgroundUpdateConfig, false, true);
+}
+
+function disableBlocklistUpdateTimer() {
+  info("Disabling " + UTIMER + " " + BLOCKLIST);
+  blocklistUpdateConfig = gCatMan.getCategoryEntry(UTIMER, BLOCKLIST);
+  gCatMan.deleteCategoryEntry(UTIMER, BLOCKLIST, true);
+}
+
+function enableBlocklistUpdateTimer() {
+  info("Enabling " + UTIMER + " " + BLOCKLIST);
+  gCatMan.addCategoryEntry(UTIMER, BLOCKLIST, blocklistUpdateConfig, false, true);
 }
 
 registerCleanupFunction(function() {
@@ -184,6 +226,45 @@ function run_next_test() {
   gTestStart = Date.now();
   executeSoon(() => log_exceptions(test));
 }
+
+let get_tooltip_info = Task.async(function*(addon) {
+  let managerWindow = addon.ownerDocument.defaultView;
+
+  // The popup code uses a triggering event's target to set the
+  // document.tooltipNode property.
+  let nameNode = addon.ownerDocument.getAnonymousElementByAttribute(addon, "anonid", "name");
+  let event = new managerWindow.CustomEvent("TriggerEvent");
+  nameNode.dispatchEvent(event);
+
+  let tooltip = managerWindow.document.getElementById("addonitem-tooltip");
+
+  let promise = BrowserTestUtils.waitForEvent(tooltip, "popupshown");
+  tooltip.openPopup(nameNode, "after_start", 0, 0, false, false, event);
+  yield promise;
+
+  let tiptext = tooltip.label;
+
+  promise = BrowserTestUtils.waitForEvent(tooltip, "popuphidden");
+  tooltip.hidePopup();
+  yield promise;
+
+  let expectedName = addon.getAttribute("name");
+  ok(tiptext.substring(0, expectedName.length), expectedName,
+     "Tooltip should always start with the expected name");
+
+  if (expectedName.length == tiptext.length) {
+    return {
+      name: tiptext,
+      version: undefined
+    };
+  }
+  else {
+    return {
+      name: tiptext.substring(0, expectedName.length),
+      version: tiptext.substring(expectedName.length + 1)
+    };
+  }
+});
 
 function get_addon_file_url(aFilename) {
   try {
@@ -357,7 +438,7 @@ function close_manager(aManagerWindow, aCallback, aLongerTimeout) {
 
     aManagerWindow.addEventListener("unload", function() {
       try {
-        dump("Manager window unload handler");
+        dump("Manager window unload handler\n");
         this.removeEventListener("unload", arguments.callee, false);
         resolve();
       } catch(e) {
@@ -447,6 +528,11 @@ function is_element_hidden(aElement, aMsg) {
   ok(is_hidden(aElement), aMsg || (aElement + " should be hidden"));
 }
 
+function promiseAddonsByIDs(aIDs) {
+  return new Promise(resolve => {
+    AddonManager.getAddonsByIDs(aIDs, resolve);
+  });
+}
 /**
  * Install an add-on and call a callback when complete.
  *
@@ -1103,7 +1189,7 @@ MockAddon.prototype = {
   get applyBackgroundUpdates() {
     return this._applyBackgroundUpdates;
   },
-  
+
   set applyBackgroundUpdates(val) {
     if (val != AddonManager.AUTOUPDATE_DEFAULT &&
         val != AddonManager.AUTOUPDATE_DISABLE &&

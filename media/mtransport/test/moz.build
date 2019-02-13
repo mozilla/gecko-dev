@@ -5,30 +5,35 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 if CONFIG['OS_TARGET'] != 'WINNT' and CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
-    CPP_UNIT_TESTS += [
-        'buffered_stun_socket_unittest.cpp',
-        'ice_unittest.cpp',
-        'nrappkit_unittest.cpp',
-        'rlogringbuffer_unittest.cpp',
-        'runnable_utils_unittest.cpp',
-        'simpletokenbucket_unittest.cpp',
-        'sockettransportservice_unittest.cpp',
-        'TestSyncRunnable.cpp',
-        'transport_unittests.cpp',
-        'turn_unittest.cpp',
-    ]
+    CppUnitTests([
+        'buffered_stun_socket_unittest',
+        'ice_unittest',
+        'multi_tcp_socket_unittest',
+        'nrappkit_unittest',
+        'proxy_tunnel_socket_unittest',
+        'rlogringbuffer_unittest',
+        'runnable_utils_unittest',
+        'simpletokenbucket_unittest',
+        'sockettransportservice_unittest',
+        'test_nr_socket_unittest',
+        'TestSyncRunnable',
+        'transport_unittests',
+        'turn_unittest',
+    ])
 
     if CONFIG['MOZ_SCTP']:
-        CPP_UNIT_TESTS += [
-            'sctp_unittest.cpp',
-        ]
+        CppUnitTests([
+            'sctp_unittest',
+        ])
 
 FAIL_ON_WARNINGS = True
 
-for var in ('HAVE_STRDUP', 'NR_SOCKET_IS_VOID_PTR', 'SCTP_DEBUG', 'INET'):
+for var in ('MOZILLA_INTERNAL_API', 'MOZILLA_XPCOMRT_API', 'MOZILLA_EXTERNAL_LINKAGE', 'HAVE_STRDUP', 'NR_SOCKET_IS_VOID_PTR', 'SCTP_DEBUG', 'INET'):
     DEFINES[var] = True
 
 if CONFIG['OS_TARGET'] == 'Android':
+    DEFINES['LINUX'] = True
+    DEFINES['ANDROID'] = True
     LOCAL_INCLUDES += [
         '/media/mtransport/third_party/nrappkit/src/port/android/include',
     ]
@@ -36,8 +41,16 @@ else:
     DEFINES['INET6'] = True
 
 if CONFIG['OS_TARGET'] == 'Linux':
+    DEFINES['LINUX'] = True
+    DEFINES['USE_INTERFACE_PRIORITIZER'] = True
     LOCAL_INCLUDES += [
         '/media/mtransport/third_party/nrappkit/src/port/linux/include',
+    ]
+    USE_LIBS += [
+        'nspr',
+    ]
+    OS_LIBS += [
+        '-lrt',
     ]
 
 if CONFIG['OS_TARGET'] == 'Darwin':
@@ -46,13 +59,20 @@ if CONFIG['OS_TARGET'] == 'Darwin':
     ]
 
 if CONFIG['OS_TARGET'] in ('DragonFly', 'FreeBSD', 'NetBSD', 'OpenBSD'):
+    if CONFIG['OS_TARGET'] == 'Darwin':
+        DEFINES['DARWIN'] = True
+    else:
+        DEFINES['BSD'] = True
     LOCAL_INCLUDES += [
         '/media/mtransport/third_party/nrappkit/src/port/darwin/include',
-        '/media/mtransport/third_party/nrappkit/src/port/generic/include',
     ]
 
 # SCTP DEFINES
 if CONFIG['OS_TARGET'] == 'WINNT':
+    DEFINES['WIN'] = True
+    # for stun.h
+    DEFINES['WIN32'] = True
+    DEFINES['NOMINMAX'] = True
     DEFINES['__Userspace_os_Windows'] = 1
 else:
     # Works for Darwin, Linux, Android. Probably doesn't work for others.
@@ -72,6 +92,7 @@ LOCAL_INCLUDES += [
     '/media/mtransport/third_party/nrappkit/src/event',
     '/media/mtransport/third_party/nrappkit/src/log',
     '/media/mtransport/third_party/nrappkit/src/plugin',
+    '/media/mtransport/third_party/nrappkit/src/port/generic/include',
     '/media/mtransport/third_party/nrappkit/src/registry',
     '/media/mtransport/third_party/nrappkit/src/share',
     '/media/mtransport/third_party/nrappkit/src/stats',
@@ -79,5 +100,33 @@ LOCAL_INCLUDES += [
     '/media/mtransport/third_party/nrappkit/src/util/libekr',
     '/media/webrtc/trunk/testing/gtest/include/',
     '/netwerk/sctp/src/',
+    '/xpcom/libxpcomrt',
 ]
 
+USE_LIBS += [
+    '/media/webrtc/trunk/testing/gtest_gtest/gtest',
+    'fallible',
+    'mfbt',
+    'mozglue',
+    'mtransport_standalone',
+    'necko_standalone',
+    'nicer',
+    'nrappkit',
+    'nspr',
+    'nss',
+    'unicharutil_standalone',
+    'xpcomrt',
+]
+
+if not CONFIG['MOZ_NATIVE_NSS'] and not CONFIG['MOZ_FOLD_LIBS']:
+    USE_LIBS += [
+        # Statically linking NSS libssl ensures that we can debug NSS too
+        'static:/security/nss/lib/ssl/ssl',
+    ]
+
+if CONFIG['MOZ_SCTP']:
+    USE_LIBS += [
+        'nksctp_s',
+    ]
+
+USE_LIBS += ['mozglue']

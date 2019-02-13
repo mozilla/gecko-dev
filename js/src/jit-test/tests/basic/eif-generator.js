@@ -1,4 +1,5 @@
-// |jit-test| debug
+load(libdir + "evalInFrame.js");
+
 function f() {
     let (x = 1) {
         while (true) {

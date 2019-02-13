@@ -2,189 +2,189 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global loop:true */
-
 var loop = loop || {};
-loop.conversation = (function(OT, mozL10n) {
+loop.conversation = (function(mozL10n) {
   "use strict";
 
-  var sharedViews = loop.shared.views,
-      // aliasing translation function as __ for concision
-      __ = mozL10n.get;
+  var sharedViews = loop.shared.views;
+  var sharedMixins = loop.shared.mixins;
+  var sharedModels = loop.shared.models;
+  var sharedActions = loop.shared.actions;
+
+  var CallControllerView = loop.conversationViews.CallControllerView;
+  var CallIdentifierView = loop.conversationViews.CallIdentifierView;
+  var DesktopRoomConversationView = loop.roomViews.DesktopRoomConversationView;
+  var GenericFailureView = loop.conversationViews.GenericFailureView;
 
   /**
-   * App router.
-   * @type {loop.desktopRouter.DesktopConversationRouter}
+   * Master controller view for handling if incoming or outgoing calls are
+   * in progress, and hence, which view to display.
    */
-  var router;
+  var AppControllerView = React.createClass({displayName: "AppControllerView",
+    mixins: [
+      Backbone.Events,
+      loop.store.StoreMixin("conversationAppStore"),
+      sharedMixins.WindowCloseMixin
+    ],
 
-  /**
-   * Incoming call view.
-   * @type {loop.shared.views.BaseView}
-   */
-  var IncomingCallView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<h2 data-l10n-id="incoming_call"></h2>',
-      '<p>',
-      '  <button class="btn btn-success btn-accept"',
-      '           data-l10n-id="accept_button"></button>',
-      '  <button class="btn btn-error btn-decline"',
-      '           data-l10n-id="decline_button"></button>',
-      '</p>'
-    ].join("")),
-
-    className: "incoming-call",
-
-    events: {
-      "click .btn-accept": "handleAccept",
-      "click .btn-decline": "handleDecline"
+    propTypes: {
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
+      mozLoop: React.PropTypes.object.isRequired,
+      roomStore: React.PropTypes.instanceOf(loop.store.RoomStore)
     },
 
-    /**
-     * User clicked on the "accept" button.
-     * @param  {MouseEvent} event
-     */
-    handleAccept: function(event) {
-      event.preventDefault();
-      this.model.trigger("accept");
+    getInitialState: function() {
+      return this.getStoreState();
     },
 
-    /**
-     * User clicked on the "decline" button.
-     * @param  {MouseEvent} event
-     */
-    handleDecline: function(event) {
-      event.preventDefault();
-      // XXX For now, we just close the window.
-      window.close();
-    }
-  });
-
-  /**
-   * Call ended view.
-   * @type {loop.shared.views.BaseView}
-   */
-  var EndedCallView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<p>',
-      '  <button class="btn btn-info" data-l10n-id="close_window"></button>',
-      '</p>'
-    ].join("")),
-
-    className: "call-ended",
-
-    events: {
-      "click button": "closeWindow"
-    },
-
-    closeWindow: function(event) {
-      event.preventDefault();
-      // XXX For now, we just close the window.
-      window.close();
-    }
-  });
-
-  /**
-   * Conversation router.
-   *
-   * Required options:
-   * - {loop.shared.models.ConversationModel} conversation Conversation model.
-   * - {loop.shared.components.Notifier}      notifier     Notifier component.
-   *
-   * @type {loop.shared.router.BaseConversationRouter}
-   */
-  var ConversationRouter = loop.desktopRouter.DesktopConversationRouter.extend({
-    routes: {
-      "incoming/:version": "incoming",
-      "call/accept": "accept",
-      "call/ongoing": "conversation",
-      "call/ended": "ended"
-    },
-
-    /**
-     * @override {loop.shared.router.BaseConversationRouter.startCall}
-     */
-    startCall: function() {
-      this.navigate("call/ongoing", {trigger: true});
-    },
-
-    /**
-     * @override {loop.shared.router.BaseConversationRouter.endCall}
-     */
-    endCall: function() {
-      this.navigate("call/ended", {trigger: true});
-    },
-
-    /**
-     * Incoming call route.
-     *
-     * @param {String} loopVersion The version from the push notification, set
-     *                             by the router from the URL.
-     */
-    incoming: function(loopVersion) {
-      this._conversation.set({loopVersion: loopVersion});
-      this._conversation.once("accept", function() {
-        this.navigate("call/accept", {trigger: true});
-      }.bind(this));
-      this.loadView(new IncomingCallView({model: this._conversation}));
-    },
-
-    /**
-     * Accepts an incoming call.
-     */
-    accept: function() {
-      this._conversation.initiate({
-        baseServerUrl: window.navigator.mozLoop.serverUrl,
-        outgoing: false
-      });
-    },
-
-    /**
-     * conversation is the route when the conversation is active. The start
-     * route should be navigated to first.
-     */
-    conversation: function() {
-      if (!this._conversation.isSessionReady()) {
-        console.error("Error: navigated to conversation route without " +
-          "the start route to initialise the call first");
-        this._notifier.errorL10n("cannot_start_call_session_not_ready");
-        return;
+    render: function() {
+      switch(this.state.windowType) {
+        // CallControllerView is used for both.
+        case "incoming":
+        case "outgoing": {
+          return (React.createElement(CallControllerView, {
+            dispatcher: this.props.dispatcher, 
+            mozLoop: this.props.mozLoop}));
+        }
+        case "room": {
+          return (React.createElement(DesktopRoomConversationView, {
+            dispatcher: this.props.dispatcher, 
+            mozLoop: this.props.mozLoop, 
+            roomStore: this.props.roomStore}));
+        }
+        case "failed": {
+          return React.createElement(GenericFailureView, {cancelCall: this.closeWindow});
+        }
+        default: {
+          // If we don't have a windowType, we don't know what we are yet,
+          // so don't display anything.
+          return null;
+        }
       }
-
-      this.loadView(
-        new loop.shared.views.ConversationView({
-          sdk: OT,
-          model: this._conversation
-      }));
-    },
-
-    /**
-     * XXX: load a view with a close button for now?
-     */
-    ended: function() {
-      this.loadView(new EndedCallView());
     }
   });
 
   /**
-   * Panel initialisation.
+   * Conversation initialisation.
    */
   function init() {
     // Do the initial L10n setup, we do this before anything
     // else to ensure the L10n environment is setup correctly.
-    mozL10n.initialize(window.navigator.mozLoop);
+    mozL10n.initialize(navigator.mozLoop);
 
-    router = new ConversationRouter({
-      conversation: new loop.shared.models.ConversationModel({}, {sdk: OT}),
-      notifier: new sharedViews.NotificationListView({el: "#messages"})
+    // Plug in an alternate client ID mechanism, as localStorage and cookies
+    // don't work in the conversation window
+    window.OT.overrideGuidStorage({
+      get: function(callback) {
+        callback(null, navigator.mozLoop.getLoopPref("ot.guid"));
+      },
+      set: function(guid, callback) {
+        // See nsIPrefBranch
+        const PREF_STRING = 32;
+        navigator.mozLoop.setLoopPref("ot.guid", guid, PREF_STRING);
+        callback(null);
+      }
     });
-    Backbone.history.start();
+
+    // We want data channels only if the text chat preference is enabled.
+    var useDataChannels = loop.shared.utils.getBoolPreference("textChat.enabled");
+
+    var dispatcher = new loop.Dispatcher();
+    var client = new loop.Client();
+    var sdkDriver = new loop.OTSdkDriver({
+      isDesktop: true,
+      useDataChannels: useDataChannels,
+      dispatcher: dispatcher,
+      sdk: OT,
+      mozLoop: navigator.mozLoop
+    });
+
+    // expose for functional tests
+    loop.conversation._sdkDriver = sdkDriver;
+
+    var appVersionInfo = navigator.mozLoop.appVersionInfo;
+    var feedbackClient = new loop.FeedbackAPIClient(
+      navigator.mozLoop.getLoopPref("feedback.baseUrl"), {
+      product: navigator.mozLoop.getLoopPref("feedback.product"),
+      platform: appVersionInfo.OS,
+      channel: appVersionInfo.channel,
+      version: appVersionInfo.version
+    });
+
+    // Create the stores.
+    var conversationAppStore = new loop.store.ConversationAppStore({
+      dispatcher: dispatcher,
+      mozLoop: navigator.mozLoop
+    });
+    var conversationStore = new loop.store.ConversationStore(dispatcher, {
+      client: client,
+      isDesktop: true,
+      mozLoop: navigator.mozLoop,
+      sdkDriver: sdkDriver
+    });
+    var activeRoomStore = new loop.store.ActiveRoomStore(dispatcher, {
+      isDesktop: true,
+      mozLoop: navigator.mozLoop,
+      sdkDriver: sdkDriver
+    });
+    var roomStore = new loop.store.RoomStore(dispatcher, {
+      mozLoop: navigator.mozLoop,
+      activeRoomStore: activeRoomStore
+    });
+    var feedbackStore = new loop.store.FeedbackStore(dispatcher, {
+      feedbackClient: feedbackClient
+    });
+    var textChatStore = new loop.store.TextChatStore(dispatcher, {
+      sdkDriver: sdkDriver
+    });
+
+    loop.store.StoreMixin.register({
+      conversationAppStore: conversationAppStore,
+      conversationStore: conversationStore,
+      feedbackStore: feedbackStore,
+      textChatStore: textChatStore
+    });
+
+    // Obtain the windowId and pass it through
+    var locationHash = loop.shared.utils.locationData().hash;
+    var windowId;
+
+    var hash = locationHash.match(/#(.*)/);
+    if (hash) {
+      windowId = hash[1];
+    }
+
+    window.addEventListener("unload", function(event) {
+      dispatcher.dispatch(new sharedActions.WindowUnload());
+    });
+
+    React.render(
+      React.createElement(AppControllerView, {
+        dispatcher: dispatcher, 
+        mozLoop: navigator.mozLoop, 
+        roomStore: roomStore}), document.querySelector("#main"));
+
+    document.documentElement.setAttribute("lang", mozL10n.getLanguage());
+    document.documentElement.setAttribute("dir", mozL10n.getDirection());
+    document.body.setAttribute("platform", loop.shared.utils.getPlatform());
+
+    dispatcher.dispatch(new sharedActions.GetWindowData({
+      windowId: windowId
+    }));
   }
 
   return {
-    ConversationRouter: ConversationRouter,
-    EndedCallView: EndedCallView,
-    IncomingCallView: IncomingCallView,
-    init: init
+    AppControllerView: AppControllerView,
+    init: init,
+
+    /**
+     * Exposed for the use of functional tests to be able to check
+     * metric-related execution as the call sequence progresses.
+     *
+     * @type loop.OTSdkDriver
+     */
+    _sdkDriver: null
   };
-})(window.OT, document.mozL10n);
+})(document.mozL10n);
+
+document.addEventListener("DOMContentLoaded", loop.conversation.init);

@@ -49,7 +49,7 @@ struct GLContextSymbols
     PFNGLBINDTEXTUREPROC fBindTexture;
     typedef void (GLAPIENTRY * PFNGLBINDVERTEXARRAYPROC) (GLuint array);
     PFNGLBINDVERTEXARRAYPROC fBindVertexArray;
-    typedef void (GLAPIENTRY * PFNGLBLENDCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+    typedef void (GLAPIENTRY * PFNGLBLENDCOLORPROC) (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
     PFNGLBLENDCOLORPROC fBlendColor;
     typedef void (GLAPIENTRY * PFNGLBLENDEQUATIONPROC) (GLenum mode);
     PFNGLBLENDEQUATIONPROC fBlendEquation;
@@ -65,7 +65,15 @@ struct GLContextSymbols
     PFNGLBUFFERSUBDATAPROC fBufferSubData;
     typedef void (GLAPIENTRY * PFNGLCLEARPROC) (GLbitfield);
     PFNGLCLEARPROC fClear;
-    typedef void (GLAPIENTRY * PFNGLCLEARCOLORPROC) (GLclampf, GLclampf, GLclampf, GLclampf);
+    typedef void (GLAPIENTRY * PFNGLCLEARBUFFERFIPROC) (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
+    PFNGLCLEARBUFFERFIPROC fClearBufferfi;
+    typedef void (GLAPIENTRY * PFNGLCLEARBUFFERFVPROC) (GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    PFNGLCLEARBUFFERFVPROC fClearBufferfv;
+    typedef void (GLAPIENTRY * PFNGLCLEARBUFFERIVPROC) (GLenum buffer, GLint drawbuffer, const GLint* value);
+    PFNGLCLEARBUFFERIVPROC fClearBufferiv;
+    typedef void (GLAPIENTRY * PFNGLCLEARBUFFERUIVPROC) (GLenum buffer, GLint drawbuffer, const GLuint* value);
+    PFNGLCLEARBUFFERUIVPROC fClearBufferuiv;
+    typedef void (GLAPIENTRY * PFNGLCLEARCOLORPROC) (GLfloat, GLfloat, GLfloat, GLfloat);
     PFNGLCLEARCOLORPROC fClearColor;
     typedef void (GLAPIENTRY * PFNGLCLEARSTENCILPROC) (GLint);
     PFNGLCLEARSTENCILPROC fClearStencil;
@@ -137,6 +145,12 @@ struct GLContextSymbols
     PFNGLGETQUERYOBJECTIVPROC fGetQueryObjectiv;
     typedef void (GLAPIENTRY * PFNGLGETQUERYOBJECTUIVPROC) (GLuint id, GLenum pname, GLuint* params);
     PFNGLGETQUERYOBJECTUIVPROC fGetQueryObjectuiv;
+    typedef void (GLAPIENTRY * PFNGLGETQUERYOBJECTI64VPROC) (GLuint id, GLenum pname, GLint64* params);
+    PFNGLGETQUERYOBJECTI64VPROC fGetQueryObjecti64v;
+    typedef void (GLAPIENTRY * PFNGLGETQUERYOBJECTUI64VPROC) (GLuint id, GLenum pname, GLuint64* params);
+    PFNGLGETQUERYOBJECTUI64VPROC fGetQueryObjectui64v;
+    typedef void (GLAPIENTRY * PFNGLQUERYCOUNTERPROC) (GLuint id, GLenum target);
+    PFNGLQUERYCOUNTERPROC fQueryCounter;
     typedef void (GLAPIENTRY * PFNGLTEXPARAMETERIPROC) (GLenum target, GLenum pname, GLint param);
     PFNGLTEXPARAMETERIPROC fTexParameteri;
     typedef void (GLAPIENTRY * PFNGLTEXPARAMETERIVPROC) (GLenum target, GLenum pname, const GLint* param);
@@ -157,6 +171,8 @@ struct GLContextSymbols
     PFNGLGETUNIFORMFVPROC fGetUniformfv;
     typedef void (GLAPIENTRY * PFNGLGETUNIFORMIVPROC) (GLuint program, GLint location, GLint* params);
     PFNGLGETUNIFORMIVPROC fGetUniformiv;
+    typedef void (GLAPIENTRY * PFNGLGETUNIFORMUIVPROC) (GLuint program, GLint location, GLuint* params);
+    PFNGLGETUNIFORMUIVPROC fGetUniformuiv;
     typedef GLint (GLAPIENTRY * PFNGLGETUNIFORMLOCATIONPROC) (GLint programObj, const GLchar* name);
     PFNGLGETUNIFORMLOCATIONPROC fGetUniformLocation;
     typedef void (GLAPIENTRY * PFNGLGETVERTEXATTRIBFVPROC) (GLuint, GLenum, GLfloat*);
@@ -247,10 +263,23 @@ struct GLContextSymbols
     PFNGLUNIFORM4IVPROC fUniform4iv;
     typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX2FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
     PFNGLUNIFORMMATRIX2FVPROC fUniformMatrix2fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX2X3FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX2X3FVPROC fUniformMatrix2x3fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX2X4FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX2X4FVPROC fUniformMatrix2x4fv;
     typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX3FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
     PFNGLUNIFORMMATRIX3FVPROC fUniformMatrix3fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX3X2FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX3X2FVPROC fUniformMatrix3x2fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX3X4FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX3X4FVPROC fUniformMatrix3x4fv;
     typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX4FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
     PFNGLUNIFORMMATRIX4FVPROC fUniformMatrix4fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX4X2FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX4X2FVPROC fUniformMatrix4x2fv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX4X3FVPROC) (GLint location, GLsizei count, realGLboolean transpose, const GLfloat* value);
+    PFNGLUNIFORMMATRIX4X3FVPROC fUniformMatrix4x3fv;
+
     typedef void (GLAPIENTRY * PFNGLUSEPROGRAMPROC) (GLuint program);
     PFNGLUSEPROGRAMPROC fUseProgram;
     typedef void (GLAPIENTRY * PFNGLVALIDATEPROGRAMPROC) (GLuint program);
@@ -287,7 +316,7 @@ struct GLContextSymbols
     PFNGETSHADERPRECISIONFORMAT fGetShaderPrecisionFormat;
     typedef void (GLAPIENTRY * PFNGLGETSHADERSOURCEPROC) (GLint obj, GLsizei maxLength, GLsizei* length, GLchar* source);
     PFNGLGETSHADERSOURCEPROC fGetShaderSource;
-    typedef void (GLAPIENTRY * PFNGLSHADERSOURCEPROC) (GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
+    typedef void (GLAPIENTRY * PFNGLSHADERSOURCEPROC) (GLuint shader, GLsizei count, const GLchar* const* strings, const GLint* lengths);
     PFNGLSHADERSOURCEPROC fShaderSource;
 
     typedef void (GLAPIENTRY * PFNGLBINDFRAMEBUFFER) (GLenum target, GLuint framebuffer);
@@ -312,6 +341,11 @@ struct GLContextSymbols
     PFNGLISVERTEXARRAY fIsVertexArray;
     typedef void (GLAPIENTRY * PFNGLRENDERBUFFERSTORAGE) (GLenum target, GLenum internalFormat, GLsizei width, GLsizei height);
     PFNGLRENDERBUFFERSTORAGE fRenderbufferStorage;
+
+    typedef void (GLAPIENTRY * PFNINVALIDATEFRAMEBUFFER) (GLenum target, GLsizei numAttachments, const GLenum* attachments);
+    PFNINVALIDATEFRAMEBUFFER fInvalidateFramebuffer;
+    typedef void (GLAPIENTRY * PFNINVALIDATESUBFRAMEBUFFER) (GLenum target, GLsizei numAttachments, const GLenum* attachments, GLint x, GLint y, GLsizei width, GLsizei height);
+    PFNINVALIDATESUBFRAMEBUFFER fInvalidateSubFramebuffer;
 
         // These functions are only used by Skia/GL in desktop mode.
         // Other parts of Gecko should avoid using these
@@ -412,6 +446,12 @@ struct GLContextSymbols
     typedef realGLboolean (GLAPIENTRY * PFNGLUNMAPBUFFER) (GLenum target);
     PFNGLUNMAPBUFFER fUnmapBuffer;
 
+    // ARB_copy_buffer / OpenGL 3.1 / OpenGL ES 3.0
+    typedef void (GLAPIENTRY * PFNGLCOPYBUFFERSUBDATAPROC) (GLenum readTarget, GLenum writeTarget,
+                                                            GLintptr readOffset, GLintptr writeOffset,
+                                                            GLsizeiptr size);
+    PFNGLCOPYBUFFERSUBDATAPROC fCopyBufferSubData;
+
     typedef GLenum (GLAPIENTRY * PFNGLGETGRAPHICSRESETSTATUS) (void);
     PFNGLGETGRAPHICSRESETSTATUS fGetGraphicsResetStatus;
 
@@ -447,24 +487,37 @@ struct GLContextSymbols
     typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBDIVISOR) (GLuint index, GLuint divisor);
     PFNGLVERTEXATTRIBDIVISOR fVertexAttribDivisor;
 
-    // EXT_transform_feedback / OpenGL (ES) 3.0
+    // ARB_transform_feedback2 / OpenGL 4.0 / OpenGL ES 3.0
     typedef void (GLAPIENTRY * PFNGLBINDBUFFERBASE) (GLenum target, GLuint index, GLuint buffer);
     PFNGLBINDBUFFERBASE fBindBufferBase;
     typedef void (GLAPIENTRY * PFNGLBINDBUFFERRANGE) (GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
     PFNGLBINDBUFFERRANGE fBindBufferRange;
 
-    typedef void (GLAPIENTRY * PFNGLBEGINTRANSFORMFEEDBACK) (GLenum primitiveMode);
-    PFNGLBEGINTRANSFORMFEEDBACK fBeginTransformFeedback;
-    typedef void (GLAPIENTRY * PFNGLENDTRANSFORMFEEDBACK) (void);
-    PFNGLENDTRANSFORMFEEDBACK fEndTransformFeedback;
-
+    typedef void (GLAPIENTRY * PFNGLGENTRANSFORMFEEDBACKSPROC) (GLsizei n, GLuint* ids);
+    PFNGLGENTRANSFORMFEEDBACKSPROC fGenTransformFeedbacks;
+    typedef void (GLAPIENTRY * PFNGLDELETETRANSFORMFEEDBACKSPROC) (GLsizei n, const GLuint* ids);
+    PFNGLDELETETRANSFORMFEEDBACKSPROC fDeleteTransformFeedbacks;
+    typedef realGLboolean (GLAPIENTRY * PFNGLISTRANSFORMFEEDBACKPROC) (GLuint id);
+    PFNGLISTRANSFORMFEEDBACKPROC fIsTransformFeedback;
+    typedef void (GLAPIENTRY * PFNGLBINDTRANSFORMFEEDBACKPROC) (GLenum target, GLuint id);
+    PFNGLBINDTRANSFORMFEEDBACKPROC fBindTransformFeedback;
     typedef void (GLAPIENTRY * PFNGLTRANSFORMFEEDBACKVARYINGS) (GLuint program, GLsizei count, const GLchar* const* varyings, GLenum bufferMode);
     PFNGLTRANSFORMFEEDBACKVARYINGS fTransformFeedbackVaryings;
     typedef void (GLAPIENTRY * PFNGLGETTRANSFORMFEEDBACKVARYING) (GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLsizei* size, GLenum* type, GLchar* name);
     PFNGLGETTRANSFORMFEEDBACKVARYING fGetTransformFeedbackVarying;
+    typedef void (GLAPIENTRY * PFNGLBEGINTRANSFORMFEEDBACK) (GLenum primitiveMode);
+    PFNGLBEGINTRANSFORMFEEDBACK fBeginTransformFeedback;
+    typedef void (GLAPIENTRY * PFNGLENDTRANSFORMFEEDBACK) (void);
+    PFNGLENDTRANSFORMFEEDBACK fEndTransformFeedback;
+    typedef void (GLAPIENTRY * PFNGLPAUSETRANSFORMFEEDBACKPROC) ();
+    PFNGLPAUSETRANSFORMFEEDBACKPROC fPauseTransformFeedback;
+    typedef void (GLAPIENTRY * PFNGLRESUMETRANSFORMFEEDBACKPROC) ();
+    PFNGLRESUMETRANSFORMFEEDBACKPROC fResumeTransformFeedback;
 
     typedef void (GLAPIENTRY * PFNGLGETINTEGERI_V) (GLenum param, GLuint index, GLint* values);
     PFNGLGETINTEGERI_V fGetIntegeri_v;
+    typedef void (GLAPIENTRY * PFNGLGETINTEGER64I_VPROC) (GLenum target, GLuint index, GLint64* data);
+    PFNGLGETINTEGER64I_VPROC fGetInteger64i_v;
 
     // EXT_transform_feedback only
     typedef void (GLAPIENTRY * PFNGLBINDBUFFEROFFSET) (GLenum target, GLuint index, GLuint buffer, GLintptr offset);
@@ -497,6 +550,134 @@ struct GLContextSymbols
     // draw_range_elements
     typedef void (GLAPIENTRY * PFNGLDRAWRANGEELEMENTS) (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices);
     PFNGLDRAWRANGEELEMENTS fDrawRangeElements;
+
+    // NV_fence
+    typedef void (GLAPIENTRY * pfnGenFencesT) (GLsizei n, GLuint* fences);
+    pfnGenFencesT fGenFences;
+    typedef void (GLAPIENTRY * pfnDeleteFencesT) (GLsizei n, const GLuint* fences);
+    pfnDeleteFencesT fDeleteFences;
+    typedef void (GLAPIENTRY * pfnSetFenceT) (GLuint fence, GLenum condition);
+    pfnSetFenceT fSetFence;
+    typedef realGLboolean (GLAPIENTRY * pfnTestFenceT) (GLuint fence);
+    pfnTestFenceT fTestFence;
+    typedef void (GLAPIENTRY * pfnFinishFenceT) (GLuint fence);
+    pfnFinishFenceT fFinishFence;
+    typedef realGLboolean (GLAPIENTRY * pfnIsFenceT) (GLuint fence);
+    pfnIsFenceT fIsFence;
+    typedef void (GLAPIENTRY * pfnGetFenceivT) (GLuint fence, GLenum pname, GLint* params);
+    pfnGetFenceivT fGetFenceiv;
+
+    // map_buffer_range
+    typedef void* (GLAPIENTRY * PFNGLMAPBUFFERRANGEPROC) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+    PFNGLMAPBUFFERRANGEPROC fMapBufferRange;
+    typedef void (GLAPIENTRY * PFNGLFLUSHMAPPEDBUFFERRANGEPROC) (GLenum target, GLintptr offset, GLsizeiptr length);
+    PFNGLFLUSHMAPPEDBUFFERRANGEPROC fFlushMappedBufferRange;
+
+    // sampler_object
+    typedef void (GLAPIENTRY * PFNGLGENSAMPLERSPROC) (GLsizei count, GLuint *samplers);
+    PFNGLGENSAMPLERSPROC fGenSamplers;
+    typedef void (GLAPIENTRY * PFNGLDELETESAMPLERSPROC) (GLsizei count, const GLuint *samplers);
+    PFNGLDELETESAMPLERSPROC fDeleteSamplers;
+    typedef realGLboolean (GLAPIENTRY * PFNGLISSAMPLERPROC) (GLuint sampler);
+    PFNGLISSAMPLERPROC fIsSampler;
+    typedef void (GLAPIENTRY * PFNGLBINDSAMPLERPROC) (GLuint unit, GLuint sampler);
+    PFNGLBINDSAMPLERPROC fBindSampler;
+    typedef void (GLAPIENTRY * PFNGLSAMPLERPARAMETERIPROC) (GLuint sampler, GLenum pname, GLint param);
+    PFNGLSAMPLERPARAMETERIPROC fSamplerParameteri;
+    typedef void (GLAPIENTRY * PFNGLSAMPLERPARAMETERIVPROC) (GLuint sampler, GLenum pname, const GLint *param);
+    PFNGLSAMPLERPARAMETERIVPROC fSamplerParameteriv;
+    typedef void (GLAPIENTRY * PFNGLSAMPLERPARAMETERFPROC) (GLuint sampler, GLenum pname, GLfloat param);
+    PFNGLSAMPLERPARAMETERFPROC fSamplerParameterf;
+    typedef void (GLAPIENTRY * PFNGLSAMPLERPARAMETERFVPROC) (GLuint sampler, GLenum pname, const GLfloat *param);
+    PFNGLSAMPLERPARAMETERFVPROC fSamplerParameterfv;
+    typedef void (GLAPIENTRY * PFNGLGETSAMPLERPARAMETERIVPROC) (GLuint sampler, GLenum pname, GLint *params);
+    PFNGLGETSAMPLERPARAMETERIVPROC fGetSamplerParameteriv;
+    typedef void (GLAPIENTRY * PFNGLGETSAMPLERPARAMETERFVPROC) (GLuint sampler, GLenum pname, GLfloat *params);
+    PFNGLGETSAMPLERPARAMETERFVPROC fGetSamplerParameterfv;
+
+    // texture_storage
+    typedef void (GLAPIENTRY * PFNGLTEXSTORAGE2DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+    PFNGLTEXSTORAGE2DPROC fTexStorage2D;
+    typedef void (GLAPIENTRY * PFNGLTEXSTORAGE3DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
+    PFNGLTEXSTORAGE3DPROC fTexStorage3D;
+
+    // uniform_buffer_object
+    typedef void (GLAPIENTRY * PFNGLGETUNIFORMINDICESPROC) (GLuint program, GLsizei uniformCount,
+                                                            const GLchar* const* uniformNames, GLuint* uniformIndices);
+    PFNGLGETUNIFORMINDICESPROC fGetUniformIndices;
+    typedef void (GLAPIENTRY * PFNGLGETACTIVEUNIFORMSIVPROC) (GLuint program, GLsizei uniformCount, const GLuint* uniformIndices,
+                                                             GLenum pname, GLint* params);
+    PFNGLGETACTIVEUNIFORMSIVPROC fGetActiveUniformsiv;
+    typedef void (GLAPIENTRY * PFNGLGETACTIVEUNIFORMNAMEPROC) (GLuint program, GLuint uniformIdex, GLsizei bufSize, GLsizei* length, GLchar* uniformName);
+    PFNGLGETACTIVEUNIFORMNAMEPROC fGetActiveUniformName;
+    typedef GLuint (GLAPIENTRY * PFNGLGETUNIFORMBLOCKINDEXPROC) (GLuint program, const GLchar* uniformBlockName);
+    PFNGLGETUNIFORMBLOCKINDEXPROC fGetUniformBlockIndex;
+    typedef void (GLAPIENTRY * PFNGLGETACTIVEUNIFORMBLOCKIVPROC) (GLuint program, GLuint uniformBlockIndex, GLenum pname, GLint* params);
+    PFNGLGETACTIVEUNIFORMBLOCKIVPROC fGetActiveUniformBlockiv;
+    typedef void (GLAPIENTRY * PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC) (GLuint program, GLuint uniformBlockIndex, GLsizei bufSize, GLsizei* length, GLchar* uniformBlockName);
+    PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC fGetActiveUniformBlockName;
+    typedef void (GLAPIENTRY * PFNGLUNIFORMBLOCKBINDINGPROC) (GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+    PFNGLUNIFORMBLOCKBINDINGPROC fUniformBlockBinding;
+
+    // EXT_gpu_shader4
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBI4IPROC) (GLuint index, GLint x, GLint y, GLint z, GLint w);
+    PFNGLVERTEXATTRIBI4IPROC fVertexAttribI4i;
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBI4IVPROC) (GLuint index, const GLint* v);
+    PFNGLVERTEXATTRIBI4IVPROC fVertexAttribI4iv;
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBI4UIPROC) (GLuint index, GLuint x, GLuint y, GLuint z, GLuint w);
+    PFNGLVERTEXATTRIBI4UIPROC fVertexAttribI4ui;
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBI4UIVPROC) (GLuint index, const GLuint* v);
+    PFNGLVERTEXATTRIBI4UIVPROC fVertexAttribI4uiv;
+    typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBIPOINTERPROC) (GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid* ptr);
+    PFNGLVERTEXATTRIBIPOINTERPROC fVertexAttribIPointer;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM1UIPROC) (GLint location, GLuint v0);
+    PFNGLUNIFORM1UIPROC fUniform1ui;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM2UIPROC) (GLint location, GLuint v0, GLuint v1);
+    PFNGLUNIFORM2UIPROC fUniform2ui;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM3UIPROC) (GLint location, GLuint v0, GLuint v1, GLuint v2);
+    PFNGLUNIFORM3UIPROC fUniform3ui;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM4UIPROC) (GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
+    PFNGLUNIFORM4UIPROC fUniform4ui;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM1UIVPROC) (GLint location, GLsizei count, const GLuint* value);
+    PFNGLUNIFORM1UIVPROC fUniform1uiv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM2UIVPROC) (GLint location, GLsizei count, const GLuint* value);
+    PFNGLUNIFORM2UIVPROC fUniform2uiv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM3UIVPROC) (GLint location, GLsizei count, const GLuint* value);
+    PFNGLUNIFORM3UIVPROC fUniform3uiv;
+    typedef void (GLAPIENTRY * PFNGLUNIFORM4UIVPROC) (GLint location, GLsizei count, const GLuint* value);
+    PFNGLUNIFORM4UIVPROC fUniform4uiv;
+    typedef GLint (GLAPIENTRY * PFNGLGETFRAGDATALOCATIONPROC) (GLuint program, const GLchar* name);
+    PFNGLGETFRAGDATALOCATIONPROC fGetFragDataLocation;
+
+    // 3D Textures
+    typedef void (GLAPIENTRY * PFNGLTEXIMAGE3DPROC) (GLenum target, GLint level,
+                                                     GLenum internalFormat,
+                                                     GLenum width, GLsizei height, GLsizei depth,
+                                                     GLint border, GLenum format, GLenum type,
+                                                     const GLvoid* pixels);
+    PFNGLTEXIMAGE3DPROC fTexImage3D;
+    typedef void (GLAPIENTRY * PFNGLTEXSUBIMAGE3DPROC) (GLenum target, GLint level, GLint xoffset,
+                                                        GLint yoffset, GLint zoffset, GLsizei width,
+                                                        GLsizei height, GLsizei depth, GLenum format,
+                                                        GLenum type, const GLvoid* pixels);
+    PFNGLTEXSUBIMAGE3DPROC fTexSubImage3D;
+    typedef void (GLAPIENTRY * PFNGLCOPYTEXSUBIMAGE3DPROC) (GLenum target, GLint level, GLint xoffset,
+                                                            GLint yoffset, GLint zoffset, GLint x,
+                                                            GLint y, GLsizei width, GLsizei height);
+    PFNGLCOPYTEXSUBIMAGE3DPROC fCopyTexSubImage3D;
+    typedef void (GLAPIENTRY * PFNGLCOMPRESSEDTEXIMAGE3DPROC) (GLenum target, GLint level, GLenum internalformat,
+                                                               GLsizei width, GLsizei height, GLsizei depth,
+                                                               GLint border, GLsizei imageSize, const GLvoid* data);
+    PFNGLCOMPRESSEDTEXIMAGE3DPROC fCompressedTexImage3D;
+    typedef void (GLAPIENTRY * PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC) (GLenum target, GLint level,
+                                                                  GLint xoffset, GLint yoffset, GLint zoffset,
+                                                                  GLsizei width, GLsizei height, GLsizei depth,
+                                                                  GLenum format, GLsizei imageSize, const GLvoid* data);
+    PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC fCompressedTexSubImage3D;
+
+    // get_string_indexed
+    typedef const GLubyte* (GLAPIENTRY * PFNGLGETSTRINGIPROC)(GLenum name, GLuint index);
+    PFNGLGETSTRINGIPROC fGetStringi;
 };
 
 }

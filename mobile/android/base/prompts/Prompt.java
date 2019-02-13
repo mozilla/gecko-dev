@@ -11,7 +11,10 @@ import org.json.JSONObject;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.Tab;
+import org.mozilla.gecko.Tabs;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -39,7 +42,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 public class Prompt implements OnClickListener, OnCancelListener, OnItemClickListener,
-                               PromptInput.OnChangeListener {
+                               PromptInput.OnChangeListener, Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoPromptService";
 
     private String[] mButtons;
@@ -52,8 +55,10 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
     private String mGuid;
     private PromptListAdapter mAdapter;
 
-    private static boolean mInitialized = false;
+    private static boolean mInitialized;
     private static int mInputPaddingSize;
+
+    private int mTabId = Tabs.INVALID_TAB_ID;
 
     public Prompt(Context context, PromptCallback callback) {
         this(context);
@@ -75,19 +80,93 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         // Don't add padding to color picker views
         if (input.canApplyInputStyle()) {
             view.setPadding(mInputPaddingSize, 0, mInputPaddingSize, 0);
-	}
+        }
         return view;
     }
 
     public void show(JSONObject message) {
-        processMessage(message);
+        String title = message.optString("title");
+        String text = message.optString("text");
+        mGuid = message.optString("guid");
+
+        mButtons = getStringArray(message, "buttons");
+
+        JSONArray inputs = getSafeArray(message, "inputs");
+        mInputs = new PromptInput[inputs.length()];
+        for (int i = 0; i < mInputs.length; i++) {
+            try {
+                mInputs[i] = PromptInput.getInput(inputs.getJSONObject(i));
+                mInputs[i].setListener(this);
+            } catch(Exception ex) { }
+        }
+
+        PromptListItem[] menuitems = PromptListItem.getArray(message.optJSONArray("listitems"));
+        String selected = message.optString("choiceMode");
+
+        int choiceMode = ListView.CHOICE_MODE_NONE;
+        if ("single".equals(selected)) {
+            choiceMode = ListView.CHOICE_MODE_SINGLE;
+        } else if ("multiple".equals(selected)) {
+            choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+        }
+
+        if (message.has("tabId")) {
+            mTabId = message.optInt("tabId", Tabs.INVALID_TAB_ID);
+        }
+
+        show(title, text, menuitems, choiceMode);
     }
 
-
-    public void show(String title, String text, PromptListItem[] listItems, int choiceMode) {
+     public void show(String title, String text, PromptListItem[] listItems, int choiceMode) {
         ThreadUtils.assertOnUiThread();
 
-        GeckoAppShell.getLayerView().abortPanning();
+        try {
+            create(title, text, listItems, choiceMode);
+        } catch(IllegalStateException ex) {
+            Log.i(LOGTAG, "Error building dialog", ex);
+            return;
+        }
+
+        if (mTabId != Tabs.INVALID_TAB_ID) {
+            Tabs.registerOnTabsChangedListener(this);
+
+            final Tab tab = Tabs.getInstance().getTab(mTabId);
+            if (Tabs.getInstance().getSelectedTab() == tab) {
+                mDialog.show();
+            }
+        } else {
+            mDialog.show();
+        }
+    }
+
+    @Override
+    public void onTabChanged(final Tab tab, final Tabs.TabEvents msg, final Object data) {
+        if (tab != Tabs.getInstance().getTab(mTabId)) {
+            return;
+        }
+
+        switch(msg) {
+            case SELECTED:
+                Log.i(LOGTAG, "Selected");
+                mDialog.show();
+                break;
+            case UNSELECTED:
+                Log.i(LOGTAG, "Unselected");
+                mDialog.hide();
+                break;
+            case LOCATION_CHANGE:
+                Log.i(LOGTAG, "Location change");
+                mDialog.cancel();
+                break;
+        }
+    }
+
+    private void create(String title, String text, PromptListItem[] listItems, int choiceMode)
+            throws IllegalStateException {
+        final LayerView view = GeckoAppShell.getLayerView();
+        if (view != null) {
+            view.abortPanning();
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         if (!TextUtils.isEmpty(title)) {
@@ -104,8 +183,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         if (listItems != null && listItems.length > 0) {
             addListItems(builder, listItems, choiceMode);
         } else if (!addInputs(builder)) {
-            // If we failed to add any requested input elements, don't show the dialog
-            return;
+            throw new IllegalStateException("Could not add inputs to dialog");
         }
 
         int length = mButtons == null ? 0 : mButtons.length;
@@ -121,7 +199,6 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
         mDialog = builder.create();
         mDialog.setOnCancelListener(Prompt.this);
-        mDialog.show();
     }
 
     public void setButtons(String[] buttons) {
@@ -299,9 +376,9 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
      *
      * @param builder
      *        the alert builder currently building this dialog.
-     * @return 
+     * @return
      *         return true if the inputs were added successfully. This may fail
-     *         if the requested input is compatible with this Android verison
+     *         if the requested input is compatible with this Android version.
      */
     private boolean addInputs(AlertDialog.Builder builder) {
         int length = mInputs == null ? 0 : mInputs.length;
@@ -311,7 +388,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
 
         try {
             View root = null;
-            boolean scrollable = false; // If any of the innuts are scrollable, we won't wrap this in a ScrollView
+            boolean scrollable = false; // If any of the inputs are scrollable, we won't wrap this in a ScrollView
 
             if (length == 1) {
                 root = wrapInput(mInputs[0]);
@@ -417,43 +494,16 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
             aReturn.put("guid", mGuid);
         } catch(JSONException ex) { }
 
+        if (mTabId != Tabs.INVALID_TAB_ID) {
+            Tabs.unregisterOnTabsChangedListener(this);
+        }
+
         // poke the Gecko thread in case it's waiting for new events
         GeckoAppShell.sendEventToGecko(GeckoEvent.createNoOpEvent());
 
         if (mCallback != null) {
             mCallback.onPromptFinished(aReturn.toString());
         }
-    }
-
-    /* Handles parsing the initial JSON sent to show dialogs
-     */
-    private void processMessage(JSONObject geckoObject) {
-        String title = geckoObject.optString("title");
-        String text = geckoObject.optString("text");
-        mGuid = geckoObject.optString("guid");
-
-        mButtons = getStringArray(geckoObject, "buttons");
-
-        JSONArray inputs = getSafeArray(geckoObject, "inputs");
-        mInputs = new PromptInput[inputs.length()];
-        for (int i = 0; i < mInputs.length; i++) {
-            try {
-                mInputs[i] = PromptInput.getInput(inputs.getJSONObject(i));
-                mInputs[i].setListener(this);
-            } catch(Exception ex) { }
-        }
-
-        PromptListItem[] menuitems = PromptListItem.getArray(geckoObject.optJSONArray("listitems"));
-        String selected = geckoObject.optString("choiceMode");
-
-        int choiceMode = ListView.CHOICE_MODE_NONE;
-        if ("single".equals(selected)) {
-            choiceMode = ListView.CHOICE_MODE_SINGLE;
-        } else if ("multiple".equals(selected)) {
-            choiceMode = ListView.CHOICE_MODE_MULTIPLE;
-        }
-
-        show(title, text, menuitems, choiceMode);
     }
 
     // Called when the prompt inputs on the dialog change

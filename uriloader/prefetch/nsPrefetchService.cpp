@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,8 +10,7 @@
 #include "nsIObserverService.h"
 #include "nsIWebProgress.h"
 #include "nsCURILoader.h"
-#include "nsICachingChannel.h"
-#include "nsICacheVisitor.h"
+#include "nsICacheInfoChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIURL.h"
 #include "nsISimpleEnumerator.h"
@@ -21,7 +21,7 @@
 #include "nsStreamUtils.h"
 #include "nsAutoPtr.h"
 #include "prtime.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "plstr.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Preferences.h"
@@ -29,27 +29,26 @@
 #include "nsIDOMNode.h"
 #include "nsINode.h"
 #include "nsIDocument.h"
+#include "nsContentUtils.h"
 
 using namespace mozilla;
 
-#if defined(PR_LOGGING)
 //
 // To enable logging (see prlog.h for full details):
 //
 //    set NSPR_LOG_MODULES=nsPrefetch:5
 //    set NSPR_LOG_FILE=prefetch.log
 //
-// this enables PR_LOG_ALWAYS level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file http.log
 //
 static PRLogModuleInfo *gPrefetchLog;
-#endif
 
 #undef LOG
-#define LOG(args) PR_LOG(gPrefetchLog, 4, args)
+#define LOG(args) MOZ_LOG(gPrefetchLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() PR_LOG_TEST(gPrefetchLog, 4)
+#define LOG_ENABLED() MOZ_LOG_TEST(gPrefetchLog, mozilla::LogLevel::Debug)
 
 #define PREFETCH_PREF "network.prefetch-next"
 
@@ -69,15 +68,16 @@ PRTimeToSeconds(PRTime t_usec)
 //-----------------------------------------------------------------------------
 // nsPrefetchQueueEnumerator
 //-----------------------------------------------------------------------------
-class nsPrefetchQueueEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsPrefetchQueueEnumerator final : public nsISimpleEnumerator
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSISIMPLEENUMERATOR
-    nsPrefetchQueueEnumerator(nsPrefetchService *aService);
-    ~nsPrefetchQueueEnumerator();
+    explicit nsPrefetchQueueEnumerator(nsPrefetchService *aService);
 
 private:
+    ~nsPrefetchQueueEnumerator();
+
     void Increment();
 
     nsRefPtr<nsPrefetchService> mService;
@@ -186,11 +186,18 @@ nsPrefetchNode::OpenChannel()
         return NS_ERROR_FAILURE;
     }
     nsCOMPtr<nsILoadGroup> loadGroup = source->OwnerDoc()->GetDocumentLoadGroup();
-    nsresult rv = NS_NewChannel(getter_AddRefs(mChannel),
-                                mURI,
-                                nullptr, loadGroup, this,
-                                nsIRequest::LOAD_BACKGROUND |
-                                nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
+    nsresult rv = NS_NewChannelInternal(getter_AddRefs(mChannel),
+                                        mURI,
+                                        source,
+                                        source->NodePrincipal(),
+                                        nullptr,   //aTriggeringPrincipal
+                                        nsILoadInfo::SEC_NORMAL,
+                                        nsIContentPolicy::TYPE_OTHER,
+                                        loadGroup, // aLoadGroup
+                                        this,      // aCallbacks
+                                        nsIRequest::LOAD_BACKGROUND |
+                                        nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     // configure HTTP specific stuff
@@ -240,13 +247,13 @@ nsPrefetchNode::OnStartRequest(nsIRequest *aRequest,
 {
     nsresult rv;
 
-    nsCOMPtr<nsICachingChannel> cachingChannel =
+    nsCOMPtr<nsICacheInfoChannel> cacheInfoChannel =
         do_QueryInterface(aRequest, &rv);
     if (NS_FAILED(rv)) return rv;
-
+ 
     // no need to prefetch a document that is already in the cache
     bool fromCache;
-    if (NS_SUCCEEDED(cachingChannel->IsFromCache(&fromCache)) &&
+    if (NS_SUCCEEDED(cacheInfoChannel->IsFromCache(&fromCache)) &&
         fromCache) {
         LOG(("document is already in the cache; canceling prefetch\n"));
         return NS_BINDING_ABORTED;
@@ -256,17 +263,8 @@ nsPrefetchNode::OnStartRequest(nsIRequest *aRequest,
     // no need to prefetch a document that must be requested fresh each
     // and every time.
     //
-    nsCOMPtr<nsISupports> cacheToken;
-    cachingChannel->GetCacheToken(getter_AddRefs(cacheToken));
-    if (!cacheToken)
-        return NS_ERROR_ABORT; // bail, no cache entry
-
-    nsCOMPtr<nsICacheEntry> entryInfo =
-        do_QueryInterface(cacheToken, &rv);
-    if (NS_FAILED(rv)) return rv;
-
     uint32_t expTime;
-    if (NS_SUCCEEDED(entryInfo->GetExpirationTime(&expTime))) {
+    if (NS_SUCCEEDED(cacheInfoChannel->GetCacheTokenExpirationTime(&expTime))) {
         if (NowInSeconds() >= expTime) {
             LOG(("document cannot be reused from cache; "
                  "canceling prefetch\n"));
@@ -413,10 +411,8 @@ nsPrefetchService::~nsPrefetchService()
 nsresult
 nsPrefetchService::Init()
 {
-#if defined(PR_LOGGING)
     if (!gPrefetchLog)
         gPrefetchLog = PR_NewLogModule("nsPrefetch");
-#endif
 
     nsresult rv;
 
@@ -452,13 +448,11 @@ nsPrefetchService::ProcessNextURI()
 
         if (NS_FAILED(rv)) break;
 
-#if defined(PR_LOGGING)
         if (LOG_ENABLED()) {
             nsAutoCString spec;
             mCurrentNode->mURI->GetSpec(spec);
             LOG(("ProcessNextURI [%s]\n", spec.get()));
         }
-#endif
 
         //
         // if opening the channel fails, then just skip to the next uri
@@ -639,13 +633,11 @@ nsPrefetchService::Prefetch(nsIURI *aURI,
     NS_ENSURE_ARG_POINTER(aURI);
     NS_ENSURE_ARG_POINTER(aReferrerURI);
 
-#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         nsAutoCString spec;
         aURI->GetSpec(spec);
         LOG(("PrefetchURI [%s]\n", spec.get()));
     }
-#endif
 
     if (mDisabled) {
         LOG(("rejected: prefetch service is disabled\n"));

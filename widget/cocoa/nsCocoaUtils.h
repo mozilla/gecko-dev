@@ -12,6 +12,7 @@
 #include "imgIContainer.h"
 #include "npapi.h"
 #include "nsTArray.h"
+#include "Units.h"
 
 // This must be the last include:
 #include "nsObjCExceptions.h"
@@ -54,7 +55,7 @@ class SourceSurface;
 // Used to retain a Cocoa object for the remainder of a method's execution.
 class nsAutoRetainCocoaObject {
 public:
-nsAutoRetainCocoaObject(id anObject)
+explicit nsAutoRetainCocoaObject(id anObject)
 {
   mObject = NS_OBJC_TRY_EXPR_ABORT([anObject retain]);
 }
@@ -174,7 +175,8 @@ public:
   }
 
   static NSPoint
-  DevPixelsToCocoaPoints(const nsIntPoint& aPt, CGFloat aBackingScale)
+  DevPixelsToCocoaPoints(const mozilla::LayoutDeviceIntPoint& aPt,
+                         CGFloat aBackingScale)
   {
     return NSMakePoint((CGFloat)aPt.x / aBackingScale,
                        (CGFloat)aPt.y / aBackingScale);
@@ -244,7 +246,7 @@ public:
   static void GetScrollingDeltas(NSEvent* aEvent, CGFloat* aOutDeltaX, CGFloat* aOutDeltaY);
 
   // Hides the Menu bar and the Dock. Multiple hide/show requests can be nested.
-  static void HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen);
+  static void HideOSChromeOnScreen(bool aShouldHide);
 
   static nsIWidget* GetHiddenWindowWidget();
 
@@ -320,11 +322,6 @@ public:
    */
   static void InitNPCocoaEvent(NPCocoaEvent* aNPCocoaEvent);
 
-  /**
-   * Initializes aPluginEvent for aCocoaEvent.
-   */
-  static void InitPluginEvent(mozilla::WidgetPluginEvent &aPluginEvent,
-                              NPCocoaEvent &aCocoaEvent);
   /**
    * Initializes WidgetInputEvent for aNativeEvent or aModifiers.
    */

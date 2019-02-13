@@ -4,6 +4,7 @@
 
 package org.mozilla.gecko;
 
+import android.content.res.Resources;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.BitmapUtils.BitmapLoader;
 import org.mozilla.gecko.gfx.Layer;
@@ -16,6 +17,7 @@ import org.mozilla.gecko.util.FloatUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.ActionModeCompat.Callback;
+import org.mozilla.gecko.AppConstants.Versions;
 
 import android.content.Context;
 import android.app.Activity;
@@ -35,15 +37,16 @@ import android.view.View;
 
 class TextSelection extends Layer implements GeckoEventListener {
     private static final String LOGTAG = "GeckoTextSelection";
+    private static final int SHUTDOWN_DELAY_MS = 250;
 
-    private final TextSelectionHandle mStartHandle;
-    private final TextSelectionHandle mMiddleHandle;
-    private final TextSelectionHandle mEndHandle;
-    private final EventDispatcher mEventDispatcher;
+    private final TextSelectionHandle anchorHandle;
+    private final TextSelectionHandle caretHandle;
+    private final TextSelectionHandle focusHandle;
 
     private final DrawListener mDrawListener;
     private boolean mDraggingHandles;
 
+    private String selectionID; // Unique ID provided for each selection action.
     private float mViewLeft;
     private float mViewTop;
     private float mViewZoom;
@@ -52,9 +55,9 @@ class TextSelection extends Layer implements GeckoEventListener {
 
     private TextSelectionActionModeCallback mCallback;
 
-    // These timers are used to avoid flicker caused by selection handles showing/hiding quickly. For isntance
-    // when moving between single handle caret mode and two handle selection mode.
-    private Timer mActionModeTimer = new Timer("actionMode");
+    // These timers are used to avoid flicker caused by selection handles showing/hiding quickly.
+    // For instance when moving between single handle caret mode and two handle selection mode.
+    private final Timer mActionModeTimer = new Timer("actionMode");
     private class ActionModeTimerTask extends TimerTask {
         @Override
         public void run() {
@@ -68,15 +71,12 @@ class TextSelection extends Layer implements GeckoEventListener {
     };
     private ActionModeTimerTask mActionModeTimerTask;
 
-    TextSelection(TextSelectionHandle startHandle,
-                  TextSelectionHandle middleHandle,
-                  TextSelectionHandle endHandle,
-                  EventDispatcher eventDispatcher,
-                  GeckoApp activity) {
-        mStartHandle = startHandle;
-        mMiddleHandle = middleHandle;
-        mEndHandle = endHandle;
-        mEventDispatcher = eventDispatcher;
+    TextSelection(TextSelectionHandle anchorHandle,
+                  TextSelectionHandle caretHandle,
+                  TextSelectionHandle focusHandle) {
+        this.anchorHandle = anchorHandle;
+        this.caretHandle = caretHandle;
+        this.focusHandle = focusHandle;
 
         mDrawListener = new DrawListener() {
             @Override
@@ -88,10 +88,13 @@ class TextSelection extends Layer implements GeckoEventListener {
         };
 
         // Only register listeners if we have valid start/middle/end handles
-        if (mStartHandle == null || mMiddleHandle == null || mEndHandle == null) {
+        if (anchorHandle == null || caretHandle == null || focusHandle == null) {
             Log.e(LOGTAG, "Failed to initialize text selection because at least one handle is null");
         } else {
             EventDispatcher.getInstance().registerGeckoThreadListener(this,
+                "TextSelection:ActionbarInit",
+                "TextSelection:ActionbarStatus",
+                "TextSelection:ActionbarUninit",
                 "TextSelection:ShowHandles",
                 "TextSelection:HideHandles",
                 "TextSelection:PositionHandles",
@@ -102,6 +105,9 @@ class TextSelection extends Layer implements GeckoEventListener {
 
     void destroy() {
         EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
+            "TextSelection:ActionbarInit",
+            "TextSelection:ActionbarStatus",
+            "TextSelection:ActionbarUninit",
             "TextSelection:ShowHandles",
             "TextSelection:HideHandles",
             "TextSelection:PositionHandles",
@@ -110,12 +116,16 @@ class TextSelection extends Layer implements GeckoEventListener {
     }
 
     private TextSelectionHandle getHandle(String name) {
-        if (name.equals("START")) {
-            return mStartHandle;
-        } else if (name.equals("MIDDLE")) {
-            return mMiddleHandle;
-        } else {
-            return mEndHandle;
+        switch (TextSelectionHandle.HandleType.valueOf(name)) {
+            case ANCHOR:
+                return anchorHandle;
+            case CARET:
+                return caretHandle;
+            case FOCUS:
+                return focusHandle;
+
+            default:
+                throw new IllegalArgumentException("TextSelectionHandle is invalid type.");
         }
     }
 
@@ -131,6 +141,7 @@ class TextSelection extends Layer implements GeckoEventListener {
             public void run() {
                 try {
                     if (event.equals("TextSelection:ShowHandles")) {
+                        selectionID = message.getString("selectionID");
                         final JSONArray handles = message.getJSONArray("handles");
                         for (int i=0; i < handles.length(); i++) {
                             String handle = handles.getString(i);
@@ -163,24 +174,46 @@ class TextSelection extends Layer implements GeckoEventListener {
                         }
 
                         mActionModeTimerTask = new ActionModeTimerTask();
-                        mActionModeTimer.schedule(mActionModeTimerTask, 250);
+                        mActionModeTimer.schedule(mActionModeTimerTask, SHUTDOWN_DELAY_MS);
 
-                        mStartHandle.setVisibility(View.GONE);
-                        mMiddleHandle.setVisibility(View.GONE);
-                        mEndHandle.setVisibility(View.GONE);
+                        anchorHandle.setVisibility(View.GONE);
+                        caretHandle.setVisibility(View.GONE);
+                        focusHandle.setVisibility(View.GONE);
+
                     } else if (event.equals("TextSelection:PositionHandles")) {
-                        final boolean rtl = message.getBoolean("rtl");
                         final JSONArray positions = message.getJSONArray("positions");
                         for (int i=0; i < positions.length(); i++) {
                             JSONObject position = positions.getJSONObject(i);
-                            int left = position.getInt("left");
-                            int top = position.getInt("top");
+                            final int left = position.getInt("left");
+                            final int top = position.getInt("top");
+                            final boolean rtl = position.getBoolean("rtl");
 
                             TextSelectionHandle handle = getHandle(position.getString("handle"));
                             handle.setVisibility(position.getBoolean("hidden") ? View.GONE : View.VISIBLE);
                             handle.positionFromGecko(left, top, rtl);
                         }
+
+                    } else if (event.equals("TextSelection:ActionbarInit")) {
+                        // Init / Open the action bar. Note the current selectionID,
+                        // cancel any pending actionBar close.
+                        selectionID = message.getString("selectionID");
+                        mCurrentItems = null;
+                        if (mActionModeTimerTask != null) {
+                            mActionModeTimerTask.cancel();
+                        }
+
+                    } else if (event.equals("TextSelection:ActionbarStatus")) {
+                        // Update the actionBar actions as provided by Gecko.
+                        showActionMode(message.getJSONArray("actions"));
+
+                    } else if (event.equals("TextSelection:ActionbarUninit")) {
+                        // Uninit the actionbar. Schedule a cancellable close
+                        // action to avoid UI jank. (During SelectionAll for ex).
+                        mCurrentItems = null;
+                        mActionModeTimerTask = new ActionModeTimerTask();
+                        mActionModeTimer.schedule(mActionModeTimerTask, SHUTDOWN_DELAY_MS);
                     }
+
                 } catch (JSONException e) {
                     Log.e(LOGTAG, "JSON exception", e);
                 }
@@ -189,18 +222,18 @@ class TextSelection extends Layer implements GeckoEventListener {
     }
 
     private void showActionMode(final JSONArray items) {
-	String itemsString = items.toString();
-	if (itemsString.equals(mCurrentItems)) {
-	    return;
-	}
-	mCurrentItems = itemsString;
+        String itemsString = items.toString();
+        if (itemsString.equals(mCurrentItems)) {
+            return;
+        }
+        mCurrentItems = itemsString;
 
         if (mCallback != null) {
             mCallback.updateItems(items);
             return;
         }
 
-        final Context context = mStartHandle.getContext();
+        final Context context = anchorHandle.getContext();
         if (context instanceof ActionModeCompat.Presenter) {
             final ActionModeCompat.Presenter presenter = (ActionModeCompat.Presenter) context;
             mCallback = new TextSelectionActionModeCallback(items);
@@ -209,12 +242,12 @@ class TextSelection extends Layer implements GeckoEventListener {
     }
 
     private void endActionMode() {
-        Context context = mStartHandle.getContext();
+        Context context = anchorHandle.getContext();
         if (context instanceof ActionModeCompat.Presenter) {
             final ActionModeCompat.Presenter presenter = (ActionModeCompat.Presenter) context;
             presenter.endActionModeCompat();
         }
-	mCurrentItems = null;
+        mCurrentItems = null;
     }
 
     @Override
@@ -238,9 +271,9 @@ class TextSelection extends Layer implements GeckoEventListener {
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
             public void run() {
-                mStartHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
-                mMiddleHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
-                mEndHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
+                anchorHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
+                caretHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
+                focusHandle.repositionWithViewport(viewLeft, viewTop, viewZoom);
             }
         });
     }
@@ -276,10 +309,23 @@ class TextSelection extends Layer implements GeckoEventListener {
                     final int actionEnum = obj.optBoolean("showAsAction") ? GeckoMenuItem.SHOW_AS_ACTION_ALWAYS : GeckoMenuItem.SHOW_AS_ACTION_NEVER;
                     menuitem.setShowAsAction(actionEnum, R.attr.menuItemActionModeStyle);
 
-                    BitmapUtils.getDrawable(mStartHandle.getContext(), obj.optString("icon"), new BitmapLoader() {
+                    final String iconString = obj.optString("icon");
+                    BitmapUtils.getDrawable(anchorHandle.getContext(), iconString, new BitmapLoader() {
+                        @Override
                         public void onBitmapFound(Drawable d) {
                             if (d != null) {
                                 menuitem.setIcon(d);
+
+                                // Dynamically add padding to align the share icon on GB devices.
+                                // To be removed in bug 1122752.
+                                if (Versions.preHC && "drawable://ic_menu_share".equals(iconString)) {
+                                    final View view = menuitem.getActionView();
+
+                                    final Resources res = view.getContext().getResources();
+                                    final int padding = res.getDimensionPixelSize(R.dimen.ab_share_padding);
+
+                                    view.setPadding(padding, padding, padding, padding);
+                                }
                             }
                         }
                     });
@@ -290,11 +336,13 @@ class TextSelection extends Layer implements GeckoEventListener {
             return true;
         }
 
+        @Override
         public boolean onCreateActionMode(ActionModeCompat mode, Menu menu) {
             mActionMode = mode;
             return true;
         }
 
+        @Override
         public boolean onActionItemClicked(ActionModeCompat mode, MenuItem item) {
             try {
                 final JSONObject obj = mItems.getJSONObject(item.getItemId());
@@ -307,10 +355,21 @@ class TextSelection extends Layer implements GeckoEventListener {
         }
 
         // Called when the user exits the action mode
+        @Override
         public void onDestroyActionMode(ActionModeCompat mode) {
             mActionMode = null;
             mCallback = null;
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("TextSelection:End", null));
+            final JSONObject args = new JSONObject();
+            try {
+                args.put("selectionID", selectionID);
+            } catch (JSONException e) {
+                Log.e(LOGTAG, "Error building JSON arguments for TextSelection:End", e);
+                return;
+            }
+
+            final GeckoEvent event =
+                GeckoEvent.createBroadcastEvent("TextSelection:End", args.toString());
+            GeckoAppShell.sendEventToGecko(event);
         }
     }
 }

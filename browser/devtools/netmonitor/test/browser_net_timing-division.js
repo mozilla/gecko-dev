@@ -52,7 +52,7 @@ function test() {
       teardown(aMonitor).then(finish);
     });
 
-    aDebuggee.performRequests(1);
-    window.setTimeout(() => aDebuggee.performRequests(1), 2000);
+      // Timeout needed for having enough divisions on the time scale.
+    aDebuggee.performRequests(2, null, 3000);
   });
 }

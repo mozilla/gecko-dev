@@ -6,8 +6,22 @@
 
 SPHINX_TREES['healthreport'] = 'docs'
 
-TEST_DIRS += ['tests']
+XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell/xpcshell.ini']
 
 EXTRA_PP_COMPONENTS += [
     'HealthReportComponents.manifest',
+]
+
+EXTRA_PP_JS_MODULES += [
+    'HealthReport.jsm',
+]
+
+EXTRA_PP_JS_MODULES.services.healthreport += [
+    'healthreporter.jsm',
+    'profile.jsm',
+    'providers.jsm',
+]
+
+TESTING_JS_MODULES.services.healthreport += [
+    'modules-testing/utils.jsm',
 ]

@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * SSL3 Protocol
  *
@@ -505,28 +506,21 @@ ssl3_ECRegister(void)
     return (PRStatus)rv;
 }
 
-/* CallOnce function, called once for each named curve. */
-static PRStatus
-ssl3_CreateECDHEphemeralKeyPair(void * arg)
+/* Create an ECDHE key pair for a given curve */
+static SECStatus
+ssl3_CreateECDHEphemeralKeyPair(ECName ec_curve, ssl3KeyPair** keyPair)
 {
     SECKEYPrivateKey *    privKey  = NULL;
     SECKEYPublicKey *     pubKey   = NULL;
-    ssl3KeyPair *         keyPair  = NULL;
-    ECName                ec_curve = (ECName)arg;
     SECKEYECParams        ecParams = { siBuffer, NULL, 0 };
 
-    PORT_Assert(gECDHEKeyPairs[ec_curve].pair == NULL);
-
-    /* ok, no one has generated a global key for this curve yet, do so */
     if (ssl3_ECName2Params(NULL, ec_curve, &ecParams) != SECSuccess) {
-        gECDHEKeyPairs[ec_curve].error = PORT_GetError();
-        return PR_FAILURE;
+        return SECFailure;
     }
-
     privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey, NULL);
     SECITEM_FreeItem(&ecParams, PR_FALSE);
 
-    if (!privKey || !pubKey || !(keyPair = ssl3_NewKeyPair(privKey, pubKey))) {
+    if (!privKey || !pubKey || !(*keyPair = ssl3_NewKeyPair(privKey, pubKey))) {
         if (privKey) {
             SECKEY_DestroyPrivateKey(privKey);
         }
@@ -534,6 +528,23 @@ ssl3_CreateECDHEphemeralKeyPair(void * arg)
             SECKEY_DestroyPublicKey(pubKey);
         }
         ssl_MapLowLevelError(SEC_ERROR_KEYGEN_FAIL);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+/* CallOnce function, called once for each named curve. */
+static PRStatus
+ssl3_CreateECDHEphemeralKeyPairOnce(void * arg)
+{
+    ECName                ec_curve = (ECName)arg;
+    ssl3KeyPair *         keyPair  = NULL;
+
+    PORT_Assert(gECDHEKeyPairs[ec_curve].pair == NULL);
+
+    /* ok, no one has generated a global key for this curve yet, do so */
+    if (ssl3_CreateECDHEphemeralKeyPair(ec_curve, &keyPair) != SECSuccess) {
         gECDHEKeyPairs[ec_curve].error = PORT_GetError();
         return PR_FAILURE;
     }
@@ -566,7 +577,7 @@ ssl3_CreateECDHEphemeralKeys(sslSocket *ss, ECName ec_curve)
             return SECFailure;
         }
         status = PR_CallOnceWithArg(&gECDHEKeyPairs[ec_curve].once,
-                                    ssl3_CreateECDHEphemeralKeyPair,
+                                    ssl3_CreateECDHEphemeralKeyPairOnce,
                                     (void *)ec_curve);
         if (status != PR_SUCCESS) {
             PORT_SetError(gECDHEKeyPairs[ec_curve].error);
@@ -759,10 +770,16 @@ ssl3_SendECDHServerKeyExchange(
     if (curve == ec_noName) {
         goto loser;
     }
-    rv = ssl3_CreateECDHEphemeralKeys(ss, curve);
-    if (rv != SECSuccess) {
-        goto loser;     /* err set by AppendHandshake. */
+
+    if (ss->opt.reuseServerECDHEKey) {
+        rv = ssl3_CreateECDHEphemeralKeys(ss, curve);
+    } else {
+        rv = ssl3_CreateECDHEphemeralKeyPair(curve, &ss->ephemeralECDHKeyPair);
     }
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
     ecdhePub = ss->ephemeralECDHKeyPair->pubKey;
     PORT_Assert(ecdhePub != NULL);
     if (!ecdhePub) {
@@ -1168,8 +1185,7 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
 
     if (data->len < 2 || data->len > 255 || !data->data ||
         data->len != (unsigned int)data->data[0] + 1) {
-        /* malformed */
-        goto loser;
+        return ssl3_DecodeError(ss);
     }
     for (i = data->len; --i > 0; ) {
         if (data->data[i] == 0) {
@@ -1180,10 +1196,10 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
             return rv;
         }
     }
-loser:
+
     /* evil client doesn't support uncompressed */
     ssl3_DisableECCSuites(ss, ecSuites);
-    return SECFailure;
+    return SECSuccess;
 }
 
 
@@ -1204,7 +1220,7 @@ ECName ssl3_GetSvrCertCurveName(sslSocket *ss)
     return ec_curve;
 }
 
-/* Ensure that the curve in our server cert is one of the ones suppored
+/* Ensure that the curve in our server cert is one of the ones supported
  * by the remote client, and disable all ECC cipher suites if not.
  */
 SECStatus
@@ -1215,26 +1231,34 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     PRUint32 mutualCurves = 0;
     PRUint16 svrCertCurveName;
 
-    if (!data->data || data->len < 4 || data->len > 65535)
-        goto loser;
+    if (!data->data || data->len < 4) {
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
+    }
+
     /* get the length of elliptic_curve_list */
     list_len = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
     if (list_len < 0 || data->len != list_len || (data->len % 2) != 0) {
-        /* malformed */
-        goto loser;
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
     }
     /* build bit vector of peer's supported curve names */
     while (data->len) {
-        PRInt32  curve_name =
-                 ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+        PRInt32 curve_name =
+                ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+        if (curve_name < 0) {
+            return SECFailure; /* fatal alert already sent */
+        }
         if (curve_name > ec_noName && curve_name < ec_pastLastName) {
             peerCurves |= (1U << curve_name);
         }
     }
     /* What curves do we support in common? */
     mutualCurves = ss->ssl3.hs.negotiatedECCurves &= peerCurves;
-    if (!mutualCurves) { /* no mutually supported EC Curves */
-        goto loser;
+    if (!mutualCurves) {
+        /* no mutually supported EC Curves, disable ECC */
+        ssl3_DisableECCSuites(ss, ecSuites);
+        return SECSuccess;
     }
 
     /* if our ECC cert doesn't use one of these supported curves,
@@ -1250,12 +1274,7 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
      */
     ssl3_DisableECCSuites(ss, ecdh_ecdsa_suites);
     ssl3_DisableECCSuites(ss, ecdhe_ecdsa_suites);
-    return SECFailure;
-
-loser:
-    /* no common curve supported */
-    ssl3_DisableECCSuites(ss, ecSuites);
-    return SECFailure;
+    return SECSuccess;
 }
 
 #endif /* NSS_DISABLE_ECC */

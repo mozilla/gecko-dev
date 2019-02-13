@@ -4,10 +4,15 @@
 
 <!-- These strings are used in the about:newtab page -->
 <!ENTITY newtab.pageTitle "New Tab">
+<!ENTITY newtab.customize.classic "Show your top sites">
+<!ENTITY newtab.customize.cog.enhanced "Include suggested sites">
+<!ENTITY newtab.customize.cog.title2 "NEW TAB CONTROLS">
+<!ENTITY newtab.customize.cog.learn "Learn about New Tab">
+<!ENTITY newtab.customize.title "Customize your New Tab page">
+<!ENTITY newtab.customize.suggested "Show suggested and your top sites">
+<!ENTITY newtab.customize.topsites "Show your top sites">
+<!ENTITY newtab.customize.blank2 "Show blank page">
 <!ENTITY newtab.undo.removedLabel "Thumbnail removed.">
 <!ENTITY newtab.undo.undoButton "Undo.">
 <!ENTITY newtab.undo.restoreButton "Restore All.">
 <!ENTITY newtab.undo.closeTooltip "Hide">
-<!ENTITY newtab.sponsored.release.message "This Sponsor site was suggested because we hoped you’d find it interesting and because it supports Mozilla’s mission.">
-<!ENTITY newtab.sponsored.trial.message2 "This site was suggested because we hoped you’d find it interesting and because it supports Mozilla’s mission.">
-<!ENTITY newtab.panel.link.text "Learn more…">

@@ -69,7 +69,6 @@ function installAddon(aCallback) {
 function checkScrolling(aShouldHaveScrolled) {
   var detailView = gManagerWindow.document.getElementById("detail-view");
   var boxObject = detailView.boxObject;
-  boxObject.QueryInterface(Ci.nsIScrollBoxObject);
   ok(detailView.scrollHeight > boxObject.height, "Page should require scrolling");
   if (aShouldHaveScrolled)
     isnot(detailView.scrollTop, 0, "Page should have scrolled");
@@ -272,6 +271,10 @@ add_test(function() {
     try {
       ok(!settings[6].hasAttribute("first-row"), "Not the first row");
       var button = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "button");
+
+      // Workaround for bug 1155324 - we need to ensure that the button is scrolled into view.
+      button.scrollIntoView();
+
       input = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "input");
       is(input.value, "", "Label value should be empty");
       is(input.tooltipText, "", "Label tooltip should be empty");

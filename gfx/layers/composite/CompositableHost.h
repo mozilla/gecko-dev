@@ -10,23 +10,23 @@
 #include <stdio.h>                      // for FILE
 #include "gfxRect.h"                    // for gfxRect
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/RefPtr.h"             // for RefPtr, RefCounted, etc
 #include "mozilla/gfx/Point.h"          // for Point
 #include "mozilla/gfx/Rect.h"           // for Rect
 #include "mozilla/gfx/Types.h"          // for Filter
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/layers/Compositor.h"  // for Compositor
 #include "mozilla/layers/CompositorTypes.h"  // for TextureInfo, etc
+#include "mozilla/layers/Effects.h"     // for Texture Effect
 #include "mozilla/layers/LayersTypes.h"  // for LayerRenderState, etc
+#include "mozilla/layers/LayersMessages.h"
 #include "mozilla/layers/TextureHost.h" // for TextureHost
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nscore.h"                     // for nsACString
 #include "Units.h"                      // for CSSToScreenScale
-
-struct nsIntPoint;
-struct nsIntRect;
 
 namespace mozilla {
 namespace gfx {
@@ -36,43 +36,13 @@ class DataSourceSurface;
 
 namespace layers {
 
-// Some properties of a Layer required for tiling
-struct TiledLayerProperties
-{
-  nsIntRegion mVisibleRegion;
-  nsIntRegion mValidRegion;
-  CSSToScreenScale mEffectiveResolution;
-};
-
 class Layer;
-class SurfaceDescriptor;
 class Compositor;
-class ISurfaceAllocator;
 class ThebesBufferData;
 class TiledLayerComposer;
 class CompositableParentManager;
 class PCompositableParent;
 struct EffectChain;
-
-/**
- * A base class for doing CompositableHost and platform dependent task on TextureHost.
- */
-class CompositableBackendSpecificData
-{
-protected:
-  virtual ~CompositableBackendSpecificData() { }
-
-public:
-  NS_INLINE_DECL_REFCOUNTING(CompositableBackendSpecificData)
-
-  CompositableBackendSpecificData()
-  {
-  }
-
-  virtual void SetCompositor(Compositor* aCompositor) {}
-  virtual void ClearData() {}
-
-};
 
 /**
  * The compositor-side counterpart to CompositableClient. Responsible for
@@ -95,21 +65,11 @@ protected:
 
 public:
   NS_INLINE_DECL_REFCOUNTING(CompositableHost)
-  CompositableHost(const TextureInfo& aTextureInfo);
+  explicit CompositableHost(const TextureInfo& aTextureInfo);
 
   static TemporaryRef<CompositableHost> Create(const TextureInfo& aTextureInfo);
 
   virtual CompositableType GetType() = 0;
-
-  virtual CompositableBackendSpecificData* GetCompositableBackendSpecificData()
-  {
-    return mBackendData;
-  }
-
-  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
-  {
-    mBackendData = aBackendData;
-  }
 
   // If base class overrides, it should still call the parent implementation
   virtual void SetCompositor(Compositor* aCompositor);
@@ -120,8 +80,7 @@ public:
                          const gfx::Matrix4x4& aTransform,
                          const gfx::Filter& aFilter,
                          const gfx::Rect& aClipRect,
-                         const nsIntRegion* aVisibleRegion = nullptr,
-                         TiledLayerProperties* aLayerProperties = nullptr) = 0;
+                         const nsIntRegion* aVisibleRegion = nullptr) = 0;
 
   /**
    * Update the content host.
@@ -138,54 +97,21 @@ public:
   }
 
   /**
-   * Update the content host using a surface that only contains the updated
-   * region.
-   *
-   * Takes ownership of aSurface, and is responsible for freeing it.
-   *
-   * @param aTextureId Texture to update.
-   * @param aSurface Surface containing the update area. Its contents are relative
-   *                 to aUpdated.TopLeft()
-   * @param aUpdated Area of the content host to update.
-   * @param aBufferRect New area covered by the content host.
-   * @param aBufferRotation New buffer rotation.
-   */
-  virtual void UpdateIncremental(TextureIdentifier aTextureId,
-                                 SurfaceDescriptor& aSurface,
-                                 const nsIntRegion& aUpdated,
-                                 const nsIntRect& aBufferRect,
-                                 const nsIntPoint& aBufferRotation)
-  {
-    MOZ_ASSERT(false, "should be implemented or not used");
-  }
-
-  /**
-   * Ensure that a suitable texture host exists in this compsitable.
-   *
-   * Only used with ContentHostIncremental.
-   *
-   * No SurfaceDescriptor or TextureIdentifier is provider as we
-   * don't have a single surface for the texture contents, and we
-   * need to allocate our own one to be updated later.
-   */
-  virtual bool CreatedIncrementalTexture(ISurfaceAllocator* aAllocator,
-                                         const TextureInfo& aTextureInfo,
-                                         const nsIntRect& aBufferRect)
-  {
-    NS_ERROR("should be implemented or not used");
-    return false;
-  }
-
-  /**
    * Returns the front buffer.
    */
   virtual TextureHost* GetAsTextureHost() { return nullptr; }
 
   virtual LayerRenderState GetRenderState() = 0;
 
-  virtual void SetPictureRect(const nsIntRect& aPictureRect)
+  virtual void SetPictureRect(const gfx::IntRect& aPictureRect)
   {
     MOZ_ASSERT(false, "Should have been overridden");
+  }
+
+  virtual gfx::IntSize GetImageSize() const
+  {
+    MOZ_ASSERT(false, "Should have been overridden");
+    return gfx::IntSize();
   }
 
   /**
@@ -225,6 +151,12 @@ public:
     SetLayer(aLayer);
     mAttached = true;
     mKeepAttached = aFlags & KEEP_ATTACHED;
+
+    // If we already have a textureHost before, use that in this moment.
+    RefPtr<TextureHost> frontBuffer = GetAsTextureHost();
+    if (frontBuffer) {
+      UseTextureHost(frontBuffer);
+    }
   }
   // Detach this compositable host from its layer.
   // If we are used for async video, then it is not safe to blindly detach since
@@ -234,7 +166,7 @@ public:
   // detached in any case. if aLayer is null, then we will only detach if we are
   // not async.
   // Only force detach if the IPDL tree is being shutdown.
-  void Detach(Layer* aLayer = nullptr, AttachFlags aFlags = NO_FLAGS)
+  virtual void Detach(Layer* aLayer = nullptr, AttachFlags aFlags = NO_FLAGS)
   {
     if (!mKeepAttached ||
         aLayer == mLayer ||
@@ -242,27 +174,23 @@ public:
       SetLayer(nullptr);
       mAttached = false;
       mKeepAttached = false;
-      if (mBackendData) {
-        mBackendData->ClearData();
-      }
     }
   }
   bool IsAttached() { return mAttached; }
 
-#ifdef MOZ_DUMP_PAINTING
-  virtual void Dump(FILE* aFile=nullptr,
+  virtual void Dump(std::stringstream& aStream,
                     const char* aPrefix="",
                     bool aDumpHtml=false) { }
-  static void DumpTextureHost(FILE* aFile, TextureHost* aTexture);
+  static void DumpTextureHost(std::stringstream& aStream, TextureHost* aTexture);
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() { return nullptr; }
-#endif
 
-  virtual void PrintInfo(nsACString& aTo, const char* aPrefix) = 0;
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) = 0;
 
   virtual void UseTextureHost(TextureHost* aTexture);
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
                                          TextureHost* aTextureOnWhite);
+  virtual void UseOverlaySource(OverlaySource aOverlay) { }
 
   virtual void RemoveTextureHost(TextureHost* aTexture);
 
@@ -289,16 +217,46 @@ public:
 
   void SetAsyncID(uint64_t aID) { mAsyncID = aID; }
 
+  virtual bool Lock() { return false; }
+
+  virtual void Unlock() { }
+
+  virtual TemporaryRef<TexturedEffect> GenEffect(const gfx::Filter& aFilter) {
+    return nullptr;
+  }
+
 protected:
   TextureInfo mTextureInfo;
   uint64_t mAsyncID;
   uint64_t mCompositorID;
-  Compositor* mCompositor;
+  RefPtr<Compositor> mCompositor;
   Layer* mLayer;
-  RefPtr<CompositableBackendSpecificData> mBackendData;
   uint32_t mFlashCounter; // used when the pref "layers.flash-borders" is true.
   bool mAttached;
   bool mKeepAttached;
+};
+
+class AutoLockCompositableHost final
+{
+public:
+  explicit AutoLockCompositableHost(CompositableHost* aHost)
+    : mHost(aHost)
+  {
+    mSucceeded = (mHost && mHost->Lock());
+  }
+
+  ~AutoLockCompositableHost()
+  {
+    if (mSucceeded && mHost) {
+      mHost->Unlock();
+    }
+  }
+
+  bool Failed() const { return !mSucceeded; }
+
+private:
+  RefPtr<CompositableHost> mHost;
+  bool mSucceeded;
 };
 
 /**

@@ -18,8 +18,10 @@ struct RunnableMethodTraits<mozilla::_ipdltest2::TestOpensOpenedChild>
     static void ReleaseCallee(mozilla::_ipdltest2::TestOpensOpenedChild* obj) { }
 };
 
-using namespace base;
 using namespace mozilla::ipc;
+
+using base::ProcessHandle;
+using base::Thread;
 
 namespace mozilla {
 // NB: this is generally bad style, but I am lazy.
@@ -52,28 +54,23 @@ TestOpensParent::Main()
 
 static void
 OpenParent(TestOpensOpenedParent* aParent,
-           Transport* aTransport, ProcessHandle aOtherProcess)
+           Transport* aTransport, base::ProcessId aOtherPid)
 {
     AssertNotMainThread();
 
     // Open the actor on the off-main thread to park it there.
     // Messages will be delivered to this thread's message loop
     // instead of the main thread's.
-    if (!aParent->Open(aTransport, aOtherProcess,
+    if (!aParent->Open(aTransport, aOtherPid,
                        XRE_GetIOMessageLoop(), ipc::ParentSide))
         fail("opening Parent");
 }
 
 PTestOpensOpenedParent*
 TestOpensParent::AllocPTestOpensOpenedParent(Transport* transport,
-                                             ProcessId otherProcess)
+                                             ProcessId otherPid)
 {
     gMainThread = MessageLoop::current();
-
-    ProcessHandle h;
-    if (!base::OpenProcessHandle(otherProcess, &h)) {
-        return nullptr;
-    }
 
     gParentThread = new Thread("ParentThread");
     if (!gParentThread->Start())
@@ -82,7 +79,7 @@ TestOpensParent::AllocPTestOpensOpenedParent(Transport* transport,
     TestOpensOpenedParent* a = new TestOpensOpenedParent(transport);
     gParentThread->message_loop()->PostTask(
         FROM_HERE,
-        NewRunnableFunction(OpenParent, a, transport, h));
+        NewRunnableFunction(OpenParent, a, transport, otherPid));
 
     return a;
 }
@@ -120,6 +117,19 @@ TestOpensOpenedParent::AnswerHelloRpc()
     return CallHiRpc();
 }
 
+static void
+ShutdownTestOpensOpenedParent(TestOpensOpenedParent* parent,
+                              Transport* transport)
+{
+    delete parent;
+
+    // Now delete the transport, which has to happen after the
+    // top-level actor is deleted.
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        new DeleteTask<Transport>(transport));
+}
+
 void
 TestOpensOpenedParent::ActorDestroy(ActorDestroyReason why)
 {
@@ -131,12 +141,10 @@ TestOpensOpenedParent::ActorDestroy(ActorDestroyReason why)
     // ActorDestroy() is just a callback from IPDL-generated code,
     // which needs the top-level actor (this) to stay alive a little
     // longer so other things can be cleaned up.
-    MessageLoop::current()->PostTask(
+    gMainThread->PostTask(
         FROM_HERE,
-        new DeleteTask<TestOpensOpenedParent>(this));
-    XRE_GetIOMessageLoop()->PostTask(
-        FROM_HERE,
-        new DeleteTask<Transport>(mTransport));
+        NewRunnableFunction(ShutdownTestOpensOpenedParent,
+                            this, mTransport));
 }
 
 //-----------------------------------------------------------------------------
@@ -161,14 +169,14 @@ TestOpensChild::RecvStart()
 
 static void
 OpenChild(TestOpensOpenedChild* aChild,
-           Transport* aTransport, ProcessHandle aOtherProcess)
+           Transport* aTransport, base::ProcessId aOtherPid)
 {
     AssertNotMainThread();
 
     // Open the actor on the off-main thread to park it there.
     // Messages will be delivered to this thread's message loop
     // instead of the main thread's.
-    if (!aChild->Open(aTransport, aOtherProcess,
+    if (!aChild->Open(aTransport, aOtherPid,
                       XRE_GetIOMessageLoop(), ipc::ChildSide))
         fail("opening Child");
 
@@ -179,14 +187,9 @@ OpenChild(TestOpensOpenedChild* aChild,
 
 PTestOpensOpenedChild*
 TestOpensChild::AllocPTestOpensOpenedChild(Transport* transport,
-                                           ProcessId otherProcess)
+                                           ProcessId otherPid)
 {
     gMainThread = MessageLoop::current();
-
-    ProcessHandle h;
-    if (!base::OpenProcessHandle(otherProcess, &h)) {
-        return nullptr;
-    }
 
     gChildThread = new Thread("ChildThread");
     if (!gChildThread->Start())
@@ -195,7 +198,7 @@ TestOpensChild::AllocPTestOpensOpenedChild(Transport* transport,
     TestOpensOpenedChild* a = new TestOpensOpenedChild(transport);
     gChildThread->message_loop()->PostTask(
         FROM_HERE,
-        NewRunnableFunction(OpenChild, a, transport, h));
+        NewRunnableFunction(OpenChild, a, transport, otherPid));
 
     return a;
 }
@@ -270,7 +273,7 @@ TestOpensOpenedChild::ActorDestroy(ActorDestroyReason why)
     // which needs the top-level actor (this) to stay alive a little
     // longer so other things can be cleaned up.  Defer shutdown to
     // let cleanup finish.
-    MessageLoop::current()->PostTask(
+    gMainThread->PostTask(
         FROM_HERE,
         NewRunnableFunction(ShutdownTestOpensOpenedChild,
                             this, mTransport));

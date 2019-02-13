@@ -5,6 +5,15 @@
 %filter substitution
 %include defines.inc
 
+a {
+  text-decoration: none;
+  color: #0096DD;
+}
+
+a:active {
+  color: #0082C6;
+}
+
 .details {
   width: 100%;
 }
@@ -18,12 +27,6 @@
   margin-left: .67em;
 }
 
-#header-button {
-  background-image: url("chrome://browser/skin/images/amo-logo.png"), url("chrome://browser/skin/images/chevron.png");
-  background-size: 20px 20px, 8px 20px;
-  background-position: left, right 3px center;
-}
-
 .description {
   width: 100%;
   overflow: hidden;
@@ -31,10 +34,23 @@
   text-overflow: ellipsis;
 }
 
+.warn-unsigned {
+  border-top: 1px solid @color_about_item_border@;
+  padding: 1em;
+  -moz-padding-start: calc(var(--icon-size) + var(--icon-margin) * 2);
+  background-image: url("chrome://browser/skin/images/grey-caution.svg");
+  background-size: var(--icon-size);
+  background-position: var(--icon-margin);
+  background-repeat: no-repeat;
+  display: none;
+}
+
+.addon-item[isUnsigned="true"] .warn-unsigned {
+  display: block;
+}
+
 .status {
-  background-color: @color_about_item_inner@;
-  border-top: 2px solid;
-  -moz-border-top-colors: #bac2ac #ffffff;
+  border-top: 1px solid @color_about_item_border@;
   font-weight: bold;
   padding: 0.5em;
   width: 100%;
@@ -47,12 +63,14 @@
 }
 
 .addon-item[isDisabled="true"] .options-header,
-.addon-item:not([optionsURL]) .options-header,
 .addon-item[optionsURL=""] .options-header,
 .addon-item[isDisabled="true"] .options-box,
-.addon-item:not([optionsURL]) .options-box,
 .addon-item[optionsURL=""] .options-box {
   display: none;
+}
+
+#addons-details > .list-item:active {
+  background-color: #fff;
 }
 
 /* Settings */
@@ -143,7 +161,7 @@ textbox {
 
 /* Button */
 
-button {
+setting button {
   margin: 2px 0;
   background: #fff;
   border: 1px solid #ccc;

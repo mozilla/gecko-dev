@@ -10,61 +10,68 @@ let prefBranch = Cc["@mozilla.org/preferences-service;1"]
 let supportsString = Cc["@mozilla.org/supports-string;1"]
                       .createInstance(Ci.nsISupportsString);
 
-let settings = require("gcli/settings");
-
 const TEST_URI = "data:text/html;charset=utf-8,gcli-settings";
 
 function test() {
   return Task.spawn(spawnTest).then(finish, helpers.handleError);
 }
 
-function spawnTest() {
+function* spawnTest() {
   // Setup
   let options = yield helpers.openTab(TEST_URI);
 
-  let tiltEnabled = settings.getSetting("devtools.tilt.enabled");
-  let tabSize = settings.getSetting("devtools.editor.tabsize");
-  let remoteHost = settings.getSetting("devtools.debugger.remote-host");
+  const { createSystem } = require("gcli/system");
+  const system = createSystem({ location: "server" });
 
-  let tiltEnabledOrig = prefBranch.getBoolPref("devtools.tilt.enabled");
+  const gcliInit = require("gcli/commands/index");
+  gcliInit.addAllItemsByModule(system);
+  yield system.load();
+
+  let settings = system.settings;
+
+  let hideIntroEnabled = settings.get("devtools.gcli.hideIntro");
+  let tabSize = settings.get("devtools.editor.tabsize");
+  let remoteHost = settings.get("devtools.debugger.remote-host");
+
+  let hideIntroOrig = prefBranch.getBoolPref("devtools.gcli.hideIntro");
   let tabSizeOrig = prefBranch.getIntPref("devtools.editor.tabsize");
   let remoteHostOrig = prefBranch.getComplexValue(
           "devtools.debugger.remote-host",
           Components.interfaces.nsISupportsString).data;
 
-  info("originally: devtools.tilt.enabled = " + tiltEnabledOrig);
+  info("originally: devtools.gcli.hideIntro = " + hideIntroOrig);
   info("originally: devtools.editor.tabsize = " + tabSizeOrig);
   info("originally: devtools.debugger.remote-host = " + remoteHostOrig);
 
   // Actual tests
-  is(tiltEnabled.value, tiltEnabledOrig, "tiltEnabled default");
+  is(hideIntroEnabled.value, hideIntroOrig, "hideIntroEnabled default");
   is(tabSize.value, tabSizeOrig, "tabSize default");
   is(remoteHost.value, remoteHostOrig, "remoteHost default");
 
-  tiltEnabled.setDefault();
+  hideIntroEnabled.setDefault();
   tabSize.setDefault();
   remoteHost.setDefault();
 
-  let tiltEnabledDefault = tiltEnabled.value;
+  let hideIntroEnabledDefault = hideIntroEnabled.value;
   let tabSizeDefault = tabSize.value;
   let remoteHostDefault = remoteHost.value;
 
-  tiltEnabled.value = false;
+  hideIntroEnabled.value = false;
   tabSize.value = 42;
-  remoteHost.value = "example.com"
+  remoteHost.value = "example.com";
 
-  is(tiltEnabled.value, false, "tiltEnabled basic");
+  is(hideIntroEnabled.value, false, "hideIntroEnabled basic");
   is(tabSize.value, 42, "tabSize basic");
   is(remoteHost.value, "example.com", "remoteHost basic");
 
-  function tiltEnabledCheck(ev) {
-    is(ev.setting, tiltEnabled, "tiltEnabled event setting");
-    is(ev.value, true, "tiltEnabled event value");
-    is(ev.setting.value, true, "tiltEnabled event setting value");
+  function hideIntroEnabledCheck(ev) {
+    is(ev.setting, hideIntroEnabled, "hideIntroEnabled event setting");
+    is(ev.value, true, "hideIntroEnabled event value");
+    is(ev.setting.value, true, "hideIntroEnabled event setting value");
   }
-  tiltEnabled.onChange.add(tiltEnabledCheck);
-  tiltEnabled.value = true;
-  is(tiltEnabled.value, true, "tiltEnabled change");
+  hideIntroEnabled.onChange.add(hideIntroEnabledCheck);
+  hideIntroEnabled.value = true;
+  is(hideIntroEnabled.value, true, "hideIntroEnabled change");
 
   function tabSizeCheck(ev) {
     is(ev.setting, tabSize, "tabSize event setting");
@@ -84,7 +91,7 @@ function spawnTest() {
   remoteHost.value = "y.com";
   is(remoteHost.value, "y.com", "remoteHost change");
 
-  tiltEnabled.onChange.remove(tiltEnabledCheck);
+  hideIntroEnabled.onChange.remove(hideIntroEnabledCheck);
   tabSize.onChange.remove(tabSizeCheck);
   remoteHost.onChange.remove(remoteHostCheck);
 
@@ -95,18 +102,18 @@ function spawnTest() {
   }
   remoteHost.onChange.add(remoteHostReCheck);
 
-  tiltEnabled.setDefault();
+  hideIntroEnabled.setDefault();
   tabSize.setDefault();
   remoteHost.setDefault();
 
   remoteHost.onChange.remove(remoteHostReCheck);
 
-  is(tiltEnabled.value, tiltEnabledDefault, "tiltEnabled reset");
+  is(hideIntroEnabled.value, hideIntroEnabledDefault, "hideIntroEnabled reset");
   is(tabSize.value, tabSizeDefault, "tabSize reset");
   is(remoteHost.value, remoteHostDefault, "remoteHost reset");
 
   // Cleanup
-  prefBranch.setBoolPref("devtools.tilt.enabled", tiltEnabledOrig);
+  prefBranch.setBoolPref("devtools.gcli.hideIntro", hideIntroOrig);
   prefBranch.setIntPref("devtools.editor.tabsize", tabSizeOrig);
   supportsString.data = remoteHostOrig;
   prefBranch.setComplexValue("devtools.debugger.remote-host",

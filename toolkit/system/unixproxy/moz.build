@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 if CONFIG['MOZ_ENABLE_LIBPROXY']:
+    CXXFLAGS += CONFIG['MOZ_LIBPROXY_CFLAGS']
     SOURCES += [
         'nsLibProxySettings.cpp',
     ]
@@ -14,3 +15,5 @@ else:
     ]
 
 FINAL_LIBRARY = 'xul'
+
+FAIL_ON_WARNINGS = True

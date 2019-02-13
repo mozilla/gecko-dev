@@ -7,11 +7,38 @@
 #ifndef mozilla_Sandbox_h
 #define mozilla_Sandbox_h
 
+#include "mozilla/Types.h"
+#include "nsXULAppAPI.h"
+
+// This defines the entry points for a content process to start
+// sandboxing itself.  See also common/SandboxInfo.h for what parts of
+// sandboxing are enabled/supported.
+
+#ifdef ANDROID
+// Defined in libmozsandbox and referenced by linking against it.
+#define MOZ_SANDBOX_EXPORT MOZ_EXPORT
+#else
+// Defined in plugin-container and referenced by libraries it loads.
+#define MOZ_SANDBOX_EXPORT MOZ_EXPORT __attribute__((weak))
+#endif
+
 namespace mozilla {
 
-void SetCurrentProcessSandbox();
+// This must be called early, while the process is still single-threaded.
+MOZ_SANDBOX_EXPORT void SandboxEarlyInit(GeckoProcessType aType, bool aIsNuwa);
+
+#ifdef MOZ_CONTENT_SANDBOX
+// Call only if SandboxInfo::CanSandboxContent() returns true.
+// (No-op if MOZ_DISABLE_CONTENT_SANDBOX is set.)
+MOZ_SANDBOX_EXPORT void SetContentProcessSandbox();
+#endif
+
+#ifdef MOZ_GMP_SANDBOX
+// Call only if SandboxInfo::CanSandboxMedia() returns true.
+// (No-op if MOZ_DISABLE_GMP_SANDBOX is set.)
+MOZ_SANDBOX_EXPORT void SetMediaPluginSandbox(const char *aFilePath);
+#endif
 
 } // namespace mozilla
 
 #endif // mozilla_Sandbox_h
-

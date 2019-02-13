@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- tab-width: 4; indent-tabs-mode: nil; js-indent-level: 4 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,9 +9,6 @@ const nsILDAPSyncQuery = Components.interfaces.nsILDAPSyncQuery;
 const LDAPSyncQueryContractID = "@mozilla.org/ldapsyncquery;1";
 const nsIPrefService = Components.interfaces.nsIPrefService;
 const PrefServiceContractID = "@mozilla.org/preferences-service;1";
-
-// set on a platform specific basis in platform.js
-platform = { value: "" };
 
 var gVersion;
 

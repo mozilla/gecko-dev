@@ -32,18 +32,20 @@ namespace net {
  *
  * To open a file handle with this class, AsyncRemoteFileOpen() must be called
  * first.  After the listener's OnRemoteFileOpenComplete() is called, if the
- * result is NS_OK, nsIFile.OpenNSPRFileDesc() may be called--once--to get the
- * file handle.
+ * result is NS_OK, nsIFile.OpenNSPRFileDesc() may be called to get a
+ * duplicated file descriptor.
  *
- * Note that calling Clone() on this class results in the filehandle ownership
- * being passed on to the new RemoteOpenFileChild. I.e. if
- * OnRemoteFileOpenComplete is called and then Clone(), OpenNSPRFileDesc() will
- * work in the cloned object, but not in the original.
+ * Note that the file descriptor returned by NSPRFileDesc() is duplicated from
+ * the original, which shares its file offset with the original.  If the file
+ * offset is modified (ex: by lseek/read/write) on one of the shared
+ * descriptors, the offset is also changed for the other.   It can be safely
+ * used only with operations that take absolute offsets, such as
+ * mmap/pread/pwrite.
  *
  * This class should only be instantiated in a child process.
  *
  */
-class RemoteOpenFileChild MOZ_FINAL
+class RemoteOpenFileChild final
   : public PRemoteOpenFileChild
   , public nsIFile
   , public nsIHashable
@@ -52,14 +54,14 @@ class RemoteOpenFileChild MOZ_FINAL
   typedef mozilla::dom::TabChild TabChild;
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
 
+  virtual ~RemoteOpenFileChild();
+
 public:
   RemoteOpenFileChild()
     : mNSPRFileDesc(nullptr)
     , mAsyncOpenCalled(false)
     , mNSPROpenCalled(false)
   {}
-
-  virtual ~RemoteOpenFileChild();
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIFILE
@@ -77,6 +79,8 @@ public:
                                nsITabChild* aTabChild,
                                nsILoadContext *aLoadContext);
 
+  nsresult SetNSPRFileDesc(PRFileDesc* aNSPRFileDesc);
+
   void ReleaseIPDLReference()
   {
     Release();
@@ -91,10 +95,10 @@ protected:
     AddRef();
   }
 
-  virtual bool Recv__delete__(const FileDescriptor&) MOZ_OVERRIDE;
+  virtual bool Recv__delete__(const FileDescriptor&) override;
 
   virtual void OnCachedFileDescriptor(const nsAString& aPath,
-                                      const FileDescriptor& aFD) MOZ_OVERRIDE;
+                                      const FileDescriptor& aFD) override;
 
   void HandleFileDescriptorAndNotifyListener(const FileDescriptor&,
                                              bool aFromRecvDelete);

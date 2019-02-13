@@ -24,11 +24,12 @@ SpdyZlibReporter::Alloc(void*, uInt items, uInt size)
 SpdyZlibReporter::Free(void*, void* p)
 {
   sAmount -= MallocSizeOfOnFree(p);
-  moz_free(p);
+  free(p);
 }
 
 NS_IMETHODIMP
-SpdyZlibReporter::CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData)
+SpdyZlibReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
+                                 nsISupports* aData, bool aAnonymize)
 {
   return MOZ_COLLECT_REPORT(
     "explicit/network/spdy-zlib-buffers", KIND_HEAP, UNITS_BYTES, sAmount,

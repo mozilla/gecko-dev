@@ -117,8 +117,6 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
                         nsHtml5Parser* aOwner,
                         eParserMode aMode);
-                        
-    virtual ~nsHtml5StreamParser();
 
     // Methods that nsHtml5StreamListener calls
     nsresult CheckListenerChain();
@@ -139,7 +137,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     /**
      * Chardet calls this to report the detection result
      */
-    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf);
+    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf) override;
 
     // EncodingDeclarationHandler
     // http://hg.mozilla.org/projects/htmlparser/file/tip/src/nu/validator/htmlparser/common/EncodingDeclarationHandler.java
@@ -209,6 +207,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     void SetViewSourceTitle(nsIURI* aURL);
 
   private:
+    virtual ~nsHtml5StreamParser();
 
 #ifdef DEBUG
     bool IsParserThread() {
@@ -218,7 +217,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     }
 #endif
 
-    void MarkAsBroken();
+    void MarkAsBroken(nsresult aRv);
 
     /**
      * Marks the stream parser as interrupted. If you ever add calls to this
@@ -364,6 +363,25 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      */
     void TimerFlush();
 
+    /**
+     * Called when speculation fails.
+     */
+    void MaybeDisableFutureSpeculation()
+    {
+        mSpeculationFailureCount++;
+    }
+
+    /**
+     * Used to check whether we're getting too many speculation failures and
+     * should just stop trying.  The 100 is picked pretty randomly to be not too
+     * small (so most pages are not affected) but small enough that we don't end
+     * up with failed speculations over and over in pathological cases.
+     */
+    bool IsSpeculationEnabled()
+    {
+        return mSpeculationFailureCount < 100;
+    }
+
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
 
@@ -484,6 +502,11 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      */
     nsTArray<nsAutoPtr<nsHtml5Speculation> >  mSpeculations;
     mozilla::Mutex                            mSpeculationMutex;
+
+    /**
+     * Number of times speculation has failed for this parser.
+     */
+    uint32_t                      mSpeculationFailureCount;
 
     /**
      * True to terminate early; protected by mTerminatedMutex

@@ -25,16 +25,15 @@ let { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm", {});
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 let gCertDB = Cc["@mozilla.org/security/x509certdb;1"]
-                 .getService(Ci.nsIX509CertDB2);
-gCertDB.QueryInterface(Ci.nsIX509CertDB);
+                .getService(Ci.nsIX509CertDB);
 
 const BUILT_IN_NICK_PREFIX = "Builtin Object Token:";
 const SHA1_PREFIX = "sha1/";
 const SHA256_PREFIX = "sha256/";
 const GOOGLE_PIN_PREFIX = "GOOGLE_PIN_";
 
-// Pins expire in 18 weeks
-const PINNING_MINIMUM_REQUIRED_MAX_AGE = 60 * 60 * 24 * 7 * 18;
+// Pins expire in 14 weeks (6 weeks on Beta + 8 weeks on stable)
+const PINNING_MINIMUM_REQUIRED_MAX_AGE = 60 * 60 * 24 * 7 * 14;
 
 const FILE_HEADER = "/* This Source Code Form is subject to the terms of the Mozilla Public\n" +
 " * License, v. 2.0. If a copy of the MPL was not distributed with this\n" +
@@ -68,8 +67,8 @@ const PINSETDEF = "/* Pinsets are each an ordered list by the actual value of th
   "};\n\n";
 
 // Command-line arguments
-var gStaticPins = parseJson(arguments[0]);
-var gTestCertFile = arguments[1];
+let gStaticPins = parseJson(arguments[0]);
+let gTestCertFile = arguments[1];
 
 // Open the output file.
 let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
@@ -91,7 +90,7 @@ function readFileToString(filename) {
 }
 
 function stripComments(buf) {
-  var lines = buf.split("\n");
+  let lines = buf.split("\n");
   let entryRegex = /^\s*\/\//;
   let data = "";
   for (let i = 0; i < lines.length; ++i) {
@@ -108,8 +107,7 @@ function isBuiltinToken(tokenName) {
 }
 
 function isCertBuiltIn(cert) {
-  let cert3 = cert.QueryInterface(Ci.nsIX509Cert3);
-  let tokenNames = cert3.getAllTokenNames({});
+  let tokenNames = cert.getAllTokenNames({});
   if (!tokenNames) {
     return false;
   }
@@ -120,7 +118,7 @@ function isCertBuiltIn(cert) {
 }
 
 function download(filename) {
-  var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+  let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
               .createInstance(Ci.nsIXMLHttpRequest);
   req.open("GET", filename, false); // doing the request synchronously
   try {
@@ -134,13 +132,21 @@ function download(filename) {
     throw("ERROR: problem downloading '" + filename + "': status " +
           req.status);
   }
-  return req.responseText;
+
+  let resultDecoded;
+  try {
+    resultDecoded = atob(req.responseText);
+  }
+  catch (e) {
+    throw "ERROR: could not decode data as base64 from '" + filename + "': " + e;
+  }
+  return resultDecoded;
 }
 
 function downloadAsJson(filename) {
   // we have to filter out '//' comments
-  var result = download(filename).replace(/\/\/[^\n]*\n/g, "");
-  var data = null;
+  let result = download(filename).replace(/\/\/[^\n]*\n/g, "");
+  let data = null;
   try {
     data = JSON.parse(result);
   }
@@ -190,6 +196,7 @@ function downloadAndParseChromeCerts(filename, certSKDToName) {
   let hash = "";
   let chromeNameToHash = {};
   let chromeNameToMozName = {}
+  let chromeName;
   for (let i = 0; i < lines.length; ++i) {
     let line = lines[i];
     // Skip comments and newlines.
@@ -226,6 +233,7 @@ function downloadAndParseChromeCerts(filename, certSKDToName) {
           state = PRE_NAME;
           hash = getSKDFromPem(pemCert);
           pemCert = "";
+          let mozName;
           if (hash in certSKDToName) {
             mozName = certSKDToName[hash];
           } else {
@@ -313,6 +321,10 @@ function downloadAndParseChromePins(filename,
   const cData = gStaticPins.chromium_data;
   let entries = chromePreloads.entries;
   entries.forEach(function(entry) {
+    // HSTS entry only
+    if (!entry.pins) {
+      return;
+    }
     let pinsetName = cData.substitute_pinsets[entry.pins];
     if (!pinsetName) {
       pinsetName = entry.pins;
@@ -321,8 +333,10 @@ function downloadAndParseChromePins(filename,
       (cData.production_domains.indexOf(entry.name) != -1);
     let isProductionPinset =
       (cData.production_pinsets.indexOf(pinsetName) != -1);
+    let excludeDomain =
+      (cData.exclude_domains.indexOf(entry.name) != -1);
     let isTestMode = !isProductionPinset && !isProductionDomain;
-    if (entry.pins && chromeImportedPinsets[entry.pins]) {
+    if (entry.pins && !excludeDomain && chromeImportedPinsets[entry.pins]) {
       chromeImportedEntries.push({
         name: entry.name,
         include_subdomains: entry.include_subdomains,
@@ -336,7 +350,7 @@ function downloadAndParseChromePins(filename,
 
 // Returns a pair of maps [certNameToSKD, certSKDToName] between cert
 // nicknames and digests of the SPKInfo for the mozilla trust store
-function loadNSSCertinfo(derTestFile) {
+function loadNSSCertinfo(derTestFile, extraCertificates) {
   let allCerts = gCertDB.getCerts();
   let enumerator = allCerts.getEnumerator();
   let certNameToSKD = {};
@@ -351,6 +365,14 @@ function loadNSSCertinfo(derTestFile) {
     certNameToSKD[name] = SKD;
     certSKDToName[SKD] = name;
   }
+
+  for (let cert of extraCertificates) {
+    let name = cert.commonName;
+    let SKD = cert.sha256SubjectPublicKeyInfoDigest;
+    certNameToSKD[name] = SKD;
+    certSKDToName[SKD] = name;
+  }
+
   {
     // A certificate for *.example.com.
     let der = readFileToString(derTestFile);
@@ -430,8 +452,9 @@ function writeFingerprints(certNameToSKD, certSKDToName, name, hashes, type) {
     writeString("  0\n");
   }
   writeString("};\n");
-  writeString("static const StaticFingerprints " + varPrefix + " = { " +
-          hashes.length + ", " + varPrefix + "_Data };\n\n");
+  writeString("static const StaticFingerprints " + varPrefix + " = {\n  " +
+    "sizeof(" + varPrefix + "_Data) / sizeof(const char*),\n  " + varPrefix +
+    "_Data\n};\n\n");
 }
 
 function writeEntry(entry) {
@@ -451,16 +474,19 @@ function writeEntry(entry) {
   } else {
     printVal += "false, ";
   }
-  if (entry.is_moz || (entry.pins == "mozilla")) {
+  if (entry.is_moz || (entry.pins.indexOf("mozilla") != -1 &&
+                       entry.pins != "mozilla_test")) {
     printVal += "true, ";
   } else {
     printVal += "false, ";
   }
-  if (entry.id >= 256) {
-    throw("Not enough buckets in histogram");
-  }
-  if (entry.id >= 0) {
-    printVal += entry.id + ", ";
+  if ("id" in entry) {
+    if (entry.id >= 256) {
+      throw("Not enough buckets in histogram");
+    }
+    if (entry.id >= 0) {
+      printVal += entry.id + ", ";
+    }
   } else {
     printVal += "-1, ";
   }
@@ -474,6 +500,19 @@ function writeDomainList(chromeImportedEntries) {
   writeString("static const TransportSecurityPreload " +
           "kPublicKeyPinningPreloadList[] = {\n");
   let count = 0;
+  let mozillaDomains = {};
+  gStaticPins.entries.forEach(function(entry) {
+    mozillaDomains[entry.name] = true;
+  });
+  // For any domain for which we have set pins, exclude them from
+  // chromeImportedEntries.
+  for (let i = chromeImportedEntries.length - 1; i >= 0; i--) {
+    if (mozillaDomains[chromeImportedEntries[i].name]) {
+      dump("Skipping duplicate pinset for domain " +
+           JSON.stringify(chromeImportedEntries[i], undefined, 2) + "\n");
+      chromeImportedEntries.splice(i, 1);
+    }
+  }
   let sortedEntries = gStaticPins.entries;
   sortedEntries.push.apply(sortedEntries, chromeImportedEntries);
   for (let entry of sortedEntries.sort(compareByName)) {
@@ -482,8 +521,7 @@ function writeDomainList(chromeImportedEntries) {
   }
   writeString("};\n");
 
-  writeString("\nstatic const int kPublicKeyPinningPreloadListLength = " +
-          count + ";\n");
+  writeString("\n// Pinning Preload List Length = " + count + ";\n");
   writeString("\nstatic const int32_t kUnknownId = -1;\n");
 }
 
@@ -491,8 +529,10 @@ function writeFile(certNameToSKD, certSKDToName,
                    chromeImportedPinsets, chromeImportedEntries) {
   // Compute used pins from both Chrome's and our pinsets, so we can output
   // them later.
-  usedFingerprints = {};
+  let usedFingerprints = {};
+  let mozillaPins = {};
   gStaticPins.pinsets.forEach(function(pinset) {
+    mozillaPins[pinset.name] = true;
     // We aren't guaranteed to have sha1_hashes in our own JSON.
     if (pinset.sha1_hashes) {
       pinset.sha1_hashes.forEach(function(name) {
@@ -535,7 +575,12 @@ function writeFile(certNameToSKD, certSKDToName,
   });
   writeString("/* Chrome static pinsets */\n");
   for (let key in chromeImportedPinsets) {
-    writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    if (mozillaPins[key]) {
+      dump("Skipping duplicate pinset " + key + "\n");
+    } else {
+      dump("Writing pinset " + key + "\n");
+      writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    }
   }
 
   // Write the domainlist entries.
@@ -545,7 +590,17 @@ function writeFile(certNameToSKD, certSKDToName,
   writeString(genExpirationTime());
 }
 
-let [ certNameToSKD, certSKDToName ] = loadNSSCertinfo(gTestCertFile);
+function loadExtraCertificates(certStringList) {
+  let constructedCerts = [];
+  for (let certString of certStringList) {
+    constructedCerts.push(gCertDB.constructX509FromBase64(certString));
+  }
+  return constructedCerts;
+}
+
+let extraCertificates = loadExtraCertificates(gStaticPins.extra_certificates);
+let [ certNameToSKD, certSKDToName ] = loadNSSCertinfo(gTestCertFile,
+                                                       extraCertificates);
 let [ chromeNameToHash, chromeNameToMozName ] = downloadAndParseChromeCerts(
   gStaticPins.chromium_data.cert_file_url, certSKDToName);
 let [ chromeImportedPinsets, chromeImportedEntries ] =

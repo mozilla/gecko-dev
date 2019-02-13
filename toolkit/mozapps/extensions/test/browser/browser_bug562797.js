@@ -259,24 +259,26 @@ add_test(function() {
           info("Part 3");
           is_in_list(aManager, "addons://list/extension", true, false);
 
-          go_back(aManager);
+          executeSoon(() => go_back(aManager));
           gBrowser.addEventListener("pageshow", function() {
             gBrowser.removeEventListener("pageshow", arguments.callee, false);
             info("Part 4");
-            is(gBrowser.currentURI.spec, "http://example.com/", "Should be showing the webpage");
-            ok(!gBrowser.canGoBack, "Should not be able to go back");
-            ok(gBrowser.canGoForward, "Should be able to go forward");
+            executeSoon(() => executeSoon(function () {
+              is(gBrowser.currentURI.spec, "http://example.com/", "Should be showing the webpage");
+              ok(!gBrowser.canGoBack, "Should not be able to go back");
+              ok(gBrowser.canGoForward, "Should be able to go forward");
 
-            go_forward(aManager);
-            gBrowser.addEventListener("pageshow", function() {
-              gBrowser.removeEventListener("pageshow", arguments.callee, false);
-              wait_for_view_load(gBrowser.contentWindow.wrappedJSObject, function(aManager) {
-                info("Part 5");
-                is_in_list(aManager, "addons://list/extension", true, false);
+              go_forward(aManager);
+              gBrowser.addEventListener("pageshow", function() {
+                gBrowser.removeEventListener("pageshow", arguments.callee, false);
+                wait_for_view_load(gBrowser.contentWindow.wrappedJSObject, function(aManager) {
+                  info("Part 5");
+                  is_in_list(aManager, "addons://list/extension", true, false);
 
-                close_manager(aManager, run_next_test);
-              });
-            }, false);
+                  close_manager(aManager, run_next_test);
+                });
+              }, false);
+            }));
           }, false);
         });
       }, true);
@@ -438,7 +440,7 @@ add_test(function() {
             info("Part 3");
             is_in_list(aManager, "addons://list/plugin", false, true);
 
-            go_forward(aManager);
+            executeSoon(() => go_forward(aManager));
             gBrowser.addEventListener("pageshow", function(event) {
               if (event.target.location != "http://example.com/")
                 return;
@@ -476,17 +478,8 @@ add_test(function() {
   // Before we open the add-ons manager, we should make sure that no filter
   // has been set. If one is set, we remove it.
   // This is for the check below, from bug 611459.
-  let RDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
-  let store = RDF.GetDataSource("rdf:local-store");
-  let filterResource = RDF.GetResource("about:addons#search-filter-radiogroup");
-  let filterProperty = RDF.GetResource("value");
-  let filterTarget = store.GetTarget(filterResource, filterProperty, true);
-
-  if (filterTarget) {
-    is(filterTarget instanceof Ci.nsIRDFLiteral, true,
-       "Filter should be a value");
-    store.Unassert(filterResource, filterProperty, filterTarget);
-  }
+  let store = Cc["@mozilla.org/xul/xulstore;1"].getService(Ci.nsIXULStore);
+  store.removeValue("about:addons", "search-filter-radiogroup", "value");
 
   open_manager("addons://list/extension", function(aManager) {
     info("Part 1");

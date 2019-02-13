@@ -32,6 +32,10 @@ nsGridLayout2::nsGridLayout2(nsIPresShell* aPresShell):nsStackLayout()
 {
 }
 
+nsGridLayout2::~nsGridLayout2()
+{
+}
+
 // static
 void
 nsGridLayout2::AddOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsSize& aSize)
@@ -57,9 +61,9 @@ nsGridLayout2::Layout(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 void
-nsGridLayout2::IntrinsicWidthsDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsGridLayout2::IntrinsicISizesDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
-  nsStackLayout::IntrinsicWidthsDirty(aBox, aBoxLayoutState);
+  nsStackLayout::IntrinsicISizesDirty(aBox, aBoxLayoutState);
   // XXXldb We really don't need to do all the work that NeedsRebuild
   // does; we just need to mark intrinsic widths dirty on the
   // (row/column)(s/-groups).

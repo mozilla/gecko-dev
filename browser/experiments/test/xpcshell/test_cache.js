@@ -7,7 +7,6 @@ Cu.import("resource://testing-common/httpd.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Experiments",
   "resource:///modules/experiments/Experiments.jsm");
 
-const FILE_MANIFEST            = "experiments.manifest";
 const MANIFEST_HANDLER         = "manifests/handler";
 
 const SEC_IN_ONE_DAY  = 24 * 60 * 60;
@@ -17,7 +16,6 @@ let gProfileDir          = null;
 let gHttpServer          = null;
 let gHttpRoot            = null;
 let gDataRoot            = null;
-let gReporter            = null;
 let gPolicy              = null;
 let gManifestObject      = null;
 let gManifestHandlerURI  = null;
@@ -47,23 +45,15 @@ add_task(function* test_setup() {
   });
   do_register_cleanup(() => gHttpServer.stop(() => {}));
 
-  disableCertificateChecks();
-
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setIntPref(PREF_LOGGING_LEVEL, 0);
   Services.prefs.setBoolPref(PREF_LOGGING_DUMP, true);
   Services.prefs.setCharPref(PREF_MANIFEST_URI, gManifestHandlerURI);
   Services.prefs.setIntPref(PREF_FETCHINTERVAL, 0);
 
-  gReporter = yield getReporter("json_payload_simple");
-  yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(true);
-  do_register_cleanup(() => gReporter._shutdown());
-
   gPolicy = new Experiments.Policy();
   patchPolicy(gPolicy, {
     updatechannel: () => "nightly",
-    healthReportPayload: () => "{}",
     oneshotTimer: (callback, timeout, thisObj, name) => gTimerScheduleOffset = timeout,
   });
 });
@@ -165,7 +155,7 @@ add_task(function* test_cache() {
   Assert.equal(list.length, 0, "Experiment list should be empty.");
   checkExperimentSerializations(experiments._experiments.values());
 
-  yield experiments.uninit();
+  yield promiseRestartManager();
   experiments = new Experiments.Experiments(gPolicy);
 
   yield experiments._run();
@@ -178,7 +168,7 @@ add_task(function* test_cache() {
   now = futureDate(startDates[0], 5 * MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.uninit();
+  yield promiseRestartManager();
   experiments = new Experiments.Experiments(gPolicy);
   yield experiments._run();
 
@@ -190,12 +180,19 @@ add_task(function* test_cache() {
   checkExperimentListsEqual(experimentListData.slice(1), list);
   checkExperimentSerializations(experiments._experiments.values());
 
+  let branch = yield experiments.getExperimentBranch(EXPERIMENT1_ID);
+  Assert.strictEqual(branch, null);
+
+  yield experiments.setExperimentBranch(EXPERIMENT1_ID, "testbranch");
+  branch = yield experiments.getExperimentBranch(EXPERIMENT1_ID);
+  Assert.strictEqual(branch, "testbranch");
+
   // Re-init, clock set for experiment 1 to stop.
 
   now = futureDate(now, 20 * MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.uninit();
+  yield promiseRestartManager();
   experiments = new Experiments.Experiments(gPolicy);
   yield experiments._run();
 
@@ -207,12 +204,15 @@ add_task(function* test_cache() {
   checkExperimentListsEqual(experimentListData.slice(1), list);
   checkExperimentSerializations(experiments._experiments.values());
 
+  branch = yield experiments.getExperimentBranch(EXPERIMENT1_ID);
+  Assert.strictEqual(branch, "testbranch");
+
   // Re-init, clock set for experiment 2 to start.
 
   now = futureDate(startDates[1], 20 * MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.uninit();
+  yield promiseRestartManager();
   experiments = new Experiments.Experiments(gPolicy);
   yield experiments._run();
 
@@ -229,7 +229,7 @@ add_task(function* test_cache() {
   now = futureDate(now, 20 * MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.uninit();
+  yield promiseRestartManager();
   experiments = new Experiments.Experiments(gPolicy);
   yield experiments._run();
 
@@ -244,6 +244,6 @@ add_task(function* test_cache() {
   // Cleanup.
 
   yield experiments._toggleExperimentsEnabled(false);
-  yield experiments.uninit();
+  yield promiseRestartManager();
   yield removeCacheFile();
 });

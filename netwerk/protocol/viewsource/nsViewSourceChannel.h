@@ -18,13 +18,13 @@
 #include "nsIUploadChannel.h"
 #include "mozilla/Attributes.h"
 
-class nsViewSourceChannel MOZ_FINAL : public nsIViewSourceChannel,
-                                      public nsIStreamListener,
-                                      public nsIHttpChannel,
-                                      public nsIHttpChannelInternal,
-                                      public nsICachingChannel,
-                                      public nsIApplicationCacheChannel,
-                                      public nsIUploadChannel
+class nsViewSourceChannel final : public nsIViewSourceChannel,
+                                  public nsIStreamListener,
+                                  public nsIHttpChannel,
+                                  public nsIHttpChannelInternal,
+                                  public nsICachingChannel,
+                                  public nsIApplicationCacheChannel,
+                                  public nsIUploadChannel
 {
 
 public:
@@ -35,7 +35,7 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSIHTTPCHANNEL
-    NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCachingChannel)
+    NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCacheInfoChannel)
     NS_FORWARD_SAFE_NSICACHINGCHANNEL(mCachingChannel)
     NS_FORWARD_SAFE_NSIAPPLICATIONCACHECHANNEL(mApplicationCacheChannel)
     NS_FORWARD_SAFE_NSIAPPLICATIONCACHECONTAINER(mApplicationCacheChannel)
@@ -49,19 +49,20 @@ public:
 
     nsresult Init(nsIURI* uri);
 
-    nsresult InitSrcdoc(nsIURI* aURI, const nsAString &aSrcdoc,
-                                    nsIURI* aBaseURI);
+    nsresult InitSrcdoc(nsIURI* aURI, const nsAString &aSrcdoc);
 
 protected:
+    ~nsViewSourceChannel() {}
+
     nsCOMPtr<nsIChannel>        mChannel;
     nsCOMPtr<nsIHttpChannel>    mHttpChannel;
     nsCOMPtr<nsIHttpChannelInternal>    mHttpChannelInternal;
     nsCOMPtr<nsICachingChannel> mCachingChannel;
+    nsCOMPtr<nsICacheInfoChannel> mCacheInfoChannel;
     nsCOMPtr<nsIApplicationCacheChannel> mApplicationCacheChannel;
     nsCOMPtr<nsIUploadChannel>  mUploadChannel;
     nsCOMPtr<nsIStreamListener> mListener;
     nsCOMPtr<nsIURI>            mOriginalURI;
-    nsCOMPtr<nsIURI>            mBaseURI;
     nsCString                   mContentType;
     bool                        mIsDocument; // keeps track of the LOAD_DOCUMENT_URI flag
     bool                        mOpened;

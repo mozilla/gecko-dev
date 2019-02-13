@@ -1,0 +1,59 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXPORTS.mozilla.a11y += [
+    'AccessibleWrap.h',
+    'HyperTextAccessibleWrap.h',
+]
+
+SOURCES += [
+    'AccessibleWrap.cpp',
+    'ApplicationAccessibleWrap.cpp',
+    'AtkSocketAccessible.cpp',
+    'DocAccessibleWrap.cpp',
+    'nsMaiHyperlink.cpp',
+    'nsMaiInterfaceAction.cpp',
+    'nsMaiInterfaceComponent.cpp',
+    'nsMaiInterfaceDocument.cpp',
+    'nsMaiInterfaceEditableText.cpp',
+    'nsMaiInterfaceHyperlinkImpl.cpp',
+    'nsMaiInterfaceHypertext.cpp',
+    'nsMaiInterfaceImage.cpp',
+    'nsMaiInterfaceSelection.cpp',
+    'nsMaiInterfaceTable.cpp',
+    'nsMaiInterfaceText.cpp',
+    'nsMaiInterfaceValue.cpp',
+    'Platform.cpp',
+    'RootAccessibleWrap.cpp',
+    'UtilInterface.cpp',
+]
+
+LOCAL_INCLUDES += [
+    '/accessible/base',
+    '/accessible/generic',
+    '/accessible/html',
+    '/accessible/ipc',
+    '/accessible/xpcom',
+    '/accessible/xul',
+    '/other-licenses/atk-1.0',
+]
+
+FINAL_LIBRARY = 'xul'
+
+if CONFIG['MOZ_ENABLE_GTK']:
+    CFLAGS += CONFIG['TK_CFLAGS']
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['MOZ_ENABLE_DBUS']:
+    CXXFLAGS += CONFIG['MOZ_DBUS_CFLAGS']
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+if CONFIG['CLANG_CXX']:
+    # Suppress clang warning about unused function from gobject's RTTI macros.
+    CXXFLAGS += ['-Wno-unused-function']
+
+FAIL_ON_WARNINGS = True

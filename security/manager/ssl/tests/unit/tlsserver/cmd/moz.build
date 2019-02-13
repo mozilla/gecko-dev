@@ -6,17 +6,23 @@
 
 FAIL_ON_WARNINGS = True
 
-SIMPLE_PROGRAMS = [
+GeckoSimplePrograms([
     'BadCertServer',
+    'ClientAuthServer',
     'GenerateOCSPResponse',
     'OCSPStaplingServer',
-]
-
-SOURCES += [
-    '%s.cpp' % s for s in SIMPLE_PROGRAMS
-]
+], linkage=None)
 
 LOCAL_INCLUDES += [
     '../lib',
 ]
 
+USE_LIBS += [
+    'mozillapkix',
+    'nspr',
+    'nss',
+    'pkixtestutil',
+    'tlsserver',
+]
+
+CXXFLAGS += CONFIG['TK_CFLAGS']

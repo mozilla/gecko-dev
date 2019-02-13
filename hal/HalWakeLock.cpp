@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/Hal.h"
+#include "Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
@@ -96,7 +96,8 @@ RemoveChildFromList(const nsAString& aKey, nsAutoPtr<ProcessLockTable>& aTable,
   return op;
 }
 
-class ClearHashtableOnShutdown MOZ_FINAL : public nsIObserver {
+class ClearHashtableOnShutdown final : public nsIObserver {
+  ~ClearHashtableOnShutdown() {}
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -115,7 +116,8 @@ ClearHashtableOnShutdown::Observe(nsISupports* aSubject, const char* aTopic, con
   return NS_OK;
 }
 
-class CleanupOnContentShutdown MOZ_FINAL : public nsIObserver {
+class CleanupOnContentShutdown final : public nsIObserver {
+  ~CleanupOnContentShutdown() {}
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER

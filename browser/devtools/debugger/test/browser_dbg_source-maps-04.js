@@ -6,7 +6,7 @@
  */
 
 const TAB_URL = EXAMPLE_URL + "doc_minified_bogus_map.html";
-const JS_URL = EXAMPLE_URL + "code_math_bogus_map.min.js";
+const JS_URL = EXAMPLE_URL + "code_math_bogus_map.js";
 
 // This test causes an error to be logged in the console, which appears in TBPL
 // logs, so we are disabling that here.
@@ -16,7 +16,7 @@ DevToolsUtils.reportingDisabled = true;
 let gPanel, gDebugger, gFrames, gSources, gPrefs, gOptions;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gFrames = gDebugger.DebuggerView.StackFrames;
@@ -46,7 +46,7 @@ function test() {
 }
 
 function checkInitialSource() {
-  isnot(gSources.selectedValue.indexOf(".min.js"), -1,
+  isnot(gSources.selectedItem.attachment.source.url.indexOf("code_math_bogus_map.js"), -1,
     "The debugger should show the minified js file.");
 }
 
@@ -86,12 +86,14 @@ function disableIgnoreCaughtExceptions() {
 
 function testSetBreakpoint() {
   let deferred = promise.defer();
+  let sourceForm = getSourceForm(gSources, JS_URL);
+  let source = gDebugger.gThreadClient.source(sourceForm);
 
-  gDebugger.gThreadClient.setBreakpoint({ url: JS_URL, line: 3, column: 61 }, aResponse => {
+  source.setBreakpoint({ line: 3, column: 18 }, aResponse => {
     ok(!aResponse.error,
       "Should be able to set a breakpoint in a js file.");
     ok(!aResponse.actualLocation,
-      "Should be able to set a breakpoint on line 3 and column 61.");
+      "Should be able to set a breakpoint on line 3 and column 18.");
 
     deferred.resolve();
   });
@@ -113,9 +115,23 @@ function testHitBreakpoint() {
     is(aResponse.type, "resumed", "Type should be 'resumed'.");
 
     waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES).then(() => {
-      is(gFrames.itemCount, 1, "Should have one frame.");
+      is(gFrames.itemCount, 2, "Should have two frames.");
 
-      gDebugger.gThreadClient.resume(deferred.resolve);
+      // This is weird, but we need to let the debugger a chance to
+      // update first
+      executeSoon(() => {
+        gDebugger.gThreadClient.resume(() => {
+          gDebugger.gThreadClient.addOneTimeListener("paused", () => {
+            gDebugger.gThreadClient.resume(() => {
+              // We also need to make sure the next step doesn't add a
+              // "resumed" handler until this is completely finished
+              executeSoon(() => {
+                deferred.resolve();
+              });
+            });
+          });
+        });
+      });
     });
   });
 

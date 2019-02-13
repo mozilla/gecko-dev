@@ -8,7 +8,7 @@
 #include "nsGkAtoms.h"
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
-#include "nsINodeInfo.h"
+#include "mozilla/dom/NodeInfo.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/HTMLButtonElement.h"
@@ -75,7 +75,7 @@ nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 nsresult
 nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
-  nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
+  nsCOMPtr<nsIDocument> doc = mContent->GetComposedDoc();
 
   // Create and setup the file picking button.
   mBrowse = doc->CreateHTMLElement(nsGkAtoms::button);
@@ -118,7 +118,7 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   }
 
   // Create and setup the text showing the selected files.
-  nsCOMPtr<nsINodeInfo> nodeInfo;
+  nsRefPtr<NodeInfo> nodeInfo;
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::label, nullptr,
                                                  kNameSpaceID_XUL,
                                                  nsIDOMNode::ELEMENT_NODE);
@@ -150,11 +150,16 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 }
 
 void
-nsFileControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
+nsFileControlFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
                                              uint32_t aFilter)
 {
-  aElements.MaybeAppendElement(mBrowse);
-  aElements.MaybeAppendElement(mTextContent);
+  if (mBrowse) {
+    aElements.AppendElement(mBrowse);
+  }
+
+  if (mTextContent) {
+    aElements.AppendElement(mTextContent);
+  }
 }
 
 NS_QUERYFRAME_HEAD(nsFileControlFrame)
@@ -182,7 +187,22 @@ nsFileControlFrame::DnDListener::HandleEvent(nsIDOMEvent* aEvent)
   }
 
   nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
-  if (!dragEvent || !IsValidDropData(dragEvent)) {
+  if (!dragEvent) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
+  dragEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
+  if (!IsValidDropData(dataTransfer)) {
+    return NS_OK;
+  }
+
+
+  nsIContent* content = mFrame->GetContent();
+  bool supportsMultiple = content && content->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
+  if (!CanDropTheseFiles(dataTransfer, supportsMultiple)) {
+    dataTransfer->SetDropEffect(NS_LITERAL_STRING("none"));
+    aEvent->StopPropagation();
     return NS_OK;
   }
 
@@ -198,14 +218,10 @@ nsFileControlFrame::DnDListener::HandleEvent(nsIDOMEvent* aEvent)
     aEvent->StopPropagation();
     aEvent->PreventDefault();
 
-    nsIContent* content = mFrame->GetContent();
     NS_ASSERTION(content, "The frame has no content???");
 
     HTMLInputElement* inputElement = HTMLInputElement::FromContent(content);
     NS_ASSERTION(inputElement, "No input element for this file upload control frame!");
-
-    nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
-    dragEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
 
     nsCOMPtr<nsIDOMFileList> fileList;
     dataTransfer->GetFiles(getter_AddRefs(fileList));
@@ -220,11 +236,9 @@ nsFileControlFrame::DnDListener::HandleEvent(nsIDOMEvent* aEvent)
 }
 
 /* static */ bool
-nsFileControlFrame::DnDListener::IsValidDropData(nsIDOMDragEvent* aEvent)
+nsFileControlFrame::DnDListener::IsValidDropData(nsIDOMDataTransfer* aDOMDataTransfer)
 {
-  nsCOMPtr<nsIDOMDataTransfer> domDataTransfer;
-  aEvent->GetDataTransfer(getter_AddRefs(domDataTransfer));
-  nsCOMPtr<DataTransfer> dataTransfer = do_QueryInterface(domDataTransfer);
+  nsCOMPtr<DataTransfer> dataTransfer = do_QueryInterface(aDOMDataTransfer);
   NS_ENSURE_TRUE(dataTransfer, false);
 
   // We only support dropping files onto a file upload control
@@ -232,14 +246,31 @@ nsFileControlFrame::DnDListener::IsValidDropData(nsIDOMDragEvent* aEvent)
   return types->Contains(NS_LITERAL_STRING("Files"));
 }
 
+/* static */ bool
+nsFileControlFrame::DnDListener::CanDropTheseFiles(nsIDOMDataTransfer* aDOMDataTransfer,
+                                                   bool aSupportsMultiple)
+{
+  nsCOMPtr<DataTransfer> dataTransfer = do_QueryInterface(aDOMDataTransfer);
+  NS_ENSURE_TRUE(dataTransfer, false);
+
+  nsCOMPtr<nsIDOMFileList> fileList;
+  dataTransfer->GetFiles(getter_AddRefs(fileList));
+
+  uint32_t listLength = 0;
+  if (fileList) {
+    fileList->GetLength(&listLength);
+  }
+  return listLength <= 1 || aSupportsMultiple;
+}
+
 nscoord
-nsFileControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsFileControlFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
 
   // Our min width is our pref width
-  result = GetPrefWidth(aRenderingContext);
+  result = GetPrefISize(aRenderingContext);
   return result;
 }
 

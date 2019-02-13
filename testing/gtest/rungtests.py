@@ -5,9 +5,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import with_statement
-import sys, os
+
 from optparse import OptionParser
-import mozprocess, mozinfo, mozlog, mozcrash
+import os
+import sys
+
+import mozcrash
+import mozinfo
+import mozlog
+import mozprocess
 
 log = mozlog.getLogger('gtest')
 
@@ -17,7 +23,7 @@ class GTests(object):
     # Time (seconds) in which process will be killed if it produces no output.
     TEST_PROC_NO_OUTPUT_TIMEOUT = 300
 
-    def run_gtest(self, prog, xre_path, symbols_path=None):
+    def run_gtest(self, prog, xre_path, symbols_path=None, cwd=None):
         """
         Run a single C++ unit test program.
 
@@ -32,8 +38,12 @@ class GTests(object):
         self.xre_path = xre_path
         env = self.build_environment()
         log.info("Running gtest")
+
+        if cwd and not os.path.isdir(cwd):
+            os.makedirs(cwd)
+
         proc = mozprocess.ProcessHandler([prog, "-unittest"],
-                                         cwd=os.getcwd(),
+                                         cwd=cwd,
                                          env=env)
         #TODO: After bug 811320 is fixed, don't let .run() kill the process,
         # instead use a timeout in .wait() and then kill to get a stack.
@@ -57,12 +67,24 @@ class GTests(object):
         """
         env["MOZILLA_FIVE_HOME"] = self.xre_path
         env["MOZ_XRE_DIR"] = self.xre_path
+        env["MOZ_GMP_PATH"] = os.pathsep.join(
+            os.path.join(self.xre_path, p, "1.0")
+            for p in ('gmp-fake', 'gmp-fakeopenh264')
+        )
         env["XPCOM_DEBUG_BREAK"] = "stack-and-abort"
         env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
         env["MOZ_CRASHREPORTER"] = "1"
         env["MOZ_RUN_GTEST"] = "1"
         # Normally we run with GTest default output, override this to use the TBPL test format.
         env["MOZ_TBPL_PARSER"] = "1"
+
+        if not mozinfo.has_sandbox:
+          # Bug 1082193 - This is horrible. Our linux build boxes run CentOS 6,
+          # which is too old to support sandboxing. Disable sandbox for gtests
+          # on machines which don't support sandboxing until they can be
+          # upgraded, or gtests are run on test machines instead.
+          env["MOZ_DISABLE_GMP_SANDBOX"] = "1"
+
         return env
 
     def build_environment(self):
@@ -86,19 +108,36 @@ class GTests(object):
                 env[pathvar] = "%s%s%s" % (self.xre_path, os.pathsep, env[pathvar])
             else:
                 env[pathvar] = self.xre_path
+
+        # ASan specific environment stuff
+        # mozinfo is not set up properly to detect if ASan is enabled, so just always set these.
+        if mozinfo.isLinux or mozinfo.isMac:
+            # Symbolizer support
+            llvmsym = os.path.join(self.xre_path, "llvm-symbolizer")
+            if os.path.isfile(llvmsym):
+                env["ASAN_SYMBOLIZER_PATH"] = llvmsym
+                log.info("gtest | ASan using symbolizer at %s", llvmsym)
+            else:
+                # This should be |testFail| instead of |info|. See bug 1050891.
+                log.info("gtest | Failed to find ASan symbolizer at %s", llvmsym)
+
         return env
 
 class gtestOptions(OptionParser):
     def __init__(self):
         OptionParser.__init__(self)
+        self.add_option("--cwd",
+                        dest="cwd",
+                        default=os.getcwd(),
+                        help="absolute path to directory from which to run the binary")
         self.add_option("--xre-path",
-                        action = "store", type = "string", dest = "xre_path",
-                        default = None,
-                        help = "absolute path to directory containing XRE (probably xulrunner)")
+                        dest="xre_path",
+                        default=None,
+                        help="absolute path to directory containing XRE (probably xulrunner)")
         self.add_option("--symbols-path",
-                        action = "store", type = "string", dest = "symbols_path",
-                        default = None,
-                        help = "absolute path to directory containing breakpad symbols, or the URL of a zip file containing symbols")
+                        dest="symbols_path",
+                        default=None,
+                        help="absolute path to directory containing breakpad symbols, or the URL of a zip file containing symbols")
 
 def main():
     parser = gtestOptions()
@@ -113,7 +152,9 @@ def main():
     options.xre_path = os.path.abspath(options.xre_path)
     tester = GTests()
     try:
-        result = tester.run_gtest(prog, options.xre_path, options.symbols_path)
+        result = tester.run_gtest(prog, options.xre_path,
+                                  symbols_path=options.symbols_path,
+                                  cwd=options.cwd)
     except Exception, e:
         log.error(str(e))
         result = False

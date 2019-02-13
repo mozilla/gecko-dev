@@ -4,15 +4,16 @@
 
 package org.mozilla.gecko.menu;
 
-import org.mozilla.gecko.R;
+import java.io.IOException;
 
+import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.R;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Xml;
 import android.view.InflateException;
@@ -21,18 +22,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SubMenu;
 
-import java.io.IOException;
-
-public class GeckoMenuInflater extends MenuInflater { 
-    private static final String LOGTAG = "GeckoMenuInflater";
-
+public class GeckoMenuInflater extends MenuInflater {
     private static final String TAG_MENU = "menu";
     private static final String TAG_ITEM = "item";
     private static final int NO_ID = 0;
 
-    private Context mContext;
+    private final Context mContext;
 
-    // Private class to hold the parsed menu item. 
+    // Private class to hold the parsed menu item.
     private class ParsedItem {
         public int id;
         public int order;
@@ -63,9 +60,7 @@ public class GeckoMenuInflater extends MenuInflater {
 
             parseMenu(parser, attrs, menu);
 
-        } catch (XmlPullParserException e) {
-            throw new InflateException("Error inflating menu XML", e);
-        } catch (IOException e) {
+        } catch (XmlPullParserException | IOException e) {
             throw new InflateException("Error inflating menu XML", e);
         } finally {
             if (parser != null)
@@ -73,16 +68,16 @@ public class GeckoMenuInflater extends MenuInflater {
         }
     }
 
-    private void parseMenu(XmlResourceParser parser, AttributeSet attrs, Menu menu) 
+    private void parseMenu(XmlResourceParser parser, AttributeSet attrs, Menu menu)
                            throws XmlPullParserException, IOException {
         ParsedItem item = null;
-   
+
         String tag;
         int eventType = parser.getEventType();
 
         do {
             tag = parser.getName();
-    
+
             switch (eventType) {
                 case XmlPullParser.START_TAG:
                     if (tag.equals(TAG_ITEM)) {
@@ -129,27 +124,45 @@ public class GeckoMenuInflater extends MenuInflater {
         item.id = a.getResourceId(R.styleable.MenuItem_android_id, NO_ID);
         item.order = a.getInt(R.styleable.MenuItem_android_orderInCategory, 0);
         item.title = a.getText(R.styleable.MenuItem_android_title);
-        item.iconRes = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
         item.checkable = a.getBoolean(R.styleable.MenuItem_android_checkable, false);
         item.checked = a.getBoolean(R.styleable.MenuItem_android_checked, false);
         item.visible = a.getBoolean(R.styleable.MenuItem_android_visible, true);
         item.enabled = a.getBoolean(R.styleable.MenuItem_android_enabled, true);
         item.hasSubMenu = false;
+        item.iconRes = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
 
-        if (Build.VERSION.SDK_INT >= 11)
+        if (Versions.feature11Plus) {
             item.showAsAction = a.getInt(R.styleable.MenuItem_android_showAsAction, 0);
+        }
 
         a.recycle();
     }
-        
+
     public void setValues(ParsedItem item, MenuItem menuItem) {
+        // We are blocking any presenter updates during inflation.
+        GeckoMenuItem geckoItem = null;
+        if (menuItem instanceof GeckoMenuItem) {
+            geckoItem = (GeckoMenuItem) menuItem;
+        }
+
+        if (geckoItem != null) {
+            geckoItem.stopDispatchingChanges();
+        }
+
         menuItem.setChecked(item.checked)
                 .setVisible(item.visible)
                 .setEnabled(item.enabled)
                 .setCheckable(item.checkable)
                 .setIcon(item.iconRes);
 
-        if (Build.VERSION.SDK_INT >= 11)
+        if (Versions.feature11Plus) {
             menuItem.setShowAsAction(item.showAsAction);
+        }
+
+        if (geckoItem != null) {
+            // We don't need to allow presenter updates during inflation,
+            // so we use the weak form of re-enabling changes.
+            geckoItem.resumeDispatchingChanges();
+        }
     }
 }

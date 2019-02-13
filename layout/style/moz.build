@@ -4,8 +4,29 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsComputedDOMStyle.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('nsROCSSPrimitiveValue.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('CSSRuleList.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('nsDOM*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
 DIRS += ['xbl-marquee']
-TEST_TOOL_DIRS += ['test']
+TEST_DIRS += ['test']
+
+XPIDL_SOURCES += [
+    'nsICSSUnprefixingService.idl',
+]
+
+XPIDL_MODULE = 'layout_base'
 
 EXPORTS += [
     'AnimationCommon.h',
@@ -21,7 +42,9 @@ EXPORTS += [
     'nsCSSParser.h',
     'nsCSSPropAliasList.h',
     'nsCSSProperty.h',
+    'nsCSSPropertySet.h',
     'nsCSSPropList.h',
+    'nsCSSPropLogicalGroupList.h',
     'nsCSSProps.h',
     'nsCSSPseudoClasses.h',
     'nsCSSPseudoClassList.h',
@@ -29,7 +52,6 @@ EXPORTS += [
     'nsCSSPseudoElements.h',
     'nsCSSRuleProcessor.h',
     'nsCSSScanner.h',
-    'nsCSSStyleSheet.h',
     'nsCSSValue.h',
     'nsDOMCSSAttrDeclaration.h',
     'nsDOMCSSDeclaration.h',
@@ -46,7 +68,6 @@ EXPORTS += [
     'nsRuleNode.h',
     'nsRuleProcessorData.h',
     'nsRuleWalker.h',
-    'nsStyleAnimation.h',
     'nsStyleConsts.h',
     'nsStyleContext.h',
     'nsStyleCoord.h',
@@ -59,15 +80,24 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    'CSSStyleSheet.h',
     'CSSVariableDeclarations.h',
     'CSSVariableResolver.h',
     'CSSVariableValues.h',
+    'IncrementalClearCOMRuleArray.h',
+    'RuleNodeCacheConditions.h',
+    'RuleProcessorCache.h',
+    'StyleAnimationValue.h',
 ]
 
 EXPORTS.mozilla.dom += [
     'CSS.h',
+    'CSSLexer.h',
     'CSSRuleList.h',
     'CSSValue.h',
+    'FontFace.h',
+    'FontFaceSet.h',
+    'FontFaceSetIterator.h',
     'MediaQueryList.h',
 ]
 
@@ -87,13 +117,18 @@ UNIFIED_SOURCES += [
     'AnimationCommon.cpp',
     'CounterStyleManager.cpp',
     'CSS.cpp',
+    'CSSLexer.cpp',
     'CSSRuleList.cpp',
+    'CSSStyleSheet.cpp',
     'CSSVariableDeclarations.cpp',
     'CSSVariableResolver.cpp',
     'CSSVariableValues.cpp',
     'Declaration.cpp',
     'ErrorReporter.cpp',
+    'FontFace.cpp',
+    'FontFaceSetIterator.cpp',
     'ImageLoader.cpp',
+    'IncrementalClearCOMRuleArray.cpp',
     'Loader.cpp',
     'MediaQueryList.cpp',
     'nsAnimationManager.cpp',
@@ -107,13 +142,14 @@ UNIFIED_SOURCES += [
     'nsCSSPseudoElements.cpp',
     'nsCSSRules.cpp',
     'nsCSSScanner.cpp',
-    'nsCSSStyleSheet.cpp',
     'nsCSSValue.cpp',
     'nsDOMCSSAttrDeclaration.cpp',
     'nsDOMCSSDeclaration.cpp',
     'nsDOMCSSRect.cpp',
     'nsDOMCSSRGBColor.cpp',
     'nsDOMCSSValueList.cpp',
+    'nsFontFaceLoader.cpp',
+    'nsFontFaceUtils.cpp',
     'nsHTMLCSSStyleSheet.cpp',
     'nsHTMLStyleSheet.cpp',
     'nsLayoutStylesheetCache.cpp',
@@ -122,7 +158,6 @@ UNIFIED_SOURCES += [
     'nsROCSSPrimitiveValue.cpp',
     'nsRuleData.cpp',
     'nsRuleNode.cpp',
-    'nsStyleAnimation.cpp',
     'nsStyleContext.cpp',
     'nsStyleCoord.cpp',
     'nsStyleSet.cpp',
@@ -130,33 +165,40 @@ UNIFIED_SOURCES += [
     'nsStyleTransformMatrix.cpp',
     'nsStyleUtil.cpp',
     'nsTransitionManager.cpp',
+    'RuleNodeCacheConditions.cpp',
+    'RuleProcessorCache.cpp',
+    'StyleAnimationValue.cpp',
     'StyleRule.cpp',
+    'SVGAttrAnimationRuleProcessor.cpp',
 ]
 
+# FontFaceSet.cpp needs to be built separately because it redefines LOG.
 # nsCSSRuleProcessor.cpp needs to be built separately because it uses plarena.h.
-# nsFontFaceLoader.cpp needs to be built separately because it forces NSPR logging.
 SOURCES += [
+    'FontFaceSet.cpp',
     'nsCSSRuleProcessor.cpp',
-    'nsFontFaceLoader.cpp',
+]
+
+EXTRA_COMPONENTS += [
+    'CSSUnprefixingService.js',
+    'CSSUnprefixingService.manifest',
 ]
 
 FAIL_ON_WARNINGS = True
 
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
-    '../../content/xul/document/src',
     '../base',
     '../generic',
+    '../svg',
     '../xul',
     '/dom/base',
+    '/dom/html',
     '/dom/xbl',
+    '/dom/xul',
 ]
 
 JAR_MANIFESTS += ['jar.mn']
@@ -168,3 +210,11 @@ RESOURCE_FILES += [
     'TopLevelImageDocument.css',
     'TopLevelVideoDocument.css',
 ]
+
+GENERATED_FILES += ['nsStyleStructList.h']
+style_struct_list = GENERATED_FILES['nsStyleStructList.h']
+style_struct_list.script = 'generate-stylestructlist.py'
+
+if CONFIG['GNU_CC']:
+    CFLAGS += ['-Wshadow']
+    CXXFLAGS += ['-Wshadow']

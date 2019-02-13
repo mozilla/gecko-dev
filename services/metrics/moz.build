@@ -4,13 +4,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['tests']
+XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell/xpcshell.ini']
 
+# We install Metrics.jsm into the "main" JSM repository and the rest in
+# services. External consumers should only go through Metrics.jsm.
 EXTRA_PP_JS_MODULES += [
+    'Metrics.jsm',
+]
+
+EXTRA_PP_JS_MODULES.services.metrics += [
     'dataprovider.jsm',
     'providermanager.jsm',
     'storage.jsm',
 ]
 
-JS_MODULES_PATH = 'modules/services/metrics'
-
+TESTING_JS_MODULES.services.metrics += [
+    'modules-testing/mocks.jsm',
+]

@@ -4,6 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+DIRS += [
+    'bindings',
+    'jni',
+]
+
 XPIDL_SOURCES += [
     'nsIAndroidBridge.idl',
 ]
@@ -19,6 +24,7 @@ EXPORTS += [
 
 SOURCES += [
     'AndroidBridge.cpp',
+    'AndroidContentController.cpp',
     'AndroidDirectTexture.cpp',
     'AndroidGraphicBuffer.cpp',
     'AndroidJavaWrappers.cpp',
@@ -42,8 +48,6 @@ SOURCES += [
 
 FAIL_ON_WARNINGS = True
 
-LIBRARY_NAME = 'widget_android'
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -52,11 +56,10 @@ LOCAL_INCLUDES += [
     '/docshell/base',
     '/dom/base',
     '/dom/system/android',
-    '/netwerk/base/src',
+    '/netwerk/base',
     '/netwerk/cache',
+    '/widget',
     '/widget/android/android',
-    '/widget/shared',
-    '/widget/xpwidgets',
 ]
 
 #DEFINES['DEBUG_WIDGETS'] = True

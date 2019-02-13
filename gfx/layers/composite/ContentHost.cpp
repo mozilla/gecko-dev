@@ -27,7 +27,6 @@ namespace layers {
 
 ContentHostBase::ContentHostBase(const TextureInfo& aTextureInfo)
   : ContentHost(aTextureInfo)
-  , mPaintWillResample(false)
   , mInitialised(false)
 {}
 
@@ -35,52 +34,37 @@ ContentHostBase::~ContentHostBase()
 {
 }
 
-struct AutoLockContentHost
-{
-  AutoLockContentHost(ContentHostBase* aHost)
-    : mHost(aHost)
-  {
-    mSucceeded = mHost->Lock();
-  }
-
-  ~AutoLockContentHost()
-  {
-    if (mSucceeded) {
-      mHost->Unlock();
-    }
-  }
-
-  bool Failed() { return !mSucceeded; }
-
-  ContentHostBase* mHost;
-  bool mSucceeded;
-};
-
 void
-ContentHostBase::Composite(EffectChain& aEffectChain,
-                           float aOpacity,
-                           const gfx::Matrix4x4& aTransform,
-                           const Filter& aFilter,
-                           const Rect& aClipRect,
-                           const nsIntRegion* aVisibleRegion,
-                           TiledLayerProperties* aLayerProperties)
+ContentHostTexture::Composite(EffectChain& aEffectChain,
+                              float aOpacity,
+                              const gfx::Matrix4x4& aTransform,
+                              const Filter& aFilter,
+                              const Rect& aClipRect,
+                              const nsIntRegion* aVisibleRegion)
 {
   NS_ASSERTION(aVisibleRegion, "Requires a visible region");
 
-  AutoLockContentHost lock(this);
+  AutoLockCompositableHost lock(this);
   if (lock.Failed()) {
     return;
   }
 
-  RefPtr<NewTextureSource> source = GetTextureSource();
-  RefPtr<NewTextureSource> sourceOnWhite = GetTextureSourceOnWhite();
-
-  if (!source) {
+  if (!mTextureHost->BindTextureSource(mTextureSource)) {
     return;
   }
-  RefPtr<TexturedEffect> effect =
-    CreateTexturedEffect(source, sourceOnWhite, aFilter);
+  MOZ_ASSERT(mTextureSource.get());
 
+  if (!mTextureHostOnWhite) {
+    mTextureSourceOnWhite = nullptr;
+  }
+  if (mTextureHostOnWhite && !mTextureHostOnWhite->BindTextureSource(mTextureSourceOnWhite)) {
+    return;
+  }
+
+  RefPtr<TexturedEffect> effect = CreateTexturedEffect(mTextureSource.get(),
+                                                       mTextureSourceOnWhite.get(),
+                                                       aFilter, true,
+                                                       GetRenderState());
   if (!effect) {
     return;
   }
@@ -89,6 +73,7 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
 
   nsIntRegion tmpRegion;
   const nsIntRegion* renderRegion;
+#ifndef MOZ_IGNORE_PAINT_WILL_RESAMPLE
   if (PaintWillResample()) {
     // If we're resampling, then the texture image will contain exactly the
     // entire visible region's bounds, and we should draw it all in one quad
@@ -98,6 +83,9 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
   } else {
     renderRegion = aVisibleRegion;
   }
+#else
+  renderRegion = aVisibleRegion;
+#endif
 
   nsIntRegion region(*renderRegion);
   nsIntPoint origin = GetOriginOffset();
@@ -105,8 +93,8 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
   region.MoveBy(-origin);
 
   // Figure out the intersecting draw region
-  gfx::IntSize texSize = source->GetSize();
-  nsIntRect textureRect = nsIntRect(0, 0, texSize.width, texSize.height);
+  gfx::IntSize texSize = mTextureSource->GetSize();
+  IntRect textureRect = IntRect(0, 0, texSize.width, texSize.height);
   textureRect.MoveBy(region.GetBounds().TopLeft());
   nsIntRegion subregion;
   subregion.And(region, textureRect);
@@ -120,23 +108,23 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
 
   // Collect texture/screen coordinates for drawing
   nsIntRegionRectIterator iter(subregion);
-  while (const nsIntRect* iterRect = iter.Next()) {
-    nsIntRect regionRect = *iterRect;
-    nsIntRect screenRect = regionRect;
+  while (const IntRect* iterRect = iter.Next()) {
+    IntRect regionRect = *iterRect;
+    IntRect screenRect = regionRect;
     screenRect.MoveBy(origin);
 
     screenRects.Or(screenRects, screenRect);
     regionRects.Or(regionRects, regionRect);
   }
 
-  BigImageIterator* bigImgIter = source->AsBigImageIterator();
+  BigImageIterator* bigImgIter = mTextureSource->AsBigImageIterator();
   BigImageIterator* iterOnWhite = nullptr;
   if (bigImgIter) {
     bigImgIter->BeginBigImageIteration();
   }
 
-  if (sourceOnWhite) {
-    iterOnWhite = sourceOnWhite->AsBigImageIterator();
+  if (mTextureSourceOnWhite) {
+    iterOnWhite = mTextureSourceOnWhite->AsBigImageIterator();
     MOZ_ASSERT(!bigImgIter || bigImgIter->GetTileCount() == iterOnWhite->GetTileCount(),
                "Tile count mismatch on component alpha texture");
     if (iterOnWhite) {
@@ -151,8 +139,8 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
                  "component alpha textures should be the same size.");
     }
 
-    nsIntRect texRect = bigImgIter ? bigImgIter->GetTileRect()
-                                 : nsIntRect(0, 0,
+    IntRect texRect = bigImgIter ? bigImgIter->GetTileRect()
+                                 : IntRect(0, 0,
                                              texSize.width,
                                              texSize.height);
 
@@ -162,18 +150,18 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
     // 2 for each axis that has texture repeat.
     for (int y = 0; y < (usingTiles ? 2 : 1); y++) {
       for (int x = 0; x < (usingTiles ? 2 : 1); x++) {
-        nsIntRect currentTileRect(texRect);
+        IntRect currentTileRect(texRect);
         currentTileRect.MoveBy(x * texSize.width, y * texSize.height);
 
         nsIntRegionRectIterator screenIter(screenRects);
         nsIntRegionRectIterator regionIter(regionRects);
 
-        const nsIntRect* screenRect;
-        const nsIntRect* regionRect;
+        const IntRect* screenRect;
+        const IntRect* regionRect;
         while ((screenRect = screenIter.Next()) &&
                (regionRect = regionIter.Next())) {
-          nsIntRect tileScreenRect(*screenRect);
-          nsIntRect tileRegionRect(*regionRect);
+          IntRect tileScreenRect(*screenRect);
+          IntRect tileRegionRect(*regionRect);
 
           // When we're using tiles, find the intersection between the tile
           // rect and this region rect. Tiling is then handled by the
@@ -225,10 +213,9 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
   if (iterOnWhite) {
     diagnostics |= DiagnosticFlags::COMPONENT_ALPHA;
   }
-  GetCompositor()->DrawDiagnostics(diagnostics, *aVisibleRegion, aClipRect,
+  GetCompositor()->DrawDiagnostics(diagnostics, nsIntRegion(mBufferRect), aClipRect,
                                    aTransform, mFlashCounter);
 }
-
 
 void
 ContentHostTexture::UseTextureHost(TextureHost* aTexture)
@@ -236,6 +223,10 @@ ContentHostTexture::UseTextureHost(TextureHost* aTexture)
   ContentHostBase::UseTextureHost(aTexture);
   mTextureHost = aTexture;
   mTextureHostOnWhite = nullptr;
+  mTextureSourceOnWhite = nullptr;
+  if (mTextureHost) {
+    mTextureHost->PrepareTextureSource(mTextureSource);
+  }
 }
 
 void
@@ -245,6 +236,12 @@ ContentHostTexture::UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
   ContentHostBase::UseComponentAlphaTextures(aTextureOnBlack, aTextureOnWhite);
   mTextureHost = aTextureOnBlack;
   mTextureHostOnWhite = aTextureOnWhite;
+  if (mTextureHost) {
+    mTextureHost->PrepareTextureSource(mTextureSource);
+  }
+  if (mTextureHostOnWhite) {
+    mTextureHostOnWhite->PrepareTextureSource(mTextureSourceOnWhite);
+  }
 }
 
 void
@@ -259,41 +256,55 @@ ContentHostTexture::SetCompositor(Compositor* aCompositor)
   }
 }
 
-#ifdef MOZ_DUMP_PAINTING
 void
-ContentHostTexture::Dump(FILE* aFile,
+ContentHostTexture::Dump(std::stringstream& aStream,
                          const char* aPrefix,
                          bool aDumpHtml)
 {
-  if (!aDumpHtml) {
-    return;
+#ifdef MOZ_DUMP_PAINTING
+  if (aDumpHtml) {
+    aStream << "<ul>";
   }
-  if (!aFile) {
-    aFile = stderr;
-  }
-  fprintf(aFile, "<ul>");
   if (mTextureHost) {
-    fprintf(aFile, "%s", aPrefix);
-    fprintf(aFile, "<li> <a href=");
-    DumpTextureHost(aFile, mTextureHost);
-    fprintf(aFile, "> Front buffer </a></li> ");
+    aStream << aPrefix;
+    if (aDumpHtml) {
+      aStream << "<li> <a href=";
+    } else {
+      aStream << "Front buffer: ";
+    }
+    DumpTextureHost(aStream, mTextureHost);
+    if (aDumpHtml) {
+      aStream << "> Front buffer </a></li> ";
+    } else {
+      aStream << "\n";
+    }
   }
   if (mTextureHostOnWhite) {
-    fprintf(aFile, "%s", aPrefix);
-    fprintf(aFile, "<li> <a href=");
-    DumpTextureHost(aFile, mTextureHostOnWhite);
-    fprintf(aFile, "> Front buffer on white </a> </li> ");
+    aStream << aPrefix;
+    if (aDumpHtml) {
+      aStream << "<li> <a href=";
+    } else {
+      aStream << "Front buffer on white: ";
+    }
+    DumpTextureHost(aStream, mTextureHostOnWhite);
+    if (aDumpHtml) {
+      aStream << "> Front buffer on white </a> </li> ";
+    } else {
+      aStream << "\n";
+    }
   }
-  fprintf(aFile, "</ul>");
-}
+  if (aDumpHtml) {
+    aStream << "</ul>";
+  }
 #endif
+}
 
 static inline void
 AddWrappedRegion(const nsIntRegion& aInput, nsIntRegion& aOutput,
-                 const nsIntSize& aSize, const nsIntPoint& aShift)
+                 const IntSize& aSize, const nsIntPoint& aShift)
 {
   nsIntRegion tempRegion;
-  tempRegion.And(nsIntRect(aShift, aSize), aInput);
+  tempRegion.And(IntRect(aShift, aSize), aInput);
   tempRegion.MoveBy(-aShift);
   aOutput.Or(aOutput, tempRegion);
 }
@@ -330,11 +341,11 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
   // Shift to the rotation point
   destRegion.MoveBy(aData.rotation());
 
-  nsIntSize bufferSize = aData.rect().Size();
+  IntSize bufferSize = aData.rect().Size();
 
   // Select only the pixels that are still within the buffer.
   nsIntRegion finalRegion;
-  finalRegion.And(nsIntRect(nsIntPoint(), bufferSize), destRegion);
+  finalRegion.And(IntRect(IntPoint(), bufferSize), destRegion);
 
   // For each of the overlap areas (right, bottom-right, bottom), select those
   // pixels and wrap them around to the opposite edge of the buffer rect.
@@ -342,7 +353,7 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
   AddWrappedRegion(destRegion, finalRegion, bufferSize, nsIntPoint(aData.rect().width, aData.rect().height));
   AddWrappedRegion(destRegion, finalRegion, bufferSize, nsIntPoint(0, aData.rect().height));
 
-  MOZ_ASSERT(nsIntRect(0, 0, aData.rect().width, aData.rect().height).Contains(finalRegion.GetBounds()));
+  MOZ_ASSERT(IntRect(0, 0, aData.rect().width, aData.rect().height).Contains(finalRegion.GetBounds()));
 
   mTextureHost->Updated(&finalRegion);
   if (mTextureHostOnWhite) {
@@ -395,291 +406,24 @@ ContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
   return true;
 }
 
-ContentHostIncremental::ContentHostIncremental(const TextureInfo& aTextureInfo)
-  : ContentHostBase(aTextureInfo)
-  , mDeAllocator(nullptr)
-  , mLocked(false)
-{
-}
-
-ContentHostIncremental::~ContentHostIncremental()
-{
-}
-
-bool
-ContentHostIncremental::CreatedIncrementalTexture(ISurfaceAllocator* aAllocator,
-                                                  const TextureInfo& aTextureInfo,
-                                                  const nsIntRect& aBufferRect)
-{
-  mUpdateList.AppendElement(new TextureCreationRequest(aTextureInfo,
-                                                       aBufferRect));
-  mDeAllocator = aAllocator;
-  FlushUpdateQueue();
-  return true;
-}
-
 void
-ContentHostIncremental::UpdateIncremental(TextureIdentifier aTextureId,
-                                          SurfaceDescriptor& aSurface,
-                                          const nsIntRegion& aUpdated,
-                                          const nsIntRect& aBufferRect,
-                                          const nsIntPoint& aBufferRotation)
+ContentHostTexture::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  mUpdateList.AppendElement(new TextureUpdateRequest(mDeAllocator,
-                                                     aTextureId,
-                                                     aSurface,
-                                                     aUpdated,
-                                                     aBufferRect,
-                                                     aBufferRotation));
-  FlushUpdateQueue();
-}
+  aStream << aPrefix;
+  aStream << nsPrintfCString("ContentHost (0x%p)", this).get();
 
-void
-ContentHostIncremental::FlushUpdateQueue()
-{
-  // If we're not compositing for some reason (the window being minimized
-  // is one example), then we never process these updates and it can consume
-  // huge amounts of memory. Instead we forcibly process the updates (during the
-  // transaction) if the list gets too long.
-  static const uint32_t kMaxUpdateCount = 6;
-  if (mUpdateList.Length() >= kMaxUpdateCount) {
-    ProcessTextureUpdates();
-  }
-}
-
-void
-ContentHostIncremental::ProcessTextureUpdates()
-{
-  for (uint32_t i = 0; i < mUpdateList.Length(); i++) {
-    mUpdateList[i]->Execute(this);
-  }
-  mUpdateList.Clear();
-}
-
-NewTextureSource*
-ContentHostIncremental::GetTextureSource()
-{
-  MOZ_ASSERT(mLocked);
-  return mSource;
-}
-
-NewTextureSource*
-ContentHostIncremental::GetTextureSourceOnWhite()
-{
-  MOZ_ASSERT(mLocked);
-  return mSourceOnWhite;
-}
-
-void
-ContentHostIncremental::TextureCreationRequest::Execute(ContentHostIncremental* aHost)
-{
-  Compositor* compositor = aHost->GetCompositor();
-  MOZ_ASSERT(compositor);
-
-  RefPtr<DataTextureSource> temp =
-    compositor->CreateDataTextureSource(mTextureInfo.mTextureFlags);
-  MOZ_ASSERT(temp->AsSourceOGL() &&
-             temp->AsSourceOGL()->AsTextureImageTextureSource());
-  RefPtr<TextureImageTextureSourceOGL> newSource =
-    temp->AsSourceOGL()->AsTextureImageTextureSource();
-
-  RefPtr<TextureImageTextureSourceOGL> newSourceOnWhite;
-  if (mTextureInfo.mTextureFlags & TextureFlags::COMPONENT_ALPHA) {
-    temp =
-      compositor->CreateDataTextureSource(mTextureInfo.mTextureFlags);
-    MOZ_ASSERT(temp->AsSourceOGL() &&
-               temp->AsSourceOGL()->AsTextureImageTextureSource());
-    newSourceOnWhite = temp->AsSourceOGL()->AsTextureImageTextureSource();
-  }
-
-  if (mTextureInfo.mDeprecatedTextureHostFlags & DeprecatedTextureHostFlags::COPY_PREVIOUS) {
-    MOZ_ASSERT(aHost->mSource);
-    MOZ_ASSERT(aHost->mSource->IsValid());
-    nsIntRect bufferRect = aHost->mBufferRect;
-    nsIntPoint bufferRotation = aHost->mBufferRotation;
-    nsIntRect overlap;
-
-    // The buffer looks like:
-    //  ______
-    // |1  |2 |  Where the center point is offset by mBufferRotation from the top-left corner.
-    // |___|__|
-    // |3  |4 |
-    // |___|__|
-    //
-    // This is drawn to the screen as:
-    //  ______
-    // |4  |3 |  Where the center point is { width - mBufferRotation.x, height - mBufferRotation.y } from
-    // |___|__|  from the top left corner - rotationPoint.
-    // |2  |1 |
-    // |___|__|
-    //
-
-    // The basic idea below is to take all quadrant rectangles from the src and transform them into rectangles
-    // in the destination. Unfortunately, it seems it is overly complex and could perhaps be simplified.
-
-    nsIntRect srcBufferSpaceBottomRight(bufferRotation.x, bufferRotation.y, bufferRect.width - bufferRotation.x, bufferRect.height - bufferRotation.y);
-    nsIntRect srcBufferSpaceTopRight(bufferRotation.x, 0, bufferRect.width - bufferRotation.x, bufferRotation.y);
-    nsIntRect srcBufferSpaceTopLeft(0, 0, bufferRotation.x, bufferRotation.y);
-    nsIntRect srcBufferSpaceBottomLeft(0, bufferRotation.y, bufferRotation.x, bufferRect.height - bufferRotation.y);
-
-    overlap.IntersectRect(bufferRect, mBufferRect);
-
-    nsIntRect srcRect(overlap), dstRect(overlap);
-    srcRect.MoveBy(- bufferRect.TopLeft() + bufferRotation);
-
-    nsIntRect srcRectDrawTopRight(srcRect);
-    nsIntRect srcRectDrawTopLeft(srcRect);
-    nsIntRect srcRectDrawBottomLeft(srcRect);
-    // transform into the different quadrants
-    srcRectDrawTopRight  .MoveBy(-nsIntPoint(0, bufferRect.height));
-    srcRectDrawTopLeft   .MoveBy(-nsIntPoint(bufferRect.width, bufferRect.height));
-    srcRectDrawBottomLeft.MoveBy(-nsIntPoint(bufferRect.width, 0));
-
-    // Intersect with the quadrant
-    srcRect               = srcRect              .Intersect(srcBufferSpaceBottomRight);
-    srcRectDrawTopRight   = srcRectDrawTopRight  .Intersect(srcBufferSpaceTopRight);
-    srcRectDrawTopLeft    = srcRectDrawTopLeft   .Intersect(srcBufferSpaceTopLeft);
-    srcRectDrawBottomLeft = srcRectDrawBottomLeft.Intersect(srcBufferSpaceBottomLeft);
-
-    dstRect = srcRect;
-    nsIntRect dstRectDrawTopRight(srcRectDrawTopRight);
-    nsIntRect dstRectDrawTopLeft(srcRectDrawTopLeft);
-    nsIntRect dstRectDrawBottomLeft(srcRectDrawBottomLeft);
-
-    // transform back to src buffer space
-    dstRect              .MoveBy(-bufferRotation);
-    dstRectDrawTopRight  .MoveBy(-bufferRotation + nsIntPoint(0, bufferRect.height));
-    dstRectDrawTopLeft   .MoveBy(-bufferRotation + nsIntPoint(bufferRect.width, bufferRect.height));
-    dstRectDrawBottomLeft.MoveBy(-bufferRotation + nsIntPoint(bufferRect.width, 0));
-
-    // transform back to draw coordinates
-    dstRect              .MoveBy(bufferRect.TopLeft());
-    dstRectDrawTopRight  .MoveBy(bufferRect.TopLeft());
-    dstRectDrawTopLeft   .MoveBy(bufferRect.TopLeft());
-    dstRectDrawBottomLeft.MoveBy(bufferRect.TopLeft());
-
-    // transform to destBuffer space
-    dstRect              .MoveBy(-mBufferRect.TopLeft());
-    dstRectDrawTopRight  .MoveBy(-mBufferRect.TopLeft());
-    dstRectDrawTopLeft   .MoveBy(-mBufferRect.TopLeft());
-    dstRectDrawBottomLeft.MoveBy(-mBufferRect.TopLeft());
-
-    newSource->EnsureBuffer(mBufferRect.Size(),
-                           ContentForFormat(aHost->mSource->GetFormat()));
-
-    aHost->mSource->CopyTo(srcRect, newSource, dstRect);
-    if (bufferRotation != nsIntPoint(0, 0)) {
-      // Draw the remaining quadrants. We call BlitTextureImage 3 extra
-      // times instead of doing a single draw call because supporting that
-      // with a tiled source is quite tricky.
-
-      if (!srcRectDrawTopRight.IsEmpty())
-        aHost->mSource->CopyTo(srcRectDrawTopRight,
-                               newSource, dstRectDrawTopRight);
-      if (!srcRectDrawTopLeft.IsEmpty())
-        aHost->mSource->CopyTo(srcRectDrawTopLeft,
-                               newSource, dstRectDrawTopLeft);
-      if (!srcRectDrawBottomLeft.IsEmpty())
-        aHost->mSource->CopyTo(srcRectDrawBottomLeft,
-                               newSource, dstRectDrawBottomLeft);
-    }
-
-    if (newSourceOnWhite) {
-      newSourceOnWhite->EnsureBuffer(mBufferRect.Size(),
-                                    ContentForFormat(aHost->mSourceOnWhite->GetFormat()));
-      aHost->mSourceOnWhite->CopyTo(srcRect, newSourceOnWhite, dstRect);
-      if (bufferRotation != nsIntPoint(0, 0)) {
-        // draw the remaining quadrants
-        if (!srcRectDrawTopRight.IsEmpty())
-          aHost->mSourceOnWhite->CopyTo(srcRectDrawTopRight,
-                                        newSourceOnWhite, dstRectDrawTopRight);
-        if (!srcRectDrawTopLeft.IsEmpty())
-          aHost->mSourceOnWhite->CopyTo(srcRectDrawTopLeft,
-                                        newSourceOnWhite, dstRectDrawTopLeft);
-        if (!srcRectDrawBottomLeft.IsEmpty())
-          aHost->mSourceOnWhite->CopyTo(srcRectDrawBottomLeft,
-                                        newSourceOnWhite, dstRectDrawBottomLeft);
-      }
-    }
-  }
-
-  aHost->mSource = newSource;
-  aHost->mSourceOnWhite = newSourceOnWhite;
-
-  aHost->mBufferRect = mBufferRect;
-  aHost->mBufferRotation = nsIntPoint();
-}
-
-nsIntRect
-ContentHostIncremental::TextureUpdateRequest::GetQuadrantRectangle(XSide aXSide,
-                                                                   YSide aYSide) const
-{
-  // quadrantTranslation is the amount we translate the top-left
-  // of the quadrant by to get coordinates relative to the layer
-  nsIntPoint quadrantTranslation = -mBufferRotation;
-  quadrantTranslation.x += aXSide == LEFT ? mBufferRect.width : 0;
-  quadrantTranslation.y += aYSide == TOP ? mBufferRect.height : 0;
-  return mBufferRect + quadrantTranslation;
-}
-
-void
-ContentHostIncremental::TextureUpdateRequest::Execute(ContentHostIncremental* aHost)
-{
-  nsIntRect drawBounds = mUpdated.GetBounds();
-
-  aHost->mBufferRect = mBufferRect;
-  aHost->mBufferRotation = mBufferRotation;
-
-  // Figure out which quadrant to draw in
-  int32_t xBoundary = mBufferRect.XMost() - mBufferRotation.x;
-  int32_t yBoundary = mBufferRect.YMost() - mBufferRotation.y;
-  XSide sideX = drawBounds.XMost() <= xBoundary ? RIGHT : LEFT;
-  YSide sideY = drawBounds.YMost() <= yBoundary ? BOTTOM : TOP;
-  nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
-  NS_ASSERTION(quadrantRect.Contains(drawBounds), "Messed up quadrants");
-
-  mUpdated.MoveBy(-nsIntPoint(quadrantRect.x, quadrantRect.y));
-
-  IntPoint offset = ToIntPoint(-mUpdated.GetBounds().TopLeft());
-
-  RefPtr<DataSourceSurface> surf = GetSurfaceForDescriptor(mDescriptor);
-
-  if (mTextureId == TextureIdentifier::Front) {
-    aHost->mSource->Update(surf, &mUpdated, &offset);
-  } else {
-    aHost->mSourceOnWhite->Update(surf, &mUpdated, &offset);
-  }
-}
-
-void
-ContentHostIncremental::PrintInfo(nsACString& aTo, const char* aPrefix)
-{
-  aTo += aPrefix;
-  aTo += nsPrintfCString("ContentHostIncremental (0x%p)", this);
-
+  AppendToString(aStream, mBufferRect, " [buffer-rect=", "]");
+  AppendToString(aStream, mBufferRotation, " [buffer-rotation=", "]");
   if (PaintWillResample()) {
-    aTo += " [paint-will-resample]";
-  }
-}
-
-void
-ContentHostTexture::PrintInfo(nsACString& aTo, const char* aPrefix)
-{
-  aTo += aPrefix;
-  aTo += nsPrintfCString("ContentHost (0x%p)", this);
-
-  AppendToString(aTo, mBufferRect, " [buffer-rect=", "]");
-  AppendToString(aTo, mBufferRotation, " [buffer-rotation=", "]");
-  if (PaintWillResample()) {
-    aTo += " [paint-will-resample]";
+    aStream << " [paint-will-resample]";
   }
 
   if (mTextureHost) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
 
-    aTo += "\n";
-    mTextureHost->PrintInfo(aTo, pfx.get());
+    aStream << "\n";
+    mTextureHost->PrintInfo(aStream, pfx.get());
   }
 }
 
@@ -700,7 +444,27 @@ ContentHostTexture::GetRenderState()
   return result;
 }
 
-#ifdef MOZ_DUMP_PAINTING
+TemporaryRef<TexturedEffect>
+ContentHostTexture::GenEffect(const gfx::Filter& aFilter)
+{
+  if (!mTextureHost) {
+    return nullptr;
+  }
+  if (!mTextureHost->BindTextureSource(mTextureSource)) {
+    return nullptr;
+  }
+  if (!mTextureHostOnWhite) {
+    mTextureSourceOnWhite = nullptr;
+  }
+  if (mTextureHostOnWhite && !mTextureHostOnWhite->BindTextureSource(mTextureSourceOnWhite)) {
+    return nullptr;
+  }
+  return CreateTexturedEffect(mTextureSource.get(),
+                              mTextureSourceOnWhite.get(),
+                              aFilter, true,
+                              GetRenderState());
+}
+
 TemporaryRef<gfx::DataSourceSurface>
 ContentHostTexture::GetAsSurface()
 {
@@ -711,8 +475,6 @@ ContentHostTexture::GetAsSurface()
   return mTextureHost->GetAsSurface();
 }
 
-#endif
 
-
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla

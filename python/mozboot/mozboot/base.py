@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 
+from distutils.version import LooseVersion
 from distutils.version import StrictVersion
 
 
@@ -73,21 +74,66 @@ We recommend the following tools for installing Python:
 
 
 # Upgrade Mercurial older than this.
-MODERN_MERCURIAL_VERSION = StrictVersion('2.5')
+MODERN_MERCURIAL_VERSION = StrictVersion('3.2.4')
 
 # Upgrade Python older than this.
-MODERN_PYTHON_VERSION = StrictVersion('2.7.3')
+MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
 
 
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
 
-    def __init__(self):
+    def __init__(self, no_interactive=False):
         self.package_manager_updated = False
+        self.no_interactive = no_interactive
 
     def install_system_packages(self):
-        raise NotImplemented('%s must implement install_system_packages()' %
-            __name__)
+        '''
+        Install packages shared by all applications. These are usually
+        packages required by the development (like mercurial) or the
+        build system (like autoconf).
+        '''
+        raise NotImplementedError('%s must implement install_system_packages()' %
+                                  __name__)
+
+    def install_browser_packages(self):
+        '''
+        Install packages required to build Firefox for Desktop (application
+        'browser').
+        '''
+        raise NotImplementedError('Cannot bootstrap Firefox for Desktop: '
+                                  '%s does not yet implement install_browser_packages()' %
+                                  __name__)
+
+    def suggest_browser_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Desktop can in simple cases determine its build environment
+        entirely from configure.
+        '''
+        pass
+
+    def install_mobile_android_packages(self):
+        '''
+        Install packages required to build Firefox for Android (application
+        'mobile/android', also known as Fennec).
+        '''
+        raise NotImplementedError('Cannot bootstrap Firefox for Android: '
+                                  '%s does not yet implement install_mobile_android_packages()'
+                                  % __name__)
+
+    def suggest_mobile_android_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Android needs an application and an ABI set, and it needs
+        paths to the Android SDK and NDK.
+        '''
+        raise NotImplementedError('%s does not yet implement suggest_mobile_android_mozconfig()' %
+                                  __name__)
 
     def which(self, name):
         """Python implementation of which.
@@ -114,6 +160,8 @@ class BaseBootstrapper(object):
 
     def yum_install(self, *packages):
         command = ['yum', 'install']
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
@@ -126,18 +174,24 @@ class BaseBootstrapper(object):
 
     def yum_update(self, *packages):
         command = ['yum', 'update']
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
     def apt_install(self, *packages):
         command = ['apt-get', 'install']
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
     def apt_update(self):
         command = ['apt-get', 'update']
+        if self.no_interactive:
+            command.append('-y')
 
         self.run_as_root(command)
 
@@ -233,7 +287,7 @@ class BaseBootstrapper(object):
 
         if not installed or modern:
             print('Your version of Mercurial (%s) is sufficiently modern.' %
-                version)
+                  version)
             return
 
         self._ensure_package_manager_updated()
@@ -262,13 +316,13 @@ class BaseBootstrapper(object):
         assert python
 
         info = self.check_output([python, '--version'],
-            stderr=subprocess.STDOUT)
+                                 stderr=subprocess.STDOUT)
         match = re.search('Python ([a-z0-9\.]+)', info)
         if not match:
             print('ERROR Unable to identify Python version.')
             return False, None
 
-        our = StrictVersion(match.group(1))
+        our = LooseVersion(match.group(1))
 
         return our >= MODERN_PYTHON_VERSION, our
 
@@ -280,7 +334,7 @@ class BaseBootstrapper(object):
             return
 
         print('Your version of Python (%s) is too old. Will try to upgrade.' %
-            version)
+              version)
 
         self._ensure_package_manager_updated()
         self.upgrade_python(version)

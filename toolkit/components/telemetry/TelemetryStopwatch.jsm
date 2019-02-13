@@ -54,7 +54,7 @@ this.TelemetryStopwatch = {
       return false;
     }
 
-    timers[aHistogram] = Date.now();
+    timers[aHistogram] = Components.utils.now();
     return true;
   },
 
@@ -91,6 +91,33 @@ this.TelemetryStopwatch = {
   },
 
   /**
+   * Returns the elapsed time for a particular stopwatch. Primarily for
+   * debugging purposes. Must be called prior to finish.
+   *
+   * @param aHistogram a string which must be a valid histogram name
+   *                   from TelemetryHistograms.h. If an invalid name
+   *                   is given, the function will throw.
+   *
+   * @param aObj Optional parameter which associates the histogram timer with
+   *             the given object.
+   *
+   * @return time in milliseconds or -1 if the stopwatch was not found.
+   */
+  timeElapsed: function(aHistogram, aObj) {
+    if (!validTypes(aHistogram, aObj))
+      return -1;
+    let timers = aObj
+                 ? objectTimers.get(aObj) || {}
+                 : simpleTimers;
+    let start = timers[aHistogram];
+    if (start) {
+      let delta = Components.utils.now() - start;
+      return Math.round(delta);
+    }
+    return -1;
+  },
+
+  /**
    * Stops the timer associated with the given histogram (and object),
    * calculates the time delta between start and finish, and adds the value
    * to the histogram.
@@ -117,7 +144,8 @@ this.TelemetryStopwatch = {
     delete timers[aHistogram];
 
     if (start) {
-      let delta = Date.now() - start;
+      let delta = Components.utils.now() - start;
+      delta = Math.round(delta);
       let histogram = Telemetry.getHistogramById(aHistogram);
       histogram.add(delta);
       return true;

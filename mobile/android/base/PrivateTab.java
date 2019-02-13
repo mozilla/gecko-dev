@@ -7,13 +7,20 @@ package org.mozilla.gecko;
 
 import android.content.Context;
 
+import org.mozilla.gecko.db.BrowserDB;
+
 public class PrivateTab extends Tab {
     public PrivateTab(Context context, int id, String url, boolean external, int parentId, String title) {
         super(context, id, url, external, parentId, title);
+
+        // Init background to private_toolbar_grey to ensure flicker-free
+        // private tab creation. Page loads will reset it to white as expected.
+        final int bgColor = context.getResources().getColor(R.color.tabs_tray_grey_pressed);
+        setBackgroundColor(bgColor);
     }
 
     @Override
-    protected void saveThumbnailToDB() {}
+    protected void saveThumbnailToDB(final BrowserDB db) {}
 
     @Override
     public boolean isPrivate() {

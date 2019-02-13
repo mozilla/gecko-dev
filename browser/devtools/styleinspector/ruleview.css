@@ -2,8 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#root {
-  display: -moz-box;
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#ruleview-container {
+  -moz-user-select: text;
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.devtools-toolbar {
+  width: 100%;
+  display: flex;
+}
+
+#pseudo-class-panel {
+  position: relative;
+  margin-top: -1px;
+  margin-bottom: -1px;
+  overflow-y: hidden;
+  max-height: 24px;
+  transition-property: max-height;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+#pseudo-class-panel[hidden] {
+  max-height: 0px;
+}
+
+#pseudo-class-panel > label {
+  -moz-user-select: none;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
 }
 
 .ruleview {
@@ -19,29 +64,35 @@
   pointer-events: none;
 }
 
-.ruleview-namecontainer {
+.ruleview-namecontainer,
+.ruleview-selectorcontainer {
   cursor: text;
 }
 
-.ruleview-propertycontainer {
+.ruleview-propertyvaluecontainer {
   cursor: text;
   padding-right: 15px;
 }
 
-.ruleview-propertycontainer a {
+.ruleview-propertyvaluecontainer a {
   cursor: pointer;
 }
 
-.ruleview-computedlist:not(.styleinspector-open),
+.ruleview-computedlist,
 .ruleview-warning[hidden] {
   display: none;
 }
 
-.ruleview-rule-pseudo-element {
+.ruleview-computedlist[user-open],
+.ruleview-computedlist[filter-open] {
+  display: block;
+}
+
+.ruleview-expandable-container {
   display: none;
 }
 
-.show-pseudo-elements .ruleview-rule-pseudo-element {
+.show-expandable-container + .ruleview-expandable-container {
   display: block;
 }
 

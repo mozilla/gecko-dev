@@ -17,8 +17,8 @@ function runTests() {
   // Expected length of grid
   let expectedValues = [1, 1, 1, 1, 8, 10];
 
-   // Values before setting new pref values (9 is the default value -> 3 x 3)
-  let previousValues = [9, 1, 1, 1, 1, 8];
+   // Values before setting new pref values (15 is the default value -> 5 x 3)
+  let previousValues = [15, 1, 1, 1, 1, 8];
 
   let existingTab, existingTabGridLength, newTab, newTabGridLength;
   yield addNewTabPageTab();
@@ -44,6 +44,10 @@ function runTests() {
       "New page grid is updated correctly.");
 
     gBrowser.removeTab(newTab);
+
+    // Wait until the original tab is visible again.
+    let doc = existingTab.linkedBrowser.contentDocument;
+    yield waitForCondition(() => !doc.hidden).then(TestRunner.next);
   }
 
   gBrowser.removeTab(existingTab);

@@ -42,11 +42,14 @@ function amManager() {
   let globalMM = Cc["@mozilla.org/globalmessagemanager;1"]
                  .getService(Ci.nsIMessageListenerManager);
   globalMM.loadFrameScript(CHILD_SCRIPT, true);
+  globalMM.addMessageListener(MSG_INSTALL_ADDONS, this);
 
   gParentMM = Cc["@mozilla.org/parentprocessmessagemanager;1"]
                  .getService(Ci.nsIMessageListenerManager);
   gParentMM.addMessageListener(MSG_INSTALL_ENABLED, this);
-  gParentMM.addMessageListener(MSG_INSTALL_ADDONS, this);
+
+  // Needed so receiveMessage can be called directly by JS callers
+  this.wrappedJSObject = this;
 }
 
 amManager.prototype = {
@@ -74,33 +77,24 @@ amManager.prototype = {
    * @see amIWebInstaller.idl
    */
   installAddonsFromWebpage: function AMC_installAddonsFromWebpage(aMimetype,
-                                                                  aWindow,
-                                                                  aReferer, aUris,
-                                                                  aHashes, aNames,
-                                                                  aIcons, aCallback) {
+                                                                  aBrowser,
+                                                                  aInstallingPrincipal,
+                                                                  aUris, aHashes,
+                                                                  aNames, aIcons,
+                                                                  aCallback) {
     if (aUris.length == 0)
       return false;
 
     let retval = true;
-    if (!AddonManager.isInstallAllowed(aMimetype, aReferer)) {
+    if (!AddonManager.isInstallAllowed(aMimetype, aInstallingPrincipal)) {
       aCallback = null;
       retval = false;
-    }
-
-    let loadGroup = null;
-
-    try {
-      loadGroup = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIWebNavigation)
-                         .QueryInterface(Ci.nsIDocumentLoader).loadGroup;
-    }
-    catch (e) {
     }
 
     let installs = [];
     function buildNextInstall() {
       if (aUris.length == 0) {
-        AddonManager.installAddonsFromWebpage(aMimetype, aWindow, aReferer, installs);
+        AddonManager.installAddonsFromWebpage(aMimetype, aBrowser, aInstallingPrincipal, installs);
         return;
       }
       let uri = aUris.shift();
@@ -143,7 +137,7 @@ amManager.prototype = {
           aCallback.onInstallEnded(uri, UNSUPPORTED_TYPE);
         }
         buildNextInstall();
-      }, aMimetype, aHashes.shift(), aNames.shift(), aIcons.shift(), null, loadGroup);
+      }, aMimetype, aHashes.shift(), aNames.shift(), aIcons.shift(), null, aBrowser);
     }
     buildNextInstall();
 
@@ -151,7 +145,7 @@ amManager.prototype = {
   },
 
   notify: function AMC_notify(aTimer) {
-    AddonManagerPrivate.backgroundUpdateCheck();
+    AddonManagerPrivate.backgroundUpdateTimerHandler();
   },
 
   /**
@@ -162,13 +156,12 @@ amManager.prototype = {
    */
   receiveMessage: function AMC_receiveMessage(aMessage) {
     let payload = aMessage.data;
-    let referer = Services.io.newURI(payload.referer, null, null);
 
     switch (aMessage.name) {
       case MSG_INSTALL_ENABLED:
-        return this.isInstallEnabled(payload.mimetype, referer);
+        return AddonManager.isInstallEnabled(payload.mimetype);
 
-      case MSG_INSTALL_ADDONS:
+      case MSG_INSTALL_ADDONS: {
         let callback = null;
         if (payload.callbackID != -1) {
           callback = {
@@ -182,13 +175,10 @@ amManager.prototype = {
           };
         }
 
-        // Should reimplement this properly with Window IDs when possible,
-        // see bug 596109.
-        let window = aMessage.objects.win;
-
         return this.installAddonsFromWebpage(payload.mimetype,
-          window, referer, payload.uris, payload.hashes, payload.names,
-          payload.icons, callback);
+          aMessage.target, payload.triggeringPrincipal, payload.uris,
+          payload.hashes, payload.names, payload.icons, callback);
+      }
     }
   },
 

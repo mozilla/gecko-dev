@@ -19,6 +19,11 @@ UNIFIED_SOURCES += [
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'toolkitcomps'
+FINAL_LIBRARY = 'xul'
 
 JAR_MANIFESTS += ['jar.mn']
+
+FAIL_ON_WARNINGS = True
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Notifications and Alerts')

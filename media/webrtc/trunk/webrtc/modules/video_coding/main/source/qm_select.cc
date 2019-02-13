@@ -60,6 +60,10 @@ void VCMQmMethod::UpdateContent(const VideoContentMetrics*  contentMetrics) {
 }
 
 void VCMQmMethod::ComputeMotionNFD() {
+#if defined(WEBRTC_GONK)
+  motion_.value = (kHighMotionNfd + kLowMotionNfd)/2;
+  motion_.level = kDefault;
+#else
   if (content_metrics_) {
     motion_.value = content_metrics_->motion_magnitude;
   }
@@ -71,9 +75,15 @@ void VCMQmMethod::ComputeMotionNFD() {
   } else {
     motion_.level = kDefault;
   }
+#endif
 }
 
 void VCMQmMethod::ComputeSpatial() {
+#if defined(WEBRTC_GONK)
+  float scale2 = image_type_ > kVGA ? kScaleTexture : 1.0;
+  spatial_.value = (kHighTexture + kLowTexture)*scale2/2;
+  spatial_.level = kDefault;
+#else
   float spatial_err = 0.0;
   float spatial_err_h = 0.0;
   float spatial_err_v = 0.0;
@@ -95,6 +105,7 @@ void VCMQmMethod::ComputeSpatial() {
   } else {
     spatial_.level = kDefault;
   }
+#endif
 }
 
 ImageType VCMQmMethod::GetImageType(uint16_t width,
@@ -317,6 +328,8 @@ void VCMQmResolution::UpdateRates(float target_bitrate,
 //    Initialize() state are kept in |down_action_history_|.
 // 4) The total amount of down-sampling (spatial and/or temporal) from the
 //    Initialize() state (native resolution) is limited by various factors.
+// 5) If the codec can't handle arbitrary input resolutions, limit to %16==0
+//    i.e. for h.264
 int VCMQmResolution::SelectResolution(VCMResolutionScale** qm) {
   if (!init_) {
     return VCM_UNINITIALIZED;
@@ -681,6 +694,7 @@ void VCMQmResolution::UpdateDownsamplingState(UpDownAction up_down) {
     // has been selected.
     assert(false);
   }
+
   UpdateCodecResolution();
   state_dec_factor_spatial_ = state_dec_factor_spatial_ *
       qm_->spatial_width_fact * qm_->spatial_height_fact;
@@ -692,17 +706,35 @@ void  VCMQmResolution::UpdateCodecResolution() {
     qm_->change_resolution_spatial = true;
     int old_width = qm_->codec_width;
     int old_height = qm_->codec_height;
-    qm_->codec_width = static_cast<uint16_t>(width_ /
-                                             qm_->spatial_width_fact + 0.5f);
-    qm_->codec_height = static_cast<uint16_t>(height_ /
-                                              qm_->spatial_height_fact + 0.5f);
+    qm_->codec_width = static_cast<uint16_t>((width_ /
+                                              qm_->spatial_width_fact) + 0.5f);
+    qm_->codec_height = static_cast<uint16_t>((height_ /
+                                               qm_->spatial_height_fact) + 0.5f);
     // Size should not exceed native sizes.
-    assert(qm_->codec_width <= native_width_);
-    assert(qm_->codec_height <= native_height_);
-    // New sizes should be multiple of 2, otherwise spatial should not have
-    // been selected.
-    assert(qm_->codec_width % 2 == 0);
-    assert(qm_->codec_height % 2 == 0);
+    if (qm_->codec_width > native_width_) {
+      WEBRTC_TRACE(webrtc::kTraceError,
+                   webrtc::kTraceVideoCoding,
+                   -1,
+                   "UpdateCodecResolution: *** Exceeds native width: [%d %d] %d %d (%f) => %d %d",
+                   native_width_, native_height_,
+                   old_width, old_height,
+                   qm_->spatial_width_fact,
+                   qm_->codec_width, qm_->codec_height
+                   );
+      qm_->codec_width = native_width_;
+    }
+    if (qm_->codec_height > native_height_) {
+      WEBRTC_TRACE(webrtc::kTraceError,
+                   webrtc::kTraceVideoCoding,
+                   -1,
+                   "UpdateCodecResolution: *** Exceeds native height: [%d %d] %d %d  (%f) => %d %d",
+                   native_width_, native_height_,
+                   old_width, old_height,
+                   qm_->spatial_height_fact,
+                   qm_->codec_width, qm_->codec_height
+                   );
+      qm_->codec_height = native_height_;
+    }
     WEBRTC_TRACE(webrtc::kTraceDebug,
                  webrtc::kTraceVideoCoding,
                  -1,
@@ -792,15 +824,6 @@ void VCMQmResolution::AdjustAction() {
     }
     action_.temporal = kNoChangeTemporal;
   }
-  // If spatial action was selected, we need to make sure the frame sizes
-  // are multiples of two. Otherwise switch to 2/3 temporal.
-  if (action_.spatial != kNoChangeSpatial &&
-      !EvenFrameSize()) {
-    action_.spatial = kNoChangeSpatial;
-    // Only one action (spatial or temporal) is allowed at a given time, so need
-    // to check whether temporal action is currently selected.
-    action_.temporal = kTwoThirdsTemporal;
-  }
 }
 
 void VCMQmResolution::ConvertSpatialFractionalToWhole() {
@@ -842,21 +865,6 @@ void VCMQmResolution::ConvertSpatialFractionalToWhole() {
        }
     }
   }
-}
-
-// Returns false if the new frame sizes, under the current spatial action,
-// are not multiples of two.
-bool VCMQmResolution::EvenFrameSize() {
-  if (action_.spatial == kOneHalfSpatialUniform) {
-    if ((width_ * 3 / 4) % 2 != 0 || (height_ * 3 / 4) % 2 != 0) {
-      return false;
-    }
-  } else if (action_.spatial == kOneQuarterSpatialUniform) {
-    if ((width_ * 1 / 2) % 2 != 0 || (height_ * 1 / 2) % 2 != 0) {
-      return false;
-    }
-  }
-  return true;
 }
 
 void VCMQmResolution::InsertLatestDownAction() {

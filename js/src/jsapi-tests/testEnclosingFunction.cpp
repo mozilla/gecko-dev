@@ -9,19 +9,18 @@
 
 #include "jsfriendapi.h"
 
-#include "js/OldDebugAPI.h"
 #include "jsapi-tests/tests.h"
 
 using namespace js;
 
-static JSScript *foundScript = nullptr;
+static JSFunction* foundFun = nullptr;
 
 static bool
-CheckEnclosing(JSContext *cx, unsigned argc, Value *vp)
+CheckEnclosing(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    foundScript = js::GetOutermostEnclosingFunctionOfScriptedCaller(cx);
+    foundFun = js::GetOutermostEnclosingFunctionOfScriptedCaller(cx);
 
     args.rval().set(UndefinedValue());
     return true;
@@ -32,7 +31,7 @@ BEGIN_TEST(test_enclosingFunction)
     CHECK(JS_DefineFunction(cx, global, "checkEnclosing", CheckEnclosing, 0, 0));
 
     EXEC("checkEnclosing()");
-    CHECK(foundScript == nullptr);
+    CHECK(foundFun == nullptr);
 
     RootedFunction fun(cx);
 
@@ -40,25 +39,29 @@ BEGIN_TEST(test_enclosingFunction)
     options.setFileAndLine(__FILE__, __LINE__);
 
     const char s1chars[] = "checkEnclosing()";
-    fun = JS_CompileFunction(cx, global, "s1", 0, nullptr, s1chars,
-                             strlen(s1chars), options);
+    JS::AutoObjectVector emptyScopeChain(cx);
+    CHECK(JS::CompileFunction(cx, emptyScopeChain, options, "s1", 0, nullptr, s1chars,
+                              strlen(s1chars), &fun));
     CHECK(fun);
+    CHECK(JS_DefineProperty(cx, global, "s1", fun, JSPROP_ENUMERATE));
     EXEC("s1()");
-    CHECK(foundScript == JS_GetFunctionScript(cx, fun));
+    CHECK(foundFun == fun);
 
     const char s2chars[] = "return function() { checkEnclosing() }";
-    fun = JS_CompileFunction(cx, global, "s2", 0, nullptr, s2chars,
-                             strlen(s2chars), options);
+    CHECK(JS::CompileFunction(cx, emptyScopeChain, options, "s2", 0, nullptr, s2chars,
+                              strlen(s2chars), &fun));
     CHECK(fun);
+    CHECK(JS_DefineProperty(cx, global, "s2", fun, JSPROP_ENUMERATE));
     EXEC("s2()()");
-    CHECK(foundScript == JS_GetFunctionScript(cx, fun));
+    CHECK(foundFun == fun);
 
     const char s3chars[] = "return function() { let (x) { function g() { checkEnclosing() } return g() } }";
-    fun = JS_CompileFunction(cx, global, "s3", 0, nullptr, s3chars,
-                             strlen(s3chars), options);
+    CHECK(JS::CompileFunction(cx, emptyScopeChain, options, "s3", 0, nullptr, s3chars,
+                              strlen(s3chars), &fun));
     CHECK(fun);
+    CHECK(JS_DefineProperty(cx, global, "s3", fun, JSPROP_ENUMERATE));
     EXEC("s3()()");
-    CHECK(foundScript == JS_GetFunctionScript(cx, fun));
+    CHECK(foundFun == fun);
 
     return true;
 }

@@ -15,8 +15,8 @@ const PAGE_CONTENT = [
   'Testing the color picker tooltip!'
 ].join("\n");
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,rule view color picker tooltip test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,rule view color picker tooltip test");
   content.document.body.innerHTML = PAGE_CONTENT;
   let {toolbox, inspector, view} = yield openRuleView();
 
@@ -41,7 +41,7 @@ function* testPressingEscapeRevertsChanges(swatch, ruleView) {
   is(swatch.style.backgroundColor, "rgb(0, 0, 0)",
     "The color swatch's background was updated");
   is(getRuleViewProperty(ruleView, "body", "background-color").valueSpan.textContent,
-    "rgba(0, 0, 0, 1)", "The text of the background-color css property was updated");
+    "#000", "The text of the background-color css property was updated");
 
   let spectrum = yield cPicker.spectrum;
 

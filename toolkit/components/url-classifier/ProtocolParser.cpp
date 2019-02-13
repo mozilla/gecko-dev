@@ -6,7 +6,7 @@
 #include "ProtocolParser.h"
 #include "LookupCache.h"
 #include "nsNetCID.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prnetdb.h"
 #include "prprf.h"
 
@@ -14,19 +14,16 @@
 
 // NSPR_LOG_MODULES=UrlClassifierDbService:5
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
-#if defined(PR_LOGGING)
-#define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, 4)
-#else
-#define LOG(args)
-#define LOG_ENABLED() (false)
-#endif
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace safebrowsing {
 
 // Updates will fail if fed chunks larger than this
 const uint32_t MAX_CHUNK_SIZE = (1024 * 1024);
+// Updates will fail if the total number of tocuhed chunks is larger than this
+const uint32_t MAX_CHUNK_RANGE = 1000000;
 
 const uint32_t DOMAIN_SIZE = 4;
 
@@ -171,11 +168,20 @@ ProtocolParser::ProcessExpirations(const nsCString& aLine)
   while (begin != end) {
     uint32_t first, last;
     if (ParseChunkRange(begin, end, &first, &last)) {
+      if (last < first) return NS_ERROR_FAILURE;
+      if (last - first > MAX_CHUNK_RANGE) return NS_ERROR_FAILURE;
       for (uint32_t num = first; num <= last; num++) {
-        if (aLine[0] == 'a')
-          mTableUpdate->NewAddExpiration(num);
-        else
-          mTableUpdate->NewSubExpiration(num);
+        if (aLine[0] == 'a') {
+          nsresult rv = mTableUpdate->NewAddExpiration(num);
+          if (NS_FAILED(rv)) {
+            return rv;
+          }
+        } else {
+          nsresult rv = mTableUpdate->NewSubExpiration(num);
+          if (NS_FAILED(rv)) {
+            return rv;
+          }
+        }
       }
     } else {
       return NS_ERROR_FAILURE;
@@ -226,18 +232,31 @@ ProtocolParser::ProcessChunkControl(const nsCString& aLine)
     LOG(("Processing digest256 data"));
     mChunkState.type = (command == 'a') ? CHUNK_ADD_DIGEST : CHUNK_SUB_DIGEST;
   }
+  nsresult rv;
   switch (mChunkState.type) {
     case CHUNK_ADD:
-      mTableUpdate->NewAddChunk(mChunkState.num);
+      rv = mTableUpdate->NewAddChunk(mChunkState.num);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
       break;
     case CHUNK_SUB:
-      mTableUpdate->NewSubChunk(mChunkState.num);
+      rv = mTableUpdate->NewSubChunk(mChunkState.num);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
       break;
     case CHUNK_ADD_DIGEST:
-      mTableUpdate->NewAddChunk(mChunkState.num);
+      rv = mTableUpdate->NewAddChunk(mChunkState.num);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
       break;
     case CHUNK_SUB_DIGEST:
-      mTableUpdate->NewSubChunk(mChunkState.num);
+      rv = mTableUpdate->NewSubChunk(mChunkState.num);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
       break;
   }
 
@@ -284,7 +303,7 @@ ProtocolParser::ProcessChunk(bool* aDone)
   // Pull the chunk out of the pending stream data.
   nsAutoCString chunk;
   chunk.Assign(Substring(mPending, 0, mChunkState.length));
-  mPending = Substring(mPending, mChunkState.length);
+  mPending.Cut(0, mChunkState.length);
 
   *aDone = false;
   mState = PROTOCOL_STATE_CONTROL;
@@ -323,12 +342,18 @@ ProtocolParser::ProcessPlaintextChunk(const nsACString& aChunk)
       if (mChunkState.hashSize == COMPLETE_SIZE) {
         Completion hash;
         hash.FromPlaintext(line, mCryptoHash);
-        mTableUpdate->NewAddComplete(mChunkState.num, hash);
+        nsresult rv = mTableUpdate->NewAddComplete(mChunkState.num, hash);
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       } else {
         NS_ASSERTION(mChunkState.hashSize == 4, "Only 32- or 4-byte hashes can be used for add chunks.");
         Prefix hash;
         hash.FromPlaintext(line, mCryptoHash);
-        mTableUpdate->NewAddPrefix(mChunkState.num, hash);
+        nsresult rv = mTableUpdate->NewAddPrefix(mChunkState.num, hash);
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       }
     } else {
       nsCString::const_iterator begin, iter, end;
@@ -346,12 +371,18 @@ ProtocolParser::ProcessPlaintextChunk(const nsACString& aChunk)
       if (mChunkState.hashSize == COMPLETE_SIZE) {
         Completion hash;
         hash.FromPlaintext(Substring(iter, end), mCryptoHash);
-        mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+        nsresult rv = mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       } else {
         NS_ASSERTION(mChunkState.hashSize == 4, "Only 32- or 4-byte hashes can be used for add chunks.");
         Prefix hash;
         hash.FromPlaintext(Substring(iter, end), mCryptoHash);
-        mTableUpdate->NewSubPrefix(addChunk, hash, mChunkState.num);
+        nsresult rv = mTableUpdate->NewSubPrefix(addChunk, hash, mChunkState.num);
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       }
     }
   }
@@ -418,7 +449,10 @@ ProtocolParser::ProcessDigestAdd(const nsACString& aChunk)
     Completion hash;
     hash.Assign(Substring(aChunk, start, COMPLETE_SIZE));
     start += COMPLETE_SIZE;
-    mTableUpdate->NewAddComplete(mChunkState.num, hash);
+    nsresult rv = mTableUpdate->NewAddComplete(mChunkState.num, hash);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
   return NS_OK;
 }
@@ -445,7 +479,10 @@ ProtocolParser::ProcessDigestSub(const nsACString& aChunk)
     hash.Assign(Substring(aChunk, start, COMPLETE_SIZE));
     start += COMPLETE_SIZE;
 
-    mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+    nsresult rv = mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
   return NS_OK;
 }
@@ -458,7 +495,10 @@ ProtocolParser::ProcessHostAdd(const Prefix& aDomain, uint8_t aNumEntries,
                "ProcessHostAdd should only be called for prefix hashes.");
 
   if (aNumEntries == 0) {
-    mTableUpdate->NewAddPrefix(mChunkState.num, aDomain);
+    nsresult rv = mTableUpdate->NewAddPrefix(mChunkState.num, aDomain);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     return NS_OK;
   }
 
@@ -470,7 +510,10 @@ ProtocolParser::ProcessHostAdd(const Prefix& aDomain, uint8_t aNumEntries,
   for (uint8_t i = 0; i < aNumEntries; i++) {
     Prefix hash;
     hash.Assign(Substring(aChunk, *aStart, PREFIX_SIZE));
-    mTableUpdate->NewAddPrefix(mChunkState.num, hash);
+    nsresult rv = mTableUpdate->NewAddPrefix(mChunkState.num, hash);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     *aStart += PREFIX_SIZE;
   }
 
@@ -497,7 +540,10 @@ ProtocolParser::ProcessHostSub(const Prefix& aDomain, uint8_t aNumEntries,
     memcpy(&addChunk, addChunkStr.BeginReading(), 4);
     addChunk = PR_ntohl(addChunk);
 
-    mTableUpdate->NewSubPrefix(addChunk, aDomain, mChunkState.num);
+    nsresult rv = mTableUpdate->NewSubPrefix(addChunk, aDomain, mChunkState.num);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     return NS_OK;
   }
 
@@ -518,7 +564,10 @@ ProtocolParser::ProcessHostSub(const Prefix& aDomain, uint8_t aNumEntries,
     prefix.Assign(Substring(aChunk, *aStart, PREFIX_SIZE));
     *aStart += PREFIX_SIZE;
 
-    mTableUpdate->NewSubPrefix(addChunk, prefix, mChunkState.num);
+    nsresult rv = mTableUpdate->NewSubPrefix(addChunk, prefix, mChunkState.num);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   return NS_OK;
@@ -546,7 +595,10 @@ ProtocolParser::ProcessHostAddComplete(uint8_t aNumEntries,
   for (uint8_t i = 0; i < aNumEntries; i++) {
     Completion hash;
     hash.Assign(Substring(aChunk, *aStart, COMPLETE_SIZE));
-    mTableUpdate->NewAddComplete(mChunkState.num, hash);
+    nsresult rv = mTableUpdate->NewAddComplete(mChunkState.num, hash);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     *aStart += COMPLETE_SIZE;
   }
 
@@ -583,21 +635,24 @@ ProtocolParser::ProcessHostSubComplete(uint8_t aNumEntries,
     memcpy(&addChunk, addChunkStr.BeginReading(), 4);
     addChunk = PR_ntohl(addChunk);
 
-    mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+    nsresult rv = mTableUpdate->NewSubComplete(addChunk, hash, mChunkState.num);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   return NS_OK;
 }
 
 bool
-ProtocolParser::NextLine(nsACString& line)
+ProtocolParser::NextLine(nsACString& aLine)
 {
   int32_t newline = mPending.FindChar('\n');
   if (newline == kNotFound) {
     return false;
   }
-  line.Assign(Substring(mPending, 0, newline));
-  mPending = Substring(mPending, newline + 1);
+  aLine.Assign(Substring(mPending, 0, newline));
+  mPending.Cut(0, newline + 1);
   return true;
 }
 

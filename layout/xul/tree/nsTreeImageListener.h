@@ -13,11 +13,10 @@
 #include "mozilla/Attributes.h"
 
 // This class handles image load observation.
-class nsTreeImageListener MOZ_FINAL : public imgINotificationObserver
+class nsTreeImageListener final : public imgINotificationObserver
 {
 public:
-  nsTreeImageListener(nsTreeBodyFrame *aTreeFrame);
-  ~nsTreeImageListener();
+  explicit nsTreeImageListener(nsTreeBodyFrame *aTreeFrame);
 
   NS_DECL_ISUPPORTS
   NS_DECL_IMGINOTIFICATIONOBSERVER
@@ -27,6 +26,8 @@ public:
   friend class nsTreeBodyFrame;
 
 protected:
+  ~nsTreeImageListener();
+
   void UnsuppressInvalidation() { mInvalidationSuppressed = false; }
   void Invalidate();
   void AddCell(int32_t aIndex, nsITreeColumn* aCol);
@@ -39,7 +40,7 @@ private:
 
   class InvalidationArea {
     public:
-      InvalidationArea(nsITreeColumn* aCol);
+      explicit InvalidationArea(nsITreeColumn* aCol);
       ~InvalidationArea() { delete mNext; }
 
       friend class nsTreeImageListener;

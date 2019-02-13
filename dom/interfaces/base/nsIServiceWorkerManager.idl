@@ -5,15 +5,134 @@
 
 #include "domstubs.idl"
 
-[uuid(d9539ecb-6665-452c-bae7-4e42f25d23aa)]
+interface nsIArray;
+interface nsIDocument;
+interface nsIInterceptedChannel;
+interface nsIPrincipal;
+interface nsIURI;
+
+[scriptable, uuid(52ee2c9d-ee87-4caf-9588-23ae77ff8798)]
+interface nsIServiceWorkerUnregisterCallback : nsISupports
+{
+  // aState is true if the unregistration succeded.
+  // It's false if this ServiceWorkerRegistration doesn't exist.
+  void unregisterSucceeded(in bool aState);
+  void unregisterFailed();
+};
+
+[scriptable, builtinclass, uuid(e633b73b-a734-4d04-a09c-b7779a439f3f)]
+interface nsIServiceWorkerInfo : nsISupports
+{
+  readonly attribute nsIPrincipal principal;
+
+  readonly attribute DOMString scope;
+  readonly attribute DOMString scriptSpec;
+  readonly attribute DOMString currentWorkerURL;
+
+  readonly attribute DOMString activeCacheName;
+  readonly attribute DOMString waitingCacheName;
+};
+
+[scriptable, builtinclass, uuid(e9abb123-0099-4d9e-85db-c8cd0aff19e6)]
 interface nsIServiceWorkerManager : nsISupports
 {
-  // Returns a Promise
-  nsISupports register(in nsIDOMWindow aWindow, in DOMString aScope, in DOMString aScriptURI);
+  /**
+   * Registers a ServiceWorker with script loaded from `aScriptURI` to act as
+   * the ServiceWorker for aScope.  Requires a valid entry settings object on
+   * the stack. This means you must call this from content code 'within'
+   * a window.
+   *
+   * Returns a Promise.
+   */
+  nsISupports register(in nsIDOMWindow aWindow, in nsIURI aScope, in nsIURI aScriptURI);
+
+  /**
+   * Unregister an existing ServiceWorker registration for `aScope`.
+   * It keeps aCallback alive until the operation is concluded.
+   */
+  void unregister(in nsIPrincipal aPrincipal,
+                  in nsIServiceWorkerUnregisterCallback aCallback,
+                  in DOMString aScope);
 
   // Returns a Promise
-  nsISupports unregister(in nsIDOMWindow aWindow, in DOMString aScope);
+  nsISupports getRegistrations(in nsIDOMWindow aWindow);
 
+  // Returns a Promise
+  nsISupports getRegistration(in nsIDOMWindow aWindow, in DOMString aScope);
+
+  // Returns a Promise
+  nsISupports getReadyPromise(in nsIDOMWindow aWindow);
+
+  // Remove ready pending Promise
+  void removeReadyPromise(in nsIDOMWindow aWindow);
+
+  /**
+   * Call this to request that document `aDoc` be controlled by a ServiceWorker
+   * if a registration exists for it's scope.
+   *
+   * This MUST only be called once per document!
+   */
+  [notxpcom,nostdcall] void MaybeStartControlling(in nsIDocument aDoc);
+
+  /**
+   * Documents that have called MaybeStartControlling() should call this when
+   * they are destroyed. This function may be called multiple times, and is
+   * idempotent.
+   */
+  [notxpcom,nostdcall] void MaybeStopControlling(in nsIDocument aDoc);
+
+  /*
+   * Returns a ServiceWorker.
+   * window is the window of the caller. scope is the registration's scope and must be
+   * a valid entry that window is allowed to load, otherwise this will return nullptr.
+   * These are only meant to be called from ServiceWorkerRegistration instances.
+   */
+  [noscript] nsISupports GetInstalling(in nsIDOMWindow aWindow, in DOMString aScope);
+  [noscript] nsISupports GetWaiting(in nsIDOMWindow aWindow, in DOMString aScope);
+  [noscript] nsISupports GetActive(in nsIDOMWindow aWindow, in DOMString aScope);
+
+  /*
+   * Returns a ServiceWorker.
+   */
+  [noscript] nsISupports GetDocumentController(in nsIDOMWindow aWindow);
+
+  /*
+   * Clears ServiceWorker registrations from memory and disk for the specified
+   * host.
+   * - All ServiceWorker instances change their state to redundant.
+   * - Existing ServiceWorker instances handling fetches will keep running.
+   * - All documents will immediately stop being controlled.
+   * - Unregister jobs will be queued for all registrations.
+   *   This eventually results in the registration being deleted from disk too.
+   */
+  void removeAndPropagate(in AUTF8String aHost);
+
+  // Testing
+  DOMString getScopeForUrl(in nsIPrincipal aPrincipal, in DOMString aPath);
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  //It returns an array of nsIServiceWorkerInfo.
+  nsIArray getAllRegistrations();
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  // It calls softUpdate() for each child process.
+  [implicit_jscontext] void propagateSoftUpdate(in jsval aOriginAttributes,
+                                                in DOMString aScope);
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  // It calls unregister() in each child process. The callback is used to
+  // inform when unregister() is completed on the current process.
+  void propagateUnregister(in nsIPrincipal aPrincipal,
+                           in nsIServiceWorkerUnregisterCallback aCallback,
+                           in DOMString aScope);
+
+  void sendPushEvent(in ACString aOriginAttributes,
+                     in ACString aScope,
+                     in DOMString aData);
+  void sendPushSubscriptionChangeEvent(in ACString aOriginAttributes,
+                                       in ACString scope);
+
+  void updateAllRegistrations();
 };
 
 %{ C++

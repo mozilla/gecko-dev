@@ -4,9 +4,11 @@
 
 package org.mozilla.gecko.sync;
 
-import org.mozilla.gecko.background.common.GlobalConstants;
+import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.sync.delegates.ClientsDataDelegate;
+import org.mozilla.gecko.util.HardwareUtils;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
@@ -15,9 +17,14 @@ import android.content.SharedPreferences;
  */
 public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate {
   protected final SharedPreferences sharedPreferences;
+  protected final Context context;
 
-  public SharedPreferencesClientsDataDelegate(SharedPreferences sharedPreferences) {
+  public SharedPreferencesClientsDataDelegate(SharedPreferences sharedPreferences, Context context) {
     this.sharedPreferences = sharedPreferences;
+    this.context = context;
+
+    // It's safe to init this multiple times.
+    HardwareUtils.init(context);
   }
 
   @Override
@@ -46,8 +53,7 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
 
   @Override
   public String getDefaultClientName() {
-    // Bug 1019719: localize this string!
-    return GlobalConstants.MOZ_APP_DISPLAYNAME + " on " + android.os.Build.MODEL;
+    return FxAccountUtils.defaultClientName(context);
   }
 
   @Override
@@ -63,7 +69,7 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
 
   @Override
   public synchronized void setClientsCount(int clientsCount) {
-    sharedPreferences.edit().putLong(SyncConfiguration.PREF_NUM_CLIENTS, (long) clientsCount).commit();
+    sharedPreferences.edit().putLong(SyncConfiguration.PREF_NUM_CLIENTS, clientsCount).commit();
   }
 
   @Override
@@ -79,5 +85,22 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
   @Override
   public long getLastModifiedTimestamp() {
     return sharedPreferences.getLong(SyncConfiguration.PREF_CLIENT_DATA_TIMESTAMP, 0);
+  }
+
+  @Override
+  public String getFormFactor() {
+    if (HardwareUtils.isLargeTablet()) {
+      return "largetablet";
+    }
+
+    if (HardwareUtils.isSmallTablet()) {
+      return "smalltablet";
+    }
+
+    if (HardwareUtils.isTelevision()) {
+      return "tv";
+    }
+
+    return "phone";
   }
 }

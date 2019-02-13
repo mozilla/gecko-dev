@@ -31,14 +31,17 @@
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
-// Easy access to a five second startup delay used to get
-// a debugger attached in the metro environment. 
-// #define DEBUG_delay_start_metro
-
 #ifdef XP_WIN
 // we want a wmain entry point
+#ifdef MOZ_ASAN
+// ASAN requires firefox.exe to be built with -MD, and it's OK if we don't
+// support Windows XP SP2 in ASAN builds.
+#define XRE_DONT_SUPPORT_XPSP2
+#endif
 #include "nsWindowsWMain.cpp"
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
 #define snprintf _snprintf
+#endif
 #define strcasecmp _stricmp
 #endif
 #include "BinaryPath.h"
@@ -50,13 +53,10 @@
 
 using namespace mozilla;
 
-#define kDesktopFolder "browser"
-#define kMetroFolder "metro"
-#define kMetroAppIniFilename "metroapp.ini"
-#ifdef XP_WIN
-#define kMetroTestFile "tests.ini"
-const char* kMetroConsoleIdParam = "testconsoleid=";
+#ifdef XP_MACOSX
+#define kOSXResourcesFolder "Resources"
 #endif
+#define kDesktopFolder "browser"
 
 static void Output(const char *fmt, ... )
 {
@@ -117,40 +117,6 @@ static bool IsArg(const char* arg, const char* s)
 
   return false;
 }
-
-#ifdef XP_WIN
-/*
- * AttachToTestHarness - Windows helper for when we are running
- * in the immersive environment. Firefox is launched by Windows in
- * response to a request by metrotestharness, which is launched by
- * runtests.py. As such stdout in fx doesn't point to the right
- * stream. This helper touches up stdout such that test output gets
- * routed to a named pipe metrotestharness creates and dumps to its
- * stdout.
- */
-static void AttachToTestHarness()
-{
-  // attach to the metrotestharness named logging pipe
-  HANDLE winOut = CreateFileA("\\\\.\\pipe\\metrotestharness",
-                              GENERIC_WRITE,
-                              FILE_SHARE_WRITE, 0,
-                              OPEN_EXISTING, 0, 0);
-  
-  if (winOut == INVALID_HANDLE_VALUE) {
-    OutputDebugStringW(L"Could not create named logging pipe.\n");
-    return;
-  }
-
-  // Set the c runtime handle
-  int stdOut = _open_osfhandle((intptr_t)winOut, _O_APPEND);
-  if (stdOut == -1) {
-    OutputDebugStringW(L"Could not open c-runtime handle.\n");
-    return;
-  }
-  FILE *fp = _fdopen(stdOut, "a");
-  *stdout = *fp;
-}
-#endif
 
 XRE_GetFileFromPathType XRE_GetFileFromPath;
 XRE_CreateAppDataType XRE_CreateAppData;
@@ -224,165 +190,28 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
     return result;
   }
 
-  bool metroOnDesktop = false;
-
-#ifdef MOZ_METRO
-  if (argc > 1) {
-    // This command-line flag is passed to our executable when it is to be
-    // launched in metro mode (i.e. our EXE is registered as the default
-    // browser and the user has tapped our EXE's tile)
-    if (IsArg(argv[1], "ServerName:DefaultBrowserServer")) {
-      mainFlags = XRE_MAIN_FLAG_USE_METRO;
-      argv[1] = argv[0];
-      argv++;
-      argc--;
-    } else if (IsArg(argv[1], "BackgroundSessionClosed")) {
-      // This command line flag is used for indirect shutdowns, the OS
-      // relaunches Metro Firefox with this command line arg.
-      mainFlags = XRE_MAIN_FLAG_USE_METRO;
-    } else {
-#ifndef RELEASE_BUILD
-      // This command-line flag is used to test the metro browser in a desktop
-      // environment.
-      for (int idx = 1; idx < argc; idx++) {
-        if (IsArg(argv[idx], "metrodesktop")) {
-          metroOnDesktop = true;
-          // Disable crash reporting when running in metrodesktop mode.
-          char crashSwitch[] = "MOZ_CRASHREPORTER_DISABLE=1";
-          putenv(crashSwitch);
-          break;
-        } 
-      }
-#endif
-    }
-  }
-#endif
-
-  // Desktop browser launch
-  if (mainFlags != XRE_MAIN_FLAG_USE_METRO && !metroOnDesktop) {
-    ScopedAppData appData(&sAppData);
-    nsCOMPtr<nsIFile> exeFile;
-    rv = mozilla::BinaryPath::GetFile(argv[0], getter_AddRefs(exeFile));
-    if (NS_FAILED(rv)) {
-      Output("Couldn't find the application directory.\n");
-      return 255;
-    }
-
-    nsCOMPtr<nsIFile> greDir;
-    exeFile->GetParent(getter_AddRefs(greDir));
-
-    nsCOMPtr<nsIFile> appSubdir;
-    greDir->Clone(getter_AddRefs(appSubdir));
-    appSubdir->Append(NS_LITERAL_STRING(kDesktopFolder));
-
-    SetStrongPtr(appData.directory, static_cast<nsIFile*>(appSubdir.get()));
-    // xreDirectory already has a refcount from NS_NewLocalFile
-    appData.xreDirectory = xreDirectory;
-
-    return XRE_main(argc, argv, &appData, mainFlags);
-  }
-
-  // Metro browser launch
-#ifdef MOZ_METRO
-  nsCOMPtr<nsIFile> iniFile, appSubdir;
-
-  xreDirectory->Clone(getter_AddRefs(iniFile));
-  xreDirectory->Clone(getter_AddRefs(appSubdir));
-
-  iniFile->Append(NS_LITERAL_STRING(kMetroFolder));
-  iniFile->Append(NS_LITERAL_STRING(kMetroAppIniFilename));
-
-  appSubdir->Append(NS_LITERAL_STRING(kMetroFolder));
-
-  nsAutoCString path;
-  if (NS_FAILED(iniFile->GetNativePath(path))) {
-    Output("Couldn't get ini file path.\n");
+  ScopedAppData appData(&sAppData);
+  nsCOMPtr<nsIFile> exeFile;
+  rv = mozilla::BinaryPath::GetFile(argv[0], getter_AddRefs(exeFile));
+  if (NS_FAILED(rv)) {
+    Output("Couldn't find the application directory.\n");
     return 255;
   }
 
-  nsXREAppData *appData;
-  rv = XRE_CreateAppData(iniFile, &appData);
-  if (NS_FAILED(rv) || !appData) {
-    Output("Couldn't read application.ini");
-    return 255;
-  }
+  nsCOMPtr<nsIFile> greDir;
+  exeFile->GetParent(getter_AddRefs(greDir));
+#ifdef XP_MACOSX
+  greDir->SetNativeLeafName(NS_LITERAL_CSTRING(kOSXResourcesFolder));
+#endif
+  nsCOMPtr<nsIFile> appSubdir;
+  greDir->Clone(getter_AddRefs(appSubdir));
+  appSubdir->Append(NS_LITERAL_STRING(kDesktopFolder));
 
-  SetStrongPtr(appData->directory, static_cast<nsIFile*>(appSubdir.get()));
+  SetStrongPtr(appData.directory, static_cast<nsIFile*>(appSubdir.get()));
   // xreDirectory already has a refcount from NS_NewLocalFile
-  appData->xreDirectory = xreDirectory;
+  appData.xreDirectory = xreDirectory;
 
-#ifdef XP_WIN
-  if (!metroOnDesktop) {
-    nsCOMPtr<nsIFile> testFile;
-
-    xreDirectory->Clone(getter_AddRefs(testFile));
-    testFile->Append(NS_LITERAL_STRING(kMetroTestFile));
-
-    nsAutoCString path;
-    if (NS_FAILED(testFile->GetNativePath(path))) {
-      Output("Couldn't get test file path.\n");
-      return 255;
-    }
-
-    // Check for a metro test harness command line args file
-    HANDLE hTestFile = CreateFileA(path.get(),
-                                   GENERIC_READ,
-                                   0, nullptr, OPEN_EXISTING,
-                                   FILE_ATTRIBUTE_NORMAL,
-                                   nullptr);
-    if (hTestFile != INVALID_HANDLE_VALUE) {
-      // Typical test harness command line args string is around 100 bytes.
-      char buffer[1024];
-      memset(buffer, 0, sizeof(buffer));
-      DWORD bytesRead = 0;
-      if (!ReadFile(hTestFile, (VOID*)buffer, sizeof(buffer)-1,
-                    &bytesRead, nullptr) || !bytesRead) {
-        CloseHandle(hTestFile);
-        printf("failed to read test file '%s'", testFile);
-        return -1;
-      }
-      CloseHandle(hTestFile);
-
-      // Build new args array
-      char* newArgv[20];
-      int newArgc = 1;
-
-      memset(newArgv, 0, sizeof(newArgv));
-
-      char* ptr = buffer;
-      newArgv[0] = ptr;
-      while (*ptr != '\0' &&
-             (ptr - buffer) < sizeof(buffer) &&
-             newArgc < ARRAYSIZE(newArgv)) {
-        if (isspace(*ptr)) {
-          *ptr = '\0';
-          ptr++;
-          newArgv[newArgc] = ptr;
-          newArgc++;
-          continue;
-        }
-        ptr++;
-      }
-      if (ptr == newArgv[newArgc-1])
-        newArgc--;
-
-      // attach browser stdout to metrotestharness stdout
-      AttachToTestHarness();
-
-      int result = XRE_main(newArgc, newArgv, appData, mainFlags);
-      XRE_FreeAppData(appData);
-      return result;
-    }
-  }
-#endif
-
-  int result = XRE_main(argc, argv, appData, mainFlags);
-  XRE_FreeAppData(appData);
-  return result;
-#endif
-
-  NS_NOTREACHED("browser do_main failed to pickup proper initialization");
-  return 255;
+  return XRE_main(argc, argv, &appData, mainFlags);
 }
 
 #ifdef XP_WIN
@@ -560,10 +389,15 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
     return rv;
   }
 
+  // This will set this thread as the main thread.
   NS_LogInit();
 
   // chop XPCOM_DLL off exePath
   *lastSlash = '\0';
+#ifdef XP_MACOSX
+  lastSlash = strrchr(exePath, XPCOM_FILE_PATH_SEPARATOR[0]);
+  strcpy(lastSlash + 1, kOSXResourcesFolder);
+#endif
 #ifdef XP_WIN
   rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(exePath), false,
                        xreDirectory);
@@ -577,9 +411,6 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
 
 int main(int argc, char* argv[])
 {
-#ifdef DEBUG_delay_start_metro
-  Sleep(5000);
-#endif
   uint64_t start = TimeStamp_Now();
 
 #ifdef XP_MACOSX
@@ -593,6 +424,8 @@ int main(int argc, char* argv[])
 #elif defined(XP_WIN)
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
+#else
+  #error "Unknown platform"  // having this here keeps cppcheck happy
 #endif
 
   nsIFile *xreDirectory;
@@ -637,6 +470,8 @@ int main(int argc, char* argv[])
       XRE_TelemetryAccumulate(mozilla::Telemetry::GLUESTARTUP_HARD_FAULTS,
                               int(newRUsage.ru_majflt - initialRUsage.ru_majflt));
     }
+#else
+  #error "Unknown platform"  // having this here keeps cppcheck happy
 #endif
   }
 

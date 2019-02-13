@@ -9,12 +9,15 @@
 #include "nsContainerFrame.h"
 #include "nsLeafFrame.h"
 
+class nsFontMetrics;
 class nsSharedPageData;
 
 // Page frame class used by the simple page sequence frame
-class nsPageFrame : public nsContainerFrame {
+class nsPageFrame final : public nsContainerFrame {
 
 public:
+  NS_DECL_QUERYFRAME_TARGET(nsPageFrame)
+  NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   friend nsPageFrame* NS_NewPageFrame(nsIPresShell* aPresShell,
@@ -23,21 +26,21 @@ public:
   virtual void Reflow(nsPresContext*      aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aMaxSize,
-                      nsReflowStatus&      aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&      aStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::pageFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
   
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult  GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult  GetFrameName(nsAString& aResult) const override;
 #endif
 
   //////////////////
@@ -51,13 +54,13 @@ public:
 
   // We must allow Print Preview UI to have a background, no matter what the
   // user's settings
-  virtual bool HonorPrintBackgroundSettings() MOZ_OVERRIDE { return false; }
+  virtual bool HonorPrintBackgroundSettings() override { return false; }
 
   void PaintHeaderFooter(nsRenderingContext& aRenderingContext,
-                         nsPoint aPt);
+                         nsPoint aPt, bool aSubpixelAA);
 
 protected:
-  nsPageFrame(nsStyleContext* aContext);
+  explicit nsPageFrame(nsStyleContext* aContext);
   virtual ~nsPageFrame();
 
   typedef enum {
@@ -65,12 +68,14 @@ protected:
     eFooter
   } nsHeaderFooterEnum;
 
-  nscoord GetXPosition(nsRenderingContext& aRenderingContext, 
+  nscoord GetXPosition(nsRenderingContext& aRenderingContext,
+                       nsFontMetrics&       aFontMetrics,
                        const nsRect&        aRect, 
                        int32_t              aJust,
                        const nsString&      aStr);
 
   void DrawHeaderFooter(nsRenderingContext& aRenderingContext,
+                        nsFontMetrics&       aFontMetrics,
                         nsHeaderFooterEnum   aHeaderFooter,
                         int32_t              aJust,
                         const nsString&      sStr,
@@ -80,6 +85,7 @@ protected:
                         nscoord              aWidth);
 
   void DrawHeaderFooter(nsRenderingContext& aRenderingContext,
+                        nsFontMetrics&       aFontMetrics,
                         nsHeaderFooterEnum   aHeaderFooter,
                         const nsString&      aStrLeft,
                         const nsString&      aStrRight,
@@ -101,24 +107,24 @@ class nsPageBreakFrame : public nsLeafFrame
 {
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsPageBreakFrame(nsStyleContext* aContext);
+  explicit nsPageBreakFrame(nsStyleContext* aContext);
   ~nsPageBreakFrame();
 
   virtual void Reflow(nsPresContext*          aPresContext,
                           nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          nsReflowStatus&          aStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult  GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult  GetFrameName(nsAString& aResult) const override;
 #endif
 
 protected:
 
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  virtual nscoord GetIntrinsicISize() override;
+  virtual nscoord GetIntrinsicBSize() override;
 
     bool mHaveReflowed;
 

@@ -5,8 +5,8 @@
  * Tests if the a function call's stack is properly displayed in the UI.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, panel] = yield initCanavsDebuggerFrontend(SIMPLE_CANVAS_DEEP_STACK_URL);
+function* ifTestingSupported() {
+  let { target, panel } = yield initCanvasDebuggerFrontend(SIMPLE_CANVAS_DEEP_STACK_URL);
   let { window, $, $all, EVENTS, SnapshotsListView, CallsListView } = panel.panelWin;
 
   yield reload(target);
@@ -32,16 +32,16 @@ function ifTestingSupported() {
     "There should be 4 functions on the stack for the draw call.");
 
   ok($all(".call-item-stack-fn-name", callItem.target)[0].getAttribute("value")
-    .contains("C()"),
+    .includes("C()"),
     "The first function on the stack has the correct name.");
   ok($all(".call-item-stack-fn-name", callItem.target)[1].getAttribute("value")
-    .contains("B()"),
+    .includes("B()"),
     "The second function on the stack has the correct name.");
   ok($all(".call-item-stack-fn-name", callItem.target)[2].getAttribute("value")
-    .contains("A()"),
+    .includes("A()"),
     "The third function on the stack has the correct name.");
   ok($all(".call-item-stack-fn-name", callItem.target)[3].getAttribute("value")
-    .contains("drawRect()"),
+    .includes("drawRect()"),
     "The fourth function on the stack has the correct name.");
 
   is($all(".call-item-stack-fn-location", callItem.target)[0].getAttribute("value"),
@@ -64,7 +64,7 @@ function ifTestingSupported() {
   let toolbox = yield gDevTools.getToolbox(target);
   let { panelWin: { DebuggerView: view } } = toolbox.getPanel("jsdebugger");
 
-  is(view.Sources.selectedValue, SIMPLE_CANVAS_DEEP_STACK_URL,
+  is(view.Sources.selectedValue, getSourceActor(view.Sources, SIMPLE_CANVAS_DEEP_STACK_URL),
     "The expected source was shown in the debugger.");
   is(view.editor.getCursor().line, 25,
     "The expected source line is highlighted in the debugger.");

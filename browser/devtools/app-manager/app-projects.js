@@ -14,17 +14,17 @@ const { indexedDB } = require("sdk/indexed-db");
  * a unique `location` object.
  */
 
-const global = this;
 const IDB = {
   _db: null,
+  databaseName: "AppProjects",
 
   open: function () {
     let deferred = promise.defer();
 
-    let request = global.indexedDB.open("AppProjects", 5);
+    let request = indexedDB.open(IDB.databaseName, 5);
     request.onerror = function(event) {
-      deferred.reject("Unable to open AppProjects indexedDB. " +
-                      "Error code: " + event.target.errorCode);
+      deferred.reject("Unable to open AppProjects indexedDB: " +
+                      this.error.name + " - " + this.error.message );
     };
     request.onupgradeneeded = function(event) {
       let db = event.target.result;
@@ -83,6 +83,8 @@ const IDB = {
 
   add: function(project) {
     let deferred = promise.defer();
+
+    project = JSON.parse(JSON.stringify(project));
 
     if (!project.location) {
       // We need to make sure this object has a `.location` property.
@@ -148,11 +150,10 @@ const store = new ObservableObject({ projects:[] });
 
 let loadDeferred = promise.defer();
 
-IDB.open().then(function (projects) {
+loadDeferred.resolve(IDB.open().then(function (projects) {
   store.object.projects = projects;
   AppProjects.emit("ready", store.object.projects);
-  loadDeferred.resolve();
-});
+}));
 
 const AppProjects = {
   load: function() {
@@ -207,6 +208,14 @@ const AppProjects = {
     return IDB.update(project);
   },
 
+  updateLocation: function(project, newLocation) {
+    return IDB.remove(project.location)
+              .then(() => {
+                project.location = newLocation;
+                return IDB.add(project);
+              });
+  },
+
   remove: function(location) {
     return IDB.remove(location).then(function () {
       let projects = store.object.projects;
@@ -236,4 +245,3 @@ const AppProjects = {
 EventEmitter.decorate(AppProjects);
 
 exports.AppProjects = AppProjects;
-

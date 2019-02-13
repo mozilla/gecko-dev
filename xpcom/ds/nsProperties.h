@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,18 +21,19 @@
     {0x93, 0xb6, 0x00, 0x10, 0x4b, 0xa0, 0xfd, 0x40} \
 }
 
-typedef nsInterfaceHashtable<nsCharPtrHashKey, nsISupports>
-        nsProperties_HashBase;
+typedef nsInterfaceHashtable<nsCharPtrHashKey,
+                             nsISupports> nsProperties_HashBase;
 
-class nsProperties MOZ_FINAL : public nsIProperties,
-                               public nsProperties_HashBase {
+class nsProperties final
+  : public nsIProperties
+  , public nsProperties_HashBase
+{
 public:
-
   NS_DECL_AGGREGATED
   NS_DECL_NSIPROPERTIES
 
-  nsProperties(nsISupports *aOuter) { NS_INIT_AGGREGATED(aOuter); }
-  ~nsProperties() { }
+  explicit nsProperties(nsISupports *aOuter) { NS_INIT_AGGREGATED(aOuter); }
+  ~nsProperties() {}
 };
 
 #endif /* nsProperties_h___ */

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,7 +21,7 @@ class DataStoreImpl;
 class StringOrUnsignedLong;
 class OwningStringOrUnsignedLong;
 
-class DataStore MOZ_FINAL : public DOMEventTargetHelper
+class DataStore final : public DOMEventTargetHelper
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -27,14 +29,13 @@ public:
                                            DOMEventTargetHelper)
 
   explicit DataStore(nsPIDOMWindow* aWindow);
-  ~DataStore();
 
   // WebIDL (internal functions)
 
   static already_AddRefed<DataStore> Constructor(GlobalObject& aGlobal,
                                                  ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static bool EnabledForScope(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
@@ -84,6 +85,8 @@ public:
   void SetDataStoreImpl(DataStoreImpl& aStore, ErrorResult& aRv);
 
 private:
+  ~DataStore();
+
   nsRefPtr<DataStoreImpl> mStore;
 };
 

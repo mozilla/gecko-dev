@@ -57,9 +57,9 @@ class nsFilePicker :
   public IFileDialogEvents,
   public nsBaseWinFilePicker
 {
+  virtual ~nsFilePicker();
 public:
   nsFilePicker(); 
-  virtual ~nsFilePicker();
 
   NS_IMETHOD Init(nsIDOMWindow *aParent, const nsAString& aTitle, int16_t aMode);
                   
@@ -98,6 +98,7 @@ protected:
                           const nsAString& aTitle);
   static void GetQualifiedPath(const wchar_t *aInPath, nsString &aOutPath);
   void GetFilterListArray(nsString& aFilterList);
+  static bool GetFileNameWrapper(OPENFILENAMEW* ofn, PickerType aType);
   bool FilePickerWrapper(OPENFILENAMEW* ofn, PickerType aType);
   bool ShowXPFolderPicker(const nsString& aInitialDir);
   bool ShowXPFilePicker(const nsString& aInitialDir);

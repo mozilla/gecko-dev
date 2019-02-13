@@ -1,14 +1,27 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let Promise = SpecialPowers.Cu.import('resource://gre/modules/Promise.jsm').Promise;
+// Emulate Promise.jsm semantics.
+Promise.defer = function() { return new Deferred(); }
+function Deferred()  {
+  this.promise = new Promise(function(resolve, reject) {
+    this.resolve = resolve;
+    this.reject = reject;
+  }.bind(this));
+  Object.freeze(this);
+}
 
 const STOCK_HOSTAPD_NAME = 'goldfish-hostapd';
-const HOSTAPD_CONFIG_PATH = '/data/misc/wifi/hostapd/';
+const HOSTAPD_CONFIG_PATH = '/data/misc/wifi/remote-hostapd/';
+
+const SETTINGS_RIL_DATA_ENABLED = 'ril.data.enabled';
+const SETTINGS_TETHERING_WIFI_ENABLED = 'tethering.wifi.enabled';
+const SETTINGS_TETHERING_WIFI_IP = 'tethering.wifi.ip';
+const SETTINGS_TETHERING_WIFI_SECURITY = 'tethering.wifi.security.type';
 
 const HOSTAPD_COMMON_CONFIG = {
   driver: 'test',
-  ctrl_interface: '/data/misc/wifi/hostapd',
+  ctrl_interface: '/data/misc/wifi/remote-hostapd',
   test_socket: 'DIR:/data/misc/wifi/sockets',
   hw_mode: 'b',
   channel: '2',
@@ -37,6 +50,30 @@ let gTestSuite = (function() {
   let wifiManager;
   let wifiOrigEnabled;
   let pendingEmulatorShellCount = 0;
+  let sdkVersion;
+
+  /**
+   * A wrapper function of "is".
+   *
+   * Calls the marionette function "is" as well as throws an exception
+   * if the givens values are not equal.
+   *
+   * @param value1
+   *        Any type of value to compare.
+   *
+   * @param value2
+   *        Any type of value to compare.
+   *
+   * @param message
+   *        Debug message for this check.
+   *
+   */
+  function isOrThrow(value1, value2, message) {
+    is(value1, value2, message);
+    if (value1 !== value2) {
+      throw message;
+    }
+  }
 
   /**
    * Send emulator shell command with safe guard.
@@ -99,6 +136,34 @@ let gTestSuite = (function() {
   }
 
   /**
+   * Wait for one named MozMobileConnection event.
+   *
+   * Resolve if that named event occurs.  Never reject.
+   *
+   * Fulfill params: the DOMEvent passed.
+   *
+   * @param aEventName
+   *        A string event name.
+   *
+   * @return A deferred promise.
+   */
+  function waitForMobileConnectionEventOnce(aEventName, aServiceId) {
+    aServiceId = aServiceId || 0;
+
+    let deferred = Promise.defer();
+    let mobileconnection = navigator.mozMobileConnections[aServiceId];
+
+    mobileconnection.addEventListener(aEventName, function onevent(aEvent) {
+      mobileconnection.removeEventListener(aEventName, onevent);
+
+      ok(true, "Mobile connection event '" + aEventName + "' got.");
+      deferred.resolve(aEvent);
+    });
+
+    return deferred.promise;
+  }
+
+  /**
    * Get the detail of currently running processes containing the given name.
    *
    * Use shell command 'ps' to get the desired process's detail. Never reject.
@@ -151,7 +216,11 @@ let gTestSuite = (function() {
     let deferred = Promise.defer();
 
     let permissions = [{ 'type': 'wifi-manage', 'allow': 1, 'context': window.document },
-                       { 'type': 'settings-write', 'allow': 1, 'context': window.document }];
+                       { 'type': 'settings-write', 'allow': 1, 'context': window.document },
+                       { 'type': 'settings-read', 'allow': 1, 'context': window.document },
+                       { 'type': 'settings-api-write', 'allow': 1, 'context': window.document },
+                       { 'type': 'settings-api-read', 'allow': 1, 'context': window.document },
+                       { 'type': 'mobileconnection', 'allow': 1, 'context': window.document }];
 
     SpecialPowers.pushPermissions(permissions, function() {
       deferred.resolve();
@@ -200,30 +269,186 @@ let gTestSuite = (function() {
    *
    * @return a resolved promise or deferred promise.
    */
-  function ensureWifiEnabled(aEnabled) {
+  function ensureWifiEnabled(aEnabled, useAPI) {
     if (wifiManager.enabled === aEnabled) {
       log('Already ' + (aEnabled ? 'enabled' : 'disabled'));
       return Promise.resolve();
     }
-    return requestWifiEnabled(aEnabled);
+    return requestWifiEnabled(aEnabled, useAPI);
   }
 
   /**
    * Issue a request to enable/disable wifi.
    *
-   * For current design, this function will attempt to enable/disable wifi by
-   * writing 'wifi.enabled' regardless of the wifi state.
+   * This function will attempt to enable/disable wifi, by calling API or by
+   * writing settings 'wifi.enabled' regardless of the wifi state, based on the
+   * value of |userAPI| parameter.
+   * Default is using settings.
+   *
+   * Note there's a limitation of co-existance of both method, per bug 930355,
+   * that once enable/disable wifi by API, the settings method won't work until
+   * reboot. So the test of wifi enable API should be executed last.
+   * TODO: Remove settings method after enable/disable wifi by settings is
+   *       removed after bug 1050147.
    *
    * Fulfill params: (none)
    * Reject params: (none)
    *
    * @return A deferred promise.
    */
-  function requestWifiEnabled(aEnabled) {
+  function requestWifiEnabled(aEnabled, useAPI) {
     return Promise.all([
       waitForWifiManagerEventOnce(aEnabled ? 'enabled' : 'disabled'),
-      setSettings({ 'wifi.enabled': aEnabled }),
+      useAPI ?
+        wrapDomRequestAsPromise(wifiManager.setWifiEnabled(aEnabled)) :
+        setSettings({ 'wifi.enabled': aEnabled }),
     ]);
+  }
+
+  /**
+   * Wait for RIL data being connected.
+   *
+   * This function will check |MozMobileConnection.data.connected| on
+   * every 'datachange' event. Resolve when |MozMobileConnection.data.connected|
+   * becomes the expected state. Never reject.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @param aConnected
+   *        Boolean that indicates the desired data state.
+   *
+   * @param aServiceId [optional]
+   *        A numeric DSDS service id. Default: 0.
+   *
+   * @return A deferred promise.
+   */
+  function waitForRilDataConnected(aConnected, aServiceId) {
+    aServiceId = aServiceId || 0;
+    return waitForMobileConnectionEventOnce('datachange', aServiceId)
+      .then(function () {
+        let mobileconnection = navigator.mozMobileConnections[aServiceId];
+        if (mobileconnection.data.connected !== aConnected) {
+          return waitForRilDataConnected(aConnected, aServiceId);
+        }
+      });
+  }
+
+  /**
+   * Request to enable/disable wifi tethering.
+   *
+   * Enable/disable wifi tethering by changing the settings value 'tethering.wifi.enabled'.
+   * Resolve when the routing is verified to set up successfully in 20 seconds. The polling
+   * period is 1 second.
+   *
+   * Fulfill params: (none)
+   * Reject params: The error message.
+   *
+   * @param aEnabled
+   *        Boolean that indicates to enable or disable wifi tethering.
+   *
+   * @return A deferred promise.
+   */
+  function requestTetheringEnabled(aEnabled) {
+    let RETRY_INTERVAL_MS = 1000;
+    let retryCnt = 20;
+
+    return setSettings1(SETTINGS_TETHERING_WIFI_ENABLED, aEnabled)
+      .then(function waitForRoutingVerified() {
+        return verifyTetheringRouting(aEnabled)
+          .then(null, function onreject(aReason) {
+
+            log('verifyTetheringRouting rejected due to ' + aReason +
+                ' (' + retryCnt + ')');
+
+            if (!retryCnt--) {
+              throw aReason;
+            }
+
+            return waitForTimeout(RETRY_INTERVAL_MS).then(waitForRoutingVerified);
+          });
+      });
+  }
+
+  /**
+   * Forget the given network.
+   *
+   * Resolve when we successfully forget the given network; reject when any error
+   * occurs.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @param aNetwork
+   *        An object of MozWifiNetwork.
+   *
+   * @return A deferred promise.
+   */
+  function forgetNetwork(aNetwork) {
+    let request = wifiManager.forget(aNetwork);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  /**
+   * Forget all known networks.
+   *
+   * Resolve when we successfully forget all the known network;
+   * reject when any error occurs.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function forgetAllKnownNetworks() {
+
+    function createForgetNetworkChain(aNetworks) {
+      let chain = Promise.resolve();
+
+      aNetworks.forEach(function (aNetwork) {
+        chain = chain.then(() => forgetNetwork(aNetwork));
+      });
+
+      return chain;
+    }
+
+    return getKnownNetworks()
+      .then(networks => createForgetNetworkChain(networks));
+  }
+
+  /**
+   * Get all known networks.
+   *
+   * Resolve when we get all the known networks; reject when any error
+   * occurs.
+   *
+   * Fulfill params: An array of MozWifiNetwork
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function getKnownNetworks() {
+    let request = wifiManager.getKnownNetworks();
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  /**
+   * Set the given network to static ip mode.
+   *
+   * Resolve when we set static ip mode successfully; reject when any error
+   * occurs.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function setStaticIpMode(aNetwork, aConfig) {
+    let request = wifiManager.setStaticIpMode(aNetwork, aConfig);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
   }
 
   /**
@@ -239,6 +464,57 @@ let gTestSuite = (function() {
    */
   function requestWifiScan() {
     let request = wifiManager.getNetworks();
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  /**
+   * Import a certificate with nickname and password.
+   *
+   * Resolve when we import certificate successfully; reject when any error
+   * occurs.
+   *
+   * Fulfill params: An object of certificate information.
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function importCert(certBlob, password, nickname) {
+    let request = wifiManager.importCert(certBlob, password, nickname);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  /**
+   * Delete certificate of nickname.
+   *
+   * Resolve when we delete certificate successfully; reject when any error
+   * occurs.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function deleteCert(nickname) {
+    let request = wifiManager.deleteCert(nickname);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  /**
+   * Get list of imported certificates.
+   *
+   * Resolve when we get certificate list successfully; reject when any error
+   * occurs.
+   *
+   * Fulfill params: Nickname of imported certificate arranged by usage.
+   * Reject params: (none)
+   *
+   * @return A deferred promise.
+   */
+  function getImportedCerts() {
+    let request = wifiManager.getImportedCerts();
     return wrapDomRequestAsPromise(request)
       .then(event => event.target.result);
   }
@@ -291,6 +567,85 @@ let gTestSuite = (function() {
   }
 
   /**
+   * Test wifi association.
+   *
+   * Associate with the given network object which is obtained by
+   * MozWifiManager.getNetworks() (i.e. MozWifiNetwork).
+   * Resolve when the 'connected' status change event is received.
+   * Note that we might see other events like 'connecting'
+   * before 'connected'. So we need to call |waitForWifiManagerEventOnce|
+   * again whenever non 'connected' event is seen. Never reject.
+   *
+   * Fulfill params: (none)
+   *
+   * @param aNetwork
+   *        An object of MozWifiNetwork.
+   *
+   * @return A deferred promise.
+   */
+  function testAssociate(aNetwork) {
+    setPasswordIfNeeded(aNetwork);
+
+    let promises = [];
+
+    // Register the event listerner to wait for 'connected' event first
+    // to avoid racing issue.
+    promises.push(waitForConnected(aNetwork));
+
+    // Then we do the association.
+    let request = wifiManager.associate(aNetwork);
+    promises.push(wrapDomRequestAsPromise(request));
+
+    return Promise.all(promises);
+  }
+
+  function waitForConnected(aExpectedNetwork) {
+    return waitForWifiManagerEventOnce('statuschange')
+      .then(function onstatuschange(event) {
+        log("event.status: " + event.status);
+        log("event.network.ssid: " + (event.network ? event.network.ssid : ''));
+
+        if ("connected" === event.status &&
+            event.network.ssid === aExpectedNetwork.ssid) {
+          return; // Got expected 'connected' event from aNetwork.ssid.
+        }
+
+        log('Not expected "connected" statuschange event. Wait again!');
+        return waitForConnected(aExpectedNetwork);
+      });
+  }
+
+  /**
+   * Set the password for associating the given network if needed.
+   *
+   * Set the password by looking up HOSTAPD_CONFIG_LIST. This function
+   * will also set |keyManagement| properly.
+   *
+   * @param aNetwork
+   *        The MozWifiNetwork object.
+   */
+  function setPasswordIfNeeded(aNetwork) {
+    let i = getFirstIndexBySsid(aNetwork.ssid, HOSTAPD_CONFIG_LIST);
+    if (-1 === i) {
+      log('unknown ssid: ' + aNetwork.ssid);
+      return; // Unknown network. Assume insecure.
+    }
+
+    if (!aNetwork.security.length) {
+      return; // No need to set password.
+    }
+
+    let security = aNetwork.security[0];
+    if (/PSK$/.test(security)) {
+      aNetwork.psk = HOSTAPD_CONFIG_LIST[i].wpa_passphrase;
+      aNetwork.keyManagement = 'WPA-PSK';
+    } else if (/WEP$/.test(security)) {
+      aNetwork.wep = HOSTAPD_CONFIG_LIST[i].wpa_passphrase;
+      aNetwork.keyManagement = 'WEP';
+    }
+  }
+
+  /**
    * Set mozSettings values.
    *
    * Resolve if that mozSettings value is set successfully, reject otherwise.
@@ -306,15 +661,76 @@ let gTestSuite = (function() {
    *
    * @return A deferred promise.
    */
-  function setSettings(aSettings, aAllowError) {
-    let request = window.navigator.mozSettings.createLock().set(aSettings);
-    return wrapDomRequestAsPromise(request)
-      .then(function resolve() {
+  function setSettings(aSettings) {
+    let lock = window.navigator.mozSettings.createLock();
+    let request = lock.set(aSettings);
+    let deferred = Promise.defer();
+    lock.onsettingstransactionsuccess = function () {
         ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
-      }, function reject() {
-        ok(aAllowError, "setSettings(" + JSON.stringify(aSettings) + ")");
+      deferred.resolve();
+    };
+    lock.onsettingstransactionfailure = function (aEvent) {
+      ok(false, "setSettings(" + JSON.stringify(aSettings) + ")");
+      deferred.reject();
+      throw aEvent.target.error;
+    };
+    return deferred.promise;
+  }
+
+  /**
+   * Set mozSettings value with only one key.
+   *
+   * Resolve if that mozSettings value is set successfully, reject otherwise.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @param aKey
+   *        A string key.
+   * @param aValue
+   *        An object value.
+   * @param aAllowError [optional]
+   *        A boolean value.  If set to true, an error response won't be treated
+   *        as test failure.  Default: false.
+   *
+   * @return A deferred promise.
+   */
+  function setSettings1(aKey, aValue, aAllowError) {
+    let settings = {};
+    settings[aKey] = aValue;
+    return setSettings(settings, aAllowError);
+  }
+
+  /**
+   * Get mozSettings value specified by @aKey.
+   *
+   * Resolve if that mozSettings value is retrieved successfully, reject
+   * otherwise.
+   *
+   * Fulfill params:
+   *   The corresponding mozSettings value of the key.
+   * Reject params: (none)
+   *
+   * @param aKey
+   *        A string.
+   * @param aAllowError [optional]
+   *        A boolean value.  If set to true, an error response won't be treated
+   *        as test failure.  Default: false.
+   *
+   * @return A deferred promise.
+   */
+  function getSettings(aKey, aAllowError) {
+    let request =
+      navigator.mozSettings.createLock().get(aKey);
+    return wrapDomRequestAsPromise(request)
+      .then(function resolve(aEvent) {
+        ok(true, "getSettings(" + aKey + ") - success");
+        return aEvent.target.result[aKey];
+      }, function reject(aEvent) {
+        ok(aAllowError, "getSettings(" + aKey + ") - error");
       });
   }
+
 
   /**
    * Start hostapd processes with given configuration list.
@@ -437,10 +853,21 @@ let gTestSuite = (function() {
    * @return A deferred promise.
    */
   function writeFile(aFilePath, aContent) {
-    if (-1 === aContent.indexOf(' ')) {
-      aContent = '"' + aContent + '"';
+    const CONTENT_MAX_LENGTH = 900;
+    var commands = [];
+    for (var i = 0; i < aContent.length; i += CONTENT_MAX_LENGTH) {
+      var content = aContent.substr(i, CONTENT_MAX_LENGTH);
+      if (-1 === content.indexOf(' ')) {
+        content = '"' + content + '"';
+      }
+      commands.push(['echo', '-n', content, i === 0 ? '>' : '>>', aFilePath]);
     }
-    return runEmulatorShellSafe(['echo', aContent, '>', aFilePath]);
+
+    let chain = Promise.resolve();
+    commands.forEach(function (command) {
+      chain = chain.then(() => runEmulatorShellSafe(command));
+    });
+    return chain;
   }
 
   /**
@@ -617,6 +1044,196 @@ let gTestSuite = (function() {
   }
 
   /**
+   * Execute 'netcfg' shell and parse the result.
+   *
+   * Resolve when the executing is successful and reject otherwise.
+   *
+   * Fulfill params: Command result object, each key of which is the interface
+   *                 name and value is { ip(string), prefix(string) }.
+   * Reject params: String that indicates the reason of rejection.
+   *
+   * @return A deferred promise.
+   */
+  function exeAndParseNetcfg() {
+    return runEmulatorShellSafe(['netcfg'])
+      .then(function (aLines) {
+        // Sample output:
+        //
+        // lo       UP     127.0.0.1/8   0x00000049 00:00:00:00:00:00
+        // eth0     UP     10.0.2.15/24  0x00001043 52:54:00:12:34:56
+        // rmnet1   DOWN   0.0.0.0/0   0x00001002 52:54:00:12:34:58
+        // rmnet2   DOWN   0.0.0.0/0   0x00001002 52:54:00:12:34:59
+        // rmnet3   DOWN   0.0.0.0/0   0x00001002 52:54:00:12:34:5a
+        // wlan0    UP     192.168.1.1/24  0x00001043 52:54:00:12:34:5b
+        // sit0     DOWN   0.0.0.0/0   0x00000080 00:00:00:00:00:00
+        // rmnet0   UP     10.0.2.100/24  0x00001043 52:54:00:12:34:57
+        //
+        let netcfgResult = {};
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.split(/\s+/);
+          if (tokens.length < 5) {
+            return;
+          }
+          let ifname = tokens[0];
+          let [ip, prefix] = tokens[2].split('/');
+          netcfgResult[ifname] = { ip: ip, prefix: prefix };
+        });
+        log("netcfg result:" + JSON.stringify(netcfgResult));
+
+        return netcfgResult;
+      });
+  }
+
+  /**
+   * Execute 'ip route' and parse the result.
+   *
+   * Resolve when the executing is successful and reject otherwise.
+   *
+   * Fulfill params: Command result object, each key of which is the interface
+   *                 name and value is { src(string), gateway(string),
+   *                 default(boolean) }.
+   * Reject params: String that indicates the reason of rejection.
+   *
+   * @return A deferred promise.
+   */
+  function exeAndParseIpRoute() {
+    return runEmulatorShellSafe(['ip', 'route'])
+      .then(function (aLines) {
+        // Sample output:
+        //
+        // 10.0.2.4 via 10.0.2.2 dev rmnet0
+        // 10.0.2.3 via 10.0.2.2 dev rmnet0
+        // 192.168.1.0/24 dev wlan0  proto kernel  scope link  src 192.168.1.1
+        // 10.0.2.0/24 dev eth0  proto kernel  scope link  src 10.0.2.15
+        // 10.0.2.0/24 dev rmnet0  proto kernel  scope link  src 10.0.2.100
+        // default via 10.0.2.2 dev rmnet0
+        // default via 10.0.2.2 dev eth0  metric 2
+        //
+
+        let ipRouteResult = {};
+
+        // Parse source ip for each interface.
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.trim().split(/\s+/);
+          let srcIndex = tokens.indexOf('src');
+          if (srcIndex < 0 || srcIndex + 1 >= tokens.length) {
+            return;
+          }
+          let ifname = tokens[2];
+          let src = tokens[srcIndex + 1];
+          ipRouteResult[ifname] = { src: src, default: false, gateway: null };
+        });
+
+        // Parse default interfaces.
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.split(/\s+/);
+          if (tokens.length < 2) {
+            return;
+          }
+          if ('default' === tokens[0]) {
+            let ifnameIndex = tokens.indexOf('dev');
+            if (ifnameIndex < 0 || ifnameIndex + 1 >= tokens.length) {
+              return;
+            }
+            let ifname = tokens[ifnameIndex + 1];
+            if (!ipRouteResult[ifname]) {
+              return;
+            }
+            ipRouteResult[ifname].default = true;
+            let gwIndex = tokens.indexOf('via');
+            if (gwIndex < 0 || gwIndex + 1 >= tokens.length) {
+              return;
+            }
+            ipRouteResult[ifname].gateway = tokens[gwIndex + 1];
+            return;
+          }
+        });
+        log("ip route result:" + JSON.stringify(ipRouteResult));
+
+        return ipRouteResult;
+      });
+  }
+
+  /**
+   * Verify everything about routing when the wifi tethering is either on or off.
+   *
+   * We use two unix commands to verify the routing: 'netcfg' and 'ip route'.
+   * For now the following two things will be checked:
+   *   1) The default route interface should be 'rmnet0'.
+   *   2) wlan0 is up and its ip is set to a private subnet.
+   *
+   * We also verify iptables output as netd's NatController will execute
+   *   $ iptables -t nat -A POSTROUTING -o rmnet0 -j MASQUERADE
+   *
+   * Resolve when the verification is successful and reject otherwise.
+   *
+   * Fulfill params: (none)
+   * Reject params: String that indicates the reason of rejection.
+   *
+   * @return A deferred promise.
+   */
+  function verifyTetheringRouting(aEnabled) {
+    let netcfgResult;
+    let ipRouteResult;
+
+    // Find MASQUERADE in POSTROUTING section. 'MASQUERADE' should be found
+    // when tethering is enabled. 'MASQUERADE' shouldn't be found when tethering
+    // is disabled.
+    function verifyIptables() {
+      let MASQUERADE_checkSection = 'POSTROUTING';
+      if (sdkVersion > 15) {
+        // Check 'natctrl_nat_POSTROUTING' section after ICS.
+        MASQUERADE_checkSection = 'natctrl_nat_POSTROUTING';
+      }
+
+      return runEmulatorShellSafe(['iptables', '-t', 'nat', '-L', MASQUERADE_checkSection])
+        .then(function(aLines) {
+          // $ iptables -t nat -L POSTROUTING
+          //
+          // Sample output (tethering on):
+          //
+          // Chain POSTROUTING (policy ACCEPT)
+          // target     prot opt source               destination
+          // MASQUERADE  all  --  anywhere             anywhere
+          //
+          let found = (function find_MASQUERADE() {
+            // Skip first two lines.
+            for (let i = 2; i < aLines.length; i++) {
+              if (-1 !== aLines[i].indexOf('MASQUERADE')) {
+                return true;
+              }
+            }
+            return false;
+          })();
+
+          if ((aEnabled && !found) || (!aEnabled && found)) {
+            throw 'MASQUERADE' + (found ? '' : ' not') + ' found while tethering is ' +
+                  (aEnabled ? 'enabled' : 'disabled');
+          }
+        });
+    }
+
+    function verifyDefaultRouteAndIp(aExpectedWifiTetheringIp) {
+      if (aEnabled) {
+        isOrThrow(ipRouteResult['rmnet0'].src, netcfgResult['rmnet0'].ip, 'rmnet0.ip');
+        isOrThrow(ipRouteResult['rmnet0'].default, true, 'rmnet0.default');
+
+        isOrThrow(ipRouteResult['wlan0'].src, netcfgResult['wlan0'].ip, 'wlan0.ip');
+        isOrThrow(ipRouteResult['wlan0'].src, aExpectedWifiTetheringIp, 'expected ip');
+        isOrThrow(ipRouteResult['wlan0'].default, false, 'wlan0.default');
+      }
+    }
+
+    return verifyIptables()
+      .then(exeAndParseNetcfg)
+      .then((aResult) => { netcfgResult = aResult; })
+      .then(exeAndParseIpRoute)
+      .then((aResult) => { ipRouteResult = aResult; })
+      .then(() => getSettings(SETTINGS_TETHERING_WIFI_IP))
+      .then(ip => verifyDefaultRouteAndIp(ip));
+  }
+
+  /**
    * Clean up all the allocated resources and running services for the test.
    *
    * After the test no matter success or failure, we should
@@ -632,7 +1249,9 @@ let gTestSuite = (function() {
    */
   function cleanUp() {
     waitFor(function() {
-      return ensureWifiEnabled(wifiOrigEnabled)
+      return ensureWifiEnabled(true)
+        .then(forgetAllKnownNetworks)
+        .then(() => ensureWifiEnabled(wifiOrigEnabled))
         .then(finish);
     }, function() {
       return pendingEmulatorShellCount === 0;
@@ -661,6 +1280,10 @@ let gTestSuite = (function() {
           throw 'window.navigator.mozWifiManager is NULL';
         }
         wifiOrigEnabled = wifiManager.enabled;
+      })
+      .then(() => runEmulatorShellSafe(['getprop', 'ro.build.version.sdk']))
+      .then(aLines => {
+        sdkVersion = parseInt(aLines[0]);
       });
   }
 
@@ -678,6 +1301,21 @@ let gTestSuite = (function() {
   suite.verifyNumOfProcesses = verifyNumOfProcesses;
   suite.testWifiScanWithRetry = testWifiScanWithRetry;
   suite.getFirstIndexBySsid = getFirstIndexBySsid;
+  suite.testAssociate = testAssociate;
+  suite.getKnownNetworks = getKnownNetworks;
+  suite.setStaticIpMode = setStaticIpMode;
+  suite.requestWifiScan = requestWifiScan;
+  suite.waitForConnected = waitForConnected;
+  suite.forgetNetwork = forgetNetwork;
+  suite.waitForTimeout = waitForTimeout;
+  suite.waitForRilDataConnected = waitForRilDataConnected;
+  suite.requestTetheringEnabled = requestTetheringEnabled;
+  suite.importCert = importCert;
+  suite.getImportedCerts = getImportedCerts;
+  suite.deleteCert = deleteCert;
+  suite.writeFile = writeFile;
+  suite.exeAndParseNetcfg = exeAndParseNetcfg;
+  suite.exeAndParseIpRoute = exeAndParseIpRoute;
 
   /**
    * Common test routine.
@@ -724,6 +1362,118 @@ let gTestSuite = (function() {
       return stopStockHostapd()
         .then(aTestCaseChain)
         .then(startStockHostapd);
+    });
+  };
+
+  /**
+   * The common test routine for wifi tethering.
+   *
+   * Similar as doTest except that it will set 'ril.data.enabled' to true
+   * before testing and restore it afterward. It will also verify 'ril.data.enabled'
+   * and 'tethering.wifi.enabled' to be false in the beginning. Note that this routine
+   * will NOT change the state of 'tethering.wifi.enabled' so the user should enable
+   * than disable on his/her own. This routine will only check if tethering is turned
+   * off after testing.
+   *
+   * Fulfill params: (none)
+   * Reject params: (none)
+   *
+   * @param aTestCaseChain
+   *        The test case entry point, which can be a function or a promise.
+   *
+   * @return A deferred promise.
+   */
+  suite.doTestTethering = function(aTestCaseChain) {
+
+    function verifyInitialState() {
+      return getSettings(SETTINGS_RIL_DATA_ENABLED)
+        .then(enabled => isOrThrow(enabled, false, SETTINGS_RIL_DATA_ENABLED))
+        .then(() => getSettings(SETTINGS_TETHERING_WIFI_ENABLED))
+        .then(enabled => isOrThrow(enabled, false, SETTINGS_TETHERING_WIFI_ENABLED));
+    }
+
+    function initTetheringTestEnvironment() {
+      // Enable ril data.
+      return Promise.all([waitForRilDataConnected(true),
+                          setSettings1(SETTINGS_RIL_DATA_ENABLED, true)])
+        .then(setSettings1(SETTINGS_TETHERING_WIFI_SECURITY, 'open'));
+    }
+
+    function restoreToInitialState() {
+      return setSettings1(SETTINGS_RIL_DATA_ENABLED, false)
+        .then(() => getSettings(SETTINGS_TETHERING_WIFI_ENABLED))
+        .then(enabled => is(enabled, false, 'Tethering should be turned off.'));
+    }
+
+    return suite.doTest(function() {
+      return verifyInitialState()
+        .then(initTetheringTestEnvironment)
+        // Since stock hostapd is not reliable after ICS, we just
+        // turn off potential stock hostapd during testing to avoid 
+        // interference.
+        .then(stopStockHostapd)
+        .then(aTestCaseChain)
+        .then(startStockHostapd)
+        .then(restoreToInitialState, function onreject(aReason) {
+          return restoreToInitialState()
+            .then(() => { throw aReason; }); // Re-throw the orignal reject reason.
+        });
+    });
+  };
+
+  /**
+   * Run test with imported certificate.
+   *
+   * Certificate will be imported and confirmed before running test, and be
+   * deleted after running test.
+   *
+   * Fulfill params: (none)
+   *
+   * @param certBlob
+   *        Certificate content as Blob.
+   * @param password
+   *        Password for importing certificate, only used for importing PKCS#12.
+   * @param nickanem
+   *        Nickname for imported certificate.
+   * @param usage
+   *        Expected usage of imported certificate.
+   * @param aTestCaseChain
+   *        The test case entry point, which can be a function or a promise.
+   *
+   * @return A deferred promise.
+   */
+  suite.doTestWithCertificate = function(certBlob, password, nickname, usage, aTestCaseChain) {
+    return suite.doTestWithoutStockAp(function() {
+      return ensureWifiEnabled(true)
+      // Import test certificate.
+      .then(() => importCert(certBlob, password, nickname))
+      .then(function(info) {
+        // Check import result.
+        is(info.nickname, nickname, "Imported nickname");
+        for (let i = 0; i < usage.length; i++) {
+          isnot(info.usage.indexOf(usage[i]), -1, "Usage " + usage[i]);
+        }
+      })
+      // Get imported certificate list.
+      .then(getImportedCerts)
+      // Check if certificate exists in imported certificate list.
+      .then(function(list) {
+        for (let i = 0; i < usage.length; i++) {
+          isnot(list[usage[i]].indexOf(nickname), -1,
+                "Certificate \"" + nickname + "\" of usage " + usage[i] + " is imported");
+        }
+      })
+      // Run test case.
+      .then(aTestCaseChain)
+      // Delete imported certificates.
+      .then(() => deleteCert(nickname))
+      // Check if certificate doesn't exist in imported certificate list.
+      .then(getImportedCerts)
+      .then(function(list) {
+        for (let i = 0; i < usage.length; i++) {
+          is(list[usage[i]].indexOf(nickname), -1, "Certificate is deleted");
+        }
+      })
     });
   };
 

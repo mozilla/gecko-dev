@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import itertools
 import os
@@ -19,8 +19,8 @@ import mozpack.path as mozpath
 from .common import CommonBackend
 from ..frontend.data import (
     AndroidEclipseProjectData,
-    SandboxDerived,
-    SandboxWrapped,
+    ContextDerived,
+    ContextWrapped,
 )
 from ..makeutil import Makefile
 from ..util import ensureParentDir
@@ -58,7 +58,7 @@ class AndroidEclipseBackend(CommonBackend):
     def consume_object(self, obj):
         """Write out Android Eclipse project files."""
 
-        if not isinstance(obj, SandboxDerived):
+        if not isinstance(obj, ContextDerived):
             return
 
         CommonBackend.consume_object(self, obj)
@@ -71,7 +71,7 @@ class AndroidEclipseBackend(CommonBackend):
         obj.ack()
 
         # ... and handle the one case we care about specially.
-        if isinstance(obj, SandboxWrapped) and isinstance(obj.wrapped, AndroidEclipseProjectData):
+        if isinstance(obj, ContextWrapped) and isinstance(obj.wrapped, AndroidEclipseProjectData):
             self._process_android_eclipse_project_data(obj.wrapped, obj.srcdir, obj.objdir)
 
     def consume_finished(self):
@@ -176,17 +176,18 @@ class AndroidEclipseBackend(CommonBackend):
         for cpe in project._classpathentries:
             manifest.add_symlink(mozpath.join(srcdir, cpe.srcdir), cpe.dstdir)
 
-        # JARs and native libraries go in the same place. For now,
-        # we're adding class path entries with the full path to
-        # required JAR files (which makes sense for JARs in the source
-        # directory, but probably doesn't for JARs in the object
-        # directory). This could be a problem because we only know
-        # the contents of (a subdirectory of) libs/ after a successful
-        # build and package, which is after build-backend time. So we
-        # use a pattern symlink that is resolved at manifest install
-        # time.
-        if project.libs:
-            manifest.add_pattern_copy(mozpath.join(srcdir, project.libs), '**', 'libs')
+        # JARs and native libraries go in the same place. For now, we're adding
+        # class path entries with the full path to required JAR files (which
+        # makes sense for JARs in the source directory, but probably doesn't for
+        # JARs in the object directory). This could be a problem because we only
+        # know the contents of (a subdirectory of) libs/ after a successful
+        # build and package, which is after build-backend time. At the cost of
+        # some flexibility, we explicitly copy certain libraries here; if the
+        # libraries aren't present -- namely, when the tree hasn't been packaged
+        # -- this fails. That's by design, to avoid crashes on device caused by
+        # missing native libraries.
+        for src, dst in project.libs:
+            manifest.add_copy(mozpath.join(srcdir, src), dst)
 
         return manifest
 
@@ -239,6 +240,7 @@ class AndroidEclipseBackend(CommonBackend):
         else:
             defines['IDE_PROJECT_FILTERED_RESOURCES'] = ''
         defines['ANDROID_TARGET_SDK'] = self.environment.substs['ANDROID_TARGET_SDK']
+        defines['MOZ_ANDROID_MIN_SDK_VERSION'] = self.environment.defines['MOZ_ANDROID_MIN_SDK_VERSION']
 
         copier = FileCopier()
         finder = FileFinder(template_directory)

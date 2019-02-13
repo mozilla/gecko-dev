@@ -30,16 +30,17 @@ namespace mozilla { namespace net {
 // nsHttpDigestAuth
 //-----------------------------------------------------------------------------
 
-class nsHttpDigestAuth MOZ_FINAL : public nsIHttpAuthenticator
+class nsHttpDigestAuth final : public nsIHttpAuthenticator
 {
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHTTPAUTHENTICATOR
 
     nsHttpDigestAuth();
-    ~nsHttpDigestAuth();
 
   protected:
+    ~nsHttpDigestAuth();
+
     nsresult ExpandToHex(const char * digest, char * result);
 
     nsresult CalculateResponse(const char * ha1_digest,

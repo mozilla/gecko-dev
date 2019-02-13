@@ -8,13 +8,12 @@
 # linux) to the information; I certainly wouldn't want anyone parsing this
 # information and having behaviour depend on it
 
-import json
+from __future__ import absolute_import
+
 import os
 import platform
 import re
 import sys
-
-import mozfile
 
 # keep a copy of the os module since updating globals overrides this
 _os = os
@@ -32,7 +31,8 @@ info = {'os': unknown,
         'processor': unknown,
         'version': unknown,
         'os_version': unknown,
-        'bits': unknown }
+        'bits': unknown,
+        'has_sandbox': unknown }
 (system, node, release, version, machine, processor) = platform.uname()
 (bits, linkage) = platform.architecture()
 
@@ -71,6 +71,8 @@ elif system == "Darwin":
 elif sys.platform in ('solaris', 'sunos5'):
     info['os'] = 'unix'
     os_version = version = sys.platform
+else:
+    os_version = version = unknown
 
 info['version'] = version
 info['os_version'] = os_version
@@ -90,6 +92,16 @@ bits = re.search('(\d+)bit', bits).group(1)
 info.update({'processor': processor,
              'bits': int(bits),
             })
+
+if info['os'] == 'linux':
+    import ctypes
+    import errno
+    PR_SET_SECCOMP = 22
+    SECCOMP_MODE_FILTER = 2
+    ctypes.CDLL("libc.so.6", use_errno=True).prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, 0)
+    info['has_sandbox'] = ctypes.get_errno() == errno.EFAULT
+else:
+    info['has_sandbox'] = True
 
 # standard value of choices, for easy inspection
 choices = {'os': ['linux', 'bsd', 'win', 'mac', 'unix'],
@@ -119,6 +131,9 @@ def update(new_info):
     """
 
     if isinstance(new_info, basestring):
+        # lazy import
+        import mozfile
+        import json
         f = mozfile.load(new_info)
         new_info = json.loads(f.read())
         f.close()
@@ -167,6 +182,11 @@ def find_and_update_from_json(*dirs):
 
     return None
 
+def output_to_file(path):
+    import json
+    with open(path, 'w') as f:
+        f.write(json.dumps(info));
+
 update({})
 
 # exports
@@ -179,6 +199,7 @@ __all__ += [
     'choices',
     'update',
     'find_and_update_from_json',
+    'output_to_file',
     ]
 
 def main(args=None):
@@ -194,6 +215,8 @@ def main(args=None):
 
     # args are JSON blobs to override info
     if args:
+        # lazy import
+        import json
         for arg in args:
             if _os.path.exists(arg):
                 string = file(arg).read()

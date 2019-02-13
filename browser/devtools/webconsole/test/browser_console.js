@@ -5,29 +5,32 @@
 
 // Test the basic features of the Browser Console, bug 587757.
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html?" + Date.now();
+"use strict";
 
-function test()
-{
-  Services.obs.addObserver(function observer(aSubject) {
-    Services.obs.removeObserver(observer, "web-console-created");
-    aSubject.QueryInterface(Ci.nsISupportsString);
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console.html?" + Date.now();
 
-    let hud = HUDService.getBrowserConsole();
-    ok(hud, "browser console is open");
-    is(aSubject.data, hud.hudId, "notification hudId is correct");
+const TEST_XHR_ERROR_URI = `http://example.com/404.html?${Date.now()}`;
 
-    executeSoon(() => consoleOpened(hud));
-  }, "web-console-created", false);
+"use strict";
+
+let test = asyncTest(function*() {
+  yield loadTab(TEST_URI);
+
+  let opened = waitForConsole();
 
   let hud = HUDService.getBrowserConsole();
   ok(!hud, "browser console is not open");
   info("wait for the browser console to open with ctrl-shift-j");
   EventUtils.synthesizeKey("j", { accelKey: true, shiftKey: true }, window);
-}
 
-function consoleOpened(hud)
-{
+  hud = yield opened;
+  ok(hud, "browser console opened");
+
+  yield consoleOpened(hud);
+});
+
+function consoleOpened(hud) {
   hud.jsterm.clearOutput(true);
 
   expectUncaughtException();
@@ -50,7 +53,15 @@ function consoleOpened(hud)
   xhr.open("get", TEST_URI, true);
   xhr.send();
 
-  waitForMessages({
+  // Check for xhr error.
+  let xhrErr = new XMLHttpRequest();
+  xhrErr.onload = () => {
+    console.log("xhr error loaded, status is: " + xhrErr.status);
+  };
+  xhrErr.open("get", TEST_XHR_ERROR_URI, true);
+  xhrErr.send();
+
+  return waitForMessages({
     webconsole: hud,
     messages: [
       {
@@ -81,8 +92,33 @@ function consoleOpened(hud)
         name: "network message",
         text: "test-console.html",
         category: CATEGORY_NETWORK,
-        severity: SEVERITY_LOG,
+        severity: SEVERITY_INFO,
+        isXhr: true,
+      },
+      {
+        name: "xhr error message",
+        text: "404.html",
+        category: CATEGORY_NETWORK,
+        severity: SEVERITY_ERROR,
+        isXhr: true,
       },
     ],
-  }).then(finishTest);
+  });
+}
+
+function waitForConsole() {
+  let deferred = promise.defer();
+
+  Services.obs.addObserver(function observer(aSubject) {
+    Services.obs.removeObserver(observer, "web-console-created");
+    aSubject.QueryInterface(Ci.nsISupportsString);
+
+    let hud = HUDService.getBrowserConsole();
+    ok(hud, "browser console is open");
+    is(aSubject.data, hud.hudId, "notification hudId is correct");
+
+    executeSoon(() => deferred.resolve(hud));
+  }, "web-console-created", false);
+
+  return deferred.promise;
 }

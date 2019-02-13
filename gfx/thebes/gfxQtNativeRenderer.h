@@ -9,9 +9,7 @@
 #include "gfxColor.h"
 #include "gfxContext.h"
 #include "gfxXlibSurface.h"
-
-class QRect;
-struct nsIntRect;
+#include "mozilla/gfx/Rect.h"
 
 /**
  * This class lets us take code that draws into an Xlib surface drawable and lets us
@@ -31,8 +29,9 @@ public:
      */
     virtual nsresult DrawWithXlib(cairo_surface_t* surface,
                                   nsIntPoint offset,
-                                  nsIntRect* clipRects, uint32_t numClipRects) = 0;
-  
+                                  mozilla::gfx::IntRect* clipRects,
+                                  uint32_t numClipRects) = 0;
+
     enum {
         // If set, then Draw() is opaque, i.e., every pixel in the intersection
         // of the clipRect and (offset.x,offset.y,bounds.width,bounds.height)
@@ -63,7 +62,7 @@ public:
      * successful, a pointer to the new gfxASurface is stored in *resultSurface,
      * otherwise *resultSurface is set to nullptr.
      */
-    nsresult Draw(gfxContext* ctx, nsIntSize size,
+    nsresult Draw(gfxContext* ctx, mozilla::gfx::IntSize size,
                   uint32_t flags, Screen* screen, Visual* visual);
 };
 

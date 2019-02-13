@@ -7,22 +7,42 @@
 #define __NS_SVGMASKFRAME_H__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "gfxPattern.h"
 #include "gfxMatrix.h"
 #include "nsSVGContainerFrame.h"
 #include "nsSVGUtils.h"
 
 class gfxContext;
-class nsRenderingContext;
 
 typedef nsSVGContainerFrame nsSVGMaskFrameBase;
 
-class nsSVGMaskFrame : public nsSVGMaskFrameBase
+/**
+ * Byte offsets of channels in a native packed gfxColor or cairo image surface.
+ */
+#ifdef IS_BIG_ENDIAN
+#define GFX_ARGB32_OFFSET_A 0
+#define GFX_ARGB32_OFFSET_R 1
+#define GFX_ARGB32_OFFSET_G 2
+#define GFX_ARGB32_OFFSET_B 3
+#else
+#define GFX_ARGB32_OFFSET_A 3
+#define GFX_ARGB32_OFFSET_R 2
+#define GFX_ARGB32_OFFSET_G 1
+#define GFX_ARGB32_OFFSET_B 0
+#endif
+
+class nsSVGMaskFrame final : public nsSVGMaskFrameBase
 {
   friend nsIFrame*
   NS_NewSVGMaskFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+
+  typedef mozilla::gfx::Matrix Matrix;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
+
 protected:
-  nsSVGMaskFrame(nsStyleContext* aContext)
+  explicit nsSVGMaskFrame(nsStyleContext* aContext)
     : nsSVGMaskFrameBase(aContext)
     , mInUse(false)
   {
@@ -33,40 +53,49 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   // nsSVGMaskFrame method:
-  already_AddRefed<gfxPattern> ComputeMaskAlpha(nsRenderingContext *aContext,
-                                                nsIFrame* aParent,
-                                                const gfxMatrix &aMatrix,
-                                                float aOpacity = 1.0f);
+  mozilla::TemporaryRef<SourceSurface>
+  GetMaskForMaskedFrame(gfxContext* aContext,
+                        nsIFrame* aMaskedFrame,
+                        const gfxMatrix &aMatrix,
+                        float aOpacity,
+                        Matrix* aMaskTransform);
 
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 #endif
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
+                                const nsDisplayListSet& aLists) override {}
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::svgMaskFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGMask"), aResult);
   }
 #endif
 
 private:
+  /**
+   * If the mask element transforms its children due to
+   * maskContentUnits="objectBoundingBox" being set on it, this function
+   * returns the resulting transform.
+   */
+  gfxMatrix GetMaskTransform(nsIFrame* aMaskedFrame);
+
   // A helper class to allow us to paint masks safely. The helper
   // automatically sets and clears the mInUse flag on the mask frame
   // (to prevent nasty reference loops). It's easy to mess this up
@@ -74,8 +103,8 @@ private:
   class MOZ_STACK_CLASS AutoMaskReferencer
   {
   public:
-    AutoMaskReferencer(nsSVGMaskFrame *aFrame
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoMaskReferencer(nsSVGMaskFrame *aFrame
+                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
        : mFrame(aFrame) {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
       NS_ASSERTION(!mFrame->mInUse, "reference loop!");
@@ -89,14 +118,12 @@ private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   };
 
-  nsIFrame *mMaskParent;
-  nsAutoPtr<gfxMatrix> mMaskParentMatrix;
+  gfxMatrix mMatrixForChildren;
   // recursion prevention flag
   bool mInUse;
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() override;
 };
 
 #endif

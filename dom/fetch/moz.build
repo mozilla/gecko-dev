@@ -1,0 +1,50 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXPORTS.mozilla.dom += [
+    'ChannelInfo.h',
+    'Fetch.h',
+    'FetchDriver.h',
+    'Headers.h',
+    'InternalHeaders.h',
+    'InternalRequest.h',
+    'InternalResponse.h',
+    'Request.h',
+    'Response.h',
+]
+
+UNIFIED_SOURCES += [
+    'ChannelInfo.cpp',
+    'Fetch.cpp',
+    'FetchDriver.cpp',
+    'Headers.cpp',
+    'InternalHeaders.cpp',
+    'InternalRequest.cpp',
+    'InternalResponse.cpp',
+    'Request.cpp',
+    'Response.cpp',
+]
+
+IPDL_SOURCES += [
+    'ChannelInfo.ipdlh',
+]
+
+LOCAL_INCLUDES += [
+    '../workers',
+    # For nsJARChannel.h
+    '/modules/libjar',
+    # For HttpBaseChannel.h dependencies
+    '/netwerk/base',
+    # For nsDataHandler.h
+    '/netwerk/protocol/data',
+    # For HttpBaseChannel.h
+    '/netwerk/protocol/http',
+]
+
+FAIL_ON_WARNINGS = True
+FINAL_LIBRARY = 'xul'
+
+include('/ipc/chromium/chromium-config.mozbuild')

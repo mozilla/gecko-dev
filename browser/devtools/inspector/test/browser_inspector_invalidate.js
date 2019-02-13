@@ -1,55 +1,38 @@
+/* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function test() {
-  let doc;
-  let div;
-  let inspector;
+"use strict";
 
-  function createDocument() {
-    div = doc.createElement("div");
-    div.setAttribute("style", "width: 100px; height: 100px; background:yellow;");
-    doc.body.appendChild(div);
+// Test that highlighter handles geometry changes correctly.
 
-    openInspector(aInspector => {
-      inspector = aInspector;
-      inspector.toolbox.highlighter.showBoxModel(getNodeFront(div)).then(runTest);
-    });
-  }
+const TEST_URI = "data:text/html;charset=utf-8," +
+  "browser_inspector_invalidate.js\n" +
+  "<div style=\"width: 100px; height: 100px; background:yellow;\"></div>";
 
-  function runTest() {
-    info("Checking that the highlighter has the right size");
-    let rect = getSimpleBorderRect();
-    is(rect.width, 100, "outline has the right width");
+add_task(function*() {
+  let {toolbox, inspector} = yield openInspectorForURL(TEST_URI);
+  let div = getNode("div");
+  let divFront = yield getNodeFront("div", inspector);
 
-    waitForBoxModelUpdate().then(testRectWidth);
+  info("Waiting for highlighter to activate");
+  yield inspector.toolbox.highlighter.showBoxModel(divFront);
 
-    info("Changing the test element's size");
-    div.style.width = "200px";
-  }
+  let rect = yield getSimpleBorderRect(toolbox);
+  is(rect.width, 100, "The highlighter has the right width.");
 
-  function testRectWidth() {
-    info("Checking that the highlighter has the right size after update");
-    let rect = getSimpleBorderRect();
-    is(rect.width, 200, "outline updated");
-    finishUp();
-  }
+  info("Changing the test element's size and waiting for the highlighter to update");
+  let {actorID, connPrefix} = getHighlighterActorID(toolbox.highlighter);
+  yield executeInContent("Test:ChangeHighlightedNodeWaitForUpdate", {
+    name: "style",
+    value: "width: 200px; height: 100px; background:yellow;",
+    actorID,
+    connPrefix
+  });
 
-  function finishUp() {
-    inspector.toolbox.highlighter.hideBoxModel().then(() => {
-      doc = div = inspector = null;
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  }
+  rect = yield getSimpleBorderRect(toolbox);
+  is(rect.width, 200, "The highlighter has the right width after update");
 
-  waitForExplicitFinish();
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    doc = content.document;
-    waitForFocus(createDocument, content);
-  }, true);
-
-  content.location = "data:text/html;charset=utf-8,browser_inspector_invalidate.js";
-}
+  info("Waiting for highlighter to hide");
+  yield inspector.toolbox.highlighter.hideBoxModel();
+});

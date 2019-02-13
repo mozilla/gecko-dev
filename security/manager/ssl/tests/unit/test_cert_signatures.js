@@ -1,4 +1,4 @@
-// -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,38 +36,26 @@ function check_ca(ca_name) {
   let verified = {};
   let usages = {};
   cert.getUsagesString(true, verified, usages);
-  do_check_eq('SSL CA', usages.value);
+  equal("SSL CA", usages.value, "Usages string for a CA cert should be 'SSL CA'");
 }
 
 function run_test() {
   // Load the ca into mem
   load_ca("ca-rsa");
   load_ca("ca-p384");
-  load_ca("ca-dsa");
 
-  run_test_in_mode(true);
-  run_test_in_mode(false);
-}
-
-function run_test_in_mode(useMozillaPKIX) {
-  Services.prefs.setBoolPref("security.use_mozillapkix_verification", useMozillaPKIX);
   clearOCSPCache();
   clearSessionCache();
 
   check_ca("ca-rsa");
   check_ca("ca-p384");
-  check_ca("ca-dsa");
 
   // mozilla::pkix does not allow CA certs to be validated for end-entity
   // usages.
-  let int_usage = useMozillaPKIX
-                ? 'SSL CA'
-                : 'Client,Server,Sign,Encrypt,SSL CA,Status Responder';
+  const int_usage = 'SSL CA';
 
   // mozilla::pkix doesn't implement the Netscape Object Signer restriction.
-  const ee_usage = useMozillaPKIX
-                 ? 'Client,Server,Sign,Encrypt,Object Signer'
-                 : 'Client,Server,Sign,Encrypt';
+  const ee_usage = 'Client,Server,Sign,Encrypt,Object Signer';
 
   let cert2usage = {
     // certs without the "int" prefix are end entity certs.
@@ -75,19 +63,14 @@ function run_test_in_mode(useMozillaPKIX) {
     'rsa-valid': ee_usage,
     'int-p384-valid': int_usage,
     'p384-valid': ee_usage,
-    'int-dsa-valid': int_usage,
-    'dsa-valid': ee_usage,
 
     'rsa-valid-int-tampered-ee': "",
     'p384-valid-int-tampered-ee': "",
-    'dsa-valid-int-tampered-ee': "",
 
     'int-rsa-tampered': "",
     'rsa-tampered-int-valid-ee': "",
     'int-p384-tampered': "",
     'p384-tampered-int-valid-ee': "",
-    'int-dsa-tampered': "",
-    'dsa-tampered-int-valid-ee': "",
 
   };
 
@@ -105,6 +88,7 @@ function run_test_in_mode(useMozillaPKIX) {
     let verified = {};
     let usages = {};
     cert.getUsagesString(true, verified, usages);
-    do_check_eq(cert2usage[cert_name], usages.value);
+    equal(cert2usage[cert_name], usages.value,
+          "Expected and actual usages string should match");
   }
 }

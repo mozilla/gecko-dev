@@ -4,14 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-SIMPLE_PROGRAMS = [
-    'TestDllInterceptor',
+SimplePrograms([
     'TestXREMakeCommandLineWin',
-]
+])
 
-SOURCES += [
-    '%s.cpp' % s for s in SIMPLE_PROGRAMS
-]
+CppUnitTests([
+    'TestDllInterceptor',
+])
 
 DEFINES['NS_NO_XPCOM'] = True
 
@@ -20,5 +19,12 @@ LOCAL_INCLUDES += [
     '/toolkit/xre',
 ]
 
-
 USE_STATIC_LIBS = True
+
+OS_LIBS += [
+    'comctl32',
+    'ws2_32',
+    'shell32',
+]
+
+FAIL_ON_WARNINGS = True

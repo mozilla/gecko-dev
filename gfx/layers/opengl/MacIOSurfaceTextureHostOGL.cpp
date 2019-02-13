@@ -5,7 +5,6 @@
 
 #include "MacIOSurfaceTextureHostOGL.h"
 #include "mozilla/gfx/MacIOSurface.h"
-#include "mozilla/layers/CompositorOGL.h"
 #include "GLContextCGL.h"
 
 namespace mozilla {
@@ -15,9 +14,9 @@ MacIOSurfaceTextureHostOGL::MacIOSurfaceTextureHostOGL(TextureFlags aFlags,
                                                        const SurfaceDescriptorMacIOSurface& aDescriptor)
   : TextureHost(aFlags)
 {
-  mSurface = MacIOSurface::LookupSurface(aDescriptor.surface(),
+  mSurface = MacIOSurface::LookupSurface(aDescriptor.surfaceId(),
                                          aDescriptor.scaleFactor(),
-                                         aDescriptor.hasAlpha());
+                                         !aDescriptor.isOpaque());
 }
 
 bool
@@ -28,7 +27,19 @@ MacIOSurfaceTextureHostOGL::Lock()
   }
 
   if (!mTextureSource) {
-    mTextureSource = new MacIOSurfaceTextureSourceOGL(mCompositor, mSurface);
+    GLuint textureHandle;
+    gl::GLContext* gl = mCompositor->gl();
+    gl->fGenTextures(1, &textureHandle);
+    gl->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, textureHandle);
+    gl->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
+    gl->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
+    mSurface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(gl)->GetCGLContext());
+
+    mTextureSource = new GLTextureSource(mCompositor, textureHandle, LOCAL_GL_TEXTURE_RECTANGLE_ARB,
+                                         gfx::IntSize(mSurface->GetDevicePixelWidth(),
+                                                      mSurface->GetDevicePixelHeight()),
+                                         mSurface->HasAlpha() ? gfx::SurfaceFormat::R8G8B8A8:
+                                                                gfx::SurfaceFormat::R8G8B8X8);
   }
   return true;
 }

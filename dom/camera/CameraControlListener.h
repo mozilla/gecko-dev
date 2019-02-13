@@ -10,6 +10,10 @@
 
 namespace mozilla {
 
+namespace dom {
+  class BlobImpl;
+}
+
 namespace layers {
   class Image;
 }
@@ -34,10 +38,19 @@ public:
 
   enum HardwareState
   {
+    kHardwareUninitialized,
+    kHardwareClosed,
     kHardwareOpen,
-    kHardwareClosed
+    kHardwareOpenFailed
   };
-  virtual void OnHardwareStateChange(HardwareState aState) { }
+  // aReason:
+  //    NS_OK : state change was expected and normal;
+  //    NS_ERROR_FAILURE : one or more system-level components failed and
+  //                       the camera was closed;
+  //    NS_ERROR_NOT_AVAILABLE : the hardware is in use by another process
+  //                             and cannot be acquired, or another process
+  //                             was given access to the camera hardware.
+  virtual void OnHardwareStateChange(HardwareState aState, nsresult aReason) { }
 
   enum PreviewState
   {
@@ -51,6 +64,8 @@ public:
   {
     kRecorderStopped,
     kRecorderStarted,
+    kPosterCreated,
+    kPosterFailed,
 #ifdef MOZ_B2G_CAMERA
     kFileSizeLimitReached,
     kVideoLengthLimitReached,
@@ -64,6 +79,7 @@ public:
   virtual void OnRecorderStateChange(RecorderState aState, int32_t aStatus, int32_t aTrackNum) { }
 
   virtual void OnShutter() { }
+  virtual void OnRateLimitPreview(bool aLimit) { }
   virtual bool OnNewPreviewFrame(layers::Image* aFrame, uint32_t aWidth, uint32_t aHeight)
   {
     return false;
@@ -79,8 +95,9 @@ public:
 
   virtual void OnAutoFocusComplete(bool aAutoFocusSucceeded) { }
   virtual void OnAutoFocusMoving(bool aIsMoving) { }
-  virtual void OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType) { }
+  virtual void OnTakePictureComplete(const uint8_t* aData, uint32_t aLength, const nsAString& aMimeType) { }
   virtual void OnFacesDetected(const nsTArray<ICameraControl::Face>& aFaces) { }
+  virtual void OnPoster(dom::BlobImpl* aBlobImpl) { }
 
   enum UserContext
   {

@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import re
 from distutils.version import LooseVersion
 from mozpack.errors import errors
@@ -213,6 +215,7 @@ class Flags(OrderedDict):
         'platform': Flag,
         'xpcnativewrappers': Flag,
         'tablet': Flag,
+        'process': StringFlag,
     }
     RE = re.compile(r'([!<>=]+)')
 

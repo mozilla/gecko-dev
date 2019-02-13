@@ -6,6 +6,7 @@
 
 "use strict";
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
@@ -75,7 +76,7 @@ function pageLoadDone() {
 
 function runTest() {
   iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
 
   isPostRequestSubmitted = false;
   iframe.src = 'file_post_request.html';
@@ -99,7 +100,7 @@ function runTest() {
       is(e.detail.message, expectedMessage.message);
       is(e.detail.buttons.length, 2);
       is(e.detail.showCheckbox, false);
-      is(e.detail.checkMessage, null);
+      is(e.detail.checkboxMessage, null);
       e.detail.unblock();
 
       if (!doRepost) {

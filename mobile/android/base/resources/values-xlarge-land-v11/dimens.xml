@@ -5,6 +5,6 @@
 
 <resources>
 
-    <dimen name="history_tab_widget_width">480dp</dimen>
+    <dimen name="new_tablet_tab_panel_grid_padding">64dp</dimen>
 
 </resources>

@@ -14,6 +14,7 @@ function onWebGLSuccess() {
 
 function test() {
   if (!isWebGLSupported()) {
+    aborting();
     info("Skipping tilt_gl01 because WebGL isn't supported on this hardware.");
     return;
   }
@@ -24,6 +25,7 @@ function test() {
   let gl = renderer.context;
 
   if (!isWebGLAvailable) {
+    aborting();
     return;
   }
 
@@ -128,7 +130,7 @@ function test() {
   is(gl.getParameter(gl.BLEND), true,
     "The blend mode wasn't enabled when requested.");
   is(gl.getParameter(gl.BLEND_SRC_ALPHA), gl.SRC_ALPHA,
-    "The soruce blend func wasn't set correctly.");
+    "The source blend func wasn't set correctly.");
   is(gl.getParameter(gl.BLEND_DST_ALPHA), gl.ONE_MINUS_SRC_ALPHA,
     "The destination blend func wasn't set correctly.");
 
@@ -136,7 +138,7 @@ function test() {
   is(gl.getParameter(gl.BLEND), true,
     "The blend mode wasn't enabled when requested.");
   is(gl.getParameter(gl.BLEND_SRC_ALPHA), gl.SRC_ALPHA,
-    "The soruce blend func wasn't set correctly.");
+    "The source blend func wasn't set correctly.");
   is(gl.getParameter(gl.BLEND_DST_ALPHA), gl.ONE,
     "The destination blend func wasn't set correctly.");
 

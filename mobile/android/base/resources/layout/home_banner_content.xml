@@ -7,15 +7,15 @@
        xmlns:gecko="http://schemas.android.com/apk/res-auto">
 
      <ImageView android:id="@+id/icon"
-                android:layout_width="48dip"
-                android:layout_height="48dip"
+                android:layout_width="@dimen/home_banner_icon_width"
+                android:layout_height="@dimen/home_banner_icon_height"
                 android:layout_marginLeft="10dp"
                 android:scaleType="centerInside"/>
 
      <org.mozilla.gecko.widget.EllipsisTextView
          android:id="@+id/text"
          android:layout_width="0dip"
-         android:layout_height="fill_parent"
+         android:layout_height="match_parent"
          android:layout_weight="1"
          android:layout_marginLeft="10dp"
          android:paddingTop="7dp"
@@ -26,8 +26,8 @@
          gecko:ellipsizeAtLine="3"/>
 
     <ImageButton android:id="@+id/close"
-                 android:layout_width="34dip"
-                 android:layout_height="fill_parent"
+                 android:layout_width="@dimen/home_banner_close_width"
+                 android:layout_height="match_parent"
                  android:background="@drawable/home_banner"
                  android:scaleType="center"
                  android:contentDescription="@string/close_tab"

@@ -91,7 +91,9 @@ function fileExported(aStatus)
 
   gFileContent = oldContent;
 
-  let channel = NetUtil.newChannel(gFile);
+  let channel = NetUtil.newChannel({
+    uri: NetUtil.newURI(gFile),
+    loadUsingSystemPrincipal: true});
   channel.contentType = "application/javascript";
 
   // Read back the temporary file.

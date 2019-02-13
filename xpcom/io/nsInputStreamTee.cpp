@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdlib.h>
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"
@@ -22,7 +22,6 @@ using namespace mozilla;
 #ifdef LOG
 #undef LOG
 #endif
-#ifdef PR_LOGGING
 static PRLogModuleInfo*
 GetTeeLog()
 {
@@ -32,12 +31,9 @@ GetTeeLog()
   }
   return sLog;
 }
-#define LOG(args) PR_LOG(GetTeeLog(), PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
+#define LOG(args) MOZ_LOG(GetTeeLog(), mozilla::LogLevel::Debug, args)
 
-class nsInputStreamTee MOZ_FINAL : public nsIInputStreamTee
+class nsInputStreamTee final : public nsIInputStreamTee
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -95,7 +91,7 @@ public:
                  "memory not allocated\n");
       return NS_OK;
     }
-    NS_ABORT_IF_FALSE(mSink, "mSink is null!");
+    MOZ_ASSERT(mSink, "mSink is null!");
 
     //  The output stream could have been invalidated between when
     //  this event was dispatched and now, so check before writing.
@@ -172,7 +168,7 @@ nsInputStreamTee::TeeSegment(const char* aBuf, uint32_t aCount)
     if (!SinkIsValid()) {
       return NS_OK; // nothing to do
     }
-    nsRefPtr<nsIRunnable> event =
+    nsCOMPtr<nsIRunnable> event =
       new nsInputStreamTeeWriteEvent(aBuf, aCount, mSink, this);
     LOG(("nsInputStreamTee::TeeSegment [%p] dispatching write %u bytes\n",
          this, aCount));
@@ -347,10 +343,6 @@ NS_NewInputStreamTeeAsync(nsIInputStream** aResult,
   nsresult rv;
 
   nsCOMPtr<nsIInputStreamTee> tee = new nsInputStreamTee();
-  if (!tee) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
   rv = tee->SetSource(aSource);
   if (NS_FAILED(rv)) {
     return rv;

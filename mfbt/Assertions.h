@@ -131,7 +131,7 @@ extern "C" {
  * method is primarily for internal use in this header, and only secondarily
  * for use in implementing release-build assertions.
  */
-static MOZ_ALWAYS_INLINE void
+static MOZ_COLD MOZ_ALWAYS_INLINE void
 MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename, int aLine)
   MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 {
@@ -141,22 +141,23 @@ MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename, int aLine)
                       aStr, aFilename, aLine);
 #else
   fprintf(stderr, "Assertion failure: %s, at %s:%d\n", aStr, aFilename, aLine);
-#ifdef MOZ_DUMP_ASSERTION_STACK
+#if defined (MOZ_DUMP_ASSERTION_STACK) && !defined(MOZILLA_XPCOMRT_API)
   nsTraceRefcnt::WalkTheStack(stderr);
 #endif
   fflush(stderr);
 #endif
 }
 
-static MOZ_ALWAYS_INLINE void
-MOZ_ReportCrash(const char* aStr, const char* aFilename, int aLine) MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
+static MOZ_COLD MOZ_ALWAYS_INLINE void
+MOZ_ReportCrash(const char* aStr, const char* aFilename, int aLine)
+  MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 {
 #ifdef ANDROID
   __android_log_print(ANDROID_LOG_FATAL, "MOZ_CRASH",
                       "Hit MOZ_CRASH(%s) at %s:%d\n", aStr, aFilename, aLine);
 #else
   fprintf(stderr, "Hit MOZ_CRASH(%s) at %s:%d\n", aStr, aFilename, aLine);
-#ifdef MOZ_DUMP_ASSERTION_STACK
+#if defined(MOZ_DUMP_ASSERTION_STACK) && !defined(MOZILLA_XPCOMRT_API)
   nsTraceRefcnt::WalkTheStack(stderr);
 #endif
   fflush(stderr);
@@ -197,7 +198,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #    define MOZ_REALLY_CRASH() \
        do { \
          ::__debugbreak(); \
-         *((volatile int*) NULL) = 123; \
+         *((volatile int*) NULL) = __LINE__; \
          ::TerminateProcess(::GetCurrentProcess(), 3); \
          ::MOZ_NoReturn(); \
        } while (0)
@@ -205,7 +206,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #    define MOZ_REALLY_CRASH() \
        do { \
          __debugbreak(); \
-         *((volatile int*) NULL) = 123; \
+         *((volatile int*) NULL) = __LINE__; \
          TerminateProcess(GetCurrentProcess(), 3); \
          MOZ_NoReturn(); \
        } while (0)
@@ -214,13 +215,13 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #  ifdef __cplusplus
 #    define MOZ_REALLY_CRASH() \
        do { \
-         *((volatile int*) NULL) = 123; \
+         *((volatile int*) NULL) = __LINE__; \
          ::abort(); \
        } while (0)
 #  else
 #    define MOZ_REALLY_CRASH() \
        do { \
-         *((volatile int*) NULL) = 123; \
+         *((volatile int*) NULL) = __LINE__; \
          abort(); \
        } while (0)
 #  endif
@@ -254,7 +255,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
      do { \
        MOZ_ReportCrash("" __VA_ARGS__, __FILE__, __LINE__); \
        MOZ_REALLY_CRASH(); \
-     } while(0)
+     } while (0)
 #endif
 
 #ifdef __cplusplus
@@ -293,6 +294,13 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
  * MOZ_ASSERT has no effect in non-debug builds.  It is designed to catch bugs
  * *only* during debugging, not "in the field". If you want the latter, use
  * MOZ_RELEASE_ASSERT, which applies to non-debug builds as well.
+ *
+ * MOZ_DIAGNOSTIC_ASSERT works like MOZ_RELEASE_ASSERT in Nightly/Aurora and
+ * MOZ_ASSERT in Beta/Release - use this when a condition is potentially rare
+ * enough to require real user testing to hit, but is not security-sensitive.
+ * This can cause user pain, so use it sparingly. If a MOZ_DIAGNOSTIC_ASSERT
+ * is firing, it should promptly be converted to a MOZ_ASSERT while the failure
+ * is being investigated, rather than letting users suffer.
  */
 
 /*
@@ -301,19 +309,6 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
  */
 
 #ifdef __cplusplus
-#  if defined(__clang__)
-#    define MOZ_SUPPORT_ASSERT_CONDITION_TYPE_VALIDATION
-#  elif defined(__GNUC__)
-//   B2G GCC 4.4 has insufficient decltype support.
-#    if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
-#      define MOZ_SUPPORT_ASSERT_CONDITION_TYPE_VALIDATION
-#    endif
-#  elif defined(_MSC_VER)
-//   Disabled for now because of insufficient decltype support. Bug 1004028.
-#  endif
-#endif
-
-#ifdef MOZ_SUPPORT_ASSERT_CONDITION_TYPE_VALIDATION
 #  include "mozilla/TypeTraits.h"
 namespace mozilla {
 namespace detail {
@@ -331,7 +326,7 @@ struct IsFunction<R(A...)>
 };
 
 template<typename T>
-void ValidateAssertConditionType()
+struct AssertionConditionType
 {
   typedef typename RemoveReference<T>::Type ValueT;
   static_assert(!IsArray<ValueT>::value,
@@ -346,12 +341,15 @@ void ValidateAssertConditionType()
                 "fail. Shouldn't your code gracefully handle this case instead "
                 "of asserting? Anyway, if you really want to do that, write an "
                 "explicit boolean condition, like !!x or x!=0.");
-}
+
+  static const bool isValid = true;
+};
 
 } // namespace detail
 } // namespace mozilla
 #  define MOZ_VALIDATE_ASSERT_CONDITION_TYPE(x) \
-     mozilla::detail::ValidateAssertConditionType<decltype(x)>()
+     static_assert(mozilla::detail::AssertionConditionType<decltype(x)>::isValid, \
+                   "invalid assertion condition")
 #else
 #  define MOZ_VALIDATE_ASSERT_CONDITION_TYPE(x)
 #endif
@@ -384,17 +382,13 @@ void ValidateAssertConditionType()
 #ifdef DEBUG
 #  define MOZ_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
 #else
-#  define MOZ_ASSERT(...) do { } while(0)
+#  define MOZ_ASSERT(...) do { } while (0)
 #endif /* DEBUG */
 
-/*
- * MOZ_NIGHTLY_ASSERT is defined for both debug and release builds on the
- * Nightly channel, but only debug builds on Aurora, Beta, and Release.
- */
-#if defined(NIGHTLY_BUILD)
-#  define MOZ_NIGHTLY_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
+#ifdef RELEASE_BUILD
+#  define MOZ_DIAGNOSTIC_ASSERT MOZ_ASSERT
 #else
-#  define MOZ_NIGHTLY_ASSERT(...) MOZ_ASSERT(__VA_ARGS__)
+#  define MOZ_DIAGNOSTIC_ASSERT MOZ_RELEASE_ASSERT
 #endif
 
 /*
@@ -409,8 +403,9 @@ void ValidateAssertConditionType()
 #ifdef DEBUG
 #  define MOZ_ASSERT_IF(cond, expr) \
      do { \
-       if (cond) \
+       if (cond) { \
          MOZ_ASSERT(expr); \
+       } \
      } while (0)
 #else
 #  define MOZ_ASSERT_IF(cond, expr)  do { } while (0)
@@ -423,23 +418,8 @@ void ValidateAssertConditionType()
  * should use MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE because it has extra
  * asserts.
  */
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__)
 #  define MOZ_ASSUME_UNREACHABLE_MARKER() __builtin_unreachable()
-#elif defined(__GNUC__)
-   /*
-    * __builtin_unreachable() was implemented in gcc 4.5.  If we don't have
-    * that, call a noreturn function; abort() will do nicely.  Qualify the call
-    * in C++ in case there's another abort() visible in local scope.
-    */
-#  if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
-#    define MOZ_ASSUME_UNREACHABLE_MARKER() __builtin_unreachable()
-#  else
-#    ifdef __cplusplus
-#      define MOZ_ASSUME_UNREACHABLE_MARKER() ::abort()
-#    else
-#      define MOZ_ASSUME_UNREACHABLE_MARKER() abort()
-#    endif
-#  endif
 #elif defined(_MSC_VER)
 #  define MOZ_ASSUME_UNREACHABLE_MARKER() __assume(0)
 #else
@@ -492,26 +472,17 @@ void ValidateAssertConditionType()
  */
 
 /*
- * Assert in all debug builds plus the Nightly channel's release builds. Take
- * this extra testing precaution because hitting MOZ_ASSUME_UNREACHABLE_MARKER
- * could trigger exploitable undefined behavior.
+ * Unconditional assert in debug builds for (assumed) unreachable code paths
+ * that have a safe return without crashing in release builds.
  */
 #define MOZ_ASSERT_UNREACHABLE(reason) \
-   MOZ_NIGHTLY_ASSERT(false, "MOZ_ASSERT_UNREACHABLE: " reason)
+   MOZ_ASSERT(false, "MOZ_ASSERT_UNREACHABLE: " reason)
 
 #define MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE(reason) \
    do { \
      MOZ_ASSERT_UNREACHABLE(reason); \
      MOZ_ASSUME_UNREACHABLE_MARKER(); \
    } while (0)
-
-/*
- * TODO: Bug 990764: Audit all MOZ_ASSUME_UNREACHABLE calls and replace them
- * with MOZ_ASSERT_UNREACHABLE, MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE, or
- * MOZ_CRASH. For now, preserve the macro's same meaning of unreachable.
- */
-#define MOZ_ASSUME_UNREACHABLE(reason) \
-   MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE(reason)
 
 /*
  * MOZ_ALWAYS_TRUE(expr) and MOZ_ALWAYS_FALSE(expr) always evaluate the provided

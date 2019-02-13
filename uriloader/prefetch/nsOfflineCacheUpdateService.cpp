@@ -3,10 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(MOZ_LOGGING)
-#define FORCE_PR_LOG
-#endif
-
 #include "OfflineCacheUpdateChild.h"
 #include "OfflineCacheUpdateParent.h"
 #include "nsXULAppAPI.h"
@@ -31,7 +27,6 @@
 #include "nsIWebProgress.h"
 #include "nsIWebNavigation.h"
 #include "nsICryptoHash.h"
-#include "nsICacheEntryDescriptor.h"
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
@@ -41,7 +36,7 @@
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
@@ -50,7 +45,7 @@
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
-#include "mozilla/dom/TabChild.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "nsContentUtils.h"
 #include "mozilla/unused.h"
@@ -75,24 +70,22 @@ typedef mozilla::docshell::OfflineCacheUpdateParent OfflineCacheUpdateParent;
 typedef mozilla::docshell::OfflineCacheUpdateChild OfflineCacheUpdateChild;
 typedef mozilla::docshell::OfflineCacheUpdateGlue OfflineCacheUpdateGlue;
 
-#if defined(PR_LOGGING)
 //
 // To enable logging (see prlog.h for full details):
 //
 //    set NSPR_LOG_MODULES=nsOfflineCacheUpdate:5
 //    set NSPR_LOG_FILE=offlineupdate.log
 //
-// this enables PR_LOG_ALWAYS level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file offlineupdate.log
 //
 PRLogModuleInfo *gOfflineCacheUpdateLog;
-#endif
 
 #undef LOG
-#define LOG(args) PR_LOG(gOfflineCacheUpdateLog, 4, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() PR_LOG_TEST(gOfflineCacheUpdateLog, 4)
+#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
 
 namespace { // anon
 
@@ -130,8 +123,8 @@ GetAppIDAndInBrowserFromWindow(nsIDOMWindow *aWindow,
 // nsOfflineCachePendingUpdate
 //-----------------------------------------------------------------------------
 
-class nsOfflineCachePendingUpdate MOZ_FINAL : public nsIWebProgressListener
-                                            , public nsSupportsWeakReference
+class nsOfflineCachePendingUpdate final : public nsIWebProgressListener
+                                        , public nsSupportsWeakReference
 {
 public:
     NS_DECL_ISUPPORTS
@@ -150,6 +143,8 @@ public:
         }
 
 private:
+    ~nsOfflineCachePendingUpdate() {}
+
     nsRefPtr<nsOfflineCacheUpdateService> mService;
     nsCOMPtr<nsIURI> mManifestURI;
     nsCOMPtr<nsIURI> mDocumentURI;
@@ -298,10 +293,8 @@ nsOfflineCacheUpdateService::~nsOfflineCacheUpdateService()
 nsresult
 nsOfflineCacheUpdateService::Init()
 {
-#if defined(PR_LOGGING)
     if (!gOfflineCacheUpdateLog)
         gOfflineCacheUpdateLog = PR_NewLogModule("nsOfflineCacheUpdate");
-#endif
 
     // Observe xpcom-shutdown event
     nsCOMPtr<nsIObserverService> observerService =
@@ -489,6 +482,7 @@ nsresult
 nsOfflineCacheUpdateService::FindUpdate(nsIURI *aManifestURI,
                                         uint32_t aAppID,
                                         bool aInBrowser,
+                                        nsIFile *aCustomProfileDir,
                                         nsOfflineCacheUpdate **aUpdate)
 {
     nsresult rv;
@@ -516,7 +510,7 @@ nsOfflineCacheUpdateService::FindUpdate(nsIURI *aManifestURI,
             continue;
         }
 
-        if (update->IsForGroupID(groupID)) {
+        if (update->IsForGroupID(groupID) && update->IsForProfile(aCustomProfileDir)) {
             update.swap(*aUpdate);
             return NS_OK;
         }
@@ -749,8 +743,7 @@ nsOfflineCacheUpdateService::AllowOfflineApp(nsIDOMWindow *aWindow,
     nsresult rv;
 
     if (GeckoProcessType_Default != XRE_GetProcessType()) {
-        TabChild* child = TabChild::GetFrom(aWindow);
-        NS_ENSURE_TRUE(child, NS_ERROR_FAILURE);
+        ContentChild* child = ContentChild::GetSingleton();
 
         if (!child->SendSetOfflinePermission(IPC::Principal(aPrincipal))) {
             return NS_ERROR_FAILURE;

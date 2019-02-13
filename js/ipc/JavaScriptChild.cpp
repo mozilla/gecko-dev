@@ -8,10 +8,11 @@
 #include "JavaScriptChild.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/ipc/MessageChannel.h"
 #include "nsContentUtils.h"
 #include "xpcprivate.h"
 #include "jsfriendapi.h"
-#include "nsCxPusher.h"
+#include "AccessCheck.h"
 
 using namespace JS;
 using namespace mozilla;
@@ -20,14 +21,12 @@ using namespace mozilla::jsipc;
 using mozilla::AutoSafeJSContext;
 
 static void
-FinalizeChild(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment, void *data)
+UpdateChildWeakPointersAfterGC(JSRuntime* rt, void* data)
 {
-    if (status == JSFINALIZE_GROUP_START) {
-        static_cast<JavaScriptChild *>(data)->finalize(fop);
-    }
+    static_cast<JavaScriptChild*>(data)->updateWeakPointers();
 }
 
-JavaScriptChild::JavaScriptChild(JSRuntime *rt)
+JavaScriptChild::JavaScriptChild(JSRuntime* rt)
   : JavaScriptShared(rt),
     JavaScriptBase<PJavaScriptChild>(rt)
 {
@@ -35,7 +34,7 @@ JavaScriptChild::JavaScriptChild(JSRuntime *rt)
 
 JavaScriptChild::~JavaScriptChild()
 {
-    JS_RemoveFinalizeCallback(rt_, FinalizeChild);
+    JS_RemoveWeakPointerCallback(rt_, UpdateChildWeakPointersAfterGC);
 }
 
 bool
@@ -46,13 +45,39 @@ JavaScriptChild::init()
     if (!WrapperAnswer::init())
         return false;
 
-    JS_AddFinalizeCallback(rt_, FinalizeChild, this);
+    JS_AddWeakPointerCallback(rt_, UpdateChildWeakPointersAfterGC, this);
     return true;
 }
 
 void
-JavaScriptChild::finalize(JSFreeOp *fop)
+JavaScriptChild::updateWeakPointers()
 {
-    objects_.finalize(fop);
-    objectIds_.finalize(fop);
+    objects_.sweep();
+    unwaivedObjectIds_.sweep();
+    waivedObjectIds_.sweep();
+}
+
+JSObject*
+JavaScriptChild::scopeForTargetObjects()
+{
+    // CPOWs from the parent need to point into the child's privileged junk
+    // scope so that they can benefit from XrayWrappers in the child.
+    return xpc::PrivilegedJunkScope();
+}
+
+PJavaScriptChild*
+mozilla::jsipc::NewJavaScriptChild(JSRuntime* rt)
+{
+    JavaScriptChild* child = new JavaScriptChild(rt);
+    if (!child->init()) {
+        delete child;
+        return nullptr;
+    }
+    return child;
+}
+
+void
+mozilla::jsipc::ReleaseJavaScriptChild(PJavaScriptChild* child)
+{
+    static_cast<JavaScriptChild*>(child)->decref();
 }

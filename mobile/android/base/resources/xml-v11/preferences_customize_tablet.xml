@@ -5,7 +5,7 @@
 
 <!-- Tablet only: The contents under the "Customize" header for tablets,
      See xml-v11/preferences.xml for single-pane v11+ phone layout.
-     Changes to preferences shoudl be mirrored to preferences_customize.xml. -->
+     Changes to preferences should be mirrored to preferences_customize.xml. -->
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
                   xmlns:gecko="http://schemas.android.com/apk/res-auto"
@@ -37,12 +37,23 @@
                     android:entryValues="@array/pref_restore_values"
                     android:persistent="true" />
 
+    <CheckBoxPreference android:key="android.not_a_preference.tab_queue"
+                        android:title="@string/pref_tab_queue_title"
+                        android:summary="@string/pref_tab_queue_summary"
+                        android:defaultValue="false" />
+
+    <CheckBoxPreference android:key="android.not_a_preference.openExternalURLsPrivately"
+                        android:title="@string/pref_open_external_urls_privately_title"
+                        android:summary="@string/pref_open_external_urls_privately_summary"
+                        android:defaultValue="false" />
+
     <org.mozilla.gecko.preferences.AndroidImportPreference
             android:key="android.not_a_preference.import_android"
             gecko:entries="@array/pref_import_android_entries"
-            gecko:entryKeys="@array/pref_import_android_keys"
-            gecko:initialValues="@array/pref_import_android_values"
+            gecko:entryValues="@array/pref_import_android_values"
+            gecko:initialValues="@array/pref_import_android_defaults"
             android:title="@string/pref_import_android"
+            android:summary="@string/pref_import_android_summary"
             android:positiveButtonText="@string/bookmarkhistory_button_import"
             android:negativeButtonText="@string/button_cancel"
             android:persistent="false" />

@@ -2,13 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// This module is the stateful server side of test_http2.js and is meant
+// to have node be restarted in between each invocation
+
 var http2 = require('../node-http2');
 var fs = require('fs');
 var url = require('url');
 var crypto = require('crypto');
 
 // Hook into the decompression code to log the decompressed name-value pairs
-var http2_compression = require('../node-http2/node_modules/http2-protocol/lib/compressor');
+var http2_compression = require('../node-http2/lib/protocol/compressor');
 var HeaderSetDecompressor = http2_compression.HeaderSetDecompressor;
 var originalRead = HeaderSetDecompressor.prototype.read;
 var lastDecompressor;
@@ -23,6 +26,17 @@ HeaderSetDecompressor.prototype.read = function() {
     decompressedPairs.push(pair);
   }
   return pair;
+}
+
+var http2_connection = require('../node-http2/lib/protocol/connection');
+var Connection = http2_connection.Connection;
+var originalClose = Connection.prototype.close;
+Connection.prototype.close = function (error, lastId) {
+  if (lastId !== undefined) {
+    this._lastIncomingStream = lastId;
+  }
+
+  originalClose.apply(this, arguments);
 }
 
 function getHttpContent(path) {
@@ -72,10 +86,33 @@ var m = {
   }
 };
 
+var runlater = function() {};
+runlater.prototype = {
+  req : null,
+  resp : null,
+
+  onTimeout : function onTimeout() {
+    this.resp.writeHead(200);
+    this.resp.end("It's all good 750ms.");
+  }
+};
+
+function executeRunLater(arg) {
+  arg.onTimeout();
+}
+
+var h11required_conn = null;
+var h11required_header = "yes";
+var didRst = false;
+var rstConnection = null;
+
 function handleRequest(req, res) {
   var u = url.parse(req.url);
   var content = getHttpContent(u.pathname);
-  var push;
+  var push, push1, push1a, push2, push3;
+
+  // PushService tests.
+  var pushPushServer1, pushPushServer2, pushPushServer3;
 
   if (req.httpVersionMajor === 2) {
     res.setHeader('X-Connection-Http2', 'yes');
@@ -86,9 +123,18 @@ function handleRequest(req, res) {
 
   if (u.pathname === '/exit') {
     res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Connection', 'close');
     res.writeHead(200);
     res.end('ok');
     process.exit();
+  }
+
+  if (u.pathname === '/750ms') {
+    var rl = new runlater();
+    rl.req = req;
+    rl.resp = res;
+    setTimeout(executeRunLater, 750, rl);
+    return;
   }
 
   else if ((u.pathname === '/multiplex1') && (req.httpVersionMajor === 2)) {
@@ -112,6 +158,15 @@ function handleRequest(req, res) {
     if (val) {
       res.setHeader("X-Received-Test-Header", val);
     }
+  }
+
+  else if (u.pathname === "/doubleheader") {
+    res.setHeader('Content-Type', 'text/html');
+    res.writeHead(200);
+    res.write(content);
+    res.writeHead(200);
+    res.end();
+    return;
   }
 
   else if (u.pathname === "/cookie_crumbling") {
@@ -142,6 +197,54 @@ function handleRequest(req, res) {
     content = '<head> <script src="push2.js"/></head>body text';
   }
 
+  else if (u.pathname === "/pushapi1") {
+    push1 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort, path : '/pushapi1/1', method : 'GET',
+          headers: {'x-pushed-request': 'true', 'x-foo' : 'bar'}});
+    push1.writeHead(200, {
+      'pushed' : 'yes',
+      'content-length' : 1,
+      'subresource' : '1',
+      'X-Connection-Http2': 'yes'
+      });
+    push1.end('1');
+
+    push1a = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort, path : '/pushapi1/1', method : 'GET',
+          headers: {'x-foo' : 'bar', 'x-pushed-request': 'true'}});
+    push1a.writeHead(200, {
+      'pushed' : 'yes',
+      'content-length' : 1,
+      'subresource' : '1a',
+      'X-Connection-Http2': 'yes'
+    });
+    push1a.end('1');
+
+    push2 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort, path : '/pushapi1/2', method : 'GET',
+          headers: {'x-pushed-request': 'true'}});
+    push2.writeHead(200, {
+      'pushed' : 'yes',
+      'subresource' : '2',
+      'content-length' : 1,
+      'X-Connection-Http2': 'yes'
+    });
+    push2.end('2');
+
+    push3 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort, path : '/pushapi1/3', method : 'GET',
+          headers: {'x-pushed-request': 'true'}});
+    push3.writeHead(200, {
+      'pushed' : 'yes',
+      'content-length' : 1,
+      'subresource' : '3',
+      'X-Connection-Http2': 'yes'
+    });
+    push3.end('3');
+
+    content = '0';
+  }
+
   else if (u.pathname === "/big") {
     content = generateContent(128 * 1024);
     var hash = crypto.createHash('md5');
@@ -150,8 +253,20 @@ function handleRequest(req, res) {
     res.setHeader("X-Expected-MD5", md5);
   }
 
-  else if (u.pathname === "/post") {
-    if (req.method != "POST") {
+  else if (u.pathname === "/huge") {
+    content = generateContent(1024);
+    res.setHeader('Content-Type', 'text/plain');
+    res.writeHead(200);
+    // 1mb of data
+    for (var i = 0; i < (1024 * 1); i++) {
+      res.write(content); // 1kb chunk
+    }
+    res.end();
+    return;
+  }
+
+  else if (u.pathname === "/post" || u.pathname === "/patch") {
+    if (req.method != "POST" && req.method != "PATCH") {
       res.writeHead(405);
       res.end('Unexpected method: ' + req.method);
       return;
@@ -171,20 +286,270 @@ function handleRequest(req, res) {
     return;
   }
 
+  else if (u.pathname === "/750msPost") {
+    if (req.method != "POST") {
+      res.writeHead(405);
+      res.end('Unexpected method: ' + req.method);
+      return;
+    }
+
+    var accum = 0;
+    req.on('data', function receivePostData(chunk) {
+      accum += chunk.length;
+    });
+    req.on('end', function finishPost() {
+      res.setHeader('X-Recvd', accum);
+      var rl = new runlater();
+      rl.req = req;
+      rl.resp = res;
+      setTimeout(executeRunLater, 750, rl);
+      return;
+    });
+
+    return;
+  }
+
+  else if (u.pathname === "/h11required_stream") {
+    if (req.httpVersionMajor === 2) {
+      h11required_conn = req.stream.connection;
+      res.stream.reset('HTTP_1_1_REQUIRED');
+      return;
+    }
+  }
+
+  else if (u.pathname === "/h11required_session") {
+    if (req.httpVersionMajor === 2) {
+      if (h11required_conn !== req.stream.connection) {
+        h11required_header = "no";
+      }
+      res.stream.connection.close('HTTP_1_1_REQUIRED', res.stream.id - 2);
+      return;
+    } else {
+      res.setHeader('X-H11Required-Stream-Ok', h11required_header);
+    }
+  }
+
+  else if (u.pathname === "/rstonce") {
+    if (!didRst && req.httpVersionMajor === 2) {
+      didRst = true;
+      rstConnection = req.stream.connection;
+      req.stream.reset('REFUSED_STREAM');
+      return;
+    }
+
+    if (rstConnection === null ||
+        rstConnection !== req.stream.connection) {
+      res.setHeader('Connection', 'close');
+      res.writeHead(400);
+      res.end("WRONG CONNECTION, HOMIE!");
+      return;
+    }
+
+    if (req.httpVersionMajor != 2) {
+      res.setHeader('Connection', 'close');
+    }
+    res.writeHead(200);
+    res.end("It's all good.");
+    return;
+  }
+
+  else if (u.pathname === "/continuedheaders") {
+    var pushRequestHeaders = {'x-pushed-request': 'true'};
+    var pushResponseHeaders = {'content-type': 'text/plain',
+                               'content-length': '2',
+                               'X-Connection-Http2': 'yes'};
+    var pushHdrTxt = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var pullHdrTxt = pushHdrTxt.split('').reverse().join('');
+    for (var i = 0; i < 265; i++) {
+      pushRequestHeaders['X-Push-Test-Header-' + i] = pushHdrTxt;
+      res.setHeader('X-Pull-Test-Header-' + i, pullHdrTxt);
+    }
+    push = res.push({
+      hostname: 'localhost:' + serverPort,
+      port: serverPort,
+      path: '/continuedheaders/push',
+      method: 'GET',
+      headers: pushRequestHeaders
+    });
+    push.writeHead(200, pushResponseHeaders);
+    push.end("ok");
+  }
+
+  else if (u.pathname === "/altsvc1") {
+    if (req.httpVersionMajor != 2 ||
+      req.scheme != "http" ||
+      req.headers['alt-used'] != ("localhost:" + serverPort)) {
+      res.setHeader('Connection', 'close');
+      res.writeHead(400);
+      res.end("WHAT?");
+      return;
+   }
+   // test the alt svc frame for use with altsvc2
+   res.altsvc("localhost", serverPort, "h2", 3600, req.headers['x-redirect-origin']);
+  }
+
+  else if (u.pathname === "/altsvc2") {
+    if (req.httpVersionMajor != 2 ||
+      req.scheme != "http" ||
+      req.headers['alt-used'] != ("localhost:" + serverPort)) {
+      res.setHeader('Connection', 'close');
+      res.writeHead(400);
+      res.end("WHAT?");
+      return;
+   }
+  }
+
+  // for use with test_altsvc.js
+  else if (u.pathname === "/altsvc-test") {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Alt-Svc', 'h2=' + req.headers['x-altsvc']);
+  }
+
+  // for PushService tests.
+  else if (u.pathname === "/pushSubscriptionSuccess/subscribe") {
+    res.setHeader("Location",
+                  'https://localhost:' + serverPort + '/pushSubscriptionSuccesss');
+    res.setHeader("Link",
+                  '</pushEndpointSuccess>; rel="urn:ietf:params:push", ' +
+                  '</receiptPushEndpointSuccess>; rel="urn:ietf:params:push:receipt"');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionSuccesss") {
+    // do nothing.
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionMissingLocation/subscribe") {
+    res.setHeader("Link",
+                  '</pushEndpointMissingLocation>; rel="urn:ietf:params:push", ' +
+                  '</receiptPushEndpointMissingLocation>; rel="urn:ietf:params:push:receipt"');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionMissingLink/subscribe") {
+    res.setHeader("Location",
+                  'https://localhost:' + serverPort + '/subscriptionMissingLink');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionLocationBogus/subscribe") {
+    res.setHeader("Location", '1234');
+    res.setHeader("Link",
+                  '</pushEndpointLocationBogus; rel="urn:ietf:params:push", ' +
+                  '</receiptPushEndpointLocationBogus>; rel="urn:ietf:params:push:receipt"');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionMissingLink1/subscribe") {
+    res.setHeader("Location",
+                  'https://localhost:' + serverPort + '/subscriptionMissingLink1');
+    res.setHeader("Link",
+                  '</receiptPushEndpointMissingLink1>; rel="urn:ietf:params:push:receipt"');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionMissingLink2/subscribe") {
+    res.setHeader("Location",
+                  'https://localhost:' + serverPort + '/subscriptionMissingLink2');
+    res.setHeader("Link",
+                  '</pushEndpointMissingLink2>; rel="urn:ietf:params:push"');
+    res.writeHead(201, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname === "/subscriptionMissingLink2") {
+    // do nothing.
+    return;
+  }
+
+  else if (u.pathname === "/pushSubscriptionNot201Code/subscribe") {
+    res.setHeader("Location",
+                  'https://localhost:' + serverPort + '/subscriptionNot2xxCode');
+    res.setHeader("Link",
+                  '</pushEndpointNot201Code>; rel="urn:ietf:params:push", ' +
+                  '</receiptPushEndpointNot201Code>; rel="urn:ietf:params:push:receipt"');
+    res.writeHead(200, "OK");
+    res.end("");
+    return;
+  }
+
+  else if (u.pathname ==="/pushNotifications/subscription1") {
+    pushPushServer1 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort,
+          path : '/pushNotificationsDeliver1', method : 'GET',
+          headers: {'x-pushed-request': 'true', 'x-foo' : 'bar'}});
+    pushPushServer1.writeHead(200, {
+      'content-length' : 2,
+      'subresource' : '1'
+      });
+    pushPushServer1.end('ok');
+    return;
+  }
+
+  else if (u.pathname ==="/pushNotifications/subscription2") {
+    pushPushServer2 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort,
+          path : '/pushNotificationsDeliver3', method : 'GET',
+          headers: {'x-pushed-request': 'true', 'x-foo' : 'bar'}});
+    pushPushServer2.writeHead(200, {
+      'content-length' : 2,
+      'subresource' : '1'
+      });
+    pushPushServer2.end('ok');
+    return;
+  }
+
+  else if (u.pathname ==="/pushNotifications/subscription3") {
+    pushPushServer3 = res.push(
+        { hostname: 'localhost:' + serverPort, port: serverPort,
+          path : '/pushNotificationsDeliver3', method : 'GET',
+          headers: {'x-pushed-request': 'true', 'x-foo' : 'bar'}});
+    pushPushServer3.writeHead(200, {
+      'content-length' : 2,
+      'subresource' : '1'
+      });
+    pushPushServer3.end('ok');
+    return;
+  }
+
+  else if ((u.pathname === "/pushNotificationsDeliver1") ||
+           (u.pathname === "/pushNotificationsDeliver2") ||
+           (u.pathname === "/pushNotificationsDeliver3")) {
+    res.writeHead(410, "GONE");
+    res.end("");
+    return;
+  }
+
   res.setHeader('Content-Type', 'text/html');
+  if (req.httpVersionMajor != 2) {
+    res.setHeader('Connection', 'close');
+  }
   res.writeHead(200);
   res.end(content);
 }
 
-// Set up the SSL certs for our server
+// Set up the SSL certs for our server - this server has a cert for foo.example.com
+// signed by netwerk/tests/unit/CA.cert.der
 var options = {
-  key: fs.readFileSync(__dirname + '/../moz-spdy/spdy-key.pem'),
-  cert: fs.readFileSync(__dirname + '/../moz-spdy/spdy-cert.pem'),
-  ca: fs.readFileSync(__dirname + '/../moz-spdy/spdy-ca.pem'),
+  key: fs.readFileSync(__dirname + '/http2-key.pem'),
+  cert: fs.readFileSync(__dirname + '/http2-cert.pem'),
   //, log: require('../node-http2/test/util').createLogger('server')
 };
 
 var server = http2.createServer(options, handleRequest);
+
 server.on('connection', function(socket) {
   socket.on('error', function() {
     // Ignoring SSL socket errors, since they usually represent a connection that was tore down
@@ -192,5 +557,10 @@ server.on('connection', function(socket) {
     // the first test case if done.
   });
 });
-server.listen(6944);
-console.log('HTTP2 server listening on port 6944');
+
+var serverPort;
+function listenok() {
+  serverPort = server._server.address().port;
+  console.log('HTTP2 server listening on port ' + serverPort);
+}
+server.listen(-1, "0.0.0.0", 200, listenok);

@@ -17,7 +17,7 @@
 #include "nsUUIDGenerator.h"
 
 #ifdef ANDROID
-extern "C" NS_EXPORT void arc4random_buf(void *, size_t);
+extern "C" NS_EXPORT void arc4random_buf(void*, size_t);
 #endif
 
 using namespace mozilla;
@@ -84,14 +84,14 @@ nsUUIDGenerator::Init()
 NS_IMETHODIMP
 nsUUIDGenerator::GenerateUUID(nsID** aRet)
 {
-  nsID* id = static_cast<nsID*>(NS_Alloc(sizeof(nsID)));
+  nsID* id = static_cast<nsID*>(moz_xmalloc(sizeof(nsID)));
   if (!id) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   nsresult rv = GenerateUUIDInPlace(id);
   if (NS_FAILED(rv)) {
-    NS_Free(id);
+    free(id);
     return rv;
   }
 

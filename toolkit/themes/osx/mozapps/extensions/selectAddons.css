@@ -145,13 +145,13 @@
 .addon:not([active]) .addon-icon,
 #disable-list .addon-icon,
 #incompatible-list .addon-icon {
-  filter: url("chrome://mozapps/skin/extensions/extensions.svg#greyscale");
+  filter: grayscale(1);
 }
 
 #footer {
   padding: 15px 12px;
-  -moz-binding: url("chrome://global/content/bindings/general.xml#windowdragbox");
   -moz-appearance: statusbar;
+  -moz-window-dragging: drag;
 }
 
 button {

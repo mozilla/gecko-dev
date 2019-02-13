@@ -177,6 +177,8 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     void pushHeadPointerOntoStack();
     void reconstructTheActiveFormattingElements();
     void insertIntoFosterParent(nsIContentHandle* child);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form);
     bool isInStack(nsHtml5StackNode* node);
     void popTemplateMode();
     void pop();
@@ -204,15 +206,16 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
   protected:
     void accumulateCharacters(const char16_t* buf, int32_t start, int32_t length);
     void requestSuspension();
-    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes);
-    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form);
+    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* intendedParent);
+    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form, nsIContentHandle* intendedParent);
     nsIContentHandle* createHtmlElementSetAsRoot(nsHtml5HtmlAttributes* attributes);
     void detachFromParent(nsIContentHandle* element);
     bool hasChildren(nsIContentHandle* element);
     void appendElement(nsIContentHandle* child, nsIContentHandle* newParent);
     void appendChildrenToNewParent(nsIContentHandle* oldParent, nsIContentHandle* newParent);
     void insertFosterParentedChild(nsIContentHandle* child, nsIContentHandle* table, nsIContentHandle* stackParent);
-    void insertFosterParentedCharacters(char16_t* buf, int32_t start, int32_t length, nsIContentHandle* table, nsIContentHandle* stackParent);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form, nsIContentHandle* table, nsIContentHandle* stackParent);
+    ;void insertFosterParentedCharacters(char16_t* buf, int32_t start, int32_t length, nsIContentHandle* table, nsIContentHandle* stackParent);
     void appendCharacters(nsIContentHandle* parent, char16_t* buf, int32_t start, int32_t length);
     void appendIsindexPrompt(nsIContentHandle* parent);
     void appendComment(nsIContentHandle* parent, char16_t* buf, int32_t start, int32_t length);
@@ -323,7 +326,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
 #define NS_HTML5TREE_BUILDER_DIV_OR_BLOCKQUOTE_OR_CENTER_OR_MENU 50
 #define NS_HTML5TREE_BUILDER_ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SECTION_OR_SUMMARY 51
 #define NS_HTML5TREE_BUILDER_RUBY_OR_SPAN_OR_SUB_OR_SUP_OR_VAR 52
-#define NS_HTML5TREE_BUILDER_RT_OR_RP 53
+#define NS_HTML5TREE_BUILDER_RB_OR_RTC 53
 #define NS_HTML5TREE_BUILDER_PARAM_OR_SOURCE_OR_TRACK 55
 #define NS_HTML5TREE_BUILDER_MGLYPH_OR_MALIGNMARK 56
 #define NS_HTML5TREE_BUILDER_MI_MO_MN_MS_MTEXT 57
@@ -338,6 +341,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
 #define NS_HTML5TREE_BUILDER_MENUITEM 66
 #define NS_HTML5TREE_BUILDER_TEMPLATE 67
 #define NS_HTML5TREE_BUILDER_IMG 68
+#define NS_HTML5TREE_BUILDER_RT_OR_RP 69
 #define NS_HTML5TREE_BUILDER_IN_ROW 0
 #define NS_HTML5TREE_BUILDER_IN_TABLE_BODY 1
 #define NS_HTML5TREE_BUILDER_IN_TABLE 2

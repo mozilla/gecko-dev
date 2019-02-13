@@ -4,20 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
+using nsMobileCallForwardingOptions from "mozilla/dom/mobileconnection/MobileConnectionIPCSerializer.h";
+
 namespace mozilla {
 namespace dom {
 namespace telephony {
 
-struct IPCCallStateData
+struct IPCCdmaWaitingCallData
 {
-  uint32_t callIndex;
-  uint16_t callState;
   nsString number;
-  bool     isOutGoing;
-  bool     isEmergency;
-  bool     isConference;
-  bool     isSwitchable;
-  bool     isMergeable;
+  uint16_t numberPresentation;
+  nsString name;
+  uint16_t namePresentation;
+};
+
+union AdditionalInformation {
+  void_t;
+  uint16_t;
+  nsString[];
+  nsMobileCallForwardingOptions[];
 };
 
 } /* namespace telephony */

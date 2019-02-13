@@ -17,7 +17,7 @@ import android.widget.TabWidget;
 import android.widget.TextView;
 
 public class IconTabWidget extends TabWidget {
-    private OnTabChangedListener mListener;
+    OnTabChangedListener mListener;
     private final int mButtonLayoutId;
     private final boolean mIsIcon;
 
@@ -83,7 +83,7 @@ public class IconTabWidget extends TabWidget {
         if (!mIsIcon) {
             return null;
         }
-        // We can have multiple views in the tray for each child. This finds the
+        // We can have multiple views in the tabs panel for each child. This finds the
         // first view corresponding to the given tab. This varies by Android
         // version. The first view should always be our ImageButton, but let's
         // be safe.
@@ -98,7 +98,7 @@ public class IconTabWidget extends TabWidget {
         if (!mIsIcon) {
             return;
         }
-        // We can have multiple views in the tray for each child. This finds the
+        // We can have multiple views in the tabs panel for each child. This finds the
         // first view corresponding to the given tab. This varies by Android
         // version. The first view should always be our ImageButton, but let's
         // be safe.

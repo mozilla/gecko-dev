@@ -6,7 +6,7 @@
 
 // Checking properties orders and overrides in the rule-view
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,browser_ruleview_manipulation.js");
   let {toolbox, inspector, view} = yield openRuleView();
 
@@ -14,7 +14,7 @@ let test = asyncTest(function*() {
   content.document.body.innerHTML = '<div id="testid">Styled Node</div>';
   let element = getNode("#testid");
 
-  yield selectNode(element, inspector);
+  yield selectNode("#testid", inspector);
 
   let elementStyle = view._elementStyle;
   let elementRule = elementStyle.rules[0];

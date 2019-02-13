@@ -4,28 +4,38 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-JS_MODULES_PATH = 'modules/addons'
-
-EXTRA_JS_MODULES += [
+EXTRA_JS_MODULES.addons += [
     'AddonLogging.jsm',
     'AddonRepository.jsm',
     'AddonRepository_SQLiteMigrator.jsm',
     'AddonUpdateChecker.jsm',
     'Content.js',
+    'GMPProvider.jsm',
     'LightweightThemeImageOptimizer.jsm',
-    'PluginProvider.jsm',
     'SpellCheckDictionaryBootstrap.js',
 ]
 
-EXTRA_PP_JS_MODULES += [
+# Don't ship unused providers on Android
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
+    EXTRA_JS_MODULES.addons += [
+        'PluginProvider.jsm',
+    ]
+
+EXTRA_PP_JS_MODULES.addons += [
     'XPIProvider.jsm',
     'XPIProviderUtils.js',
 ]
 
 # This is used in multiple places, so is defined here to avoid it getting
 # out of sync.
-DEFINES['MOZ_EXTENSIONS_DB_SCHEMA'] = 16
+DEFINES['MOZ_EXTENSIONS_DB_SCHEMA'] = 17
 
 # Additional debugging info is exposed in debug builds
 if CONFIG['MOZ_EM_DEBUG']:
     DEFINES['MOZ_EM_DEBUG'] = 1
+
+if CONFIG['MOZ_ADDON_SIGNING']:
+    DEFINES['MOZ_ADDON_SIGNING'] = 1
+
+if CONFIG['MOZ_REQUIRE_SIGNING']:
+    DEFINES['MOZ_REQUIRE_SIGNING'] = 1

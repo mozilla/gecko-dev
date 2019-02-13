@@ -10,6 +10,7 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
 loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+const events  = require("devtools/toolkit/event-emitter");
 
 /**
  * Autocomplete popup UI implementation.
@@ -65,6 +66,8 @@ function AutocompletePopup(aDocument, aOptions = {})
     if (!aOptions.onKeypress) {
       this._panel.setAttribute("ignorekeys", "true");
     }
+    // Stop this appearing as an alert to accessibility.
+    this._panel.setAttribute("role", "presentation");
 
     let mainPopupSet = this._document.getElementById("mainPopupSet");
     if (mainPopupSet) {
@@ -106,6 +109,9 @@ function AutocompletePopup(aDocument, aOptions = {})
   if (this.onKeypress) {
     this._list.addEventListener("keypress", this.onKeypress, false);
   }
+  this._itemIdCounter = 0;
+
+  events.decorate(this);
 }
 exports.AutocompletePopup = AutocompletePopup;
 
@@ -141,6 +147,8 @@ AutocompletePopup.prototype = {
     if (this.autoSelect) {
       this.selectFirstItem();
     }
+
+    this.emit("popup-opened");
   },
 
   /**
@@ -148,6 +156,8 @@ AutocompletePopup.prototype = {
    */
   hidePopup: function AP_hidePopup()
   {
+    // Return accessibility focus to the input.
+    this._document.activeElement.removeAttribute("aria-activedescendant");
     this._panel.hidePopup();
   },
 
@@ -155,7 +165,8 @@ AutocompletePopup.prototype = {
    * Check if the autocomplete popup is open.
    */
   get isOpen() {
-    return this._panel.state == "open" || this._panel.state == "showing";
+    return this._panel &&
+           (this._panel.state == "open" || this._panel.state == "showing");
   },
 
   /**
@@ -169,7 +180,6 @@ AutocompletePopup.prototype = {
     if (this.isOpen) {
       this.hidePopup();
     }
-    this.clearItems();
 
     if (this.onSelect) {
       this._list.removeEventListener("select", this.onSelect, false);
@@ -187,6 +197,8 @@ AutocompletePopup.prototype = {
       gDevTools.off("pref-changed", this._handleThemeChange);
     }
 
+    this._list.remove();
+    this._panel.remove();
     this._document = null;
     this._list = null;
     this._panel = null;
@@ -248,7 +260,7 @@ AutocompletePopup.prototype = {
    */
   selectFirstItem: function AP_selectFirstItem()
   {
-    if (this.position.contains("before")) {
+    if (this.position.includes("before")) {
       this.selectedIndex = this.itemCount - 1;
     }
     else {
@@ -291,6 +303,23 @@ AutocompletePopup.prototype = {
 
     this._list.style.width = (this._maxLabelLength + 3) +"ch";
     this._list.ensureIndexIsVisible(this._list.selectedIndex);
+  },
+
+  /**
+   * Update accessibility appropriately when the selected item is changed.
+   *
+   * @private
+   */
+  _updateAriaActiveDescendant: function AP__updateAriaActiveDescendant()
+  {
+    if (!this._list.selectedItem) {
+      // Return accessibility focus to the input.
+      this._document.activeElement.removeAttribute("aria-activedescendant");
+      return;
+    }
+    // Focus this for accessibility so users know about the selected item.
+    this._document.activeElement.setAttribute("aria-activedescendant",
+                                              this._list.selectedItem.id);
   },
 
   /**
@@ -338,6 +367,7 @@ AutocompletePopup.prototype = {
     if (this.isOpen && this._list.ensureIndexIsVisible) {
       this._list.ensureIndexIsVisible(this._list.selectedIndex);
     }
+    this._updateAriaActiveDescendant();
   },
 
   /**
@@ -360,6 +390,7 @@ AutocompletePopup.prototype = {
     if (this.isOpen) {
       this._list.ensureIndexIsVisible(this._list.selectedIndex);
     }
+    this._updateAriaActiveDescendant();
   },
 
   /**
@@ -381,6 +412,8 @@ AutocompletePopup.prototype = {
   appendItem: function AP_appendItem(aItem)
   {
     let listItem = this._document.createElementNS(XUL_NS, "richlistitem");
+    // Items must have an id for accessibility.
+    listItem.id = this._panel.id + "_item_" + this._itemIdCounter++;
     if (this.direction) {
       listItem.setAttribute("dir", this.direction);
     }

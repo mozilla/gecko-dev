@@ -9,8 +9,12 @@ const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
 let store = new ObservableObject({versions:[]});
 
 function feedStore() {
-  store.object.versions = Simulator.availableVersions().map(v => {
-    return {version:v}
+  store.object.versions = Simulator.availableNames().map(name => {
+    let simulator = Simulator.getByName(name);
+    return {
+      version: name,
+      label: simulator ? name : "Unknown"
+    }
   });
 }
 

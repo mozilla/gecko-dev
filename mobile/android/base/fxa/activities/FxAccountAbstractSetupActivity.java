@@ -5,11 +5,14 @@
 package org.mozilla.gecko.fxa.activities;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountClient10.RequestDelegate;
@@ -23,24 +26,34 @@ import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.Engaged;
 import org.mozilla.gecko.fxa.login.State;
 import org.mozilla.gecko.fxa.tasks.FxAccountSetupTask.ProgressDisplay;
+import org.mozilla.gecko.fxa.tasks.FxAccountUnlockCodeResender;
+import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.SyncConfiguration;
+import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.setup.Constants;
 import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.animation.LayoutTransition;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.text.Editable;
+import android.text.Spannable;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.text.method.SingleLineTransformationMethod;
+import android.text.style.ClickableSpan;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -50,6 +63,19 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
 abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractActivity implements ProgressDisplay {
+  public static final String EXTRA_EMAIL = "email";
+  public static final String EXTRA_PASSWORD = "password";
+  public static final String EXTRA_PASSWORD_SHOWN = "password_shown";
+  public static final String EXTRA_YEAR = "year";
+  public static final String EXTRA_MONTH = "month";
+  public static final String EXTRA_DAY = "day";
+  public static final String EXTRA_EXTRAS = "extras";
+
+  public static final String JSON_KEY_AUTH = "auth";
+  public static final String JSON_KEY_SERVICES = "services";
+  public static final String JSON_KEY_SYNC = "sync";
+  public static final String JSON_KEY_PROFILE = "profile";
+
   public FxAccountAbstractSetupActivity() {
     super(CANNOT_RESUME_WHEN_ACCOUNTS_EXIST | CANNOT_RESUME_WHEN_LOCKED_OUT);
   }
@@ -60,6 +86,10 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
 
   private static final String LOG_TAG = FxAccountAbstractSetupActivity.class.getSimpleName();
 
+  // By default, any custom server configuration is only shown when the account
+  // is configured to use a custom server.
+  private static final boolean ALWAYS_SHOW_CUSTOM_SERVER_LAYOUT = false;
+
   protected int minimumPasswordLength = 8;
 
   protected AutoCompleteTextView emailEdit;
@@ -69,31 +99,50 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
   protected Button button;
   protected ProgressBar progressBar;
 
+  private String authServerEndpoint;
+  private String syncServerEndpoint;
+  private String profileServerEndpoint;
+
+  protected String getAuthServerEndpoint() {
+    return authServerEndpoint;
+  }
+
+  protected String getTokenServerEndpoint() {
+    return syncServerEndpoint;
+  }
+
+  protected String getProfileServerEndpoint() {
+    return profileServerEndpoint;
+  }
+
   protected void createShowPasswordButton() {
     showPasswordButton.setOnClickListener(new OnClickListener() {
-      @SuppressWarnings("deprecation")
       @Override
       public void onClick(View v) {
         boolean isShown = passwordEdit.getTransformationMethod() instanceof SingleLineTransformationMethod;
-
-        // Changing input type loses position in edit text; let's try to maintain it.
-        int start = passwordEdit.getSelectionStart();
-        int stop = passwordEdit.getSelectionEnd();
-
-        if (isShown) {
-          passwordEdit.setTransformationMethod(PasswordTransformationMethod.getInstance());
-          showPasswordButton.setText(R.string.fxaccount_password_show);
-          showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_show_background));
-          showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_show_textcolor));
-        } else {
-          passwordEdit.setTransformationMethod(SingleLineTransformationMethod.getInstance());
-          showPasswordButton.setText(R.string.fxaccount_password_hide);
-          showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_hide_background));
-          showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_hide_textcolor));
-        }
-        passwordEdit.setSelection(start, stop);
+        setPasswordButtonShown(!isShown);
       }
     });
+  }
+
+  @SuppressWarnings("deprecation")
+  protected void setPasswordButtonShown(boolean shouldShow) {
+    // Changing input type loses position in edit text; let's try to maintain it.
+    int start = passwordEdit.getSelectionStart();
+    int stop = passwordEdit.getSelectionEnd();
+
+    if (!shouldShow) {
+      passwordEdit.setTransformationMethod(PasswordTransformationMethod.getInstance());
+      showPasswordButton.setText(R.string.fxaccount_password_show);
+      showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_show_background));
+      showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_show_textcolor));
+    } else {
+      passwordEdit.setTransformationMethod(SingleLineTransformationMethod.getInstance());
+      showPasswordButton.setText(R.string.fxaccount_password_hide);
+      showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_hide_background));
+      showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_hide_textcolor));
+    }
+    passwordEdit.setSelection(start, stop);
   }
 
   protected void linkifyPolicy() {
@@ -108,7 +157,14 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
   }
 
   protected void hideRemoteError() {
-    remoteErrorTextView.setVisibility(View.INVISIBLE);
+    if (AppConstants.Versions.feature11Plus) {
+      // On v11+, we remove the view entirely, which triggers a smooth
+      // animation.
+      remoteErrorTextView.setVisibility(View.GONE);
+    } else {
+      // On earlier versions, we just hide the error.
+      remoteErrorTextView.setVisibility(View.INVISIBLE);
+    }
   }
 
   protected void showRemoteError(Exception e, int defaultResourceId) {
@@ -124,7 +180,35 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
   }
 
   protected void showClientRemoteException(final FxAccountClientRemoteException e) {
-    remoteErrorTextView.setText(e.getErrorMessageStringResource());
+    if (!e.isAccountLocked()) {
+      remoteErrorTextView.setText(e.getErrorMessageStringResource());
+      return;
+    }
+
+    // This horrible bit of special-casing is because we want this error message
+    // to contain a clickable, extra chunk of text, but we don't want to pollute
+    // the exception class with Android specifics.
+    final int messageId = e.getErrorMessageStringResource();
+    final int clickableId = R.string.fxaccount_resend_unlock_code_button_label;
+    final Spannable span = Utils.interpolateClickableSpan(this, messageId, clickableId, new ClickableSpan() {
+      @Override
+      public void onClick(View widget) {
+        // It would be best to capture the email address sent to the server
+        // and use it here, but this will do for now. If the user modifies
+        // the email address entered, the error text is hidden, so sending a
+        // changed email address would be the result of an unusual race.
+        final String email = emailEdit.getText().toString();
+        byte[] emailUTF8 = null;
+        try {
+          emailUTF8 = email.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+          // It's okay, we'll fail in the code resender.
+        }
+        FxAccountUnlockCodeResender.resendUnlockCode(FxAccountAbstractSetupActivity.this, getAuthServerEndpoint(), emailUTF8);
+      }
+    });
+    remoteErrorTextView.setMovementMethod(LinkMovementMethod.getInstance());
+    remoteErrorTextView.setText(span);
   }
 
   protected void addListeners() {
@@ -230,12 +314,13 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
     public final PasswordStretcher passwordStretcher;
     public final String serverURI;
     public final Map<String, Boolean> selectedEngines;
+    public final Map<String, Boolean> authoritiesToSyncAutomaticallyMap;
 
     public AddAccountDelegate(String email, PasswordStretcher passwordStretcher, String serverURI) {
-      this(email, passwordStretcher, serverURI, null);
+      this(email, passwordStretcher, serverURI, null, AndroidFxAccount.DEFAULT_AUTHORITIES_TO_SYNC_AUTOMATICALLY_MAP);
     }
 
-    public AddAccountDelegate(String email, PasswordStretcher passwordStretcher, String serverURI, Map<String, Boolean> selectedEngines) {
+    public AddAccountDelegate(String email, PasswordStretcher passwordStretcher, String serverURI, Map<String, Boolean> selectedEngines, Map<String, Boolean> authoritiesToSyncAutomaticallyMap) {
       if (email == null) {
         throw new IllegalArgumentException("email must not be null");
       }
@@ -245,6 +330,9 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       if (serverURI == null) {
         throw new IllegalArgumentException("serverURI must not be null");
       }
+      if (authoritiesToSyncAutomaticallyMap == null) {
+        throw new IllegalArgumentException("authoritiesToSyncAutomaticallyMap must not be null");
+      }
       this.email = email;
       this.passwordStretcher = passwordStretcher;
       this.serverURI = serverURI;
@@ -252,6 +340,8 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       // userSelectedEngines to prefs. This makes any created meta/global record
       // have the default set of engines to sync.
       this.selectedEngines = selectedEngines;
+      // authoritiesToSyncAutomaticallymap cannot be null.
+      this.authoritiesToSyncAutomaticallyMap = authoritiesToSyncAutomaticallyMap;
     }
 
     @Override
@@ -262,7 +352,8 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       AndroidFxAccount fxAccount;
       try {
         final String profile = Constants.DEFAULT_PROFILE;
-        final String tokenServerURI = FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT;
+        final String tokenServerURI = getTokenServerEndpoint();
+        final String profileServerURI = getProfileServerEndpoint();
         // It is crucial that we use the email address provided by the server
         // (rather than whatever the user entered), because the user's keys are
         // wrapped and salted with the initial email they provided to
@@ -279,7 +370,9 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
             profile,
             serverURI,
             tokenServerURI,
-            state);
+            profileServerURI,
+            state,
+            this.authoritiesToSyncAutomaticallyMap);
         if (fxAccount == null) {
           throw new RuntimeException("Could not add Android account.");
         }
@@ -294,7 +387,7 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       }
 
       // For great debugging.
-      if (FxAccountConstants.LOG_PERSONAL_INFORMATION) {
+      if (FxAccountUtils.LOG_PERSONAL_INFORMATION) {
         fxAccount.dump();
       }
 
@@ -349,11 +442,47 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
     }
 
     // And then sorted in alphabetical order.
-    final String[] sortedEmails = emails.toArray(new String[0]);
+    final String[] sortedEmails = emails.toArray(new String[emails.size()]);
     Arrays.sort(sortedEmails);
 
     final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, sortedEmails);
     emailEdit.setAdapter(adapter);
+  }
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+  }
+
+  @SuppressLint("NewApi")
+  protected void maybeEnableAnimations() {
+    // On v11+, we animate the error display being added and removed. This saves
+    // us some vertical space when we start the activity.
+    if (AppConstants.Versions.feature11Plus) {
+      final ViewGroup container = (ViewGroup) remoteErrorTextView.getParent();
+      container.setLayoutTransition(new LayoutTransition());
+    }
+  }
+
+  protected void updateFromIntentExtras() {
+    // Only set email/password in onCreate; we don't want to overwrite edited values onResume.
+    if (getIntent() != null && getIntent().getExtras() != null) {
+      Bundle bundle = getIntent().getExtras();
+      emailEdit.setText(bundle.getString(EXTRA_EMAIL));
+      passwordEdit.setText(bundle.getString(EXTRA_PASSWORD));
+      setPasswordButtonShown(bundle.getBoolean(EXTRA_PASSWORD_SHOWN, false));
+    }
+
+    // This sets defaults as well as extracting from extras, so it's not conditional.
+    updateServersFromIntentExtras(getIntent());
+
+    if (FxAccountUtils.LOG_PERSONAL_INFORMATION) {
+      FxAccountUtils.pii(LOG_TAG, "Using auth server: " + authServerEndpoint);
+      FxAccountUtils.pii(LOG_TAG, "Using sync server: " + syncServerEndpoint);
+      FxAccountUtils.pii(LOG_TAG, "Using profile server: " + profileServerEndpoint);
+    }
+
+    updateCustomServerView();
   }
 
   @Override
@@ -369,5 +498,122 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       }
     };
     task.execute();
+  }
+
+  protected Bundle makeExtrasBundle(String email, String password) {
+    final Bundle bundle = new Bundle();
+
+    // Pass through any extras that we were started with.
+    if (getIntent() != null && getIntent().getExtras() != null) {
+      bundle.putAll(getIntent().getExtras());
+    }
+
+    // Overwrite with current settings.
+    if (email == null) {
+      email = emailEdit.getText().toString();
+    }
+    if (password == null) {
+      password = passwordEdit.getText().toString();
+    }
+    bundle.putString(EXTRA_EMAIL, email);
+    bundle.putString(EXTRA_PASSWORD, password);
+
+    boolean isPasswordShown = passwordEdit.getTransformationMethod() instanceof SingleLineTransformationMethod;
+    bundle.putBoolean(EXTRA_PASSWORD_SHOWN, isPasswordShown);
+
+    return bundle;
+  }
+
+  protected void startActivityInstead(Class<?> cls, int requestCode, Bundle extras) {
+    Intent intent = new Intent(this, cls);
+    if (extras != null) {
+      intent.putExtras(extras);
+    }
+    // Per http://stackoverflow.com/a/8992365, this triggers a known bug with
+    // the soft keyboard not being shown for the started activity. Why, Android, why?
+    intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+    startActivityForResult(intent, requestCode);
+  }
+
+  protected void updateServersFromIntentExtras(Intent intent) {
+    // Start with defaults.
+    this.authServerEndpoint = FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT;
+    this.syncServerEndpoint = FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT;
+    this.profileServerEndpoint = FxAccountConstants.DEFAULT_PROFILE_SERVER_ENDPOINT;
+
+    if (intent == null) {
+      Logger.warn(LOG_TAG, "Intent is null; ignoring and using default servers.");
+      return;
+    }
+
+    final String extrasString = intent.getStringExtra(EXTRA_EXTRAS);
+
+    if (extrasString == null) {
+      return;
+    }
+
+    final ExtendedJSONObject extras;
+    final ExtendedJSONObject services;
+    try {
+      extras = new ExtendedJSONObject(extrasString);
+      services = extras.getObject(JSON_KEY_SERVICES);
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Got exception parsing extras; ignoring and using default servers.");
+      return;
+    }
+
+    String authServer = extras.getString(JSON_KEY_AUTH);
+    String syncServer = services == null ? null : services.getString(JSON_KEY_SYNC);
+    String profileServer = services == null ? null : services.getString(JSON_KEY_PROFILE);
+
+    if (authServer != null) {
+      this.authServerEndpoint = authServer;
+    }
+    if (syncServer != null) {
+      this.syncServerEndpoint = syncServer;
+    }
+    if (profileServer != null) {
+      this.profileServerEndpoint = profileServer;
+    }
+
+    if (FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT.equals(syncServerEndpoint) &&
+        !FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT.equals(authServerEndpoint)) {
+      // We really don't want to hard-code assumptions about server
+      // configurations into client code in such a way that if and when the
+      // situation is relaxed, the client code stops valid usage. Instead, we
+      // warn. This configuration should present itself as an auth exception at
+      // Sync time.
+      Logger.warn(LOG_TAG, "Mozilla's Sync token servers only works with Mozilla's auth servers. Sync will likely be mis-configured.");
+    }
+  }
+
+  protected void updateCustomServerView() {
+    final boolean shouldShow =
+        ALWAYS_SHOW_CUSTOM_SERVER_LAYOUT ||
+        !FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT.equals(authServerEndpoint) ||
+        !FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT.equals(syncServerEndpoint);
+
+    if (!shouldShow) {
+      setCustomServerViewVisibility(View.GONE);
+      return;
+    }
+
+    final TextView authServerView = (TextView) ensureFindViewById(null, R.id.account_server_summary, "account server");
+    final TextView syncServerView = (TextView) ensureFindViewById(null, R.id.sync_server_summary, "Sync server");
+    authServerView.setText(authServerEndpoint);
+    syncServerView.setText(syncServerEndpoint);
+
+    setCustomServerViewVisibility(View.VISIBLE);
+  }
+
+  protected void setCustomServerViewVisibility(int visibility) {
+    ensureFindViewById(null, R.id.account_server_layout, "account server layout").setVisibility(visibility);
+    ensureFindViewById(null, R.id.sync_server_layout, "sync server layout").setVisibility(visibility);
+  }
+
+  protected Map<String, String> getQueryParameters() {
+    final Map<String, String> queryParameters = new HashMap<>();
+    queryParameters.put("service", "sync");
+    return queryParameters;
   }
 }

@@ -30,7 +30,8 @@ nsUXThemeData::sFlatMenus = false;
 
 bool nsUXThemeData::sTitlebarInfoPopulatedAero = false;
 bool nsUXThemeData::sTitlebarInfoPopulatedThemed = false;
-SIZE nsUXThemeData::sCommandButtons[4];
+const int NUM_COMMAND_BUTTONS = 4;
+SIZE nsUXThemeData::sCommandButtons[NUM_COMMAND_BUTTONS];
 
 void
 nsUXThemeData::Teardown() {
@@ -167,7 +168,7 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
     }
   }
 
-  if (sTitlebarInfoPopulatedThemed)
+  if (sTitlebarInfoPopulatedThemed || IsWin8OrLater())
     return;
 
   // Query a temporary, visible window with command buttons to get
@@ -220,6 +221,15 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
   // close
   sCommandButtons[2].cx = info.rgrect[5].right - info.rgrect[5].left;
   sCommandButtons[2].cy = info.rgrect[5].bottom - info.rgrect[5].top;
+
+#ifdef DEBUG
+  // Verify that all values for the command buttons are positive values
+  // otherwise we have cached bad values for the caption buttons
+  for (int i = 0; i < NUM_COMMAND_BUTTONS; i++) {
+    MOZ_ASSERT(sCommandButtons[i].cx > 0);
+    MOZ_ASSERT(sCommandButtons[i].cy > 0);
+  }
+#endif
 
   sTitlebarInfoPopulatedThemed = true;
 }
@@ -294,17 +304,17 @@ nsUXThemeData::UpdateNativeThemeInfo()
   sIsDefaultWindowsTheme = false;
   sThemeId = LookAndFeel::eWindowsTheme_Generic;
 
-  if (!IsAppThemed()) {
-    sThemeId = LookAndFeel::eWindowsTheme_Classic;
-    return;
-  }
-
   HIGHCONTRAST highContrastInfo;
   highContrastInfo.cbSize = sizeof(HIGHCONTRAST);
   if (SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrastInfo, 0)) {
     sIsHighContrastOn = ((highContrastInfo.dwFlags & HCF_HIGHCONTRASTON) != 0);
   } else {
     sIsHighContrastOn = false;
+  }
+
+  if (!IsAppThemed()) {
+    sThemeId = LookAndFeel::eWindowsTheme_Classic;
+    return;
   }
 
   WCHAR themeFileName[MAX_PATH + 1];

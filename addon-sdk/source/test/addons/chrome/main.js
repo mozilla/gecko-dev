@@ -22,7 +22,7 @@ exports.testChromeSkin = function(assert, done) {
     url: skinURL,
     overrideMimeType: 'text/plain',
     onComplete: function (response) {
-      assert.equal(response.text.trim(), 'test{}', 'chrome.manifest skin folder was registered!');
+      assert.ok(/test\{\}\s*$/.test(response.text), 'chrome.manifest skin folder was registered!');
       done();
     }
   }).get();
@@ -77,12 +77,9 @@ exports.testChromeInPanel = function(assert, done) {
     assert.pass('panel shown');
     panel.port.once('echo', _ => {
       assert.pass('got echo');
-      panel.once('hide', _ => {
-        panel.destroy();
-        assert.pass('panel is destroyed');
-        done();
-      });
-      panel.hide();
+      panel.destroy();
+      assert.pass('panel is destroyed');
+      done();
     });
     panel.port.emit('echo');
   });

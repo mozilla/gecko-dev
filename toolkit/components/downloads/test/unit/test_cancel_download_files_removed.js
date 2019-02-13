@@ -87,10 +87,10 @@ function runNextTest()
 
   let set = DownloadListener.set = tests[currentTest];
   currentTest++;
-
-  let channel = NetUtil.newChannel("http://localhost:" +
-                                   httpserver.identity.primaryPort +
-                                   set.serverPath);
+  let uri = "http://localhost:" +
+             httpserver.identity.primaryPort +
+             set.serverPath;
+  let channel = NetUtil.newChannel({uri, loadUsingSystemPrincipal: true});
   let uriloader = Cc["@mozilla.org/uriloader;1"].getService(Ci.nsIURILoader);
   uriloader.openURI(channel, Ci.nsIURILoader.IS_CONTENT_PREFERRED,
                     new WindowContext());

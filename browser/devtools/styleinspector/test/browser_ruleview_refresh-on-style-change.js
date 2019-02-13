@@ -10,7 +10,7 @@
 const TESTCASE_URI = 'data:text/html;charset=utf-8,' +
                      '<div id="testdiv" style="font-size:10px;">Test div!</div>';
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(TESTCASE_URI);
 
   Services.prefs.setCharPref("devtools.defaultColorUnit", "name");
@@ -20,7 +20,7 @@ let test = asyncTest(function*() {
 
   info("Opening the rule view and selecting the test node");
   let {toolbox, inspector, view} = yield openRuleView();
-  yield selectNode(div, inspector);
+  yield selectNode("#testdiv", inspector);
 
   let fontSize = getRuleViewPropertyValue(view, "element", "font-size");
   is(fontSize, "10px", "The rule view shows the right font-size");
@@ -34,7 +34,7 @@ let test = asyncTest(function*() {
   is(textAlign, "right", "The rule view shows the new text align.");
   let color = getRuleViewPropertyValue(view, "element", "color");
   is(color, "lightgoldenrodyellow", "The rule view shows the new color.")
-  let fontSize = getRuleViewPropertyValue(view, "element", "font-size");
+  fontSize = getRuleViewPropertyValue(view, "element", "font-size");
   is(fontSize, "3em", "The rule view shows the new font size.");
   let textTransform = getRuleViewPropertyValue(view, "element", "text-transform");
   is(textTransform, "uppercase", "The rule view shows the new text transform.");

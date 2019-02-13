@@ -13,9 +13,14 @@
 typedef double DOMHighResTimeStamp;
 typedef sequence <PerformanceEntry> PerformanceEntryList;
 
+[Exposed=(Window,Worker)]
 interface Performance {
+  [DependsOn=DeviceState, Affects=Nothing]
   DOMHighResTimeStamp now();
+};
 
+[Exposed=Window]
+partial interface Performance {
   [Constant]
   readonly attribute PerformanceTiming timing;
   [Constant]
@@ -25,22 +30,44 @@ interface Performance {
 };
 
 // http://www.w3.org/TR/performance-timeline/#sec-window.performance-attribute
+[Exposed=(Window,Worker)]
 partial interface Performance {
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntries();
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntriesByType(DOMString entryType);
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntriesByName(DOMString name, optional DOMString
     entryType);
 };
 
 // http://www.w3.org/TR/resource-timing/#extensions-performance-interface
+[Exposed=Window]
 partial interface Performance {
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   void clearResourceTimings();
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   void setResourceTimingBufferSize(unsigned long maxSize);
-  [Pref="dom.enable_resource_timing"]
+  [Func="nsPerformance::IsEnabled"]
   attribute EventHandler onresourcetimingbufferfull;
+};
+
+// GC microbenchmarks, pref-guarded, not for general use (bug 1125412)
+[Exposed=Window]
+partial interface Performance {
+  [Pref="dom.enable_memory_stats"]
+  readonly attribute object mozMemory;
+};
+
+// http://www.w3.org/TR/user-timing/
+[Exposed=(Window,Worker)]
+partial interface Performance {
+  [Func="nsPerformance::IsEnabled", Throws]
+  void mark(DOMString markName);
+  [Func="nsPerformance::IsEnabled"]
+  void clearMarks(optional DOMString markName);
+  [Func="nsPerformance::IsEnabled", Throws]
+  void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+  [Func="nsPerformance::IsEnabled"]
+  void clearMeasures(optional DOMString measureName);
 };

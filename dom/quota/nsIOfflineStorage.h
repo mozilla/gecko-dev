@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,15 +10,17 @@
 #include "mozilla/dom/quota/PersistenceType.h"
 
 #define NS_OFFLINESTORAGE_IID \
-  {0x3ae00063, 0x6c13, 0x4afd, \
-  { 0x86, 0x7d, 0x33, 0xc2, 0x12, 0xd8, 0x97, 0x25 } }
-
-class nsPIDOMWindow;
+  {0x91c57bf2, 0x0eda, 0x4db6, {0x9f, 0xf6, 0xcb, 0x38, 0x26, 0x8d, 0xb3, 0x01}}
 
 namespace mozilla {
 namespace dom {
+
+class ContentParent;
+
 namespace quota {
+
 class Client;
+
 }
 }
 }
@@ -26,6 +28,7 @@ class Client;
 class nsIOfflineStorage : public nsISupports
 {
 public:
+  typedef mozilla::dom::ContentParent ContentParent;
   typedef mozilla::dom::quota::Client Client;
   typedef mozilla::dom::quota::PersistenceType PersistenceType;
 
@@ -38,7 +41,7 @@ public:
   GetClient() = 0;
 
   NS_IMETHOD_(bool)
-  IsOwned(nsPIDOMWindow* aOwner) = 0;
+  IsOwnedByProcess(ContentParent* aOwner) = 0;
 
   NS_IMETHOD_(PersistenceType)
   Type()
@@ -59,10 +62,6 @@ public:
   // running operations nor discarding pending operations).
   NS_IMETHOD_(nsresult)
   Close() = 0;
-
-  // Whether or not the storage has had Close called on it.
-  NS_IMETHOD_(bool)
-  IsClosed() = 0;
 
   // Implementation of this method should close the storage, all running
   // operations should be aborted and pending operations should be discarded.
@@ -85,24 +84,21 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIOfflineStorage, NS_OFFLINESTORAGE_IID)
 
 #define NS_DECL_NSIOFFLINESTORAGE                                              \
   NS_IMETHOD_(const nsACString&)                                               \
-  Id() MOZ_OVERRIDE;                                                           \
+  Id() override;                                                               \
                                                                                \
   NS_IMETHOD_(Client*)                                                         \
-  GetClient() MOZ_OVERRIDE;                                                    \
+  GetClient() override;                                                        \
                                                                                \
   NS_IMETHOD_(bool)                                                            \
-  IsOwned(nsPIDOMWindow* aOwner) MOZ_OVERRIDE;                                 \
+  IsOwnedByProcess(ContentParent* aOwner) override;                            \
                                                                                \
   NS_IMETHOD_(const nsACString&)                                               \
-  Origin() MOZ_OVERRIDE;                                                       \
+  Origin() override;                                                           \
                                                                                \
   NS_IMETHOD_(nsresult)                                                        \
-  Close() MOZ_OVERRIDE;                                                        \
-                                                                               \
-  NS_IMETHOD_(bool)                                                            \
-  IsClosed() MOZ_OVERRIDE;                                                     \
+  Close() override;                                                            \
                                                                                \
   NS_IMETHOD_(void)                                                            \
-  Invalidate() MOZ_OVERRIDE;
+  Invalidate() override;
 
 #endif // nsIOfflineStorage_h__

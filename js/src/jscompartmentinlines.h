@@ -11,29 +11,37 @@
 
 #include "gc/Barrier.h"
 
+#include "jscntxtinlines.h"
+
 inline void
-JSCompartment::initGlobal(js::GlobalObject &global)
+JSCompartment::initGlobal(js::GlobalObject& global)
 {
-    JS_ASSERT(global.compartment() == this);
-    JS_ASSERT(!global_);
+    MOZ_ASSERT(global.compartment() == this);
+    MOZ_ASSERT(!global_);
     global_.set(&global);
 }
 
-js::GlobalObject *
+js::GlobalObject*
 JSCompartment::maybeGlobal() const
 {
-    JS_ASSERT_IF(global_, global_->compartment() == this);
+    MOZ_ASSERT_IF(global_, global_->compartment() == this);
     return global_;
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSObject *target)
+js::GlobalObject*
+JSCompartment::unsafeUnbarrieredMaybeGlobal() const
+{
+    return *global_.unsafeGet();
+}
+
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSObject* target)
   : cx_(cx),
     origin_(cx->compartment_)
 {
     cx_->enterCompartment(target->compartment());
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSCompartment *target)
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSCompartment* target)
   : cx_(cx),
     origin_(cx_->compartment_)
 {
@@ -46,24 +54,31 @@ js::AutoCompartment::~AutoCompartment()
 }
 
 inline bool
-JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject existing)
+JSCompartment::wrap(JSContext* cx, JS::MutableHandleValue vp, JS::HandleObject existing)
 {
-    JS_ASSERT_IF(existing, vp.isObject());
+    MOZ_ASSERT_IF(existing, vp.isObject());
 
     /* Only GC things have to be wrapped or copied. */
     if (!vp.isMarkable())
         return true;
 
+    /*
+     * Symbols are GC things, but never need to be wrapped or copied because
+     * they are always allocated in the atoms compartment.
+     */
+    if (vp.isSymbol())
+        return true;
+
     /* Handle strings. */
     if (vp.isString()) {
         JS::RootedString str(cx, vp.toString());
-        if (!wrap(cx, str.address()))
+        if (!wrap(cx, &str))
             return false;
         vp.setString(str);
         return true;
     }
 
-    JS_ASSERT(vp.isObject());
+    MOZ_ASSERT(vp.isObject());
 
     /*
      * All that's left are objects.
@@ -102,7 +117,7 @@ JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject e
     if (!wrap(cx, &obj, existing))
         return false;
     vp.setObject(*obj);
-    JS_ASSERT_IF(cacheResult, obj == cacheResult);
+    MOZ_ASSERT_IF(cacheResult, obj == cacheResult);
     return true;
 }
 

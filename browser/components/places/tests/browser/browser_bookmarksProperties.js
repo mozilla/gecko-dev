@@ -34,9 +34,8 @@ const TEST_URL = "http://www.example.com/";
 const DIALOG_URL = "chrome://browser/content/places/bookmarkProperties.xul";
 const DIALOG_URL_MINIMAL_UI = "chrome://browser/content/places/bookmarkProperties2.xul";
 
-var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-         getService(Ci.nsIWindowMediator);
-var win = wm.getMostRecentWindow("navigator:browser");
+Cu.import("resource:///modules/RecentWindow.jsm");
+let win = RecentWindow.getMostRecentBrowserWindow();
 var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
          getService(Ci.nsIWindowWatcher);
 
@@ -54,103 +53,7 @@ var gTests = [];
 var gCurrentTest = null;
 
 //------------------------------------------------------------------------------
-// TEST SKELETON: use this template to add new tests.
-/*
-gTests.push({
-  desc: "Bug Description",
-  sidebar: SIDEBAR_BOOKMARKS_ID, // See SIDEBAR_ constants above.
-  action: ACTION_EDIT, // See ACTION_ constants above.
-  itemType: null, // See TYPE_ constants above, required for ACTION_ADD, only for Bookmarks sidebar.
-  historyView: SIDEBAR_HISTORY_BYLASTVISITED_VIEW, // See constants above, only for History sidebar.
-  window: null, // Will contain handle of dialog window
-
-  setup: function(aCallback) {
-    // Setup everything needed for this test, runs before everything else.
-    aCallback();
-  },
-
-  selectNode: function(tree) {
-    // Select the node to edit or to add to, runs when sidebar tree is visible.
-  },
-
-  run: function() {
-    // Actual test, runs when dialog is open.
-  },
-
-  finish: function() {
-    // Close window, toggle sidebar and goto next test.
-    this.window.document.documentElement.cancelDialog();
-    toggleSidebar(this.sidebar, false);
-    runNextTest();
-  },
-
-  cleanup: function() {
-    // Undo everything added during setup, runs after dialog has been closed.
-  }
-});
-*/
-
-//------------------------------------------------------------------------------
-// Bug 479348 - Properties on a root should be read-only
-
-gTests.push({
-  desc: "Bug 479348 - Properties on a root should be read-only",
-  sidebar: SIDEBAR_BOOKMARKS_ID,
-  action: ACTION_EDIT,
-  itemType: null,
-  window: null,
-
-  setup: function(aCallback) {
-    // Nothing to do.
-    aCallback();
-  },
-
-  selectNode: function(tree) {
-    // Select Unfiled Bookmarks root.
-    var itemId = PlacesUIUtils.leftPaneQueries["UnfiledBookmarks"];
-    tree.selectItems([itemId]);
-    this.selectedNode = tree.selectedNode;
-  },
-
-  run: function() {
-    // Check that the dialog is read-only.
-    ok(this.window.BookmarkPropertiesPanel._readOnly, "Dialog is read-only");
-
-    // Check that accept button is disabled
-    var acceptButton = this.window.document.documentElement.getButton("accept");
-    ok(acceptButton.disabled, "Accept button is disabled");
-
-    // Check that name picker is read only
-    var namepicker = this.window.document.getElementById("editBMPanel_namePicker");
-    ok(namepicker.readOnly, "Name field is disabled");
-    is(namepicker.value,
-       PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
-       "Node title is correct");
-    // Blur the field and ensure root's name has not been changed.
-    this.window.gEditItemOverlay.onNamePickerChange();
-    is(namepicker.value,
-       PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
-       "Root title is correct");
-    // Check the shortcut's title.
-    is(PlacesUtils.bookmarks.getItemTitle(this.selectedNode.itemId), null,
-       "Shortcut title is null");
-    this.finish();
-  },
-
-  finish: function() {
-    this.window.document.documentElement.cancelDialog();
-    toggleSidebar(this.sidebar, false);
-    runNextTest();
-  },
-
-  cleanup: function() {
-    // Nothing to do.
-  }
-});
-
-//------------------------------------------------------------------------------
 // Bug 462662 - Pressing Enter to select tag from autocomplete closes bookmarks properties dialog
-
 gTests.push({
   desc: "Bug 462662 - Pressing Enter to select tag from autocomplete closes bookmarks properties dialog",
   sidebar: SIDEBAR_BOOKMARKS_ID,
@@ -227,13 +130,15 @@ gTests.push({
 
     // Open tags autocomplete popup.
     info("About to focus the tagsField");
-    tagsField.focus();
-    tagsField.value = "";
-    EventUtils.synthesizeKey("t", {}, this.window);
+    executeSoon(() => {
+                  tagsField.focus();
+                  tagsField.value = "";
+                  EventUtils.synthesizeKey("t", {}, this.window);
+                });
   },
 
   finish: function() {
-    toggleSidebar(this.sidebar, false);
+    SidebarUI.hide();
     runNextTest();
   },
 
@@ -244,64 +149,6 @@ gTests.push({
 
     // Cleanup.
     PlacesUtils.tagging.untagURI(PlacesUtils._uri(TEST_URL), ["testTag"]);
-    PlacesUtils.bookmarks.removeItem(this._itemId);
-  }
-});
-
-//------------------------------------------------------------------------------
-// Bug 475529 -  Add button in new folder dialog not default anymore
-
-gTests.push({
-  desc: "Bug 475529 - Add button in new folder dialog not default anymore",
-  sidebar: SIDEBAR_BOOKMARKS_ID,
-  action: ACTION_ADD,
-  itemType: TYPE_FOLDER,
-  window: null,
-  _itemId: null,
-
-  setup: function(aCallback) {
-    // Nothing to do.
-    aCallback();
-  },
-
-  selectNode: function(tree) {
-    // Select Unfiled Bookmarks root.
-    var itemId = PlacesUIUtils.leftPaneQueries["UnfiledBookmarks"];
-    tree.selectItems([itemId]);
-    this.selectedNode = tree.selectedNode;
-  },
-
-  run: function() {
-    this._itemId = this.window.gEditItemOverlay._itemId;
-    // Change folder name
-    var namePicker = this.window.document.getElementById("editBMPanel_namePicker");
-    var self = this;
-
-    this.window.addEventListener("unload", function(event) {
-      self.window.removeEventListener("unload", arguments.callee, false);
-      executeSoon(function () {
-        self.finish();
-      });
-    }, false);
-
-    namePicker.value = "n";
-    info("About to focus the namePicker field");
-    namePicker.focus();
-    EventUtils.synthesizeKey("VK_RETURN", {}, this.window);
-  },
-
-  finish: function() {
-    // Window is already closed.
-    toggleSidebar(this.sidebar, false);
-    runNextTest();
-  },
-
-  cleanup: function() {
-    // Check that folder name has been changed.
-    is(PlacesUtils.bookmarks.getItemTitle(this._itemId), "n",
-       "Folder name has been edited");
-
-    // Cleanup.
     PlacesUtils.bookmarks.removeItem(this._itemId);
   }
 });
@@ -391,7 +238,7 @@ gTests.push({
   },
 
   finish: function() {
-    toggleSidebar(this.sidebar, false);
+    SidebarUI.hide();
     runNextTest();
   },
 
@@ -419,11 +266,10 @@ gTests.push({
 
   setup: function(aCallback) {
     // Add a visit.
-    addVisits(
+    PlacesTestUtils.addVisits(
       {uri: PlacesUtils._uri(TEST_URL),
-        transition: PlacesUtils.history.TRANSITION_TYPED},
-      window,
-      aCallback);
+        transition: PlacesUtils.history.TRANSITION_TYPED}
+      ).then(aCallback);
   },
 
   selectNode: function(tree) {
@@ -470,13 +316,12 @@ gTests.push({
   },
 
   finish: function() {
-    toggleSidebar(this.sidebar, false);
+    SidebarUI.hide();
     runNextTest();
   },
 
   cleanup: function() {
-    var bh = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
-    bh.removeAllPages();
+    return PlacesTestUtils.clearHistory();
   }
 });
 
@@ -499,10 +344,11 @@ function test() {
 function runNextTest() {
   // Cleanup from previous test.
   if (gCurrentTest) {
-    gCurrentTest.cleanup();
-    info("End of test: " + gCurrentTest.desc);
-    gCurrentTest = null;
-    waitForAsyncUpdates(runNextTest);
+    Promise.resolve(gCurrentTest.cleanup()).then(() => {
+      info("End of test: " + gCurrentTest.desc);
+      gCurrentTest = null;
+      waitForAsyncUpdates(runNextTest);
+    });
     return;
   }
 
@@ -531,7 +377,7 @@ function execute_test_in_sidebar() {
       // Need to executeSoon since the tree is initialized on sidebar load.
       executeSoon(open_properties_dialog);
     }, true);
-    toggleSidebar(gCurrentTest.sidebar, true);
+    SidebarUI.show(gCurrentTest.sidebar);
 }
 
 function open_properties_dialog() {
@@ -558,13 +404,12 @@ function open_properties_dialog() {
       if (aTopic != "domwindowopened")
         return;
       ww.unregisterNotification(windowObserver);
-      var win = aSubject.QueryInterface(Ci.nsIDOMWindow);
-      win.addEventListener("focus", function (event) {
-        win.removeEventListener("focus", arguments.callee, false);
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      waitForFocus(() => {
         // Windows has been loaded, execute our test now.
         executeSoon(function () {
           // Ensure overlay is loaded
-          ok(win.gEditItemOverlay._initialized, "EditItemOverlay is initialized");
+          ok(win.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
           gCurrentTest.window = win;
           try {
             gCurrentTest.run();
@@ -572,7 +417,7 @@ function open_properties_dialog() {
             ok(false, "An error occured during test run: " + ex.message);
           }
         });
-      }, false);
+      }, win);
     }
     ww.registerNotification(windowObserver);
 

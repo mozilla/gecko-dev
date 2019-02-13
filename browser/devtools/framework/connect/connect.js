@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,37 +41,45 @@ window.addEventListener("DOMContentLoaded", function onDOMReady() {
 
   let form = document.querySelector("#connection-form form");
   form.addEventListener("submit", function() {
-    window.submit();
+    window.submit().catch(e => {
+      Cu.reportError(e);
+      // Bug 921850: catch rare exception from DebuggerClient.socketConnect
+      showError("unexpected");
+    });
   });
 }, true);
 
 /**
  * Called when the "connect" button is clicked.
  */
-function submit() {
+let submit = Task.async(function*() {
   // Show the "connecting" screen
   document.body.classList.add("connecting");
 
-  // Save the host/port values
   let host = document.getElementById("host").value;
-  Services.prefs.setCharPref("devtools.debugger.remote-host", host);
-
   let port = document.getElementById("port").value;
-  Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+
+  // Save the host/port values
+  try {
+    Services.prefs.setCharPref("devtools.debugger.remote-host", host);
+    Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+  } catch(e) {
+    // Fails in e10s mode, but not a critical feature.
+  }
 
   // Initiate the connection
-  let transport;
-  try {
-    transport = debuggerSocketConnect(host, port);
-  } catch(e) {
-    // Bug 921850: catch rare exception from debuggerSocketConnect
-    showError("unexpected");
-    return;
-  }
+  let transport = yield DebuggerClient.socketConnect({ host, port });
   gClient = new DebuggerClient(transport);
   let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
   gConnectionTimeout = setTimeout(handleConnectionTimeout, delay);
-  gClient.connect(onConnectionReady);
+  let response = yield clientConnect();
+  yield onConnectionReady(...response);
+});
+
+function clientConnect() {
+  let deferred = promise.defer();
+  gClient.connect((...args) => deferred.resolve(args));
+  return deferred.promise;
 }
 
 /**
@@ -121,11 +129,19 @@ let onConnectionReady = Task.async(function*(aType, aTraits) {
   let gParent = document.getElementById("globalActors");
 
   // Build the Remote Process button
-  if (Object.keys(globals).length > 1) {
+  // If Fx<39, tab actors were used to be exposed on RootActor
+  // but in Fx>=39, chrome is debuggable via getProcess() and ChromeActor
+  if (globals.consoleActor || gClient.mainRoot.traits.allowChromeProcess) {
     let a = document.createElement("a");
     a.onclick = function() {
-      openToolbox(globals, true);
-
+      if (gClient.mainRoot.traits.allowChromeProcess) {
+        gClient.getProcess()
+               .then(aResponse => {
+                 openToolbox(aResponse.form, true);
+               });
+      } else if (globals.consoleActor) {
+        openToolbox(globals, true, "webconsole", false);
+      }
     }
     a.title = a.textContent = window.l10n.GetStringFromName("mainProcess");
     a.className = "remote-process";
@@ -154,7 +170,7 @@ let onConnectionReady = Task.async(function*(aType, aTraits) {
 function buildAddonLink(addon, parent) {
   let a = document.createElement("a");
   a.onclick = function() {
-    openToolbox({ addonActor: addon.actor, title: addon.name }, true, "jsdebugger");
+    openToolbox(addon, true, "jsdebugger", false);
   }
 
   a.textContent = addon.name;
@@ -213,11 +229,12 @@ function handleConnectionTimeout() {
  * The user clicked on one of the buttons.
  * Opens the toolbox.
  */
-function openToolbox(form, chrome=false, tool="webconsole") {
+function openToolbox(form, chrome=false, tool="webconsole", isTabActor) {
   let options = {
     form: form,
     client: gClient,
-    chrome: chrome
+    chrome: chrome,
+    isTabActor: isTabActor
   };
   devtools.TargetFactory.forRemoteTab(options).then((target) => {
     let hostType = devtools.Toolbox.HostType.WINDOW;
@@ -225,7 +242,7 @@ function openToolbox(form, chrome=false, tool="webconsole") {
       toolbox.once("destroyed", function() {
         gClient.close();
       });
-    });
+    }, console.error.bind(console));
     window.close();
-  });
+  }, console.error.bind(console));
 }

@@ -10,7 +10,7 @@
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/gfx/Types.h"
 
-class gfxXlibSurface;
+#include "gfxXlibSurface.h"
 
 namespace mozilla {
 namespace layers {
@@ -22,31 +22,29 @@ public:
   X11TextureHost(TextureFlags aFlags,
                  const SurfaceDescriptorX11& aDescriptor);
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) override;
 
-  virtual bool Lock() MOZ_OVERRIDE;
+  virtual bool Lock() override;
 
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
+  virtual gfx::SurfaceFormat GetFormat() const override;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
+  virtual gfx::IntSize GetSize() const override;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override
   {
-    return mTextureSource;
+    aTexture = mTextureSource;
+    return !!aTexture;
   }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE
-  {
-    return nullptr; // XXX - implement this (for MOZ_DUMP_PAINTING)
-  }
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
-  virtual const char* Name() { return "X11TextureHost"; }
+  virtual const char* Name() override { return "X11TextureHost"; }
 #endif
 
 protected:
-  Compositor* mCompositor;
-  RefPtr<NewTextureSource> mTextureSource;
+  RefPtr<Compositor> mCompositor;
+  RefPtr<TextureSource> mTextureSource;
   RefPtr<gfxXlibSurface> mSurface;
 };
 

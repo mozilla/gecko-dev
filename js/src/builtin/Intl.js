@@ -52,6 +52,19 @@ function toASCIIUpperCase(s) {
     return result;
 }
 
+/**
+ * Holder object for encapsulating regexp instances.
+ *
+ * Regular expression instances should be created after the initialization of
+ * self-hosted global.
+ */
+var internalIntlRegExps = std_Object_create(null);
+internalIntlRegExps.unicodeLocaleExtensionSequenceRE = null;
+internalIntlRegExps.languageTagRE = null;
+internalIntlRegExps.duplicateVariantRE = null;
+internalIntlRegExps.duplicateSingletonRE = null;
+internalIntlRegExps.isWellFormedCurrencyCodeRE = null;
+internalIntlRegExps.currencyDigitsRE = null;
 
 /**
  * Regular expression matching a "Unicode locale extension sequence", which the
@@ -65,8 +78,11 @@ function toASCIIUpperCase(s) {
  *
  * Spec: ECMAScript Internationalization API Specification, 6.2.1.
  */
-var unicodeLocaleExtensionSequence = "-u(-[a-z0-9]{2,8})+";
-var unicodeLocaleExtensionSequenceRE = new RegExp(unicodeLocaleExtensionSequence);
+function getUnicodeLocaleExtensionSequenceRE() {
+    return internalIntlRegExps.unicodeLocaleExtensionSequenceRE ||
+           (internalIntlRegExps.unicodeLocaleExtensionSequenceRE =
+            regexp_construct_no_statics("-u(-[a-z0-9]{2,8})+"));
+}
 
 
 /**
@@ -76,6 +92,7 @@ function removeUnicodeExtensions(locale) {
     // Don't use std_String_replace directly with a regular expression,
     // as that would set RegExp statics.
     var extensions;
+    var unicodeLocaleExtensionSequenceRE = getUnicodeLocaleExtensionSequenceRE();
     while ((extensions = regexp_exec_no_statics(unicodeLocaleExtensionSequenceRE, locale)) !== null) {
         locale = callFunction(std_String_replace, locale, extensions[0], "");
         unicodeLocaleExtensionSequenceRE.lastIndex = 0;
@@ -89,7 +106,10 @@ function removeUnicodeExtensions(locale) {
  *
  * Spec: RFC 5646 section 2.1.
  */
-var languageTagRE = (function () {
+function getLanguageTagRE() {
+    if (internalIntlRegExps.languageTagRE)
+        return internalIntlRegExps.languageTagRE;
+
     // RFC 5234 section B.1
     // ALPHA          =  %x41-5A / %x61-7A   ; A-Z / a-z
     var ALPHA = "[a-zA-Z]";
@@ -172,11 +192,15 @@ var languageTagRE = (function () {
     var languageTag = "^(?:" + langtag + "|" + privateuse + "|" + grandfathered + ")$";
 
     // Language tags are case insensitive (RFC 5646 section 2.1.1).
-    return new RegExp(languageTag, "i");
-}());
+    return (internalIntlRegExps.languageTagRE =
+            regexp_construct_no_statics(languageTag, "i"));
+}
 
 
-var duplicateVariantRE = (function () {
+function getDuplicateVariantRE() {
+    if (internalIntlRegExps.duplicateVariantRE)
+        return internalIntlRegExps.duplicateVariantRE;
+
     // RFC 5234 section B.1
     // ALPHA          =  %x41-5A / %x61-7A   ; A-Z / a-z
     var ALPHA = "[a-zA-Z]";
@@ -211,11 +235,15 @@ var duplicateVariantRE = (function () {
     // Language tags are case insensitive (RFC 5646 section 2.1.1), but for
     // this regular expression that's covered by having its character classes
     // list both upper- and lower-case characters.
-    return new RegExp(duplicateVariant);
-}());
+    return (internalIntlRegExps.duplicateVariantRE =
+            regexp_construct_no_statics(duplicateVariant));
+}
 
 
-var duplicateSingletonRE = (function () {
+function getDuplicateSingletonRE() {
+    if (internalIntlRegExps.duplicateSingletonRE)
+        return internalIntlRegExps.duplicateSingletonRE;
+
     // RFC 5234 section B.1
     // ALPHA          =  %x41-5A / %x61-7A   ; A-Z / a-z
     var ALPHA = "[a-zA-Z]";
@@ -249,8 +277,9 @@ var duplicateSingletonRE = (function () {
     // Language tags are case insensitive (RFC 5646 section 2.1.1), but for
     // this regular expression that's covered by having its character classes
     // list both upper- and lower-case characters.
-    return new RegExp(duplicateSingleton);
-}());
+    return (internalIntlRegExps.duplicateSingletonRE =
+            regexp_construct_no_statics(duplicateSingleton));
+}
 
 
 /**
@@ -261,6 +290,7 @@ var duplicateSingletonRE = (function () {
  */
 function IsStructurallyValidLanguageTag(locale) {
     assert(typeof locale === "string", "IsStructurallyValidLanguageTag");
+    var languageTagRE = getLanguageTagRE();
     if (!regexp_test_no_statics(languageTagRE, locale))
         return false;
 
@@ -274,6 +304,8 @@ function IsStructurallyValidLanguageTag(locale) {
         locale = callFunction(std_String_substring, locale, 0, pos);
 
     // Check for duplicate variant or singleton subtags.
+    var duplicateVariantRE = getDuplicateVariantRE();
+    var duplicateSingletonRE = getDuplicateSingletonRE();
     return !regexp_test_no_statics(duplicateVariantRE, locale) &&
            !regexp_test_no_statics(duplicateSingletonRE, locale);
 }
@@ -452,12 +484,17 @@ function DefaultLocale() {
  *
  * Spec: ECMAScript Internationalization API Specification, 6.3.1.
  */
+function getIsWellFormedCurrencyCodeRE() {
+    return internalIntlRegExps.isWellFormedCurrencyCodeRE ||
+           (internalIntlRegExps.isWellFormedCurrencyCodeRE =
+            regexp_construct_no_statics("[^A-Z]"));
+}
 function IsWellFormedCurrencyCode(currency) {
     var c = ToString(currency);
     var normalized = toASCIIUpperCase(c);
     if (normalized.length !== 3)
         return false;
-    return !regexp_test_no_statics(/[^A-Z]/, normalized);
+    return !regexp_test_no_statics(getIsWellFormedCurrencyCodeRE(), normalized);
 }
 
 
@@ -502,10 +539,10 @@ function CanonicalizeLocaleList(locales) {
         if (kPresent) {
             var kValue = O[k];
             if (!(typeof kValue === "string" || IsObject(kValue)))
-                ThrowError(JSMSG_INVALID_LOCALES_ELEMENT);
+                ThrowTypeError(JSMSG_INVALID_LOCALES_ELEMENT);
             var tag = ToString(kValue);
             if (!IsStructurallyValidLanguageTag(tag))
-                ThrowError(JSMSG_INVALID_LANGUAGE_TAG, tag);
+                ThrowRangeError(JSMSG_INVALID_LANGUAGE_TAG, tag);
             tag = CanonicalizeLanguageTag(tag);
             if (seen.indexOf(tag) === -1)
                 seen.push(tag);
@@ -571,6 +608,7 @@ function LookupMatcher(availableLocales, requestedLocales) {
     if (availableLocale !== undefined) {
         result.locale = availableLocale;
         if (locale !== noExtensionsLocale) {
+            var unicodeLocaleExtensionSequenceRE = getUnicodeLocaleExtensionSequenceRE();
             var extensionMatch = regexp_exec_no_statics(unicodeLocaleExtensionSequenceRE, locale);
             var extension = extensionMatch[0];
             var extensionIndex = extensionMatch.index;
@@ -805,7 +843,7 @@ function SupportedLocales(availableLocales, requestedLocales, options) {
         if (matcher !== undefined) {
             matcher = ToString(matcher);
             if (matcher !== "lookup" && matcher !== "best fit")
-                ThrowError(JSMSG_INVALID_LOCALE_MATCHER, matcher);
+                ThrowRangeError(JSMSG_INVALID_LOCALE_MATCHER, matcher);
         }
     }
 
@@ -850,7 +888,7 @@ function GetOption(options, property, type, values, fallback) {
 
         // Step 2.d.
         if (values !== undefined && callFunction(std_Array_indexOf, values, value) === -1)
-            ThrowError(JSMSG_INVALID_OPTION_VALUE, property, value);
+            ThrowRangeError(JSMSG_INVALID_OPTION_VALUE, property, value);
 
         // Step 2.e.
         return value;
@@ -878,8 +916,8 @@ function GetNumberOption(options, property, minimum, maximum, fallback) {
     // Step 2.
     if (value !== undefined) {
         value = ToNumber(value);
-        if (std_isNaN(value) || value < minimum || value > maximum)
-            ThrowError(JSMSG_INVALID_DIGITS_VALUE, value);
+        if (Number_isNaN(value) || value < minimum || value > maximum)
+            ThrowRangeError(JSMSG_INVALID_DIGITS_VALUE, value);
         return std_Math_floor(value);
     }
 
@@ -889,15 +927,6 @@ function GetNumberOption(options, property, minimum, maximum, fallback) {
 
 
 /********** Property access for Intl objects **********/
-
-
-/**
- * Set a normal public property p of o to value v, but use Object.defineProperty
- * to avoid interference from setters on Object.prototype.
- */
-function defineProperty(o, p, v) {
-    _DefineDataProperty(o, p, v, ATTR_ENUMERABLE | ATTR_CONFIGURABLE | ATTR_WRITABLE);
-}
 
 
 /**
@@ -1043,7 +1072,7 @@ function getIntlObjectInternals(obj, className, methodName) {
     assert(internals === undefined || isInitializedIntlObject(obj), "bad mapping in internalsMap");
 
     if (internals === undefined || internals.type !== className)
-        ThrowError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
+        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
 
     return internals;
 }
@@ -1217,7 +1246,7 @@ function InitializeCollator(collator, locales, options) {
 
     // Step 1.
     if (isInitializedIntlObject(collator))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     // Step 2.
     var internals = initializeIntlObject(collator);
@@ -1274,7 +1303,7 @@ function InitializeCollator(collator, locales, options) {
     // Step 13, unrolled.
     var numericValue = GetOption(options, "numeric", "boolean", undefined, undefined);
     if (numericValue !== undefined)
-        numericValue = callFunction(std_Boolean_toString, numericValue);
+        numericValue = numericValue ? 'true' : 'false';
     opt.kn = numericValue;
 
     var caseFirstValue = GetOption(options, "caseFirst", "string", ["upper", "lower", "false"], undefined);
@@ -1420,7 +1449,7 @@ function Intl_Collator_resolvedOptions() {
     for (var i = 0; i < relevantExtensionKeys.length; i++) {
         var key = relevantExtensionKeys[i];
         var property = (key === "co") ? "collation" : collatorKeyMappings[key].property;
-        defineProperty(result, property, internals[property]);
+        _DefineDataProperty(result, property, internals[property]);
     }
     return result;
 }
@@ -1559,7 +1588,7 @@ function InitializeNumberFormat(numberFormat, locales, options) {
 
     // Step 1.
     if (isInitializedIntlObject(numberFormat))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     // Step 2.
     var internals = initializeIntlObject(numberFormat);
@@ -1628,11 +1657,11 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     // Steps 17-20.
     var c = GetOption(options, "currency", "string", undefined, undefined);
     if (c !== undefined && !IsWellFormedCurrencyCode(c))
-        ThrowError(JSMSG_INVALID_CURRENCY_CODE, c);
+        ThrowRangeError(JSMSG_INVALID_CURRENCY_CODE, c);
     var cDigits;
     if (s === "currency") {
         if (c === undefined)
-            ThrowError(JSMSG_UNDEFINED_CURRENCY);
+            ThrowTypeError(JSMSG_UNDEFINED_CURRENCY);
 
         // Steps 20.a-c.
         c = toASCIIUpperCase(c);
@@ -1731,9 +1760,14 @@ var currencyDigits = {
  *
  * Spec: ECMAScript Internationalization API Specification, 11.1.1.
  */
+function getCurrencyDigitsRE() {
+    return internalIntlRegExps.currencyDigitsRE ||
+           (internalIntlRegExps.currencyDigitsRE =
+            regexp_construct_no_statics("^[A-Z]{3}$"));
+}
 function CurrencyDigits(currency) {
     assert(typeof currency === "string", "CurrencyDigits");
-    assert(regexp_test_no_statics(/^[A-Z]{3}$/, currency), "CurrencyDigits");
+    assert(regexp_test_no_statics(getCurrencyDigitsRE(), currency), "CurrencyDigits");
 
     if (callFunction(std_Object_hasOwnProperty, currencyDigits, currency))
         return currencyDigits[currency];
@@ -1858,7 +1892,7 @@ function Intl_NumberFormat_resolvedOptions() {
     for (var i = 0; i < optionalProperties.length; i++) {
         var p = optionalProperties[i];
         if (callFunction(std_Object_hasOwnProperty, internals, p))
-            defineProperty(result, p, internals[p]);
+            _DefineDataProperty(result, p, internals[p]);
     }
     return result;
 }
@@ -2002,7 +2036,7 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
 
     // Step 1.
     if (isInitializedIntlObject(dateTimeFormat))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     // Step 2.
     var internals = initializeIntlObject(dateTimeFormat);
@@ -2058,7 +2092,7 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     if (tz !== undefined) {
         tz = toASCIIUpperCase(ToString(tz));
         if (tz !== "UTC")
-            ThrowError(JSMSG_INVALID_TIME_ZONE, tz);
+            ThrowRangeError(JSMSG_INVALID_TIME_ZONE, tz);
     }
     lazyDateTimeFormatData.timeZone = tz;
 
@@ -2323,17 +2357,17 @@ function ToDateTimeOptions(options, required, defaults) {
         // the Throw parameter, while Object.defineProperty uses true. For the
         // calls here, the difference doesn't matter because we're adding
         // properties to a new object.
-        defineProperty(options, "year", "numeric");
-        defineProperty(options, "month", "numeric");
-        defineProperty(options, "day", "numeric");
+        _DefineDataProperty(options, "year", "numeric");
+        _DefineDataProperty(options, "month", "numeric");
+        _DefineDataProperty(options, "day", "numeric");
     }
 
     // Step 8.
     if (needDefaults && (defaults === "time" || defaults === "all")) {
         // See comment for step 7.
-        defineProperty(options, "hour", "numeric");
-        defineProperty(options, "minute", "numeric");
-        defineProperty(options, "second", "numeric");
+        _DefineDataProperty(options, "hour", "numeric");
+        _DefineDataProperty(options, "minute", "numeric");
+        _DefineDataProperty(options, "second", "numeric");
     }
 
     // Step 9.
@@ -2637,11 +2671,11 @@ function resolveICUPattern(pattern, result) {
                 // skip other pattern characters and literal text
             }
             if (callFunction(std_Object_hasOwnProperty, icuPatternCharToComponent, c))
-                defineProperty(result, icuPatternCharToComponent[c], value);
+                _DefineDataProperty(result, icuPatternCharToComponent[c], value);
             if (c === "h" || c === "K")
-                defineProperty(result, "hour12", true);
+                _DefineDataProperty(result, "hour12", true);
             else if (c === "H" || c === "k")
-                defineProperty(result, "hour12", false);
+                _DefineDataProperty(result, "hour12", false);
         }
     }
 }

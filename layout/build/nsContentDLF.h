@@ -11,8 +11,6 @@
 
 class nsIChannel;
 class nsIContentViewer;
-class nsIFile;
-class nsIInputStream;
 class nsILoadGroup;
 class nsIStreamListener;
 
@@ -21,9 +19,11 @@ class nsIStreamListener;
 
 class nsContentDLF : public nsIDocumentLoaderFactory
 {
+protected:
+  virtual ~nsContentDLF();
+
 public:
   nsContentDLF();
-  virtual ~nsContentDLF();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOCUMENTLOADERFACTORY
@@ -41,7 +41,6 @@ public:
   nsresult CreateXULDocument(const char* aCommand,
                              nsIChannel* aChannel,
                              nsILoadGroup* aLoadGroup,
-                             const char* aContentType,
                              nsIDocShell* aContainer,
                              nsISupports* aExtraInfo,
                              nsIStreamListener** aDocListener,

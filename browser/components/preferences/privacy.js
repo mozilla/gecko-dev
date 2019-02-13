@@ -1,9 +1,10 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 var gPrivacyPane = {
 
@@ -17,6 +18,43 @@ var gPrivacyPane = {
    */
   _shouldPromptForRestart: true,
 
+#ifdef NIGHTLY_BUILD
+  /**
+   * Show the Tracking Protection UI depending on the
+   * privacy.trackingprotection.ui.enabled pref, and linkify its Learn More link
+   */
+  _initTrackingProtection: function () {
+    if (!Services.prefs.getBoolPref("privacy.trackingprotection.ui.enabled")) {
+      return;
+    }
+
+    let link = document.getElementById("trackingProtectionLearnMore");
+    let url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "tracking-protection";
+    link.setAttribute("href", url);
+
+    document.getElementById("trackingprotectionbox").hidden = false;
+  },
+#endif
+
+  /**
+   * Initialize autocomplete to ensure prefs are in sync.
+   */
+  _initAutocomplete: function () {
+    let unifiedCompletePref = false;
+    try {
+      unifiedCompletePref =
+        Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete");
+    } catch (ex) {}
+
+    if (unifiedCompletePref) {
+      Components.classes["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
+                .getService(Components.interfaces.mozIPlacesAutoComplete);
+    } else {
+      Components.classes["@mozilla.org/autocomplete/search;1?name=history"]
+                .getService(Components.interfaces.mozIPlacesAutoComplete);
+    }
+  },
+
   /**
    * Sets up the UI for the number of days of history to keep, and updates the
    * label of the "Clear Now..." button.
@@ -28,6 +66,12 @@ var gPrivacyPane = {
     this.updateHistoryModePane();
     this.updatePrivacyMicroControls();
     this.initAutoStartPrivateBrowsingReverter();
+#ifdef NIGHTLY_BUILD
+    this._initTrackingProtection();
+#endif
+    this._initAutocomplete();
+
+    document.getElementById("searchesSuggestion").hidden = !AppConstants.NIGHTLY_BUILD;
   },
 
   // HISTORY MODE
@@ -125,42 +169,6 @@ var gPrivacyPane = {
   },
 
   /**
-   * Update the Tracking preferences based on controls.
-   */
-  setTrackingPrefs: function PPP_setTrackingPrefs()
-  {
-    let dntRadioGroup = document.getElementById("doNotTrackSelection"),
-        dntValuePref = document.getElementById("privacy.donottrackheader.value"),
-        dntEnabledPref = document.getElementById("privacy.donottrackheader.enabled");
-
-    // if the selected radio button says "no preference", set on/off pref to
-    // false and don't change the value pref.
-    if (dntRadioGroup.selectedItem.value == -1) {
-      dntEnabledPref.value = false;
-      return dntValuePref.value;
-    }
-
-    dntEnabledPref.value = true;
-    return dntRadioGroup.selectedItem.value;
-  },
-
-  /**
-   * Obtain the tracking preference value and reflect it in the UI.
-   */
-  getTrackingPrefs: function PPP_getTrackingPrefs()
-  {
-    let dntValuePref = document.getElementById("privacy.donottrackheader.value"),
-        dntEnabledPref = document.getElementById("privacy.donottrackheader.enabled");
-
-    // if DNT is enbaled, select the value from the selected radio
-    // button, otherwise choose the "no preference" radio button
-    if (dntEnabledPref.value)
-      return dntValuePref.value;
-
-    return document.getElementById("dntnopref").value;
-  },
-
-  /**
    * Update the private browsing auto-start pref and the history mode
    * micro-management prefs based on the history mode menulist
    */
@@ -180,13 +188,8 @@ var gPrivacyPane = {
       // select the remember forms history option
       document.getElementById("browser.formfill.enable").value = true;
 
-#ifdef RELEASE_BUILD
       // select the accept cookies option
       document.getElementById("network.cookie.cookieBehavior").value = 0;
-#else
-      // select the limit cookies option
-      document.getElementById("network.cookie.cookieBehavior").value = 3;
-#endif
       // select the cookie lifetime policy option
       document.getElementById("network.cookie.lifetimePolicy").value = 0;
 
@@ -209,9 +212,20 @@ var gPrivacyPane = {
     if (document.getElementById("historyMode").value == "custom") {
       let disabled = this._autoStartPrivateBrowsing =
         document.getElementById("privateBrowsingAutoStart").checked;
-      this.dependentControls
-          .forEach(function (aElement)
-                   document.getElementById(aElement).disabled = disabled);
+      this.dependentControls.forEach(function (aElement) {
+        let control = document.getElementById(aElement);
+        let preferenceId = control.getAttribute("preference");
+        if (!preferenceId) {
+          let dependentControlId = control.getAttribute("control");
+          if (dependentControlId) {
+            let dependentControl = document.getElementById(dependentControlId);
+            preferenceId = dependentControl.getAttribute("preference");
+          }
+        }
+
+        let preference = preferenceId ? document.getElementById(preferenceId) : {};
+        control.disabled = disabled || preference.locked;
+      });
 
       // adjust the cookie controls status
       this.readAcceptCookies();
@@ -311,40 +325,16 @@ var gPrivacyPane = {
   // HISTORY
 
   /**
-   * Read the location bar enabled and suggestion prefs
-   * @return Int value for suggestion menulist
+   * Update browser.urlbar.autocomplete.enabled when a
+   * browser.urlbar.suggest.* pref is changed from the ui.
    */
-  readSuggestionPref: function PPP_readSuggestionPref()
-  {
-    let getVal = function(aPref)
-      document.getElementById("browser.urlbar." + aPref).value;
-
-    // Suggest nothing if autocomplete is not enabled
-    if (!getVal("autocomplete.enabled"))
-      return -1;
-
-    // Bottom 2 bits of default.behavior specify history/bookmark
-    return getVal("default.behavior") & 3;
-  },
-
-  /**
-   * Write the location bar enabled and suggestion prefs when necessary
-   * @return Bool value for enabled pref
-   */
-  writeSuggestionPref: function PPP_writeSuggestionPref()
-  {
-    let menuVal = document.getElementById("locationBarSuggestion").value;
-    let enabled = menuVal != -1;
-
-    // Only update default.behavior if we're giving suggestions
-    if (enabled) {
-      // Put the selected menu item's value directly into the bottom 2 bits
-      let behavior = document.getElementById("browser.urlbar.default.behavior");
-      behavior.value = behavior.value >> 2 << 2 | menuVal;
+  writeSuggestionPref() {
+    let getVal = (aPref) => {
+      return document.getElementById("browser.urlbar.suggest." + aPref).value;
     }
-
-    // Always update the enabled pref
-    return enabled;
+    // autocomplete.enabled is true if any of the suggestions is true
+    let enabled = ["history", "bookmark", "openpage", "searches"].map(getVal).some(v => v);
+    Services.prefs.setBoolPref("browser.urlbar.autocomplete.enabled", enabled);
   },
 
   /*
@@ -407,19 +397,11 @@ var gPrivacyPane = {
     var accept = document.getElementById("acceptCookies");
     var acceptThirdPartyMenu = document.getElementById("acceptThirdPartyMenu");
 
-#ifdef RELEASE_BUILD
     // if we're enabling cookies, automatically select 'accept third party always'
     if (accept.checked)
       acceptThirdPartyMenu.selectedIndex = 0;
 
     return accept.checked ? 0 : 2;
-#else
-    // if we're enabling cookies, automatically select 'accept third party from visited'
-    if (accept.checked)
-      acceptThirdPartyMenu.selectedIndex = 1;
-
-    return accept.checked ? 3 : 2;
-#endif
   },
 
   /**
@@ -474,7 +456,7 @@ var gPrivacyPane = {
                    introText      : bundlePreferences.getString("cookiepermissionstext") };
     document.documentElement.openWindow("Browser:Permissions",
                                         "chrome://browser/content/preferences/permissions.xul",
-                                        "", params);
+                                        "resizable", params);
   },
 
   /**
@@ -484,7 +466,7 @@ var gPrivacyPane = {
   {
     document.documentElement.openWindow("Browser:Cookies",
                                         "chrome://browser/content/preferences/cookies.xul",
-                                        "", null);
+                                        "resizable", null);
   },
 
   // CLEAR PRIVATE DATA

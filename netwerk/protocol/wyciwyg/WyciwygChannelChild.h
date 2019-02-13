@@ -8,6 +8,7 @@
 #include "mozilla/net/PWyciwygChannelChild.h"
 #include "nsIWyciwygChannel.h"
 #include "nsIChannel.h"
+#include "nsILoadInfo.h"
 #include "PrivateBrowsingChannel.h"
 
 class nsIProgressEventSink;
@@ -35,9 +36,9 @@ enum WyciwygChannelChildState {
 
 
 // Header file contents
-class WyciwygChannelChild : public PWyciwygChannelChild
-                          , public nsIWyciwygChannel
-                          , public PrivateBrowsingChannel<WyciwygChannelChild>
+class WyciwygChannelChild final : public PWyciwygChannelChild
+                                , public nsIWyciwygChannel
+                                , public PrivateBrowsingChannel<WyciwygChannelChild>
 {
 public:
   NS_DECL_ISUPPORTS
@@ -46,7 +47,6 @@ public:
   NS_DECL_NSIWYCIWYGCHANNEL
 
   WyciwygChannelChild();
-  virtual ~WyciwygChannelChild();
 
   void AddIPDLReference();
   void ReleaseIPDLReference();
@@ -56,15 +56,17 @@ public:
   bool IsSuspended();
 
 protected:
+  virtual ~WyciwygChannelChild();
+
   bool RecvOnStartRequest(const nsresult& statusCode,
                           const int64_t& contentLength,
                           const int32_t& source,
                           const nsCString& charset,
-                          const nsCString& securityInfo) MOZ_OVERRIDE;
+                          const nsCString& securityInfo) override;
   bool RecvOnDataAvailable(const nsCString& data,
-                           const uint64_t& offset) MOZ_OVERRIDE;
-  bool RecvOnStopRequest(const nsresult& statusCode) MOZ_OVERRIDE;
-  bool RecvCancelEarly(const nsresult& statusCode) MOZ_OVERRIDE;
+                           const uint64_t& offset) override;
+  bool RecvOnStopRequest(const nsresult& statusCode) override;
+  bool RecvCancelEarly(const nsresult& statusCode) override;
 
   void OnStartRequest(const nsresult& statusCode,
                       const int64_t& contentLength,
@@ -89,6 +91,7 @@ private:
   nsCOMPtr<nsIURI>                  mURI;
   nsCOMPtr<nsIURI>                  mOriginalURI;
   nsCOMPtr<nsISupports>             mOwner;
+  nsCOMPtr<nsILoadInfo>             mLoadInfo;
   nsCOMPtr<nsIInterfaceRequestor>   mCallbacks;
   nsCOMPtr<nsIProgressEventSink>    mProgressSink;
   nsCOMPtr<nsILoadGroup>            mLoadGroup;

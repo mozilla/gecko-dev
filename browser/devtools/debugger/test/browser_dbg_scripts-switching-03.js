@@ -7,13 +7,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_script-switching-01.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gView, gEditor, gL10N;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gView = gDebugger.DebuggerView;
@@ -37,13 +36,12 @@ function showBogusSource() {
 }
 
 function testDebuggerLoadingError() {
-  ok(gEditor.getText().contains(gL10N.getStr("errorLoadingText")),
+  ok(gEditor.getText().includes(gL10N.getFormatStr("errorLoadingText2", "noSuchActor")),
     "The valid error loading message is displayed.");
 }
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gView = null;

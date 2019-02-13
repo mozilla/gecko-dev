@@ -25,6 +25,8 @@
 #include "nsDisplayList.h"
 #include <algorithm>
 
+using namespace mozilla;
+
 //
 // NS_NewLeafBoxFrame
 //
@@ -33,12 +35,12 @@
 nsIFrame*
 NS_NewLeafBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsLeafBoxFrame(aPresShell, aContext);
+  return new (aPresShell) nsLeafBoxFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsLeafBoxFrame)
 
-nsLeafBoxFrame::nsLeafBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext)
+nsLeafBoxFrame::nsLeafBoxFrame(nsStyleContext* aContext)
     : nsLeafFrame(aContext)
 {
 }
@@ -122,60 +124,69 @@ nsLeafBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
   nsBoxLayoutState state(PresContext(), aRenderingContext);
-  nsSize minSize = GetMinSize(state);
 
-  // GetMinSize returns border-box width, and we want to return content
-  // width.  Since Reflow uses the reflow state's border and padding, we
+  WritingMode wm = GetWritingMode();
+  LogicalSize minSize(wm, GetMinSize(state));
+
+  // GetMinSize returns border-box size, and we want to return content
+  // inline-size.  Since Reflow uses the reflow state's border and padding, we
   // actually just want to subtract what GetMinSize added, which is the
   // result of GetBorderAndPadding.
   nsMargin bp;
   GetBorderAndPadding(bp);
 
-  result = minSize.width - bp.LeftRight();
+  result = minSize.ISize(wm) - LogicalMargin(wm, bp).IStartEnd(wm);
 
   return result;
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
   nsBoxLayoutState state(PresContext(), aRenderingContext);
-  nsSize prefSize = GetPrefSize(state);
 
-  // GetPrefSize returns border-box width, and we want to return content
-  // width.  Since Reflow uses the reflow state's border and padding, we
+  WritingMode wm = GetWritingMode();
+  LogicalSize prefSize(wm, GetPrefSize(state));
+
+  // GetPrefSize returns border-box size, and we want to return content
+  // inline-size.  Since Reflow uses the reflow state's border and padding, we
   // actually just want to subtract what GetPrefSize added, which is the
   // result of GetBorderAndPadding.
   nsMargin bp;
   GetBorderAndPadding(bp);
 
-  result = prefSize.width - bp.LeftRight();
+  result = prefSize.ISize(wm) - LogicalMargin(wm, bp).IStartEnd(wm);
 
   return result;
 }
 
 nscoord
-nsLeafBoxFrame::GetIntrinsicWidth()
+nsLeafBoxFrame::GetIntrinsicISize()
 {
   // No intrinsic width
   return 0;
 }
 
-nsSize
+LogicalSize
 nsLeafBoxFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                nsSize aCBSize, nscoord aAvailableWidth,
-                                nsSize aMargin, nsSize aBorder,
-                                nsSize aPadding, bool aShrinkWrap)
+                                WritingMode aWM,
+                                const LogicalSize& aCBSize,
+                                nscoord aAvailableISize,
+                                const LogicalSize& aMargin,
+                                const LogicalSize& aBorder,
+                                const LogicalSize& aPadding,
+                                bool aShrinkWrap)
 {
   // Important: NOT calling our direct superclass here!
-  return nsFrame::ComputeAutoSize(aRenderingContext, aCBSize, aAvailableWidth,
+  return nsFrame::ComputeAutoSize(aRenderingContext, aWM,
+                                  aCBSize, aAvailableISize,
                                   aMargin, aBorder, aPadding, aShrinkWrap);
 }
 
@@ -190,6 +201,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   // class hierarchy.  If you make changes here, please keep
   // nsBoxFrame::Reflow in sync.
 
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsLeafBoxFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
@@ -330,7 +342,7 @@ nsLeafBoxFrame::GetType() const
 nsresult
 nsLeafBoxFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
-  MarkIntrinsicWidthsDirty();
+  MarkIntrinsicISizesDirty();
   return nsLeafFrame::CharacterDataChanged(aInfo);
 }
 
@@ -365,7 +377,7 @@ nsLeafBoxFrame::GetBoxAscent(nsBoxLayoutState& aState)
 }
 
 /* virtual */ void
-nsLeafBoxFrame::MarkIntrinsicWidthsDirty()
+nsLeafBoxFrame::MarkIntrinsicISizesDirty()
 {
   // Don't call base class method, since everything it does is within an
   // IsBoxWrapped check.

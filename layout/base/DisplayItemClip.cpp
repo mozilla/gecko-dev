@@ -6,19 +6,22 @@
 #include "DisplayItemClip.h"
 
 #include "gfxContext.h"
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "nsPresContext.h"
 #include "nsCSSRendering.h"
 #include "nsLayoutUtils.h"
 #include "nsRegion.h"
+
+using namespace mozilla::gfx;
 
 namespace mozilla {
 
 void
 DisplayItemClip::SetTo(const nsRect& aRect)
 {
-  mHaveClipRect = true;
-  mClipRect = aRect;
-  mRoundedClipRects.Clear();
+  SetTo(aRect, nullptr);
 }
 
 void
@@ -26,8 +29,24 @@ DisplayItemClip::SetTo(const nsRect& aRect, const nscoord* aRadii)
 {
   mHaveClipRect = true;
   mClipRect = aRect;
+  if (aRadii) {
+    mRoundedClipRects.SetLength(1);
+    mRoundedClipRects[0].mRect = aRect;
+    memcpy(mRoundedClipRects[0].mRadii, aRadii, sizeof(nscoord)*8);
+  } else {
+    mRoundedClipRects.Clear();
+  }
+}
+
+void
+DisplayItemClip::SetTo(const nsRect& aRect,
+                       const nsRect& aRoundedRect,
+                       const nscoord* aRadii)
+{
+  mHaveClipRect = true;
+  mClipRect = aRect;
   mRoundedClipRects.SetLength(1);
-  mRoundedClipRects[0].mRect = aRect;
+  mRoundedClipRects[0].mRect = aRoundedRect;
   memcpy(mRoundedClipRects[0].mRadii, aRadii, sizeof(nscoord)*8);
 }
 
@@ -74,7 +93,7 @@ DisplayItemClip::ApplyTo(gfxContext* aContext,
 {
   int32_t A2D = aPresContext->AppUnitsPerDevPixel();
   ApplyRectTo(aContext, A2D);
-  ApplyRoundedRectsTo(aContext, A2D, aBegin, aEnd);
+  ApplyRoundedRectClipsTo(aContext, A2D, aBegin, aEnd);
 }
 
 void
@@ -87,49 +106,63 @@ DisplayItemClip::ApplyRectTo(gfxContext* aContext, int32_t A2D) const
 }
 
 void
-DisplayItemClip::ApplyRoundedRectsTo(gfxContext* aContext,
-                                     int32_t A2D,
-                                     uint32_t aBegin, uint32_t aEnd) const
+DisplayItemClip::ApplyRoundedRectClipsTo(gfxContext* aContext,
+                                         int32_t A2D,
+                                         uint32_t aBegin, uint32_t aEnd) const
 {
+  DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
+
   aEnd = std::min<uint32_t>(aEnd, mRoundedClipRects.Length());
 
   for (uint32_t i = aBegin; i < aEnd; ++i) {
-    AddRoundedRectPathTo(aContext, A2D, mRoundedClipRects[i]);
-    aContext->Clip();
+    RefPtr<Path> roundedRect =
+      MakeRoundedRectPath(aDrawTarget, A2D, mRoundedClipRects[i]);
+    aContext->Clip(roundedRect);
   }
 }
 
 void
-DisplayItemClip::DrawRoundedRectsTo(gfxContext* aContext,
-                                    int32_t A2D,
-                                    uint32_t aBegin, uint32_t aEnd) const
+DisplayItemClip::FillIntersectionOfRoundedRectClips(gfxContext* aContext,
+                                                    const Color& aColor,
+                                                    int32_t aAppUnitsPerDevPixel,
+                                                    uint32_t aBegin,
+                                                    uint32_t aEnd) const
 {
+  DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
+
   aEnd = std::min<uint32_t>(aEnd, mRoundedClipRects.Length());
 
-  if (aEnd - aBegin == 0)
+  if (aBegin >= aEnd) {
     return;
+  }
 
-  // If there is just one rounded rect we can just fill it, if there are more then we
-  // must clip the rest to get the intersection of clips
-  ApplyRoundedRectsTo(aContext, A2D, aBegin, aEnd - 1);
-  AddRoundedRectPathTo(aContext, A2D, mRoundedClipRects[aEnd - 1]);
-  aContext->Fill();
+  // Push clips for any rects that come BEFORE the rect at |aEnd - 1|, if any:
+  ApplyRoundedRectClipsTo(aContext, aAppUnitsPerDevPixel, aBegin, aEnd - 1);
+
+  // Now fill the rect at |aEnd - 1|:
+  RefPtr<Path> roundedRect = MakeRoundedRectPath(aDrawTarget,
+                                                 aAppUnitsPerDevPixel,
+                                                 mRoundedClipRects[aEnd - 1]);
+  ColorPattern color(ToDeviceColor(aColor));
+  aDrawTarget.Fill(roundedRect, color);
+
+  // Finally, pop any clips that we may have pushed:
+  for (uint32_t i = aBegin; i < aEnd - 1; ++i) {
+    aContext->PopClip();
+  }
 }
 
-void
-DisplayItemClip::AddRoundedRectPathTo(gfxContext* aContext,
-                                      int32_t A2D,
-                                      const RoundedRect &aRoundRect) const
+TemporaryRef<Path>
+DisplayItemClip::MakeRoundedRectPath(DrawTarget& aDrawTarget,
+                                     int32_t A2D,
+                                     const RoundedRect &aRoundRect) const
 {
-  gfxCornerSizes pixelRadii;
+  RectCornerRadii pixelRadii;
   nsCSSRendering::ComputePixelRadii(aRoundRect.mRadii, A2D, &pixelRadii);
 
-  gfxRect clip = nsLayoutUtils::RectToGfxRect(aRoundRect.mRect, A2D);
-  clip.Round();
-  clip.Condition();
+  Rect rect = NSRectToSnappedRect(aRoundRect.mRect, A2D, aDrawTarget);
 
-  aContext->NewPath();
-  aContext->RoundedRectangle(clip, pixelRadii);
+  return MakePathForRoundedRect(aDrawTarget, rect, pixelRadii);
 }
 
 nsRect
@@ -250,6 +283,40 @@ DisplayItemClip::IsRectAffectedByClip(const nsRect& aRect) const
   return false;
 }
 
+bool
+DisplayItemClip::IsRectAffectedByClip(const nsIntRect& aRect,
+                                      float aXScale,
+                                      float aYScale,
+                                      int32_t A2D) const
+{
+  if (mHaveClipRect) {
+    nsIntRect pixelClipRect = mClipRect.ScaleToNearestPixels(aXScale, aYScale, A2D);
+    if (!pixelClipRect.Contains(aRect)) {
+      return true;
+    }
+  }
+
+  // Rounded rect clipping only snaps to user-space pixels, not device space.
+  nsIntRect unscaled = aRect;
+  unscaled.Scale(1/aXScale, 1/aYScale);
+
+  for (uint32_t i = 0, iEnd = mRoundedClipRects.Length();
+       i < iEnd; ++i) {
+    const RoundedRect &rr = mRoundedClipRects[i];
+
+    nsIntRect pixelRect = rr.mRect.ToNearestPixels(A2D);
+
+    RectCornerRadii pixelRadii;
+    nsCSSRendering::ComputePixelRadii(rr.mRadii, A2D, &pixelRadii);
+
+    nsIntRegion rgn = nsLayoutUtils::RoundedRectIntersectIntRect(pixelRect, pixelRadii, unscaled);
+    if (!rgn.Contains(unscaled)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 nsRect
 DisplayItemClip::ApplyNonRoundedIntersection(const nsRect& aRect) const
 {
@@ -260,7 +327,7 @@ DisplayItemClip::ApplyNonRoundedIntersection(const nsRect& aRect) const
   nsRect result = aRect.Intersect(mClipRect);
   for (uint32_t i = 0, iEnd = mRoundedClipRects.Length();
        i < iEnd; ++i) {
-    result.Intersect(mRoundedClipRects[i].mRect);
+    result = result.Intersect(mRoundedClipRects[i].mRect);
   }
   return result;
 }
@@ -288,13 +355,16 @@ AccumulateRectDifference(const nsRect& aR1, const nsRect& aR2, const nsRect& aBo
 }
 
 void
-DisplayItemClip::AddOffsetAndComputeDifference(const nsPoint& aOffset,
+DisplayItemClip::AddOffsetAndComputeDifference(uint32_t aStart,
+                                               const nsPoint& aOffset,
                                                const nsRect& aBounds,
                                                const DisplayItemClip& aOther,
+                                               uint32_t aOtherStart,
                                                const nsRect& aOtherBounds,
                                                nsRegion* aDifference)
 {
   if (mHaveClipRect != aOther.mHaveClipRect ||
+      aStart != aOtherStart ||
       mRoundedClipRects.Length() != aOther.mRoundedClipRects.Length()) {
     aDifference->Or(*aDifference, aBounds);
     aDifference->Or(*aDifference, aOtherBounds);
@@ -305,7 +375,7 @@ DisplayItemClip::AddOffsetAndComputeDifference(const nsPoint& aOffset,
                              aBounds.Union(aOtherBounds),
                              aDifference);
   }
-  for (uint32_t i = 0; i < mRoundedClipRects.Length(); ++i) {
+  for (uint32_t i = aStart; i < mRoundedClipRects.Length(); ++i) {
     if (mRoundedClipRects[i] + aOffset != aOther.mRoundedClipRects[i]) {
       // The corners make it tricky so we'll just add both rects here.
       aDifference->Or(*aDifference, mRoundedClipRects[i].mRect.Intersect(aBounds));
@@ -387,7 +457,6 @@ DisplayItemClip::Shutdown()
   gNoClip = nullptr;
 }
 
-#ifdef MOZ_DUMP_PAINTING
 nsCString
 DisplayItemClip::ToString() const
 {
@@ -405,6 +474,5 @@ DisplayItemClip::ToString() const
   }
   return str;
 }
-#endif
 
 }

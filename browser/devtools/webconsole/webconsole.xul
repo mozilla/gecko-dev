@@ -9,6 +9,8 @@
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/devtools/common.css"
                  type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/devtools/widgets.css"
+                 type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/devtools/webconsole.css"
                  type="text/css"?>
 <?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
@@ -74,6 +76,8 @@ function goUpdateConsoleCommands() {
       <menuitem id="menu_copyURL" label="&copyURLCmd.label;"
                 accesskey="&copyURLCmd.accesskey;" command="consoleCmd_copyURL"
                 selection="network" selectionType="single"/>
+      <menuitem id="menu_openInVarView" label="&openInVarViewCmd.label;"
+        accesskey="&openInVarViewCmd.accesskey;" disabled="true"/>
       <menuitem id="cMenu_copy"/>
       <menuitem id="cMenu_selectAll"/>
     </menupopup>
@@ -82,7 +86,7 @@ function goUpdateConsoleCommands() {
   <tooltip id="aHTMLTooltip" page="true"/>
 
   <box class="hud-outer-wrapper devtools-responsive-container theme-body" flex="1">
-    <vbox class="hud-console-wrapper" flex="1">
+    <vbox class="hud-console-wrapper devtools-main-content" flex="1">
       <toolbar class="hud-console-filter-toolbar devtools-toolbar" mode="full">
         <hbox class="devtools-toolbarbutton-group">
           <toolbarbutton label="&btnPageNet.label;" type="menu-button"
@@ -91,11 +95,13 @@ function goUpdateConsoleCommands() {
                          accesskeyMacOSX="&btnPageNet.accesskeyMacOSX;"
                          accesskey="&btnPageNet.accesskey;"
                          tabindex="3">
-            <menupopup>
+            <menupopup id="net-contextmenu">
               <menuitem label="&btnConsoleErrors;" type="checkbox" autocheck="false"
                         prefKey="network"/>
               <menuitem label="&btnConsoleWarnings;" type="checkbox" autocheck="false"
                         prefKey="netwarn"/>
+              <menuitem label="&btnConsoleXhr;" type="checkbox" autocheck="false"
+                        prefKey="netxhr"/>
               <menuitem label="&btnConsoleLog;" type="checkbox" autocheck="false"
                         prefKey="networkinfo"/>
               <menuseparator id="saveBodiesSeparator" />
@@ -108,7 +114,7 @@ function goUpdateConsoleCommands() {
                          tooltiptext="&btnPageCSS.tooltip2;"
                          accesskey="&btnPageCSS.accesskey;"
                          tabindex="4">
-            <menupopup>
+            <menupopup id="css-contextmenu">
               <menuitem label="&btnConsoleErrors;" type="checkbox" autocheck="false"
                         prefKey="csserror"/>
               <menuitem label="&btnConsoleWarnings;" type="checkbox"
@@ -122,7 +128,7 @@ function goUpdateConsoleCommands() {
                          tooltiptext="&btnPageJS.tooltip;"
                          accesskey="&btnPageJS.accesskey;"
                          tabindex="5">
-            <menupopup>
+            <menupopup id="js-contextmenu">
               <menuitem label="&btnConsoleErrors;" type="checkbox"
                         autocheck="false" prefKey="exception"/>
               <menuitem label="&btnConsoleWarnings;" type="checkbox"
@@ -136,7 +142,7 @@ function goUpdateConsoleCommands() {
                          tooltiptext="&btnPageSecurity.tooltip;"
                          accesskey="&btnPageSecurity.accesskey;"
                          tabindex="6">
-            <menupopup>
+            <menupopup id="security-contextmenu">
               <menuitem label="&btnConsoleErrors;" type="checkbox"
                         autocheck="false" prefKey="secerror"/>
               <menuitem label="&btnConsoleWarnings;" type="checkbox"
@@ -148,7 +154,7 @@ function goUpdateConsoleCommands() {
                          tooltiptext="&btnPageLogging.tooltip;"
                          accesskey="&btnPageLogging.accesskey3;"
                          tabindex="7">
-            <menupopup>
+            <menupopup id="logging-contextmenu">
               <menuitem label="&btnConsoleErrors;" type="checkbox"
                         autocheck="false" prefKey="error"/>
               <menuitem label="&btnConsoleWarnings;" type="checkbox"
@@ -157,6 +163,13 @@ function goUpdateConsoleCommands() {
                         prefKey="info"/>
               <menuitem label="&btnConsoleLog;" type="checkbox" autocheck="false"
                         prefKey="log"/>
+              <menuseparator />
+              <menuitem label="&btnConsoleSharedWorkers;" type="checkbox"
+                        autocheck="false" prefKey="sharedworkers"/>
+              <menuitem label="&btnConsoleServiceWorkers;" type="checkbox"
+                        autocheck="false" prefKey="serviceworkers"/>
+              <menuitem label="&btnConsoleWindowlessWorkers;" type="checkbox"
+                        autocheck="false" prefKey="windowlessworkers"/>
             </menupopup>
           </toolbarbutton>
         </hbox>
@@ -172,7 +185,8 @@ function goUpdateConsoleCommands() {
       </toolbar>
 
       <hbox id="output-wrapper" flex="1" context="output-contextmenu" tooltip="aHTMLTooltip">
-        <div xmlns="http://www.w3.org/1999/xhtml" id="output-container" tabindex="1" />
+        <div xmlns="http://www.w3.org/1999/xhtml" id="output-container"
+             tabindex="0" role="document" aria-live="polite" />
       </hbox>
       <notificationbox id="webconsole-notificationbox">
         <hbox class="jsterm-input-container" style="direction:ltr">
@@ -180,7 +194,8 @@ function goUpdateConsoleCommands() {
             <textbox class="jsterm-complete-node devtools-monospace"
                      multiline="true" rows="1" tabindex="-1"/>
             <textbox class="jsterm-input-node devtools-monospace"
-                     multiline="true" rows="1" tabindex="0"/>
+                     multiline="true" rows="1" tabindex="0"
+                     aria-autocomplete="list"/>
           </stack>
         </hbox>
       </notificationbox>

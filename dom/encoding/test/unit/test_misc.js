@@ -43,7 +43,7 @@ test(
 
     bad.forEach(
       function(t) {
-        assert_throws({name: 'EncodingError'}, function () {
+        assert_throws({name: 'TypeError'}, function () {
           new TextDecoder(t.encoding, {fatal: true}).decode(new Uint8Array(t.input));
         });
       });
@@ -163,15 +163,13 @@ test(
 
 test(
   function () {
-    var encodings = ["utf-8", "ibm866", "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-8-i", "iso-8859-10", "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "koi8-r", "koi8-u", "macintosh", "windows-874", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", "windows-1256", "windows-1257", "windows-1258", "x-mac-cyrillic", "gbk", "gb18030", "hz-gb-2312", "big5", "euc-jp", "iso-2022-jp", "shift_jis", "euc-kr", "x-user-defined"];
+    var encodings = ["utf-8", "ibm866", "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-8-i", "iso-8859-10", "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "koi8-r", "koi8-u", "macintosh", "windows-874", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", "windows-1256", "windows-1257", "windows-1258", "x-mac-cyrillic", "gbk", "gb18030", "big5", "euc-jp", "iso-2022-jp", "shift_jis", "euc-kr", "x-user-defined"];
 
     encodings.forEach(function (encoding) {
       var string = '', bytes = [];
       for (var i = 0; i < 128; ++i) {
 
         // Encodings that have escape codes in 0x00-0x7F
-        if (encoding === "hz-gb-2312" && i === 0x7E)
-          continue;
         if (encoding === "iso-2022-jp" && i === 0x1B)
           continue;
 
@@ -188,15 +186,15 @@ test(
 
 test(
   function () {
-    assert_throws({name: 'EncodingError'}, function() { new TextDecoder("utf-8", {fatal: true}).decode(new Uint8Array([0xff])); });
+    assert_throws({name: 'TypeError'}, function() { new TextDecoder("utf-8", {fatal: true}).decode(new Uint8Array([0xff])); });
     // This should not hang:
     new TextDecoder("utf-8").decode(new Uint8Array([0xff]));
 
-    assert_throws({name: 'EncodingError'}, function() { new TextDecoder("utf-16", {fatal: true}).decode(new Uint8Array([0x00])); });
+    assert_throws({name: 'TypeError'}, function() { new TextDecoder("utf-16", {fatal: true}).decode(new Uint8Array([0x00])); });
     // This should not hang:
     new TextDecoder("utf-16").decode(new Uint8Array([0x00]));
 
-    assert_throws({name: 'EncodingError'}, function() { new TextDecoder("utf-16be", {fatal: true}).decode(new Uint8Array([0x00])); });
+    assert_throws({name: 'TypeError'}, function() { new TextDecoder("utf-16be", {fatal: true}).decode(new Uint8Array([0x00])); });
     // This should not hang:
     new TextDecoder("utf-16be").decode(new Uint8Array([0x00]));
   },
@@ -208,7 +206,7 @@ test(
 
     var utf_encodings = ["utf-8", "utf-16le", "utf-16be"];
 
-    var legacy_encodings = ["ibm866", "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-8-i", "iso-8859-10", "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "koi8-r", "koi8-u", "macintosh", "windows-874", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", "windows-1256", "windows-1257", "windows-1258", "x-mac-cyrillic", "gbk", "gb18030", "hz-gb-2312", "big5", "euc-jp", "iso-2022-jp", "shift_jis", "euc-kr", "x-user-defined"];
+    var legacy_encodings = ["ibm866", "iso-8859-2", "iso-8859-3", "iso-8859-4", "iso-8859-5", "iso-8859-6", "iso-8859-7", "iso-8859-8", "iso-8859-8-i", "iso-8859-10", "iso-8859-13", "iso-8859-14", "iso-8859-15", "iso-8859-16", "koi8-r", "koi8-u", "macintosh", "windows-874", "windows-1250", "windows-1251", "windows-1252", "windows-1253", "windows-1254", "windows-1255", "windows-1256", "windows-1257", "windows-1258", "x-mac-cyrillic", "gbk", "gb18030", "big5", "euc-jp", "iso-2022-jp", "shift_jis", "euc-kr", "x-user-defined"];
 
     utf_encodings.forEach(function(encoding) {
       assert_equals(new TextDecoder(encoding).encoding, encoding);
@@ -217,7 +215,7 @@ test(
 
     legacy_encodings.forEach(function(encoding) {
       assert_equals(new TextDecoder(encoding).encoding, encoding);
-      assert_throws({name: 'TypeError'}, function() { new TextEncoder(encoding); });
+      assert_throws({name: 'RangeError'}, function() { new TextEncoder(encoding); });
     });
   },
   "Non-UTF encodings supported only for decode, not encode"

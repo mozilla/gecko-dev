@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -74,15 +74,15 @@ const TEST_DATA = [
   // Test various types of background-image urls
   {
     input: "background-image: url(../../relative/image.png)",
-    expected: [{name: "background-image", value: "url(\"../../relative/image.png\")", priority: ""}]
+    expected: [{name: "background-image", value: "url(../../relative/image.png)", priority: ""}]
   },
   {
     input: "background-image: url(http://site.com/test.png)",
-    expected: [{name: "background-image", value: "url(\"http://site.com/test.png\")", priority: ""}]
+    expected: [{name: "background-image", value: "url(http://site.com/test.png)", priority: ""}]
   },
   {
     input: "background-image: url(wow.gif)",
-    expected: [{name: "background-image", value: "url(\"wow.gif\")", priority: ""}]
+    expected: [{name: "background-image", value: "url(wow.gif)", priority: ""}]
   },
   // Test that urls with :;{} characters in them are parsed correctly
   {
@@ -152,18 +152,20 @@ const TEST_DATA = [
   {input: "wat: #XYZ", expected: [{name: "wat", value: "#XYZ", priority: ""}]},
   // Test string/url quotes escaping
   {input: "content: \"this is a 'string'\"", expected: [{name: "content", value: "\"this is a 'string'\"", priority: ""}]},
-  {input: 'content: "this is a \\"string\\""', expected: [{name: "content", value: '\'this is a "string"\'', priority: ""}]},
+  {input: 'content: "this is a \\"string\\""', expected: [{name: "content", value: '"this is a \\"string\\""', priority: ""}]},
   {input: "content: 'this is a \"string\"'", expected: [{name: "content", value: '\'this is a "string"\'', priority: ""}]},
-  {input: "content: 'this is a \\'string\\'", expected: [{name: "content", value: '"this is a \'string\'"', priority: ""}]},
-  {input: "content: 'this \\' is a \" really strange string'", expected: [{name: "content", value: '"this \' is a \" really strange string"', priority: ""}]},
+  {input: "content: 'this is a \\'string\\''", expected: [{name: "content", value: "'this is a \\'string\\''", priority: ""}]},
+  {input: "content: 'this \\' is a \" really strange string'", expected: [{name: "content", value: "'this \\' is a \" really strange string'", priority: ""}]},
   {
     input: "content: \"a not s\\\
           o very long title\"",
     expected: [
-      {name: "content", value: '"a not s\
+      {name: "content", value: '"a not s\\\
           o very long title"', priority: ""}
     ]
-  }
+  },
+  // Test calc with nested parentheses
+  {input: "width: calc((100% - 3em) / 2)", expected: [{name: "width", value: "calc((100% - 3em) / 2)", priority: ""}]},
 ];
 
 function run_test() {

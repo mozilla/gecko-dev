@@ -1,21 +1,18 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
 const INT_MAX = 0x7FFFFFFF;
 
-const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 Cu.import("resource://gre/modules/Services.jsm", this);
 
 function test_expired_histogram() {
   var histogram_id = "FOOBAR";
   var test_expired_id = "TELEMETRY_TEST_EXPIRED";
   var clone_id = "ExpiredClone";
-  var dummy = Telemetry.newHistogram(histogram_id, "28.0a1", 1, 2, 3, Telemetry.HISTOGRAM_EXPONENTIAL);
+  var dummy = Telemetry.newHistogram(histogram_id, "28.0a1", Telemetry.HISTOGRAM_EXPONENTIAL, 1, 2, 3);
   var dummy_clone = Telemetry.histogramFrom(clone_id, test_expired_id);
-  var rh = Telemetry.registeredHistograms([]);
+  var rh = Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []);
+  Assert.ok(!!rh);
 
   dummy.add(1);
   dummy_clone.add(1);
@@ -28,7 +25,7 @@ function test_expired_histogram() {
 }
 
 function test_histogram(histogram_type, name, min, max, bucket_count) {
-  var h = Telemetry.newHistogram(name, "never", min, max, bucket_count, histogram_type);
+  var h = Telemetry.newHistogram(name, "never", histogram_type, min, max, bucket_count);
   var r = h.snapshot().ranges;
   var sum = 0;
   var log_sum = 0;
@@ -126,7 +123,7 @@ function expect_success(f) {
 
 function test_boolean_histogram()
 {
-  var h = Telemetry.newHistogram("test::boolean histogram", "never", 99,1,4, Telemetry.HISTOGRAM_BOOLEAN);
+  var h = Telemetry.newHistogram("test::boolean histogram", "never", Telemetry.HISTOGRAM_BOOLEAN);
   var r = h.snapshot().ranges;
   // boolean histograms ignore numeric parameters
   do_check_eq(uneval(r), uneval([0, 1, 2]))
@@ -148,28 +145,45 @@ function test_boolean_histogram()
 
 function test_flag_histogram()
 {
-  var h = Telemetry.newHistogram("test::flag histogram", "never", 130, 4, 5, Telemetry.HISTOGRAM_FLAG);
+  var h = Telemetry.newHistogram("test::flag histogram", "never", Telemetry.HISTOGRAM_FLAG);
   var r = h.snapshot().ranges;
   // Flag histograms ignore numeric parameters.
-  do_check_eq(uneval(r), uneval([0, 1, 2]))
+  do_check_eq(uneval(r), uneval([0, 1, 2]));
   // Should already have a 0 counted.
   var c = h.snapshot().counts;
   var s = h.snapshot().sum;
   do_check_eq(uneval(c), uneval([1, 0, 0]));
-  do_check_eq(s, 1);
+  do_check_eq(s, 0);
   // Should switch counts.
-  h.add(2);
+  h.add(1);
   var c2 = h.snapshot().counts;
   var s2 = h.snapshot().sum;
   do_check_eq(uneval(c2), uneval([0, 1, 0]));
-  do_check_eq(s, 1);
+  do_check_eq(s2, 1);
   // Should only switch counts once.
-  h.add(3);
+  h.add(1);
   var c3 = h.snapshot().counts;
   var s3 = h.snapshot().sum;
   do_check_eq(uneval(c3), uneval([0, 1, 0]));
   do_check_eq(s3, 1);
-  do_check_eq(h.snapshot().histogram_type, Telemetry.FLAG_HISTOGRAM);
+  do_check_eq(h.snapshot().histogram_type, Telemetry.HISTOGRAM_FLAG);
+}
+
+function test_count_histogram()
+{
+  let h = Telemetry.newHistogram("test::count histogram", "never", Telemetry.HISTOGRAM_COUNT, 1, 2, 3);
+  let s = h.snapshot();
+  do_check_eq(uneval(s.ranges), uneval([0, 1, 2]));
+  do_check_eq(uneval(s.counts), uneval([0, 0, 0]));
+  do_check_eq(s.sum, 0);
+  h.add();
+  s = h.snapshot();
+  do_check_eq(uneval(s.counts), uneval([1, 0, 0]));
+  do_check_eq(s.sum, 1);
+  h.add();
+  s = h.snapshot();
+  do_check_eq(uneval(s.counts), uneval([2, 0, 0]));
+  do_check_eq(s.sum, 2);
 }
 
 function test_getHistogramById() {
@@ -217,7 +231,8 @@ function test_histogramFrom() {
       "CYCLE_COLLECTOR",      // EXPONENTIAL
       "GC_REASON_2",          // LINEAR
       "GC_RESET",             // BOOLEAN
-      "TELEMETRY_TEST_FLAG"   // FLAG
+      "TELEMETRY_TEST_FLAG",  // FLAG
+      "TELEMETRY_TEST_COUNT", // COUNT
   ];
 
   for each (let name in names) {
@@ -227,11 +242,16 @@ function test_histogramFrom() {
     compareHistograms(original, clone);
   }
 
-  // Additionally, set the flag on TELEMETRY_TEST_FLAG, and check it gets set on the clone.
+  // Additionally, set TELEMETRY_TEST_FLAG and TELEMETRY_TEST_COUNT
+  // and check they get set on the clone.
   let testFlag = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG");
   testFlag.add(1);
+  let testCount = Telemetry.getHistogramById("TELEMETRY_TEST_COUNT");
+  testCount.add();
   let clone = Telemetry.histogramFrom("FlagClone", "TELEMETRY_TEST_FLAG");
   compareHistograms(testFlag, clone);
+  clone = Telemetry.histogramFrom("CountClone", "TELEMETRY_TEST_COUNT");
+  compareHistograms(testCount, clone);
 }
 
 function test_getSlowSQL() {
@@ -245,10 +265,10 @@ function test_addons() {
   var name1 = "testing-histogram1";
   var register = Telemetry.registerAddonHistogram;
   expect_success(function ()
-                 register(addon_id, name1, 1, 5, 6, Telemetry.HISTOGRAM_LINEAR));
+                 register(addon_id, name1, Telemetry.HISTOGRAM_LINEAR, 1, 5, 6));
   // Can't register the same histogram multiple times.
   expect_fail(function ()
-	      register(addon_id, name1, 1, 5, 6, Telemetry.HISTOGRAM_LINEAR));
+	      register(addon_id, name1, Telemetry.HISTOGRAM_LINEAR, 1, 5, 6));
   // Make sure we can't get at it with another name.
   expect_fail(function () Telemetry.getAddonHistogram(fake_addon_id, name1));
 
@@ -268,7 +288,7 @@ function test_addons() {
 
   var name2 = "testing-histogram2";
   expect_success(function ()
-                 register(addon_id, name2, 2, 4, 4, Telemetry.HISTOGRAM_LINEAR));
+                 register(addon_id, name2, Telemetry.HISTOGRAM_LINEAR, 2, 4, 4));
 
   var h2 = Telemetry.getAddonHistogram(addon_id, name2);
   h2.add(2);
@@ -284,15 +304,15 @@ function test_addons() {
   // identical names.
   var extra_addon = "testing-extra-addon";
   expect_success(function ()
-		 register(extra_addon, name1, 0, 1, 2, Telemetry.HISTOGRAM_BOOLEAN));
+		 register(extra_addon, name1, Telemetry.HISTOGRAM_BOOLEAN));
 
   // Check that we can register flag histograms.
   var flag_addon = "testing-flag-addon";
   var flag_histogram = "flag-histogram";
-  expect_success(function() 
-                 register(flag_addon, flag_histogram, 0, 1, 2, Telemetry.HISTOGRAM_FLAG))
   expect_success(function()
-		 register(flag_addon, name2, 2, 4, 4, Telemetry.HISTOGRAM_LINEAR));
+                 register(flag_addon, flag_histogram, Telemetry.HISTOGRAM_FLAG))
+  expect_success(function()
+		 register(flag_addon, name2, Telemetry.HISTOGRAM_LINEAR, 2, 4, 4));
 
   // Check that we reflect registered addons and histograms.
   snapshots = Telemetry.addonHistogramSnapshots;
@@ -329,14 +349,68 @@ function test_addons() {
 
 // Check that telemetry doesn't record in private mode
 function test_privateMode() {
-  var h = Telemetry.newHistogram("test::private_mode_boolean", "never", 1,2,3, Telemetry.HISTOGRAM_BOOLEAN);
+  var h = Telemetry.newHistogram("test::private_mode_boolean", "never", Telemetry.HISTOGRAM_BOOLEAN);
   var orig = h.snapshot();
-  Telemetry.canRecord = false;
+  Telemetry.canRecordExtended = false;
   h.add(1);
   do_check_eq(uneval(orig), uneval(h.snapshot()));
-  Telemetry.canRecord = true;
+  Telemetry.canRecordExtended = true;
   h.add(1);
   do_check_neq(uneval(orig), uneval(h.snapshot()));
+}
+
+// Check that telemetry records only when it is suppose to.
+function test_histogramRecording() {
+  // Check that no histogram is recorded if both base and extended recording are off.
+  Telemetry.canRecordBase = false;
+  Telemetry.canRecordExtended = false;
+
+  let h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTOUT");
+  h.clear();
+  let orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum);
+
+  // Check that only base histograms are recorded.
+  Telemetry.canRecordBase = true;
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
+
+  // Extended histograms should not be recorded.
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTIN");
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum,
+               "Histograms should be equal after recording.");
+
+  // Runtime created histograms should not be recorded.
+  h = Telemetry.newHistogram("test::runtime_created_boolean", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum,
+               "Histograms should be equal after recording.");
+
+  // Check that extended histograms are recorded when required.
+  Telemetry.canRecordExtended = true;
+
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Runtime histogram value should have incremented by 1 due to recording.");
+
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTIN");
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
+
+  // Check that base histograms are still being recorded.
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTOUT");
+  h.clear();
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
 }
 
 // Check that histograms that aren't flagged as needing extended stats
@@ -354,6 +428,443 @@ function test_extended_stats() {
   do_check_eq(s.log_sum_squares, 0);
 }
 
+// Return an array of numbers from lower up to, excluding, upper
+function numberRange(lower, upper)
+{
+  let a = [];
+  for (let i=lower; i<upper; ++i) {
+    a.push(i);
+  }
+  return a;
+}
+
+function test_keyed_boolean_histogram()
+{
+  const KEYED_ID = "test::keyed::boolean";
+  let KEYS = ["key"+(i+1) for (i of numberRange(0, 2))];
+  KEYS.push("漢語");
+  let histogramBase = {
+    "min": 1,
+    "max": 2,
+    "histogram_type": 2,
+    "sum": 1,
+    "sum_squares_lo": 1,
+    "sum_squares_hi": 0,
+    "ranges": [0, 1, 2],
+    "counts": [0, 1, 0]
+  };
+  let testHistograms = [JSON.parse(JSON.stringify(histogramBase)) for (i of numberRange(0, 3))];
+  let testKeys = [];
+  let testSnapShot = {};
+
+  let h = Telemetry.newKeyedHistogram(KEYED_ID, "never", Telemetry.HISTOGRAM_BOOLEAN);
+  for (let i=0; i<2; ++i) {
+    let key = KEYS[i];
+    h.add(key, true);
+    testSnapShot[key] = testHistograms[i];
+    testKeys.push(key);
+
+    Assert.deepEqual(h.keys().sort(), testKeys);
+    Assert.deepEqual(h.snapshot(), testSnapShot);
+  }
+
+  h = Telemetry.getKeyedHistogramById(KEYED_ID);
+  Assert.deepEqual(h.keys().sort(), testKeys);
+  Assert.deepEqual(h.snapshot(), testSnapShot);
+
+  let key = KEYS[2];
+  h.add(key, false);
+  testKeys.push(key);
+  testSnapShot[key] = testHistograms[2];
+  testSnapShot[key].sum = 0;
+  testSnapShot[key].sum_squares_lo = 0;
+  testSnapShot[key].counts = [1, 0, 0];
+  Assert.deepEqual(h.keys().sort(), testKeys);
+  Assert.deepEqual(h.snapshot(), testSnapShot);
+
+  let allSnapshots = Telemetry.keyedHistogramSnapshots;
+  Assert.deepEqual(allSnapshots[KEYED_ID], testSnapShot);
+
+  h.clear();
+  Assert.deepEqual(h.keys(), []);
+  Assert.deepEqual(h.snapshot(), {});
+}
+
+function test_keyed_count_histogram()
+{
+  const KEYED_ID = "test::keyed::count";
+  const KEYS = ["key"+(i+1) for (i of numberRange(0, 5))];
+  let histogramBase = {
+    "min": 1,
+    "max": 2,
+    "histogram_type": 4,
+    "sum": 0,
+    "sum_squares_lo": 0,
+    "sum_squares_hi": 0,
+    "ranges": [0, 1, 2],
+    "counts": [1, 0, 0]
+  };
+  let testHistograms = [JSON.parse(JSON.stringify(histogramBase)) for (i of numberRange(0, 5))];
+  let testKeys = [];
+  let testSnapShot = {};
+
+  let h = Telemetry.newKeyedHistogram(KEYED_ID, "never", Telemetry.HISTOGRAM_COUNT);
+  for (let i=0; i<4; ++i) {
+    let key = KEYS[i];
+    let value = i*2 + 1;
+
+    for (let k=0; k<value; ++k) {
+      h.add(key);
+    }
+    testHistograms[i].counts[0] = value;
+    testHistograms[i].sum = value;
+    testHistograms[i].sum_squares_lo = value;
+    testSnapShot[key] = testHistograms[i];
+    testKeys.push(key);
+
+    Assert.deepEqual(h.keys().sort(), testKeys);
+    Assert.deepEqual(h.snapshot(key), testHistograms[i]);
+    Assert.deepEqual(h.snapshot(), testSnapShot);
+  }
+
+  h = Telemetry.getKeyedHistogramById(KEYED_ID);
+  Assert.deepEqual(h.keys().sort(), testKeys);
+  Assert.deepEqual(h.snapshot(), testSnapShot);
+
+  let key = KEYS[4];
+  h.add(key);
+  testKeys.push(key);
+  testHistograms[4].counts[0] = 1;
+  testHistograms[4].sum = 1;
+  testHistograms[4].sum_squares_lo = 1;
+  testSnapShot[key] = testHistograms[4];
+
+  Assert.deepEqual(h.keys().sort(), testKeys);
+  Assert.deepEqual(h.snapshot(), testSnapShot);
+
+  let allSnapshots = Telemetry.keyedHistogramSnapshots;
+  Assert.deepEqual(allSnapshots[KEYED_ID], testSnapShot);
+
+  h.clear();
+  Assert.deepEqual(h.keys(), []);
+  Assert.deepEqual(h.snapshot(), {});
+}
+
+function test_keyed_flag_histogram()
+{
+  const KEYED_ID = "test::keyed::flag";
+  let h = Telemetry.newKeyedHistogram(KEYED_ID, "never", Telemetry.HISTOGRAM_FLAG);
+
+  const KEY = "default";
+  h.add(KEY, true);
+
+  let testSnapshot = {};
+  testSnapshot[KEY] = {
+    "min": 1,
+    "max": 2,
+    "histogram_type": 3,
+    "sum": 1,
+    "sum_squares_lo": 1,
+    "sum_squares_hi": 0,
+    "ranges": [0, 1, 2],
+    "counts": [0, 1, 0]
+  };
+
+  Assert.deepEqual(h.keys().sort(), [KEY]);
+  Assert.deepEqual(h.snapshot(), testSnapshot);
+
+  let allSnapshots = Telemetry.keyedHistogramSnapshots;
+  Assert.deepEqual(allSnapshots[KEYED_ID], testSnapshot);
+
+  h.clear();
+  Assert.deepEqual(h.keys(), []);
+  Assert.deepEqual(h.snapshot(), {});
+}
+
+function test_keyed_histogram_recording() {
+  // Check that no histogram is recorded if both base and extended recording are off.
+  Telemetry.canRecordBase = false;
+  Telemetry.canRecordExtended = false;
+
+  const TEST_KEY = "record_foo";
+  let h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0);
+
+  // Check that only base histograms are recorded.
+  Telemetry.canRecordBase = true;
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+               "The keyed histogram should record the correct value.");
+
+  // Extended set keyed histograms should not be recorded.
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTIN");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0,
+               "The keyed histograms should not record any data.");
+
+  // Runtime created histograms should not be recorded.
+  h = Telemetry.newKeyedHistogram("test::runtime_keyed_boolean", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0,
+               "The keyed histogram should not record any data.");
+
+  // Check that extended histograms are recorded when required.
+  Telemetry.canRecordExtended = true;
+
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+                  "The runtime keyed histogram should record the correct value.");
+
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTIN");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+               "The keyed histogram should record the correct value.");
+
+  // Check that base histograms are still being recorded.
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1);
+}
+
+function test_keyed_histogram() {
+  // Check that invalid names get rejected.
+
+  let threw = false;
+  try {
+    Telemetry.newKeyedHistogram("test::invalid # histogram", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  } catch (e) {
+    // This should throw as we reject names with the # separator
+    threw = true;
+  }
+  Assert.ok(threw, "newKeyedHistogram should have thrown");
+
+  threw = false;
+  try {
+    Telemetry.getKeyedHistogramById("test::unknown histogram", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  } catch (e) {
+    // This should throw as it is an unknown ID
+    threw = true;
+  }
+  Assert.ok(threw, "getKeyedHistogramById should have thrown");
+
+  // Check specific keyed histogram types working properly.
+
+  test_keyed_boolean_histogram();
+  test_keyed_count_histogram();
+  test_keyed_flag_histogram();
+  test_keyed_histogram_recording();
+}
+
+function test_datasets()
+{
+  // Check that datasets work as expected.
+
+  const RELEASE_CHANNEL_OPTOUT = Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTOUT;
+  const RELEASE_CHANNEL_OPTIN  = Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN;
+
+  // Histograms should default to the extended dataset
+  let h = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTIN);
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_FLAG");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTIN);
+
+  // Check test histograms with explicit dataset definitions
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTIN");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTIN);
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTOUT");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTOUT);
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTIN");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTIN);
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT");
+  Assert.equal(h.dataset(), RELEASE_CHANNEL_OPTOUT);
+
+  // Check that registeredHistogram works properly
+  let registered = Telemetry.registeredHistograms(RELEASE_CHANNEL_OPTIN, []);
+  registered = new Set(registered);
+  Assert.ok(registered.has("TELEMETRY_TEST_FLAG"));
+  Assert.ok(registered.has("TELEMETRY_TEST_RELEASE_OPTIN"));
+  Assert.ok(registered.has("TELEMETRY_TEST_RELEASE_OPTOUT"));
+  registered = Telemetry.registeredHistograms(RELEASE_CHANNEL_OPTOUT, []);
+  registered = new Set(registered);
+  Assert.ok(!registered.has("TELEMETRY_TEST_FLAG"));
+  Assert.ok(!registered.has("TELEMETRY_TEST_RELEASE_OPTIN"));
+  Assert.ok(registered.has("TELEMETRY_TEST_RELEASE_OPTOUT"));
+
+  // Check that registeredKeyedHistograms works properly
+  registered = Telemetry.registeredKeyedHistograms(RELEASE_CHANNEL_OPTIN, []);
+  registered = new Set(registered);
+  Assert.ok(registered.has("TELEMETRY_TEST_KEYED_FLAG"));
+  Assert.ok(registered.has("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT"));
+  registered = Telemetry.registeredKeyedHistograms(RELEASE_CHANNEL_OPTOUT, []);
+  registered = new Set(registered);
+  Assert.ok(!registered.has("TELEMETRY_TEST_KEYED_FLAG"));
+  Assert.ok(registered.has("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT"));
+}
+
+function test_instantiate() {
+  if (gIsAndroid) {
+    // We don't support subsessions yet on Android.
+    return;
+  }
+
+  const ID = "TELEMETRY_TEST_COUNT";
+  let h = Telemetry.getHistogramById(ID);
+
+  // Instantiate the subsession histogram through |add| and make sure they match.
+  // This MUST be the first use of "TELEMETRY_TEST_COUNT" in this file, otherwise
+  // |add| will not instantiate the histogram.
+  h.add(1);
+  let snapshot = h.snapshot();
+  let subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.equal(snapshot.sum, subsession[ID].sum,
+               "Histogram and subsession histogram sum must match.");
+  // Clear the histogram, so we don't void the assumptions from the other tests.
+  h.clear();
+}
+
+function test_subsession() {
+  if (gIsAndroid) {
+    // We don't support subsessions yet on Android.
+    return;
+  }
+
+  const ID = "TELEMETRY_TEST_COUNT";
+  const FLAG = "TELEMETRY_TEST_FLAG";
+  let h = Telemetry.getHistogramById(ID);
+  let flag = Telemetry.getHistogramById(FLAG);
+
+  // Both original and duplicate should start out the same.
+  h.clear();
+  let snapshot = Telemetry.histogramSnapshots;
+  let subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(!(ID in snapshot));
+  Assert.ok(!(ID in subsession));
+
+  // They should instantiate and pick-up the count.
+  h.add(1);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 1);
+
+  // They should still reset properly.
+  h.clear();
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(!(ID in snapshot));
+  Assert.ok(!(ID in subsession));
+
+  // Both should instantiate and pick-up the count.
+  h.add(1);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 1);
+
+  // Check that we are able to only reset the duplicate histogram.
+  h.clear(true);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 0);
+
+  // Both should register the next count.
+  h.add(1);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.equal(snapshot[ID].sum, 2);
+  Assert.equal(subsession[ID].sum, 1);
+
+  // Retrieve a subsession snapshot and pass the flag to
+  // clear subsession histograms too.
+  h.clear();
+  flag.clear();
+  h.add(1);
+  flag.add(1);
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms(true);
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.ok(FLAG in snapshot);
+  Assert.ok(FLAG in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 1);
+  Assert.equal(snapshot[FLAG].sum, 1);
+  Assert.equal(subsession[FLAG].sum, 1);
+
+  // The next subsesssion snapshot should show the histograms
+  // got reset.
+  snapshot = Telemetry.histogramSnapshots;
+  subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.ok(ID in snapshot);
+  Assert.ok(ID in subsession);
+  Assert.ok(FLAG in snapshot);
+  Assert.ok(FLAG in subsession);
+  Assert.equal(snapshot[ID].sum, 1);
+  Assert.equal(subsession[ID].sum, 0);
+  Assert.equal(snapshot[FLAG].sum, 1);
+  Assert.equal(subsession[FLAG].sum, 0);
+}
+
+function test_keyed_subsession() {
+  if (gIsAndroid) {
+    // We don't support subsessions yet on Android.
+    return;
+  }
+
+  let h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_FLAG");
+  const KEY = "foo";
+
+  // Both original and subsession should start out the same.
+  h.clear();
+  Assert.ok(!(KEY in h.snapshot()));
+  Assert.ok(!(KEY in h.subsessionSnapshot()));
+  Assert.equal(h.snapshot(KEY).sum, 0);
+  Assert.equal(h.subsessionSnapshot(KEY).sum, 0);
+
+  // Both should register the flag.
+  h.add(KEY, 1);
+  Assert.ok(KEY in h.snapshot());
+  Assert.ok(KEY in h.subsessionSnapshot());
+  Assert.equal(h.snapshot(KEY).sum, 1);
+  Assert.equal(h.subsessionSnapshot(KEY).sum, 1);
+
+  // Check that we are able to only reset the subsession histogram.
+  h.clear(true);
+  Assert.ok(KEY in h.snapshot());
+  Assert.ok(!(KEY in h.subsessionSnapshot()));
+  Assert.equal(h.snapshot(KEY).sum, 1);
+  Assert.equal(h.subsessionSnapshot(KEY).sum, 0);
+
+  // Setting the flag again should make both match again.
+  h.add(KEY, 1);
+  Assert.ok(KEY in h.snapshot());
+  Assert.ok(KEY in h.subsessionSnapshot());
+  Assert.equal(h.snapshot(KEY).sum, 1);
+  Assert.equal(h.subsessionSnapshot(KEY).sum, 1);
+
+  // Check that "snapshot and clear" works properly.
+  let snapshot = h.snapshot();
+  let subsession = h.snapshotSubsessionAndClear();
+  Assert.ok(KEY in snapshot);
+  Assert.ok(KEY in subsession);
+  Assert.equal(snapshot[KEY].sum, 1);
+  Assert.equal(subsession[KEY].sum, 1);
+
+  subsession = h.subsessionSnapshot();
+  Assert.ok(!(KEY in subsession));
+  Assert.equal(h.subsessionSnapshot(KEY).sum, 0);
+}
+
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
   // strip {}
@@ -362,14 +873,17 @@ function generateUUID() {
 
 function run_test()
 {
+  // This MUST be the very first test of this file.
+  test_instantiate();
+
   let kinds = [Telemetry.HISTOGRAM_EXPONENTIAL, Telemetry.HISTOGRAM_LINEAR]
   for each (let histogram_type in kinds) {
     let [min, max, bucket_count] = [1, INT_MAX - 1, 10]
     test_histogram(histogram_type, "test::"+histogram_type, min, max, bucket_count);
 
     const nh = Telemetry.newHistogram;
-    expect_fail(function () nh("test::min", "never", 0, max, bucket_count, histogram_type));
-    expect_fail(function () nh("test::bucket_count", "never", min, max, 1, histogram_type));
+    expect_fail(function () nh("test::min", "never", histogram_type, 0, max, bucket_count));
+    expect_fail(function () nh("test::bucket_count", "never", histogram_type, min, max, 1));
   }
 
   // Instantiate the storage for this histogram and make sure it doesn't
@@ -378,11 +892,18 @@ function run_test()
   do_check_false("NEWTAB_PAGE_PINNED_SITES_COUNT" in Telemetry.histogramSnapshots);
 
   test_boolean_histogram();
+  test_flag_histogram();
+  test_count_histogram();
   test_getHistogramById();
   test_histogramFrom();
   test_getSlowSQL();
   test_privateMode();
+  test_histogramRecording();
   test_addons();
   test_extended_stats();
   test_expired_histogram();
+  test_keyed_histogram();
+  test_datasets();
+  test_subsession();
+  test_keyed_subsession();
 }

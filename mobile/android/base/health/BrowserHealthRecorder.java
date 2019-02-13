@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.json.JSONException;
@@ -88,28 +89,31 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     private final AtomicBoolean orphanChecked = new AtomicBoolean(false);
     private volatile int env = -1;
 
+    final EventDispatcher dispatcher;
+    final ProfileInformationCache profileCache;
     private ContentProviderClient client;
     private volatile HealthReportDatabaseStorage storage;
-    private final ProfileInformationCache profileCache;
     private final ConfigurationProvider configProvider;
-    private final EventDispatcher dispatcher;
     private final SharedPreferences prefs;
 
     // We track previousSession to avoid order-of-initialization confusion. We
     // accept it in the constructor, and process it after init.
     private final SessionInformation previousSession;
-    private volatile SessionInformation session = null;
+    private volatile SessionInformation session;
 
+    @Override
     public void setCurrentSession(SessionInformation session) {
         this.session = session;
     }
 
+    @Override
     public void recordGeckoStartupTime(long duration) {
         if (this.session == null) {
             return;
         }
         this.session.setTimedGeckoStartup(duration);
     }
+    @Override
     public void recordJavaStartupTime(long duration) {
         if (this.session == null) {
             return;
@@ -163,6 +167,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         this.prefs = appPrefs;
     }
 
+    @Override
     public boolean isEnabled() {
         return true;
     }
@@ -171,6 +176,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      * Shut down database connections, unregister event listeners, and perform
      * provider-specific uninitialization.
      */
+    @Override
     public synchronized void close() {
         switch (this.state) {
             case CLOSED:
@@ -207,12 +213,14 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
             EVENT_SEARCH);
     }
 
+    @Override
     public void onAppLocaleChanged(String to) {
         Log.d(LOG_TAG, "Setting health recorder app locale to " + to);
         this.profileCache.beginInitialization();
         this.profileCache.setAppLocale(to);
     }
 
+    @Override
     public void onAddonChanged(String id, JSONObject json) {
         this.profileCache.beginInitialization();
         try {
@@ -222,6 +230,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void onAddonUninstalling(String id) {
         this.profileCache.beginInitialization();
         try {
@@ -242,6 +251,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      * #onEnvironmentTransition(int, int, boolean, String)} will be invoked on the background
      * thread.
      */
+    @Override
     public synchronized void onEnvironmentChanged() {
         onEnvironmentChanged(true, "E");
     }
@@ -251,7 +261,14 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      * (e.g., because we're about to restart, and we don't want to create
      * an orphan).
      */
+    @Override
     public synchronized void onEnvironmentChanged(final boolean startNewSession, final String sessionEndReason) {
+        if (!(state == State.INITIALIZING ||
+              state == State.INITIALIZED)) {
+            Log.w(LOG_TAG, "Not initialized. Ignoring environment change. State is " + state);
+            return;
+        }
+
         final int previousEnv = this.env;
         this.env = -1;
         try {
@@ -284,7 +301,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     protected synchronized int ensureEnvironment() {
         if (!(state == State.INITIALIZING ||
               state == State.INITIALIZED)) {
-            throw new IllegalStateException("Not initialized.");
+            throw new IllegalStateException("Not initialized. State is " + state);
         }
 
         if (this.env != -1) {
@@ -334,15 +351,9 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     }
 
     /**
-     * Only works on API 9 and up.
-     *
      * @return the package install time, or -1 if an error occurred.
      */
     protected static long getPackageInstallTime(final Context context) {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.GINGERBREAD) {
-            return -1;
-        }
-
         try {
             return context.getPackageManager().getPackageInfo(AppConstants.ANDROID_PACKAGE_NAME, 0).firstInstallTime;
         } catch (android.content.pm.PackageManager.NameNotFoundException e) {
@@ -526,17 +537,58 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         // Because the distribution lookup can take some time, do it at the end of
         // our background startup work, along with the Gecko snapshot fetch.
         final Distribution distribution = Distribution.getInstance(context);
-        distribution.addOnDistributionReadyCallback(new Runnable() {
+        distribution.addOnDistributionReadyCallback(new Distribution.ReadyCallback() {
+            private void requestGeckoFields() {
+                Log.d(LOG_TAG, "Requesting all add-ons and FHR prefs from Gecko.");
+                dispatcher.registerGeckoThreadListener(BrowserHealthRecorder.this, EVENT_SNAPSHOT);
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HealthReport:RequestSnapshot", null));
+            }
+
             @Override
-            public void run() {
+            public void distributionNotFound() {
+                requestGeckoFields();
+            }
+
+            @Override
+            public void distributionFound(Distribution distribution) {
                 Log.d(LOG_TAG, "Running post-distribution task: health recorder.");
                 final DistributionDescriptor desc = distribution.getDescriptor();
                 if (desc != null && desc.valid) {
                     profileCache.setDistributionString(desc.id, desc.version);
                 }
-                Log.d(LOG_TAG, "Requesting all add-ons and FHR prefs from Gecko.");
-                dispatcher.registerGeckoThreadListener(BrowserHealthRecorder.this, EVENT_SNAPSHOT);
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HealthReport:RequestSnapshot", null));
+                requestGeckoFields();
+            }
+
+            @Override
+            public void distributionArrivedLate(Distribution distribution) {
+                profileCache.beginInitialization();
+
+                final DistributionDescriptor desc = distribution.getDescriptor();
+                if (desc != null && desc.valid) {
+                    profileCache.setDistributionString(desc.id, desc.version);
+                }
+
+                // Now rebuild.
+                try {
+                    profileCache.completeInitialization();
+
+                    synchronized (BrowserHealthRecorder.this) {
+                        switch (state) {
+                            case INITIALIZING:
+                                initializeStorage();
+                                break;
+                            case INITIALIZED:
+                                onEnvironmentChanged();
+                                break;
+                            default:
+                                Log.e(LOG_TAG, "Unexpected state " + state + " when handling late distribution.");
+                                return;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Well, we tried.
+                    Log.e(LOG_TAG, "Couldn't complete profile cache init.", e);
+                }
             }
         });
     }
@@ -647,15 +699,16 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      */
 
     public static final String MEASUREMENT_NAME_SEARCH_COUNTS = "org.mozilla.searches.counts";
-    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 5;
+    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 6;
 
     public static final Set<String> SEARCH_LOCATIONS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(new String[] {
-        "barkeyword",
-        "barsuggest",
-        "bartext",
+        "barkeyword",    // A search keyword (e.g., "imdb star wars").
+        "barsuggest",    // A suggestion picked after typing in the search bar.
+        "bartext",       // Raw text in the search bar.
+        "activity",      // The search activity.
     })));
 
-    private void initializeSearchProvider() {
+    void initializeSearchProvider() {
         this.storage.ensureMeasurementInitialized(
             MEASUREMENT_NAME_SEARCH_COUNTS,
             MEASUREMENT_VERSION_SEARCH_COUNTS,
@@ -689,6 +742,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      * @param engineID the string identifier for the engine. Can be <code>null</code>.
      * @param location one of a fixed set of locations: see {@link #SEARCH_LOCATIONS}.
      */
+    @Override
     public void recordSearch(final String engineID, final String location) {
         if (this.state != State.INITIALIZED) {
             Log.d(LOG_TAG, "Not initialized: not recording search. (" + this.state + ")");
@@ -790,7 +844,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     public static final String MEASUREMENT_NAME_SESSIONS = "org.mozilla.appSessions";
     public static final int MEASUREMENT_VERSION_SESSIONS = 4;
 
-    private void initializeSessionsProvider() {
+    void initializeSessionsProvider() {
         this.storage.ensureMeasurementInitialized(
             MEASUREMENT_NAME_SESSIONS,
             MEASUREMENT_VERSION_SESSIONS,
@@ -828,6 +882,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void checkForOrphanSessions() {
         if (!this.orphanChecked.compareAndSet(false, true)) {
             Log.w(LOG_TAG, "Attempting to check for orphan sessions more than once.");
@@ -858,6 +913,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void recordSessionEnd(String reason, SharedPreferences.Editor editor) {
         recordSessionEnd(reason, editor, env);
     }
@@ -868,6 +924,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
      * @param environment An environment ID. This allows callers to record the
      *                    end of a session due to an observed environment change.
      */
+    @Override
     public void recordSessionEnd(String reason, SharedPreferences.Editor editor, final int environment) {
         Log.d(LOG_TAG, "Recording session end: " + reason);
         if (state != State.INITIALIZED) {
@@ -903,5 +960,43 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         // Track the end of this session in shared prefs, so it doesn't get
         // double-counted on next run.
         session.recordCompletion(editor);
+    }
+
+    private static class Search {
+        public final String location;
+        public final String engineID;
+
+        public Search(final String location, final String engineID) {
+            if (!SEARCH_LOCATIONS.contains(location)) {
+                throw new IllegalArgumentException("Unknown search location: " + location);
+            }
+
+            this.location = location;
+            this.engineID = engineID;
+        }
+    }
+
+    private static final ConcurrentLinkedQueue<Search> delayedSearches = new ConcurrentLinkedQueue<>();
+
+    public static void recordSearchDelayed(String location, String engineID) {
+        final Search search = new Search(location, engineID);
+        delayedSearches.add(search);
+    }
+
+    @Override
+    public void processDelayed() {
+        if (delayedSearches.isEmpty()) {
+            return;
+        }
+
+        if (this.state != State.INITIALIZED) {
+            Log.d(LOG_TAG, "Not initialized: not processing delayed items. (" + this.state + ")");
+            return;
+        }
+
+        Search poll;
+        while ((poll = delayedSearches.poll()) != null) {
+            recordSearch(poll.engineID, poll.location);
+        }
     }
 }

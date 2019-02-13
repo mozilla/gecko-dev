@@ -11,30 +11,51 @@
 
 namespace js {
 
+struct JS_PUBLIC_API(TimeBudget)
+{
+    int64_t budget;
+
+    explicit TimeBudget(int64_t milliseconds) { budget = milliseconds; }
+};
+
+struct JS_PUBLIC_API(WorkBudget)
+{
+    int64_t budget;
+
+    explicit WorkBudget(int64_t work) { budget = work; }
+};
+
 /*
- * This class records how much work has been done in a given collection slice, so that
- * we can return before pausing for too long. Some slices are allowed to run for
- * unlimited time, and others are bounded. To reduce the number of gettimeofday
- * calls, we only check the time every 1000 operations.
+ * This class records how much work has been done in a given collection slice,
+ * so that we can return before pausing for too long. Some slices are allowed
+ * to run for unlimited time, and others are bounded. To reduce the number of
+ * gettimeofday calls, we only check the time every 1000 operations.
  */
 struct JS_PUBLIC_API(SliceBudget)
 {
+    // Memory of the originally requested budget. If isUnlimited, neither of
+    // these are in use. If deadline==0, then workBudget is valid. Otherwise
+    // timeBudget is valid.
+    TimeBudget timeBudget;
+    WorkBudget workBudget;
+
     int64_t deadline; /* in microseconds */
     intptr_t counter;
 
     static const intptr_t CounterReset = 1000;
 
-    static const int64_t Unlimited = 0;
-    static int64_t TimeBudget(int64_t millis);
-    static int64_t WorkBudget(int64_t work);
+    static const int64_t Unlimited = -1;
 
-    /* Equivalent to SliceBudget(UnlimitedBudget). */
+    /* Use to create an unlimited budget. */
     SliceBudget();
 
-    /* Instantiate as SliceBudget(Time/WorkBudget(n)). */
-    explicit SliceBudget(int64_t budget);
+    /* Instantiate as SliceBudget(TimeBudget(n)). */
+    explicit SliceBudget(TimeBudget time);
 
-    void reset() {
+    /* Instantiate as SliceBudget(WorkBudget(n)). */
+    explicit SliceBudget(WorkBudget work);
+
+    void makeUnlimited() {
         deadline = unlimitedDeadline;
         counter = unlimitedStartCounter;
     }
@@ -43,22 +64,23 @@ struct JS_PUBLIC_API(SliceBudget)
         counter -= amt;
     }
 
-    bool checkOverBudget();
-
     bool isOverBudget() {
-        if (counter >= 0)
+        if (counter > 0)
             return false;
         return checkOverBudget();
     }
 
-    bool isUnlimited() {
-        return deadline == unlimitedDeadline;
-    }
+    bool isWorkBudget() const { return deadline == 0; }
+    bool isTimeBudget() const { return deadline > 0 && !isUnlimited(); }
+    bool isUnlimited() const { return deadline == unlimitedDeadline; }
 
-private:
+    int describe(char* buffer, size_t maxlen) const;
+
+  private:
+    bool checkOverBudget();
+
     static const int64_t unlimitedDeadline = INT64_MAX;
     static const intptr_t unlimitedStartCounter = INTPTR_MAX;
-
 };
 
 } // namespace js

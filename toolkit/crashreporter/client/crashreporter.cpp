@@ -16,7 +16,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mozilla/NullPtr.h"
 
 using std::string;
 using std::istream;
@@ -32,14 +31,19 @@ namespace CrashReporter {
 
 StringTable  gStrings;
 string       gSettingsPath;
+string       gEventsPath;
 int          gArgc;
 char**       gArgv;
+
+enum SubmissionResult {Succeeded, Failed};
 
 static auto_ptr<ofstream> gLogStream(nullptr);
 static string             gReporterDumpFile;
 static string             gExtraFile;
+static string             gMemoryFile;
 
-static string kExtraDataExtension = ".extra";
+static const char kExtraDataExtension[] = ".extra";
+static const char kMemoryReportExtension[] = ".memory.json.gz";
 
 void UIError(const string& message)
 {
@@ -172,6 +176,53 @@ bool WriteStringsToFile(const string& path,
   return success;
 }
 
+static string Basename(const string& file)
+{
+  string::size_type slashIndex = file.rfind(UI_DIR_SEPARATOR);
+  if (slashIndex != string::npos)
+    return file.substr(slashIndex + 1);
+  else
+    return file;
+}
+
+static string GetDumpLocalID()
+{
+  string localId = Basename(gReporterDumpFile);
+  string::size_type dot = localId.rfind('.');
+
+  if (dot == string::npos)
+    return "";
+
+  return localId.substr(0, dot);
+}
+
+static void WriteSubmissionEvent(SubmissionResult result,
+                                 const string& remoteId)
+{
+  if (gEventsPath.empty()) {
+    // If there is no path for writing the submission event, skip it.
+    return;
+  }
+
+  string localId = GetDumpLocalID();
+  string fpath = gEventsPath + UI_DIR_SEPARATOR + localId + "-submission";
+  ofstream* f = UIOpenWrite(fpath.c_str(), false, true);
+  time_t tm;
+  time(&tm);
+
+  if (f->is_open()) {
+    *f << "crash.submission.1\n";
+    *f << tm << "\n";
+    *f << localId << "\n";
+    *f << (result == Succeeded ? "true" : "false") << "\n";
+    *f << remoteId;
+
+    f->close();
+  }
+
+  delete f;
+}
+
 void LogMessage(const std::string& message)
 {
   if (gLogStream.get()) {
@@ -207,29 +258,22 @@ static bool ReadConfig()
   return true;
 }
 
-static string GetExtraDataFilename(const string& dumpfile)
+static string
+GetAdditionalFilename(const string& dumpfile, const char* extension)
 {
   string filename(dumpfile);
   int dot = filename.rfind('.');
   if (dot < 0)
     return "";
 
-  filename.replace(dot, filename.length() - dot, kExtraDataExtension);
+  filename.replace(dot, filename.length() - dot, extension);
   return filename;
-}
-
-static string Basename(const string& file)
-{
-  int slashIndex = file.rfind(UI_DIR_SEPARATOR);
-  if (slashIndex >= 0)
-    return file.substr(slashIndex + 1);
-  else
-    return file;
 }
 
 static bool MoveCrashData(const string& toDir,
                           string& dumpfile,
-                          string& extrafile)
+                          string& extrafile,
+                          string& memoryfile)
 {
   if (!UIEnsurePathExists(toDir)) {
     UIError(gStrings[ST_ERROR_CREATEDUMPDIR]);
@@ -238,6 +282,7 @@ static bool MoveCrashData(const string& toDir,
 
   string newDump = toDir + UI_DIR_SEPARATOR + Basename(dumpfile);
   string newExtra = toDir + UI_DIR_SEPARATOR + Basename(extrafile);
+  string newMemory = toDir + UI_DIR_SEPARATOR + Basename(memoryfile);
 
   if (!UIMoveFile(dumpfile, newDump)) {
     UIError(gStrings[ST_ERROR_DUMPFILEMOVE]);
@@ -247,6 +292,15 @@ static bool MoveCrashData(const string& toDir,
   if (!UIMoveFile(extrafile, newExtra)) {
     UIError(gStrings[ST_ERROR_EXTRAFILEMOVE]);
     return false;
+  }
+
+  if (!memoryfile.empty()) {
+    // Ignore errors from moving the memory file
+    if (!UIMoveFile(memoryfile, newMemory)) {
+      UIDeleteFile(memoryfile);
+      newMemory.erase();
+    }
+    memoryfile = newMemory;
   }
 
   dumpfile = newDump;
@@ -316,6 +370,7 @@ static bool AddSubmittedReport(const string& serverResponse)
   file->close();
   delete file;
 
+  WriteSubmissionEvent(Succeeded, responseItems["CrashID"]);
   return true;
 }
 
@@ -327,6 +382,8 @@ void DeleteDump()
       UIDeleteFile(gReporterDumpFile);
     if (!gExtraFile.empty())
       UIDeleteFile(gExtraFile);
+    if (!gMemoryFile.empty())
+      UIDeleteFile(gMemoryFile);
   }
 }
 
@@ -343,7 +400,10 @@ void SendCompleted(bool success, const string& serverResponse)
         return;
       directory.resize(slashpos);
       UIPruneSavedDumps(directory);
+      WriteSubmissionEvent(Failed, "");
     }
+  } else {
+    WriteSubmissionEvent(Failed, "");
   }
 }
 
@@ -453,7 +513,7 @@ int main(int argc, char** argv)
     // no dump file specified, run the default UI
     UIShowDefaultUI();
   } else {
-    gExtraFile = GetExtraDataFilename(gReporterDumpFile);
+    gExtraFile = GetAdditionalFilename(gReporterDumpFile, kExtraDataExtension);
     if (gExtraFile.empty()) {
       UIError(gStrings[ST_ERROR_BADARGUMENTS]);
       return 0;
@@ -462,6 +522,12 @@ int main(int argc, char** argv)
     if (!UIFileExists(gExtraFile)) {
       UIError(gStrings[ST_ERROR_EXTRAFILEEXISTS]);
       return 0;
+    }
+
+    gMemoryFile = GetAdditionalFilename(gReporterDumpFile,
+                                        kMemoryReportExtension);
+    if (!UIFileExists(gMemoryFile)) {
+      gMemoryFile.erase();
     }
 
     StringTable queryParameters;
@@ -514,13 +580,31 @@ int main(int argc, char** argv)
 
     OpenLogFile();
 
+#ifdef XP_WIN32
+    static const wchar_t kEventsDirKey[] = L"MOZ_CRASHREPORTER_EVENTS_DIRECTORY";
+    const wchar_t *eventsPath = _wgetenv(kEventsDirKey);
+    if (eventsPath && *eventsPath) {
+      gEventsPath = WideToUTF8(eventsPath);
+    }
+#else
+    static const char kEventsDirKey[] = "MOZ_CRASHREPORTER_EVENTS_DIRECTORY";
+    const char *eventsPath = getenv(kEventsDirKey);
+    if (eventsPath && *eventsPath) {
+      gEventsPath = eventsPath;
+    }
+#endif
+    else {
+      gEventsPath.clear();
+    }
+
     if (!UIFileExists(gReporterDumpFile)) {
       UIError(gStrings[ST_ERROR_DUMPFILEEXISTS]);
       return 0;
     }
 
     string pendingDir = gSettingsPath + UI_DIR_SEPARATOR + "pending";
-    if (!MoveCrashData(pendingDir, gReporterDumpFile, gExtraFile)) {
+    if (!MoveCrashData(pendingDir, gReporterDumpFile, gExtraFile,
+                       gMemoryFile)) {
       return 0;
     }
 
@@ -575,7 +659,13 @@ int main(int argc, char** argv)
        return 0;
      }
 
-    if (!UIShowCrashUI(gReporterDumpFile, queryParameters, sendURL, restartArgs))
+    StringTable files;
+    files["upload_file_minidump"] = gReporterDumpFile;
+    if (!gMemoryFile.empty()) {
+      files["memory_report"] = gMemoryFile;
+    }
+
+    if (!UIShowCrashUI(files, queryParameters, sendURL, restartArgs))
       DeleteDump();
   }
 

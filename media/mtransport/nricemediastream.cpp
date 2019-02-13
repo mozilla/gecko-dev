@@ -144,7 +144,24 @@ static bool ToNrIceCandidate(const nr_ice_candidate& candc,
       return false;
   }
 
+  NrIceCandidate::TcpType tcp_type;
+  switch (cand->tcp_type) {
+    case TCP_TYPE_ACTIVE:
+      tcp_type = NrIceCandidate::ICE_ACTIVE;
+      break;
+    case TCP_TYPE_PASSIVE:
+      tcp_type = NrIceCandidate::ICE_PASSIVE;
+      break;
+    case TCP_TYPE_SO:
+      tcp_type = NrIceCandidate::ICE_SO;
+      break;
+    default:
+      tcp_type = NrIceCandidate::ICE_NONE;
+      break;
+  }
+
   out->type = type;
+  out->tcp_type = tcp_type;
   out->codeword = candc.codeword;
   return true;
 }
@@ -209,6 +226,7 @@ nsresult NrIceMediaStream::ParseAttributes(std::vector<std::string>&
     return NS_ERROR_FAILURE;
   }
 
+  has_parsed_attrs_ = true;
   return NS_OK;
 }
 
@@ -247,6 +265,10 @@ nsresult NrIceMediaStream::GetActivePair(int component,
   nr_ice_candidate *local_int;
   nr_ice_candidate *remote_int;
 
+  if (!stream_) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   r = nr_ice_media_stream_get_active(ctx_->peer(),
                                      stream_,
                                      component,
@@ -280,6 +302,9 @@ nsresult NrIceMediaStream::GetActivePair(int component,
 nsresult NrIceMediaStream::GetCandidatePairs(std::vector<NrIceCandidatePair>*
                                              out_pairs) const {
   MOZ_ASSERT(out_pairs);
+  if (!stream_) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   // Get the check_list on the peer stream (this is where the check_list
   // actually lives, not in stream_)
@@ -338,43 +363,23 @@ nsresult NrIceMediaStream::GetCandidatePairs(std::vector<NrIceCandidatePair>*
   return NS_OK;
 }
 
-nsresult NrIceMediaStream::GetDefaultCandidate(int component,
-                                               std::string *addrp,
-                                               int *portp) {
+nsresult NrIceMediaStream::GetDefaultCandidate(
+    int component,
+    NrIceCandidate* candidate) const {
+
   nr_ice_candidate *cand;
-  int r;
 
-  r = nr_ice_media_stream_get_default_candidate(stream_,
-                                                component, &cand);
+  int r = nr_ice_media_stream_get_default_candidate(stream_, component, &cand);
   if (r) {
-    if (ctx_->generating_trickle()) {
-      // Generate default trickle candidates.
-      // draft-ivov-mmusic-trickle-ice-01.txt says to use port 9
-      // but "::" instead of "0.0.0.0". Since we don't do any
-      // IPv6 we are ignoring that for now.
-      *addrp = "0.0.0.0";
-      *portp = 9;
-    }
-    else {
-      MOZ_MTLOG(ML_ERROR, "Couldn't get default ICE candidate for '"
-                << name_ << "'");
-
-      return NS_ERROR_NOT_AVAILABLE;
-    }
+    MOZ_MTLOG(ML_ERROR, "Couldn't get default ICE candidate for '"
+              << name_ << "'");
+    return NS_ERROR_FAILURE;
   }
-  else {
-    char addr[64];  // Enough for IPv6 with colons.
-    r = nr_transport_addr_get_addrstring(&cand->addr,addr,sizeof(addr));
-    if (r)
-      return NS_ERROR_FAILURE;
 
-    int port;
-    r=nr_transport_addr_get_port(&cand->addr,&port);
-    if (r)
-      return NS_ERROR_FAILURE;
-
-    *addrp = addr;
-    *portp = port;
+  if (!ToNrIceCandidate(*cand, candidate)) {
+    MOZ_MTLOG(ML_ERROR, "Failed to convert default ICE candidate for '"
+              << name_ << "'");
+    return NS_ERROR_FAILURE;
   }
 
   return NS_OK;
@@ -385,6 +390,10 @@ std::vector<std::string> NrIceMediaStream::GetCandidates() const {
   int attrct;
   int r;
   std::vector<std::string> ret;
+
+  if (!stream_) {
+    return ret;
+  }
 
   r = nr_ice_media_stream_get_attributes(stream_,
                                          &attrs, &attrct);
@@ -432,11 +441,19 @@ static nsresult GetCandidatesFromStream(
 
 nsresult NrIceMediaStream::GetLocalCandidates(
     std::vector<NrIceCandidate>* candidates) const {
+  if (!stream_) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   return GetCandidatesFromStream(stream_, candidates);
 }
 
 nsresult NrIceMediaStream::GetRemoteCandidates(
     std::vector<NrIceCandidate>* candidates) const {
+  if (!stream_) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nr_ice_media_stream* peer_stream;
   int r = nr_ice_peer_ctx_find_pstream(ctx_->peer(), stream_, &peer_stream);
   if (r != 0) {
@@ -500,6 +517,11 @@ void NrIceMediaStream::Ready() {
 void NrIceMediaStream::Close() {
   MOZ_MTLOG(ML_DEBUG, "Marking stream closed '" << name_ << "'");
   state_ = ICE_CLOSED;
-  stream_ = nullptr;
+
+  int r = nr_ice_remove_media_stream(ctx_->ctx(), &stream_);
+  if (r) {
+    MOZ_ASSERT(false, "Failed to remove stream");
+    MOZ_MTLOG(ML_ERROR, "Failed to remove stream, error=" << r);
+  }
 }
 }  // close namespace

@@ -11,6 +11,7 @@ import pkg_resources
 import sys
 import time
 
+from mozlog.structured.structuredlog import get_default_logger
 import mozversion
 from xmlgen import html
 from xmlgen import raw
@@ -50,7 +51,7 @@ class HTMLReportingTestRunnerMixin(object):
         errors = sum([len(results.errors) for results in results_list])
         passes = sum([results.passed for results in results_list])
         unexpected_passes = sum([len(results.unexpectedSuccesses) for results in results_list])
-        test_time = self.elapsedtime.total_seconds()
+        test_time = self.elapsedtime
         test_logs = []
 
         def _extract_html_from_result(result):
@@ -155,6 +156,7 @@ class HTMLReportingTestRunnerMixin(object):
             time.strftime(date_format, time.localtime(
                 int(version.get('gaia_date')))),
             'Device identifier': version.get('device_id'),
+            'Device firmware (base)': version.get('device_firmware_version_base'),
             'Device firmware (date)': version.get('device_firmware_date') and
             time.strftime(date_format, time.localtime(
                 int(version.get('device_firmware_date')))),
@@ -245,19 +247,23 @@ class HTMLReportingTestResultMixin(object):
 
     def gather_debug(self):
         debug = {}
-        try:
-            # TODO make screenshot consistant size by using full viewport
-            # Bug 883294 - Add ability to take full viewport screenshots
-            debug['screenshot'] = self.marionette.screenshot()
-            debug['source'] = self.marionette.page_source
-            self.marionette.switch_to_frame()
-            debug['settings'] = json.dumps(self.marionette.execute_async_script("""
-SpecialPowers.addPermission('settings-read', true, document);
+        # In the event we're gathering debug without starting a session, skip marionette commands
+        if self.marionette.session is not None:
+            try:
+                self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+                debug['screenshot'] = self.marionette.screenshot()
+                self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+                debug['source'] = self.marionette.page_source
+                self.marionette.switch_to_frame()
+                self.marionette.push_permission('settings-read', True)
+                self.marionette.push_permission('settings-api-read', True)
+                debug['settings'] = json.dumps(self.marionette.execute_async_script("""
 var req = window.navigator.mozSettings.createLock().get('*');
 req.onsuccess = function() {
   marionetteScriptFinished(req.result);
-}""", special_powers=True), sort_keys=True, indent=4, separators=(',', ': '))
-        except:
-            pass
+}""", sandbox='system'), sort_keys=True, indent=4, separators=(',', ': '))
+            except:
+                logger = get_default_logger()
+                logger.warning('Failed to gather test failure debug.', exc_info=True)
         return debug
 

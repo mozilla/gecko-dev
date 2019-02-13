@@ -7,8 +7,8 @@
 // Test that the rule-view behaves correctly when entering mutliple and/or
 // unfinished properties/values in inplace-editors
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,test rule view user changes");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,test rule view user changes");
   content.document.body.innerHTML = "<h1>Testing Multiple Properties</h1>";
   let {toolbox, inspector, view} = yield openRuleView();
 
@@ -16,15 +16,17 @@ let test = asyncTest(function*() {
   let newElement = content.document.createElement("div");
   newElement.textContent = "Test Element";
   content.document.body.appendChild(newElement);
-  yield selectNode(newElement, inspector);
-  let ruleEditor = view.element.children[0]._ruleEditor;
+  yield selectNode("div", inspector);
+  let ruleEditor = getRuleViewRuleEditor(view, 0);
 
   yield testCreateNewMultiPriority(inspector, ruleEditor);
 });
 
 function* testCreateNewMultiPriority(inspector, ruleEditor) {
+  let onMutation = inspector.once("markupmutation");
   yield createNewRuleViewProperty(ruleEditor,
     "color:red;width:100px;height: 100px;");
+  yield onMutation;
 
   is(ruleEditor.rule.textProps.length, 3, "Should have created new text properties.");
   is(ruleEditor.propertyList.children.length, 4, "Should have created new property editors.");
@@ -37,6 +39,4 @@ function* testCreateNewMultiPriority(inspector, ruleEditor) {
 
   is(ruleEditor.rule.textProps[2].name, "height", "Should have correct property name");
   is(ruleEditor.rule.textProps[2].value, "100px", "Should have correct property value");
-
-  yield inspector.once("inspector-updated");
 }

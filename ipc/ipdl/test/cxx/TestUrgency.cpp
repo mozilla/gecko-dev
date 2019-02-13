@@ -48,7 +48,7 @@ TestUrgencyParent::Main()
 bool
 TestUrgencyParent::RecvTest1(uint32_t *value)
 {
-  if (!CallReply1(value))
+  if (!SendReply1(value))
     fail("sending Reply1");
   if (*value != 99)
     fail("bad value");
@@ -60,7 +60,7 @@ TestUrgencyParent::RecvTest2()
 {
   uint32_t value;
   inreply_ = true;
-  if (!CallReply2(&value))
+  if (!SendReply2(&value))
     fail("sending Reply2");
   inreply_ = false;
   if (value != 500)
@@ -80,16 +80,7 @@ TestUrgencyParent::RecvTest3(uint32_t *value)
 bool
 TestUrgencyParent::RecvFinalTest_Begin()
 {
-  SetReplyTimeoutMs(2000);
-  if (CallFinalTest_Hang())
-    fail("should have failed due to timeout");
-  if (!GetIPCChannel()->Unsound_IsClosed())
-    fail("channel should have closed");
-
-  MessageLoop::current()->PostTask(
-      FROM_HERE,
-      NewRunnableMethod(this, &TestUrgencyParent::Close));
-  return false;
+  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -130,9 +121,8 @@ TestUrgencyChild::RecvStart()
   if (result != 1000)
     fail("wrong value from test3");
 
-  // This must be the last test, since the child process may die.
-  if (SendFinalTest_Begin())
-    fail("Final test should not have succeeded");
+  if (!SendFinalTest_Begin())
+    fail("Final test should have succeeded");
 
   Close();
 
@@ -140,10 +130,10 @@ TestUrgencyChild::RecvStart()
 }
 
 bool
-TestUrgencyChild::AnswerReply1(uint32_t *reply)
+TestUrgencyChild::RecvReply1(uint32_t *reply)
 {
   if (test_ != kFirstTestBegin)
-    fail("wrong test # in AnswerReply1");
+    fail("wrong test # in RecvReply1");
 
   *reply = 99;
   test_ = kFirstTestGotReply;
@@ -151,23 +141,16 @@ TestUrgencyChild::AnswerReply1(uint32_t *reply)
 }
 
 bool
-TestUrgencyChild::AnswerReply2(uint32_t *reply)
+TestUrgencyChild::RecvReply2(uint32_t *reply)
 {
   if (test_ != kSecondTestBegin)
-    fail("wrong test # in AnswerReply2");
+    fail("wrong test # in RecvReply2");
 
   // sleep for 5 seconds so the parent process tries to deliver more messages.
   Sleep(5000);
 
   *reply = 500;
   test_ = kSecondTestGotReply;
-  return true;
-}
-
-bool
-TestUrgencyChild::AnswerFinalTest_Hang()
-{
-  Sleep(10);
   return true;
 }
 

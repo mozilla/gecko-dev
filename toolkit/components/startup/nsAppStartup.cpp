@@ -101,7 +101,7 @@ private:
   nsRefPtr<nsAppStartup> mService;
 
 public:
-  nsAppExitEvent(nsAppStartup *service) : mService(service) {}
+  explicit nsAppExitEvent(nsAppStartup *service) : mService(service) {}
 
   NS_IMETHOD Run() {
     // Tell the appshell to exit
@@ -143,7 +143,7 @@ nsAppStartup::nsAppStartup() :
   mInterrupted(false),
   mIsSafeModeNecessary(false),
   mStartupCrashTrackingEnded(false),
-  mRestartTouchEnvironment(false)
+  mRestartNotSameProfile(false)
 { }
 
 
@@ -161,12 +161,14 @@ nsAppStartup::Init()
   if (!os)
     return NS_ERROR_FAILURE;
 
+  os->AddObserver(this, "quit-application", true);
   os->AddObserver(this, "quit-application-forced", true);
   os->AddObserver(this, "sessionstore-init-started", true);
   os->AddObserver(this, "sessionstore-windows-restored", true);
   os->AddObserver(this, "profile-change-teardown", true);
   os->AddObserver(this, "xul-window-registered", true);
   os->AddObserver(this, "xul-window-destroyed", true);
+  os->AddObserver(this, "profile-before-change", true);
   os->AddObserver(this, "xpcom-shutdown", true);
 
 #if defined(XP_WIN)
@@ -232,7 +234,7 @@ NS_IMPL_ISUPPORTS(nsAppStartup,
 NS_IMETHODIMP
 nsAppStartup::CreateHiddenWindow()
 {
-#ifdef MOZ_WIDGET_GONK
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_UIKIT)
   return NS_OK;
 #else
   nsCOMPtr<nsIAppShellService> appShellService
@@ -247,7 +249,7 @@ nsAppStartup::CreateHiddenWindow()
 NS_IMETHODIMP
 nsAppStartup::DestroyHiddenWindow()
 {
-#ifdef MOZ_WIDGET_GONK
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_UIKIT)
   return NS_OK;
 #else
   nsCOMPtr<nsIAppShellService> appShellService
@@ -281,10 +283,10 @@ nsAppStartup::Run(void)
   }
 
   nsresult retval = NS_OK;
-  if (mRestartTouchEnvironment) {
-    retval = NS_SUCCESS_RESTART_METRO_APP;
-  } else if (mRestart) {
+  if (mRestart) {
     retval = NS_SUCCESS_RESTART_APP;
+  } else if (mRestartNotSameProfile) {
+    retval = NS_SUCCESS_RESTART_APP_NOT_SAME_PROFILE;
   }
 
   return retval;
@@ -379,12 +381,12 @@ nsAppStartup::Quit(uint32_t aMode)
       gRestartMode = (aMode & 0xF0);
     }
 
-    if (!mRestartTouchEnvironment) {
-      mRestartTouchEnvironment = (aMode & eRestartTouchEnvironment) != 0;
+    if (!mRestartNotSameProfile) {
+      mRestartNotSameProfile = (aMode & eRestartNotSameProfile) != 0;
       gRestartMode = (aMode & 0xF0);
     }
 
-    if (mRestart || mRestartTouchEnvironment) {
+    if (mRestart || mRestartNotSameProfile) {
       // Mark the next startup as a restart.
       PR_SetEnv("MOZ_APP_RESTART=1");
 
@@ -454,7 +456,7 @@ nsAppStartup::Quit(uint32_t aMode)
       NS_NAMED_LITERAL_STRING(shutdownStr, "shutdown");
       NS_NAMED_LITERAL_STRING(restartStr, "restart");
       obsService->NotifyObservers(nullptr, "quit-application",
-        (mRestart || mRestartTouchEnvironment) ?
+        (mRestart || mRestartNotSameProfile) ?
          restartStr.get() : shutdownStr.get());
     }
 
@@ -581,14 +583,6 @@ nsAppStartup::GetWasRestarted(bool *aResult)
 }
 
 NS_IMETHODIMP
-nsAppStartup::GetRestartingTouchEnvironment(bool *aResult)
-{
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = mRestartTouchEnvironment;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsAppStartup::SetInterrupted(bool aInterrupted)
 {
   mInterrupted = aInterrupted;
@@ -619,6 +613,17 @@ nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome *aParent,
 //
 // nsAppStartup->nsIWindowCreator2
 //
+
+NS_IMETHODIMP
+nsAppStartup::SetScreenId(uint32_t aScreenId)
+{
+  nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+  if (!appShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return appShell->SetScreenId(aScreenId);
+}
 
 NS_IMETHODIMP
 nsAppStartup::CreateChromeWindow2(nsIWebBrowserChrome *aParent,
@@ -721,6 +726,10 @@ nsAppStartup::Observe(nsISupports *aSubject,
       mXPCOMShutdownProbe->Trigger();
     }
 #endif // defined(XP_WIN)
+  } else if (!strcmp(aTopic, "quit-application")) {
+    StartupTimeline::Record(StartupTimeline::QUIT_APPLICATION);
+  } else if (!strcmp(aTopic, "profile-before-change")) {
+    StartupTimeline::Record(StartupTimeline::PROFILE_BEFORE_CHANGE);
   } else {
     NS_ERROR("Unexpected observer topic.");
   }
@@ -731,7 +740,7 @@ nsAppStartup::Observe(nsISupports *aSubject,
 NS_IMETHODIMP
 nsAppStartup::GetStartupInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval)
 {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   aRetval.setObject(*obj);
 

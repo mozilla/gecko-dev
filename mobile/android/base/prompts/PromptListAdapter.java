@@ -48,7 +48,7 @@ public class PromptListAdapter extends ArrayAdapter<PromptListItem> {
     private static int mMinRowSize;
     private static int mIconTextPadding;
     private static float mTextSize;
-    private static boolean mInitialized = false;
+    private static boolean mInitialized;
 
     PromptListAdapter(Context context, int textViewResourceId, PromptListItem[] objects) {
         super(context, textViewResourceId, objects);
@@ -179,7 +179,8 @@ public class PromptListAdapter extends ArrayAdapter<PromptListItem> {
         final GeckoActionProvider provider = GeckoActionProvider.getForType(item.getIntent().getType(), getContext());
         provider.setIntent(item.getIntent());
 
-        final MenuItemActionView view = (MenuItemActionView) provider.onCreateActionView();
+        final MenuItemActionView view = (MenuItemActionView) provider.onCreateActionView(
+                GeckoActionProvider.ActionViewType.CONTEXT_MENU);
         // If a quickshare button is clicked, we need to close the dialog.
         view.addActionButtonClickListener(new View.OnClickListener() {
             @Override

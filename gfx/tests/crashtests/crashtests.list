@@ -41,7 +41,7 @@ load 393822-1.html
 load 394384-1.html
 load 394246-1.html
 load 394246-2.html
-skip-if(Android&&(AndroidVersion<15||AndroidVersion>=17)) load 394751.xhtml # bug 922976
+skip-if(Android||B2G) load 394751.xhtml # bug 922976
 load 395335-1.xhtml
 load 395458-1.html
 load 396321-1.svg
@@ -65,6 +65,7 @@ load 421393-1.html
 load 421813-1.html
 load 423110-1.xhtml
 load 423270-1.html
+load 428633.html
 load 429899-1.html
 load 441360.html
 load 445711.html
@@ -86,6 +87,8 @@ load 580100-1.html
 load 580212-1.html
 load 580233-1.html
 load 580719-1.html
+load 593526.html
+load 593526.xul
 load 594654-1.xhtml
 load 595727-1.html
 load 624198.xhtml
@@ -99,7 +102,7 @@ load 783041-1.html
 load 783041-2.html
 load 783041-3.html
 load 783041-4.html
-asserts-if(gtk2Widget,1) load 798853.html # bug 868792
+asserts-if(gtkWidget,0-1) load 798853.html # bug 868792
 asserts-if(winWidget,0-1) skip-if(B2G) load 815489.html
 load 836225-1.html
 load 839745-1.html
@@ -108,3 +111,7 @@ load 893572-1.html
 load 893572-2.html
 load 893572-3.html
 load 893572-4.html
+load 944579.svg
+load 944579.html
+pref(security.fileuri.strict_origin_policy,false) load 950000.html
+load 1034403-1.html

@@ -24,6 +24,10 @@ ProtocolHandler.prototype = {
                       Ci.nsIProtocolHandler.URI_NON_PERSISTABLE |
                       Ci.nsIProtocolHandler.URI_SYNC_LOAD_IS_OK,
   newURI: function(aSpec, aOriginCharset, aBaseURI) this.uri,
+  newChannel2: function(aURI, aLoadInfo) {
+    this.loadInfo = aLoadInfo;
+    return this;
+  },
   newChannel: function(aURI) this,
   allowPort: function(port, scheme) port != -1,
 
@@ -44,7 +48,12 @@ ProtocolHandler.prototype = {
     var file = do_get_file("test_bug894586.js", false);
     do_check_true(file.exists());
     var url = Services.io.newFileURI(file);
-    return Services.io.newChannelFromURI(url).open();
+    return Services.io.newChannelFromURI2(url,
+                                          null,      // aLoadingNode
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      // aTriggeringPrincipal
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER).open();
   },
   asyncOpen: function(aListener, aContext) {
     throw Components.Exception("Not implemented",

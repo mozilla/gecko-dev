@@ -67,6 +67,7 @@ included_inclnames_to_ignore = set([
     'js-config.h',              # generated in $OBJDIR
     'pratom.h',                 # NSPR
     'prcvar.h',                 # NSPR
+    'prerror.h',                # NSPR
     'prinit.h',                 # NSPR
     'prlink.h',                 # NSPR
     'prlock.h',                 # NSPR
@@ -236,18 +237,24 @@ def check_style():
     # - An "inclname" is how a file is referred to in a #include statement.
     #
     # Examples (filename -> inclname)
-    # - "mfbt/Attributes.h"  -> "mozilla/Attributes.h"
-    # - "js/public/Vector.h" -> "js/Vector.h"
-    # - "js/src/vm/String.h" -> "vm/String.h"
+    # - "mfbt/Attributes.h"     -> "mozilla/Attributes.h"
+    # - "mfbt/decimal/Decimal.h -> "mozilla/Decimal.h"
+    # - "js/public/Vector.h"    -> "js/Vector.h"
+    # - "js/src/vm/String.h"    -> "vm/String.h"
 
     mfbt_inclnames = set()      # type: set(inclname)
+    mozalloc_inclnames = set()  # type: set(inclname)
     js_names = dict()           # type: dict(filename, inclname)
 
     # Select the appropriate files.
     for filename in get_all_filenames():
         if filename.startswith('mfbt/') and filename.endswith('.h'):
-            inclname = 'mozilla/' + filename[len('mfbt/'):]
+            inclname = 'mozilla/' + filename.split('/')[-1]
             mfbt_inclnames.add(inclname)
+
+        if filename.startswith('memory/mozalloc/') and filename.endswith('.h'):
+            inclname = 'mozilla/' + filename.split('/')[-1]
+            mozalloc_inclnames.add(inclname)
 
         if filename.startswith('js/public/') and filename.endswith('.h'):
             inclname = 'js/' + filename[len('js/public/'):]
@@ -259,13 +266,13 @@ def check_style():
             inclname = filename[len('js/src/'):]
             js_names[filename] = inclname
 
-    all_inclnames = mfbt_inclnames | set(js_names.values())
+    all_inclnames = mfbt_inclnames | mozalloc_inclnames | set(js_names.values())
 
     edges = dict()      # type: dict(inclname, set(inclname))
 
-    # We don't care what's inside the MFBT files, but because they are
-    # #included from JS files we have to add them to the inclusion graph.
-    for inclname in mfbt_inclnames:
+    # We don't care what's inside the MFBT and MOZALLOC files, but because they
+    # are #included from JS files we have to add them to the inclusion graph.
+    for inclname in mfbt_inclnames | mozalloc_inclnames:
         edges[inclname] = set()
 
     # Process all the JS files.
@@ -399,6 +406,10 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
 
     # Extract the #include statements as a tree of IBlocks and IIncludes.
     for linenum, line in enumerate(f, start=1):
+        # We're only interested in lines that contain a '#'.
+        if not '#' in line:
+            continue
+
         # Look for a |#include "..."| line.
         m = re.match(r'\s*#\s*include\s+"([^"]*)"', line)
         if m is not None:
@@ -450,7 +461,7 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
                 # Check the #include path has the correct form.
                 if include.inclname not in all_inclnames:
                     error(filename, include.linenum,
-                          include.quote() + ' is included ' + 'using the wrong path;',
+                          include.quote() + ' is included using the wrong path;',
                           'did you forget a prefix, or is the file not yet committed?')
 
                 # Record inclusions of .h files for cycle detection later.
@@ -482,16 +493,12 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
             error(filename, str(include1.linenum) + ':' + str(include2.linenum),
                   include1.quote() + ' should be included after ' + include2.quote())
 
-    # The #include statements in the files in assembler/ and yarr/ have all manner of implicit
-    # ordering requirements.  Boo.  Ignore them.
-    skip_order_checking = inclname.startswith(('assembler/', 'yarr/'))
-
     # Check the extracted #include statements, both individually, and the ordering of
     # adjacent pairs that live in the same block.
     def pair_traverse(prev, this):
         if this.isLeaf():
             check_include_statement(this)
-            if prev is not None and prev.isLeaf() and not skip_order_checking:
+            if prev is not None and prev.isLeaf():
                 check_includes_order(prev, this)
         else:
             for prev2, this2 in zip([None] + this.kids[0:-1], this.kids):

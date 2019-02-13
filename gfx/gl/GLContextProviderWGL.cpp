@@ -362,7 +362,7 @@ GLContextWGL::SetupLookupFunction()
 }
 
 static bool
-GetMaxSize(HDC hDC, int format, gfxIntSize& size)
+GetMaxSize(HDC hDC, int format, IntSize& size)
 {
     int query[] = {LOCAL_WGL_MAX_PBUFFER_WIDTH_ARB, LOCAL_WGL_MAX_PBUFFER_HEIGHT_ARB};
     int result[2];
@@ -378,9 +378,9 @@ GetMaxSize(HDC hDC, int format, gfxIntSize& size)
 
 static bool
 IsValidSizeForFormat(HDC hDC, int format,
-                     const gfxIntSize& requested)
+                     const IntSize& requested)
 {
-    gfxIntSize max;
+    IntSize max;
     if (!GetMaxSize(hDC, format, max))
         return true;
 
@@ -466,7 +466,7 @@ GLContextProviderWGL::CreateForWindow(nsIWidget *aWidget)
 }
 
 static already_AddRefed<GLContextWGL>
-CreatePBufferOffscreenContext(const gfxIntSize& aSize,
+CreatePBufferOffscreenContext(const IntSize& aSize,
                               GLContextWGL *aShareContext)
 {
     WGLLibrary& wgl = sWGLLib;
@@ -607,8 +607,7 @@ CreateWindowOffscreenContext()
 }
 
 already_AddRefed<GLContext>
-GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
-                                      const SurfaceCaps& caps)
+GLContextProviderWGL::CreateHeadless(bool)
 {
     if (!sWGLLib.EnsureInitialized()) {
         return nullptr;
@@ -621,7 +620,7 @@ GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
     if (sWGLLib.fCreatePbuffer &&
         sWGLLib.fChoosePixelFormat)
     {
-        gfxIntSize dummySize = gfxIntSize(16, 16);
+        IntSize dummySize = IntSize(16, 16);
         glContext = CreatePBufferOffscreenContext(dummySize, GetGlobalContextWGL());
     }
 
@@ -636,7 +635,20 @@ GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
         return nullptr;
     }
 
-    if (!glContext->InitOffscreen(ToIntSize(size), caps))
+    nsRefPtr<GLContext> retGL = glContext.get();
+    return retGL.forget();
+}
+
+already_AddRefed<GLContext>
+GLContextProviderWGL::CreateOffscreen(const IntSize& size,
+                                      const SurfaceCaps& caps,
+                                      bool requireCompatProfile)
+{
+    nsRefPtr<GLContext> glContext = CreateHeadless(requireCompatProfile);
+    if (!glContext)
+        return nullptr;
+
+    if (!glContext->InitOffscreen(size, caps))
         return nullptr;
 
     return glContext.forget();

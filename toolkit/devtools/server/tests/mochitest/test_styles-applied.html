@@ -42,7 +42,6 @@ addTest(function setup() {
 });
 
 addTest(function inheritedUserStyles() {
-  let node = node;
   promiseDone(gWalker.querySelector(gWalker.rootNode, "#test-node").then(node => {
     return gStyles.getApplied(node, { inherited: true, filter: "user" });
   }).then(applied => {
@@ -78,7 +77,6 @@ addTest(function inheritedUserStyles() {
 });
 
 addTest(function inheritedSystemStyles() {
-  let node = node;
   promiseDone(gWalker.querySelector(gWalker.rootNode, "#test-node").then(node => {
     return gStyles.getApplied(node, { inherited: true, filter: "ua" });
   }).then(applied => {
@@ -90,12 +88,11 @@ addTest(function inheritedSystemStyles() {
     ok(!applied[1].rule.parentStyleSheet.system, "Entry 1 should be a system style");
     is(applied[1].rule.type, 1, "Entry 1 should be a rule style");
 
-    is(applied.length, 7, "Should have 7 rules.");
+    is(applied.length, 8, "Should have 8 rules.");
   }).then(runNextTest));
 });
 
 addTest(function noInheritedStyles() {
-  let node = node;
   promiseDone(gWalker.querySelector(gWalker.rootNode, "#test-node").then(node => {
     return gStyles.getApplied(node, { inherited: false, filter: "user" });
   }).then(applied => {
@@ -118,7 +115,6 @@ addTest(function matchedSelectors() {
 });
 
 addTest(function testMediaQuery() {
-  let node = node;
   promiseDone(gWalker.querySelector(gWalker.rootNode, "#mediaqueried").then(node => {
     return gStyles.getApplied(node, {
       inherited: false, filter: "user", matchedSelectors: true
@@ -126,7 +122,7 @@ addTest(function testMediaQuery() {
   }).then(applied => {
     is(applied[1].rule.type, 1, "Entry 1 is a rule style");
     is(applied[1].rule.parentRule.type, 4, "Entry 1's parent rule is a media rule");
-    is(applied[1].rule.parentRule.media[0], "screen", "Entry 1's parent rule has the expected medium");
+    is(applied[1].rule.media[0], "screen", "Entry 1's rule has the expected medium");
   }).then(runNextTest));
 });
 

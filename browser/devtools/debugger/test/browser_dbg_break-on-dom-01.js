@@ -8,7 +8,7 @@
 const TAB_URL = EXAMPLE_URL + "doc_event-listeners-02.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     let gDebugger = aPanel.panelWin;
     let gView = gDebugger.DebuggerView;
     let gEvents = gView.EventListeners;
@@ -27,7 +27,7 @@ function test() {
     is(gView.instrumentsPaneTab, "variables-tab",
       "The variables tab should be selected by default.");
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       yield waitForSourceShown(aPanel, ".html");
       is(gEvents.itemCount, 0, "There should be no events before reloading.");
 

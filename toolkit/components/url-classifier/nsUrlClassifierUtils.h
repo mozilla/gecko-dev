@@ -11,7 +11,7 @@
 #include "nsDataHashtable.h"
 #include "mozilla/Attributes.h"
 
-class nsUrlClassifierUtils MOZ_FINAL : public nsIUrlClassifierUtils
+class nsUrlClassifierUtils final : public nsIUrlClassifierUtils
 {
 private:
   /**
@@ -46,7 +46,6 @@ private:
 
 public:
   nsUrlClassifierUtils();
-  ~nsUrlClassifierUtils() {}
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERUTILS
@@ -74,6 +73,8 @@ public:
                     nsACString & _retval);
 
 private:
+  ~nsUrlClassifierUtils() {}
+
   // Disallow copy constructor
   nsUrlClassifierUtils(const nsUrlClassifierUtils&);
 

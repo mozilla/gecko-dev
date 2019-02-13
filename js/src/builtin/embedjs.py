@@ -78,14 +78,6 @@ namespace selfhosted {
 } // js
 """
 
-MSGS_TEMPLATE = """\
-#define hash #
-#define id(x) x
-#define hashify(x) id(hash)x
-#define MSG_DEF(name, id, argc, ex, msg) hashify(define) name id
-#include "%(msgs)s"
-"""
-
 def embed(cxx, preprocessorOption, msgs, sources, c_out, js_out, env):
   combinedSources = '\n'.join([msgs] + ['#include "%(s)s"' % { 's': source } for source in sources])
   args = ['-D%(k)s=%(v)s' % { 'k': k, 'v': env[k] } for k in env]
@@ -96,26 +88,16 @@ def embed(cxx, preprocessorOption, msgs, sources, c_out, js_out, env):
   with open(js_out, 'w') as output:
     output.write(processed)
   with open(c_out, 'w') as output:
-    if 'USE_ZLIB' in env:
-      import zlib
-      compressed = zlib.compress(processed)
-      data = ToCArray(compressed)
-      output.write(HEADER_TEMPLATE % {
-          'sources_type': 'unsigned char',
-          'sources_data': data,
-          'sources_name': 'compressedSources',
-          'compressed_total_length': len(compressed),
-          'raw_total_length': len(processed)
-      })
-    else:
-      data = ToCAsciiArray(processed)
-      output.write(HEADER_TEMPLATE % {
-          'sources_type': 'char',
-          'sources_data': data,
-          'sources_name': 'rawSources',
-          'compressed_total_length': 0,
-          'raw_total_length': len(processed)
-      })
+    import zlib
+    compressed = zlib.compress(processed)
+    data = ToCArray(compressed)
+    output.write(HEADER_TEMPLATE % {
+        'sources_type': 'unsigned char',
+        'sources_data': data,
+        'sources_name': 'compressedSources',
+        'compressed_total_length': len(compressed),
+        'raw_total_length': len(processed)
+    })
 
 def preprocess(cxx, preprocessorOption, source, args = []):
   if (not os.path.exists(cxx[0])):
@@ -137,6 +119,17 @@ def preprocess(cxx, preprocessorOption, source, args = []):
   os.remove(tmpIn)
   os.remove(tmpOut)
   return processed
+
+def messages(jsmsg):
+  defines = []
+  for line in open(jsmsg):
+    match = re.match("MSG_DEF\((JSMSG_(\w+))", line)
+    if match:
+      defines.append("#define %s %i" % (match.group(1), len(defines)))
+    else:
+      # Make sure that MSG_DEF isn't preceded by whitespace
+      assert not line.strip().startswith("MSG_DEF")
+  return '\n'.join(defines)
 
 def main():
   env = {}
@@ -162,7 +155,7 @@ def main():
     p.print_help()
     sys.exit(1)
   cxx = shlex.split(options.c)
-  msgs = preprocess(cxx, options.p, MSGS_TEMPLATE % { 'msgs': options.m })
+  msgs = messages(options.m)
   embed(cxx, options.p, msgs, sources, options.o, options.s, env)
 
 if __name__ == "__main__":

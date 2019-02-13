@@ -21,11 +21,11 @@ public:
                                               nsStyleContext* aContext);
 
 protected:
-  nsMathMLsemanticsFrame(nsStyleContext* aContext) :
+  explicit nsMathMLsemanticsFrame(nsStyleContext* aContext) :
     nsMathMLSelectedFrame(aContext) {}
   virtual ~nsMathMLsemanticsFrame();
 
-  nsIFrame* GetSelectedFrame() MOZ_OVERRIDE;
+  nsIFrame* GetSelectedFrame() override;
 };
 
 #endif /* nsMathMLsemanticsFrame_h___ */

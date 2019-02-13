@@ -1,0 +1,241 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: ft=cpp tw=78 sw=2 et ts=2 sts=2 cin
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIContentPolicy.idl"
+
+interface nsIDOMDocument;
+interface nsINode;
+interface nsIPrincipal;
+interface nsIURI;
+
+typedef unsigned long nsSecurityFlags;
+
+/**
+ * An nsILoadOwner represents per-load information about who started the load.
+ */
+[scriptable, builtinclass, uuid(f6bce897-1a4a-4664-b96b-abacd6543e95)]
+interface nsILoadInfo : nsISupports
+{
+  /**
+   * No special security flags:
+   */
+  const unsigned long SEC_NORMAL = 0;
+
+  /**
+   * Force inheriting of the Principal. The resulting resource will use the
+   * principal of the document which is doing the load. Setting this flag
+   * will cause GetChannelResultPrincipal to return the same principal as
+   * the loading principal that's passed in when creating the channel.
+   *
+   * This will happen independently of the scheme of the URI that the
+   * channel is loading.
+   *
+   * So if the loading document comes from "http://a.com/", and the channel
+   * is loading the URI "http://b.com/whatever", GetChannelResultPrincipal
+   * will return a principal from "http://a.com/".
+   *
+   * This flag can not be used together with SEC_SANDBOXED.
+   */
+  const unsigned long SEC_FORCE_INHERIT_PRINCIPAL = 0x01;
+
+  /**
+   * Sandbox the load. The resulting resource will use a freshly created
+   * null principal. So GetChannelResultPrincipal will always return a
+   * null principal whenever this flag is set.
+   *
+   * This will happen independently of the scheme of the URI that the
+   * channel is loading.
+   *
+   * This flag can not be used together with SEC_FORCE_INHERIT_PRINCIPAL.
+   */
+  const unsigned long SEC_SANDBOXED = 0x02;
+
+  /**
+   * The loadingPrincipal is the principal that is responsible for the load.
+   * It is *NOT* the principal tied to the resource/URI that this
+   * channel is loading, it's the principal of the resource's
+   * caller or requester. For example, if this channel is loading
+   * an image from http://b.com that is embedded in a document
+   * who's origin is http://a.com, the loadingPrincipal is http://a.com.
+   *
+   * The loadingPrincipal will never be null.
+   */
+  readonly attribute nsIPrincipal loadingPrincipal;
+
+  /**
+   * A C++-friendly version of loadingPrincipal.
+   */
+  [noscript, notxpcom, nostdcall, binaryname(LoadingPrincipal)]
+  nsIPrincipal binaryLoadingPrincipal();
+
+  /**
+   * The triggeringPrincipal is the principal that triggerd the load.
+   * Most likely the triggeringPrincipal and the loadingPrincipal are the same,
+   * in which case triggeringPrincipal returns the loadingPrincipal.
+   * In some cases the loadingPrincipal and the triggeringPrincipal are different
+   * however, e.g. a stylesheet may import a subresource. In that case the
+   * stylesheet principal is the triggeringPrincipal and the document that loads
+   * the stylesheet provides a loadingContext and hence the loadingPrincipal.
+   *
+   * If triggeringPrincipal and loadingPrincipal are the same, then
+   * triggeringPrincipal returns loadingPrincipal.
+   */
+  readonly attribute nsIPrincipal triggeringPrincipal;
+
+  /**
+   * A C++-friendly version of triggeringPrincipal.
+   */
+  [noscript, notxpcom, nostdcall, binaryname(TriggeringPrincipal)]
+  nsIPrincipal binaryTriggeringPrincipal();
+
+  /**
+   * The loadingDocument of the channel.
+   *
+   * The loadingDocument of a channel is the document that requested the
+   * load of the resource. It is *not* the resource itself, it's the
+   * resource's caller or requester in which the load is happening.
+   *
+   * <script> example: Assume a document who's origin is http://a.com embeds
+   * a script from http://b.com. The loadingDocument for the channel
+   * associated with the http://b.com script load is the document with origin
+   * http://a.com
+   *
+   * <iframe> example: Assume a document with origin http://a.com embeds
+   * <iframe src="http://b.com">. The loadingDocument for the channel associated
+   * with the http://b.com network request is the document who's origin is
+   * http://a.com. Now assume the iframe to http://b.com then further embeds
+   * <script src="http://c.com">. The loadingDocument for the channel associated
+   * with the http://c.com network request is the iframe with origin http://b.com.
+   *
+   * Warning: The loadingDocument can be null!
+   */
+  readonly attribute nsIDOMDocument loadingDocument;
+
+  /**
+   * A C++-friendly version of loadingDocument (loadingNode).
+   * This is the node most proximally responsible for the load.
+   */
+  [noscript, notxpcom, nostdcall, binaryname(LoadingNode)]
+  nsINode binaryLoadingNode();
+
+  /**
+   * The securityFlags of that channel.
+   */
+  readonly attribute nsSecurityFlags securityFlags;
+
+%{ C++
+  inline nsSecurityFlags GetSecurityFlags()
+  {
+    nsSecurityFlags result;
+    mozilla::DebugOnly<nsresult> rv = GetSecurityFlags(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+%}
+
+  /**
+   * If forceInheritPrincipal is true, the data coming from the channel should
+   * use loadingPrincipal for its principal, even when the data is loaded over
+   * http:// or another protocol that would normally use a URI-based principal.
+   * This attribute will never be true when loadingSandboxed is true.
+   */
+  [infallible] readonly attribute boolean forceInheritPrincipal;
+
+  /**
+   * If loadingSandboxed is true, the data coming from the channel is
+   * being loaded sandboxed, so it should have a nonce origin and
+   * hence should use a NullPrincipal.
+   */
+  [infallible] readonly attribute boolean loadingSandboxed;
+
+  /**
+   * The external contentPolicyType of the channel, used for security checks
+   * like Mixed Content Blocking and Content Security Policy.
+   *
+   * Specifically, content policy types with _INTERNAL_ in their name will
+   * never get returned from this attribute.
+   */
+  readonly attribute nsContentPolicyType contentPolicyType;
+
+%{ C++
+  inline nsContentPolicyType GetContentPolicyType()
+  {
+    nsContentPolicyType result;
+    mozilla::DebugOnly<nsresult> rv = GetContentPolicyType(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+%}
+
+  /**
+   * The internal contentPolicyType of the channel, used for constructing
+   * RequestContext values when creating a fetch event for an intercepted
+   * channel.
+   *
+   * This should not be used for the purposes of security checks, since
+   * the content policy implementations cannot be expected to deal with
+   * _INTERNAL_ values.  Please use the contentPolicyType attribute above
+   * for that purpose.
+   */
+  [noscript, notxpcom]
+  nsContentPolicyType internalContentPolicyType();
+
+  /**
+   * A base URI for use in situations where it cannot otherwise be inferred.
+   * This attribute may be null.  The value of this attribute may be
+   * ignored if the base URI can be inferred by the channel's URI.
+   */
+  readonly attribute nsIURI baseURI;
+
+  /**
+   * A C++-friendly version of baseURI.
+   */
+  [noscript, notxpcom, nostdcall, binaryname(BaseURI)]
+  nsIURI binaryBaseURI();
+
+  /**
+   * Typically these are the window IDs of the window in which the element being
+   * loaded lives. However, if the element being loaded is <frame
+   * src="foo.html"> (or, more generally, if the element QIs to
+   * nsIFrameLoaderOwner) then the window IDs are for the window containing the
+   * foo.html document. In this case, parentOuterWindowID is the window ID of
+   * the window containing the <frame> element.
+   *
+   * Note that these window IDs can be 0 if the window is not
+   * available. parentOuterWindowID will be the same as outerWindowID if the
+   * window has no parent.
+   */
+  readonly attribute unsigned long long innerWindowID;
+  readonly attribute unsigned long long outerWindowID;
+  readonly attribute unsigned long long parentOuterWindowID;
+
+%{ C++
+  inline uint64_t GetInnerWindowID()
+  {
+    uint64_t result;
+    mozilla::DebugOnly<nsresult> rv = GetInnerWindowID(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+
+  inline uint64_t GetOuterWindowID()
+  {
+    uint64_t result;
+    mozilla::DebugOnly<nsresult> rv = GetOuterWindowID(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+
+  inline uint64_t GetParentOuterWindowID()
+  {
+    uint64_t result;
+    mozilla::DebugOnly<nsresult> rv = GetParentOuterWindowID(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+  %}
+};

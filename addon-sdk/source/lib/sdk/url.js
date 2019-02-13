@@ -7,7 +7,7 @@ module.metadata = {
   "stability": "experimental"
 };
 
-const { Cc, Ci, Cr } = require("chrome");
+const { Cc, Ci, Cr, Cu } = require("chrome");
 
 const { Class } = require("./core/heritage");
 const base64 = require("./base64");
@@ -22,6 +22,8 @@ var resProt = ios.getProtocolHandler("resource")
 
 var URLParser = Cc["@mozilla.org/network/url-parser;1?auth=no"]
                 .getService(Ci.nsIURLParser);
+
+const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 
 function newURI(uriStr, base) {
   try {
@@ -64,7 +66,12 @@ let toFilename = exports.toFilename = function toFilename(url) {
   if (uri.scheme == "resource")
     uri = newURI(resolveResourceURI(uri));
   if (uri.scheme == "chrome") {
-    var channel = ios.newChannelFromURI(uri);
+    var channel = ios.newChannelFromURI2(uri,
+                                         null,      // aLoadingNode
+                                         Services.scriptSecurityManager.getSystemPrincipal(),
+                                         null,      // aTriggeringPrincipal
+                                         Ci.nsILoadInfo.SEC_NORMAL,
+                                         Ci.nsIContentPolicy.TYPE_OTHER);
     try {
       channel = channel.QueryInterface(Ci.nsIFileChannel);
       return channel.file.path;
@@ -145,15 +152,28 @@ function URL(url, base) {
 
   Object.defineProperties(this, {
     toString: {
-      value: function URL_toString() new String(uri.spec).toString(),
+      value() {
+        return new String(uri.spec).toString();
+      },
       enumerable: false
     },
     valueOf: {
-      value: function() new String(uri.spec).valueOf(),
+      value() {
+        return new String(uri.spec).valueOf();
+      },
       enumerable: false
     },
     toSource: {
-      value: function() new String(uri.spec).toSource(),
+      value() {
+        return new String(uri.spec).toSource();
+      },
+      enumerable: false
+    },
+    // makes more sense to flatten to string, easier to travel across JSON
+    toJSON: {
+      value() {
+        return new String(uri.spec).toString();
+      },
       enumerable: false
     }
   });

@@ -7,8 +7,14 @@
 
 #include "nsBulletFrame.h"
 
+#include "gfx2DGlue.h"
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/Move.h"
 #include "nsCOMPtr.h"
+#include "nsFontMetrics.h"
 #include "nsGkAtoms.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValueInlines.h"
@@ -32,6 +38,8 @@
 #endif
 
 using namespace mozilla;
+using namespace mozilla::gfx;
+using namespace mozilla::image;
 
 NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nullptr)
 
@@ -45,20 +53,14 @@ NS_QUERYFRAME_TAIL_INHERITING(nsFrame)
 
 nsBulletFrame::~nsBulletFrame()
 {
+  NS_ASSERTION(!mBlockingOnload, "Still blocking onload in destructor?");
 }
 
 void
 nsBulletFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  // Stop image loading first
-  if (mImageRequest) {
-    // Deregister our image request from the refresh driver
-    nsLayoutUtils::DeregisterImageRequest(PresContext(),
-                                          mImageRequest,
-                                          &mRequestRegistered);
-    mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-    mImageRequest = nullptr;
-  }
+  // Stop image loading first.
+  DeregisterAndCancelImageRequest();
 
   if (mListener) {
     mListener->SetFrame(nullptr);
@@ -126,35 +128,21 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     }
 
     if (needNewRequest) {
-      nsRefPtr<imgRequestProxy> oldRequest = mImageRequest;
-      newRequest->Clone(mListener, getter_AddRefs(mImageRequest));
+      nsRefPtr<imgRequestProxy> newRequestClone;
+      newRequest->Clone(mListener, getter_AddRefs(newRequestClone));
 
       // Deregister the old request. We wait until after Clone is done in case
       // the old request and the new request are the same underlying image
       // accessed via different URLs.
-      if (oldRequest) {
-        nsLayoutUtils::DeregisterImageRequest(PresContext(), oldRequest,
-                                              &mRequestRegistered);
-        oldRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-        oldRequest = nullptr;
-      }
+      DeregisterAndCancelImageRequest();
 
       // Register the new request.
-      if (mImageRequest) {
-        nsLayoutUtils::RegisterImageRequestIfAnimated(PresContext(),
-                                                      mImageRequest,
-                                                      &mRequestRegistered);
-      }
+      mImageRequest = Move(newRequestClone);
+      RegisterImageRequest(/* aKnownToBeAnimated = */ false);
     }
   } else {
-    // No image request on the new style context
-    if (mImageRequest) {
-      nsLayoutUtils::DeregisterImageRequest(PresContext(), mImageRequest,
-                                            &mRequestRegistered);
-
-      mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-      mImageRequest = nullptr;
-    }
+    // No image request on the new style context.
+    DeregisterAndCancelImageRequest();
   }
 
 #ifdef ACCESSIBILITY
@@ -182,11 +170,14 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 #endif
 }
 
-class nsDisplayBulletGeometry : public nsDisplayItemGenericGeometry
+class nsDisplayBulletGeometry
+  : public nsDisplayItemGenericGeometry
+  , public nsImageGeometryMixin<nsDisplayBulletGeometry>
 {
 public:
   nsDisplayBulletGeometry(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
     : nsDisplayItemGenericGeometry(aItem, aBuilder)
+    , nsImageGeometryMixin(aItem, aBuilder)
   {
     nsBulletFrame* f = static_cast<nsBulletFrame*>(aItem->Frame());
     mOrdinal = f->GetOrdinal();
@@ -195,7 +186,7 @@ public:
   int32_t mOrdinal;
 };
 
-class nsDisplayBullet : public nsDisplayItem {
+class nsDisplayBullet final : public nsDisplayItem {
 public:
   nsDisplayBullet(nsDisplayListBuilder* aBuilder, nsBulletFrame* aFrame) :
     nsDisplayItem(aBuilder, aFrame) {
@@ -208,34 +199,34 @@ public:
 #endif
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) MOZ_OVERRIDE
+                           bool* aSnap) override
   {
     *aSnap = false;
     return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
   }
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState,
-                       nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE {
+                       nsTArray<nsIFrame*> *aOutFrames) override {
     aOutFrames->AppendElement(mFrame);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("Bullet", TYPE_BULLET)
 
-  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override
   {
     bool snap;
     return GetBounds(aBuilder, &snap);
   }
 
-  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
+  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override
   {
     return new nsDisplayBulletGeometry(this, aBuilder);
   }
 
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion) MOZ_OVERRIDE
+                                         nsRegion *aInvalidRegion) override
   {
     const nsDisplayBulletGeometry* geometry = static_cast<const nsDisplayBulletGeometry*>(aGeometry);
     nsBulletFrame* f = static_cast<nsBulletFrame*>(mFrame);
@@ -247,10 +238,8 @@ public:
     }
 
     nsCOMPtr<imgIContainer> image = f->GetImage();
-    if (aBuilder->ShouldSyncDecodeImages() && image && !image->IsDecoded()) {
-      // If we are going to do a sync decode and we are not decoded then we are
-      // going to be drawing something different from what is currently there,
-      // so we add our bounds to the invalid region.
+    if (aBuilder->ShouldSyncDecodeImages() && image &&
+        geometry->ShouldInvalidateToSyncDecodeImages()) {
       bool snap;
       aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
     }
@@ -266,8 +255,11 @@ void nsDisplayBullet::Paint(nsDisplayListBuilder* aBuilder,
   if (aBuilder->ShouldSyncDecodeImages()) {
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
-  static_cast<nsBulletFrame*>(mFrame)->
+
+  DrawResult result = static_cast<nsBulletFrame*>(mFrame)->
     PaintBullet(*aCtx, ToReferenceFrame(), mVisibleRect, flags);
+
+  nsDisplayBulletGeometry::UpdateDrawResult(this, result);
 }
 
 void
@@ -284,12 +276,13 @@ nsBulletFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     new (aBuilder) nsDisplayBullet(aBuilder, this));
 }
 
-void
+DrawResult
 nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
                            const nsRect& aDirtyRect, uint32_t aFlags)
 {
   const nsStyleList* myList = StyleList();
   CounterStyle* listStyleType = myList->GetCounterStyle();
+  nsMargin padding = mPadding.GetPhysicalMargin(GetWritingMode());
 
   if (myList->GetListStyleImage() && mImageRequest) {
     uint32_t status;
@@ -299,41 +292,52 @@ nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
       nsCOMPtr<imgIContainer> imageCon;
       mImageRequest->GetImage(getter_AddRefs(imageCon));
       if (imageCon) {
-        nsRect dest(mPadding.left, mPadding.top,
-                    mRect.width - (mPadding.left + mPadding.right),
-                    mRect.height - (mPadding.top + mPadding.bottom));
-        nsLayoutUtils::DrawSingleImage(&aRenderingContext,
+        nsRect dest(padding.left, padding.top,
+                    mRect.width - (padding.left + padding.right),
+                    mRect.height - (padding.top + padding.bottom));
+        return
+          nsLayoutUtils::DrawSingleImage(*aRenderingContext.ThebesContext(),
+             PresContext(),
              imageCon, nsLayoutUtils::GetGraphicsFilterForFrame(this),
              dest + aPt, aDirtyRect, nullptr, aFlags);
-        return;
       }
     }
   }
 
   nsRefPtr<nsFontMetrics> fm;
-  aRenderingContext.SetColor(nsLayoutUtils::GetColor(this, eCSSProperty_color));
+  ColorPattern color(ToDeviceColor(
+                       nsLayoutUtils::GetColor(this, eCSSProperty_color)));
 
-  nsAutoString text;
+  DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+  int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+
   switch (listStyleType->GetStyle()) {
   case NS_STYLE_LIST_STYLE_NONE:
     break;
 
   case NS_STYLE_LIST_STYLE_DISC:
-    aRenderingContext.FillEllipse(mPadding.left + aPt.x, mPadding.top + aPt.y,
-                                  mRect.width - (mPadding.left + mPadding.right),
-                                  mRect.height - (mPadding.top + mPadding.bottom));
-    break;
-
   case NS_STYLE_LIST_STYLE_CIRCLE:
-    aRenderingContext.DrawEllipse(mPadding.left + aPt.x, mPadding.top + aPt.y,
-                                  mRect.width - (mPadding.left + mPadding.right),
-                                  mRect.height - (mPadding.top + mPadding.bottom));
+    {
+      nsRect rect(padding.left + aPt.x,
+                  padding.top + aPt.y,
+                  mRect.width - (padding.left + padding.right),
+                  mRect.height - (padding.top + padding.bottom));
+      Rect devPxRect = NSRectToRect(rect, appUnitsPerDevPixel);
+      RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder();
+      AppendEllipseToPath(builder, devPxRect.Center(), devPxRect.Size());
+      RefPtr<Path> ellipse = builder->Finish();
+      if (listStyleType->GetStyle() == NS_STYLE_LIST_STYLE_DISC) {
+        drawTarget->Fill(ellipse, color);
+      } else {
+        drawTarget->Stroke(ellipse, color);
+      }
+    }
     break;
 
   case NS_STYLE_LIST_STYLE_SQUARE:
     {
       nsRect rect(aPt, mRect.Size());
-      rect.Deflate(mPadding);
+      rect.Deflate(padding);
 
       // Snap the height and the width of the rectangle to device pixels,
       // and then center the result within the original rectangle, so that
@@ -347,8 +351,9 @@ nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
                       pc->RoundAppUnitsToNearestDevPixels(rect.height));
       snapRect.MoveBy((rect.width - snapRect.width) / 2,
                       (rect.height - snapRect.height) / 2);
-      aRenderingContext.FillRect(snapRect.x, snapRect.y,
-                                 snapRect.width, snapRect.height);
+      Rect devPxRect =
+        NSRectToSnappedRect(snapRect, appUnitsPerDevPixel, *drawTarget);
+      drawTarget->FillRect(devPxRect, color);
     }
     break;
 
@@ -356,7 +361,7 @@ nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
   case NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN:
     {
       nsRect rect(aPt, mRect.Size());
-      rect.Deflate(mPadding);
+      rect.Deflate(padding);
 
       WritingMode wm = GetWritingMode();
       bool isVertical = wm.IsVertical();
@@ -374,47 +379,72 @@ nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
       rect.x = pc->RoundAppUnitsToNearestDevPixels(rect.x);
       rect.y = pc->RoundAppUnitsToNearestDevPixels(rect.y);
 
-      nsPoint points[3];
+      RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder();
       if (isDown) {
         // to bottom
-        points[0] = rect.TopLeft();
-        points[1] = rect.TopRight();
-        points[2] = (rect.BottomLeft() + rect.BottomRight()) / 2;
+        builder->MoveTo(NSPointToPoint(rect.TopLeft(), appUnitsPerDevPixel));
+        builder->LineTo(NSPointToPoint(rect.TopRight(), appUnitsPerDevPixel));
+        builder->LineTo(NSPointToPoint((rect.BottomLeft() + rect.BottomRight()) / 2,
+                                       appUnitsPerDevPixel));
       } else {
         bool isLR = isVertical ? wm.IsVerticalLR() : wm.IsBidiLTR();
         if (isLR) {
           // to right
-          points[0] = rect.TopLeft();
-          points[1] = (rect.TopRight() + rect.BottomRight()) / 2;
-          points[2] = rect.BottomLeft();
+          builder->MoveTo(NSPointToPoint(rect.TopLeft(), appUnitsPerDevPixel));
+          builder->LineTo(NSPointToPoint((rect.TopRight() + rect.BottomRight()) / 2,
+                                         appUnitsPerDevPixel));
+          builder->LineTo(NSPointToPoint(rect.BottomLeft(), appUnitsPerDevPixel));
         } else {
           // to left
-          points[0] = rect.TopRight();
-          points[1] = rect.BottomRight();
-          points[2] = (rect.TopLeft() + rect.BottomLeft()) / 2;
+          builder->MoveTo(NSPointToPoint(rect.TopRight(), appUnitsPerDevPixel));
+          builder->LineTo(NSPointToPoint(rect.BottomRight(), appUnitsPerDevPixel));
+          builder->LineTo(NSPointToPoint((rect.TopLeft() + rect.BottomLeft()) / 2,
+                                         appUnitsPerDevPixel));
         }
       }
-      aRenderingContext.FillPolygon(points, 3);
+      RefPtr<Path> path = builder->Finish();
+      drawTarget->Fill(path, color);
     }
     break;
 
   default:
-    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
-                                          GetFontSizeInflation());
-    GetListItemText(text);
-    aRenderingContext.SetFont(fm);
-    nscoord ascent = fm->MaxAscent();
-    aPt.MoveBy(mPadding.left, mPadding.top);
-    aPt.y = NSToCoordRound(nsLayoutUtils::GetSnappedBaselineY(
-            this, aRenderingContext.ThebesContext(), aPt.y, ascent));
-    nsPresContext* presContext = PresContext();
-    if (!presContext->BidiEnabled() && HasRTLChars(text)) {
-      presContext->SetBidiEnabled();
+    {
+      aRenderingContext.ThebesContext()->SetColor(
+                          nsLayoutUtils::GetColor(this, eCSSProperty_color));
+
+      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+                                            GetFontSizeInflation());
+      nsAutoString text;
+      GetListItemText(text);
+      WritingMode wm = GetWritingMode();
+      nscoord ascent = wm.IsLineInverted()
+                         ? fm->MaxDescent() : fm->MaxAscent();
+      aPt.MoveBy(padding.left, padding.top);
+      gfxContext *ctx = aRenderingContext.ThebesContext();
+      if (wm.IsVertical()) {
+        if (wm.IsVerticalLR()) {
+          aPt.x = NSToCoordRound(nsLayoutUtils::GetSnappedBaselineX(
+                                   this, ctx, aPt.x, ascent));
+        } else {
+          aPt.x = NSToCoordRound(nsLayoutUtils::GetSnappedBaselineX(
+                                   this, ctx, aPt.x + mRect.width,
+                                   -ascent));
+        }
+      } else {
+        aPt.y = NSToCoordRound(nsLayoutUtils::GetSnappedBaselineY(
+                                 this, ctx, aPt.y, ascent));
+      }
+      nsPresContext* presContext = PresContext();
+      if (!presContext->BidiEnabled() && HasRTLChars(text)) {
+        presContext->SetBidiEnabled();
+      }
+      nsLayoutUtils::DrawString(this, *fm, &aRenderingContext,
+                                text.get(), text.Length(), aPt);
     }
-    nsLayoutUtils::DrawString(this, &aRenderingContext,
-                              text.get(), text.Length(), aPt);
     break;
   }
+
+  return DrawResult::SUCCESS;
 }
 
 int32_t
@@ -485,28 +515,24 @@ nsBulletFrame::GetListItemText(nsAString& aResult)
 #define MIN_BULLET_SIZE 1
 
 void
-nsBulletFrame::AppendSpacingToPadding(nsFontMetrics* aFontMetrics)
+nsBulletFrame::AppendSpacingToPadding(nsFontMetrics* aFontMetrics,
+                                      LogicalMargin* aPadding)
 {
-  nscoord halfEm = aFontMetrics->EmHeight() / 2;
-  WritingMode wm = GetWritingMode();
-  if (wm.IsVertical()) {
-    mPadding.bottom += halfEm;
-  } else if (wm.IsBidiLTR()) {
-    mPadding.right += halfEm;
-  } else {
-    mPadding.left += halfEm;
-  }
+  aPadding->IEnd(GetWritingMode()) += aFontMetrics->EmHeight() / 2;
 }
 
 void
 nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
                               nsRenderingContext *aRenderingContext,
                               nsHTMLReflowMetrics& aMetrics,
-                              float aFontSizeInflation)
+                              float aFontSizeInflation,
+                              LogicalMargin* aPadding)
 {
   // Reset our padding.  If we need it, we'll set it below.
-  mPadding.SizeTo(0, 0, 0, 0);
-  
+  WritingMode wm = GetWritingMode();
+  aPadding->SizeTo(wm, 0, 0, 0, 0);
+  LogicalSize finalSize(wm);
+
   const nsStyleList* myList = StyleList();
   nscoord ascent;
   nsRefPtr<nsFontMetrics> fm;
@@ -521,10 +547,12 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
     if (status & imgIRequest::STATUS_SIZE_AVAILABLE &&
         !(status & imgIRequest::STATUS_ERROR)) {
       // auto size the image
-      aMetrics.Width() = mIntrinsicSize.width;
-      aMetrics.SetBlockStartAscent(aMetrics.Height() = mIntrinsicSize.height);
+      finalSize.ISize(wm) = mIntrinsicSize.ISize(wm);
+      aMetrics.SetBlockStartAscent(finalSize.BSize(wm) =
+                                   mIntrinsicSize.BSize(wm));
+      aMetrics.SetSize(wm, finalSize);
 
-      AppendSpacingToPadding(fm);
+      AppendSpacingToPadding(fm, aPadding);
 
       AddStateBits(BULLET_FRAME_IMAGE_LOADING);
 
@@ -538,14 +566,14 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
   // fully there, we'll end up with mIntrinsicSize not matching our size, but
   // won't trigger a reflow in OnStartContainer (because mIntrinsicSize will
   // match the image size).
-  mIntrinsicSize.SizeTo(0, 0);
+  mIntrinsicSize.SizeTo(wm, 0, 0);
 
   nscoord bulletSize;
 
   nsAutoString text;
   switch (myList->GetCounterStyle()->GetStyle()) {
     case NS_STYLE_LIST_STYLE_NONE:
-      aMetrics.Width() = aMetrics.Height() = 0;
+      finalSize.ISize(wm) = finalSize.BSize(wm) = 0;
       aMetrics.SetBlockStartAscent(0);
       break;
 
@@ -555,10 +583,10 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
       ascent = fm->MaxAscent();
       bulletSize = std::max(nsPresContext::CSSPixelsToAppUnits(MIN_BULLET_SIZE),
                           NSToCoordRound(0.8f * (float(ascent) / 2.0f)));
-      mPadding.bottom = NSToCoordRound(float(ascent) / 8.0f);
-      aMetrics.Width() = aMetrics.Height() = bulletSize;
-      aMetrics.SetBlockStartAscent(bulletSize + mPadding.bottom);
-      AppendSpacingToPadding(fm);
+      aPadding->BEnd(wm) = NSToCoordRound(float(ascent) / 8.0f);
+      finalSize.ISize(wm) = finalSize.BSize(wm) = bulletSize;
+      aMetrics.SetBlockStartAscent(bulletSize + aPadding->BEnd(wm));
+      AppendSpacingToPadding(fm, aPadding);
       break;
     }
 
@@ -568,24 +596,25 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
       bulletSize = std::max(
           nsPresContext::CSSPixelsToAppUnits(MIN_BULLET_SIZE),
           NSToCoordRound(0.75f * ascent));
-      mPadding.bottom = NSToCoordRound(0.125f * ascent);
-      aMetrics.Width() = aMetrics.Height() = bulletSize;
-      if (!GetWritingMode().IsVertical()) {
-        aMetrics.SetBlockStartAscent(bulletSize + mPadding.bottom);
+      aPadding->BEnd(wm) = NSToCoordRound(0.125f * ascent);
+      finalSize.ISize(wm) = finalSize.BSize(wm) = bulletSize;
+      if (!wm.IsVertical()) {
+        aMetrics.SetBlockStartAscent(bulletSize + aPadding->BEnd(wm));
       }
-      AppendSpacingToPadding(fm);
+      AppendSpacingToPadding(fm, aPadding);
       break;
 
     default:
       GetListItemText(text);
-      aMetrics.Height() = fm->MaxHeight();
-      aRenderingContext->SetFont(fm);
-      aMetrics.Width() =
-        nsLayoutUtils::GetStringWidth(this, aRenderingContext,
-                                      text.get(), text.Length());
-      aMetrics.SetBlockStartAscent(fm->MaxAscent());
+      finalSize.BSize(wm) = fm->MaxHeight();
+      finalSize.ISize(wm) =
+        nsLayoutUtils::AppUnitWidthOfStringBidi(text, this, *fm,
+                                                *aRenderingContext);
+      aMetrics.SetBlockStartAscent(wm.IsLineInverted()
+                                     ? fm->MaxDescent() : fm->MaxAscent());
       break;
   }
+  aMetrics.SetSize(wm, finalSize);
 }
 
 void
@@ -594,6 +623,7 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
                       const nsHTMLReflowState& aReflowState,
                       nsReflowStatus& aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsBulletFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
 
@@ -601,18 +631,24 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
   SetFontSizeInflation(inflation);
 
   // Get the base size
-  GetDesiredSize(aPresContext, aReflowState.rendContext, aMetrics, inflation);
+  GetDesiredSize(aPresContext, aReflowState.rendContext,
+                 aMetrics, inflation, &mPadding);
 
   // Add in the border and padding; split the top/bottom between the
   // ascent and descent to make things look nice
-  const nsMargin& borderPadding = aReflowState.ComputedPhysicalBorderPadding();
-  mPadding.top += NSToCoordRound(borderPadding.top * inflation);
-  mPadding.right += NSToCoordRound(borderPadding.right * inflation);
-  mPadding.bottom += NSToCoordRound(borderPadding.bottom * inflation);
-  mPadding.left += NSToCoordRound(borderPadding.left * inflation);
-  aMetrics.Width() += mPadding.left + mPadding.right;
-  aMetrics.Height() += mPadding.top + mPadding.bottom;
-  aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() + mPadding.top);
+  WritingMode wm = aReflowState.GetWritingMode();
+  const LogicalMargin& bp = aReflowState.ComputedLogicalBorderPadding();
+  mPadding.BStart(wm) += NSToCoordRound(bp.BStart(wm) * inflation);
+  mPadding.IEnd(wm) += NSToCoordRound(bp.IEnd(wm) * inflation);
+  mPadding.BEnd(wm) += NSToCoordRound(bp.BEnd(wm) * inflation);
+  mPadding.IStart(wm) += NSToCoordRound(bp.IStart(wm) * inflation);
+
+  WritingMode lineWM = aMetrics.GetWritingMode();
+  LogicalMargin linePadding = mPadding.ConvertTo(lineWM, wm);
+  aMetrics.ISize(lineWM) += linePadding.IStartEnd(lineWM);
+  aMetrics.BSize(lineWM) += linePadding.BStartEnd(lineWM);
+  aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() +
+                               linePadding.BStart(lineWM));
 
   // XXX this is a bit of a hack, we're assuming that no glyphs used for bullets
   // overflow their font-boxes. It'll do for now; to fix it for real, we really
@@ -625,21 +661,27 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
 }
 
 /* virtual */ nscoord
-nsBulletFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsBulletFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
-  nsHTMLReflowMetrics metrics(GetWritingMode());
-  DISPLAY_MIN_WIDTH(this, metrics.Width());
-  GetDesiredSize(PresContext(), aRenderingContext, metrics, 1.0f);
-  return metrics.Width();
+  WritingMode wm = GetWritingMode();
+  nsHTMLReflowMetrics metrics(wm);
+  DISPLAY_MIN_WIDTH(this, metrics.ISize(wm));
+  LogicalMargin padding(wm);
+  GetDesiredSize(PresContext(), aRenderingContext, metrics, 1.0f, &padding);
+  metrics.ISize(wm) += padding.IStartEnd(wm);
+  return metrics.ISize(wm);
 }
 
 /* virtual */ nscoord
-nsBulletFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsBulletFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
-  nsHTMLReflowMetrics metrics(GetWritingMode());
-  DISPLAY_PREF_WIDTH(this, metrics.Width());
-  GetDesiredSize(PresContext(), aRenderingContext, metrics, 1.0f);
-  return metrics.Width();
+  WritingMode wm = GetWritingMode();
+  nsHTMLReflowMetrics metrics(wm);
+  DISPLAY_PREF_WIDTH(this, metrics.ISize(wm));
+  LogicalMargin padding(wm);
+  GetDesiredSize(PresContext(), aRenderingContext, metrics, 1.0f, &padding);
+  metrics.ISize(wm) += padding.IStartEnd(wm);
+  return metrics.ISize(wm);
 }
 
 NS_IMETHODIMP
@@ -648,7 +690,7 @@ nsBulletFrame::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aDa
   if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
     nsCOMPtr<imgIContainer> image;
     aRequest->GetImage(getter_AddRefs(image));
-    return OnStartContainer(aRequest, image);
+    return OnSizeAvailable(aRequest, image);
   }
 
   if (aType == imgINotificationObserver::FRAME_UPDATE) {
@@ -662,16 +704,69 @@ nsBulletFrame::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aDa
     // Register the image request with the refresh driver now that we know it's
     // animated.
     if (aRequest == mImageRequest) {
-      nsLayoutUtils::RegisterImageRequest(PresContext(), mImageRequest,
-                                          &mRequestRegistered);
+      RegisterImageRequest(/* aKnownToBeAnimated = */ true);
     }
+  }
+
+  if (aType == imgINotificationObserver::LOAD_COMPLETE) {
+    // Unconditionally start decoding for now.
+    // XXX(seth): We eventually want to decide whether to do this based on
+    // visibility. We should get that for free from bug 1091236.
+    if (aRequest == mImageRequest) {
+      mImageRequest->RequestDecode();
+    }
+    InvalidateFrame();
   }
 
   return NS_OK;
 }
 
-nsresult nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
-                                         imgIContainer *aImage)
+NS_IMETHODIMP
+nsBulletFrame::BlockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mImageRequest) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mBlockingOnload, "Double BlockOnload for an nsBulletFrame?");
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    mBlockingOnload = true;
+    doc->BlockOnload();
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBulletFrame::UnblockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mImageRequest) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mBlockingOnload, "Double UnblockOnload for an nsBulletFrame?");
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    doc->UnblockOnload(false);
+  }
+  mBlockingOnload = false;
+
+  return NS_OK;
+}
+
+nsIDocument*
+nsBulletFrame::GetOurCurrentDoc() const
+{
+  nsIContent* parentContent = GetParent()->GetContent();
+  return parentContent ? parentContent->GetComposedDoc()
+                       : nullptr;
+}
+
+nsresult
+nsBulletFrame::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
 {
   if (!aImage) return NS_ERROR_INVALID_ARG;
   if (!aRequest) return NS_ERROR_INVALID_ARG;
@@ -688,8 +783,9 @@ nsresult nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
 
   nsPresContext* presContext = PresContext();
 
-  nsSize newsize(nsPresContext::CSSPixelsToAppUnits(w),
-                 nsPresContext::CSSPixelsToAppUnits(h));
+  LogicalSize newsize(GetWritingMode(),
+                      nsSize(nsPresContext::CSSPixelsToAppUnits(w),
+                             nsPresContext::CSSPixelsToAppUnits(h)));
 
   if (mIntrinsicSize != newsize) {
     mIntrinsicSize = newsize;
@@ -783,7 +879,7 @@ nsBulletFrame::GetImage() const
 nscoord
 nsBulletFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
-  nscoord ascent = 0, bottomPadding;
+  nscoord ascent = 0, baselinePadding;
   if (GetStateBits() & BULLET_FRAME_IMAGE_LOADING) {
     ascent = BSize(aWritingMode);
   } else {
@@ -799,20 +895,20 @@ nsBulletFrame::GetLogicalBaseline(WritingMode aWritingMode) const
       case NS_STYLE_LIST_STYLE_CIRCLE:
       case NS_STYLE_LIST_STYLE_SQUARE:
         ascent = fm->MaxAscent();
-        bottomPadding = NSToCoordRound(float(ascent) / 8.0f);
+        baselinePadding = NSToCoordRound(float(ascent) / 8.0f);
         ascent = std::max(nsPresContext::CSSPixelsToAppUnits(MIN_BULLET_SIZE),
                         NSToCoordRound(0.8f * (float(ascent) / 2.0f)));
-        ascent += bottomPadding;
+        ascent += baselinePadding;
         break;
 
       case NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED:
       case NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN:
         ascent = fm->EmAscent();
-        bottomPadding = NSToCoordRound(0.125f * ascent);
+        baselinePadding = NSToCoordRound(0.125f * ascent);
         ascent = std::max(
             nsPresContext::CSSPixelsToAppUnits(MIN_BULLET_SIZE),
             NSToCoordRound(0.75f * ascent));
-        ascent += bottomPadding;
+        ascent += baselinePadding;
         break;
 
       default:
@@ -831,7 +927,9 @@ nsBulletFrame::GetSpokenText(nsAString& aText)
   bool isBullet;
   style->GetSpokenCounterText(mOrdinal, GetWritingMode(), aText, isBullet);
   if (isBullet) {
-    aText.Append(' ');
+    if (!style->IsNone()) {
+      aText.Append(' ');
+    }
   } else {
     nsAutoString prefix, suffix;
     style->GetPrefix(prefix);
@@ -840,7 +938,57 @@ nsBulletFrame::GetSpokenText(nsAString& aText)
   }
 }
 
+void
+nsBulletFrame::RegisterImageRequest(bool aKnownToBeAnimated)
+{
+  if (mImageRequest) {
+    // mRequestRegistered is a bitfield; unpack it temporarily so we can take
+    // the address.
+    bool isRequestRegistered = mRequestRegistered;
 
+    if (aKnownToBeAnimated) {
+      nsLayoutUtils::RegisterImageRequest(PresContext(), mImageRequest,
+                                          &isRequestRegistered);
+    } else {
+      nsLayoutUtils::RegisterImageRequestIfAnimated(PresContext(),
+                                                    mImageRequest,
+                                                    &isRequestRegistered);
+    }
+
+    isRequestRegistered = mRequestRegistered;
+  }
+}
+
+
+void
+nsBulletFrame::DeregisterAndCancelImageRequest()
+{
+  if (mImageRequest) {
+    // mRequestRegistered is a bitfield; unpack it temporarily so we can take
+    // the address.
+    bool isRequestRegistered = mRequestRegistered;
+
+    // Deregister our image request from the refresh driver.
+    nsLayoutUtils::DeregisterImageRequest(PresContext(),
+                                          mImageRequest,
+                                          &isRequestRegistered);
+
+    isRequestRegistered = mRequestRegistered;
+
+    // Unblock onload if we blocked it.
+    if (mBlockingOnload) {
+      nsIDocument* doc = GetOurCurrentDoc();
+      if (doc) {
+        doc->UnblockOnload(false);
+      }
+      mBlockingOnload = false;
+    }
+
+    // Cancel the image request and forget about it.
+    mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    mImageRequest = nullptr;
+  }
+}
 
 
 
@@ -861,7 +1009,26 @@ nsBulletListener::~nsBulletListener()
 NS_IMETHODIMP
 nsBulletListener::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aData)
 {
-  if (!mFrame)
+  if (!mFrame) {
     return NS_ERROR_FAILURE;
+  }
   return mFrame->Notify(aRequest, aType, aData);
+}
+
+NS_IMETHODIMP
+nsBulletListener::BlockOnload(imgIRequest* aRequest)
+{
+  if (!mFrame) {
+    return NS_ERROR_FAILURE;
+  }
+  return mFrame->BlockOnload(aRequest);
+}
+
+NS_IMETHODIMP
+nsBulletListener::UnblockOnload(imgIRequest* aRequest)
+{
+  if (!mFrame) {
+    return NS_ERROR_FAILURE;
+  }
+  return mFrame->UnblockOnload(aRequest);
 }

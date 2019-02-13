@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 ci et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +16,9 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "plstr.h"
+#include "prio.h"
 
 #ifdef XP_WIN
 #define NS_T(str) L ## str
@@ -34,7 +35,7 @@
 
 #include "LateWriteChecks.h"
 
-#if !defined(XP_WIN) || (!defined(MOZ_OPTIMIZE) || defined(MOZ_PROFILING) || defined(DEBUG))
+#if defined(MOZ_STACKWALKING)
 #define OBSERVE_LATE_WRITES
 #endif
 
@@ -47,42 +48,43 @@ using namespace mozilla;
 class SHA1Stream
 {
 public:
-    explicit SHA1Stream(FILE *stream)
-      : mFile(stream)
-    {
-      MozillaRegisterDebugFILE(mFile);
-    }
+  explicit SHA1Stream(FILE* aStream)
+    : mFile(aStream)
+  {
+    MozillaRegisterDebugFILE(mFile);
+  }
 
-    void Printf(const char *aFormat, ...)
-    {
-        MOZ_ASSERT(mFile);
-        va_list list;
-        va_start(list, aFormat);
-        nsAutoCString str;
-        str.AppendPrintf(aFormat, list);
-        va_end(list);
-        mSHA1.update(str.get(), str.Length());
-        fwrite(str.get(), 1, str.Length(), mFile);
-    }
-    void Finish(SHA1Sum::Hash &aHash)
-    {
-        int fd = fileno(mFile);
-        fflush(mFile);
-        MozillaUnRegisterDebugFD(fd);
-        fclose(mFile);
-        mSHA1.finish(aHash);
-        mFile = nullptr;
-    }
+  void Printf(const char* aFormat, ...)
+  {
+    MOZ_ASSERT(mFile);
+    va_list list;
+    va_start(list, aFormat);
+    nsAutoCString str;
+    str.AppendPrintf(aFormat, list);
+    va_end(list);
+    mSHA1.update(str.get(), str.Length());
+    fwrite(str.get(), 1, str.Length(), mFile);
+  }
+  void Finish(SHA1Sum::Hash& aHash)
+  {
+    int fd = fileno(mFile);
+    fflush(mFile);
+    MozillaUnRegisterDebugFD(fd);
+    fclose(mFile);
+    mSHA1.finish(aHash);
+    mFile = nullptr;
+  }
 private:
-    FILE *mFile;
-    SHA1Sum mSHA1;
+  FILE* mFile;
+  SHA1Sum mSHA1;
 };
 
-static void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
+static void
+RecordStackWalker(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
-    std::vector<uintptr_t> *stack =
-        static_cast<std::vector<uintptr_t>*>(aClosure);
-    stack->push_back(reinterpret_cast<uintptr_t>(aPC));
+  std::vector<uintptr_t>* stack =
+    static_cast<std::vector<uintptr_t>*>(aClosure);
+  stack->push_back(reinterpret_cast<uintptr_t>(aPC));
 }
 
 /**************************** Late-Write Observer  ****************************/
@@ -91,14 +93,15 @@ static void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
  * An implementation of IOInterposeObserver to be registered with IOInterposer.
  * This observer logs all writes as late writes.
  */
-class LateWriteObserver MOZ_FINAL : public IOInterposeObserver
+class LateWriteObserver final : public IOInterposeObserver
 {
 public:
-  LateWriteObserver(const char* aProfileDirectory)
+  explicit LateWriteObserver(const char* aProfileDirectory)
     : mProfileDirectory(PL_strdup(aProfileDirectory))
   {
   }
-  ~LateWriteObserver() {
+  ~LateWriteObserver()
+  {
     PL_strfree(mProfileDirectory);
     mProfileDirectory = nullptr;
   }
@@ -108,7 +111,8 @@ private:
   char* mProfileDirectory;
 };
 
-void LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
+void
+LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
 {
 #ifdef OBSERVE_LATE_WRITES
   // Crash if that is the shutdown check mode
@@ -117,7 +121,7 @@ void LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   }
 
   // If we have shutdown mode SCM_NOTHING or we can't record then abort
-  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecord()) {
+  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecordExtended()) {
     return;
   }
 
@@ -125,18 +129,18 @@ void LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   // concurrently from many writes, so we use multiple temporary files.
   std::vector<uintptr_t> rawStack;
 
-  NS_StackWalk(RecordStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
+  MozStackWalk(RecordStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
                reinterpret_cast<void*>(&rawStack), 0, nullptr);
   Telemetry::ProcessedStack stack = Telemetry::GetStackAndModules(rawStack);
 
   nsPrintfCString nameAux("%s%s%s", mProfileDirectory,
                           NS_SLASH, "Telemetry.LateWriteTmpXXXXXX");
-  char *name;
+  char* name;
   nameAux.GetMutableData(&name);
 
   // We want the sha1 of the entire file, so please don't write to fd
   // directly; use sha1Stream.
-  FILE *stream;
+  FILE* stream;
 #ifdef XP_WIN
   HANDLE hFile;
   do {
@@ -175,8 +179,7 @@ void LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   size_t numFrames = stack.GetStackSize();
   sha1Stream.Printf("%u\n", (unsigned)numFrames);
   for (size_t i = 0; i < numFrames; ++i) {
-    const Telemetry::ProcessedStack::Frame &frame =
-        stack.GetFrame(i);
+    const Telemetry::ProcessedStack::Frame& frame = stack.GetFrame(i);
     // NOTE: We write the offsets, while the atos tool expects a value with
     // the virtual address added. For example, running otool -l on the the firefox
     // binary shows
@@ -213,9 +216,10 @@ void LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
 
 static StaticAutoPtr<LateWriteObserver> sLateWriteObserver;
 
-namespace mozilla{
+namespace mozilla {
 
-void InitLateWriteChecks()
+void
+InitLateWriteChecks()
 {
   nsCOMPtr<nsIFile> mozFile;
   NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
@@ -228,7 +232,8 @@ void InitLateWriteChecks()
   }
 }
 
-void BeginLateWriteChecks()
+void
+BeginLateWriteChecks()
 {
   if (sLateWriteObserver) {
     IOInterposer::Register(
@@ -238,7 +243,8 @@ void BeginLateWriteChecks()
   }
 }
 
-void StopLateWriteChecks()
+void
+StopLateWriteChecks()
 {
   if (sLateWriteObserver) {
     IOInterposer::Unregister(

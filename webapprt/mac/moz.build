@@ -4,7 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PROGRAM = 'webapprt-stub'
+# Can't use GeckoProgram, because we don't want to create a dependency on
+# mozglue, which is impossible (difficult?) to dynamically link into our
+# executable, as we copy it to arbitrary locations.
+Program('webapprt-stub')
 
 SOURCES += [
     'webapprt.mm',
@@ -19,4 +22,11 @@ LOCAL_INCLUDES += [
     '/xpcom/build',
 ]
 
+USE_LIBS += [
+    'mfbt',
+    'xpcomglue',
+]
+
 DISABLE_STL_WRAPPING = True
+
+FAIL_ON_WARNINGS = True

@@ -1,6 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/Promise.jsm");
+
 function whenNewWindowLoaded(aOptions, aCallback) {
   let win = OpenBrowserWindow(aOptions);
   let gotLoad = false;
@@ -88,6 +91,18 @@ function waitForPopupShown(aPopupId, aCallback) {
   registerCleanupFunction(removePopupShownListener);
 }
 
+function promiseEvent(aTarget, aEventName, aPreventDefault) {
+  let deferred = Promise.defer();
+  aTarget.addEventListener(aEventName, function onEvent(aEvent) {
+    aTarget.removeEventListener(aEventName, onEvent, true);
+    if (aPreventDefault) {
+      aEvent.preventDefault();
+    }
+    deferred.resolve();
+  }, true);
+  return deferred.promise;
+}
+
 function waitForBrowserContextMenu(aCallback) {
   waitForPopupShown(gBrowser.selectedBrowser.contextMenu, aCallback);
 }
@@ -105,4 +120,53 @@ function doOnloadOnce(aCallback) {
   }
   gBrowser.addEventListener("load", doOnloadOnceListener, true);
   registerCleanupFunction(removeDoOnloadOnceListener);
+}
+
+function* promiseOnLoad() {
+  return new Promise(resolve => {
+    gBrowser.addEventListener("load", function onLoadListener(aEvent) {
+      let cw = aEvent.target.defaultView;
+      let tab = gBrowser._getTabForContentWindow(cw);
+      if (tab) {
+        info("onLoadListener: " + aEvent.originalTarget.location);
+        gBrowser.removeEventListener("load", onLoadListener, true);
+        resolve(aEvent);
+      }
+    }, true);
+  });
+}
+
+function promiseNewEngine(basename, options = {}) {
+  return new Promise((resolve, reject) => {
+    //Default the setAsCurrent option to true.
+    let setAsCurrent =
+      options.setAsCurrent == undefined ? true : options.setAsCurrent;
+    info("Waiting for engine to be added: " + basename);
+    Services.search.init({
+      onInitComplete: function() {
+        let url = getRootDirectory(gTestPath) + basename;
+        let current = Services.search.currentEngine;
+        Services.search.addEngine(url, Ci.nsISearchEngine.TYPE_MOZSEARCH, "", false, {
+          onSuccess: function (engine) {
+            info("Search engine added: " + basename);
+            if (setAsCurrent) {
+              Services.search.currentEngine = engine;
+            }
+            registerCleanupFunction(() => {
+              if (setAsCurrent) {
+                Services.search.currentEngine = current;
+              }
+              Services.search.removeEngine(engine);
+              info("Search engine removed: " + basename);
+            });
+            resolve(engine);
+          },
+          onError: function (errCode) {
+            ok(false, "addEngine failed with error code " + errCode);
+            reject();
+          }
+        });
+      }
+    });
+  });
 }

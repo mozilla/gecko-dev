@@ -14,7 +14,6 @@
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/Transport.h"
 typedef mozilla::ipc::BrowserProcessSubThread ChromeThread;
-#include "chrome/common/ipc_logging.h"
 #include "chrome/common/notification_service.h"
 #include "chrome/common/notification_type.h"
 #include "chrome/common/process_watcher.h"
@@ -54,7 +53,7 @@ ChildProcessHost::ChildProcessHost(ProcessType type)
       ChildProcessInfo(type),
       ALLOW_THIS_IN_INITIALIZER_LIST(listener_(this)),
       opening_channel_(false),
-      process_event_(NULL) {
+      process_event_(nullptr) {
   Singleton<ChildProcessList>::get()->push_back(this);
 }
 
@@ -75,7 +74,7 @@ ChildProcessHost::~ChildProcessHost() {
 }
 
 bool ChildProcessHost::CreateChannel() {
-  channel_id_ = GenerateRandomChannelID(this);
+  channel_id_ = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   channel_.reset(new IPC::Channel(
       channel_id_, IPC::Channel::MODE_SERVER, &listener_));
   if (!channel_->Connect())
@@ -113,7 +112,7 @@ void ChildProcessHost::SetHandle(base::ProcessHandle process) {
 }
 
 void ChildProcessHost::InstanceCreated() {
-  Notify(NotificationType::CHILD_INSTANCE_CREATED);
+  Notify(NotificationType(NotificationType::CHILD_INSTANCE_CREATED));
 }
 
 bool ChildProcessHost::Send(IPC::Message* msg) {
@@ -143,10 +142,10 @@ void ChildProcessHost::OnWaitableEventSignaled(base::WaitableEvent *event) {
   bool did_crash = base::DidProcessCrash(NULL, object);
   if (did_crash) {
     // Report that this child process crashed.
-    Notify(NotificationType::CHILD_PROCESS_CRASHED);
+    Notify(NotificationType(NotificationType::CHILD_PROCESS_CRASHED));
   }
   // Notify in the main loop of the disconnection.
-  Notify(NotificationType::CHILD_PROCESS_HOST_DISCONNECTED);
+  Notify(NotificationType(NotificationType::CHILD_PROCESS_HOST_DISCONNECTED));
 #endif
 }
 
@@ -156,16 +155,6 @@ ChildProcessHost::ListenerHook::ListenerHook(ChildProcessHost* host)
 
 void ChildProcessHost::ListenerHook::OnMessageReceived(
     const IPC::Message& msg) {
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  IPC::Logging* logger = IPC::Logging::current();
-  if (msg.type() == IPC_LOGGING_ID) {
-    logger->OnReceivedLoggingMessage(msg);
-    return;
-  }
-
-  if (logger->Enabled())
-    logger->OnPreDispatchMessage(msg);
-#endif
 
   bool msg_is_ok = true;
   bool handled = false;
@@ -177,10 +166,6 @@ void ChildProcessHost::ListenerHook::OnMessageReceived(
   if (!msg_is_ok)
     base::KillProcess(host_->handle(), ResultCodes::KILLED_BAD_MESSAGE, false);
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  if (logger->Enabled())
-    logger->OnPostDispatchMessage(msg, host_->channel_id_);
-#endif
 }
 
 void ChildProcessHost::ListenerHook::OnChannelConnected(int32_t peer_pid) {
@@ -188,7 +173,7 @@ void ChildProcessHost::ListenerHook::OnChannelConnected(int32_t peer_pid) {
   host_->OnChannelConnected(peer_pid);
 
   // Notify in the main loop of the connection.
-  host_->Notify(NotificationType::CHILD_PROCESS_HOST_CONNECTED);
+  host_->Notify(NotificationType(NotificationType::CHILD_PROCESS_HOST_CONNECTED));
 }
 
 void ChildProcessHost::ListenerHook::OnChannelError() {

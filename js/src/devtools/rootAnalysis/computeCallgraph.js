@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -200,7 +200,7 @@ function processBody(caller, body)
             prologue += memo(caller) + " ";
             if (callee.kind == 'direct') {
                 if (!(callee.name in seen)) {
-                    seen[name] = true;
+                    seen[callee.name] = true;
                     printOnce("D " + prologue + memo(callee.name));
                 }
             } else if (callee.kind == 'field') {
@@ -275,6 +275,33 @@ for (var nameIndex = minStream; nameIndex <= maxStream; nameIndex++) {
     var functionName = name.readString();
     for (var body of functionBodies)
         processBody(functionName, body);
+
+    // GCC generates multiple constructors and destructors ("in-charge" and
+    // "not-in-charge") to handle virtual base classes. They are normally
+    // identical, and it appears that GCC does some magic to alias them to the
+    // same thing. But this aliasing is not visible to the analysis. So we'll
+    // add a dummy call edge from "foo" -> "foo *INTERNAL* ", since only "foo"
+    // will show up as called but only "foo *INTERNAL* " will be emitted in the
+    // case where the constructors are identical.
+    //
+    // This is slightly conservative in the case where they are *not*
+    // identical, but that should be rare enough that we don't care.
+    var markerPos = functionName.indexOf(internalMarker);
+    if (markerPos > 0) {
+        var inChargeXTor = functionName.replace(internalMarker, "");
+        print("D " + memo(inChargeXTor) + " " + memo(functionName));
+
+        // Bug 1056410: Oh joy. GCC does something even funkier internally,
+        // where it generates calls to ~Foo() but a body for ~Foo(int32) even
+        // though it uses the same mangled name for both. So we need to add a
+        // synthetic edge from the former to the latter.
+        //
+        // inChargeXTor will have the (int32).
+        if (functionName.indexOf("::~") > 0) {
+            var calledDestructor = inChargeXTor.replace("(int32)", "()");
+            print("D " + memo(calledDestructor) + " " + memo(inChargeXTor));
+        }
+    }
 
     xdb.free_string(name);
     xdb.free_string(data);

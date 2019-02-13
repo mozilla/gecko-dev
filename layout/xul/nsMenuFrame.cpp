@@ -76,7 +76,7 @@ public:
   {
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  NS_IMETHOD Run() override
   {
     nsAutoString domEventToFire;
 
@@ -123,7 +123,7 @@ public:
   {
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  NS_IMETHOD Run() override
   {
     nsMenuFrame* frame = static_cast<nsMenuFrame*>(mFrame.GetFrame());
     NS_ENSURE_STATE(frame);
@@ -155,7 +155,7 @@ protected:
 nsIFrame*
 NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  nsMenuFrame* it = new (aPresShell) nsMenuFrame (aPresShell, aContext);
+  nsMenuFrame* it = new (aPresShell) nsMenuFrame(aContext);
   it->SetIsMenu(true);
   return it;
 }
@@ -163,7 +163,7 @@ NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 nsIFrame*
 NS_NewMenuItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  nsMenuFrame* it = new (aPresShell) nsMenuFrame (aPresShell, aContext);
+  nsMenuFrame* it = new (aPresShell) nsMenuFrame(aContext);
   it->SetIsMenu(false);
   return it;
 }
@@ -174,8 +174,8 @@ NS_QUERYFRAME_HEAD(nsMenuFrame)
   NS_QUERYFRAME_ENTRY(nsMenuFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
-nsMenuFrame::nsMenuFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-  nsBoxFrame(aShell, aContext),
+nsMenuFrame::nsMenuFrame(nsStyleContext* aContext):
+  nsBoxFrame(aContext),
     mIsMenu(false),
     mChecked(false),
     mIgnoreAccelTextChange(false),
@@ -201,15 +201,15 @@ nsMenuFrame::GetMenuParent() const
   return nullptr;
 }
 
-class nsASyncMenuInitialization MOZ_FINAL : public nsIReflowCallback
+class nsASyncMenuInitialization final : public nsIReflowCallback
 {
 public:
-  nsASyncMenuInitialization(nsIFrame* aFrame)
+  explicit nsASyncMenuInitialization(nsIFrame* aFrame)
     : mWeakFrame(aFrame)
   {
   }
 
-  virtual bool ReflowFinished() MOZ_OVERRIDE
+  virtual bool ReflowFinished() override
   {
     bool shouldFlush = false;
     nsMenuFrame* menu = do_QueryFrame(mWeakFrame.GetFrame());
@@ -221,7 +221,7 @@ public:
     return shouldFlush;
   }
 
-  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE
+  virtual void ReflowCallbackCanceled() override
   {
     delete this;
   }
@@ -462,7 +462,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     *aEventStatus = nsEventStatus_eConsumeNoDefault;
     Execute(aEvent);
   }
-  else if (aEvent->message == NS_MOUSE_EXIT_SYNTH) {
+  else if (aEvent->message == NS_MOUSE_OUT) {
     // Kill our timer if one is active.
     if (mOpenTimer) {
       mOpenTimer->Cancel();
@@ -477,7 +477,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
           // Submenus don't get closed up immediately.
         }
         else if (this == menuParent->GetCurrentMenuItem()) {
-          menuParent->ChangeMenuItem(nullptr, false);
+          menuParent->ChangeMenuItem(nullptr, false, false);
         }
       }
     }
@@ -490,7 +490,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
 
     // Let the menu parent know we're the new item.
-    menuParent->ChangeMenuItem(this, false);
+    menuParent->ChangeMenuItem(this, false, false);
     NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
     NS_ENSURE_TRUE(menuParent, NS_OK);
 
@@ -1034,10 +1034,12 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
     return;
 
   // Turn the document into a DOM document so we can use getElementById
-  nsIDocument *document = mContent->GetDocument();
+  nsIDocument *document = mContent->GetUncomposedDoc();
   if (!document)
     return;
 
+  //XXXsmaug If mContent is in shadow dom, should we use
+  //         ShadowRoot::GetElementById()?
   nsIContent *keyElement = document->GetElementById(keyValue);
   if (!keyElement) {
 #ifdef DEBUG
@@ -1150,7 +1152,7 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
     token = nsCRT::strtok(newStr, ", \t", &newStr);
   }
 
-  nsMemory::Free(str);
+  free(str);
 
   accelText += accelString;
 
@@ -1431,7 +1433,7 @@ nsMenuFrame::SetActiveChild(nsIDOMElement* aChild)
 
   if (!aChild) {
     // Remove the current selection
-    popupFrame->ChangeMenuItem(nullptr, false);
+    popupFrame->ChangeMenuItem(nullptr, false, false);
     return NS_OK;
   }
 
@@ -1439,7 +1441,7 @@ nsMenuFrame::SetActiveChild(nsIDOMElement* aChild)
 
   nsMenuFrame* menu = do_QueryFrame(child->GetPrimaryFrame());
   if (menu)
-    popupFrame->ChangeMenuItem(menu, false);
+    popupFrame->ChangeMenuItem(menu, false, false);
   return NS_OK;
 }
 

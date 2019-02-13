@@ -1,4 +1,4 @@
-/* -*- Mode: Javasript; indent-tab-mode: nil; js-indent-level: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -42,6 +42,16 @@ function test_sockets(serverSocket) {
 }
 
 function run_test() {
+  var ps = Cc["@mozilla.org/preferences-service;1"]
+    .getService(Ci.nsIPrefBranch);
+  // disable network changed events to avoid the the risk of having the dns
+  // cache getting flushed behind our back
+  ps.setBoolPref("network.notify.changed", false);
+
+  do_register_cleanup(function() {
+    ps.clearUserPref("network.notify.changed");
+  });
+
   let serverSocket = Components.classes["@mozilla.org/network/server-socket;1"]
     .createInstance(Ci.nsIServerSocket);
   serverSocket.init(-1, true, -1);

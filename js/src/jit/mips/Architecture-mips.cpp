@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "jit/RegisterSets.h"
+
 #define HWCAP_MIPS (1 << 31)
 #define HWCAP_FPU (1 << 0)
 
@@ -21,14 +23,14 @@ uint32_t GetMIPSFlags()
     static uint32_t flags = 0;
     if (isSet)
         return flags;
-#ifdef JS_MIPS_SIMULATOR
+#ifdef JS_SIMULATOR_MIPS
     isSet = true;
     flags |= HWCAP_FPU;
     return flags;
 #else
 
-#if WTF_OS_LINUX
-    FILE *fp = fopen("/proc/cpuinfo", "r");
+#ifdef __linux__
+    FILE* fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
         return false;
 
@@ -44,7 +46,7 @@ uint32_t GetMIPSFlags()
 #endif
 
     return false;
-#endif // JS_MIPS_SIMULATOR
+#endif // JS_SIMULATOR_MIPS
 }
 
 bool hasFPU()
@@ -53,7 +55,7 @@ bool hasFPU()
 }
 
 Registers::Code
-Registers::FromName(const char *name)
+Registers::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)
@@ -64,7 +66,7 @@ Registers::FromName(const char *name)
 }
 
 FloatRegisters::Code
-FloatRegisters::FromName(const char *name)
+FloatRegisters::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)
@@ -74,7 +76,63 @@ FloatRegisters::FromName(const char *name)
     return Invalid;
 }
 
+FloatRegister
+FloatRegister::doubleOverlay(unsigned int which) const
+{
+    MOZ_ASSERT(!isInvalid());
+    if (kind_ != Double)
+        return FloatRegister(code_ & ~1, Double);
+    return *this;
+}
 
+FloatRegister
+FloatRegister::singleOverlay(unsigned int which) const
+{
+    MOZ_ASSERT(!isInvalid());
+    if (kind_ == Double) {
+        // Only even registers are double
+        MOZ_ASSERT(code_ % 2 == 0);
+        MOZ_ASSERT(which < 2);
+        return FloatRegister(code_ + which, Single);
+    }
+    MOZ_ASSERT(which == 0);
+    return FloatRegister(code_, Single);
+}
+
+FloatRegisterSet
+FloatRegister::ReduceSetForPush(const FloatRegisterSet& s)
+{
+    LiveFloatRegisterSet mod;
+    for (FloatRegisterIterator iter(s); iter.more(); iter++) {
+        if ((*iter).isSingle()) {
+            // Even for single size registers save complete double register.
+            mod.addUnchecked((*iter).doubleOverlay());
+        } else {
+            mod.addUnchecked(*iter);
+        }
+    }
+    return mod.set();
+}
+
+uint32_t
+FloatRegister::GetPushSizeInBytes(const FloatRegisterSet& s)
+{
+    FloatRegisterSet ss = s.reduceSetForPush();
+    uint64_t bits = ss.bits();
+    // We are only pushing double registers.
+    MOZ_ASSERT((bits & 0xffffffff) == 0);
+    uint32_t ret =  mozilla::CountPopulation32(bits >> 32) * sizeof(double);
+    return ret;
+}
+uint32_t
+FloatRegister::getRegisterDumpOffsetInBytes()
+{
+    if (isSingle())
+        return id() * sizeof(float);
+    if (isDouble())
+        return id() * sizeof(double);
+    MOZ_CRASH();
+}
 
 } // namespace ion
 } // namespace js

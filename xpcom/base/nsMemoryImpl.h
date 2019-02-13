@@ -20,12 +20,12 @@ class nsMemoryImpl : public nsIMemory
 {
 public:
   // We don't use the generic macros because we are a special static object
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult);
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void)
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult) override;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) override
   {
     return 1;
   }
-  NS_IMETHOD_(MozExternalRefCountType) Release(void)
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) override
   {
     return 1;
   }
@@ -41,6 +41,7 @@ public:
 protected:
   struct FlushEvent : public nsIRunnable
   {
+    MOZ_CONSTEXPR FlushEvent() : mReason(nullptr) {}
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIRUNNABLE
     const char16_t* mReason;

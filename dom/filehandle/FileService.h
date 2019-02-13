@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,8 +9,8 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/FileHelper.h"
+#include "mozilla/StaticPtr.h"
 #include "nsClassHashtable.h"
-#include "nsIObserver.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -20,20 +20,20 @@
 
 class nsAString;
 class nsIEventTarget;
-class nsIOfflineStorage;
 class nsIRunnable;
+class nsThreadPool;
 
 namespace mozilla {
 namespace dom {
 
-class FileHandle;
+class FileHandleBase;
 
-class FileService MOZ_FINAL : public nsIObserver
+class FileService final
 {
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
+  friend class nsAutoPtr<FileService>;
+  friend class StaticAutoPtr<FileService>;
 
+public:
   // Returns a non-owning reference!
   static FileService*
   GetOrCreate();
@@ -50,56 +50,48 @@ public:
   IsShuttingDown();
 
   nsresult
-  Enqueue(FileHandle* aFileHandle, FileHelper* aFileHelper);
+  Enqueue(FileHandleBase* aFileHandle, FileHelper* aFileHelper);
 
   void
-  NotifyFileHandleCompleted(FileHandle* aFileHandle);
+  NotifyFileHandleCompleted(FileHandleBase* aFileHandle);
 
   void
-  WaitForStoragesToComplete(nsTArray<nsCOMPtr<nsIOfflineStorage> >& aStorages,
+  WaitForStoragesToComplete(nsTArray<nsCString>& aStorageIds,
                             nsIRunnable* aCallback);
 
-  void
-  AbortFileHandlesForStorage(nsIOfflineStorage* aStorage);
-
-  bool
-  HasFileHandlesForStorage(nsIOfflineStorage* aStorage);
-
   nsIEventTarget*
-  StreamTransportTarget()
-  {
-    NS_ASSERTION(mStreamTransportTarget, "This should never be null!");
-    return mStreamTransportTarget;
-  }
+  ThreadPoolTarget() const;
 
 private:
-  class FileHandleQueue MOZ_FINAL : public FileHelperListener
+  class FileHandleQueue final : public FileHelperListener
   {
     friend class FileService;
 
   public:
     NS_IMETHOD_(MozExternalRefCountType)
-    AddRef() MOZ_OVERRIDE;
+    AddRef() override;
 
     NS_IMETHOD_(MozExternalRefCountType)
-    Release() MOZ_OVERRIDE;
+    Release() override;
 
     inline nsresult
     Enqueue(FileHelper* aFileHelper);
 
     virtual void
-    OnFileHelperComplete(FileHelper* aFileHelper) MOZ_OVERRIDE;
+    OnFileHelperComplete(FileHelper* aFileHelper) override;
 
   private:
     inline
-    FileHandleQueue(FileHandle* aFileHandle);
+    explicit FileHandleQueue(FileHandleBase* aFileHandle);
+
+    ~FileHandleQueue();
 
     nsresult
     ProcessQueue();
 
     ThreadSafeAutoRefCnt mRefCnt;
     NS_DECL_OWNINGTHREAD
-    nsRefPtr<FileHandle> mFileHandle;
+    nsRefPtr<FileHandleBase> mFileHandle;
     nsTArray<nsRefPtr<FileHelper> > mQueue;
     nsRefPtr<FileHelper> mCurrentHelper;
   };
@@ -109,7 +101,7 @@ private:
     DelayedEnqueueInfo();
     ~DelayedEnqueueInfo();
 
-    nsRefPtr<FileHandle> mFileHandle;
+    nsRefPtr<FileHandleBase> mFileHandle;
     nsRefPtr<FileHelper> mFileHelper;
   };
 
@@ -119,13 +111,13 @@ private:
 
   public:
     inline FileHandleQueue*
-    CreateFileHandleQueue(FileHandle* aFileHandle);
+    CreateFileHandleQueue(FileHandleBase* aFileHandle);
 
     inline FileHandleQueue*
-    GetFileHandleQueue(FileHandle* aFileHandle);
+    GetFileHandleQueue(FileHandleBase* aFileHandle);
 
     void
-    RemoveFileHandleQueue(FileHandle* aFileHandle);
+    RemoveFileHandleQueue(FileHandleBase* aFileHandle);
 
     bool
     HasRunningFileHandles()
@@ -133,16 +125,9 @@ private:
       return !mFileHandleQueues.IsEmpty();
     }
 
-    inline bool
-    HasRunningFileHandles(nsIOfflineStorage* aStorage);
-
     inline DelayedEnqueueInfo*
-    CreateDelayedEnqueueInfo(FileHandle* aFileHandle, FileHelper* aFileHelper);
-
-    inline void
-    CollectRunningAndDelayedFileHandles(
-                                 nsIOfflineStorage* aStorage,
-                                 nsTArray<nsRefPtr<FileHandle>>& aFileHandles);
+    CreateDelayedEnqueueInfo(FileHandleBase* aFileHandle,
+                             FileHelper* aFileHelper);
 
     void
     LockFileForReading(const nsAString& aFileName)
@@ -181,7 +166,7 @@ private:
 
   struct StoragesCompleteCallback
   {
-    nsTArray<nsCOMPtr<nsIOfflineStorage> > mStorages;
+    nsTArray<nsCString> mStorageIds;
     nsCOMPtr<nsIRunnable> mCallback;
   };
 
@@ -197,7 +182,7 @@ private:
   bool
   MaybeFireCallback(StoragesCompleteCallback& aCallback);
 
-  nsCOMPtr<nsIEventTarget> mStreamTransportTarget;
+  nsRefPtr<nsThreadPool> mThreadPool;
   nsClassHashtable<nsCStringHashKey, StorageInfo> mStorageInfos;
   nsTArray<StoragesCompleteCallback> mCompleteCallbacks;
 };

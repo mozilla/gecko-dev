@@ -39,21 +39,8 @@ void nsColorNames::AddRefTable(void)
 {
   NS_ASSERTION(!gColorTable, "pre existing array!");
   if (!gColorTable) {
-    gColorTable = new nsStaticCaseInsensitiveNameTable();
-    if (gColorTable) {
-#ifdef DEBUG
-    {
-      // let's verify the table...
-      for (uint32_t index = 0; index < eColorName_COUNT; ++index) {
-        nsAutoCString temp1(kColorNames[index]);
-        nsAutoCString temp2(kColorNames[index]);
-        ToLowerCase(temp1);
-        NS_ASSERTION(temp1.Equals(temp2), "upper case char in table");
-      }
-    }
-#endif      
-      gColorTable->Init(kColorNames, eColorName_COUNT); 
-    }
+    gColorTable =
+      new nsStaticCaseInsensitiveNameTable(kColorNames, eColorName_COUNT);
   }
 }
 
@@ -168,8 +155,8 @@ NS_GFX_(bool) NS_LooseHexToRGB(const nsString& aColorSpec, nscolor* aResult)
   while (newdpc > 2) {
     bool haveNonzero = false;
     for (int c = 0; c < 3; ++c) {
-      NS_ABORT_IF_FALSE(c * dpc < nameLen,
-                        "should not pass end of string while newdpc > 2");
+      MOZ_ASSERT(c * dpc < nameLen,
+                 "should not pass end of string while newdpc > 2");
       char16_t ch = colorSpec[c * dpc];
       if (('1' <= ch && ch <= '9') ||
           ('A' <= ch && ch <= 'F') ||

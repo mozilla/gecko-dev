@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -26,7 +26,7 @@ try {
   eval('"use strict"; function g(x) { const y = x; y = 1 + x; } c = 3');
   assertEq(0, 1);
 } catch (e) {
-  assertEq(e.name, 'TypeError');
+  assertEq(e.name, 'SyntaxError');
   assertEq(2, c);
 }
 
@@ -35,7 +35,7 @@ try {
   eval('"use strict"; const z = w; z = 1 + w; c = 5');
   assertEq(0, 1);
 } catch (e) {
-  assertEq(e.name, 'TypeError');
+  assertEq(e.name, 'SyntaxError');
   assertEq(4, c);
   assertEq('z' in this, false);
 }

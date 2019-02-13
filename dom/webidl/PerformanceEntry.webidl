@@ -10,10 +10,13 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=(Window,Worker)]
 interface PerformanceEntry
 {
   readonly attribute DOMString name;
   readonly attribute DOMString entryType;
   readonly attribute DOMHighResTimeStamp startTime;
   readonly attribute DOMHighResTimeStamp duration;
+
+  jsonifier;
 };

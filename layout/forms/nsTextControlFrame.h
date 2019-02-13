@@ -9,6 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
+#include "nsIContent.h"
 #include "nsITextControlFrame.h"
 #include "nsITextControlElement.h"
 #include "nsIStatefulFrame.h"
@@ -23,56 +24,61 @@ class Element;
 }
 }
 
-class nsTextControlFrame : public nsContainerFrame,
-                           public nsIAnonymousContentCreator,
-                           public nsITextControlFrame,
-                           public nsIStatefulFrame
+class nsTextControlFrame final : public nsContainerFrame,
+                                 public nsIAnonymousContentCreator,
+                                 public nsITextControlFrame,
+                                 public nsIStatefulFrame
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  NS_DECLARE_FRAME_PROPERTY(ContentScrollPos, DestroyPoint)
+  NS_DECLARE_FRAME_PROPERTY(ContentScrollPos, DeleteValue<nsPoint>)
 
-  nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aContext);
+  explicit nsTextControlFrame(nsStyleContext* aContext);
   virtual ~nsTextControlFrame();
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
-  virtual nsIScrollableFrame* GetScrollTargetFrame() MOZ_OVERRIDE {
+  virtual nsIScrollableFrame* GetScrollTargetFrame() override {
     return do_QueryFrame(GetFirstPrincipalChild());
   }
 
-  virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
 
-  virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                 nsSize aCBSize, nscoord aAvailableWidth,
-                                 nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, bool aShrinkWrap) MOZ_OVERRIDE;
+  virtual mozilla::LogicalSize
+  ComputeAutoSize(nsRenderingContext *aRenderingContext,
+                  mozilla::WritingMode aWritingMode,
+                  const mozilla::LogicalSize& aCBSize,
+                  nscoord aAvailableISize,
+                  const mozilla::LogicalSize& aMargin,
+                  const mozilla::LogicalSize& aBorder,
+                  const mozilla::LogicalSize& aPadding,
+                  bool aShrinkWrap) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
-  virtual bool IsCollapsed() MOZ_OVERRIDE;
+  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual bool IsCollapsed() override;
 
-  virtual bool IsLeaf() const MOZ_OVERRIDE;
+  virtual bool IsLeaf() const override;
   
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     aResult.AssignLiteral("nsTextControlFrame");
     return NS_OK;
   }
 #endif
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     // nsStackFrame is already both of these, but that's somewhat bogus,
     // and we really mean it.
@@ -81,68 +87,68 @@ public:
   }
 
   // nsIAnonymousContentCreator
-  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) MOZ_OVERRIDE;
-  virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter) MOZ_OVERRIDE;
+  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
+  virtual void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
+                                        uint32_t aFilter) override;
 
   virtual void SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+                                   nsFrameList&    aChildList) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
-  virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
+  virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType) override;
 
 //==== BEGIN NSIFORMCONTROLFRAME
-  virtual void SetFocus(bool aOn , bool aRepaint) MOZ_OVERRIDE; 
-  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
+  virtual void SetFocus(bool aOn , bool aRepaint) override; 
+  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) override;
 
 //==== END NSIFORMCONTROLFRAME
 
 //==== NSITEXTCONTROLFRAME
 
-  NS_IMETHOD    GetEditor(nsIEditor **aEditor) MOZ_OVERRIDE;
-  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart) MOZ_OVERRIDE;
-  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd) MOZ_OVERRIDE;
+  NS_IMETHOD    GetEditor(nsIEditor **aEditor) override;
+  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart) override;
+  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd) override;
   NS_IMETHOD    SetSelectionRange(int32_t aSelectionStart,
                                   int32_t aSelectionEnd,
-                                  SelectionDirection aDirection = eNone) MOZ_OVERRIDE;
+                                  SelectionDirection aDirection = eNone) override;
   NS_IMETHOD    GetSelectionRange(int32_t* aSelectionStart,
                                   int32_t* aSelectionEnd,
-                                  SelectionDirection* aDirection = nullptr) MOZ_OVERRIDE;
-  NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon) MOZ_OVERRIDE;
-  virtual nsFrameSelection* GetOwnedFrameSelection() MOZ_OVERRIDE;
+                                  SelectionDirection* aDirection = nullptr) override;
+  NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon) override;
+  virtual nsFrameSelection* GetOwnedFrameSelection() override;
 
-  nsresult GetPhonetic(nsAString& aPhonetic) MOZ_OVERRIDE;
+  nsresult GetPhonetic(nsAString& aPhonetic) override;
 
   /**
    * Ensure mEditor is initialized with the proper flags and the default value.
    * @throws NS_ERROR_NOT_INITIALIZED if mEditor has not been created
    * @throws various and sundry other things
    */
-  virtual nsresult EnsureEditorInitialized() MOZ_OVERRIDE;
+  virtual nsresult EnsureEditorInitialized() override;
 
 //==== END NSITEXTCONTROLFRAME
 
 //==== NSISTATEFULFRAME
 
-  NS_IMETHOD SaveState(nsPresState** aState) MOZ_OVERRIDE;
-  NS_IMETHOD RestoreState(nsPresState* aState) MOZ_OVERRIDE;
+  NS_IMETHOD SaveState(nsPresState** aState) override;
+  NS_IMETHOD RestoreState(nsPresState* aState) override;
 
 //=== END NSISTATEFULFRAME
 
 //==== OVERLOAD of nsIFrame
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   /** handler for attribute changes to mContent */
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
   nsresult GetText(nsString& aText);
 
-  virtual nsresult PeekOffset(nsPeekOffsetStruct *aPos) MOZ_OVERRIDE;
+  virtual nsresult PeekOffset(nsPeekOffsetStruct *aPos) override;
 
   NS_DECL_QUERYFRAME
 
@@ -198,10 +204,10 @@ protected:
 
   class EditorInitializer : public nsRunnable {
   public:
-    EditorInitializer(nsTextControlFrame* aFrame) :
+    explicit EditorInitializer(nsTextControlFrame* aFrame) :
       mFrame(aFrame) {}
 
-    NS_IMETHOD Run() MOZ_OVERRIDE;
+    NS_IMETHOD Run() override;
 
     // avoids use of nsWeakFrame
     void Revoke() {
@@ -217,7 +223,7 @@ protected:
 
   class ScrollOnFocusEvent : public nsRunnable {
   public:
-    ScrollOnFocusEvent(nsTextControlFrame* aFrame) :
+    explicit ScrollOnFocusEvent(nsTextControlFrame* aFrame) :
       mFrame(aFrame) {}
 
     NS_DECL_NSIRUNNABLE
@@ -266,10 +272,11 @@ protected:
   // etc.  Just the size of our actual area for the text (and the scrollbars,
   // for <textarea>).
   nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                             nsSize&             aIntrinsicSize,
-                             float               aFontSizeInflation);
+                             mozilla::WritingMode aWM,
+                             mozilla::LogicalSize& aIntrinsicSize,
+                             float aFontSizeInflation);
 
-  nsresult ScrollSelectionIntoView() MOZ_OVERRIDE;
+  nsresult ScrollSelectionIntoView() override;
 
 private:
   //helper methods

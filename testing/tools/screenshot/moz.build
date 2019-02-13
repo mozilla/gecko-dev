@@ -5,15 +5,23 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 if CONFIG['MOZ_WIDGET_GTK'] and CONFIG['MOZ_X11']:
-    PROGRAM = 'screentopng'
+    Program('screentopng')
     SOURCES += [
         'gdk-screenshot.cpp',
     ]
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+    OS_LIBS += CONFIG['TK_LIBS']
+    OS_LIBS += CONFIG['XSS_LIBS']
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
-    PROGRAM = 'screenshot'
+    Program('screenshot')
     SOURCES += [
         'win32-screenshot.cpp',
     ]
     USE_STATIC_LIBS = True
     if CONFIG['GNU_CC']:
         WIN32_EXE_LDFLAGS += ['-municode']
+    OS_LIBS += [
+        'gdiplus',
+    ]
+
+FAIL_ON_WARNINGS = True

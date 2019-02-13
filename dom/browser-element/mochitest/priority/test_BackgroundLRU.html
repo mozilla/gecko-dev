@@ -28,12 +28,12 @@ function runTest() {
   var iframe2 = null;
   var childID = null;
 
-  expectProcessCreated().then(function(chid) {
-    childID = chid;
-    return expectPriorityChange(childID, 'FOREGROUND');
-  }).then(function() {
-    return expectMozbrowserEvent(iframe1, 'openwindow');
-  }).then(function() {
+  Promise.all([
+    expectProcessCreated('FOREGROUND').then(function(chid) {
+      childID = chid;
+    }),
+    expectMozbrowserEvent(iframe1, 'openwindow')
+  ]).then(function() {
     var p = expectPriorityChange(childID, 'BACKGROUND');
     iframe1.setVisible(false);
     return p;
@@ -46,16 +46,24 @@ function runTest() {
     document.body.appendChild(iframe2);
 
     // At this point, we should have iframe1 in background already.
-    // We wait until another one is set to background, too.
-    // Once there are two in background, the first one (LRU order)
-    // should have 'backgroundLRU' equals 1
-    var p = expectPriorityWithBackgroundLRUSet(childID, '1');
+    // We wait until another process goes into the background, too.
+    // Once there are two in background, the first one should have its LRU
+    // adjustment value increased to 1.
+    var p = expectPriorityWithLRUSet(childID, 'BACKGROUND', '1');
     iframe2.setVisible(false);
-    document.body.removeChild(iframe2);
 
     return p;
 
-  }).then(SimpleTest.finish);
+  }).then(function() {
+    // When iframe2 is removed iframe1's LRU value should be decreased again.
+    var p = expectPriorityWithLRUSet(childID, 'BACKGROUND', '0');
+
+    document.body.removeChild(iframe2);
+
+    return p;
+  }).then(function() {
+    SimpleTest.finish();
+  });
 
   document.body.appendChild(iframe1);
 }

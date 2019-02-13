@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 
 class TestStateChrome(MarionetteTestCase):
@@ -26,6 +26,12 @@ class TestStateChrome(MarionetteTestCase):
         self.marionette.execute_script("arguments[0].disabled = true;", [l])
         self.assertFalse(l.is_enabled())
         self.marionette.execute_script("arguments[0].disabled = false;", [l])
+
+    def test_can_get_element_rect(self):
+        l = self.marionette.find_element("id", "textInput")
+        rect = l.rect
+        self.assertTrue(rect['x'] > 0)
+        self.assertTrue(rect['y'] > 0)
 
     ''' Switched on in Bug 896043 to be turned on in Bug 896046
     def test_isDisplayed(self):

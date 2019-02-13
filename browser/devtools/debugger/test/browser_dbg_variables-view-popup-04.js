@@ -8,13 +8,12 @@
 const TAB_URL = EXAMPLE_URL + "doc_frame-parameters.html";
 
 function test() {
-  Task.spawn(function() {
-    let [tab, debuggee, panel] = yield initDebugger(TAB_URL);
+  Task.spawn(function*() {
+    let [tab,, panel] = yield initDebugger(TAB_URL);
     let win = panel.panelWin;
     let bubble = win.DebuggerView.VariableBubble;
 
-    // Allow this generator function to yield first.
-    executeSoon(() => debuggee.start());
+    callInTab(tab, "start");
     yield waitForSourceAndCaretAndScopes(panel, ".html", 24);
 
     // Inspect variable.

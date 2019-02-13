@@ -3,14 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "BasicLayersImpl.h"            // for FillWithMask, etc
 #include "CopyableCanvasLayer.h"
+
+#include "BasicLayersImpl.h"            // for FillWithMask, etc
 #include "GLContext.h"                  // for GLContext
 #include "GLScreenBuffer.h"             // for GLScreenBuffer
 #include "SharedSurface.h"              // for SharedSurface
-#include "SharedSurfaceGL.h"            // for SharedSurface_GL, etc
-#include "SurfaceTypes.h"               // for APITypeT, APITypeT::OpenGL, etc
-#include "gfxMatrix.h"                  // for gfxMatrix
+#include "SharedSurfaceGL.h"              // for SharedSurface
 #include "gfxPattern.h"                 // for gfxPattern, etc
 #include "gfxPlatform.h"                // for gfxPlatform, gfxImageFormat
 #include "gfxRect.h"                    // for gfxRect
@@ -18,11 +17,13 @@
 #include "gfx2DGlue.h"                  // for thebes --> moz2d transition
 #include "mozilla/gfx/BaseSize.h"       // for BaseSize
 #include "mozilla/gfx/Tools.h"
+#include "mozilla/gfx/Point.h"          // for IntSize
+#include "mozilla/layers/PersistentBufferProvider.h"
 #include "nsDebug.h"                    // for NS_ASSERTION, NS_WARNING, etc
 #include "nsISupportsImpl.h"            // for gfxContext::AddRef, etc
-#include "nsRect.h"                     // for nsIntRect
-#include "nsSize.h"                     // for nsIntSize
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "gfxUtils.h"
+#include "client/TextureClientSharedSurface.h"
 
 namespace mozilla {
 namespace layers {
@@ -32,7 +33,9 @@ using namespace mozilla::gl;
 
 CopyableCanvasLayer::CopyableCanvasLayer(LayerManager* aLayerManager, void *aImplData) :
   CanvasLayer(aLayerManager, aImplData)
-  , mStream(nullptr)
+  , mGLFrontbuffer(nullptr)
+  , mIsAlphaPremultiplied(true)
+  , mOriginPos(gl::OriginPos::TopLeft)
 {
   MOZ_COUNT_CTOR(CopyableCanvasLayer);
 }
@@ -49,19 +52,20 @@ CopyableCanvasLayer::Initialize(const Data& aData)
 
   if (aData.mGLContext) {
     mGLContext = aData.mGLContext;
-    mStream = aData.mStream;
-    mIsGLAlphaPremult = aData.mIsGLAlphaPremult;
-    mNeedsYFlip = true;
+    mIsAlphaPremultiplied = aData.mIsGLAlphaPremult;
+    mOriginPos = gl::OriginPos::BottomLeft;
+
     MOZ_ASSERT(mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
 
-    // [Basic Layers, non-OMTC] WebGL layer init.
-    // `GLScreenBuffer::Morph`ing is only needed in BasicShadowableCanvasLayer.
-  } else if (aData.mDrawTarget) {
-    mDrawTarget = aData.mDrawTarget;
-    mSurface = mDrawTarget->Snapshot();
-    mNeedsYFlip = false;
+    if (aData.mFrontbufferGLTex) {
+      gfx::IntSize size(aData.mSize.width, aData.mSize.height);
+      mGLFrontbuffer = SharedSurface_Basic::Wrap(aData.mGLContext, size, aData.mHasAlpha,
+                                                 aData.mFrontbufferGLTex);
+    }
+  } else if (aData.mBufferProvider) {
+    mBufferProvider = aData.mBufferProvider;
   } else {
-    NS_ERROR("CanvasLayer created without mSurface, mDrawTarget or mGLContext?");
+    MOZ_CRASH("CanvasLayer created without mSurface, mDrawTarget or mGLContext?");
   }
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
@@ -70,19 +74,14 @@ CopyableCanvasLayer::Initialize(const Data& aData)
 bool
 CopyableCanvasLayer::IsDataValid(const Data& aData)
 {
-  return mGLContext == aData.mGLContext && mStream == aData.mStream;
+  return mGLContext == aData.mGLContext;
 }
 
 void
 CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
 {
-  if (!IsDirty())
-    return;
-  Painted();
-
-  if (mDrawTarget) {
-    mDrawTarget->Flush();
-    mSurface = mDrawTarget->Snapshot();
+  if (mBufferProvider) {
+    mSurface = mBufferProvider->GetSnapshot();
   }
 
   if (!mGLContext && aDestTarget) {
@@ -96,70 +95,77 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
     return;
   }
 
-  if (mGLContext) {
-    SharedSurface_GL* sharedSurf = nullptr;
-    if (mStream) {
-      sharedSurf = SharedSurface_GL::Cast(mStream->SwapConsumer());
-    } else {
-      sharedSurf = mGLContext->RequestFrame();
+  if (mBufferProvider) {
+    return;
+  }
+
+  MOZ_ASSERT(mGLContext);
+
+  SharedSurface* frontbuffer = nullptr;
+  if (mGLFrontbuffer) {
+    frontbuffer = mGLFrontbuffer.get();
+  } else {
+    GLScreenBuffer* screen = mGLContext->Screen();
+    const auto& front = screen->Front();
+    if (front) {
+      frontbuffer = front->Surf();
     }
+  }
 
-    if (!sharedSurf) {
-      NS_WARNING("Null frame received.");
-      return;
-    }
+  if (!frontbuffer) {
+    NS_WARNING("Null frame received.");
+    return;
+  }
 
-    IntSize readSize(sharedSurf->Size());
-    SurfaceFormat format = (GetContentFlags() & CONTENT_OPAQUE)
-                            ? SurfaceFormat::B8G8R8X8
-                            : SurfaceFormat::B8G8R8A8;
-    bool needsPremult = sharedSurf->HasAlpha() && !mIsGLAlphaPremult;
+  IntSize readSize(frontbuffer->mSize);
+  SurfaceFormat format = (GetContentFlags() & CONTENT_OPAQUE)
+                          ? SurfaceFormat::B8G8R8X8
+                          : SurfaceFormat::B8G8R8A8;
+  bool needsPremult = frontbuffer->mHasAlpha && !mIsAlphaPremultiplied;
 
-    // Try to read back directly into aDestTarget's output buffer
-    if (aDestTarget) {
-      uint8_t* destData;
-      IntSize destSize;
-      int32_t destStride;
-      SurfaceFormat destFormat;
-      if (aDestTarget->LockBits(&destData, &destSize, &destStride, &destFormat)) {
-        if (destSize == readSize && destFormat == format) {
-          RefPtr<DataSourceSurface> data =
-            Factory::CreateWrappingDataSourceSurface(destData, destStride, destSize, destFormat);
-          mGLContext->Screen()->Readback(sharedSurf, data);
-          if (needsPremult) {
-              gfxUtils::PremultiplyDataSurface(data);
-          }
-          aDestTarget->ReleaseBits(destData);
-          return;
+  // Try to read back directly into aDestTarget's output buffer
+  if (aDestTarget) {
+    uint8_t* destData;
+    IntSize destSize;
+    int32_t destStride;
+    SurfaceFormat destFormat;
+    if (aDestTarget->LockBits(&destData, &destSize, &destStride, &destFormat)) {
+      if (destSize == readSize && destFormat == format) {
+        RefPtr<DataSourceSurface> data =
+          Factory::CreateWrappingDataSourceSurface(destData, destStride, destSize, destFormat);
+        mGLContext->Readback(frontbuffer, data);
+        if (needsPremult) {
+          gfxUtils::PremultiplyDataSurface(data, data);
         }
         aDestTarget->ReleaseBits(destData);
+        return;
       }
+      aDestTarget->ReleaseBits(destData);
     }
+  }
 
-    RefPtr<SourceSurface> resultSurf;
-    if (sharedSurf->Type() == SharedSurfaceType::Basic && !needsPremult) {
-      SharedSurface_Basic* sharedSurf_Basic = SharedSurface_Basic::Cast(sharedSurf);
-      resultSurf = sharedSurf_Basic->GetData();
-    } else {
-      RefPtr<DataSourceSurface> data = GetTempSurface(readSize, format);
-      // Readback handles Flush/MarkDirty.
-      mGLContext->Screen()->Readback(sharedSurf, data);
-      if (needsPremult) {
-        gfxUtils::PremultiplyDataSurface(data);
-      }
-      resultSurf = data;
-    }
-    MOZ_ASSERT(resultSurf);
+  RefPtr<DataSourceSurface> resultSurf = GetTempSurface(readSize, format);
+  // There will already be a warning from inside of GetTempSurface, but
+  // it doesn't hurt to complain:
+  if (NS_WARN_IF(!resultSurf)) {
+    return;
+  }
 
-    if (aDestTarget) {
-      aDestTarget->CopySurface(resultSurf,
-                               IntRect(0, 0, readSize.width, readSize.height),
-                               IntPoint(0, 0));
-    } else {
-      // If !aDestSurface then we will end up painting using mSurface, so
-      // stick our surface into mSurface, so that the Paint() path is the same.
-      mSurface = resultSurf;
-    }
+  // Readback handles Flush/MarkDirty.
+  mGLContext->Readback(frontbuffer, resultSurf);
+  if (needsPremult) {
+    gfxUtils::PremultiplyDataSurface(resultSurf, resultSurf);
+  }
+  MOZ_ASSERT(resultSurf);
+
+  if (aDestTarget) {
+    aDestTarget->CopySurface(resultSurf,
+                             IntRect(0, 0, readSize.width, readSize.height),
+                             IntPoint(0, 0));
+  } else {
+    // If !aDestSurface then we will end up painting using mSurface, so
+    // stick our surface into mSurface, so that the Paint() path is the same.
+    mSurface = resultSurf;
   }
 }
 

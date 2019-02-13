@@ -8,32 +8,6 @@ function run_test() {
 }
 
 /**
- * Helper function.
- */
-function newUint8Worker() {
-  let worker = newWorker();
-  let context = worker.ContextPool._contexts[0];
-  let index = 0; // index for read
-  let buf = [];
-
-  context.Buf.writeUint8 = function(value) {
-    buf.push(value);
-  };
-
-  context.Buf.readUint8 = function() {
-    return buf[index++];
-  };
-
-  context.Buf.seekIncoming = function(offset) {
-    index += offset;
-  };
-
-  worker.debug = do_print;
-
-  return worker;
-}
-
-/**
  * Verify RUIM Service.
  */
 add_test(function test_is_ruim_service_available() {
@@ -44,7 +18,7 @@ add_test(function test_is_ruim_service_available() {
 
   function test_table(cst, geckoService, enabled) {
     context.RIL.iccInfoPrivate.cst = cst;
-    do_check_eq(context.ICCUtilsHelper.isICCServiceAvailable(geckoService),
+    equal(context.ICCUtilsHelper.isICCServiceAvailable(geckoService),
                 enabled);
   }
 
@@ -66,7 +40,7 @@ add_test(function test_ruim_file_path_id() {
   let ICCFileHelper = context.ICCFileHelper;
 
   RIL.appType = CARD_APPTYPE_RUIM;
-  do_check_eq(ICCFileHelper.getEFPath(ICC_EF_CSIM_CST),
+  equal(ICCFileHelper.getEFPath(ICC_EF_CSIM_CST),
               EF_PATH_MF_SIM + EF_PATH_DF_CDMA);
 
   run_next_test();
@@ -102,7 +76,7 @@ add_test(function test_fetch_ruim_recodes() {
     for (let i = 0; i < expectCalled.length; i++ ) {
       if (ifCalled[i] != expectCalled[i]) {
         do_print(expectCalled[i] + " is not called.");
-        do_check_true(false);
+        ok(false);
       }
     }
   }
@@ -124,7 +98,7 @@ add_test(function test_decode_imsi_value() {
   function testDecodeImsiValue(encoded, length, expect) {
     let decoded = context.RuimRecordHelper.decodeIMSIValue(encoded, length);
 
-    do_check_eq(expect, decoded);
+    equal(expect, decoded);
   }
 
   testDecodeImsiValue( 99, 2, "00");
@@ -176,7 +150,7 @@ add_test(function test_get_imsi_m() {
     context.RuimRecordHelper.getIMSI_M();
     let imsi = context.RIL.iccInfoPrivate.imsi;
 
-    do_check_eq(expectedImsi, imsi)
+    equal(expectedImsi, imsi)
   }
 
   let imsi_1 = "466050081062861";
@@ -224,11 +198,11 @@ add_test(function test_read_cdmahome() {
     context.RuimRecordHelper.readCDMAHome();
     let cdmaHome = context.RIL.cdmaHome;
     for (let i = 0; i < expectedSystemIds.length; i++) {
-      do_check_eq(cdmaHome.systemId[i], expectedSystemIds[i]);
-      do_check_eq(cdmaHome.networkId[i], expectedNetworkIds[i]);
+      equal(cdmaHome.systemId[i], expectedSystemIds[i]);
+      equal(cdmaHome.networkId[i], expectedNetworkIds[i]);
     }
-    do_check_eq(cdmaHome.systemId.length, expectedSystemIds.length);
-    do_check_eq(cdmaHome.networkId.length, expectedNetworkIds.length);
+    equal(cdmaHome.systemId.length, expectedSystemIds.length);
+    equal(cdmaHome.networkId.length, expectedNetworkIds.length);
   }
 
   testCdmaHome([13505], [65535]);
@@ -265,8 +239,8 @@ add_test(function test_read_cdmaspn() {
     };
 
     context.RuimRecordHelper.readSPN();
-    do_check_eq(context.RIL.iccInfo.spn, expectedSpn);
-    do_check_eq(context.RIL.iccInfoPrivate.spnDisplayCondition,
+    equal(context.RIL.iccInfo.spn, expectedSpn);
+    equal(context.RIL.iccInfoPrivate.spnDisplayCondition,
                 expectedDisplayCondition);
   }
 
@@ -313,9 +287,9 @@ add_test(function test_cdma_spn_display_condition() {
   RIL._isCdma = true;
 
   // Test updateDisplayCondition runs before any of SIM file is ready.
-  do_check_eq(ICCUtilsHelper.updateDisplayCondition(), true);
-  do_check_eq(RIL.iccInfo.isDisplayNetworkNameRequired, true);
-  do_check_eq(RIL.iccInfo.isDisplaySpnRequired, false);
+  equal(ICCUtilsHelper.updateDisplayCondition(), true);
+  equal(RIL.iccInfo.isDisplayNetworkNameRequired, true);
+  equal(RIL.iccInfo.isDisplaySpnRequired, false);
 
   // Test with value.
   function testDisplayCondition(ruimDisplayCondition,
@@ -333,9 +307,9 @@ add_test(function test_cdma_spn_display_condition() {
       cdmaNetworkId: currentNetworkId
     };
 
-    do_check_eq(ICCUtilsHelper.updateDisplayCondition(), expectUpdateDisplayCondition);
-    do_check_eq(RIL.iccInfo.isDisplayNetworkNameRequired, false);
-    do_check_eq(RIL.iccInfo.isDisplaySpnRequired, expectIsDisplaySPNRequired);
+    equal(ICCUtilsHelper.updateDisplayCondition(), expectUpdateDisplayCondition);
+    equal(RIL.iccInfo.isDisplayNetworkNameRequired, false);
+    equal(RIL.iccInfo.isDisplaySpnRequired, expectIsDisplaySPNRequired);
   };
 
   // SPN is not required when ruimDisplayCondition is false.

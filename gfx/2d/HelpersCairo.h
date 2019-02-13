@@ -141,6 +141,7 @@ GfxFormatToCairoFormat(SurfaceFormat format)
       return CAIRO_FORMAT_RGB16_565;
     default:
       gfxWarning() << "Unknown image format";
+      MOZ_ASSERT(false, "Unknown image format");
       return CAIRO_FORMAT_ARGB32;
   }
 }
@@ -159,6 +160,7 @@ GfxFormatToCairoContent(SurfaceFormat format)
       return CAIRO_CONTENT_ALPHA;
     default:
       gfxWarning() << "Unknown image format";
+      MOZ_ASSERT(false, "Unknown image format");
       return CAIRO_CONTENT_COLOR_ALPHA;
   }
 }
@@ -214,6 +216,26 @@ CairoContentToGfxFormat(cairo_content_t content)
   return SurfaceFormat::B8G8R8A8;
 }
 
+static inline SurfaceFormat
+CairoFormatToGfxFormat(cairo_format_t format)
+{
+  switch (format) {
+    case CAIRO_FORMAT_ARGB32:
+      return SurfaceFormat::B8G8R8A8;
+    case CAIRO_FORMAT_RGB24:
+      return SurfaceFormat::B8G8R8X8;
+    case CAIRO_FORMAT_A8:
+      return SurfaceFormat::A8;
+    case CAIRO_FORMAT_RGB16_565:
+      return SurfaceFormat::R5G6B5;
+    default:
+      gfxCriticalError() << "Unknown cairo format " << format;
+      return SurfaceFormat::UNKNOWN;
+  }
+}
+
+SurfaceFormat GfxFormatForCairoSurface(cairo_surface_t* surface);
+
 static inline void
 GfxMatrixToCairoMatrix(const Matrix& mat, cairo_matrix_t& retval)
 {
@@ -230,11 +252,18 @@ SetCairoStrokeOptions(cairo_t* aCtx, const StrokeOptions& aStrokeOptions)
   if (aStrokeOptions.mDashPattern) {
     // Convert array of floats to array of doubles
     std::vector<double> dashes(aStrokeOptions.mDashLength);
+    bool nonZero = false;
     for (size_t i = 0; i < aStrokeOptions.mDashLength; ++i) {
+      if (aStrokeOptions.mDashPattern[i] != 0) {
+        nonZero = true;
+      }
       dashes[i] = aStrokeOptions.mDashPattern[i];
     }
-    cairo_set_dash(aCtx, &dashes[0], aStrokeOptions.mDashLength,
-                   aStrokeOptions.mDashOffset);
+    // Avoid all-zero patterns that would trigger the CAIRO_STATUS_INVALID_DASH context error state.
+    if (nonZero) {
+      cairo_set_dash(aCtx, &dashes[0], aStrokeOptions.mDashLength,
+                     aStrokeOptions.mDashOffset);
+    }
   }
 
   cairo_set_line_join(aCtx, GfxLineJoinToCairoLineJoin(aStrokeOptions.mLineJoin));

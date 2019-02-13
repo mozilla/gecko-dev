@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -31,11 +32,8 @@ class MessageLoopIdleTask
   , public SupportsWeakPtr<MessageLoopIdleTask>
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(MessageLoopIdleTask)
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(MessageLoopIdleTask)
   MessageLoopIdleTask(nsIRunnable* aTask, uint32_t aEnsureRunsAfterMS);
-  virtual ~MessageLoopIdleTask()
-  {
-  }
   virtual void Run();
 
 private:
@@ -43,6 +41,8 @@ private:
 
   nsCOMPtr<nsIRunnable> mTask;
   nsCOMPtr<nsITimer> mTimer;
+
+  virtual ~MessageLoopIdleTask() {}
 };
 
 /**
@@ -59,14 +59,15 @@ class MessageLoopTimerCallback
   : public nsITimerCallback
 {
 public:
-  MessageLoopTimerCallback(MessageLoopIdleTask* aTask);
-  virtual ~MessageLoopTimerCallback() {};
+  explicit MessageLoopTimerCallback(MessageLoopIdleTask* aTask);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
 
 private:
   WeakPtr<MessageLoopIdleTask> mTask;
+
+  virtual ~MessageLoopTimerCallback() {}
 };
 
 MessageLoopIdleTask::MessageLoopIdleTask(nsIRunnable* aTask,
@@ -120,7 +121,7 @@ MessageLoopIdleTask::Run()
 }
 
 MessageLoopTimerCallback::MessageLoopTimerCallback(MessageLoopIdleTask* aTask)
-  : mTask(aTask->asWeakPtr())
+  : mTask(aTask)
 {
 }
 

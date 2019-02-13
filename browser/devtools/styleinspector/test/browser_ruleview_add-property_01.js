@@ -21,8 +21,8 @@ let PAGE_CONTENT = [
   '<div id="testid" class="testclass">Styled Node</div>'
 ].join("\n");
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,test rule view user changes");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,test rule view user changes");
 
   info("Creating the test document");
   content.document.body.innerHTML = PAGE_CONTENT;
@@ -39,7 +39,7 @@ let test = asyncTest(function*() {
 function* testCreateNew(view) {
   info("Test creating a new property");
 
-  let elementRuleEditor = view.element.children[0]._ruleEditor;
+  let elementRuleEditor = getRuleViewRuleEditor(view, 0);
 
   info("Focusing a new property name in the rule-view");
   let editor = yield focusEditableField(elementRuleEditor.closeBrace);
@@ -68,11 +68,12 @@ function* testCreateNew(view) {
   info("Entering a value and bluring the field to expect a rule change");
   editor.input.value = "#XYZ";
   let onBlur = once(editor.input, "blur");
-  let onModifications = elementRuleEditor.rule._applyingModifications;
+  onModifications = elementRuleEditor.rule._applyingModifications;
   editor.input.blur();
   yield onBlur;
   yield onModifications;
 
   is(textProp.value, "#XYZ", "Text prop should have been changed.");
+  is(textProp.overridden, false, "Property should not be overridden");
   is(textProp.editor.isValid(), false, "#XYZ should not be a valid entry");
 }

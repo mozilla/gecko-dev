@@ -21,6 +21,7 @@ dictionary ContextAttributes2D {
 };
 
 dictionary HitRegionOptions {
+  Path2D? path = null;
   DOMString id = "";
   Element? control = null;
 };
@@ -47,7 +48,8 @@ interface CanvasRenderingContext2D {
   void transform(double a, double b, double c, double d, double e, double f);
   [Throws, LenientFloat]
   void setTransform(double a, double b, double c, double d, double e, double f);
-// NOT IMPLEMENTED  void resetTransform();
+  [Throws]
+  void resetTransform();
 
   // compositing
            attribute unrestricted double globalAlpha; // (default 1.0)
@@ -73,6 +75,9 @@ interface CanvasRenderingContext2D {
            attribute double shadowBlur; // (default 0)
            attribute DOMString shadowColor; // (default transparent black)
 
+  [Pref="canvas.filters.enabled", SetterThrows]
+  attribute DOMString filter; // (default empty string = no filter)
+
   // rects
   [LenientFloat]
   void clearRect(double x, double y, double w, double h);
@@ -87,7 +92,7 @@ interface CanvasRenderingContext2D {
   void fill(Path2D path, optional CanvasWindingRule winding = "nonzero");
   void stroke();
   void stroke(Path2D path);
-  [Pref="canvas.focusring.enabled"] void drawFocusIfNeeded(Element element);
+  [Pref="canvas.focusring.enabled", Throws] void drawFocusIfNeeded(Element element);
 // NOT IMPLEMENTED  void drawSystemFocusRing(Path path, HTMLElement element);
   [Pref="canvas.customfocusring.enabled"] boolean drawCustomFocusRing(Element element);
 // NOT IMPLEMENTED  boolean drawCustomFocusRing(Path path, HTMLElement element);
@@ -121,6 +126,7 @@ interface CanvasRenderingContext2D {
   // hit regions
   [Pref="canvas.hitregions.enabled", Throws] void addHitRegion(optional HitRegionOptions options);
   [Pref="canvas.hitregions.enabled"] void removeHitRegion(DOMString id);
+  [Pref="canvas.hitregions.enabled"] void clearHitRegions();
 
   // pixel manipulation
   [NewObject, Throws]
@@ -218,6 +224,18 @@ interface CanvasRenderingContext2D {
   void asyncDrawXULElement(XULElement elem, double x, double y, double w,
                            double h, DOMString bgColor,
                            optional unsigned long flags = 0);
+
+  /**
+   * Render the root widget of a window into the canvas. Unlike drawWindow,
+   * this uses the operating system to snapshot the widget on-screen, rather
+   * than reading from our own compositor.
+   *
+   * Currently, this is only supported on Windows, and only on widgets that
+   * use OMTC, and only from within the chrome process.
+   */
+  [Throws, ChromeOnly]
+  void drawWidgetAsOnScreen(Window window);
+
   /**
    * This causes a context that is currently using a hardware-accelerated
    * backend to fallback to a software one. All state should be preserved.
@@ -240,7 +258,7 @@ interface CanvasDrawingStyles {
            attribute double miterLimit; // (default 10)
 
   // dashed lines
-    [LenientFloat] void setLineDash(sequence<double> segments); // default empty
+    [LenientFloat, Throws] void setLineDash(sequence<double> segments); // default empty
     sequence<double> getLineDash();
     [LenientFloat] attribute double lineDashOffset;
 
@@ -323,5 +341,7 @@ interface TextMetrics {
  Constructor(Path2D other),
  Constructor(DOMString pathString)]
 interface Path2D
-{};
+{
+  void addPath(Path2D path, optional SVGMatrix transformation);
+};
 Path2D implements CanvasPathMethods;

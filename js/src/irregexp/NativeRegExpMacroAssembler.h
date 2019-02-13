@@ -31,8 +31,6 @@
 #ifndef V8_NATIVE_REGEXP_MACRO_ASSEMBLER_H_
 #define V8_NATIVE_REGEXP_MACRO_ASSEMBLER_H_
 
-#ifdef JS_ION
-
 #include "irregexp/RegExpMacroAssembler.h"
 
 namespace js {
@@ -40,20 +38,21 @@ namespace irregexp {
 
 struct InputOutputData
 {
-    const jschar *inputStart;
-    const jschar *inputEnd;
+    const void* inputStart;
+    const void* inputEnd;
 
     // Index into inputStart (in chars) at which to begin matching.
     size_t startIndex;
 
-    MatchPairs *matches;
+    MatchPairs* matches;
 
     // RegExpMacroAssembler::Result for non-global regexps, number of captures
     // for global regexps.
     int32_t result;
 
-    InputOutputData(const jschar *inputStart, const jschar *inputEnd,
-                    size_t startIndex, MatchPairs *matches)
+    template <typename CharT>
+    InputOutputData(const CharT* inputStart, const CharT* inputEnd,
+                    size_t startIndex, MatchPairs* matches)
       : inputStart(inputStart),
         inputEnd(inputEnd),
         startIndex(startIndex),
@@ -65,32 +64,32 @@ struct InputOutputData
 struct FrameData
 {
     // Copy of the input/output data's data.
-    jschar *inputStart;
+    char16_t* inputStart;
     size_t startIndex;
 
     // Pointer to the character before the input start.
-    jschar *inputStartMinusOne;
+    char16_t* inputStartMinusOne;
 
     // Copy of the input MatchPairs registers, may be modified by JIT code.
-    int32_t *outputRegisters;
+    int32_t* outputRegisters;
     int32_t numOutputRegisters;
 
     int32_t successfulCaptures;
 
-    void *backtrackStackBase;
+    void* backtrackStackBase;
 };
 
 class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
 {
   public:
     // Type of input string to generate code for.
-    enum Mode { ASCII = 1, JSCHAR = 2 };
+    enum Mode { ASCII = 1, CHAR16 = 2 };
 
-    NativeRegExpMacroAssembler(LifoAlloc *alloc, RegExpShared *shared,
-                               JSRuntime *rt, Mode mode, int registers_to_save);
+    NativeRegExpMacroAssembler(LifoAlloc* alloc, RegExpShared* shared,
+                               JSRuntime* rt, Mode mode, int registers_to_save);
 
     // Inherited virtual methods.
-    RegExpCode GenerateCode(JSContext *cx);
+    RegExpCode GenerateCode(JSContext* cx, bool match_only);
     int stack_limit_slack();
     bool CanReadUnaligned();
     void AdvanceCurrentPosition(int by);
@@ -100,24 +99,24 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     void CheckAtStart(jit::Label* on_at_start);
     void CheckCharacter(unsigned c, jit::Label* on_equal);
     void CheckCharacterAfterAnd(unsigned c, unsigned and_with, jit::Label* on_equal);
-    void CheckCharacterGT(jschar limit, jit::Label* on_greater);
-    void CheckCharacterLT(jschar limit, jit::Label* on_less);
+    void CheckCharacterGT(char16_t limit, jit::Label* on_greater);
+    void CheckCharacterLT(char16_t limit, jit::Label* on_less);
     void CheckGreedyLoop(jit::Label* on_tos_equals_current_position);
     void CheckNotAtStart(jit::Label* on_not_at_start);
     void CheckNotBackReference(int start_reg, jit::Label* on_no_match);
     void CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match);
     void CheckNotCharacter(unsigned c, jit::Label* on_not_equal);
     void CheckNotCharacterAfterAnd(unsigned c, unsigned and_with, jit::Label* on_not_equal);
-    void CheckNotCharacterAfterMinusAnd(jschar c, jschar minus, jschar and_with,
+    void CheckNotCharacterAfterMinusAnd(char16_t c, char16_t minus, char16_t and_with,
                                         jit::Label* on_not_equal);
-    void CheckCharacterInRange(jschar from, jschar to,
+    void CheckCharacterInRange(char16_t from, char16_t to,
                                jit::Label* on_in_range);
-    void CheckCharacterNotInRange(jschar from, jschar to,
+    void CheckCharacterNotInRange(char16_t from, char16_t to,
                                   jit::Label* on_not_in_range);
-    void CheckBitInTable(uint8_t *table, jit::Label* on_bit_set);
+    void CheckBitInTable(uint8_t* table, jit::Label* on_bit_set);
     void CheckPosition(int cp_offset, jit::Label* on_outside_input);
-    void JumpOrBacktrack(jit::Label *to);
-    bool CheckSpecialCharacterClass(jschar type, jit::Label* on_no_match);
+    void JumpOrBacktrack(jit::Label* to);
+    bool CheckSpecialCharacterClass(char16_t type, jit::Label* on_no_match);
     void Fail();
     void IfRegisterGE(int reg, int comparand, jit::Label* if_ge);
     void IfRegisterLT(int reg, int comparand, jit::Label* if_lt);
@@ -136,8 +135,8 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     void WriteCurrentPositionToRegister(int reg, int cp_offset);
     void ClearRegisters(int reg_from, int reg_to);
     void WriteBacktrackStackPointerToRegister(int reg);
-    void PushBacktrack(jit::Label *label);
-    void BindBacktrack(jit::Label *label);
+    void PushBacktrack(jit::Label* label);
+    void BindBacktrack(jit::Label* label);
 
     // Compares two-byte strings case insensitively.
     // Called from generated RegExp code.
@@ -152,9 +151,9 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
 
     // Byte size of chars in the string to match (decided by the Mode argument)
     inline int char_size() { return static_cast<int>(mode_); }
-    inline jit::Scale factor() { return mode_ == JSCHAR ? jit::TimesTwo : jit::TimesOne; }
+    inline jit::Scale factor() { return mode_ == CHAR16 ? jit::TimesTwo : jit::TimesOne; }
 
-    jit::Label *BranchOrBacktrack(jit::Label *branch);
+    jit::Label* BranchOrBacktrack(jit::Label* branch);
 
     // Pushes a register or constant on the backtrack stack. Decrements the
     // stack pointer by a word size and stores the register's value there.
@@ -172,7 +171,7 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
   private:
     jit::MacroAssembler masm;
 
-    JSRuntime *runtime;
+    JSRuntime* runtime;
     Mode mode_;
     jit::Label entry_label_;
     jit::Label start_label_;
@@ -182,17 +181,19 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     jit::Label stack_overflow_label_;
     jit::Label exit_with_exception_label_;
 
-    jit::GeneralRegisterSet savedNonVolatileRegisters;
+    // Set of registers which are used by the code generator, and as such which
+    // are saved.
+    jit::LiveGeneralRegisterSet savedNonVolatileRegisters;
 
     struct LabelPatch {
         // Once it is bound via BindBacktrack, |label| becomes null and
         // |labelOffset| is set.
-        jit::Label *label;
+        jit::Label* label;
         size_t labelOffset;
 
         jit::CodeOffsetLabel patchOffset;
 
-        LabelPatch(jit::Label *label, jit::CodeOffsetLabel patchOffset)
+        LabelPatch(jit::Label* label, jit::CodeOffsetLabel patchOffset)
           : label(label), labelOffset(0), patchOffset(patchOffset)
         {}
     };
@@ -209,16 +210,14 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     // The frame_pointer-relative location of a regexp register.
     jit::Address register_location(int register_index) {
         checkRegister(register_index);
-        return jit::Address(jit::StackPointer, register_offset(register_index));
+        return jit::Address(masm.getStackPointer(), register_offset(register_index));
     }
 
     int32_t register_offset(int register_index) {
-        return sizeof(FrameData) + register_index * sizeof(void *);
+        return sizeof(FrameData) + register_index * sizeof(void*);
     }
 };
 
 } }  // namespace js::irregexp
-
-#endif // JS_ION
 
 #endif  // V8_NATIVE_REGEXP_MACRO_ASSEMBLER_H_

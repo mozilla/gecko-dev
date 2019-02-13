@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,26 +12,27 @@
 #include "nsISupports.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsAutoPtr.h"
+#include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "prclist.h"
 #include "mozilla/Attributes.h"
 #include "nsWrapperCache.h"
 #include "mozilla/dom/MediaQueryListBinding.h"
 
-class nsPresContext;
+class nsIDocument;
 class nsMediaList;
 
 namespace mozilla {
 namespace dom {
 
-class MediaQueryList MOZ_FINAL : public nsISupports,
-                                 public nsWrapperCache,
-                                 public PRCList
+class MediaQueryList final : public nsISupports,
+                             public nsWrapperCache,
+                             public PRCList
 {
 public:
   // The caller who constructs is responsible for calling Evaluate
   // before calling any other methods.
-  MediaQueryList(nsPresContext *aPresContext,
+  MediaQueryList(nsIDocument *aDocument,
                  const nsAString &aMediaQueryList);
 private:
   ~MediaQueryList();
@@ -56,7 +58,7 @@ public:
 
   void RemoveAllListeners();
 
-  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods
   void GetMedia(nsAString& aMedia);
@@ -67,7 +69,7 @@ public:
 private:
   void RecomputeMatches();
 
-  // We only need a pointer to the pres context to support lazy
+  // We only need a pointer to the document to support lazy
   // reevaluation following dynamic changes.  However, this lazy
   // reevaluation is perhaps somewhat important, since some usage
   // patterns may involve the creation of large numbers of
@@ -77,11 +79,11 @@ private:
   // This pointer does make us a little more dependent on cycle
   // collection.
   //
-  // We have a non-null mPresContext for our entire lifetime except
-  // after cycle collection unlinking.  Having a non-null mPresContext
-  // is equivalent to being in that pres context's mDOMMediaQueryLists
+  // We have a non-null mDocument for our entire lifetime except
+  // after cycle collection unlinking.  Having a non-null mDocument
+  // is equivalent to being in that document's mDOMMediaQueryLists
   // linked list.
-  nsRefPtr<nsPresContext> mPresContext;
+  nsCOMPtr<nsIDocument> mDocument;
 
   nsRefPtr<nsMediaList> mMediaList;
   bool mMatches;

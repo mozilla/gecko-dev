@@ -3,17 +3,19 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var gContentPane = {
-
-  /**
-   * Initializes the fonts dropdowns displayed in this pane.
-   */
   init: function ()
   {
+    function setEventListener(aId, aEventType, aCallback)
+    {
+      document.getElementById(aId)
+              .addEventListener(aEventType, aCallback.bind(gContentPane));
+    }
+
+    // Initializes the fonts dropdowns displayed in this pane.
     this._rebuildFonts();
     var menulist = document.getElementById("defaultFont");
     if (menulist.selectedIndex == -1) {
-      menulist.insertItemAt(0, "", "", "");
-      menulist.selectedIndex = 0;
+      menulist.value = FontBuilder.readFontSelection(menulist);
     }
 
     // Show translation preferences if we may:
@@ -21,6 +23,35 @@ var gContentPane = {
     if (Services.prefs.getBoolPref(prefName)) {
       let row = document.getElementById("translationBox");
       row.removeAttribute("hidden");
+    }
+
+    setEventListener("font.language.group", "change",
+      gContentPane._rebuildFonts);
+    setEventListener("popupPolicyButton", "command",
+      gContentPane.showPopupExceptions);
+    setEventListener("advancedFonts", "command",
+      gContentPane.configureFonts);
+    setEventListener("colors", "command",
+      gContentPane.configureColors);
+    setEventListener("chooseLanguage", "command",
+      gContentPane.showLanguages);
+    setEventListener("translationAttributionImage", "click",
+      gContentPane.openTranslationProviderAttribution);
+    setEventListener("translateButton", "command",
+      gContentPane.showTranslationExceptions);
+
+    let drmInfoURL =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
+    document.getElementById("playDRMContentLink").setAttribute("href", drmInfoURL);
+    let emeUIEnabled = Services.prefs.getBoolPref("browser.eme.ui.enabled");
+    // Force-disable/hide on WinXP:
+    if (navigator.platform.toLowerCase().startsWith("win")) {
+      emeUIEnabled = emeUIEnabled && parseFloat(Services.sysinfo.get("version")) >= 6;
+    }
+    if (!emeUIEnabled) {
+      // Don't want to rely on .hidden for the toplevel groupbox because
+      // of the pane hiding/showing code potentially interfering:
+      document.getElementById("drmGroup").setAttribute("style", "display: none !important");
     }
   },
 
@@ -61,8 +92,8 @@ var gContentPane = {
     params.windowTitle = bundlePreferences.getString("popuppermissionstitle");
     params.introText = bundlePreferences.getString("popuppermissionstext");
 
-    openDialog("chrome://browser/content/preferences/permissions.xul", 
-               "Browser:Permissions", "resizable=yes", params);
+    gSubDialog.open("chrome://browser/content/preferences/permissions.xul",
+                    "resizable=yes", params);
   },
 
   // FONTS
@@ -72,6 +103,11 @@ var gContentPane = {
    */
   _rebuildFonts: function ()
   {
+    var preferences = document.getElementById("contentPreferences");
+    // Ensure preferences are "visible" to ensure bindings work.
+    preferences.hidden = false;
+    // Force flush:
+    preferences.clientHeight;
     var langGroupPref = document.getElementById("font.language.group");
     this._selectDefaultLanguageGroup(langGroupPref.value,
                                      this._readDefaultFontTypeForLanguage(langGroupPref.value) == "serif");
@@ -88,6 +124,7 @@ var gContentPane = {
     const kFontNameListFmtSansSerif = "font.name-list.sans-serif.%LANG%";
     const kFontSizeFmtVariable      = "font.size.variable.%LANG%";
 
+    var preferences = document.getElementById("contentPreferences");
     var prefs = [{ format   : aIsSerif ? kFontNameFmtSerif : kFontNameFmtSansSerif,
                    type     : "fontname",
                    element  : "defaultFont",
@@ -100,7 +137,6 @@ var gContentPane = {
                    type     : "int",
                    element  : "defaultFontSize",
                    fonttype : null }];
-    var preferences = document.getElementById("contentPreferences");
     for (var i = 0; i < prefs.length; ++i) {
       var preference = document.getElementById(prefs[i].format.replace(/%LANG%/, aLanguageGroup));
       if (!preference) {
@@ -153,8 +189,7 @@ var gContentPane = {
    */  
   configureFonts: function ()
   {
-    openDialog("chrome://browser/content/preferences/fonts.xul", 
-               "Browser:FontPreferences", null);
+    gSubDialog.open("chrome://browser/content/preferences/fonts.xul", "resizable=no");
   },
 
   /**
@@ -163,8 +198,7 @@ var gContentPane = {
    */
   configureColors: function ()
   {
-    openDialog("chrome://browser/content/preferences/colors.xul", 
-               "Browser:ColorPreferences", null);  
+    gSubDialog.open("chrome://browser/content/preferences/colors.xul", "resizable=no");
   },
 
   // LANGUAGES
@@ -174,8 +208,7 @@ var gContentPane = {
    */
   showLanguages: function ()
   {
-    openDialog("chrome://browser/content/preferences/languages.xul", 
-               "Browser:LanguagePreferences", null);
+    gSubDialog.open("chrome://browser/content/preferences/languages.xul");
   },
 
   /**
@@ -184,7 +217,12 @@ var gContentPane = {
    */
   showTranslationExceptions: function ()
   {
-    openDialog("chrome://browser/content/preferences/translation.xul",
-               "Browser:TranslationExceptions", null);
+    gSubDialog.open("chrome://browser/content/preferences/translation.xul");
+  },
+
+  openTranslationProviderAttribution: function ()
+  {
+    Components.utils.import("resource:///modules/translation/Translation.jsm");
+    Translation.openProviderAttribution();
   }
 };

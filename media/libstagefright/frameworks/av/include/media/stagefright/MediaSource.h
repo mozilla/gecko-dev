@@ -23,6 +23,7 @@
 #include <media/stagefright/MediaErrors.h>
 #include <utils/RefBase.h>
 #include <utils/Vector.h>
+#include "nsTArray.h"
 
 namespace stagefright {
 
@@ -108,6 +109,17 @@ struct MediaSource : public virtual RefBase {
     virtual status_t setBuffers(const Vector<MediaBuffer *> &buffers) {
         return ERROR_UNSUPPORTED;
     }
+
+    struct Indice
+    {
+      uint64_t start_offset;
+      uint64_t end_offset;
+      uint64_t start_composition;
+      uint64_t end_composition;
+      bool sync;
+    };
+
+    virtual nsTArray<Indice> exportIndex() = 0;
 
 protected:
     virtual ~MediaSource();

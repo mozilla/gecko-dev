@@ -23,7 +23,7 @@ public:
   /*
    * Return the HWND or null for this widget.
    */
-  virtual HWND GetWindowHandle() MOZ_FINAL {
+  virtual HWND GetWindowHandle() final {
     return static_cast<HWND>(GetNativeData(NS_NATIVE_WINDOW));
   }
 
@@ -56,14 +56,21 @@ public:
    * is called by KeyboardLayout to dispatch gecko events.
    * Returns true if it's consumed.  Otherwise, false.
    */
-  virtual bool DispatchKeyboardEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
+  virtual bool DispatchKeyboardEvent(mozilla::WidgetKeyboardEvent* aEvent) = 0;
 
   /*
-   * Dispatch a gecko scroll event for this widget. This
+   * Dispatch a gecko wheel event for this widget. This
    * is called by ScrollHandler to dispatch gecko events.
    * Returns true if it's consumed.  Otherwise, false.
    */
-  virtual bool DispatchScrollEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
+  virtual bool DispatchWheelEvent(mozilla::WidgetWheelEvent* aEvent) = 0;
+
+  /*
+   * Dispatch a gecko content command event for this widget. This
+   * is called by ScrollHandler to dispatch gecko events.
+   * Returns true if it's consumed.  Otherwise, false.
+   */
+  virtual bool DispatchContentCommandEvent(mozilla::WidgetContentCommandEvent* aEvent) = 0;
 
   /*
    * Default dispatch of a plugin event.
@@ -73,7 +80,7 @@ public:
   /*
    * Returns true if a plugin has focus on this widget.  Otherwise, false.
    */
-  virtual bool PluginHasFocus() const MOZ_FINAL
+  virtual bool PluginHasFocus() const final
   {
     return (mInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
   }
@@ -85,18 +92,18 @@ public:
                                               TouchPointerState aPointerState,
                                               nsIntPoint aPointerScreenPoint,
                                               double aPointerPressure,
-                                              uint32_t aPointerOrientation);
-  virtual nsresult ClearNativeTouchSequence();
+                                              uint32_t aPointerOrientation,
+                                              nsIObserver* aObserver) override;
+  virtual nsresult ClearNativeTouchSequence(nsIObserver* aObserver) override;
 
   /*
-   * WM_APPCOMMAND common handler. Sends events via DispatchWindowEvent.
+   * WM_APPCOMMAND common handler.
+   * Sends events via NativeKey::HandleAppCommandMessage().
    */
-  virtual bool HandleAppCommandMsg(WPARAM aWParam,
-                                   LPARAM aLParam,
+  virtual bool HandleAppCommandMsg(const MSG& aAppCommandMsg,
                                    LRESULT *aRetValue);
 
 protected:
-  bool DispatchCommandEvent(uint32_t aEventCommand);
   static bool InitTouchInjection();
   bool InjectTouchPoint(uint32_t aId, nsIntPoint& aPointerScreenPoint,
                         POINTER_FLAGS aFlags, uint32_t aPressure = 1024,

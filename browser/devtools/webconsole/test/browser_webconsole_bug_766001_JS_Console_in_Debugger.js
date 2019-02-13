@@ -19,6 +19,7 @@ function test() {
 
   function* runner() {
     expectUncaughtException();
+
     let {tab} = yield loadTab(TEST_URI);
     hud = yield openConsole(tab);
 
@@ -69,7 +70,9 @@ function test() {
 
     let toolbox = yield gDevTools.getToolbox(hud.target);
     let {panelWin: { DebuggerView: view }} = toolbox.getPanel("jsdebugger");
-    is(view.Sources.selectedValue, url, "expected source url");
+    is(view.Sources.selectedValue,
+       getSourceActor(view.Sources, url),
+       "expected source url");
     is(view.editor.getCursor().line, line - 1, "expected source line");
   }
 }

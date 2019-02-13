@@ -12,7 +12,7 @@ namespace layers {
 
 struct TestTiledLayerTile {
   int value;
-  TestTiledLayerTile(int v = 0) {
+  explicit TestTiledLayerTile(int v = 0) {
     value = v;
   }
   bool operator== (const TestTiledLayerTile& o) const {
@@ -20,6 +20,10 @@ struct TestTiledLayerTile {
   }
   bool operator!= (const TestTiledLayerTile& o) const {
     return value != o.value;
+  }
+
+  bool IsPlaceholderTile() const {
+    return value == -1;
   }
 };
 
@@ -52,13 +56,20 @@ public:
   {
     Update(aNewValidRegion, aPaintRegion);
   }
+
+  void UnlockTile(TestTiledLayerTile aTile) {}
+  void PostValidate(const nsIntRegion& aPaintRegion) {}
 };
 
 TEST(TiledLayerBuffer, TileConstructor) {
+  gfxPlatform::GetPlatform()->ComputeTileSize();
+
   TestTiledLayerBuffer buffer;
 }
 
 TEST(TiledLayerBuffer, TileStart) {
+  gfxPlatform::GetPlatform()->ComputeTileSize();
+
   TestTiledLayerBuffer buffer;
 
   ASSERT_EQ(buffer.RoundDownToTileEdge(10, 256), 0);
@@ -66,9 +77,11 @@ TEST(TiledLayerBuffer, TileStart) {
 }
 
 TEST(TiledLayerBuffer, EmptyUpdate) {
+  gfxPlatform::GetPlatform()->ComputeTileSize();
+
   TestTiledLayerBuffer buffer;
 
-  nsIntRegion validRegion(nsIntRect(0, 0, 10, 10));
+  nsIntRegion validRegion(gfx::IntRect(0, 0, 10, 10));
   buffer.TestUpdate(validRegion, validRegion);
 
   ASSERT_EQ(buffer.GetValidRegion(), validRegion);

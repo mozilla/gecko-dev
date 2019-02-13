@@ -10,11 +10,11 @@ let gAddon, gClient, gThreadClient, gDebugger, gSources;
 let PREFS = [
   "devtools.canvasdebugger.enabled",
   "devtools.shadereditor.enabled",
-  "devtools.profiler.enabled",
+  "devtools.performance.enabled",
   "devtools.netmonitor.enabled"
 ];
 function test() {
-  Task.spawn(function () {
+  Task.spawn(function*() {
     let addon = yield addAddon(ADDON_URL);
     let addonDebugger = yield initAddonDebugger(ADDON_URL);
 
@@ -37,7 +37,9 @@ function test() {
 
     // Check no toolbox buttons are shown
     let buttons = addonDebugger.frame.contentDocument.getElementById("toolbox-buttons").children;
-    is(buttons.length, 0, "no toolbox buttons for the addon debugger");
+    Array.forEach(buttons, (btn, i) => {
+      is(btn.hidden, true, "no toolbox buttons for the addon debugger -- " + btn.className);
+    });
 
     yield addonDebugger.destroy();
     yield removeAddon(addon);

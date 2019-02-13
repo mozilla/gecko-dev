@@ -59,10 +59,10 @@ DOMTimeStamp nsListControlFrame::gLastKeyTime = 0;
  * Frames are not refcounted so they can't be used as event listeners.
  *****************************************************************************/
 
-class nsListEventListener MOZ_FINAL : public nsIDOMEventListener
+class nsListEventListener final : public nsIDOMEventListener
 {
 public:
-  nsListEventListener(nsListControlFrame *aFrame)
+  explicit nsListEventListener(nsListControlFrame *aFrame)
     : mFrame(aFrame) { }
 
   void SetFrame(nsListControlFrame *aFrame) { mFrame = aFrame; }
@@ -71,6 +71,8 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
 private:
+  ~nsListEventListener() {}
+
   nsListControlFrame  *mFrame;
 };
 
@@ -79,7 +81,7 @@ nsContainerFrame*
 NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   nsListControlFrame* it =
-    new (aPresShell) nsListControlFrame(aPresShell, aPresShell->GetDocument(), aContext);
+    new (aPresShell) nsListControlFrame(aContext);
 
   it->AddStateBits(NS_FRAME_INDEPENDENT_SELECTION);
 
@@ -89,13 +91,13 @@ NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsListControlFrame)
 
 //---------------------------------------------------------
-nsListControlFrame::nsListControlFrame(
-  nsIPresShell* aShell, nsIDocument* aDocument, nsStyleContext* aContext)
-  : nsHTMLScrollFrame(aShell, aContext, false),
+nsListControlFrame::nsListControlFrame(nsStyleContext* aContext)
+  : nsHTMLScrollFrame(aContext, false),
     mMightNeedSecondPass(false),
     mHasPendingInterruptAtStartOfReflow(false),
     mDropdownCanGrow(false),
-    mLastDropdownComputedHeight(NS_UNCONSTRAINEDSIZE)
+    mForceSelection(false),
+    mLastDropdownComputedBSize(NS_UNCONSTRAINEDSIZE)
 {
   mComboboxFrame      = nullptr;
   mChangesSinceDragStart = false;
@@ -204,8 +206,13 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
   } else {
     float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     fRect.x = fRect.y = 0;
-    fRect.width = GetScrollPortRect().width;
-    fRect.height = CalcFallbackRowHeight(inflation);
+    if (GetWritingMode().IsVertical()) {
+      fRect.width = GetScrollPortRect().width;
+      fRect.height = CalcFallbackRowBSize(inflation);
+    } else {
+      fRect.width = CalcFallbackRowBSize(inflation);
+      fRect.height = GetScrollPortRect().height;
+    }
     fRect.MoveBy(containerFrame->GetOffsetTo(this));
   }
   fRect += aPt;
@@ -255,22 +262,22 @@ nsListControlFrame::AccessibleType()
 #endif
 
 static nscoord
-GetMaxOptionHeight(nsIFrame* aContainer)
+GetMaxOptionBSize(nsIFrame* aContainer, WritingMode aWM)
 {
   nscoord result = 0;
   for (nsIFrame* option = aContainer->GetFirstPrincipalChild();
        option; option = option->GetNextSibling()) {
-    nscoord optionHeight;
+    nscoord optionBSize;
     if (nsCOMPtr<nsIDOMHTMLOptGroupElement>
         (do_QueryInterface(option->GetContent()))) {
       // an optgroup
-      optionHeight = GetMaxOptionHeight(option);
+      optionBSize = GetMaxOptionBSize(option, aWM);
     } else {
       // an option
-      optionHeight = option->GetSize().height;
+      optionBSize = option->BSize(aWM);
     }
-    if (result < optionHeight)
-      result = optionHeight;
+    if (result < optionBSize)
+      result = optionBSize;
   }
   return result;
 }
@@ -280,51 +287,59 @@ GetMaxOptionHeight(nsIFrame* aContainer)
 //-----------------------------------------------------------------
 
 nscoord
-nsListControlFrame::CalcHeightOfARow()
+nsListControlFrame::CalcBSizeOfARow()
 {
-  // Calculate the height of a single row in the listbox or dropdown list by
-  // using the tallest thing in the subtree, since there may be option groups
-  // in addition to option elements, either of which may be visible or
-  // invisible, may use different fonts, etc.
-  int32_t heightOfARow = GetMaxOptionHeight(GetOptionsContainer());
+  // Calculate the block size in our writing mode of a single row in the
+  // listbox or dropdown list by using the tallest thing in the subtree,
+  // since there may be option groups in addition to option elements,
+  // either of which may be visible or invisible, may use different
+  // fonts, etc.
+  int32_t blockSizeOfARow = GetMaxOptionBSize(GetOptionsContainer(),
+                                              GetWritingMode());
 
   // Check to see if we have zero items (and optimize by checking
-  // heightOfARow first)
-  if (heightOfARow == 0 && GetNumberOfOptions() == 0) {
+  // blockSizeOfARow first)
+  if (blockSizeOfARow == 0 && GetNumberOfOptions() == 0) {
     float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    heightOfARow = CalcFallbackRowHeight(inflation);
+    blockSizeOfARow = CalcFallbackRowBSize(inflation);
   }
 
-  return heightOfARow;
+  return blockSizeOfARow;
 }
 
 nscoord
-nsListControlFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsListControlFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
 
-  // Always add scrollbar widths to the pref-width of the scrolled
-  // content. Combobox frames depend on this happening in the dropdown,
-  // and standalone listboxes are overflow:scroll so they need it too.
-  result = GetScrolledFrame()->GetPrefWidth(aRenderingContext);
-  result = NSCoordSaturatingAdd(result,
-          GetDesiredScrollbarSizes(PresContext(), aRenderingContext).LeftRight());
-
+  // Always add scrollbar inline sizes to the pref-inline-size of the
+  // scrolled content. Combobox frames depend on this happening in the
+  // dropdown, and standalone listboxes are overflow:scroll so they need
+  // it too.
+  WritingMode wm = GetWritingMode();
+  result = GetScrolledFrame()->GetPrefISize(aRenderingContext);
+  LogicalMargin scrollbarSize(wm, GetDesiredScrollbarSizes(PresContext(),
+                                                           aRenderingContext));
+  result = NSCoordSaturatingAdd(result, scrollbarSize.IStartEnd(wm));
   return result;
 }
 
 nscoord
-nsListControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsListControlFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
 
-  // Always add scrollbar widths to the min-width of the scrolled
-  // content. Combobox frames depend on this happening in the dropdown,
-  // and standalone listboxes are overflow:scroll so they need it too.
-  result = GetScrolledFrame()->GetMinWidth(aRenderingContext);
-  result += GetDesiredScrollbarSizes(PresContext(), aRenderingContext).LeftRight();
+  // Always add scrollbar inline sizes to the min-inline-size of the
+  // scrolled content. Combobox frames depend on this happening in the
+  // dropdown, and standalone listboxes are overflow:scroll so they need
+  // it too.
+  WritingMode wm = GetWritingMode();
+  result = GetScrolledFrame()->GetMinISize(aRenderingContext);
+  LogicalMargin scrollbarSize(wm, GetDesiredScrollbarSizes(PresContext(),
+                                                           aRenderingContext));
+  result += scrollbarSize.IStartEnd(wm);
 
   return result;
 }
@@ -335,8 +350,8 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
                            const nsHTMLReflowState& aReflowState, 
                            nsReflowStatus&          aStatus)
 {
-  NS_PRECONDITION(aReflowState.ComputedWidth() != NS_UNCONSTRAINEDSIZE,
-                  "Must have a computed width");
+  NS_PRECONDITION(aReflowState.ComputedISize() != NS_UNCONSTRAINEDSIZE,
+                  "Must have a computed inline size");
 
   SchedulePaint();
 
@@ -362,66 +377,71 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
     return;
   }
 
+  MarkInReflow();
   /*
-   * Due to the fact that our intrinsic height depends on the heights of our
-   * kids, we end up having to do two-pass reflow, in general -- the first pass
-   * to find the intrinsic height and a second pass to reflow the scrollframe
-   * at that height (which will size the scrollbars correctly, etc).
+   * Due to the fact that our intrinsic block size depends on the block
+   * sizes of our kids, we end up having to do two-pass reflow, in
+   * general -- the first pass to find the intrinsic block size and a
+   * second pass to reflow the scrollframe at that block size (which
+   * will size the scrollbars correctly, etc).
    *
-   * Naturaly, we want to avoid doing the second reflow as much as possible.
-   * We can skip it in the following cases (in all of which the first reflow is
-   * already happening at the right height):
+   * Naturally, we want to avoid doing the second reflow as much as
+   * possible.
+   * We can skip it in the following cases (in all of which the first
+   * reflow is already happening at the right block size):
    *
-   * - We're reflowing with a constrained computed height -- just use that
-   *   height.
-   * - We're not dirty and have no dirty kids and shouldn't be reflowing all
-   *   kids.  In this case, our cached max height of a child is not going to
-   *   change.
-   * - We do our first reflow using our cached max height of a child, then
-   *   compute the new max height and it's the same as the old one.
+   * - We're reflowing with a constrained computed block size -- just
+   *   use that block size.
+   * - We're not dirty and have no dirty kids and shouldn't be reflowing
+   *   all kids.  In this case, our cached max block size of a child is
+   *   not going to change.
+   * - We do our first reflow using our cached max block size of a
+   *   child, then compute the new max block size and it's the same as
+   *   the old one.
    */
 
-  bool autoHeight = (aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE);
+  bool autoBSize = (aReflowState.ComputedBSize() == NS_UNCONSTRAINEDSIZE);
 
-  mMightNeedSecondPass = autoHeight &&
+  mMightNeedSecondPass = autoBSize &&
     (NS_SUBTREE_DIRTY(this) || aReflowState.ShouldReflowAllKids());
   
   nsHTMLReflowState state(aReflowState);
   int32_t length = GetNumberOfRows();
 
-  nscoord oldHeightOfARow = HeightOfARow();
+  nscoord oldBSizeOfARow = BSizeOfARow();
 
-  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) && autoHeight) {
-    // When not doing an initial reflow, and when the height is auto, start off
-    // with our computed height set to what we'd expect our height to be.
-    nscoord computedHeight = CalcIntrinsicHeight(oldHeightOfARow, length);
-    computedHeight = state.ApplyMinMaxHeight(computedHeight);
-    state.SetComputedHeight(computedHeight);
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) && autoBSize) {
+    // When not doing an initial reflow, and when the block size is
+    // auto, start off with our computed block size set to what we'd
+    // expect our block size to be.
+    nscoord computedBSize = CalcIntrinsicBSize(oldBSizeOfARow, length);
+    computedBSize = state.ApplyMinMaxBSize(computedBSize);
+    state.SetComputedBSize(computedBSize);
   }
 
   nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
 
   if (!mMightNeedSecondPass) {
-    NS_ASSERTION(!autoHeight || HeightOfARow() == oldHeightOfARow,
-                 "How did our height of a row change if nothing was dirty?");
-    NS_ASSERTION(!autoHeight ||
+    NS_ASSERTION(!autoBSize || BSizeOfARow() == oldBSizeOfARow,
+                 "How did our BSize of a row change if nothing was dirty?");
+    NS_ASSERTION(!autoBSize ||
                  !(GetStateBits() & NS_FRAME_FIRST_REFLOW),
                  "How do we not need a second pass during initial reflow at "
-                 "auto height?");
+                 "auto BSize?");
     NS_ASSERTION(!IsScrollbarUpdateSuppressed(),
                  "Shouldn't be suppressing if we don't need a second pass!");
-    if (!autoHeight) {
-      // Update our mNumDisplayRows based on our new row height now that we
-      // know it.  Note that if autoHeight and we landed in this code then we
-      // already set mNumDisplayRows in CalcIntrinsicHeight.  Also note that we
-      // can't use HeightOfARow() here because that just uses a cached value
-      // that we didn't compute.
-      nscoord rowHeight = CalcHeightOfARow();
-      if (rowHeight == 0) {
+    if (!autoBSize) {
+      // Update our mNumDisplayRows based on our new row block size now
+      // that we know it.  Note that if autoBSize and we landed in this
+      // code then we already set mNumDisplayRows in CalcIntrinsicBSize.
+      //  Also note that we can't use BSizeOfARow() here because that
+      // just uses a cached value that we didn't compute.
+      nscoord rowBSize = CalcBSizeOfARow();
+      if (rowBSize == 0) {
         // Just pick something
         mNumDisplayRows = 1;
       } else {
-        mNumDisplayRows = std::max(1, state.ComputedHeight() / rowHeight);
+        mNumDisplayRows = std::max(1, state.ComputedBSize() / rowBSize);
       }
     }
 
@@ -430,12 +450,12 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
 
   mMightNeedSecondPass = false;
 
-  // Now see whether we need a second pass.  If we do, our nsSelectsAreaFrame
-  // will have suppressed the scrollbar update.
+  // Now see whether we need a second pass.  If we do, our
+  // nsSelectsAreaFrame will have suppressed the scrollbar update.
   if (!IsScrollbarUpdateSuppressed()) {
     // All done.  No need to do more reflow.
     NS_ASSERTION(!IsScrollbarUpdateSuppressed(),
-                 "Shouldn't be suppressing if the height of a row has not "
+                 "Shouldn't be suppressing if the block size of a row has not "
                  "changed!");
     return;
   }
@@ -443,19 +463,18 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   SetSuppressScrollbarUpdate(false);
 
   // Gotta reflow again.
-  // XXXbz We're just changing the height here; do we need to dirty ourselves
-  // or anything like that?  We might need to, per the letter of the reflow
-  // protocol, but things seem to work fine without it...  Is that just an
-  // implementation detail of nsHTMLScrollFrame that we're depending on?
+  // XXXbz We're just changing the block size here; do we need to dirty
+  // ourselves or anything like that?  We might need to, per the letter
+  // of the reflow protocol, but things seem to work fine without it...
+  // Is that just an implementation detail of nsHTMLScrollFrame that
+  // we're depending on?
   nsHTMLScrollFrame::DidReflow(aPresContext, &state,
                                nsDidReflowStatus::FINISHED);
 
-  // Now compute the height we want to have
-  nscoord computedHeight = CalcIntrinsicHeight(HeightOfARow(), length); 
-  computedHeight = state.ApplyMinMaxHeight(computedHeight);
-  state.SetComputedHeight(computedHeight);
-
-  nsHTMLScrollFrame::WillReflow(aPresContext);
+  // Now compute the block size we want to have
+  nscoord computedBSize = CalcIntrinsicBSize(BSizeOfARow(), length);
+  computedBSize = state.ApplyMinMaxBSize(computedBSize);
+  state.SetComputedBSize(computedBSize);
 
   // XXXbz to make the ascent really correct, we should add our
   // mComputedPadding.top to it (and subtract it from descent).  Need that
@@ -469,36 +488,39 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
                                      const nsHTMLReflowState& aReflowState, 
                                      nsReflowStatus&          aStatus)
 {
-  NS_PRECONDITION(aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE,
-                  "We should not have a computed height here!");
+  NS_PRECONDITION(aReflowState.ComputedBSize() == NS_UNCONSTRAINEDSIZE,
+                  "We should not have a computed block size here!");
   
   mMightNeedSecondPass = NS_SUBTREE_DIRTY(this) ||
     aReflowState.ShouldReflowAllKids();
 
+  WritingMode wm = aReflowState.GetWritingMode();
 #ifdef DEBUG
-  nscoord oldHeightOfARow = HeightOfARow();
-  nscoord oldVisibleHeight = (GetStateBits() & NS_FRAME_FIRST_REFLOW) ?
-    NS_UNCONSTRAINEDSIZE : GetScrolledFrame()->GetSize().height;
+  nscoord oldBSizeOfARow = BSizeOfARow();
+  nscoord oldVisibleBSize = (GetStateBits() & NS_FRAME_FIRST_REFLOW) ?
+    NS_UNCONSTRAINEDSIZE : GetScrolledFrame()->BSize(wm);
 #endif
 
   nsHTMLReflowState state(aReflowState);
 
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    // When not doing an initial reflow, and when the height is auto, start off
-    // with our computed height set to what we'd expect our height to be.
-    // Note: At this point, mLastDropdownComputedHeight can be
-    // NS_UNCONSTRAINEDSIZE in cases when last time we didn't have to constrain
-    // the height.  That's fine; just do the same thing as last time.
-    state.SetComputedHeight(mLastDropdownComputedHeight);
+    // When not doing an initial reflow, and when the block size is
+    // auto, start off with our computed block size set to what we'd
+    // expect our block size to be.
+    // Note: At this point, mLastDropdownComputedBSize can be
+    // NS_UNCONSTRAINEDSIZE in cases when last time we didn't have to
+    // constrain the block size.  That's fine; just do the same thing as
+    // last time.
+    state.SetComputedBSize(mLastDropdownComputedBSize);
   }
 
   nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
 
   if (!mMightNeedSecondPass) {
-    NS_ASSERTION(oldVisibleHeight == GetScrolledFrame()->GetSize().height,
-                 "How did our kid's height change if nothing was dirty?");
-    NS_ASSERTION(HeightOfARow() == oldHeightOfARow,
-                 "How did our height of a row change if nothing was dirty?");
+    NS_ASSERTION(oldVisibleBSize == GetScrolledFrame()->BSize(wm),
+                 "How did our kid's BSize change if nothing was dirty?");
+    NS_ASSERTION(BSizeOfARow() == oldBSizeOfARow,
+                 "How did our BSize of a row change if nothing was dirty?");
     NS_ASSERTION(!IsScrollbarUpdateSuppressed(),
                  "Shouldn't be suppressing if we don't need a second pass!");
     NS_ASSERTION(!(GetStateBits() & NS_FRAME_FIRST_REFLOW),
@@ -519,63 +541,65 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
 
   SetSuppressScrollbarUpdate(false);
 
-  nscoord visibleHeight = GetScrolledFrame()->GetSize().height;
-  nscoord heightOfARow = HeightOfARow();
+  nscoord visibleBSize = GetScrolledFrame()->BSize(wm);
+  nscoord blockSizeOfARow = BSizeOfARow();
 
   // Gotta reflow again.
-  // XXXbz We're just changing the height here; do we need to dirty ourselves
-  // or anything like that?  We might need to, per the letter of the reflow
-  // protocol, but things seem to work fine without it...  Is that just an
-  // implementation detail of nsHTMLScrollFrame that we're depending on?
+  // XXXbz We're just changing the block size here; do we need to dirty
+  // ourselves or anything like that?  We might need to, per the letter
+  // of the reflow protocol, but things seem to work fine without it...
+  // Is that just an implementation detail of nsHTMLScrollFrame that
+  // we're depending on?
   nsHTMLScrollFrame::DidReflow(aPresContext, &state,
                                nsDidReflowStatus::FINISHED);
 
-  // Now compute the height we want to have.
+  // Now compute the block size we want to have.
   // Note: no need to apply min/max constraints, since we have no such
   // rules applied to the combobox dropdown.
 
   mDropdownCanGrow = false;
-  if (visibleHeight <= 0 || heightOfARow <= 0) {
-    // Looks like we have no options.  Just size us to a single row height.
-    state.SetComputedHeight(heightOfARow);
+  if (visibleBSize <= 0 || blockSizeOfARow <= 0) {
+    // Looks like we have no options.  Just size us to a single row
+    // block size.
+    state.SetComputedBSize(blockSizeOfARow);
     mNumDisplayRows = 1;
   } else {
-    nsComboboxControlFrame* combobox = static_cast<nsComboboxControlFrame*>(mComboboxFrame);
-    nsPoint translation;
-    nscoord above, below;
-    combobox->GetAvailableDropdownSpace(&above, &below, &translation);
-    if (above <= 0 && below <= 0) {
-      state.SetComputedHeight(heightOfARow);
+    nsComboboxControlFrame* combobox =
+      static_cast<nsComboboxControlFrame*>(mComboboxFrame);
+    LogicalPoint translation(wm);
+    nscoord before, after;
+    combobox->GetAvailableDropdownSpace(wm, &before, &after, &translation);
+    if (before <= 0 && after <= 0) {
+      state.SetComputedBSize(blockSizeOfARow);
       mNumDisplayRows = 1;
       mDropdownCanGrow = GetNumberOfRows() > 1;
     } else {
-      nscoord bp = aReflowState.ComputedPhysicalBorderPadding().TopBottom();
-      nscoord availableHeight = std::max(above, below) - bp;
-      nscoord newHeight;
+      nscoord bp = aReflowState.ComputedLogicalBorderPadding().BStartEnd(wm);
+      nscoord availableBSize = std::max(before, after) - bp;
+      nscoord newBSize;
       uint32_t rows;
-      if (visibleHeight <= availableHeight) {
-        // The dropdown fits in the available height.
+      if (visibleBSize <= availableBSize) {
+        // The dropdown fits in the available block size.
         rows = GetNumberOfRows();
         mNumDisplayRows = clamped<uint32_t>(rows, 1, kMaxDropDownRows);
         if (mNumDisplayRows == rows) {
-          newHeight = visibleHeight;  // use the exact height
+          newBSize = visibleBSize;  // use the exact block size
         } else {
-          newHeight = mNumDisplayRows * heightOfARow; // approximate
+          newBSize = mNumDisplayRows * blockSizeOfARow; // approximate
         }
       } else {
-        rows = availableHeight / heightOfARow;
+        rows = availableBSize / blockSizeOfARow;
         mNumDisplayRows = clamped<uint32_t>(rows, 1, kMaxDropDownRows);
-        newHeight = mNumDisplayRows * heightOfARow; // approximate
+        newBSize = mNumDisplayRows * blockSizeOfARow; // approximate
       }
-      state.SetComputedHeight(newHeight);
-      mDropdownCanGrow = visibleHeight - newHeight >= heightOfARow &&
+      state.SetComputedBSize(newBSize);
+      mDropdownCanGrow = visibleBSize - newBSize >= blockSizeOfARow &&
                          mNumDisplayRows != kMaxDropDownRows;
     }
   }
 
-  mLastDropdownComputedHeight = state.ComputedHeight();
+  mLastDropdownComputedBSize = state.ComputedBSize();
 
-  nsHTMLScrollFrame::WillReflow(aPresContext);
   nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
 }
 
@@ -584,13 +608,17 @@ nsListControlFrame::GetScrollbarStyles() const
 {
   // We can't express this in the style system yet; when we can, this can go away
   // and GetScrollbarStyles can be devirtualized
-  int32_t verticalStyle = IsInDropDownMode() ? NS_STYLE_OVERFLOW_AUTO
-    : NS_STYLE_OVERFLOW_SCROLL;
-  return ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, verticalStyle);
+  int32_t style = IsInDropDownMode() ? NS_STYLE_OVERFLOW_AUTO
+                                     : NS_STYLE_OVERFLOW_SCROLL;
+  if (GetWritingMode().IsVertical()) {
+    return ScrollbarStyles(style, NS_STYLE_OVERFLOW_HIDDEN);
+  } else {
+    return ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, style);
+  }
 }
 
 bool
-nsListControlFrame::ShouldPropagateComputedHeightToScrolledContent() const
+nsListControlFrame::ShouldPropagateComputedBSizeToScrolledContent() const
 {
   return !IsInDropDownMode();
 }
@@ -704,7 +732,7 @@ CountOptionsAndOptgroups(nsIFrame* aFrame)
     nsIFrame* child = e.get();
     nsIContent* content = child->GetContent();
     if (content) {
-      if (content->IsHTML(nsGkAtoms::option)) {
+      if (content->IsHTMLElement(nsGkAtoms::option)) {
         ++count;
       } else {
         nsCOMPtr<nsIDOMHTMLOptGroupElement> optgroup = do_QueryInterface(content);
@@ -736,9 +764,9 @@ nsListControlFrame::PerformSelection(int32_t aClickedIndex,
 {
   bool wasChanged = false;
 
-  if (aClickedIndex == kNothingSelected) {
-  }
-  else if (GetMultiple()) {
+  if (aClickedIndex == kNothingSelected && !mForceSelection) {
+    // Ignore kNothingSelected unless the selection is forced
+  } else if (GetMultiple()) {
     if (aIsShift) {
       // Make sure shift+click actually does something expected when
       // the user has never clicked on the select
@@ -862,8 +890,8 @@ nsListControlFrame::HandleEvent(nsPresContext* aPresContext,
                           "<NA>","<NA>","<NA>","<NA>","<NA>","<NA>","<NA>","<NA>",
                           "NS_MOUSE_RIGHT_BUTTON_UP",
                           "NS_MOUSE_RIGHT_BUTTON_DOWN",
-                          "NS_MOUSE_ENTER_SYNTH",
-                          "NS_MOUSE_EXIT_SYNTH",
+                          "NS_MOUSE_OVER",
+                          "NS_MOUSE_OUT",
                           "NS_MOUSE_LEFT_DOUBLECLICK",
                           "NS_MOUSE_MIDDLE_DOUBLECLICK",
                           "NS_MOUSE_RIGHT_DOUBLECLICK",
@@ -1076,7 +1104,7 @@ nsListControlFrame::GetCurrentOption()
     GetSelectedIndex() : mEndSelectionIndex;
 
   if (focusedIndex != kNothingSelected) {
-    return GetOption(SafeCast<uint32_t>(focusedIndex));
+    return GetOption(AssertedCast<uint32_t>(focusedIndex));
   }
 
   // There is no selected item. Return the first non-disabled item.
@@ -1234,10 +1262,12 @@ nsListControlFrame::SetOptionsSelectedFromFrame(int32_t aStartIndex,
     dom::HTMLSelectElement::FromContent(mContent);
 
   uint32_t mask = dom::HTMLSelectElement::NOTIFY;
+  if (mForceSelection) {
+    mask |= dom::HTMLSelectElement::SET_DISABLED;
+  }
   if (aValue) {
     mask |= dom::HTMLSelectElement::IS_SELECTED;
   }
-
   if (aClearAll) {
     mask |= dom::HTMLSelectElement::CLEAR_ALL;
   }
@@ -1289,13 +1319,16 @@ nsListControlFrame::ComboboxFinish(int32_t aIndex)
   gLastKeyTime = 0;
 
   if (mComboboxFrame) {
+    int32_t displayIndex = mComboboxFrame->GetIndexOfDisplayArea();
+    // Make sure we can always reset to the displayed index
+    mForceSelection = displayIndex == aIndex;
+
     nsWeakFrame weakFrame(this);
     PerformSelection(aIndex, false, false);  // might destroy us
     if (!weakFrame.IsAlive() || !mComboboxFrame) {
       return;
     }
 
-    int32_t displayIndex = mComboboxFrame->GetIndexOfDisplayArea();
     if (displayIndex != aIndex) {
       mComboboxFrame->RedisplaySelectedText(); // might destroy us
     }
@@ -1412,6 +1445,7 @@ nsListControlFrame::AboutToDropDown()
 #endif
   }
   mItemSelectionStarted = false;
+  mForceSelection = false;
 }
 
 // We are about to be rolledup from the outside (ComboboxFrame)
@@ -1474,9 +1508,9 @@ nsListControlFrame::GetFrameName(nsAString& aResult) const
 #endif
 
 nscoord
-nsListControlFrame::GetHeightOfARow()
+nsListControlFrame::GetBSizeOfARow()
 {
-  return HeightOfARow();
+  return BSizeOfARow();
 }
 
 nsresult
@@ -1509,23 +1543,23 @@ nsListControlFrame::IsLeftButton(nsIDOMEvent* aMouseEvent)
 }
 
 nscoord
-nsListControlFrame::CalcFallbackRowHeight(float aFontSizeInflation)
+nsListControlFrame::CalcFallbackRowBSize(float aFontSizeInflation)
 {
-  nscoord rowHeight = 0;
+  nscoord rowBSize = 0;
 
   nsRefPtr<nsFontMetrics> fontMet;
   nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
                                         aFontSizeInflation);
   if (fontMet) {
-    rowHeight = fontMet->MaxHeight();
+    rowBSize = fontMet->MaxHeight();
   }
 
-  return rowHeight;
+  return rowBSize;
 }
 
 nscoord
-nsListControlFrame::CalcIntrinsicHeight(nscoord aHeightOfARow,
-                                        int32_t aNumberOfOptions)
+nsListControlFrame::CalcIntrinsicBSize(nscoord aBSizeOfARow,
+                                       int32_t aNumberOfOptions)
 {
   NS_PRECONDITION(!IsInDropDownMode(),
                   "Shouldn't be in dropdown mode when we call this");
@@ -1542,7 +1576,7 @@ nsListControlFrame::CalcIntrinsicHeight(nscoord aHeightOfARow,
     mNumDisplayRows = 4;
   }
 
-  return mNumDisplayRows * aHeightOfARow;
+  return mNumDisplayRows * aBSizeOfARow;
 }
 
 //----------------------------------------------------------------------
@@ -1754,6 +1788,20 @@ nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent,
   return NS_ERROR_FAILURE;
 }
 
+static bool
+FireShowDropDownEvent(nsIContent* aContent)
+{
+  if (XRE_GetProcessType() == GeckoProcessType_Content &&
+      Preferences::GetBool("browser.tabs.remote.desktopbehavior", false)) {
+    nsContentUtils::DispatchChromeEvent(aContent->OwnerDoc(), aContent,
+                                        NS_LITERAL_STRING("mozshowdropdown"), true,
+                                        false);
+    return true;
+  }
+
+  return false;
+}
+
 nsresult
 nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
 {
@@ -1801,10 +1849,7 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
   } else {
     // NOTE: the combo box is responsible for dropping it down
     if (mComboboxFrame) {
-      if (XRE_GetProcessType() == GeckoProcessType_Content && BrowserTabsRemote()) {
-        nsContentUtils::DispatchChromeEvent(mContent->OwnerDoc(), mContent,
-                                            NS_LITERAL_STRING("mozshowdropdown"), true,
-                                            false);
+      if (FireShowDropDownEvent(mContent)) {
         return NS_OK;
       }
 
@@ -1904,7 +1949,7 @@ nsListControlFrame::ScrollToIndex(int32_t aIndex)
     ScrollTo(nsPoint(0, 0), nsIScrollableFrame::INSTANT);
   } else {
     nsRefPtr<dom::HTMLOptionElement> option =
-      GetOption(SafeCast<uint32_t>(aIndex));
+      GetOption(AssertedCast<uint32_t>(aIndex));
     if (option) {
       ScrollToFrame(*option);
     }
@@ -2047,7 +2092,9 @@ nsListControlFrame::DropDownToggleKey(nsIDOMEvent* aKeyEvent)
   if (IsInDropDownMode() && !nsComboboxControlFrame::ToolkitHasNativePopup()) {
     aKeyEvent->PreventDefault();
     if (!mComboboxFrame->IsDroppedDown()) {
-      mComboboxFrame->ShowDropDown(true);
+      if (!FireShowDropDownEvent(mContent)) {
+        mComboboxFrame->ShowDropDown(true);
+      }
     } else {
       nsWeakFrame weakFrame(this);
       // mEndSelectionIndex is the last item that got selected.
@@ -2073,6 +2120,9 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
 
   // Don't check defaultPrevented value because other browsers don't prevent
   // the key navigation of list control even if preventDefault() is called.
+  // XXXmats 2015-04-16: the above is not true anymore, Chrome prevents all
+  // XXXmats keyboard events, even tabbing, when preventDefault() is called
+  // XXXmats in onkeydown. That seems sub-optimal though.
 
   const WidgetKeyboardEvent* keyEvent =
     aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
@@ -2430,16 +2480,30 @@ nsListEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsAutoString eventType;
   aEvent->GetType(eventType);
-  if (eventType.EqualsLiteral("keydown"))
+  if (eventType.EqualsLiteral("keydown")) {
     return mFrame->nsListControlFrame::KeyDown(aEvent);
-  if (eventType.EqualsLiteral("keypress"))
+  }
+  if (eventType.EqualsLiteral("keypress")) {
     return mFrame->nsListControlFrame::KeyPress(aEvent);
-  if (eventType.EqualsLiteral("mousedown"))
+  }
+  if (eventType.EqualsLiteral("mousedown")) {
+    bool defaultPrevented = false;
+    aEvent->GetDefaultPrevented(&defaultPrevented);
+    if (defaultPrevented) {
+      return NS_OK;
+    }
     return mFrame->nsListControlFrame::MouseDown(aEvent);
-  if (eventType.EqualsLiteral("mouseup"))
+  }
+  if (eventType.EqualsLiteral("mouseup")) {
+    // Don't try to honor defaultPrevented here - it's not web compatible.
+    // (bug 1194733)
     return mFrame->nsListControlFrame::MouseUp(aEvent);
-  if (eventType.EqualsLiteral("mousemove"))
+  }
+  if (eventType.EqualsLiteral("mousemove")) {
+    // I don't think we want to honor defaultPrevented on mousemove
+    // in general, and it would only prevent highlighting here.
     return mFrame->nsListControlFrame::MouseMove(aEvent);
+  }
 
   NS_ABORT();
   return NS_OK;

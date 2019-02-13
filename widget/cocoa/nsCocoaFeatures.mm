@@ -3,7 +3,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// This file makes some assumptions about the versions of OS X.
+// We are assuming that the minor and bugfix versions are less than 16.
+// There are MOZ_ASSERTs for that.
+
+// The formula for the version integer based on OS X version 10.minor.bugfix is
+// 0x1000 + (minor << 4) + bugifix.  See AssembleVersion() below for major > 10.
+// Major version < 10 is not allowed.
+
 #define MAC_OS_X_VERSION_MASK      0x0000FFFF
+#define MAC_OS_X_VERSION_10_0_HEX  0x00001000
 #define MAC_OS_X_VERSION_10_6_HEX  0x00001060
 #define MAC_OS_X_VERSION_10_7_HEX  0x00001070
 #define MAC_OS_X_VERSION_10_8_HEX  0x00001080
@@ -18,19 +27,41 @@
 #import <Cocoa/Cocoa.h>
 
 int32_t nsCocoaFeatures::mOSXVersion = 0;
-int32_t nsCocoaFeatures::mOSXVersionMajor = 0;
-int32_t nsCocoaFeatures::mOSXVersionMinor = 0;
-int32_t nsCocoaFeatures::mOSXVersionBugFix = 0;
+
+// This should not be called with unchecked aMajor, which should be >= 10.
+inline int32_t AssembleVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix)
+{
+    MOZ_ASSERT(aMajor >= 10);
+    return MAC_OS_X_VERSION_10_0_HEX + (aMajor-10) * 0x100 + (aMinor << 4) + aBugFix;
+}
+
+int32_t nsCocoaFeatures::ExtractMajorVersion(int32_t aVersion)
+{
+    MOZ_ASSERT((aVersion & MAC_OS_X_VERSION_MASK) == aVersion);
+    return ((aVersion & 0xFF00) - 0x1000) / 0x100 + 10;
+}
+
+int32_t nsCocoaFeatures::ExtractMinorVersion(int32_t aVersion)
+{
+    MOZ_ASSERT((aVersion & MAC_OS_X_VERSION_MASK) == aVersion);
+    return (aVersion & 0xF0) >> 4;
+}
+
+int32_t nsCocoaFeatures::ExtractBugFixVersion(int32_t aVersion)
+{
+    MOZ_ASSERT((aVersion & MAC_OS_X_VERSION_MASK) == aVersion);
+    return aVersion & 0x0F;
+}
 
 static int intAtStringIndex(NSArray *array, int index)
 {
     return [(NSString *)[array objectAtIndex:index] integerValue];
 }
 
-static void GetSystemVersion(int &major, int &minor, int &bugfix)
+void nsCocoaFeatures::GetSystemVersion(int &major, int &minor, int &bugfix)
 {
     major = minor = bugfix = 0;
-    
+
     NSString* versionString = [[NSDictionary dictionaryWithContentsOfFile:
                                 @"/System/Library/CoreServices/SystemVersion.plist"] objectForKey:@"ProductVersion"];
     NSArray* versions = [versionString componentsSeparatedByString:@"."];
@@ -46,6 +77,30 @@ static void GetSystemVersion(int &major, int &minor, int &bugfix)
     }
 }
 
+int32_t nsCocoaFeatures::GetVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix)
+{
+    int32_t osxVersion;
+    if (aMajor < 10) {
+        aMajor = 10;
+        NS_ERROR("Couldn't determine OS X version, assuming 10.6");
+        osxVersion = MAC_OS_X_VERSION_10_6_HEX;
+    } else if (aMinor < 6) {
+        aMinor = 6;
+        NS_ERROR("OS X version too old, assuming 10.6");
+        osxVersion = MAC_OS_X_VERSION_10_6_HEX;
+    } else {
+        MOZ_ASSERT(aMajor == 10); // For now, even though we're ready...
+        MOZ_ASSERT(aMinor < 16);
+        MOZ_ASSERT(aBugFix >= 0);
+        MOZ_ASSERT(aBugFix < 16);
+        osxVersion = AssembleVersion(aMajor, aMinor, aBugFix);
+    }
+    MOZ_ASSERT(aMajor == ExtractMajorVersion(osxVersion));
+    MOZ_ASSERT(aMinor == ExtractMinorVersion(osxVersion));
+    MOZ_ASSERT(aBugFix == ExtractBugFixVersion(osxVersion));
+    return osxVersion;
+}
+
 /*static*/ void
 nsCocoaFeatures::InitializeVersionNumbers()
 {
@@ -57,25 +112,7 @@ nsCocoaFeatures::InitializeVersionNumbers()
 
     int major, minor, bugfix;
     GetSystemVersion(major, minor, bugfix);
-
-    mOSXVersionMajor = major;
-    mOSXVersionMinor = minor;
-    mOSXVersionBugFix = bugfix;
-
-    if (major < 10) {
-        NS_ERROR("Couldn't determine OS X version, assuming 10.6");
-        mOSXVersion = MAC_OS_X_VERSION_10_6_HEX;
-        mOSXVersionMajor = 10;
-        mOSXVersionMinor = 6;
-        mOSXVersionBugFix = 0;
-    } else if (minor < 6) {
-        NS_ERROR("OS X version too old, assuming 10.6");
-        mOSXVersion = MAC_OS_X_VERSION_10_6_HEX;
-        mOSXVersionMinor = 6;
-        mOSXVersionBugFix = 0;
-    } else {
-        mOSXVersion = 0x1000 + (minor << 4);
-    }
+    mOSXVersion = GetVersion(major, minor, bugfix);
 
     NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -83,7 +120,10 @@ nsCocoaFeatures::InitializeVersionNumbers()
 /* static */ int32_t
 nsCocoaFeatures::OSXVersion()
 {
+    // Don't let this be called while we're first setting the value...
+    MOZ_ASSERT((mOSXVersion & MAC_OS_X_VERSION_MASK) >= 0);
     if (!mOSXVersion) {
+        mOSXVersion = -1;
         InitializeVersionNumbers();
     }
     return mOSXVersion;
@@ -92,36 +132,20 @@ nsCocoaFeatures::OSXVersion()
 /* static */ int32_t
 nsCocoaFeatures::OSXVersionMajor()
 {
-    if (!mOSXVersion) {
-        InitializeVersionNumbers();
-    }
-    return mOSXVersionMajor;
+    MOZ_ASSERT((OSXVersion() & MAC_OS_X_VERSION_10_0_HEX) == MAC_OS_X_VERSION_10_0_HEX);
+    return 10;
 }
 
 /* static */ int32_t
 nsCocoaFeatures::OSXVersionMinor()
 {
-    if (!mOSXVersion) {
-        InitializeVersionNumbers();
-    }
-    return mOSXVersionMinor;
+    return ExtractMinorVersion(OSXVersion());
 }
 
 /* static */ int32_t
 nsCocoaFeatures::OSXVersionBugFix()
 {
-    if (!mOSXVersion) {
-        InitializeVersionNumbers();
-    }
-    return mOSXVersionBugFix;
-}
-
-/* static */ bool
-nsCocoaFeatures::SupportCoreAnimationPlugins()
-{
-    // Disallow Core Animation on 10.5 because of crashes.
-    // See Bug 711564.
-    return (OSXVersion() >= MAC_OS_X_VERSION_10_6_HEX);
+    return ExtractBugFixVersion(OSXVersion());
 }
 
 /* static */ bool
@@ -146,4 +170,16 @@ nsCocoaFeatures::OnMavericksOrLater()
 nsCocoaFeatures::OnYosemiteOrLater()
 {
     return (OSXVersion() >= MAC_OS_X_VERSION_10_10_HEX);
+}
+
+/* static */ bool
+nsCocoaFeatures::AccelerateByDefault()
+{
+    return IsAtLeastVersion(10, 6, 3);
+}
+
+/* static */ bool
+nsCocoaFeatures::IsAtLeastVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix)
+{
+    return OSXVersion() >= GetVersion(aMajor, aMinor, aBugFix);
 }

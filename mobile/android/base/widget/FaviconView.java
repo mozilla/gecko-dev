@@ -9,7 +9,9 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.favicons.Favicons;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -21,6 +23,8 @@ import android.widget.ImageView;
  * selected is the dominant colour of the provided Favicon.
  */
 public class FaviconView extends ImageView {
+    private static String DEFAULT_FAVICON_KEY = FaviconView.class.getSimpleName() + "DefaultFavicon";
+
     private Bitmap mIconBitmap;
 
     // Reference to the unscaled bitmap, if any, to prevent repeated assignments of the same bitmap
@@ -45,16 +49,22 @@ public class FaviconView extends ImageView {
     private static float sStrokeWidth;
 
     // Paint for drawing the stroke.
-    private static Paint sStrokePaint;
+    private static final Paint sStrokePaint;
 
     // Paint for drawing the background.
-    private static Paint sBackgroundPaint;
+    private static final Paint sBackgroundPaint;
 
     // Size of the stroke rectangle.
     private final RectF mStrokeRect;
 
     // Size of the background rectangle.
     private final RectF mBackgroundRect;
+
+    // Type of the border whose value is defined in attrs.xml .
+    private final boolean isDominantBorderEnabled;
+
+    // boolean switch for overriding scaletype, whose value is defined in attrs.xml .
+    private final boolean isOverrideScaleTypeEnabled;
 
     // Initializing the static paints.
     static {
@@ -67,7 +77,18 @@ public class FaviconView extends ImageView {
 
     public FaviconView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setScaleType(ImageView.ScaleType.CENTER);
+        TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.FaviconView, 0, 0);
+
+        try {
+            isDominantBorderEnabled = a.getBoolean(R.styleable.FaviconView_dominantBorderEnabled, true);
+            isOverrideScaleTypeEnabled = a.getBoolean(R.styleable.FaviconView_overrideScaleType, true);
+        } finally {
+            a.recycle();
+        }
+
+        if (isOverrideScaleTypeEnabled) {
+            setScaleType(ImageView.ScaleType.CENTER);
+        }
 
         mStrokeRect = new RectF();
         mBackgroundRect = new RectF();
@@ -105,12 +126,14 @@ public class FaviconView extends ImageView {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // 27.5% transparent dominant color.
-        sBackgroundPaint.setColor(mDominantColor & 0x46FFFFFF);
-        canvas.drawRect(mStrokeRect, sBackgroundPaint);
+        if (isDominantBorderEnabled) {
+            // 27.5% transparent dominant color.
+            sBackgroundPaint.setColor(mDominantColor & 0x46FFFFFF);
+            canvas.drawRect(mStrokeRect, sBackgroundPaint);
 
-        sStrokePaint.setColor(mDominantColor);
-        canvas.drawRoundRect(mStrokeRect, sStrokeWidth, sStrokeWidth, sStrokePaint);
+            sStrokePaint.setColor(mDominantColor);
+            canvas.drawRoundRect(mStrokeRect, sStrokeWidth, sStrokeWidth, sStrokePaint);
+        }
     }
 
     /**
@@ -119,7 +142,7 @@ public class FaviconView extends ImageView {
      * in this view with the coloured background.
      */
     private void formatImage() {
-        // If we're called before bitmap is set, or before size is set, show blank.
+        // We're waiting for both onSizeChanged and updateImage to be called before scaling.
         if (mIconBitmap == null || mActualWidth == 0 || mActualHeight == 0) {
             showNoImage();
             return;
@@ -194,8 +217,12 @@ public class FaviconView extends ImageView {
     }
 
     public void showDefaultFavicon() {
-        setImageResource(R.drawable.favicon);
-        mDominantColor = 0;
+        // We handle the default favicon as any other favicon to avoid the complications of special
+        // casing it. This means that the icon can be scaled both up and down, and the dominant
+        // color box can used if it is enabled in XML attrs.
+        final Bitmap defaultFaviconBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.favicon_globe);
+        updateAndScaleImage(defaultFaviconBitmap, DEFAULT_FAVICON_KEY);
     }
 
     private void showNoImage() {

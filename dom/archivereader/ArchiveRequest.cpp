@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -23,12 +23,13 @@ class ArchiveRequestEvent : public nsRunnable
 public:
   NS_DECL_NSIRUNNABLE
 
-  ArchiveRequestEvent(ArchiveRequest* request)
-  : mRequest(request)
+  explicit ArchiveRequestEvent(ArchiveRequest* aRequest)
+  : mRequest(aRequest)
   {
     MOZ_COUNT_CTOR(ArchiveRequestEvent);
   }
 
+protected:
   ~ArchiveRequestEvent()
   {
     MOZ_COUNT_DTOR(ArchiveRequestEvent);
@@ -41,7 +42,7 @@ private: //data
 NS_IMETHODIMP
 ArchiveRequestEvent::Run()
 {
-  NS_ABORT_IF_FALSE(mRequest, "the request is not longer valid");
+  MOZ_ASSERT(mRequest, "the request is not longer valid");
   mRequest->Run();
   return NS_OK;
 }
@@ -76,9 +77,9 @@ ArchiveRequest::PreHandleEvent(EventChainPreVisitor& aVisitor)
 }
 
 /* virtual */ JSObject*
-ArchiveRequest::WrapObject(JSContext* aCx)
+ArchiveRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return ArchiveRequestBinding::Wrap(aCx, this);
+  return ArchiveRequestBinding::Wrap(aCx, this, aGivenProto);
 }
 
 ArchiveReader*
@@ -121,7 +122,7 @@ ArchiveRequest::OpGetFiles()
 }
 
 nsresult
-ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
+ArchiveRequest::ReaderReady(nsTArray<nsRefPtr<File>>& aFileList,
                             nsresult aStatus)
 {
   if (NS_FAILED(aStatus)) {
@@ -131,18 +132,11 @@ ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
 
   nsresult rv;
 
-  nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(GetOwner());
-  if (NS_WARN_IF(!globalObject)) {
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(GetOwner()))) {
     return NS_ERROR_UNEXPECTED;
   }
-
-  AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-
-  JS::Rooted<JSObject*> global(cx, globalObject->GetGlobalJSObject());
-  NS_ASSERTION(global, "Failed to get global object!");
-
-  JSAutoCompartment ac(cx, global);
 
   JS::Rooted<JS::Value> result(cx);
   switch (mOperation) {
@@ -180,10 +174,9 @@ ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
 nsresult
 ArchiveRequest::GetFilenamesResult(JSContext* aCx,
                                    JS::Value* aValue,
-                                   nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                                   nsTArray<nsRefPtr<File>>& aFileList)
 {
   JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, aFileList.Length()));
-  nsresult rv;
 
   if (!array) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -191,17 +184,15 @@ ArchiveRequest::GetFilenamesResult(JSContext* aCx,
 
   JS::Rooted<JSString*> str(aCx);
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    nsRefPtr<File> file = aFileList[i];
 
     nsString filename;
-    rv = file->GetName(filename);
-    NS_ENSURE_SUCCESS(rv, rv);
+    file->GetName(filename);
 
     str = JS_NewUCStringCopyZ(aCx, filename.get());
     NS_ENSURE_TRUE(str, NS_ERROR_OUT_OF_MEMORY);
 
-    if (NS_FAILED(rv) ||
-        !JS_DefineElement(aCx, array, i, str, JSPROP_ENUMERATE)) {
+    if (!JS_DefineElement(aCx, array, i, str, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -217,18 +208,20 @@ ArchiveRequest::GetFilenamesResult(JSContext* aCx,
 nsresult
 ArchiveRequest::GetFileResult(JSContext* aCx,
                               JS::MutableHandle<JS::Value> aValue,
-                              nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                              nsTArray<nsRefPtr<File>>& aFileList)
 {
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    nsRefPtr<File> file = aFileList[i];
 
     nsString filename;
-    nsresult rv = file->GetName(filename);
-    NS_ENSURE_SUCCESS(rv, rv);
+    file->GetName(filename);
 
     if (filename == mFilename) {
-      return nsContentUtils::WrapNative(aCx, file, &NS_GET_IID(nsIDOMFile),
-                                        aValue);
+      if (!ToJSValue(aCx, file, aValue)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      return NS_OK;
     }
   }
 
@@ -238,7 +231,7 @@ ArchiveRequest::GetFileResult(JSContext* aCx,
 nsresult
 ArchiveRequest::GetFilesResult(JSContext* aCx,
                                JS::MutableHandle<JS::Value> aValue,
-                               nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                               nsTArray<nsRefPtr<File>>& aFileList)
 {
   JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, aFileList.Length()));
   if (!array) {
@@ -246,13 +239,14 @@ ArchiveRequest::GetFilesResult(JSContext* aCx,
   }
 
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    nsRefPtr<File> file = aFileList[i];
 
     JS::Rooted<JS::Value> value(aCx);
-    nsresult rv = nsContentUtils::WrapNative(aCx, file, &NS_GET_IID(nsIDOMFile),
-                                             &value);
-    if (NS_FAILED(rv) ||
-        !JS_DefineElement(aCx, array, i, value, JSPROP_ENUMERATE)) {
+    if (!ToJSValue(aCx, file, &value)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    if (!JS_DefineElement(aCx, array, i, value, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }

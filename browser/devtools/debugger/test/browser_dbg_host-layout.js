@@ -9,7 +9,7 @@
 let gDefaultHostType = Services.prefs.getCharPref("devtools.toolbox.host");
 
 function test() {
-  Task.spawn(function() {
+  Task.spawn(function*() {
     yield testHosts(["bottom", "side", "window"], ["horizontal", "vertical", "horizontal"]);
     yield testHosts(["side", "bottom", "side"], ["vertical", "horizontal", "vertical"]);
     yield testHosts(["bottom", "side", "bottom"], ["horizontal", "vertical", "horizontal"]);
@@ -25,20 +25,20 @@ function testHosts(aHostTypes, aLayoutTypes) {
 
   Services.prefs.setCharPref("devtools.toolbox.host", firstHost);
 
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let [tab, debuggee, panel] = yield initDebugger("about:blank");
-    yield testHost(tab, debuggee, panel, firstHost, firstLayout);
-    yield switchAndTestHost(tab, debuggee, panel, secondHost, secondLayout);
-    yield switchAndTestHost(tab, debuggee, panel, thirdHost, thirdLayout);
+    yield testHost(tab, panel, firstHost, firstLayout);
+    yield switchAndTestHost(tab, panel, secondHost, secondLayout);
+    yield switchAndTestHost(tab, panel, thirdHost, thirdLayout);
     yield teardown(panel);
   });
 }
 
-function switchAndTestHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType) {
+function switchAndTestHost(aTab, aPanel, aHostType, aLayoutType) {
   let gToolbox = aPanel._toolbox;
   let gDebugger = aPanel.panelWin;
 
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let layoutChanged = once(gDebugger, gDebugger.EVENTS.LAYOUT_CHANGED);
     let hostChanged = gToolbox.switchHost(aHostType);
 
@@ -48,7 +48,7 @@ function switchAndTestHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType) {
     yield layoutChanged;
     ok(true, "The debugger's layout has changed.");
 
-    yield testHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType);
+    yield testHost(aTab, aPanel, aHostType, aLayoutType);
   });
 
   function once(aTarget, aEvent) {
@@ -58,7 +58,7 @@ function switchAndTestHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType) {
   }
 }
 
-function testHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType) {
+function testHost(aTab, aPanel, aHostType, aLayoutType) {
   let gDebugger = aPanel.panelWin;
   let gView = gDebugger.DebuggerView;
 
@@ -71,13 +71,13 @@ function testHost(aTab, aDebuggee, aPanel, aHostType, aLayoutType) {
     "The default host type is present as an attribute on the panel's body.");
 
   if (aLayoutType == "horizontal") {
-    is(gView._sourcesPane.parentNode.id, "debugger-widgets",
-      "The sources pane's parent is correct for the horizontal layout.");
+    is(gView._workersAndSourcesPane.parentNode.id, "debugger-widgets",
+      "The workers and sources pane's parent is correct for the horizontal layout.");
     is(gView._instrumentsPane.parentNode.id, "debugger-widgets",
       "The instruments pane's parent is correct for the horizontal layout.");
   } else {
-    is(gView._sourcesPane.parentNode.id, "vertical-layout-panes-container",
-      "The sources pane's parent is correct for the vertical layout.");
+    is(gView._workersAndSourcesPane.parentNode.id, "vertical-layout-panes-container",
+      "The workers and sources pane's parent is correct for the vertical layout.");
     is(gView._instrumentsPane.parentNode.id, "vertical-layout-panes-container",
       "The instruments pane's parent is correct for the vertical layout.");
   }

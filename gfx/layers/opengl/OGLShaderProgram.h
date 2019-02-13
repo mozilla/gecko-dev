@@ -7,7 +7,6 @@
 #define GFX_OGLSHADERPROGRAM_H
 
 #include "GLContext.h"                  // for fast inlines of glUniform*
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "gfxTypes.h"
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/RefPtr.h"             // for RefPtr
@@ -22,7 +21,6 @@
 #include <string>
 
 struct gfxRGBA;
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
@@ -42,15 +40,18 @@ enum ShaderFeatures {
   ENABLE_COLOR_MATRIX=0x200,
   ENABLE_MASK_2D=0x400,
   ENABLE_MASK_3D=0x800,
-  ENABLE_PREMULTIPLY=0x1000
+  ENABLE_PREMULTIPLY=0x1000,
+  ENABLE_DEAA=0x2000
 };
 
 class KnownUniform {
 public:
+  // this needs to be kept in sync with strings in 'AddUniforms'
   enum KnownUniformName {
     NotAKnownUniform = -1,
 
     LayerTransform = 0,
+    LayerTransformInverse,
     MaskTransform,
     LayerRects,
     MatrixProj,
@@ -68,6 +69,15 @@ public:
     RenderColor,
     TexCoordMultiplier,
     TexturePass2,
+    ColorMatrix,
+    ColorMatrixVector,
+    BlurRadius,
+    BlurOffset,
+    BlurAlpha,
+    BlurGaussianKernel,
+    SSEdges,
+    ViewportSize,
+    VisibleCenter,
 
     KnownUniformCount
   };
@@ -145,6 +155,43 @@ public:
     return false;
   }
 
+  bool UpdateArrayUniform(int cnt, const float *fp) {
+    if (mLocation == -1) return false;
+    if (cnt > 16) {
+      return false;
+    }
+
+    if (memcmp(mValue.f16v, fp, sizeof(float) * cnt) != 0) {
+      memcpy(mValue.f16v, fp, sizeof(float) * cnt);
+      return true;
+    }
+    return false;
+  }
+
+  bool UpdateArrayUniform(int cnt, const gfx::Point3D* points) {
+    if (mLocation == -1) return false;
+    if (cnt > 4) {
+      return false;
+    }
+
+    float fp[12];
+    float *d = fp;
+    for(int i=0; i < cnt; i++) {
+      // Note: Do not want to make assumptions about .x, .y, .z member packing.
+      // If gfx::Point3D is updated to make this guarantee, SIMD optimizations
+      // may be possible
+      *d++ = points[i].x;
+      *d++ = points[i].y;
+      *d++ = points[i].z;
+    }
+
+    if (memcmp(mValue.f16v, fp, sizeof(float) * cnt * 3) != 0) {
+      memcpy(mValue.f16v, fp, sizeof(float) * cnt * 3);
+      return true;
+    }
+    return false;
+  }
+
   KnownUniformName mName;
   const char *mNameString;
   int32_t mLocation;
@@ -174,6 +221,7 @@ public:
   void SetMask2D(bool aEnabled);
   void SetMask3D(bool aEnabled);
   void SetPremultiply(bool aEnabled);
+  void SetDEAA(bool aEnabled);
 
   bool operator< (const ShaderConfigOGL& other) const {
     return mFeatures < other.mFeatures;
@@ -238,7 +286,7 @@ struct ProgramProfileOGL
   do {                                                                  \
     GLuint currentProgram;                                              \
     mGL->GetUIntegerv(LOCAL_GL_CURRENT_PROGRAM, &currentProgram);       \
-    NS_ASSERTION(currentProgram == mProgram,                            \
+    MOZ_ASSERT(currentProgram == mProgram,                              \
                  "SetUniform with wrong program active!");              \
   } while (0)
 #else
@@ -264,7 +312,7 @@ public:
     return mProgramState == STATE_OK;
   }
 
-  void Activate();
+  GLuint GetProgram();
 
   bool Initialize();
 
@@ -285,8 +333,26 @@ public:
     SetMatrixUniform(KnownUniform::LayerTransform, aMatrix);
   }
 
+  void SetLayerTransformInverse(const gfx::Matrix4x4& aMatrix) {
+    SetMatrixUniform(KnownUniform::LayerTransformInverse, aMatrix);
+  }
+
   void SetMaskLayerTransform(const gfx::Matrix4x4& aMatrix) {
     SetMatrixUniform(KnownUniform::MaskTransform, aMatrix);
+  }
+
+  void SetDEAAEdges(const gfx::Point3D* aEdges) {
+    SetArrayUniform(KnownUniform::SSEdges, 4, aEdges);
+  }
+
+  void SetViewportSize(const gfx::IntSize& aSize) {
+    float vals[2] = { (float)aSize.width, (float)aSize.height };
+    SetUniform(KnownUniform::ViewportSize, 2, vals);
+  }
+
+  void SetVisibleCenter(const gfx::Point& aVisibleCenter) {
+    float vals[2] = { aVisibleCenter.x, aVisibleCenter.y };
+    SetUniform(KnownUniform::VisibleCenter, 2, vals);
   }
 
   void SetLayerRects(const gfx::Rect* aRects) {
@@ -315,13 +381,13 @@ public:
   }
 
   void SetRenderOffset(const nsIntPoint& aOffset) {
-    float vals[4] = { float(aOffset.x), float(aOffset.y), 0.0f, 0.0f };
-    SetUniform(KnownUniform::RenderTargetOffset, 4, vals);
+    float vals[4] = { float(aOffset.x), float(aOffset.y) };
+    SetUniform(KnownUniform::RenderTargetOffset, 2, vals);
   }
 
   void SetRenderOffset(float aX, float aY) {
-    float vals[4] = { aX, aY, 0.0f, 0.0f };
-    SetUniform(KnownUniform::RenderTargetOffset, 4, vals);
+    float vals[2] = { aX, aY };
+    SetUniform(KnownUniform::RenderTargetOffset, 2, vals);
   }
 
   void SetLayerOpacity(float aOpacity) {
@@ -369,6 +435,12 @@ public:
     SetUniform(KnownUniform::RenderColor, aColor);
   }
 
+  void SetColorMatrix(const gfx::Matrix5x4& aColorMatrix)
+  {
+    SetMatrixUniform(KnownUniform::ColorMatrix, &aColorMatrix._11);
+    SetUniform(KnownUniform::ColorMatrixVector, 4, &aColorMatrix._51);
+  }
+
   void SetTexCoordMultiplier(float aWidth, float aHeight) {
     float f[] = {aWidth, aHeight};
     SetUniform(KnownUniform::TexCoordMultiplier, 2, f);
@@ -379,6 +451,17 @@ public:
   // for multiple render targets we wouldn't need two passes here.
   void SetTexturePass2(bool aFlag) {
     SetUniform(KnownUniform::TexturePass2, aFlag ? 1 : 0);
+  }
+
+  void SetBlurRadius(float aRX, float aRY);
+
+  void SetBlurAlpha(float aAlpha) {
+    SetUniform(KnownUniform::BlurAlpha, aAlpha);
+  }
+
+  void SetBlurOffset(float aOffsetX, float aOffsetY) {
+    float f[] = {aOffsetX, aOffsetY};
+    SetUniform(KnownUniform::BlurOffset, 2, f);
   }
 
   size_t GetTextureCount() const {
@@ -432,7 +515,7 @@ protected:
     }
   }
 
-  void SetUniform(KnownUniform::KnownUniformName aKnownUniform, int aLength, float *aFloatValues)
+  void SetUniform(KnownUniform::KnownUniformName aKnownUniform, int aLength, const float *aFloatValues)
   {
     ASSERT_THIS_PROGRAM;
     NS_ASSERTION(aKnownUniform >= 0 && aKnownUniform < KnownUniform::KnownUniformCount, "Invalid known uniform");
@@ -448,6 +531,28 @@ protected:
       default:
         NS_NOTREACHED("Bogus aLength param");
       }
+    }
+  }
+
+  void SetArrayUniform(KnownUniform::KnownUniformName aKnownUniform, int aLength, float *aFloatValues)
+  {
+    ASSERT_THIS_PROGRAM;
+    NS_ASSERTION(aKnownUniform >= 0 && aKnownUniform < KnownUniform::KnownUniformCount, "Invalid known uniform");
+
+    KnownUniform& ku(mProfile.mUniforms[aKnownUniform]);
+    if (ku.UpdateArrayUniform(aLength, aFloatValues)) {
+      mGL->fUniform1fv(ku.mLocation, aLength, ku.mValue.f16v);
+    }
+  }
+
+  void SetArrayUniform(KnownUniform::KnownUniformName aKnownUniform, int aLength, const gfx::Point3D *aPointValues)
+  {
+    ASSERT_THIS_PROGRAM;
+    NS_ASSERTION(aKnownUniform >= 0 && aKnownUniform < KnownUniform::KnownUniformCount, "Invalid known uniform");
+
+    KnownUniform& ku(mProfile.mUniforms[aKnownUniform]);
+    if (ku.UpdateArrayUniform(aLength, aPointValues)) {
+      mGL->fUniform3fv(ku.mLocation, aLength, ku.mValue.f16v);
     }
   }
 
@@ -469,10 +574,6 @@ protected:
     if (ku.UpdateUniform(16, aFloatValues)) {
       mGL->fUniformMatrix4fv(ku.mLocation, 1, false, ku.mValue.f16v);
     }
-  }
-
-  void SetMatrixUniform(KnownUniform::KnownUniformName aKnownUniform, const gfx3DMatrix& aMatrix) {
-    SetMatrixUniform(aKnownUniform, &aMatrix._11);
   }
 
   void SetMatrixUniform(KnownUniform::KnownUniformName aKnownUniform, const gfx::Matrix4x4& aMatrix) {

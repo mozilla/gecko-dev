@@ -1,0 +1,8 @@
+%%HEADER%%
+
+[DEFAULT]
+%%DEFAULT_ERRATA%%
+
+support-files = %%SUPPORT_FILES%%
+
+%%MANIFEST_TESTS%%

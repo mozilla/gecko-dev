@@ -10,6 +10,7 @@ interface WindowProxy;
 interface nsISupports;
 interface URI;
 interface nsIDocShell;
+interface nsILoadGroup;
 
 enum VisibilityState { "hidden", "visible" };
 
@@ -204,6 +205,13 @@ partial interface Document {
   [ChromeOnly]
   readonly attribute URI? documentURIObject;
 
+  /**
+   * Current referrer policy - one of the REFERRER_POLICY_* constants
+   * from nsIHttpChannel.
+   */
+  [ChromeOnly]
+  readonly attribute unsigned long referrerPolicy;
+
 };
 
 // http://dvcs.w3.org/hg/fullscreen/raw-file/tip/Overview.html#api
@@ -229,7 +237,7 @@ partial interface Document {
 
 //http://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/custom/index.html#dfn-document-register
 partial interface Document {
-    [Throws, Func="nsDocument::IsRegisterElementEnabled"]
+    [Throws, Func="nsDocument::IsWebComponentsEnabled"]
     object registerElement(DOMString name, optional ElementRegistrationOptions options);
 };
 
@@ -285,10 +293,10 @@ partial interface Document {
   //(Not implemented)NodeList  findAll(DOMString selectors, optional (Element or sequence<Node>)? refNodes);
 };
 
-// http://dev.w3.org/fxtf/web-animations/#extensions-to-the-document-interface
+// http://w3c.github.io/web-animations/#extensions-to-the-document-interface
 partial interface Document {
-  [Pref="dom.animations-api.core.enabled"]
-  readonly attribute AnimationTimeline timeline;
+  [Func="nsDocument::IsWebAnimationsEnabled"]
+  readonly attribute DocumentTimeline timeline;
 };
 
 //  Mozilla extensions of various sorts
@@ -347,6 +355,8 @@ partial interface Document {
   [ChromeOnly] readonly attribute nsIDocShell? docShell;
 
   [ChromeOnly] readonly attribute DOMString contentLanguage;
+
+  [ChromeOnly] readonly attribute nsILoadGroup? documentLoadGroup;
 };
 
 // Extension to give chrome JS the ability to determine when a document was
@@ -355,8 +365,34 @@ partial interface Document {
   [ChromeOnly] readonly attribute boolean isSrcdocDocument;
 };
 
+/**
+ * Chrome document anonymous content management.
+ * This is a Chrome-only API that allows inserting fixed positioned anonymous
+ * content on top of the current page displayed in the document.
+ * The supplied content is cloned and inserted into the document's CanvasFrame.
+ * Note that this only works for HTML documents.
+ */
+partial interface Document {
+  /**
+   * Deep-clones the provided element and inserts it into the CanvasFrame.
+   * Returns an AnonymousContent instance that can be used to manipulate the
+   * inserted element.
+   */
+  [ChromeOnly, NewObject, Throws]
+  AnonymousContent insertAnonymousContent(Element aElement);
+
+  /**
+   * Removes the element inserted into the CanvasFrame given an AnonymousContent
+   * instance.
+   */
+  [ChromeOnly, Throws]
+  void removeAnonymousContent(AnonymousContent aContent);
+};
+
 Document implements XPathEvaluator;
 Document implements GlobalEventHandlers;
 Document implements TouchEventHandlers;
 Document implements ParentNode;
 Document implements OnErrorEventHandlerForNodes;
+Document implements GeometryUtils;
+Document implements FontFaceSource;

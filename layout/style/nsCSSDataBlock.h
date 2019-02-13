@@ -38,7 +38,7 @@ private:
 
     // Only this class (via |CreateEmptyBlock|) or nsCSSExpandedDataBlock
     // (in |Compress|) can create compressed data blocks.
-    nsCSSCompressedDataBlock(uint32_t aNumProps)
+    explicit nsCSSCompressedDataBlock(uint32_t aNumProps)
       : mStyleBits(0), mNumProps(aNumProps)
     {}
 
@@ -93,8 +93,8 @@ public:
 
 private:
     void* operator new(size_t aBaseSize, uint32_t aNumProps) {
-        NS_ABORT_IF_FALSE(aBaseSize == sizeof(nsCSSCompressedDataBlock),
-                          "unexpected size for nsCSSCompressedDataBlock");
+        MOZ_ASSERT(aBaseSize == sizeof(nsCSSCompressedDataBlock),
+                   "unexpected size for nsCSSCompressedDataBlock");
         return ::operator new(aBaseSize + DataSize(aNumProps));
     }
 
@@ -131,14 +131,14 @@ private:
     }
 
     nsCSSValue* ValueAtIndex(uint32_t i) const {
-        NS_ABORT_IF_FALSE(i < mNumProps, "value index out of range");
+        MOZ_ASSERT(i < mNumProps, "value index out of range");
         return Values() + i;
     }
 
     nsCSSProperty PropertyAtIndex(uint32_t i) const {
-        NS_ABORT_IF_FALSE(i < mNumProps, "property index out of range");
+        MOZ_ASSERT(i < mNumProps, "property index out of range");
         nsCSSProperty prop = (nsCSSProperty)CompressedProperties()[i];
-        NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(prop), "out of range");
+        MOZ_ASSERT(!nsCSSProps::IsShorthand(prop), "out of range");
         return prop;
     }
 
@@ -151,7 +151,7 @@ private:
     }
 
     void SetPropertyAtIndex(uint32_t i, nsCSSProperty aProperty) {
-        NS_ABORT_IF_FALSE(i < mNumProps, "set property index out of range");
+        MOZ_ASSERT(i < mNumProps, "set property index out of range");
         CompressedProperties()[i] = (CompressedCSSProperty)aProperty;
     }
 
@@ -207,9 +207,13 @@ public:
      * an important block will only be allocated if there are
      * !important properties in the expanded block; otherwise
      * |*aImportantBlock| will be set to null.
+     *
+     * aOrder is an array of nsCSSProperty values specifying the order
+     * to store values in the two data blocks.
      */
     void Compress(nsCSSCompressedDataBlock **aNormalBlock,
-                  nsCSSCompressedDataBlock **aImportantBlock);
+                  nsCSSCompressedDataBlock **aImportantBlock,
+                  const nsTArray<uint32_t>& aOrder);
 
     /**
      * Copy a value into this expanded block.  This does NOT destroy
@@ -238,18 +242,21 @@ public:
      * from |aFromBlock| to this block.  The property being transferred
      * is !important if |aIsImportant| is true, and should replace an
      * existing !important property regardless of its own importance
-     * if |aOverrideImportant| is true.
+     * if |aOverrideImportant| is true.  |aEnabledState| is used to
+     * determine which longhand components of |aPropID| (if it is a
+     * shorthand) to transfer.
      *
      * Returns true if something changed, false otherwise.  Calls
      * |ValueAppended| on |aDeclaration| if the property was not
      * previously set, or in any case if |aMustCallValueAppended| is true.
      */
     bool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
-                             nsCSSProperty aPropID,
-                             bool aIsImportant,
-                             bool aOverrideImportant,
-                             bool aMustCallValueAppended,
-                             mozilla::css::Declaration* aDeclaration);
+                           nsCSSProperty aPropID,
+                           nsCSSProps::EnabledState aEnabledState,
+                           bool aIsImportant,
+                           bool aOverrideImportant,
+                           bool aMustCallValueAppended,
+                           mozilla::css::Declaration* aDeclaration);
 
     /**
      * Copies the values for aPropID into the specified aRuleData object.
@@ -306,15 +313,15 @@ private:
      * property |aProperty|.
      */
     nsCSSValue* PropertyAt(nsCSSProperty aProperty) {
-        NS_ABORT_IF_FALSE(0 <= aProperty &&
-                          aProperty < eCSSProperty_COUNT_no_shorthands,
-                          "property out of range");
+        MOZ_ASSERT(0 <= aProperty &&
+                   aProperty < eCSSProperty_COUNT_no_shorthands,
+                   "property out of range");
         return &mValues[aProperty];
     }
     const nsCSSValue* PropertyAt(nsCSSProperty aProperty) const {
-        NS_ABORT_IF_FALSE(0 <= aProperty &&
-                          aProperty < eCSSProperty_COUNT_no_shorthands,
-                          "property out of range");
+        MOZ_ASSERT(0 <= aProperty &&
+                   aProperty < eCSSProperty_COUNT_no_shorthands,
+                   "property out of range");
         return &mValues[aProperty];
     }
 

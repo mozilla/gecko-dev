@@ -1,14 +1,14 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 const DBG_XUL = "chrome://browser/content/devtools/framework/toolbox-process-window.xul";
-const CHROME_DEBUGGER_PROFILE_NAME = "-chrome-debugger";
+const CHROME_DEBUGGER_PROFILE_NAME = "chrome_debugger_profile";
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm")
@@ -28,7 +28,7 @@ const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {})
 
 this.EXPORTED_SYMBOLS = ["BrowserToolboxProcess"];
 
-let processes = Set();
+let processes = new Set();
 
 /**
  * Constructor for creating a process that will hold a chrome toolbox.
@@ -116,33 +116,37 @@ BrowserToolboxProcess.prototype = {
    * Initializes the debugger server.
    */
   _initServer: function() {
+    if (this.debuggerServer) {
+      dumpn("The chrome toolbox server is already running.");
+      return;
+    }
+
     dumpn("Initializing the chrome toolbox server.");
 
-    if (!this.loader) {
-      // Create a separate loader instance, so that we can be sure to receive a
-      // separate instance of the DebuggingServer from the rest of the devtools.
-      // This allows us to safely use the tools against even the actors and
-      // DebuggingServer itself, especially since we can mark this loader as
-      // invisible to the debugger (unlike the usual loader settings).
-      this.loader = new DevToolsLoader();
-      this.loader.invisibleToDebugger = true;
-      this.loader.main("devtools/server/main");
-      this.debuggerServer = this.loader.DebuggerServer;
-      dumpn("Created a separate loader instance for the DebuggerServer.");
+    // Create a separate loader instance, so that we can be sure to receive a
+    // separate instance of the DebuggingServer from the rest of the devtools.
+    // This allows us to safely use the tools against even the actors and
+    // DebuggingServer itself, especially since we can mark this loader as
+    // invisible to the debugger (unlike the usual loader settings).
+    this.loader = new DevToolsLoader();
+    this.loader.invisibleToDebugger = true;
+    this.loader.main("devtools/server/main");
+    this.debuggerServer = this.loader.DebuggerServer;
+    dumpn("Created a separate loader instance for the DebuggerServer.");
 
-      // Forward interesting events.
-      this.debuggerServer.on("connectionchange", this.emit.bind(this));
-    }
+    // Forward interesting events.
+    this.debuggerServer.on("connectionchange", this.emit.bind(this));
 
-    if (!this.debuggerServer.initialized) {
-      this.debuggerServer.init();
-      this.debuggerServer.addBrowserActors();
-      dumpn("initialized and added the browser actors for the DebuggerServer.");
-    }
+    this.debuggerServer.init();
+    this.debuggerServer.addBrowserActors();
+    this.debuggerServer.allowChromeProcess = true;
+    dumpn("initialized and added the browser actors for the DebuggerServer.");
 
     let chromeDebuggingPort =
       Services.prefs.getIntPref("devtools.debugger.chrome-debugging-port");
-    this.debuggerServer.openListener(chromeDebuggingPort);
+    let listener = this.debuggerServer.createListener();
+    listener.portOrPath = chromeDebuggingPort;
+    listener.open();
 
     dumpn("Finished initializing the chrome toolbox server.");
     dumpn("Started listening on port: " + chromeDebuggingPort);
@@ -154,54 +158,36 @@ BrowserToolboxProcess.prototype = {
   _initProfile: function() {
     dumpn("Initializing the chrome toolbox user profile.");
 
-    let profileService = Cc["@mozilla.org/toolkit/profile-service;1"]
-      .createInstance(Ci.nsIToolkitProfileService);
-
-    let profileName;
+    let debuggingProfileDir = Services.dirsvc.get("ProfLD", Ci.nsIFile);
+    debuggingProfileDir.append(CHROME_DEBUGGER_PROFILE_NAME);
     try {
-      // Attempt to get the required chrome debugging profile name string.
-      profileName = profileService.selectedProfile.name + CHROME_DEBUGGER_PROFILE_NAME;
-      dumpn("Using chrome toolbox profile name: " + profileName);
-    } catch (e) {
-      // Requested profile string could not be retrieved.
-      profileName = CHROME_DEBUGGER_PROFILE_NAME;
-      let msg = "Querying the current profile failed. " + e.name + ": " + e.message;
-      dumpn(msg);
-      Cu.reportError(msg);
-    }
-
-    let profileObject;
-    try {
-      // Attempt to get the required chrome debugging profile toolkit object.
-      profileObject = profileService.getProfileByName(profileName);
-      dumpn("Using chrome toolbox profile object: " + profileObject);
-
-      // The profile exists but the corresponding folder may have been deleted.
-      var enumerator = Services.dirsvc.get("ProfD", Ci.nsIFile).parent.directoryEntries;
-      while (enumerator.hasMoreElements()) {
-        let profileDir = enumerator.getNext().QueryInterface(Ci.nsIFile);
-        if (profileDir.leafName.contains(profileName)) {
-          // Requested profile was found and the folder exists.
-          this._dbgProfile = profileObject;
-          return;
-        }
+      debuggingProfileDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0o755);
+    } catch (ex) {
+      // Don't re-copy over the prefs again if this profile already exists
+      if (ex.result === Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+        this._dbgProfilePath = debuggingProfileDir.path;
+      } else {
+        dumpn("Error trying to create a profile directory, failing.");
+        dumpn("Error: " + (ex.message || ex));
       }
-      // Requested profile was found but the folder was deleted. Cleanup needed.
-      profileObject.remove(true);
-      dumpn("The already existing chrome toolbox profile was invalid.");
-    } catch (e) {
-      // Requested profile object was not found.
-      let msg = "Creating a profile failed. " + e.name + ": " + e.message;
-      dumpn(msg);
-      Cu.reportError(msg);
+      return;
     }
 
-    // Create a new chrome debugging profile.
-    this._dbgProfile = profileService.createProfile(null, profileName);
-    profileService.flush();
+    this._dbgProfilePath = debuggingProfileDir.path;
 
-    dumpn("Finished creating the chrome toolbox user profile.");
-    dumpn("Flushed profile service with: " + profileName);
+    // We would like to copy prefs into this new profile...
+    let prefsFile = debuggingProfileDir.clone();
+    prefsFile.append("prefs.js");
+    // ... but unfortunately, when we run tests, it seems the starting profile
+    // clears out the prefs file before re-writing it, and in practice the
+    // file is empty when we get here. So just copying doesn't work in that
+    // case.
+    // We could force a sync pref flush and then copy it... but if we're doing
+    // that, we might as well just flush directly to the new profile, which
+    // always works:
+    Services.prefs.savePrefFile(prefsFile);
+
+    dumpn("Finished creating the chrome toolbox user profile at: " + this._dbgProfilePath);
   },
 
   /**
@@ -219,9 +205,29 @@ BrowserToolboxProcess.prototype = {
     }
 
     dumpn("Running chrome debugging process.");
-    let args = ["-no-remote", "-foreground", "-P", this._dbgProfile.name, "-chrome", xulURI];
+    let args = ["-no-remote", "-foreground", "-profile", this._dbgProfilePath, "-chrome", xulURI];
+
+    // During local development, incremental builds can trigger the main process
+    // to clear its startup cache with the "flag file" .purgecaches, but this
+    // file is removed during app startup time, so we aren't able to know if it
+    // was present in order to also clear the child profile's startup cache as
+    // well.
+    //
+    // As an approximation of "isLocalBuild", check for an unofficial build.
+    if (!Services.appinfo.isOfficial) {
+      args.push("-purgecaches");
+    }
+
+    // Disable safe mode for the new process in case this was opened via the
+    // keyboard shortcut.
+    let nsIEnvironment = Components.classes["@mozilla.org/process/environment;1"].getService(Components.interfaces.nsIEnvironment);
+    let originalValue = nsIEnvironment.get("MOZ_DISABLE_SAFE_MODE_KEY");
+    nsIEnvironment.set("MOZ_DISABLE_SAFE_MODE_KEY", "1");
 
     process.runwAsync(args, args.length, { observe: () => this.close() });
+
+    // Now that the process has started, it's safe to reset the env variable.
+    nsIEnvironment.set("MOZ_DISABLE_SAFE_MODE_KEY", originalValue);
 
     this._telemetry.toolOpened("jsbrowserdebugger");
 

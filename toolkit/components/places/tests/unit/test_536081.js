@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,7 @@ add_task(function test_execute()
 
 function task_test_url(aURL) {
   print("Testing url: " + aURL.u);
-  yield promiseAddVisits(uri(aURL.u));
+  yield PlacesTestUtils.addVisits(uri(aURL.u));
   let query = hs.getNewQuery();
   query.searchTerms = aURL.s;
   let options = hs.getNewQueryOptions();

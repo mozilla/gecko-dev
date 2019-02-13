@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,12 @@ var ItchEditor = Class({
    */
   hidesToolbar: false,
 
+  /**
+   * A boolean specifying whether the editor can be edited / saved.
+   * For instance, a 'save' doesn't make sense on an image.
+   */
+  isEditable: false,
+
   toString: function() {
     return this.label || "";
   },
@@ -34,18 +40,26 @@ var ItchEditor = Class({
     emit(this, name, ...args);
   },
 
+  /* Does the editor not have any unsaved changes? */
+  isClean: function() {
+    return true;
+  },
+
   /**
-   * Initialize the editor with a single document.  This should be called
+   * Initialize the editor with a single host.  This should be called
    * by objects extending this object with:
    * ItchEditor.prototype.initialize.apply(this, arguments)
    */
-  initialize: function(document) {
-    this.doc = document;
+  initialize: function(host) {
+    this.host = host;
+    this.doc = host.document;
     this.label = "";
     this.elt = this.doc.createElement("vbox");
     this.elt.setAttribute("flex", "1");
     this.elt.editor = this;
     this.toolbar = this.doc.querySelector("#projecteditor-toolbar");
+    this.projectEditorKeyset = host.projectEditorKeyset;
+    this.projectEditorCommandset = host.projectEditorCommandset;
   },
 
   /**
@@ -103,6 +117,8 @@ exports.ItchEditor = ItchEditor;
 var TextEditor = Class({
   extends: ItchEditor,
 
+  isEditable: true,
+
   /**
    * Extra keyboard shortcuts to use with the editor.  Shortcuts defined
    * within projecteditor should be triggered when they happen in the editor, and
@@ -114,24 +130,32 @@ var TextEditor = Class({
 
     // Copy all of the registered keys into extraKeys object, to notify CodeMirror
     // that it should be ignoring these keys
-    [...this.doc.querySelectorAll("#projecteditor-keyset key")].forEach((key) => {
+    [...this.projectEditorKeyset.querySelectorAll("key")].forEach((key) => {
       let keyUpper = key.getAttribute("key").toUpperCase();
       let toolModifiers = key.getAttribute("modifiers");
       let modifiers = {
-        alt: toolModifiers.contains("alt"),
-        shift: toolModifiers.contains("shift")
+        alt: toolModifiers.includes("alt"),
+        shift: toolModifiers.includes("shift")
       };
 
       // On the key press, we will dispatch the event within projecteditor.
       extraKeys[Editor.accel(keyUpper, modifiers)] = () => {
-        let event = this.doc.createEvent('Event');
+        let doc = this.projectEditorCommandset.ownerDocument;
+        let event = doc.createEvent('Event');
         event.initEvent('command', true, true);
-        let command = this.doc.querySelector("#" + key.getAttribute("command"));
+        let command = this.projectEditorCommandset.querySelector("#" + key.getAttribute("command"));
         command.dispatchEvent(event);
       };
     });
 
     return extraKeys;
+  },
+
+  isClean: function() {
+    if (!this.editor.isAppended()) {
+      return true;
+    }
+    return this.editor.getText() === this._savedResourceContents;
   },
 
   initialize: function(document, mode=Editor.modes.text) {
@@ -142,23 +166,22 @@ var TextEditor = Class({
       lineNumbers: true,
       extraKeys: this.extraKeys,
       themeSwitching: false,
-      autocomplete: true
+      autocomplete: true,
+      contextMenu:  this.host.textEditorContextMenuPopup
     });
 
-    // Trigger editor specific events on `this`
+    // Trigger a few editor specific events on `this`.
     this.editor.on("change", (...args) => {
       this.emit("change", ...args);
     });
     this.editor.on("cursorActivity", (...args) => {
       this.emit("cursorActivity", ...args);
     });
+    this.editor.on("focus", (...args) => {
+      this.emit("focus", ...args);
+    });
 
     this.appended = this.editor.appendTo(this.elt);
-    this.appended.then(() => {
-      if (this.editor) {
-        this.editor.setupAutoCompletion();
-      }
-    });
   },
 
   /**
@@ -181,12 +204,17 @@ var TextEditor = Class({
    */
   load: function(resource) {
     // Wait for the editor.appendTo and resource.load before proceeding.
-    // They can run  in parallel.
+    // They can run in parallel.
     return promise.all([
       resource.load(),
       this.appended
     ]).then(([resourceContents])=> {
+      if (!this.editor) {
+        return;
+      }
+      this._savedResourceContents = resourceContents;
       this.editor.setText(resourceContents);
+      this.editor.clearHistory();
       this.editor.setClean();
       this.emit("load");
     }, console.error);
@@ -202,8 +230,9 @@ var TextEditor = Class({
    *          saved.
    */
   save: function(resource) {
-    return resource.save(this.editor.getText()).then(() => {
-      this.editor.setClean();
+    let newText = this.editor.getText();
+    return resource.save(newText).then(() => {
+      this._savedResourceContents = newText;
       this.emit("save", resource);
     });
   },
@@ -216,7 +245,9 @@ var TextEditor = Class({
    */
   focus: function() {
     return this.appended.then(() => {
-      this.editor.focus();
+      if (this.editor) {
+        this.editor.focus();
+      }
     });
   }
 });
@@ -224,22 +255,22 @@ var TextEditor = Class({
 /**
  * Wrapper for TextEditor using JavaScript syntax highlighting.
  */
-function JSEditor(document) {
-  return TextEditor(document, Editor.modes.js);
+function JSEditor(host) {
+  return TextEditor(host, Editor.modes.js);
 }
 
 /**
  * Wrapper for TextEditor using CSS syntax highlighting.
  */
-function CSSEditor(document) {
-  return TextEditor(document, Editor.modes.css);
+function CSSEditor(host) {
+  return TextEditor(host, Editor.modes.css);
 }
 
 /**
  * Wrapper for TextEditor using HTML syntax highlighting.
  */
-function HTMLEditor(document) {
-  return TextEditor(document, Editor.modes.html);
+function HTMLEditor(host) {
+  return TextEditor(host, Editor.modes.html);
 }
 
 /**

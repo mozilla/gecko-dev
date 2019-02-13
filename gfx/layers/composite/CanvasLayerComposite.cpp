@@ -15,10 +15,10 @@
 #include "mozilla/layers/Effects.h"     // for EffectChain
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsAString.h"
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "nsRefPtr.h"                   // for nsRefPtr
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-#include "nsPoint.h"                    // for nsIntPoint
 #include "nsString.h"                   // for nsAutoCString
+#include "gfxVR.h"
 
 namespace mozilla {
 namespace layers {
@@ -28,7 +28,7 @@ using namespace mozilla::gfx;
 CanvasLayerComposite::CanvasLayerComposite(LayerManagerComposite* aManager)
   : CanvasLayer(aManager, nullptr)
   , LayerComposite(aManager)
-  , mImageHost(nullptr)
+  , mCompositableHost(nullptr)
 {
   MOZ_COUNT_CTOR(CanvasLayerComposite);
   mImplData = static_cast<LayerComposite*>(this);
@@ -45,10 +45,8 @@ bool
 CanvasLayerComposite::SetCompositableHost(CompositableHost* aHost)
 {
   switch (aHost->GetType()) {
-    case CompositableType::BUFFER_IMAGE_SINGLE:
-    case CompositableType::BUFFER_IMAGE_BUFFERED:
     case CompositableType::IMAGE:
-      mImageHost = aHost;
+      mCompositableHost = aHost;
       return true;
     default:
       return false;
@@ -62,19 +60,29 @@ CanvasLayerComposite::GetLayer()
   return this;
 }
 
+void
+CanvasLayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+{
+  LayerComposite::SetLayerManager(aManager);
+  mManager = aManager;
+  if (mCompositableHost && mCompositor) {
+    mCompositableHost->SetCompositor(mCompositor);
+  }
+}
+
 LayerRenderState
 CanvasLayerComposite::GetRenderState()
 {
-  if (mDestroyed || !mImageHost || !mImageHost->IsAttached()) {
+  if (mDestroyed || !mCompositableHost || !mCompositableHost->IsAttached()) {
     return LayerRenderState();
   }
-  return mImageHost->GetRenderState();
+  return mCompositableHost->GetRenderState();
 }
 
 void
-CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
+CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
 {
-  if (!mImageHost || !mImageHost->IsAttached()) {
+  if (!mCompositableHost || !mCompositableHost->IsAttached()) {
     return;
   }
 
@@ -82,11 +90,47 @@ CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 
 #ifdef MOZ_DUMP_PAINTING
   if (gfxUtils::sDumpPainting) {
-    RefPtr<gfx::DataSourceSurface> surf = mImageHost->GetAsSurface();
+    RefPtr<gfx::DataSourceSurface> surf = mCompositableHost->GetAsSurface();
     WriteSnapshotToDumpFile(this, surf);
   }
 #endif
 
+  EffectChain effectChain(this);
+  AddBlendModeEffect(effectChain);
+
+  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(mMaskLayer, effectChain);
+  gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
+
+  mCompositableHost->Composite(effectChain,
+                        GetEffectiveOpacity(),
+                        GetEffectiveTransform(),
+                        GetEffectFilter(),
+                        clipRect);
+  mCompositableHost->BumpFlashCounter();
+}
+
+CompositableHost*
+CanvasLayerComposite::GetCompositableHost()
+{
+  if (mCompositableHost && mCompositableHost->IsAttached()) {
+    return mCompositableHost.get();
+  }
+
+  return nullptr;
+}
+
+void
+CanvasLayerComposite::CleanupResources()
+{
+  if (mCompositableHost) {
+    mCompositableHost->Detach(this);
+  }
+  mCompositableHost = nullptr;
+}
+
+gfx::Filter
+CanvasLayerComposite::GetEffectFilter()
+{
   GraphicsFilter filter = mFilter;
 #ifdef ANDROID
   // Bug 691354
@@ -98,51 +142,26 @@ CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
     filter = GraphicsFilter::FILTER_NEAREST;
   }
 #endif
-
-  EffectChain effectChain(this);
-  AddBlendModeEffect(effectChain);
-
-  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(mMaskLayer, effectChain);
-  gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-
-  mImageHost->Composite(effectChain,
-                        GetEffectiveOpacity(),
-                        GetEffectiveTransform(),
-                        gfx::ToFilter(filter),
-                        clipRect);
-  mImageHost->BumpFlashCounter();
-}
-
-CompositableHost*
-CanvasLayerComposite::GetCompositableHost()
-{
-  if ( mImageHost && mImageHost->IsAttached()) {
-    return mImageHost.get();
-  }
-
-  return nullptr;
+  return gfx::ToFilter(filter);
 }
 
 void
-CanvasLayerComposite::CleanupResources()
+CanvasLayerComposite::GenEffectChain(EffectChain& aEffect)
 {
-  if (mImageHost) {
-    mImageHost->Detach(this);
-  }
-  mImageHost = nullptr;
+  aEffect.mLayerRef = this;
+  aEffect.mPrimaryEffect = mCompositableHost->GenEffect(GetEffectFilter());
 }
 
-nsACString&
-CanvasLayerComposite::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+CanvasLayerComposite::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  CanvasLayer::PrintInfo(aTo, aPrefix);
-  aTo += "\n";
-  if (mImageHost && mImageHost->IsAttached()) {
+  CanvasLayer::PrintInfo(aStream, aPrefix);
+  aStream << "\n";
+  if (mCompositableHost && mCompositableHost->IsAttached()) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
-    mImageHost->PrintInfo(aTo, pfx.get());
+    mCompositableHost->PrintInfo(aStream, pfx.get());
   }
-  return aTo;
 }
 
 }

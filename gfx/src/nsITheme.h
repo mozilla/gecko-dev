@@ -12,30 +12,26 @@
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsColor.h"
+#include "Units.h"
 
 struct nsRect;
-struct nsIntRect;
-struct nsIntSize;
-class nsIntRegion;
-struct nsFont;
 struct nsIntMargin;
 class nsPresContext;
 class nsRenderingContext;
 class nsDeviceContext;
 class nsIFrame;
-class nsIContent;
 class nsIAtom;
 class nsIWidget;
 
 // IID for the nsITheme interface
-// {b0f3efe9-0bd4-4f6b-8daa-0ec7f6006822}
+// {7329f760-08cb-450f-8225-dae729096dec}
  #define NS_ITHEME_IID     \
-{ 0x4440b5c7, 0xd8bd, 0x4d9c, \
-  { 0x9c, 0x3e, 0xa5, 0xe6, 0x26, 0x81, 0x10, 0xa0 } }
-// {D930E29B-6909-44e5-AB4B-AF10D6923705}
+{ 0x7329f760, 0x08cb, 0x450f, \
+  { 0x82, 0x25, 0xda, 0xe7, 0x29, 0x09, 0x6d, 0xec } }
+// {0ae05515-cf7a-45a8-9e02-6556de7685b1}
 #define NS_THEMERENDERER_CID \
-{ 0x9020805b, 0x14a3, 0x4125, \
-  { 0xa5, 0x63, 0x4a, 0x8c, 0x5d, 0xe0, 0xa9, 0xa3 } }
+{ 0x0ae05515, 0xcf7a, 0x45a8, \
+  { 0x9e, 0x02, 0x65, 0x56, 0xde, 0x76, 0x85, 0xb1 } }
 
 /**
  * nsITheme is a service that provides platform-specific native
@@ -113,10 +109,10 @@ public:
    * minimum size; if false, this size is the only valid size for the
    * widget.
    */
-  NS_IMETHOD GetMinimumWidgetSize(nsRenderingContext* aContext,
+  NS_IMETHOD GetMinimumWidgetSize(nsPresContext* aPresContext,
                                   nsIFrame* aFrame,
                                   uint8_t aWidgetType,
-                                  nsIntSize* aResult,
+                                  mozilla::LayoutDeviceIntSize* aResult,
                                   bool* aIsOverridable)=0;
 
 
@@ -139,6 +135,41 @@ public:
 
   virtual bool WidgetAppearanceDependsOnWindowFocus(uint8_t aWidgetType)
   { return false; }
+
+  virtual bool NeedToClearBackgroundBehindWidget(nsIFrame* aFrame,
+                                                 uint8_t aWidgetType)
+  { return false; }
+
+  virtual bool WidgetProvidesFontSmoothingBackgroundColor(nsIFrame* aFrame,
+                                      uint8_t aWidgetType, nscolor* aColor)
+  { return false; }
+
+  /**
+   * ThemeGeometryType values are used for describing themed nsIFrames in
+   * calls to nsIWidget::UpdateThemeGeometries. We don't simply pass the
+   * -moz-appearance value ("widget type") of the frame because the widget may
+   * want to treat different frames with the same -moz-appearance differently
+   * based on other properties of the frame. So we give the theme a first look
+   * at the frame in nsITheme::ThemeGeometryTypeForWidget and pass the
+   * returned ThemeGeometryType along to the widget.
+   * Each theme backend defines the ThemeGeometryType values it needs in its
+   * own nsITheme subclass. eThemeGeometryTypeUnknown is the only value that's
+   * shared between backends.
+   */
+  typedef uint8_t ThemeGeometryType;
+  enum {
+    eThemeGeometryTypeUnknown = 0
+  };
+
+  /**
+   * Returns the theme geometry type that should be used in the ThemeGeometry
+   * array that's passed to the widget using nsIWidget::UpdateThemeGeometries.
+   * A return value of eThemeGeometryTypeUnknown means that this frame will
+   * not be included in the ThemeGeometry array.
+   */
+  virtual ThemeGeometryType ThemeGeometryTypeForWidget(nsIFrame* aFrame,
+                                                       uint8_t aWidgetType)
+  { return eThemeGeometryTypeUnknown; }
 
   /**
    * Can the nsITheme implementation handle this widget?

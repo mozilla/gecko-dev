@@ -10,15 +10,17 @@
 
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
-#include "jit/IonFrames.h"
+#include "jit/JitFrames.h"
+#include "jit/MacroAssembler.h"
 #include "jit/MoveEmitter.h"
 
 #include "jsscriptinlines.h"
+#include "jit/MacroAssembler-inl.h"
 
 using namespace js;
 using namespace js::jit;
 
-MacroAssemblerX86::Double *
+MacroAssemblerX86::Double*
 MacroAssemblerX86::getDouble(double d)
 {
     if (!doubleMap_.initialized()) {
@@ -37,8 +39,8 @@ MacroAssemblerX86::getDouble(double d)
         if (!enoughMemory_)
             return nullptr;
     }
-    Double &dbl = doubles_[doubleIndex];
-    JS_ASSERT(!dbl.uses.bound());
+    Double& dbl = doubles_[doubleIndex];
+    MOZ_ASSERT(!dbl.uses.bound());
     return &dbl;
 }
 
@@ -47,24 +49,24 @@ MacroAssemblerX86::loadConstantDouble(double d, FloatRegister dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.movsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.vmovsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.encoding());
     dbl->uses.setPrev(masm.size());
 }
 
 void
 MacroAssemblerX86::addConstantDouble(double d, FloatRegister dest)
 {
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.addsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.vaddsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.encoding(), dest.encoding());
     dbl->uses.setPrev(masm.size());
 }
 
-MacroAssemblerX86::Float *
+MacroAssemblerX86::Float*
 MacroAssemblerX86::getFloat(float f)
 {
     if (!floatMap_.initialized()) {
@@ -83,8 +85,8 @@ MacroAssemblerX86::getFloat(float f)
         if (!enoughMemory_)
             return nullptr;
     }
-    Float &flt = floats_[floatIndex];
-    JS_ASSERT(!flt.uses.bound());
+    Float& flt = floats_[floatIndex];
+    MOZ_ASSERT(!flt.uses.bound());
     return &flt;
 }
 
@@ -93,42 +95,110 @@ MacroAssemblerX86::loadConstantFloat32(float f, FloatRegister dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.movss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.vmovss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.encoding());
     flt->uses.setPrev(masm.size());
 }
 
 void
 MacroAssemblerX86::addConstantFloat32(float f, FloatRegister dest)
 {
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.addss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.vaddss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.encoding(), dest.encoding());
     flt->uses.setPrev(masm.size());
+}
+
+MacroAssemblerX86::SimdData*
+MacroAssemblerX86::getSimdData(const SimdConstant& v)
+{
+    if (!simdMap_.initialized()) {
+        enoughMemory_ &= simdMap_.init();
+        if (!enoughMemory_)
+            return nullptr;
+    }
+    size_t index;
+    SimdMap::AddPtr p = simdMap_.lookupForAdd(v);
+    if (p) {
+        index = p->value();
+    } else {
+        index = simds_.length();
+        enoughMemory_ &= simds_.append(SimdData(v));
+        enoughMemory_ &= simdMap_.add(p, v, index);
+        if (!enoughMemory_)
+            return nullptr;
+    }
+    SimdData& simd = simds_[index];
+    MOZ_ASSERT(!simd.uses.bound());
+    return &simd;
+}
+
+void
+MacroAssemblerX86::loadConstantInt32x4(const SimdConstant& v, FloatRegister dest)
+{
+    MOZ_ASSERT(v.type() == SimdConstant::Int32x4);
+    if (maybeInlineInt32x4(v, dest))
+        return;
+    SimdData* i4 = getSimdData(v);
+    if (!i4)
+        return;
+    MOZ_ASSERT(i4->type() == SimdConstant::Int32x4);
+    masm.vmovdqa_mr(reinterpret_cast<const void*>(i4->uses.prev()), dest.encoding());
+    i4->uses.setPrev(masm.size());
+}
+
+void
+MacroAssemblerX86::loadConstantFloat32x4(const SimdConstant& v, FloatRegister dest)
+{
+    MOZ_ASSERT(v.type() == SimdConstant::Float32x4);
+    if (maybeInlineFloat32x4(v, dest))
+        return;
+    SimdData* f4 = getSimdData(v);
+    if (!f4)
+        return;
+    MOZ_ASSERT(f4->type() == SimdConstant::Float32x4);
+    masm.vmovaps_mr(reinterpret_cast<const void*>(f4->uses.prev()), dest.encoding());
+    f4->uses.setPrev(masm.size());
 }
 
 void
 MacroAssemblerX86::finish()
 {
     if (!doubles_.empty())
-        masm.align(sizeof(double));
+        masm.haltingAlign(sizeof(double));
     for (size_t i = 0; i < doubles_.length(); i++) {
         CodeLabel cl(doubles_[i].uses);
         writeDoubleConstant(doubles_[i].value, cl.src());
-        enoughMemory_ &= addCodeLabel(cl);
+        addCodeLabel(cl);
         if (!enoughMemory_)
             return;
     }
 
     if (!floats_.empty())
-        masm.align(sizeof(float));
+        masm.haltingAlign(sizeof(float));
     for (size_t i = 0; i < floats_.length(); i++) {
         CodeLabel cl(floats_[i].uses);
         writeFloatConstant(floats_[i].value, cl.src());
-        enoughMemory_ &= addCodeLabel(cl);
+        addCodeLabel(cl);
+        if (!enoughMemory_)
+            return;
+    }
+
+    // SIMD memory values must be suitably aligned.
+    if (!simds_.empty())
+        masm.haltingAlign(SimdMemoryAlignment);
+    for (size_t i = 0; i < simds_.length(); i++) {
+        CodeLabel cl(simds_[i].uses);
+        SimdData& v = simds_[i];
+        switch (v.type()) {
+          case SimdConstant::Int32x4:   writeInt32x4Constant(v.value, cl.src());   break;
+          case SimdConstant::Float32x4: writeFloat32x4Constant(v.value, cl.src()); break;
+          default: MOZ_CRASH("unexpected SimdConstant type");
+        }
+        addCodeLabel(cl);
         if (!enoughMemory_)
             return;
     }
@@ -137,7 +207,7 @@ MacroAssemblerX86::finish()
 void
 MacroAssemblerX86::setupABICall(uint32_t args)
 {
-    JS_ASSERT(!inCall_);
+    MOZ_ASSERT(!inCall_);
     inCall_ = true;
 
     args_ = args;
@@ -159,12 +229,12 @@ MacroAssemblerX86::setupUnalignedABICall(uint32_t args, Register scratch)
     dynamicAlignment_ = true;
 
     movl(esp, scratch);
-    andl(Imm32(~(StackAlignment - 1)), esp);
+    andl(Imm32(~(ABIStackAlignment - 1)), esp);
     push(scratch);
 }
 
 void
-MacroAssemblerX86::passABIArg(const MoveOperand &from, MoveOp::Type type)
+MacroAssemblerX86::passABIArg(const MoveOperand& from, MoveOp::Type type)
 {
     ++passedArgs_;
     MoveOperand to = MoveOperand(StackPointer, stackForCall_);
@@ -173,7 +243,7 @@ MacroAssemblerX86::passABIArg(const MoveOperand &from, MoveOp::Type type)
       case MoveOp::DOUBLE:  stackForCall_ += sizeof(double); break;
       case MoveOp::INT32:   stackForCall_ += sizeof(int32_t); break;
       case MoveOp::GENERAL: stackForCall_ += sizeof(intptr_t); break;
-      default: MOZ_ASSUME_UNREACHABLE("Unexpected argument type");
+      default: MOZ_CRASH("Unexpected argument type");
     }
     enoughMemory_ &= moveResolver_.addMove(from, to, type);
 }
@@ -191,22 +261,22 @@ MacroAssemblerX86::passABIArg(FloatRegister reg, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
+MacroAssemblerX86::callWithABIPre(uint32_t* stackAdjust)
 {
-    JS_ASSERT(inCall_);
-    JS_ASSERT(args_ == passedArgs_);
+    MOZ_ASSERT(inCall_);
+    MOZ_ASSERT(args_ == passedArgs_);
 
     if (dynamicAlignment_) {
         *stackAdjust = stackForCall_
                      + ComputeByteAlignment(stackForCall_ + sizeof(intptr_t),
-                                            StackAlignment);
+                                            ABIStackAlignment);
     } else {
         *stackAdjust = stackForCall_
-                     + ComputeByteAlignment(stackForCall_ + framePushed_,
-                                            StackAlignment);
+                     + ComputeByteAlignment(stackForCall_ + asMasm().framePushed(),
+                                            ABIStackAlignment);
     }
 
-    reserveStack(*stackAdjust);
+    asMasm().reserveStack(*stackAdjust);
 
     // Position all arguments.
     {
@@ -214,7 +284,7 @@ MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
         if (!enoughMemory_)
             return;
 
-        MoveEmitter emitter(*this);
+        MoveEmitter emitter(asMasm());
         emitter.emit(moveResolver_);
         emitter.finish();
     }
@@ -223,7 +293,7 @@ MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
     {
         // Check call alignment.
         Label good;
-        testl(esp, Imm32(StackAlignment - 1));
+        test32(esp, Imm32(ABIStackAlignment - 1));
         j(Equal, &good);
         breakpoint();
         bind(&good);
@@ -234,27 +304,27 @@ MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
 void
 MacroAssemblerX86::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
 {
-    freeStack(stackAdjust);
+    asMasm().freeStack(stackAdjust);
     if (result == MoveOp::DOUBLE) {
-        reserveStack(sizeof(double));
+        asMasm().reserveStack(sizeof(double));
         fstp(Operand(esp, 0));
-        loadDouble(Operand(esp, 0), ReturnFloatReg);
-        freeStack(sizeof(double));
+        loadDouble(Operand(esp, 0), ReturnDoubleReg);
+        asMasm().freeStack(sizeof(double));
     } else if (result == MoveOp::FLOAT32) {
-        reserveStack(sizeof(float));
+        asMasm().reserveStack(sizeof(float));
         fstp32(Operand(esp, 0));
-        loadFloat32(Operand(esp, 0), ReturnFloatReg);
-        freeStack(sizeof(float));
+        loadFloat32(Operand(esp, 0), ReturnFloat32Reg);
+        asMasm().freeStack(sizeof(float));
     }
     if (dynamicAlignment_)
         pop(esp);
 
-    JS_ASSERT(inCall_);
+    MOZ_ASSERT(inCall_);
     inCall_ = false;
 }
 
 void
-MacroAssemblerX86::callWithABI(void *fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(void* fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -272,7 +342,7 @@ MacroAssemblerX86::callWithABI(AsmJSImmPtr fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(const Address& fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -281,24 +351,26 @@ MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::handleFailureWithHandler(void *handler)
+MacroAssemblerX86::callWithABI(Register fun, MoveOp::Type result)
+{
+    uint32_t stackAdjust;
+    callWithABIPre(&stackAdjust);
+    call(Operand(fun));
+    callWithABIPost(stackAdjust, result);
+}
+
+void
+MacroAssemblerX86::handleFailureWithHandlerTail(void* handler)
 {
     // Reserve space for exception information.
     subl(Imm32(sizeof(ResumeFromException)), esp);
     movl(esp, eax);
 
-    // Ask for an exception handler.
+    // Call the handler.
     setupUnalignedABICall(1, ecx);
     passABIArg(eax);
     callWithABI(handler);
 
-    JitCode *excTail = GetIonContext()->runtime->jitRuntime()->getExceptionTail();
-    jmp(excTail);
-}
-
-void
-MacroAssemblerX86::handleFailureWithHandlerTail()
-{
     Label entryFrame;
     Label catch_;
     Label finally;
@@ -351,6 +423,18 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
     loadValue(Address(ebp, BaselineFrame::reverseOffsetOfReturnValue()), JSReturnOperand);
     movl(ebp, esp);
     pop(ebp);
+
+    // If profiling is enabled, then update the lastProfilingFrame to refer to caller
+    // frame before returning.
+    {
+        Label skipProfilingInstrumentation;
+        // Test if profiler enabled.
+        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
+        branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
+        profilerExitFrame();
+        bind(&skipProfilingInstrumentation);
+    }
+
     ret();
 
     // If we are bailing out to baseline to handle an exception, jump to
@@ -362,34 +446,34 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
 }
 
 void
-MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, const Value &v, Label *label)
+MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand& value, const Value& v, Label* label)
 {
     jsval_layout jv = JSVAL_TO_IMPL(v);
     if (v.isMarkable())
-        cmpl(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell *>(v.toGCThing())));
+        cmpPtr(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell*>(v.toGCThing())));
     else
-        cmpl(value.payloadReg(), Imm32(jv.s.payload.i32));
+        cmpPtr(value.payloadReg(), ImmWord(jv.s.payload.i32));
 
     if (cond == Equal) {
         Label done;
         j(NotEqual, &done);
         {
-            cmpl(value.typeReg(), Imm32(jv.s.tag));
+            cmp32(value.typeReg(), Imm32(jv.s.tag));
             j(Equal, label);
         }
         bind(&done);
     } else {
-        JS_ASSERT(cond == NotEqual);
+        MOZ_ASSERT(cond == NotEqual);
         j(NotEqual, label);
 
-        cmpl(value.typeReg(), Imm32(jv.s.tag));
+        cmp32(value.typeReg(), Imm32(jv.s.tag));
         j(NotEqual, label);
     }
 }
 
 template <typename T>
 void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const T &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const T& dest,
                                      MIRType slotType)
 {
     if (valueType == MIRType_Double) {
@@ -409,35 +493,42 @@ MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType
 }
 
 template void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const Address &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const Address& dest,
                                      MIRType slotType);
 
 template void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const BaseIndex &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const BaseIndex& dest,
                                      MIRType slotType);
 
-#ifdef JSGC_GENERATIONAL
+void
+MacroAssemblerX86::callWithExitFrame(JitCode* target, Register dynStack)
+{
+    addPtr(ImmWord(asMasm().framePushed()), dynStack);
+    makeFrameDescriptor(dynStack, JitFrame_IonJS);
+    asMasm().Push(dynStack);
+    call(target);
+}
 
 void
 MacroAssemblerX86::branchPtrInNurseryRange(Condition cond, Register ptr, Register temp,
-                                           Label *label)
+                                           Label* label)
 {
-    JS_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
-    JS_ASSERT(ptr != temp);
-    JS_ASSERT(temp != InvalidReg);  // A temp register is required for x86.
+    MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
+    MOZ_ASSERT(ptr != temp);
+    MOZ_ASSERT(temp != InvalidReg);  // A temp register is required for x86.
 
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    const Nursery& nursery = GetJitContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
     addPtr(ptr, temp);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
-              temp, Imm32(Nursery::NurserySize), label);
+              temp, Imm32(nursery.nurserySize()), label);
 }
 
 void
 MacroAssemblerX86::branchValueIsNurseryObject(Condition cond, ValueOperand value, Register temp,
-                                              Label *label)
+                                              Label* label)
 {
-    JS_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
+    MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
 
     Label done;
 
@@ -447,4 +538,52 @@ MacroAssemblerX86::branchValueIsNurseryObject(Condition cond, ValueOperand value
     bind(&done);
 }
 
-#endif
+void
+MacroAssemblerX86::profilerEnterFrame(Register framePtr, Register scratch)
+{
+    AbsoluteAddress activation(GetJitContext()->runtime->addressOfProfilingActivation());
+    loadPtr(activation, scratch);
+    storePtr(framePtr, Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
+    storePtr(ImmPtr(nullptr), Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
+}
+
+void
+MacroAssemblerX86::profilerExitFrame()
+{
+    jmp(GetJitContext()->runtime->jitRuntime()->getProfilerExitFrameTail());
+}
+
+MacroAssembler&
+MacroAssemblerX86::asMasm()
+{
+    return *static_cast<MacroAssembler*>(this);
+}
+
+const MacroAssembler&
+MacroAssemblerX86::asMasm() const
+{
+    return *static_cast<const MacroAssembler*>(this);
+}
+
+// ===============================================================
+// Stack manipulation functions.
+
+void
+MacroAssembler::reserveStack(uint32_t amount)
+{
+    if (amount) {
+        // On windows, we cannot skip very far down the stack without touching the
+        // memory pages in-between.  This is a corner-case code for situations where the
+        // Ion frame data for a piece of code is very large.  To handle this special case,
+        // for frames over 1k in size we allocate memory on the stack incrementally, touching
+        // it as we go.
+        uint32_t amountLeft = amount;
+        while (amountLeft > 4096) {
+            subl(Imm32(4096), StackPointer);
+            store32(Imm32(0), Address(StackPointer, 0));
+            amountLeft -= 4096;
+        }
+        subl(Imm32(amountLeft), StackPointer);
+    }
+    framePushed_ += amount;
+}

@@ -8,8 +8,8 @@
 const TAB_URL = EXAMPLE_URL + "doc_watch-expression-button.html";
 
 function test() {
-  Task.spawn(function() {
-    let [tab, debuggee, panel] = yield initDebugger(TAB_URL);
+  Task.spawn(function*() {
+    let [tab,, panel] = yield initDebugger(TAB_URL);
     let win = panel.panelWin;
     let events = win.EVENTS;
     let watch = win.DebuggerView.WatchExpressions;
@@ -37,8 +37,7 @@ function test() {
         "The expression at index 0 is correct.");
     }
 
-    // Allow this generator function to yield first.
-    executeSoon(() => debuggee.start());
+    callInTab(tab, "start");
     yield waitForSourceAndCaretAndScopes(panel, ".html", 19);
 
     // Inspect primitive value variable.
@@ -50,25 +49,25 @@ function test() {
     ok(true, "The new watch expressions were re-evaluated and the panel got hidden (1).");
 
     // Inspect non primitive value variable.
-    let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
+    expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
     yield openVarPopup(panel, { line: 16, ch: 12 }, true);
     yield expressionsEvaluated;
     ok(true, "The watch expressions were re-evaluated when a new panel opened (1).");
 
-    let popupHiding = once(tooltip, "popuphiding");
-    let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
+    popupHiding = once(tooltip, "popuphiding");
+    expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
     testExpressionButton(label, className, "b");
     yield promise.all([popupHiding, expressionsEvaluated]);
     ok(true, "The new watch expressions were re-evaluated and the panel got hidden (2).");
 
     // Inspect property of an object.
-    let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
+    expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
     yield openVarPopup(panel, { line: 17, ch: 10 });
     yield expressionsEvaluated;
     ok(true, "The watch expressions were re-evaluated when a new panel opened (2).");
 
-    let popupHiding = once(tooltip, "popuphiding");
-    let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
+    popupHiding = once(tooltip, "popuphiding");
+    expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
     testExpressionButton(label, className, "b.a");
     yield promise.all([popupHiding, expressionsEvaluated]);
     ok(true, "The new watch expressions were re-evaluated and the panel got hidden (3).");

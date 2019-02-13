@@ -6,13 +6,14 @@ package org.mozilla.gecko.fxa.activities;
 
 import java.util.Locale;
 
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountAgeLockoutHelper;
+import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
-import org.mozilla.gecko.sync.setup.activities.LocaleAware;
 
 import android.accounts.AccountAuthenticatorActivity;
 import android.content.Intent;
@@ -20,6 +21,10 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.TranslateAnimation;
 import android.widget.TextView;
 
 /**
@@ -38,7 +43,7 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
     Logger.setThreadLogTag(FxAccountConstants.GLOBAL_LOG_TAG);
     Logger.debug(LOG_TAG, "onCreate(" + icicle + ")");
 
-    LocaleAware.initializeLocale(getApplicationContext());
+    Locales.initializeLocale(getApplicationContext());
 
     super.onCreate(icicle);
 
@@ -50,13 +55,51 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
     button.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
-        Intent intent = new Intent(FxAccountGetStartedActivity.this, FxAccountCreateAccountActivity.class);
-        // Per http://stackoverflow.com/a/8992365, this triggers a known bug with
-        // the soft keyboard not being shown for the started activity. Why, Android, why?
-        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-        startActivityForResult(intent, CHILD_REQUEST_CODE);
+        Bundle extras = null; // startFlow accepts null.
+        if (getIntent() != null) {
+          extras = getIntent().getExtras();
+        }
+        startFlow(extras);
       }
     });
+
+    animateIconIn();
+  }
+
+  /**
+   * Float the icon up, starting from below and moving up to its final layout
+   * position.  Also, fade the icon in.
+   * <p>
+   * We animate relative to the size of the icon rather than from the bottom of
+   * the containing view for two reasons: first, the distance from bottom could
+   * be large on tablets; two, animating with absolute values requires that
+   * measurement has happened first, which requires a (sometimes buggy)
+   * onPreDrawListener.
+   */
+  protected void animateIconIn() {
+    final AlphaAnimation a = new AlphaAnimation(0.0f, 1.0f);
+    final TranslateAnimation t = new TranslateAnimation(
+        Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 0.0f,
+        Animation.RELATIVE_TO_SELF, 2.0f, Animation.RELATIVE_TO_SELF, 0.0f);
+
+    final AnimationSet animationSet = new AnimationSet(true);
+    animationSet.setDuration(150 * 7); // Straight outta... fxa-content-server.
+    animationSet.addAnimation(a);
+    animationSet.addAnimation(t);
+
+    final View iconView = findViewById(R.id.icon);
+    iconView.startAnimation(animationSet);
+  }
+
+  protected void startFlow(Bundle extras) {
+    final Intent intent = new Intent(this, FxAccountCreateAccountActivity.class);
+    // Per http://stackoverflow.com/a/8992365, this triggers a known bug with
+    // the soft keyboard not being shown for the started activity. Why, Android, why?
+    intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+    if (extras != null) {
+        intent.putExtras(extras);
+    }
+    startActivityForResult(intent, CHILD_REQUEST_CODE);
   }
 
   @Override
@@ -78,6 +121,20 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
       intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
       this.startActivity(intent);
       this.finish();
+    }
+
+    // If we've been launched with extras (namely custom server URLs), continue
+    // past go and collect 200 dollars. If we ever get back here (for example,
+    // if the user hits the back button), forget that we had extras entirely, so
+    // that we don't enter a loop.
+    Bundle extras = null;
+    if (getIntent() != null) {
+      extras = getIntent().getExtras();
+    }
+    if (extras != null && extras.containsKey(FxAccountAbstractSetupActivity.EXTRA_EXTRAS)) {
+      getIntent().replaceExtras(Bundle.EMPTY);
+      startFlow((Bundle) extras.clone());
+      return;
     }
   }
 
@@ -108,7 +165,7 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
     TextView oldFirefox = (TextView) findViewById(R.id.old_firefox);
     String text = getResources().getString(R.string.fxaccount_getting_started_old_firefox);
     final String url = FirefoxAccounts.getOldSyncUpgradeURL(getResources(), Locale.getDefault());
-    FxAccountConstants.pii(LOG_TAG, "Old Firefox url is: " + url); // Don't want to leak locale in particular.
+    FxAccountUtils.pii(LOG_TAG, "Old Firefox url is: " + url); // Don't want to leak locale in particular.
     ActivityUtils.linkTextView(oldFirefox, text, url);
   }
 }

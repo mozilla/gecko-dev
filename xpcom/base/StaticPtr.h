@@ -8,7 +8,7 @@
 #define mozilla_StaticPtr_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -25,17 +25,16 @@ namespace mozilla {
  * upon destruction.
  *
  * Since the compiler guarantees that all global variables are initialized to
- * 0, these trivial constructors are safe, so long as you use
- * Static{Auto,Ref}Ptr as a global variable.  If you use Static{Auto,Ref}Ptr as
- * a stack variable or as a class instance variable, you will get what you
- * deserve.
+ * 0, these trivial constructors are safe.  Since we rely on this, the clang
+ * plugin, run as part of our "static analysis" builds, makes it a compile-time
+ * error to use Static{Auto,Ref}Ptr as anything except a global variable.
  *
  * Static{Auto,Ref}Ptr have a limited interface as compared to ns{Auto,Ref}Ptr;
  * this is intentional, since their range of acceptable uses is smaller.
  */
 
 template<class T>
-class StaticAutoPtr
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticAutoPtr
 {
 public:
   // In debug builds, check that mRawPtr is initialized for us as we expect
@@ -54,15 +53,9 @@ public:
     return *this;
   }
 
-  T* get() const
-  {
-    return mRawPtr;
-  }
+  T* get() const { return mRawPtr; }
 
-  operator T*() const
-  {
-    return get();
-  }
+  operator T*() const { return get(); }
 
   T* operator->() const
   {
@@ -70,10 +63,7 @@ public:
     return get();
   }
 
-  T& operator*() const
-  {
-    return *get();
-  }
+  T& operator*() const { return *get(); }
 
 private:
   // Disallow copy constructor, but only in debug mode.  We only define
@@ -96,7 +86,7 @@ private:
 };
 
 template<class T>
-class StaticRefPtr
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticRefPtr
 {
 public:
   // In debug builds, check that mRawPtr is initialized for us as we expect
@@ -120,15 +110,9 @@ public:
     return (this = aRhs.mRawPtr);
   }
 
-  T* get() const
-  {
-    return mRawPtr;
-  }
+  T* get() const { return mRawPtr; }
 
-  operator T*() const
-  {
-    return get();
-  }
+  operator T*() const { return get(); }
 
   T* operator->() const
   {
@@ -136,10 +120,7 @@ public:
     return get();
   }
 
-  T& operator*() const
-  {
-    return *get();
-  }
+  T& operator*() const { return *get(); }
 
 private:
   void AssignWithAddref(T* aNewPtr)
@@ -159,7 +140,7 @@ private:
     }
   }
 
-  T* mRawPtr;
+  T* MOZ_OWNING_REF mRawPtr;
 };
 
 namespace StaticPtr_internal {

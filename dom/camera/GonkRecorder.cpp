@@ -1154,7 +1154,11 @@ status_t GonkRecorder::setupMediaSource(
             return err;
         }
         *mediaSource = cameraSource;
+#if ANDROID_VERSION >= 21
+    } else if (mVideoSource == VIDEO_SOURCE_SURFACE) {
+#else
     } else if (mVideoSource == VIDEO_SOURCE_GRALLOC_BUFFER) {
+#endif
         return BAD_VALUE;
     } else {
         return INVALID_OPERATION;
@@ -1268,12 +1272,13 @@ status_t GonkRecorder::setupVideoEncoder(
     // CHECK_EQ causes an abort if the given condition fails.
     CHECK_EQ(client.connect(), (status_t)OK);
 
-    uint32_t encoder_flags = 0;
+    uint32_t encoder_flags = mCameraHw->IsEmulated()
+                             ? 0
+                             : OMXCodec::kHardwareCodecsOnly;
     if (mIsMetaDataStoredInVideoBuffers) {
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
         encoder_flags |= OMXCodec::kStoreMetaDataInVideoBuffers;
 #else
-        encoder_flags |= OMXCodec::kHardwareCodecsOnly;
         encoder_flags |= OMXCodec::kStoreMetaDataInVideoBuffers;
         encoder_flags |= OMXCodec::kOnlySubmitOneInputBufferAtOneTime;
 #endif

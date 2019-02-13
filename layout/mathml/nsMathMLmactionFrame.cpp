@@ -240,7 +240,7 @@ NS_IMPL_ISUPPORTS(nsMathMLmactionFrame::MouseListener,
 
 
 // helper to show a msg on the status bar
-// curled from nsObjectFrame.cpp ...
+// curled from nsPluginFrame.cpp ...
 void
 ShowStatus(nsPresContext* aPresContext, nsString& aStatusMsg)
 {
@@ -291,8 +291,7 @@ nsMathMLmactionFrame::MouseOver()
     if (!content) return;
 
     // check whether the content is mtext or not
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::mtext_) {
+    if (content->IsMathMLElement(nsGkAtoms::mtext_)) {
       // get the text to be displayed
       content = content->GetFirstChild();
       if (!content) return;

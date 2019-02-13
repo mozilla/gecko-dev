@@ -9,10 +9,11 @@ import sys, os
 import subprocess
 import runxpcshelltests as xpcshell
 import tempfile
-from automationutils import replaceBackSlashes
-from mozdevice import devicemanagerADB, devicemanagerSUT, devicemanager
 from zipfile import ZipFile
+from mozlog import structured
+from mozlog.structured import commandline
 import shutil
+import mozdevice
 import mozfile
 import mozinfo
 
@@ -25,6 +26,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
     def __init__(self, *args, **kwargs):
         xpcshell.XPCShellTestThread.__init__(self, *args, **kwargs)
 
+        self.shellReturnCode = None
         # embed the mobile params from the harness into the TestThread
         mobileArgs = kwargs.get('mobileArgs')
         for key in mobileArgs:
@@ -37,7 +39,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         else:
             remoteName = remoteJoin(remoteDir, os.path.basename(name))
         return ['-e', 'const _TEST_FILE = ["%s"];' %
-                 replaceBackSlashes(remoteName)]
+                 remoteName.replace('\\', '/')]
 
     def remoteForLocal(self, local):
         for mapping in self.pathMapping:
@@ -45,11 +47,9 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
                 return mapping.remote
         return local
 
-
     def setupTempDir(self):
         # make sure the temp dir exists
-        if not self.device.dirExists(self.remoteTmpDir):
-            self.device.mkDir(self.remoteTmpDir)
+        self.clearRemoteDir(self.remoteTmpDir)
         # env var is set in buildEnvironment
         return self.remoteTmpDir
 
@@ -63,20 +63,27 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         pluginsDir = remoteJoin(self.remoteTmpDir, "plugins")
         self.device.pushDir(self.pluginsPath, pluginsDir)
         if self.interactive:
-            self.log.info("TEST-INFO | plugins dir is %s" % pluginsDir)
+            self.log.info("plugins dir is %s" % pluginsDir)
         return pluginsDir
 
     def setupProfileDir(self):
-        self.device.removeDir(self.profileDir)
-        self.device.mkDir(self.profileDir)
+        self.clearRemoteDir(self.profileDir)
         if self.interactive or self.singleFile:
-            self.log.info("TEST-INFO | profile dir is %s" % self.profileDir)
+            self.log.info("profile dir is %s" % self.profileDir)
         return self.profileDir
 
+    def setupMozinfoJS(self):
+        local = tempfile.mktemp()
+        mozinfo.output_to_file(local)
+        mozInfoJSPath = remoteJoin(self.profileDir, "mozinfo.json")
+        self.device.pushFile(local, mozInfoJSPath)
+        os.remove(local)
+        return mozInfoJSPath
+
     def logCommand(self, name, completeCmd, testdir):
-        self.log.info("TEST-INFO | %s | full command: %r" % (name, completeCmd))
-        self.log.info("TEST-INFO | %s | current directory: %r" % (name, self.remoteHere))
-        self.log.info("TEST-INFO | %s | environment: %s" % (name, self.env))
+        self.log.info("%s | full command: %r" % (name, completeCmd))
+        self.log.info("%s | current directory: %r" % (name, self.remoteHere))
+        self.log.info("%s | environment: %s" % (name, self.env))
 
     def getHeadAndTailFiles(self, test):
         """Override parent method to find files on remote device."""
@@ -87,9 +94,10 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
                     continue
 
                 path = remoteJoin(self.remoteHere, f)
-                if not self.device.fileExists(path):
-                    raise Exception('%s file does not exist: %s' % ( kind,
-                        path))
+
+                # skip check for file existence: the convenience of discovering
+                # a missing file does not justify the time cost of the round trip
+                # to the device
 
                 yield path
 
@@ -120,20 +128,17 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
               self.remoteDebuggerArgs,
               self.xpcsCmd]
 
-    def testTimeout(self, test_file, proc):
-        self.timedout = True
-        if not self.retry:
-            self.log.error("TEST-UNEXPECTED-FAIL | %s | Test timed out" % test_file)
+    def killTimeout(self, proc):
         self.kill(proc)
 
-    def launchProcess(self, cmd, stdout, stderr, env, cwd):
+    def launchProcess(self, cmd, stdout, stderr, env, cwd, timeout=None):
         self.timedout = False
         cmd.insert(1, self.remoteHere)
         outputFile = "xpcshelloutput"
         with open(outputFile, 'w+') as f:
             try:
-                self.shellReturnCode = self.device.shell(cmd, f)
-            except devicemanager.DMError as e:
+                self.shellReturnCode = self.device.shell(cmd, f, timeout=timeout+10)
+            except mozdevice.DMError as e:
                 if self.timedout:
                     # If the test timed out, there is a good chance the SUTagent also
                     # timed out and failed to return a return code, generating a
@@ -146,7 +151,6 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         # Guard against an accumulation of hung processes by killing
         # them here. Note also that IPC tests may spawn new instances
         # of xpcshell.
-        self.device.killProcess(cmd[0])
         self.device.killProcess("xpcshell")
         return outputFile
 
@@ -164,8 +168,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         with mozfile.TemporaryDirectory() as dumpDir:
             self.device.getDirectory(self.remoteMinidumpDir, dumpDir)
             crashed = xpcshell.XPCShellTestThread.checkForCrashes(self, dumpDir, symbols_path, test_name)
-            self.device.removeDir(self.remoteMinidumpDir)
-            self.device.mkDir(self.remoteMinidumpDir)
+            self.clearRemoteDir(self.remoteMinidumpDir)
         return crashed
 
     def communicate(self, proc):
@@ -193,6 +196,9 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
     def removeDir(self, dirname):
         self.device.removeDir(dirname)
 
+    def clearRemoteDir(self, remoteDir):
+        self.device.shellCheckOutput([self.remoteClearDirScript, remoteDir])
+
     #TODO: consider creating a separate log dir.  We don't have the test file structure,
     #      so we use filename.log.  Would rather see ./logs/filename.log
     def createLogFile(self, test, stdout):
@@ -211,7 +217,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
 # via devicemanager.
 class XPCShellRemote(xpcshell.XPCShellTests, object):
 
-    def __init__(self, devmgr, options, args, log=None):
+    def __init__(self, devmgr, options, args, log):
         xpcshell.XPCShellTests.__init__(self, log)
 
         # Add Android version (SDK level) to mozinfo so that manifest entries
@@ -224,7 +230,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.options = options
         self.device = devmgr
         self.pathMapping = []
-        self.remoteTestRoot = self.device.getTestRoot("xpcshell")
+        self.remoteTestRoot = "%s/xpcshell" % self.device.deviceRoot
         # remoteBinDir contains xpcshell and its wrapper script, both of which must
         # be executable. Since +x permissions cannot usually be set on /mnt/sdcard,
         # and the test root may be on /mnt/sdcard, remoteBinDir is set to be on
@@ -240,6 +246,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.remoteComponentsDir = remoteJoin(self.remoteTestRoot, "c")
         self.remoteModulesDir = remoteJoin(self.remoteTestRoot, "m")
         self.remoteMinidumpDir = remoteJoin(self.remoteTestRoot, "minidumps")
+        self.remoteClearDirScript = remoteJoin(self.remoteBinDir, "cleardir")
         self.profileDir = remoteJoin(self.remoteTestRoot, "p")
         self.remoteDebugger = options.debugger
         self.remoteDebuggerArgs = options.debuggerArgs
@@ -280,6 +287,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
             'profileDir': self.profileDir,
             'remoteTmpDir': self.remoteTmpDir,
             'remoteMinidumpDir': self.remoteMinidumpDir,
+            'remoteClearDirScript': self.remoteClearDirScript,
         }
         if self.remoteAPK:
             self.mobileArgs['remoteAPK'] = self.remoteAPK
@@ -298,15 +306,32 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         f.write("#!/system/bin/sh\n")
         for envkey, envval in self.env.iteritems():
             f.write("export %s=%s\n" % (envkey, envval))
-        f.write("cd $1\n")
-        f.write("echo xpcw: cd $1\n")
-        f.write("shift\n")
-        f.write("echo xpcw: xpcshell \"$@\"\n")
-        f.write("%s/xpcshell \"$@\"\n" % self.remoteBinDir)
+        f.writelines([
+            "cd $1\n",
+            "echo xpcw: cd $1\n",
+            "shift\n",
+            "echo xpcw: xpcshell \"$@\"\n",
+            "%s/xpcshell \"$@\"\n" % self.remoteBinDir])
         f.close()
         remoteWrapper = remoteJoin(self.remoteBinDir, "xpcw")
         self.device.pushFile(localWrapper, remoteWrapper)
         os.remove(localWrapper)
+
+        # Removing and re-creating a directory is a common operation which
+        # can be implemented more efficiently with a shell script.
+        localWrapper = tempfile.mktemp()
+        f = open(localWrapper, "w")
+        # The directory may not exist initially, so rm may fail. 'rm -f' is not
+        # supported on some Androids. Similarly, 'test' and 'if [ -d ]' are not
+        # universally available, so we just ignore errors from rm.
+        f.writelines([
+            "#!/system/bin/sh\n",
+            "rm -r \"$1\"\n",
+            "mkdir \"$1\"\n"])
+        f.close()
+        self.device.pushFile(localWrapper, self.remoteClearDirScript)
+        os.remove(localWrapper)
+
         self.device.chmodDir(self.remoteBinDir)
 
     def buildEnvironment(self):
@@ -343,7 +368,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
             # device.mkDir may fail here where shellCheckOutput may succeed -- see bug 817235
             try:
                 self.device.shellCheckOutput(["mkdir", self.remoteBinDir]);
-            except devicemanager.DMError:
+            except mozdevice.DMError:
                 # Might get a permission error; try again as root, if available
                 self.device.shellCheckOutput(["mkdir", self.remoteBinDir], root=True);
                 self.device.shellCheckOutput(["chmod", "777", self.remoteBinDir], root=True);
@@ -371,6 +396,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
                     "certutil",
                     "pk12util",
                     "BadCertServer",
+                    "ClientAuthServer",
                     "OCSPStaplingServer",
                     "GenerateOCSPResponse"]
         for fname in binaries:
@@ -456,7 +482,10 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
     def setupTestDir(self):
         print 'pushing %s' % self.xpcDir
         try:
-            self.device.pushDir(self.xpcDir, self.remoteScriptsDir, retryLimit=10)
+            # The tests directory can be quite large: 5000 files and growing!
+            # Sometimes - like on a low-end aws instance running an emulator - the push
+            # may exceed the default 5 minute timeout, so we increase it here to 10 minutes.
+            self.device.pushDir(self.xpcDir, self.remoteScriptsDir, timeout=600, retryLimit=10)
         except TypeError:
             # Foopies have an older mozdevice ver without retryLimit
             self.device.pushDir(self.xpcDir, self.remoteScriptsDir)
@@ -466,8 +495,8 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
             self.device.removeDir(self.remoteMinidumpDir)
         self.device.mkDir(self.remoteMinidumpDir)
 
-    def buildTestList(self):
-        xpcshell.XPCShellTests.buildTestList(self)
+    def buildTestList(self, test_tags=None):
+        xpcshell.XPCShellTests.buildTestList(self, test_tags=test_tags)
         uniqueTestPaths = set([])
         for test in self.alltests:
             uniqueTestPaths.add(test['here'])
@@ -574,6 +603,7 @@ def main():
         sys.exit(1)
 
     parser = RemoteXPCShellOptions()
+    structured.commandline.add_logging_group(parser)
     options, args = parser.parse_args()
     if not options.localAPK:
         for file in os.listdir(os.path.join(options.objdir, "dist")):
@@ -587,28 +617,31 @@ def main():
             sys.exit(1)
 
     options = parser.verifyRemoteOptions(options)
+    log = commandline.setup_logging("Remote XPCShell",
+                                    options,
+                                    {"tbpl": sys.stdout})
 
     if len(args) < 1 and options.manifest is None:
         print >>sys.stderr, """Usage: %s <test dirs>
              or: %s --manifest=test.manifest """ % (sys.argv[0], sys.argv[0])
         sys.exit(1)
 
-    if (options.dm_trans == "adb"):
-        if (options.deviceIP):
-            dm = devicemanagerADB.DeviceManagerADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
+    if options.dm_trans == "adb":
+        if options.deviceIP:
+            dm = mozdevice.DroidADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
         else:
-            dm = devicemanagerADB.DeviceManagerADB(packageName=None, deviceRoot=options.remoteTestRoot)
+            dm = mozdevice.DroidADB(packageName=None, deviceRoot=options.remoteTestRoot)
     else:
-        dm = devicemanagerSUT.DeviceManagerSUT(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
-        if (options.deviceIP == None):
+        if not options.deviceIP:
             print "Error: you must provide a device IP to connect to via the --device option"
             sys.exit(1)
+        dm = mozdevice.DroidSUT(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
 
     if options.interactive and not options.testPath:
         print >>sys.stderr, "Error: You must specify a test filename in interactive mode!"
         sys.exit(1)
 
-    xpcsh = XPCShellRemote(dm, options, args)
+    xpcsh = XPCShellRemote(dm, options, args, log)
 
     # we don't run concurrent tests on mobile
     options.sequential = True

@@ -18,7 +18,7 @@ namespace mozilla {
 namespace places {
 
 
-class PlaceInfo MOZ_FINAL : public mozIPlaceInfo
+class PlaceInfo final : public mozIPlaceInfo
 {
 public:
   NS_DECL_ISUPPORTS
@@ -33,6 +33,8 @@ public:
             const VisitsArray& aVisits);
 
 private:
+  ~PlaceInfo() {}
+
   const int64_t mId;
   const nsCString mGUID;
   nsCOMPtr<nsIURI> mURI;

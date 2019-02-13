@@ -14,6 +14,7 @@
 
 namespace mozilla {
 template <class T> class LinkedList;
+class LogicalPoint;
 }
 
 nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
@@ -35,33 +36,33 @@ public:
   class FlexItem;
   class FlexLine;
   class FlexboxAxisTracker;
-  class StrutInfo;
+  struct StrutInfo;
 
   // nsIFrame overrides
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
   virtual nscoord
-    GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+    GetMinISize(nsRenderingContext* aRenderingContext) override;
   virtual nscoord
-    GetPrefWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+    GetPrefISize(nsRenderingContext* aRenderingContext) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
   // Flexbox-specific public methods
   bool IsHorizontal();
 
 protected:
   // Protected constructor & destructor
-  nsFlexContainerFrame(nsStyleContext* aContext) :
+  explicit nsFlexContainerFrame(nsStyleContext* aContext) :
     nsFlexContainerFrameSuper(aContext)
   {}
   virtual ~nsFlexContainerFrame();
@@ -85,7 +86,7 @@ protected:
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus,
                     nscoord aContentBoxMainSize,
-                    nscoord aAvailableHeightForContent,
+                    nscoord aAvailableBSizeForContent,
                     nsTArray<StrutInfo>& aStruts,
                     const FlexboxAxisTracker& aAxisTracker);
 
@@ -106,17 +107,42 @@ protected:
   void SanityCheckAnonymousFlexItems() const;
 #endif // DEBUG
 
-  // Returns a new FlexItem for the given child frame, allocated on the heap.
-  // Caller is responsible for managing the FlexItem's lifetime.
+  /*
+   * Returns a new FlexItem for the given child frame, allocated on the heap.
+   * Guaranteed to return non-null. Caller is responsible for managing the
+   * FlexItem's lifetime.
+   *
+   * Before returning, this method also processes the FlexItem to resolve its
+   * flex basis (including e.g. auto-height) as well as to resolve
+   * "min-height:auto", via ResolveAutoFlexBasisAndMinSize(). (Basically, the
+   * returned FlexItem will be ready to participate in the "Resolve the
+   * Flexible Lengths" step of the Flex Layout Algorithm.)
+   */
   FlexItem* GenerateFlexItemForChild(nsPresContext* aPresContext,
                                      nsIFrame* aChildFrame,
                                      const nsHTMLReflowState& aParentReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
 
-  void ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
+  /**
+   * This method performs a "measuring" reflow to get the content height of
+   * aFlexItem.Frame() (treating it as if it had auto-height), & returns the
+   * resulting height.
+   * (Helper for ResolveAutoFlexBasisAndMinSize().)
+   */
+  nscoord MeasureFlexItemContentHeight(nsPresContext* aPresContext,
                                        FlexItem& aFlexItem,
-                                       const nsHTMLReflowState& aParentReflowState,
-                                       const FlexboxAxisTracker& aAxisTracker);
+                                       bool aForceVerticalResizeForMeasuringReflow,
+                                       const nsHTMLReflowState& aParentReflowState);
+
+  /**
+   * This method resolves an "auto" flex-basis and/or min-main-size value
+   * on aFlexItem, if needed.
+   * (Helper for GenerateFlexItemForChild().)
+   */
+  void ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
+                                      FlexItem& aFlexItem,
+                                      const nsHTMLReflowState& aItemReflowState,
+                                      const FlexboxAxisTracker& aAxisTracker);
 
   // Creates FlexItems for all of our child frames, arranged in a list of
   // FlexLines.  These are returned by reference in |aLines|. Our actual
@@ -125,7 +151,7 @@ protected:
   void GenerateFlexLines(nsPresContext* aPresContext,
                          const nsHTMLReflowState& aReflowState,
                          nscoord aContentBoxMainSize,
-                         nscoord aAvailableHeightForContent,
+                         nscoord aAvailableBSizeForContent,
                          const nsTArray<StrutInfo>& aStruts,
                          const FlexboxAxisTracker& aAxisTracker,
                          mozilla::LinkedList<FlexLine>& aLines);
@@ -136,7 +162,7 @@ protected:
   nscoord ComputeCrossSize(const nsHTMLReflowState& aReflowState,
                            const FlexboxAxisTracker& aAxisTracker,
                            nscoord aSumLineCrossSizes,
-                           nscoord aAvailableHeightForContent,
+                           nscoord aAvailableBSizeForContent,
                            bool* aIsDefinite,
                            nsReflowStatus& aStatus);
 
@@ -144,6 +170,45 @@ protected:
                            const FlexboxAxisTracker& aAxisTracker,
                            nsHTMLReflowState& aChildReflowState,
                            FlexItem& aItem);
+
+  /**
+   * Moves the given flex item's frame to the given LogicalPosition (modulo any
+   * relative positioning).
+   *
+   * This can be used in cases where we've already done a "measuring reflow"
+   * for the flex item at the correct size, and hence can skip its final reflow
+   * (but still need to move it to the right final position).
+   *
+   * @param aReflowState    The flex container's reflow state.
+   * @param aItem           The flex item whose frame should be moved.
+   * @param aFramePos       The position where the flex item's frame should
+   *                        be placed. (pre-relative positioning)
+   * @param aContainerWidth The flex container's width (required by some methods
+   *                        that we call, to interpret aFramePos correctly).
+   */
+  void MoveFlexItemToFinalPosition(const nsHTMLReflowState& aReflowState,
+                                   const FlexItem& aItem,
+                                   mozilla::LogicalPoint& aFramePos,
+                                   nscoord aContainerWidth);
+  /**
+   * Helper-function to reflow a child frame, at its final position determined
+   * by flex layout.
+   *
+   * @param aPresContext    The presentation context being used in reflow.
+   * @param aAxisTracker    A FlexboxAxisTracker with the flex container's axes.
+   * @param aReflowState    The flex container's reflow state.
+   * @param aItem           The flex item to be reflowed.
+   * @param aFramePos       The position where the flex item's frame should
+   *                        be placed. (pre-relative positioning)
+   * @param aContainerWidth The flex container's width (required by some methods
+   *                        that we call, to interpret aFramePos correctly).
+   */
+  void ReflowFlexItem(nsPresContext* aPresContext,
+                      const FlexboxAxisTracker& aAxisTracker,
+                      const nsHTMLReflowState& aReflowState,
+                      const FlexItem& aItem,
+                      mozilla::LogicalPoint& aFramePos,
+                      nscoord aContainerWidth);
 
   bool mChildrenHaveBeenReordered; // Have we ever had to reorder our kids
                                    // to satisfy their 'order' values?

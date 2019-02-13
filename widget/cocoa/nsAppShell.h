@@ -5,13 +5,11 @@
 
 /*
  * Runs the main native Cocoa run loop, interrupting it as needed to process
- * Gecko events.  
+ * Gecko events.
  */
 
 #ifndef nsAppShell_h_
 #define nsAppShell_h_
-
-class nsCocoaWindow;
 
 #include "nsBaseAppShell.h"
 #include "nsTArray.h"
@@ -30,7 +28,7 @@ class nsAppShell : public nsBaseAppShell
 {
 public:
   NS_IMETHOD ResumeNative(void);
-	
+
   nsAppShell();
 
   nsresult Init();

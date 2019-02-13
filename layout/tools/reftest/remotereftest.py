@@ -21,7 +21,8 @@ from remoteautomation import RemoteAutomation, fennecLogcatFilters
 
 class RemoteOptions(ReftestOptions):
     def __init__(self, automation):
-        ReftestOptions.__init__(self, automation)
+        ReftestOptions.__init__(self)
+        self.automation = automation
 
         defaults = {}
         defaults["logFile"] = "reftest.log"
@@ -40,6 +41,11 @@ class RemoteOptions(ReftestOptions):
                     type = "string", dest = "deviceIP",
                     help = "ip address of remote device to test")
         defaults["deviceIP"] = None
+
+        self.add_option("--deviceSerial", action="store",
+                    type = "string", dest = "deviceSerial",
+                    help = "adb serial number of remote device to test")
+        defaults["deviceSerial"] = None
 
         self.add_option("--devicePort", action="store",
                     type = "string", dest = "devicePort",
@@ -70,10 +76,6 @@ class RemoteOptions(ReftestOptions):
                     type = "string", dest = "remoteLogFile",
                     help = "Name of log file on the device relative to device root.  PLEASE USE ONLY A FILENAME.")
         defaults["remoteLogFile"] = None
-
-        self.add_option("--enable-privilege", action="store_true", dest = "enablePrivilege",
-                    help = "add webserver and port to the user.js file for remote script access and universalXPConnect")
-        defaults["enablePrivilege"] = False
 
         self.add_option("--pidfile", action = "store",
                     type = "string", dest = "pidFile",
@@ -109,7 +111,7 @@ class RemoteOptions(ReftestOptions):
 
         # Ensure our defaults are set properly for everything we can infer
         if not options.remoteTestRoot:
-            options.remoteTestRoot = self.automation._devicemanager.getDeviceRoot() + '/reftest'
+            options.remoteTestRoot = self.automation._devicemanager.deviceRoot + '/reftest'
         options.remoteProfile = options.remoteTestRoot + "/profile"
 
         # Verify that our remotewebserver is set properly
@@ -259,7 +261,8 @@ class RemoteReftest(RefTest):
     remoteApp = ''
 
     def __init__(self, automation, devicemanager, options, scriptDir):
-        RefTest.__init__(self, automation)
+        RefTest.__init__(self)
+        self.automation = automation
         self._devicemanager = devicemanager
         self.scriptDir = scriptDir
         self.remoteApp = options.app
@@ -273,6 +276,7 @@ class RemoteReftest(RefTest):
         else:
             self.SERVER_STARTUP_TIMEOUT = 90
         self.automation.deleteANRs()
+        self.automation.deleteTombstones()
 
     def findPath(self, paths, filename = None):
         for path in paths:
@@ -342,6 +346,7 @@ class RemoteReftest(RefTest):
         profileDir = profile.profile
 
         prefs = {}
+        prefs["app.update.url.android"] = ""
         prefs["browser.firstrun.show.localepicker"] = False
         prefs["font.size.inflation.emPerLine"] = 0
         prefs["font.size.inflation.minTwips"] = 0
@@ -372,6 +377,8 @@ class RemoteReftest(RefTest):
         prefs["extensions.getAddons.search.url"] = "http://127.0.0.1:8888/extensions-dummy/repositorySearchURL"
         # Make sure that opening the plugins check page won't hit the network
         prefs["plugins.update.url"] = "http://127.0.0.1:8888/plugins-dummy/updateCheckURL"
+        # Make sure the GMPInstallManager won't hit the network
+        prefs["media.gmp-manager.url.override"] = "http://127.0.0.1:8888/dummy-gmp-manager.xml";
         prefs["layout.css.devPixelsPerPx"] = "1.0"
 
         # Disable skia-gl: see bug 907351
@@ -405,10 +412,42 @@ class RemoteReftest(RefTest):
             if printLogcat:
                 logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
                 print ''.join(logcat)
-            print "Device info: %s" % self._devicemanager.getInfo()
-            print "Test root: %s" % self._devicemanager.getDeviceRoot()
+            print "Device info:"
+            devinfo = self._devicemanager.getInfo()
+            for category in devinfo:
+                if type(devinfo[category]) is list:
+                    print "  %s:" % category
+                    for item in devinfo[category]:
+                        print "     %s" % item
+                else:
+                    print "  %s: %s" % (category, devinfo[category])
+            print "Test root: %s" % self._devicemanager.deviceRoot
         except devicemanager.DMError:
             print "WARNING: Error getting device information"
+
+    def environment(self, **kwargs):
+        return self.automation.environment(**kwargs)
+
+    def buildBrowserEnv(self, options, profileDir):
+        browserEnv = RefTest.buildBrowserEnv(self, options, profileDir)
+        # remove desktop environment not used on device
+        if "XPCOM_MEM_BLOAT_LOG" in browserEnv:
+            del browserEnv["XPCOM_MEM_BLOAT_LOG"]
+        return browserEnv
+
+    def runApp(self, profile, binary, cmdargs, env,
+               timeout=None, debuggerInfo=None,
+               symbolsPath=None, options=None):
+        status = self.automation.runApp(None, env,
+                                        binary,
+                                        profile.profile,
+                                        cmdargs,
+                                        utilityPath=options.utilityPath,
+                                        xrePath=options.xrePath,
+                                        debuggerInfo=debuggerInfo,
+                                        symbolsPath=symbolsPath,
+                                        timeout=timeout)
+        return status
 
     def cleanup(self, profileDir):
         # Pull results back from device
@@ -433,14 +472,16 @@ def main(args):
     parser = RemoteOptions(automation)
     options, args = parser.parse_args()
 
-    if (options.deviceIP == None):
-        print "Error: you must provide a device IP to connect to via the --device option"
+    if (options.dm_trans == 'sut' and options.deviceIP == None):
+        print "Error: If --dm_trans = sut, you must provide a device IP to connect to via the --deviceIP option"
         return 1
 
     try:
         if (options.dm_trans == "adb"):
             if (options.deviceIP):
                 dm = droid.DroidADB(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
+            elif (options.deviceSerial):
+                dm = droid.DroidADB(None, None, deviceSerial=options.deviceSerial, deviceRoot=options.remoteTestRoot)
             else:
                 dm = droid.DroidADB(None, None, deviceRoot=options.remoteTestRoot)
         else:

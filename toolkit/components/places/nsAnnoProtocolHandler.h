@@ -17,7 +17,7 @@
 #define NS_ANNOPROTOCOLHANDLER_CID \
 { 0xe8b8bdb7, 0xc96c, 0x4d82, { 0x9c, 0x6f, 0x2b, 0x3c, 0x58, 0x5e, 0xc7, 0xea } }
 
-class nsAnnoProtocolHandler MOZ_FINAL : public nsIProtocolHandler, public nsSupportsWeakReference
+class nsAnnoProtocolHandler final : public nsIProtocolHandler, public nsSupportsWeakReference
 {
 public:
   nsAnnoProtocolHandler() {}
@@ -41,10 +41,13 @@ protected:
    * @param aAnnotationURI
    *        The URI that holds the data needed to get the favicon from the
    *        database.
+   * @param aLoadInfo
+   *        The loadinfo that requested the resource load.
    * @returns (via _channel) the channel that will obtain the favicon data.
    */
   nsresult NewFaviconChannel(nsIURI *aURI,
                              nsIURI *aAnnotationURI,
+                             nsILoadInfo *aLoadInfo,
                              nsIChannel **_channel);
 };
 

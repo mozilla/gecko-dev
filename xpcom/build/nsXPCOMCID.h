@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,7 @@
 
 /**
  * XPCOM Directory Service Contract ID
- *   The directory service provides ways to obtain file system locations. The 
+ *   The directory service provides ways to obtain file system locations. The
  *   directory service is a singleton.
  *
  *   This contract supports the nsIDirectoryService and the nsIProperties
@@ -19,11 +20,11 @@
 
 /**
  * XPCOM File
- *   The file abstraction provides ways to obtain and access files and 
- *   directories located on the local system. 
+ *   The file abstraction provides ways to obtain and access files and
+ *   directories located on the local system.
  *
  *   This contract supports the nsIFile interface.
- *   This contract may also support platform specific interfaces such as 
+ *   This contract may also support platform specific interfaces such as
  *   nsILocalFileMac on platforms where additional interfaces are required.
  *
  */
@@ -31,7 +32,7 @@
 
 /**
  * XPCOM Category Manager Contract ID
- *   The contract supports the nsICategoryManager interface. The 
+ *   The contract supports the nsICategoryManager interface. The
  *   category manager is a singleton.
  * The "enumerateCategory" method of nsICategoryManager will return an object
  * that implements nsIUTF8StringEnumerator. In addition, the enumerator will
@@ -90,9 +91,11 @@
  */
 #define NS_MESSAGE_LOOP_CONTRACTID "@mozilla.org/message-loop;1"
 
+#define NS_COMPARTMENT_INFO_CONTRACTID "@mozilla.org/compartment-info;1"
+
 /**
- * The following are the CIDs and Contract IDs of the nsISupports wrappers for 
- * primative types.  
+ * The following are the CIDs and Contract IDs of the nsISupports wrappers for
+ * primative types.
  */
 #define NS_SUPPORTS_ID_CID \
 { 0xacf8dc40, 0x4a25, 0x11d3, \

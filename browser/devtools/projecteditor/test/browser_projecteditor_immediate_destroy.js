@@ -4,14 +4,23 @@
 
 "use strict";
 
+///////////////////
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("destroy");
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.window is null");
+
 // Test that projecteditor can be destroyed in various states of loading
 // without causing any leaks or exceptions.
 
-let test = asyncTest(function* () {
+add_task(function* () {
 
   info ("Testing tab closure when projecteditor is in various states");
+  let loaderUrl = "chrome://browser/content/devtools/projecteditor-test.xul";
 
-  yield addTab("chrome://browser/content/devtools/projecteditor-test.html").then(() => {
+  yield addTab(loaderUrl).then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
     ok (iframe, "Tab has placeholder iframe for projecteditor");
 
@@ -19,7 +28,7 @@ let test = asyncTest(function* () {
     gBrowser.removeCurrentTab();
   });
 
-  yield addTab("chrome://browser/content/devtools/projecteditor-test.html").then(() => {
+  yield addTab(loaderUrl).then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
     ok (iframe, "Tab has placeholder iframe for projecteditor");
 
@@ -30,7 +39,7 @@ let test = asyncTest(function* () {
     gBrowser.removeCurrentTab();
   });
 
-  yield addTab("chrome://browser/content/devtools/projecteditor-test.html").then(() => {
+  yield addTab(loaderUrl).then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
     ok (iframe, "Tab has placeholder iframe for projecteditor");
 
@@ -43,7 +52,7 @@ let test = asyncTest(function* () {
     gBrowser.removeCurrentTab();
   });
 
-  yield addTab("chrome://browser/content/devtools/projecteditor-test.html").then(() => {
+  yield addTab(loaderUrl).then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
     ok (iframe, "Tab has placeholder iframe for projecteditor");
 
@@ -52,6 +61,29 @@ let test = asyncTest(function* () {
 
     return projecteditor.load(iframe).then(() => {
       info ("Closing the tab after a load has been requested and finished");
+      gBrowser.removeCurrentTab();
+    });
+  });
+
+  yield addTab(loaderUrl).then(() => {
+    let iframe = content.document.getElementById("projecteditor-iframe");
+    ok (iframe, "Tab has placeholder iframe for projecteditor");
+
+    let projecteditor = ProjectEditor.ProjectEditor(iframe);
+    ok (projecteditor, "ProjectEditor has been initialized");
+
+    let loadedDone = promise.defer();
+    projecteditor.loaded.then(() => {
+      ok (false, "Loaded has finished after destroy() has been called");
+      loadedDone.resolve();
+    }, () => {
+      ok (true, "Loaded has been rejected after destroy() has been called");
+      loadedDone.resolve();
+    });
+
+    projecteditor.destroy();
+
+    return loadedDone.promise.then(() => {
       gBrowser.removeCurrentTab();
     });
   });

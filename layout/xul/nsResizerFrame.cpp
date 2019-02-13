@@ -38,13 +38,13 @@ using namespace mozilla;
 nsIFrame*
 NS_NewResizerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsResizerFrame(aPresShell, aContext);
+  return new (aPresShell) nsResizerFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsResizerFrame)
 
-nsResizerFrame::nsResizerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-:nsTitleBarFrame(aPresShell, aContext)
+nsResizerFrame::nsResizerFrame(nsStyleContext* aContext)
+:nsTitleBarFrame(aContext)
 {
 }
 
@@ -64,8 +64,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   switch (aEvent->message) {
     case NS_TOUCH_START:
     case NS_MOUSE_BUTTON_DOWN: {
-      if (aEvent->eventStructType == NS_TOUCH_EVENT ||
-          (aEvent->eventStructType == NS_MOUSE_EVENT &&
+      if (aEvent->mClass == eTouchEventClass ||
+          (aEvent->mClass == eMouseEventClass &&
            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton)) {
         nsCOMPtr<nsIBaseWindow> window;
         nsIPresShell* presShell = aPresContext->GetPresShell();
@@ -89,7 +89,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
               break;
           }
 
-          mMouseDownRect = rect.ToNearestPixels(aPresContext->AppUnitsPerDevPixel());
+          mMouseDownRect =
+            LayoutDeviceIntRect::FromAppUnitsToNearest(rect, aPresContext->AppUnitsPerDevPixel());
           doDefault = false;
         }
         else {
@@ -114,7 +115,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
 
         // remember current mouse coordinates
-        nsIntPoint refPoint;
+        LayoutDeviceIntPoint refPoint;
         if (!GetEventPoint(aEvent, refPoint))
           return NS_OK;
         mMouseDownPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
@@ -129,8 +130,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
   case NS_TOUCH_END:
   case NS_MOUSE_BUTTON_UP: {
-    if (aEvent->eventStructType == NS_TOUCH_EVENT ||
-        (aEvent->eventStructType == NS_MOUSE_EVENT &&
+    if (aEvent->mClass == eTouchEventClass ||
+        (aEvent->mClass == eMouseEventClass &&
          aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton)) {
       // we're done tracking.
       mTrackingMouseMove = false;
@@ -162,11 +163,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
       // retrieve the offset of the mousemove event relative to the mousedown.
       // The difference is how much the resize needs to be
-      nsIntPoint refPoint;
+      LayoutDeviceIntPoint refPoint;
       if (!GetEventPoint(aEvent, refPoint))
         return NS_OK;
-      nsIntPoint screenPoint(refPoint + aEvent->widget->WidgetToScreenOffset());
-      nsIntPoint mouseMove(screenPoint - mMouseDownPoint);
+      LayoutDeviceIntPoint screenPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
+      LayoutDeviceIntPoint mouseMove(screenPoint - mMouseDownPoint);
 
       // Determine which direction to resize by checking the dir attribute.
       // For windows and menus, ensure that it can be resized in that direction.
@@ -182,7 +183,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         break; // don't do anything if there's nothing to resize
       }
 
-      nsIntRect rect = mMouseDownRect;
+      LayoutDeviceIntRect rect = mMouseDownRect;
 
       // Check if there are any size constraints on this window.
       widget::SizeConstraints sizeConstraints;
@@ -211,7 +212,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
                             NSToIntRound(frameRect.y / scale), 1, 1,
                             getter_AddRefs(screen));
           if (screen) {
-            nsIntRect screenRect;
+            LayoutDeviceIntRect screenRect;
             screen->GetRect(&screenRect.x, &screenRect.y,
                             &screenRect.width, &screenRect.height);
             rect.IntersectRect(rect, screenRect);
@@ -229,7 +230,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         // than be too large. If the popup is too large it could get flipped
         // to the opposite side of the anchor point while resizing.
         nsIntRect screenRectPixels = screenRect.ToInsidePixels(aPresContext->AppUnitsPerDevPixel());
-        rect.IntersectRect(rect, screenRectPixels);
+        rect.IntersectRect(rect, LayoutDevicePixel::FromUntyped(screenRectPixels));
       }
 
       if (contentToResize) {
@@ -237,7 +238,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         // direction, don't allow the new size to be less that the resizer's
         // size. This ensures that content isn't resized too small as to make
         // the resizer invisible.
-        nsRect appUnitsRect = rect.ToAppUnits(aPresContext->AppUnitsPerDevPixel());
+        nsRect appUnitsRect = ToAppUnits(LayoutDevicePixel::ToUntyped(rect), aPresContext->AppUnitsPerDevPixel());
         if (appUnitsRect.width < mRect.width && mouseMove.x)
           appUnitsRect.width = mRect.width;
         if (appUnitsRect.height < mRect.height && mouseMove.y)
@@ -402,7 +403,7 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
 {
   // for XUL elements, just set the width and height attributes. For
   // other elements, set style.width and style.height
-  if (aContent->IsXUL()) {
+  if (aContent->IsXULElement()) {
     if (aOriginalSizeInfo) {
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::width,
                         aOriginalSizeInfo->width);
@@ -502,21 +503,28 @@ nsResizerFrame::GetDirection()
      {-1,  1},          {1,  1}
     };
 
-  if (!GetContent())
+  if (!GetContent()) {
     return directions[0]; // default: topleft
+  }
 
   int32_t index = GetContent()->FindAttrValueIn(kNameSpaceID_None,
                                                 nsGkAtoms::dir,
                                                 strings, eCaseMatters);
-  if(index < 0)
+  if (index < 0) {
     return directions[0]; // default: topleft
-  else if (index >= 8 && StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+  }
+
+  if (index >= 8) {
     // Directions 8 and higher are RTL-aware directions and should reverse the
     // horizontal component if RTL.
-    Direction direction = directions[index];
-    direction.mHorizontal *= -1;
-    return direction;
+    WritingMode wm = GetWritingMode();
+    if (!(wm.IsVertical() ? wm.IsVerticalLR() : wm.IsBidiLTR())) {
+      Direction direction = directions[index];
+      direction.mHorizontal *= -1;
+      return direction;
+    }
   }
+
   return directions[index];
 }
 

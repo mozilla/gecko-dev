@@ -2,28 +2,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-ifdef MOZ_CONTENT_SANDBOX
-ifeq ($(OS_ARCH),WINNT)
-  SHARED_LIBRARY_LIBS += ../../security/sandbox/win/src/sandboxbroker/$(LIB_PREFIX)sandboxbroker.$(LIB_SUFFIX)
-endif
-endif
+include $(topsrcdir)/toolkit/library/libxul.mk
 
-# COMPONENT_LIBS is mosly useless since bug 935881, but is kept for
-# MOZ_APP_COMPONENT_LIBS, used by comm-central, and gtest linking.
-SHARED_LIBRARY_LIBS += \
-  $(foreach component,$(COMPONENT_LIBS),$(DEPTH)/staticlib/$(LIB_PREFIX)$(component).$(LIB_SUFFIX)) \
-  $(NULL)
+include $(topsrcdir)/config/config.mk
 
-ifdef MOZ_APP_COMPONENT_LIBS
-COMPONENT_LIBS += $(MOZ_APP_COMPONENT_LIBS)
-endif
-
-ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
-CXXFLAGS += $(TK_CFLAGS)
+ifeq (WINNT_1,$(OS_TARGET)_$(MOZ_PROFILE_USE))
+# Wrap linker to measure peak virtual memory usage.
+EXPAND_LIBS_EXEC := $(PYTHON) $(topsrcdir)/config/link.py linker-vsize
 endif
 
 include $(topsrcdir)/config/rules.mk
 
+ifdef COMPILE_ENVIRONMENT
+target:: $(FINAL_TARGET)/dependentlibs.list
+endif
+
+$(FINAL_TARGET)/dependentlibs.list: $(topsrcdir)/toolkit/library/dependentlibs.py $(SHARED_LIBRARY) $(wildcard $(if $(wildcard $(FINAL_TARGET)/dependentlibs.list),$(addprefix $(FINAL_TARGET)/,$(shell cat $(FINAL_TARGET)/dependentlibs.list))))
+	$(PYTHON) $< $(SHARED_LIBRARY) -L $(FINAL_TARGET) $(if $(TOOLCHAIN_PREFIX),$(addprefix -p ,$(TOOLCHAIN_PREFIX))) > $@
+
 .PHONY: gtestxul
 gtestxul:
-	$(MAKE) -C gtest libs LINK_GTEST=1
+	$(MAKE) -C gtest target LINK_GTEST=1

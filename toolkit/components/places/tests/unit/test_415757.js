@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,13 +40,13 @@ add_task(function test_execute()
     let site = "http://www.test-" + i + ".com/";
     let testURI = uri(site);
     let when = Date.now() * 1000 + (i * TOTAL_SITES);
-    yield promiseAddVisits({ uri: testURI, visitDate: when });
+    yield PlacesTestUtils.addVisits({ uri: testURI, visitDate: when });
   }
   for (var i = 0; i < TOTAL_SITES; i++) {
     let site = "http://www.test.com/" + i + "/";
     let testURI = uri(site);
     let when = Date.now() * 1000 + (i * TOTAL_SITES);
-    yield promiseAddVisits({ uri: testURI, visitDate: when });
+    yield PlacesTestUtils.addVisits({ uri: testURI, visitDate: when });
   }
 
   // set a page annotation on one of the urls that will be removed

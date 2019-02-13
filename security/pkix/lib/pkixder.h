@@ -22,36 +22,27 @@
  * limitations under the License.
  */
 
-#ifndef mozilla_pkix__pkixder_h
-#define mozilla_pkix__pkixder_h
+#ifndef mozilla_pkix_pkixder_h
+#define mozilla_pkix_pkixder_h
 
 // Expect* functions advance the input mark and return Success if the input
-// matches the given criteria; they return Failure with the input mark in an
-// undefined state if the input does not match the criteria.
+// matches the given criteria; they fail with the input mark in an undefined
+// state if the input does not match the criteria.
 //
 // Match* functions advance the input mark and return true if the input matches
 // the given criteria; they return false without changing the input mark if the
 // input does not match the criteria.
 //
 // Skip* functions unconditionally advance the input mark and return Success if
-// they are able to do so; otherwise they return Failure with the input mark in
-// an undefined state.
+// they are able to do so; otherwise they fail with the input mark in an
+// undefined state.
 
-#include "pkix/enumclass.h"
-#include "pkix/nullptr.h"
-
-#include "prerror.h"
-#include "prlog.h"
-#include "secder.h"
-#include "secerr.h"
-#include "secoidt.h"
-#include "stdint.h"
-
-typedef struct CERTSignedDataStr CERTSignedData;
+#include "pkix/Input.h"
+#include "pkix/pkixtypes.h"
 
 namespace mozilla { namespace pkix { namespace der {
 
-enum Class
+enum Class : uint8_t
 {
    UNIVERSAL = 0 << 6,
 // APPLICATION = 1 << 6, // unused
@@ -64,7 +55,7 @@ enum Constructed
   CONSTRUCTED = 1 << 5
 };
 
-enum Tag
+enum Tag : uint8_t
 {
   BOOLEAN = UNIVERSAL | 0x01,
   INTEGER = UNIVERSAL | 0x02,
@@ -73,276 +64,83 @@ enum Tag
   NULLTag = UNIVERSAL | 0x05,
   OIDTag = UNIVERSAL | 0x06,
   ENUMERATED = UNIVERSAL | 0x0a,
+  UTF8String = UNIVERSAL | 0x0c,
+  SEQUENCE = UNIVERSAL | CONSTRUCTED | 0x10, // 0x30
+  SET = UNIVERSAL | CONSTRUCTED | 0x11, // 0x31
+  PrintableString = UNIVERSAL | 0x13,
+  TeletexString = UNIVERSAL | 0x14,
+  IA5String = UNIVERSAL | 0x16,
+  UTCTime = UNIVERSAL | 0x17,
   GENERALIZED_TIME = UNIVERSAL | 0x18,
-  SEQUENCE = UNIVERSAL | CONSTRUCTED | 0x30,
 };
 
-enum Result
-{
-  Failure = -1,
-  Success = 0
-};
+enum class EmptyAllowed { No = 0, Yes = 1 };
 
-MOZILLA_PKIX_ENUM_CLASS EmptyAllowed { No = 0, Yes = 1 };
-
-Result Fail(PRErrorCode errorCode);
-
-class Input
-{
-public:
-  Input()
-    : input(nullptr)
-    , end(nullptr)
-  {
-  }
-
-  Result Init(const uint8_t* data, size_t len)
-  {
-    if (input) {
-      // already initialized
-      return Fail(SEC_ERROR_INVALID_ARGS);
-    }
-    if (!data || len > 0xffffu) {
-      // input too large
-      return Fail(SEC_ERROR_BAD_DER);
-    }
-
-    // XXX: this->input = input bug was not caught by tests! Why not?
-    //      this->end = end bug was not caught by tests! Why not?
-    this->input = data;
-    this->end = data + len;
-
-    return Success;
-  }
-
-  Result Expect(const uint8_t* expected, uint16_t expectedLen)
-  {
-    if (EnsureLength(expectedLen) != Success) {
-      return Failure;
-    }
-    if (memcmp(input, expected, expectedLen)) {
-      return Fail(SEC_ERROR_BAD_DER);
-    }
-    input += expectedLen;
-    return Success;
-  }
-
-  bool Peek(uint8_t expectedByte) const
-  {
-    return input < end && *input == expectedByte;
-  }
-
-  Result Read(uint8_t& out)
-  {
-    if (EnsureLength(1) != Success) {
-      return Failure;
-    }
-    out = *input++;
-    return Success;
-  }
-
-  Result Read(uint16_t& out)
-  {
-    if (EnsureLength(2) != Success) {
-      return Failure;
-    }
-    out = *input++;
-    out <<= 8u;
-    out |= *input++;
-    return Success;
-  }
-
-  template <uint16_t N>
-  bool MatchRest(const uint8_t (&toMatch)[N])
-  {
-    // Normally we use EnsureLength which compares (input + len < end), but
-    // here we want to be sure that there is nothing following the matched
-    // bytes
-    if (static_cast<size_t>(end - input) != N) {
-      return false;
-    }
-    if (memcmp(input, toMatch, N)) {
-      return false;
-    }
-    input += N;
-    return true;
-  }
-
-  template <uint16_t N>
-  bool MatchTLV(uint8_t tag, uint16_t len, const uint8_t (&value)[N])
-  {
-    static_assert(N <= 127, "buffer larger than largest length supported");
-    if (len > N) {
-      PR_NOT_REACHED("overflow prevented dynamically instead of statically");
-      return false;
-    }
-    uint16_t totalLen = 2u + len;
-    if (EnsureLength(totalLen) != Success) {
-      return false;
-    }
-    if (*input != tag) {
-      return false;
-    }
-    if (*(input + 1) != len) {
-      return false;
-    }
-    if (memcmp(input + 2, value, len)) {
-      return false;
-    }
-    input += totalLen;
-    return true;
-  }
-
-  Result Skip(uint16_t len)
-  {
-    if (EnsureLength(len) != Success) {
-      return Failure;
-    }
-    input += len;
-    return Success;
-  }
-
-  Result Skip(uint16_t len, Input& skippedInput)
-  {
-    if (EnsureLength(len) != Success) {
-      return Failure;
-    }
-    if (skippedInput.Init(input, len) != Success) {
-      return Failure;
-    }
-    input += len;
-    return Success;
-  }
-
-  Result Skip(uint16_t len, SECItem& skippedItem)
-  {
-    if (EnsureLength(len) != Success) {
-      return Failure;
-    }
-    skippedItem.type = siBuffer;
-    skippedItem.data = const_cast<uint8_t*>(input);
-    skippedItem.len = len;
-    input += len;
-    return Success;
-  }
-
-  void SkipToEnd()
-  {
-    input = end;
-  }
-
-  Result EnsureLength(uint16_t len)
-  {
-    if (static_cast<size_t>(end - input) < len) {
-      return Fail(SEC_ERROR_BAD_DER);
-    }
-    return Success;
-  }
-
-  bool AtEnd() const { return input == end; }
-
-  class Mark
-  {
-  private:
-    friend class Input;
-    Mark(const Input& input, const uint8_t* mark) : input(input), mark(mark) { }
-    const Input& input;
-    const uint8_t* const mark;
-    void operator=(const Mark&) /* = delete */;
-  };
-
-  Mark GetMark() const { return Mark(*this, input); }
-
-  Result GetSECItem(SECItemType type, const Mark& mark, /*out*/ SECItem& item)
-  {
-    if (&mark.input != this || mark.mark > input) {
-      PR_NOT_REACHED("invalid mark");
-      return Fail(SEC_ERROR_INVALID_ARGS);
-    }
-    item.type = type;
-    item.data = const_cast<uint8_t*>(mark.mark);
-    item.len = static_cast<decltype(item.len)>(input - mark.mark);
-    return Success;
-  }
-
-private:
-  const uint8_t* input;
-  const uint8_t* end;
-
-  Input(const Input&) /* = delete */;
-  void operator=(const Input&) /* = delete */;
-};
+Result ReadTagAndGetValue(Reader& input, /*out*/ uint8_t& tag,
+                          /*out*/ Input& value);
+Result End(Reader& input);
 
 inline Result
-ExpectTagAndLength(Input& input, uint8_t expectedTag, uint8_t expectedLength)
+ExpectTagAndGetValue(Reader& input, uint8_t tag, /*out*/ Input& value)
 {
-  PR_ASSERT((expectedTag & 0x1F) != 0x1F); // high tag number form not allowed
-  PR_ASSERT(expectedLength < 128); // must be a single-byte length
-
-  uint16_t tagAndLength;
-  if (input.Read(tagAndLength) != Success) {
-    return Failure;
+  uint8_t actualTag;
+  Result rv = ReadTagAndGetValue(input, actualTag, value);
+  if (rv != Success) {
+    return rv;
   }
-
-  uint16_t expectedTagAndLength = static_cast<uint16_t>(expectedTag << 8);
-  expectedTagAndLength |= expectedLength;
-
-  if (tagAndLength != expectedTagAndLength) {
-    return Fail(SEC_ERROR_BAD_DER);
+  if (tag != actualTag) {
+    return Result::ERROR_BAD_DER;
   }
-
   return Success;
 }
 
-namespace internal {
-
-Result
-ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length);
-
-} // namespace internal
-
 inline Result
-ExpectTagAndSkipLength(Input& input, uint8_t expectedTag)
+ExpectTagAndGetValue(Reader& input, uint8_t tag, /*out*/ Reader& value)
 {
-  uint16_t ignored;
-  return internal::ExpectTagAndGetLength(input, expectedTag, ignored);
-}
-
-inline Result
-ExpectTagAndSkipValue(Input& input, uint8_t tag)
-{
-  uint16_t length;
-  if (internal::ExpectTagAndGetLength(input, tag, length) != Success) {
-    return Failure;
+  Input valueInput;
+  Result rv = ExpectTagAndGetValue(input, tag, valueInput);
+  if (rv != Success) {
+    return rv;
   }
-  return input.Skip(length);
+  return value.Init(valueInput);
 }
 
 inline Result
-ExpectTagAndGetValue(Input& input, uint8_t tag, /*out*/ SECItem& value)
+ExpectTagAndEmptyValue(Reader& input, uint8_t tag)
 {
-  uint16_t length;
-  if (internal::ExpectTagAndGetLength(input, tag, length) != Success) {
-    return Failure;
+  Reader value;
+  Result rv = ExpectTagAndGetValue(input, tag, value);
+  if (rv != Success) {
+    return rv;
   }
-  return input.Skip(length, value);
+  return End(value);
 }
 
 inline Result
-ExpectTagAndGetValue(Input& input, uint8_t tag, /*out*/ Input& value)
+ExpectTagAndSkipValue(Reader& input, uint8_t tag)
 {
-  uint16_t length;
-  if (internal::ExpectTagAndGetLength(input, tag, length) != Success) {
-    return Failure;
+  Input ignoredValue;
+  return ExpectTagAndGetValue(input, tag, ignoredValue);
+}
+
+// Like ExpectTagAndGetValue, except the output Input will contain the
+// encoded tag and length along with the value.
+inline Result
+ExpectTagAndGetTLV(Reader& input, uint8_t tag, /*out*/ Input& tlv)
+{
+  Reader::Mark mark(input.GetMark());
+  Result rv = ExpectTagAndSkipValue(input, tag);
+  if (rv != Success) {
+    return rv;
   }
-  return input.Skip(length, value);
+  return input.GetInput(mark, tlv);
 }
 
 inline Result
-End(Input& input)
+End(Reader& input)
 {
   if (!input.AtEnd()) {
-    return Fail(SEC_ERROR_BAD_DER);
+    return Result::ERROR_BAD_DER;
   }
 
   return Success;
@@ -350,31 +148,32 @@ End(Input& input)
 
 template <typename Decoder>
 inline Result
-Nested(Input& input, uint8_t tag, Decoder decoder)
+Nested(Reader& input, uint8_t tag, Decoder decoder)
 {
-  Input nested;
-  if (ExpectTagAndGetValue(input, tag, nested) != Success) {
-    return Failure;
+  Reader nested;
+  Result rv = ExpectTagAndGetValue(input, tag, nested);
+  if (rv != Success) {
+    return rv;
   }
-  if (decoder(nested) != Success) {
-    return Failure;
+  rv = decoder(nested);
+  if (rv != Success) {
+    return rv;
   }
   return End(nested);
 }
 
 template <typename Decoder>
 inline Result
-Nested(Input& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
+Nested(Reader& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
 {
-  // XXX: This doesn't work (in VS2010):
-  // return Nested(input, outerTag, bind(Nested, _1, innerTag, decoder));
-
-  Input nestedInput;
-  if (ExpectTagAndGetValue(input, outerTag, nestedInput) != Success) {
-    return Failure;
+  Reader nestedInput;
+  Result rv = ExpectTagAndGetValue(input, outerTag, nestedInput);
+  if (rv != Success) {
+    return rv;
   }
-  if (Nested(nestedInput, innerTag, decoder) != Success) {
-    return Failure;
+  rv = Nested(nestedInput, innerTag, decoder);
+  if (rv != Success) {
+    return rv;
   }
   return End(nestedInput);
 }
@@ -387,103 +186,142 @@ Nested(Input& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
 //     Foo ::= SEQUENCE {
 //     }
 //
-// using a call like this:
+// using code like this:
 //
-//    rv = NestedOf(input, SEQEUENCE, SEQUENCE, bind(_1, Foo));
+//    Result Foo(Reader& r) { /*...*/ }
 //
-//    Result Foo(Input& input) {
-//    }
+//    rv = der::NestedOf(input, der::SEQEUENCE, der::SEQUENCE, Foo);
 //
-// In this example, Foo will get called once for each element of foos.
+// or:
+//
+//    Result Bar(Reader& r, int value) { /*...*/ }
+//
+//    int value = /*...*/;
+//
+//    rv = der::NestedOf(input, der::SEQUENCE, [value](Reader& r) {
+//      return Bar(r, value);
+//    });
+//
+// In these examples the function will get called once for each element of
+// foos.
 //
 template <typename Decoder>
 inline Result
-NestedOf(Input& input, uint8_t outerTag, uint8_t innerTag,
+NestedOf(Reader& input, uint8_t outerTag, uint8_t innerTag,
          EmptyAllowed mayBeEmpty, Decoder decoder)
 {
-  Input inner;
-  if (ExpectTagAndGetValue(input, outerTag, inner) != Success) {
-    return Failure;
+  Reader inner;
+  Result rv = ExpectTagAndGetValue(input, outerTag, inner);
+  if (rv != Success) {
+    return rv;
   }
 
   if (inner.AtEnd()) {
     if (mayBeEmpty != EmptyAllowed::Yes) {
-      return Fail(SEC_ERROR_BAD_DER);
+      return Result::ERROR_BAD_DER;
     }
     return Success;
   }
 
   do {
-    if (Nested(inner, innerTag, decoder) != Success) {
-      return Failure;
+    rv = Nested(inner, innerTag, decoder);
+    if (rv != Success) {
+      return rv;
     }
   } while (!inner.AtEnd());
 
   return Success;
 }
 
+// Often, a function will need to decode an Input or Reader that contains
+// DER-encoded data wrapped in a SEQUENCE (or similar) with nothing after it.
+// This function reduces the boilerplate necessary for stripping the outermost
+// SEQUENCE (or similar) and ensuring that nothing follows it.
+inline Result
+ExpectTagAndGetValueAtEnd(Reader& outer, uint8_t expectedTag,
+                          /*out*/ Reader& inner)
+{
+  Result rv = der::ExpectTagAndGetValue(outer, expectedTag, inner);
+  if (rv != Success) {
+    return rv;
+  }
+  return der::End(outer);
+}
+
+// Similar to the above, but takes an Input instead of a Reader&.
+inline Result
+ExpectTagAndGetValueAtEnd(Input outer, uint8_t expectedTag,
+                          /*out*/ Reader& inner)
+{
+  Reader outerReader(outer);
+  return ExpectTagAndGetValueAtEnd(outerReader, expectedTag, inner);
+}
+
 // Universal types
 
 namespace internal {
 
+enum class IntegralValueRestriction
+{
+  NoRestriction,
+  MustBePositive,
+  MustBe0To127,
+};
+
+Result IntegralBytes(Reader& input, uint8_t tag,
+                     IntegralValueRestriction valueRestriction,
+             /*out*/ Input& value,
+    /*optional out*/ Input::size_type* significantBytes = nullptr);
+
 // This parser will only parse values between 0..127. If this range is
 // increased then callers will need to be changed.
-template <typename T> inline Result
-IntegralValue(Input& input, uint8_t tag, T& value)
-{
-  // Conveniently, all the Integers that we actually have to be able to parse
-  // are positive and very small. Consequently, this parser is *much* simpler
-  // than a general Integer parser would need to be.
-  if (ExpectTagAndLength(input, tag, 1) != Success) {
-    return Failure;
-  }
-  uint8_t valueByte;
-  if (input.Read(valueByte) != Success) {
-    return Failure;
-  }
-  if (valueByte & 0x80) { // negative
-    return Fail(SEC_ERROR_BAD_DER);
-  }
-  value = valueByte;
-  return Success;
-}
+Result IntegralValue(Reader& input, uint8_t tag, /*out*/ uint8_t& value);
 
 } // namespace internal
 
+Result
+BitStringWithNoUnusedBits(Reader& input, /*out*/ Input& value);
+
 inline Result
-Boolean(Input& input, /*out*/ bool& value)
+Boolean(Reader& input, /*out*/ bool& value)
 {
-  if (ExpectTagAndLength(input, BOOLEAN, 1) != Success) {
-    return Failure;
+  Reader valueReader;
+  Result rv = ExpectTagAndGetValue(input, BOOLEAN, valueReader);
+  if (rv != Success) {
+    return rv;
   }
 
   uint8_t intValue;
-  if (input.Read(intValue) != Success) {
-    return Failure;
+  rv = valueReader.Read(intValue);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = End(valueReader);
+  if (rv != Success) {
+    return rv;
   }
   switch (intValue) {
     case 0: value = false; return Success;
     case 0xFF: value = true; return Success;
     default:
-      return Fail(SEC_ERROR_BAD_DER);
+      return Result::ERROR_BAD_DER;
   }
 }
 
-// This is for any BOOLEAN DEFAULT FALSE.
-// (If it is present and false, this is a bad encoding.)
-// TODO(bug 989518): For compatibility reasons, in some places we allow
-// invalid encodings with the explicit default value.
+// This is for BOOLEAN DEFAULT FALSE.
+// The standard stipulates that "The encoding of a set value or sequence value
+// shall not include an encoding for any component value which is equal to its
+// default value." However, it appears to be common that other libraries
+// incorrectly include the value of a BOOLEAN even when it's equal to the
+// default value, so we allow invalid explicit encodings here.
 inline Result
-OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
-                /*out*/ bool& value)
+OptionalBoolean(Reader& input, /*out*/ bool& value)
 {
   value = false;
   if (input.Peek(BOOLEAN)) {
-    if (Boolean(input, value) != Success) {
-      return Failure;
-    }
-    if (!allowInvalidExplicitEncoding && !value) {
-      return Fail(SEC_ERROR_BAD_DER);
+    Result rv = Boolean(input, value);
+    if (rv != Success) {
+      return rv;
     }
   }
   return Success;
@@ -492,33 +330,61 @@ OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
 // This parser will only parse values between 0..127. If this range is
 // increased then callers will need to be changed.
 inline Result
-Enumerated(Input& input, uint8_t& value)
+Enumerated(Reader& input, uint8_t& value)
 {
   return internal::IntegralValue(input, ENUMERATED | 0, value);
 }
 
+namespace internal {
+
+// internal::TimeChoice implements the shared functionality of GeneralizedTime
+// and TimeChoice. tag must be either UTCTime or GENERALIZED_TIME.
+//
+// Only times from 1970-01-01-00:00:00 onward are accepted, in order to
+// eliminate the chance for complications in converting times to traditional
+// time formats that start at 1970.
+Result TimeChoice(Reader& input, uint8_t tag, /*out*/ Time& time);
+
+} // namespace internal
+
+// Only times from 1970-01-01-00:00:00 onward are accepted, in order to
+// eliminate the chance for complications in converting times to traditional
+// time formats that start at 1970.
 inline Result
-GeneralizedTime(Input& input, PRTime& time)
+GeneralizedTime(Reader& input, /*out*/ Time& time)
 {
-  SECItem encoded;
-  if (ExpectTagAndGetValue(input, GENERALIZED_TIME, encoded) != Success) {
-    return Failure;
-  }
-  if (DER_GeneralizedTimeToTime(&time, &encoded) != SECSuccess) {
-    return Failure;
-  }
-  return Success;
+  return internal::TimeChoice(input, GENERALIZED_TIME, time);
+}
+
+// Only times from 1970-01-01-00:00:00 onward are accepted, in order to
+// eliminate the chance for complications in converting times to traditional
+// time formats that start at 1970.
+inline Result
+TimeChoice(Reader& input, /*out*/ Time& time)
+{
+  uint8_t expectedTag = input.Peek(UTCTime) ? UTCTime : GENERALIZED_TIME;
+  return internal::TimeChoice(input, expectedTag, time);
+}
+
+// Parse a DER integer value into value. Empty values, negative values, and
+// zero are rejected. If significantBytes is not null, then it will be set to
+// the number of significant bytes in the value (the length of the value, less
+// the length of any leading padding), which is useful for key size checks.
+inline Result
+PositiveInteger(Reader& input, /*out*/ Input& value,
+                /*optional out*/ Input::size_type* significantBytes = nullptr)
+{
+  return internal::IntegralBytes(
+           input, INTEGER, internal::IntegralValueRestriction::MustBePositive,
+           value, significantBytes);
 }
 
 // This parser will only parse values between 0..127. If this range is
 // increased then callers will need to be changed.
 inline Result
-Integer(Input& input, /*out*/ uint8_t& value)
+Integer(Reader& input, /*out*/ uint8_t& value)
 {
-  if (internal::IntegralValue(input, INTEGER, value) != Success) {
-    return Failure;
-  }
-  return Success;
+  return internal::IntegralValue(input, INTEGER, value);
 }
 
 // This parser will only parse values between 0..127. If this range is
@@ -526,12 +392,12 @@ Integer(Input& input, /*out*/ uint8_t& value)
 // -1; defaultValue is only a parameter to make it clear in the calling code
 // what the default value is.
 inline Result
-OptionalInteger(Input& input, long defaultValue, /*out*/ long& value)
+OptionalInteger(Reader& input, long defaultValue, /*out*/ long& value)
 {
   // If we need to support a different default value in the future, we need to
   // test that parsedValue != defaultValue.
   if (defaultValue != -1) {
-    return Fail(SEC_ERROR_INVALID_ARGS);
+    return Result::FATAL_ERROR_INVALID_ARGS;
   }
 
   if (!input.Peek(INTEGER)) {
@@ -540,51 +406,39 @@ OptionalInteger(Input& input, long defaultValue, /*out*/ long& value)
   }
 
   uint8_t parsedValue;
-  if (Integer(input, parsedValue) != Success) {
-    return Failure;
+  Result rv = Integer(input, parsedValue);
+  if (rv != Success) {
+    return rv;
   }
   value = parsedValue;
   return Success;
 }
 
 inline Result
-Null(Input& input)
+Null(Reader& input)
 {
-  return ExpectTagAndLength(input, NULLTag, 0);
+  return ExpectTagAndEmptyValue(input, NULLTag);
 }
 
 template <uint8_t Len>
 Result
-OID(Input& input, const uint8_t (&expectedOid)[Len])
+OID(Reader& input, const uint8_t (&expectedOid)[Len])
 {
-  if (ExpectTagAndLength(input, OIDTag, Len) != Success) {
-    return Failure;
+  Reader value;
+  Result rv = ExpectTagAndGetValue(input, OIDTag, value);
+  if (rv != Success) {
+    return rv;
   }
-
-  return input.Expect(expectedOid, Len);
+  if (!value.MatchRest(expectedOid)) {
+    return Result::ERROR_BAD_DER;
+  }
+  return Success;
 }
 
 // PKI-specific types
 
-// AlgorithmIdentifier  ::=  SEQUENCE  {
-//         algorithm               OBJECT IDENTIFIER,
-//         parameters              ANY DEFINED BY algorithm OPTIONAL  }
 inline Result
-AlgorithmIdentifier(Input& input, SECAlgorithmID& algorithmID)
-{
-  if (ExpectTagAndGetValue(input, OIDTag, algorithmID.algorithm) != Success) {
-    return Failure;
-  }
-  algorithmID.parameters.data = nullptr;
-  algorithmID.parameters.len = 0;
-  if (input.AtEnd()) {
-    return Success;
-  }
-  return Null(input);
-}
-
-inline Result
-CertificateSerialNumber(Input& input, /*out*/ SECItem& value)
+CertificateSerialNumber(Reader& input, /*out*/ Input& value)
 {
   // http://tools.ietf.org/html/rfc5280#section-4.1.2.2:
   //
@@ -596,65 +450,102 @@ CertificateSerialNumber(Input& input, /*out*/ SECItem& value)
   // * "Note: Non-conforming CAs may issue certificates with serial numbers
   //   that are negative or zero.  Certificate users SHOULD be prepared to
   //   gracefully handle such certificates."
-
-  if (ExpectTagAndGetValue(input, INTEGER, value) != Success) {
-    return Failure;
-  }
-
-  if (value.len == 0) {
-    return Fail(SEC_ERROR_BAD_DER);
-  }
-
-  // Check for overly-long encodings. If the first byte is 0x00 then the high
-  // bit on the second byte must be 1; otherwise the same *positive* value
-  // could be encoded without the leading 0x00 byte. If the first byte is 0xFF
-  // then the second byte must NOT have its high bit set; otherwise the same
-  // *negative* value could be encoded without the leading 0xFF byte.
-  if (value.len > 1) {
-    if ((value.data[0] == 0x00 && (value.data[1] & 0x80) == 0) ||
-        (value.data[0] == 0xff && (value.data[1] & 0x80) != 0)) {
-      return Fail(SEC_ERROR_BAD_DER);
-    }
-  }
-
-  return Success;
+  return internal::IntegralBytes(
+           input, INTEGER, internal::IntegralValueRestriction::NoRestriction,
+           value);
 }
 
 // x.509 and OCSP both use this same version numbering scheme, though OCSP
 // only supports v1.
-enum Version { v1 = 0, v2 = 1, v3 = 2 };
+enum class Version { v1 = 0, v2 = 1, v3 = 2, v4 = 3 };
 
-// X.509 Certificate and OCSP ResponseData both use this
-// "[0] EXPLICIT Version DEFAULT <defaultVersion>" construct, but with
-// different default versions.
+// X.509 Certificate and OCSP ResponseData both use
+// "[0] EXPLICIT Version DEFAULT v1". Although an explicit encoding of v1 is
+// illegal, we support it because some real-world OCSP responses explicitly
+// encode it.
+Result OptionalVersion(Reader& input, /*out*/ Version& version);
+
+template <typename ExtensionHandler>
 inline Result
-OptionalVersion(Input& input, /*out*/ uint8_t& version)
+OptionalExtensions(Reader& input, uint8_t tag,
+                   ExtensionHandler extensionHandler)
 {
-  const uint8_t tag = CONTEXT_SPECIFIC | CONSTRUCTED | 0;
   if (!input.Peek(tag)) {
-    version = v1;
     return Success;
   }
-  if (ExpectTagAndLength(input, tag, 3) != Success) {
-    return Failure;
-  }
-  if (ExpectTagAndLength(input, INTEGER, 1) != Success) {
-    return Failure;
-  }
-  if (input.Read(version) != Success) {
-    return Failure;
-  }
-  if (version & 0x80) { // negative
-    return Fail(SEC_ERROR_BAD_DER);
-  }
-  return Success;
+
+  return Nested(input, tag, [extensionHandler](Reader& tagged) {
+    // Extensions ::= SEQUENCE SIZE (1..MAX) OF Extension
+    //
+    // TODO(bug 997994): According to the specification, there should never be
+    // an empty sequence of extensions but we've found OCSP responses that have
+    // that (see bug 991898).
+    return NestedOf(tagged, SEQUENCE, SEQUENCE, EmptyAllowed::Yes,
+                    [extensionHandler](Reader& extension) -> Result {
+      // Extension  ::=  SEQUENCE  {
+      //      extnID      OBJECT IDENTIFIER,
+      //      critical    BOOLEAN DEFAULT FALSE,
+      //      extnValue   OCTET STRING
+      //      }
+      Reader extnID;
+      Result rv = ExpectTagAndGetValue(extension, OIDTag, extnID);
+      if (rv != Success) {
+        return rv;
+      }
+      bool critical;
+      rv = OptionalBoolean(extension, critical);
+      if (rv != Success) {
+        return rv;
+      }
+      Input extnValue;
+      rv = ExpectTagAndGetValue(extension, OCTET_STRING, extnValue);
+      if (rv != Success) {
+        return rv;
+      }
+      bool understood = false;
+      rv = extensionHandler(extnID, extnValue, critical, understood);
+      if (rv != Success) {
+        return rv;
+      }
+      if (critical && !understood) {
+        return Result::ERROR_UNKNOWN_CRITICAL_EXTENSION;
+      }
+      return Success;
+    });
+  });
 }
+
+Result DigestAlgorithmIdentifier(Reader& input,
+                                 /*out*/ DigestAlgorithm& algorithm);
+
+enum class PublicKeyAlgorithm
+{
+  RSA_PKCS1,
+  ECDSA,
+};
+
+Result SignatureAlgorithmIdentifierValue(
+         Reader& input,
+         /*out*/ PublicKeyAlgorithm& publicKeyAlgorithm,
+         /*out*/ DigestAlgorithm& digestAlgorithm);
+
+struct SignedDataWithSignature final
+{
+public:
+  Input data;
+  Input algorithm;
+  Input signature;
+
+  void operator=(const SignedDataWithSignature&) = delete;
+};
 
 // Parses a SEQUENCE into tbs and then parses an AlgorithmIdentifier followed
 // by a BIT STRING into signedData. This handles the commonality between
 // parsing the signed/signature fields of certificates and OCSP responses. In
 // the case of an OCSP response, the caller needs to parse the certs
 // separately.
+//
+// Note that signatureAlgorithm is NOT parsed or validated.
 //
 // Certificate  ::=  SEQUENCE  {
 //        tbsCertificate       TBSCertificate,
@@ -666,9 +557,9 @@ OptionalVersion(Input& input, /*out*/ uint8_t& version)
 //    signatureAlgorithm   AlgorithmIdentifier,
 //    signature            BIT STRING,
 //    certs            [0] EXPLICIT SEQUENCE OF Certificate OPTIONAL }
-Result
-SignedData(Input& input, /*out*/ Input& tbs, /*out*/ CERTSignedData& signedData);
+Result SignedData(Reader& input, /*out*/ Reader& tbs,
+                  /*out*/ SignedDataWithSignature& signedDataWithSignature);
 
 } } } // namespace mozilla::pkix::der
 
-#endif // mozilla_pkix__pkixder_h
+#endif // mozilla_pkix_pkixder_h

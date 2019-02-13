@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,84 +7,109 @@
 #ifndef mozilla_dom_indexeddb_key_h__
 #define mozilla_dom_indexeddb_key_h__
 
-#include "mozilla/dom/indexedDB/IndexedDatabase.h"
+#include "js/RootingAPI.h"
+#include "nsString.h"
 
-#include "mozIStorageStatement.h"
-
-#include "js/Value.h"
+class mozIStorageStatement;
+class mozIStorageValueArray;
 
 namespace IPC {
-template <typename T> struct ParamTraits;
+
+template <typename> struct ParamTraits;
+
 } // namespace IPC
 
-BEGIN_INDEXEDDB_NAMESPACE
+namespace mozilla {
+namespace dom {
+namespace indexedDB {
 
 class Key
 {
   friend struct IPC::ParamTraits<Key>;
 
+  nsCString mBuffer;
+
 public:
+  enum {
+    eTerminator = 0,
+    eFloat = 0x10,
+    eDate = 0x20,
+    eString = 0x30,
+    eArray = 0x50,
+    eMaxType = eArray
+  };
+
+  static const uint8_t kMaxArrayCollapse = uint8_t(3);
+  static const uint8_t kMaxRecursionDepth = uint8_t(64);
+
   Key()
   {
     Unset();
   }
 
-  Key& operator=(const nsAString& aString)
+  explicit
+  Key(const nsACString& aBuffer)
+    : mBuffer(aBuffer)
+  { }
+
+  Key&
+  operator=(const nsAString& aString)
   {
     SetFromString(aString);
     return *this;
   }
 
-  Key& operator=(int64_t aInt)
+  Key&
+  operator=(int64_t aInt)
   {
     SetFromInteger(aInt);
     return *this;
   }
 
-  bool operator==(const Key& aOther) const
+  bool
+  operator==(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return mBuffer.Equals(aOther.mBuffer);
   }
 
-  bool operator!=(const Key& aOther) const
+  bool
+  operator!=(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return !mBuffer.Equals(aOther.mBuffer);
   }
 
-  bool operator<(const Key& aOther) const
+  bool
+  operator<(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return Compare(mBuffer, aOther.mBuffer) < 0;
   }
 
-  bool operator>(const Key& aOther) const
+  bool
+  operator>(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return Compare(mBuffer, aOther.mBuffer) > 0;
   }
 
-  bool operator<=(const Key& aOther) const
+  bool
+  operator<=(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return Compare(mBuffer, aOther.mBuffer) <= 0;
   }
 
-  bool operator>=(const Key& aOther) const
+  bool
+  operator>=(const Key& aOther) const
   {
-    NS_ASSERTION(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid(),
-                 "Don't compare unset keys!");
+    Assert(!mBuffer.IsVoid() && !aOther.mBuffer.IsVoid());
 
     return Compare(mBuffer, aOther.mBuffer) >= 0;
   }
@@ -95,169 +120,117 @@ public:
     mBuffer.SetIsVoid(true);
   }
 
-  bool IsUnset() const
+  bool
+  IsUnset() const
   {
     return mBuffer.IsVoid();
   }
 
-  bool IsFloat() const
+  bool
+  IsFloat() const
   {
-    return !IsUnset() && mBuffer.First() == eFloat;
+    return !IsUnset() && *BufferStart() == eFloat;
   }
 
-  bool IsDate() const
+  bool
+  IsDate() const
   {
-    return !IsUnset() && mBuffer.First() == eDate;
+    return !IsUnset() && *BufferStart() == eDate;
   }
 
-  bool IsString() const
+  bool
+  IsString() const
   {
-    return !IsUnset() && mBuffer.First() == eString;
+    return !IsUnset() && *BufferStart() == eString;
   }
 
-  bool IsArray() const
+  bool
+  IsArray() const
   {
-    return !IsUnset() && mBuffer.First() >= eArray;
+    return !IsUnset() && *BufferStart() >= eArray;
   }
 
-  double ToFloat() const
+  double
+  ToFloat() const
   {
-    NS_ASSERTION(IsFloat(), "Why'd you call this?");
+    Assert(IsFloat());
     const unsigned char* pos = BufferStart();
     double res = DecodeNumber(pos, BufferEnd());
-    NS_ASSERTION(pos >= BufferEnd(), "Should consume whole buffer");
+    Assert(pos >= BufferEnd());
     return res;
   }
 
-  double ToDateMsec() const
+  double
+  ToDateMsec() const
   {
-    NS_ASSERTION(IsDate(), "Why'd you call this?");
+    Assert(IsDate());
     const unsigned char* pos = BufferStart();
     double res = DecodeNumber(pos, BufferEnd());
-    NS_ASSERTION(pos >= BufferEnd(), "Should consume whole buffer");
+    Assert(pos >= BufferEnd());
     return res;
   }
 
-  void ToString(nsString& aString) const
+  void
+  ToString(nsString& aString) const
   {
-    NS_ASSERTION(IsString(), "Why'd you call this?");
+    Assert(IsString());
     const unsigned char* pos = BufferStart();
     DecodeString(pos, BufferEnd(), aString);
-    NS_ASSERTION(pos >= BufferEnd(), "Should consume whole buffer");
+    Assert(pos >= BufferEnd());
   }
 
-  void SetFromString(const nsAString& aString)
+  void
+  SetFromString(const nsAString& aString)
   {
     mBuffer.Truncate();
     EncodeString(aString, 0);
     TrimBuffer();
   }
 
-  void SetFromInteger(int64_t aInt)
+  void
+  SetFromInteger(int64_t aInt)
   {
     mBuffer.Truncate();
     EncodeNumber(double(aInt), eFloat);
     TrimBuffer();
   }
 
-  nsresult SetFromJSVal(JSContext* aCx,
-                        JS::Handle<JS::Value> aVal)
-  {
-    mBuffer.Truncate();
+  nsresult
+  SetFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal);
 
-    if (aVal.isNull() || aVal.isUndefined()) {
-      Unset();
-      return NS_OK;
-    }
+  nsresult
+  ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) const;
 
-    nsresult rv = EncodeJSVal(aCx, aVal, 0);
-    if (NS_FAILED(rv)) {
-      Unset();
-      return rv;
-    }
-    TrimBuffer();
+  nsresult
+  ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aVal) const;
 
-    return NS_OK;
-  }
+  nsresult
+  AppendItem(JSContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal);
 
-  nsresult ToJSVal(JSContext* aCx,
-                   JS::MutableHandle<JS::Value> aVal) const
-  {
-    if (IsUnset()) {
-      aVal.setUndefined();
-      return NS_OK;
-    }
-
-    const unsigned char* pos = BufferStart();
-    nsresult rv = DecodeJSVal(pos, BufferEnd(), aCx, 0, aVal);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    NS_ASSERTION(pos >= BufferEnd(),
-                 "Didn't consume whole buffer");
-
-    return NS_OK;
-  }
-
-  nsresult ToJSVal(JSContext* aCx,
-                   JS::Heap<JS::Value>& aVal) const
-  {
-    JS::Rooted<JS::Value> value(aCx);
-    nsresult rv = ToJSVal(aCx, &value);
-    if (NS_SUCCEEDED(rv)) {
-      aVal = value;
-    }
-    return rv;
-  }
-
-  nsresult AppendItem(JSContext* aCx,
-                      bool aFirstOfArray,
-                      JS::Handle<JS::Value> aVal)
-  {
-    nsresult rv = EncodeJSVal(aCx, aVal, aFirstOfArray ? eMaxType : 0);
-    if (NS_FAILED(rv)) {
-      Unset();
-      return rv;
-    }
-
-    return NS_OK;
-  }
-
-  void FinishArray()
+  void
+  FinishArray()
   {
     TrimBuffer();
   }
 
-  const nsCString& GetBuffer() const
+  const nsCString&
+  GetBuffer() const
   {
     return mBuffer;
   }
 
-  nsresult BindToStatement(mozIStorageStatement* aStatement,
-                           const nsACString& aParamName) const
-  {
-    nsresult rv = aStatement->BindBlobByName(aParamName,
-      reinterpret_cast<const uint8_t*>(mBuffer.get()), mBuffer.Length());
+  nsresult
+  BindToStatement(mozIStorageStatement* aStatement,
+                  const nsACString& aParamName) const;
 
-    return NS_SUCCEEDED(rv) ? NS_OK : NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-  }
+  nsresult
+  SetFromStatement(mozIStorageStatement* aStatement, uint32_t aIndex);
 
-  nsresult SetFromStatement(mozIStorageStatement* aStatement,
-                            uint32_t aIndex)
-  {
-    uint8_t* data;
-    uint32_t dataLength = 0;
+  nsresult
+  SetFromValueArray(mozIStorageValueArray* aValues, uint32_t aIndex);
 
-    nsresult rv = aStatement->GetBlob(aIndex, &dataLength, &data);
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-    mBuffer.Adopt(
-      reinterpret_cast<char*>(const_cast<uint8_t*>(data)), dataLength);
-
-    return NS_OK;
-  }
-
-  static
-  int16_t CompareKeys(Key& aFirst, Key& aSecond)
+  static int16_t
+  CompareKeys(Key& aFirst, Key& aSecond)
   {
     int32_t result = Compare(aFirst.mBuffer, aSecond.mBuffer);
 
@@ -273,28 +246,22 @@ public:
   }
 
 private:
-  const unsigned char* BufferStart() const
+  const unsigned char*
+  BufferStart() const
   {
     return reinterpret_cast<const unsigned char*>(mBuffer.BeginReading());
   }
 
-  const unsigned char* BufferEnd() const
+  const unsigned char*
+  BufferEnd() const
   {
     return reinterpret_cast<const unsigned char*>(mBuffer.EndReading());
   }
 
-  enum {
-    eTerminator = 0,
-    eFloat = 1,
-    eDate = 2,
-    eString = 3,
-    eArray = 4,
-    eMaxType = eArray
-  };
-
   // Encoding helper. Trims trailing zeros off of mBuffer as a post-processing
   // step.
-  void TrimBuffer()
+  void
+  TrimBuffer()
   {
     const char* end = mBuffer.EndReading() - 1;
     while (!*end) {
@@ -305,41 +272,60 @@ private:
   }
 
   // Encoding functions. These append the encoded value to the end of mBuffer
-  inline nsresult EncodeJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal,
-                              uint8_t aTypeOffset)
-  {
-    return EncodeJSValInternal(aCx, aVal, aTypeOffset, 0);
-  }
-  void EncodeString(const nsAString& aString, uint8_t aTypeOffset);
-  void EncodeNumber(double aFloat, uint8_t aType);
+  nsresult
+  EncodeJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset);
+
+  void
+  EncodeString(const nsAString& aString, uint8_t aTypeOffset);
+
+  void
+  EncodeNumber(double aFloat, uint8_t aType);
 
   // Decoding functions. aPos points into mBuffer and is adjusted to point
   // past the consumed value.
-  static inline nsresult DecodeJSVal(const unsigned char*& aPos,
-                                     const unsigned char* aEnd, JSContext* aCx,
-                                     uint8_t aTypeOffset, JS::MutableHandle<JS::Value> aVal)
-  {
-    return DecodeJSValInternal(aPos, aEnd, aCx, aTypeOffset, aVal, 0);
-  }
+  static nsresult
+  DecodeJSVal(const unsigned char*& aPos,
+              const unsigned char* aEnd,
+              JSContext* aCx,
+              JS::MutableHandle<JS::Value> aVal);
 
-  static void DecodeString(const unsigned char*& aPos,
-                           const unsigned char* aEnd,
-                           nsString& aString);
-  static double DecodeNumber(const unsigned char*& aPos,
-                             const unsigned char* aEnd);
+  static void
+  DecodeString(const unsigned char*& aPos,
+               const unsigned char* aEnd,
+               nsString& aString);
 
-  nsCString mBuffer;
+  static double
+  DecodeNumber(const unsigned char*& aPos, const unsigned char* aEnd);
 
-private:
-  nsresult EncodeJSValInternal(JSContext* aCx, JS::Handle<JS::Value> aVal,
-                               uint8_t aTypeOffset, uint16_t aRecursionDepth);
+  nsresult
+  EncodeJSValInternal(JSContext* aCx,
+                      JS::Handle<JS::Value> aVal,
+                      uint8_t aTypeOffset,
+                      uint16_t aRecursionDepth);
 
-  static nsresult DecodeJSValInternal(const unsigned char*& aPos,
-                                      const unsigned char* aEnd,
-                                      JSContext* aCx, uint8_t aTypeOffset,
-                                      JS::MutableHandle<JS::Value> aVal, uint16_t aRecursionDepth);
+  static nsresult
+  DecodeJSValInternal(const unsigned char*& aPos,
+                      const unsigned char* aEnd,
+                      JSContext* aCx,
+                      uint8_t aTypeOffset,
+                      JS::MutableHandle<JS::Value> aVal,
+                      uint16_t aRecursionDepth);
+
+  template <typename T>
+  nsresult
+  SetFromSource(T* aSource, uint32_t aIndex);
+
+  void
+  Assert(bool aCondition) const
+#ifdef DEBUG
+  ;
+#else
+  { }
+#endif
 };
 
-END_INDEXEDDB_NAMESPACE
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla
 
-#endif /* mozilla_dom_indexeddb_key_h__ */
+#endif // mozilla_dom_indexeddb_key_h__

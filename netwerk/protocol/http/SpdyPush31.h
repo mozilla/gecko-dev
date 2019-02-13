@@ -22,7 +22,7 @@ namespace net {
 
 class SpdyPush31TransactionBuffer;
 
-class SpdyPushedStream31 MOZ_FINAL : public SpdyStream31
+class SpdyPushedStream31 final : public SpdyStream31
 {
 public:
   SpdyPushedStream31(SpdyPush31TransactionBuffer *aTransaction,
@@ -69,19 +69,20 @@ private:
   bool mDeferCleanupOnSuccess;
 };
 
-class SpdyPush31TransactionBuffer MOZ_FINAL : public nsAHttpTransaction
+class SpdyPush31TransactionBuffer final : public nsAHttpTransaction
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSAHTTPTRANSACTION
 
   SpdyPush31TransactionBuffer();
-  virtual ~SpdyPush31TransactionBuffer();
 
   nsresult GetBufferedData(char *buf, uint32_t count, uint32_t *countWritten);
   void SetPushStream(SpdyPushedStream31 *stream) { mPushStream = stream; }
 
 private:
+  virtual ~SpdyPush31TransactionBuffer();
+
   const static uint32_t kDefaultBufferSize = 4096;
 
   nsresult mStatus;

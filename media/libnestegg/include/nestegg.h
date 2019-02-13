@@ -7,6 +7,7 @@
 #if !defined(NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79)
 #define NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
 
+#include <limits.h>
 #include <nestegg/nestegg-stdint.h>
 
 #if defined(__cplusplus)
@@ -62,13 +63,15 @@ extern "C" {
 /** @file
     The <tt>libnestegg</tt> C API. */
 
-#define NESTEGG_TRACK_VIDEO 0 /**< Track is of type video. */
-#define NESTEGG_TRACK_AUDIO 1 /**< Track is of type audio. */
+#define NESTEGG_TRACK_VIDEO   0       /**< Track is of type video. */
+#define NESTEGG_TRACK_AUDIO   1       /**< Track is of type audio. */
+#define NESTEGG_TRACK_UNKNOWN INT_MAX /**< Track is of type unknown. */
 
-#define NESTEGG_CODEC_VP8    0 /**< Track uses Google On2 VP8 codec. */
-#define NESTEGG_CODEC_VORBIS 1 /**< Track uses Xiph Vorbis codec. */
-#define NESTEGG_CODEC_VP9    2 /**< Track uses Google On2 VP9 codec. */
-#define NESTEGG_CODEC_OPUS   3 /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_VP8     0       /**< Track uses Google On2 VP8 codec. */
+#define NESTEGG_CODEC_VORBIS  1       /**< Track uses Xiph Vorbis codec. */
+#define NESTEGG_CODEC_VP9     2       /**< Track uses Google On2 VP9 codec. */
+#define NESTEGG_CODEC_OPUS    3       /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_UNKNOWN INT_MAX /**< Track uses unknown codec. */
 
 #define NESTEGG_VIDEO_MONO              0 /**< Track is mono video. */
 #define NESTEGG_VIDEO_STEREO_LEFT_RIGHT 1 /**< Track is side-by-side stereo video.  Left first. */
@@ -133,6 +136,7 @@ typedef struct {
   unsigned int crop_top;       /**< Pixels to crop from the top of the frame. */
   unsigned int crop_left;      /**< Pixels to crop from the left of the frame. */
   unsigned int crop_right;     /**< Pixels to crop from the right of the frame. */
+  unsigned int alpha_mode;     /**< 1 if an additional opacity stream is available, otherwise 0. */
 } nestegg_video_params;
 
 /** Parameters specific to an audio track. */
@@ -170,8 +174,8 @@ void nestegg_destroy(nestegg * context);
 int nestegg_duration(nestegg * context, uint64_t * duration);
 
 /** Query the tstamp scale of the media stream in nanoseconds.
-    Timecodes presented by nestegg have been scaled by this value
-    before presentation to the caller.
+    @note Timecodes presented by nestegg have been scaled by this value
+          before presentation to the caller.
     @param context Stream context initialized by #nestegg_init.
     @param scale   Storage for the queried scale factor.
     @retval  0 Success.
@@ -200,8 +204,8 @@ int nestegg_get_cue_point(nestegg * context, unsigned int cluster_num,
                           int64_t * end_pos, uint64_t * tstamp);
 
 /** Seek to @a offset.  Stream will seek directly to offset.
-    Should be used to seek to the start of a resync point, i.e. cluster; the
-    parser will not be able to understand other offsets.
+    Must be used to seek to the start of a cluster; the parser will not be
+    able to understand other offsets.
     @param context Stream context initialized by #nestegg_init.
     @param offset  Absolute offset in bytes.
     @retval  0 Success.
@@ -221,16 +225,20 @@ int nestegg_track_seek(nestegg * context, unsigned int track, uint64_t tstamp);
 /** Query the type specified by @a track.
     @param context Stream context initialized by #nestegg_init.
     @param track   Zero based track number.
-    @retval #NESTEGG_TRACK_VIDEO Track type is video.
-    @retval #NESTEGG_TRACK_AUDIO Track type is audio.
+    @retval #NESTEGG_TRACK_VIDEO   Track type is video.
+    @retval #NESTEGG_TRACK_AUDIO   Track type is audio.
+    @retval #NESTEGG_TRACK_UNKNOWN Track type is unknown.
     @retval -1 Error. */
 int nestegg_track_type(nestegg * context, unsigned int track);
 
 /** Query the codec ID specified by @a track.
     @param context Stream context initialized by #nestegg_init.
     @param track   Zero based track number.
-    @retval #NESTEGG_CODEC_VP8    Track codec is VP8.
-    @retval #NESTEGG_CODEC_VORBIS Track codec is Vorbis.
+    @retval #NESTEGG_CODEC_VP8     Track codec is VP8.
+    @retval #NESTEGG_CODEC_VP9     Track codec is VP9.
+    @retval #NESTEGG_CODEC_VORBIS  Track codec is Vorbis.
+    @retval #NESTEGG_CODEC_OPUS    Track codec is Opus.
+    @retval #NESTEGG_CODEC_UNKNOWN Track codec is unknown.
     @retval -1 Error. */
 int nestegg_track_codec_id(nestegg * context, unsigned int track);
 
@@ -340,6 +348,19 @@ int nestegg_packet_count(nestegg_packet * packet, unsigned int * count);
 int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
                         unsigned char ** data, size_t * length);
 
+/** Get a pointer to additional data with identifier @a id of additional packet
+    data. If @a id isn't present in the packet, returns -1.
+    @param packet  Packet initialized by #nestegg_read_packet.
+    @param id      Codec specific identifer. For VP8, use 1 to get a VP8 encoded
+                   frame containing an alpha channel in its Y plane.
+    @param data    Storage for the queried data pointer.
+                   The data is owned by the #nestegg_packet packet.
+    @param length  Storage for the queried data size.
+    @retval  0 Success.
+    @retval -1 Error. */
+int nestegg_packet_additional_data(nestegg_packet * packet, unsigned int id,
+                                   unsigned char ** data, size_t * length);
+
 /** Returns discard_padding for given packet
     @param packet  Packet initialized by #nestegg_read_packet.
     @param discard_padding pointer to store discard padding in.
@@ -354,21 +375,19 @@ int nestegg_packet_discard_padding(nestegg_packet * packet,
     @retval 1 The media has cues. */
 int nestegg_has_cues(nestegg * context);
 
-/**
- * Try to determine if the buffer looks like the beginning of a WebM file.
- *
- * @param buffer A buffer containing the beginning of a media file.
- * @param length The size of the buffer.
- * @retval 0 The file is not a WebM file.
- * @retval 1 The file is a WebM file. */
+/** Try to determine if the buffer looks like the beginning of a WebM file.
+    @param buffer A buffer containing the beginning of a media file.
+    @param length The size of the buffer.
+    @retval 0 The file is not a WebM file.
+    @retval 1 The file is a WebM file. */
 int nestegg_sniff(unsigned char const * buffer, size_t length);
 
-/**
- * Set the underlying allocation function for library allocations.
- *
- * @param realloc_func The desired function.
- */
-void nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
+/** Set the underlying allocation function for library allocations.
+    @param realloc_func The desired function.
+    @retval 1 Success.  realloc_func(p, 0) acts as free()
+    @retval 0 Failure. realloc_func(p, 0) does not act as free()
+    @retval -1 Failure. realloc_func(NULL, 1) failed. */
+int nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
 
 #if defined(__cplusplus)
 }

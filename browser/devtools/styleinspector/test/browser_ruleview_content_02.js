@@ -18,7 +18,7 @@ const CONTENT = '<body style="color:red;">\
 const STRINGS = Services.strings
   .createBundle("chrome://global/locale/devtools/styleinspector.properties");
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8," + CONTENT);
 
   info("Getting the test element");
@@ -31,6 +31,10 @@ let test = asyncTest(function*() {
   let contentAreaContextMenu = document.getElementById("contentAreaContextMenu");
   let contextMenu = new nsContextMenu(contentAreaContextMenu);
   yield contextMenu.inspectNode();
+
+  // Clean up context menu:
+  contextMenu.hiding();
+
   yield onInspectorReady;
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);

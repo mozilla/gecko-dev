@@ -8,11 +8,12 @@
 #include <stdint.h>                     // for uint64_t, uint32_t
 #include "CompositableHost.h"           // for CompositableParent, Create
 #include "base/message_loop.h"          // for MessageLoop
-#include "base/process.h"               // for ProcessHandle
-#include "base/process_util.h"          // for OpenProcessHandle
+#include "base/process.h"               // for ProcessId
 #include "base/task.h"                  // for CancelableTask, DeleteTask, etc
 #include "base/tracked.h"               // for FROM_HERE
 #include "mozilla/gfx/Point.h"                   // for IntSize
+#include "mozilla/Hal.h"                // for hal::SetCurrentThreadPriority()
+#include "mozilla/HalTypes.h"           // for hal::THREAD_PRIORITY_COMPOSITOR
 #include "mozilla/ipc/MessageChannel.h" // for MessageChannel, etc
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/Transport.h"      // for Transport
@@ -44,26 +45,43 @@ using namespace mozilla::gfx;
 
 std::map<base::ProcessId, ImageBridgeParent*> ImageBridgeParent::sImageBridges;
 
+MessageLoop* ImageBridgeParent::sMainLoop = nullptr;
+
+// defined in CompositorParent.cpp
+CompositorThreadHolder* GetCompositorThreadHolder();
+
 ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
                                      Transport* aTransport,
                                      ProcessId aChildProcessId)
   : mMessageLoop(aLoop)
   , mTransport(aTransport)
-  , mChildProcessId(aChildProcessId)
+  , mSetChildThreadPriority(false)
+  , mCompositorThreadHolder(GetCompositorThreadHolder())
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  sMainLoop = MessageLoop::current();
+
+  // top-level actors must be destroyed on the main thread.
+  SetMessageLoopToPostDestructionTo(sMainLoop);
+
   // creates the map only if it has not been created already, so it is safe
   // with several bridges
   CompositableMap::Create();
   sImageBridges[aChildProcessId] = this;
+  SetOtherProcessId(aChildProcessId);
 }
 
 ImageBridgeParent::~ImageBridgeParent()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mTransport) {
+    MOZ_ASSERT(XRE_GetIOMessageLoop());
     XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                      new DeleteTask<Transport>(mTransport));
   }
-  sImageBridges.erase(mChildProcessId);
+
+  sImageBridges.erase(OtherPid());
 }
 
 LayersBackend
@@ -81,8 +99,38 @@ ImageBridgeParent::ActorDestroy(ActorDestroyReason aWhy)
 }
 
 bool
-ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
+ImageBridgeParent::RecvImageBridgeThreadId(const PlatformThreadId& aThreadId)
 {
+  MOZ_ASSERT(!mSetChildThreadPriority);
+  if (mSetChildThreadPriority) {
+    return false;
+  }
+  mSetChildThreadPriority = true;
+#ifdef MOZ_WIDGET_GONK
+  hal::SetThreadPriority(aThreadId, hal::THREAD_PRIORITY_COMPOSITOR);
+#endif
+  return true;
+}
+
+class MOZ_STACK_CLASS AutoImageBridgeParentAsyncMessageSender
+{
+public:
+  explicit AutoImageBridgeParentAsyncMessageSender(ImageBridgeParent* aImageBridge)
+    : mImageBridge(aImageBridge) {}
+
+  ~AutoImageBridgeParentAsyncMessageSender()
+  {
+    mImageBridge->SendPendingAsyncMessages();
+  }
+private:
+  ImageBridgeParent* mImageBridge;
+};
+
+bool
+ImageBridgeParent::RecvUpdate(EditArray&& aEdits, EditReplyArray* aReply)
+{
+  AutoImageBridgeParentAsyncMessageSender autoAsyncMessageSender(this);
+
   // If we don't actually have a compositor, then don't bother
   // creating any textures.
   if (Compositor::GetBackend() == LayersBackend::LAYERS_NONE) {
@@ -112,36 +160,31 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
 }
 
 bool
-ImageBridgeParent::RecvUpdateNoSwap(const EditArray& aEdits)
+ImageBridgeParent::RecvUpdateNoSwap(EditArray&& aEdits)
 {
   InfallibleTArray<EditReply> noReplies;
-  bool success = RecvUpdate(aEdits, &noReplies);
-  NS_ABORT_IF_FALSE(noReplies.Length() == 0, "RecvUpdateNoSwap requires a sync Update to carry Edits");
+  bool success = RecvUpdate(Move(aEdits), &noReplies);
+  MOZ_ASSERT(noReplies.Length() == 0, "RecvUpdateNoSwap requires a sync Update to carry Edits");
   return success;
 }
 
 static void
 ConnectImageBridgeInParentProcess(ImageBridgeParent* aBridge,
                                   Transport* aTransport,
-                                  base::ProcessHandle aOtherProcess)
+                                  base::ProcessId aOtherPid)
 {
-  aBridge->Open(aTransport, aOtherProcess, XRE_GetIOMessageLoop(), ipc::ParentSide);
+  aBridge->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ParentSide);
 }
 
 /*static*/ PImageBridgeParent*
 ImageBridgeParent::Create(Transport* aTransport, ProcessId aChildProcessId)
 {
-  base::ProcessHandle processHandle;
-  if (!base::OpenProcessHandle(aChildProcessId, &processHandle)) {
-    return nullptr;
-  }
-
   MessageLoop* loop = CompositorParent::CompositorLoop();
   nsRefPtr<ImageBridgeParent> bridge = new ImageBridgeParent(loop, aTransport, aChildProcessId);
   bridge->mSelfRef = bridge;
   loop->PostTask(FROM_HERE,
                  NewRunnableFunction(ConnectImageBridgeInParentProcess,
-                                     bridge.get(), aTransport, processHandle));
+                                     bridge.get(), aTransport, aChildProcessId));
   return bridge.get();
 }
 
@@ -160,10 +203,25 @@ bool ImageBridgeParent::RecvWillStop()
   return true;
 }
 
+static void
+ReleaseImageBridgeParent(ImageBridgeParent* aImageBridgeParent)
+{
+  RELEASE_MANUALLY(aImageBridgeParent);
+}
+
 bool ImageBridgeParent::RecvStop()
 {
-  // Nothing to do. This message just serves as synchronization between the
+  // This message just serves as synchronization between the
   // child and parent threads during shutdown.
+
+  // There is one thing that we need to do here: temporarily addref, so that
+  // the handling of this sync message can't race with the destruction of
+  // the ImageBridgeParent, which would trigger the dreaded "mismatched CxxStackFrames"
+  // assertion of MessageChannel.
+  ADDREF_MANUALLY(this);
+  MessageLoop::current()->PostTask(
+    FROM_HERE,
+    NewRunnableFunction(&ReleaseImageBridgeParent, this));
   return true;
 }
 
@@ -202,95 +260,26 @@ ImageBridgeParent::DeallocPTextureParent(PTextureParent* actor)
 }
 
 void
-ImageBridgeParent::SendFenceHandle(AsyncTransactionTracker* aTracker,
-                                   PTextureParent* aTexture,
-                                   const FenceHandle& aFence)
-{
-  HoldUntilComplete(aTracker);
-  InfallibleTArray<AsyncParentMessageData> messages;
-  messages.AppendElement(OpDeliverFence(aTracker->GetId(),
-                                        aTexture, nullptr,
-                                        aFence));
-  mozilla::unused << SendParentAsyncMessages(messages);
-}
-
-void
 ImageBridgeParent::SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage)
 {
   mozilla::unused << SendParentAsyncMessages(aMessage);
 }
 
 bool
-ImageBridgeParent::RecvChildAsyncMessages(const InfallibleTArray<AsyncChildMessageData>& aMessages)
+ImageBridgeParent::RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages)
 {
-  for (AsyncChildMessageArray::index_type i = 0; i < aMessages.Length(); ++i) {
-    const AsyncChildMessageData& message = aMessages[i];
-
-    switch (message.type()) {
-      case AsyncChildMessageData::TOpDeliverFenceFromChild: {
-        const OpDeliverFenceFromChild& op = message.get_OpDeliverFenceFromChild();
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-        FenceHandle fence = FenceHandle(op.fence());
-        PTextureParent* parent = op.textureParent();
-
-        TextureHostOGL* hostOGL = nullptr;
-        RefPtr<TextureHost> texture = TextureHost::AsTextureHost(parent);
-        if (texture) {
-          hostOGL = texture->AsHostOGL();
-        }
-        if (hostOGL) {
-          hostOGL->SetAcquireFence(fence.mFence);
-        }
-#endif
-        // Send back a response.
-        InfallibleTArray<AsyncParentMessageData> replies;
-        replies.AppendElement(OpReplyDeliverFence(op.transactionId()));
-        mozilla::unused << SendParentAsyncMessages(replies);
-        break;
-      }
-      case AsyncChildMessageData::TOpReplyDeliverFence: {
-        const OpReplyDeliverFence& op = message.get_OpReplyDeliverFence();
-        TransactionCompleteted(op.transactionId());
-        break;
-      }
-      default:
-        NS_ERROR("unknown AsyncChildMessageData type");
-        return false;
-    }
-  }
   return true;
 }
 
-MessageLoop * ImageBridgeParent::GetMessageLoop() {
+MessageLoop * ImageBridgeParent::GetMessageLoop() const {
   return mMessageLoop;
 }
-
-class ReleaseRunnable : public nsRunnable
-{
-public:
-  ReleaseRunnable(ImageBridgeParent* aRef)
-    : mRef(aRef)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    mRef->Release();
-    return NS_OK;
-  }
-
-private:
-  ImageBridgeParent* mRef;
-};
 
 void
 ImageBridgeParent::DeferredDestroy()
 {
-  ImageBridgeParent* self;
-  mSelfRef.forget(&self);
-
-  nsCOMPtr<nsIRunnable> runnable = new ReleaseRunnable(self);
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
+  mCompositorThreadHolder = nullptr;
+  mSelfRef = nullptr;
 }
 
 ImageBridgeParent*
@@ -320,15 +309,13 @@ ImageBridgeParent::CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds
 
 bool ImageBridgeParent::IsSameProcess() const
 {
-  return OtherProcess() == ipc::kInvalidProcessHandle;
+  return OtherPid() == base::GetCurrentProcId();
 }
 
 void
 ImageBridgeParent::ReplyRemoveTexture(const OpReplyRemoveTexture& aReply)
 {
-  InfallibleTArray<AsyncParentMessageData> messages;
-  messages.AppendElement(aReply);
-  mozilla::unused << SendParentAsyncMessages(messages);
+  mPendingAsyncMessage.push_back(aReply);
 }
 
 /*static*/ void
@@ -342,45 +329,88 @@ ImageBridgeParent::ReplyRemoveTexture(base::ProcessId aChildProcessId,
   imageBridge->ReplyRemoveTexture(aReply);
 }
 
-/*static*/ void
-ImageBridgeParent::SendFenceHandleToTrackerIfPresent(uint64_t aDestHolderId,
-                                                     uint64_t aTransactionId,
-                                                     PTextureParent* aTexture)
+void
+ImageBridgeParent::SendFenceHandleIfPresent(PTextureParent* aTexture,
+                                            CompositableHost* aCompositableHost)
 {
   RefPtr<TextureHost> texture = TextureHost::AsTextureHost(aTexture);
   if (!texture) {
     return;
   }
+
+  // Send a ReleaseFence of CompositorOGL.
+  if (aCompositableHost && aCompositableHost->GetCompositor()) {
+    FenceHandle fence = aCompositableHost->GetCompositor()->GetReleaseFence();
+    if (fence.IsValid()) {
+      mPendingAsyncMessage.push_back(OpDeliverFence(aTexture, nullptr,
+                                                    fence));
+    }
+  }
+
+  // Send a ReleaseFence that is set by HwcComposer2D.
   FenceHandle fence = texture->GetAndResetReleaseFenceHandle();
-  if (!fence.IsValid()) {
+  if (fence.IsValid()) {
+    mPendingAsyncMessage.push_back(OpDeliverFence(aTexture, nullptr,
+                                                  fence));
+  }
+}
+
+void
+ImageBridgeParent::AppendDeliverFenceMessage(uint64_t aDestHolderId,
+                                             uint64_t aTransactionId,
+                                             PTextureParent* aTexture,
+                                             CompositableHost* aCompositableHost)
+{
+  RefPtr<TextureHost> texture = TextureHost::AsTextureHost(aTexture);
+  if (!texture) {
     return;
   }
 
-  RefPtr<FenceDeliveryTracker> tracker = new FenceDeliveryTracker(fence);
-  HoldUntilComplete(tracker);
-  InfallibleTArray<AsyncParentMessageData> messages;
-  messages.AppendElement(OpDeliverFenceToTracker(tracker->GetId(),
-                                                 aDestHolderId,
-                                                 aTransactionId,
-                                                 fence));
-  mozilla::unused << SendParentAsyncMessages(messages);
+  // Send a ReleaseFence of CompositorOGL.
+  if (aCompositableHost && aCompositableHost->GetCompositor()) {
+    FenceHandle fence = aCompositableHost->GetCompositor()->GetReleaseFence();
+    if (fence.IsValid()) {
+      mPendingAsyncMessage.push_back(OpDeliverFenceToTracker(aDestHolderId,
+                                                             aTransactionId,
+                                                             fence));
+    }
+  }
+
+  // Send a ReleaseFence that is set by HwcComposer2D.
+  FenceHandle fence = texture->GetAndResetReleaseFenceHandle();
+  if (fence.IsValid()) {
+    mPendingAsyncMessage.push_back(OpDeliverFenceToTracker(aDestHolderId,
+                                                           aTransactionId,
+                                                           fence));
+  }
 }
 
 /*static*/ void
-ImageBridgeParent::SendFenceHandleToTrackerIfPresent(base::ProcessId aChildProcessId,
-                                                     uint64_t aDestHolderId,
-                                                     uint64_t aTransactionId,
-                                                     PTextureParent* aTexture)
+ImageBridgeParent::AppendDeliverFenceMessage(base::ProcessId aChildProcessId,
+                                             uint64_t aDestHolderId,
+                                             uint64_t aTransactionId,
+                                             PTextureParent* aTexture,
+                                             CompositableHost* aCompositableHost)
 {
   ImageBridgeParent* imageBridge = ImageBridgeParent::GetInstance(aChildProcessId);
   if (!imageBridge) {
     return;
   }
-  imageBridge->SendFenceHandleToTrackerIfPresent(aDestHolderId,
-                                                 aTransactionId,
-                                                 aTexture);
+  imageBridge->AppendDeliverFenceMessage(aDestHolderId,
+                                         aTransactionId,
+                                         aTexture,
+                                         aCompositableHost);
 }
 
+/*static*/ void
+ImageBridgeParent::SendPendingAsyncMessages(base::ProcessId aChildProcessId)
+{
+  ImageBridgeParent* imageBridge = ImageBridgeParent::GetInstance(aChildProcessId);
+  if (!imageBridge) {
+    return;
+  }
+  imageBridge->SendPendingAsyncMessages();
+}
 
 } // layers
 } // mozilla

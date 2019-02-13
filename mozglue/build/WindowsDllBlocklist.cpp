@@ -47,12 +47,16 @@ struct DllBlockInfo {
   // Note that the version is usually 4 components, which is A.B.C.D
   // encoded as 0x AAAA BBBB CCCC DDDD ULL (spaces added for clarity),
   // but it's not required to be of that format.
+  //
+  // If the USE_TIMESTAMP flag is set, then we use the timestamp from
+  // the IMAGE_FILE_HEADER in lieu of a version number.
   unsigned long long maxVersion;
 
   enum {
     FLAGS_DEFAULT = 0,
     BLOCK_WIN8PLUS_ONLY = 1,
-    BLOCK_XP_ONLY = 2
+    BLOCK_XP_ONLY = 2,
+    USE_TIMESTAMP = 4,
   } flags;
 };
 
@@ -144,11 +148,40 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   // XP topcrash with F-Secure, bug 970362
   { "fs_ccf_ni_umh32.dll", MAKE_VERSION(1, 42, 101, 0), DllBlockInfo::BLOCK_XP_ONLY },
 
-  // Topcrash with V-bates, bug 1002748
+  // Topcrash with V-bates, bug 1002748 and bug 1023239
   { "libinject.dll", UNVERSIONED },
+  { "libinject2.dll", 0x537DDC93, DllBlockInfo::USE_TIMESTAMP },
+  { "libredir2.dll", 0x5385B7ED, DllBlockInfo::USE_TIMESTAMP },
 
-  // Crashes with RoboForm2Go written against old SDK, bug 988311
+  // Crashes with RoboForm2Go written against old SDK, bug 988311/1196859
   { "rf-firefox-22.dll", ALL_VERSIONS },
+  { "rf-firefox-40.dll", ALL_VERSIONS },
+
+  // Crashes with DesktopTemperature, bug 1046382
+  { "dtwxsvc.dll", 0x53153234, DllBlockInfo::USE_TIMESTAMP },
+
+  // Startup crashes with Lenovo Onekey Theater, bug 1123778
+  { "activedetect32.dll", UNVERSIONED },
+  { "activedetect64.dll", UNVERSIONED },
+  { "windowsapihookdll32.dll", UNVERSIONED },
+  { "windowsapihookdll64.dll", UNVERSIONED },
+
+  // Flash crashes with RealNetworks RealDownloader, bug 1132663
+  { "rndlnpshimswf.dll", ALL_VERSIONS },
+  { "rndlmainbrowserrecordplugin.dll", ALL_VERSIONS },
+
+  // Startup crashes with RealNetworks Browser Record Plugin, bug 1170141
+  { "nprpffbrowserrecordext.dll", ALL_VERSIONS },
+  { "nprndlffbrowserrecordext.dll", ALL_VERSIONS },
+
+  // Crashes with CyberLink YouCam, bug 1136968
+  { "ycwebcamerasource.ax", MAKE_VERSION(2, 0, 0, 1611) },
+
+  // Old version of WebcamMax crashes WebRTC, bug 1130061
+  { "vwcsource.ax", MAKE_VERSION(1, 5, 0, 0) },
+
+  // NetOp School, discontinued product, bug 763395
+  { "nlsp.dll", MAKE_VERSION(6, 23, 2012, 19) },
 
   { nullptr, 0 }
 };
@@ -270,6 +303,33 @@ CheckASLR(const wchar_t* path)
   }
 
   return retval;
+}
+
+DWORD
+GetTimestamp(const wchar_t* path)
+{
+  DWORD timestamp = 0;
+
+  HANDLE file = ::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                              nullptr);
+  if (file != INVALID_HANDLE_VALUE) {
+    HANDLE map = ::CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0,
+                                      nullptr);
+    if (map) {
+      RVAMap<IMAGE_DOS_HEADER> peHeader(map, 0);
+      if (peHeader) {
+        RVAMap<IMAGE_NT_HEADERS> ntHeader(map, peHeader->e_lfanew);
+        if (ntHeader) {
+          timestamp = ntHeader->FileHeader.TimeDateStamp;
+        }
+      }
+      ::CloseHandle(map);
+    }
+    ::CloseHandle(file);
+  }
+
+  return timestamp;
 }
 
 // This lock protects both the reentrancy sentinel and the crash reporter
@@ -529,6 +589,16 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
       return STATUS_DLL_NOT_FOUND;
     }
   }
+  // Block binaries where the filename is at least 16 hex digits
+  if (dot && ((dot - dllName) >= 16)) {
+    char * current = dllName;
+    while (current < dot && isxdigit(*current)) {
+      current++;
+    }
+    if (current == dot) {
+      return STATUS_DLL_NOT_FOUND;
+    }
+  }
 
   // then compare to everything on the blocklist
   info = &sWindowsDllBlocklist[0];
@@ -571,27 +641,34 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
         return STATUS_DLL_NOT_FOUND;
       }
 
-      DWORD zero;
-      DWORD infoSize = GetFileVersionInfoSizeW(full_fname, &zero);
+      if (info->flags & DllBlockInfo::USE_TIMESTAMP) {
+        fVersion = GetTimestamp(full_fname);
+        if (fVersion > info->maxVersion) {
+          load_ok = true;
+        }
+      } else {
+        DWORD zero;
+        DWORD infoSize = GetFileVersionInfoSizeW(full_fname, &zero);
 
-      // If we failed to get the version information, we block.
+        // If we failed to get the version information, we block.
 
-      if (infoSize != 0) {
-        nsAutoArrayPtr<unsigned char> infoData(new unsigned char[infoSize]);
-        VS_FIXEDFILEINFO *vInfo;
-        UINT vInfoLen;
+        if (infoSize != 0) {
+          nsAutoArrayPtr<unsigned char> infoData(new unsigned char[infoSize]);
+          VS_FIXEDFILEINFO *vInfo;
+          UINT vInfoLen;
 
-        if (GetFileVersionInfoW(full_fname, 0, infoSize, infoData) &&
-            VerQueryValueW(infoData, L"\\", (LPVOID*) &vInfo, &vInfoLen))
-        {
-          fVersion =
-            ((unsigned long long)vInfo->dwFileVersionMS) << 32 |
-            ((unsigned long long)vInfo->dwFileVersionLS);
+          if (GetFileVersionInfoW(full_fname, 0, infoSize, infoData) &&
+              VerQueryValueW(infoData, L"\\", (LPVOID*) &vInfo, &vInfoLen))
+          {
+            fVersion =
+              ((unsigned long long)vInfo->dwFileVersionMS) << 32 |
+              ((unsigned long long)vInfo->dwFileVersionLS);
 
-          // finally do the version check, and if it's greater than our block
-          // version, keep loading
-          if (fVersion > info->maxVersion)
-            load_ok = true;
+            // finally do the version check, and if it's greater than our block
+            // version, keep loading
+            if (fVersion > info->maxVersion)
+              load_ok = true;
+          }
         }
       }
     }
@@ -633,6 +710,21 @@ WindowsDllInterceptor NtDllIntercept;
 NS_EXPORT void
 DllBlocklist_Initialize()
 {
+#if defined(_MSC_VER) && _MSC_VER < 1900 && defined(_M_X64)
+  // The code below is not blocklist-related, but is the best place for it.
+  // This is the earliest place where msvcr120.dll is loaded, and this
+  // codepath is used by both firefox.exe and plugin-container.exe processes.
+
+  // Disable CRT use of FMA3 on non-AVX2 CPUs and on Win7RTM due to bug 1160148
+  int cpuid0[4] = {0};
+  int cpuid7[4] = {0};
+  __cpuid(cpuid0, 0); // Get the maximum supported CPUID function
+  __cpuid(cpuid7, 7); // AVX2 is function 7, subfunction 0, EBX, bit 5
+  if (cpuid0[0] < 7 || !(cpuid7[1] & 0x20) || !IsWin7SP1OrLater()) {
+    _set_FMA3_enable(0);
+  }
+#endif
+
   if (GetModuleHandleA("user32.dll")) {
     sUser32BeforeBlocklist = true;
   }

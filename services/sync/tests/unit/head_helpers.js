@@ -2,7 +2,8 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 Cu.import("resource://services-common/async.js");
-Cu.import("resource://testing-common/services-common/utils.js");
+Cu.import("resource://testing-common/services/common/utils.js");
+Cu.import("resource://testing-common/PlacesTestUtils.jsm");
 
 let provider = {
   getFile: function(prop, persistent) {
@@ -138,8 +139,16 @@ function mockGetTabState (tab) {
   return tab;
 }
 
-function mockGetWindowEnumerator(url, numWindows, numTabs) {
+function mockGetWindowEnumerator(url, numWindows, numTabs, indexes, moreURLs) {
   let elements = [];
+
+  function url2entry(url) {
+    return {
+      url: ((typeof url == "function") ? url() : url),
+      title: "title"
+    };
+  }
+
   for (let w = 0; w < numWindows; ++w) {
     let tabs = [];
     let win = {
@@ -153,11 +162,8 @@ function mockGetWindowEnumerator(url, numWindows, numTabs) {
 
     for (let t = 0; t < numTabs; ++t) {
       tabs.push(TestingUtils.deepCopy({
-        index: 1,
-        entries: [{
-          url: ((typeof url == "string") ? url : url()),
-          title: "title"
-        }],
+        index: indexes ? indexes() : 1,
+        entries: (moreURLs ? [url].concat(moreURLs()) : [url]).map(url2entry),
         attributes: {
           image: "image"
         },
@@ -191,4 +197,12 @@ function mockGetWindowEnumerator(url, numWindows, numTabs) {
       return elements.shift();
     },
   };
+}
+
+// Helper that allows checking array equality.
+function do_check_array_eq(a1, a2) {
+  do_check_eq(a1.length, a2.length);
+  for (let i = 0; i < a1.length; ++i) {
+    do_check_eq(a1[i], a2[i]);
+  }
 }

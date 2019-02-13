@@ -4,17 +4,17 @@
 
 #include "nsISupports.idl"
 
+interface nsIDeletedMessageInfo;
 interface nsIDOMMozSmsMessage;
 interface nsIDOMMozMmsMessage;
 interface nsIDOMMozMobileMessageThread;
-interface nsIDOMMozSmsSegmentInfo;
 
 %{C++
 #define MOBILE_MESSAGE_SERVICE_CID { 0x829c1dd6, 0x0466, 0x4591, { 0x83, 0x6f, 0xb8, 0xf6, 0xfd, 0x1f, 0x7b, 0xa5 } }
 #define MOBILE_MESSAGE_SERVICE_CONTRACTID "@mozilla.org/mobilemessage/mobilemessageservice;1"
 %}
 
-[scriptable, builtinclass, uuid(17fce9e4-af56-11e3-83d9-b71055e95493)]
+[scriptable, builtinclass, uuid(bc28e604-53ee-4be9-af20-268ce9efc61a)]
 interface nsIMobileMessageService : nsISupports
 {
   [implicit_jscontext]
@@ -49,10 +49,6 @@ interface nsIMobileMessageService : nsISupports
                                        in unsigned long long expiryDate,
                                        in boolean            readReportRequested);
 
-  nsIDOMMozSmsSegmentInfo createSmsSegmentInfo(in long segments,
-                                               in long charsPerSegment,
-                                               in long charsAvailableInLastSegment);
-
   [implicit_jscontext]
   nsIDOMMozMobileMessageThread createThread(in unsigned long long id,
                                             in jsval              participants,
@@ -61,4 +57,17 @@ interface nsIMobileMessageService : nsISupports
                                             in DOMString          body,
                                             in unsigned long long unreadCount,
                                             in DOMString          aLastMessageType);
+
+  nsIDeletedMessageInfo createDeletedMessageInfo(
+    [array, size_is(msgCount)] in long messageIds,
+    in uint32_t msgCount,
+    [array, size_is(threadCount)] in unsigned long long threadIds,
+    in uint32_t threadCount);
 };
+
+%{C++
+template<typename T> struct already_AddRefed;
+
+already_AddRefed<nsIMobileMessageService>
+NS_CreateMobileMessageService();
+%}

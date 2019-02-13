@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// Check for updates once a day.
+pref("webapprt.app_update_interval", 86400);
+
 pref("browser.chromeURL", "chrome://webapprt/content/webapp.xul");
 pref("browser.download.folderList", 1);
 
@@ -25,15 +28,14 @@ pref("extensions.blocklist.interval", 86400);
 // Controls what level the blocklist switches from warning about items to forcibly
 // blocking them.
 pref("extensions.blocklist.level", 2);
-pref("extensions.blocklist.url", "https://addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
+pref("extensions.blocklist.url", "https://blocklist.addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
 pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blocklist/");
-pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/blocked/%blockID%");
+pref("extensions.blocklist.itemURL", "https://blocklist.addons.mozilla.org/%LOCALE%/%APP%/blocked/%blockID%");
 
 pref("full-screen-api.enabled", true);
 
 // IndexedDB
 pref("dom.indexedDB.enabled", true);
-pref("dom.indexedDB.warningQuota", 50);
 
 // Offline cache prefs
 pref("browser.offline-apps.notify", false);
@@ -74,7 +76,11 @@ pref("dom.payment.provider.0.requestMethod", "GET");
 // Enable window resize and move
 pref("dom.always_allow_move_resize_window", true);
 
-pref("plugin.allowed_types", "application/x-shockwave-flash,application/futuresplash");
+// Disable all plugins.  This has to be a non-empty string to disable plugins;
+// otherwise, nsPluginHost::IsTypeWhitelisted assumes all plugins are enabled.
+pref("plugin.allowed_types", " ");
+// Suppress the check for outdated plugins from opening a window.
+pref("extensions.blocklist.suppressUI", true);
 
 pref("devtools.debugger.remote-enabled", true);
 pref("devtools.debugger.force-local", true);

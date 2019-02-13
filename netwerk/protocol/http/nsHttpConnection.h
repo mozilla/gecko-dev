@@ -13,6 +13,7 @@
 #include "nsProxyRelease.h"
 #include "prinrval.h"
 #include "TunnelUtils.h"
+#include "mozilla/Mutex.h"
 
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
@@ -35,14 +36,16 @@ class ASpdySession;
 // accessed from any other thread.
 //-----------------------------------------------------------------------------
 
-class nsHttpConnection : public nsAHttpSegmentReader
-                       , public nsAHttpSegmentWriter
-                       , public nsIInputStreamCallback
-                       , public nsIOutputStreamCallback
-                       , public nsITransportEventSink
-                       , public nsIInterfaceRequestor
-                       , public NudgeTunnelCallback
+class nsHttpConnection final : public nsAHttpSegmentReader
+                             , public nsAHttpSegmentWriter
+                             , public nsIInputStreamCallback
+                             , public nsIOutputStreamCallback
+                             , public nsITransportEventSink
+                             , public nsIInterfaceRequestor
+                             , public NudgeTunnelCallback
 {
+    virtual ~nsHttpConnection();
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSAHTTPSEGMENTREADER
@@ -54,7 +57,6 @@ public:
     NS_DECL_NUDGETUNNELCALLBACK
 
     nsHttpConnection();
-    virtual ~nsHttpConnection();
 
     // Initialize the connection:
     //  info        - specifies the connection parameters.
@@ -110,6 +112,13 @@ public:
         return mConnInfo->UsingHttpsProxy() && !mTLSFilter && mConnInfo->UsingConnect();
     }
 
+    // A connection is forced into plaintext when it is intended to be used as a CONNECT
+    // tunnel but the setup fails. The plaintext only carries the CONNECT error.
+    void ForcePlainText()
+    {
+        mForcePlainText = true;
+    }
+
     nsISocketTransport   *Transport()      { return mSocketTransport; }
     nsAHttpTransaction   *Transaction()    { return mTransaction; }
     nsHttpConnectionInfo *ConnectionInfo() { return mConnInfo; }
@@ -122,7 +131,7 @@ public:
                            nsIAsyncInputStream **,
                            nsIAsyncOutputStream **);
     void     GetSecurityInfo(nsISupports **);
-    bool     IsPersistent() { return IsKeepAlive(); }
+    bool     IsPersistent() { return IsKeepAlive() && !mDontReuse; }
     bool     IsReused();
     void     SetIsReusedAfter(uint32_t afterMilliseconds);
     nsresult PushBack(const char *data, uint32_t length);
@@ -191,6 +200,20 @@ public:
                                       nsACString &result);
     void    SetupSecondaryTLS();
     void    SetInSpdyTunnel(bool arg);
+
+    // Check active connections for traffic (or not). SPDY connections send a
+    // ping, ordinary HTTP connections get some time to get traffic to be
+    // considered alive.
+    void CheckForTraffic(bool check);
+
+    // NoTraffic() returns true if there's been no traffic on the (non-spdy)
+    // connection since CheckForTraffic() was called.
+    bool NoTraffic() {
+        return mTrafficStamp &&
+            (mTrafficCount == (mTotalBytesWritten + mTotalBytesRead));
+    }
+    // override of nsAHttpConnection
+    virtual uint32_t Version();
 
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
@@ -282,6 +305,11 @@ private:
     bool                            mProxyConnectInProgress;
     bool                            mExperienced;
     bool                            mInSpdyTunnel;
+    bool                            mForcePlainText;
+
+    // A snapshot of current number of transfered bytes
+    int64_t                         mTrafficCount;
+    bool                            mTrafficStamp; // true then the above is set
 
     // The number of <= HTTP/1.1 transactions performed on this connection. This
     // excludes spdy transactions.

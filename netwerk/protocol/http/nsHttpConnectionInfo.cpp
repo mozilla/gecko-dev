@@ -20,16 +20,49 @@
 namespace mozilla {
 namespace net {
 
-nsHttpConnectionInfo::nsHttpConnectionInfo(const nsACString &host, int32_t port,
+nsHttpConnectionInfo::nsHttpConnectionInfo(const nsACString &originHost,
+                                           int32_t originPort,
+                                           const nsACString &npnToken,
                                            const nsACString &username,
-                                           nsProxyInfo* proxyInfo,
+                                           nsProxyInfo *proxyInfo,
                                            bool endToEndSSL)
-    : mUsername(username)
-    , mProxyInfo(proxyInfo)
-    , mEndToEndSSL(endToEndSSL)
-    , mUsingConnect(false)
+    : mRoutedPort(443)
 {
-    LOG(("Creating nsHttpConnectionInfo @%x\n", this));
+    Init(originHost, originPort, npnToken, username, proxyInfo, endToEndSSL);
+}
+
+nsHttpConnectionInfo::nsHttpConnectionInfo(const nsACString &originHost,
+                                           int32_t originPort,
+                                           const nsACString &npnToken,
+                                           const nsACString &username,
+                                           nsProxyInfo *proxyInfo,
+                                           const nsACString &routedHost,
+                                           int32_t routedPort)
+
+{
+    mEndToEndSSL = true; // so DefaultPort() works
+    mRoutedPort = routedPort == -1 ? DefaultPort() : routedPort;
+
+    if (!originHost.Equals(routedHost) || (originPort != routedPort)) {
+        mRoutedHost = routedHost;
+    }
+    Init(originHost, originPort, npnToken, username, proxyInfo, true);
+}
+
+void
+nsHttpConnectionInfo::Init(const nsACString &host, int32_t port,
+                           const nsACString &npnToken,
+                           const nsACString &username,
+                           nsProxyInfo* proxyInfo,
+                           bool e2eSSL)
+{
+    LOG(("Init nsHttpConnectionInfo @%p\n", this));
+
+    mUsername = username;
+    mProxyInfo = proxyInfo;
+    mEndToEndSSL = e2eSSL;
+    mUsingConnect = false;
+    mNPNToken = npnToken;
 
     mUsingHttpsProxy = (proxyInfo && proxyInfo->IsHTTPS());
     mUsingHttpProxy = mUsingHttpsProxy || (proxyInfo && proxyInfo->IsHTTP());
@@ -47,11 +80,14 @@ nsHttpConnectionInfo::nsHttpConnectionInfo(const nsACString &host, int32_t port,
 }
 
 void
-nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
+nsHttpConnectionInfo::SetNetworkInterfaceId(const nsACString& aNetworkInterfaceId)
 {
-    mHost = host;
-    mPort = port == -1 ? DefaultPort() : port;
+    mNetworkInterfaceId = aNetworkInterfaceId;
+    BuildHashKey();
+}
 
+void nsHttpConnectionInfo::BuildHashKey()
+{
     //
     // build hash key:
     //
@@ -69,8 +105,8 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         keyHost = ProxyHost();
         keyPort = ProxyPort();
     } else {
-        keyHost = Host();
-        keyPort = Port();
+        keyHost = Origin();
+        keyPort = OriginPort();
     }
 
     // The hashkey has 4 fields followed by host connection info
@@ -78,9 +114,16 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
     // byte 1 is S/. S is for end to end ssl such as https:// uris
     // byte 2 is A/. A is for an anonymous channel (no cookies, etc..)
     // byte 3 is P/. P is for a private browising channel
-    mHashKey.AssignLiteral("....");
+    // byte 4 is I/. I is for insecure scheme on TLS for http:// uris
+    // byte 5 is X/. X is for disallow_spdy flag
 
+    mHashKey.AssignLiteral("......");
     mHashKey.Append(keyHost);
+    if (!mNetworkInterfaceId.IsEmpty()) {
+        mHashKey.Append('(');
+        mHashKey.Append(mNetworkInterfaceId);
+        mHashKey.Append(')');
+    }
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);
     if (!mUsername.IsEmpty()) {
@@ -118,18 +161,76 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         mHashKey.AppendInt(ProxyPort());
         mHashKey.Append(')');
     }
+
+    if(!mRoutedHost.IsEmpty()) {
+        mHashKey.AppendLiteral(" <ROUTE-via ");
+        mHashKey.Append(mRoutedHost);
+        mHashKey.Append(':');
+        mHashKey.AppendInt(mRoutedPort);
+        mHashKey.Append('>');
+    }
+
+    if (!mNPNToken.IsEmpty()) {
+        mHashKey.AppendLiteral(" {NPN-TOKEN ");
+        mHashKey.Append(mNPNToken);
+        mHashKey.AppendLiteral("}");
+    }
+}
+
+void
+nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
+{
+    mOrigin = host;
+    mOriginPort = port == -1 ? DefaultPort() : port;
+    BuildHashKey();
 }
 
 nsHttpConnectionInfo*
 nsHttpConnectionInfo::Clone() const
 {
-    nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mUsername, mProxyInfo, mEndToEndSSL);
+    nsHttpConnectionInfo *clone;
+    if (mRoutedHost.IsEmpty()) {
+        clone = new nsHttpConnectionInfo(mOrigin, mOriginPort, mNPNToken, mUsername, mProxyInfo, mEndToEndSSL);
+    } else {
+        MOZ_ASSERT(mEndToEndSSL);
+        clone = new nsHttpConnectionInfo(mOrigin, mOriginPort, mNPNToken, mUsername, mProxyInfo,
+                                         mRoutedHost, mRoutedPort);
+    }
 
-    // Make sure the anonymous and private flags are transferred!
+    if (!mNetworkInterfaceId.IsEmpty()) {
+        clone->SetNetworkInterfaceId(mNetworkInterfaceId);
+    }
+
+    // Make sure the anonymous, insecure-scheme, and private flags are transferred
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
+    clone->SetInsecureScheme(GetInsecureScheme());
+    clone->SetNoSpdy(GetNoSpdy());
     MOZ_ASSERT(clone->Equals(this));
+
     return clone;
+}
+
+void
+nsHttpConnectionInfo::CloneAsDirectRoute(nsHttpConnectionInfo **outCI)
+{
+    if (mRoutedHost.IsEmpty()) {
+        *outCI = Clone();
+        return;
+    }
+
+    nsRefPtr<nsHttpConnectionInfo> clone =
+        new nsHttpConnectionInfo(mOrigin, mOriginPort,
+                                 EmptyCString(), mUsername, mProxyInfo, mEndToEndSSL);
+    // Make sure the anonymous, insecure-scheme, and private flags are transferred
+    clone->SetAnonymous(GetAnonymous());
+    clone->SetPrivate(GetPrivate());
+    clone->SetInsecureScheme(GetInsecureScheme());
+    clone->SetNoSpdy(GetNoSpdy());
+    if (!mNetworkInterfaceId.IsEmpty()) {
+        clone->SetNetworkInterfaceId(mNetworkInterfaceId);
+    }
+    clone.forget(outCI);
 }
 
 nsresult
@@ -145,7 +246,7 @@ nsHttpConnectionInfo::CreateWildCard(nsHttpConnectionInfo **outParam)
 
     nsRefPtr<nsHttpConnectionInfo> clone;
     clone = new nsHttpConnectionInfo(NS_LITERAL_CSTRING("*"), 0,
-                                     mUsername, mProxyInfo, true);
+                                     mNPNToken, mUsername, mProxyInfo, true);
     // Make sure the anonymous and private flags are transferred!
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
@@ -170,7 +271,7 @@ nsHttpConnectionInfo::HostIsLocalIPLiteral() const
         if (PR_StringToNetAddr(ProxyHost(), &prAddr) != PR_SUCCESS) {
           return false;
         }
-    } else if (PR_StringToNetAddr(Host(), &prAddr) != PR_SUCCESS) {
+    } else if (PR_StringToNetAddr(Origin(), &prAddr) != PR_SUCCESS) {
         return false;
     }
     NetAddr netAddr;

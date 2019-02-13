@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -60,6 +61,7 @@ public:
 
   nsXBLSpecialDocInfo() : mInitialized(false) {}
 
+protected:
   virtual ~nsXBLSpecialDocInfo() {}
 
 };
@@ -213,9 +215,6 @@ BuildHandlerChain(nsIContent* aContent, nsXBLPrototypeHandler** aResult)
 
       nsXBLPrototypeHandler* handler = new nsXBLPrototypeHandler(key);
 
-      if (!handler)
-        return;
-
       handler->SetNextHandler(*aResult);
       *aResult = handler;
     }
@@ -335,19 +334,27 @@ nsXBLWindowKeyHandler::HandleEventOnCapture(nsIDOMKeyEvent* aEvent)
     return;
   }
 
-  if (!HasHandlerForEvent(aEvent)) {
+  bool aReservedForChrome = false;
+  if (!HasHandlerForEvent(aEvent, &aReservedForChrome)) {
     return;
   }
 
-  // If this event hasn't been marked as mNoCrossProcessBoundaryForwarding
-  // yet, it means it wasn't processed by content. We'll not call any
-  // of the handlers at this moment, and will wait for the event to be
-  // redispatched with mNoCrossProcessBoundaryForwarding = 1 to process it.
+  if (aReservedForChrome) {
+    // For reserved commands (such as Open New Tab), we don't to wait for
+    // the content to answer (so mWantReplyFromContentProcess remains false),
+    // neither to give a chance for content to override its behavior.
+    widgetEvent->mFlags.mNoCrossProcessBoundaryForwarding = true;
+  } else {
+    // Inform the child process that this is a event that we want a reply
+    // from.
+    widgetEvent->mFlags.mWantReplyFromContentProcess = true;
 
-  // Inform the child process that this is a event that we want a reply
-  // from.
-  widgetEvent->mFlags.mWantReplyFromContentProcess = 1;
-  aEvent->StopPropagation();
+    // If this event hadn't been marked as mNoCrossProcessBoundaryForwarding
+    // yet, it means it wasn't processed by content. We'll not call any
+    // of the handlers at this moment, and will wait for the event to be
+    // redispatched with mNoCrossProcessBoundaryForwarding = 1 to process it.
+    aEvent->StopPropagation();
+  }
 }
 
 //
@@ -356,13 +363,15 @@ nsXBLWindowKeyHandler::HandleEventOnCapture(nsIDOMKeyEvent* aEvent)
 // See if the given handler cares about this particular key event
 //
 bool
-nsXBLWindowKeyHandler::EventMatched(nsXBLPrototypeHandler* inHandler,
-                                    nsIAtom* inEventType,
-                                    nsIDOMKeyEvent* inEvent,
-                                    uint32_t aCharCode, bool aIgnoreShiftKey)
+nsXBLWindowKeyHandler::EventMatched(
+                         nsXBLPrototypeHandler* aHandler,
+                         nsIAtom* aEventType,
+                         nsIDOMKeyEvent* aEvent,
+                         uint32_t aCharCode,
+                         const IgnoreModifierState& aIgnoreModifierState)
 {
-  return inHandler->KeyEventMatched(inEventType, inEvent, aCharCode,
-                                    aIgnoreShiftKey);
+  return aHandler->KeyEventMatched(aEventType, aEvent, aCharCode,
+                                   aIgnoreModifierState);
 }
 
 bool
@@ -429,32 +438,40 @@ bool
 nsXBLWindowKeyHandler::WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                                             nsIAtom* aEventType, 
                                             nsXBLPrototypeHandler* aHandler,
-                                            bool aExecute)
+                                            bool aExecute,
+                                            bool* aOutReservedForChrome)
 {
   nsAutoTArray<nsShortcutCandidate, 10> accessKeys;
   nsContentUtils::GetAccelKeyCandidates(aKeyEvent, accessKeys);
 
   if (accessKeys.IsEmpty()) {
     return WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
-                                  0, false, aExecute);
+                                  0, IgnoreModifierState(),
+                                  aExecute, aOutReservedForChrome);
   }
 
   for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
     nsShortcutCandidate &key = accessKeys[i];
+    IgnoreModifierState ignoreModifierState;
+    ignoreModifierState.mShift = key.mIgnoreShift;
     if (WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
-                               key.mCharCode, key.mIgnoreShift, aExecute))
+                               key.mCharCode, ignoreModifierState,
+                               aExecute, aOutReservedForChrome)) {
       return true;
+    }
   }
   return false;
 }
 
 bool
-nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
-                                              nsIAtom* aEventType,
-                                              nsXBLPrototypeHandler* aHandler,
-                                              uint32_t aCharCode,
-                                              bool aIgnoreShiftKey,
-                                              bool aExecute)
+nsXBLWindowKeyHandler::WalkHandlersAndExecute(
+                         nsIDOMKeyEvent* aKeyEvent,
+                         nsIAtom* aEventType,
+                         nsXBLPrototypeHandler* aHandler,
+                         uint32_t aCharCode,
+                         const IgnoreModifierState& aIgnoreModifierState,
+                         bool aExecute,
+                         bool* aOutReservedForChrome)
 {
   nsresult rv;
 
@@ -468,8 +485,9 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
     }
 
     if (!EventMatched(currHandler, aEventType, aKeyEvent,
-                      aCharCode, aIgnoreShiftKey))
+                      aCharCode, aIgnoreModifierState)) {
       continue;  // try the next one
+    }
 
     // Before executing this handler, check that it's not disabled,
     // and that it has something to do (oncommand of the <key> or its
@@ -514,6 +532,12 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
       if (value.IsEmpty()) {
         continue;  // nothing to do
       }
+
+      if (aOutReservedForChrome) {
+        // The caller wants to know if this is a reserved command
+        commandElt->GetAttribute(NS_LITERAL_STRING("reserved"), value);
+        *aOutReservedForChrome = value.EqualsLiteral("true");
+      }
     }
 
     nsCOMPtr<EventTarget> piTarget;
@@ -534,11 +558,29 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
     }
   }
 
+#ifdef XP_WIN
+  // Windows native applications ignore Windows-Logo key state when checking
+  // shortcut keys even if the key is pressed.  Therefore, if there is no
+  // shortcut key which exactly matches current modifier state, we should
+  // retry to look for a shortcut key without the Windows-Logo key press.
+  if (!aIgnoreModifierState.mOS) {
+    WidgetKeyboardEvent* keyEvent =
+      aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
+    if (keyEvent && keyEvent->IsOS()) {
+      IgnoreModifierState ignoreModifierState(aIgnoreModifierState);
+      ignoreModifierState.mOS = true;
+      return WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler, aCharCode,
+                                    ignoreModifierState, aExecute);
+    }
+  }
+#endif
+
   return false;
 }
 
 bool
-nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent)
+nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent,
+                                          bool* aOutReservedForChrome)
 {
   if (!aEvent->InternalDOMEvent()->IsTrusted()) {
     return false;
@@ -558,7 +600,8 @@ nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent)
   nsCOMPtr<nsIAtom> eventTypeAtom = do_GetAtom(eventType);
   NS_ENSURE_TRUE(eventTypeAtom, false);
 
-  return WalkHandlersInternal(aEvent, eventTypeAtom, mHandler, false);
+  return WalkHandlersInternal(aEvent, eventTypeAtom, mHandler, false,
+                              aOutReservedForChrome);
 }
 
 already_AddRefed<Element>

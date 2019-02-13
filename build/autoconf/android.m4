@@ -39,7 +39,7 @@ if test $android_version -lt MIN_ANDROID_VERSION ; then
 fi
 
 case "$target" in
-arm-linux*-android*|*-linuxandroid*)
+arm-*linux*-android*|*-linuxandroid*)
     android_tool_prefix="arm-linux-androideabi"
     ;;
 i?86-*android*)
@@ -64,7 +64,7 @@ case "$target" in
 
         kernel_name=`uname -s | tr "[[:upper:]]" "[[:lower:]]"`
 
-        for version in $android_gnu_compiler_version 4.8 4.7 4.6 4.4.3; do
+        for version in $android_gnu_compiler_version 4.9 4.8 4.7 4.6 4.4.3; do
             case "$target_cpu" in
             arm)
                 target_name=arm-linux-androideabi-$version
@@ -132,17 +132,6 @@ case "$target" in
     else
         AC_MSG_ERROR([not found. Please check your NDK. With the current configuration, it should be in $android_platform])
     fi
-
-    dnl Old NDK support. If minimum requirement is changed to NDK r8b,
-    dnl please remove this.
-    case "$target_cpu" in
-    i?86)
-        if ! test -e "$android_toolchain"/bin/"$android_tool_prefix"-gcc; then
-            dnl Old NDK toolchain name
-            android_tool_prefix="i686-android-linux"
-        fi
-        ;;
-    esac
 
     dnl set up compilers
     TOOLCHAIN_PREFIX="$android_toolchain/bin/$android_tool_prefix-"
@@ -221,32 +210,76 @@ if test "$OS_TARGET" = "Android" -a -z "$gonkdir"; then
 
     AC_SUBST(ANDROID_CPU_ARCH)
 
-    if test -z "$STLPORT_CPPFLAGS$STLPORT_LDFLAGS$STLPORT_LIBS"; then
+    if test -z "$STLPORT_CPPFLAGS$STLPORT_LIBS"; then
         if test -n "$MOZ_ANDROID_LIBSTDCXX" ; then
-            if test -e "$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version/libs/$ANDROID_CPU_ARCH/libgnustl_static.a"; then
-                # android-ndk-r8b
-                STLPORT_LIBS="-L$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version/libs/$ANDROID_CPU_ARCH/ -lgnustl_static"
-                STLPORT_CPPFLAGS="-I$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version/include -I$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version/libs/$ANDROID_CPU_ARCH/include -I$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version/include/backward"
-            elif test -e "$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/libgnustl_static.a"; then
-                # android-ndk-r7, android-ndk-r7b, android-ndk-r8
-                STLPORT_LIBS="-L$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/ -lgnustl_static"
-                STLPORT_CPPFLAGS="-I$android_ndk/sources/cxx-stl/gnu-libstdc++/include -I$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/include"
-            elif test -e "$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/libstdc++.a"; then
-                # android-ndk-r5c, android-ndk-r6, android-ndk-r6b
-                STLPORT_CPPFLAGS="-I$android_ndk/sources/cxx-stl/gnu-libstdc++/include -I$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/include"
-                STLPORT_LIBS="-L$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/$ANDROID_CPU_ARCH/ -lstdc++"
+            # android-ndk-r8b and later
+            ndk_base="$android_ndk/sources/cxx-stl/gnu-libstdc++/$android_gnu_compiler_version"
+            ndk_libs="$ndk_base/libs/$ANDROID_CPU_ARCH"
+            ndk_include="$ndk_base/include"
+
+            if test -e "$ndk_libs/libgnustl_static.a"; then
+                STLPORT_LIBS="-L$ndk_libs -lgnustl_static"
+                STLPORT_CPPFLAGS="-I$ndk_include -I$ndk_include/backward -I$ndk_libs/include"
             else
                 AC_MSG_ERROR([Couldn't find path to gnu-libstdc++ in the android ndk])
             fi
         else
-            STLPORT_CPPFLAGS="-isystem $_topsrcdir/build/stlport/stlport -isystem $android_ndk/sources/cxx-stl/system/include"
-            STLPORT_LIBS="$_objdir/build/stlport/libstlport_static.a -static-libstdc++"
+            STLPORT_CPPFLAGS="-isystem $_topsrcdir/build/stlport/stlport -isystem $_topsrcdir/build/stlport/overrides -isystem $android_ndk/sources/cxx-stl/system/include"
         fi
     fi
     CXXFLAGS="$CXXFLAGS $STLPORT_CPPFLAGS"
 fi
 AC_SUBST([MOZ_ANDROID_LIBSTDCXX])
 AC_SUBST([STLPORT_LIBS])
+
+])
+
+AC_DEFUN([MOZ_ANDROID_GOOGLE_PLAY_SERVICES],
+[
+
+if test -n "$MOZ_NATIVE_DEVICES" ; then
+    AC_SUBST(MOZ_NATIVE_DEVICES)
+
+    AC_MSG_CHECKING([for google play services])
+    GOOGLE_PLAY_SERVICES_LIB="${ANDROID_SDK_ROOT}/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar"
+    GOOGLE_PLAY_SERVICES_RES="${ANDROID_SDK_ROOT}/extras/google/google_play_services/libproject/google-play-services_lib/res"
+    AC_SUBST(GOOGLE_PLAY_SERVICES_LIB)
+    AC_SUBST(GOOGLE_PLAY_SERVICES_RES)
+    if ! test -e $GOOGLE_PLAY_SERVICES_LIB ; then
+        AC_MSG_ERROR([You must download Google Play Services to build with native video casting support enabled.  Run the Android SDK tool and install Google Play Services under Extras.  See http://developer.android.com/google/play-services/setup.html for more info. (looked for $GOOGLE_PLAY_SERVICES_LIB) ])
+    fi
+    AC_MSG_RESULT([$GOOGLE_PLAY_SERVICES_LIB])
+
+    ANDROID_APPCOMPAT_LIB="$ANDROID_COMPAT_DIR_BASE/v7/appcompat/libs/android-support-v7-appcompat.jar"
+    ANDROID_APPCOMPAT_RES="$ANDROID_COMPAT_DIR_BASE/v7/appcompat/res"
+    AC_MSG_CHECKING([for v7 appcompat library])
+    if ! test -e $ANDROID_APPCOMPAT_LIB ; then
+        AC_MSG_ERROR([You must download the v7 app compat Android support library when targeting Android with native video casting support enabled.  Run the Android SDK tool and install Android Support Library under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_APPCOMPAT_LIB)])
+    fi
+    AC_MSG_RESULT([$ANDROID_APPCOMPAT_LIB])
+    AC_SUBST(ANDROID_APPCOMPAT_LIB)
+    AC_SUBST(ANDROID_APPCOMPAT_RES)
+
+    ANDROID_RECYCLERVIEW_LIB="$ANDROID_COMPAT_DIR_BASE/v7/recyclerview/libs/android-support-v7-recyclerview.jar"
+    ANDROID_RECYCLERVIEW_RES="$ANDROID_COMPAT_DIR_BASE/v7/recyclerview/res"
+    AC_MSG_CHECKING([for v7 recyclerview library])
+    if ! test -e $ANDROID_RECYCLERVIEW_LIB ; then
+        AC_MSG_ERROR([You must download the v7 recyclerview Android support library.  Run the Android SDK tool and install Android Support Library under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_RECYCLERVIEW_LIB)])
+    fi
+    AC_MSG_RESULT([$ANDROID_RECYCLERVIEW_LIB])
+    AC_SUBST(ANDROID_RECYCLERVIEW_LIB)
+    AC_SUBST(ANDROID_RECYCLERVIEW_RES)
+
+    ANDROID_MEDIAROUTER_LIB="$ANDROID_COMPAT_DIR_BASE/v7/mediarouter/libs/android-support-v7-mediarouter.jar"
+    ANDROID_MEDIAROUTER_RES="$ANDROID_COMPAT_DIR_BASE/v7/mediarouter/res"
+    AC_MSG_CHECKING([for v7 mediarouter library])
+    if ! test -e $ANDROID_MEDIAROUTER_LIB ; then
+        AC_MSG_ERROR([You must download the v7 media router Android support library when targeting Android with native video casting support enabled.  Run the Android SDK tool and install Android Support Library under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_MEDIAROUTER_LIB)])
+    fi
+    AC_MSG_RESULT([$ANDROID_MEDIAROUTER_LIB])
+    AC_SUBST(ANDROID_MEDIAROUTER_LIB)
+    AC_SUBST(ANDROID_MEDIAROUTER_RES)
+fi
 
 ])
 
@@ -315,6 +348,13 @@ case "$target" in
     if test -z "$android_build_tools" ; then
         android_build_tools="$android_platform_tools" # SDK Tools < r22
     fi
+    all_android_build_tools=""
+    for suffix in `ls "$android_sdk_root/build-tools" | sed -e "s,android-,999.," | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr -k 5,5nr`; do
+        tools_directory=`echo "$android_sdk_root/build-tools/$suffix" | sed -e "s,999.,android-,"`
+        if test -d "$tools_directory" -a -f "$tools_directory/aapt"; then
+            all_android_build_tools="$all_android_build_tools:$tools_directory"
+        fi
+    done
 
     if test -d "$android_build_tools" -a -f "$android_build_tools/aapt"; then
         AC_MSG_RESULT([$android_build_tools])
@@ -338,6 +378,9 @@ case "$target" in
     ANDROID_BUILD_TOOLS="${android_build_tools}"
     AC_SUBST(ANDROID_SDK_ROOT)
     AC_SUBST(ANDROID_SDK)
+    AC_SUBST(ANDROID_TOOLS)
+    AC_SUBST(ANDROID_PLATFORM_TOOLS)
+    AC_SUBST(ANDROID_BUILD_TOOLS)
 
     ANDROID_COMPAT_LIB=$ANDROID_COMPAT_DIR_BASE/v4/android-support-v4.jar
     AC_MSG_CHECKING([for v4 compat library])
@@ -347,45 +390,14 @@ case "$target" in
     fi
     AC_MSG_RESULT([$ANDROID_COMPAT_LIB])
 
-    if test -n "$MOZ_NATIVE_DEVICES" ; then
-        AC_SUBST(MOZ_NATIVE_DEVICES)
-
-        AC_MSG_CHECKING([for google play services])
-        GOOGLE_PLAY_SERVICES_LIB="${ANDROID_SDK_ROOT}/extras/google/google_play_services/libproject/google-play-services_lib/libs/google-play-services.jar"
-        GOOGLE_PLAY_SERVICES_RES="${ANDROID_SDK_ROOT}/extras/google/google_play_services/libproject/google-play-services_lib/res"
-        AC_SUBST(GOOGLE_PLAY_SERVICES_LIB)
-        AC_SUBST(GOOGLE_PLAY_SERVICES_RES)
-        if ! test -e $GOOGLE_PLAY_SERVICES_LIB ; then
-            AC_MSG_ERROR([You must download Google Play Services to build with native video casting support enabled.  Run the Android SDK tool and install Google Play Services under Extras.  See http://developer.android.com/google/play-services/setup.html for more info. (looked for $GOOGLE_PLAY_SERVICES_LIB) ])
-        fi
-        AC_MSG_RESULT([$GOOGLE_PLAY_SERVICES_LIB])
-
-        ANDROID_APPCOMPAT_LIB="$ANDROID_COMPAT_DIR_BASE/v7/appcompat/libs/android-support-v7-appcompat.jar"
-        ANDROID_APPCOMPAT_RES="$ANDROID_COMPAT_DIR_BASE/v7/appcompat/res"
-        AC_MSG_CHECKING([for v7 appcompat library])
-        if ! test -e $ANDROID_APPCOMPAT_LIB ; then
-            AC_MSG_ERROR([You must download the v7 app compat Android support library when targeting Android with native video casting support enabled.  Run the Android SDK tool and install Android Support Library under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_APPCOMPAT_LIB)])
-        fi
-        AC_MSG_RESULT([$ANDROID_APPCOMPAT_LIB])
-        AC_SUBST(ANDROID_APPCOMPAT_LIB)
-        AC_SUBST(ANDROID_APPCOMPAT_RES)
-
-        ANDROID_MEDIAROUTER_LIB="$ANDROID_COMPAT_DIR_BASE/v7/mediarouter/libs/android-support-v7-mediarouter.jar"
-        ANDROID_MEDIAROUTER_RES="$ANDROID_COMPAT_DIR_BASE/v7/mediarouter/res"
-        AC_MSG_CHECKING([for v7 mediarouter library])
-        if ! test -e $ANDROID_MEDIAROUTER_LIB ; then
-            AC_MSG_ERROR([You must download the v7 media router Android support library when targeting Android with native video casting support enabled.  Run the Android SDK tool and install Android Support Library under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_MEDIAROUTER_LIB)])
-        fi
-        AC_MSG_RESULT([$ANDROID_MEDIAROUTER_LIB])
-        AC_SUBST(ANDROID_MEDIAROUTER_LIB)
-        AC_SUBST(ANDROID_MEDIAROUTER_RES)
-    fi
-
-    MOZ_PATH_PROG(ZIPALIGN, zipalign, :, [$ANDROID_TOOLS])
-    MOZ_PATH_PROG(DX, dx, :, [$ANDROID_BUILD_TOOLS])
-    MOZ_PATH_PROG(AAPT, aapt, :, [$ANDROID_BUILD_TOOLS])
-    MOZ_PATH_PROG(AIDL, aidl, :, [$ANDROID_BUILD_TOOLS])
-    MOZ_PATH_PROG(ADB, adb, :, [$ANDROID_PLATFORM_TOOLS])
+    dnl Google has a history of moving the Android tools around.  We don't
+    dnl care where they are, so let's try to find them anywhere we can.
+    ALL_ANDROID_TOOLS_PATHS="$ANDROID_TOOLS$all_android_build_tools:$ANDROID_PLATFORM_TOOLS"
+    MOZ_PATH_PROG(ZIPALIGN, zipalign, :, [$ALL_ANDROID_TOOLS_PATHS])
+    MOZ_PATH_PROG(DX, dx, :, [$ALL_ANDROID_TOOLS_PATHS])
+    MOZ_PATH_PROG(AAPT, aapt, :, [$ALL_ANDROID_TOOLS_PATHS])
+    MOZ_PATH_PROG(AIDL, aidl, :, [$ALL_ANDROID_TOOLS_PATHS])
+    MOZ_PATH_PROG(ADB, adb, :, [$ALL_ANDROID_TOOLS_PATHS])
 
     if test -z "$ZIPALIGN" -o "$ZIPALIGN" = ":"; then
       AC_MSG_ERROR([The program zipalign was not found.  Use --with-android-sdk={android-sdk-dir}.])
@@ -404,5 +416,33 @@ case "$target" in
     fi
     ;;
 esac
+
+MOZ_ARG_WITH_STRING(android-min-sdk,
+[  --with-android-min-sdk=[VER]     Impose a minimum Firefox for Android SDK version],
+[ MOZ_ANDROID_MIN_SDK_VERSION=$withval ])
+
+MOZ_ARG_WITH_STRING(android-max-sdk,
+[  --with-android-max-sdk=[VER]     Impose a maximum Firefox for Android SDK version],
+[ MOZ_ANDROID_MAX_SDK_VERSION=$withval ])
+
+if test -n "$MOZ_ANDROID_MIN_SDK_VERSION"; then
+    if test -n "$MOZ_ANDROID_MAX_SDK_VERSION"; then
+        if test $MOZ_ANDROID_MAX_SDK_VERSION -lt $MOZ_ANDROID_MIN_SDK_VERSION ; then
+            AC_MSG_ERROR([--with-android-max-sdk must be at least the value of --with-android-min-sdk.])
+        fi
+    fi
+
+    if test $MOZ_ANDROID_MIN_SDK_VERSION -gt $ANDROID_TARGET_SDK ; then
+        AC_MSG_ERROR([--with-android-min-sdk is expected to be less than $ANDROID_TARGET_SDK])
+    fi
+
+    AC_DEFINE_UNQUOTED(MOZ_ANDROID_MIN_SDK_VERSION, $MOZ_ANDROID_MIN_SDK_VERSION)
+    AC_SUBST(MOZ_ANDROID_MIN_SDK_VERSION)
+fi
+
+if test -n "$MOZ_ANDROID_MAX_SDK_VERSION"; then
+    AC_DEFINE_UNQUOTED(MOZ_ANDROID_MAX_SDK_VERSION, $MOZ_ANDROID_MAX_SDK_VERSION)
+    AC_SUBST(MOZ_ANDROID_MAX_SDK_VERSION)
+fi
 
 ])

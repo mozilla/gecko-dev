@@ -9,6 +9,7 @@
 #include "gfxPoint.h"
 #include "gfxTypes.h"
 #include "gfxRect.h"
+#include "mozilla/Attributes.h"
 
 // XX - I don't think this class should use gfxFloat at all,
 // but should use 'double' and be called gfxDoubleMatrix;
@@ -30,12 +31,12 @@
  *           \ tx ty 1 /   \         1          /
  *
  */
-struct gfxMatrix {
+class gfxMatrix {
+public:
     double _11; double _12;
     double _21; double _22;
     double _31; double _32;
 
-public:
     /**
      * Initializes this matrix as the identity matrix.
      */
@@ -50,18 +51,32 @@ public:
         _21(c),  _22(d),
         _31(tx), _32(ty) { }
 
+    MOZ_ALWAYS_INLINE gfxMatrix Copy() const {
+        return gfxMatrix(*this);
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const gfxMatrix& m) {
+      if (m.IsIdentity()) {
+        return stream << "[identity]";
+      }
+
+      return stream << "["
+             << m._11 << " " << m._12
+             << m._21 << " " << m._22
+             << m._31 << " " << m._32
+             << "]";
+    }
+
     /**
      * Post-multiplies m onto the matrix.
      */
-    const gfxMatrix& operator *= (const gfxMatrix& m) {
-        return Multiply(m);
-    }
+    const gfxMatrix& operator *= (const gfxMatrix& m);
 
     /**
      * Multiplies *this with m and returns the result.
      */
     gfxMatrix operator * (const gfxMatrix& m) const {
-        return gfxMatrix(*this).Multiply(m);
+        return gfxMatrix(*this) *= m;
     }
 
     /* Returns true if the other matrix is fuzzy-equal to this matrix.
@@ -98,7 +113,7 @@ public:
      * XXX should this do something with the return value of
      * cairo_matrix_invert?
      */
-    const gfxMatrix& Invert();
+    bool Invert();
 
     /**
      * Check if matrix is singular (no inverse exists).
@@ -112,13 +127,17 @@ public:
      * Scales this matrix. The scale is pre-multiplied onto this matrix,
      * i.e. the scaling takes place before the other transformations.
      */
-    const gfxMatrix& Scale(gfxFloat x, gfxFloat y);
+    gfxMatrix& Scale(gfxFloat x, gfxFloat y);
 
     /**
      * Translates this matrix. The translation is pre-multiplied onto this matrix,
      * i.e. the translation takes place before the other transformations.
      */
-    const gfxMatrix& Translate(const gfxPoint& pt);
+    gfxMatrix& Translate(const gfxPoint& pt);
+
+    gfxMatrix& Translate(gfxFloat x, gfxFloat y) {
+      return Translate(gfxPoint(x, y));
+    }
 
     /**
      * Rotates this matrix. The rotation is pre-multiplied onto this matrix,
@@ -126,23 +145,31 @@ public:
      *
      * @param radians Angle in radians.
      */
-    const gfxMatrix& Rotate(gfxFloat radians);
-
-     /**
-      * Multiplies the current matrix with m.
-      * This is a post-multiplication, i.e. the transformations of m are
-      * applied _after_ the existing transformations.
-      *
-      * XXX is that difference (compared to Rotate etc) a good thing?
-      */
-    const gfxMatrix& Multiply(const gfxMatrix& m);
+    gfxMatrix& Rotate(gfxFloat radians);
 
     /**
      * Multiplies the current matrix with m.
      * This is a pre-multiplication, i.e. the transformations of m are
      * applied _before_ the existing transformations.
      */
-    const gfxMatrix& PreMultiply(const gfxMatrix& m);
+    gfxMatrix& PreMultiply(const gfxMatrix& m);
+
+    static gfxMatrix Translation(gfxFloat aX, gfxFloat aY)
+    {
+        return gfxMatrix(1.0, 0.0, 0.0, 1.0, aX, aY);
+    }
+
+    static gfxMatrix Translation(gfxPoint aPoint)
+    {
+        return Translation(aPoint.x, aPoint.y);
+    }
+
+    static gfxMatrix Rotation(gfxFloat aAngle);
+
+    static gfxMatrix Scaling(gfxFloat aX, gfxFloat aY)
+    {
+        return gfxMatrix(aX, 0.0, 0.0, aY, 0.0, 0.0);
+    }
 
     /**
      * Transforms a point according to this matrix.
@@ -257,7 +284,7 @@ public:
      * to integers. In particular, components that are integral when
      * converted to single precision are set to those integers.
      */
-    void NudgeToIntegers(void);
+    gfxMatrix& NudgeToIntegers(void);
 
     /**
      * Returns true if matrix is multiple of 90 degrees rotation with flipping,
@@ -266,14 +293,6 @@ public:
     bool PreservesAxisAlignedRectangles() const {
         return ((FuzzyEqual(_11, 0.0) && FuzzyEqual(_22, 0.0))
             || (FuzzyEqual(_21, 0.0) && FuzzyEqual(_12, 0.0)));
-    }
-
-    /**
-     * Returns true if the matrix has non-integer scale
-     */
-    bool HasNonIntegerScale() const {
-        return !FuzzyEqual(_11, floor(_11 + 0.5)) ||
-               !FuzzyEqual(_22, floor(_22 + 0.5));
     }
 
 private:

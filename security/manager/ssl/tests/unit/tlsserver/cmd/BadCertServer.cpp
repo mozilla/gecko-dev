@@ -28,14 +28,20 @@ struct BadCertHost
 const BadCertHost sBadCertHosts[] =
 {
   { "expired.example.com", "expired" },
+  { "notyetvalid.example.com", "notYetValid" },
+  { "before-epoch.example.com", "beforeEpoch" },
   { "selfsigned.example.com", "selfsigned" },
   { "unknownissuer.example.com", "unknownissuer" },
   { "mismatch.example.com", "mismatch" },
+  { "mismatch-CN.example.com", "mismatchCN" },
   { "expiredissuer.example.com", "expiredissuer" },
+  { "notyetvalidissuer.example.com", "notYetValidIssuer" },
+  { "before-epoch-issuer.example.com", "beforeEpochIssuer" },
   { "md5signature.example.com", "md5signature" },
   { "untrusted.example.com", "localhostAndExampleCom" },
   { "untrustedissuer.example.com", "untrustedissuer" },
   { "mismatch-expired.example.com", "mismatch-expired" },
+  { "mismatch-notYetValid.example.com", "mismatch-notYetValid" },
   { "mismatch-untrusted.example.com", "mismatch-untrusted" },
   { "untrusted-expired.example.com", "untrusted-expired" },
   { "md5signature-expired.example.com", "md5signature-expired" },
@@ -43,6 +49,8 @@ const BadCertHost sBadCertHosts[] =
   { "inadequatekeyusage.example.com", "inadequatekeyusage" },
   { "selfsigned-inadequateEKU.example.com", "selfsigned-inadequateEKU" },
   { "self-signed-end-entity-with-cA-true.example.com", "self-signed-EE-with-cA-true" },
+  { "ca-used-as-end-entity.example.com", "ca-used-as-end-entity" },
+  { "ca-used-as-end-entity-name-mismatch.example.com", "ca-used-as-end-entity" },
   // All of include-subdomains.pinning.example.com is pinned to End Entity
   // Test Cert with nick localhostAndExampleCom. Any other nick will only
   // pass pinning when security.cert_pinning.enforcement.level != strict and
@@ -50,9 +58,22 @@ const BadCertHost sBadCertHosts[] =
   { "include-subdomains.pinning.example.com", "localhostAndExampleCom" },
   { "good.include-subdomains.pinning.example.com", "localhostAndExampleCom" },
   { "bad.include-subdomains.pinning.example.com", "otherIssuerEE" },
+  { "bad.include-subdomains.pinning.example.com.", "otherIssuerEE" },
+  { "bad.include-subdomains.pinning.example.com..", "otherIssuerEE" },
   { "exclude-subdomains.pinning.example.com", "localhostAndExampleCom" },
   { "sub.exclude-subdomains.pinning.example.com", "otherIssuerEE" },
   { "test-mode.pinning.example.com", "otherIssuerEE" },
+  { "unknownissuer.include-subdomains.pinning.example.com", "unknownissuer" },
+  { "unknownissuer.test-mode.pinning.example.com", "unknownissuer" },
+  { "nsCertTypeNotCritical.example.com", "nsCertTypeNotCritical" },
+  { "nsCertTypeCriticalWithExtKeyUsage.example.com", "nsCertTypeCriticalWithExtKeyUsage" },
+  { "nsCertTypeCritical.example.com", "nsCertTypeCritical" },
+  { "end-entity-issued-by-v1-cert.example.com", "eeIssuedByV1Cert" },
+  { "end-entity-issued-by-non-CA.example.com", "eeIssuedByNonCA" },
+  { "inadequate-key-size-ee.example.com", "inadequateKeySizeEE" },
+  { "badSubjectAltNames.example.com", "badSubjectAltNames" },
+  { "ipAddressAsDNSNameInSAN.example.com", "ipAddressAsDNSNameInSAN" },
+  { "noValidNames.example.com", "noValidNames" },
   { nullptr, nullptr }
 };
 

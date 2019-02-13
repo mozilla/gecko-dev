@@ -6,6 +6,8 @@
 
 # We don't import all modules at the top for performance reasons. See Bug 1008943
 
+from __future__ import absolute_import
+
 from contextlib import contextmanager
 import errno
 import os
@@ -50,7 +52,7 @@ def extract_zip(src, dest):
     else:
         try:
             bundle = zipfile.ZipFile(src)
-        except Exception, e:
+        except Exception:
             print "src: %s" % src
             raise
 
@@ -133,10 +135,19 @@ def rmtree(dir):
 
 
 def remove(path):
-    """Removes the specified file, link, or directory tree
+    """Removes the specified file, link, or directory tree.
 
     This is a replacement for shutil.rmtree that works better under
-    windows.
+    windows. It does the following things:
+
+     - check path access for the current user before trying to remove
+     - retry operations on some known errors due to various things keeping
+       a handle on file paths - like explorer, virus scanners, etc. The
+       known errors are errno.EACCES and errno.ENOTEMPTY, and it will
+       retry up to 5 five times with a delay of 0.5 seconds between each
+       attempt.
+
+    Note that no error will be raised if the given path does not exists.
 
     :param path: path to be removed
     """
@@ -264,9 +275,6 @@ def tree(directory,
         # sort articles of interest
         for resource in (dirnames, filenames):
             resource[:] = sorted(resource, key=sort_key)
-
-        files_end =  item_marker
-        dirpath_marker = item_marker
 
         if level > len(indent):
             indent.append(vertical_line)

@@ -4,26 +4,46 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['test']
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'test/unit/social/xpcshell.ini',
+    'test/xpcshell/xpcshell.ini',
+]
 
 EXTRA_JS_MODULES += [
-    'BrowserNewTabPreloader.jsm',
+    'AboutHome.jsm',
+    'AboutNewTab.jsm',
     'BrowserUITelemetry.jsm',
+    'CastingApps.jsm',
     'Chat.jsm',
     'ContentClick.jsm',
+    'ContentCrashReporters.jsm',
     'ContentLinkHandler.jsm',
+    'ContentObservers.jsm',
     'ContentSearch.jsm',
+    'ContentWebRTC.jsm',
     'CustomizationTabPreloader.jsm',
+    'DirectoryLinksProvider.jsm',
+    'E10SUtils.jsm',
     'Feeds.jsm',
+    'FormSubmitObserver.jsm',
+    'FormValidationHandler.jsm',
+    'HiddenFrame.jsm',
     'NetworkPrioritizer.jsm',
+    'NewTabURL.jsm',
     'offlineAppCache.jsm',
     'PanelFrame.jsm',
+    'PluginContent.jsm',
+    'ProcessHangMonitor.jsm',
+    'ReaderParent.jsm',
+    'RecentWindow.jsm',
     'RemotePrompt.jsm',
-    'SharedFrame.jsm',
+    'SelfSupportBackend.jsm',
     'SitePermissions.jsm',
     'Social.jsm',
-    'TabCrashReporter.jsm',
+    'TransientPrefs.jsm',
     'WebappManager.jsm',
+    'webrtcUI.jsm',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
@@ -38,11 +58,8 @@ if CONFIG['NIGHTLY_BUILD']:
         'SignInToWebsite.jsm',
     ]
 
-EXTRA_PP_JS_MODULES += [
-    'AboutHome.jsm',
-    'RecentWindow.jsm',
-    'UITour.jsm',
-    'webrtcUI.jsm',
+EXTRA_PP_COMPONENTS += [
+    'browsermodules.manifest',
 ]
 
 if CONFIG['MOZILLA_OFFICIAL']:

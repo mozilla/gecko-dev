@@ -29,7 +29,7 @@ let ChildActor = protocol.ActorClass({
   // Actors returned by this actor should be owned by the root actor.
   marshallPool: function() { return this.parent() },
 
-  toString: function() "[ChildActor " + this.childID + "]",
+  toString: function() { return "[ChildActor " + this.childID + "]"; },
 
   initialize: function(conn, id) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -80,6 +80,19 @@ let ChildActor = protocol.ActorClass({
     response: {
       idDetail: RetVal("childActor#actorid")
     }
+  }),
+
+  getIntArray: method(function(inputArray) {
+    // Test that protocol.js converts an iterator to an array.
+    let f = function*() {
+      for (let i of inputArray) {
+        yield 2 * i;
+      }
+    };
+    return f();
+  }, {
+    request: { inputArray: Arg(0, "array:number") },
+    response: RetVal("array:number")
   }),
 
   getSibling: method(function(id) {
@@ -135,7 +148,7 @@ let ChildFront = protocol.FrontClass(ChildActor, {
 
   marshallPool: function() { return this.parent() },
 
-  toString: function() "[child front " + this.childID + "]",
+  toString: function() { return "[child front " + this.childID + "]"; },
 
   form: function(form, detail) {
     if (detail === "actorid") {
@@ -161,7 +174,7 @@ let rootActor = null;
 let RootActor = protocol.ActorClass({
   typeName: "root",
 
-  toString: function() "[root actor]",
+  toString: function() { return "[root actor]"; },
 
   initialize: function(conn) {
     rootActor = this;
@@ -187,9 +200,21 @@ let RootActor = protocol.ActorClass({
   }),
 
   getChildren: method(function(ids) {
-    return [this.getChild(id) for (id of ids)];
+    return ids.map(id => this.getChild(id));
   }, {
     request: { ids: Arg(0, "array:string") },
+    response: { children: RetVal("array:childActor") },
+  }),
+
+  getChildren2: method(function(ids) {
+    let f = function*() {
+      for (let c of ids) {
+        yield c;
+      }
+    };
+    return f();
+  }, {
+    request: { ids: Arg(0, "array:childActor") },
     response: { children: RetVal("array:childActor") },
   }),
 
@@ -224,7 +249,7 @@ let RootActor = protocol.ActorClass({
 });
 
 let RootFront = protocol.FrontClass(RootActor, {
-  toString: function() "[root front]",
+  toString: function() { return "[root front]"; },
   initialize: function(client) {
     this.actorID = "root";
     protocol.Front.prototype.initialize.call(this, client);
@@ -234,7 +259,9 @@ let RootFront = protocol.FrontClass(RootActor, {
 
   getTemporaryChild: protocol.custom(function(id) {
     if (!this._temporaryHolder) {
-      this._temporaryHolder = this.manage(new protocol.Front(this.conn, {actor: this.actorID + "_temp"}));
+      this._temporaryHolder = protocol.Front(this.conn);
+      this._temporaryHolder.actorID = this.actorID + "_temp";
+      this._temporaryHolder = this.manage(this._temporaryHolder);
     }
     return this._getTemporaryChild(id);
   },{
@@ -258,7 +285,7 @@ function run_test()
   DebuggerServer.createRootActor = (conn => {
     return RootActor(conn);
   });
-  DebuggerServer.init(() => true);
+  DebuggerServer.init();
 
   let trace = connectPipeTracing();
   let client = new DebuggerClient(trace);
@@ -349,8 +376,8 @@ function run_test()
           do_check_eq(rootFront._temporaryHolder.__poolMap.size, 2);
 
           // Get the children of the temporary holder...
-          let checkActors = [entry[1] for (entry of rootActor._temporaryHolder.__poolMap)];
-          let checkFronts = [entry[1] for (entry of rootFront._temporaryHolder.__poolMap)];
+          let checkActors = rootActor._temporaryHolder.__poolMap.values();
+          let checkFronts = rootFront._temporaryHolder.__poolMap.values();
 
           // Now release the temporary holders and expect them to drop again.
           return rootFront.clearTemporaryChildren().then(() => {
@@ -439,6 +466,34 @@ function run_test()
       do_check_eq(ret.child5.childID, "child5");
       do_check_eq(ret.more[0].childID, "child6");
       do_check_eq(ret.more[1].childID, "child7");
+    }).then(() => {
+      // Test accepting a generator.
+      let f = function*() {
+        for (let i of [1, 2, 3, 4, 5]) {
+          yield i;
+        }
+      };
+      return childFront.getIntArray(f());
+    }).then((ret) => {
+      do_check_eq(ret.length, 5);
+      let expected = [2, 4, 6, 8, 10];
+      for (let i = 0; i < 5; ++i) {
+        do_check_eq(ret[i], expected[i]);
+      }
+    }).then(() => {
+      return rootFront.getChildren(["child1", "child2"]);
+    }).then(ids => {
+      let f = function*() {
+        for (let id of ids) {
+          yield id;
+        }
+      };
+      return rootFront.getChildren2(f());
+    }).then(ret => {
+      do_check_eq(ret.length, 2);
+      do_check_true(ret[0] === childFront);
+      do_check_true(ret[1] !== childFront);
+      do_check_true(ret[1] instanceof ChildFront);
     }).then(() => {
       client.close(() => {
         do_test_finished();

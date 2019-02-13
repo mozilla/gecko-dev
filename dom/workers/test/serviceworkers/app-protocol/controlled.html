@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test app for bug 1161684</title>
+    <script src='test.js'></script>
+    <script src='test_doc_load_interception.js'></script>
+    <script type='application/javascript;version=1.7'>
+
+function runTests() {
+  return Promise.resolve()
+    .then(navigator.serviceWorker.ready)
+    .then(() => {
+        return testFetchAppResource('foo.txt',
+                                    'swresponse', 'text/plain');
+    })
+    .then(() => {
+        return testFetchAppResource('foo.txt?fetch=1',
+                                    'networkresponse', 'text/plain');
+    })
+    .then(() => {
+        return testFetchAppResource('test_custom_content_type',
+                                    'customContentType', 'text/html');
+    })
+    .then(testRedirectedResponse)
+    .then(testRedirectedHttpsResponse)
+    .then(testCachedRedirectedResponse)
+    .then(testCachedRedirectedHttpsResponse)
+    .then(done);
+}
+  </script>
+  </head>
+  <body onload='runTests()'>
+  </body>
+</html>

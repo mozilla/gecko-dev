@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 ci et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +15,8 @@
 namespace mozilla {
 
 /** Different shutdown check modes */
-enum ShutdownChecksMode {
+enum ShutdownChecksMode
+{
   SCM_CRASH,      /** Crash on shutdown check failure */
   SCM_RECORD,     /** Record shutdown check violations */
   SCM_NOTHING     /** Don't attempt any shutdown checks */
@@ -54,6 +55,6 @@ void BeginLateWriteChecks();
  */
 void StopLateWriteChecks();
 
-} // mozilla
+} // namespace mozilla
 
 #endif // mozilla_LateWriteChecks_h

@@ -234,9 +234,11 @@ function nextTest() {
   }
   else {
     // Collapse the personal toolbar if needed.
-    if (wasCollapsed)
-      setToolbarVisibility(toolbar, false);
-    finish();
+    if (wasCollapsed) {
+      promiseSetToolbarVisibility(toolbar, false).then(finish);
+    } else {
+      finish();
+    }
   }
 }
 
@@ -247,9 +249,10 @@ function test() {
   waitForExplicitFinish();
 
   // Uncollapse the personal toolbar if needed.
-  if (wasCollapsed)
-    setToolbarVisibility(toolbar, true);
-
-  nextTest();
+  if (wasCollapsed) {
+    promiseSetToolbarVisibility(toolbar, true).then(nextTest);
+  } else {
+    nextTest();
+  }
 }
 

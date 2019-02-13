@@ -11,6 +11,8 @@
 <!DOCTYPE window [
   <!ENTITY % netmonitorDTD SYSTEM "chrome://browser/locale/devtools/netmonitor.dtd">
   %netmonitorDTD;
+  <!ENTITY % certManagerDTD SYSTEM "chrome://pippki/locale/certManager.dtd">
+  %certManagerDTD;
 ]>
 
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -23,27 +25,70 @@
 
   <popupset id="networkPopupSet">
     <menupopup id="network-request-popup">
-      <menuitem id="request-menu-context-newtab"
-                label="&netmonitorUI.context.newTab;"
-                accesskey="&netmonitorUI.context.newTab.accesskey;"/>
       <menuitem id="request-menu-context-copy-url"
                 label="&netmonitorUI.context.copyUrl;"
                 accesskey="&netmonitorUI.context.copyUrl.accesskey;"/>
+      <menuitem id="request-menu-context-copy-url-params"
+                label="&netmonitorUI.context.copyUrlParams;"
+                accesskey="&netmonitorUI.context.copyUrlParams.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.copyUrlParams();"/>
+      <menuitem id="request-menu-context-copy-post-data"
+                label="&netmonitorUI.context.copyPostData;"
+                accesskey="&netmonitorUI.context.copyPostData.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.copyPostData();"/>
       <menuitem id="request-menu-context-copy-as-curl"
                 label="&netmonitorUI.context.copyAsCurl;"
+                accesskey="&netmonitorUI.context.copyAsCurl.accesskey;"
                 oncommand="NetMonitorView.RequestsMenu.copyAsCurl();"/>
+      <menuseparator class="request-menu-context-separator"/>
+      <menuitem id="request-menu-context-copy-request-headers"
+                label="&netmonitorUI.context.copyRequestHeaders;"
+                accesskey="&netmonitorUI.context.copyRequestHeaders.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.copyRequestHeaders();"/>
+      <menuitem id="response-menu-context-copy-response-headers"
+                label="&netmonitorUI.context.copyResponseHeaders;"
+                accesskey="&netmonitorUI.context.copyResponseHeaders.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.copyResponseHeaders();"/>
+      <menuitem id="request-menu-context-copy-response"
+                label="&netmonitorUI.context.copyResponse;"
+                accesskey="&netmonitorUI.context.copyResponse.accesskey;"/>
       <menuitem id="request-menu-context-copy-image-as-data-uri"
                 label="&netmonitorUI.context.copyImageAsDataUri;"
                 accesskey="&netmonitorUI.context.copyImageAsDataUri.accesskey;"/>
+      <menuseparator class="request-menu-context-separator"/>
+      <menuitem id="request-menu-context-copy-all-as-har"
+                label="&netmonitorUI.context.copyAllAsHar;"
+                accesskey="&netmonitorUI.context.copyAllAsHar.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.copyAllAsHar();"/>
+      <menuitem id="request-menu-context-save-all-as-har"
+                label="&netmonitorUI.context.saveAllAsHar;"
+                accesskey="&netmonitorUI.context.saveAllAsHar.accesskey;"
+                oncommand="NetMonitorView.RequestsMenu.saveAllAsHar();"/>
+      <menuseparator class="request-menu-context-separator"/>
       <menuitem id="request-menu-context-resend"
                 label="&netmonitorUI.summary.editAndResend;"
                 accesskey="&netmonitorUI.summary.editAndResend.accesskey;"/>
-      <menuseparator/>
+      <menuseparator class="request-menu-context-separator"/>
+      <menuitem id="request-menu-context-newtab"
+                label="&netmonitorUI.context.newTab;"
+                accesskey="&netmonitorUI.context.newTab.accesskey;"/>
       <menuitem id="request-menu-context-perf"
                 label="&netmonitorUI.context.perfTools;"
                 accesskey="&netmonitorUI.context.perfTools.accesskey;"/>
     </menupopup>
   </popupset>
+
+  <commandset>
+    <command id="freeTextFilterCommand"
+             oncommand="NetMonitorView.RequestsMenu.freetextFilterBox.focus()"/>
+  </commandset>
+
+  <keyset>
+    <key id="freeTextFilterKey"
+         key="&netmonitorUI.footer.filterFreetext.key;"
+         modifiers="accel"
+         command="freeTextFilterCommand"/>
+  </keyset>
 
   <deck id="body" class="theme-sidebar" flex="1">
 
@@ -51,7 +96,7 @@
       <hbox id="network-table-and-sidebar"
             class="devtools-responsive-container"
             flex="1">
-        <vbox id="network-table" flex="1">
+        <vbox id="network-table" flex="1" class="devtools-main-content">
           <toolbar id="requests-menu-toolbar"
                    class="devtools-toolbar"
                    align="center">
@@ -82,10 +127,10 @@
                 </button>
               </hbox>
               <hbox id="requests-menu-domain-header-box"
-                    class="requests-menu-header requests-menu-domain"
+                    class="requests-menu-header requests-menu-security-and-domain"
                     align="center">
                 <button id="requests-menu-domain-button"
-                        class="requests-menu-header-button requests-menu-domain"
+                        class="requests-menu-header-button requests-menu-security-and-domain"
                         data-key="domain"
                         label="&netmonitorUI.toolbar.domain;"
                         flex="1">
@@ -98,6 +143,16 @@
                         class="requests-menu-header-button requests-menu-type"
                         data-key="type"
                         label="&netmonitorUI.toolbar.type;"
+                        flex="1">
+                </button>
+              </hbox>
+              <hbox id="requests-menu-transferred-header-box"
+                    class="requests-menu-header requests-menu-transferred"
+                    align="center">
+                <button id="requests-menu-transferred-button"
+                        class="requests-menu-header-button requests-menu-transferred"
+                        data-key="transferred"
+                        label="&netmonitorUI.toolbar.transferred;"
                         flex="1">
                 </button>
               </hbox>
@@ -170,9 +225,16 @@
                        crop="end"
                        flex="1"/>
               </hbox>
-              <label class="plain requests-menu-subitem requests-menu-domain"
-                     crop="end"/>
+              <hbox class="requests-menu-subitem requests-menu-security-and-domain"
+                    align="center">
+                <image class="requests-security-state-icon" />
+                <label class="plain requests-menu-domain"
+                       crop="end"
+                       flex="1"/>
+              </hbox>
               <label class="plain requests-menu-subitem requests-menu-type"
+                     crop="end"/>
+              <label class="plain requests-menu-subitem requests-menu-transferred"
                      crop="end"/>
               <label class="plain requests-menu-subitem requests-menu-size"
                      crop="end"/>
@@ -266,6 +328,8 @@
                    label="&netmonitorUI.tab.response;"/>
               <tab id="timings-tab"
                    label="&netmonitorUI.tab.timings;"/>
+              <tab id="security-tab"
+                   label="&netmonitorUI.tab.security;"/>
               <tab id="preview-tab"
                    label="&netmonitorUI.tab.preview;"/>
             </tabs>
@@ -278,10 +342,10 @@
                         align="center">
                     <label class="plain tabpanel-summary-label"
                            value="&netmonitorUI.summary.url;"/>
-                    <label id="headers-summary-url-value"
-                           class="plain tabpanel-summary-value devtools-monospace"
-                           crop="end"
-                           flex="1"/>
+                    <textbox id="headers-summary-url-value"
+                             class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                             flex="1"
+                             readonly="true"/>
                   </hbox>
                   <hbox id="headers-summary-method"
                         class="tabpanel-summary-container"
@@ -292,6 +356,16 @@
                            class="plain tabpanel-summary-value devtools-monospace"
                            crop="end"
                            flex="1"/>
+                  </hbox>
+                  <hbox id="headers-summary-address"
+                        class="tabpanel-summary-container"
+                        align="center">
+                    <label class="plain tabpanel-summary-label"
+                           value="&netmonitorUI.summary.address;"/>
+                    <textbox id="headers-summary-address-value"
+                             class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                             flex="1"
+                             readonly="true"/>
                   </hbox>
                   <hbox id="headers-summary-status"
                         class="tabpanel-summary-container"
@@ -307,6 +381,9 @@
                     <button id="headers-summary-resend"
                             class="devtools-toolbarbutton"
                             label="&netmonitorUI.summary.editAndResend;"/>
+                    <button id="toggle-raw-headers"
+                            class="devtools-toolbarbutton"
+                            label="&netmonitorUI.summary.rawHeaders;"/>
                   </hbox>
                   <hbox id="headers-summary-version"
                         class="tabpanel-summary-container"
@@ -317,6 +394,25 @@
                            class="plain tabpanel-summary-value devtools-monospace"
                            crop="end"
                            flex="1"/>
+                  </hbox>
+                  <hbox id="raw-headers"
+                        class="tabpanel-summary-container"
+                        align="center"
+                        hidden="true">
+                    <vbox id="raw-request-headers-textarea-box" flex="1" hidden="false">
+                      <label class="plain tabpanel-summary-label"
+                        value="&netmonitorUI.summary.rawHeaders.requestHeaders;"/>
+                      <textbox id="raw-request-headers-textarea"
+                        class="raw-response-textarea"
+                        flex="1" multiline="true" readonly="true"/>
+                    </vbox>
+                    <vbox id="raw-response-headers-textarea-box" flex="1" hidden="false">
+                      <label class="plain tabpanel-summary-label"
+                        value="&netmonitorUI.summary.rawHeaders.responseHeaders;"/>
+                      <textbox id="raw-response-headers-textarea"
+                        class="raw-response-textarea"
+                        flex="1" multiline="true" readonly="true"/>
+                    </vbox>
                   </hbox>
                   <vbox id="all-headers" flex="1"/>
                 </vbox>
@@ -343,7 +439,7 @@
                 <vbox flex="1">
                   <label id="response-content-info-header"/>
                   <vbox id="response-content-json-box" flex="1" hidden="true">
-                    <vbox id="response-content-json" flex="1"/>
+                    <vbox id="response-content-json" flex="1" context="network-response-popup" />
                   </vbox>
                   <vbox id="response-content-textarea-box" flex="1" hidden="true">
                     <vbox id="response-content-textarea" flex="1"/>
@@ -438,6 +534,204 @@
                   </hbox>
                 </vbox>
               </tabpanel>
+              <tabpanel id="security-tabpanel"
+                        class="tabpanel-content">
+                  <vbox id="security-error"
+                        class="tabpanel-summary-container"
+                        flex="1">
+                    <label class="plain tabpanel-summary-label"
+                           value="&netmonitorUI.security.error;"/>
+                    <hbox class="security-info-section"
+                          flex="1">
+                      <textbox id="security-error-message"
+                               class="plain"
+                               flex="1"
+                               multiline="true"
+                               readonly="true"/>
+                    </hbox>
+                  </vbox>
+                  <vbox id="security-information"
+                        flex="1">
+                    <vbox id="security-info-connection"
+                          class="tabpanel-summary-container">
+                      <label class="plain tabpanel-summary-label"
+                             value="&netmonitorUI.security.connection;"/>
+                      <vbox class="security-info-section">
+                        <hbox id="security-protocol-version"
+                              class="tabpanel-summary-container"
+                              align="baseline">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&netmonitorUI.security.protocolVersion;"/>
+                          <textbox id="security-protocol-version-value"
+                                   class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                   flex="1"
+                                   readonly="true"/>
+                        </hbox>
+                        <hbox id="security-ciphersuite"
+                              class="tabpanel-summary-container"
+                              align="baseline">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&netmonitorUI.security.cipherSuite;"/>
+                          <textbox id="security-ciphersuite-value"
+                                   class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                   flex="1"
+                                   readonly="true"/>
+                          <image class="security-warning-icon"
+                                 id="security-warning-cipher"
+                                 tooltiptext="&netmonitorUI.security.warning.cipher;" />
+                        </hbox>
+                      </vbox>
+                    </vbox>
+                    <vbox id="security-info-domain"
+                          class="tabpanel-summary-container">
+                      <label class="plain tabpanel-summary-label"
+                             id="security-info-host-header"/>
+                      <vbox class="security-info-section">
+                        <hbox id="security-http-strict-transport-security"
+                              class="tabpanel-summary-container"
+                              align="baseline">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&netmonitorUI.security.hsts;"/>
+                          <textbox id="security-http-strict-transport-security-value"
+                                   class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                   flex="1"
+                                   readonly="true"/>
+                        </hbox>
+                        <hbox id="security-public-key-pinning"
+                              class="tabpanel-summary-container"
+                              align="baseline">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&netmonitorUI.security.hpkp;"/>
+                          <textbox id="security-public-key-pinning-value"
+                                   class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                   flex="1"
+                                   readonly="true"/>
+                        </hbox>
+                      </vbox>
+                    </vbox>
+                    <vbox id="security-info-certificate"
+                          class="tabpanel-summary-container">
+                        <label class="plain tabpanel-summary-label"
+                               value="&netmonitorUI.security.certificate;"/>
+                      <vbox class="security-info-section">
+                        <vbox class="tabpanel-summary-container">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&certmgr.subjectinfo.label;" flex="1"/>
+                        </vbox>
+                        <vbox class="security-info-section">
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.cn;:"/>
+                            <textbox id="security-cert-subject-cn"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.o;:"/>
+                            <textbox id="security-cert-subject-o"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.ou;:"/>
+                            <textbox id="security-cert-subject-ou"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                        </vbox>
+                        <vbox class="tabpanel-summary-container">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&certmgr.issuerinfo.label;" flex="1"/>
+                        </vbox>
+                        <vbox class="security-info-section">
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.cn;:"/>
+                            <textbox id="security-cert-issuer-cn"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.o;:"/>
+                            <textbox id="security-cert-issuer-o"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.ou;:"/>
+                            <textbox id="security-cert-issuer-ou"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                        </vbox>
+                        <vbox class="tabpanel-summary-container">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&certmgr.periodofvalidity.label;" flex="1"/>
+                        </vbox>
+                        <vbox class="security-info-section">
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.begins;:"/>
+                            <textbox id="security-cert-validity-begins"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.expires;:"/>
+                            <textbox id="security-cert-validity-expires"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                        </vbox>
+                        <vbox class="tabpanel-summary-container">
+                          <label class="plain tabpanel-summary-label"
+                                 value="&certmgr.fingerprints.label;" flex="1"/>
+                        </vbox>
+                        <vbox class="security-info-section">
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.sha256fingerprint;:"/>
+                            <textbox id="security-cert-sha256-fingerprint"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                          <hbox class="tabpanel-summary-container"
+                                align="baseline">
+                            <label class="plain tabpanel-summary-label"
+                                   value="&certmgr.certdetail.sha1fingerprint;:"/>
+                            <textbox id="security-cert-sha1-fingerprint"
+                                     class="plain tabpanel-summary-value devtools-monospace cropped-textbox"
+                                     flex="1"
+                                     readonly="true"/>
+                          </hbox>
+                        </vbox>
+                      </vbox>
+                    </vbox>
+                  </vbox>
+              </tabpanel>
               <tabpanel id="preview-tabpanel"
                         class="tabpanel-content">
                 <html:iframe id="response-preview"
@@ -501,6 +795,14 @@
                 data-key="other"
                 label="&netmonitorUI.footer.filterOther;">
         </button>
+        <spacer id="requests-menu-spacer-textbox"
+                class="requests-menu-footer-spacer"
+                flex="0"/>
+        <textbox id="requests-menu-filter-freetext-text"
+                 class="requests-menu-footer-textbox devtools-searchinput"
+                 type="search"
+                 required="true"
+                 placeholder="&netmonitorUI.footer.filterFreetext.label;"/>
         <spacer id="requests-menu-spacer"
                 class="requests-menu-footer-spacer"
                 flex="100"/>

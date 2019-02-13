@@ -45,17 +45,17 @@ NativeApp.prototype = {
    * @param aZipPath {String} path to the zip file for packaged apps (undefined
    *                          for hosted apps)
    */
-  install: Task.async(function*(aManifest, aZipPath) {
+  install: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
     // If the application is already installed, this is a reinstallation.
-    if (WebappOSUtils.getInstallPath(this.app)) {
-      return yield this.prepareUpdate(aManifest, aZipPath);
+    if (WebappOSUtils.getInstallPath(aApp)) {
+      return yield this.prepareUpdate(aApp, aManifest, aZipPath);
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
     let localAppDir = getFile(this._rootInstallDir);
     if (!localAppDir.isWritable()) {
@@ -106,14 +106,14 @@ NativeApp.prototype = {
    * @param aZipPath {String} path to the zip file for packaged apps (undefined
    *                          for hosted apps)
    */
-  prepareUpdate: Task.async(function*(aManifest, aZipPath) {
+  prepareUpdate: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
-    let [ oldUniqueName, installDir ] = WebappOSUtils.getLaunchTarget(this.app);
+    let [ oldUniqueName, installDir ] = WebappOSUtils.getLaunchTarget(aApp);
     if (!installDir) {
       throw ERR_NOT_INSTALLED;
     }
@@ -147,12 +147,12 @@ NativeApp.prototype = {
   /**
    * Applies an update.
    */
-  applyUpdate: Task.async(function*() {
+  applyUpdate: Task.async(function*(aApp) {
     if (this._dryRun) {
       return;
     }
 
-    let installDir = WebappOSUtils.getInstallPath(this.app);
+    let installDir = WebappOSUtils.getInstallPath(aApp);
     let updateDir = OS.Path.join(installDir, "update");
 
     let backupDir = yield this._backupInstallation(installDir);
@@ -222,7 +222,8 @@ NativeApp.prototype = {
 
   _copyPrebuiltFiles: function(aDir) {
     let destDir = getFile(aDir, this.macOSDir);
-    let stub = getFile(this.runtimeFolder, "webapprt-stub");
+    let stub = getFile(OS.Path.join(OS.Path.dirname(this.runtimeFolder),
+                                    "Resources"), "webapprt-stub");
     stub.copyTo(destDir, "webapprt");
   },
 
@@ -238,10 +239,10 @@ NativeApp.prototype = {
                  getService(Ci.nsIINIParserFactory).
                  createINIParser(applicationINI).
                  QueryInterface(Ci.nsIINIParserWriter);
-    writer.setString("Webapp", "Name", this.appName);
+    writer.setString("Webapp", "Name", this.appLocalizedName);
     writer.setString("Webapp", "Profile", this.uniqueName);
     writer.writeFile();
-    applicationINI.permissions = PERMS_FILE;
+    yield OS.File.setPermissions(applicationINI.path, { unixMode: PERMS_FILE });
 
     // ${InstallDir}/Contents/Info.plist
     let infoPListContent = '<?xml version="1.0" encoding="UTF-8"?>\n\
@@ -251,7 +252,7 @@ NativeApp.prototype = {
     <key>CFBundleDevelopmentRegion</key>\n\
     <string>English</string>\n\
     <key>CFBundleDisplayName</key>\n\
-    <string>' + escapeXML(this.appName) + '</string>\n\
+    <string>' + escapeXML(this.appLocalizedName) + '</string>\n\
     <key>CFBundleExecutable</key>\n\
     <string>webapprt</string>\n\
     <key>CFBundleIconFile</key>\n\
@@ -261,12 +262,14 @@ NativeApp.prototype = {
     <key>CFBundleInfoDictionaryVersion</key>\n\
     <string>6.0</string>\n\
     <key>CFBundleName</key>\n\
-    <string>' + escapeXML(this.appName) + '</string>\n\
+    <string>' + escapeXML(this.appLocalizedName) + '</string>\n\
     <key>CFBundlePackageType</key>\n\
     <string>APPL</string>\n\
     <key>CFBundleVersion</key>\n\
     <string>0</string>\n\
     <key>NSHighResolutionCapable</key>\n\
+    <true/>\n\
+    <key>NSSupportsAutomaticGraphicsSwitching</key>\n\
     <true/>\n\
     <key>NSPrincipalClass</key>\n\
     <string>GeckoNSApplication</string>\n\
@@ -291,7 +294,8 @@ NativeApp.prototype = {
   _processIcon: function(aMimeType, aIcon, aDir) {
     let deferred = Promise.defer();
 
-    let tmpIconPath = OS.Path.join(aDir, this.iconFile);
+    let finalIconPath = OS.Path.join(aDir, this.iconFile);
+    let tmpIconPath = OS.Path.join(OS.Constants.Path.tmpDir, "appicon.icns");
 
     function conversionDone(aSubject, aTopic) {
       if (aTopic != "process-finished") {
@@ -303,7 +307,8 @@ NativeApp.prototype = {
       // icon was successfully converted.
       OS.File.exists(tmpIconPath).then((aExists) => {
         if (aExists) {
-          deferred.resolve();
+          OS.File.move(tmpIconPath, finalIconPath).then(
+            deferred.resolve, err => deferred.reject(err));
         } else {
           deferred.reject("Failure converting icon, unrecognized image format");
         }

@@ -3,25 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  'use strict';
 
-let { Cc, Ci } = require("chrome");
-
 require("sdk/context-menu");
 
-const { Loader } = require('sdk/test/loader');
-const timer = require("sdk/timers");
-const { merge } = require("sdk/util/object");
+const { defer } = require("sdk/core/promise");
+const packaging = require('@loader/options');
 
 // These should match the same constants in the module.
-const ITEM_CLASS = "addon-context-menu-item";
-const SEPARATOR_CLASS = "addon-context-menu-separator";
 const OVERFLOW_THRESH_DEFAULT = 10;
 const OVERFLOW_THRESH_PREF =
   "extensions.addon-sdk.context-menu.overflowThreshold";
-const OVERFLOW_MENU_CLASS = "addon-content-menu-overflow-menu";
-const OVERFLOW_POPUP_CLASS = "addon-content-menu-overflow-popup";
 
 const TEST_DOC_URL = module.uri.replace(/\.js$/, ".html");
 const data = require("./fixtures");
+
+const { TestHelper } = require("./context-menu/test-helper.js")
 
 // Tests that when present the separator is placed before the separator from
 // the old context-menu module
@@ -102,7 +97,7 @@ exports.testSelectorContextMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -124,7 +119,7 @@ exports.testSelectorAncestorContextMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -208,7 +203,7 @@ exports.testPageContextNoMatch = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -248,9 +243,8 @@ exports.testSelectionContextMatchInTextField = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let textfield = doc.getElementById("textfield");
-    textfield.setSelectionRange(0, textfield.value.length);
-    test.showMenu(textfield, function (popup) {
+    test.selectRange("#textfield", 0, null);
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -270,9 +264,8 @@ exports.testSelectionContextNoMatchInTextField = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let textfield = doc.getElementById("textfield");
-    textfield.setSelectionRange(0, 0);
-    test.showMenu(textfield, function (popup) {
+    test.selectRange("#textfield", 0, 0);
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -313,25 +306,31 @@ exports.testSelectionContextInNewTab = function (assert, done) {
     let link = doc.getElementById("targetlink");
     link.click();
 
-    test.delayedEventListener(this.tabBrowser, "load", function () {
-      let browser = test.tabBrowser.selectedBrowser;
-      let window = browser.contentWindow;
-      let doc = browser.contentDocument;
-      window.getSelection().selectAllChildren(doc.body);
-
-      test.showMenu(null, function (popup) {
-        test.checkMenu([item], [], []);
-        popup.hidePopup();
-
-        test.tabBrowser.removeTab(test.tabBrowser.selectedTab);
-        test.tabBrowser.selectedTab = test.tab;
+    let tablistener = event => {
+      this.tabBrowser.tabContainer.removeEventListener("TabOpen", tablistener, false);
+      let tab = event.target;
+      let browser = tab.linkedBrowser;
+      this.loadFrameScript(browser);
+      this.delayedEventListener(browser, "load", () => {
+        let window = browser.contentWindow;
+        let doc = browser.contentDocument;
+        window.getSelection().selectAllChildren(doc.body);
 
         test.showMenu(null, function (popup) {
-          test.checkMenu([item], [item], []);
-          test.done();
+          test.checkMenu([item], [], []);
+          popup.hidePopup();
+
+          test.tabBrowser.removeTab(test.tabBrowser.selectedTab);
+          test.tabBrowser.selectedTab = test.tab;
+
+          test.showMenu(null, function (popup) {
+            test.checkMenu([item], [item], []);
+            test.done();
+          });
         });
-      });
-    }, true);
+      }, true);
+    };
+    this.tabBrowser.tabContainer.addEventListener("TabOpen", tablistener, false);
   });
 };
 
@@ -348,8 +347,7 @@ exports.testSelectionContextButtonMatch = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     window.getSelection().selectAllChildren(doc.body);
-    let button = doc.getElementById("button");
-    test.showMenu(button, function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -368,8 +366,7 @@ exports.testSelectionContextButtonNoMatch = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    let button = doc.getElementById("button");
-    test.showMenu(button, function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -434,55 +431,6 @@ exports.testURLContextNoMatch = function (assert, done) {
   });
 };
 
-
-// Removing a non-matching URL context after its item is created and the page is
-// loaded should cause the item's content script to be evaluated when the
-// context menu is next opened.
-exports.testURLContextRemove = function (assert, done) {
-  let test = new TestHelper(assert, done);
-  let loader = test.newLoader();
-
-  let shouldBeEvaled = false;
-  let context = loader.cm.URLContext("*.bogus.com");
-  let item = loader.cm.Item({
-    label: "item",
-    context: context,
-    contentScript: 'self.postMessage("ok"); self.on("context", function () true);',
-    onMessage: function (msg) {
-      assert.ok(shouldBeEvaled,
-                  "content script should be evaluated when expected");
-      assert.equal(msg, "ok", "Should have received the right message");
-      shouldBeEvaled = false;
-    }
-  });
-
-  test.withTestDoc(function (window, doc) {
-    test.showMenu(null, function (popup) {
-      test.checkMenu([item], [item], []);
-
-      item.context.remove(context);
-
-      shouldBeEvaled = true;
-
-      test.hideMenu(function () {
-        test.showMenu(null, function (popup) {
-          test.checkMenu([item], [], []);
-
-          assert.ok(!shouldBeEvaled,
-                      "content script should have been evaluated");
-
-          test.hideMenu(function () {
-            // Shouldn't get evaluated again
-            test.showMenu(null, function (popup) {
-              test.checkMenu([item], [], []);
-              test.done();
-            });
-          });
-        });
-      });
-    });
-  });
-};
 
 // Loading a new page in the same tab should correctly start a new worker for
 // any content scripts
@@ -771,7 +719,7 @@ exports.testContentContextMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [items[2], items[3]], []);
       test.done();
     });
@@ -809,7 +757,7 @@ exports.testContentContextNoMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -847,7 +795,7 @@ exports.testContentContextNoMatchActiveElement = function (assert, done) {
   ];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -879,6 +827,10 @@ exports.testContentContextMatchString = function (assert, done) {
 exports.testContentScriptFile = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
+  let { defer, all } = require("sdk/core/promise");
+  let itemScript = [defer(), defer()];
+  let menuShown = defer();
+  let menuPromises = itemScript.concat(menuShown).map(({promise}) => promise);
 
   // Reject remote files
   assert.throws(function() {
@@ -887,20 +839,36 @@ exports.testContentScriptFile = function (assert, done) {
         contentScriptFile: "http://mozilla.com/context-menu.js"
       });
     },
-    new RegExp("The 'contentScriptFile' option must be a local file URL " +
-    "or an array of local file URLs."),
+    /The `contentScriptFile` option must be a local URL or an array of URLs/,
     "Item throws when contentScriptFile is a remote URL");
 
   // But accept files from data folder
   let item = new loader.cm.Item({
     label: "item",
-    contentScriptFile: data.url("test-context-menu.js")
+    contentScriptFile: data.url("test-contentScriptFile.js"),
+    onMessage: (message) => {
+      assert.equal(message, "msg from contentScriptFile",
+        "contentScriptFile loaded with absolute url");
+      itemScript[0].resolve();
+    }
+  });
+
+  let item2 = new loader.cm.Item({
+    label: "item2",
+    contentScriptFile: "./test-contentScriptFile.js",
+    onMessage: (message) => {
+      assert.equal(message, "msg from contentScriptFile",
+        "contentScriptFile loaded with relative url");
+      itemScript[1].resolve();
+    }
   });
 
   test.showMenu(null, function (popup) {
-    test.checkMenu([item], [], []);
-    test.done();
+    test.checkMenu([item, item2], [], []);
+    menuShown.resolve();
   });
+
+  all(menuPromises).then(() => test.done());
 };
 
 
@@ -927,8 +895,7 @@ exports.testContentContextArgs = function (assert, done) {
   });
 };
 
-// Multiple contexts imply intersection, not union, and content context
-// listeners should not be called if all declarative contexts are not current.
+// Multiple contexts imply intersection, not union.
 exports.testMultipleContexts = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
@@ -936,14 +903,10 @@ exports.testMultipleContexts = function (assert, done) {
   let item = new loader.cm.Item({
     label: "item",
     context: [loader.cm.SelectorContext("a[href]"), loader.cm.PageContext()],
-    contentScript: 'self.on("context", function () self.postMessage());',
-    onMessage: function () {
-      test.fail("Context listener should not be called");
-    }
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([item], [item], []);
       test.done();
     });
@@ -962,7 +925,7 @@ exports.testRemoveContext = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
 
       // The item should be present at first.
       test.checkMenu([item], [], []);
@@ -970,7 +933,7 @@ exports.testRemoveContext = function (assert, done) {
 
       // Remove the img context and check again.
       item.context.remove(ctxt);
-      test.showMenu(doc.getElementById("image"), function (popup) {
+      test.showMenu("#image", function (popup) {
         test.checkMenu([item], [item], []);
         test.done();
       });
@@ -978,6 +941,87 @@ exports.testRemoveContext = function (assert, done) {
   });
 };
 
+// Once a context is removed, it should no longer cause its item to appear.
+exports.testSetContextRemove = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item",
+    context: ctxt
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      // The item should be present at first.
+      test.checkMenu([item], [], []);
+      popup.hidePopup();
+
+      // Remove the img context and check again.
+      item.context = [];
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [item], []);
+        test.done();
+      });
+    });
+  });
+};
+
+// Once a context is added, it should affect whether the item appears.
+exports.testAddContext = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item"
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      // The item should not be present at first.
+      test.checkMenu([item], [item], []);
+      popup.hidePopup();
+
+      // Add the img context and check again.
+      item.context.add(ctxt);
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [], []);
+        test.done();
+      });
+    });
+  });
+};
+
+// Once a context is added, it should affect whether the item appears.
+exports.testSetContextAdd = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let ctxt = loader.cm.SelectorContext("img");
+  let item = new loader.cm.Item({
+    label: "item"
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#image", function (popup) {
+
+      // The item should not be present at first.
+      test.checkMenu([item], [item], []);
+      popup.hidePopup();
+
+      // Add the img context and check again.
+      item.context = [ctxt];
+      test.showMenu("#image", function (popup) {
+        test.checkMenu([item], [], []);
+        test.done();
+      });
+    });
+  });
+};
 
 // Lots of items should overflow into the overflow submenu.
 exports.testOverflow = function (assert, done) {
@@ -1614,12 +1658,12 @@ exports.testOverflowTransition = function (assert, done) {
   let allItems = pItems.concat(aItems);
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("link"), function (popup) {
+    test.showMenu("#link", function (popup) {
       // The menu should contain all items and will overflow
       test.checkMenu(allItems, [], []);
       popup.hidePopup();
 
-      test.showMenu(doc.getElementById("text"), function (popup) {
+      test.showMenu("#text", function (popup) {
         // Only contains hald the items and will not overflow
         test.checkMenu(allItems, aItems, []);
         popup.hidePopup();
@@ -1629,12 +1673,12 @@ exports.testOverflowTransition = function (assert, done) {
           test.checkMenu(allItems, allItems, []);
           popup.hidePopup();
 
-          test.showMenu(doc.getElementById("text"), function (popup) {
+          test.showMenu("#text", function (popup) {
             // Only contains hald the items and will not overflow
             test.checkMenu(allItems, aItems, []);
             popup.hidePopup();
 
-            test.showMenu(doc.getElementById("link"), function (popup) {
+            test.showMenu("#link", function (popup) {
               // The menu should contain all items and will overflow
               test.checkMenu(allItems, [], []);
               popup.hidePopup();
@@ -1644,7 +1688,7 @@ exports.testOverflowTransition = function (assert, done) {
                 test.checkMenu(allItems, allItems, []);
                 popup.hidePopup();
 
-                test.showMenu(doc.getElementById("link"), function (popup) {
+                test.showMenu("#link", function (popup) {
                   // The menu should contain all items and will overflow
                   test.checkMenu(allItems, [], []);
                   test.done();
@@ -1736,7 +1780,7 @@ exports.testMenuCommand = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([topMenu], [], []);
       let topMenuElt = test.getItemElt(popup, topMenu);
       let topMenuPopup = topMenuElt.firstChild;
@@ -1862,7 +1906,7 @@ exports.testMenuClick = function (assert, done) {
   });
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("span-link"), function (popup) {
+    test.showMenu("#span-link", function (popup) {
       test.checkMenu([topMenu], [], []);
       let topMenuElt = test.getItemElt(popup, topMenu);
       let topMenuPopup = topMenuElt.firstChild;
@@ -2202,7 +2246,7 @@ exports.testDrawImageOnClickNode = function (assert, done) {
           test.done();
       }
     });
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu([item], [], []);
       test.getItemElt(popup, item).click();
     });
@@ -2538,7 +2582,7 @@ exports.testAlreadyOpenIframe = function (assert, done) {
     let item = new loader.cm.Item({
       label: "item"
     });
-    test.showMenu(doc.getElementById("iframe"), function (popup) {
+    test.showMenu("#iframe", function (popup) {
       test.checkMenu([item], [], []);
       test.done();
     });
@@ -2641,6 +2685,58 @@ exports.testItemNoData = function (assert, done) {
     });
   });
 }
+
+
+exports.testItemNoAccessKey = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let item1 = new loader.cm.Item({ label: "item 1" });
+  let item2 = new loader.cm.Item({ label: "item 2", accesskey: null });
+  let item3 = new loader.cm.Item({ label: "item 3", accesskey: undefined });
+
+  assert.equal(item1.accesskey, undefined, "Should be no defined image");
+  assert.equal(item2.accesskey, null, "Should be no defined image");
+  assert.equal(item3.accesskey, undefined, "Should be no defined image");
+
+  test.showMenu().
+  then((popup) => test.checkMenu([item1, item2, item3], [], [])).
+  then(test.done).
+  catch(assert.fail);
+}
+
+
+// Test accesskey support.
+exports.testItemAccessKey = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({ label: "item", accesskey: "i" });
+  assert.equal(item.accesskey, "i", "Should have set the image to i");
+
+  let menu = new loader.cm.Menu({ label: "menu", accesskey: "m", items: [
+    loader.cm.Item({ label: "subitem" })
+  ]});
+  assert.equal(menu.accesskey, "m", "Should have set the accesskey to m");
+
+  test.showMenu().then((popup) => {
+    test.checkMenu([item, menu], [], []);
+
+    let accesskey = "e";
+    menu.accesskey = item.accesskey = accesskey;
+    assert.equal(item.accesskey, accesskey, "Should have set the accesskey to " + accesskey);
+    assert.equal(menu.accesskey, accesskey, "Should have set the accesskey to " + accesskey);
+    test.checkMenu([item, menu], [], []);
+
+    item.accesskey = null;
+    menu.accesskey = null;
+    assert.equal(item.accesskey, null, "Should have set the accesskey to " + accesskey);
+    assert.equal(menu.accesskey, null, "Should have set the accesskey to " + accesskey);
+    test.checkMenu([item, menu], [], []);
+  }).
+  then(test.done).
+  catch(assert.fail);
+};
 
 
 // Tests that items without an image don't attempt to show one
@@ -2930,7 +3026,7 @@ exports.testSubItemDefaultVisible = function (assert, done) {
   let hiddenItems = [items[0].items[2]];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, hiddenItems, []);
       test.done();
     });
@@ -3101,7 +3197,7 @@ exports.testSelectionInInnerFrameMatch = function (assert, done) {
     let frame = doc.getElementById("iframe");
     frame.contentWindow.getSelection().selectAllChildren(frame.contentDocument.body);
 
-    test.showMenu(frame.contentDocument.getElementById("text"), function (popup) {
+    test.showMenu(["#iframe", "#text"], function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3127,7 +3223,7 @@ exports.testSelectionInOuterFrameNoMatch = function (assert, done) {
     let frame = doc.getElementById("iframe");
     window.getSelection().selectAllChildren(doc.body);
 
-    test.showMenu(frame.contentDocument.getElementById("text"), function (popup) {
+    test.showMenu(["#iframe", "#text"], function (popup) {
       test.checkMenu(items, items, []);
       test.done();
     });
@@ -3214,7 +3310,7 @@ exports.testPredicateContextTargetName = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3236,7 +3332,7 @@ exports.testPredicateContextTargetIDSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3257,7 +3353,7 @@ exports.testPredicateContextTargetIDNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+    test.showMenu(".predicate-test-a", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3278,7 +3374,7 @@ exports.testPredicateContextTextBoxIsEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textbox"), function (popup) {
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3299,7 +3395,7 @@ exports.testPredicateContextReadonlyTextBoxIsNotEditable = function (assert, don
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("readonly-textbox"), function (popup) {
+    test.showMenu("#readonly-textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3320,7 +3416,7 @@ exports.testPredicateContextDisabledTextBoxIsNotEditable = function (assert, don
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("disabled-textbox"), function (popup) {
+    test.showMenu("#disabled-textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3341,7 +3437,7 @@ exports.testPredicateContextTextAreaIsEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textfield"), function (popup) {
+    test.showMenu("#textfield", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3362,7 +3458,7 @@ exports.testPredicateContextButtonIsNotEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("button"), function (popup) {
+    test.showMenu("#button", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3384,7 +3480,7 @@ exports.testPredicateContextNonInputIsNotEditable = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3406,7 +3502,7 @@ exports.testPredicateContextEditableElement = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("editable"), function (popup) {
+    test.showMenu("#editable", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3475,9 +3571,8 @@ exports.testPredicateContextSelectionInTextBox = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     let textbox = doc.getElementById("textbox");
-    textbox.focus();
-    textbox.setSelectionRange(3, 6);
-    test.showMenu(textbox, function (popup) {
+    test.selectRange("#textbox", 3, 6);
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3500,7 +3595,7 @@ exports.testPredicateContextTargetSrcSet = function (assert, done) {
 
   test.withTestDoc(function (window, doc) {
     image = doc.getElementById("image");
-    test.showMenu(image, function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3521,7 +3616,7 @@ exports.testPredicateContextTargetSrcNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("link"), function (popup) {
+    test.showMenu("#link", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3544,7 +3639,7 @@ exports.testPredicateContextTargetLinkSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+    test.showMenu(".predicate-test-a", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3565,7 +3660,49 @@ exports.testPredicateContextTargetLinkNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+// Test that the data object has the correct link for a nested image
+exports.testPredicateContextTargetLinkSetNestedImage = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, TEST_DOC_URL + "#nested-image");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#predicate-test-nested-image", function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+// Test that the data object has the correct link for a complex nested structure
+exports.testPredicateContextTargetLinkSetNestedStructure = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, TEST_DOC_URL + "#nested-structure");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu("#predicate-test-nested-structure", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3587,7 +3724,7 @@ exports.testPredicateContextTargetValueSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("textbox"), function (popup) {
+    test.showMenu("#textbox", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
@@ -3608,437 +3745,17 @@ exports.testPredicateContextTargetValueNotSet = function (assert, done) {
   })];
 
   test.withTestDoc(function (window, doc) {
-    test.showMenu(doc.getElementById("image"), function (popup) {
+    test.showMenu("#image", function (popup) {
       test.checkMenu(items, [], []);
       test.done();
     });
   });
 };
 
-
-// NO TESTS BELOW THIS LINE! ///////////////////////////////////////////////////
-
-// This makes it easier to run tests by handling things like opening the menu,
-// opening new windows, making assertions, etc.  Methods on |test| can be called
-// on instances of this class.  Don't forget to call done() to end the test!
-// WARNING: This looks up items in popups by comparing labels, so don't give two
-// items the same label.
-function TestHelper(assert, done) {
-  this.assert = assert;
-  this.end = done;
-  this.loaders = [];
-  this.browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
-                       getService(Ci.nsIWindowMediator).
-                       getMostRecentWindow("navigator:browser");
-  this.overflowThreshValue = require("sdk/preferences/service").
-                             get(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT);
+if (packaging.isNative) {
+  module.exports = {
+    "test skip on jpm": (assert) => assert.pass("skipping this file with jpm")
+  };
 }
-
-TestHelper.prototype = {
-  get contextMenuPopup() {
-    return this.browserWindow.document.getElementById("contentAreaContextMenu");
-  },
-
-  get contextMenuSeparator() {
-    return this.browserWindow.document.querySelector("." + SEPARATOR_CLASS);
-  },
-
-  get overflowPopup() {
-    return this.browserWindow.document.querySelector("." + OVERFLOW_POPUP_CLASS);
-  },
-
-  get overflowSubmenu() {
-    return this.browserWindow.document.querySelector("." + OVERFLOW_MENU_CLASS);
-  },
-
-  get tabBrowser() {
-    return this.browserWindow.gBrowser;
-  },
-
-  // Methods on the wrapped test can be called on this object.
-  __noSuchMethod__: function (methodName, args) {
-    this.assert[methodName].apply(this.assert, args);
-  },
-
-  // Asserts that elt, a DOM element representing item, looks OK.
-  checkItemElt: function (elt, item) {
-    let itemType = this.getItemType(item);
-
-    switch (itemType) {
-    case "Item":
-      this.assert.equal(elt.localName, "menuitem",
-                            "Item DOM element should be a xul:menuitem");
-      if (typeof(item.data) === "string") {
-        this.assert.equal(elt.getAttribute("value"), item.data,
-                              "Item should have correct data");
-      }
-      break
-    case "Menu":
-      this.assert.equal(elt.localName, "menu",
-                            "Menu DOM element should be a xul:menu");
-      let subPopup = elt.firstChild;
-      this.assert.ok(subPopup, "xul:menu should have a child");
-      this.assert.equal(subPopup.localName, "menupopup",
-                            "xul:menu's first child should be a menupopup");
-      break;
-    case "Separator":
-      this.assert.equal(elt.localName, "menuseparator",
-                         "Separator DOM element should be a xul:menuseparator");
-      break;
-    }
-
-    if (itemType === "Item" || itemType === "Menu") {
-      this.assert.equal(elt.getAttribute("label"), item.label,
-                            "Item should have correct title");
-      if (typeof(item.image) === "string") {
-        this.assert.equal(elt.getAttribute("image"), item.image,
-                              "Item should have correct image");
-        if (itemType === "Menu")
-          this.assert.ok(elt.classList.contains("menu-iconic"),
-                           "Menus with images should have the correct class")
-        else
-          this.assert.ok(elt.classList.contains("menuitem-iconic"),
-                           "Items with images should have the correct class")
-      }
-      else {
-        this.assert.ok(!elt.getAttribute("image"),
-                         "Item should not have image");
-        this.assert.ok(!elt.classList.contains("menu-iconic") && !elt.classList.contains("menuitem-iconic"),
-                         "The iconic classes should not be present")
-      }
-    }
-  },
-
-  // Asserts that the context menu looks OK given the arguments.  presentItems
-  // are items that have been added to the menu.  absentItems are items that
-  // shouldn't match the current context.  removedItems are items that have been
-  // removed from the menu.
-  checkMenu: function (presentItems, absentItems, removedItems) {
-    // Count up how many top-level items there are
-    let total = 0;
-    for (let item of presentItems) {
-      if (absentItems.indexOf(item) < 0 && removedItems.indexOf(item) < 0)
-        total++;
-    }
-
-    let separator = this.contextMenuSeparator;
-    if (total == 0) {
-      this.assert.ok(!separator || separator.hidden,
-                       "separator should not be present");
-    }
-    else {
-      this.assert.ok(separator && !separator.hidden,
-                       "separator should be present");
-    }
-
-    let mainNodes = this.browserWindow.document.querySelectorAll("#contentAreaContextMenu > ." + ITEM_CLASS);
-    let overflowNodes = this.browserWindow.document.querySelectorAll("." + OVERFLOW_POPUP_CLASS + " > ." + ITEM_CLASS);
-
-    this.assert.ok(mainNodes.length == 0 || overflowNodes.length == 0,
-                     "Should only see nodes at the top level or in overflow");
-
-    let overflow = this.overflowSubmenu;
-    if (this.shouldOverflow(total)) {
-      this.assert.ok(overflow && !overflow.hidden,
-                       "overflow menu should be present");
-      this.assert.equal(mainNodes.length, 0,
-                            "should be no items in the main context menu");
-    }
-    else {
-      this.assert.ok(!overflow || overflow.hidden,
-                       "overflow menu should not be present");
-      // When visible nodes == 0 they could be in overflow or top level
-      if (total > 0) {
-        this.assert.equal(overflowNodes.length, 0,
-                              "should be no items in the overflow context menu");
-      }
-    }
-
-    // Iterate over wherever the nodes have ended up
-    let nodes = mainNodes.length ? mainNodes : overflowNodes;
-    this.checkNodes(nodes, presentItems, absentItems, removedItems)
-    let pos = 0;
-  },
-
-  // Recurses through the item hierarchy of presentItems comparing it to the
-  // node hierarchy of nodes. Any items in removedItems will be skipped (so
-  // should not exist in the XUL), any items in absentItems must exist and be
-  // hidden
-  checkNodes: function (nodes, presentItems, absentItems, removedItems) {
-    let pos = 0;
-    for (let item of presentItems) {
-      // Removed items shouldn't be in the list
-      if (removedItems.indexOf(item) >= 0)
-        continue;
-
-      if (nodes.length <= pos) {
-        this.assert.ok(false, "Not enough nodes");
-        return;
-      }
-
-      let hidden = absentItems.indexOf(item) >= 0;
-
-      this.checkItemElt(nodes[pos], item);
-      this.assert.equal(nodes[pos].hidden, hidden,
-                            "hidden should be set correctly");
-
-      // The contents of hidden menus doesn't matter so much
-      if (!hidden && this.getItemType(item) == "Menu") {
-        this.assert.equal(nodes[pos].firstChild.localName, "menupopup",
-                              "menu XUL should contain a menupopup");
-        this.checkNodes(nodes[pos].firstChild.childNodes, item.items, absentItems, removedItems);
-      }
-
-      if (pos > 0)
-        this.assert.equal(nodes[pos].previousSibling, nodes[pos - 1],
-                              "nodes should all be in the same group");
-      pos++;
-    }
-
-    this.assert.equal(nodes.length, pos,
-                          "should have checked all the XUL nodes");
-  },
-
-  // Attaches an event listener to node.  The listener is automatically removed
-  // when it's fired (so it's assumed it will fire), and callback is called
-  // after a short delay.  Since the module we're testing relies on the same
-  // event listeners to do its work, this is to give them a little breathing
-  // room before callback runs.  Inside callback |this| is this object.
-  // Optionally you can pass a function to test if the event is the event you
-  // want.
-  delayedEventListener: function (node, event, callback, useCapture, isValid) {
-    const self = this;
-    node.addEventListener(event, function handler(evt) {
-      if (isValid && !isValid(evt))
-        return;
-      node.removeEventListener(event, handler, useCapture);
-      timer.setTimeout(function () {
-        try {
-          callback.call(self, evt);
-        }
-        catch (err) {
-          self.assert.fail(err);
-          self.end();
-        }
-      }, 20);
-    }, useCapture);
-  },
-
-  // Call to finish the test.
-  done: function () {
-    const self = this;
-    function commonDone() {
-      this.closeTab();
-
-      while (this.loaders.length) {
-        this.loaders[0].unload();
-      }
-
-      require("sdk/preferences/service").set(OVERFLOW_THRESH_PREF, self.overflowThreshValue);
-
-      this.end();
-    }
-
-    function closeBrowserWindow() {
-      if (this.oldBrowserWindow) {
-        this.delayedEventListener(this.browserWindow, "unload", commonDone,
-                                  false);
-        this.browserWindow.close();
-        this.browserWindow = this.oldBrowserWindow;
-        delete this.oldBrowserWindow;
-      }
-      else {
-        commonDone.call(this);
-      }
-    };
-
-    if (this.contextMenuPopup.state == "closed") {
-      closeBrowserWindow.call(this);
-    }
-    else {
-      this.delayedEventListener(this.contextMenuPopup, "popuphidden",
-                                function () closeBrowserWindow.call(this),
-                                false);
-      this.contextMenuPopup.hidePopup();
-    }
-  },
-
-  closeTab: function() {
-    if (this.tab) {
-      this.tabBrowser.removeTab(this.tab);
-      this.tabBrowser.selectedTab = this.oldSelectedTab;
-      this.tab = null;
-    }
-  },
-
-  // Returns the DOM element in popup corresponding to item.
-  // WARNING: The element is found by comparing labels, so don't give two items
-  // the same label.
-  getItemElt: function (popup, item) {
-    let nodes = popup.childNodes;
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      if (this.getItemType(item) === "Separator") {
-        if (nodes[i].localName === "menuseparator")
-          return nodes[i];
-      }
-      else if (nodes[i].getAttribute("label") === item.label)
-        return nodes[i];
-    }
-    return null;
-  },
-
-  // Returns "Item", "Menu", or "Separator".
-  getItemType: function (item) {
-    // Could use instanceof here, but that would require accessing the loader
-    // that created the item, and I don't want to A) somehow search through the
-    // this.loaders list to find it, and B) assume there are any live loaders at
-    // all.
-    return /^\[object (Item|Menu|Separator)/.exec(item.toString())[1];
-  },
-
-  // Returns a wrapper around a new loader: { loader, cm, unload, globalScope }.
-  // loader is a Cuddlefish sandboxed loader, cm is the context menu module,
-  // globalScope is the context menu module's global scope, and unload is a
-  // function that unloads the loader and associated resources.
-  newLoader: function () {
-    const self = this;
-    let loader = Loader(module);
-    let wrapper = {
-      loader: loader,
-      cm: loader.require("sdk/context-menu"),
-      globalScope: loader.sandbox("sdk/context-menu"),
-      unload: function () {
-        loader.unload();
-        let idx = self.loaders.indexOf(wrapper);
-        if (idx < 0)
-          throw new Error("Test error: tried to unload nonexistent loader");
-        self.loaders.splice(idx, 1);
-      }
-    };
-    this.loaders.push(wrapper);
-    return wrapper;
-  },
-
-  // As above but the loader has private-browsing support enabled.
-  newPrivateLoader: function() {
-    let base = require("@loader/options");
-
-    // Clone current loader's options adding the private-browsing permission
-    let options = merge({}, base, {
-      metadata: merge({}, base.metadata || {}, {
-        permissions: merge({}, base.metadata.permissions || {}, {
-          'private-browsing': true
-        })
-      })
-    });
-
-    const self = this;
-    let loader = Loader(module, null, options);
-    let wrapper = {
-      loader: loader,
-      cm: loader.require("sdk/context-menu"),
-      globalScope: loader.sandbox("sdk/context-menu"),
-      unload: function () {
-        loader.unload();
-        let idx = self.loaders.indexOf(wrapper);
-        if (idx < 0)
-          throw new Error("Test error: tried to unload nonexistent loader");
-        self.loaders.splice(idx, 1);
-      }
-    };
-    this.loaders.push(wrapper);
-    return wrapper;
-  },
-
-  // Returns true if the count crosses the overflow threshold.
-  shouldOverflow: function (count) {
-    return count >
-           (this.loaders.length ?
-            this.loaders[0].loader.require("sdk/preferences/service").
-              get(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT) :
-            OVERFLOW_THRESH_DEFAULT);
-  },
-
-  // Opens the context menu on the current page.  If targetNode is null, the
-  // menu is opened in the top-left corner.  onShowncallback is passed the
-  // popup.
-  showMenu: function(targetNode, onshownCallback) {
-    function sendEvent() {
-      this.delayedEventListener(this.browserWindow, "popupshowing",
-        function (e) {
-          let popup = e.target;
-          onshownCallback.call(this, popup);
-        }, false);
-
-      let rect = targetNode ?
-                 targetNode.getBoundingClientRect() :
-                 { left: 0, top: 0, width: 0, height: 0 };
-      let contentWin = targetNode ? targetNode.ownerDocument.defaultView
-                                  : this.browserWindow.content;
-      contentWin.
-        QueryInterface(Ci.nsIInterfaceRequestor).
-        getInterface(Ci.nsIDOMWindowUtils).
-        sendMouseEvent("contextmenu",
-                       rect.left + (rect.width / 2),
-                       rect.top + (rect.height / 2),
-                       2, 1, 0);
-    }
-
-    // If a new tab or window has not yet been opened, open a new tab now.  For
-    // some reason using the tab already opened when the test starts causes
-    // leaks.  See bug 566351 for details.
-    if (!targetNode && !this.oldSelectedTab && !this.oldBrowserWindow) {
-      this.oldSelectedTab = this.tabBrowser.selectedTab;
-      this.tab = this.tabBrowser.addTab("about:blank");
-      let browser = this.tabBrowser.getBrowserForTab(this.tab);
-
-      this.delayedEventListener(browser, "load", function () {
-        this.tabBrowser.selectedTab = this.tab;
-        sendEvent.call(this);
-      }, true);
-    }
-    else
-      sendEvent.call(this);
-  },
-
-  hideMenu: function(onhiddenCallback) {
-    this.delayedEventListener(this.browserWindow, "popuphidden", onhiddenCallback);
-
-    this.contextMenuPopup.hidePopup();
-  },
-
-  // Opens a new browser window.  The window will be closed automatically when
-  // done() is called.
-  withNewWindow: function (onloadCallback) {
-    let win = this.browserWindow.OpenBrowserWindow();
-    this.delayedEventListener(win, "load", onloadCallback, true);
-    this.oldBrowserWindow = this.browserWindow;
-    this.browserWindow = win;
-  },
-
-  // Opens a new private browser window.  The window will be closed
-  // automatically when done() is called.
-  withNewPrivateWindow: function (onloadCallback) {
-    let win = this.browserWindow.OpenBrowserWindow({private: true});
-    this.delayedEventListener(win, "load", onloadCallback, true);
-    this.oldBrowserWindow = this.browserWindow;
-    this.browserWindow = win;
-  },
-
-  // Opens a new tab with our test page in the current window.  The tab will
-  // be closed automatically when done() is called.
-  withTestDoc: function (onloadCallback) {
-    this.oldSelectedTab = this.tabBrowser.selectedTab;
-    this.tab = this.tabBrowser.addTab(TEST_DOC_URL);
-    let browser = this.tabBrowser.getBrowserForTab(this.tab);
-
-    this.delayedEventListener(browser, "load", function () {
-      this.tabBrowser.selectedTab = this.tab;
-      onloadCallback.call(this, browser.contentWindow, browser.contentDocument);
-    }, true, function(evt) {
-      return evt.target.location == TEST_DOC_URL;
-    });
-  }
-};
 
 require('sdk/test').run(exports);

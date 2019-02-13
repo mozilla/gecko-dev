@@ -36,7 +36,7 @@ class nsWindowSizes {
   macro(Other, mPropertyTablesSize) \
 
 public:
-  nsWindowSizes(mozilla::MallocSizeOf aMallocSizeOf)
+  explicit nsWindowSizes(mozilla::MallocSizeOf aMallocSizeOf)
     :
       #define ZERO_SIZE(kind, mSize)  mSize(0),
       FOR_EACH_SIZE(ZERO_SIZE)
@@ -139,9 +139,9 @@ public:
  *   the tab.
  *
  */
-class nsWindowMemoryReporter MOZ_FINAL : public nsIMemoryReporter,
-                                         public nsIObserver,
-                                         public nsSupportsWeakReference
+class nsWindowMemoryReporter final : public nsIMemoryReporter,
+                                     public nsIObserver,
+                                     public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -149,8 +149,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   static void Init();
-
-  ~nsWindowMemoryReporter();
 
 #ifdef DEBUG
   /**
@@ -161,19 +159,23 @@ public:
 #endif
 
 private:
+  ~nsWindowMemoryReporter();
+
   /**
    * nsGhostWindowReporter generates the "ghost-windows" report, which counts
    * the number of ghost windows present.
    */
-  class GhostWindowsReporter MOZ_FINAL : public nsIMemoryReporter
+  class GhostWindowsReporter final : public nsIMemoryReporter
   {
+    ~GhostWindowsReporter() {}
   public:
     NS_DECL_ISUPPORTS
 
     static int64_t DistinguishedAmount();
 
     NS_IMETHOD
-    CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData)
+    CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
+                   bool aAnonymize) override
     {
       return MOZ_COLLECT_REPORT(
         "ghost-windows", KIND_OTHER, UNITS_COUNT, DistinguishedAmount(),

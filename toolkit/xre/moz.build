@@ -20,6 +20,8 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 
 XPIDL_MODULE = 'xulapp'
 
+EXPORTS += ['nsAppRunner.h']
+
 if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
     EXPORTS += ['EventTracer.h']
 
@@ -40,10 +42,8 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
     EXPORTS += ['nsQAppInstance.h']
-    GENERATED_SOURCES += [
-        'moc_nsNativeAppSupportQt.cpp',
-    ]
     SOURCES += [
+        '!moc_nsNativeAppSupportQt.cpp',
         'nsNativeAppSupportQt.cpp',
         'nsQAppInstance.cpp',
     ]
@@ -103,10 +103,6 @@ if CONFIG['MOZ_UPDATER']:
             'nsUpdateDriver.cpp',
         ]
 
-MSVC_ENABLE_PGO = True
-
-LIBRARY_NAME = 'xulapp_s'
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -130,7 +126,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     DEFINES['ANDROID_PACKAGE_NAME'] = '"%s"' % CONFIG['ANDROID_PACKAGE_NAME']
 
 if CONFIG['TARGET_XPCOM_ABI']:
-    DEFINES['TARGET_XPCOM_ABI'] = '"%s"' % CONFIG['TARGET_XPCOM_ABI']
     DEFINES['TARGET_OS_ABI'] = '"%s_%s"' % (CONFIG['OS_TARGET'],
                                             CONFIG['TARGET_XPCOM_ABI'])
 
@@ -148,6 +143,9 @@ for var in ('APP_VERSION', 'APP_ID'):
 if CONFIG['MOZILLA_OFFICIAL']:
     DEFINES['MOZILLA_OFFICIAL'] = True
 
+if CONFIG['MOZ_BUILD_APP'] == 'browser':
+    DEFINES['MOZ_BUILD_APP_IS_BROWSER'] = True
+
 LOCAL_INCLUDES += [
     '../profile',
     '/config',
@@ -158,8 +156,25 @@ LOCAL_INCLUDES += [
     '/xpcom/build',
 ]
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    LOCAL_INCLUDES += [
+        '/widget',
+        '/widget/cocoa',
+    ]
+
 if CONFIG['MOZ_ENABLE_XREMOTE']:
     LOCAL_INCLUDES += [
         '/widget/xremoteclient',
     ]
 
+if CONFIG['MOZ_B2G_LOADER']:
+    DEFINES['OMNIJAR_NAME'] = CONFIG['OMNIJAR_NAME']
+
+CXXFLAGS += CONFIG['TK_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+
+if CONFIG['MOZ_WIDGET_GTK']:
+    CXXFLAGS += CONFIG['MOZ_PANGO_CFLAGS']
+
+FAIL_ON_WARNINGS = True

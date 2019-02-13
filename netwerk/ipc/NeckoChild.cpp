@@ -26,6 +26,10 @@
 #include "mozilla/net/RtspChannelChild.h"
 #endif
 #include "SerializedLoadContext.h"
+#include "nsIOService.h"
+#include "nsINetworkPredictor.h"
+#include "nsINetworkPredictorVerifier.h"
+#include "mozilla/ipc/URIUtils.h"
 
 using mozilla::dom::TCPSocketChild;
 using mozilla::dom::TCPServerSocketChild;
@@ -47,7 +51,7 @@ NeckoChild::~NeckoChild()
 
 void NeckoChild::InitNeckoChild()
 {
-  NS_ABORT_IF_FALSE(IsNeckoChild(), "InitNeckoChild called by non-child!");
+  MOZ_ASSERT(IsNeckoChild(), "InitNeckoChild called by non-child!");
 
   if (!gNeckoChild) {
     mozilla::dom::ContentChild * cpc = 
@@ -62,9 +66,9 @@ void NeckoChild::InitNeckoChild()
 // automatically destroyed at exit.  
 void NeckoChild::DestroyNeckoChild()
 {
-  NS_ABORT_IF_FALSE(IsNeckoChild(), "DestroyNeckoChild called by non-child!");
+  MOZ_ASSERT(IsNeckoChild(), "DestroyNeckoChild called by non-child!");
   static bool alreadyDestroyed = false;
-  NS_ABORT_IF_FALSE(!alreadyDestroyed, "DestroyNeckoChild already called!");
+  MOZ_ASSERT(!alreadyDestroyed, "DestroyNeckoChild already called!");
 
   if (!alreadyDestroyed) {
     Send__delete__(gNeckoChild); 
@@ -87,7 +91,7 @@ NeckoChild::AllocPHttpChannelChild(const PBrowserOrId& browser,
 bool 
 NeckoChild::DeallocPHttpChannelChild(PHttpChannelChild* channel)
 {
-  NS_ABORT_IF_FALSE(IsNeckoChild(), "DeallocPHttpChannelChild called by non-child!");
+  MOZ_ASSERT(IsNeckoChild(), "DeallocPHttpChannelChild called by non-child!");
 
   HttpChannelChild* child = static_cast<HttpChannelChild*>(channel);
   child->ReleaseIPDLReference();
@@ -107,7 +111,7 @@ NeckoChild::AllocPFTPChannelChild(const PBrowserOrId& aBrowser,
 bool
 NeckoChild::DeallocPFTPChannelChild(PFTPChannelChild* channel)
 {
-  NS_ABORT_IF_FALSE(IsNeckoChild(), "DeallocPFTPChannelChild called by non-child!");
+  MOZ_ASSERT(IsNeckoChild(), "DeallocPFTPChannelChild called by non-child!");
 
   FTPChannelChild* child = static_cast<FTPChannelChild*>(channel);
   child->ReleaseIPDLReference();
@@ -143,7 +147,7 @@ NeckoChild::AllocPWyciwygChannelChild()
 bool
 NeckoChild::DeallocPWyciwygChannelChild(PWyciwygChannelChild* channel)
 {
-  NS_ABORT_IF_FALSE(IsNeckoChild(), "DeallocPWyciwygChannelChild called by non-child!");
+  MOZ_ASSERT(IsNeckoChild(), "DeallocPWyciwygChannelChild called by non-child!");
 
   WyciwygChannelChild *p = static_cast<WyciwygChannelChild*>(channel);
   p->ReleaseIPDLReference();
@@ -163,6 +167,20 @@ NeckoChild::DeallocPWebSocketChild(PWebSocketChild* child)
 {
   WebSocketChannelChild* p = static_cast<WebSocketChannelChild*>(child);
   p->ReleaseIPDLReference();
+  return true;
+}
+
+PDataChannelChild*
+NeckoChild::AllocPDataChannelChild(const uint32_t& channelId)
+{
+  MOZ_ASSERT_UNREACHABLE("Should never get here");
+  return nullptr;
+}
+
+bool
+NeckoChild::DeallocPDataChannelChild(PDataChannelChild* child)
+{
+  // NB: See DataChannelChild::ActorDestroy.
   return true;
 }
 
@@ -201,9 +219,11 @@ NeckoChild::DeallocPRtspChannelChild(PRtspChannelChild* child)
 }
 
 PTCPSocketChild*
-NeckoChild::AllocPTCPSocketChild()
+NeckoChild::AllocPTCPSocketChild(const nsString& host,
+                                 const uint16_t& port)
 {
   TCPSocketChild* p = new TCPSocketChild();
+  p->Init(host, port);
   p->AddIPDLReference();
   return p;
 }
@@ -234,8 +254,7 @@ NeckoChild::DeallocPTCPServerSocketChild(PTCPServerSocketChild* child)
 }
 
 PUDPSocketChild*
-NeckoChild::AllocPUDPSocketChild(const nsCString& aHost,
-                                 const uint16_t& aPort,
+NeckoChild::AllocPUDPSocketChild(const Principal& aPrincipal,
                                  const nsCString& aFilter)
 {
   NS_NOTREACHED("AllocPUDPSocket should not be called");
@@ -253,7 +272,8 @@ NeckoChild::DeallocPUDPSocketChild(PUDPSocketChild* child)
 
 PDNSRequestChild*
 NeckoChild::AllocPDNSRequestChild(const nsCString& aHost,
-                                  const uint32_t& aFlags)
+                                  const uint32_t& aFlags,
+                                  const nsCString& aNetworkInterface)
 {
   // We don't allocate here: instead we always use IPDL constructor that takes
   // an existing object
@@ -302,18 +322,66 @@ NeckoChild::DeallocPChannelDiverterChild(PChannelDiverterChild* child)
 }
 
 bool
-NeckoChild::RecvAsyncAuthPromptForNestedFrame(const uint64_t& aNestedFrameId,
+NeckoChild::RecvAsyncAuthPromptForNestedFrame(const TabId& aNestedFrameId,
                                               const nsCString& aUri,
                                               const nsString& aRealm,
                                               const uint64_t& aCallbackId)
 {
-  auto iter = dom::TabChild::NestedTabChildMap().find(aNestedFrameId);
-  if (iter == dom::TabChild::NestedTabChildMap().end()) {
+  nsRefPtr<dom::TabChild> tabChild = dom::TabChild::FindTabChild(aNestedFrameId);
+  if (!tabChild) {
     MOZ_CRASH();
     return false;
   }
-  dom::TabChild* tabChild = iter->second;
   tabChild->SendAsyncAuthPrompt(aUri, aRealm, aCallbackId);
+  return true;
+}
+
+/* Predictor Messages */
+bool
+NeckoChild::RecvPredOnPredictPreconnect(const URIParams& aURI)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "PredictorChild::RecvOnPredictPreconnect "
+                                "off main thread.");
+
+  nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
+
+  // Get the current predictor
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsINetworkPredictorVerifier> predictor =
+    do_GetService("@mozilla.org/network/predictor;1", &rv);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  predictor->OnPredictPreconnect(uri);
+  return true;
+}
+
+bool
+NeckoChild::RecvPredOnPredictDNS(const URIParams& aURI)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "PredictorChild::RecvOnPredictDNS off "
+                                "main thread.");
+
+  nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
+
+  // Get the current predictor
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsINetworkPredictorVerifier> predictor =
+    do_GetService("@mozilla.org/network/predictor;1", &rv);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  predictor->OnPredictDNS(uri);
+  return true;
+}
+
+bool
+NeckoChild::RecvAppOfflineStatus(const uint32_t& aId, const bool& aOffline)
+{
+  // Instantiate the service to make sure gIOService is initialized
+  nsCOMPtr<nsIIOService> ioService = do_GetIOService();
+  if (gIOService) {
+    gIOService->SetAppOfflineInternal(aId, aOffline ?
+      nsIAppOfflineInfo::OFFLINE : nsIAppOfflineInfo::ONLINE);
+  }
   return true;
 }
 

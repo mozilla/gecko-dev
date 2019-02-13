@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,6 +20,7 @@ class OwningArrayBufferViewOrArrayBuffer;
 class CryptoBuffer : public FallibleTArray<uint8_t>
 {
 public:
+  uint8_t* Assign(const CryptoBuffer& aData);
   uint8_t* Assign(const uint8_t* aData, uint32_t aLength);
   uint8_t* Assign(const SECItem* aItem);
   uint8_t* Assign(const ArrayBuffer& aData);
@@ -36,8 +37,10 @@ public:
     return Assign(aArray.Data(), aArray.Length());
   }
 
-
-  SECItem* ToSECItem();
+  nsresult FromJwkBase64(const nsString& aBase64);
+  nsresult ToJwkBase64(nsString& aBase64);
+  bool ToSECItem(PLArenaPool* aArena, SECItem* aItem) const;
+  JSObject* ToUint8Array(JSContext* aCx) const;
 
   bool GetBigIntValue(unsigned long& aRetVal);
 };

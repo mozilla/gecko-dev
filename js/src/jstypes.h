@@ -22,6 +22,7 @@
 #define jstypes_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Casting.h"
 #include "mozilla/Types.h"
 
 // jstypes.h is (or should be!) included by every file in SpiderMonkey.
@@ -103,7 +104,7 @@
 ***********************************************************************/
 #define JS_BEGIN_MACRO  do {
 
-#if defined(_MSC_VER) && _MSC_VER >= 1400
+#if defined(_MSC_VER)
 # define JS_END_MACRO                                                         \
     } __pragma(warning(push)) __pragma(warning(disable:4127))                 \
     while (0) __pragma(warning(pop))
@@ -168,10 +169,10 @@
 **      Macros to get the number of elements and the pointer to one past the
 **      last element of a C array. Use them like this:
 **
-**      jschar buf[10], *s;
-**      JSString *str;
+**      char16_t buf[10];
+**      JSString* str;
 **      ...
-**      for (s = buf; s != JS_ARRAY_END(buf); ++s) *s = ...;
+**      for (char16_t* s = buf; s != JS_ARRAY_END(buf); ++s) *s = ...;
 **      ...
 **      str = JS_NewStringCopyN(cx, buf, JS_ARRAY_LENGTH(buf));
 **      ...
@@ -194,26 +195,20 @@
 ** MACROS:      JS_FUNC_TO_DATA_PTR
 **              JS_DATA_TO_FUNC_PTR
 ** DESCRIPTION:
-**      Macros to convert between function and data pointers assuming that
-**      they have the same size. Use them like this:
+**      Macros to convert between function and data pointers of the same
+**      size. Use them like this:
 **
-**      JSPropertyOp nativeGetter;
-**      JSObject *scriptedGetter;
+**      JSGetterOp nativeGetter;
+**      JSObject* scriptedGetter;
 **      ...
-**      scriptedGetter = JS_FUNC_TO_DATA_PTR(JSObject *, nativeGetter);
+**      scriptedGetter = JS_FUNC_TO_DATA_PTR(JSObject*, nativeGetter);
 **      ...
-**      nativeGetter = JS_DATA_TO_FUNC_PTR(JSPropertyOp, scriptedGetter);
+**      nativeGetter = JS_DATA_TO_FUNC_PTR(JSGetterOp, scriptedGetter);
 **
 ***********************************************************************/
 
-#ifdef __GNUC__
-# define JS_FUNC_TO_DATA_PTR(type, fun) (__extension__ (type) (size_t) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) (__extension__ (type) (size_t) (ptr))
-#else
-/* Use an extra (void *) cast for MSVC. */
-# define JS_FUNC_TO_DATA_PTR(type, fun) ((type) (void *) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) ((type) (void *) (ptr))
-#endif
+#define JS_FUNC_TO_DATA_PTR(type, fun)  (mozilla::BitwiseCast<type>(fun))
+#define JS_DATA_TO_FUNC_PTR(type, ptr)  (mozilla::BitwiseCast<type>(ptr))
 
 #ifdef __GNUC__
 # define JS_EXTENSION __extension__

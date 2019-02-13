@@ -7,8 +7,6 @@
 #ifndef jit_BaselineFrame_inl_h
 #define jit_BaselineFrame_inl_h
 
-#ifdef JS_ION
-
 #include "jit/BaselineFrame.h"
 
 #include "jscntxt.h"
@@ -16,14 +14,18 @@
 
 #include "vm/ScopeObject.h"
 
+#include "jsscriptinlines.h"
+
+#include "vm/ScopeObject-inl.h"
+
 namespace js {
 namespace jit {
 
 inline void
-BaselineFrame::pushOnScopeChain(ScopeObject &scope)
+BaselineFrame::pushOnScopeChain(ScopeObject& scope)
 {
-    JS_ASSERT(*scopeChain() == scope.enclosingScope() ||
-              *scopeChain() == scope.as<CallObject>().enclosingScope().as<DeclEnvObject>().enclosingScope());
+    MOZ_ASSERT(*scopeChain() == scope.enclosingScope() ||
+               *scopeChain() == scope.as<CallObject>().enclosingScope().as<DeclEnvObject>().enclosingScope());
     scopeChain_ = &scope;
 }
 
@@ -34,21 +36,28 @@ BaselineFrame::popOffScopeChain()
 }
 
 inline void
-BaselineFrame::popWith(JSContext *cx)
+BaselineFrame::popWith(JSContext* cx)
 {
-    if (MOZ_UNLIKELY(cx->compartment()->debugMode()))
+    if (MOZ_UNLIKELY(isDebuggee()))
         DebugScopes::onPopWith(this);
 
-    JS_ASSERT(scopeChain()->is<DynamicWithObject>());
+    MOZ_ASSERT(scopeChain()->is<DynamicWithObject>());
     popOffScopeChain();
 }
 
-inline bool
-BaselineFrame::pushBlock(JSContext *cx, Handle<StaticBlockObject *> block)
+inline void
+BaselineFrame::replaceInnermostScope(ScopeObject& scope)
 {
-    JS_ASSERT(block->needsClone());
+    MOZ_ASSERT(scope.enclosingScope() == scopeChain_->as<ScopeObject>().enclosingScope());
+    scopeChain_ = &scope;
+}
 
-    ClonedBlockObject *clone = ClonedBlockObject::create(cx, block, this);
+inline bool
+BaselineFrame::pushBlock(JSContext* cx, Handle<StaticBlockObject*> block)
+{
+    MOZ_ASSERT(block->needsClone());
+
+    ClonedBlockObject* clone = ClonedBlockObject::create(cx, block, this);
     if (!clone)
         return false;
     pushOnScopeChain(*clone);
@@ -57,28 +66,45 @@ BaselineFrame::pushBlock(JSContext *cx, Handle<StaticBlockObject *> block)
 }
 
 inline void
-BaselineFrame::popBlock(JSContext *cx)
+BaselineFrame::popBlock(JSContext* cx)
 {
-    JS_ASSERT(scopeChain_->is<ClonedBlockObject>());
+    MOZ_ASSERT(scopeChain_->is<ClonedBlockObject>());
 
     popOffScopeChain();
 }
 
-inline CallObject &
+inline bool
+BaselineFrame::freshenBlock(JSContext* cx)
+{
+    Rooted<ClonedBlockObject*> current(cx, &scopeChain_->as<ClonedBlockObject>());
+    ClonedBlockObject* clone = ClonedBlockObject::clone(cx, current);
+    if (!clone)
+        return false;
+
+    replaceInnermostScope(*clone);
+    return true;
+}
+
+inline CallObject&
 BaselineFrame::callObj() const
 {
-    JS_ASSERT(hasCallObj());
-    JS_ASSERT(fun()->isHeavyweight());
+    MOZ_ASSERT(hasCallObj());
+    MOZ_ASSERT(fun()->isHeavyweight());
 
-    JSObject *obj = scopeChain();
+    JSObject* obj = scopeChain();
     while (!obj->is<CallObject>())
         obj = obj->enclosingScope();
     return obj->as<CallObject>();
 }
 
+inline void
+BaselineFrame::unsetIsDebuggee()
+{
+    MOZ_ASSERT(!script()->isDebuggee());
+    flags_ &= ~DEBUGGEE;
+}
+
 } // namespace jit
 } // namespace js
-
-#endif // JS_ION
 
 #endif /* jit_BaselineFrame_inl_h */

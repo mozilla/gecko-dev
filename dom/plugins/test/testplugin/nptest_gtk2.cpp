@@ -45,7 +45,6 @@
 #include <gtk/gtk.h>
 #include <unistd.h>
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/IntentionalCrash.h"
 
  using namespace std;
@@ -69,12 +68,6 @@ bool
 pluginSupportsWindowlessMode()
 {
   return true;
-}
-
-bool
-pluginSupportsAsyncBitmapDrawing()
-{
-  return false;
 }
 
 NPError

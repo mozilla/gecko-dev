@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -34,13 +34,19 @@ function test()
   actual = arr.toString();
   reportCompare(expect, actual, summary);
 
+  // Before JS1.7's destructuring for…in was fixed to match JS1.8's,
+  // the expected result was 'aa,bb,cc'.
   arr=[x+x for ([,x] in ["a","b","c"])];
-  expect = 'aa,bb,cc';
+  expect = 'NaN,NaN,NaN';
   actual = arr.toString();
+  reportCompare(expect, actual, summary);
 
+  // Before JS1.7's destructuring for…in was fixed to match JS1.8's,
+  // the expected result was '0a,1b,2c'.
   arr=[x+y for ([x,y] in ["a","b","c"])];
-  expect = '0a,1b,2c';
+  expect = '0undefined,1undefined,2undefined';
   actual = arr.toString();
+  reportCompare(expect, actual, summary);
 
   exitFunc ('test');
 }

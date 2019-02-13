@@ -1,0 +1,118 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+@template
+def Binary():
+    '''Generic template for target binaries. Meant to be used by other
+    templates.'''
+
+    if CONFIG['MOZ_LIBSTDCXX_TARGET_VERSION']:
+        USE_LIBS += ['stdc++compat']
+
+    # Ideally, we'd support not adding this to the LIB_IS_C_ONLY case,
+    # but that variable is actually only set in db/sqlite/src, which
+    # doesn't build a shared library on the relevant platforms anyways.
+    # Eventually, though, we should detect LIB_IS_C_ONLY based on the
+    # associated SOURCES (and there might actually be places where we
+    # haven't set it but should have).
+    if CONFIG['STLPORT_LIBS']:
+        OS_LIBS += [CONFIG['STLPORT_LIBS']]
+    elif CONFIG['OS_TARGET'] == 'Android':
+        USE_LIBS += ['stlport']
+
+
+@template
+def Program(name):
+    '''Template for program executables.'''
+    PROGRAM = name
+
+    Binary()
+
+
+@template
+def SimplePrograms(names, ext='.cpp'):
+    '''Template for simple program executables.
+
+    Those have a single source with the same base name as the executable.
+    '''
+    SIMPLE_PROGRAMS += names
+    SOURCES += ['%s%s' % (name, ext) for name in names]
+
+    Binary()
+
+
+@template
+def CppUnitTests(names, ext='.cpp'):
+    '''Template for C++ unit tests.
+
+    Those have a single source with the same base name as the executable.
+    '''
+    CPP_UNIT_TESTS += names
+    SOURCES += ['%s%s' % (name, ext) for name in names]
+
+    Binary()
+
+
+@template
+def Library(name):
+    '''Template for libraries.'''
+    LIBRARY_NAME = name
+
+
+@template
+def SharedLibrary(name):
+    '''Template for shared libraries.'''
+    Library(name)
+
+    FORCE_SHARED_LIB = True
+
+    Binary()
+
+
+@template
+def Framework(name):
+    '''Template for OSX Frameworks.'''
+    SharedLibrary(name)
+
+    IS_FRAMEWORK = True
+
+
+@template
+def HostStdCppCompat():
+    '''Template for libstdc++ compatibility for host binaries.'''
+
+    if CONFIG['MOZ_LIBSTDCXX_HOST_VERSION']:
+        HOST_USE_LIBS += ['host_stdc++compat']
+
+
+@template
+def HostProgram(name):
+    '''Template for build tools executables.'''
+    HOST_PROGRAM = name
+
+    HostStdCppCompat()
+
+
+@template
+def HostSimplePrograms(names, ext='.cpp'):
+    '''Template for simple build tools executables.
+
+    Those have a single source with the same base name as the executable.
+    '''
+    HOST_SIMPLE_PROGRAMS += names
+    HOST_SOURCES += ['%s%s' % (name.replace('host_', ''), ext)
+        for name in names]
+
+    HostStdCppCompat()
+
+
+@template
+def HostLibrary(name):
+    '''Template for build tools libraries.'''
+    HOST_LIBRARY_NAME = name
+
+
+include('gecko_templates.mozbuild')

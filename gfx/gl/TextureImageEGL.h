@@ -11,12 +11,12 @@
 namespace mozilla {
 namespace gl {
 
-class TextureImageEGL
+class TextureImageEGL final
     : public TextureImage
 {
 public:
     TextureImageEGL(GLuint aTexture,
-                    const nsIntSize& aSize,
+                    const gfx::IntSize& aSize,
                     GLenum aWrapMode,
                     ContentType aContentType,
                     GLContext* aContext,
@@ -65,7 +65,7 @@ protected:
 
     GLContext* mGLContext;
 
-    nsIntRect mUpdateRect;
+    gfx::IntRect mUpdateRect;
     gfx::SurfaceFormat mUpdateFormat;
     RefPtr<gfx::DrawTarget> mUpdateDrawTarget;
     EGLImage mEGLImage;
@@ -87,7 +87,7 @@ CreateTextureImageEGL(GLContext *gl,
 
 already_AddRefed<TextureImage>
 TileGenFuncEGL(GLContext *gl,
-               const nsIntSize& aSize,
+               const gfx::IntSize& aSize,
                TextureImage::ContentType aContentType,
                TextureImage::Flags aFlags,
                TextureImage::ImageFormat aImageFormat);

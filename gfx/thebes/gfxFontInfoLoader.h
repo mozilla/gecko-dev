@@ -169,6 +169,7 @@ public:
     gfxFontInfoLoader() :
         mInterval(0), mState(stateInitial)
     {
+        MOZ_COUNT_CTOR(gfxFontInfoLoader);
     }
 
     virtual ~gfxFontInfoLoader();
@@ -191,14 +192,14 @@ protected:
         NS_DECL_ISUPPORTS
         NS_DECL_NSIOBSERVER
 
-        ShutdownObserver(gfxFontInfoLoader *aLoader)
+        explicit ShutdownObserver(gfxFontInfoLoader *aLoader)
             : mLoader(aLoader)
         { }
 
+    protected:
         virtual ~ShutdownObserver()
         { }
 
-    protected:
         gfxFontInfoLoader *mLoader;
     };
 

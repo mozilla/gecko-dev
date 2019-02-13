@@ -185,36 +185,6 @@ protected:
   static std::map<uint64_t, AsyncTransactionTrackersHolder*> sTrackersHolders;
 };
 
-/**
- * FenceDeliveryTracker puts off releasing a Fence until a transaction complete.
- */
-class FenceDeliveryTracker : public AsyncTransactionTracker {
-public:
-  FenceDeliveryTracker(FenceHandle& aFenceHandle)
-    : mFenceHandle(aFenceHandle)
-  {
-    MOZ_COUNT_CTOR(FenceDeliveryTracker);
-  }
-
-  ~FenceDeliveryTracker()
-  {
-    MOZ_COUNT_DTOR(FenceDeliveryTracker);
-  }
-
-  virtual void Complete() MOZ_OVERRIDE
-  {
-    mFenceHandle = FenceHandle();
-  }
-
-  virtual void Cancel() MOZ_OVERRIDE
-  {
-    mFenceHandle = FenceHandle();
-  }
-
-private:
-  FenceHandle mFenceHandle;
-};
-
 } // namespace layers
 } // namespace mozilla
 

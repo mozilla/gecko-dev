@@ -15,7 +15,7 @@
 #include "nsIFrame.h"
 
 class nsContainerFrame;
-class nsHTMLReflowState;
+struct nsHTMLReflowState;
 class nsPresContext;
 
 /**
@@ -36,7 +36,7 @@ class nsAbsoluteContainingBlock
 public:
   typedef nsIFrame::ChildListID ChildListID;
 
-  nsAbsoluteContainingBlock(ChildListID aChildListID)
+  explicit nsAbsoluteContainingBlock(ChildListID aChildListID)
 #ifdef DEBUG
     : mChildListID(aChildListID)
 #endif

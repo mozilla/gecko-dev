@@ -6,15 +6,104 @@
 
 #include "PluginScriptableObjectParent.h"
 
+#include "jsapi.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/plugins/PluginIdentifierParent.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/plugins/PluginTypes.h"
 #include "mozilla/unused.h"
-#include "nsCxPusher.h"
 #include "nsNPAPIPlugin.h"
+#include "PluginAsyncSurrogate.h"
 #include "PluginScriptableObjectUtils.h"
 
+using namespace mozilla;
 using namespace mozilla::plugins;
 using namespace mozilla::plugins::parent;
+
+/**
+ * NPIdentifiers in the chrome process are stored as jsids. The difficulty is in
+ * ensuring that string identifiers are rooted without interning them all. We
+ * assume that all NPIdentifiers passed into nsJSNPRuntime will not be used
+ * outside the scope of the NPAPI call (i.e., they won't be stored in the
+ * heap). Rooting is done using the StackIdentifier class, which roots the
+ * identifier via RootedId.
+ *
+ * This system does not allow jsids to be moved, as would be needed for
+ * generational or compacting GC. When Firefox implements a moving GC for
+ * strings, we will need to ensure that no movement happens while NPAPI code is
+ * on the stack: although StackIdentifier roots all identifiers used, the GC has
+ * no way to no that a jsid cast to an NPIdentifier needs to be fixed up if it
+ * is moved.
+ */
+
+class MOZ_STACK_CLASS StackIdentifier
+{
+public:
+  explicit StackIdentifier(const PluginIdentifier& aIdentifier,
+                           bool aIntern = false);
+
+  bool Failed() const { return mFailed; }
+  NPIdentifier ToNPIdentifier() const { return mIdentifier; }
+
+private:
+  bool mFailed;
+  NPIdentifier mIdentifier;
+  AutoSafeJSContext mCx;
+  JS::RootedId mId;
+};
+
+StackIdentifier::StackIdentifier(const PluginIdentifier& aIdentifier, bool aIntern)
+: mFailed(false),
+  mId(mCx)
+{
+  if (aIdentifier.type() == PluginIdentifier::TnsCString) {
+    // We don't call _getstringidentifier because we may not want to intern the string.
+    NS_ConvertUTF8toUTF16 utf16name(aIdentifier.get_nsCString());
+    JS::RootedString str(mCx, JS_NewUCStringCopyN(mCx, utf16name.get(), utf16name.Length()));
+    if (!str) {
+      NS_ERROR("Id can't be allocated");
+      mFailed = true;
+      return;
+    }
+    if (aIntern) {
+      str = JS_InternJSString(mCx, str);
+      if (!str) {
+        NS_ERROR("Id can't be allocated");
+        mFailed = true;
+        return;
+      }
+    }
+    if (!JS_StringToId(mCx, str, &mId)) {
+      NS_ERROR("Id can't be allocated");
+      mFailed = true;
+      return;
+    }
+    mIdentifier = JSIdToNPIdentifier(mId);
+    return;
+  }
+
+  mIdentifier = mozilla::plugins::parent::_getintidentifier(aIdentifier.get_int32_t());
+}
+
+static bool
+FromNPIdentifier(NPIdentifier aIdentifier, PluginIdentifier* aResult)
+{
+  if (mozilla::plugins::parent::_identifierisstring(aIdentifier)) {
+    nsCString string;
+    NPUTF8* chars =
+      mozilla::plugins::parent::_utf8fromidentifier(aIdentifier);
+    if (!chars) {
+      return false;
+    }
+    string.Adopt(chars);
+    *aResult = PluginIdentifier(string);
+    return true;
+  }
+  else {
+    int32_t intval = mozilla::plugins::parent::_intfromidentifier(aIdentifier);
+    *aResult = PluginIdentifier(intval);
+    return true;
+  }
+}
 
 namespace {
 
@@ -22,6 +111,7 @@ inline void
 ReleaseVariant(NPVariant& aVariant,
                PluginInstanceParent* aInstance)
 {
+  PushSurrogateAcceptCalls acceptCalls(aInstance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(aInstance);
   if (npn) {
     npn->releasevariantvalue(&aVariant);
@@ -76,6 +166,15 @@ PluginScriptableObjectParent::ScriptableDeallocate(NPObject* aObject)
   }
 
   ParentNPObject* object = reinterpret_cast<ParentNPObject*>(aObject);
+
+  if (object->asyncWrapperCount > 0) {
+    // In this case we should just drop the refcount to the asyncWrapperCount
+    // instead of deallocating because there are still some async wrappers
+    // out there that are referencing this object.
+    object->referenceCount = object->asyncWrapperCount;
+    return;
+  }
+
   PluginScriptableObjectParent* actor = object->parent;
   if (actor) {
     NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
@@ -106,8 +205,8 @@ PluginScriptableObjectParent::ScriptableHasMethod(NPObject* aObject,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(aObject, aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 
@@ -146,8 +245,8 @@ PluginScriptableObjectParent::ScriptableInvoke(NPObject* aObject,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(aObject, aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 
@@ -248,8 +347,8 @@ PluginScriptableObjectParent::ScriptableHasProperty(NPObject* aObject,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(aObject, aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 
@@ -297,8 +396,8 @@ PluginScriptableObjectParent::ScriptableSetProperty(NPObject* aObject,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(aObject, aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 
@@ -340,8 +439,8 @@ PluginScriptableObjectParent::ScriptableRemoveProperty(NPObject* aObject,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(aObject, aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 
@@ -386,7 +485,7 @@ PluginScriptableObjectParent::ScriptableEnumerate(NPObject* aObject,
     return false;
   }
 
-  AutoInfallibleTArray<PPluginIdentifierParent*, 10> identifiers;
+  AutoInfallibleTArray<PluginIdentifier, 10> identifiers;
   bool success;
   if (!actor->CallEnumerate(&identifiers, &success)) {
     NS_WARNING("Failed to send message!");
@@ -410,9 +509,13 @@ PluginScriptableObjectParent::ScriptableEnumerate(NPObject* aObject,
   }
 
   for (uint32_t index = 0; index < *aCount; index++) {
-    PluginIdentifierParent* id =
-      static_cast<PluginIdentifierParent*>(identifiers[index]);
-    (*aIdentifiers)[index] = id->ToNPIdentifier();
+    // We intern the ID to avoid a GC hazard here. This could probably be fixed
+    // if the interface with nsJSNPRuntime were smarter.
+    StackIdentifier stackID(identifiers[index], true /* aIntern */);
+    if (stackID.Failed()) {
+      return false;
+    }
+    (*aIdentifiers)[index] = stackID.ToNPIdentifier();
   }
   return true;
 }
@@ -551,6 +654,7 @@ PluginScriptableObjectParent::CreateProxyObject()
   NS_ASSERTION(mInstance, "Must have an instance!");
   NS_ASSERTION(mType == Proxy, "Shouldn't call this for non-proxy object!");
 
+  PushSurrogateAcceptCalls acceptCalls(mInstance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(mInstance);
 
   NPObject* npobject = npn->createobject(mInstance->GetNPP(),
@@ -650,7 +754,7 @@ PluginScriptableObjectParent::ActorDestroy(ActorDestroyReason aWhy)
 }
 
 bool
-PluginScriptableObjectParent::AnswerHasMethod(PPluginIdentifierParent* aId,
+PluginScriptableObjectParent::AnswerHasMethod(const PluginIdentifier& aId,
                                               bool* aHasMethod)
 {
   if (!mObject) {
@@ -669,6 +773,7 @@ PluginScriptableObjectParent::AnswerHasMethod(PPluginIdentifierParent* aId,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -676,14 +781,18 @@ PluginScriptableObjectParent::AnswerHasMethod(PPluginIdentifierParent* aId,
     return true;
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
-  *aHasMethod = npn->hasmethod(instance->GetNPP(), mObject, id->ToNPIdentifier());
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aHasMethod = false;
+    return true;
+  }
+  *aHasMethod = npn->hasmethod(instance->GetNPP(), mObject, stackID.ToNPIdentifier());
   return true;
 }
 
 bool
-PluginScriptableObjectParent::AnswerInvoke(PPluginIdentifierParent* aId,
-                                           const InfallibleTArray<Variant>& aArgs,
+PluginScriptableObjectParent::AnswerInvoke(const PluginIdentifier& aId,
+                                           InfallibleTArray<Variant>&& aArgs,
                                            Variant* aResult,
                                            bool* aSuccess)
 {
@@ -705,6 +814,7 @@ PluginScriptableObjectParent::AnswerInvoke(PPluginIdentifierParent* aId,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -713,10 +823,17 @@ PluginScriptableObjectParent::AnswerInvoke(PPluginIdentifierParent* aId,
     return true;
   }
 
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aResult = void_t();
+    *aSuccess = false;
+    return true;
+  }
+
   AutoFallibleTArray<NPVariant, 10> convertedArgs;
   uint32_t argCount = aArgs.Length();
 
-  if (!convertedArgs.SetLength(argCount)) {
+  if (!convertedArgs.SetLength(argCount, fallible)) {
     *aResult = void_t();
     *aSuccess = false;
     return true;
@@ -734,9 +851,8 @@ PluginScriptableObjectParent::AnswerInvoke(PPluginIdentifierParent* aId,
     }
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
   NPVariant result;
-  bool success = npn->invoke(instance->GetNPP(), mObject, id->ToNPIdentifier(),
+  bool success = npn->invoke(instance->GetNPP(), mObject, stackID.ToNPIdentifier(),
                              convertedArgs.Elements(), argCount, &result);
 
   for (uint32_t index = 0; index < argCount; index++) {
@@ -766,7 +882,7 @@ PluginScriptableObjectParent::AnswerInvoke(PPluginIdentifierParent* aId,
 }
 
 bool
-PluginScriptableObjectParent::AnswerInvokeDefault(const InfallibleTArray<Variant>& aArgs,
+PluginScriptableObjectParent::AnswerInvokeDefault(InfallibleTArray<Variant>&& aArgs,
                                                   Variant* aResult,
                                                   bool* aSuccess)
 {
@@ -788,6 +904,7 @@ PluginScriptableObjectParent::AnswerInvokeDefault(const InfallibleTArray<Variant
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -799,7 +916,7 @@ PluginScriptableObjectParent::AnswerInvokeDefault(const InfallibleTArray<Variant
   AutoFallibleTArray<NPVariant, 10> convertedArgs;
   uint32_t argCount = aArgs.Length();
 
-  if (!convertedArgs.SetLength(argCount)) {
+  if (!convertedArgs.SetLength(argCount, fallible)) {
     *aResult = void_t();
     *aSuccess = false;
     return true;
@@ -849,7 +966,7 @@ PluginScriptableObjectParent::AnswerInvokeDefault(const InfallibleTArray<Variant
 }
 
 bool
-PluginScriptableObjectParent::AnswerHasProperty(PPluginIdentifierParent* aId,
+PluginScriptableObjectParent::AnswerHasProperty(const PluginIdentifier& aId,
                                                 bool* aHasProperty)
 {
   if (!mObject) {
@@ -868,6 +985,7 @@ PluginScriptableObjectParent::AnswerHasProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -875,15 +993,20 @@ PluginScriptableObjectParent::AnswerHasProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aHasProperty = false;
+    return true;
+  }
+
   *aHasProperty = npn->hasproperty(instance->GetNPP(), mObject,
-                                   id->ToNPIdentifier());
+                                   stackID.ToNPIdentifier());
   return true;
 }
 
 bool
 PluginScriptableObjectParent::AnswerGetParentProperty(
-                                                   PPluginIdentifierParent* aId,
+                                                   const PluginIdentifier& aId,
                                                    Variant* aResult,
                                                    bool* aSuccess)
 {
@@ -905,6 +1028,7 @@ PluginScriptableObjectParent::AnswerGetParentProperty(
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -913,9 +1037,15 @@ PluginScriptableObjectParent::AnswerGetParentProperty(
     return true;
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aResult = void_t();
+    *aSuccess = false;
+    return true;
+  }
+
   NPVariant result;
-  if (!npn->getproperty(instance->GetNPP(), mObject, id->ToNPIdentifier(),
+  if (!npn->getproperty(instance->GetNPP(), mObject, stackID.ToNPIdentifier(),
                         &result)) {
     *aResult = void_t();
     *aSuccess = false;
@@ -935,7 +1065,7 @@ PluginScriptableObjectParent::AnswerGetParentProperty(
 }
 
 bool
-PluginScriptableObjectParent::AnswerSetProperty(PPluginIdentifierParent* aId,
+PluginScriptableObjectParent::AnswerSetProperty(const PluginIdentifier& aId,
                                                 const Variant& aValue,
                                                 bool* aSuccess)
 {
@@ -955,6 +1085,7 @@ PluginScriptableObjectParent::AnswerSetProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -968,16 +1099,21 @@ PluginScriptableObjectParent::AnswerSetProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aSuccess = false;
+    return true;
+  }
+
   if ((*aSuccess = npn->setproperty(instance->GetNPP(), mObject,
-                                    id->ToNPIdentifier(), &converted))) {
+                                    stackID.ToNPIdentifier(), &converted))) {
     ReleaseVariant(converted, instance);
   }
   return true;
 }
 
 bool
-PluginScriptableObjectParent::AnswerRemoveProperty(PPluginIdentifierParent* aId,
+PluginScriptableObjectParent::AnswerRemoveProperty(const PluginIdentifier& aId,
                                                    bool* aSuccess)
 {
   if (!mObject) {
@@ -996,6 +1132,7 @@ PluginScriptableObjectParent::AnswerRemoveProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -1003,14 +1140,19 @@ PluginScriptableObjectParent::AnswerRemoveProperty(PPluginIdentifierParent* aId,
     return true;
   }
 
-  PluginIdentifierParent* id = static_cast<PluginIdentifierParent*>(aId);
+  StackIdentifier stackID(aId);
+  if (stackID.Failed()) {
+    *aSuccess = false;
+    return true;
+  }
+
   *aSuccess = npn->removeproperty(instance->GetNPP(), mObject,
-                                  id->ToNPIdentifier());
+                                  stackID.ToNPIdentifier());
   return true;
 }
 
 bool
-PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PPluginIdentifierParent*>* aProperties,
+PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PluginIdentifier>* aProperties,
                                               bool* aSuccess)
 {
   if (!mObject) {
@@ -1029,6 +1171,7 @@ PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PPluginIdentifier
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_WARNING("No netscape funcs?!");
@@ -1045,21 +1188,12 @@ PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PPluginIdentifier
 
   aProperties->SetCapacity(idCount);
 
-  mozilla::AutoSafeJSContext cx;
   for (uint32_t index = 0; index < idCount; index++) {
-    // Because of GC hazards, all identifiers returned from enumerate
-    // must be made permanent.
-    if (_identifierisstring(ids[index])) {
-      JS::Rooted<JSString*> str(cx, NPIdentifierToString(ids[index]));
-      if (!JS_StringHasBeenInterned(cx, str)) {
-        DebugOnly<JSString*> str2 = JS_InternJSString(cx, str);
-        NS_ASSERTION(str2 == str, "Interning a JS string which is currently an ID should return itself.");
-      }
+    PluginIdentifier id;
+    if (!FromNPIdentifier(ids[index], &id)) {
+      return false;
     }
-    PluginIdentifierParent* id =
-      instance->Module()->GetIdentifierForNPIdentifier(instance->GetNPP(), ids[index]);
     aProperties->AppendElement(id);
-    NS_ASSERTION(!id->IsTemporary(), "Should only have permanent identifiers!");
   }
 
   npn->memfree(ids);
@@ -1068,7 +1202,7 @@ PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PPluginIdentifier
 }
 
 bool
-PluginScriptableObjectParent::AnswerConstruct(const InfallibleTArray<Variant>& aArgs,
+PluginScriptableObjectParent::AnswerConstruct(InfallibleTArray<Variant>&& aArgs,
                                               Variant* aResult,
                                               bool* aSuccess)
 {
@@ -1090,6 +1224,7 @@ PluginScriptableObjectParent::AnswerConstruct(const InfallibleTArray<Variant>& a
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -1101,7 +1236,7 @@ PluginScriptableObjectParent::AnswerConstruct(const InfallibleTArray<Variant>& a
   AutoFallibleTArray<NPVariant, 10> convertedArgs;
   uint32_t argCount = aArgs.Length();
 
-  if (!convertedArgs.SetLength(argCount)) {
+  if (!convertedArgs.SetLength(argCount, fallible)) {
     *aResult = void_t();
     *aSuccess = false;
     return true;
@@ -1182,6 +1317,7 @@ PluginScriptableObjectParent::AnswerNPN_Evaluate(const nsCString& aScript,
     return true;
   }
 
+  PushSurrogateAcceptCalls acceptCalls(instance);
   const NPNetscapeFuncs* npn = GetNetscapeFuncs(instance);
   if (!npn) {
     NS_ERROR("No netscape funcs?!");
@@ -1230,8 +1366,8 @@ PluginScriptableObjectParent::GetPropertyHelper(NPIdentifier aName,
     return false;
   }
 
-  PluginIdentifierParent::StackIdentifier identifier(GetInstance(), aName);
-  if (!identifier) {
+  PluginIdentifier identifier;
+  if (!FromNPIdentifier(aName, &identifier)) {
     return false;
   }
 

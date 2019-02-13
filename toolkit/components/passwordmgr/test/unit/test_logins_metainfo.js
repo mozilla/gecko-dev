@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -109,7 +109,7 @@ add_task(function test_addLogin_metainfo()
   gLoginMetaInfo1 = retrieveLoginMatching(gLoginInfo1);
   do_check_true(gLooksLikeUUIDRegex.test(gLoginMetaInfo1.guid));
   let creationTime = gLoginMetaInfo1.timeCreated;
-  LoginTest.assertTimeIsAboutNow(creationTime);
+  LoginTestUtils.assertTimeIsAboutNow(creationTime);
   do_check_eq(gLoginMetaInfo1.timeLastUsed, creationTime);
   do_check_eq(gLoginMetaInfo1.timePasswordChanged, creationTime);
   do_check_eq(gLoginMetaInfo1.timesUsed, 1);
@@ -128,7 +128,7 @@ add_task(function test_addLogin_metainfo()
   // Add an authentication login to the database before continuing.
   Services.logins.addLogin(gLoginInfo3);
   gLoginMetaInfo3 = retrieveLoginMatching(gLoginInfo3);
-  LoginTest.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
+  LoginTestUtils.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
 });
 
 /**
@@ -144,7 +144,7 @@ add_task(function test_addLogin_metainfo_duplicate()
                 /specified GUID already exists/);
 
   // Verify that no data was stored by the previous call.
-  LoginTest.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
+  LoginTestUtils.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
 });
 
 /**
@@ -201,7 +201,7 @@ add_task(function test_modifyLogin_nsIProperyBag_metainfo()
   do_check_eq(gLoginMetaInfo2.password, gLoginInfo2.password);
   do_check_eq(gLoginMetaInfo2.timeCreated, originalLogin.timeCreated);
   do_check_eq(gLoginMetaInfo2.timeLastUsed, originalLogin.timeLastUsed);
-  LoginTest.assertTimeIsAboutNow(gLoginMetaInfo2.timePasswordChanged);
+  LoginTestUtils.assertTimeIsAboutNow(gLoginMetaInfo2.timePasswordChanged);
 
   // Check that timePasswordChanged is not set to the current time when changing
   // the password and specifying a new value for the property at the same time.
@@ -237,7 +237,7 @@ add_task(function test_modifyLogin_nsIProperyBag_metainfo_duplicate()
   Assert.throws(() => Services.logins.modifyLogin(gLoginInfo1, newPropertyBag({
     guid: gLoginInfo2.guid,
   })), /specified GUID already exists/);
-  LoginTest.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
+  LoginTestUtils.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
 });
 
 /**
@@ -277,8 +277,8 @@ add_task(function test_searchLogins_metainfo()
  */
 add_task(function test_storage_metainfo()
 {
-  yield LoginTest.reloadData();
-  LoginTest.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
+  yield LoginTestUtils.reloadData();
+  LoginTestUtils.checkLogins([gLoginInfo1, gLoginInfo2, gLoginInfo3]);
 
   assertMetaInfoEqual(retrieveLoginMatching(gLoginInfo1), gLoginMetaInfo1);
   assertMetaInfoEqual(retrieveLoginMatching(gLoginInfo2), gLoginMetaInfo2);

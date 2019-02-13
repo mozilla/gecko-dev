@@ -12,6 +12,7 @@
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/unused.h"
 
 #ifdef XP_UNIX // {
 #include "mozilla/Preferences.h"
@@ -59,7 +60,7 @@ DumpSignalHandler(int aSignum)
 
   if (sDumpPipeWriteFd != -1) {
     uint8_t signum = static_cast<int>(aSignum);
-    write(sDumpPipeWriteFd, &signum, sizeof(signum));
+    unused << write(sDumpPipeWriteFd, &signum, sizeof(signum));
   }
 }
 
@@ -475,8 +476,7 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
       return rv;
     }
 
-    while (chmod(dirPath.get(), 0777) == -1 && errno == EINTR)
-    {
+    while (chmod(dirPath.get(), 0777) == -1 && errno == EINTR) {
     }
   }
 #endif
@@ -503,8 +503,7 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
     return rv;
   }
 
-  while (chmod(path.get(), 0666) == -1 && errno == EINTR)
-  {
+  while (chmod(path.get(), 0666) == -1 && errno == EINTR) {
   }
 #endif
 

@@ -11,8 +11,7 @@ function test()
 {
   waitForExplicitFinish();
   // We want the prompt.
-  PopupNotifications.transitionsEnabled = false;
-  setPermission(testPageURL, "indexedDB", "allow");
+  removePermission(testPageURL, "indexedDB");
   executeSoon(test1);
 }
 
@@ -69,7 +68,6 @@ function test2()
       gBrowser.selectedBrowser.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing = false;
       unregisterAllPopupEventHandlers();
       gBrowser.removeCurrentTab();
-      PopupNotifications.transitionsEnabled = true;
       executeSoon(test3);
     });
 

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -27,13 +27,11 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsMimeTypeArray,
                                       mWindow,
-                                      mMimeTypes,
-                                      mHiddenMimeTypes)
+                                      mMimeTypes)
 
 nsMimeTypeArray::nsMimeTypeArray(nsPIDOMWindow* aWindow)
   : mWindow(aWindow)
 {
-  SetIsDOMBinding();
 }
 
 nsMimeTypeArray::~nsMimeTypeArray()
@@ -41,16 +39,15 @@ nsMimeTypeArray::~nsMimeTypeArray()
 }
 
 JSObject*
-nsMimeTypeArray::WrapObject(JSContext* aCx)
+nsMimeTypeArray::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MimeTypeArrayBinding::Wrap(aCx, this);
+  return MimeTypeArrayBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
 nsMimeTypeArray::Refresh()
 {
   mMimeTypes.Clear();
-  mHiddenMimeTypes.Clear();
 }
 
 nsPIDOMWindow*
@@ -115,10 +112,6 @@ nsMimeTypeArray::NamedGetter(const nsAString& aName, bool &aFound)
   ToLowerCase(lowerName);
 
   nsMimeType* mimeType = FindMimeType(mMimeTypes, lowerName);
-  if (!mimeType) {
-    mimeType = FindMimeType(mHiddenMimeTypes, lowerName);
-  }
-
   if (mimeType) {
     aFound = true;
     return mimeType;
@@ -165,11 +158,8 @@ nsMimeTypeArray::NamedGetter(const nsAString& aName, bool &aFound)
   // If we got here, we support this type!  Say so.
   aFound = true;
 
-  // We don't want navigator.mimeTypes enumeration to expose MIME types with
-  // application handlers, so add them to the list of hidden MIME types.
   nsMimeType *mt = new nsMimeType(mWindow, lowerName);
-  mHiddenMimeTypes.AppendElement(mt);
-
+  mMimeTypes.AppendElement(mt);
   return mt;
 }
 
@@ -200,7 +190,7 @@ nsMimeTypeArray::GetSupportedNames(unsigned, nsTArray< nsString >& aRetval)
 void
 nsMimeTypeArray::EnsurePluginMimeTypes()
 {
-  if (!mMimeTypes.IsEmpty() || !mHiddenMimeTypes.IsEmpty() || !mWindow) {
+  if (!mMimeTypes.IsEmpty() || !mWindow) {
     return;
   }
 
@@ -218,7 +208,7 @@ nsMimeTypeArray::EnsurePluginMimeTypes()
     return;
   }
 
-  pluginArray->GetMimeTypes(mMimeTypes, mHiddenMimeTypes);
+  pluginArray->GetMimeTypes(mMimeTypes);
 }
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(nsMimeType, AddRef)
@@ -233,7 +223,6 @@ nsMimeType::nsMimeType(nsPIDOMWindow* aWindow, nsPluginElement* aPluginElement,
     mPluginTagMimeIndex(aPluginTagMimeIndex),
     mType(aType)
 {
-  SetIsDOMBinding();
 }
 
 nsMimeType::nsMimeType(nsPIDOMWindow* aWindow, const nsAString& aType)
@@ -242,7 +231,6 @@ nsMimeType::nsMimeType(nsPIDOMWindow* aWindow, const nsAString& aType)
     mPluginTagMimeIndex(0),
     mType(aType)
 {
-  SetIsDOMBinding();
 }
 
 nsMimeType::~nsMimeType()
@@ -257,9 +245,9 @@ nsMimeType::GetParentObject() const
 }
 
 JSObject*
-nsMimeType::WrapObject(JSContext* aCx)
+nsMimeType::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MimeTypeBinding::Wrap(aCx, this);
+  return MimeTypeBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void

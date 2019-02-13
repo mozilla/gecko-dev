@@ -22,28 +22,33 @@
  * limitations under the License.
  */
 
-#ifndef mozilla_pkix__pkixcheck_h
-#define mozilla_pkix__pkixcheck_h
+#ifndef mozilla_pkix_pkixcheck_h
+#define mozilla_pkix_pkixcheck_h
 
 #include "pkix/pkixtypes.h"
-#include "pkixutil.h"
-#include "certt.h"
 
 namespace mozilla { namespace pkix {
 
+class BackCert;
+
 Result CheckIssuerIndependentProperties(
           TrustDomain& trustDomain,
-          BackCert& cert,
-          PRTime time,
-          EndEntityOrCA endEntityOrCA,
-          KeyUsages requiredKeyUsagesIfPresent,
+          const BackCert& cert,
+          Time time,
+          KeyUsage requiredKeyUsageIfPresent,
           KeyPurposeId requiredEKUIfPresent,
           const CertPolicyId& requiredPolicy,
           unsigned int subCACount,
-          /*optional out*/ TrustLevel* trustLevel = nullptr);
+          /*out*/ TrustLevel& trustLevel);
 
-Result CheckNameConstraints(BackCert& cert);
+Result CheckNameConstraints(Input encodedNameConstraints,
+                            const BackCert& firstChild,
+                            KeyPurposeId requiredEKUIfPresent);
+
+Result CheckValidity(Input encodedValidity, Time time,
+                     /*optional out*/ Time* notBeforeOut = nullptr,
+                     /*optional out*/ Time* notAfterOut = nullptr);
 
 } } // namespace mozilla::pkix
 
-#endif // mozilla_pkix__pkixcheck_h
+#endif // mozilla_pkix_pkixcheck_h

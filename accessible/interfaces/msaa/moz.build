@@ -1,0 +1,27 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+GeckoSharedLibrary('AccessibleMarshal', linkage=None)
+
+SOURCES += [
+    '!dlldata.c',
+    '!ISimpleDOMDocument_i.c',
+    '!ISimpleDOMDocument_p.c',
+    '!ISimpleDOMNode_i.c',
+    '!ISimpleDOMNode_p.c',
+    '!ISimpleDOMText_i.c',
+    '!ISimpleDOMText_p.c',
+]
+
+DEFINES['REGISTER_PROXY_DLL'] = True
+
+DEFFILE = SRCDIR + '/AccessibleMarshal.def'
+
+OS_LIBS += [
+    'kernel32',
+    'rpcrt4',
+    'oleaut32',
+]

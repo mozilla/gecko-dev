@@ -62,10 +62,6 @@ nsDomainEntry::FuncForStaticAsserts(void)
 static nsEffectiveTLDService *gService = nullptr;
 
 nsEffectiveTLDService::nsEffectiveTLDService()
-  // We'll probably have to rehash at least once, since nsTHashtable doesn't
-  // use a perfect hash, but at least we'll save a few rehashes along the way.
-  // Next optimization here is to precompute the hash using something like
-  // gperf, but one step at a time.  :-)
   : mHash(ArrayLength(nsDomainEntry::entries))
 {
 }
@@ -111,7 +107,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF(EffectiveTLDServiceMallocSizeOf)
 
 NS_IMETHODIMP
 nsEffectiveTLDService::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                      nsISupports* aData)
+                                      nsISupports* aData, bool aAnonymize)
 {
   return MOZ_COLLECT_REPORT(
     "explicit/xpcom/effective-TLD-service", KIND_HEAP, UNITS_BYTES,

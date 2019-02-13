@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no" />
   <title>Scrolling by pages with fixed-pos headers and footers</title>
   <style>
   .fp { position:fixed; left:0; width:100%; }
@@ -51,8 +52,10 @@ function scrollDownOnePageWithContinuation(cont) {
 
 function test() {
   var smoothScrollPref = "general.smoothScroll";
-  SpecialPowers.setBoolPref(smoothScrollPref, false);
+  SpecialPowers.pushPrefEnv({"set":[[smoothScrollPref, false]]}, runTest);
+}
 
+function runTest() {
   showFixedPosElements(false);
   showFixedPosElements2(false);
   scrollDownOnePageWithContinuation(function() {
@@ -83,7 +86,6 @@ function test() {
 
             // Scroll back up so test results are visible
             document.documentElement.scrollTop = 0;
-            SpecialPowers.clearUserPref(smoothScrollPref);
             SimpleTest.finish();
             window.close();
           });

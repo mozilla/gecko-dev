@@ -11,6 +11,7 @@
 #include "nsSVGContainerFrame.h"
 #include "nsRegion.h"
 
+class gfxContext;
 class nsSVGForeignObjectFrame;
 
 ////////////////////////////////////////////////////////////////////////
@@ -18,13 +19,13 @@ class nsSVGForeignObjectFrame;
 
 typedef nsSVGDisplayContainerFrame nsSVGOuterSVGFrameBase;
 
-class nsSVGOuterSVGFrame : public nsSVGOuterSVGFrameBase,
-                           public nsISVGSVGFrame
+class nsSVGOuterSVGFrame final : public nsSVGOuterSVGFrameBase,
+                                 public nsISVGSVGFrame
 {
   friend nsContainerFrame*
   NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
-  nsSVGOuterSVGFrame(nsStyleContext* aContext);
+  explicit nsSVGOuterSVGFrame(nsStyleContext* aContext);
 
 public:
   NS_DECL_QUERYFRAME
@@ -38,47 +39,52 @@ public:
 #endif
 
   // nsIFrame:
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
 
-  virtual mozilla::IntrinsicSize GetIntrinsicSize() MOZ_OVERRIDE;
-  virtual nsSize  GetIntrinsicRatio() MOZ_OVERRIDE;
+  virtual mozilla::IntrinsicSize GetIntrinsicSize() override;
+  virtual nsSize  GetIntrinsicRatio() override;
 
-  virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
-                             nsSize aCBSize, nscoord aAvailableWidth,
-                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+  virtual mozilla::LogicalSize
+  ComputeSize(nsRenderingContext *aRenderingContext,
+              mozilla::WritingMode aWritingMode,
+              const mozilla::LogicalSize& aCBSize,
+              nscoord aAvailableISize,
+              const mozilla::LogicalSize& aMargin,
+              const mozilla::LogicalSize& aBorder,
+              const mozilla::LogicalSize& aPadding,
+              ComputeSizeFlags aFlags) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
   virtual void DidReflow(nsPresContext*   aPresContext,
                          const nsHTMLReflowState*  aReflowState,
-                         nsDidReflowStatus aStatus) MOZ_OVERRIDE;
+                         nsDidReflowStatus aStatus) override;
 
-  virtual bool UpdateOverflow() MOZ_OVERRIDE;
+  virtual bool UpdateOverflow() override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
-  virtual nsSplittableType GetSplittableType() const MOZ_OVERRIDE;
+  virtual nsSplittableType GetSplittableType() const override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::svgOuterSVGFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGOuterSVG"), aResult);
   }
@@ -86,19 +92,19 @@ public:
 
   virtual nsresult  AttributeChanged(int32_t         aNameSpaceID,
                                      nsIAtom*        aAttribute,
-                                     int32_t         aModType) MOZ_OVERRIDE;
+                                     int32_t         aModType) override;
 
-  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() override {
     // Any children must be added to our single anonymous inner frame kid.
-    NS_ABORT_IF_FALSE(GetFirstPrincipalChild() &&
-                      GetFirstPrincipalChild()->GetType() ==
-                        nsGkAtoms::svgOuterSVGAnonChildFrame,
-                      "Where is our anonymous child?");
+    MOZ_ASSERT(GetFirstPrincipalChild() &&
+               GetFirstPrincipalChild()->GetType() ==
+                 nsGkAtoms::svgOuterSVGAnonChildFrame,
+               "Where is our anonymous child?");
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
   virtual bool IsSVGTransformed(Matrix *aOwnTransform,
-                                Matrix *aFromParentTransform) const MOZ_OVERRIDE {
+                                Matrix *aFromParentTransform) const override {
     // Our anonymous wrapper performs the transforms. We simply
     // return whether we are transformed here but don't apply the transforms
     // themselves.
@@ -106,19 +112,17 @@ public:
   }
 
   // nsISVGSVGFrame interface:
-  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags) MOZ_OVERRIDE;
+  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags) override;
 
   // nsISVGChildFrame methods:
-  virtual nsresult PaintSVG(nsRenderingContext* aContext,
-                            const nsIntRect *aDirtyRect,
-                            nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
-
+  virtual nsresult PaintSVG(gfxContext& aContext,
+                            const gfxMatrix& aTransform,
+                            const nsIntRect* aDirtyRect = nullptr) override;
   virtual SVGBBox GetBBoxContribution(const Matrix &aToBBoxUserspace,
-                                      uint32_t aFlags) MOZ_OVERRIDE;
+                                      uint32_t aFlags) override;
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() override;
 
   /* Methods to allow descendant nsSVGForeignObjectFrame frames to register and
    * unregister themselves with their nearest nsSVGOuterSVGFrame ancestor. This
@@ -132,7 +136,7 @@ public:
   void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
   void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
 
-  virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const MOZ_OVERRIDE {
+  virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const override {
     // Our anonymous wrapper child must claim our children-only transforms as
     // its own so that our real children (the frames it wraps) are transformed
     // by them, and we must pretend we don't have any children-only transforms
@@ -237,7 +241,7 @@ class nsSVGOuterSVGAnonChildFrame
   NS_NewSVGOuterSVGAnonChildFrame(nsIPresShell* aPresShell,
                                   nsStyleContext* aContext);
 
-  nsSVGOuterSVGAnonChildFrame(nsStyleContext* aContext)
+  explicit nsSVGOuterSVGAnonChildFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGAnonChildFrameBase(aContext)
   {}
 
@@ -247,11 +251,11 @@ public:
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("SVGOuterSVGAnonChild"), aResult);
   }
 #endif
@@ -261,18 +265,17 @@ public:
    *
    * @see nsGkAtoms::svgOuterSVGAnonChildFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot) MOZ_OVERRIDE {
+  virtual gfxMatrix GetCanvasTM() override {
     // GetCanvasTM returns the transform from an SVG frame to the frame's
     // nsSVGOuterSVGFrame's content box, so we do not include any x/y offset
     // set on us for any CSS border or padding on our nsSVGOuterSVGFrame.
-    return static_cast<nsSVGOuterSVGFrame*>(GetParent())->GetCanvasTM(aFor, aTransformRoot);
+    return static_cast<nsSVGOuterSVGFrame*>(GetParent())->GetCanvasTM();
   }
 
-  virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const MOZ_OVERRIDE;
+  virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const override;
 };
 
 #endif

@@ -17,19 +17,20 @@ namespace jsipc {
 class JavaScriptParent : public JavaScriptBase<PJavaScriptParent>
 {
   public:
-    JavaScriptParent(JSRuntime *rt);
+    explicit JavaScriptParent(JSRuntime* rt);
     virtual ~JavaScriptParent();
 
     bool init();
-    void trace(JSTracer *trc);
+    void trace(JSTracer* trc);
 
-    void drop(JSObject *obj);
+    void drop(JSObject* obj);
 
     mozilla::ipc::IProtocol*
-    CloneProtocol(Channel* aChannel, ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
+    CloneProtocol(Channel* aChannel, ProtocolCloneContext* aCtx) override;
 
   protected:
-    virtual bool isParent() { return true; }
+    virtual bool isParent() override { return true; }
+    virtual JSObject* scopeForTargetObjects() override;
 };
 
 } // jsipc

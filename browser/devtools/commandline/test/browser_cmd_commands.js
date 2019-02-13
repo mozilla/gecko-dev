@@ -9,7 +9,7 @@ function test() {
   return Task.spawn(spawnTest).then(finish, helpers.handleError);
 }
 
-function spawnTest() {
+function* spawnTest() {
   let options = yield helpers.openTab(TEST_URI);
   yield helpers.openToolbar(options);
 
@@ -28,8 +28,7 @@ function spawnTest() {
   let hud = HUDService.getHudReferenceById(subject.data);
   ok(hud, "console open");
 
-  let jstermExecute = helpers.promiseify(hud.jsterm.execute, hud.jsterm);
-  let msg = yield jstermExecute("pprint(window)");
+  let msg = yield hud.jsterm.execute("pprint(window)");
 
   ok(msg, "output for pprint(window)");
 
@@ -50,7 +49,7 @@ function spawnTest() {
   yield helpers.audit(options, [
     {
       setup: "console close",
-      exec: { output: true }
+      exec: { output: "" }
     }
   ]);
 

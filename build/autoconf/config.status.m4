@@ -45,6 +45,16 @@ AC_DIVERT_PUSH(MOZ_DIVERSION_SUBST)dnl
 AC_DIVERT_POP()dnl
 ])])])])
 
+dnl Ignore AC_SUBSTs for variables we don't have use for but that autoconf
+dnl itself exports.
+define([AC_SUBST_CFLAGS], )
+define([AC_SUBST_CPPFLAGS], )
+define([AC_SUBST_CXXFLAGS], )
+define([AC_SUBST_FFLAGS], )
+define([AC_SUBST_DEFS], )
+define([AC_SUBST_LDFLAGS], )
+define([AC_SUBST_LIBS], )
+
 dnl Wrap AC_DEFINE to store values in a format suitable for python.
 dnl autoconf's AC_DEFINE still needs to be used to fill confdefs.h,
 dnl which is #included during some compile checks.
@@ -187,6 +197,9 @@ chmod +x $CONFIG_STATUS
 
 define([MOZ_RUN_CONFIG_STATUS],
 [
+
+MOZ_RUN_ALL_SUBCONFIGURES()
+
 rm -fr confdefs* $ac_clean_files
 dnl Execute config.status, unless --no-create was passed to configure.
 if test "$no_create" != yes && ! ${PYTHON} $CONFIG_STATUS; then
@@ -209,5 +222,3 @@ MOZ_RUN_CONFIG_STATUS()],
 define([AC_CONFIG_HEADER],
 [m4_fatal([Use CONFIGURE_DEFINE_FILES in moz.build files to produce header files.])
 ])
-
-AC_SUBST([MOZ_PSEUDO_DERECURSE])

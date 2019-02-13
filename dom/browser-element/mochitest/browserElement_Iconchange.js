@@ -12,21 +12,25 @@ function createHtml(link) {
   return 'data:text/html,<html><head>' + link + '<body></body></html>';
 }
 
-function createLink(name, sizes) {
+function createLink(name, sizes, rel) {
   var s = sizes ? 'sizes="' + sizes + '"' : '';
-  return '<link rel="icon" type="image/png" ' + s + ' href="http://example.com/' + name + '.png">';
+  if (!rel) {
+    rel = 'icon';
+  }
+  return '<link rel="' + rel + '" type="image/png" ' + s +
+    ' href="http://example.com/' + name + '.png">';
 }
 
 function runTest() {
   var iframe1 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe1).mozbrowser = true;
+  iframe1.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe1);
 
   // iframe2 is a red herring; we modify its favicon but don't listen for
   // iconchanges; we want to make sure that its iconchange events aren't
   // picked up by the listener on iframe1.
   var iframe2 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe2).mozbrowser = true;
+  iframe2.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe2);
 
   // iframe3 is another red herring.  It's not a mozbrowser, so we shouldn't
@@ -88,11 +92,16 @@ function runTest() {
     }
     else if (numIconChanges == 6) {
       is(e.detail.href, 'http://example.com/ucaseicon.png');
-      iframe1.src = createHtml(createLink('testsize', '50x50'));
+      iframe1.src = createHtml(createLink('testsize', '50x50', 'icon'));
     }
     else if (numIconChanges == 7) {
       is(e.detail.href, 'http://example.com/testsize.png');
       is(e.detail.sizes, '50x50');
+      iframe1.src = createHtml(createLink('testapple1', '100x100', 'apple-touch-icon'));
+    } else if (numIconChanges == 8) {
+      is(e.detail.href, 'http://example.com/testapple1.png');
+      is(e.detail.rel, 'apple-touch-icon');
+      is(e.detail.sizes, '100x100');
       SimpleTest.finish();
     } else {
       ok(false, 'Too many iconchange events.');

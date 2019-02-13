@@ -58,7 +58,6 @@ struct IconData
   , fetchMode(FETCH_NEVER)
   , status(ICON_STATUS_UNKNOWN)
   {
-    guid.SetIsVoid(true);
   }
 
   int64_t id;
@@ -68,7 +67,6 @@ struct IconData
   PRTime expiration;
   enum AsyncFaviconFetchMode fetchMode;
   uint16_t status; // This is a bitset, see ICON_STATUS_* defines above.
-  nsCString guid;
 };
 
 /**
@@ -100,11 +98,10 @@ struct PageData
 class AsyncFaviconHelperBase : public nsRunnable
 {
 protected:
-  AsyncFaviconHelperBase(nsCOMPtr<nsIFaviconDataCallback>& aCallback);
+  explicit AsyncFaviconHelperBase(nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncFaviconHelperBase();
 
-  nsRefPtr<Database> mDB;
   // Strong reference since we are responsible for its existence.
   nsCOMPtr<nsIFaviconDataCallback> mCallback;
 };
@@ -193,9 +190,9 @@ public:
                                   bool aFaviconLoadPrivate,
                                   nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
+protected:
   virtual ~AsyncFetchAndSetIconFromNetwork();
 
-protected:
   IconData mIcon;
   PageData mPage;
   const bool mFaviconLoadPrivate;

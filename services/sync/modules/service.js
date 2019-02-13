@@ -113,7 +113,7 @@ Sync11Service.prototype = {
   get userAPIURI() {
     // Append to the serverURL if it's a relative fragment.
     let url = Svc.Prefs.get("userURL");
-    if (!url.contains(":")) {
+    if (!url.includes(":")) {
       url = this.serverURL + url;
     }
 
@@ -305,6 +305,21 @@ Sync11Service.prototype = {
     return false;
   },
 
+  // The global "enabled" state comes from prefs, and will be set to false
+  // whenever the UI that exposes what to sync finds all Sync engines disabled.
+  get enabled() {
+    return Svc.Prefs.get("enabled");
+  },
+  set enabled(val) {
+    // There's no real reason to impose this other than to catch someone doing
+    // something we don't expect with bad consequences - all setting of this
+    // pref are in the UI code and external to this module.
+    if (val) {
+      throw new Error("Only disabling via this setter is supported");
+    }
+    Svc.Prefs.set("enabled", val);
+  },
+
   /**
    * Prepare to initialize the rest of Weave after waiting a little bit
    */
@@ -333,8 +348,6 @@ Sync11Service.prototype = {
 
     this._clusterManager = this.identity.createClusterManager(this);
     this.recordManager = new RecordManager(this);
-
-    this.enabled = true;
 
     this._registerEngines();
 
@@ -684,17 +697,21 @@ Sync11Service.prototype = {
       return false;
     }
 
-    // Unlock master password, or return.
     // Attaching auth credentials to a request requires access to
     // passwords, which means that Resource.get can throw MP-related
     // exceptions!
-    // Try to fetch the passphrase first, while we still have control.
-    try {
-      this.identity.syncKey;
-    } catch (ex) {
-      this._log.debug("Fetching passphrase threw " + ex +
-                      "; assuming master password locked.");
-      this.status.login = MASTER_PASSWORD_LOCKED;
+    // So we ask the identity to verify the login state after unlocking the
+    // master password (ie, this call is expected to prompt for MP unlock
+    // if necessary) while we still have control.
+    let cb = Async.makeSpinningCallback();
+    this.identity.unlockAndVerifyAuthState().then(
+      result => cb(null, result),
+      cb
+    );
+    let unlockedState = cb.wait();
+    this._log.debug("Fetching unlocked auth state returned " + unlockedState);
+    if (unlockedState != STATUS_OK) {
+      this.status.login = unlockedState;
       return false;
     }
 
@@ -922,6 +939,9 @@ Sync11Service.prototype = {
 
     this.identity.finalize().then(
       () => {
+        // an observer so the FxA migration code can take some action before
+        // the new identity is created.
+        Svc.Obs.notify("weave:service:start-over:init-identity");
         this.identity.username = "";
         this.status.__authManager = null;
         this.identity = Status._authManager;
@@ -971,7 +991,10 @@ Sync11Service.prototype = {
 
       // Ask the identity manager to explicitly login now.
       let cb = Async.makeSpinningCallback();
-      this.identity.ensureLoggedIn().then(cb, cb);
+      this.identity.ensureLoggedIn().then(
+        () => cb(null),
+        err => cb(err || "ensureLoggedIn failed")
+      );
 
       // Just let any errors bubble up - they've more context than we do!
       cb.wait();
@@ -1235,6 +1258,10 @@ Sync11Service.prototype = {
   },
 
   sync: function sync() {
+    if (!this.enabled) {
+      this._log.debug("Not syncing as Sync is disabled.");
+      return;
+    }
     let dateStr = new Date().toLocaleFormat(LOG_DATE_FORMAT);
     this._log.debug("User-Agent: " + SyncStorageRequest.prototype.userAgent);
     this._log.info("Starting sync at " + dateStr);
@@ -1276,7 +1303,16 @@ Sync11Service.prototype = {
       histogram = Services.telemetry.getHistogramById("WEAVE_COMPLETE_SUCCESS_COUNT");
       histogram.add(1);
 
-      // We successfully synchronized. Now let's update our declined engines.
+      // We successfully synchronized.
+      // Check if the identity wants to pre-fetch a migration sentinel from
+      // the server.
+      // If we have no clusterURL, we are probably doing a node reassignment
+      // so don't attempt to get it in that case.
+      if (this.clusterURL) {
+        this.identity.prefetchMigrationSentinel(this);
+      }
+
+      // Now let's update our declined engines.
       let meta = this.recordManager.get(this.metaURL);
       if (!meta) {
         this._log.warn("No meta/global; can't update declined state.");
@@ -1310,6 +1346,92 @@ Sync11Service.prototype = {
       throw response;
     }
     this.recordManager.set(this.metaURL, meta);
+  },
+
+  /**
+   * Get a migration sentinel for the Firefox Accounts migration.
+   * Returns a JSON blob - it is up to callers of this to make sense of the
+   * data.
+   *
+   * Returns a promise that resolves with the sentinel, or null.
+   */
+  getFxAMigrationSentinel: function() {
+    if (this._shouldLogin()) {
+      this._log.debug("In getFxAMigrationSentinel: should login.");
+      if (!this.login()) {
+        this._log.debug("Can't get migration sentinel: login returned false.");
+        return Promise.resolve(null);
+      }
+    }
+    if (!this.identity.syncKeyBundle) {
+      this._log.error("Can't get migration sentinel: no syncKeyBundle.");
+      return Promise.resolve(null);
+    }
+    try {
+      let collectionURL = this.storageURL + "meta/fxa_credentials";
+      let cryptoWrapper = this.recordManager.get(collectionURL);
+      if (!cryptoWrapper || !cryptoWrapper.payload) {
+        // nothing to decrypt - .decrypt is noisy in that case, so just bail
+        // now.
+        return Promise.resolve(null);
+      }
+      // If the payload has a sentinel it means we must have put back the
+      // decrypted version last time we were called.
+      if (cryptoWrapper.payload.sentinel) {
+        return Promise.resolve(cryptoWrapper.payload.sentinel);
+      }
+      // If decryption fails it almost certainly means the key is wrong - but
+      // it's not clear if we need to take special action for that case?
+      let payload = cryptoWrapper.decrypt(this.identity.syncKeyBundle);
+      // After decrypting the ciphertext is lost, so we just stash the
+      // decrypted payload back into the wrapper.
+      cryptoWrapper.payload = payload;
+      return Promise.resolve(payload.sentinel);
+    } catch (ex) {
+      this._log.error("Failed to fetch the migration sentinel: ${}", ex);
+      return Promise.resolve(null);
+    }
+  },
+
+  /**
+   * Set a migration sentinel for the Firefox Accounts migration.
+   * Accepts a JSON blob - it is up to callers of this to make sense of the
+   * data.
+   *
+   * Returns a promise that resolves with a boolean which indicates if the
+   * sentinel was successfully written.
+   */
+  setFxAMigrationSentinel: function(sentinel) {
+    if (this._shouldLogin()) {
+      this._log.debug("In setFxAMigrationSentinel: should login.");
+      if (!this.login()) {
+        this._log.debug("Can't set migration sentinel: login returned false.");
+        return Promise.resolve(false);
+      }
+    }
+    if (!this.identity.syncKeyBundle) {
+      this._log.error("Can't set migration sentinel: no syncKeyBundle.");
+      return Promise.resolve(false);
+    }
+    try {
+      let collectionURL = this.storageURL + "meta/fxa_credentials";
+      let cryptoWrapper = new CryptoWrapper("meta", "fxa_credentials");
+      cryptoWrapper.cleartext.sentinel = sentinel;
+
+      cryptoWrapper.encrypt(this.identity.syncKeyBundle);
+
+      let res = this.resource(collectionURL);
+      let response = res.put(cryptoWrapper.toJSON());
+
+      if (!response.success) {
+        throw response;
+      }
+      this.recordManager.set(collectionURL, cryptoWrapper);
+    } catch (ex) {
+      this._log.error("Failed to set the migration sentinel: ${}", ex);
+      return Promise.resolve(false);
+    }
+    return Promise.resolve(true);
   },
 
   /**
@@ -1487,7 +1609,9 @@ Sync11Service.prototype = {
 
       // Only wipe the engines provided.
       if (engines) {
-        engines.forEach(function(e) this.clientsEngine.sendCommand("wipeEngine", [e]), this);
+        engines.forEach(function(e) {
+            this.clientsEngine.sendCommand("wipeEngine", [e]);
+          }, this);
       }
       // Tell the remote machines to wipe themselves.
       else {

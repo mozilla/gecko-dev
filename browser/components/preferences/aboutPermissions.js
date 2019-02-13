@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 let Ci = Components.interfaces;
 let Cc = Components.classes;
 let Cu = Components.utils;
@@ -334,7 +336,16 @@ let PermissionDefaults = {
     let value = (aValue != this.DENY);
     Services.prefs.setBoolPref("full-screen-api.enabled", value);
   },
-
+  get push() {
+    if (!Services.prefs.getBoolPref("dom.push.enabled")) {
+      return this.DENY;
+    }
+    return this.UNKNOWN;
+  },
+  set push(aValue) {
+    let value = (aValue != this.DENY);
+    Services.prefs.setBoolPref("dom.push.enabled", value);
+  },
   get camera() this.UNKNOWN,
   get microphone() this.UNKNOWN
 };
@@ -376,12 +387,12 @@ let AboutPermissions = {
    * Potential future additions: "sts/use", "sts/subd"
    */
   _supportedPermissions: ["password", "cookie", "geo", "indexedDB", "popup",
-                          "fullscreen", "camera", "microphone"],
+                          "fullscreen", "camera", "microphone", "push"],
 
   /**
    * Permissions that don't have a global "Allow" option.
    */
-  _noGlobalAllow: ["geo", "indexedDB", "fullscreen", "camera", "microphone"],
+  _noGlobalAllow: ["geo", "indexedDB", "fullscreen", "camera", "microphone", "push"],
 
   /**
    * Permissions that don't have a global "Deny" option.
@@ -406,9 +417,11 @@ let AboutPermissions = {
     Services.prefs.addObserver("signon.rememberSignons", this, false);
     Services.prefs.addObserver("network.cookie.", this, false);
     Services.prefs.addObserver("geo.enabled", this, false);
+    Services.prefs.addObserver("dom.push.enabled", this, false);
     Services.prefs.addObserver("dom.indexedDB.enabled", this, false);
     Services.prefs.addObserver("dom.disable_open_during_load", this, false);
     Services.prefs.addObserver("full-screen-api.enabled", this, false);
+    Services.prefs.addObserver("dom.push.enabled", this, false);
 
     Services.obs.addObserver(this, "perm-changed", false);
     Services.obs.addObserver(this, "passwordmgr-storage-changed", false);
@@ -427,9 +440,11 @@ let AboutPermissions = {
       Services.prefs.removeObserver("signon.rememberSignons", this, false);
       Services.prefs.removeObserver("network.cookie.", this, false);
       Services.prefs.removeObserver("geo.enabled", this, false);
+      Services.prefs.removeObserver("dom.push.enabled", this, false);
       Services.prefs.removeObserver("dom.indexedDB.enabled", this, false);
       Services.prefs.removeObserver("dom.disable_open_during_load", this, false);
       Services.prefs.removeObserver("full-screen-api.enabled", this, false);
+      Services.prefs.removeObserver("dom.push.enabled", this, false);
 
       Services.obs.removeObserver(this, "perm-changed");
       Services.obs.removeObserver(this, "passwordmgr-storage-changed");
@@ -569,18 +584,17 @@ let AboutPermissions = {
       itemCnt++;
     }, this);
 
-    let (enumerator = Services.perms.enumerator) {
-      while (enumerator.hasMoreElements()) {
-        if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
-          yield true;
-        }
-        let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-        // Only include sites with exceptions set for supported permission types.
-        if (this._supportedPermissions.indexOf(permission.type) != -1) {
-          this.addHost(permission.host);
-        }
-        itemCnt++;
+    let enumerator = Services.perms.enumerator;
+    while (enumerator.hasMoreElements()) {
+      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
+        yield true;
       }
+      let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
+      // Only include sites with exceptions set for supported permission types.
+      if (this._supportedPermissions.indexOf(permission.type) != -1) {
+        this.addHost(permission.host);
+      }
+      itemCnt++;
     }
 
     yield false;
@@ -672,7 +686,8 @@ let AboutPermissions = {
    *        The host string corresponding to the site to delete.
    */
   deleteFromSitesList: function(aHost) {
-    for each (let site in this._sites) {
+    for (let host in this._sites) {
+      let site = this._sites[host];
       if (site.host.hasRootDomain(aHost)) {
         if (site == this._selectedSite) {
           // Replace site-specific interface with "All Sites" interface.

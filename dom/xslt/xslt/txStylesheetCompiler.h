@@ -14,6 +14,7 @@
 #include "nsAutoPtr.h"
 #include "txStylesheet.h"
 #include "nsTArray.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
 extern bool
 TX_XSLTFunctionAvailable(nsIAtom* aName, int32_t aNameSpaceID);
@@ -31,7 +32,7 @@ class txInScopeVariable;
 class txElementContext : public txObject
 {
 public:
-    txElementContext(const nsAString& aBaseURI);
+    explicit txElementContext(const nsAString& aBaseURI);
     txElementContext(const txElementContext& aOther);
 
     bool mPreserveWhitespace;
@@ -50,6 +51,7 @@ public:
 
     virtual nsresult loadURI(const nsAString& aUri,
                              const nsAString& aReferrerUri,
+                             mozilla::net::ReferrerPolicy aReferrerPolicy,
                              txStylesheetCompiler* aCompiler) = 0;
     virtual void onDoneCompiling(txStylesheetCompiler* aCompiler,
                                  nsresult aResult,
@@ -59,6 +61,7 @@ public:
 
 #define TX_DECL_ACOMPILEOBSERVER \
   nsresult loadURI(const nsAString& aUri, const nsAString& aReferrerUri, \
+                   mozilla::net::ReferrerPolicy aReferrerPolicy, \
                    txStylesheetCompiler* aCompiler); \
   void onDoneCompiling(txStylesheetCompiler* aCompiler, nsresult aResult, \
                        const char16_t *aErrorText = nullptr, \
@@ -67,11 +70,12 @@ public:
 class txStylesheetCompilerState : public txIParseContext
 {
 public:
-    txStylesheetCompilerState(txACompileObserver* aObserver);
+    explicit txStylesheetCompilerState(txACompileObserver* aObserver);
     ~txStylesheetCompilerState();
     
-    nsresult init(const nsAString& aStylesheetURI, txStylesheet* aStylesheet,
-                  txListIterator* aInsertPosition);
+    nsresult init(const nsAString& aStylesheetURI,
+                  mozilla::net::ReferrerPolicy aReferrerPolicy,
+                  txStylesheet* aStylesheet, txListIterator* aInsertPosition);
 
     // Embedded stylesheets state
     bool handleEmbeddedSheet()
@@ -121,10 +125,10 @@ public:
     nsresult addVariable(const txExpandedName& aName);
 
     // txIParseContext
-    nsresult resolveNamespacePrefix(nsIAtom* aPrefix, int32_t& aID) MOZ_OVERRIDE;
+    nsresult resolveNamespacePrefix(nsIAtom* aPrefix, int32_t& aID) override;
     nsresult resolveFunctionCall(nsIAtom* aName, int32_t aID,
-                                 FunctionCall** aFunction) MOZ_OVERRIDE;
-    bool caseInsensitiveNameTests() MOZ_OVERRIDE;
+                                 FunctionCall** aFunction) override;
+    bool caseInsensitiveNameTests() override;
 
     /**
      * Should the stylesheet be parsed in forwards compatible parsing mode.
@@ -134,7 +138,7 @@ public:
         return mElementContext->mForwardsCompatibleParsing;
     }
 
-    void SetErrorOffset(uint32_t aOffset) MOZ_OVERRIDE;
+    void SetErrorOffset(uint32_t aOffset) override;
 
     static void shutdown();
 
@@ -171,6 +175,7 @@ private:
     txInstruction** mNextInstrPtr;
     txListIterator mToplevelIterator;
     nsTArray<txInstruction**> mGotoTargetPointers;
+    mozilla::net::ReferrerPolicy mReferrerPolicy;
 };
 
 struct txStylesheetAttr
@@ -181,18 +186,20 @@ struct txStylesheetAttr
     nsString mValue;
 };
 
-class txStylesheetCompiler MOZ_FINAL : private txStylesheetCompilerState,
-                                       public txACompileObserver
+class txStylesheetCompiler final : private txStylesheetCompilerState,
+                                   public txACompileObserver
 {
 public:
     friend class txStylesheetCompilerState;
     friend bool TX_XSLTFunctionAvailable(nsIAtom* aName,
                                            int32_t aNameSpaceID);
     txStylesheetCompiler(const nsAString& aStylesheetURI,
+                         mozilla::net::ReferrerPolicy  aReferrerPolicy,
                          txACompileObserver* aObserver);
     txStylesheetCompiler(const nsAString& aStylesheetURI,
                          txStylesheet* aStylesheet,
                          txListIterator* aInsertPosition,
+                         mozilla::net::ReferrerPolicy aReferrerPolicy,
                          txACompileObserver* aObserver);
 
     void setBaseURI(const nsString& aBaseURI);
@@ -236,7 +243,7 @@ private:
 
 class txInScopeVariable {
 public:
-    txInScopeVariable(const txExpandedName& aName) : mName(aName), mLevel(1)
+    explicit txInScopeVariable(const txExpandedName& aName) : mName(aName), mLevel(1)
     {
     }
     txExpandedName mName;

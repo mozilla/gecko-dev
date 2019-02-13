@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -138,6 +140,10 @@ struct Paths {
    * system.
    */
   nsString macLocalApplicationsDir;
+  /**
+   * The user's trash directory.
+   */
+  nsString macTrashDir;
 #endif // defined(XP_MACOSX)
 
   Paths()
@@ -158,6 +164,7 @@ struct Paths {
 #if defined(XP_MACOSX)
     macUserLibDir.SetIsVoid(true);
     macLocalApplicationsDir.SetIsVoid(true);
+    macTrashDir.SetIsVoid(true);
 #endif // defined(XP_MACOSX)
   }
 };
@@ -203,8 +210,10 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
  * For this purpose, we register an observer to set |gPaths->profileDir|
  * and |gPaths->localProfileDir| once the profile is setup.
  */
-class DelayedPathSetter MOZ_FINAL: public nsIObserver
+class DelayedPathSetter final: public nsIObserver
 {
+  ~DelayedPathSetter() {}
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -304,6 +313,7 @@ nsresult InitOSFileConstants()
 #if defined(XP_MACOSX)
   GetPathToSpecialDir(NS_MAC_USER_LIB_DIR, paths->macUserLibDir);
   GetPathToSpecialDir(NS_OSX_LOCAL_APPLICATIONS_DIR, paths->macLocalApplicationsDir);
+  GetPathToSpecialDir(NS_MAC_TRASH_DIR, paths->macTrashDir);
 #endif // defined(XP_MACOSX)
 
   gPaths = paths.forget();
@@ -472,6 +482,17 @@ static const dom::ConstantSpec gLibcProperties[] =
   INT_CONSTANT(SEEK_END),
   INT_CONSTANT(SEEK_SET),
 
+ // fcntl command values
+#if defined(XP_UNIX)
+  INT_CONSTANT(F_GETLK),
+  INT_CONSTANT(F_SETLK),
+  INT_CONSTANT(F_SETLKW),
+
+ // flock type values
+  INT_CONSTANT(F_RDLCK),
+  INT_CONSTANT(F_WRLCK),
+  INT_CONSTANT(F_UNLCK),
+#endif // defined(XP_UNIX)
   // copyfile
 #if defined(COPYFILE_DATA)
   INT_CONSTANT(COPYFILE_DATA),
@@ -578,6 +599,15 @@ static const dom::ConstantSpec gLibcProperties[] =
   // Size
   { "OSFILE_SIZEOF_DIRENT", INT_TO_JSVAL(sizeof (dirent)) },
 
+  // Defining |flock|.
+#if defined(XP_UNIX)
+  { "OSFILE_SIZEOF_FLOCK", INT_TO_JSVAL(sizeof (struct flock)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_START", INT_TO_JSVAL(offsetof (struct flock, l_start)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_LEN", INT_TO_JSVAL(offsetof (struct flock, l_len)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_PID", INT_TO_JSVAL(offsetof (struct flock, l_pid)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_TYPE", INT_TO_JSVAL(offsetof (struct flock, l_type)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_WHENCE", INT_TO_JSVAL(offsetof (struct flock, l_whence)) },
+#endif // defined(XP_UNIX)
   // Offset of field |d_name|.
   { "OSFILE_OFFSETOF_DIRENT_D_NAME", INT_TO_JSVAL(offsetof (struct dirent, d_name)) },
   // An upper bound to the length of field |d_name| of struct |dirent|.
@@ -699,9 +729,11 @@ static const dom::ConstantSpec gWinProperties[] =
   // CreateFile attributes
   INT_CONSTANT(FILE_ATTRIBUTE_ARCHIVE),
   INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
+  INT_CONSTANT(FILE_ATTRIBUTE_HIDDEN),
   INT_CONSTANT(FILE_ATTRIBUTE_NORMAL),
   INT_CONSTANT(FILE_ATTRIBUTE_READONLY),
   INT_CONSTANT(FILE_ATTRIBUTE_REPARSE_POINT),
+  INT_CONSTANT(FILE_ATTRIBUTE_SYSTEM),
   INT_CONSTANT(FILE_ATTRIBUTE_TEMPORARY),
   INT_CONSTANT(FILE_FLAG_BACKUP_SEMANTICS),
 
@@ -772,12 +804,11 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JS::Handle<JSObject*> aObject
       return &val.toObject();
     }
 
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
+    JS_ReportErrorNumber(cx, js::GetErrorMessage, nullptr,
       JSMSG_UNEXPECTED_TYPE, aProperty, "not an object");
     return nullptr;
   }
-  return JS_DefineObject(cx, aObject, aProperty, nullptr, JS::NullPtr(),
-                         JSPROP_ENUMERATE);
+  return JS_DefineObject(cx, aObject, aProperty, nullptr, JSPROP_ENUMERATE);
 }
 
 /**
@@ -812,7 +843,7 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     // |gInitialized == true| but |gPaths == nullptr|. We cannot
     // |MOZ_ASSERT| this, as this would kill precompile_cache.js,
     // so we simply return an error.
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
+    JS_ReportErrorNumber(cx, js::GetErrorMessage, nullptr,
       JSMSG_CANT_OPEN, "OSFileConstants", "initialization has failed");
     return false;
   }
@@ -855,6 +886,16 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     return false;
   }
 
+#if defined(MOZ_WIDGET_GONK)
+    JSString* strVersion = JS_NewStringCopyZ(cx, "Gonk");
+    if (!strVersion){
+      return false;
+    }
+    JS::Rooted<JS::Value> valVersion(cx, STRING_TO_JSVAL(strVersion));
+    if (!JS_SetProperty(cx, objSys, "Name", valVersion)) {
+      return false;
+  }
+#else
   nsCOMPtr<nsIXULRuntime> runtime = do_GetService(XULRUNTIME_SERVICE_CONTRACTID);
   if (runtime) {
     nsAutoCString os;
@@ -871,6 +912,7 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
       return false;
     }
   }
+#endif // defined(MOZ_WIDGET_GONK)
 
 #if defined(DEBUG)
   JS::Rooted<JS::Value> valDebug(cx, JSVAL_TRUE);
@@ -878,6 +920,15 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     return false;
   }
 #endif
+
+#if defined(HAVE_64BIT_BUILD)
+  JS::Rooted<JS::Value> valBits(cx, INT_TO_JSVAL(64));
+#else
+  JS::Rooted<JS::Value> valBits(cx, INT_TO_JSVAL(32));
+#endif //defined (HAVE_64BIT_BUILD)
+  if (!JS_SetProperty(cx, objSys, "bits", valBits)) {
+    return false;
+  }
 
   dom::ConstantSpec umask_cs[] = {
     { "umask", UINT_TO_JSVAL(gUserUmask) },
@@ -965,6 +1016,10 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   }
 
   if (!SetStringProperty(cx, objPath, "macLocalApplicationsDir", gPaths->macLocalApplicationsDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "macTrashDir", gPaths->macTrashDir)) {
     return false;
   }
 #endif // defined(XP_MACOSX)

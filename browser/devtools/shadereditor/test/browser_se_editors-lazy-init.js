@@ -5,23 +5,9 @@
  * Tests if source editors are lazily initialized.
  */
 
-function ifWebGLSupported() {
-  let [target, debuggee, panel] = yield initShaderEditor(SIMPLE_CANVAS_URL);
+function* ifWebGLSupported() {
+  let { target, panel } = yield initShaderEditor(SIMPLE_CANVAS_URL);
   let { gFront, ShadersEditorsView } = panel.panelWin;
-
-  try {
-    yield ShadersEditorsView._getEditor("vs");
-    ok(false, "The promise for a vertex shader editor should be rejected.");
-  } catch (e) {
-    ok(true, "The vertex shader editors wasn't initialized.");
-  }
-
-  try {
-    yield ShadersEditorsView._getEditor("fs");
-    ok(false, "The promise for a fragment shader editor should be rejected.");
-  } catch (e) {
-    ok(true, "The fragment shader editors wasn't initialized.");
-  }
 
   reload(target);
   yield once(gFront, "program-linked");

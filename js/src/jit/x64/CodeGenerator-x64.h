@@ -7,50 +7,61 @@
 #ifndef jit_x64_CodeGenerator_x64_h
 #define jit_x64_CodeGenerator_x64_h
 
-#include "jit/shared/CodeGenerator-x86-shared.h"
+#include "jit/x86-shared/CodeGenerator-x86-shared.h"
 
 namespace js {
 namespace jit {
 
+class OutOfLineRandom;
+
 class CodeGeneratorX64 : public CodeGeneratorX86Shared
 {
-    CodeGeneratorX64 *thisFromCtor() {
+    CodeGeneratorX64* thisFromCtor() {
         return this;
     }
 
   protected:
-    ValueOperand ToValue(LInstruction *ins, size_t pos);
-    ValueOperand ToOutValue(LInstruction *ins);
-    ValueOperand ToTempValue(LInstruction *ins, size_t pos);
+    ValueOperand ToValue(LInstruction* ins, size_t pos);
+    ValueOperand ToOutValue(LInstruction* ins);
+    ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
-    void storeUnboxedValue(const LAllocation *value, MIRType valueType,
+    void storeUnboxedValue(const LAllocation* value, MIRType valueType,
                            Operand dest, MIRType slotType);
+    void memoryBarrier(MemoryBarrierBits barrier);
+
+    void loadSimd(Scalar::Type type, unsigned numElems, const Operand& srcAddr, FloatRegister out);
+    void emitSimdLoad(LAsmJSLoadHeap* ins);
+    void storeSimd(Scalar::Type type, unsigned numElems, FloatRegister in, const Operand& dstAddr);
+    void emitSimdStore(LAsmJSStoreHeap* ins);
+  public:
+    CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
 
   public:
-    CodeGeneratorX64(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm);
-
-  public:
-    bool visitValue(LValue *value);
-    bool visitBox(LBox *box);
-    bool visitUnbox(LUnbox *unbox);
-    bool visitCompareB(LCompareB *lir);
-    bool visitCompareBAndBranch(LCompareBAndBranch *lir);
-    bool visitCompareV(LCompareV *lir);
-    bool visitCompareVAndBranch(LCompareVAndBranch *lir);
-    bool visitTruncateDToInt32(LTruncateDToInt32 *ins);
-    bool visitTruncateFToInt32(LTruncateFToInt32 *ins);
-    bool visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic *ins);
-    bool visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic *ins);
-    bool visitAsmJSLoadHeap(LAsmJSLoadHeap *ins);
-    bool visitAsmJSStoreHeap(LAsmJSStoreHeap *ins);
-    bool visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar *ins);
-    bool visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar *ins);
-    bool visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr *ins);
-    bool visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins);
-    bool visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble *lir);
-    bool visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32 *lir);
-
-    void postAsmJSCall(LAsmJSCall *lir) {}
+    void visitValue(LValue* value);
+    void visitBox(LBox* box);
+    void visitUnbox(LUnbox* unbox);
+    void visitCompareB(LCompareB* lir);
+    void visitCompareBAndBranch(LCompareBAndBranch* lir);
+    void visitCompareV(LCompareV* lir);
+    void visitCompareVAndBranch(LCompareVAndBranch* lir);
+    void visitTruncateDToInt32(LTruncateDToInt32* ins);
+    void visitTruncateFToInt32(LTruncateFToInt32* ins);
+    void visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic* ins);
+    void visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic* ins);
+    void visitAsmJSCall(LAsmJSCall* ins);
+    void visitAsmJSLoadHeap(LAsmJSLoadHeap* ins);
+    void visitAsmJSStoreHeap(LAsmJSStoreHeap* ins);
+    void visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap* ins);
+    void visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap* ins);
+    void visitAsmJSAtomicBinopHeapForEffect(LAsmJSAtomicBinopHeapForEffect* ins);
+    void visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar* ins);
+    void visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar* ins);
+    void visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr* ins);
+    void visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc* ins);
+    void visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble* lir);
+    void visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32* lir);
+    void visitRandom(LRandom* ins);
+    void visitOutOfLineRandom(OutOfLineRandom* ool);
 };
 
 typedef CodeGeneratorX64 CodeGeneratorSpecific;

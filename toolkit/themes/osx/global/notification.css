@@ -31,6 +31,11 @@ notification[type="critical"] {
   border-bottom: 1px solid #5d0000;
 }
 
+.messageText > .text-link {
+  color: inherit !important;
+  text-decoration: underline;
+}
+
 .messageImage {
   width: 16px;
   height: 16px;
@@ -68,6 +73,20 @@ notification[type="critical"] {
   border: none;
 }
 
+/*
+ Invert the close icon for @type=info since both are normally dark. It's unclear
+ why !important is necessary here so remove it if it's no longer needed.
+*/
+notification[type="info"]:not([value="translation"]) .close-icon:not(:hover) {
+  -moz-image-region: rect(0, 64px, 16px, 48px) !important;
+}
+
+@media (min-resolution: 2dppx) {
+  notification[type="info"]:not([value="translation"]) .close-icon:not(:hover) {
+    -moz-image-region: rect(0, 128px, 32px, 96px) !important;
+  }
+}
+
 .messageCloseButton:-moz-focusring > .toolbarbutton-icon {
   border-radius: 10000px;
   box-shadow: 0 0 2px 1px -moz-mac-focusring,
@@ -82,17 +101,21 @@ notification[type="critical"] {
 
 /* Popup notification */
 
-.popup-notification-description {
-  max-width: 24em;
+.popup-notification-body {
+  max-width: 25em;
+}
+
+.popup-notification-origin:not([value]),
+.popup-notification-learnmore-link:not([href]) {
+  display: none;
+}
+
+.popup-notification-origin {
+  margin-bottom: .3em !important;
 }
 
 .popup-notification-learnmore-link {
-  margin-top: 1em !important;
-  -moz-margin-start: 0 !important; /* override default label margin to match description margin */
-}
-
-.popup-notification-learnmore-link:not([href]) {
-  display: none;
+  margin-top: .5em !important;
 }
 
 .popup-notification-button-container {
@@ -168,4 +191,8 @@ notification[type="critical"] {
 
 .popup-notification-closeitem > .menu-iconic-left {
   display: none;
+}
+
+.popup-notification-menubutton > .button-menubutton-button[disabled] {
+  opacity: 0.5;
 }

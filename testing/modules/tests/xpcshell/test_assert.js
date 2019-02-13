@@ -69,6 +69,7 @@ function run_test() {
   // deepEquals joy!
   // 7.2
   assert.deepEqual(new Date(2000, 3, 14), new Date(2000, 3, 14), "deepEqual date");
+  assert.deepEqual(new Date(NaN), new Date(NaN), "deepEqual invalid dates");
 
   assert.throws(makeBlock(assert.deepEqual, new Date(), new Date(2000, 3, 14)),
                 ns.Assert.AssertionError,
@@ -208,24 +209,6 @@ function run_test() {
     }
   });
 
-  // Make sure deepEqual doesn't loop forever on circular refs
-
-  let b = {};
-  b.b = b;
-
-  let c = {};
-  c.b = c;
-
-  let gotError = false;
-  try {
-    assert.deepEqual(b, c);
-  } catch (e) {
-    gotError = true;
-  }
-
-  dump("All OK\n");
-  assert.ok(gotError);
-
   function testAssertionMessage(actual, expected) {
     try {
       assert.equal(actual, "");
@@ -296,4 +279,80 @@ function run_test() {
     expected: "foo",
     operator: "="
   }).message, "[object Object] = \"foo\"");
+
+  let message;
+  assert.greater(3, 2);
+  try {
+    assert.greater(2, 2);
+  } catch(e) {
+    message = e.toString().split("\n")[0];
+  }
+  assert.equal(message, "AssertionError: 2 > 2");
+
+  assert.greaterOrEqual(2, 2);
+  try {
+    assert.greaterOrEqual(1, 2);
+  } catch(e) {
+    message = e.toString().split("\n")[0];
+  }
+  assert.equal(message, "AssertionError: 1 >= 2");
+
+  assert.less(1, 2);
+  try {
+    assert.less(2, 2);
+  } catch(e) {
+    message = e.toString().split("\n")[0];
+  }
+  assert.equal(message, "AssertionError: 2 < 2");
+
+  assert.lessOrEqual(2, 2);
+  try {
+    assert.lessOrEqual(2, 1);
+  } catch(e) {
+    message = e.toString().split("\n")[0];
+  }
+  assert.equal(message, "AssertionError: 2 <= 1");
+
+  run_next_test();
 }
+
+add_task(function* test_rejects() {
+  let ns = {};
+  Components.utils.import("resource://testing-common/Assert.jsm", ns);
+  let assert = new ns.Assert();
+
+  // A helper function to test failures.
+  function* checkRejectsFails(err, expected) {
+    try {
+      yield assert.rejects(Promise.reject(err), expected);
+      ok(false, "should have thrown");
+    } catch(ex) {
+      deepEqual(ex, err, "Assert.rejects threw the original unexpected error");
+    }
+  }
+
+  // A "throwable" error that's not an actual Error().
+  let SomeErrorLikeThing = function() {};
+
+  // The actual tests...
+  // No "expected" or "message" values supplied.
+  yield assert.rejects(Promise.reject(new Error("oh no")));
+  yield assert.rejects(Promise.reject("oh no"));
+
+  // An explicit error object:
+  // An instance to check against.
+  yield assert.rejects(Promise.reject(new Error("oh no")), Error, "rejected");
+  // A regex to match against the message.
+  yield assert.rejects(Promise.reject(new Error("oh no")), /oh no/, "rejected");
+
+  // Failure cases:
+  // An instance to check against that doesn't match.
+  yield checkRejectsFails(new Error("something else"), SomeErrorLikeThing);
+  // A regex that doesn't match.
+  yield checkRejectsFails(new Error("something else"), /oh no/);
+
+  // Check simple string messages.
+  yield assert.rejects(Promise.reject("oh no"), /oh no/, "rejected");
+  // Wrong message.
+  yield checkRejectsFails("something else", /oh no/);
+});

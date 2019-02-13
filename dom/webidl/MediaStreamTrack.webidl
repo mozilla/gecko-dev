@@ -11,17 +11,7 @@
  */
 
 dictionary MediaTrackConstraints : MediaTrackConstraintSet {
-    sequence<DOMString> require;
     sequence<MediaTrackConstraintSet> advanced;
-
-    // mobile-only backwards-compatibility for facingMode
-    MobileLegacyMediaTrackConstraintSet mandatory;
-    sequence<MobileLegacyMediaTrackConstraintSet> _optional;
-};
-
-// TODO(jib): Remove in 6+ weeks (Bug 997365)
-dictionary MobileLegacyMediaTrackConstraintSet {
-    VideoFacingModeEnum facingMode;
 };
 
 interface MediaStreamTrack {
@@ -43,5 +33,5 @@ interface MediaStreamTrack {
 //    void                   prependConstraint (DOMString constraintName, any constraintValue);
 //    void                   appendConstraint (DOMString constraintName, any constraintValue);
 //                attribute EventHandler          onoverconstrained;
-//    void                   stop ();
+    void                   stop ();
 };

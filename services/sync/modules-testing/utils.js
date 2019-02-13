@@ -26,7 +26,7 @@ Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/browserid_identity.js");
-Cu.import("resource://testing-common/services-common/logging.js");
+Cu.import("resource://testing-common/services/common/logging.js");
 Cu.import("resource://testing-common/services/sync/fakeservices.js");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
@@ -236,8 +236,7 @@ this.encryptPayload = function encryptPayload(cleartext) {
 this.add_identity_test = function(test, testFunction) {
   function note(what) {
     let msg = "running test " + testFunction.name + " with " + what + " identity manager";
-    test._log("test_info",
-              {_message: "TEST-INFO | | " + msg + "\n"});
+    test.do_print(msg);
   }
   let ns = {};
   Cu.import("resource://services-sync/service.js", ns);

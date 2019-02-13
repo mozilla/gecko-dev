@@ -13,50 +13,29 @@
 #include "base/logging.h"
 #include "base/move.h"
 
-namespace base {
-namespace win {
-
 // TODO(rvargas): remove this with the rest of the verifier.
 #if defined(COMPILER_MSVC)
-// MSDN says to #include <intrin.h>, but that breaks the VS2005 build.
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #define BASE_WIN_GET_CALLER _ReturnAddress()
 #elif defined(COMPILER_GCC)
 #define BASE_WIN_GET_CALLER __builtin_extract_return_addr(\\
     __builtin_return_address(0))
 #endif
 
+namespace base {
+namespace win {
+
 // Generic wrapper for raw handles that takes care of closing handles
 // automatically. The class interface follows the style of
-// the ScopedStdioHandle class with a few additions:
+// the ScopedFILE class with one addition:
 //   - IsValid() method can tolerate multiple invalid handle values such as NULL
 //     and INVALID_HANDLE_VALUE (-1) for Win32 handles.
-//   - Receive() method allows to receive a handle value from a function that
-//     takes a raw handle pointer only.
 template <class Traits, class Verifier>
 class GenericScopedHandle {
   MOVE_ONLY_TYPE_FOR_CPP_03(GenericScopedHandle, RValue)
 
  public:
   typedef typename Traits::Handle Handle;
-
-  // Helper object to contain the effect of Receive() to the function that needs
-  // a pointer, and allow proper tracking of the handle.
-  class Receiver {
-   public:
-    explicit Receiver(GenericScopedHandle* owner)
-        : handle_(Traits::NullHandle()),
-          owner_(owner) {}
-    ~Receiver() { owner_->Set(handle_); }
-
-    operator Handle*() { return &handle_; }
-
-   private:
-    Handle handle_;
-    GenericScopedHandle* owner_;
-  };
 
   GenericScopedHandle() : handle_(Traits::NullHandle()) {}
 
@@ -101,20 +80,6 @@ class GenericScopedHandle {
     return handle_;
   }
 
-  operator Handle() const {
-    return handle_;
-  }
-
-  // This method is intended to be used with functions that require a pointer to
-  // a destination handle, like so:
-  //    void CreateRequiredHandle(Handle* out_handle);
-  //    ScopedHandle a;
-  //    CreateRequiredHandle(a.Receive());
-  Receiver Receive() {
-    DCHECK(!Traits::IsHandleValid(handle_)) << "Handle must be NULL";
-    return Receiver(this);
-  }
-
   // Transfers ownership away from this object.
   Handle Take() {
     Handle temp = handle_;
@@ -132,9 +97,7 @@ class GenericScopedHandle {
       Verifier::StopTracking(handle_, this, BASE_WIN_GET_CALLER,
                              tracked_objects::GetProgramCounter());
 
-      if (!Traits::CloseHandle(handle_))
-        CHECK(false);
-
+      Traits::CloseHandle(handle_);
       handle_ = Traits::NullHandle();
     }
   }
@@ -151,9 +114,7 @@ class HandleTraits {
   typedef HANDLE Handle;
 
   // Closes the handle.
-  static bool CloseHandle(HANDLE handle) {
-    return ::CloseHandle(handle) != FALSE;
-  }
+  static bool BASE_EXPORT CloseHandle(HANDLE handle);
 
   // Returns true if the handle value is valid.
   static bool IsHandleValid(HANDLE handle) {
@@ -198,6 +159,17 @@ class BASE_EXPORT VerifierTraits {
 };
 
 typedef GenericScopedHandle<HandleTraits, VerifierTraits> ScopedHandle;
+
+// This function may be called by the embedder to disable the use of
+// VerifierTraits at runtime. It has no effect if DummyVerifierTraits is used
+// for ScopedHandle.
+void BASE_EXPORT DisableHandleVerifier();
+
+// This should be called whenever the OS is closing a handle, if extended
+// verification of improper handle closing is desired. If |handle| is being
+// tracked by the handle verifier and ScopedHandle is not the one closing it,
+// a CHECK is generated.
+void BASE_EXPORT OnHandleBeingClosed(HANDLE handle);
 
 }  // namespace win
 }  // namespace base

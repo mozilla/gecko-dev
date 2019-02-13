@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
@@ -24,13 +25,16 @@
 
 #ifdef XP_WIN
 // we want a wmain entry point
+#define XRE_DONT_SUPPORT_XPSP2 // See https://bugzil.la/1023941#c32
 #include "nsWindowsWMain.cpp"
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
 #define snprintf _snprintf
+#endif
 #define strcasecmp _stricmp
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-#include "GonkDisplay.h"
+#include "BootAnimation.h"
 #endif
 
 #include "BinaryPath.h"
@@ -144,8 +148,8 @@ static int do_main(int argc, char* argv[])
   }
 
 #ifdef MOZ_WIDGET_GONK
-  /* Called to start the boot animation */
-  (void) mozilla::GetGonkDisplay();
+  /* Start boot animation */
+  mozilla::StartBootAnimation();
 #endif
 
   if (appini) {
@@ -163,9 +167,22 @@ static int do_main(int argc, char* argv[])
   return XRE_main(argc, argv, &sAppData, 0);
 }
 
-int main(int argc, char* argv[])
+#ifdef MOZ_B2G_LOADER
+/*
+ * The main() in B2GLoader.cpp is the new main function instead of the
+ * main() here if it is enabled.  So, rename it to b2g_man().
+ */
+#define main b2g_main
+#define _CONST const
+#else
+#define _CONST
+#endif
+
+int main(int argc, _CONST char* argv[])
 {
+#ifndef MOZ_B2G_LOADER
   char exePath[MAXPATHLEN];
+#endif
 
 #ifdef MOZ_WIDGET_GONK
   // This creates a ThreadPool for binder ipc. A ThreadPool is necessary to
@@ -175,7 +192,9 @@ int main(int argc, char* argv[])
   android::ProcessState::self()->startThreadPool();
 #endif
 
-  nsresult rv = mozilla::BinaryPath::Get(argv[0], exePath);
+  nsresult rv;
+#ifndef MOZ_B2G_LOADER
+  rv = mozilla::BinaryPath::Get(argv[0], exePath);
   if (NS_FAILED(rv)) {
     Output("Couldn't calculate the application directory.\n");
     return 255;
@@ -186,6 +205,7 @@ int main(int argc, char* argv[])
     return 255;
 
   strcpy(++lastSlash, XPCOM_DLL);
+#endif // MOZ_B2G_LOADER
 
 #if defined(XP_UNIX)
   // If the b2g app is launched from adb shell, then the shell will wind
@@ -203,12 +223,17 @@ int main(int argc, char* argv[])
 #elif defined(XP_WIN)
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
+#else
+  #error "Unknown platform"  // having this here keeps cppcheck happy
 #endif
 
 #ifdef HAS_DLL_BLOCKLIST
   DllBlocklist_Initialize();
 #endif
 
+  // B2G loader has already initialized Gecko so we can't initialize
+  // it again here.
+#ifndef MOZ_B2G_LOADER
   // We do this because of data in bug 771745
   XPCOMGlueEnablePreload();
 
@@ -219,6 +244,7 @@ int main(int argc, char* argv[])
   }
   // Reset exePath so that it is the directory name and not the xpcom dll name
   *lastSlash = 0;
+#endif // MOZ_B2G_LOADER
 
   rv = XPCOMGlueLoadXULFunctions(kXULFuncs);
   if (NS_FAILED(rv)) {
@@ -247,13 +273,35 @@ int main(int argc, char* argv[])
       XRE_TelemetryAccumulate(mozilla::Telemetry::GLUESTARTUP_HARD_FAULTS,
                               int(newRUsage.ru_majflt - initialRUsage.ru_majflt));
     }
+#else
+  #error "Unknown platform"  // having this here keeps cppcheck happy
 #endif
   }
 
   int result;
   {
     ScopedLogging log;
-    result = do_main(argc, argv);
+    char **_argv;
+
+    /*
+     * Duplicate argument vector to conform non-const argv of
+     * do_main() since XRE_main() is very stupid with non-const argv.
+     */
+    _argv = new char *[argc + 1];
+    for (int i = 0; i < argc; i++) {
+      size_t len = strlen(argv[i]) + 1;
+      _argv[i] = new char[len];
+      MOZ_ASSERT(_argv[i] != nullptr);
+      memcpy(_argv[i], argv[i], len);
+    }
+    _argv[argc] = nullptr;
+
+    result = do_main(argc, _argv);
+
+    for (int i = 0; i < argc; i++) {
+      delete[] _argv[i];
+    }
+    delete[] _argv;
   }
 
   return result;

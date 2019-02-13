@@ -15,12 +15,16 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryChecking.h"
+#include "mozilla/Snprintf.h"
 
 #include "LulCommonExt.h"
 #include "LulElfExt.h"
 
 #include "LulMainInt.h"
+
+#include "platform-linux-lul.h"  // for gettid()
 
 // Set this to 1 for verbose logging
 #define DEBUG_MAIN 0
@@ -30,35 +34,18 @@ namespace lul {
 
 using std::string;
 using std::vector;
+using mozilla::DebugOnly;
 
 
-////////////////////////////////////////////////////////////////
-// AutoLulRWLocker                                            //
-////////////////////////////////////////////////////////////////
-
-// This is a simple RAII class that manages acquisition and release of
-// LulRWLock reader-writer locks.
-
-class AutoLulRWLocker {
-public:
-  enum AcqMode { FOR_READING, FOR_WRITING };
-  AutoLulRWLocker(LulRWLock* aRWLock, AcqMode mode)
-    : mRWLock(aRWLock)
-  {
-    if (mode == FOR_WRITING) {
-      aRWLock->WrLock();
-    } else {
-      aRWLock->RdLock();
-    }
-  }
-  ~AutoLulRWLocker()
-  {
-    mRWLock->Unlock();
-  }
-
-private:
-  LulRWLock* mRWLock;
-};
+// WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+//
+// Some functions in this file are marked RUNS IN NO-MALLOC CONTEXT.
+// Any such function -- and, hence, the transitive closure of those
+// reachable from it -- must not do any dynamic memory allocation.
+// Doing so risks deadlock.  There is exactly one root function for
+// the transitive closure: Lul::Unwind.
+//
+// WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
 
 
 ////////////////////////////////////////////////////////////////
@@ -98,11 +85,11 @@ ShowRule(const char* aNewReg, LExpr aExpr)
       res += "Unknown";
       break;
     case LExpr::NODEREF:
-      sprintf(buf, "%s+%d", NameOf_DW_REG(aExpr.mReg), (int)aExpr.mOffset);
+      snprintf_literal(buf, "%s+%d", NameOf_DW_REG(aExpr.mReg), (int)aExpr.mOffset);
       res += buf;
       break;
     case LExpr::DEREF:
-      sprintf(buf, "*(%s+%d)", NameOf_DW_REG(aExpr.mReg), (int)aExpr.mOffset);
+      snprintf_literal(buf, "*(%s+%d)", NameOf_DW_REG(aExpr.mReg), (int)aExpr.mOffset);
       res += buf;
       break;
     default:
@@ -116,9 +103,9 @@ void
 RuleSet::Print(void(*aLog)(const char*))
 {
   char buf[96];
-  sprintf(buf, "[%llx .. %llx]: let ",
-          (unsigned long long int)mAddr,
-          (unsigned long long int)(mAddr + mLen - 1));
+  snprintf_literal(buf, "[%llx .. %llx]: let ",
+                   (unsigned long long int)mAddr,
+                   (unsigned long long int)(mAddr + mLen - 1));
   string res = string(buf);
   res += ShowRule("cfa", mCfaExpr);
   res += " in";
@@ -188,6 +175,7 @@ SecMap::~SecMap() {
   mRuleSets.clear();
 }
 
+// RUNS IN NO-MALLOC CONTEXT
 RuleSet*
 SecMap::FindRuleSet(uintptr_t ia) {
   // Binary search mRuleSets to find one that brackets |ia|.
@@ -342,10 +330,10 @@ SecMap::PrepareRuleSets(uintptr_t aStart, size_t aLen)
     mSummaryMaxAddr = mRuleSets[n-1].mAddr + mRuleSets[n-1].mLen - 1;
   }
   char buf[150];
-  snprintf(buf, sizeof(buf),
-           "PrepareRuleSets: %d entries, smin/smax 0x%llx, 0x%llx\n",
-           (int)n, (unsigned long long int)mSummaryMinAddr,
-                   (unsigned long long int)mSummaryMaxAddr);
+  snprintf_literal(buf,
+                   "PrepareRuleSets: %d entries, smin/smax 0x%llx, 0x%llx\n",
+                   (int)n, (unsigned long long int)mSummaryMinAddr,
+                           (unsigned long long int)mSummaryMaxAddr);
   buf[sizeof(buf)-1] = 0;
   mLog(buf);
 
@@ -400,6 +388,7 @@ class SegArray {
     preen();
   }
 
+  // RUNS IN NO-MALLOC CONTEXT
   bool getBoundingCodeSegment(/*OUT*/uintptr_t* rx_min,
                               /*OUT*/uintptr_t* rx_max, uintptr_t addr) {
     std::vector<Seg>::size_type i = find(addr);
@@ -439,6 +428,7 @@ class SegArray {
     }
   }
 
+  // RUNS IN NO-MALLOC CONTEXT
   std::vector<Seg>::size_type find(uintptr_t a) {
     long int lo = 0;
     long int hi = (long int)mSegs.size();
@@ -490,7 +480,7 @@ class SegArray {
 
 class PriMap {
  public:
-  PriMap(void (*aLog)(const char*))
+  explicit PriMap(void (*aLog)(const char*))
     : mLog(aLog)
   {}
 
@@ -503,14 +493,14 @@ class PriMap {
     mSecMaps.clear();
   }
 
-  // This can happen with the global lock held for reading.
+  // RUNS IN NO-MALLOC CONTEXT
   RuleSet* Lookup(uintptr_t ia) {
     SecMap* sm = FindSecMap(ia);
     return sm ? sm->FindRuleSet(ia) : nullptr;
   }
 
   // Add a secondary map.  No overlaps allowed w.r.t. existing
-  // secondary maps.  Global lock must be held for writing.
+  // secondary maps.
   void AddSecMap(SecMap* aSecMap) {
     // We can't add an empty SecMap to the PriMap.  But that's OK
     // since we'd never be able to find anything in it anyway.
@@ -544,8 +534,8 @@ class PriMap {
       mSecMaps.insert(iter, aSecMap);
     }
     char buf[100];
-    snprintf(buf, sizeof(buf), "AddSecMap: now have %d SecMaps\n",
-             (int)mSecMaps.size());
+    snprintf_literal(buf, "AddSecMap: now have %d SecMaps\n",
+                     (int)mSecMaps.size());
     buf[sizeof(buf)-1] = 0;
     mLog(buf);
   }
@@ -582,8 +572,8 @@ class PriMap {
   }
 
   // Assess heuristically whether the given address is an instruction
-  // immediately following a call instruction.  The caller is required
-  // to hold the global lock for reading.
+  // immediately following a call instruction.
+  // RUNS IN NO-MALLOC CONTEXT
   bool MaybeIsReturnPoint(TaggedUWord aInstrAddr, SegArray* aSegArray) {
     if (!aInstrAddr.Valid()) {
       return false;
@@ -776,7 +766,7 @@ class PriMap {
   }
 
  private:
-  // FindSecMap's caller must hold the global lock for reading or writing.
+  // RUNS IN NO-MALLOC CONTEXT
   SecMap* FindSecMap(uintptr_t ia) {
     // Binary search mSecMaps to find one that brackets |ia|.
     // lo and hi need to be signed, else the loop termination tests
@@ -811,158 +801,92 @@ class PriMap {
 
 
 ////////////////////////////////////////////////////////////////
-// CFICache                                                   //
-////////////////////////////////////////////////////////////////
-
-// This is the thread-local cache.  It maps individual insn AVMAs to
-// the associated CFI record, which live in LUL::mPriMap.
-//
-// The cache is a direct map hash table indexed by address.
-// It has to distinguish 3 cases:
-//
-// (1) .mRSet == (RuleSet*)0  ==> cache slot not in use
-// (2) .mRSet == (RuleSet*)1  ==> slot in use, no RuleSet avail
-// (3) .mRSet >  (RuleSet*)1  ==> slot in use, RuleSet* available
-//
-// Distinguishing between (2) and (3) is important, because if we look
-// up an address in LUL::mPriMap and find there is no RuleSet, then
-// that fact needs to cached here, so as to avoid potentially
-// expensive repeat lookups.
-
-// A CFICacheEntry::mRSet value of zero indicates that the slot is not
-// in use, and a value of one indicates that the slot is in use but
-// there is no RuleSet available.
-#define ENTRY_NOT_IN_USE      ((RuleSet*)0)
-#define NO_RULESET_AVAILABLE  ((RuleSet*)1)
-
-class CFICache {
- public:
-
-  CFICache(PriMap* aPriMap) {
-    Invalidate();
-    mPriMap = aPriMap;
-  }
-
-  void Invalidate() {
-    for (int i = 0; i < N_ENTRIES; ++i) {
-      mCache[i].mAVMA = 0;
-      mCache[i].mRSet = ENTRY_NOT_IN_USE;
-    }
-  }
-
-  RuleSet* Lookup(uintptr_t ia) {
-    uintptr_t hash = ia % (uintptr_t)N_ENTRIES;
-    CFICacheEntry* ce = &mCache[hash];
-    if (ce->mAVMA == ia) {
-      // The cache has an entry for |ia|.  Interpret it.
-      if (ce->mRSet > NO_RULESET_AVAILABLE) {
-        // There's a RuleSet.  So return it.
-        return ce->mRSet;
-      }
-      if (ce->mRSet == NO_RULESET_AVAILABLE) {
-        // There's no RuleSet for this address.  Don't update
-        // the cache, since we might get queried again.
-        return nullptr;
-      }
-      // Otherwise, the slot is not in use.  Fall through to
-      // the 'miss' case.
-    }
-
-    // The cache entry is for some other address, or is not in use.
-    // Update it.  If it can be found in the priMap then install it
-    // as-is.  Else put NO_RULESET_AVAILABLE in, so as to indicate
-    // there's no info for this address.
-    RuleSet* fallback  = mPriMap->Lookup(ia);
-    mCache[hash].mAVMA = ia;
-    mCache[hash].mRSet = fallback ? fallback : NO_RULESET_AVAILABLE;
-    return fallback;
-  }
-
- private:
-  // This should be a prime number.
-  static const int N_ENTRIES = 509;
-
-  // See comment above for the meaning of these entries.
-  struct CFICacheEntry {
-    uintptr_t mAVMA; // AVMA of the associated instruction
-    RuleSet*  mRSet; // RuleSet* for the instruction
-  };
-  CFICacheEntry mCache[N_ENTRIES];
-
-  // Need to have a pointer to the PriMap, so as to be able
-  // to service misses.
-  PriMap* mPriMap;
-};
-
-#undef ENTRY_NOT_IN_USE
-#undef NO_RULESET_AVAILABLE
-
-
-////////////////////////////////////////////////////////////////
 // LUL                                                        //
 ////////////////////////////////////////////////////////////////
 
+#define LUL_LOG(_str) \
+  do { \
+    char buf[200]; \
+    snprintf_literal(buf, \
+                     "LUL: pid %d tid %d lul-obj %p: %s", \
+                     getpid(), gettid(), this, (_str)); \
+    buf[sizeof(buf)-1] = 0; \
+    mLog(buf); \
+  } while (0)
+
 LUL::LUL(void (*aLog)(const char*))
+  : mLog(aLog)
+  , mAdminMode(true)
+  , mAdminThreadId(gettid())
+  , mPriMap(new PriMap(aLog))
+  , mSegArray(new SegArray())
+  , mUSU(new UniqueStringUniverse())
 {
-  mRWlock = new LulRWLock();
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
-  mLog = aLog;
-  mPriMap = new PriMap(aLog);
-  mSegArray = new SegArray();
+  LUL_LOG("LUL::LUL: Created object");
 }
 
 
 LUL::~LUL()
 {
-  // The auto-locked section must have its own scope, so that the
-  // unlock is performed before the mRWLock is deleted.
-  {
-    AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
-    for (std::map<pthread_t,CFICache*>::iterator iter = mCaches.begin();
-         iter != mCaches.end();
-         ++iter) {
-      delete iter->second;
-    }
-    delete mPriMap;
-    delete mSegArray;
-    mLog = nullptr;
-  }
-  // Now we don't hold the lock.  Hence it is safe to delete it.
-  delete mRWlock;
+  LUL_LOG("LUL::~LUL: Destroyed object");
+  delete mPriMap;
+  delete mSegArray;
+  mLog = nullptr;
+  delete mUSU;
 }
 
 
 void
-LUL::RegisterUnwinderThread()
+LUL::MaybeShowStats()
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
-
-  pthread_t me = pthread_self();
-  CFICache* cache = new CFICache(mPriMap);
-
-  std::pair<std::map<pthread_t,CFICache*>::iterator, bool> res
-    = mCaches.insert(std::pair<pthread_t,CFICache*>(me, cache));
-  // "this thread is not already registered"
-  MOZ_ASSERT(res.second); // "new element was inserted"
-  // Using mozilla::DebugOnly to declare |res| leads to compilation error
-  (void)res.second;
+  // This is racey in the sense that it can't guarantee that
+  //   n_new == n_new_Context + n_new_CFI + n_new_Scanned
+  // if it should happen that mStats is updated by some other thread
+  // in between computation of n_new and n_new_{Context,CFI,Scanned}.
+  // But it's just stats printing, so we don't really care.
+  uint32_t n_new = mStats - mStatsPrevious;
+  if (n_new >= 5000) {
+    uint32_t n_new_Context = mStats.mContext - mStatsPrevious.mContext;
+    uint32_t n_new_CFI     = mStats.mCFI     - mStatsPrevious.mCFI;
+    uint32_t n_new_Scanned = mStats.mScanned - mStatsPrevious.mScanned;
+    mStatsPrevious = mStats;
+    char buf[200];
+    snprintf_literal(buf,
+                     "LUL frame stats: TOTAL %5u"
+                     "    CTX %4u    CFI %4u    SCAN %4u",
+                     n_new, n_new_Context, n_new_CFI, n_new_Scanned);
+    buf[sizeof(buf)-1] = 0;
+    mLog(buf);
+  }
 }
+
+
+void
+LUL::EnableUnwinding()
+{
+  LUL_LOG("LUL::EnableUnwinding");
+  // Don't assert for Admin mode here.  That is, tolerate a call here
+  // if we are already in Unwinding mode.
+  MOZ_ASSERT(gettid() == mAdminThreadId);
+
+  mAdminMode = false;
+}
+
 
 void
 LUL::NotifyAfterMap(uintptr_t aRXavma, size_t aSize,
                     const char* aFileName, const void* aMappedImage)
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
+  MOZ_ASSERT(mAdminMode);
+  MOZ_ASSERT(gettid() == mAdminThreadId);
 
   mLog(":\n");
   char buf[200];
-  snprintf(buf, sizeof(buf), "NotifyMap %llx %llu %s\n",
-           (unsigned long long int)aRXavma, (unsigned long long int)aSize,
-           aFileName);
+  snprintf_literal(buf, "NotifyMap %llx %llu %s\n",
+                   (unsigned long long int)aRXavma, (unsigned long long int)aSize,
+                   aFileName);
   buf[sizeof(buf)-1] = 0;
   mLog(buf);
-
-  InvalidateCFICaches();
 
   // Ignore obviously-stupid notifications.
   if (aSize > 0) {
@@ -974,20 +898,20 @@ LUL::NotifyAfterMap(uintptr_t aRXavma, size_t aSize,
     if (!aMappedImage) {
       (void)lul::ReadSymbolData(
               string(aFileName), std::vector<string>(), smap,
-              (void*)aRXavma, mLog);
+              (void*)aRXavma, aSize, mUSU, mLog);
     } else {
       (void)lul::ReadSymbolDataInternal(
               (const uint8_t*)aMappedImage,
               string(aFileName), std::vector<string>(), smap,
-              (void*)aRXavma, mLog);
+              (void*)aRXavma, aSize, mUSU, mLog);
     }
 
     mLog("NotifyMap .. preparing entries\n");
 
     smap->PrepareRuleSets(aRXavma, aSize);
 
-    snprintf(buf, sizeof(buf),
-             "NotifyMap got %lld entries\n", (long long int)smap->Size());
+    snprintf_literal(buf,
+                     "NotifyMap got %lld entries\n", (long long int)smap->Size());
     buf[sizeof(buf)-1] = 0;
     mLog(buf);
 
@@ -1004,16 +928,15 @@ LUL::NotifyAfterMap(uintptr_t aRXavma, size_t aSize,
 void
 LUL::NotifyExecutableArea(uintptr_t aRXavma, size_t aSize)
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
+  MOZ_ASSERT(mAdminMode);
+  MOZ_ASSERT(gettid() == mAdminThreadId);
 
   mLog(":\n");
   char buf[200];
-  snprintf(buf, sizeof(buf), "NotifyExecutableArea %llx %llu\n",
-           (unsigned long long int)aRXavma, (unsigned long long int)aSize);
+  snprintf_literal(buf, "NotifyExecutableArea %llx %llu\n",
+                   (unsigned long long int)aRXavma, (unsigned long long int)aSize);
   buf[sizeof(buf)-1] = 0;
   mLog(buf);
-
-  InvalidateCFICaches();
 
   // Ignore obviously-stupid notifications.
   if (aSize > 0) {
@@ -1027,19 +950,18 @@ LUL::NotifyExecutableArea(uintptr_t aRXavma, size_t aSize)
 void
 LUL::NotifyBeforeUnmap(uintptr_t aRXavmaMin, uintptr_t aRXavmaMax)
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
+  MOZ_ASSERT(mAdminMode);
+  MOZ_ASSERT(gettid() == mAdminThreadId);
 
   mLog(":\n");
   char buf[100];
-  snprintf(buf, sizeof(buf), "NotifyUnmap %016llx-%016llx\n",
-           (unsigned long long int)aRXavmaMin,
-           (unsigned long long int)aRXavmaMax);
+  snprintf_literal(buf, "NotifyUnmap %016llx-%016llx\n",
+                   (unsigned long long int)aRXavmaMin,
+                   (unsigned long long int)aRXavmaMax);
   buf[sizeof(buf)-1] = 0;
   mLog(buf);
 
   MOZ_ASSERT(aRXavmaMin <= aRXavmaMax);
-
-  InvalidateCFICaches();
 
   // Remove from the primary map, any secondary maps that intersect
   // with the address range.  Also delete the secondary maps.
@@ -1049,8 +971,8 @@ LUL::NotifyBeforeUnmap(uintptr_t aRXavmaMin, uintptr_t aRXavmaMax)
   // contains valid code.
   mSegArray->add(aRXavmaMin, aRXavmaMax, false);
 
-  snprintf(buf, sizeof(buf), "NotifyUnmap: now have %d SecMaps\n",
-           (int)mPriMap->CountSecMaps());
+  snprintf_literal(buf, "NotifyUnmap: now have %d SecMaps\n",
+                   (int)mPriMap->CountSecMaps());
   buf[sizeof(buf)-1] = 0;
   mLog(buf);
 }
@@ -1059,11 +981,14 @@ LUL::NotifyBeforeUnmap(uintptr_t aRXavmaMin, uintptr_t aRXavmaMax)
 size_t
 LUL::CountMappings()
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_WRITING);
+  MOZ_ASSERT(mAdminMode);
+  MOZ_ASSERT(gettid() == mAdminThreadId);
+
   return mPriMap->CountSecMaps();
 }
 
 
+// RUNS IN NO-MALLOC CONTEXT
 static
 TaggedUWord DerefTUW(TaggedUWord aAddr, StackImage* aStackImg)
 {
@@ -1081,6 +1006,7 @@ TaggedUWord DerefTUW(TaggedUWord aAddr, StackImage* aStackImg)
                                    - aStackImg->mStartAvma));
 }
 
+  // RUNS IN NO-MALLOC CONTEXT
 static
 TaggedUWord EvaluateReg(int16_t aReg, UnwindRegs* aOldRegs, TaggedUWord aCFA)
 {
@@ -1104,6 +1030,7 @@ TaggedUWord EvaluateReg(int16_t aReg, UnwindRegs* aOldRegs, TaggedUWord aCFA)
   }
 }
 
+// RUNS IN NO-MALLOC CONTEXT
 static
 TaggedUWord EvaluateExpr(LExpr aExpr, UnwindRegs* aOldRegs,
                          TaggedUWord aCFA, StackImage* aStackImg)
@@ -1127,6 +1054,7 @@ TaggedUWord EvaluateExpr(LExpr aExpr, UnwindRegs* aOldRegs,
   }
 }
 
+// RUNS IN NO-MALLOC CONTEXT
 static
 void UseRuleSet(/*MOD*/UnwindRegs* aRegs,
                 StackImage* aStackImg, RuleSet* aRS)
@@ -1186,6 +1114,7 @@ void UseRuleSet(/*MOD*/UnwindRegs* aRegs,
   // new value will now be marked as invalid.
 }
 
+// RUNS IN NO-MALLOC CONTEXT
 void
 LUL::Unwind(/*OUT*/uintptr_t* aFramePCs,
             /*OUT*/uintptr_t* aFrameSPs,
@@ -1195,21 +1124,7 @@ LUL::Unwind(/*OUT*/uintptr_t* aFramePCs,
             size_t aScannedFramesAllowed,
             UnwindRegs* aStartRegs, StackImage* aStackImg)
 {
-  AutoLulRWLocker lock(mRWlock, AutoLulRWLocker::FOR_READING);
-
-  pthread_t me = pthread_self();
-  std::map<pthread_t, CFICache*>::iterator iter = mCaches.find(me);
-
-  if (iter == mCaches.end()) {
-    // The calling thread is not registered for unwinding.
-    MOZ_CRASH();
-    return;
-  }
-
-  CFICache* cache = iter->second;
-  MOZ_ASSERT(cache);
-
-  // Do unwindery, possibly modifying |cache|.
+  MOZ_ASSERT(!mAdminMode);
 
   /////////////////////////////////////////////////////////
   // BEGIN UNWIND
@@ -1229,23 +1144,23 @@ LUL::Unwind(/*OUT*/uintptr_t* aFramePCs,
       char buf[300];
       mLog("\n");
 #if defined(LUL_ARCH_x64) || defined(LUL_ARCH_x86)
-      snprintf(buf, sizeof(buf),
-               "LoopTop: rip %d/%llx  rsp %d/%llx  rbp %d/%llx\n",
-               (int)regs.xip.Valid(), (unsigned long long int)regs.xip.Value(),
-               (int)regs.xsp.Valid(), (unsigned long long int)regs.xsp.Value(),
-               (int)regs.xbp.Valid(), (unsigned long long int)regs.xbp.Value());
+      snprintf_literal(buf,
+                       "LoopTop: rip %d/%llx  rsp %d/%llx  rbp %d/%llx\n",
+                       (int)regs.xip.Valid(), (unsigned long long int)regs.xip.Value(),
+                       (int)regs.xsp.Valid(), (unsigned long long int)regs.xsp.Value(),
+                       (int)regs.xbp.Valid(), (unsigned long long int)regs.xbp.Value());
       buf[sizeof(buf)-1] = 0;
       mLog(buf);
 #elif defined(LUL_ARCH_arm)
-      snprintf(buf, sizeof(buf),
-               "LoopTop: r15 %d/%llx  r7 %d/%llx  r11 %d/%llx"
-               "  r12 %d/%llx  r13 %d/%llx  r14 %d/%llx\n",
-               (int)regs.r15.Valid(), (unsigned long long int)regs.r15.Value(),
-               (int)regs.r7.Valid(),  (unsigned long long int)regs.r7.Value(),
-               (int)regs.r11.Valid(), (unsigned long long int)regs.r11.Value(),
-               (int)regs.r12.Valid(), (unsigned long long int)regs.r12.Value(),
-               (int)regs.r13.Valid(), (unsigned long long int)regs.r13.Value(),
-               (int)regs.r14.Valid(), (unsigned long long int)regs.r14.Value());
+      snprintf_literal(buf,
+                       "LoopTop: r15 %d/%llx  r7 %d/%llx  r11 %d/%llx"
+                       "  r12 %d/%llx  r13 %d/%llx  r14 %d/%llx\n",
+                       (int)regs.r15.Valid(), (unsigned long long int)regs.r15.Value(),
+                       (int)regs.r7.Valid(),  (unsigned long long int)regs.r7.Value(),
+                       (int)regs.r11.Valid(), (unsigned long long int)regs.r11.Value(),
+                       (int)regs.r12.Valid(), (unsigned long long int)regs.r12.Value(),
+                       (int)regs.r13.Valid(), (unsigned long long int)regs.r13.Value(),
+                       (int)regs.r14.Valid(), (unsigned long long int)regs.r14.Value());
       buf[sizeof(buf)-1] = 0;
       mLog(buf);
 #else
@@ -1307,11 +1222,11 @@ LUL::Unwind(/*OUT*/uintptr_t* aFramePCs,
       ia.Add(TaggedUWord((uintptr_t)(-1)));
     }
 
-    RuleSet* ruleset = cache->Lookup(ia.Value());
+    RuleSet* ruleset = mPriMap->Lookup(ia.Value());
     if (DEBUG_MAIN) {
       char buf[100];
-      snprintf(buf, sizeof(buf), "ruleset for 0x%llx = %p\n",
-               (unsigned long long int)ia.Value(), ruleset);
+      snprintf_literal(buf, "ruleset for 0x%llx = %p\n",
+                       (unsigned long long int)ia.Value(), ruleset);
       buf[sizeof(buf)-1] = 0;
       mLog(buf);
     }
@@ -1520,21 +1435,6 @@ LUL::Unwind(/*OUT*/uintptr_t* aFramePCs,
 }
 
 
-void
-LUL::InvalidateCFICaches()
-{
-  // NB: the caller must hold m_rwl for writing.
-
-  // FIXME: this could get expensive.  Use a bool to remember when the
-  // caches have been invalidated and hence avoid duplicate invalidations.
-  for (std::map<pthread_t,CFICache*>::iterator iter = mCaches.begin();
-       iter != mCaches.end();
-       ++iter) {
-    iter->second->Invalidate();
-  }
-}
-
-
 ////////////////////////////////////////////////////////////////
 // LUL Unit Testing                                           //
 ////////////////////////////////////////////////////////////////
@@ -1725,13 +1625,13 @@ bool GetAndCheckStackTrace(LUL* aLUL, const char* dstring)
 
   // Show the results.
   char buf[200];
-  snprintf(buf, sizeof(buf), "LULUnitTest:   dstring = %s\n", dstring);
+  snprintf_literal(buf, "LULUnitTest:   dstring = %s\n", dstring);
   buf[sizeof(buf)-1] = 0;
   aLUL->mLog(buf);
-  snprintf(buf, sizeof(buf),
-           "LULUnitTest:     %d consistent, %d in dstring: %s\n",
-           (int)nConsistent, (int)strlen(dstring),
-           passed ? "PASS" : "FAIL");
+  snprintf_literal(buf,
+                   "LULUnitTest:     %d consistent, %d in dstring: %s\n",
+                   (int)nConsistent, (int)strlen(dstring),
+                   passed ? "PASS" : "FAIL");
   buf[sizeof(buf)-1] = 0;
   aLUL->mLog(buf);
 

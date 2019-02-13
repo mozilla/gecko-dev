@@ -1,13 +1,13 @@
 this.EXPORTED_SYMBOLS = ["Test"];
 
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+Cu.importGlobalProperties(["URL"]);
+
 this.Test = {
   start: function(ok, is, finish) {
     let worker = new ChromeWorker("jsm_url_worker.js");
     worker.onmessage = function(event) {
-
-      if (event.data.type == 'finish') {
-        finish();
-      } else if (event.data.type == 'status') {
+      if (event.data.type == 'status') {
         ok(event.data.status, event.data.msg);
       } else if (event.data.type == 'url') {
         var xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -16,7 +16,14 @@ this.Test = {
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 4) {
             ok(true, "Blob readable!");
+            URL.revokeObjectURL(event.data.url);
+            finish();
           }
+        }
+        xhr.onerror = function() {
+          ok(false, "Blob unreadable, should not happen!");
+          URL.revokeObjectURL(event.data.url);
+          finish();
         }
         xhr.send();
       }

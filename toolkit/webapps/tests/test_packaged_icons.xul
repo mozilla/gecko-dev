@@ -65,6 +65,8 @@ let iconTests = [
   {"32": generateDataURI(testIconFile) },
   // URI to a file that isn't an image
   {"32": "/index.html"},
+  // Large icon that won't be used on Windows (bug #1152597)
+  {"512": "http://example.com/chrome/toolkit/webapps/tests/data/512.png"},
 ];
 
 // This is an array of the icon sizes associated with the elements of
@@ -87,6 +89,7 @@ if (LINUX) {
     [2787, 0],
     [2787, 0],
     [4009, 0],
+    [2195, 0],
   ];
 } else if (WIN) {
   iconSizes = [
@@ -94,6 +97,8 @@ if (LINUX) {
     [4286, 0],
     [4286, 0],
     [4286, 0],
+    [16958, 0],
+    // Windows ICO doesn't support 512x512 icons. The default should be chosen.
     [16958, 0],
   ];
 } else if (MAC) {
@@ -103,10 +108,11 @@ if (LINUX) {
     [27000, 2000],
     [27000, 2000],
     [14000, 2000],
+    [1000, 2000],
   ];
 }
 
-let testAppInfo = new TestAppInfo(app);
+let testAppInfo = new TestAppInfo(app, true);
 
 let runTest = Task.async(function*() {
   SimpleTest.registerCleanupFunction(() => testAppInfo.cleanup());
@@ -132,13 +138,12 @@ let runTest = Task.async(function*() {
     // On Mac build servers, we don't have enough privileges to write to /Applications,
     // so we install apps in a user-owned directory.
     if (MAC) {
-      nativeApp._rootInstallDir = OS.Path.join(OS.Constants.Path.homeDir, "Applications");
-      yield OS.File.makeDir(nativeApp._rootInstallDir, { ignoreExisting: true });
+    yield setMacRootInstallDir(OS.Path.join(OS.Constants.Path.homeDir, "Applications"));
     }
 
     // Install application
     info("Test installation");
-    yield nativeApp.install(manifest, zipPath);
+    yield nativeApp.install(app, manifest, zipPath);
     while (!WebappOSUtils.isLaunchable(app)) {
       yield wait(1000);
     }
@@ -155,17 +160,10 @@ let runTest = Task.async(function*() {
   SimpleTest.finish();
 });
 
-// The test doesn't work yet on Mac OS X 10.6 machines.
-// See bug 993690.
-if (MAC_106) {
-  todo(false, "The test doesn't work on Mac OS X 10.6 machines");
+runTest().catch((e) => {
+  ok(false, "Error during test: " + e);
   SimpleTest.finish();
-} else {
-  runTest().then(null, function(e) {
-    ok(false, "Error during test: " + e);
-    SimpleTest.finish();
-  });
-}
+});
 
 ]]>
 </script>

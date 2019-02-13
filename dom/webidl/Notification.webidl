@@ -11,17 +11,19 @@
  * related or neighboring rights to this work.
  */
 
-[Pref="dom.webnotifications.enabled",
- Constructor(DOMString title, optional NotificationOptions options)]
+[Constructor(DOMString title, optional NotificationOptions options),
+ Exposed=(Window,Worker),
+ Func="mozilla::dom::Notification::PrefEnabled",
+ UnsafeInPrerendering]
 interface Notification : EventTarget {
   [GetterThrows]
   static readonly attribute NotificationPermission permission;
 
-  [Throws]
+  [Throws, Func="mozilla::dom::Notification::RequestPermissionEnabledForScope"]
   static void requestPermission(optional NotificationPermissionCallback permissionCallback);
 
-  [Throws]
-  static Promise get(optional GetNotificationOptions filter);
+  [Throws, Func="mozilla::dom::Notification::IsGetEnabled"]
+  static Promise<sequence<Notification>> get(optional GetNotificationOptions filter);
 
   attribute EventHandler onclick;
 
@@ -49,6 +51,9 @@ interface Notification : EventTarget {
   [Pure]
   readonly attribute DOMString? icon;
 
+  [Constant]
+  readonly attribute any data;
+
   void close();
 };
 
@@ -58,10 +63,20 @@ dictionary NotificationOptions {
   DOMString body = "";
   DOMString tag = "";
   DOMString icon = "";
+  any data = null;
+  NotificationBehavior mozbehavior = null;
 };
 
 dictionary GetNotificationOptions {
   DOMString tag;
+};
+
+dictionary NotificationBehavior {
+  boolean noscreen = false;
+  boolean noclear = false;
+  boolean showOnlyOnce = false;
+  DOMString soundFile = "";
+  sequence<unsigned long> vibrationPattern;
 };
 
 enum NotificationPermission {

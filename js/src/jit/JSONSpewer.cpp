@@ -8,7 +8,7 @@
 
 #include <stdarg.h>
 
-#include "jit/LinearScan.h"
+#include "jit/BacktrackingAllocator.h"
 #include "jit/LIR.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
@@ -17,191 +17,148 @@
 using namespace js;
 using namespace js::jit;
 
-JSONSpewer::~JSONSpewer()
-{
-    if (fp_)
-        fclose(fp_);
-}
-
 void
 JSONSpewer::indent()
 {
-    if (!fp_)
-        return;
-    JS_ASSERT(indentLevel_ >= 0);
-    fprintf(fp_, "\n");
+    MOZ_ASSERT(indentLevel_ >= 0);
+    out_.printf("\n");
     for (int i = 0; i < indentLevel_; i++)
-        fprintf(fp_, "  ");
+        out_.printf("  ");
 }
 
 void
-JSONSpewer::property(const char *name)
+JSONSpewer::property(const char* name)
 {
-    if (!fp_)
-        return;
-
     if (!first_)
-        fprintf(fp_, ",");
+        out_.printf(",");
     indent();
-    fprintf(fp_, "\"%s\":", name);
+    out_.printf("\"%s\":", name);
     first_ = false;
 }
 
 void
 JSONSpewer::beginObject()
 {
-    if (!fp_)
-        return;
-
     if (!first_) {
-        fprintf(fp_, ",");
+        out_.printf(",");
         indent();
     }
-    fprintf(fp_, "{");
+    out_.printf("{");
     indentLevel_++;
     first_ = true;
 }
 
 void
-JSONSpewer::beginObjectProperty(const char *name)
+JSONSpewer::beginObjectProperty(const char* name)
 {
-    if (!fp_)
-        return;
-
     property(name);
-    fprintf(fp_, "{");
+    out_.printf("{");
     indentLevel_++;
     first_ = true;
 }
 
 void
-JSONSpewer::beginListProperty(const char *name)
+JSONSpewer::beginListProperty(const char* name)
 {
-    if (!fp_)
-        return;
-
     property(name);
-    fprintf(fp_, "[");
+    out_.printf("[");
     first_ = true;
 }
 
 void
-JSONSpewer::stringProperty(const char *name, const char *format, ...)
+JSONSpewer::beginStringProperty(const char* name)
 {
-    if (!fp_)
-        return;
+    property(name);
+    out_.printf("\"");
+}
 
+void
+JSONSpewer::endStringProperty()
+{
+    out_.printf("\"");
+}
+
+void
+JSONSpewer::stringProperty(const char* name, const char* format, ...)
+{
     va_list ap;
     va_start(ap, format);
 
-    property(name);
-    fprintf(fp_, "\"");
-    vfprintf(fp_, format, ap);
-    fprintf(fp_, "\"");
+    beginStringProperty(name);
+    out_.vprintf(format, ap);
+    endStringProperty();
 
     va_end(ap);
 }
 
 void
-JSONSpewer::stringValue(const char *format, ...)
+JSONSpewer::stringValue(const char* format, ...)
 {
-    if (!fp_)
-        return;
-
     va_list ap;
     va_start(ap, format);
 
     if (!first_)
-        fprintf(fp_, ",");
-    fprintf(fp_, "\"");
-    vfprintf(fp_, format, ap);
-    fprintf(fp_, "\"");
+        out_.printf(",");
+    out_.printf("\"");
+    out_.vprintf(format, ap);
+    out_.printf("\"");
 
     va_end(ap);
     first_ = false;
 }
 
 void
-JSONSpewer::integerProperty(const char *name, int value)
+JSONSpewer::integerProperty(const char* name, int value)
 {
-    if (!fp_)
-        return;
-
     property(name);
-    fprintf(fp_, "%d", value);
+    out_.printf("%d", value);
 }
 
 void
 JSONSpewer::integerValue(int value)
 {
-    if (!fp_)
-        return;
-
     if (!first_)
-        fprintf(fp_, ",");
-    fprintf(fp_, "%d", value);
+        out_.printf(",");
+    out_.printf("%d", value);
     first_ = false;
 }
 
 void
 JSONSpewer::endObject()
 {
-    if (!fp_)
-        return;
-
     indentLevel_--;
     indent();
-    fprintf(fp_, "}");
+    out_.printf("}");
     first_ = false;
 }
 
 void
 JSONSpewer::endList()
 {
-    if (!fp_)
-        return;
-
-    fprintf(fp_, "]");
+    out_.printf("]");
     first_ = false;
 }
 
-bool
-JSONSpewer::init(const char *path)
-{
-    fp_ = fopen(path, "w");
-    if (!fp_)
-        return false;
-
-    beginObject();
-    beginListProperty("functions");
-    return true;
-}
-
 void
-JSONSpewer::beginFunction(JSScript *script)
+JSONSpewer::beginFunction(JSScript* script)
 {
-    if (inFunction_)
-        endFunction();
-
     beginObject();
     if (script)
         stringProperty("name", "%s:%d", script->filename(), script->lineno());
     else
         stringProperty("name", "asm.js compilation");
     beginListProperty("passes");
-
-    inFunction_ = true;
 }
 
 void
-JSONSpewer::beginPass(const char *pass)
+JSONSpewer::beginPass(const char* pass)
 {
     beginObject();
     stringProperty("name", pass);
 }
 
 void
-JSONSpewer::spewMResumePoint(MResumePoint *rp)
+JSONSpewer::spewMResumePoint(MResumePoint* rp)
 {
     if (!rp)
         return;
@@ -214,18 +171,18 @@ JSONSpewer::spewMResumePoint(MResumePoint *rp)
     property("mode");
     switch (rp->mode()) {
       case MResumePoint::ResumeAt:
-        fprintf(fp_, "\"At\"");
+        out_.printf("\"At\"");
         break;
       case MResumePoint::ResumeAfter:
-        fprintf(fp_, "\"After\"");
+        out_.printf("\"After\"");
         break;
       case MResumePoint::Outer:
-        fprintf(fp_, "\"Outer\"");
+        out_.printf("\"Outer\"");
         break;
     }
 
     beginListProperty("operands");
-    for (MResumePoint *iter = rp; iter; iter = iter->caller()) {
+    for (MResumePoint* iter = rp; iter; iter = iter->caller()) {
         for (int i = iter->numOperands() - 1; i >= 0; i--)
             integerValue(iter->getOperand(i)->id());
         if (iter->caller())
@@ -237,16 +194,16 @@ JSONSpewer::spewMResumePoint(MResumePoint *rp)
 }
 
 void
-JSONSpewer::spewMDef(MDefinition *def)
+JSONSpewer::spewMDef(MDefinition* def)
 {
     beginObject();
 
     integerProperty("id", def->id());
 
     property("opcode");
-    fprintf(fp_, "\"");
-    def->printOpcode(fp_);
-    fprintf(fp_, "\"");
+    out_.printf("\"");
+    def->printOpcode(out_);
+    out_.printf("\"");
 
     beginListProperty("attributes");
 #define OUTPUT_ATTRIBUTE(X) do{ if(def->is##X()) stringValue(#X); } while(0);
@@ -264,21 +221,28 @@ JSONSpewer::spewMDef(MDefinition *def)
         integerValue(use.def()->id());
     endList();
 
+    if (!def->isLowered()) {
+        beginListProperty("memInputs");
+        if (def->dependency())
+            integerValue(def->dependency()->id());
+        endList();
+    }
+
     bool isTruncated = false;
     if (def->isAdd() || def->isSub() || def->isMod() || def->isMul() || def->isDiv())
         isTruncated = static_cast<MBinaryArithInstruction*>(def)->isTruncated();
 
     if (def->type() != MIRType_None && def->range()) {
-        Sprinter sp(GetIonContext()->cx);
-        sp.init();
-        def->range()->print(sp);
-        stringProperty("type", "%s : %s%s", sp.string(), StringFromMIRType(def->type()), (isTruncated ? " (t)" : ""));
+        beginStringProperty("type");
+        def->range()->dump(out_);
+        out_.printf(" : %s%s", StringFromMIRType(def->type()), (isTruncated ? " (t)" : ""));
+        endStringProperty();
     } else {
         stringProperty("type", "%s%s", StringFromMIRType(def->type()), (isTruncated ? " (t)" : ""));
     }
 
     if (def->isInstruction()) {
-        if (MResumePoint *rp = def->toInstruction()->resumePoint())
+        if (MResumePoint* rp = def->toInstruction()->resumePoint())
             spewMResumePoint(rp);
     }
 
@@ -286,11 +250,8 @@ JSONSpewer::spewMDef(MDefinition *def)
 }
 
 void
-JSONSpewer::spewMIR(MIRGraph *mir)
+JSONSpewer::spewMIR(MIRGraph* mir)
 {
-    if (!fp_)
-        return;
-
     beginObjectProperty("mir");
     beginListProperty("blocks");
 
@@ -335,19 +296,16 @@ JSONSpewer::spewMIR(MIRGraph *mir)
 }
 
 void
-JSONSpewer::spewLIns(LInstruction *ins)
+JSONSpewer::spewLIns(LNode* ins)
 {
-    if (!fp_)
-        return;
-
     beginObject();
 
     integerProperty("id", ins->id());
 
     property("opcode");
-    fprintf(fp_, "\"");
-    ins->dump(fp_);
-    fprintf(fp_, "\"");
+    out_.printf("\"");
+    ins->dump(out_);
+    out_.printf("\"");
 
     beginListProperty("defs");
     for (size_t i = 0; i < ins->numDefs(); i++)
@@ -358,16 +316,13 @@ JSONSpewer::spewLIns(LInstruction *ins)
 }
 
 void
-JSONSpewer::spewLIR(MIRGraph *mir)
+JSONSpewer::spewLIR(MIRGraph* mir)
 {
-    if (!fp_)
-        return;
-
     beginObjectProperty("lir");
     beginListProperty("blocks");
 
     for (MBasicBlockIterator i(mir->begin()); i != mir->end(); i++) {
-        LBlock *block = i->lir();
+        LBlock* block = i->lir();
         if (!block)
             continue;
 
@@ -389,12 +344,9 @@ JSONSpewer::spewLIR(MIRGraph *mir)
 }
 
 void
-JSONSpewer::spewIntervals(LinearScanAllocator *regalloc)
+JSONSpewer::spewRanges(BacktrackingAllocator* regalloc)
 {
-    if (!fp_)
-        return;
-
-    beginObjectProperty("intervals");
+    beginObjectProperty("ranges");
     beginListProperty("blocks");
 
     for (size_t bno = 0; bno < regalloc->graph.numBlocks(); bno++) {
@@ -402,35 +354,25 @@ JSONSpewer::spewIntervals(LinearScanAllocator *regalloc)
         integerProperty("number", bno);
         beginListProperty("vregs");
 
-        LBlock *lir = regalloc->graph.getBlock(bno);
+        LBlock* lir = regalloc->graph.getBlock(bno);
         for (LInstructionIterator ins = lir->begin(); ins != lir->end(); ins++) {
             for (size_t k = 0; k < ins->numDefs(); k++) {
                 uint32_t id = ins->getDef(k)->virtualRegister();
-                VirtualRegister *vreg = &regalloc->vregs[id];
+                VirtualRegister* vreg = &regalloc->vregs[id];
 
                 beginObject();
                 integerProperty("vreg", id);
-                beginListProperty("intervals");
+                beginListProperty("ranges");
 
-                for (size_t i = 0; i < vreg->numIntervals(); i++) {
-                    LiveInterval *live = vreg->getInterval(i);
+                for (LiveRange::RegisterLinkIterator iter = vreg->rangesBegin(); iter; iter++) {
+                    LiveRange* range = LiveRange::get(*iter);
 
-                    if (live->numRanges()) {
-                        beginObject();
-                        property("allocation");
-                        fprintf(fp_, "\"%s\"", live->getAllocation()->toString());
-                        beginListProperty("ranges");
-
-                        for (size_t j = 0; j < live->numRanges(); j++) {
-                            beginObject();
-                            integerProperty("start", live->getRange(j)->from.pos());
-                            integerProperty("end", live->getRange(j)->to.pos());
-                            endObject();
-                        }
-
-                        endList();
-                        endObject();
-                    }
+                    beginObject();
+                    property("allocation");
+                    out_.printf("\"%s\"", range->bundle()->allocation().toString());
+                    integerProperty("start", range->from().bits());
+                    integerProperty("end", range->to().bits());
+                    endObject();
                 }
 
                 endList();
@@ -450,33 +392,20 @@ void
 JSONSpewer::endPass()
 {
     endObject();
-    fflush(fp_);
 }
 
 void
 JSONSpewer::endFunction()
 {
-    JS_ASSERT(inFunction_);
     endList();
     endObject();
-    fflush(fp_);
-    inFunction_ = false;
 }
 
 void
-JSONSpewer::finish()
+JSONSpewer::spewDebuggerGraph(MIRGraph* graph)
 {
-    if (!fp_)
-        return;
-
-    if (inFunction_)
-        endFunction();
-
-    endList();
+    beginObject();
+    spewMIR(graph);
+    spewLIR(graph);
     endObject();
-    fprintf(fp_, "\n");
-
-    fclose(fp_);
-    fp_ = nullptr;
 }
-

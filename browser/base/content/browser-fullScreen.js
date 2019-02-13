@@ -1,20 +1,41 @@
-# -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+# -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 var FullScreen = {
-  _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
-  get _fullScrToggler() {
-    delete this._fullScrToggler;
-    return this._fullScrToggler = document.getElementById("fullscr-toggler");
-  },
-  toggle: function (event) {
-    var enterFS = window.fullScreen;
+  _MESSAGES: [
+    "DOMFullscreen:Request",
+    "DOMFullscreen:NewOrigin",
+    "DOMFullscreen:Exit",
+  ],
 
-    // We get the fullscreen event _before_ the window transitions into or out of FS mode.
-    if (event && event.type == "fullscreen")
-      enterFS = !enterFS;
+  init: function() {
+    // called when we go into full screen, even if initiated by a web page script
+    window.addEventListener("fullscreen", this, true);
+    window.addEventListener("MozDOMFullscreen:Entered", this,
+                            /* useCapture */ true,
+                            /* wantsUntrusted */ false);
+    window.addEventListener("MozDOMFullscreen:Exited", this,
+                            /* useCapture */ true,
+                            /* wantsUntrusted */ false);
+    for (let type of this._MESSAGES) {
+      window.messageManager.addMessageListener(type, this);
+    }
+
+    if (window.fullScreen)
+      this.toggle();
+  },
+
+  uninit: function() {
+    for (let type of this._MESSAGES) {
+      window.messageManager.removeMessageListener(type, this);
+    }
+    this.cleanup();
+  },
+
+  toggle: function () {
+    var enterFS = window.fullScreen;
 
     // Toggle the View:FullScreen command, which controls elements like the
     // fullscreen menuitem, and menubars.
@@ -31,59 +52,45 @@ var FullScreen = {
     document.getElementById("exitFullScreenItem").hidden = !enterFS;
 #endif
 
-    // On OS X Lion we don't want to hide toolbars when entering fullscreen, unless
-    // we're entering DOM fullscreen, in which case we should hide the toolbars.
-    // If we're leaving fullscreen, then we'll go through the exit code below to
-    // make sure toolbars are made visible in the case of DOM fullscreen.
-    if (enterFS && this.useLionFullScreen) {
-      if (document.mozFullScreen) {
-        this.showXULChrome("toolbar", false);
-      }
-      else {
-        gNavToolbox.setAttribute("inFullscreen", true);
-        document.documentElement.setAttribute("inFullscreen", true);
-      }
-      return;
+    if (!this._fullScrToggler) {
+      this._fullScrToggler = document.getElementById("fullscr-toggler");
+      this._fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
+      this._fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
     }
 
-    // show/hide menubars, toolbars (except the full screen toolbar)
-    this.showXULChrome("toolbar", !enterFS);
+    if (enterFS) {
+      gNavToolbox.setAttribute("inFullscreen", true);
+      document.documentElement.setAttribute("inFullscreen", true);
+      if (!document.mozFullScreen && this.useLionFullScreen)
+        document.documentElement.setAttribute("OSXLionFullscreen", true);
+    } else {
+      gNavToolbox.removeAttribute("inFullscreen");
+      document.documentElement.removeAttribute("inFullscreen");
+      document.documentElement.removeAttribute("OSXLionFullscreen");
+    }
+
+    if (!document.mozFullScreen)
+      this._updateToolbars(enterFS);
 
     if (enterFS) {
-      // Add a tiny toolbar to receive mouseover and dragenter events, and provide affordance.
-      // This will help simulate the "collapse" metaphor while also requiring less code and
-      // events than raw listening of mouse coords. We don't add the toolbar in DOM full-screen
-      // mode, only browser full-screen mode.
-      if (!document.mozFullScreen) {
-        this._fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
-        this._fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
-      }
-      if (gPrefService.getBoolPref("browser.fullscreen.autohide"))
-        gBrowser.mPanelContainer.addEventListener("mousemove",
-                                                  this._collapseCallback, false);
-
       document.addEventListener("keypress", this._keyToggleCallback, false);
       document.addEventListener("popupshown", this._setPopupOpen, false);
       document.addEventListener("popuphidden", this._setPopupOpen, false);
-      // We don't animate the toolbar collapse if in DOM full-screen mode,
-      // as the size of the content area would still be changing after the
-      // mozfullscreenchange event fired, which could confuse content script.
-      this._shouldAnimate = !document.mozFullScreen;
-      this.mouseoverToggle(false);
-
-      // Autohide prefs
-      gPrefService.addObserver("browser.fullscreen", this, false);
+      // In DOM fullscreen mode, we hide toolbars with CSS
+      if (!document.mozFullScreen)
+        this.hideNavToolbox(true);
     }
     else {
-      // The user may quit fullscreen during an animation
-      this._cancelAnimation();
-      gNavToolbox.style.marginTop = "";
-      if (this._isChromeCollapsed)
-        this.mouseoverToggle(true);
+      this.showNavToolbox(false);
       // This is needed if they use the context menu to quit fullscreen
       this._isPopupOpen = false;
-
       this.cleanup();
+      // In TabsInTitlebar._update(), we cancel the appearance update on
+      // resize event for exiting fullscreen, since that happens before we
+      // change the UI here in the "fullscreen" event. Hence we need to
+      // call it here to ensure the appearance is properly updated. See
+      // TabsInTitlebar._update() and bug 1173768.
+      TabsInTitlebar.updateAppearance(true);
     }
   },
 
@@ -95,48 +102,96 @@ var FullScreen = {
     switch (event.type) {
       case "activate":
         if (document.mozFullScreen) {
-          this.showWarning(this.fullscreenDoc);
+          this.showWarning(this.fullscreenOrigin);
         }
+        break;
+      case "fullscreen":
+        this.toggle();
         break;
       case "transitionend":
         if (event.propertyName == "opacity")
           this.cancelWarning();
         break;
+      case "MozDOMFullscreen:Entered": {
+        // The event target is the element which requested the DOM
+        // fullscreen. If we were entering DOM fullscreen for a remote
+        // browser, the target would be `gBrowser` and the original
+        // target would be the browser which was the parameter of
+        // `remoteFrameFullscreenChanged` call. If the fullscreen
+        // request was initiated from an in-process browser, we need
+        // to get its corresponding browser here.
+        let browser;
+        if (event.target == gBrowser) {
+          browser = event.originalTarget;
+        } else {
+          let topWin = event.target.ownerDocument.defaultView.top;
+          browser = gBrowser.getBrowserForContentWindow(topWin);
+          if (!browser) {
+            document.mozCancelFullScreen();
+            break;
+          }
+        }
+        if (!this.enterDomFullscreen(browser)) {
+          break;
+        }
+        // If it is a remote browser, send a message to ask the content
+        // to enter fullscreen state. We don't need to do so if it is an
+        // in-process browser, since all related document should have
+        // entered fullscreen state at this point.
+        if (this._isRemoteBrowser(browser)) {
+          browser.messageManager.sendAsyncMessage("DOMFullscreen:Entered");
+        }
+        break;
+      }
+      case "MozDOMFullscreen:Exited":
+        this.cleanupDomFullscreen();
+        break;
     }
   },
 
-  enterDomFullscreen : function(event) {
-    if (!document.mozFullScreen)
-      return;
+  receiveMessage: function(aMessage) {
+    let browser = aMessage.target;
+    switch (aMessage.name) {
+      case "DOMFullscreen:Request": {
+        this._windowUtils.remoteFrameFullscreenChanged(browser);
+        break;
+      }
+      case "DOMFullscreen:NewOrigin": {
+        this.showWarning(aMessage.data.originNoSuffix);
+        break;
+      }
+      case "DOMFullscreen:Exit": {
+        this._windowUtils.remoteFrameFullscreenReverted();
+        break;
+      }
+    }
+  },
 
-    // However, if we receive a "MozEnteredDomFullScreen" event for a document
-    // which is not a subdocument of a currently active (ie. visible) browser
-    // or iframe, we know that we've switched to a different frame since the
-    // request to enter full-screen was made, so we should exit full-screen
-    // since the "full-screen document" isn't acutally visible.
-    if (!event.target.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIWebNavigation)
-                                 .QueryInterface(Ci.nsIDocShell).isActive) {
+  enterDomFullscreen : function(aBrowser) {
+    if (!document.mozFullScreen)
+      return false;
+
+    // If we've received a fullscreen notification, we have to ensure that the
+    // element that's requesting fullscreen belongs to the browser that's currently
+    // active. If not, we exit fullscreen since the "full-screen document" isn't
+    // actually visible now.
+    if (gBrowser.selectedBrowser != aBrowser) {
       document.mozCancelFullScreen();
-      return;
+      return false;
     }
 
-    let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    let focusManager = Services.focus;
     if (focusManager.activeWindow != window) {
       // The top-level window has lost focus since the request to enter
       // full-screen was made. Cancel full-screen.
       document.mozCancelFullScreen();
-      return;
+      return false;
     }
 
-    // Ensure the sidebar is hidden.
-    if (!document.getElementById("sidebar-box").hidden)
-      toggleSidebar();
+    document.documentElement.setAttribute("inDOMFullscreen", true);
 
     if (gFindBarInitialized)
       gFindBar.close();
-
-    this.showWarning(event.target);
 
     // Exit DOM full-screen mode upon open, close, or change tab.
     gBrowser.tabContainer.addEventListener("TabOpen", this.exitDomFullScreen);
@@ -146,100 +201,90 @@ var FullScreen = {
     // Add listener to detect when the fullscreen window is re-focused.
     // If a fullscreen window loses focus, we show a warning when the
     // fullscreen window is refocused.
-    if (!this.useLionFullScreen) {
-      window.addEventListener("activate", this);
-    }
+    window.addEventListener("activate", this);
 
-    // Cancel any "hide the toolbar" animation which is in progress, and make
-    // the toolbar hide immediately.
-    this._cancelAnimation();
-    this.mouseoverToggle(false);
-
-    // Remove listeners on the full-screen toggler, so that mouseover
-    // the top of the screen will not cause the toolbar to re-appear.
-    this._fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
-    this._fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
+    return true;
   },
 
   cleanup: function () {
-    if (window.fullScreen) {
-      gBrowser.mPanelContainer.removeEventListener("mousemove",
-                                                   this._collapseCallback, false);
+    if (!window.fullScreen) {
+      MousePosTracker.removeListener(this);
       document.removeEventListener("keypress", this._keyToggleCallback, false);
       document.removeEventListener("popupshown", this._setPopupOpen, false);
       document.removeEventListener("popuphidden", this._setPopupOpen, false);
-      gPrefService.removeObserver("browser.fullscreen", this);
-
-      this._fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
-      this._fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
-      this.cancelWarning();
-      gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
-      gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
-      gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      if (!this.useLionFullScreen)
-        window.removeEventListener("activate", this);
-      this.fullscreenDoc = null;
     }
   },
 
-  observe: function(aSubject, aTopic, aData)
+  cleanupDomFullscreen: function () {
+    this.cancelWarning();
+    gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
+    gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
+    gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
+    window.removeEventListener("activate", this);
+
+    document.documentElement.removeAttribute("inDOMFullscreen");
+
+    window.messageManager
+          .broadcastAsyncMessage("DOMFullscreen:CleanUp");
+  },
+
+  _isRemoteBrowser: function (aBrowser) {
+    return gMultiProcessBrowser && aBrowser.getAttribute("remote") == "true";
+  },
+
+  get _windowUtils() {
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIDOMWindowUtils);
+  },
+
+  getMouseTargetRect: function()
   {
-    if (aData == "browser.fullscreen.autohide") {
-      if (gPrefService.getBoolPref("browser.fullscreen.autohide")) {
-        gBrowser.mPanelContainer.addEventListener("mousemove",
-                                                  this._collapseCallback, false);
-      }
-      else {
-        gBrowser.mPanelContainer.removeEventListener("mousemove",
-                                                     this._collapseCallback, false);
-      }
-    }
+    return this._mouseTargetRect;
   },
 
   // Event callbacks
   _expandCallback: function()
   {
-    FullScreen.mouseoverToggle(true);
+    FullScreen.showNavToolbox();
   },
-  _collapseCallback: function()
+  onMouseEnter: function()
   {
-    FullScreen.mouseoverToggle(false);
+    FullScreen.hideNavToolbox();
   },
   _keyToggleCallback: function(aEvent)
   {
     // if we can use the keyboard (eg Ctrl+L or Ctrl+E) to open the toolbars, we
     // should provide a way to collapse them too.
     if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
-      FullScreen._shouldAnimate = false;
-      FullScreen.mouseoverToggle(false, true);
+      FullScreen.hideNavToolbox();
     }
     // F6 is another shortcut to the address bar, but its not covered in OpenLocation()
     else if (aEvent.keyCode == aEvent.DOM_VK_F6)
-      FullScreen.mouseoverToggle(true);
+      FullScreen.showNavToolbox();
   },
 
   // Checks whether we are allowed to collapse the chrome
   _isPopupOpen: false,
   _isChromeCollapsed: false,
-  _safeToCollapse: function(forceHide)
-  {
+  _safeToCollapse: function () {
     if (!gPrefService.getBoolPref("browser.fullscreen.autohide"))
       return false;
 
     // a popup menu is open in chrome: don't collapse chrome
-    if (!forceHide && this._isPopupOpen)
+    if (this._isPopupOpen)
+      return false;
+
+    // On OS X Lion we don't want to hide toolbars.
+    if (this.useLionFullScreen)
       return false;
 
     // a textbox in chrome is focused (location bar anyone?): don't collapse chrome
     if (document.commandDispatcher.focusedElement &&
         document.commandDispatcher.focusedElement.ownerDocument == document &&
         document.commandDispatcher.focusedElement.localName == "input") {
-      if (forceHide)
-        // hidden textboxes that still have focus are bad bad bad
-        document.commandDispatcher.focusedElement.blur();
-      else
-        return false;
+      return false;
     }
+
     return true;
   },
 
@@ -265,50 +310,6 @@ var FullScreen = {
   setAutohide: function()
   {
     gPrefService.setBoolPref("browser.fullscreen.autohide", !gPrefService.getBoolPref("browser.fullscreen.autohide"));
-  },
-
-  // Animate the toolbars disappearing
-  _shouldAnimate: true,
-  _isAnimating: false,
-  _animationTimeout: 0,
-  _animationHandle: 0,
-  _animateUp: function() {
-    // check again, the user may have done something before the animation was due to start
-    if (!window.fullScreen || !this._safeToCollapse(false)) {
-      this._isAnimating = false;
-      this._shouldAnimate = true;
-      return;
-    }
-
-    this._animateStartTime = window.mozAnimationStartTime;
-    if (!this._animationHandle)
-      this._animationHandle = window.mozRequestAnimationFrame(this);
-  },
-
-  sample: function (timeStamp) {
-    const duration = 1500;
-    const timePassed = timeStamp - this._animateStartTime;
-    const pos = timePassed >= duration ? 1 :
-                1 - Math.pow(1 - timePassed / duration, 4);
-
-    if (pos >= 1) {
-      // We've animated enough
-      this._cancelAnimation();
-      gNavToolbox.style.marginTop = "";
-      this.mouseoverToggle(false);
-      return;
-    }
-
-    gNavToolbox.style.marginTop = (gNavToolbox.boxObject.height * pos * -1) + "px";
-    this._animationHandle = window.mozRequestAnimationFrame(this);
-  },
-
-  _cancelAnimation: function() {
-    window.mozCancelAnimationFrame(this._animationHandle);
-    this._animationHandle = 0;
-    clearTimeout(this._animationTimeout);
-    this._isAnimating = false;
-    this._shouldAnimate = false;
   },
 
   cancelWarning: function(event) {
@@ -337,7 +338,7 @@ var FullScreen = {
     // the permission manager can't handle (documents with URIs without a host).
     // We simply require those to be approved every time instead.
     let rememberCheckbox = document.getElementById("full-screen-remember-decision");
-    let uri = this.fullscreenDoc.nodePrincipal.URI;
+    let uri = BrowserUtils.makeURI(this.fullscreenOrigin);
     if (!rememberCheckbox.hidden) {
       if (rememberCheckbox.checked)
         Services.perms.add(uri,
@@ -370,27 +371,29 @@ var FullScreen = {
     // If the document has been granted fullscreen, notify Gecko so it can resume
     // any pending pointer lock requests, otherwise exit fullscreen; the user denied
     // the fullscreen request.
-    if (isApproved)
-      Services.obs.notifyObservers(this.fullscreenDoc, "fullscreen-approved", "");
-    else
+    if (isApproved) {
+      gBrowser.selectedBrowser
+              .messageManager
+              .sendAsyncMessage("DOMFullscreen:Approved");
+    } else {
       document.mozCancelFullScreen();
+    }
   },
 
   warningBox: null,
   warningFadeOutTimeout: null,
-  fullscreenDoc: null,
 
   // Shows the fullscreen approval UI, or if the domain has already been approved
   // for fullscreen, shows a warning that the site has entered fullscreen for a short
   // duration.
-  showWarning: function(targetDoc) {
+  showWarning: function(aOrigin) {
     if (!document.mozFullScreen ||
         !gPrefService.getBoolPref("full-screen-api.approval-required"))
       return;
 
     // Set the strings on the fullscreen approval UI.
-    this.fullscreenDoc = targetDoc;
-    let uri = this.fullscreenDoc.nodePrincipal.URI;
+    this.fullscreenOrigin = aOrigin;
+    let uri = BrowserUtils.makeURI(aOrigin);
     let host = null;
     try {
       host = uri.host;
@@ -464,94 +467,85 @@ var FullScreen = {
           3000);
   },
 
-  mouseoverToggle: function(aShow, forceHide)
-  {
-    // Don't do anything if:
-    // a) we're already in the state we want,
-    // b) we're animating and will become collapsed soon, or
-    // c) we can't collapse because it would be undesirable right now
-    if (aShow != this._isChromeCollapsed || (!aShow && this._isAnimating) ||
-        (!aShow && !this._safeToCollapse(forceHide)))
-      return;
+  showNavToolbox: function(trackMouse = true) {
+    this._fullScrToggler.hidden = true;
+    gNavToolbox.removeAttribute("fullscreenShouldAnimate");
+    gNavToolbox.style.marginTop = "";
 
-    // browser.fullscreen.animateUp
-    // 0 - never animate up
-    // 1 - animate only for first collapse after entering fullscreen (default for perf's sake)
-    // 2 - animate every time it collapses
-    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 0)
-      this._shouldAnimate = false;
-
-    if (!aShow && this._shouldAnimate) {
-      this._isAnimating = true;
-      this._shouldAnimate = false;
-      this._animationTimeout = setTimeout(this._animateUp.bind(this), 800);
+    if (!this._isChromeCollapsed) {
       return;
     }
 
-    // The chrome is collapsed so don't spam needless mousemove events
-    if (aShow) {
-      gBrowser.mPanelContainer.addEventListener("mousemove",
-                                                this._collapseCallback, false);
-    }
-    else {
-      gBrowser.mPanelContainer.removeEventListener("mousemove",
-                                                   this._collapseCallback, false);
+    // Track whether mouse is near the toolbox
+    if (trackMouse && !this.useLionFullScreen) {
+      let rect = gBrowser.mPanelContainer.getBoundingClientRect();
+      this._mouseTargetRect = {
+        top: rect.top + 50,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      };
+      MousePosTracker.addListener(this);
     }
 
-    // Hiding/collapsing the toolbox interferes with the tab bar's scrollbox,
-    // so we just move it off-screen instead. See bug 430687.
-    gNavToolbox.style.marginTop =
-      aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
-
-    this._fullScrToggler.collapsed = aShow;
-    this._isChromeCollapsed = !aShow;
-    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
-      this._shouldAnimate = true;
+    this._isChromeCollapsed = false;
   },
 
-  showXULChrome: function(aTag, aShow)
-  {
-    var els = document.getElementsByTagNameNS(this._XULNS, aTag);
+  hideNavToolbox: function (aAnimate = false) {
+    if (this._isChromeCollapsed || !this._safeToCollapse())
+      return;
 
-    for (let el of els) {
-      // XXX don't interfere with previously collapsed toolbars
-      if (el.getAttribute("fullscreentoolbar") == "true") {
-        if (!aShow) {
-          // Give the main nav bar and the tab bar the fullscreen context menu,
-          // otherwise remove context menu to prevent breakage
-          el.setAttribute("saved-context", el.getAttribute("context"));
-          if (el.id == "nav-bar" || el.id == "TabsToolbar")
-            el.setAttribute("context", "autohide-context");
-          else
-            el.removeAttribute("context");
+    this._fullScrToggler.hidden = false;
 
-          // Set the inFullscreen attribute to allow specific styling
-          // in fullscreen mode
-          el.setAttribute("inFullscreen", true);
-        }
-        else {
-          if (el.hasAttribute("saved-context")) {
-            el.setAttribute("context", el.getAttribute("saved-context"));
-            el.removeAttribute("saved-context");
-          }
-          el.removeAttribute("inFullscreen");
-        }
-      } else {
-        // use moz-collapsed so it doesn't persist hidden/collapsed,
-        // so that new windows don't have missing toolbars
-        if (aShow)
-          el.removeAttribute("moz-collapsed");
+    if (aAnimate && gPrefService.getBoolPref("browser.fullscreen.animate")) {
+      gNavToolbox.setAttribute("fullscreenShouldAnimate", true);
+      // Hide the fullscreen toggler until the transition ends.
+      let listener = () => {
+        gNavToolbox.removeEventListener("transitionend", listener, true);
+        if (this._isChromeCollapsed)
+          this._fullScrToggler.hidden = false;
+      };
+      gNavToolbox.addEventListener("transitionend", listener, true);
+      this._fullScrToggler.hidden = true;
+    }
+
+    gNavToolbox.style.marginTop =
+      -gNavToolbox.getBoundingClientRect().height + "px";
+    this._isChromeCollapsed = true;
+    MousePosTracker.removeListener(this);
+  },
+
+  _updateToolbars: function (aEnterFS) {
+    for (let el of document.querySelectorAll("toolbar[fullscreentoolbar=true]")) {
+      if (aEnterFS) {
+        // Give the main nav bar and the tab bar the fullscreen context menu,
+        // otherwise remove context menu to prevent breakage
+        el.setAttribute("saved-context", el.getAttribute("context"));
+        if (el.id == "nav-bar" || el.id == "TabsToolbar")
+          el.setAttribute("context", "autohide-context");
         else
-          el.setAttribute("moz-collapsed", "true");
+          el.removeAttribute("context");
+
+        // Set the inFullscreen attribute to allow specific styling
+        // in fullscreen mode
+        el.setAttribute("inFullscreen", true);
+      } else {
+        if (el.hasAttribute("saved-context")) {
+          el.setAttribute("context", el.getAttribute("saved-context"));
+          el.removeAttribute("saved-context");
+        }
+        el.removeAttribute("inFullscreen");
       }
     }
 
-    if (aShow) {
-      gNavToolbox.removeAttribute("inFullscreen");
-      document.documentElement.removeAttribute("inFullscreen");
-    } else {
-      gNavToolbox.setAttribute("inFullscreen", true);
-      document.documentElement.setAttribute("inFullscreen", true);
+    ToolbarIconColor.inferFromText();
+
+    // For Lion fullscreen, all fullscreen controls are hidden, don't
+    // bother to touch them. If we don't stop here, the following code
+    // could cause the native fullscreen button be shown unexpectedly.
+    // See bug 1165570.
+    if (this.useLionFullScreen) {
+      return;
     }
 
     var fullscreenctls = document.getElementById("window-controls");
@@ -565,9 +559,7 @@ var FullScreen = {
       fullscreenctls.setAttribute("flex", "1");
       navbar.appendChild(fullscreenctls);
     }
-    fullscreenctls.hidden = aShow;
-
-    ToolbarIconColor.inferFromText();
+    fullscreenctls.hidden = !aEnterFS;
   }
 };
 XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {

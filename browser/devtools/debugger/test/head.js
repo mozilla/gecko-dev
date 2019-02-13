@@ -20,7 +20,8 @@ let { require } = devtools;
 let { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 let { BrowserToolboxProcess } = Cu.import("resource:///modules/devtools/ToolboxProcess.jsm", {});
 let { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
-let { DebuggerClient } = Cu.import("resource://gre/modules/devtools/dbg-client.jsm", {});
+let { DebuggerClient, ObjectClient } =
+  Cu.import("resource://gre/modules/devtools/dbg-client.jsm", {});
 let { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 let EventEmitter = require("devtools/toolkit/event-emitter");
 const { promiseInvoke } = require("devtools/async-utils");
@@ -28,6 +29,7 @@ let TargetFactory = devtools.TargetFactory;
 let Toolbox = devtools.Toolbox;
 
 const EXAMPLE_URL = "http://example.com/browser/browser/devtools/debugger/test/";
+const FRAME_SCRIPT_URL = getRootDirectory(gTestPath) + "code_frame-script.js";
 
 gDevTools.testing = true;
 SimpleTest.registerCleanupFunction(() => {
@@ -37,9 +39,18 @@ SimpleTest.registerCleanupFunction(() => {
 // All tests are asynchronous.
 waitForExplicitFinish();
 
-registerCleanupFunction(function() {
+registerCleanupFunction(function* () {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
+
+  while (gBrowser && gBrowser.tabs && gBrowser.tabs.length > 1) {
+    info("Destroying toolbox.");
+    let target = TargetFactory.forTab(gBrowser.selectedTab);
+    yield gDevTools.closeToolbox(target);
+
+    info("Removing tab.");
+    gBrowser.removeCurrentTab();
+  }
 
   // Properly shut down the server to avoid memory leaks.
   DebuggerServer.destroy();
@@ -85,6 +96,9 @@ function addTab(aUrl, aWindow) {
   targetWindow.focus();
   let tab = targetBrowser.selectedTab = targetBrowser.addTab(aUrl);
   let linkedBrowser = tab.linkedBrowser;
+
+  info("Loading frame script with url " + FRAME_SCRIPT_URL + ".");
+  linkedBrowser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
 
   linkedBrowser.addEventListener("load", function onLoad() {
     linkedBrowser.removeEventListener("load", onLoad, true);
@@ -242,10 +256,10 @@ function waitForTime(aDelay) {
 
 function waitForSourceShown(aPanel, aUrl) {
   return waitForDebuggerEvents(aPanel, aPanel.panelWin.EVENTS.SOURCE_SHOWN).then(aSource => {
-    let sourceUrl = aSource.url;
+    let sourceUrl = aSource.url || aSource.introductionUrl;
     info("Source shown: " + sourceUrl);
 
-    if (!sourceUrl.contains(aUrl)) {
+    if (!sourceUrl.includes(aUrl)) {
       return waitForSourceShown(aPanel, aUrl);
     } else {
       ok(true, "The correct source has been shown.");
@@ -257,15 +271,18 @@ function waitForEditorLocationSet(aPanel) {
   return waitForDebuggerEvents(aPanel, aPanel.panelWin.EVENTS.EDITOR_LOCATION_SET);
 }
 
-function ensureSourceIs(aPanel, aUrl, aWaitFlag = false) {
-  if (aPanel.panelWin.DebuggerView.Sources.selectedValue.contains(aUrl)) {
-    ok(true, "Expected source is shown: " + aUrl);
+function ensureSourceIs(aPanel, aUrlOrSource, aWaitFlag = false) {
+  let sources = aPanel.panelWin.DebuggerView.Sources;
+
+  if (sources.selectedValue === aUrlOrSource ||
+      sources.selectedItem.attachment.source.url.includes(aUrlOrSource)) {
+    ok(true, "Expected source is shown: " + aUrlOrSource);
     return promise.resolve(null);
   }
   if (aWaitFlag) {
-    return waitForSourceShown(aPanel, aUrl);
+    return waitForSourceShown(aPanel, aUrlOrSource);
   }
-  ok(false, "Expected source was not already shown: " + aUrl);
+  ok(false, "Expected source was not already shown: " + aUrlOrSource);
   return promise.reject(null);
 }
 
@@ -425,6 +442,12 @@ function waitForClientEvents(aPanel, aEventName, aEventRepeat = 1) {
   return deferred.promise;
 }
 
+function waitForClipboardPromise(setup, expected) {
+  return new Promise((resolve, reject) => {
+    SimpleTest.waitForClipboard(expected, setup, resolve, reject);
+  });
+}
+
 function ensureThreadClientState(aPanel, aState) {
   let thread = aPanel.panelWin.gThreadClient;
   let state = thread.state;
@@ -490,9 +513,13 @@ function getTab(aTarget, aWindow) {
 }
 
 function getSources(aClient) {
+  info("Getting sources.");
+
   let deferred = promise.defer();
 
-  aClient.getSources(({sources}) => deferred.resolve(sources));
+  aClient.getSources((packet) => {
+    deferred.resolve(packet.sources);
+  });
 
   return deferred.promise;
 }
@@ -544,9 +571,10 @@ AddonDebugger.prototype = {
     info("Initializing an addon debugger panel.");
 
     if (!DebuggerServer.initialized) {
-      DebuggerServer.init(() => true);
+      DebuggerServer.init();
       DebuggerServer.addBrowserActors();
     }
+    DebuggerServer.allowChromeProcess = true;
 
     this.frame = document.createElement("iframe");
     this.frame.setAttribute("height", 400);
@@ -563,13 +591,10 @@ AddonDebugger.prototype = {
     let addonActor = yield getAddonActorForUrl(this.client, aUrl);
 
     let targetOptions = {
-      form: {
-        addonActor: addonActor.actor,
-        consoleActor: addonActor.consoleActor,
-        title: addonActor.name
-      },
+      form: addonActor,
       client: this.client,
-      chrome: true
+      chrome: true,
+      isTabActor: false
     };
 
     let toolboxOptions = {
@@ -658,7 +683,7 @@ AddonDebugger.prototype = {
     }
 
     for (let source of sources) {
-      let { label, group } = debuggerWin.DebuggerView.Sources.getItemByValue(source.url).attachment;
+      let { label, group } = debuggerWin.DebuggerView.Sources.getItemByValue(source.actor).attachment;
 
       if (!groupmap.has(group)) {
         ok(false, "Saw a source group not in the UI: " + group);
@@ -707,8 +732,8 @@ function prepareDebugger(aDebugger) {
     let view = aDebugger.panelWin.DebuggerView;
     view.Variables.lazyEmpty = false;
     view.Variables.lazySearch = false;
-    view.FilteredSources._autoSelectFirstItem = true;
-    view.FilteredFunctions._autoSelectFirstItem = true;
+    view.Filtering.FilteredSources._autoSelectFirstItem = true;
+    view.Filtering.FilteredFunctions._autoSelectFirstItem = true;
   } else {
     // Nothing to do here yet.
   }
@@ -752,6 +777,13 @@ function getBlackBoxButton(aPanel) {
   return aPanel.panelWin.document.getElementById("black-box");
 }
 
+/**
+ * Returns the node that has the black-boxed class applied to it.
+ */
+function getSelectedSourceElement(aPanel) {
+    return aPanel.panelWin.DebuggerView.Sources.selectedItem.prebuiltNode;
+}
+
 function toggleBlackBoxing(aPanel, aSource = null) {
   function clickBlackBoxButton() {
     getBlackBoxButton(aPanel).click();
@@ -769,13 +801,14 @@ function toggleBlackBoxing(aPanel, aSource = null) {
   return blackBoxChanged;
 }
 
-function selectSourceAndGetBlackBoxButton(aPanel, aSource) {
+function selectSourceAndGetBlackBoxButton(aPanel, aUrl) {
   function returnBlackboxButton() {
     return getBlackBoxButton(aPanel);
   }
 
-  aPanel.panelWin.DebuggerView.Sources.selectedValue = aSource;
-  return ensureSourceIs(aPanel, aSource, true).then(returnBlackboxButton);
+  let sources = aPanel.panelWin.DebuggerView.Sources;
+  sources.selectedValue = getSourceActor(sources, aUrl);
+  return ensureSourceIs(aPanel, aUrl, true).then(returnBlackboxButton);
 }
 
 // Variables view inspection popup helpers
@@ -902,10 +935,13 @@ function attachAddonActorForUrl(aClient, aUrl) {
 
 function rdpInvoke(aClient, aMethod, ...args) {
   return promiseInvoke(aClient, aMethod, ...args)
-    .then(({error, message }) => {
+    .then((packet) => {
+      let { error, message } = packet;
       if (error) {
         throw new Error(error + ": " + message);
       }
+
+      return packet;
     });
 }
 
@@ -919,3 +955,271 @@ function doInterrupt(aPanel) {
   return rdpInvoke(threadClient, threadClient.interrupt);
 }
 
+function pushPrefs(...aPrefs) {
+  let deferred = promise.defer();
+  SpecialPowers.pushPrefEnv({"set": aPrefs}, deferred.resolve);
+  return deferred.promise;
+}
+
+function popPrefs() {
+  let deferred = promise.defer();
+  SpecialPowers.popPrefEnv(deferred.resolve);
+  return deferred.promise;
+}
+
+// Source helpers
+
+function getSelectedSourceURL(aSources) {
+  return (aSources.selectedItem &&
+          aSources.selectedItem.attachment.source.url);
+}
+
+function getSourceURL(aSources, aActor) {
+  let item = aSources.getItemByValue(aActor);
+  return item && item.attachment.source.url;
+}
+
+function getSourceActor(aSources, aURL) {
+  let item = aSources.getItemForAttachment(a => a.source.url === aURL);
+  return item && item.value;
+}
+
+function getSourceForm(aSources, aURL) {
+  let item = aSources.getItemByValue(getSourceActor(gSources, aURL));
+  return item.attachment.source;
+}
+
+let nextId = 0;
+
+function jsonrpc(tab, method, params) {
+  return new Promise(function (resolve, reject) {
+    let currentId = nextId++;
+    let messageManager = tab.linkedBrowser.messageManager;
+    messageManager.sendAsyncMessage("jsonrpc", {
+      method: method,
+      params: params,
+      id: currentId
+    });
+    messageManager.addMessageListener("jsonrpc", function listener({
+      data: { result, error, id }
+    }) {
+      if (id !== currentId) {
+        return;
+      }
+
+      messageManager.removeMessageListener("jsonrpc", listener);
+      if (error != null) {
+         reject(error);
+      }
+
+      resolve(result);
+    });
+  });
+}
+
+function callInTab(tab, name) {
+  info("Calling function with name '" + name + "' in tab.");
+
+  return jsonrpc(tab, "call", [name, Array.prototype.slice.call(arguments, 2)]);
+}
+
+function evalInTab(tab, string) {
+  info("Evalling string in tab.");
+
+  return jsonrpc(tab, "_eval", [string]);
+}
+
+function createWorkerInTab(tab, url) {
+  info("Creating worker with url '" + url + "' in tab.");
+
+  return jsonrpc(tab, "createWorker", [url]);
+}
+
+function terminateWorkerInTab(tab, url) {
+  info("Terminating worker with url '" + url + "' in tab.");
+
+  return jsonrpc(tab, "terminateWorker", [url]);
+}
+
+function postMessageToWorkerInTab(tab, url, message) {
+  info("Posting message to worker with url '" + url + "' in tab.");
+
+  return jsonrpc(tab, "postMessageToWorker", [url, message]);
+}
+
+function generateMouseClickInTab(tab, path) {
+  info("Generating mouse click in tab.");
+
+  return jsonrpc(tab, "generateMouseClick", [path]);
+}
+
+function connect(client) {
+  info("Connecting client.");
+  return new Promise(function (resolve) {
+    client.connect(function () {
+      resolve();
+    });
+  });
+}
+
+function close(client) {
+  info("Closing client.\n");
+  return new Promise(function (resolve) {
+    client.close(() => {
+      resolve();
+    });
+  });
+}
+
+function listTabs(client) {
+  info("Listing tabs.");
+  return new Promise(function (resolve) {
+    client.listTabs(function (response) {
+      resolve(response);
+    });
+  });
+}
+
+function findTab(tabs, url) {
+  info("Finding tab with url '" + url + "'.");
+  for (let tab of tabs) {
+    if (tab.url === url) {
+      return tab;
+    }
+  }
+  return null;
+}
+
+function attachTab(client, tab) {
+  info("Attaching to tab with url '" + tab.url + "'.");
+  return new Promise(function (resolve) {
+    client.attachTab(tab.actor, function (response, tabClient) {
+      resolve([response, tabClient]);
+    });
+  });
+}
+
+function listWorkers(tabClient) {
+  info("Listing workers.");
+  return new Promise(function (resolve) {
+    tabClient.listWorkers(function (response) {
+      resolve(response);
+    });
+  });
+}
+
+function findWorker(workers, url) {
+  info("Finding worker with url '" + url + "'.");
+  for (let worker of workers) {
+    if (worker.url === url) {
+      return worker;
+    }
+  }
+  return null;
+}
+
+function attachWorker(tabClient, worker) {
+  info("Attaching to worker with url '" + worker.url + "'.");
+  return new Promise(function(resolve, reject) {
+    tabClient.attachWorker(worker.actor, function (response, workerClient) {
+      resolve([response, workerClient]);
+    });
+  });
+}
+
+function waitForWorkerListChanged(tabClient) {
+  info("Waiting for worker list to change.");
+  return new Promise(function (resolve) {
+    tabClient.addListener("workerListChanged", function listener() {
+      tabClient.removeListener("workerListChanged", listener);
+      resolve();
+    });
+  });
+}
+
+function attachThread(workerClient, options) {
+  info("Attaching to thread.");
+  return new Promise(function(resolve, reject) {
+    workerClient.attachThread(options, function (response, threadClient) {
+      resolve([response, threadClient]);
+    });
+  });
+}
+
+function waitForWorkerClose(workerClient) {
+  info("Waiting for worker to close.");
+  return new Promise(function (resolve) {
+    workerClient.addOneTimeListener("close", function () {
+      info("Worker did close.");
+      resolve();
+    });
+  });
+}
+
+function waitForWorkerFreeze(workerClient) {
+  info("Waiting for worker to freeze.");
+  return new Promise(function (resolve) {
+    workerClient.addOneTimeListener("freeze", function () {
+      resolve();
+    });
+  });
+}
+
+function waitForWorkerThaw(workerClient) {
+  info("Waiting for worker to thaw.");
+  return new Promise(function (resolve) {
+    workerClient.addOneTimeListener("thaw", function () {
+      resolve();
+    });
+  });
+}
+
+function resume(threadClient) {
+  info("Resuming thread.");
+  return rdpInvoke(threadClient, threadClient.resume);
+}
+
+function findSource(sources, url) {
+  info("Finding source with url '" + url + "'.\n");
+  for (let source of sources) {
+    if (source.url === url) {
+      return source;
+    }
+  }
+  return null;
+}
+
+function waitForEvent(client, type, predicate) {
+  return new Promise(function (resolve) {
+    function listener(type, packet) {
+      if (!predicate(packet)) {
+        return;
+      }
+      client.removeListener(listener);
+      resolve(packet);
+    }
+
+    if (predicate) {
+      client.addListener(type, listener);
+    } else {
+      client.addOneTimeListener(type, function (type, packet) {
+        resolve(packet);
+      });
+    }
+  });
+}
+
+function waitForPause(threadClient) {
+  info("Waiting for pause.\n");
+  return waitForEvent(threadClient, "paused");
+}
+
+function setBreakpoint(sourceClient, location) {
+  info("Setting breakpoint.\n");
+  return rdpInvoke(sourceClient, sourceClient.setBreakpoint, location);
+}
+
+function source(sourceClient) {
+  info("Getting source.\n");
+  return rdpInvoke(sourceClient, sourceClient.source);
+}

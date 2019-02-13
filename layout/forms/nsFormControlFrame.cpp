@@ -4,12 +4,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsFormControlFrame.h"
+
 #include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/LookAndFeel.h"
 #include "nsDeviceContext.h"
+#include "nsIContent.h"
 
 using namespace mozilla;
 
@@ -45,7 +47,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsLeafFrame)
 NS_IMPL_FRAMEARENA_HELPERS(nsFormControlFrame)
 
 nscoord
-nsFormControlFrame::GetIntrinsicWidth()
+nsFormControlFrame::GetIntrinsicISize()
 {
   // Provide a reasonable default for sites that use an "auto" height.
   // Note that if you change this, you should change the values in forms.css
@@ -54,7 +56,7 @@ nsFormControlFrame::GetIntrinsicWidth()
 }
 
 nscoord
-nsFormControlFrame::GetIntrinsicHeight()
+nsFormControlFrame::GetIntrinsicBSize()
 {
   // Provide a reasonable default for sites that use an "auto" height.
   // Note that if you change this, you should change the values in forms.css
@@ -68,9 +70,13 @@ nsFormControlFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   NS_ASSERTION(!NS_SUBTREE_DIRTY(this),
                "frame must not be dirty");
   // Treat radio buttons and checkboxes as having an intrinsic baseline
-  // at the bottom of the control (use the bottom content edge rather
-  // than the bottom margin edge).
-  return BSize(aWritingMode) -
+  // at the block-end of the control (use the block-end content edge rather
+  // than the margin edge).
+  // For "inverted" lines (typically in writing-mode:vertical-lr), use the
+  // block-start end instead.
+  return aWritingMode.IsLineInverted()
+    ? GetLogicalUsedBorderAndPadding(aWritingMode).BStart(aWritingMode)
+    : BSize(aWritingMode) -
          GetLogicalUsedBorderAndPadding(aWritingMode).BEnd(aWritingMode);
 }
 

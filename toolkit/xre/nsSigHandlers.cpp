@@ -26,6 +26,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <stdlib.h> // atoi
+#include <sys/prctl.h>
 #ifndef ANDROID // no Android impl
 #  include <ucontext.h>
 #endif
@@ -39,31 +40,40 @@
 static char _progname[1024] = "huh?";
 static unsigned int _gdb_sleep_duration = 300;
 
-// NB: keep me up to date with the same variable in
-// ipc/chromium/chrome/common/ipc_channel_posix.cc
-static const int kClientChannelFd = 3;
-
 #if defined(LINUX) && defined(DEBUG) && \
       (defined(__i386) || defined(__x86_64) || defined(PPC))
 #define CRAWL_STACK_ON_SIGSEGV
+#endif
+
+#ifndef PR_SET_PTRACER
+#define PR_SET_PTRACER 0x59616d61
+#endif
+#ifndef PR_SET_PTRACER_ANY
+#define PR_SET_PTRACER_ANY ((unsigned long)-1)
 #endif
 
 #if defined(CRAWL_STACK_ON_SIGSEGV)
 
 #include <unistd.h>
 #include "nsISupportsUtils.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
+
+// NB: keep me up to date with the same variable in
+// ipc/chromium/chrome/common/ipc_channel_posix.cc
+static const int kClientChannelFd = 3;
 
 extern "C" {
 
-static void PrintStackFrame(void *aPC, void *aSP, void *aClosure)
+static void PrintStackFrame(uint32_t aFrameNumber, void *aPC, void *aSP,
+                            void *aClosure)
 {
   char buf[1024];
-  nsCodeAddressDetails details;
+  MozCodeAddressDetails details;
 
-  NS_DescribeCodeAddress(aPC, &details);
-  NS_FormatCodeAddressDetails(aPC, &details, buf, sizeof(buf));
-  fputs(buf, stdout);
+  MozDescribeCodeAddress(aPC, &details);
+  MozFormatCodeAddressDetails(buf, sizeof(buf), aFrameNumber, aPC, &details);
+  fprintf(stdout, "%s\n", buf);
+  fflush(stdout);
 }
 
 }
@@ -77,13 +87,16 @@ ah_crap_handler(int signum)
          signum);
 
   printf("Stack:\n");
-  NS_StackWalk(PrintStackFrame, /* skipFrames */ 2, /* maxFrames */ 0,
+  MozStackWalk(PrintStackFrame, /* skipFrames */ 2, /* maxFrames */ 0,
                nullptr, 0, nullptr);
 
   printf("Sleeping for %d seconds.\n",_gdb_sleep_duration);
   printf("Type 'gdb %s %d' to attach your debugger to this thread.\n",
          _progname,
          getpid());
+
+  // Allow us to be ptraced by gdb on Linux with Yama restrictions enabled.
+  prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY);
 
   sleep(_gdb_sleep_duration);
 
@@ -152,7 +165,7 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   status->__invalid = status->__denorm = status->__zdiv = status->__ovrfl = status->__undfl =
     status->__precis = status->__stkflt = status->__errsumm = 0;
 
-  __uint32_t *mxcsr = &uc->uc_mcontext->__fs.__fpu_mxcsr;
+  uint32_t *mxcsr = &uc->uc_mcontext->__fs.__fpu_mxcsr;
   *mxcsr |= SSE_EXCEPTION_MASK; /* disable all SSE exceptions */
   *mxcsr &= ~SSE_STATUS_FLAGS; /* clear all pending SSE exceptions */
 #endif
@@ -172,13 +185,13 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   *sw &= ~FPU_STATUS_FLAGS;
 #endif
 #if defined(__amd64__)
-  __uint16_t *cw = &uc->uc_mcontext.fpregs->cwd;
+  uint16_t *cw = &uc->uc_mcontext.fpregs->cwd;
   *cw |= FPU_EXCEPTION_MASK;
 
-  __uint16_t *sw = &uc->uc_mcontext.fpregs->swd;
+  uint16_t *sw = &uc->uc_mcontext.fpregs->swd;
   *sw &= ~FPU_STATUS_FLAGS;
 
-  __uint32_t *mxcsr = &uc->uc_mcontext.fpregs->mxcsr;
+  uint32_t *mxcsr = &uc->uc_mcontext.fpregs->mxcsr;
   *mxcsr |= SSE_EXCEPTION_MASK; /* disable all SSE exceptions */
   *mxcsr &= ~SSE_STATUS_FLAGS; /* clear all pending SSE exceptions */
 #endif
@@ -331,13 +344,6 @@ void InstallSignalHandlers(const char *ProgramName)
 #define X87CW(ctx) (ctx)->FloatSave.ControlWord
 #define X87SW(ctx) (ctx)->FloatSave.StatusWord
 #endif
-
-/*
- * SSE traps raise these exception codes, which are defined in internal NT headers
- * but not winbase.h
- */
-#define STATUS_FLOAT_MULTIPLE_FAULTS 0xC00002B4
-#define STATUS_FLOAT_MULTIPLE_TRAPS  0xC00002B5
 
 static LPTOP_LEVEL_EXCEPTION_FILTER gFPEPreviousFilter;
 

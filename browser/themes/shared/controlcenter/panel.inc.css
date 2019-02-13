@@ -1,0 +1,250 @@
+#identity-popup-securityView:not(.verifiedIdentity) > #identity-popup-content-owner,
+#identity-popup-securityView:not(.verifiedIdentity):not(.verifiedDomain) > #identity-popup-content-verifier,
+#identity-popup-securityView:not(.verifiedIdentity):not(.mixedContent) > #identity-popup-content-supplemental,
+#identity-popup-security-content:not(.verifiedIdentity):not(.verifiedDomain) > .identity-popup-connection-secure,
+#identity-popup-securityView:not(.verifiedIdentity):not(.verifiedDomain) > #identity-popup-securityView-header > .identity-popup-connection-secure,
+#identity-popup-securityView:not(.unknownIdentity) > #identity-popup-securityView-header > .identity-popup-connection-not-secure,
+#identity-popup-securityView:not(.chromeUI) > #identity-popup-securityView-header > .identity-popup-connection-internal,
+#identity-popup-security-content:not(.unknownIdentity) > .identity-popup-connection-not-secure,
+#identity-popup-securityView:not(.verifiedIdentity) > #identity-popup-securityView-connection,
+#identity-popup-security-content.unknownIdentity:not(.mixedContent) + .identity-popup-expander,
+#identity-popup-security-content:not(.chromeUI) > .identity-popup-connection-internal,
+#identity-popup-security-content.chromeUI + .identity-popup-expander {
+  display: none;
+}
+
+/* PANEL */
+
+#identity-popup,
+.panel-viewstack[viewtype="main"]:not([transitioning]) > .panel-mainview[panelid=identity-popup] > #identity-popup-mainView {
+  /* Tiny hack to ensure the panel shrinks back to its original
+     size after closing a subview that is bigger than the main view. */
+  max-height: 0;
+}
+
+.panel-mainview[panelid=identity-popup][viewtype=subview] > #identity-popup-mainView menulist,
+.panel-mainview[panelid=identity-popup][viewtype=subview] > #identity-popup-mainView button:not([panel-multiview-anchor]) {
+  -moz-user-focus: ignore;
+}
+
+#identity-popup > .panel-arrowcontainer > .panel-arrowcontent {
+  padding: 0;
+}
+
+.panel-mainview[panelid=identity-popup] {
+  min-width: 30em;
+}
+
+#identity-popup-multiView > .panel-viewcontainer > .panel-viewstack[viewtype="main"] > .panel-subviews {
+  transform: translateX(100%);
+  box-shadow: none;
+}
+
+#identity-popup-multiView > .panel-viewcontainer > .panel-viewstack[viewtype="main"] > .panel-subviews:-moz-locale-dir(rtl) {
+  transform: translateX(-100%);
+}
+
+#identity-popup-multiView > .panel-viewcontainer > .panel-viewstack > .panel-subviews {
+  background: var(--panel-arrowcontent-background);
+  border-bottom-right-radius: 3.5px;
+  padding: 0;
+}
+
+#identity-popup-multiView > .panel-viewcontainer > .panel-viewstack > .panel-subviews:-moz-locale-dir(rtl) {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 3.5px;
+}
+
+.identity-popup-section:not(:first-child) {
+  border-top: 1px solid var(--panel-separator-color);
+}
+
+#identity-popup-securityView,
+#identity-popup-security-content,
+#identity-popup-permissions-content {
+  padding: 0.75em 0 1em;
+  -moz-padding-start: calc(2em + 24px);
+  -moz-padding-end: 1em;
+  background-repeat: no-repeat;
+  background-position: 1em 1em;
+  background-size: 24px auto;
+}
+
+#identity-popup-securityView:-moz-locale-dir(rtl),
+#identity-popup-security-content:-moz-locale-dir(rtl),
+#identity-popup-permissions-content:-moz-locale-dir(rtl) {
+  background-position: calc(100% - 1em) 1em;
+}
+
+/* EXPAND BUTTON */
+
+.identity-popup-expander {
+  margin: 0;
+  padding: 4px 0;
+  min-width: auto;
+  width: 38px;
+  border: 0 none;
+  -moz-appearance: none;
+  background-image: url("chrome://browser/skin/controlcenter/arrow-subview.svg"),
+                    linear-gradient(rgba(255,255,255,0.3), transparent);
+  background-size: 16px, auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+}
+
+.identity-popup-expander:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.identity-popup-expander[panel-multiview-anchor] {
+  transition: background-color 250ms ease-in;
+  background-color: #0069d9;
+  background-image: url("chrome://browser/skin/customizableui/subView-arrow-back-inverted.png"),
+                    linear-gradient(rgba(255,255,255,0.3), transparent);
+}
+
+@media (min-resolution: 1.1dppx) {
+  .identity-popup-expander[panel-multiview-anchor] {
+    background-image: url("chrome://browser/skin/customizableui/subView-arrow-back-inverted@2x.png"),
+                      linear-gradient(rgba(255,255,255,0.3), transparent);
+  }
+}
+
+.identity-popup-expander > .button-box {
+  padding: 0;
+  -moz-appearance: none;
+  border-style: none;
+  border-left: 1px solid var(--panel-separator-color);
+}
+
+.identity-popup-expander:-moz-focusring > .button-box,
+.identity-popup-expander[panel-multiview-anchor] > .button-box {
+  border-style: none;
+}
+
+.identity-popup-expander:hover {
+  background-color: hsla(210,4%,10%,.07);
+}
+
+.identity-popup-expander:hover:active {
+  background-color: hsla(210,4%,10%,.12);
+  box-shadow: 0 1px 0 hsla(210,4%,10%,.05) inset;
+}
+
+/* CONTENT */
+
+.identity-popup-text {
+  white-space: pre-wrap;
+  font-size: 110%;
+  margin: 0;
+}
+
+.identity-popup-headline {
+  margin: 2px 0 4px;
+  font-size: 150%;
+}
+
+/* SECURITY */
+
+#identity-popup-securityView > .identity-popup-text:not(#identity-popup-content-owner) {
+  margin: 2px 0 4px;
+}
+
+.identity-popup-connection-secure {
+  color: #418220;
+}
+
+.identity-popup-connection-not-secure {
+  color: #d74345;
+}
+
+#identity-popup-security-content.chromeUI {
+  background-image: url(chrome://branding/content/icon48.png);
+}
+
+/* SECURITY SUBVIEW */
+
+#identity-popup-securityView {
+  padding-bottom: 2em;
+  overflow: hidden;
+}
+
+#identity-popup-securityView,
+#identity-popup-security-content {
+  background-image: url(chrome://browser/skin/controlcenter/conn-not-secure.svg);
+}
+
+#identity-popup-securityView.verifiedDomain,
+#identity-popup-securityView.verifiedIdentity,
+#identity-popup-security-content.verifiedDomain,
+#identity-popup-security-content.verifiedIdentity {
+  background-image: url(chrome://browser/skin/controlcenter/conn-secure.svg);
+}
+
+#identity-popup-securityView-header {
+  border-bottom: 1px solid var(--panel-separator-color);
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+
+#identity-popup-content-owner {
+  font-weight: 700;
+}
+
+#identity-popup-content-verifier {
+  color: Graytext;
+}
+
+#identity-popup-content-owner,
+#identity-popup-securityView > #identity-popup-securityView-connection.identity-popup-text {
+  margin-top: 1em;
+}
+
+/* PERMISSIONS */
+
+#identity-popup-permissions-content {
+  background-image: url(chrome://browser/skin/controlcenter/permissions.svg);
+}
+
+#identity-popup-permission-list {
+  margin-top: 5px;
+}
+
+.identity-popup-permission-label {
+  -moz-margin-start: 0;
+}
+
+/* FOOTER BUTTONS */
+
+#identity-popup-button-container {
+  background-color: hsla(210,4%,10%,.07);
+}
+
+#identity-popup-more-info-button {
+  border: none;
+  border-top: 1px solid var(--panel-separator-color);
+  background: transparent;
+  -moz-appearance: none;
+  margin-top: 5px;
+  margin: 0;
+}
+
+#identity-popup-more-info-button > .button-box {
+  -moz-appearance: none;
+  padding: 1em;
+}
+
+#identity-popup-more-info-button:hover {
+  background-color: hsla(210,4%,10%,.07);
+}
+
+#identity-popup-more-info-button:hover:active {
+  color: inherit;
+  background-color: hsla(210,4%,10%,.12);
+  box-shadow: 0 1px 0 hsla(210,4%,10%,.05) inset;
+}
+
+#identity-popup-more-info-button:-moz-focusring {
+  border-color: transparent;
+}

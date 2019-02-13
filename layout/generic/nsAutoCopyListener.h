@@ -10,7 +10,7 @@
 #include "nsISelectionPrivate.h"
 #include "mozilla/Attributes.h"
 
-class nsAutoCopyListener MOZ_FINAL : public nsISelectionListener
+class nsAutoCopyListener final : public nsISelectionListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -39,6 +39,8 @@ public:
   }
 
 private:
+  ~nsAutoCopyListener() {}
+
   static nsAutoCopyListener* sInstance;
 };
 

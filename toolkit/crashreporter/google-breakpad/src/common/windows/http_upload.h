@@ -38,8 +38,8 @@
 // Disable exception handler warnings.
 #pragma warning( disable : 4530 ) 
 
-#include <Windows.h>
-#include <WinInet.h>
+#include <windows.h>
+#include <wininet.h>
 
 #include <map>
 #include <string>
@@ -54,9 +54,9 @@ using std::vector;
 
 class HTTPUpload {
  public:
-  // Sends the given set of parameters, along with the contents of
-  // upload_file, as a multipart POST request to the given URL.
-  // file_part_name contains the name of the file part of the request
+  // Sends the given sets of parameters and files as a multipart POST
+  // request to the given URL.
+  // Each key in |files| is the name of the file part of the request
   // (i.e. it corresponds to the name= attribute on an <input type="file">.
   // Parameter names must contain only printable ASCII characters,
   // and may not contain a quote (") character.
@@ -67,8 +67,7 @@ class HTTPUpload {
   // received (or 0 if the request failed before getting an HTTP response).
   static bool SendRequest(const wstring &url,
                           const map<wstring, wstring> &parameters,
-                          const wstring &upload_file,
-                          const wstring &file_part_name,
+                          const map<wstring, wstring> &files,
                           int *timeout,
                           wstring *response_body,
                           int *response_code);
@@ -80,7 +79,7 @@ class HTTPUpload {
   // this merely checks (via the return value) that we were successfully
   // able to retrieve exactly as many bytes of content in the response as
   // were specified in the Content-Length header.
-  static bool HTTPUpload::ReadResponse(HINTERNET request, wstring* response);
+  static bool ReadResponse(HINTERNET request, wstring* response);
 
   // Generates a new multipart boundary for a POST request
   static wstring GenerateMultipartBoundary();
@@ -88,12 +87,11 @@ class HTTPUpload {
   // Generates a HTTP request header for a multipart form submit.
   static wstring GenerateRequestHeader(const wstring &boundary);
 
-  // Given a set of parameters, an upload filename, and a file part name,
+  // Given a set of parameters, a set of upload files, and a file part name,
   // generates a multipart request body string with these parameters
   // and minidump contents.  Returns true on success.
   static bool GenerateRequestBody(const map<wstring, wstring> &parameters,
-                                  const wstring &upload_file,
-                                  const wstring &file_part_name,
+                                  const map<wstring, wstring> &files,
                                   const wstring &boundary,
                                   string *request_body);
 
@@ -104,7 +102,12 @@ class HTTPUpload {
   static wstring UTF8ToWide(const string &utf8);
 
   // Converts a UTF16 string to UTF8.
-  static string WideToUTF8(const wstring &wide);
+  static string WideToUTF8(const wstring &wide) {
+      return WideToMBCP(wide, CP_UTF8);
+  }
+
+  // Converts a UTF16 string to specified code page.
+  static string WideToMBCP(const wstring &wide, unsigned int cp);
 
   // Checks that the given list of parameters has only printable
   // ASCII characters in the parameter name, and does not contain

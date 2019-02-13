@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -27,7 +27,7 @@ function test()
 // Crash in NoteLValue, called from BindDestructuringVar.
 // NoteLValue assumes pn->pn_lexdef is non-null, but here
 // pn is itself the definition of x.
-  for (var [x]=0 in null) ;
+  for (var [x] in null) ;
 
 // This one only crashes when executed from a file.
 // Assertion failure: pn != dn->dn_uses, at ../jsparse.cpp:1131

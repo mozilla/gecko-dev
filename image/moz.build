@@ -4,7 +4,105 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['public', 'src', 'decoders', 'encoders']
-DIRS += ['build']
-TEST_DIRS += ['test']
+DIRS += ['build', 'decoders', 'encoders']
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'ImageLib')
+
+BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
+
+MOCHITEST_MANIFESTS += ['test/mochitest/mochitest.ini']
+
+MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
+
+XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+
+XPIDL_SOURCES += [
+    'imgICache.idl',
+    'imgIContainer.idl',
+    'imgIContainerDebug.idl',
+    'imgIEncoder.idl',
+    'imgILoader.idl',
+    'imgINotificationObserver.idl',
+    'imgIOnloadBlocker.idl',
+    'imgIRequest.idl',
+    'imgIScriptedNotificationObserver.idl',
+    'imgITools.idl',
+    'nsIIconURI.idl',
+]
+
+XPIDL_MODULE = 'imglib2'
+
+EXPORTS += [
+    'ImageCacheKey.h',
+    'ImageLogging.h',
+    'ImageOps.h',
+    'ImageRegion.h',
+    'imgLoader.h',
+    'imgRequest.h',
+    'imgRequestProxy.h',
+    'IProgressObserver.h',
+    'Orientation.h',
+    'SurfaceCache.h',
+]
+
+UNIFIED_SOURCES += [
+    'ClippedImage.cpp',
+    'DecodePool.cpp',
+    'Decoder.cpp',
+    'DynamicImage.cpp',
+    'FrameAnimator.cpp',
+    'FrozenImage.cpp',
+    'Image.cpp',
+    'ImageCacheKey.cpp',
+    'ImageFactory.cpp',
+    'ImageMetadata.cpp',
+    'ImageOps.cpp',
+    'ImageWrapper.cpp',
+    'imgFrame.cpp',
+    'imgTools.cpp',
+    'MultipartImage.cpp',
+    'OrientedImage.cpp',
+    'ScriptedNotificationObserver.cpp',
+    'ShutdownTracker.cpp',
+    'SourceBuffer.cpp',
+    'SurfaceCache.cpp',
+    'SVGDocumentWrapper.cpp',
+    'VectorImage.cpp',
+]
+if CONFIG['MOZ_ENABLE_SKIA']:
+    UNIFIED_SOURCES += [ 'Downscaler.cpp']
+
+# These files can't be unified because of ImageLogging.h #include order issues.
+SOURCES += [
+    'imgLoader.cpp',
+    'imgRequest.cpp',
+    'imgRequestProxy.cpp',
+    'ProgressTracker.cpp',
+    'RasterImage.cpp',
+]
+
+FAIL_ON_WARNINGS = True
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    # Because SVGDocumentWrapper.cpp includes "mozilla/dom/SVGSVGElement.h"
+    '/dom/base',
+    '/dom/svg',
+    # Access to Skia headers for Downscaler
+    '/gfx/2d',
+    # We need to instantiate the decoders
+    '/image/decoders',
+    # Because VectorImage.cpp includes nsSVGUtils.h and nsSVGEffects.h
+    '/layout/svg',
+    # For URI-related functionality
+    '/netwerk/base',
+    # DecodePool uses thread-related facilities.
+    '/xpcom/threads',
+]
+
+# Because imgFrame.cpp includes "cairo.h"
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']

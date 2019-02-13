@@ -4,14 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('*'):
+    BUG_COMPONENT = ('Core', 'Video/Audio')
+
 EXPORTS.opus += [
     'include/opus.h',
     'include/opus_defines.h',
     'include/opus_multistream.h',
     'include/opus_types.h',
 ]
-
-MSVC_ENABLE_PGO = True
 
 FINAL_LIBRARY = 'gkmedias'
 
@@ -28,10 +29,11 @@ if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['GNU_AS']:
     DEFINES['OPUS_ARM_ASM'] = True
     DEFINES['OPUS_ARM_EXTERNAL_ASM'] = True
     DEFINES['OPUS_ARM_INLINE_ASM'] = True
-    DEFINES['OPUS_ARM_INLINE_EDSP'] = True
-    DEFINES['OPUS_ARM_MAY_HAVE_EDSP'] = True
-    DEFINES['OPUS_ARM_MAY_HAVE_MEDIA'] = True
-    DEFINES['OPUS_ARM_MAY_HAVE_NEON'] = True
+    if int(CONFIG['ARM_ARCH']) >= 6:
+        DEFINES['OPUS_ARM_INLINE_EDSP'] = True
+        DEFINES['OPUS_ARM_MAY_HAVE_EDSP'] = True
+        DEFINES['OPUS_ARM_MAY_HAVE_MEDIA'] = True
+        DEFINES['OPUS_ARM_MAY_HAVE_NEON'] = True
 
 if CONFIG['MOZ_DEBUG']:
     DEFINES['ENABLE_ASSERTIONS'] = True
@@ -66,35 +68,44 @@ LOCAL_INCLUDES += [
 # imported.
 include('sources.mozbuild')
 
-SOURCES += celt_sources
-SOURCES += silk_sources
-SOURCES += opus_sources
+UNIFIED_SOURCES += celt_sources
+SOURCES += celt_nonunified_sources
+UNIFIED_SOURCES += silk_sources
+UNIFIED_SOURCES += opus_sources
 
 if CONFIG['MOZ_SAMPLE_TYPE_FLOAT32']:
     LOCAL_INCLUDES += [
         'silk/float',
     ]
-    SOURCES += silk_sources_float
-    SOURCES += opus_sources_float
+    UNIFIED_SOURCES += silk_sources_float
+    UNIFIED_SOURCES += opus_sources_float
 else:
     LOCAL_INCLUDES += [
         'silk/fixed',
     ]
-    SOURCES += silk_sources_fixed
+    UNIFIED_SOURCES += silk_sources_fixed
+# for webrtc
+    UNIFIED_SOURCES += opus_sources_float
 
 if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['GNU_AS']:
     SOURCES += celt_sources_arm
-    GENERATED_SOURCES += [ '%s.%s' % (f, CONFIG['ASM_SUFFIX']) for f in [
-        'celt_pitch_xcorr_arm-gnu',
-    ]]
+    SOURCES += [
+        '!celt_pitch_xcorr_arm-gnu.%s' % CONFIG['ASM_SUFFIX']
+    ]
     # -Os is significantly slower, enable -O3 unless optimization is disabled
     if CONFIG['MOZ_OPTIMIZE']:
-      CFLAGS += [
-        '-O3',
-      ]
-      CXXFLAGS += [
-        '-O3',
-      ]
+        CFLAGS += [
+            '-O3',
+        ]
+        CXXFLAGS += [
+            '-O3',
+        ]
+    # These flags are a lie; they're just used to enable the requisite
+    # opcodes; actual arch detection is done at runtime.
+    ASFLAGS += [
+        '-march=armv7-a',
+        '-mfpu=neon',
+    ]
 
 # Suppress warnings in third-party code.
 if CONFIG['GNU_CC']:

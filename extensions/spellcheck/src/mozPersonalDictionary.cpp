@@ -18,10 +18,9 @@
 #include "nsUnicharInputStream.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
+#include "nsProxyRelease.h"
 
 #define MOZ_PERSONAL_DICT_NAME "persdict.dat"
-
-const int kMaxWordLen=256;
 
 /**
  * This is the most braindead implementation of a personal dictionary possible.
@@ -33,7 +32,6 @@ const int kMaxWordLen=256;
  * TODO:
  * Implement the suggestion record.
  */
-
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(mozPersonalDictionary)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(mozPersonalDictionary)
@@ -48,20 +46,27 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION(mozPersonalDictionary, mEncoder)
 
-class mozPersonalDictionaryLoader MOZ_FINAL : public nsRunnable
+class mozPersonalDictionaryLoader final : public nsRunnable
 {
 public:
-  mozPersonalDictionaryLoader(mozPersonalDictionary *dict) : mDict(dict)
+  explicit mozPersonalDictionaryLoader(mozPersonalDictionary *dict) : mDict(dict)
   {
   }
 
   NS_IMETHOD Run()
   {
-    if (!NS_IsMainThread()) {
-      mDict->SyncLoad();
+    mDict->SyncLoad();
 
-      // Release refptr on the mainthread
-      NS_DispatchToMainThread(this);
+    // Release the dictionary on the main thread
+    mozPersonalDictionary *dict;
+    mDict.forget(&dict);
+
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    if (mainThread) {
+      NS_ProxyRelease(mainThread, static_cast<mozIPersonalDictionary *>(dict));
+    } else {
+      // It's better to leak the dictionary than to release it on a wrong thread
+      NS_WARNING("Cannot get main thread, leaking mozPersonalDictionary.");
     }
 
     return NS_OK;
@@ -390,4 +395,3 @@ NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject, const char *
 
   return NS_OK;
 }
-

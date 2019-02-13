@@ -6,7 +6,6 @@
 
 EXPORTS += [
     'BackstagePass.h',
-    'nsCxPusher.h',
     'qsObjectHelper.h',
     'XPCJSMemoryReporter.h',
     'xpcObjectHelper.h',
@@ -14,7 +13,7 @@ EXPORTS += [
 ]
 
 UNIFIED_SOURCES += [
-    'nsCxPusher.cpp',
+    'ExportHelpers.cpp',
     'nsScriptError.cpp',
     'nsXPConnect.cpp',
     'Sandbox.cpp',
@@ -31,7 +30,6 @@ UNIFIED_SOURCES += [
     'XPCLog.cpp',
     'XPCMaps.cpp',
     'XPCModule.cpp',
-    'XPCQuickStubs.cpp',
     'XPCRuntimeService.cpp',
     'XPCShellImpl.cpp',
     'XPCString.cpp',
@@ -52,50 +50,34 @@ SOURCES += [
     'XPCComponents.cpp',
 ]
 
-GENERATED_SOURCES += [
-    'dom_quickstubs.cpp',
-    'GeneratedEvents.cpp',
-]
-
 FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
-LIBRARY_NAME = 'xpconnect_s'
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
-
-GENERATED_FILES = [
-    'dom_quickstubs.h',
-    'GeneratedEventClasses.h',
-    'GeneratedEvents.h',
-]
-
-DEFINES['JS_THREADSAFE'] = True
-
-if CONFIG['MOZ_JSDEBUGGER']:
-    DEFINES['MOZ_JSDEBUGGER'] = True
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
     '../loader',
     '../wrappers',
-    '/caps/include',
-    '/content/base/public',
-    '/content/base/src',
-    '/content/html/content/src',
-    '/content/html/document/src',
-    '/content/svg/content/src',
+    '/caps',
     '/dom/base',
+    '/dom/html',
+    '/dom/svg',
     '/dom/workers',
-    '/js/ipc',
     '/layout/base',
     '/layout/style',
-    '/xpcom/reflect/xptinfo/src',
+    '/xpcom/reflect/xptinfo',
 ]
 
 if CONFIG['MOZ_B2G_BT']:
     LOCAL_INCLUDES += [
         '/dom/bluetooth',
     ]
+    if CONFIG['MOZ_B2G_BT_API_V1']:
+        LOCAL_INCLUDES += [
+            '/dom/bluetooth/bluetooth1',
+        ]
+    else:
+        LOCAL_INCLUDES += [
+            '/dom/bluetooth/bluetooth2',
+        ]

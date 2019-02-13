@@ -17,6 +17,8 @@ const { getMostRecentBrowserWindow, getOwnerBrowserWindow,
 const { create: createFrame, swapFrameLoaders } = require("../frame/utils");
 const { window: addonWindow } = require("../addon/window");
 const { isNil } = require("../lang/type");
+const { data } = require('../self');
+
 const events = require("../system/events");
 
 
@@ -93,6 +95,7 @@ function close(panel) {
   // when quitting the host application while a panel is visible.  To suppress
   // these errors, check for "hidePopup" in panel before calling it.
   // It's not clear if there's an issue or it's expected behavior.
+  // See Bug 1151796.
 
   return panel.hidePopup && panel.hidePopup();
 }
@@ -126,7 +129,7 @@ function display(panel, options, anchor) {
 
     let viewportRect = document.defaultView.gBrowser.getBoundingClientRect();
 
-    ({x, y, width, height}) = calculateRegion(options, viewportRect);
+    ({x, y, width, height} = calculateRegion(options, viewportRect));
   }
   else {
     // The XUL Panel has an arrow, so the margin needs to be reset
@@ -142,7 +145,7 @@ function display(panel, options, anchor) {
     // chrome browser window, and therefore there is no need for this check.
     if (CustomizableUI) {
       let node = anchor;
-      ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
+      ({anchor} = CustomizableUI.getWidget(anchor.id).forWindow(window));
 
       // if `node` is not the `anchor` itself, it means the widget is
       // positioned in a panel, therefore we have to hide it before show
@@ -284,8 +287,7 @@ function make(document) {
       events.emit(type, { subject: panel });
   }
 
-  function onContentChange({subject, type}) {
-    let document = subject;
+  function onContentChange({subject: document, type}) {
     if (document === getContentDocument(panel) && document.defaultView)
       events.emit(type, { subject: panel });
   }
@@ -402,5 +404,18 @@ exports.getContentFrame = getContentFrame;
 function getContentDocument(panel) getContentFrame(panel).contentDocument
 exports.getContentDocument = getContentDocument;
 
-function setURL(panel, url) getContentFrame(panel).setAttribute("src", url)
+function setURL(panel, url) {
+  getContentFrame(panel).setAttribute("src", url ? data.url(url) : url);
+}
+
 exports.setURL = setURL;
+
+function allowContextMenu(panel, allow) {
+  if (allow) {
+    panel.setAttribute("context", "contentAreaContextMenu");
+  }
+  else {
+    panel.removeAttribute("context");
+  }
+}
+exports.allowContextMenu = allowContextMenu;

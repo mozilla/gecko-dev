@@ -4,7 +4,7 @@
 
 #include "domstubs.idl"
 
-[scriptable, uuid(fb089720-1c5c-11e3-b773-0800200c9a66)]
+[scriptable, uuid(9f1c43b9-f01b-4c87-ad3d-1a86520c2159)]
 interface nsINotificationStorageCallback : nsISupports
 {
   /**
@@ -26,7 +26,9 @@ interface nsINotificationStorageCallback : nsISupports
               in DOMString lang,
               in DOMString body,
               in DOMString tag,
-              in DOMString icon);
+              in DOMString icon,
+              in DOMString data,
+              in DOMString behavior);
 
   /**
    * Callback function used to notify C++ the we have returned
@@ -39,7 +41,7 @@ interface nsINotificationStorageCallback : nsISupports
 /**
  * Interface for notification persistence layer.
  */
-[scriptable, uuid(cc4656d7-2a2a-47f1-8016-55891e833d64)]
+[scriptable, uuid(cac01fb0-c2eb-4252-b2f4-5b1fac933bd4)]
 interface nsINotificationStorage : nsISupports
 {
 
@@ -68,7 +70,9 @@ interface nsINotificationStorage : nsISupports
            in DOMString body,
            in DOMString tag,
            in DOMString icon,
-           in DOMString alertName);
+           in DOMString alertName,
+           in DOMString data,
+           in DOMString behavior);
 
   /**
    * Retrieve a list of notifications.
@@ -90,6 +94,20 @@ interface nsINotificationStorage : nsISupports
    */
   void delete(in DOMString origin,
               in DOMString id);
+
+  /**
+   * Notifications are not supposed to be persistent, according to spec, at
+   * least for now. But we want to be able to have this behavior on B2G. Thus,
+   * this method will check if the origin sending the notifications is a valid
+   * registered app with a manifest or not. Hence, a webpage that has none
+   * will have its notification sent and available (via Notification.get())
+   * during the life time of the page.
+   *
+   * @param origin: Origin from which the notification is sent.
+   *
+   * @return boolean
+   */
+  boolean canPut(in DOMString origin);
 };
 
 %{C++

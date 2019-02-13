@@ -14,10 +14,10 @@
 var whichCamera = navigator.mozCameras.getListOfCameras()[0];
 var options = {
   mode: 'picture',
-  recorderProfile: 'cif',
+  recorderProfile: 'high',
   previewSize: {
-    width: 352,
-    height: 288
+    width: 320,
+    height: 240
   }
 };
 
@@ -29,7 +29,7 @@ var config = {
 };
 
 function onError(e) {
-  ok(false, "Error" + JSON.stringify(e));
+  ok(false, "Error " + e);
 }
 
 var capabilities = [ 'previewSizes', 'pictureSizes', 'fileFormats', 'maxFocusAreas', 'minExposureCompensation',
@@ -102,20 +102,33 @@ var Camera = {
     this._zoomRatios = this.cameraObj.capabilities.zoomRatios;
   },
   takePictureSuccess: function taken_foto(blob) {
+    ok(blob.size > 100 , "Blob Size Gathered = " + blob.size);
+    ok("image/" + this._currentTest.fileFormat === blob.type, "Blob Type = " + blob.type);
+  },
+  takePictureEvent: function taken_foto_evt(e) {
+    var blob = e.data;
     var img = new Image();
     var test = this._currentTest;
-    img.onload = function Imgsize() {
-      ok(this.width == test.pictureSize.width, "The image taken has the width " + 
-                                              this.width + " pictureSize width = " + test.pictureSize.width);
-      ok(this.height == test.pictureSize.height, "The image taken has the height " + 
-                                              this.height + " picturesize height = " + test.pictureSize.height);
-      Camera._testsCompleted++;
-      if(Camera._testsCompleted == Camera._tests.length) {
-        ok(true, "test finishing");
-        SimpleTest.finish();
-      } else {
-        Camera.runTests();
+    var onPreviewStateChange = function(e) {
+      if (e.newState === 'started') {
+        ok(true, "viewfinder is ready and playing after resume");
+        Camera.cameraObj.removeEventListener('previewstatechange', onPreviewStateChange);
+        Camera._testsCompleted++;
+        if(Camera._testsCompleted == Camera._tests.length) {
+          ok(true, "test finishing");
+          SimpleTest.finish();
+        } else {
+          Camera.runTests();
+        }
       }
+    }
+    Camera.cameraObj.addEventListener('previewstatechange', onPreviewStateChange);
+    img.onload = function Imgsize() {
+      ok(this.width == test.pictureSize.width, "The image taken has the width " +
+                                              this.width + " pictureSize width = " + test.pictureSize.width);
+      ok(this.height == test.pictureSize.height, "The image taken has the height " +
+                                              this.height + " picturesize height = " + test.pictureSize.height);
+      Camera.cameraObj.resumePreview();
     }
     ok(blob.size > 100 , "Blob Size Gathered = " + blob.size);
     ok("image/" + test.fileFormat ==  blob.type, "Blob Type = " + blob.type);
@@ -159,9 +172,23 @@ var Camera = {
     ok(Camera.cameraObj.zoom == 1.0, "zoom = " + Camera.cameraObj.zoom);
     // Test snapping to supported values
     Camera.cameraObj.zoom = 0.9;
-    ok(Camera.cameraObj.zoom == 1.0, "zoom = " + Camera.cameraObj.zoom);
+    ok(Camera.cameraObj.zoom == 1.0, "zoom (lower limit) = " + Camera.cameraObj.zoom);
     Camera.cameraObj.zoom = 1.1;
-    ok(Camera.cameraObj.zoom == 1.0, "zoom = " + Camera.cameraObj.zoom);
+    ok(Camera.cameraObj.zoom == 1.0, "zoom (upper limit) = " + Camera.cameraObj.zoom);
+
+    // Check image quality handling
+    Camera.cameraObj.pictureQuality = 0.0;
+    ok(Camera.cameraObj.pictureQuality == 0.0, "picture quality = " + Camera.cameraObj.pictureQuality);
+    Camera.cameraObj.pictureQuality = -0.1;
+    ok(Camera.cameraObj.pictureQuality == 0.0, "picture quality (minimum limit) = " + Camera.cameraObj.pictureQuality);
+    Camera.cameraObj.pictureQuality = -Math.pow(2, 80);
+    ok(Camera.cameraObj.pictureQuality == 0.0, "picture quality (BIG negative) = " + Camera.cameraObj.pictureQuality);
+    Camera.cameraObj.pictureQuality = 1.0;
+    ok(Camera.cameraObj.pictureQuality == 1.0, "picture quality = " + Camera.cameraObj.pictureQuality);
+    Camera.cameraObj.pictureQuality = 1.1;
+    ok(Camera.cameraObj.pictureQuality == 1.0, "picture quality (maximum limit) = " + Camera.cameraObj.pictureQuality);
+    Camera.cameraObj.pictureQuality = Math.pow(2, 80);
+    ok(Camera.cameraObj.pictureQuality == 1.0, "picture quality (BIG positive) = " + Camera.cameraObj.pictureQuality);
 
     Camera._tests = new Array();
     for (var i in Camera._pictureSizes) {
@@ -182,7 +209,7 @@ var Camera = {
     config.fileFormat = test.fileFormat;
     config.pictureSize = test.pictureSize;
     ok(true, "testing picture size " + JSON.stringify(config.pictureSize));
-    Camera.cameraObj.takePicture(config, this.takePictureSuccess.bind(this), onError);
+    Camera.cameraObj.takePicture(config).then(this.takePictureSuccess.bind(this), onError);
   },
   onConfigChange: function onConfigChange(config) {
     ok(config.mode === options.mode, "configuration mode = " + config.mode);
@@ -191,24 +218,27 @@ var Camera = {
       config.previewSize.height === options.previewSize.height,
       "preview size (w x h) = " + config.previewSize.width + " x " + config.previewSize.height);
   },
+  onPreviewStateChange: function onPreviewStateChange(e) {
+    if (e.newState === 'started') {
+      ok(true, "viewfinder is ready and playing");
+      Camera.cameraObj.removeEventListener('previewstatechange', Camera.onPreviewStateChange);
+      Camera.onReady();
+    }
+  },
   setUp: function setup_tests() {
-    function onSuccess(camera) {
-      Camera.cameraObj = camera;
-      Camera.viewfinder.mozSrcObject = camera;
+    function onSuccess(d) {
+      Camera.cameraObj = d.camera;
+      Camera.cameraObj.addEventListener('previewstatechange', Camera.onPreviewStateChange);
+      Camera.cameraObj.addEventListener('configurationchanged', Camera.onConfigChange);
+      Camera.cameraObj.addEventListener('shutter', Camera.shutter);
+      Camera.cameraObj.addEventListener('picture', Camera.takePictureEvent.bind(Camera));
+      Camera.viewfinder.mozSrcObject = d.camera;
       Camera.viewfinder.play();
-      Camera.cameraObj.onPreviewStateChange = function(state) {
-        if (state === 'started') {
-          ok(true, "viewfinder is ready and playing");
-          Camera.cameraObj.onPreviewStateChange = null;
-          Camera.onReady();
-        }
-      };
       SimpleTest.expectAssertions(0);
       ok(true, "Camera Control object has been successfully initialized");
-      Camera.cameraObj.setConfiguration(options, Camera.onConfigChange, onError);
-      Camera.cameraObj.onShutter = Camera.shutter;
+      Camera.cameraObj.setConfiguration(options).then(Camera.onConfigChange, onError);
     };
-    navigator.mozCameras.getCamera(whichCamera, null, onSuccess, onError);
+    navigator.mozCameras.getCamera(whichCamera, null).then(onSuccess, onError);
   }
 }
 

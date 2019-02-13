@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 ci et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,17 +12,27 @@
 
 MOZ_BEGIN_EXTERN_C
 
+/** Register file handle to be ignored by poisoning IO interposer. This function
+ * and the corresponding UnRegister function are necessary for exchange of handles
+ * between binaries not using the same CRT on Windows (which happens when one of
+ * them links the static CRT). In such cases, giving file descriptors or FILEs
+ * doesn't work because _get_osfhandle fails with "invalid parameter". */
+void MozillaRegisterDebugHandle(intptr_t aHandle);
+
 /** Register file descriptor to be ignored by poisoning IO interposer */
-void MozillaRegisterDebugFD(int fd);
+void MozillaRegisterDebugFD(int aFd);
 
 /** Register file to be ignored by poisoning IO interposer */
-void MozillaRegisterDebugFILE(FILE *f);
+void MozillaRegisterDebugFILE(FILE* aFile);
+
+/** Unregister file handle from being ignored by poisoning IO interposer */
+void MozillaUnRegisterDebugHandle(intptr_t aHandle);
 
 /** Unregister file descriptor from being ignored by poisoning IO interposer */
-void MozillaUnRegisterDebugFD(int fd);
+void MozillaUnRegisterDebugFD(int aFd);
 
 /** Unregister file from being ignored by poisoning IO interposer */
-void MozillaUnRegisterDebugFILE(FILE *f);
+void MozillaUnRegisterDebugFILE(FILE* aFile);
 
 MOZ_END_EXTERN_C
 
@@ -67,11 +77,11 @@ void ClearPoisonIOInterposer();
 
 #ifdef __cplusplus
 namespace mozilla {
-inline bool IsDebugFile(intptr_t aFileID){ return true; }
-inline void InitPoisonIOInterposer(){}
-inline void ClearPoisonIOInterposer(){}
+inline bool IsDebugFile(intptr_t aFileID) { return true; }
+inline void InitPoisonIOInterposer() {}
+inline void ClearPoisonIOInterposer() {}
 #ifdef XP_MACOSX
-inline void OnlyReportDirtyWrites(){}
+inline void OnlyReportDirtyWrites() {}
 #endif /* XP_MACOSX */
 } // namespace mozilla
 #endif /* __cplusplus */

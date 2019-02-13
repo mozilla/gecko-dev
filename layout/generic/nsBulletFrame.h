@@ -11,25 +11,30 @@
 #include "mozilla/Attributes.h"
 #include "nsFrame.h"
 
+#include "imgIContainer.h"
 #include "imgINotificationObserver.h"
+#include "imgIOnloadBlocker.h"
 
 class imgIContainer;
 class imgRequestProxy;
 
 class nsBulletFrame;
 
-class nsBulletListener : public imgINotificationObserver
+class nsBulletListener final : public imgINotificationObserver,
+                               public imgIOnloadBlocker
 {
 public:
   nsBulletListener();
-  virtual ~nsBulletListener();
 
   NS_DECL_ISUPPORTS
   NS_DECL_IMGINOTIFICATIONOBSERVER
+  NS_DECL_IMGIONLOADBLOCKER
 
   void SetFrame(nsBulletFrame *frame) { mFrame = frame; }
 
 private:
+  virtual ~nsBulletListener();
+
   nsBulletFrame *mFrame;
 };
 
@@ -37,7 +42,9 @@ private:
  * A simple class that manages the layout and rendering of html bullets.
  * This class also supports the CSS list-style properties.
  */
-class nsBulletFrame : public nsFrame {
+class nsBulletFrame final : public nsFrame {
+  typedef mozilla::image::DrawResult DrawResult;
+
 public:
   NS_DECL_FRAMEARENA_HELPERS
 #ifdef DEBUG
@@ -45,32 +52,37 @@ public:
   NS_DECL_QUERYFRAME
 #endif
 
-  nsBulletFrame(nsStyleContext* aContext)
+  explicit nsBulletFrame(nsStyleContext* aContext)
     : nsFrame(aContext)
-  {
-  }
+    , mPadding(GetWritingMode())
+    , mIntrinsicSize(GetWritingMode())
+    , mRequestRegistered(false)
+    , mBlockingOnload(false)
+  { }
   virtual ~nsBulletFrame();
 
-  NS_IMETHOD Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aData);
+  NS_IMETHOD Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData);
+  NS_IMETHOD BlockOnload(imgIRequest* aRequest);
+  NS_IMETHOD UnblockOnload(imgIRequest* aRequest);
 
   // nsIFrame
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
+  virtual nsIAtom* GetType() const override;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   // nsIHTMLReflow
   virtual void Reflow(nsPresContext* aPresContext,
                       nsHTMLReflowMetrics& aMetrics,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+                      nsReflowStatus& aStatus) override;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
 
   // nsBulletFrame
   int32_t SetListItemOrdinal(int32_t aNextOrdinal, bool* aChanged,
@@ -81,12 +93,12 @@ public:
 
   void GetSpokenText(nsAString& aText);
                          
-  void PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
-                   const nsRect& aDirtyRect, uint32_t aFlags);
+  DrawResult PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
+                         const nsRect& aDirtyRect, uint32_t aFlags);
   
-  virtual bool IsEmpty() MOZ_OVERRIDE;
-  virtual bool IsSelfEmpty() MOZ_OVERRIDE;
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
+  virtual bool IsEmpty() override;
+  virtual bool IsSelfEmpty() override;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
 
   float GetFontSizeInflation() const;
   bool HasFontSizeInflation() const {
@@ -99,28 +111,36 @@ public:
   already_AddRefed<imgIContainer> GetImage() const;
 
 protected:
-  nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
+  nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
 
-  void AppendSpacingToPadding(nsFontMetrics* aFontMetrics);
+  void AppendSpacingToPadding(nsFontMetrics* aFontMetrics,
+                              mozilla::LogicalMargin* aPadding);
   void GetDesiredSize(nsPresContext* aPresContext,
                       nsRenderingContext *aRenderingContext,
                       nsHTMLReflowMetrics& aMetrics,
-                      float aFontSizeInflation);
+                      float aFontSizeInflation,
+                      mozilla::LogicalMargin* aPadding);
 
   void GetLoadGroup(nsPresContext *aPresContext, nsILoadGroup **aLoadGroup);
+  nsIDocument* GetOurCurrentDoc() const;
 
-  nsMargin mPadding;
+  mozilla::LogicalMargin mPadding;
   nsRefPtr<imgRequestProxy> mImageRequest;
   nsRefPtr<nsBulletListener> mListener;
 
-  nsSize mIntrinsicSize;
+  mozilla::LogicalSize mIntrinsicSize;
   int32_t mOrdinal;
 
 private:
+  void RegisterImageRequest(bool aKnownToBeAnimated);
+  void DeregisterAndCancelImageRequest();
 
   // This is a boolean flag indicating whether or not the current image request
   // has been registered with the refresh driver.
-  bool mRequestRegistered;
+  bool mRequestRegistered : 1;
+
+  // Whether we're currently blocking onload.
+  bool mBlockingOnload : 1;
 };
 
 #endif /* nsBulletFrame_h___ */

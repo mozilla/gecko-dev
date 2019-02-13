@@ -15,11 +15,11 @@ using namespace js;
 
 class AutoInflatedString {
     JSContext * const cx;
-    jschar *chars_;
+    char16_t* chars_;
     size_t length_;
 
   public:
-    explicit AutoInflatedString(JSContext *cx) : cx(cx), chars_(nullptr), length_(0) { }
+    explicit AutoInflatedString(JSContext* cx) : cx(cx), chars_(nullptr), length_(0) { }
     ~AutoInflatedString() {
         JS_free(cx, chars_);
     }
@@ -31,7 +31,7 @@ class AutoInflatedString {
             abort();
     }
 
-    const jschar *chars() const { return chars_; }
+    const char16_t* chars() const { return chars_; }
     size_t length() const { return length_; }
 };
 
@@ -71,26 +71,26 @@ BEGIN_TEST(testParseJSON_success)
 
     JS::Rooted<JSFlatString*> str(cx);
 
-    const jschar emptystr[] = { '\0' };
-    str = js_NewStringCopyN<CanGC>(cx, emptystr, 0);
+    const char16_t emptystr[] = { '\0' };
+    str = js::NewStringCopyN<CanGC>(cx, emptystr, 0);
     CHECK(str);
     expected = STRING_TO_JSVAL(str);
     CHECK(TryParse(cx, "\"\"", expected));
 
-    const jschar nullstr[] = { '\0' };
+    const char16_t nullstr[] = { '\0' };
     str = NewString(cx, nullstr);
     CHECK(str);
     expected = STRING_TO_JSVAL(str);
     CHECK(TryParse(cx, "\"\\u0000\"", expected));
 
-    const jschar backstr[] = { '\b' };
+    const char16_t backstr[] = { '\b' };
     str = NewString(cx, backstr);
     CHECK(str);
     expected = STRING_TO_JSVAL(str);
     CHECK(TryParse(cx, "\"\\b\"", expected));
     CHECK(TryParse(cx, "\"\\u0008\"", expected));
 
-    const jschar newlinestr[] = { '\n', };
+    const char16_t newlinestr[] = { '\n', };
     str = NewString(cx, newlinestr);
     CHECK(str);
     expected = STRING_TO_JSVAL(str);
@@ -135,14 +135,14 @@ BEGIN_TEST(testParseJSON_success)
     return true;
 }
 
-template<size_t N> static JSFlatString *
-NewString(JSContext *cx, const jschar (&chars)[N])
+template<size_t N> static JSFlatString*
+NewString(JSContext* cx, const char16_t (&chars)[N])
 {
-    return js_NewStringCopyN<CanGC>(cx, chars, N);
+    return js::NewStringCopyN<CanGC>(cx, chars, N);
 }
 
 template<size_t N> inline bool
-Parse(JSContext *cx, const char (&input)[N], JS::MutableHandleValue vp)
+Parse(JSContext* cx, const char (&input)[N], JS::MutableHandleValue vp)
 {
     AutoInflatedString str(cx);
     str = input;
@@ -151,7 +151,7 @@ Parse(JSContext *cx, const char (&input)[N], JS::MutableHandleValue vp)
 }
 
 template<size_t N> inline bool
-TryParse(JSContext *cx, const char (&input)[N], JS::HandleValue expected)
+TryParse(JSContext* cx, const char (&input)[N], JS::HandleValue expected)
 {
     AutoInflatedString str(cx);
     RootedValue v(cx);
@@ -273,7 +273,7 @@ BEGIN_TEST(testParseJSON_error)
 }
 
 template<size_t N, size_t M, size_t L> inline bool
-Error(JSContext *cx, const char (&input)[N], const char (&expectedLine)[M],
+Error(JSContext* cx, const char (&input)[N], const char (&expectedLine)[M],
       const char (&expectedColumn)[L])
 {
     AutoInflatedString str(cx), line(cx), column(cx);
@@ -283,9 +283,9 @@ Error(JSContext *cx, const char (&input)[N], const char (&expectedLine)[M],
     ContextPrivate p = {0, 0};
     CHECK(!JS_GetContextPrivate(cx));
     JS_SetContextPrivate(cx, &p);
-    JSErrorReporter old = JS_SetErrorReporter(cx, ReportJSONError);
+    JSErrorReporter old = JS_SetErrorReporter(rt, ReportJSONError);
     bool ok = JS_ParseJSON(cx, str.chars(), str.length(), &dummy);
-    JS_SetErrorReporter(cx, old);
+    JS_SetErrorReporter(rt, old);
     JS_SetContextPrivate(cx, nullptr);
 
     CHECK(!ok);
@@ -306,15 +306,15 @@ struct ContextPrivate {
     static const size_t MaxSize = sizeof("4294967295");
     unsigned unexpectedErrorCount;
     unsigned expectedErrorCount;
-    jschar column[MaxSize];
-    jschar line[MaxSize];
+    char16_t column[MaxSize];
+    char16_t line[MaxSize];
 };
 
 static void
-ReportJSONError(JSContext *cx, const char *message, JSErrorReport *report)
+ReportJSONError(JSContext* cx, const char* message, JSErrorReport* report)
 {
-    ContextPrivate *p = static_cast<ContextPrivate *>(JS_GetContextPrivate(cx));
-    // Although messageArgs[1] and messageArgs[2] are jschar*, we cast them to char*
+    ContextPrivate* p = static_cast<ContextPrivate*>(JS_GetContextPrivate(cx));
+    // Although messageArgs[1] and messageArgs[2] are char16_t*, we cast them to char*
     // here because JSONParser::error() stores char* strings in them.
     js_strncpy(p->line, report->messageArgs[1], js_strlen(report->messageArgs[1]));
     js_strncpy(p->column, report->messageArgs[2], js_strlen(report->messageArgs[2]));
@@ -327,20 +327,18 @@ ReportJSONError(JSContext *cx, const char *message, JSErrorReport *report)
 END_TEST(testParseJSON_error)
 
 static bool
-Censor(JSContext *cx, unsigned argc, jsval *vp)
+Censor(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-    JS_ASSERT(args.length() == 2);
-#ifdef DEBUG
-    JS_ASSERT(args[0].isString());
-#endif
+    MOZ_RELEASE_ASSERT(args.length() == 2);
+    MOZ_RELEASE_ASSERT(args[0].isString());
     args.rval().setNull();
     return true;
 }
 
 BEGIN_TEST(testParseJSON_reviver)
 {
-    JSFunction *fun = JS_NewFunction(cx, Censor, 0, 0, global, "censor");
+    JSFunction* fun = JS_NewFunction(cx, Censor, 0, 0, "censor");
     CHECK(fun);
 
     JS::RootedValue filter(cx, OBJECT_TO_JSVAL(JS_GetFunctionObject(fun)));
@@ -357,7 +355,7 @@ BEGIN_TEST(testParseJSON_reviver)
 }
 
 template<size_t N> inline bool
-TryParse(JSContext *cx, const char (&input)[N], JS::HandleValue filter)
+TryParse(JSContext* cx, const char (&input)[N], JS::HandleValue filter)
 {
     AutoInflatedString str(cx);
     JS::RootedValue v(cx);

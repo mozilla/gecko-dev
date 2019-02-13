@@ -11,78 +11,79 @@
 #include "vm/Debugger.h"
 #include "vm/ScopeObject.h"
 
-#include "jit/IonFrames-inl.h"
+#include "jit/JitFrames-inl.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
 using namespace js::jit;
 
 static void
-MarkLocals(BaselineFrame *frame, JSTracer *trc, unsigned start, unsigned end)
+MarkLocals(BaselineFrame* frame, JSTracer* trc, unsigned start, unsigned end)
 {
     if (start < end) {
         // Stack grows down.
-        Value *last = frame->valueSlot(end - 1);
-        gc::MarkValueRootRange(trc, end - start, last, "baseline-stack");
+        Value* last = frame->valueSlot(end - 1);
+        TraceRootRange(trc, end - start, last, "baseline-stack");
     }
 }
 
 void
-BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
+BaselineFrame::trace(JSTracer* trc, JitFrameIterator& frameIterator)
 {
     replaceCalleeToken(MarkCalleeToken(trc, calleeToken()));
 
-    gc::MarkValueRoot(trc, &thisValue(), "baseline-this");
+    TraceRoot(trc, &thisValue(), "baseline-this");
 
     // Mark actual and formal args.
     if (isNonEvalFunctionFrame()) {
         unsigned numArgs = js::Max(numActualArgs(), numFormalArgs());
-        gc::MarkValueRootRange(trc, numArgs, argv(), "baseline-args");
+        TraceRootRange(trc, numArgs + isConstructing(), argv(), "baseline-args");
     }
 
     // Mark scope chain, if it exists.
     if (scopeChain_)
-        gc::MarkObjectRoot(trc, &scopeChain_, "baseline-scopechain");
+        TraceRoot(trc, &scopeChain_, "baseline-scopechain");
 
     // Mark return value.
     if (hasReturnValue())
-        gc::MarkValueRoot(trc, returnValue().address(), "baseline-rval");
+        TraceRoot(trc, returnValue().address(), "baseline-rval");
 
-    if (isEvalFrame())
-        gc::MarkScriptRoot(trc, &evalScript_, "baseline-evalscript");
+    if (isEvalFrame()) {
+        TraceRoot(trc, &evalScript_, "baseline-evalscript");
+        TraceRoot(trc, evalNewTargetAddress(), "baseline-evalNewTarget");
+    }
 
     if (hasArgsObj())
-        gc::MarkObjectRoot(trc, &argsObj_, "baseline-args-obj");
+        TraceRoot(trc, &argsObj_, "baseline-args-obj");
 
     // Mark locals and stack values.
-    JSScript *script = this->script();
+    JSScript* script = this->script();
     size_t nfixed = script->nfixed();
-    size_t nlivefixed = script->nfixedvars();
+    size_t nlivefixed = script->nbodyfixed();
 
     if (nfixed != nlivefixed) {
-        jsbytecode *pc;
-        NestedScopeObject *staticScope;
-
+        jsbytecode* pc;
         frameIterator.baselineScriptAndPc(nullptr, &pc);
-        staticScope = script->getStaticScope(pc);
+
+        NestedScopeObject* staticScope = script->getStaticBlockScope(pc);
         while (staticScope && !staticScope->is<StaticBlockObject>())
             staticScope = staticScope->enclosingNestedScope();
 
         if (staticScope) {
-            StaticBlockObject &blockObj = staticScope->as<StaticBlockObject>();
+            StaticBlockObject& blockObj = staticScope->as<StaticBlockObject>();
             nlivefixed = blockObj.localOffset() + blockObj.numVariables();
         }
     }
 
-    JS_ASSERT(nlivefixed <= nfixed);
-    JS_ASSERT(nlivefixed >= script->nfixedvars());
+    MOZ_ASSERT(nlivefixed <= nfixed);
+    MOZ_ASSERT(nlivefixed >= script->nbodyfixed());
 
     // NB: It is possible that numValueSlots() could be zero, even if nfixed is
     // nonzero.  This is the case if the function has an early stack check.
     if (numValueSlots() == 0)
         return;
 
-    JS_ASSERT(nfixed <= numValueSlots());
+    MOZ_ASSERT(nfixed <= numValueSlots());
 
     if (nfixed == nlivefixed) {
         // All locals are live.
@@ -91,9 +92,9 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
         // Mark operand stack.
         MarkLocals(this, trc, nfixed, numValueSlots());
 
-        // Clear dead locals.
+        // Clear dead block-scoped locals.
         while (nfixed > nlivefixed)
-            unaliasedLocal(--nfixed, DONT_CHECK_ALIASING).setUndefined();
+            unaliasedLocal(--nfixed).setMagic(JS_UNINITIALIZED_LEXICAL);
 
         // Mark live locals.
         MarkLocals(this, trc, 0, nlivefixed);
@@ -101,7 +102,7 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
 }
 
 bool
-BaselineFrame::copyRawFrameSlots(AutoValueVector *vec) const
+BaselineFrame::copyRawFrameSlots(AutoValueVector* vec) const
 {
     unsigned nfixed = script()->nfixed();
     unsigned nformals = numFormalArgs();
@@ -116,11 +117,11 @@ BaselineFrame::copyRawFrameSlots(AutoValueVector *vec) const
 }
 
 bool
-BaselineFrame::strictEvalPrologue(JSContext *cx)
+BaselineFrame::strictEvalPrologue(JSContext* cx)
 {
-    JS_ASSERT(isStrictEvalFrame());
+    MOZ_ASSERT(isStrictEvalFrame());
 
-    CallObject *callobj = CallObject::createForStrictEval(cx, this);
+    CallObject* callobj = CallObject::createForStrictEval(cx, this);
     if (!callobj)
         return false;
 
@@ -130,18 +131,18 @@ BaselineFrame::strictEvalPrologue(JSContext *cx)
 }
 
 bool
-BaselineFrame::heavyweightFunPrologue(JSContext *cx)
+BaselineFrame::heavyweightFunPrologue(JSContext* cx)
 {
     return initFunctionScopeObjects(cx);
 }
 
 bool
-BaselineFrame::initFunctionScopeObjects(JSContext *cx)
+BaselineFrame::initFunctionScopeObjects(JSContext* cx)
 {
-    JS_ASSERT(isNonEvalFunctionFrame());
-    JS_ASSERT(fun()->isHeavyweight());
+    MOZ_ASSERT(isNonEvalFunctionFrame());
+    MOZ_ASSERT(fun()->isHeavyweight());
 
-    CallObject *callobj = CallObject::createForFunction(cx, this);
+    CallObject* callobj = CallObject::createForFunction(cx, this);
     if (!callobj)
         return false;
 
@@ -151,7 +152,7 @@ BaselineFrame::initFunctionScopeObjects(JSContext *cx)
 }
 
 bool
-BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
+BaselineFrame::initForOsr(InterpreterFrame* fp, uint32_t numStackValues)
 {
     mozilla::PodZero(this);
 
@@ -170,38 +171,22 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
         argsObj_ = &fp->argsObj();
     }
 
-    if (fp->hasHookData()) {
-        flags_ |= BaselineFrame::HAS_HOOK_DATA;
-        hookData_ = fp->hookData();
-    }
-
     if (fp->hasReturnValue())
         setReturnValue(fp->returnValue());
-
-    // If the interpreter pushed an SPS frame when it entered the function, the
-    // interpreter will pop it after the OSR trampoline returns.  In order for
-    // the Baseline frame to have its SPS flag set, it must have its own SPS
-    // frame, which the Baseline code will pop on return.  Note that the
-    // profiler may have been enabled or disabled after the function was entered
-    // but before OSR.
-    JSContext *cx = GetJSContextFromJitCode();
-    SPSProfiler *p = &(cx->runtime()->spsProfiler);
-    if (p->enabled()) {
-        p->enter(fp->script(), fp->maybeFun());
-        flags_ |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
-    }
 
     frameSize_ = BaselineFrame::FramePointerOffset +
         BaselineFrame::Size() +
         numStackValues * sizeof(Value);
 
-    JS_ASSERT(numValueSlots() == numStackValues);
+    MOZ_ASSERT(numValueSlots() == numStackValues);
 
     for (uint32_t i = 0; i < numStackValues; i++)
         *valueSlot(i) = fp->slots()[i];
 
-    if (cx->compartment()->debugMode()) {
-        // In debug mode, update any Debugger.Frame objects for the
+    if (fp->isDebuggee()) {
+        JSContext* cx = GetJSContextFromJitCode();
+
+        // For debuggee frames, update any Debugger.Frame objects for the
         // InterpreterFrame to point to the BaselineFrame.
 
         // The caller pushed a fake return address. ScriptFrameIter, used by the
@@ -209,12 +194,14 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
         // In debug mode there's always at least 1 ICEntry (since there are always
         // debug prologue/epilogue calls).
         JitFrameIterator iter(cx);
-        JS_ASSERT(iter.returnAddress() == nullptr);
-        BaselineScript *baseline = fp->script()->baselineScript();
+        MOZ_ASSERT(iter.returnAddress() == nullptr);
+        BaselineScript* baseline = fp->script()->baselineScript();
         iter.current()->setReturnAddress(baseline->returnAddressForIC(baseline->icEntry(0)));
 
         if (!Debugger::handleBaselineOsr(cx, fp, this))
             return false;
+
+        setIsDebuggee();
     }
 
     return true;

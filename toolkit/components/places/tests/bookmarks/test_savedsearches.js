@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -126,7 +126,7 @@ add_test(function test_savedsearches_bookmarks() {
 add_task(function test_savedsearches_history() {
   // add a visit that matches the search term
   var testURI = uri("http://" + searchTerm + ".com");
-  yield promiseAddVisits({ uri: testURI, title: searchTerm });
+  yield PlacesTestUtils.addVisits({ uri: testURI, title: searchTerm });
 
   // create a saved-search that matches the visit we added
   var searchId = PlacesUtils.bookmarks.insertBookmark(testRoot,
@@ -166,7 +166,7 @@ add_task(function test_savedsearches_history() {
       do_check_eq(item.uri, testURI.spec); // history visit
 
       // test live-update of query results - add a history visit that matches the query
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: uri("http://foo.com"),
         title: searchTerm + "blah"
       });

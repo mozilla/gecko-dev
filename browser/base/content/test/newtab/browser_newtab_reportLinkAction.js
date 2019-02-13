@@ -4,64 +4,88 @@
 const PRELOAD_PREF = "browser.newtab.preload";
 
 gDirectorySource = "data:application/json," + JSON.stringify({
-  "en-US": [{
-    url: "http://organic.localhost/",
+  "directory": [{
+    url: "http://example.com/organic",
     type: "organic"
   }, {
-    url: "http://sponsored.localhost/",
+    url: "http://localhost/sponsored",
     type: "sponsored"
   }]
 });
 
 function runTests() {
   Services.prefs.setBoolPref(PRELOAD_PREF, false);
-  yield addNewTabPageTab();
 
-  let originalReportLinkAction  = DirectoryLinksProvider.reportLinkAction;
+  let originalReportSitesAction  = DirectoryLinksProvider.reportSitesAction;
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(PRELOAD_PREF);
-    DirectoryLinksProvider.reportLinkAction = originalReportLinkAction;
+    DirectoryLinksProvider.reportSitesAction = originalReportSitesAction;
   });
 
   let expected = {};
-  DirectoryLinksProvider.reportLinkAction = function(link, action, tileIndex, pinned) {
+  DirectoryLinksProvider.reportSitesAction = function(sites, action, siteIndex) {
+    let {link} = sites[siteIndex];
     is(link.type, expected.type, "got expected type");
-    is(link.directoryIndex, expected.link, "got expected link index");
     is(action, expected.action, "got expected action");
-    is(tileIndex, expected.tile, "got expected tile index");
-    is(pinned, expected.pinned, "got expected pinned");
+    is(NewTabUtils.pinnedLinks.isPinned(link), expected.pinned, "got expected pinned");
     executeSoon(TestRunner.next);
   }
 
+  // Test that the last visible site (index 1) is reported
+  expected.type = "sponsored";
+  expected.action = "view";
+  expected.pinned = false;
+  addNewTabPageTab();
+
+  // Wait for addNewTabPageTab and reportSitesAction
+  yield null;
+  yield null;
+
+  whenPagesUpdated();
   // Click the pin button on the link in the 1th tile spot
   let siteNode = getCell(1).node.querySelector(".newtab-site");
   let pinButton = siteNode.querySelector(".newtab-control-pin");
-  expected.type = "sponsored";
-  expected.link = 1;
   expected.action = "pin";
-  expected.tile = 1;
-  expected.pinned = false;
-  yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+  // tiles become "history" when pinned
+  expected.type = "history";
+  expected.pinned = true;
+  EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Unpin that link
   expected.action = "unpin";
-  expected.pinned = true;
-  yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+  expected.pinned = false;
+  whenPagesUpdated();
+  // need to reget siteNode for it could have been re-rendered after pin
+  siteNode = getCell(1).node.querySelector(".newtab-site");
+  pinButton = siteNode.querySelector(".newtab-control-pin");
+  EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Block the site in the 0th tile spot
   let blockedSite = getCell(0).node.querySelector(".newtab-site");
   let blockButton = blockedSite.querySelector(".newtab-control-block");
   expected.type = "organic";
-  expected.link = 0;
   expected.action = "block";
-  expected.tile = 0;
   expected.pinned = false;
-  yield EventUtils.synthesizeMouseAtCenter(blockButton, {}, getContentWindow());
-  yield whenPagesUpdated();
+  whenPagesUpdated();
+  EventUtils.synthesizeMouseAtCenter(blockButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Click the 1th link now in the 0th tile spot
-  expected.type = "sponsored";
-  expected.link = 1;
+  expected.type = "history";
   expected.action = "click";
-  yield EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
+  EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
+
+  // Wait for reportSitesAction
+  yield null;
 }

@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,90 +15,83 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
 
 this.EXPORTED_SYMBOLS = ["LayoutHelpers"];
 
-this.LayoutHelpers = LayoutHelpers = function(aTopLevelWindow) {
+let LayoutHelpers = function(aTopLevelWindow) {
   this._topDocShell = aTopLevelWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                      .getInterface(Ci.nsIWebNavigation)
                                      .QueryInterface(Ci.nsIDocShell);
 };
 
+this.LayoutHelpers = LayoutHelpers;
+
 LayoutHelpers.prototype = {
 
   /**
    * Get box quads adjusted for iframes and zoom level.
-
-   * @param {DOMNode} node
-   *        The node for which we are to get the box model region quads
-   * @param  {String} region
-   *         The box model region to return:
-   *         "content", "padding", "border" or "margin"
-   * @return {Object} An object that has the same structure as one quad returned
-   *         by getBoxQuads
+   * @param {DOMNode} node The node for which we are to get the box model region
+   * quads.
+   * @param {String} region The box model region to return: "content",
+   * "padding", "border" or "margin".
+   * @return {Array} An array of objects that have the same structure as quads
+   * returned by getBoxQuads. An empty array if the node has no quads or is
+   * invalid.
    */
   getAdjustedQuads: function(node, region) {
     if (!node || !node.getBoxQuads) {
-      return null;
+      return [];
     }
 
-    let [quads] = node.getBoxQuads({
+    let quads = node.getBoxQuads({
       box: region
     });
 
-    if (!quads) {
-      return null;
+    if (!quads.length) {
+      return [];
     }
 
     let [xOffset, yOffset] = this.getFrameOffsets(node);
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
-    return {
-      p1: {
-        w: quads.p1.w * scale,
-        x: quads.p1.x * scale + xOffset,
-        y: quads.p1.y * scale + yOffset,
-        z: quads.p1.z * scale
-      },
-      p2: {
-        w: quads.p2.w * scale,
-        x: quads.p2.x * scale + xOffset,
-        y: quads.p2.y * scale + yOffset,
-        z: quads.p2.z * scale
-      },
-      p3: {
-        w: quads.p3.w * scale,
-        x: quads.p3.x * scale + xOffset,
-        y: quads.p3.y * scale + yOffset,
-        z: quads.p3.z * scale
-      },
-      p4: {
-        w: quads.p4.w * scale,
-        x: quads.p4.x * scale + xOffset,
-        y: quads.p4.y * scale + yOffset,
-        z: quads.p4.z * scale
-      },
-      bounds: {
-        bottom: quads.bounds.bottom * scale + yOffset,
-        height: quads.bounds.height * scale,
-        left: quads.bounds.left * scale + xOffset,
-        right: quads.bounds.right * scale + xOffset,
-        top: quads.bounds.top * scale + yOffset,
-        width: quads.bounds.width * scale,
-        x: quads.bounds.x * scale + xOffset,
-        y: quads.bounds.y * scale + yOffset
-      }
-    };
-  },
+    let adjustedQuads = [];
+    for (let quad of quads) {
+      adjustedQuads.push({
+        p1: {
+          w: quad.p1.w * scale,
+          x: quad.p1.x * scale + xOffset,
+          y: quad.p1.y * scale + yOffset,
+          z: quad.p1.z * scale
+        },
+        p2: {
+          w: quad.p2.w * scale,
+          x: quad.p2.x * scale + xOffset,
+          y: quad.p2.y * scale + yOffset,
+          z: quad.p2.z * scale
+        },
+        p3: {
+          w: quad.p3.w * scale,
+          x: quad.p3.x * scale + xOffset,
+          y: quad.p3.y * scale + yOffset,
+          z: quad.p3.z * scale
+        },
+        p4: {
+          w: quad.p4.w * scale,
+          x: quad.p4.x * scale + xOffset,
+          y: quad.p4.y * scale + yOffset,
+          z: quad.p4.z * scale
+        },
+        bounds: {
+          bottom: quad.bounds.bottom * scale + yOffset,
+          height: quad.bounds.height * scale,
+          left: quad.bounds.left * scale + xOffset,
+          right: quad.bounds.right * scale + xOffset,
+          top: quad.bounds.top * scale + yOffset,
+          width: quad.bounds.width * scale,
+          x: quad.bounds.x * scale + xOffset,
+          y: quad.bounds.y * scale + yOffset
+        }
+      });
+    }
 
-  /**
-   * Get the current zoom factor applied to the container window of a given node
-   * @param {DOMNode}
-   *        The node for which the zoom factor should be calculated
-   * @return {Number}
-   */
-  calculateScale: function(node) {
-    let win = node.ownerDocument.defaultView;
-    let winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-    return winUtils.fullZoom;
+    return adjustedQuads;
   },
 
   /**
@@ -223,38 +216,35 @@ LayoutHelpers.prototype = {
   },
 
   /**
-   * Scroll the document so that the element "elem" appears in the viewport.
+   * Scroll the document so that the element "elem" appears vertically in
+   * the viewport.
    *
    * @param {DOMNode} elem
    *        The element that needs to appear in the viewport.
    * @param {Boolean} centered
    *        true if you want it centered, false if you want it to appear on the
-   *        top of the viewport. It is true by default, and that is usually what
+   *        top of the viewport. True by default, and that is usually what
    *        you want.
    */
   scrollIntoViewIfNeeded: function(elem, centered) {
     // We want to default to centering the element in the page,
     // so as to keep the context of the element.
-    centered = centered === undefined? true: !!centered;
+    centered = centered === undefined ? true: !!centered;
 
     let win = elem.ownerDocument.defaultView;
     let clientRect = elem.getBoundingClientRect();
 
-    // The following are always from the {top, bottom, left, right}
+    // The following are always from the {top, bottom}
     // of the viewport, to the {top, …} of the box.
     // Think of them as geometrical vectors, it helps.
     // The origin is at the top left.
 
     let topToBottom = clientRect.bottom;
     let bottomToTop = clientRect.top - win.innerHeight;
-    let leftToRight = clientRect.right;
-    let rightToLeft = clientRect.left - win.innerWidth;
-    let xAllowed = true;  // We allow one translation on the x axis,
-    let yAllowed = true;  // and one on the y axis.
+    let yAllowed = true;  // We allow one translation on the y axis.
 
     // Whatever `centered` is, the behavior is the same if the box is
     // (even partially) visible.
-
     if ((topToBottom > 0 || !centered) && topToBottom <= elem.offsetHeight) {
       win.scrollBy(0, topToBottom - elem.offsetHeight);
       yAllowed = false;
@@ -264,41 +254,14 @@ LayoutHelpers.prototype = {
       yAllowed = false;
     }
 
-    if ((leftToRight > 0 || !centered) && leftToRight <= elem.offsetWidth) {
-      if (xAllowed) {
-        win.scrollBy(leftToRight - elem.offsetWidth, 0);
-        xAllowed = false;
-      }
-    } else
-    if ((rightToLeft < 0 || !centered) && rightToLeft >= -elem.offsetWidth) {
-      if (xAllowed) {
-        win.scrollBy(rightToLeft + elem.offsetWidth, 0);
-        xAllowed = false;
-      }
-    }
-
     // If we want it centered, and the box is completely hidden,
     // then we center it explicitly.
-
     if (centered) {
-
       if (yAllowed && (topToBottom <= 0 || bottomToTop >= 0)) {
         win.scroll(win.scrollX,
                    win.scrollY + clientRect.top
                    - (win.innerHeight - elem.offsetHeight) / 2);
       }
-
-      if (xAllowed && (leftToRight <= 0 || rightToLeft <= 0)) {
-        win.scroll(win.scrollX + clientRect.left
-                   - (win.innerWidth - elem.offsetWidth) / 2,
-                   win.scrollY);
-      }
-    }
-
-    if (!this.isTopLevelWindow(win)) {
-      // We are inside an iframe.
-      let frameElement = this.getFrameElement(win);
-      this.scrollIntoViewIfNeeded(frameElement, centered);
     }
   },
 
@@ -409,7 +372,7 @@ LayoutHelpers.prototype = {
     let xOffset = 0;
     let yOffset = 0;
     let frameWin = node.ownerDocument.defaultView;
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
     while (true) {
       // Are we in the top-level window?
@@ -452,7 +415,7 @@ LayoutHelpers.prototype = {
       return;
     }
 
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
     // Find out the offset of the node in its current frame
     let offsetLeft = 0;
@@ -465,7 +428,7 @@ LayoutHelpers.prototype = {
     }
 
     // Also take scrolled containers into account
-    let el = node;
+    el = node;
     while (el && el.parentNode) {
       if (el.scrollTop) {
         offsetTop -= el.scrollTop;
@@ -495,4 +458,136 @@ LayoutHelpers.prototype = {
       p4: {x: xOffset, y: yOffset + height}
     };
   }
+};
+
+/**
+ * Traverse getBindingParent until arriving upon the bound element
+ * responsible for the generation of the specified node.
+ * See https://developer.mozilla.org/en-US/docs/XBL/XBL_1.0_Reference/DOM_Interfaces#getBindingParent.
+ *
+ * @param {DOMNode} node
+ * @return {DOMNode}
+ *         If node is not anonymous, this will return node. Otherwise,
+ *         it will return the bound element
+ *
+ */
+LayoutHelpers.getRootBindingParent = function(node) {
+  let parent;
+  let doc = node.ownerDocument;
+  if (!doc) {
+    return node;
+  }
+  while ((parent = doc.getBindingParent(node))) {
+    node = parent;
+  }
+  return node;
+};
+
+LayoutHelpers.getBindingParent = function(node) {
+  let doc = node.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  // If there is no binding parent then it is not anonymous.
+  let parent = doc.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  return parent;
+}
+/**
+ * Determine whether a node is anonymous by determining if there
+ * is a bindingParent.
+ *
+ * @param {DOMNode} node
+ * @return {Boolean}
+ *
+ */
+LayoutHelpers.isAnonymous = function(node) {
+  return LayoutHelpers.getRootBindingParent(node) !== node;
+};
+
+/**
+ * Determine whether a node is native anonymous content (as opposed
+ * to XBL anonymous or shadow DOM).
+ * Native anonymous content includes elements like internals to form
+ * controls and ::before/::after.
+ *
+ * @param {DOMNode} node
+ * @return {Boolean}
+ *
+ */
+LayoutHelpers.isNativeAnonymous = function(node) {
+  if (!LayoutHelpers.getBindingParent(node)) {
+    return false;
+  }
+  return !LayoutHelpers.isXBLAnonymous(node) &&
+         !LayoutHelpers.isShadowAnonymous(node);
+};
+
+/**
+ * Determine whether a node is XBL anonymous content (as opposed
+ * to native anonymous or shadow DOM).
+ * See https://developer.mozilla.org/en-US/docs/XBL/XBL_1.0_Reference/Anonymous_Content.
+ *
+ * @param {DOMNode} node
+ * @return {Boolean}
+ *
+ */
+LayoutHelpers.isXBLAnonymous = function(node) {
+  let parent = LayoutHelpers.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  // Shadow nodes also show up in getAnonymousNodes, so return false.
+  if (parent.shadowRoot && parent.shadowRoot.contains(node)) {
+    return false;
+  }
+
+  let anonNodes = [...node.ownerDocument.getAnonymousNodes(parent) || []];
+  return anonNodes.indexOf(node) > -1;
+};
+
+/**
+ * Determine whether a node is a child of a shadow root.
+ * See https://w3c.github.io/webcomponents/spec/shadow/
+ *
+ * @param {DOMNode} node
+ * @return {Boolean}
+ */
+LayoutHelpers.isShadowAnonymous = function(node) {
+  let parent = LayoutHelpers.getBindingParent(node);
+  if (!parent) {
+    return false;
+  }
+
+  // If there is a shadowRoot and this is part of it then this
+  // is not native anonymous
+  return parent.shadowRoot && parent.shadowRoot.contains(node);
+};
+
+/**
+ * Get the current zoom factor applied to the container window of a given node.
+ * Container windows are used as a weakmap key to store the corresponding
+ * nsIDOMWindowUtils instance to avoid querying it every time.
+ *
+ * @param {DOMNode|DOMWindow} The node for which the zoom factor should be
+ * calculated, or its owner window.
+ * @return {Number}
+ */
+let windowUtils = new WeakMap;
+LayoutHelpers.getCurrentZoom = function(node) {
+  let win = node.self === node ? node : node.ownerDocument.defaultView;
+  let utils = windowUtils.get(win);
+  if (utils) {
+    return utils.fullZoom;
+  }
+
+  utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+             .getInterface(Ci.nsIDOMWindowUtils);
+  windowUtils.set(win, utils);
+  return utils.fullZoom;
 };

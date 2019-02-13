@@ -8,6 +8,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/ShadowLayerUtilsX11.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 
@@ -18,10 +19,11 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 
-TextureClientX11::TextureClientX11(ISurfaceAllocator* aAllocator, SurfaceFormat aFormat, TextureFlags aFlags)
-  : TextureClient(aFlags),
+TextureClientX11::TextureClientX11(ISurfaceAllocator* aAllocator,
+                                   SurfaceFormat aFormat,
+                                   TextureFlags aFlags)
+  : TextureClient(aAllocator, aFlags),
     mFormat(aFormat),
-    mAllocator(aAllocator),
     mLocked(false)
 {
   MOZ_COUNT_CTOR(TextureClientX11);
@@ -30,6 +32,21 @@ TextureClientX11::TextureClientX11(ISurfaceAllocator* aAllocator, SurfaceFormat 
 TextureClientX11::~TextureClientX11()
 {
   MOZ_COUNT_DTOR(TextureClientX11);
+}
+
+TemporaryRef<TextureClient>
+TextureClientX11::CreateSimilar(TextureFlags aFlags,
+                                TextureAllocationFlags aAllocFlags) const
+{
+  RefPtr<TextureClient> tex = new TextureClientX11(mAllocator, mFormat, mFlags);
+
+  // mSize is guaranteed to be non-negative
+  MOZ_ASSERT(mSize.width >= 0 && mSize.height >= 0);
+  if (!tex->AllocateForSurface(mSize, aAllocFlags)) {
+    return nullptr;
+  }
+
+  return tex.forget();
 }
 
 bool
@@ -76,6 +93,13 @@ TextureClientX11::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
     return false;
   }
 
+  if (!(mFlags & TextureFlags::DEALLOCATE_CLIENT)) {
+    // Pass to the host the responsibility of freeing the pixmap. ReleasePixmap means
+    // the underlying pixmap will not be deallocated in mSurface's destructor.
+    // ToSurfaceDescriptor is at most called once per TextureClient.
+    mSurface->ReleasePixmap();
+  }
+
   aOutDescriptor = SurfaceDescriptorX11(mSurface);
   return true;
 }
@@ -84,10 +108,18 @@ bool
 TextureClientX11::AllocateForSurface(IntSize aSize, TextureAllocationFlags aTextureFlags)
 {
   MOZ_ASSERT(IsValid());
+  MOZ_ASSERT(!IsAllocated());
   //MOZ_ASSERT(mFormat != gfx::FORMAT_YUV, "This TextureClient cannot use YCbCr data");
 
-  gfxContentType contentType = ContentForFormat(mFormat);
-  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(aSize, contentType);
+  MOZ_ASSERT(aSize.width >= 0 && aSize.height >= 0);
+  if (aSize.width <= 0 || aSize.height <= 0 ||
+      aSize.width > XLIB_IMAGE_SIDE_SIZE_LIMIT ||
+      aSize.height > XLIB_IMAGE_SIDE_SIZE_LIMIT) {
+    gfxDebug() << "Asking for X11 surface of invalid size " << aSize.width << "x" << aSize.height;
+    return false;
+  }
+  gfxImageFormat imageFormat = SurfaceFormatToImageFormat(mFormat);
+  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(aSize, imageFormat);
   if (!surface || surface->GetType() != gfxSurfaceType::Xlib) {
     NS_ERROR("creating Xlib surface failed!");
     return false;
@@ -95,9 +127,6 @@ TextureClientX11::AllocateForSurface(IntSize aSize, TextureAllocationFlags aText
 
   mSize = aSize;
   mSurface = static_cast<gfxXlibSurface*>(surface.get());
-
-  // The host is always responsible for freeing the pixmap.
-  mSurface->ReleasePixmap();
 
   if (!mAllocator->IsSameProcess()) {
     FinishX(DefaultXDisplay());
@@ -117,7 +146,7 @@ TextureClientX11::BorrowDrawTarget()
   }
 
   if (!mDrawTarget) {
-    IntSize size = ToIntSize(mSurface->GetSize());
+    IntSize size = mSurface->GetSize();
     mDrawTarget = Factory::CreateDrawTargetForCairoSurface(mSurface->CairoSurface(), size);
   }
 

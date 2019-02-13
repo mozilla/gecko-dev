@@ -22,12 +22,9 @@ var host = require('./util/host');
 var l10n = require('./util/l10n');
 
 var view = require('./ui/view');
-var converters = require('./converters/converters');
-var centralCanon = require('./commands/commands').centralCanon;
 var Parameter = require('./commands/commands').Parameter;
 var CommandOutputManager = require('./commands/commands').CommandOutputManager;
 
-var centralTypes = require('./types/types').centralTypes;
 var Status = require('./types/types').Status;
 var Conversion = require('./types/types').Conversion;
 var commandModule = require('./types/command');
@@ -102,16 +99,6 @@ var removeMapping = function(requisition) {
   var index = instanceIndex(requisition.conversionContext);
   instances.splice(index, 1);
 };
-
-/**
- * Some manual intervention is needed in parsing the { command.
- */
-function getEvalCommand(canon) {
-  if (getEvalCommand._cmd == null) {
-    getEvalCommand._cmd = canon.getCommand(evalCmd.name);
-  }
-  return getEvalCommand._cmd;
-}
 
 /**
  * Assignment is a link between a parameter and the data for that parameter.
@@ -321,7 +308,7 @@ var evalCmd = {
     var reply = customEval(args.javascript);
     return context.typedData(typeof reply, reply);
   },
-  isCommandRegexp: /^\s*{\s*/
+  isCommandRegexp: /^\s*\{\s*/
 };
 
 exports.items = [ evalCmd ];
@@ -347,7 +334,7 @@ function CommandAssignment(requisition) {
     },
     enumerable: true
   });
-  this.param = new Parameter(requisition.types, commandParamMetadata);
+  this.param = new Parameter(requisition.system.types, commandParamMetadata);
 }
 
 CommandAssignment.prototype = Object.create(Assignment.prototype);
@@ -368,7 +355,7 @@ exports.CommandAssignment = CommandAssignment;
  */
 function UnassignedAssignment(requisition, arg) {
   var isIncompleteName = (arg.text.charAt(0) === '-');
-  this.param = new Parameter(requisition.types, {
+  this.param = new Parameter(requisition.system.types, {
     name: '__unassigned',
     description: l10n.lookup('cliOptions'),
     type: {
@@ -426,19 +413,19 @@ Object.defineProperty(exports, 'logErrors', {
  * assignments of values to parameters, each handled by an instance of
  * Assignment.
  *
+ * @param system Allows access to the various plug-in points in GCLI. At a
+ * minimum it must contain commands and types objects.
  * @param options A set of options to customize how GCLI is used. Includes:
  * - environment An optional opaque object passed to commands in the
  *   Execution Context.
  * - document A DOM Document passed to commands using the Execution Context in
  *   order to allow creation of DOM nodes. If missing Requisition will use the
- *   global 'document'.
+ *   global 'document', or leave undefined.
  * - commandOutputManager A custom commandOutputManager to which output should
  *   be sent
- * - canon An instance of Canon that specifies the commands that are allowed in
- *   this Requisition
  * @constructor
  */
-function Requisition(options) {
+function Requisition(system, options) {
   options = options || {};
 
   this.environment = options.environment || {};
@@ -453,8 +440,7 @@ function Requisition(options) {
   }
 
   this.commandOutputManager = options.commandOutputManager || new CommandOutputManager();
-  this.canon = options.canon || centralCanon;
-  this.types = options.types || centralTypes;
+  this.system = system;
 
   this.shell = {
     cwd: '/', // Where we store the current working directory
@@ -492,6 +478,10 @@ function Requisition(options) {
 
   addMapping(this);
   this._setBlankAssignment(this.commandAssignment);
+
+  // If a command calls context.update then the UI needs some way to be
+  // informed of the change
+  this.onExternalUpdate = util.createEvent('Requisition.onExternalUpdate');
 }
 
 /**
@@ -578,14 +568,19 @@ Object.defineProperty(Requisition.prototype, 'executionContext', {
       });
       Object.defineProperty(this._executionContext, 'shell', {
         get: function() { return requisition.shell; },
-        enumerable : true
+        enumerable: true
       });
+      Object.defineProperty(this._executionContext, 'system', {
+        get: function() { return requisition.system; },
+        enumerable: true
+      });
+
+      this._executionContext.updateExec = this._contextUpdateExec.bind(this);
 
       if (legacy) {
         this._executionContext.createView = view.createView;
         this._executionContext.exec = this.exec.bind(this);
-        this._executionContext.update = this.update.bind(this);
-        this._executionContext.updateExec = this.updateExec.bind(this);
+        this._executionContext.update = this._contextUpdate.bind(this);
 
         Object.defineProperty(this._executionContext, 'document', {
           get: function() { return requisition.document; },
@@ -612,8 +607,8 @@ Object.defineProperty(Requisition.prototype, 'conversionContext', {
 
         createView: view.createView,
         exec: this.exec.bind(this),
-        update: this.update.bind(this),
-        updateExec: this.updateExec.bind(this)
+        update: this._contextUpdate.bind(this),
+        updateExec: this._contextUpdateExec.bind(this)
       };
 
       // Alias requisition so we're clear about what's what
@@ -625,6 +620,10 @@ Object.defineProperty(Requisition.prototype, 'conversionContext', {
       });
       Object.defineProperty(this._conversionContext, 'environment', {
         get: function() { return requisition.environment; },
+        enumerable: true
+      });
+      Object.defineProperty(this._conversionContext, 'system', {
+        get: function() { return requisition.system; },
         enumerable: true
       });
     }
@@ -661,7 +660,7 @@ Requisition.prototype.getParameterNames = function() {
  * this is still an error status.
  */
 Object.defineProperty(Requisition.prototype, 'status', {
-  get : function() {
+  get: function() {
     var status = Status.VALID;
     if (this._unassigned.length !== 0) {
       var isAllIncomplete = true;
@@ -696,7 +695,8 @@ Object.defineProperty(Requisition.prototype, 'status', {
  */
 Requisition.prototype.getStatusMessage = function() {
   if (this.commandAssignment.getStatus() !== Status.VALID) {
-    return l10n.lookup('cliUnknownCommand');
+    return l10n.lookupFormat('cliUnknownCommand2',
+                             [ this.commandAssignment.arg.text ]);
   }
 
   var assignments = this.getAssignments();
@@ -767,16 +767,35 @@ Requisition.prototype._getFirstBlankPositionalAssignment = function() {
 };
 
 /**
+ * The update process is asynchronous, so there is (unavoidably) a window
+ * where we've worked out the command but don't yet understand all the params.
+ * If we try to do things to a requisition in this window we may get
+ * inconsistent results. Asynchronous promises have made the window bigger.
+ * The only time we've seen this in practice is during focus events due to
+ * clicking on a shortcut. The focus want to check the cursor position while
+ * the shortcut is updating the command line.
+ * This function allows us to detect and back out of this problem.
+ * We should be able to remove this function when all the state in a
+ * requisition can be encapsulated and updated atomically.
+ */
+Requisition.prototype.isUpToDate = function() {
+  if (!this._args) {
+    return false;
+  }
+  for (var i = 0; i < this._args.length; i++) {
+    if (this._args[i].assignment == null) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
  * Look through the arguments attached to our assignments for the assignment
  * at the given position.
  * @param {number} cursor The cursor position to query
  */
 Requisition.prototype.getAssignmentAt = function(cursor) {
-  if (!this._args) {
-    console.trace();
-    throw new Error('Missing args');
-  }
-
   // We short circuit this one because we may have no args, or no args with
   // any size and the alg below only finds arguments with size.
   if (cursor === 0) {
@@ -822,14 +841,7 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
   // Possible shortcut, we don't really need to go through all the args
   // to work out the solution to this
 
-  var reply = assignForPos[cursor - 1];
-
-  if (!reply) {
-    throw new Error('Missing assignment.' +
-        ' cursor=' + cursor + ' text=' + this.toString());
-  }
-
-  return reply;
+  return assignForPos[cursor - 1];
 };
 
 /**
@@ -1435,26 +1447,9 @@ Requisition.prototype.complete = function(cursor, rank) {
 /**
  * Replace the current value with the lower value if such a concept exists.
  */
-Requisition.prototype.decrement = function(assignment) {
+Requisition.prototype.nudge = function(assignment, by) {
   var ctx = this.executionContext;
-  var val = assignment.param.type.decrement(assignment.value, ctx);
-  return Promise.resolve(val).then(function(replacement) {
-    if (replacement != null) {
-      var val = assignment.param.type.stringify(replacement, ctx);
-      return Promise.resolve(val).then(function(str) {
-        var arg = assignment.arg.beget({ text: str });
-        return this.setAssignment(assignment, arg);
-      }.bind(this));
-    }
-  }.bind(this));
-};
-
-/**
- * Replace the current value with the higher value if such a concept exists.
- */
-Requisition.prototype.increment = function(assignment) {
-  var ctx = this.executionContext;
-  var val = assignment.param.type.increment(assignment.value, ctx);
+  var val = assignment.param.type.nudge(assignment.value, by, ctx);
   return Promise.resolve(val).then(function(replacement) {
     if (replacement != null) {
       var val = assignment.param.type.stringify(replacement, ctx);
@@ -1479,14 +1474,30 @@ function getDataCommandAttribute(element) {
 }
 
 /**
+ * Designed to be called from context.update(). Acts just like update() except
+ * that it also calls onExternalUpdate() to inform the UI of an unexpected
+ * change to the current command.
+ */
+Requisition.prototype._contextUpdate = function(typed) {
+  return this.update(typed).then(function(reply) {
+    this.onExternalUpdate({ typed: typed });
+    return reply;
+  }.bind(this));
+};
+
+/**
  * Called by the UI when ever the user interacts with a command line input
- * @param typed The contents of the input field
+ * @param typed The contents of the input field OR an HTML element (or an event
+ * that targets an HTML element) which has a data-command attribute or a child
+ * with the same that contains the command to update with
  */
 Requisition.prototype.update = function(typed) {
-  if (typeof HTMLElement !== 'undefined' && typed instanceof HTMLElement) {
+  // Should be "if (typed instanceof HTMLElement)" except Gecko
+  if (typeof typed.querySelector === 'function') {
     typed = getDataCommandAttribute(typed);
   }
-  if (typeof Event !== 'undefined' && typed instanceof Event) {
+  // Should be "if (typed instanceof Event)" except Gecko
+  if (typeof typed.currentTarget === 'object') {
     typed = getDataCommandAttribute(typed.currentTarget);
   }
 
@@ -1739,7 +1750,7 @@ function isSimple(typed) {
 }
 
 /**
- * Looks in the canon for a command extension that matches what has been
+ * Looks in the commands for a command extension that matches what has been
  * typed at the command line.
  */
 Requisition.prototype._split = function(args) {
@@ -1750,7 +1761,8 @@ Requisition.prototype._split = function(args) {
   if (args[0].type === 'ScriptArgument') {
     // Special case: if the user enters { console.log('foo'); } then we need to
     // use the hidden 'eval' command
-    conversion = new Conversion(getEvalCommand(this.canon), new ScriptArgument());
+    var command = this.system.commands.get(evalCmd.name);
+    conversion = new Conversion(command, new ScriptArgument());
     this._setAssignmentInternal(this.commandAssignment, conversion);
     return;
   }
@@ -1987,7 +1999,7 @@ Requisition.prototype.exec = function(options) {
     if (options.command != null) {
       // Fast track by looking up the command directly since passed args
       // means there is no command line to parse.
-      command = this.canon.getCommand(options.command);
+      command = this.system.commands.get(options.command);
       if (!command) {
         console.error('Command not found: ' + options.command);
       }
@@ -2029,8 +2041,12 @@ Requisition.prototype.exec = function(options) {
         util.errorHandler(ex);
       }
       else {
-        console.log(data);
+        console.error(data);
       }
+    }
+
+    if (data != null && typeof data === 'string') {
+      data = data.replace(/^Protocol error: /, ''); // Temp fix for bug 1035296
     }
 
     data = (data != null && data.isTypedData) ? data : {
@@ -2066,6 +2082,23 @@ Requisition.prototype.exec = function(options) {
       this.clear();
     }
   }
+};
+
+/**
+ * Designed to be called from context.updateExec(). Acts just like updateExec()
+ * except that it also calls onExternalUpdate() to inform the UI of an
+ * unexpected change to the current command.
+ */
+Requisition.prototype._contextUpdateExec = function(typed, options) {
+  var reqOpts = {
+    document: this.document,
+    environment: this.environment
+  };
+  var child = new Requisition(this.system, reqOpts);
+  return child.updateExec(typed, options).then(function(reply) {
+    child.destroy();
+    return reply;
+  }.bind(child));
 };
 
 /**
@@ -2136,15 +2169,28 @@ Output.prototype.complete = function(data, error) {
  * Call converters.convert using the data in this Output object
  */
 Output.prototype.convert = function(type, conversionContext) {
+  var converters = conversionContext.system.converters;
   return converters.convert(this.data, this.type, type, conversionContext);
 };
 
 Output.prototype.toJson = function() {
+  // Exceptions don't stringify, so we try a bit harder
+  var data = this.data;
+  if (this.error && JSON.stringify(this.data) === '{}') {
+    data = {
+      columnNumber: data.columnNumber,
+      fileName: data.fileName,
+      lineNumber: data.lineNumber,
+      message: data.message,
+      stack: data.stack
+    };
+  }
+
   return {
     typed: this.typed,
     type: this.type,
-    data: this.data,
-    error: this.error
+    data: data,
+    isError: this.error
   };
 };
 

@@ -54,7 +54,7 @@ the future.
 
 This is how to create a basic ``greet`` command:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       description: 'Show a greeting',
       params: [
@@ -68,7 +68,7 @@ This is how to create a basic ``greet`` command:
       exec: function(args, context) {
         return 'Hello, ' + args.name;
       }
-    });
+    }]);
 
 This command is used as follows:
 
@@ -88,8 +88,9 @@ depends on what context you are writing your command for.
 
 GCLI supports Mozilla style localization. To add a command that will only ever
 be used embedded in Firefox, this is the way to go. Your strings should be
-stored in ``browser/locales/en-US/chrome/browser/devtools/gclicommands.properties``,
-And you should access them using ``gcli.lookup(...)`` or ``gcli.lookupFormat()``
+stored in ``toolkit/locales/en-US/chrome/global/devtools/gclicommands.properties``,
+And you should access them using ``let l10n = require("gcli/l10n")`` and then
+``l10n.lookup(...)`` or ``l10n.lookupFormat()``
 
 For examples of existing commands, take a look in
 ``browser/devtools/webconsole/GcliCommands.jsm``, which contains most of the
@@ -98,18 +99,18 @@ consider starting a new JSM.
 
 Your command will then look something like this:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       description: gcli.lookup("greetDesc")
       ...
-    });
+    }]);
 
 ### Web Commands
 
 There are 2 ways to provide translated strings for web use. The first is to
 supply the translated strings in the description:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       description: {
         'root': 'Show a greeting',
@@ -119,7 +120,7 @@ supply the translated strings in the description:
         ...
       }
       ...
-    });
+    }]);
 
 Each description should contain at least a 'root' entry which is the
 default if no better match is found. This method has the benefit of being
@@ -130,11 +131,11 @@ the majority of which will never be used.
 More efficient is to supply a lookup key and ask GCLI to lookup the key from an
 appropriate localized strings file:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       description: { 'key': 'demoGreetingDesc' }
       ...
-    });
+    }]);
 
 For web usage, the central store of localized strings is
 ``lib/gcli/nls/strings.js``. Other string files can be added using the
@@ -151,7 +152,7 @@ The ``greet`` command requires the entry of the ``name`` parameter. This
 parameter can be made optional with the addition of a ``defaultValue`` to the
 parameter:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       description: 'Show a message to someone',
       params: [
@@ -166,7 +167,7 @@ parameter:
       exec: function(args, context) {
         return "Hello, " + args.name;
       }
-    });
+    }]);
 
 Now we can also use the ``greet`` command as follows:
 
@@ -190,7 +191,7 @@ For example, we can also invoke the greet command as follows:
 
 GCLI allows you to specify a 'short' character for any parameter:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         {
@@ -201,7 +202,7 @@ GCLI allows you to specify a 'short' character for any parameter:
         }
       ],
       ...
-    });
+    }]);
 
 This is used as follows:
 
@@ -236,14 +237,14 @@ more information.
 The following examples assume the following definition of the ```greet```
 command:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'name', type: 'string' },
         { name: 'repeat', type: 'number' }
       ],
       ...
-    });
+    }]);
 
 Parameters can be specified either with named arguments:
 
@@ -284,14 +285,14 @@ to achieve this is to use the ```option: true``` property.
 
 For example, using:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'name', type: 'string' },
         { name: 'repeat', type: 'number', option: true, defaultValue: 1 }
       ],
       ...
-    });
+    }]);
 
 Would mean that this is an error
 
@@ -318,7 +319,7 @@ There is currently no way to make parameters mutually exclusive.
 
 Parameters can have a type of ``selection``. For example:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'name', ... },
@@ -330,7 +331,7 @@ Parameters can have a type of ``selection``. For example:
         }
       ],
       ...
-    });
+    }]);
 
 GCLI will enforce that the value of ``arg.lang`` was one of the values
 specified. Alternatively ``data`` can be a function which returns an array of
@@ -357,7 +358,7 @@ Similarly, ``lookup`` can be a function returning the data of this type.
 Number types are mostly self explanatory, they have one special property which
 is the ability to specify upper and lower bounds for the number:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'volume',
       params: [
         {
@@ -367,7 +368,7 @@ is the ability to specify upper and lower bounds for the number:
         }
       ],
       ...
-    });
+    }]);
 
 You can also specify a ``step`` property which specifies by what amount we
 should increment and decrement the values. The ``min``, ``max``, and ``step``
@@ -385,7 +386,7 @@ of another parameter. For example:
 
 We can achieve this as follows:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'set',
       params: [
         {
@@ -401,7 +402,7 @@ We can achieve this as follows:
         }
       ],
       ...
-    });
+    }]);
 
 Several details are left out of this example, like how the delegateType()
 function knows what the current setting is. See the ``pref`` command for an
@@ -412,7 +413,7 @@ example.
 
 Parameters can have a type of ``array``. For example:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         {
@@ -426,7 +427,7 @@ Parameters can have a type of ``array``. For example:
       exec: function(args, context) {
         return "Hello, " + args.names.join(', ') + '.';
       }
-    });
+    }]);
 
 This would be used as follows:
 
@@ -453,22 +454,24 @@ examples of commands that should be structured as in a sub-command style -
 Groups of commands are specified with the top level command not having an
 exec function:
 
-    gcli.addCommand({
-      name: 'tar',
-      description: 'Commands to manipulate archives',
-    });
-    gcli.addCommand({
-      name: 'tar create',
-      description: 'Create a new archive',
-      exec: function(args, context) { ... },
-      ...
-    });
-    gcli.addCommand({
-      name: 'tar extract',
-      description: 'Extract from an archive',
-      exec: function(args, context) { ... },
-      ...
-    });
+    gcli.addItems([
+      {
+        name: 'tar',
+        description: 'Commands to manipulate archives',
+      },
+      {
+        name: 'tar create',
+        description: 'Create a new archive',
+        exec: function(args, context) { ... },
+        ...
+      },
+      {
+        name: 'tar extract',
+        description: 'Extract from an archive',
+        exec: function(args, context) { ... },
+        ...
+      }
+    ]);
 
 
 ## Parameter groups
@@ -480,31 +483,31 @@ There are 3 ways to assign a parameter to a group.
 The simplest uses ```option: true``` to put a parameter into the default
 'Options' group:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'repeat', type: 'number', option: true }
       ],
       ...
-    });
+    }]);
 
 The ```option``` property can also take a string to use an alternative parameter
 group:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'repeat', type: 'number', option: 'Advanced' }
       ],
       ...
-    });
+    }]);
 
 An example of how this can be useful is 'git' which categorizes parameters into
 'porcelain' and 'plumbing'.
 
 Finally, parameters can be grouped together as follows:
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'greet',
       params: [
         { name: 'name', type: 'string', description: 'The name to greet' },
@@ -517,7 +520,7 @@ Finally, parameters can be grouped together as follows:
         }
       ],
       ...
-    });
+    }]);
 
 This could be used as follows:
 
@@ -588,7 +591,7 @@ The parameters to the exec function are designed to be useful when you have a
 large number of parameters, and to give direct access to the environment (if
 used).
 
-    gcli.addCommand({
+    gcli.addItems([{
       name: 'echo',
       description: 'The message to display.',
       params: [
@@ -602,7 +605,7 @@ used).
       exec: function(args, context) {
         return args.message;
       }
-    });
+    }]);
 
 The ``args`` object contains the values specified on the params section and
 provided on the command line. In this example it would contain the message for
@@ -752,4 +755,3 @@ types this is enough detail. There are a number of exceptions:
   provide a customization of this type. See settingValue for an example.
 
 See below for more information.
-

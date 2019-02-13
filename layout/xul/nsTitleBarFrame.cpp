@@ -28,13 +28,13 @@ using namespace mozilla;
 nsIFrame*
 NS_NewTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsTitleBarFrame(aPresShell, aContext);
+  return new (aPresShell) nsTitleBarFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTitleBarFrame)
 
-nsTitleBarFrame::nsTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-:nsBoxFrame(aPresShell, aContext, false)
+nsTitleBarFrame::nsTitleBarFrame(nsStyleContext* aContext)
+:nsBoxFrame(aContext, false)
 {
   mTrackingMouseMove = false;
   UpdateMouseThrough();
@@ -81,7 +81,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
              nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
 
              // remember current mouse coordinates.
-             mLastPoint = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint);
+             mLastPoint = aEvent->refPoint;
            }
          }
 
@@ -110,7 +110,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
    case NS_MOUSE_MOVE: {
        if(mTrackingMouseMove)
        {
-         nsIntPoint nsMoveBy = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint) - mLastPoint;
+         LayoutDeviceIntPoint nsMoveBy = aEvent->refPoint - mLastPoint;
 
          nsIFrame* parent = GetParent();
          while (parent) {

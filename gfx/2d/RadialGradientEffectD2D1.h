@@ -38,8 +38,8 @@ enum {
   RADIAL_PROP_TRANSFORM
 };
 
-class RadialGradientEffectD2D1 MOZ_FINAL : public ID2D1EffectImpl
-                                         , public ID2D1DrawTransform
+class RadialGradientEffectD2D1 final : public ID2D1EffectImpl
+                                     , public ID2D1DrawTransform
 {
 public:
   // ID2D1EffectImpl
@@ -72,6 +72,7 @@ public:
   IFACEMETHODIMP SetDrawInfo(ID2D1DrawInfo *pDrawInfo);
 
   static HRESULT Register(ID2D1Factory1* aFactory);
+  static void Unregister(ID2D1Factory1* aFactory);
   static HRESULT __stdcall CreateEffect(IUnknown** aEffectImpl);
 
   HRESULT SetStopCollection(IUnknown *aStopCollection);

@@ -7,14 +7,15 @@ package org.mozilla.gecko.home;
 
 import java.lang.ref.WeakReference;
 
+import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.db.BrowserContract.Combined;
-import org.mozilla.gecko.db.BrowserDB.URLColumns;
+import org.mozilla.gecko.db.BrowserContract.URLColumns;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.FaviconView;
 
 import android.content.Context;
@@ -51,6 +52,11 @@ public class TwoLinePageRow extends LinearLayout
             this.view = new WeakReference<FaviconView>(view);
         }
 
+        /**
+         * Update this row's favicon.
+         * <p>
+         * This method is always invoked on the UI thread.
+         */
         @Override
         public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
             FaviconView v = view.get();
@@ -97,23 +103,50 @@ public class TwoLinePageRow extends LinearLayout
 
     @Override
     protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+
         Tabs.registerOnTabsChangedListener(this);
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+
         // Tabs' listener array is safe to modify during use: its
         // iteration pattern is based on snapshots.
         Tabs.unregisterOnTabsChangedListener(this);
     }
 
+    /**
+     * Update the row in response to a tab change event.
+     * <p>
+     * This method is always invoked on the UI thread.
+     */
     @Override
     public void onTabChanged(final Tab tab, final Tabs.TabEvents msg, final Object data) {
-        switch(msg) {
+        // Carefully check if this tab event is relevant to this row.
+        final String pageUrl = mPageUrl;
+        if (pageUrl == null) {
+            return;
+        }
+        if (tab == null) {
+            return;
+        }
+
+        // Return early if the page URL doesn't match the current tab URL,
+        // or the old tab URL.
+        final String tabUrl = tab.getURL();
+        if (!pageUrl.equals(tabUrl) && !pageUrl.equals(data)) {
+            return;
+        }
+
+        switch (msg) {
             case ADDED:
             case CLOSED:
             case LOCATION_CHANGE:
                 updateDisplayedUrl();
+                break;
+            default:
                 break;
         }
     }
@@ -182,42 +215,29 @@ public class TwoLinePageRow extends LinearLayout
         mShowIcons = showIcons;
     }
 
-    public void updateFromCursor(Cursor cursor) {
-        if (cursor == null) {
-            return;
-        }
+    /**
+     * Update the data displayed by this row.
+     * <p>
+     * This method must be invoked on the UI thread.
+     *
+     * @param title to display.
+     * @param url to display.
+     */
+    public void update(String title, String url) {
+        update(title, url, 0);
+    }
 
-        int titleIndex = cursor.getColumnIndexOrThrow(URLColumns.TITLE);
-        final String title = cursor.getString(titleIndex);
-
-        int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
-        final String url = cursor.getString(urlIndex);
-
+    protected void update(String title, String url, long bookmarkId) {
         if (mShowIcons) {
-            final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
-            if (bookmarkIdIndex != -1) {
-                final long bookmarkId = cursor.getLong(bookmarkIdIndex);
-                final int displayIndex = cursor.getColumnIndex(Combined.DISPLAY);
-
-                final int display;
-                if (displayIndex != -1) {
-                    display = cursor.getInt(displayIndex);
-                } else {
-                    display = Combined.DISPLAY_NORMAL;
-                }
-
-                // The bookmark id will be 0 (null in database) when the url
-                // is not a bookmark.
-                if (bookmarkId == 0) {
-                    setPageTypeIcon(NO_ICON);
-                } else if (display == Combined.DISPLAY_READER) {
-                    setPageTypeIcon(R.drawable.ic_url_bar_reader);
-                } else {
-                    setPageTypeIcon(R.drawable.ic_url_bar_star);
-                }
-            } else {
+            // The bookmark id will be 0 (null in database) when the url
+            // is not a bookmark.
+            if (bookmarkId == 0) {
                 setPageTypeIcon(NO_ICON);
+            } else {
+                setPageTypeIcon(R.drawable.ic_url_bar_star);
             }
+        } else {
+            setPageTypeIcon(NO_ICON);
         }
 
         // Use the URL instead of an empty title for consistency with the normal URL
@@ -231,8 +251,43 @@ public class TwoLinePageRow extends LinearLayout
 
         // Blank the Favicon, so we don't show the wrong Favicon if we scroll and miss DB.
         mFavicon.clearImage();
-        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(url, mFaviconListener);
+        Favicons.cancelFaviconLoad(mLoadFaviconJobId);
+
+        // Displayed RecentTabsPanel URLs may refer to pages opened in reader mode, so we
+        // remove the about:reader prefix to ensure the Favicon loads properly.
+        final String pageURL = AboutPages.isAboutReader(url) ?
+            ReaderModeUtils.getUrlFromAboutReader(url) : url;
+        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(getContext(), pageURL, mFaviconListener);
 
         updateDisplayedUrl(url);
+    }
+
+    /**
+     * Update the data displayed by this row.
+     * <p>
+     * This method must be invoked on the UI thread.
+     *
+     * @param cursor to extract data from.
+     */
+    public void updateFromCursor(Cursor cursor) {
+        if (cursor == null) {
+            return;
+        }
+
+        int titleIndex = cursor.getColumnIndexOrThrow(URLColumns.TITLE);
+        final String title = cursor.getString(titleIndex);
+
+        int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
+        final String url = cursor.getString(urlIndex);
+
+        final long bookmarkId;
+        final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
+        if (bookmarkIdIndex != -1) {
+            bookmarkId = cursor.getLong(bookmarkIdIndex);
+        } else {
+            bookmarkId = 0;
+        }
+
+        update(title, url, bookmarkId);
     }
 }

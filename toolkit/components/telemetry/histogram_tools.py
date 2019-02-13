@@ -4,7 +4,25 @@
 
 import json
 import math
+import os
 import re
+import sys
+
+# histogram_tools.py is used by scripts from a mozilla-central build tree
+# and also by outside consumers, such as the telemetry server.  We need
+# to ensure that importing things works in both contexts.  Therefore,
+# unconditionally importing things that are local to the build tree, such
+# as buildconfig, is a no-no.
+try:
+    import buildconfig
+
+    # Need to update sys.path to be able to find usecounters.
+    sys.path.append(os.path.join(buildconfig.topsrcdir, 'dom/base/'))
+except ImportError:
+    # Must be in an out-of-tree usage scenario.  Trust that whoever is
+    # running this script knows we need the usecounters module and has
+    # ensured it's in our sys.path.
+    pass
 
 from collections import OrderedDict
 
@@ -55,7 +73,8 @@ def exponential_buckets(dmin, dmax, n_buckets):
         ret_array[bucket_index] = current
     return ret_array
 
-always_allowed_keys = ['kind', 'description', 'cpp_guard', 'expires_in_version']
+always_allowed_keys = ['kind', 'description', 'cpp_guard', 'expires_in_version',
+                       'alert_emails', 'keyed', 'releaseChannelCollection']
 
 class Histogram:
     """A class for representing a histogram definition."""
@@ -65,26 +84,35 @@ class Histogram:
 definition is a dict-like object that must contain at least the keys:
 
  - 'kind': The kind of histogram.  Must be one of 'boolean', 'flag',
-   'enumerated', 'linear', or 'exponential'.
+   'count', 'enumerated', 'linear', or 'exponential'.
  - 'description': A textual description of the histogram.
 
 The key 'cpp_guard' is optional; if present, it denotes a preprocessor
 symbol that should guard C/C++ definitions associated with the histogram."""
+        self.check_name(name)
         self.verify_attributes(name, definition)
         self._name = name
         self._description = definition['description']
         self._kind = definition['kind']
         self._cpp_guard = definition.get('cpp_guard')
+        self._keyed = definition.get('keyed', False)
         self._extended_statistics_ok = definition.get('extended_statistics_ok', False)
         self._expiration = definition.get('expires_in_version')
         self.compute_bucket_parameters(definition)
         table = { 'boolean': 'BOOLEAN',
                   'flag': 'FLAG',
+                  'count': 'COUNT',
                   'enumerated': 'LINEAR',
                   'linear': 'LINEAR',
                   'exponential': 'EXPONENTIAL' }
         table_dispatch(self.kind(), table,
                        lambda k: self._set_nsITelemetry_kind(k))
+        datasets = { 'opt-in': 'DATASET_RELEASE_CHANNEL_OPTIN',
+                     'opt-out': 'DATASET_RELEASE_CHANNEL_OPTOUT' }
+        value = definition.get('releaseChannelCollection', 'opt-in')
+        if not value in datasets:
+            raise DefinitionException, "unknown release channel collection policy for " + name
+        self._dataset = "nsITelemetry::" + datasets[value]
 
     def name(self):
         """Return the name of the histogram."""
@@ -96,7 +124,7 @@ symbol that should guard C/C++ definitions associated with the histogram."""
 
     def kind(self):
         """Return the kind of the histogram.
-Will be one of 'boolean', 'flag', 'enumerated', 'linear', or 'exponential'."""
+Will be one of 'boolean', 'flag', 'count', 'enumerated', 'linear', or 'exponential'."""
         return self._kind
 
     def expiration(self):
@@ -128,6 +156,14 @@ the histogram."""
 associated with the histogram.  Returns None if no guarding is necessary."""
         return self._cpp_guard
 
+    def keyed(self):
+        """Returns True if this a keyed histogram, false otherwise."""
+        return self._keyed
+
+    def dataset(self):
+        """Returns the dataset this histogram belongs into."""
+        return self._dataset
+
     def extended_statistics_ok(self):
         """Return True if gathering extended statistics for this histogram
 is enabled."""
@@ -137,6 +173,7 @@ is enabled."""
         """Return an array of lower bounds for each bucket in the histogram."""
         table = { 'boolean': linear_buckets,
                   'flag': linear_buckets,
+                  'count': linear_buckets,
                   'enumerated': linear_buckets,
                   'linear': linear_buckets,
                   'exponential': exponential_buckets }
@@ -147,6 +184,7 @@ is enabled."""
         table = {
             'boolean': Histogram.boolean_flag_bucket_parameters,
             'flag': Histogram.boolean_flag_bucket_parameters,
+            'count': Histogram.boolean_flag_bucket_parameters,
             'enumerated': Histogram.enumerated_bucket_parameters,
             'linear': Histogram.linear_bucket_parameters,
             'exponential': Histogram.exponential_bucket_parameters
@@ -161,6 +199,7 @@ is enabled."""
         table = {
             'boolean': always_allowed_keys,
             'flag': always_allowed_keys,
+            'count': always_allowed_keys,
             'enumerated': always_allowed_keys + ['n_values'],
             'linear': general_keys,
             'exponential': general_keys + ['extended_statistics_ok']
@@ -169,6 +208,10 @@ is enabled."""
                        lambda allowed_keys: Histogram.check_keys(name, definition, allowed_keys))
 
         Histogram.check_expiration(name, definition)
+
+    def check_name(self, name):
+        if '#' in name:
+            raise ValueError, '"#" not permitted for %s' % (name)
 
     @staticmethod
     def check_expiration(name, definition):
@@ -221,11 +264,65 @@ is enabled."""
                 definition['high'],
                 definition['n_buckets'])
 
-def from_file(filename):
-    """Return an iterator that provides a sequence of Histograms for
-the histograms defined in filename.
-    """
+# We support generating histograms from multiple different input files, not
+# just Histograms.json.  For each file's basename, we have a specific
+# routine to parse that file, and return a dictionary mapping histogram
+# names to histogram parameters.
+def from_Histograms_json(filename):
     with open(filename, 'r') as f:
-        histograms = json.load(f, object_pairs_hook=OrderedDict)
+        try:
+            histograms = json.load(f, object_pairs_hook=OrderedDict)
+        except ValueError, e:
+            raise BaseException, "error parsing histograms in %s: %s" % (filename, e.message)
+    return histograms
+
+def from_UseCounters_conf(filename):
+    return usecounters.generate_histograms(filename)
+
+FILENAME_PARSERS = {
+    'Histograms.json': from_Histograms_json,
+}
+
+# Similarly to the dance above with buildconfig, usecounters may not be
+# available, so handle that gracefully.
+try:
+    import usecounters
+
+    FILENAME_PARSERS['UseCounters.conf'] = from_UseCounters_conf
+except ImportError:
+    pass
+
+def from_files(filenames):
+    """Return an iterator that provides a sequence of Histograms for
+the histograms defined in filenames.
+    """
+    all_histograms = OrderedDict()
+    for filename in filenames:
+        parser = FILENAME_PARSERS[os.path.basename(filename)]
+        histograms = parser(filename)
+
+        # OrderedDicts are important, because then the iteration order over
+        # the parsed histograms is stable, which makes the insertion into
+        # all_histograms stable, which makes ordering in generated files
+        # stable, which makes builds more deterministic.
+        if not isinstance(histograms, OrderedDict):
+            raise BaseException, "histogram parser didn't provide an OrderedDict"
+
         for (name, definition) in histograms.iteritems():
-            yield Histogram(name, definition)
+            if all_histograms.has_key(name):
+                raise DefinitionException, "duplicate histogram name %s" % name
+            all_histograms[name] = definition
+
+    # We require that all USE_COUNTER_* histograms be defined in a contiguous
+    # block.
+    use_counter_indices = filter(lambda x: x[1].startswith("USE_COUNTER_"),
+                                 enumerate(all_histograms.iterkeys()));
+    if use_counter_indices:
+        lower_bound = use_counter_indices[0][0]
+        upper_bound = use_counter_indices[-1][0]
+        n_counters = upper_bound - lower_bound + 1
+        if n_counters != len(use_counter_indices):
+            raise DefinitionException, "use counter histograms must be defined in a contiguous block"
+
+    for (name, definition) in all_histograms.iteritems():
+        yield Histogram(name, definition)

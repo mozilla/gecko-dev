@@ -34,6 +34,16 @@
                   name="browser.startup.homepage"
                   type="wstring"/>
 
+#ifdef HAVE_SHELL_SERVICE
+      <preference id="browser.shell.checkDefaultBrowser"
+                  name="browser.shell.checkDefaultBrowser"
+                  type="bool"/>
+
+      <preference id="pref.general.disable_button.default_browser"
+                  name="pref.general.disable_button.default_browser"
+                  type="bool"/>
+#endif
+
       <preference id="pref.browser.homepage.disable_button.current_page"
                   name="pref.browser.homepage.disable_button.current_page"
                   type="bool"/>
@@ -67,6 +77,38 @@
     <groupbox id="startupGroup">
       <caption label="&startup.label;"/>
 
+#ifdef MOZ_DEV_EDITION
+      <vbox id="separateProfileBox">
+        <checkbox id="separateProfileMode"
+                  label="&separateProfileMode.label;"/>
+        <hbox align="center" class="indent">
+          <label id="useFirefoxSync">&useFirefoxSync.label;</label>
+          <label id="getStarted" class="text-link">&getStarted.label;</label>
+        </hbox>
+      </vbox>
+#endif
+
+#ifdef HAVE_SHELL_SERVICE
+      <vbox id="defaultBrowserBox">
+        <hbox align="center">
+          <checkbox id="alwaysCheckDefault" preference="browser.shell.checkDefaultBrowser"
+                    label="&alwaysCheckDefault2.label;" accesskey="&alwaysCheckDefault2.accesskey;"/>
+        </hbox>
+        <deck id="setDefaultPane">
+          <hbox align="center" class="indent">
+            <label id="isNotDefaultLabel" flex="1">&isNotDefault.label;</label>
+            <button id="setDefaultButton"
+                    label="&setAsMyDefaultBrowser2.label;" accesskey="&setAsMyDefaultBrowser2.accesskey;"
+                    oncommand="gMainPane.setDefaultBrowser();"
+                    preference="pref.general.disable_button.default_browser"/>
+          </hbox>
+          <hbox align="center" class="indent">
+            <label id="isDefaultLabel" flex="1">&isDefault.label;</label>
+          </hbox>
+        </deck>
+        <separator class="thin"/>
+      </vbox>
+#endif
       <hbox align="center">
         <label value="&startupPage.label;" accesskey="&startupPage.accesskey;"
                control="browserStartupPage"/>
@@ -122,8 +164,7 @@
                      preference="browser.download.folderList"
                      preference-editable="true"
                      aria-labelledby="saveTo"
-                     onsyncfrompreference="return gMainPane.displayDownloadDirPref();"
-                     onsynctopreference="return gMainPane.getFolderListPref()"/>
+                     onsyncfrompreference="return gMainPane.displayDownloadDirPref();"/>
           <button id="chooseFolder" oncommand="gMainPane.chooseFolder();"
 #ifdef XP_MACOSX
                   accesskey="&chooseFolderMac.accesskey;"
@@ -132,8 +173,7 @@
                   accesskey="&chooseFolderWin.accesskey;"
                   label="&chooseFolderWin.label;"
 #endif
-                  preference="browser.download.folderList"
-                  onsynctopreference="return gMainPane.getFolderListPref();"/>
+          />
         </hbox>
         <radio id="alwaysAsk" value="false"
                label="&alwaysAsk.label;"

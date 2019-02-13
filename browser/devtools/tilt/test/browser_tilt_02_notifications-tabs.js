@@ -17,6 +17,10 @@ function notification(win, topic) {
   }
 
   let { notification, window } = expected.shift();
+  if (Cu.isDeadWrapper(window)) {
+    // Sometimes we end up with a nuked window reference here :-(
+    return;
+  }
   is(topic, notification, "Saw the expected notification");
   is(win, window, "Saw the expected window");
 }
@@ -31,10 +35,12 @@ function after(notification, callback) {
 
 function test() {
   if (!isTiltEnabled()) {
+    aborting();
     info("Skipping tab switch test because Tilt isn't enabled.");
     return;
   }
   if (!isWebGLSupported()) {
+    aborting();
     info("Skipping tab switch test because WebGL isn't supported.");
     return;
   }
@@ -67,7 +73,7 @@ let testSteps = [
 
       createTilt({}, false, function suddenDeath()
       {
-        info("Tilt could not be initialized properly.");
+        ok(false, "Tilt could not be initialized properly.");
         cleanup();
       });
     });
@@ -83,7 +89,7 @@ let testSteps = [
 
       createTilt({}, false, function suddenDeath()
       {
-        info("Tilt could not be initialized properly.");
+        ok(false, "Tilt could not be initialized properly.");
         cleanup();
       });
     });

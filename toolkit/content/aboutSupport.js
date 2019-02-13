@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Troubleshoot.jsm");
 Cu.import("resource://gre/modules/ResetProfile.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
@@ -19,7 +22,7 @@ window.addEventListener("load", function onload(event) {
     for (let prop in snapshotFormatters)
       snapshotFormatters[prop](snapshot[prop]);
   });
-  populateResetBox();
+  populateActionBox();
   setupEventListeners();
   } catch (e) {
     Cu.reportError("stack of load error for about:support: " + e + ": " + e.stack);
@@ -35,10 +38,16 @@ let snapshotFormatters = {
     $("application-box").textContent = data.name;
     $("useragent-box").textContent = data.userAgent;
     $("supportLink").href = data.supportURL;
-    let version = data.version;
+    let version = AppConstants.MOZ_APP_VERSION_DISPLAY;
     if (data.vendor)
       version += " (" + data.vendor + ")";
     $("version-box").textContent = version;
+    $("buildid-box").textContent = data.buildID;
+    if (data.updateChannel)
+      $("updatechannel-box").textContent = data.updateChannel;
+
+    $("multiprocess-box").textContent = stringBundle().formatStringFromName("multiProcessStatus",
+      [data.numRemoteWindows, data.numTotalWindows, data.remoteAutoStart], 3);
   },
 
 #ifdef MOZ_CRASHREPORTER
@@ -160,27 +169,7 @@ let snapshotFormatters = {
   },
 
   graphics: function graphics(data) {
-    // graphics-info-properties tbody
-    if ("info" in data) {
-      let trs = sortedArrayFromObject(data.info).map(function ([prop, val]) {
-        return $.new("tr", [
-          $.new("th", prop, "column"),
-          $.new("td", String(val)),
-        ]);
-      });
-      $.append($("graphics-info-properties"), trs);
-      delete data.info;
-    }
-
-    // graphics-failures-tbody tbody
-    if ("failures" in data) {
-      $.append($("graphics-failures-tbody"), data.failures.map(function (val) {
-        return $.new("tr", [$.new("td", val)]);
-      }));
-      delete data.failures;
-    }
-
-    // graphics-tbody tbody
+    let strings = stringBundle();
 
     function localizedMsg(msgArray) {
       let nameOrMsg = msgArray.shift();
@@ -208,8 +197,86 @@ let snapshotFormatters = {
       return nameOrMsg;
     }
 
+    // Read APZ info out of data.info, stripping it out in the process.
+    let apzInfo = [];
+    let formatApzInfo = function (info) {
+      let out = [];
+      for (let type of ['Wheel', 'Touch']) {
+        let key = 'Apz' + type + 'Input';
+        let warningKey = key + 'Warning';
+
+        if (!(key in info))
+          continue;
+
+        let badPref = info[warningKey];
+        delete info[key];
+        delete info[warningKey];
+
+        let message;
+        if (badPref)
+          message = localizedMsg([type.toLowerCase() + 'Warning', badPref]);
+        else
+          message = localizedMsg([type.toLowerCase() + 'Enabled']);
+        dump(message + ', ' + (type.toLowerCase() + 'Warning') + ', ' + badPref + '\n');
+        out.push(message);
+      }
+
+      return out;
+    };
+
+    // graphics-info-properties tbody
+    if ("info" in data) {
+      apzInfo = formatApzInfo(data.info);
+
+      let trs = sortedArrayFromObject(data.info).map(function ([prop, val]) {
+        return $.new("tr", [
+          $.new("th", prop, "column"),
+          $.new("td", String(val)),
+        ]);
+      });
+      $.append($("graphics-info-properties"), trs);
+      delete data.info;
+    }
+
+    // graphics-failures-tbody tbody
+    if ("failures" in data) {
+      // If indices is there, it should be the same length as failures,
+      // (see Troubleshoot.jsm) but we check anyway:
+      if ("indices" in data && data.failures.length == data.indices.length) {
+        let combined = [];
+        for (let i = 0; i < data.failures.length; i++) {
+          let assembled = assembleFromGraphicsFailure(i, data);
+          combined.push(assembled);
+        }
+        combined.sort(function(a,b) {
+            if (a.index < b.index) return -1;
+            if (a.index > b.index) return 1;
+            return 0;});
+        $.append($("graphics-failures-tbody"),
+                 combined.map(function(val) {
+                   return $.new("tr", [$.new("th", val.header, "column"),
+                                       $.new("td", val.message)]);
+                 }));
+        delete data.indices;
+      } else {
+        $.append($("graphics-failures-tbody"),
+          [$.new("tr", [$.new("th", "LogFailure", "column"),
+                        $.new("td", data.failures.map(function (val) {
+                          return $.new("p", val);
+                       }))])]);
+      }
+
+      delete data.failures;
+    }
+
+    // graphics-tbody tbody
+
     let out = Object.create(data);
-    let strings = stringBundle();
+
+    if (apzInfo.length == 0)
+      out.asyncPanZoom = localizedMsg(["apzNone"]);
+    else
+      out.asyncPanZoom = apzInfo.join("; ");
 
     out.acceleratedWindows =
       data.numAcceleratedWindows + "/" + data.numTotalWindows;
@@ -310,6 +377,24 @@ let snapshotFormatters = {
     // Clear the no-copy class
     $("prefs-user-js-section").className = "";
   },
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+  sandbox: function sandbox(data) {
+    let strings = stringBundle();
+    let tbody = $("sandbox-tbody");
+    for (let key in data) {
+      // Simplify the display a little in the common case.
+      if (key === "hasPrivilegedUserNamespaces" &&
+          data[key] === data["hasUserNamespaces"]) {
+        continue;
+      }
+      tbody.appendChild($.new("tr", [
+        $.new("th", strings.GetStringFromName(key), "column"),
+        $.new("td", data[key])
+      ]));
+    }
+  },
+#endif
 };
 
 let $ = document.getElementById.bind(document);
@@ -330,7 +415,7 @@ $.new = function $_new(tag, textContentOrChildren, className, attributes) {
 };
 
 $.append = function $_append(parent, children) {
-  children.forEach(function (c) parent.appendChild(c));
+  children.forEach(c => parent.appendChild(c));
 };
 
 function stringBundle() {
@@ -338,11 +423,37 @@ function stringBundle() {
            "chrome://global/locale/aboutSupport.properties");
 }
 
+function assembleFromGraphicsFailure(i, data)
+{
+  // Only cover the cases we have today; for example, we do not have
+  // log failures that assert and we assume the log level is 1/error.
+  let message = data.failures[i];
+  let index = data.indices[i];
+  let what = "";
+  if (message.search(/\[GFX1-\]: \(LF\)/) == 0) {
+    // Non-asserting log failure - the message is substring(14)
+    what = "LogFailure";
+    message = message.substring(14);
+  } else if (message.search(/\[GFX1-\]: /) == 0) {
+    // Non-asserting - the message is substring(9)
+    what = "Error";
+    message = message.substring(9);
+  } else if (message.search(/\[GFX1\]: /) == 0) {
+    // Asserting - the message is substring(8)
+    what = "Assert";
+    message = message.substring(8);
+  }
+  let assembled = {"index" : index,
+                   "header" : ("(#" + index + ") " + what),
+                   "message" : message};
+  return assembled;
+}
+
 function sortedArrayFromObject(obj) {
   let tuples = [];
   for (let prop in obj)
     tuples.push([prop, obj[prop]]);
-  tuples.sort(function ([prop1, v1], [prop2, v2]) prop1.localeCompare(prop2));
+  tuples.sort(([prop1, v1], [prop2, v2]) => prop1.localeCompare(prop2));
   return tuples;
 }
 
@@ -612,11 +723,27 @@ function openProfileDirectory() {
 /**
  * Profile reset is only supported for the default profile if the appropriate migrator exists.
  */
-function populateResetBox() {
-  if (ResetProfile.resetSupported())
-    $("reset-box").style.visibility = "visible";
+function populateActionBox() {
+  if (ResetProfile.resetSupported()) {
+    $("reset-box").style.display = "block";
+    $("action-box").style.display = "block";
+  }
+  if (!Services.appinfo.inSafeMode) {
+    $("safe-mode-box").style.display = "block";
+    $("action-box").style.display = "block";
+  }
 }
 
+// Prompt user to restart the browser in safe mode
+function safeModeRestart() {
+  let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
+                     .createInstance(Ci.nsISupportsPRBool);
+  Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
+
+  if (!cancelQuit.data) {
+    Services.startup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit);
+  }
+}
 /**
  * Set up event listeners for buttons.
  */
@@ -636,5 +763,13 @@ function setupEventListeners(){
   });
   $("profile-dir-button").addEventListener("click", function (event){
     openProfileDirectory();
+  });
+  $("restart-in-safe-mode-button").addEventListener("click", function (event) {
+    if (Services.obs.enumerateObservers("restart-in-safe-mode").hasMoreElements()) {
+      Services.obs.notifyObservers(null, "restart-in-safe-mode", "");
+    }
+    else {
+      safeModeRestart();
+    }
   });
 }

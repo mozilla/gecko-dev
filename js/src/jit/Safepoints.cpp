@@ -9,7 +9,7 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "jit/BitSet.h"
-#include "jit/IonSpewer.h"
+#include "jit/JitSpewer.h"
 #include "jit/LIR.h"
 
 using namespace js;
@@ -17,20 +17,21 @@ using namespace jit;
 
 using mozilla::FloorLog2;
 
-bool
-SafepointWriter::init(TempAllocator &alloc, uint32_t slotCount)
-{
-    frameSlots_ = BitSet::New(alloc, slotCount / sizeof(intptr_t));
-    if (!frameSlots_)
-        return false;
+SafepointWriter::SafepointWriter(uint32_t slotCount, uint32_t argumentCount)
+  : frameSlots_((slotCount / sizeof(intptr_t)) + 1), // Stack slot counts are inclusive.
+    argumentSlots_(argumentCount / sizeof(intptr_t))
+{ }
 
-    return true;
+bool
+SafepointWriter::init(TempAllocator& alloc)
+{
+    return frameSlots_.init(alloc) && argumentSlots_.init(alloc);
 }
 
 uint32_t
 SafepointWriter::startEntry()
 {
-    IonSpew(IonSpew_Safepoints, "Encoding safepoint (position %d):", stream_.length());
+    JitSpew(JitSpew_Safepoints, "Encoding safepoint (position %d):", stream_.length());
     return uint32_t(stream_.length());
 }
 
@@ -41,7 +42,7 @@ SafepointWriter::writeOsiCallPointOffset(uint32_t osiCallPointOffset)
 }
 
 static void
-WriteRegisterMask(CompactBufferWriter &stream, uint32_t bits)
+WriteRegisterMask(CompactBufferWriter& stream, uint32_t bits)
 {
     if (sizeof(PackedRegisterMask) == 1)
         stream.writeByte(bits);
@@ -50,21 +51,48 @@ WriteRegisterMask(CompactBufferWriter &stream, uint32_t bits)
 }
 
 static int32_t
-ReadRegisterMask(CompactBufferReader &stream)
+ReadRegisterMask(CompactBufferReader& stream)
 {
     if (sizeof(PackedRegisterMask) == 1)
         return stream.readByte();
     return stream.readUnsigned();
 }
 
-void
-SafepointWriter::writeGcRegs(LSafepoint *safepoint)
+static void
+WriteFloatRegisterMask(CompactBufferWriter& stream, uint64_t bits)
 {
-    GeneralRegisterSet gc = safepoint->gcRegs();
-    GeneralRegisterSet spilledGpr = safepoint->liveRegs().gprs();
-    FloatRegisterSet spilledFloat = safepoint->liveRegs().fpus();
-    GeneralRegisterSet slots = safepoint->slotsOrElementsRegs();
-    GeneralRegisterSet valueRegs;
+    if (sizeof(FloatRegisters::SetType) == 1) {
+        stream.writeByte(bits);
+    } else if (sizeof(FloatRegisters::SetType) == 4) {
+        stream.writeUnsigned(bits);
+    } else {
+        MOZ_ASSERT(sizeof(FloatRegisters::SetType) == 8);
+        stream.writeUnsigned(bits & 0xffffffff);
+        stream.writeUnsigned(bits >> 32);
+    }
+}
+
+static int64_t
+ReadFloatRegisterMask(CompactBufferReader& stream)
+{
+    if (sizeof(FloatRegisters::SetType) == 1)
+        return stream.readByte();
+    if (sizeof(FloatRegisters::SetType) <= 4)
+        return stream.readUnsigned();
+    MOZ_ASSERT(sizeof(FloatRegisters::SetType) == 8);
+    uint64_t ret = stream.readUnsigned();
+    ret |= uint64_t(stream.readUnsigned()) << 32;
+    return ret;
+}
+
+void
+SafepointWriter::writeGcRegs(LSafepoint* safepoint)
+{
+    LiveGeneralRegisterSet gc(safepoint->gcRegs());
+    LiveGeneralRegisterSet spilledGpr(safepoint->liveRegs().gprs());
+    LiveFloatRegisterSet spilledFloat(safepoint->liveRegs().fpus());
+    LiveGeneralRegisterSet slots(safepoint->slotsOrElementsRegs());
+    LiveGeneralRegisterSet valueRegs;
 
     WriteRegisterMask(stream_, spilledGpr.bits());
     if (!spilledGpr.empty()) {
@@ -78,104 +106,112 @@ SafepointWriter::writeGcRegs(LSafepoint *safepoint)
     }
 
     // GC registers are a subset of the spilled registers.
-    JS_ASSERT((valueRegs.bits() & ~spilledGpr.bits()) == 0);
-    JS_ASSERT((gc.bits() & ~spilledGpr.bits()) == 0);
+    MOZ_ASSERT((valueRegs.bits() & ~spilledGpr.bits()) == 0);
+    MOZ_ASSERT((gc.bits() & ~spilledGpr.bits()) == 0);
 
-    WriteRegisterMask(stream_, spilledFloat.bits());
+    WriteFloatRegisterMask(stream_, spilledFloat.bits());
 
 #ifdef DEBUG
-    if (IonSpewEnabled(IonSpew_Safepoints)) {
+    if (JitSpewEnabled(JitSpew_Safepoints)) {
         for (GeneralRegisterForwardIterator iter(spilledGpr); iter.more(); iter++) {
-            const char *type = gc.has(*iter)
+            const char* type = gc.has(*iter)
                                ? "gc"
                                : slots.has(*iter)
                                  ? "slots"
                                  : valueRegs.has(*iter)
                                    ? "value"
                                    : "any";
-            IonSpew(IonSpew_Safepoints, "    %s reg: %s", type, (*iter).name());
+            JitSpew(JitSpew_Safepoints, "    %s reg: %s", type, (*iter).name());
         }
         for (FloatRegisterForwardIterator iter(spilledFloat); iter.more(); iter++)
-            IonSpew(IonSpew_Safepoints, "    float reg: %s", (*iter).name());
+            JitSpew(JitSpew_Safepoints, "    float reg: %s", (*iter).name());
     }
 #endif
 }
 
 static void
-MapSlotsToBitset(BitSet *set, CompactBufferWriter &stream, uint32_t nslots, uint32_t *slots)
+WriteBitset(const BitSet& set, CompactBufferWriter& stream)
 {
-    set->clear();
-
-    for (uint32_t i = 0; i < nslots; i++) {
-        // Slots are represented at a distance from |fp|. We divide by the
-        // pointer size, since we only care about pointer-sized/aligned slots
-        // here. Since the stack grows down, this means slots start at index 1,
-        // so we subtract 1 to pack the bitset.
-        JS_ASSERT(slots[i] % sizeof(intptr_t) == 0);
-        JS_ASSERT(slots[i] / sizeof(intptr_t) > 0);
-        set->insert(slots[i] / sizeof(intptr_t) - 1);
-    }
-
-    size_t count = set->rawLength();
-    const uint32_t *words = set->raw();
+    size_t count = set.rawLength();
+    const uint32_t* words = set.raw();
     for (size_t i = 0; i < count; i++)
         stream.writeUnsigned(words[i]);
 }
 
-void
-SafepointWriter::writeGcSlots(LSafepoint *safepoint)
+static void
+MapSlotsToBitset(BitSet& stackSet, BitSet& argumentSet,
+                 CompactBufferWriter& stream, const LSafepoint::SlotList& slots)
 {
-    LSafepoint::SlotList &slots = safepoint->gcSlots();
+    stackSet.clear();
+    argumentSet.clear();
 
-#ifdef DEBUG
-    for (uint32_t i = 0; i < slots.length(); i++)
-        IonSpew(IonSpew_Safepoints, "    gc slot: %d", slots[i]);
-#endif
+    for (uint32_t i = 0; i < slots.length(); i++) {
+        // Slots are represented at a distance from |fp|. We divide by the
+        // pointer size, since we only care about pointer-sized/aligned slots
+        // here.
+        MOZ_ASSERT(slots[i].slot % sizeof(intptr_t) == 0);
+        size_t index = slots[i].slot / sizeof(intptr_t);
+        (slots[i].stack ? stackSet : argumentSet).insert(index);
+    }
 
-    MapSlotsToBitset(frameSlots_,
-                     stream_,
-                     slots.length(),
-                     slots.begin());
+    WriteBitset(stackSet, stream);
+    WriteBitset(argumentSet, stream);
 }
 
 void
-SafepointWriter::writeSlotsOrElementsSlots(LSafepoint *safepoint)
+SafepointWriter::writeGcSlots(LSafepoint* safepoint)
 {
-    LSafepoint::SlotList &slots = safepoint->slotsOrElementsSlots();
+    LSafepoint::SlotList& slots = safepoint->gcSlots();
+
+#ifdef DEBUG
+    for (uint32_t i = 0; i < slots.length(); i++)
+        JitSpew(JitSpew_Safepoints, "    gc slot: %d", slots[i]);
+#endif
+
+    MapSlotsToBitset(frameSlots_, argumentSlots_, stream_, slots);
+}
+
+void
+SafepointWriter::writeSlotsOrElementsSlots(LSafepoint* safepoint)
+{
+    LSafepoint::SlotList& slots = safepoint->slotsOrElementsSlots();
 
     stream_.writeUnsigned(slots.length());
 
     for (uint32_t i = 0; i < slots.length(); i++) {
+        if (!slots[i].stack)
+            MOZ_CRASH();
 #ifdef DEBUG
-        IonSpew(IonSpew_Safepoints, "    slots/elements slot: %d", slots[i]);
+        JitSpew(JitSpew_Safepoints, "    slots/elements slot: %d", slots[i].slot);
 #endif
-        stream_.writeUnsigned(slots[i]);
+        stream_.writeUnsigned(slots[i].slot);
     }
 }
 
 void
-SafepointWriter::writeValueSlots(LSafepoint *safepoint)
+SafepointWriter::writeValueSlots(LSafepoint* safepoint)
 {
-    LSafepoint::SlotList &slots = safepoint->valueSlots();
+    LSafepoint::SlotList& slots = safepoint->valueSlots();
 
 #ifdef DEBUG
     for (uint32_t i = 0; i < slots.length(); i++)
-        IonSpew(IonSpew_Safepoints, "    gc value: %d", slots[i]);
+        JitSpew(JitSpew_Safepoints, "    gc value: %d", slots[i]);
 #endif
 
-    MapSlotsToBitset(frameSlots_, stream_, slots.length(), slots.begin());
+    MapSlotsToBitset(frameSlots_, argumentSlots_, stream_, slots);
 }
 
 #if defined(DEBUG) && defined(JS_NUNBOX32)
 static void
-DumpNunboxPart(const LAllocation &a)
+DumpNunboxPart(const LAllocation& a)
 {
+    Fprinter& out = JitSpewPrinter();
     if (a.isStackSlot()) {
-        fprintf(IonSpewFile, "stack %d", a.toStackSlot()->slot());
+        out.printf("stack %d", a.toStackSlot()->slot());
     } else if (a.isArgument()) {
-        fprintf(IonSpewFile, "arg %d", a.toArgument()->index());
+        out.printf("arg %d", a.toArgument()->index());
     } else {
-        fprintf(IonSpewFile, "reg %s", a.toGeneralReg()->reg().name());
+        out.printf("reg %s", a.toGeneralReg()->reg().name());
     }
 }
 #endif // DEBUG
@@ -218,13 +254,13 @@ JS_STATIC_ASSERT(PAYLOAD_INFO_SHIFT == 0);
 
 #ifdef JS_NUNBOX32
 static inline NunboxPartKind
-AllocationToPartKind(const LAllocation &a)
+AllocationToPartKind(const LAllocation& a)
 {
     if (a.isRegister())
         return Part_Reg;
     if (a.isStackSlot())
         return Part_Stack;
-    JS_ASSERT(a.isArgument());
+    MOZ_ASSERT(a.isArgument());
     return Part_Arg;
 }
 
@@ -233,7 +269,7 @@ AllocationToPartKind(const LAllocation &a)
 // when doing block reordering with branch prediction information.
 // See bug 799295 comment 71.
 static MOZ_ALWAYS_INLINE bool
-CanEncodeInfoInHeader(const LAllocation &a, uint32_t *out)
+CanEncodeInfoInHeader(const LAllocation& a, uint32_t* out)
 {
     if (a.isGeneralReg()) {
         *out = a.toGeneralReg()->reg().code();
@@ -249,22 +285,23 @@ CanEncodeInfoInHeader(const LAllocation &a, uint32_t *out)
 }
 
 void
-SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
+SafepointWriter::writeNunboxParts(LSafepoint* safepoint)
 {
-    LSafepoint::NunboxList &entries = safepoint->nunboxParts();
+    LSafepoint::NunboxList& entries = safepoint->nunboxParts();
 
 # ifdef DEBUG
-    if (IonSpewEnabled(IonSpew_Safepoints)) {
+    if (JitSpewEnabled(JitSpew_Safepoints)) {
         for (uint32_t i = 0; i < entries.length(); i++) {
-            SafepointNunboxEntry &entry = entries[i];
+            SafepointNunboxEntry& entry = entries[i];
             if (entry.type.isUse() || entry.payload.isUse())
                 continue;
-            IonSpewHeader(IonSpew_Safepoints);
-            fprintf(IonSpewFile, "    nunbox (type in ");
+            JitSpewHeader(JitSpew_Safepoints);
+            Fprinter& out = JitSpewPrinter();
+            out.printf("    nunbox (type in ");
             DumpNunboxPart(entry.type);
-            fprintf(IonSpewFile, ", payload in ");
+            out.printf(", payload in ");
             DumpNunboxPart(entry.payload);
-            fprintf(IonSpewFile, ")\n");
+            out.printf(")\n");
         }
     }
 # endif
@@ -272,17 +309,28 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
     // Safepoints are permitted to have partially filled in entries for nunboxes,
     // provided that only the type is live and not the payload. Omit these from
     // the written safepoint.
-    uint32_t partials = safepoint->partialNunboxes();
 
-    stream_.writeUnsigned(entries.length() - partials);
+    size_t pos = stream_.length();
+    stream_.writeUnsigned(entries.length());
 
+    size_t count = 0;
     for (size_t i = 0; i < entries.length(); i++) {
-        SafepointNunboxEntry &entry = entries[i];
+        SafepointNunboxEntry& entry = entries[i];
 
-        if (entry.type.isUse() || entry.payload.isUse()) {
-            partials--;
+        if (entry.payload.isUse()) {
+            // No allocation associated with the payload.
             continue;
         }
+
+        if (entry.type.isUse()) {
+            // No allocation associated with the type. Look for another
+            // safepoint entry with an allocation for the type.
+            entry.type = safepoint->findTypeAllocation(entry.typeVreg);
+            if (entry.type.isUse())
+                continue;
+        }
+
+        count++;
 
         uint16_t header = 0;
 
@@ -310,16 +358,17 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
             stream_.writeUnsigned(payloadVal);
     }
 
-    JS_ASSERT(partials == 0);
+    // Update the stream with the actual number of safepoint entries written.
+    stream_.writeUnsignedAt(pos, count, entries.length());
 }
 #endif
 
 void
-SafepointWriter::encode(LSafepoint *safepoint)
+SafepointWriter::encode(LSafepoint* safepoint)
 {
     uint32_t safepointOffset = startEntry();
 
-    JS_ASSERT(safepoint->osiCallPointOffset());
+    MOZ_ASSERT(safepoint->osiCallPointOffset());
 
     writeOsiCallPointOffset(safepoint->osiCallPointOffset());
     writeGcRegs(safepoint);
@@ -339,13 +388,14 @@ SafepointWriter::encode(LSafepoint *safepoint)
 void
 SafepointWriter::endEntry()
 {
-    IonSpew(IonSpew_Safepoints, "    -- entry ended at %d", uint32_t(stream_.length()));
+    JitSpew(JitSpew_Safepoints, "    -- entry ended at %d", uint32_t(stream_.length()));
 }
 
-SafepointReader::SafepointReader(IonScript *script, const SafepointIndex *si)
+SafepointReader::SafepointReader(IonScript* script, const SafepointIndex* si)
   : stream_(script->safepoints() + si->safepointOffset(),
             script->safepoints() + script->safepointsSize()),
-    frameSlots_(script->frameSlots() / sizeof(intptr_t))
+    frameSlots_((script->frameSlots() / sizeof(intptr_t)) + 1), // Stack slot counts are inclusive.
+    argumentSlots_(script->argumentSlots() / sizeof(intptr_t))
 {
     osiCallPointOffset_ = stream_.readUnsigned();
 
@@ -362,8 +412,7 @@ SafepointReader::SafepointReader(IonScript *script, const SafepointIndex *si)
         valueSpills_ = GeneralRegisterSet(ReadRegisterMask(stream_));
 #endif
     }
-
-    allFloatSpills_ = FloatRegisterSet(ReadRegisterMask(stream_));
+    allFloatSpills_ = FloatRegisterSet(ReadFloatRegisterMask(stream_));
 
     advanceFromGcRegs();
 }
@@ -371,11 +420,11 @@ SafepointReader::SafepointReader(IonScript *script, const SafepointIndex *si)
 uint32_t
 SafepointReader::osiReturnPointOffset() const
 {
-    return osiCallPointOffset_ + Assembler::patchWrite_NearCallSize();
+    return osiCallPointOffset_ + Assembler::PatchWrite_NearCallSize();
 }
 
 CodeLocationLabel
-SafepointReader::InvalidationPatchPoint(IonScript *script, const SafepointIndex *si)
+SafepointReader::InvalidationPatchPoint(IonScript* script, const SafepointIndex* si)
 {
     SafepointReader reader(script, si);
 
@@ -387,15 +436,23 @@ SafepointReader::advanceFromGcRegs()
 {
     currentSlotChunk_ = 0;
     nextSlotChunkNumber_ = 0;
+    currentSlotsAreStack_ = true;
 }
 
 bool
-SafepointReader::getSlotFromBitmap(uint32_t *slot)
+SafepointReader::getSlotFromBitmap(SafepointSlotEntry* entry)
 {
     while (currentSlotChunk_ == 0) {
         // Are there any more chunks to read?
-        if (nextSlotChunkNumber_ == BitSet::RawLengthForBits(frameSlots_))
+        if (currentSlotsAreStack_) {
+            if (nextSlotChunkNumber_ == BitSet::RawLengthForBits(frameSlots_)) {
+                nextSlotChunkNumber_ = 0;
+                currentSlotsAreStack_ = false;
+                continue;
+            }
+        } else if (nextSlotChunkNumber_ == BitSet::RawLengthForBits(argumentSlots_)) {
             return false;
+        }
 
         // Yes, read the next chunk.
         currentSlotChunk_ = stream_.readUnsigned();
@@ -407,17 +464,17 @@ SafepointReader::getSlotFromBitmap(uint32_t *slot)
     uint32_t bit = FloorLog2(currentSlotChunk_);
     currentSlotChunk_ &= ~(1 << bit);
 
-    // Return the slot, taking care to add 1 back in since it was subtracted
-    // when added in the original bitset, and re-scale it by the pointer size,
-    // reversing the transformation in MapSlotsToBitset.
-    *slot = (((nextSlotChunkNumber_ - 1) * BitSet::BitsPerWord) + bit + 1) * sizeof(intptr_t);
+    // Return the slot, and re-scale it by the pointer size, reversing the
+    // transformation in MapSlotsToBitset.
+    entry->stack = currentSlotsAreStack_;
+    entry->slot = (((nextSlotChunkNumber_ - 1) * BitSet::BitsPerWord) + bit) * sizeof(intptr_t);
     return true;
 }
 
 bool
-SafepointReader::getGcSlot(uint32_t *slot)
+SafepointReader::getGcSlot(SafepointSlotEntry* entry)
 {
-    if (getSlotFromBitmap(slot))
+    if (getSlotFromBitmap(entry))
         return true;
     advanceFromGcSlots();
     return false;
@@ -429,12 +486,13 @@ SafepointReader::advanceFromGcSlots()
     // No, reset the counter.
     currentSlotChunk_ = 0;
     nextSlotChunkNumber_ = 0;
+    currentSlotsAreStack_ = true;
 }
 
 bool
-SafepointReader::getValueSlot(uint32_t *slot)
+SafepointReader::getValueSlot(SafepointSlotEntry* entry)
 {
-    if (getSlotFromBitmap(slot))
+    if (getSlotFromBitmap(entry))
         return true;
     advanceFromValueSlots();
     return false;
@@ -452,7 +510,7 @@ SafepointReader::advanceFromValueSlots()
 }
 
 static inline LAllocation
-PartFromStream(CompactBufferReader &stream, NunboxPartKind kind, uint32_t info)
+PartFromStream(CompactBufferReader& stream, NunboxPartKind kind, uint32_t info)
 {
     if (kind == Part_Reg)
         return LGeneralReg(Register::FromCode(info));
@@ -463,12 +521,12 @@ PartFromStream(CompactBufferReader &stream, NunboxPartKind kind, uint32_t info)
     if (kind == Part_Stack)
         return LStackSlot(info);
 
-    JS_ASSERT(kind == Part_Arg);
+    MOZ_ASSERT(kind == Part_Arg);
     return LArgument(info);
 }
 
 bool
-SafepointReader::getNunboxSlot(LAllocation *type, LAllocation *payload)
+SafepointReader::getNunboxSlot(LAllocation* type, LAllocation* payload)
 {
     if (!nunboxSlotsRemaining_--) {
         advanceFromNunboxSlots();
@@ -493,10 +551,11 @@ SafepointReader::advanceFromNunboxSlots()
 }
 
 bool
-SafepointReader::getSlotsOrElementsSlot(uint32_t *slot)
+SafepointReader::getSlotsOrElementsSlot(SafepointSlotEntry* entry)
 {
     if (!slotsOrElementsSlotsRemaining_--)
         return false;
-    *slot = stream_.readUnsigned();
+    entry->stack = true;
+    entry->slot = stream_.readUnsigned();
     return true;
 }

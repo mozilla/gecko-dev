@@ -5,10 +5,12 @@
  * Tests that the SVG marker styling is updated when devtools theme changes.
  */
 
-function spawnTest() {
-  let [target, debuggee, panel] = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
+const { setTheme } = devtools.require("devtools/shared/theme");
+
+add_task(function*() {
+  let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
-  let { gFront, $, $$, EVENTS, MARKER_STYLING } = panelWin;
+  let { gFront, $, $$, MARKER_STYLING } = panelWin;
 
   let currentTheme = Services.prefs.getCharPref("devtools.theme");
 
@@ -47,9 +49,8 @@ function spawnTest() {
   is(getFill($("#arrowhead")), MARKER_STYLING.light,
     "marker styling switches back to light once again.");
 
-  yield teardown(panel);
-  finish();
-}
+  yield teardown(target);
+});
 
 /**
  * Returns a hex value found in styling for an element. So parses
@@ -57,20 +58,4 @@ function spawnTest() {
  */
 function getFill (el) {
   return el.getAttribute("style").match(/(#.*)$/)[1];
-}
-
-/**
- * Mimics selecting the theme selector in the toolbox;
- * sets the preference and emits an event on gDevTools to trigger
- * the themeing.
- */
-function setTheme (newTheme) {
-  let oldTheme = Services.prefs.getCharPref("devtools.theme");
-  info("Setting `devtools.theme` to \"" + newTheme + "\"");
-  Services.prefs.setCharPref("devtools.theme", newTheme);
-  gDevTools.emit("pref-changed", {
-    pref: "devtools.theme",
-    newValue: newTheme,
-    oldValue: oldTheme
-  });
 }

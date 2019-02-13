@@ -26,7 +26,7 @@ add_task(function test_execute()
   );
 
   // Add also a simple visit.
-  yield promiseAddVisits(uri(("http://3.moz.org/")));
+  yield PlacesTestUtils.addVisits(uri(("http://3.moz.org/")));
 
   // Query containing a broken folder shortcuts among results.
   let query = PlacesUtils.history.getNewQuery();
@@ -60,10 +60,10 @@ add_task(function test_execute()
   root.containerOpen = false;
 
   // Broken folder shortcut as root node.
-  let query = PlacesUtils.history.getNewQuery();
+  query = PlacesUtils.history.getNewQuery();
   query.setFolders([1234], 1);
-  let options = PlacesUtils.history.getNewQueryOptions();
-  let root = PlacesUtils.history.executeQuery(query, options).root;
+  options = PlacesUtils.history.getNewQueryOptions();
+  root = PlacesUtils.history.executeQuery(query, options).root;
   root.containerOpen = true;
   do_check_eq(root.childCount, 0);
   root.containerOpen = false;

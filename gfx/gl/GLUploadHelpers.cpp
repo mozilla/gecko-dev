@@ -50,7 +50,7 @@ NextPowerOfTwo(int aNumber)
 }
 
 static unsigned int
-DataOffset(const nsIntPoint &aPoint, int32_t aStride, SurfaceFormat aFormat)
+DataOffset(const IntPoint &aPoint, int32_t aStride, SurfaceFormat aFormat)
 {
   unsigned int data = aPoint.y * aStride;
   data += aPoint.x * BytesPerPixel(aFormat);
@@ -430,6 +430,7 @@ UploadImageDataToTexture(GLContext* gl,
 
     MOZ_ASSERT(gl->GetPreferredARGB32Format() == LOCAL_GL_BGRA ||
                gl->GetPreferredARGB32Format() == LOCAL_GL_RGBA);
+
     switch (aFormat) {
         case SurfaceFormat::B8G8R8A8:
             if (gl->GetPreferredARGB32Format() == LOCAL_GL_BGRA) {
@@ -457,6 +458,34 @@ UploadImageDataToTexture(GLContext* gl,
             }
             internalFormat = LOCAL_GL_RGBA;
             break;
+        case SurfaceFormat::R8G8B8A8:
+            if (gl->GetPreferredARGB32Format() == LOCAL_GL_BGRA) {
+              // Upload our RGBA as BGRA, but store that the uploaded format is
+              // BGRA. (sample from R to get B)
+              format = LOCAL_GL_BGRA;
+              type = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
+              surfaceFormat = SurfaceFormat::B8G8R8A8;
+            } else {
+              format = LOCAL_GL_RGBA;
+              type = LOCAL_GL_UNSIGNED_BYTE;
+              surfaceFormat = SurfaceFormat::R8G8B8A8;
+            }
+            internalFormat = LOCAL_GL_RGBA;
+            break;
+        case SurfaceFormat::R8G8B8X8:
+            // Treat RGBX surfaces as RGBA except for the surface
+            // format used.
+            if (gl->GetPreferredARGB32Format() == LOCAL_GL_BGRA) {
+              format = LOCAL_GL_BGRA;
+              type = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
+              surfaceFormat = SurfaceFormat::B8G8R8X8;
+            } else {
+              format = LOCAL_GL_RGBA;
+              type = LOCAL_GL_UNSIGNED_BYTE;
+              surfaceFormat = SurfaceFormat::R8G8B8X8;
+            }
+            internalFormat = LOCAL_GL_RGBA;
+            break;
         case SurfaceFormat::R5G6B5:
             internalFormat = format = LOCAL_GL_RGB;
             type = LOCAL_GL_UNSIGNED_SHORT_5_6_5;
@@ -473,10 +502,10 @@ UploadImageDataToTexture(GLContext* gl,
     }
 
     nsIntRegionRectIterator iter(paintRegion);
-    const nsIntRect *iterRect;
+    const IntRect *iterRect;
 
     // Top left point of the region's bounding rectangle.
-    nsIntPoint topLeft = paintRegion.GetBounds().TopLeft();
+    IntPoint topLeft = paintRegion.GetBounds().TopLeft();
 
     while ((iterRect = iter.Next())) {
         // The inital data pointer is at the top left point of the region's
@@ -527,7 +556,7 @@ UploadSurfaceToTexture(GLContext* gl,
                        const nsIntRegion& aDstRegion,
                        GLuint& aTexture,
                        bool aOverwrite,
-                       const nsIntPoint& aSrcPoint,
+                       const gfx::IntPoint& aSrcPoint,
                        bool aPixelBuffer,
                        GLenum aTextureUnit,
                        GLenum aTextureTarget)

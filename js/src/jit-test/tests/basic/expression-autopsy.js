@@ -1,4 +1,5 @@
 load(libdir + "asserts.js");
+load(libdir + "iteration.js");
 
 function check_one(expected, f, err) {
     var failed = true;
@@ -49,7 +50,7 @@ function check(expr, expected=expr) {
             // The more lets the merrier
             Function("let (x=4, y=5) { x + y; }\nlet (a, b, c) { a + b - c; }\nlet (o, undef) {" + statement + " }"),
             // Let destructuring
-            Function("o", "undef", "let ([] = 4) {} let (o, undef) { " + statement + " }"),
+            Function("o", "undef", "let ([] = []) {} let (o, undef) { " + statement + " }"),
             // Try-catch blocks
             Function("o", "undef", "try { let q = 4; try { let p = 4; } catch (e) {} } catch (e) {} let (o, undef) { " + statement + " }")
         ];
@@ -106,11 +107,31 @@ check("o[~(o)]");
 check("o[+ (o)]");
 check("o[- (o)]");
 
+
 // A few one off tests
 check_one("6", (function () { 6() }), " is not a function");
-check_one("Array.prototype.reverse.call(...)", (function () { Array.prototype.reverse.call('123'); }), " is read-only");
-check_one("null", function () { var [{ x }] = [null, {}]; }, " has no properties");
-check_one("x", function () { ieval("let (x) { var [a, b, [c0, c1]] = [x, x, x]; }") }, " is undefined");
+check_one("0", (function () { Array.prototype.reverse.call('123'); }), " is read-only");
+check_one("(intermediate value)[Symbol.iterator](...).next(...).value",
+          function () { ieval("let (x) { var [a, b, [c0, c1]] = [x, x, x]; }") }, " is undefined");
+check_one("void 1", function() { (void 1)(); }, " is not a function");
+check_one("void o[1]", function() { var o = []; (void o[1])() }, " is not a function");
+
+// Manual testing for this case: the only way to trigger an error is *not* on
+// an attempted property access during destructuring, and the error message
+// invoking ToObject(null) is different: "can't convert {0} to object".
+try
+{
+  (function() {
+    var [{x}] = [null, {}];
+   })();
+  throw new Error("didn't throw");
+}
+catch (e)
+{
+  assertEq(e instanceof TypeError, true,
+           "expected TypeError, got " + e);
+  assertEq(e.message, "can't convert null to object");
+}
 
 // Check fallback behavior
 assertThrowsInstanceOf(function () { for (let x of undefined) {} }, TypeError);

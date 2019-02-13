@@ -16,10 +16,10 @@ import java.util.Set;
 
 public class GeckoJavaSampler {
     private static final String LOGTAG = "JavaSampler";
-    private static Thread sSamplingThread = null;
-    private static SamplingThread sSamplingRunnable = null;
-    private static Thread sMainThread = null;
-    private static volatile boolean sLibsLoaded = false;
+    private static Thread sSamplingThread;
+    private static SamplingThread sSamplingRunnable;
+    private static Thread sMainThread;
+    private static volatile boolean sLibsLoaded;
 
     // Use the same timer primitive as the profiler
     // to get a perfect sample syncing.
@@ -59,10 +59,10 @@ public class GeckoJavaSampler {
         private final int mInterval;
         private final int mSampleCount;
 
-        private boolean mPauseSampler = false;
-        private boolean mStopSampler = false;
+        private boolean mPauseSampler;
+        private boolean mStopSampler;
 
-        private SparseArray<Sample[]> mSamples = new SparseArray<Sample[]>();
+        private final SparseArray<Sample[]> mSamples = new SparseArray<Sample[]>();
         private int mSamplePos;
 
         public SamplingThread(final int aInterval, final int aSampleCount) {
@@ -71,6 +71,7 @@ public class GeckoJavaSampler {
             mSampleCount = aSampleCount;
         }
 
+        @Override
         public void run() {
             synchronized (GeckoJavaSampler.class) {
                 mSamples.put(0, new Sample[mSampleCount]);
@@ -142,7 +143,7 @@ public class GeckoJavaSampler {
         Sample sample = getSample(aThreadId, aSampleId);
         if (sample != null) {
             if (sample.mJavaTime != 0) {
-                return (double)(sample.mJavaTime -
+                return (sample.mJavaTime -
                     SystemClock.elapsedRealtime()) + getProfilerTime();
             }
             System.out.println("Sample: " + sample.mTime);

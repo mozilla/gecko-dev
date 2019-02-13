@@ -107,11 +107,16 @@ function onNetworkEventUpdate(aState, aType, aPacket)
       expectedPacket = {
         response: {
           httpVersion: /^HTTP\/\d\.\d$/,
-          status: 200,
+          status: "200",
           statusText: "OK",
           headersSize: /^\d+$/,
           discardResponseBody: false,
         },
+      };
+      break;
+    case "securityInfo":
+      expectedPacket = {
+        state: "insecure",
       };
       break;
     case "responseCookies":

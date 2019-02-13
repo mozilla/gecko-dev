@@ -7,107 +7,87 @@
 // domain to another, in order to avoid permission denied errors with a sandbox
 // created for a different origin.
 
-function test()
-{
-  const TEST_URI1 = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html";
-  const TEST_URI2 = "http://example.org/browser/browser/devtools/webconsole/test/test-console.html";
+"use strict";
 
-  let hud;
-  let msgForLocation1;
+let test = asyncTest(function* () {
+  const TEST_URI1 = "http://example.com/browser/browser/devtools/webconsole/" +
+                    "test/test-console.html";
+  const TEST_URI2 = "http://example.org/browser/browser/devtools/webconsole/" +
+                    "test/test-console.html";
 
-  waitForExplicitFinish();
+  yield loadTab(TEST_URI1);
+  let hud = yield openConsole();
 
-  gBrowser.selectedTab = gBrowser.addTab(TEST_URI1);
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-    openConsole(gBrowser.selectedTab, pageLoad1);
-  }, true);
+  hud.jsterm.clearOutput();
+  hud.jsterm.execute("window.location.href");
 
-  function pageLoad1(aHud)
-  {
-    hud = aHud;
+  info("wait for window.location.href");
 
-    hud.jsterm.clearOutput();
-    hud.jsterm.execute("window.location.href");
+  let msgForLocation1 = {
+    webconsole: hud,
+    messages: [
+      {
+        name: "window.location.href jsterm input",
+        text: "window.location.href",
+        category: CATEGORY_INPUT,
+      },
+      {
+        name: "window.location.href result is displayed",
+        text: TEST_URI1,
+        category: CATEGORY_OUTPUT,
+      },
+    ],
+  };
 
-    info("wait for window.location.href");
+  yield waitForMessages(msgForLocation1);
 
-    msgForLocation1 = {
-      webconsole: hud,
-      messages: [
-        {
-          name: "window.location.href jsterm input",
-          text: "window.location.href",
-          category: CATEGORY_INPUT,
-        },
-        {
-          name: "window.location.href result is displayed",
-          text: TEST_URI1,
-          category: CATEGORY_OUTPUT,
-        },
-      ]
-    };
+  // load second url
+  content.location = TEST_URI2;
+  yield loadBrowser(gBrowser.selectedBrowser);
 
-    waitForMessages(msgForLocation1).then(() => {
-      gBrowser.selectedBrowser.addEventListener("load", onPageLoad2, true);
-      content.location = TEST_URI2;
-    });
-  }
+  is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
+     "no permission denied errors");
 
-  function onPageLoad2() {
-    gBrowser.selectedBrowser.removeEventListener("load", onPageLoad2, true);
+  hud.jsterm.clearOutput();
+  hud.jsterm.execute("window.location.href");
 
-    is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
-       "no permission denied errors");
+  info("wait for window.location.href after page navigation");
 
-    hud.jsterm.clearOutput();
-    hud.jsterm.execute("window.location.href");
+  yield waitForMessages({
+    webconsole: hud,
+    messages: [
+      {
+        name: "window.location.href jsterm input",
+        text: "window.location.href",
+        category: CATEGORY_INPUT,
+      },
+      {
+        name: "window.location.href result is displayed",
+        text: TEST_URI2,
+        category: CATEGORY_OUTPUT,
+      },
+    ],
+  });
 
-    info("wait for window.location.href after page navigation");
+  is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
+     "no permission denied errors");
 
-    waitForMessages({
-      webconsole: hud,
-      messages: [
-        {
-          name: "window.location.href jsterm input",
-          text: "window.location.href",
-          category: CATEGORY_INPUT,
-        },
-        {
-          name: "window.location.href result is displayed",
-          text: TEST_URI2,
-          category: CATEGORY_OUTPUT,
-        },
-      ]
-    }).then(() => {
-      is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
-         "no permission denied errors");
+  gBrowser.goBack();
 
-      gBrowser.goBack();
-      waitForSuccess(waitForBack);
-    });
-  }
-
-  let waitForBack = {
+  yield waitForSuccess({
     name: "go back",
-    validatorFn: function()
-    {
+    validator: function() {
       return content.location.href == TEST_URI1;
     },
-    successFn: function()
-    {
-      hud.jsterm.clearOutput();
-      executeSoon(() => {
-        hud.jsterm.execute("window.location.href");
-      });
+  });
 
-      info("wait for window.location.href after goBack()");
-      waitForMessages(msgForLocation1).then(() => executeSoon(() => {
-        is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
-           "no permission denied errors");
-        finishTest();
-      }));
-    },
-    failureFn: finishTest,
-  };
-}
+  hud.jsterm.clearOutput();
+  executeSoon(() => {
+    hud.jsterm.execute("window.location.href");
+  });
+
+  info("wait for window.location.href after goBack()");
+  yield waitForMessages(msgForLocation1);
+  is(hud.outputNode.textContent.indexOf("Permission denied"), -1,
+     "no permission denied errors");
+});

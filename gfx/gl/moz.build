@@ -26,10 +26,13 @@ if CONFIG['MOZ_GL_PROVIDER']:
     gl_provider = CONFIG['MOZ_GL_PROVIDER']
 
 EXPORTS += [
+    'AndroidNativeWindow.h',
+    'AndroidSurfaceTexture.h',
     'DecomposeIntoNoRepeatTriangles.h',
+    'EGLUtils.h',
     'ForceDiscreteGPUHelperCGL.h',
     'GfxTexturesReporter.h',
-    'GLBlitTextureImageHelper.h',
+    'GLBlitHelper.h',
     'GLConsts.h',
     'GLContext.h',
     'GLContextEGL.h',
@@ -42,7 +45,6 @@ EXPORTS += [
     'GLLibraryLoader.h',
     'GLReadTexImageHelper.h',
     'GLScreenBuffer.h',
-    'GLSharedHandleHelpers.h',
     'GLTextureImage.h',
     'GLTypes.h',
     'GLUploadHelpers.h',
@@ -51,8 +53,6 @@ EXPORTS += [
     'SharedSurface.h',
     'SharedSurfaceEGL.h',
     'SharedSurfaceGL.h',
-    'SurfaceFactory.h',
-    'SurfaceStream.h',
     'SurfaceTypes.h',
     'TextureGarbageBin.h',
 ]
@@ -67,7 +67,7 @@ if CONFIG['MOZ_X11']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXPORTS += [
         'GLContextWGL.h',
-        'SharedSurfaceANGLE.h',
+        'SharedSurfaceANGLE.h', # Needs <windows.h> for `HANDLE`.
         'WGLLibrary.h',
     ]
     UNIFIED_SOURCES += [
@@ -115,10 +115,12 @@ else:
     ]
 
 UNIFIED_SOURCES += [
+    'AndroidNativeWindow.cpp',
+    'AndroidSurfaceTexture.cpp',
     'DecomposeIntoNoRepeatTriangles.cpp',
+    'EGLUtils.cpp',
     'GfxTexturesReporter.cpp',
     'GLBlitHelper.cpp',
-    'GLBlitTextureImageHelper.cpp',
     'GLContext.cpp',
     'GLContextFeatures.cpp',
     'GLContextTypes.cpp',
@@ -127,23 +129,18 @@ UNIFIED_SOURCES += [
     'GLLibraryLoader.cpp',
     'GLReadTexImageHelper.cpp',
     'GLScreenBuffer.cpp',
-    'GLSharedHandleHelpers.cpp',
     'GLTextureImage.cpp',
     'GLUploadHelpers.cpp',
     'ScopedGLHelpers.cpp',
     'SharedSurface.cpp',
     'SharedSurfaceEGL.cpp',
     'SharedSurfaceGL.cpp',
-    'SurfaceFactory.cpp',
-    'SurfaceStream.cpp',
     'SurfaceTypes.cpp',
     'TextureGarbageBin.cpp',
     'TextureImageEGL.cpp',
 ]
 
 FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -154,5 +151,10 @@ if CONFIG['MOZ_D3DCOMPILER_VISTA_DLL']:
 if CONFIG['MOZ_D3DCOMPILER_XP_DLL']:
     DEFINES['MOZ_D3DCOMPILER_XP_DLL'] = CONFIG['MOZ_D3DCOMPILER_XP_DLL']
 
-if CONFIG['MOZ_ANDROID_OMTC']:
-    DEFINES['MOZ_ANDROID_OMTC'] = True
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+CFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    del DEFINES['UNICODE']

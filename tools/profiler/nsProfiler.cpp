@@ -17,7 +17,11 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "shared-libraries.h"
 #include "js/Value.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/dom/Promise.h"
 
+using mozilla::ErrorResult;
+using mozilla::dom::Promise;
 using std::string;
 
 NS_IMPL_ISUPPORTS(nsProfiler, nsIProfiler)
@@ -117,74 +121,25 @@ nsProfiler::AddMarker(const char *aMarker)
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfile(char **aProfile)
+nsProfiler::GetProfile(double aSinceTime, char** aProfile)
 {
-  char *profile = profiler_get_profile();
+  mozilla::UniquePtr<char[]> profile = profiler_get_profile(aSinceTime);
   if (profile) {
-    size_t len = strlen(profile);
+    size_t len = strlen(profile.get());
     char *profileStr = static_cast<char *>
-                         (nsMemory::Clone(profile, (len + 1) * sizeof(char)));
+                         (nsMemory::Clone(profile.get(), (len + 1) * sizeof(char)));
     profileStr[len] = '\0';
     *aProfile = profileStr;
-    free(profile);
   }
   return NS_OK;
 }
 
-static void
-AddSharedLibraryInfoToStream(std::ostream& aStream, const SharedLibrary& aLib)
-{
-  aStream << "{";
-  aStream << "\"start\":" << aLib.GetStart();
-  aStream << ",\"end\":" << aLib.GetEnd();
-  aStream << ",\"offset\":" << aLib.GetOffset();
-  aStream << ",\"name\":\"" << aLib.GetName() << "\"";
-  const std::string &breakpadId = aLib.GetBreakpadId();
-  aStream << ",\"breakpadId\":\"" << breakpadId << "\"";
-#ifdef XP_WIN
-  // FIXME: remove this XP_WIN code when the profiler plugin has switched to
-  // using breakpadId.
-  std::string pdbSignature = breakpadId.substr(0, 32);
-  std::string pdbAgeStr = breakpadId.substr(32,  breakpadId.size() - 1);
-
-  std::stringstream stream;
-  stream << pdbAgeStr;
-
-  unsigned pdbAge;
-  stream << std::hex;
-  stream >> pdbAge;
-
-#ifdef DEBUG
-  std::ostringstream oStream;
-  oStream << pdbSignature << std::hex << std::uppercase << pdbAge;
-  MOZ_ASSERT(breakpadId == oStream.str());
-#endif
-
-  aStream << ",\"pdbSignature\":\"" << pdbSignature << "\"";
-  aStream << ",\"pdbAge\":" << pdbAge;
-  aStream << ",\"pdbName\":\"" << aLib.GetName() << "\"";
-#endif
-  aStream << "}";
-}
+std::string GetSharedLibraryInfoStringInternal();
 
 std::string
 GetSharedLibraryInfoString()
 {
-  SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
-  if (info.GetSize() == 0)
-    return "[]";
-
-  std::ostringstream os;
-  os << "[";
-  AddSharedLibraryInfoToStream(os, info.GetEntry(0));
-
-  for (size_t i = 1; i < info.GetSize(); i++) {
-    os << ",";
-    AddSharedLibraryInfoToStream(os, info.GetEntry(i));
-  }
-
-  os << "]";
-  return os.str();
+  return GetSharedLibraryInfoStringInternal();
 }
 
 NS_IMETHODIMP
@@ -194,14 +149,57 @@ nsProfiler::GetSharedLibraryInformation(nsAString& aOutString)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsProfiler::GetProfileData(JSContext* aCx,
-                                         JS::MutableHandle<JS::Value> aResult)
+NS_IMETHODIMP
+nsProfiler::DumpProfileToFile(const char* aFilename)
 {
-  JS::RootedObject obj(aCx, profiler_get_profile_jsobject(aCx));
+  profiler_save_profile_to_file(aFilename);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetProfileData(double aSinceTime, JSContext* aCx,
+                           JS::MutableHandle<JS::Value> aResult)
+{
+  JS::RootedObject obj(aCx, profiler_get_profile_jsobject(aCx, aSinceTime));
   if (!obj) {
     return NS_ERROR_FAILURE;
   }
   aResult.setObject(*obj);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
+                                nsISupports** aPromise)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (NS_WARN_IF(!aCx)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIGlobalObject* go = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
+
+  if (NS_WARN_IF(!go)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult result;
+  nsRefPtr<Promise> promise = Promise::Create(go, result);
+  if (NS_WARN_IF(result.Failed())) {
+    return result.StealNSResult();
+  }
+
+  profiler_get_profile_jsobject_async(aSinceTime, promise);
+
+  promise.forget(aPromise);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetElapsedTime(double* aElapsedTime)
+{
+  *aElapsedTime = profiler_time();
   return NS_OK;
 }
 
@@ -229,7 +227,7 @@ nsProfiler::GetFeatures(uint32_t *aCount, char ***aFeatures)
   }
 
   char **featureList = static_cast<char **>
-                       (nsMemory::Alloc(len * sizeof(char*)));
+                       (moz_xmalloc(len * sizeof(char*)));
 
   for (size_t i = 0; i < len; i++) {
     size_t strLen = strlen(features[i]);
@@ -239,5 +237,15 @@ nsProfiler::GetFeatures(uint32_t *aCount, char ***aFeatures)
 
   *aFeatures = featureList;
   *aCount = len;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetBufferInfo(uint32_t *aCurrentPosition, uint32_t *aTotalSize, uint32_t *aGeneration)
+{
+  MOZ_ASSERT(aCurrentPosition);
+  MOZ_ASSERT(aTotalSize);
+  MOZ_ASSERT(aGeneration);
+  profiler_get_buffer_info(aCurrentPosition, aTotalSize, aGeneration);
   return NS_OK;
 }

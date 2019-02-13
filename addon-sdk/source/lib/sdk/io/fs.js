@@ -647,16 +647,16 @@ exports.close = close;
 /**
  * Synchronous open(2).
  */
-function openSync(path, flags, mode) {
+function openSync(aPath, aFlag, aMode) {
   let [ fd, flags, mode, file ] =
-      [ { path: path }, Flags(flags), Mode(mode), nsILocalFile(path) ];
+      [ { path: aPath }, Flags(aFlag), Mode(aMode), nsILocalFile(aPath) ];
 
   nsIFile(fd, file);
 
   // If trying to open file for just read that does not exists
   // need to throw exception as node does.
   if (!file.exists() && !isWritable(flags))
-    throw FSError("open", "ENOENT", 34, path);
+    throw FSError("open", "ENOENT", 34, aPath);
 
   // If we want to open file in read mode we initialize input stream.
   if (isReadable(flags)) {
@@ -692,8 +692,6 @@ function writeSync(fd, buffer, offset, length, position) {
   else if (length + offset !== buffer.length) {
     buffer = buffer.slice(offset, offset + length);
   }
-  let writeStream = new WriteStream(fd, { position: position,
-                                          length: length });
 
   let output = BinaryOutputStream(nsIFileOutputStream(fd));
   nsIBinaryOutputStream(fd, output);
@@ -822,7 +820,8 @@ function readFile(path, encoding, callback) {
       readStream.destroy();
       callback(null, buffer);
     });
-  } catch (error) {
+  }
+  catch (error) {
     setTimeout(callback, 0, error);
   }
 };
@@ -885,6 +884,7 @@ exports.writeFile = writeFile;
  * The synchronous version of `fs.writeFile`.
  */
 function writeFileSync(filename, data, encoding) {
+  // TODO: Implement this in bug 1148209 https://bugzilla.mozilla.org/show_bug.cgi?id=1148209
   throw Error("Not implemented");
 };
 exports.writeFileSync = writeFileSync;

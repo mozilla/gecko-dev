@@ -24,6 +24,7 @@
 #include <media/stagefright/MediaErrors.h>
 #include <utils/RefBase.h>
 #include <utils/threads.h>
+#include <utils/Vector.h>
 
 namespace stagefright {
 
@@ -53,6 +54,14 @@ public:
 
     status_t setSyncSampleParams(off64_t data_offset, size_t data_size);
 
+    status_t setSampleAuxiliaryInformationSizeParams(off64_t aDataOffset,
+                                                     size_t aDataSize,
+                                                     uint32_t aDrmScheme);
+
+    status_t setSampleAuxiliaryInformationOffsetParams(off64_t aDataOffset,
+                                                       size_t aDataSize,
+                                                       uint32_t aDrmScheme);
+
     ////////////////////////////////////////////////////////////////////////////
 
     uint32_t countChunkOffsets() const;
@@ -67,7 +76,8 @@ public:
             size_t *size,
             uint32_t *compositionTime,
             uint32_t *duration = NULL,
-            bool *isSyncSample = NULL);
+            bool *isSyncSample = NULL,
+            uint32_t *decodeTime = NULL);
 
     enum {
         kFlagBefore,
@@ -82,6 +92,13 @@ public:
             uint32_t flags);
 
     status_t findThumbnailSample(uint32_t *sample_index);
+
+    bool hasCencInfo() const { return !!mCencInfo; }
+
+    status_t getSampleCencInfo(uint32_t aSampleIndex,
+                               Vector<uint16_t>& aClearSizes,
+                               Vector<uint32_t>& aCipherSizes,
+                               uint8_t aIV[]);
 
 protected:
     ~SampleTable();
@@ -136,6 +153,22 @@ private:
     };
     SampleToChunkEntry *mSampleToChunkEntries;
 
+    enum { IV_BYTES = 16 };
+    struct SampleCencInfo {
+        uint8_t mIV[IV_BYTES];
+        uint16_t mSubsampleCount;
+
+        struct SubsampleSizes {
+            uint16_t mClearBytes;
+            uint32_t mCipherBytes;
+        } * mSubsamples;
+    } * mCencInfo;
+    uint32_t mCencInfoCount;
+
+    uint8_t mCencDefaultSize;
+    Vector<uint8_t> mCencSizes;
+    Vector<uint64_t> mCencOffsets;
+
     friend struct SampleIterator;
 
     status_t getSampleSize_l(uint32_t sample_index, size_t *sample_size);
@@ -144,6 +177,8 @@ private:
     static int CompareIncreasingTime(const void *, const void *);
 
     void buildSampleEntriesTable();
+
+    status_t parseSampleCencInfo();
 
     SampleTable(const SampleTable &);
     SampleTable &operator=(const SampleTable &);

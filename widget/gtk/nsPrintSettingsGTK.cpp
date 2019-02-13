@@ -198,8 +198,46 @@ nsPrintSettingsGTK::SetGtkPrinter(GtkPrinter *aPrinter)
 {
   if (mGTKPrinter)
     g_object_unref(mGTKPrinter);
-  
+
   mGTKPrinter = (GtkPrinter*) g_object_ref(aPrinter);
+}
+
+NS_IMETHODIMP nsPrintSettingsGTK::GetOutputFormat(int16_t *aOutputFormat)
+{
+  NS_ENSURE_ARG_POINTER(aOutputFormat);
+
+  int16_t format;
+  nsresult rv = nsPrintSettings::GetOutputFormat(&format);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (format == nsIPrintSettings::kOutputFormatNative) {
+    const gchar* fmtGTK =
+      gtk_print_settings_get(mPrintSettings,
+                             GTK_PRINT_SETTINGS_OUTPUT_FILE_FORMAT);
+    if (fmtGTK) {
+      if (nsDependentCString(fmtGTK).EqualsIgnoreCase("pdf")) {
+        format = nsIPrintSettings::kOutputFormatPDF;
+      } else {
+        format = nsIPrintSettings::kOutputFormatPS;
+      }
+    } else if (GTK_IS_PRINTER(mGTKPrinter)) {
+      // Prior to gtk 2.24, gtk_printer_accepts_pdf() and
+      // gtk_printer_accepts_ps() always returned true regardless of the
+      // printer's capability.
+      bool shouldTrustGTK =
+        (gtk_major_version > 2 ||
+         (gtk_major_version == 2 && gtk_minor_version >= 24));
+      bool acceptsPDF = shouldTrustGTK && gtk_printer_accepts_pdf(mGTKPrinter);
+
+      format = acceptsPDF ? nsIPrintSettings::kOutputFormatPDF
+                          : nsIPrintSettings::kOutputFormatPS;
+    }
+  }
+
+  *aOutputFormat = format;
+  return NS_OK;
 }
 
 /**
@@ -758,9 +796,11 @@ nsPrintSettingsGTK::SetResolution(int32_t aResolution)
 NS_IMETHODIMP
 nsPrintSettingsGTK::GetDuplex(int32_t *aDuplex)
 {
-  if (!gtk_print_settings_has_key(mPrintSettings, GTK_PRINT_SETTINGS_DUPLEX))
-    return NS_ERROR_FAILURE;
-  *aDuplex = gtk_print_settings_get_duplex(mPrintSettings);
+  if (!gtk_print_settings_has_key(mPrintSettings, GTK_PRINT_SETTINGS_DUPLEX)) {
+    *aDuplex = GTK_PRINT_DUPLEX_SIMPLEX;
+  } else {
+    *aDuplex = gtk_print_settings_get_duplex(mPrintSettings);
+  }
   return NS_OK;
 }
 

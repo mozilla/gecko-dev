@@ -44,9 +44,9 @@
  * whether we may use its full range (0-255) or only 0-99 because
  * of the comment in the CK_VERSION type definition.
  */
-#define NSS_BUILTINS_LIBRARY_VERSION_MAJOR 1
-#define NSS_BUILTINS_LIBRARY_VERSION_MINOR 98
-#define NSS_BUILTINS_LIBRARY_VERSION "1.98"
+#define NSS_BUILTINS_LIBRARY_VERSION_MAJOR 2
+#define NSS_BUILTINS_LIBRARY_VERSION_MINOR 4
+#define NSS_BUILTINS_LIBRARY_VERSION "2.4"
 
 /* These version numbers detail the semantic changes to the ckfw engine. */
 #define NSS_BUILTINS_HARDWARE_VERSION_MAJOR 1

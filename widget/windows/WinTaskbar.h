@@ -17,11 +17,12 @@
 namespace mozilla {
 namespace widget {
 
-class WinTaskbar MOZ_FINAL : public nsIWinTaskbar
+class WinTaskbar final : public nsIWinTaskbar
 {
+  ~WinTaskbar();
+
 public: 
   WinTaskbar();
-  ~WinTaskbar();
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIWINTASKBAR

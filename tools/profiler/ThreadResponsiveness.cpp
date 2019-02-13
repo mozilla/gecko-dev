@@ -13,6 +13,7 @@
 
 using mozilla::Monitor;
 using mozilla::MonitorAutoLock;
+using mozilla::TimeStamp;
 
 class CheckResponsivenessTask : public nsRunnable,
                                 public nsITimerCallback {
@@ -26,12 +27,14 @@ public:
     MOZ_COUNT_CTOR(CheckResponsivenessTask);
   }
 
+protected:
   ~CheckResponsivenessTask()
   {
     MOZ_COUNT_DTOR(CheckResponsivenessTask);
   }
 
-  NS_IMETHOD Run()
+public:
+  NS_IMETHOD Run() override
   {
     MonitorAutoLock mon(mMonitor);
     if (mStop)
@@ -51,7 +54,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHODIMP Notify(nsITimer* aTimer) MOZ_FINAL
+  NS_IMETHODIMP Notify(nsITimer* aTimer) final
   {
     NS_DispatchToMainThread(this);
     return NS_OK;
@@ -95,7 +98,6 @@ ThreadResponsiveness::~ThreadResponsiveness()
 void
 ThreadResponsiveness::Update()
 {
-  return;
   if (!mActiveTracerEvent) {
     if (mThreadProfile->GetThreadInfo()->IsMainThread()) {
       mActiveTracerEvent = new CheckResponsivenessTask();

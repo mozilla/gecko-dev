@@ -7,11 +7,16 @@ package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.ThumbnailHelper;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff.Mode;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.widget.ImageView;
@@ -25,27 +30,32 @@ public class TopSitesThumbnailView extends ImageView {
     // 27.34% opacity filter for the dominant color.
     private static final int COLOR_FILTER = 0x46FFFFFF;
 
+    // Cache variables used in onMeasure.
+    //
+    // Note: we have two matrices because we can't change it in place - see ImageView.getImageMatrix docs.
+    private final RectF mLayoutRect = new RectF();
+    private Matrix mLayoutCurrentMatrix = new Matrix();
+    private Matrix mLayoutNextMatrix = new Matrix();
+
     // Default filter color for "Add a bookmark" views.
-    private static final int DEFAULT_COLOR = 0xFFECF0F3;
+    private final int mDefaultColor = getResources().getColor(R.color.top_site_default);
 
     // Stroke width for the border.
     private final float mStrokeWidth = getResources().getDisplayMetrics().density * 2;
 
     // Paint for drawing the border.
-    private static Paint sBorderPaint;
+    private final Paint mBorderPaint;
 
-    // Initializing the static border paint.
-    static {
-        sBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        sBorderPaint.setColor(0xFFCFD9E1);
-        sBorderPaint.setStyle(Paint.Style.STROKE);
-    }
+    private boolean mResize = false;
+    private int mWidth;
+    private int mHeight;
 
     public TopSitesThumbnailView(Context context) {
         this(context, null);
 
         // A border will be drawn if needed.
         setWillNotDraw(false);
+
     }
 
     public TopSitesThumbnailView(Context context, AttributeSet attrs) {
@@ -54,6 +64,57 @@ public class TopSitesThumbnailView extends ImageView {
 
     public TopSitesThumbnailView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+
+        // Initialize the border paint.
+        final Resources res = getResources();
+        mBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mBorderPaint.setColor(res.getColor(R.color.top_site_border));
+        mBorderPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    public void setImageBitmap(Bitmap bm, boolean resize) {
+        super.setImageBitmap(bm);
+        mResize = resize;
+        clearLayoutVars();
+
+        updateImageMatrix();
+    }
+
+    private void clearLayoutVars() {
+        mLayoutRect.setEmpty();
+    }
+
+    private void updateImageMatrix() {
+        if (!HardwareUtils.isTablet() || !mResize) {
+            return;
+        }
+
+        // No work to be done here - assumes the rect gets reset when a new bitmap is set.
+        if (mLayoutRect.right == mWidth && mLayoutRect.bottom == mHeight) {
+            return;
+        }
+
+        setScaleType(ScaleType.MATRIX);
+
+        mLayoutRect.set(0, 0, mWidth, mHeight);
+        mLayoutNextMatrix.setRectToRect(mLayoutRect, mLayoutRect, Matrix.ScaleToFit.CENTER);
+        setImageMatrix(mLayoutNextMatrix);
+
+        final Matrix swapReferenceMatrix = mLayoutCurrentMatrix;
+        mLayoutCurrentMatrix = mLayoutNextMatrix;
+        mLayoutNextMatrix = swapReferenceMatrix;
+    }
+
+    @Override
+    public void setImageResource(int resId) {
+        super.setImageResource(resId);
+        mResize = false;
+    }
+
+    @Override
+    public void setImageDrawable(Drawable drawable) {
+        super.setImageDrawable(drawable);
+        mResize = false;
     }
 
     /**
@@ -69,9 +130,11 @@ public class TopSitesThumbnailView extends ImageView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         // Force the height based on the aspect ratio.
-        final int width = getMeasuredWidth();
-        final int height = (int) (width * ThumbnailHelper.THUMBNAIL_ASPECT_RATIO);
-        setMeasuredDimension(width, height);
+        mWidth = getMeasuredWidth();
+        mHeight = (int) (mWidth * ThumbnailHelper.THUMBNAIL_ASPECT_RATIO);
+        setMeasuredDimension(mWidth, mHeight);
+
+        updateImageMatrix();
     }
 
     /**
@@ -82,8 +145,8 @@ public class TopSitesThumbnailView extends ImageView {
         super.onDraw(canvas);
 
         if (getBackground() == null) {
-            sBorderPaint.setStrokeWidth(mStrokeWidth);
-            canvas.drawRect(0, 0, getWidth(), getHeight(), sBorderPaint);
+            mBorderPaint.setStrokeWidth(mStrokeWidth);
+            canvas.drawRect(0, 0, getWidth(), getHeight(), mBorderPaint);
         }
     }
 
@@ -104,7 +167,7 @@ public class TopSitesThumbnailView extends ImageView {
     @Override
     public void setBackgroundColor(int color) {
         if (color == 0) {
-            color = DEFAULT_COLOR;
+            color = mDefaultColor;
         }
 
         Drawable drawable = getResources().getDrawable(R.drawable.top_sites_thumbnail_bg);

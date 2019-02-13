@@ -10,7 +10,7 @@
 #include <stddef.h>
 
 #include "jit/Ion.h"
-#include "jit/IonAllocPolicy.h"
+#include "jit/JitAllocPolicy.h"
 
 namespace js {
 namespace jit {
@@ -19,7 +19,7 @@ namespace jit {
 template <typename T>
 class FixedList
 {
-    T *list_;
+    T* list_;
     size_t length_;
 
   private:
@@ -32,15 +32,19 @@ class FixedList
     { }
 
     // Dynamic memory allocation requires the ability to report failure.
-    bool init(TempAllocator &alloc, size_t length) {
+    bool init(TempAllocator& alloc, size_t length) {
         length_ = length;
         if (length == 0)
             return true;
 
-        if (length & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
+        if (MOZ_UNLIKELY(length & mozilla::tl::MulOverflowMask<sizeof(T)>::value))
             return false;
-        list_ = (T *)alloc.allocate(length * sizeof(T));
+        list_ = (T*)alloc.allocate(length * sizeof(T));
         return list_ != nullptr;
+    }
+
+    size_t empty() const {
+        return length_ == 0;
     }
 
     size_t length() const {
@@ -48,18 +52,18 @@ class FixedList
     }
 
     void shrink(size_t num) {
-        JS_ASSERT(num < length_);
+        MOZ_ASSERT(num < length_);
         length_ -= num;
     }
 
-    bool growBy(TempAllocator &alloc, size_t num) {
+    bool growBy(TempAllocator& alloc, size_t num) {
         size_t newlength = length_ + num;
         if (newlength < length_)
             return false;
-        if (newlength & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
+        if (MOZ_UNLIKELY(newlength & mozilla::tl::MulOverflowMask<sizeof(T)>::value))
             return false;
-        T *list = (T *)alloc.allocate((length_ + num) * sizeof(T));
-        if (!list)
+        T* list = (T*)alloc.allocate((length_ + num) * sizeof(T));
+        if (MOZ_UNLIKELY(!list))
             return false;
 
         for (size_t i = 0; i < length_; i++)
@@ -70,13 +74,20 @@ class FixedList
         return true;
     }
 
-    T &operator[](size_t index) {
-        JS_ASSERT(index < length_);
+    T& operator[](size_t index) {
+        MOZ_ASSERT(index < length_);
         return list_[index];
     }
-    const T &operator [](size_t index) const {
-        JS_ASSERT(index < length_);
+    const T& operator [](size_t index) const {
+        MOZ_ASSERT(index < length_);
         return list_[index];
+    }
+
+    T* begin() {
+        return list_;
+    }
+    T* end() {
+        return list_ + length_;
     }
 };
 

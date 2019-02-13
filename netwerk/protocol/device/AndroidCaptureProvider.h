@@ -16,10 +16,12 @@
 #include "nsDeque.h"
 #include "mozilla/ReentrantMonitor.h"
 
-class AndroidCaptureProvider MOZ_FINAL : public nsDeviceCaptureProvider {
+class AndroidCaptureProvider final : public nsDeviceCaptureProvider {
+  private:
+    ~AndroidCaptureProvider();
+
   public:
     AndroidCaptureProvider();
-    ~AndroidCaptureProvider();
 
     NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -27,10 +29,12 @@ class AndroidCaptureProvider MOZ_FINAL : public nsDeviceCaptureProvider {
     static AndroidCaptureProvider* sInstance;
 };
 
-class AndroidCameraInputStream MOZ_FINAL : public nsIAsyncInputStream, mozilla::net::CameraStreamImpl::FrameCallback {
+class AndroidCameraInputStream final : public nsIAsyncInputStream, mozilla::net::CameraStreamImpl::FrameCallback {
+  private:
+    ~AndroidCameraInputStream();
+
   public:
     AndroidCameraInputStream();
-    ~AndroidCameraInputStream();
 
     NS_IMETHODIMP Init(nsACString& aContentType, nsCaptureParams* aParams);
 

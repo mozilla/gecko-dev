@@ -13,10 +13,6 @@
 #include "SurfaceTypes.h"
 #include "mozilla/WidgetUtils.h"
 
-#if defined(MOZ_ENABLE_D3D10_LAYER)
-# include "mozilla/layers/ShadowLayerUtilsD3D10.h"
-#endif
-
 #if defined(XP_MACOSX)
 #define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
 #endif
@@ -55,29 +51,6 @@ struct ParamTraits<mozilla::layers::SurfaceDescriptorX11> {
   static bool Read(const Message*, void**, paramType*) { return false; }
 };
 #endif  // !defined(MOZ_HAVE_XSURFACEDESCRIPTORX11)
-
-template<>
-struct ParamTraits<mozilla::gl::SharedTextureShareType>
-{
-  typedef mozilla::gl::SharedTextureShareType paramType;
-
-  static void Write(Message* msg, const paramType& param)
-  {
-    static_assert(sizeof(paramType) <= sizeof(int32_t),
-                  "TextureShareType assumes to be int32_t");
-    WriteParam(msg, int32_t(param));
-  }
-
-  static bool Read(const Message* msg, void** iter, paramType* result)
-  {
-    int32_t type;
-    if (!ReadParam(msg, iter, &type))
-      return false;
-
-    *result = paramType(type);
-    return true;
-  }
-};
 
 #if !defined(MOZ_HAVE_SURFACEDESCRIPTORGRALLOC)
 template <>

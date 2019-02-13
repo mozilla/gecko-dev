@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,11 +32,8 @@ public:
   void
   Release();
 
-  void
-  UpdateSize(int64_t aSize);
-
   bool
-  MaybeAllocateMoreSpace(int64_t aOffset, int32_t aCount);
+  MaybeUpdateSize(int64_t aSize, bool aTruncate);
 
 private:
   QuotaObject(OriginInfo* aOriginInfo, const nsAString& aPath, int64_t aSize)
@@ -68,17 +65,17 @@ private:
   int64_t mSize;
 };
 
-class OriginInfo MOZ_FINAL
+class OriginInfo final
 {
   friend class GroupInfo;
   friend class QuotaManager;
   friend class QuotaObject;
 
 public:
-  OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin, uint64_t aLimit,
+  OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin, bool aIsApp,
              uint64_t aUsage, int64_t aAccessTime)
-  : mGroupInfo(aGroupInfo), mOrigin(aOrigin), mLimit(aLimit), mUsage(aUsage),
-    mAccessTime(aAccessTime)
+  : mGroupInfo(aGroupInfo), mOrigin(aOrigin), mUsage(aUsage),
+    mAccessTime(aAccessTime), mIsApp(aIsApp)
   {
     MOZ_COUNT_CTOR(OriginInfo);
   }
@@ -96,6 +93,8 @@ private:
   ~OriginInfo()
   {
     MOZ_COUNT_DTOR(OriginInfo);
+
+    MOZ_ASSERT(!mQuotaObjects.Count());
   }
 
   void
@@ -109,25 +108,13 @@ private:
     mAccessTime = aAccessTime;
   }
 
-  void
-  LockedClearOriginInfos()
-  {
-    AssertCurrentThreadOwnsQuotaMutex();
-
-    mQuotaObjects.EnumerateRead(ClearOriginInfoCallback, nullptr);
-  }
-
-  static PLDHashOperator
-  ClearOriginInfoCallback(const nsAString& aKey,
-                          QuotaObject* aValue, void* aUserArg);
-
   nsDataHashtable<nsStringHashKey, QuotaObject*> mQuotaObjects;
 
   GroupInfo* mGroupInfo;
-  nsCString mOrigin;
-  uint64_t mLimit;
+  const nsCString mOrigin;
   uint64_t mUsage;
   int64_t mAccessTime;
+  const bool mIsApp;
 };
 
 class OriginInfoLRUComparator
@@ -147,7 +134,7 @@ public:
   }
 };
 
-class GroupInfo MOZ_FINAL
+class GroupInfo final
 {
   friend class GroupInfoPair;
   friend class OriginInfo;
@@ -155,25 +142,17 @@ class GroupInfo MOZ_FINAL
   friend class QuotaObject;
 
 public:
-  GroupInfo(PersistenceType aPersistenceType, const nsACString& aGroup)
-  : mPersistenceType(aPersistenceType), mGroup(aGroup), mUsage(0)
+  GroupInfo(GroupInfoPair* aGroupInfoPair, PersistenceType aPersistenceType,
+            const nsACString& aGroup)
+  : mGroupInfoPair(aGroupInfoPair), mPersistenceType(aPersistenceType),
+    mGroup(aGroup), mUsage(0)
   {
+    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
+
     MOZ_COUNT_CTOR(GroupInfo);
   }
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GroupInfo)
-
-  bool
-  IsForPersistentStorage() const
-  {
-    return mPersistenceType == PERSISTENCE_TYPE_PERSISTENT;
-  }
-
-  bool
-  IsForTemporaryStorage() const
-  {
-    return mPersistenceType == PERSISTENCE_TYPE_TEMPORARY;
-  }
 
 private:
   // Private destructor, to discourage deletion outside of Release():
@@ -194,9 +173,6 @@ private:
   void
   LockedRemoveOriginInfos();
 
-  void
-  LockedRemoveOriginInfosForPattern(const nsACString& aPattern);
-
   bool
   LockedHasOriginInfos()
   {
@@ -207,6 +183,7 @@ private:
 
   nsTArray<nsRefPtr<OriginInfo> > mOriginInfos;
 
+  GroupInfoPair* mGroupInfoPair;
   PersistenceType mPersistenceType;
   nsCString mGroup;
   uint64_t mUsage;
@@ -215,6 +192,7 @@ private:
 class GroupInfoPair
 {
   friend class QuotaManager;
+  friend class QuotaObject;
 
 public:
   GroupInfoPair()
@@ -232,6 +210,7 @@ private:
   LockedGetGroupInfo(PersistenceType aPersistenceType)
   {
     AssertCurrentThreadOwnsQuotaMutex();
+    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
     nsRefPtr<GroupInfo> groupInfo =
       GetGroupInfoForPersistenceType(aPersistenceType);
@@ -239,12 +218,13 @@ private:
   }
 
   void
-  LockedSetGroupInfo(GroupInfo* aGroupInfo)
+  LockedSetGroupInfo(PersistenceType aPersistenceType, GroupInfo* aGroupInfo)
   {
     AssertCurrentThreadOwnsQuotaMutex();
+    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
     nsRefPtr<GroupInfo>& groupInfo =
-      GetGroupInfoForPersistenceType(aGroupInfo->mPersistenceType);
+      GetGroupInfoForPersistenceType(aPersistenceType);
     groupInfo = aGroupInfo;
   }
 
@@ -252,6 +232,7 @@ private:
   LockedClearGroupInfo(PersistenceType aPersistenceType)
   {
     AssertCurrentThreadOwnsQuotaMutex();
+    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
     nsRefPtr<GroupInfo>& groupInfo =
       GetGroupInfoForPersistenceType(aPersistenceType);
@@ -263,14 +244,14 @@ private:
   {
     AssertCurrentThreadOwnsQuotaMutex();
 
-    return mPersistentStorageGroupInfo || mTemporaryStorageGroupInfo;
+    return mTemporaryStorageGroupInfo || mDefaultStorageGroupInfo;
   }
 
   nsRefPtr<GroupInfo>&
   GetGroupInfoForPersistenceType(PersistenceType aPersistenceType);
 
-  nsRefPtr<GroupInfo> mPersistentStorageGroupInfo;
   nsRefPtr<GroupInfo> mTemporaryStorageGroupInfo;
+  nsRefPtr<GroupInfo> mDefaultStorageGroupInfo;
 };
 
 END_QUOTA_NAMESPACE

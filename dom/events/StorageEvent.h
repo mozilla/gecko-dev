@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,8 +13,6 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/StorageEventBinding.h"
 
-class nsIDOMStorage;
-
 // Helper for EventDispatcher.
 nsresult NS_NewDOMStorageEvent(nsIDOMEvent** aDOMEvent,
                                mozilla::dom::EventTarget* aOwner);
@@ -22,26 +20,29 @@ nsresult NS_NewDOMStorageEvent(nsIDOMEvent** aDOMEvent,
 namespace mozilla {
 namespace dom {
 
+class DOMStorage;
+
 class StorageEvent : public Event
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(StorageEvent, Event)
 
-  StorageEvent(EventTarget* aOwner);
-  virtual ~StorageEvent();
+  explicit StorageEvent(EventTarget* aOwner);
 
 protected:
+  virtual ~StorageEvent();
+
   nsString mKey;
   nsString mOldValue;
   nsString mNewValue;
   nsString mUrl;
-  nsCOMPtr<nsIDOMStorage> mStorageArea;
+  nsRefPtr<DOMStorage> mStorageArea;
 
 public:
   virtual StorageEvent* AsStorageEvent();
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<StorageEvent>
   Constructor(EventTarget* aOwner, const nsAString& aType,
@@ -56,7 +57,7 @@ public:
                         const nsAString& aOldValue,
                         const nsAString& aNewValue,
                         const nsAString& aURL,
-                        nsIDOMStorage* aStorageArea,
+                        DOMStorage* aStorageArea,
                         ErrorResult& aRv);
 
   void GetKey(nsString& aRetVal) const
@@ -79,7 +80,7 @@ public:
     aRetVal = mUrl;
   }
 
-  nsIDOMStorage* GetStorageArea() const
+  DOMStorage* GetStorageArea() const
   {
     return mStorageArea;
   }

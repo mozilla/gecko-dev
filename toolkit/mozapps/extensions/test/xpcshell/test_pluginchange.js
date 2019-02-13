@@ -6,6 +6,7 @@ const LIST_UPDATED_TOPIC     = "plugins-list-updated";
 
 // We need to use the same algorithm for generating IDs for plugins
 var { getIDHashForString } = Components.utils.import("resource://gre/modules/addons/PluginProvider.jsm");
+var { MockRegistrar } = Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 
 function PluginTag(name, description) {
   this.name = name;
@@ -49,23 +50,15 @@ gPluginHost = {
   QueryInterface: XPCOMUtils.generateQI([AM_Ci.nsIPluginHost])
 };
 
-var PluginHostFactory = {
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return gPluginHost.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(AM_Ci.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{aa6f9fef-cbe2-4d55-a2fa-dcf5482068b9}"), "PluginHost",
-                          "@mozilla.org/plugin/host;1", PluginHostFactory);
+MockRegistrar.register("@mozilla.org/plugin/host;1", gPluginHost);
 
 // This verifies that when the list of plugins changes the add-ons manager
 // correctly updates
 function run_test() {
   do_test_pending();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
+
+  Services.prefs.setBoolPref("media.gmp-provider.enabled", false);
 
   startupManager();
   AddonManager.addAddonListener(AddonListener);

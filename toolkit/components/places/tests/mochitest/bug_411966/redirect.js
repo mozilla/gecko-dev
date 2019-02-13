@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -117,12 +117,12 @@ function checkDB(data){
       referrer: referrer},
     function() {
       // Get all pages visited from the original typed one
-      var sql = "SELECT url FROM moz_historyvisits " +
-                "JOIN moz_places h ON h.id = place_id " +
-                "WHERE from_visit IN " +
-                   "(SELECT v.id FROM moz_historyvisits v " +
-                   "JOIN moz_places p ON p.id = v.place_id " +
-                   "WHERE p.url = ?1)";
+      var sql = `SELECT url FROM moz_historyvisits
+                 JOIN moz_places h ON h.id = place_id
+                 WHERE from_visit IN
+                    (SELECT v.id FROM moz_historyvisits v
+                    JOIN moz_places p ON p.id = v.place_id
+                    WHERE p.url = ?1)`;
       var stmt = mDBConn.createStatement(sql);
       stmt.bindByIndex(0, typedURI.spec);
 

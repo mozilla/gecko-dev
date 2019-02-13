@@ -44,7 +44,7 @@ PRMJ_NowInit() {}
 #endif
 
 /* Release the resources associated with PRMJ_Now; don't call PRMJ_Now again */
-#if defined(JS_THREADSAFE) && defined(XP_WIN)
+#ifdef XP_WIN
 extern void
 PRMJ_NowShutdown();
 #else
@@ -54,6 +54,6 @@ PRMJ_NowShutdown() {}
 
 /* Format a time value into a buffer. Same semantics as strftime() */
 extern size_t
-PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *tm);
+PRMJ_FormatTime(char* buf, int buflen, const char* fmt, PRMJTime* tm);
 
 #endif /* prmjtime_h */

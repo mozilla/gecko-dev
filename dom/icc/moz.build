@@ -4,5 +4,53 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['interfaces', 'src']
-TEST_DIRS += ['tests']
+DIRS += ['interfaces']
+
+EXPORTS.mozilla.dom += [
+    'Icc.h',
+    'IccCardLockError.h',
+    'IccInfo.h',
+    'IccManager.h',
+]
+
+EXPORTS.mozilla.dom.icc += [
+    'ipc/IccChild.h',
+    'ipc/IccParent.h',
+]
+
+UNIFIED_SOURCES += [
+    'Assertions.cpp',
+    'Icc.cpp',
+    'IccCallback.cpp',
+    'IccCardLockError.cpp',
+    "IccInfo.cpp",
+    'IccListener.cpp',
+    'IccManager.cpp',
+    'ipc/IccChild.cpp',
+    'ipc/IccIPCService.cpp',
+    'ipc/IccParent.cpp',
+]
+
+IPDL_SOURCES += [
+    'ipc/PIcc.ipdl',
+    'ipc/PIccRequest.ipdl',
+    'ipc/PIccTypes.ipdlh',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
+    EXTRA_COMPONENTS += [
+        'gonk/IccService.js',
+        'gonk/IccService.manifest',
+        'gonk/StkCmdFactory.js',
+        'gonk/StkCmdFactory.manifest'
+    ]
+
+FAIL_ON_WARNINGS = True
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '/dom/system/gonk',
+]

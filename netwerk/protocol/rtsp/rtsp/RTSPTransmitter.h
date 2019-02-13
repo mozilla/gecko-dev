@@ -36,7 +36,6 @@
 #include <media/stagefright/OMXCodec.h>
 #endif
 
-#include "mozilla/NullPtr.h"
 #include "prnetdb.h"
 #include "prerr.h"
 
@@ -104,7 +103,7 @@ struct MyTransmitter : public AHandler {
         mLooper->registerHandler(this);
         mLooper->registerHandler(mConn);
 
-        sp<AMessage> reply = new AMessage('conn', id());
+        sp<AMessage> reply = new AMessage(kWhatConnect, id());
         mConn->connect(mServerURL.c_str(), reply);
 
 #ifdef ANDROID
@@ -233,7 +232,7 @@ struct MyTransmitter : public AHandler {
         request.append("\r\n");
         request.append(sdp);
 
-        sp<AMessage> reply = new AMessage('anno', id());
+        sp<AMessage> reply = new AMessage(kWhatAnnounce, id());
         mConn->sendRequest(request.c_str(), reply);
     }
 
@@ -266,28 +265,37 @@ struct MyTransmitter : public AHandler {
         }
     }
 
-    void authenticate(const sp<ARTSPResponse> &response) {
+    bool authenticate(const sp<ARTSPResponse> &response) {
         ssize_t i = response->mHeaders.indexOfKey("www-authenticate");
-        CHECK_GE(i, 0);
+        if (i < 0) {
+            return false;
+        }
 
         AString value = response->mHeaders.valueAt(i);
 
         if (!strncmp(value.c_str(), "Basic", 5)) {
             mAuthType = BASIC;
         } else {
-            CHECK(!strncmp(value.c_str(), "Digest", 6));
+            if (strncmp(value.c_str(), "Digest", 6)) {
+                return false;
+            }
+
             mAuthType = DIGEST;
 
             i = value.find("nonce=");
-            CHECK_GE(i, 0);
-            CHECK_EQ(value.c_str()[i + 6], '\"');
+            if (i < 0 || value.c_str()[i + 6] != '\"') {
+                return false;
+            }
             ssize_t j = value.find("\"", i + 7);
-            CHECK_GE(j, 0);
+            if (j < 0) {
+                return false;
+            }
 
             mNonce.setTo(value, i + 7, j - i - 7);
         }
 
         issueAnnounce();
+        return true;
     }
 
     void addAuthentication(
@@ -345,7 +353,7 @@ struct MyTransmitter : public AHandler {
 
     virtual void onMessageReceived(const sp<AMessage> &msg) {
         switch (msg->what()) {
-            case 'conn':
+            case kWhatConnect:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -354,7 +362,7 @@ struct MyTransmitter : public AHandler {
                      << result << " (" << strerror(-result) << ")";
 
                 if (result != OK) {
-                    (new AMessage('quit', id()))->post();
+                    (new AMessage(kWhatQuit, id()))->post();
                     break;
                 }
 
@@ -366,7 +374,7 @@ struct MyTransmitter : public AHandler {
                 break;
             }
 
-            case 'anno':
+            case kWhatAnnounce:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -383,26 +391,24 @@ struct MyTransmitter : public AHandler {
                     CHECK(response != NULL);
 
                     if (response->mStatusCode == 401) {
-                        if (mAuthType != NONE) {
+                        if (mAuthType != NONE || !authenticate(response)) {
                             LOG(INFO) << "FAILED to authenticate";
-                            (new AMessage('quit', id()))->post();
+                            (new AMessage(kWhatQuit, id()))->post();
                             break;
                         }
-
-                        authenticate(response);
                         break;
                     }
                 }
 
                 if (result != OK || response->mStatusCode != 200) {
-                    (new AMessage('quit', id()))->post();
+                    (new AMessage(kWhatQuit, id()))->post();
                     break;
                 }
 
                 unsigned rtpPort;
                 ARTPConnection::MakePortPair(&mRTPSocket, &mRTCPSocket, &rtpPort);
 
-                // (new AMessage('poll', id()))->post();
+                // (new AMessage(kWhatPoll, id()))->post();
 
                 AString request;
                 request.append("SETUP ");
@@ -418,13 +424,13 @@ struct MyTransmitter : public AHandler {
                 request.append(";mode=record\r\n");
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('setu', id());
+                sp<AMessage> reply = new AMessage(kWhatSetup, id());
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
 #if 0
-            case 'poll':
+            case kWhatPoll:
             {
                 PRPollDesc readPollDesc;
                 readPollDesc.fd = mRTCPSocket;
@@ -452,7 +458,7 @@ struct MyTransmitter : public AHandler {
             }
 #endif
 
-            case 'setu':
+            case kWhatSetup:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -462,15 +468,25 @@ struct MyTransmitter : public AHandler {
 
                 sp<RefBase> obj;
                 CHECK(msg->findObject("response", &obj));
+                if (!obj.get()) {
+                    LOGE("No response to SETUP");
+                    (new AMessage(kWhatQuit, id()))->post();
+                    break;
+                }
                 sp<ARTSPResponse> response;
 
                 if (result == OK) {
                     response = static_cast<ARTSPResponse *>(obj.get());
-                    CHECK(response != NULL);
+                    if (!response.get()) {
+                        LOGE("No response to SETUP");
+                        (new AMessage(kWhatQuit, id()))->post();
+                        break;
+                    }
                 }
 
                 if (result != OK || response->mStatusCode != 200) {
-                    (new AMessage('quit', id()))->post();
+                    LOGE("SETUP error")
+                    (new AMessage(kWhatQuit, id()))->post();
                     break;
                 }
 
@@ -536,12 +552,12 @@ struct MyTransmitter : public AHandler {
                 request.append("\r\n");
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('reco', id());
+                sp<AMessage> reply = new AMessage(kWhatRecord, id());
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'reco':
+            case kWhatRecord:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -559,17 +575,17 @@ struct MyTransmitter : public AHandler {
                 }
 
                 if (result != OK) {
-                    (new AMessage('quit', id()))->post();
+                    (new AMessage(kWhatQuit, id()))->post();
                     break;
                 }
 
-                (new AMessage('more', id()))->post();
-                (new AMessage('sr  ', id()))->post();
-                (new AMessage('aliv', id()))->post(30000000ll);
+                (new AMessage(kWhatMore, id()))->post();
+                (new AMessage(kWhatSendSR, id()))->post();
+                (new AMessage(kWhatKeepAlive, id()))->post(30000000ll);
                 break;
             }
 
-            case 'aliv':
+            case kWhatKeepAlive:
             {
                 if (!mConnected) {
                     break;
@@ -587,12 +603,12 @@ struct MyTransmitter : public AHandler {
                 request.append("\r\n");
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('opts', id());
+                sp<AMessage> reply = new AMessage(kWhatOptions, id());
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'opts':
+            case kWhatOptions:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -604,11 +620,11 @@ struct MyTransmitter : public AHandler {
                     break;
                 }
 
-                (new AMessage('aliv', id()))->post(30000000ll);
+                (new AMessage(kWhatKeepAlive, id()))->post(30000000ll);
                 break;
             }
 
-            case 'more':
+            case kWhatMore:
             {
                 if (!mConnected) {
                     break;
@@ -703,13 +719,13 @@ struct MyTransmitter : public AHandler {
                     request.append("\r\n");
                     request.append("\r\n");
 
-                    sp<AMessage> reply = new AMessage('paus', id());
+                    sp<AMessage> reply = new AMessage(kWhatPerformPause, id());
                     mConn->sendRequest(request.c_str(), reply);
                 }
                 break;
             }
 
-            case 'sr  ':
+            case kWhatSendSR:
             {
                 if (!mConnected) {
                     break;
@@ -730,7 +746,7 @@ struct MyTransmitter : public AHandler {
                 break;
             }
 
-            case 'paus':
+            case kWhatPerformPause:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -754,12 +770,12 @@ struct MyTransmitter : public AHandler {
                 request.append("\r\n");
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('tear', id());
+                sp<AMessage> reply = new AMessage(kWhatTeardown, id());
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'tear':
+            case kWhatTeardown:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -776,23 +792,23 @@ struct MyTransmitter : public AHandler {
                     CHECK(response != NULL);
                 }
 
-                (new AMessage('quit', id()))->post();
+                (new AMessage(kWhatQuit, id()))->post();
                 break;
             }
 
-            case 'disc':
+            case kWhatDisconnect:
             {
                 LOG(INFO) << "disconnect completed";
 
                 mConnected = false;
-                (new AMessage('quit', id()))->post();
+                (new AMessage(kWhatQuit, id()))->post();
                 break;
             }
 
-            case 'quit':
+            case kWhatQuit:
             {
                 if (mConnected) {
-                    mConn->disconnect(new AMessage('disc', id()));
+                    mConn->disconnect(new AMessage(kWhatDisconnect, id()));
                     break;
                 }
 

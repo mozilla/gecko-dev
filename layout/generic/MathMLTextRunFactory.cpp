@@ -6,10 +6,13 @@
 #include "MathMLTextRunFactory.h"
 
 #include "mozilla/ArrayUtils.h"
- 
+#include "mozilla/BinarySearch.h"
+
 #include "nsStyleConsts.h"
-#include "nsStyleContext.h"
 #include "nsTextFrameUtils.h"
+#include "nsFontMetrics.h"
+#include "nsDeviceContext.h"
+#include "nsUnicodeScriptCodes.h"
 
 using namespace mozilla;
 
@@ -187,24 +190,29 @@ static const MathVarMapping gLatinExceptionMapTable[] = {
   { 0x1D551, 0x2124 }
 };
 
+namespace {
+
+struct MathVarMappingWrapper
+{
+  const MathVarMapping* const mTable;
+  explicit MathVarMappingWrapper(const MathVarMapping* aTable) : mTable(aTable) {}
+  uint32_t operator[](size_t index) const {
+    return mTable[index].mKey;
+  }
+};
+
+} // namespace
+
 // Finds a MathVarMapping struct with the specified key (aKey) within aTable.
 // aTable must be an array, whose length is specified by aNumElements
 static uint32_t
 MathvarMappingSearch(uint32_t aKey, const MathVarMapping* aTable, uint32_t aNumElements)
 {
-  uint32_t low = 0;
-  uint32_t high = aNumElements;
-  while (high > low) {
-    uint32_t midPoint = (low+high) >> 1;
-    if (aKey == aTable[midPoint].mKey) {
-      return aTable[midPoint].mReplacement;
-    }
-    if (aKey > aTable[midPoint].mKey) {
-      low = midPoint + 1;
-    } else {
-      high = midPoint;
-    }
+  size_t index;
+  if (BinarySearch(MathVarMappingWrapper(aTable), 0, aNumElements, aKey, &index)) {
+    return aTable[index].mReplacement;
   }
+
   return 0;
 }
 
@@ -516,17 +524,20 @@ MathVariant(uint32_t aCh, uint8_t aMathVar)
 
 }
 
+#define TT_SSTY TRUETYPE_TAG('s', 's', 't', 'y')
+#define TT_DTLS TRUETYPE_TAG('d', 't', 'l', 's')
+
 void
 MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
-                                     gfxContext* aRefContext)
+                                     gfxContext* aRefContext,
+                                     gfxMissingFontRecorder* aMFR)
 {
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
-  gfxFontStyle fontStyle = *fontGroup->GetStyle();
 
   nsAutoString convertedString;
   nsAutoTArray<bool,50> charsToMergeArray;
   nsAutoTArray<bool,50> deletedCharsArray;
-  nsAutoTArray<nsStyleContext*,50> styleArray;
+  nsAutoTArray<nsRefPtr<nsTransformedCharStyle>,50> styleArray;
   nsAutoTArray<uint8_t,50> canBreakBeforeArray;
   bool mergeNeeded = false;
 
@@ -535,68 +546,105 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
 
   uint32_t length = aTextRun->GetLength();
   const char16_t* str = aTextRun->mString.BeginReading();
-  nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
+  const nsTArray<nsRefPtr<nsTransformedCharStyle>>& styles = aTextRun->mStyles;
+  nsFont font;
+  if (length) {
+    font = styles[0]->mFont;
 
-  if (mSSTYScriptLevel && length) {
-    bool found = false;
-    // We respect ssty settings explicitly set by the user
-    for (uint32_t i = 0; i < fontStyle.featureSettings.Length(); i++) {
-      if (fontStyle.featureSettings[i].mTag == TRUETYPE_TAG('s','s','t','y')) {
-        found = true;
-        break;
+    if (mSSTYScriptLevel || (mFlags & MATH_FONT_FEATURE_DTLS)) {
+      bool foundSSTY = false;
+      bool foundDTLS = false;
+      // We respect ssty settings explicitly set by the user
+      for (uint32_t i = 0; i < font.fontFeatureSettings.Length(); i++) {
+        if (font.fontFeatureSettings[i].mTag == TT_SSTY) {
+          foundSSTY = true;
+        } else if (font.fontFeatureSettings[i].mTag == TT_DTLS) {
+          foundDTLS = true;
+        }
       }
-    }
-    if (!found) {
-      uint8_t sstyLevel = 0;
-      float scriptScaling = pow(styles[0]->StyleFont()->mScriptSizeMultiplier,
-                                mSSTYScriptLevel);
-      static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
-                    "Shouldn't it make things smaller?");
+      if (mSSTYScriptLevel && !foundSSTY) {
+        uint8_t sstyLevel = 0;
+        float scriptScaling = pow(styles[0]->mScriptSizeMultiplier,
+                                  mSSTYScriptLevel);
+        static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
+                      "Shouldn't it make things smaller?");
+        /*
+          An SSTY level of 2 is set if the scaling factor is less than or equal
+          to halfway between that for a scriptlevel of 1 (0.71) and that of a
+          scriptlevel of 2 (0.71^2), assuming the default script size multiplier.
+          An SSTY level of 1 is set if the script scaling factor is less than
+          or equal that for a scriptlevel of 1 assuming the default script size
+          multiplier.
+
+          User specified values of script size multiplier will change the scaling
+          factor which mSSTYScriptLevel values correspond to.
+
+          In the event that the script size multiplier actually makes things
+          larger, no change is made.
+
+          To opt out of this change, add the following to the stylesheet:
+          "font-feature-settings: 'ssty' 0"
+        */
+        if (scriptScaling <= (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER +
+                              (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER *
+                               NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER))/2) {
+          // Currently only the first two ssty settings are used, so two is large
+          // as we go
+          sstyLevel = 2;
+        } else if (scriptScaling <= NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER) {
+          sstyLevel = 1;
+        }
+        if (sstyLevel) {
+          gfxFontFeature settingSSTY;
+          settingSSTY.mTag = TT_SSTY;
+          settingSSTY.mValue = sstyLevel;
+          font.fontFeatureSettings.AppendElement(settingSSTY);
+        }
+      }
       /*
-        An SSTY level of 2 is set if the scaling factor is less than or equal
-        to halfway between that for a scriptlevel of 1 (0.71) and that of a
-        scriptlevel of 2 (0.71^2), assuming the default script size multiplier.
-        An SSTY level of 1 is set if the script scaling factor is less than 
-        or equal that for a scriptlevel of 1 assuming the default script size
-        multiplier.
+        Apply the dtls font feature setting (dotless).
+        This gets applied to the base frame and all descendants of the base
+        frame of certain <mover> and <munderover> frames.
 
-        User specified values of script size multiplier will change the scaling
-        factor which mSSTYScriptLevel values correspond to.
+        See nsMathMLmunderoverFrame.cpp for a full description.
 
-        In the event that the script size multiplier actually makes things
-        larger, no change is made.
-
-        If the user doesn't want this to happen, all they need to do is set
-        style="-moz-font-feature-settings: 'ssty' 0"
+        To opt out of this change, add the following to the stylesheet:
+        "font-feature-settings: 'dtls' 0"
       */
-      if (scriptScaling <= (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER +
-                            (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER*
-                             NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER))/2) {
-        // Currently only the first two ssty settings are used, so two is large
-        // as we go
-        sstyLevel = 2;
-      } else if (scriptScaling <= NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER) {
-        sstyLevel = 1;
-      }
-      if (sstyLevel) {
-        gfxFontFeature settingSSTY;
-        settingSSTY.mTag = TRUETYPE_TAG('s','s','t','y');
-        settingSSTY.mValue = sstyLevel;
-        fontStyle.featureSettings.AppendElement(settingSSTY);
+      if ((mFlags & MATH_FONT_FEATURE_DTLS) && !foundDTLS) {
+        gfxFontFeature settingDTLS;
+        settingDTLS.mTag = TT_DTLS;
+        settingDTLS.mValue = 1;
+        font.fontFeatureSettings.AppendElement(settingDTLS);
       }
     }
   }
 
-  uint8_t mathVar;
+  uint8_t mathVar = NS_MATHML_MATHVARIANT_NONE;
   bool doMathvariantStyling = true;
 
   for (uint32_t i = 0; i < length; ++i) {
     int extraChars = 0;
-    nsStyleContext* styleContext = styles[i];
-    mathVar = styleContext->StyleFont()->mMathVariant;
+    mathVar = styles[i]->mMathVariant;
 
     if (singleCharMI && mathVar == NS_MATHML_MATHVARIANT_NONE) {
-      mathVar = NS_MATHML_MATHVARIANT_ITALIC;
+      // If the user has explicitly set a non-default value for fontstyle or
+      // fontweight, the italic mathvariant behaviour of <mi> is disabled
+      // This overrides the initial values specified in fontStyle, to avoid
+      // inconsistencies in which attributes allow CSS changes and which do not.
+      if (mFlags & MATH_FONT_WEIGHT_BOLD) {
+        font.weight = NS_FONT_WEIGHT_BOLD;
+        if (mFlags & MATH_FONT_STYLING_NORMAL) {
+          font.style = NS_FONT_STYLE_NORMAL;
+        } else {
+          font.style = NS_FONT_STYLE_ITALIC;
+        }
+      } else if (mFlags & MATH_FONT_STYLING_NORMAL) {
+        font.style = NS_FONT_STYLE_NORMAL;
+        font.weight = NS_FONT_WEIGHT_NORMAL;
+      } else {
+        mathVar = NS_MATHML_MATHVARIANT_ITALIC;
+      }
     }
 
     uint32_t ch = str[i];
@@ -621,7 +669,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         // character is actually available.
         uint8_t matchType;
         nsRefPtr<gfxFont> mathFont = fontGroup->
-          FindFontForChar(ch2, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
+          FindFontForChar(ch2, 0, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
         if (mathFont) {
           // Don't apply the CSS style if there is a math font for at least one
           // of the transformed character in this text run.
@@ -629,13 +677,16 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         } else {
           // We fallback to the original character.
           ch2 = ch;
+          if (aMFR) {
+            aMFR->RecordScript(MOZ_SCRIPT_MATHEMATICAL_NOTATION);
+          }
         }
       }
     }
 
     deletedCharsArray.AppendElement(false);
     charsToMergeArray.AppendElement(false);
-    styleArray.AppendElement(styleContext);
+    styleArray.AppendElement(styles[i]);
     canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
 
     if (IS_IN_BMP(ch2)) {
@@ -654,7 +705,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     while (extraChars-- > 0) {
       mergeNeeded = true;
       charsToMergeArray.AppendElement(true);
-      styleArray.AppendElement(styleContext);
+      styleArray.AppendElement(styles[i]);
       canBreakBeforeArray.AppendElement(false);
     }
   }
@@ -668,36 +719,56 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   gfxTextRun* child;
 
   if (mathVar == NS_MATHML_MATHVARIANT_BOLD && doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_NORMAL;
-    fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+    font.style = NS_FONT_STYLE_NORMAL;
+    font.weight = NS_FONT_WEIGHT_BOLD;
   } else if (mathVar == NS_MATHML_MATHVARIANT_ITALIC && doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_ITALIC;
-    fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    font.style = NS_FONT_STYLE_ITALIC;
+    font.weight = NS_FONT_WEIGHT_NORMAL;
   } else if (mathVar == NS_MATHML_MATHVARIANT_BOLD_ITALIC &&
              doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_ITALIC;
-    fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+    font.style = NS_FONT_STYLE_ITALIC;
+    font.weight = NS_FONT_WEIGHT_BOLD;
   } else if (mathVar != NS_MATHML_MATHVARIANT_NONE) {
     // Mathvariant overrides fontstyle and fontweight
     // Need to check to see if mathvariant is actually applied as this function
     // is used for other purposes.
-    fontStyle.style = NS_FONT_STYLE_NORMAL;
-    fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    font.style = NS_FONT_STYLE_NORMAL;
+    font.weight = NS_FONT_WEIGHT_NORMAL;
   }
-  nsRefPtr<gfxFontGroup> newFontGroup = fontGroup->Copy(&fontStyle);
+  gfxFontGroup* newFontGroup = nullptr;
 
-  if (!newFontGroup)
-    return;
+  // Get the correct gfxFontGroup that corresponds to the earlier font changes.
+  if (length) {
+    font.size = NSToCoordRound(font.size * mFontInflation);
+    nsPresContext* pc = styles[0]->mPresContext;
+    nsRefPtr<nsFontMetrics> metrics;
+    pc->DeviceContext()->GetMetricsFor(font,
+                                       styles[0]->mLanguage,
+                                       styles[0]->mExplicitLanguage,
+                                       gfxFont::eHorizontal,
+                                       pc->GetUserFontSet(),
+                                       pc->GetTextPerfMetrics(),
+                                       *getter_AddRefs(metrics));
+    if (metrics) {
+      newFontGroup = metrics->GetThebesFontGroup();
+    }
+  }
+
+  if (!newFontGroup) {
+    // If we can't get a new font group, fall back to the old one.  Rendering
+    // will be incorrect, but not significantly so.
+    newFontGroup = fontGroup;
+  }
 
   if (mInnerTransformingTextRunFactory) {
     transformedChild = mInnerTransformingTextRunFactory->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
-        &innerParams, newFontGroup, flags, styleArray.Elements(), false);
+        &innerParams, newFontGroup, flags, Move(styleArray), false);
     child = transformedChild.get();
   } else {
     cachedChild = newFontGroup->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
-        &innerParams, flags);
+        &innerParams, flags, aMFR);
     child = cachedChild.get();
   }
   if (!child)
@@ -709,7 +780,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   child->SetPotentialLineBreaks(0, canBreakBeforeArray.Length(),
       canBreakBeforeArray.Elements(), aRefContext);
   if (transformedChild) {
-    transformedChild->FinishSettingProperties(aRefContext);
+    transformedChild->FinishSettingProperties(aRefContext, aMFR);
   }
 
   if (mergeNeeded) {

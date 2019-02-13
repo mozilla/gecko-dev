@@ -45,7 +45,6 @@
 #include "base/logging.h"
 #include "base/cpu.h"
 #include "base/singleton.h"
-#include "base/system_monitor.h"
 #include "mozilla/Casting.h"
 
 using base::Time;
@@ -128,7 +127,7 @@ Time Time::Now() {
       continue;
     }
 
-    return Time(elapsed + initial_time);
+    return Time(elapsed + Time(initial_time));
   }
 }
 
@@ -325,7 +324,7 @@ class HighResNowSingleton {
  private:
   // Synchronize the QPC clock with GetSystemTimeAsFileTime.
   void InitializeClock() {
-    LARGE_INTEGER ticks_per_sec = {0};
+    LARGE_INTEGER ticks_per_sec = {{0}};
     if (!QueryPerformanceFrequency(&ticks_per_sec))
       return;  // Broken, we don't guarantee this function works.
     ticks_per_microsecond_ = static_cast<float>(ticks_per_sec.QuadPart) /

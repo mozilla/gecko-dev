@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<!--
+Test @autocomplete on <input>
+-->
+<head>
+  <title>Test for &lt;input autocomplete='…'&gt;</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+<script>
+"use strict";
+
+var values = [
+  // @autocomplete content attribute, expected IDL attribute value
+
+  // Missing or empty attribute
+  [undefined, ""],
+  ["", ""],
+
+  // One token
+  ["on", "on"],
+  ["On", "on"],
+  ["off", "off"],
+  ["OFF", "off"],
+  ["username", "username"],
+  [" username ", "username"],
+  ["foobar", ""],
+
+  // Two tokens
+  ["on off", ""],
+  ["off on", ""],
+  ["username tel", ""],
+  ["tel username ", ""],
+  [" username tel ", ""],
+  ["tel mobile", ""],
+  ["tel shipping", ""],
+  ["shipping tel", "shipping tel"],
+  ["shipPING tel", "shipping tel"],
+  ["mobile tel", "mobile tel"],
+  ["  MoBiLe  TeL  ", "mobile tel"],
+  ["XXX tel", ""],
+  ["XXX username", ""],
+
+  // Three tokens
+  ["billing invalid tel", ""],
+  ["___ mobile tel", ""],
+  ["mobile foo tel", ""],
+  ["mobile tel foo", ""],
+  ["tel mobile billing", ""],
+  ["billing mobile tel", "billing mobile tel"],
+  ["  BILLing   MoBiLE   tEl  ", "billing mobile tel"],
+  ["billing home tel", "billing home tel"],
+
+  // Four tokens (invalid)
+  ["billing billing mobile tel", ""],
+
+  // Five tokens (invalid)
+  ["billing billing billing mobile tel", ""],
+];
+
+var types = [undefined, "hidden", "text", "search"]; // Valid types for all non-multiline hints.
+
+function checkAutocompleteValues(field, type) {
+  for (var test of values) {
+    if (typeof(test[0]) === "undefined")
+      field.removeAttribute("autocomplete");
+    else
+      field.setAttribute("autocomplete", test[0]);
+    is(field.autocomplete, test[1], "Checking @autocomplete for @type=" + type + " of: " + test[0]);
+    is(field.autocomplete, test[1], "Checking cached @autocomplete for @type=" + type + " of: " + test[0]);
+  }
+}
+
+function start() {
+  var inputField = document.getElementById("input-field");
+  for (var type of types) {
+    // Switch the input type
+    if (typeof(type) === "undefined")
+      inputField.removeAttribute("type");
+    else
+      inputField.type = type;
+    checkAutocompleteValues(inputField, type || "");
+  }
+
+  var selectField = document.getElementById("select-field");
+  checkAutocompleteValues(selectField, "select");
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+SpecialPowers.pushPrefEnv({"set": [["dom.forms.autocomplete.experimental", true]]}, start);
+</script>
+</head>
+
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+  <form>
+    <input id="input-field" />
+    <select id="select-field" />
+  </form>
+</div>
+<pre id="test">
+</pre>
+</body>
+</html>

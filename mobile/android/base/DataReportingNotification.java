@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 
 import android.app.Notification;
@@ -15,7 +16,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -44,7 +44,7 @@ public class DataReportingNotification {
             if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
                 SharedPreferences.Editor editor = dataPrefs.edit();
                 editor.putBoolean(GeckoPreferences.PREFS_HEALTHREPORT_UPLOAD_ENABLED, true);
-                editor.commit();
+                editor.apply();
             }
             return;
         }
@@ -57,7 +57,7 @@ public class DataReportingNotification {
                 // Silently update the version.
                 SharedPreferences.Editor editor = dataPrefs.edit();
                 editor.putInt(PREFS_POLICY_VERSION, DATA_REPORTING_VERSION);
-                editor.commit();
+                editor.apply();
             }
             return;
         }
@@ -76,7 +76,7 @@ public class DataReportingNotification {
         try {
             // Launch main App to launch Data choices when notification is clicked.
             Intent prefIntent = new Intent(GeckoApp.ACTION_LAUNCH_SETTINGS);
-            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
+            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
 
             GeckoPreferences.setResourceToOpen(prefIntent, "preferences_vendor");
             prefIntent.putExtra(ALERT_NAME_DATAREPORTING_NOTIFICATION, true);
@@ -87,7 +87,7 @@ public class DataReportingNotification {
             // Create and send notification.
             String notificationTitle = resources.getString(R.string.datareporting_notification_title);
             String notificationSummary;
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+            if (Versions.preJB) {
                 notificationSummary = resources.getString(R.string.datareporting_notification_action);
             } else {
                 // Display partial version of Big Style notification for supporting devices.
@@ -123,7 +123,7 @@ public class DataReportingNotification {
             long now = System.currentTimeMillis();
             editor.putLong(PREFS_POLICY_NOTIFIED_TIME, now);
             editor.putInt(PREFS_POLICY_VERSION, DATA_REPORTING_VERSION);
-            editor.commit();
+            editor.apply();
             result = true;
         } finally {
             // We want to track any errors, so record notification outcome.

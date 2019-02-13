@@ -106,9 +106,31 @@ browser.startup.homepage = http://github.com/
             # cleanup
             os.remove(name)
 
+    def test_ini_keep_case(self):
+        """
+        Read a preferences config file with a preference in camel-case style.
+        Check that the read preference name has not been lower-cased
+        """
+        # write the .ini file
+        _ini = """[DEFAULT]
+general.warnOnAboutConfig = False
+"""
+        try:
+            fd, name = tempfile.mkstemp(suffix='.ini')
+            os.write(fd, _ini)
+            os.close(fd)
+            commandline = ["--preferences", name]
+
+             # test the [DEFAULT] section
+            _prefs = {'general.warnOnAboutConfig': 'False'}
+            self.compare_generated(_prefs, commandline)
+
+        finally:
+            # cleanup
+            os.remove(name)
+
     def test_reset_should_remove_added_prefs(self):
         """Check that when we call reset the items we expect are updated"""
-
         profile = Profile()
         prefs_file = os.path.join(profile.profile, 'user.js')
 
@@ -123,15 +145,37 @@ browser.startup.homepage = http://github.com/
         profile.set_preferences(prefs1)
         self.assertEqual(prefs1, Preferences.read_prefs(prefs_file))
         lines = file(prefs_file).read().strip().splitlines()
-        self.assertTrue(bool([line for line in lines
-                              if line.startswith('#MozRunner Prefs Start')]))
-        self.assertTrue(bool([line for line in lines
-                              if line.startswith('#MozRunner Prefs End')]))
+        self.assertTrue(any(line.startswith('#MozRunner Prefs Start') for line in lines))
+        self.assertTrue(any(line.startswith('#MozRunner Prefs End') for line in lines))
 
         profile.reset()
         self.assertNotEqual(prefs1,
                             Preferences.read_prefs(os.path.join(profile.profile, 'user.js')),
                             "I pity the fool who left my pref")
+
+    def test_reset_should_keep_user_added_prefs(self):
+        """Check that when we call reset the items we expect are updated"""
+        profile = Profile()
+        prefs_file = os.path.join(profile.profile, 'user.js')
+
+        # we shouldn't have any initial preferences
+        initial_prefs = Preferences.read_prefs(prefs_file)
+        self.assertFalse(initial_prefs)
+        initial_prefs = file(prefs_file).read().strip()
+        self.assertFalse(initial_prefs)
+
+        # add some preferences
+        prefs1 = [("mr.t.quotes", "i aint getting on no plane!")]
+        profile.set_persistent_preferences(prefs1)
+        self.assertEqual(prefs1, Preferences.read_prefs(prefs_file))
+        lines = file(prefs_file).read().strip().splitlines()
+        self.assertTrue(any(line.startswith('#MozRunner Prefs Start') for line in lines))
+        self.assertTrue(any(line.startswith('#MozRunner Prefs End') for line in lines))
+
+        profile.reset()
+        self.assertEqual(prefs1,
+                         Preferences.read_prefs(os.path.join(profile.profile, 'user.js')),
+                         "I pity the fool who left my pref")
 
     def test_magic_markers(self):
         """ensure our magic markers are working"""
@@ -220,12 +264,12 @@ user_pref("webgl.force-enabled", true);
         json = '{"browser.startup.homepage": "http://planet.mozilla.org/"}'
 
         # just repr it...could use the json module but we don't need it here
-        fd, name = tempfile.mkstemp(suffix='.json')
-        os.write(fd, json)
-        os.close(fd)
+        with mozfile.NamedTemporaryFile(suffix='.json') as f:
+            f.write(json)
+            f.flush()
 
-        commandline = ["--preferences", name]
-        self.compare_generated(_prefs, commandline)
+            commandline = ["--preferences", f.name]
+            self.compare_generated(_prefs, commandline)
 
     def test_prefs_write(self):
         """test that the Preferences.write() method correctly serializes preferences"""

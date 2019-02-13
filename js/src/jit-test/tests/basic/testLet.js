@@ -20,7 +20,7 @@ function test(str, arg, result)
 
     // test xdr by cloning a cross-compartment function
     var code = "(function (x) { " + str + " })";
-    var c = clone(otherGlobal.evaluate(code, {compileAndGo: false}));
+    var c = clone(otherGlobal.evaluate(code));
     assertEq(c.toSource(), eval(code).toSource());
 
     var got = fun(arg);
@@ -32,74 +32,77 @@ function test(str, arg, result)
     }
 }
 
-function isError(str)
+function isParseError(str)
 {
     var caught = false;
     try {
         new Function(str);
     } catch(e) {
-        assertEq(String(e).indexOf('TypeError') == 0 || String(e).indexOf('SyntaxError') == 0, true);
+        assertEq(e instanceof TypeError || e instanceof SyntaxError, true);
+        caught = true;
+    }
+    assertEq(caught, true);
+}
+
+function isReferenceError(str)
+{
+    var caught = false;
+    try {
+        (new Function(str))();
+    } catch(e) {
+        assertEq(e instanceof ReferenceError, true);
         caught = true;
     }
     assertEq(caught, true);
 }
 
 // let expr
-test('return let (y) x;');
-test('return let (x) "" + x;', 'unicorns', 'undefined');
-test('return let (y = x) (y++, "" + y);', 'unicorns', 'NaN');
-test('return let (y = 1) (y = x, y);');
-test('return let ([] = x) x;');
-test('return let (x = {a: x}) x.a;');
-test('return let ({a: x} = {a: x}) x;');
-test('return let ([x] = {0: x}) x;');
-test('return let ({0: x} = [x]) x;');
-test('return let ({0: []} = []) x;');
-test('return let ([, ] = x) x;');
-test('return let ([, , , , ] = x) x;');
-test('return let ([[]] = x) x;');
-test('return let ([[[[[[[[[[[[[]]]]]]]]]]]]] = x) x;');
-test('return let ([[], []] = x) x;');
-test('return let ([[[[]]], [], , [], [[]]] = x) x;');
-test('return let ({x: []} = x) x;');
-test('return let ({x: [], y: {x: []}} = x) "ponies";', {y:{}});
-test('return let ({x: []} = x, [{x: []}] = x) "ponies";');
-test('return let (x = x) x;');
-test('return let (x = eval("x")) x;');
-test('return let (x = (let (x = x + 1) x) + 1) x;', 1, 3);
-test('return let (x = (let (x = eval("x") + 1) eval("x")) + 1) eval("x");', 1, 3);
-test('return let (x = x + 1, y = x) y;');
-test('return let (x = x + 1, [] = x, [[, , ]] = x, y = x) y;');
-test('return let ([{a: x}] = x, [, {b: y}] = x) let (x = x + 1, y = y + 2) x + y;', [{a:"p"},{b:"p"}], "p1p2");
-test('return let ([] = []) x;');
-test('return let ([] = [x]) x;');
-test('return let ([a] = (1, [x])) a;');
-test('return let ([a] = (1, x, 1, x)) a;', ['ponies']);
-test('return let ([x] = [x]) x;');
-test('return let ([[a, [b, c]]] = [[x, []]]) a;');
-test('return let ([x, y] = [x, x + 1]) x + y;', 1, 3);
-test('return let ([x, y, z] = [x, x + 1, x + 2]) x + y + z;', 1, 6);
-test('return let ([[x]] = [[x]]) x;');
-test('return let ([x, y] = [x, x + 1]) x;');
-test('return let ([x, [y, z]] = [x, x + 1]) x;');
-test('return let ([{x: [x]}, {y1: y, z1: z}] = [x, x + 1]) x;',{x:['ponies']});
-test('return let (x = (3, x)) x;');
-test('return let (x = x + "s") x;', 'ponie');
-test('return let ([x] = (3, [x])) x;');
-test('return let ([] = [[]] = {}) x;');
-test('return let (y = x) function () {return eval("y");}();');
-test('return eval("let (y = x) y");');
-test('return let (y = x) (eval("var y = 2"), y);', 'ponies', 2);
-test('"use strict";return let (y = x) (eval("var y = 2"), y);');
-test('this.y = x;return let (y = 1) this.eval("y");');
-test('try {let (x = x) eval("throw x");} catch (e) {return e;}');
-test('try {return let (x = eval("throw x")) x;} catch (e) {return e;}');
-isError('let (x = 1, x = 2) x');
-isError('let ([x, y] = a, {a:x} = b) x');
-isError('let ([x, y, x] = a) x');
-isError('let ([x, [y, [x]]] = a) x');
-isError('let (x = function() { return x}) x()return x;');
-isError('(let (x = function() { return x}) x())return x;');
+isParseError('return let (y) x;');
+isParseError('return let (x) "" + x;', 'unicorns', 'undefined');
+isParseError('return let (y = x) (y++, "" + y);', 'unicorns', 'NaN');
+isParseError('return let (y = 1) (y = x, y);');
+isParseError('return let ([] = x) x;');
+isParseError('return let (x = {a: x}) x.a;');
+isParseError('return let ({a: x} = {a: x}) x;');
+isParseError('return let ([x] = [x]) x;');
+isParseError('return let ({0: x} = [x]) x;');
+isParseError('return let ({0: []} = [[]]) x;');
+isParseError('return let ([, ] = x) x;');
+isParseError('return let ([, , , , ] = x) x;');
+isParseError('return let (x = x) x;');
+isParseError('return let (x = eval("x")) x;');
+isParseError('return let (x = (let (x = x + 1) x) + 1) x;', 1, 3);
+isParseError('return let (x = (let (x = eval("x") + 1) eval("x")) + 1) eval("x");', 1, 3);
+isParseError('return let (x = x + 1, y = x) y;');
+isParseError('return let (x = x + 1, [] = x, /*[[, , ]] = x, */y = x) y;');
+isParseError('return let ([{a: x}] = x, [, {b: y}] = x) let (x = x + 1, y = y + 2) x + y;', [{a:"p"},{b:"p"}], "p1p2");
+isParseError('return let ([] = []) x;');
+isParseError('return let ([] = [x]) x;');
+isParseError('return let ([a] = (1, [x])) a;');
+isParseError('return let ([a] = (1, x, 1, x)) a;', ['ponies']);
+isParseError('return let ([x] = [x]) x;');
+isParseError('return let ([[a, [b, c]]] = [[x, []]]) a;');
+isParseError('return let ([x, y] = [x, x + 1]) x + y;', 1, 3);
+isParseError('return let ([x, y, z] = [x, x + 1, x + 2]) x + y + z;', 1, 6);
+isParseError('return let ([[x]] = [[x]]) x;');
+isParseError('return let ([x, y] = [x, x + 1]) x;');
+isParseError('return let ([x, [y, z]] = [x, x + 1]) x;');
+isParseError('return let ([{x: [x]}, {y1: y, z1: z}] = [x, x + 1]) x;',{x:['ponies']});
+isParseError('return let (x = (3, x)) x;');
+isParseError('return let (x = x + "s") x;', 'ponie');
+isParseError('return let ([x] = (3, [x])) x;');
+isParseError('return let (y = x) function () {return eval("y");}();');
+isParseError('return let (y = x) (eval("var y = 2"), y);', 'ponies', 2);
+isParseError('"use strict";return let (y = x) (eval("var y = 2"), y);');
+isParseError('this.y = x;return let (y = 1) this.eval("y");');
+isParseError('try {let (x = x) eval("throw x");} catch (e) {return e;}');
+isParseError('try {return let (x = eval("throw x")) x;} catch (e) {return e;}');
+isParseError('let (x = 1, x = 2) x');
+isParseError('let ([x, y] = a, {a:x} = b) x');
+isParseError('let ([x, y, x] = a) x');
+isParseError('let ([x, [y, [x]]] = a) x');
+isParseError('let (x = function() { return x}) x()return x;');
+isParseError('(let (x = function() { return x}) x())return x;');
 
 // let block
 test('let (y) {return x;}');
@@ -110,22 +113,15 @@ test('let ([] = x) {return x;}');
 test('let (x) {}return x;');
 test('let (x = {a: x}) {return x.a;}');
 test('let ({a: x} = {a: x}) {return x;}');
-test('let ([x] = {0: x}) {return x;}');
+test('let ([x] = [x]) {return x;}');
 test('let ({0: x} = [x]) {return x;}');
-test('let ({0: []} = []) {return x;}');
+test('let ({0: []} = [[]]) {return x;}');
 test('let ([, ] = x) {return x;}');
 test('let ([, , , , ] = x) {return x;}');
-test('let ([[]] = x) {return x;}');
-test('let ([[[[[[[[[[[[[]]]]]]]]]]]]] = x) {return x;}');
-test('let ([[], []] = x) {return x;}');
-test('let ([[[[]]], [], , [], [[]]] = x) {return x;}');
-test('let ({x: []} = x) {return x;}');
-test('let ({x: [], y: {x: []}} = x) {return "ponies";}', {y:{}});
-test('let ({x: []} = x, [{x: []}] = x) {return "ponies";}');
 test('let (x = x) {return x;}');
 test('let (x = eval("x")) {return x;}');
-test('let (x = (let (x = x + 1) x) + 1) {return x;}', 1, 3);
-test('let (x = (let (x = eval("x") + 1) eval("x")) + 1) {return eval("x");}', 1, 3);
+isParseError('let (x = (let (x = x + 1) x) + 1) {return x;}', 1, 3);
+isParseError('let (x = (let (x = eval("x") + 1) eval("x")) + 1) {return eval("x");}', 1, 3);
 test('let (x = x + 1, y = x) {return y;}');
 test('let (x = x + 1, [] = x, [[, , ]] = x, y = x) {return y;}');
 test('let ([{a: x}] = x, [, {b: y}] = x) {let (x = x + 1, y = y + 2) {return x + y;}}', [{a:"p"},{b:"p"}], "p1p2");
@@ -142,17 +138,16 @@ test('let ([x, y] = [x, x + 1]) {return x;}');
 test('let ([x, [y, z]] = [x, x + 1]) {return x;}');
 test('let ([{x: [x]}, {y1: y, z1: z}] = [x, x + 1]) {return x;}',{x:['ponies']});
 test('let (y = x[1]) {let (x = x[0]) {try {let (y = "unicorns") {throw y;}} catch (e) {return x + y;}}}', ['pon','ies']);
-test('let (x = x) {try {let (x = "unicorns") eval("throw x");} catch (e) {return x;}}');
-test('let ([] = [[]] = {}) {return x;}');
+isParseError('let (x = x) {try {let (x = "unicorns") eval("throw x");} catch (e) {return x;}}');
 test('let (y = x) {return function () {return eval("y");}();}');
 test('return eval("let (y = x) {y;}");');
 test('let (y = x) {eval("var y = 2");return y;}', 'ponies', 2);
 test('"use strict";let (y = x) {eval("var y = 2");return y;}');
 test('this.y = x;let (y = 1) {return this.eval("y");}');
-isError('let (x = 1, x = 2) {x}');
-isError('let ([x, y] = a, {a:x} = b) {x}');
-isError('let ([x, y, x] = a) {x}');
-isError('let ([x, [y, [x]]] = a) {x}');
+isParseError('let (x = 1, x = 2) {x}');
+isParseError('let ([x, y] = a, {a:x} = b) {x}');
+isParseError('let ([x, y, x] = a) {x}');
+isParseError('let ([x, [y, [x]]] = a) {x}');
 
 // var declarations
 test('var y;return x;');
@@ -160,18 +155,11 @@ test('var y = x;return x;');
 test('var [] = x;return x;');
 test('var [, ] = x;return x;');
 test('var [, , , , ] = x;return x;');
-test('var [[]] = x;return x;');
-test('var [[[[[[[[[[[[[]]]]]]]]]]]]] = x;return x;');
-test('var [[], []] = x;return x;');
-test('var [[[[]]], [], , [], [[]]] = x;return x;');
-test('var {x: []} = x;return x;');
-test('var {x: [], y: {x: []}} = x;return "ponies";', {y:{}});
-test('var {x: []} = x, [{x: []}] = x;return "ponies";');
 test('var x = x;return x;');
 test('var y = y;return "" + y;', 'unicorns', 'undefined');
 test('var x = eval("x");return x;');
-test('var x = (let (x = x + 1) x) + 1;return x;', 1, 3);
-test('var x = (let (x = eval("x") + 1) eval("x")) + 1;return eval("x");', 1, 3);
+isParseError('var x = (let (x = x + 1) x) + 1;return x;', 1, 3);
+isParseError('var x = (let (x = eval("x") + 1) eval("x")) + 1;return eval("x");', 1, 3);
 test('var X = x + 1, y = x;return y;');
 test('var X = x + 1, [] = X, [[, , ]] = X, y = x;return y;');
 test('var [{a: X}] = x, [, {b: y}] = x;var X = X + 1, y = y + 2;return X + y;', [{a:"p"},{b:"p"}], "p1p2");
@@ -186,7 +174,6 @@ test('var [[x]] = [[x]];return x;');
 test('var [x, y] = [x, x + 1];return x;');
 test('var [x, [y, z]] = [x, x + 1];return x;');
 test('var [{x: [x]}, {y1: y, z1: z}] = [x, x + 1];return x;',{x:['ponies']});
-test('var [] = [[]] = {};return x;');
 test('if (x) {var y = x;return x;}');
 test('if (x) {y = x;var y = y;return y;}');
 test('if (x) {var z = y;var [y] = x;z += y;}return z;', ['-'], 'undefined-');
@@ -195,24 +182,12 @@ test('if (x) {var z = y;var [y] = x;z += y;}return z;', ['-'], 'undefined-');
 test('if (x) {let y;return x;}');
 test('if (x) {let x;return "" + x;}', 'unicorns', 'undefined');
 test('if (x) {let y = x;return x;}');
-test('if (x) {y = x;let y = y;return y;}');
-test('if (x) {var z = y;let [y] = x;z += y;}return z;', ['-'], 'undefined-');
 test('if (x) {let y = x;return x;}');
 test('if (x) {let [] = x;return x;}');
 test('if (x) {let [, ] = x;return x;}');
 test('if (x) {let [, , , , ] = x;return x;}');
-test('if (x) {let [[]] = x;return x;}');
-test('if (x) {let [[[[[[[[[[[[[]]]]]]]]]]]]] = x;return x;}');
-test('if (x) {let [[], []] = x;return x;}');
-test('if (x) {let [[[[]]], [], , [], [[]]] = x;return x;}');
-test('if (x) {let {x: []} = x;return x;}');
-test('if (x) {let {x: [], y: {x: []}} = x;return "ponies";}', {y:{}});
-test('if (x) {let {x: []} = x, [{x: []}] = x;return "ponies";}');
-test('if (x) {let x = x;return "" + x;}', 'unicorns', 'undefined');
-test('if (x) {let y = y;return "" + y;}', 'unicorns', 'undefined');
-test('if (x) {let x = eval("x");return "" + x;}', 'unicorns', 'undefined');
-test('if (x) {let y = (let (x = x + 1) x) + 1;return y;}', 1, 3);
-test('if (x) {let y = (let (x = eval("x") + 1) eval("x")) + 1;return eval("y");}', 1, 3);
+isParseError('if (x) {let y = (let (x = x + 1) x) + 1;return y;}', 1, 3);
+isParseError('if (x) {let y = (let (x = eval("x") + 1) eval("x")) + 1;return eval("y");}', 1, 3);
 test('if (x) {let X = x + 1, y = x;return y;}');
 test('if (x) {let X = x + 1, [] = X, [[, , ]] = X, y = x;return y;}');
 test('if (x) {let [{a: X}] = x, [, {b: Y}] = x;var XX = X + 1, YY = Y + 2;return XX + YY;}', [{a:"p"},{b:"p"}], "p1p2");
@@ -228,7 +203,6 @@ test('if (x) {let [X, y] = [x, x + 1];return X;}');
 test('if (x) {let [X, [y, z]] = [x, x + 1];return X;}');
 test('if (x) {let [{x: [X]}, {y1: y, z1: z}] = [x, x + 1];return X;}',{x:['ponies']});
 test('if (x) {let y = x;try {let x = 1;throw 2;} catch (e) {return y;}}');
-test('if (x) {let [] = [[]] = {};return x;}');
 test('let (y, [] = x) {}try {let a = b(), b;} catch (e) {return x;}');
 test('try {let x = 1;throw 2;} catch (e) {return x;}');
 test('let (y = x) {let x;return y;}');
@@ -246,21 +220,19 @@ test('"use strict";if (x) {let y = x;eval("var y = 2");return y;}');
 test('"use strict";if (x) {let y = x;eval("let y = 2");return y;}');
 test('"use strict";if (x) {let y = 1;return eval("let y = x;y;");}');
 test('this.y = x;if (x) {let y = 1;return this.eval("y");}');
-isError('if (x) {let (x = 1, x = 2) {x}}');
-isError('if (x) {let ([x, y] = a, {a:x} = b) {x}}');
-isError('if (x) {let ([x, y, x] = a) {x}}');
-isError('if (x) {let ([x, [y, [x]]] = a) {x}}');
-isError('let ([x, y] = x) {let x;}');
+isParseError('if (x) {let (x = 1, x = 2) {x}}');
+isParseError('if (x) {let ([x, y] = a, {a:x} = b) {x}}');
+isParseError('if (x) {let ([x, y, x] = a) {x}}');
+isParseError('if (x) {let ([x, [y, [x]]] = a) {x}}');
+isParseError('let ([x, y] = x) {let x;}');
 
 // for(;;)
 test('for (;;) {return x;}');
 test('for (let y = 1;;) {return x;}');
 test('for (let y = 1;; ++y) {return x;}');
 test('for (let y = 1; ++y;) {return x;}');
-test('for (let (x = 1) x; x != 1; ++x) {return x;}');
-test('for (let [, {a: [], b: []}] = x, [] = x; x;) {return x;}');
-test('for (let x = 1, [y, z] = x, a = x; z < 4; ++z) {return x + y;}', [2,3], 3);
-test('for (let (x = 1, [{a: b, c: d}] = [{a: 1, c: 2}]) x; x != 1; ++x) {return x;}');
+isParseError('for (let (x = 1) x; x != 1; ++x) {return x;}');
+isParseError('for (let (x = 1, [{a: b, c: d}] = [{a: 1, c: 2}]) x; x != 1; ++x) {return x;}');
 test('for (let [[a, [b, c]]] = [[x, []]];;) {return a;}');
 test('var sum = 0;for (let y = x; y < 4; ++y) {sum += y;}return sum;', 1, 6);
 test('var sum = 0;for (let x = x, y = 10; x < 4; ++x) {sum += x;}return sum;', 1, 6);
@@ -271,7 +243,6 @@ test('var sum = 0;for (let x = eval("x"); eval("x") < 4; ++x) {sum += eval("x");
 test('for (var y = 1;;) {return x;}');
 test('for (var y = 1;; ++y) {return x;}');
 test('for (var y = 1; ++y;) {return x;}');
-test('for (var [, {a: [], b: []}] = x, [] = x; x;) {return x;}');
 test('for (var X = 1, [y, z] = x, a = x; z < 4; ++z) {return X + y;}', [2,3], 3);
 test('var sum = 0;for (var y = x; y < 4; ++y) {sum += y;}return sum;', 1, 6);
 test('var sum = 0;for (var X = x, y = 10; X < 4; ++X) {sum += X;}return sum;', 1, 6);
@@ -286,13 +257,12 @@ test('for (let y = x;;) {let y;return x;}');
 test('for (let y;;) {let y;return x;}');
 test('for (let a = x;;) {let c = x, d = x;return c;}');
 test('for (let [a, b] = x;;) {let c = x, d = x;return c;}');
-test('for (let [] = [[]] = {};;) {return x;}');
 test('for (let [a] = (1, [x]);;) {return a;}');
 test('for (let [a] = (1, x, 1, x);;) {return a;}', ['ponies']);
-isError('for (let x = 1, x = 2;;) {}');
-isError('for (let [x, y] = a, {a:x} = b;;) {}');
-isError('for (let [x, y, x] = a;;) {}');
-isError('for (let [x, [y, [x]]] = a;;) {}');
+isParseError('for (let x = 1, x = 2;;) {}');
+isParseError('for (let [x, y] = a, {a:x} = b;;) {}');
+isParseError('for (let [x, y, x] = a;;) {}');
+isParseError('for (let [x, [y, [x]]] = a;;) {}');
 
 // for(in)
 test('for (let i in x) {return x;}');
@@ -309,7 +279,7 @@ test('for each (let {x: y, y: x} in [{x: x, y: x}]) {return y;}');
 test('for (let x in eval("x")) {return x;}', {ponies:true});
 test('for (let x in x) {return eval("x");}', {ponies:true});
 test('for (let x in eval("x")) {return eval("x");}', {ponies:true});
-test('for ((let (x = {y: true}) x).y in eval("x")) {return eval("x");}');
+isParseError('for ((let (x = {y: true}) x).y in eval("x")) {return eval("x");}');
 test('for (let i in x) {break;}return x;');
 test('for (let i in x) {break;}return eval("x");');
 test('for (let x in x) {break;}return x;');
@@ -319,9 +289,9 @@ test('a:for (let i in x) {for (let j in x) {break a;}}return eval("x");');
 test('var j;for (let i in x) {j = i;break;}return j;', {ponies:true});
 test('try {for (let x in eval("throw x")) {}} catch (e) {return e;}');
 test('try {for each (let x in x) {eval("throw x");}} catch (e) {return e;}', ['ponies']);
-isError('for (let [x, x] in o) {}');
-isError('for (let [x, y, x] in o) {}');
-isError('for (let [x, [y, [x]]] in o) {}');
+isParseError('for (let [x, x] in o) {}');
+isParseError('for (let [x, y, x] in o) {}');
+isParseError('for (let [x, [y, [x]]] in o) {}');
 
 // genexps
 test('return (i for (i in x)).next();', {ponies:true});
@@ -338,6 +308,22 @@ test('try {return [eval("throw i") for (i in x)][0];} catch (e) {return e;}', {p
 // don't forget about switch craziness
 test('var y = 3;switch (function () {return eval("y");}()) {case 3:let y;return x;default:;}');
 test('switch (x) {case 3:let y;return 3;case 4:let z;return 4;default:return x;}');
-test('switch (x) {case 3:let x;break;default:if (x === undefined) {return "ponies";}}');
 test('switch (x) {case 3:default:let y;let (y = x) {return y;}}');
-isError('switch (x) {case 3:let y;return 3;case 4:let y;return 4;default:;}');
+isParseError('switch (x) {case 3:let y;return 3;case 4:let y;return 4;default:;}');
+
+// TDZ checks
+isReferenceError('x + 1; let x = 42;');
+isReferenceError('x = 42; let x;');
+isReferenceError('inner(); function inner() { x++; } let x;');
+isReferenceError('inner(); let x; function inner() { x++; }');
+isReferenceError('inner(); let x; function inner() { function innerer() { x++; } innerer(); }');
+isReferenceError('let x; var inner = function () { y++; }; inner(); let y;');
+isReferenceError('let x = x;');
+isReferenceError('let [x] = [x];');
+isReferenceError('let {x} = {x:x};');
+isReferenceError('switch (x) {case 3:let x;break;default:if (x === undefined) {return "ponies";}}');
+isReferenceError('let x = function() {} ? x() : function() {}');
+isReferenceError('(function() { let x = (function() { return x }()); }())');
+
+// redecl with function statements
+isParseError('let a; function a() {}');

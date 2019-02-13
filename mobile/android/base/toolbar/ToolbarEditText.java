@@ -5,19 +5,17 @@
 
 package org.mozilla.gecko.toolbar;
 
-import org.mozilla.gecko.R;
+import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.CustomEditText;
+import org.mozilla.gecko.InputMethods;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnCommitListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnDismissListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnFilterListener;
-import org.mozilla.gecko.CustomEditText;
-import org.mozilla.gecko.CustomEditText.OnKeyPreImeListener;
-import org.mozilla.gecko.InputMethods;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.os.Build;
 import android.text.Editable;
 import android.text.NoCopySpan;
 import android.text.Selection;
@@ -29,12 +27,13 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.View.OnKeyListener;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
+import android.view.accessibility.AccessibilityEvent;
+import android.widget.TextView;
 
 /**
 * {@code ToolbarEditText} is the text entry used when the toolbar
@@ -52,6 +51,8 @@ public class ToolbarEditText extends CustomEditText
     private OnCommitListener mCommitListener;
     private OnDismissListener mDismissListener;
     private OnFilterListener mFilterListener;
+
+    private ToolbarPrefs mPrefs;
 
     // The previous autocomplete result returned to us
     private String mAutoCompleteResult = "";
@@ -110,6 +111,33 @@ public class ToolbarEditText extends CustomEditText
         }
     }
 
+    @Override
+    public void setText(final CharSequence text, final TextView.BufferType type) {
+        super.setText(text, type);
+
+        // Any autocomplete text would have been overwritten, so reset our autocomplete states.
+        resetAutocompleteState();
+    }
+
+    @Override
+    public void sendAccessibilityEventUnchecked(AccessibilityEvent event) {
+        // We need to bypass the isShown() check in the default implementation
+        // for TYPE_VIEW_TEXT_SELECTION_CHANGED events so that accessibility
+        // services could detect a url change.
+        if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED &&
+            getParent() != null && !isShown()) {
+            onInitializeAccessibilityEvent(event);
+            dispatchPopulateAccessibilityEvent(event);
+            getParent().requestSendAccessibilityEvent(this, event);
+        } else {
+            super.sendAccessibilityEventUnchecked(event);
+        }
+    }
+
+    void setToolbarPrefs(final ToolbarPrefs prefs) {
+        mPrefs = prefs;
+    }
+
     /**
      * Mark the start of autocomplete changes so our text change
      * listener does not react to changes in autocomplete text
@@ -139,7 +167,17 @@ public class ToolbarEditText extends CustomEditText
         };
 
         mAutoCompleteResult = "";
-        mAutoCompletePrefixLength = 0;
+
+        // Pretend we already autocompleted the existing text,
+        // so that actions like backspacing don't trigger autocompletion.
+        mAutoCompletePrefixLength = getText().length();
+
+        // Show the cursor.
+        setCursorVisible(true);
+    }
+
+    protected String getNonAutocompleteText() {
+        return getNonAutocompleteText(getText());
     }
 
     /**
@@ -368,6 +406,12 @@ public class ToolbarEditText extends CustomEditText
                     // If we have autocomplete text, the cursor is at the boundary between
                     // regular and autocomplete text. So regardless of which direction we
                     // are deleting, we should delete the autocomplete text first.
+                    // Make the IME aware that we interrupted the deleteSurroundingText call,
+                    // by restarting the IME.
+                    final InputMethodManager imm = InputMethods.getInputMethodManager(mContext);
+                    if (imm != null) {
+                        imm.restartInput(ToolbarEditText.this);
+                    }
                     return false;
                 }
                 return super.deleteSurroundingText(beforeLength, afterLength);
@@ -386,6 +430,7 @@ public class ToolbarEditText extends CustomEditText
                     // Make the IME aware that we interrupted the setComposingText call,
                     // by having finishComposingText() send change notifications to the IME.
                     finishComposingText();
+                    setComposingRegion(composingStart, composingEnd);
                     return true;
                 }
                 return false;
@@ -443,7 +488,7 @@ public class ToolbarEditText extends CustomEditText
 
             final String text = getNonAutocompleteText(editable);
             final int textLength = text.length();
-            boolean doAutocomplete = true;
+            boolean doAutocomplete = mPrefs.shouldAutocomplete();
 
             if (StringUtils.isSearchQuery(text, false)) {
                 doAutocomplete = false;
@@ -531,7 +576,9 @@ public class ToolbarEditText extends CustomEditText
                 }
 
                 return true;
-            } else if (GamepadUtils.isBackKey(event)) {
+            }
+
+            if (GamepadUtils.isBackKey(event)) {
                 if (mDismissListener != null) {
                     mDismissListener.onDismiss();
                 }
@@ -540,8 +587,8 @@ public class ToolbarEditText extends CustomEditText
             }
 
             if ((keyCode == KeyEvent.KEYCODE_DEL ||
-                (Build.VERSION.SDK_INT >= 11 &&
-                    keyCode == KeyEvent.KEYCODE_FORWARD_DEL)) &&
+                (Versions.feature11Plus &&
+                 keyCode == KeyEvent.KEYCODE_FORWARD_DEL)) &&
                 removeAutocomplete(getText())) {
                 // Delete autocomplete text when backspacing or forward deleting.
                 return true;

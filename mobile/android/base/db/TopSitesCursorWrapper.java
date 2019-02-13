@@ -1,4 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.gecko.db;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.mozilla.gecko.db.BrowserContract.Bookmarks;
+import org.mozilla.gecko.db.BrowserContract.TopSites;
 
 import android.content.ContentResolver;
 import android.database.CharArrayBuffer;
@@ -9,15 +18,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.mozilla.gecko.db.BrowserContract.Bookmarks;
-import org.mozilla.gecko.db.BrowserContract.TopSites;
-import org.mozilla.gecko.db.BrowserDB.URLColumns;
 
 /**
  * {@TopSitesCursorWrapper} is a cursor wrapper that merges
@@ -40,8 +40,7 @@ public class TopSitesCursorWrapper implements Cursor {
         TopSites.TITLE,
         TopSites.BOOKMARK_ID,
         TopSites.HISTORY_ID,
-        TopSites.DISPLAY,
-        TopSites.TYPE
+        TopSites.TYPE,
     };
 
     private static final Map<String, Integer> columnIndexes =
@@ -53,39 +52,39 @@ public class TopSitesCursorWrapper implements Cursor {
         }
     }
 
-    // Maps column indexes from the wrapper to the cursor's.
+    // Maps column indexes from the wrapper's to the cursor's.
     private SparseIntArray topIndexes;
     private SparseIntArray pinnedIndexes;
     private SparseIntArray suggestedIndexes;
 
-    // Type of content in the current position
+    // Type of content in the current position.
     private RowType currentRowType;
 
-    // Currently active cursor
+    // Currently active cursor.
     private Cursor currentCursor;
 
-    // The cursor for the top sites query
+    // The cursor for the top sites query. Never null.
     private final Cursor topCursor;
 
-    // The cursor for the pinned sites query
+    // The cursor for the pinned sites query. Never null.
     private final Cursor pinnedCursor;
 
-    // The cursor for the sugested sites query
+    // The cursor for the suggested sites query. Can be null.
     private final Cursor suggestedCursor;
 
-    // Associates pinned sites and their respective positions
-    private SparseBooleanArray pinnedPositions;
+    // Associates pinned sites and their respective positions.
+    private final SparseBooleanArray pinnedPositions = new SparseBooleanArray();
 
-    // Current position of the cursor
+    // Current position of the cursor.
     private int currentPosition = -1;
 
-    // Number of pinned sites before the current position
-    private int pinnedBefore = 0;
+    // Number of pinned sites before the current position.
+    private int pinnedBefore;
 
-    // The size of the cursor wrapper
+    // The size of the cursor wrapper.
     private int count;
 
-    // The minimum size of the cursor wrapper
+    // The minimum size of the cursor wrapper.
     private final int minSize;
 
     public TopSitesCursorWrapper(Cursor pinnedCursor, Cursor topCursor, int minSize) {
@@ -96,8 +95,20 @@ public class TopSitesCursorWrapper implements Cursor {
         currentRowType = RowType.UNKNOWN;
 
         this.minSize = minSize;
+
+        // These must not be null.
+        if (topCursor == null) {
+            throw new IllegalArgumentException("topCursor is null.");
+        }
+
+        if (pinnedCursor == null) {
+            throw new IllegalArgumentException("pinnedCursor is null.");
+        }
+
         this.topCursor = topCursor;
         this.pinnedCursor = pinnedCursor;
+
+        // Can be null.
         this.suggestedCursor = suggestedCursor;
 
         updateIndexMaps();
@@ -129,11 +140,7 @@ public class TopSitesCursorWrapper implements Cursor {
     }
 
     private void updatePinnedPositions() {
-        if (pinnedPositions == null) {
-            pinnedPositions = new SparseBooleanArray();
-        } else {
-            pinnedPositions.clear();
-        }
+        pinnedPositions.clear();
 
         pinnedCursor.moveToPosition(-1);
         while (pinnedCursor.moveToNext()) {
@@ -241,6 +248,9 @@ public class TopSitesCursorWrapper implements Cursor {
             case SUGGESTED:
                 map = suggestedIndexes;
                 break;
+
+            default:
+                return -1;
         }
 
         if (map != null) {
@@ -452,6 +462,7 @@ public class TopSitesCursorWrapper implements Cursor {
         return columnNames;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public boolean requery() {
         boolean result = topCursor.requery() && pinnedCursor.requery();
@@ -480,6 +491,7 @@ public class TopSitesCursorWrapper implements Cursor {
         return false;
     }
 
+    @Override
     public Uri getNotificationUri() {
         // There's no single notification URI for the wrapper
         return null;
@@ -532,6 +544,7 @@ public class TopSitesCursorWrapper implements Cursor {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void deactivate() {
         topCursor.deactivate();
@@ -560,7 +573,7 @@ public class TopSitesCursorWrapper implements Cursor {
 
         pinnedCursor.close();
         pinnedIndexes = null;
-        pinnedPositions = null;
+        pinnedPositions.clear();
 
         if (suggestedCursor != null) {
             suggestedCursor.close();

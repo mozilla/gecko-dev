@@ -5,15 +5,14 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
-import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.mozglue.DirectBufferAllocator;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.util.Log;
-import android.content.res.Resources;
+import android.util.TypedValue;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
@@ -56,11 +55,18 @@ public final class ThumbnailHelper {
     private int mWidth;
     private int mHeight;
     private ByteBuffer mBuffer;
+    private final float mThumbnailAspectRatio;
 
     private ThumbnailHelper() {
+        final Resources res = GeckoAppShell.getContext().getResources();
+
+        final TypedValue outValue = new TypedValue();
+        res.getValue(R.dimen.thumbnail_aspect_ratio, outValue, true);
+        mThumbnailAspectRatio = outValue.getFloat();
+
         mPendingThumbnails = new LinkedList<Tab>();
         try {
-            mPendingWidth = new AtomicInteger((int)GeckoAppShell.getContext().getResources().getDimension(R.dimen.tab_thumbnail_width));
+            mPendingWidth = new AtomicInteger((int) res.getDimension(R.dimen.tab_thumbnail_width));
         } catch (Resources.NotFoundException nfe) { mPendingWidth = new AtomicInteger(0); }
         mWidth = -1;
         mHeight = -1;
@@ -69,18 +75,6 @@ public final class ThumbnailHelper {
     public void getAndProcessThumbnailFor(Tab tab) {
         if (AboutPages.isAboutHome(tab.getURL())) {
             tab.updateThumbnail(null, CachePolicy.NO_STORE);
-            return;
-        }
-
-        if (tab.getState() == Tab.STATE_DELAYED) {
-            String url = tab.getURL();
-            if (url != null) {
-                byte[] thumbnail = BrowserDB.getThumbnailForUrl(GeckoAppShell.getContext().getContentResolver(), url);
-                if (thumbnail != null) {
-                    // Since this thumbnail is from the database, its ok to store it
-                    setTabThumbnail(tab, null, thumbnail, CachePolicy.STORE);
-                }
-            }
             return;
         }
 
@@ -117,12 +111,11 @@ public final class ThumbnailHelper {
     private void updateThumbnailSize() {
         // Apply any pending width updates.
         mWidth = mPendingWidth.get();
-
-        mHeight = Math.round(mWidth * THUMBNAIL_ASPECT_RATIO);
+        mHeight = Math.round(mWidth * mThumbnailAspectRatio);
 
         int pixelSize = (GeckoAppShell.getScreenDepth() == 24) ? 4 : 2;
         int capacity = mWidth * mHeight * pixelSize;
-        Log.d(LOGTAG, "Using new thumbnail size: " + capacity + " (width " + mWidth + ")");
+        Log.d(LOGTAG, "Using new thumbnail size: " + capacity + " (width " + mWidth + " - height " + mHeight + ")");
         if (mBuffer == null || mBuffer.capacity() != capacity) {
             if (mBuffer != null) {
                 mBuffer = DirectBufferAllocator.free(mBuffer);

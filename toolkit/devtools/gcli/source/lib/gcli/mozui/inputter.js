@@ -27,14 +27,12 @@ var RESOLVED = Promise.resolve(true);
 
 /**
  * A wrapper to take care of the functions concerning an input element
- * @param options Object containing user customization properties, including:
- * - promptWidth (default=22px)
  * @param components Object that links to other UI components. GCLI provided:
  * - requisition
  * - focusManager
  * - element
  */
-function Inputter(options, components) {
+function Inputter(components) {
   this.requisition = components.requisition;
   this.focusManager = components.focusManager;
 
@@ -87,6 +85,7 @@ function Inputter(options, components) {
   this.onResize = util.createEvent('Inputter.onResize');
   this.onWindowResize = this.onWindowResize.bind(this);
   this.document.defaultView.addEventListener('resize', this.onWindowResize, false);
+  this.requisition.onExternalUpdate.add(this.textChanged, this);
 
   this._previousValue = undefined;
   this.requisition.update(this.element.value || '');
@@ -99,6 +98,7 @@ Inputter.prototype.destroy = function() {
   this.document.defaultView.removeEventListener('resize', this.onWindowResize, false);
 
   this.requisition.commandOutputManager.onOutput.remove(this.outputted, this);
+  this.requisition.onExternalUpdate.remove(this.textChanged, this);
   if (this.focusManager) {
     this.focusManager.removeMonitoredElement(this.element, 'input');
   }
@@ -185,7 +185,7 @@ Inputter.prototype.onMouseUp = function(ev) {
 };
 
 /**
- * Handler for the Requisition.textChanged event
+ * Function called when we think the text might have changed
  */
 Inputter.prototype.textChanged = function() {
   if (!this.document) {
@@ -309,7 +309,13 @@ Inputter.prototype._checkAssignment = function(start) {
   if (start == null) {
     start = this.element.selectionStart;
   }
+  if (!this.requisition.isUpToDate()) {
+    return;
+  }
   var newAssignment = this.requisition.getAssignmentAt(start);
+  if (newAssignment == null) {
+    return;
+  }
   if (this.assignment !== newAssignment) {
     if (this.assignment.param.type.onLeave) {
       this.assignment.param.type.onLeave(this.assignment);
@@ -423,7 +429,7 @@ Inputter.prototype.onKeyDown = function(ev) {
  * if something went wrong.
  */
 Inputter.prototype.onKeyUp = function(ev) {
-  this.handleKeyUp(ev).then(null, util.errorHandler);
+  this.handleKeyUp(ev).catch(util.errorHandler);
 };
 
 /**
@@ -468,9 +474,9 @@ Inputter.prototype.handleKeyUp = function(ev) {
   this._completed = this.requisition.update(this.element.value);
   this._previousValue = this.element.value;
 
-  return this._completed.then(function(updated) {
+  return this._completed.then(function() {
     // Abort UI changes if this UI update has been overtaken
-    if (updated) {
+    if (this._previousValue === this.element.value) {
       this._choice = null;
       this.textChanged();
       this.onChoiceChange({ choice: this._choice });
@@ -498,7 +504,7 @@ Inputter.prototype._handleUpArrow = function() {
   // If the user is on a valid value, then we increment the value, but if
   // they've typed something that's not right we page through predictions
   if (this.assignment.getStatus() === Status.VALID) {
-    return this.requisition.increment(this.assignment).then(function() {
+    return this.requisition.nudge(this.assignment, 1).then(function() {
       // See notes on focusManager.onInputChange in onKeyDown
       this.textChanged();
       if (this.focusManager) {
@@ -530,7 +536,7 @@ Inputter.prototype._handleDownArrow = function() {
 
   // See notes above for the UP key
   if (this.assignment.getStatus() === Status.VALID) {
-    return this.requisition.decrement(this.assignment).then(function() {
+    return this.requisition.nudge(this.assignment, -1).then(function() {
       // See notes on focusManager.onInputChange in onKeyDown
       this.textChanged();
       if (this.focusManager) {
@@ -583,9 +589,8 @@ Inputter.prototype._handleTab = function(ev) {
   // 1 second) to the time of the keyup then we assume that we got them
   // both, and do the completion.
   if (hasContents && this.lastTabDownAt + 1000 > ev.timeStamp) {
-    // It's possible for TAB to not change the input, in which case the
-    // textChanged event will not fire, and the caret move will not be
-    // processed. So we check that this is done first
+    // It's possible for TAB to not change the input, in which case the caret
+    // move will not be processed. So we check that this is done first
     this._caretChange = Caret.TO_ARG_END;
     var inputState = this.getInputState();
     this._processCaretChange(inputState);

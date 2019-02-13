@@ -10,14 +10,14 @@
 #include "mozilla/hal_sandbox/PHal.h"
 #include "mozilla/HalTypes.h"
 #include "base/basictypes.h"
+#include "base/platform_thread.h"
 #include "mozilla/Observer.h"
 #include "mozilla/Types.h"
 #include "nsTArray.h"
-#include "prlog.h"
+#include "mozilla/dom/MozPowerManagerBinding.h"
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
 #include "mozilla/dom/power/Types.h"
-#include "mozilla/hal_sandbox/PHal.h"
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/HalScreenConfiguration.h"
 
@@ -45,9 +45,6 @@ namespace hal {
 typedef Observer<void_t> AlarmObserver;
 
 class WindowIdentifier;
-
-extern PRLogModuleInfo *GetHalLog();
-#define HAL_LOG(msg) PR_LOG(mozilla::hal::GetHalLog(), PR_LOG_DEBUG, msg)
 
 typedef Observer<int64_t> SystemClockChangeObserver;
 typedef Observer<SystemTimezoneChangeInformation> SystemTimezoneChangeObserver;
@@ -471,13 +468,7 @@ void NotifyAlarmFired();
 bool SetAlarm(int32_t aSeconds, int32_t aNanoseconds);
 
 /**
- * Set the priority of the given process.  A process's priority is a two-tuple
- * consisting of a hal::ProcessPriority value and a hal::ProcessCPUPriority
- * value.
- *
- * Two processes with the same ProcessCPUPriority value don't necessarily have
- * the same CPU priority; the CPU priority we assign to a process is a function
- * of its ProcessPriority and ProcessCPUPriority.
+ * Set the priority of the given process.
  *
  * Exactly what this does will vary between platforms.  On *nix we might give
  * background processes higher nice values.  On other platforms, we might
@@ -485,7 +476,6 @@ bool SetAlarm(int32_t aSeconds, int32_t aNanoseconds);
  */
 void SetProcessPriority(int aPid,
                         hal::ProcessPriority aPriority,
-                        hal::ProcessCPUPriority aCPUPriority,
                         uint32_t aLRU = 0);
 
 
@@ -495,6 +485,14 @@ void SetProcessPriority(int aPid,
  * must specify a type of function like THREAD_PRIORITY_COMPOSITOR.
  */
 void SetCurrentThreadPriority(hal::ThreadPriority aThreadPriority);
+
+/**
+ * Set a thread priority to appropriate platform-specific value for
+ * given functionality. Instead of providing arbitrary priority numbers you
+ * must specify a type of function like THREAD_PRIORITY_COMPOSITOR.
+ */
+void SetThreadPriority(PlatformThreadId aThreadId,
+                       hal::ThreadPriority aThreadPriority);
 
 /**
  * Register an observer for the FM radio.
@@ -507,10 +505,26 @@ void RegisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
 void UnregisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
 
 /**
+ * Register an observer for the FM radio.
+ */
+void RegisterFMRadioRDSObserver(hal::FMRadioRDSObserver* aRDSObserver);
+
+/**
+ * Unregister the observer for the FM radio.
+ */
+void UnregisterFMRadioRDSObserver(hal::FMRadioRDSObserver* aRDSObserver);
+
+/**
  * Notify observers that a call to EnableFMRadio, DisableFMRadio, or FMRadioSeek
  * has completed, and indicate what the call returned.
  */
 void NotifyFMRadioStatus(const hal::FMRadioOperationInformation& aRadioState);
+
+/**
+ * Notify observers of new RDS data
+ * This can be called on any thread.
+ */
+void NotifyFMRadioRDSGroup(const hal::FMRadioRDSGroup& aRDSGroup);
 
 /**
  * Enable the FM radio and configure it according to the settings in aInfo.
@@ -525,6 +539,8 @@ void DisableFMRadio();
 /**
  * Seek to an available FM radio station.
  *
+ * This can be called off main thread, but all calls must be completed
+ * before calling DisableFMRadio.
  */
 void FMRadioSeek(const hal::FMRadioSeekDirection& aDirection);
 
@@ -535,6 +551,9 @@ void GetFMRadioSettings(hal::FMRadioSettings* aInfo);
 
 /**
  * Set the FM radio's frequency.
+ *
+ * This can be called off main thread, but all calls must be completed
+ * before calling DisableFMRadio.
  */
 void SetFMRadioFrequency(const uint32_t frequency);
 
@@ -564,6 +583,16 @@ void CancelFMRadioSeek();
 hal::FMRadioSettings GetFMBandSettings(hal::FMRadioCountry aCountry);
 
 /**
+ * Enable RDS data reception
+ */
+bool EnableRDS(uint32_t aMask);
+
+/**
+ * Disable RDS data reception
+ */
+void DisableRDS();
+
+/**
  * Start a watchdog to compulsively shutdown the system if it hangs.
  * @param aMode Specify how to shutdown the system.
  * @param aTimeoutSecs Specify the delayed seconds to shutdown the system.
@@ -575,17 +604,7 @@ void StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs);
 /**
  * Perform Factory Reset to wipe out all user data.
  */
-void FactoryReset();
-
-/**
- * Start monitoring the status of gamepads attached to the system.
- */
-void StartMonitoringGamepadStatus();
-
-/**
- * Stop monitoring the status of gamepads attached to the system.
- */
-void StopMonitoringGamepadStatus();
+void FactoryReset(mozilla::dom::FactoryResetReason& aReason);
 
 /**
  * Start monitoring disk space for low space situations.
@@ -615,6 +634,11 @@ uint32_t GetTotalSystemMemory();
  * Returns 0 if we are unable to determine this information from /proc/meminfo.
  */
 uint32_t GetTotalSystemMemoryLevel();
+
+/**
+ * Determine whether the headphone switch event is from input device
+ */
+bool IsHeadphoneEventFromInputDev();
 
 } // namespace MOZ_HAL_NAMESPACE
 } // namespace mozilla

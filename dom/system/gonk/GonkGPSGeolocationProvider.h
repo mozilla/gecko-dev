@@ -21,6 +21,7 @@
 #include "nsCOMPtr.h"
 #include "nsIGeolocationProvider.h"
 #include "nsIObserver.h"
+#include "nsIDOMGeoPosition.h"
 #ifdef MOZ_B2G_RIL
 #include "nsIRadioInterfaceLayer.h"
 #endif
@@ -79,8 +80,10 @@ private:
   void StartGPS();
   void ShutdownGPS();
   void InjectLocation(double latitude, double longitude, float accuracy);
-  void RequestSettingValue(char* aKey);
+  void RequestSettingValue(const char* aKey);
 #ifdef MOZ_B2G_RIL
+  void UpdateRadioInterface();
+  bool IsValidRilServiceId(uint32_t aServiceId);
   void SetupAGPS();
   int32_t GetDataConnectionState();
   void SetAGpsDataConn(nsAString& aApn);
@@ -100,7 +103,14 @@ private:
 #ifdef MOZ_B2G_RIL
   bool mSupportsMSB;
   bool mSupportsMSA;
+  uint32_t mRilDataServiceId;
+  // mNumberOfRilServices indicates how many SIM slots supported on device, and
+  // RadioInterfaceLayer.js takes responsibility to set up the corresponding
+  // preference value.
+  uint32_t mNumberOfRilServices;
+  bool mObservingNetworkConnStateChange;
 #endif
+  bool mObservingSettingsChange;
   bool mSupportsSingleShot;
   bool mSupportsTimeInjection;
 
@@ -111,9 +121,9 @@ private:
   nsCOMPtr<nsIRadioInterface> mRadioInterface;
 #endif
   nsCOMPtr<nsIGeolocationUpdate> mLocationCallback;
-  PRTime mLastGPSDerivedLocationTime;
   nsCOMPtr<nsIThread> mInitThread;
   nsCOMPtr<nsIGeolocationProvider> mNetworkLocationProvider;
+  nsCOMPtr<nsIDOMGeoPosition> mLastGPSPosition;
 
   class NetworkLocationUpdate : public nsIGeolocationUpdate
   {

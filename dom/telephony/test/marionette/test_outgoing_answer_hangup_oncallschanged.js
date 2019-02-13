@@ -4,93 +4,37 @@
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
-let number = "5555552368";
-let outgoing;
-
-function dial() {
-  log("Make an outgoing call.");
-
-  telephony.oncallschanged = function oncallschanged(event) {
-    log("Received 'callschanged' call event.");
-
-    if (!event.call) {
-      log("Notifying calls array is loaded. No call information accompanies.");
-      return;
-    }
-
-    let expected_states = ["dialing", "disconnected"];
-    ok(expected_states.indexOf(event.call.state) != -1,
-      "Unexpected call state: " + event.call.state);
-
-    if (event.call.state == "dialing") {
-      outgoing = event.call;
-      ok(outgoing);
-      is(outgoing.number, number);
-
-      is(outgoing, telephony.active);
-      is(telephony.calls.length, 1);
-      is(telephony.calls[0], outgoing);
-
-      checkCallList();
-    }
-
-    if (event.call.state == "disconnected") {
-      is(outgoing.state, "disconnected");
-      is(telephony.active, null);
-      is(telephony.calls.length, 0);
-      cleanUp();
-    }
-  };
-
-  telephony.dial(number);
-}
-
-function checkCallList() {
-  emulator.run("gsm list", function(result) {
-    log("Call list is now: " + result);
-    if (((result[0] == "outbound to  " + number + " : unknown") ||
-         (result[0] == "outbound to  " + number + " : dialing")) &&
-        (result[1] == "OK")) {
-      answer();
-    } else {
-      window.setTimeout(checkCallList, 100);
-    }
-  });
-}
-
-function answer() {
-  log("Answering the outgoing call.");
-
-  // We get no "connecting" event when the remote party answers the call.
-
-  outgoing.onconnected = function onconnected(event) {
-    log("Received 'connected' call event.");
-    is(outgoing, event.call);
-    is(outgoing.state, "connected");
-
-    is(outgoing, telephony.active);
-
-    emulator.run("gsm list", function(result) {
-      log("Call list (after 'connected' event) is now: " + result);
-      is(result[0], "outbound to  " + number + " : active");
-      is(result[1], "OK");
-      hangUp();
-    });
-  };
-  emulator.run("gsm accept " + number);
-}
-
-function hangUp() {
-  log("Hanging up the outgoing call.");
-
-  emulator.run("gsm cancel " + number);
-}
-
-function cleanUp() {
-  telephony.oncallschanged = null;
-  finish();
-}
+const outNumber = "5555551111";
+const outInfo = gOutCallStrPool(outNumber);
+let outCall;
 
 startTest(function() {
-  dial();
+  Promise.resolve()
+    // Dial.
+    .then(() => {
+      let tmpCall;
+
+      let p1 = gWaitForCallsChangedEvent(telephony)
+        .then(call => tmpCall = call);
+
+      let p2 = gDial(outNumber)
+        .then(call => outCall = call);
+
+      return Promise.all([p1, p2]).then(() => is(outCall, tmpCall));
+    })
+    .then(() => gCheckAll(outCall, [outCall], "", [], [outInfo.ringing]))
+
+    .then(() => gRemoteAnswer(outCall))
+    .then(() => gCheckAll(outCall, [outCall], "", [], [outInfo.active]))
+
+    // Hang-up.
+    .then(() => {
+      let p1 = gWaitForCallsChangedEvent(telephony, outCall);
+      let p2 = gRemoteHangUp(outCall);
+      return Promise.all([p1, p2]);
+    })
+    .then(() => gCheckAll(null, [], "", [], []))
+
+    .catch(error => ok(false, "Promise reject: " + error))
+    .then(finish);
 });

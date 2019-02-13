@@ -10,9 +10,11 @@
 #include "nsCSSProps.h"
 #include "nsRuleNode.h"
 #include "nsROCSSPrimitiveValue.h"
+#include "nsStyleStruct.h"
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
+#include "nsPrintfCString.h"
 
 using namespace mozilla;
 
@@ -61,7 +63,7 @@ void nsStyleUtil::AppendEscapedCSSString(const nsAString& aString,
   for (; in != end; in++) {
     if (*in < 0x20 || (*in >= 0x7F && *in < 0xA0)) {
       // Escape U+0000 through U+001F and U+007F through U+009F numerically.
-      aReturn.AppendPrintf("\\%hX ", *in);
+      aReturn.AppendPrintf("\\%hx ", *in);
     } else {
       if (*in == '"' || *in == '\'' || *in == '\\') {
         // Escape backslash and quote characters symbolically.
@@ -115,7 +117,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   // numerically.  If we didn't escape it numerically, it would get
   // interpreted as a numeric escape for the wrong character.
   if (in != end && ('0' <= *in && *in <= '9')) {
-    aReturn.AppendPrintf("\\%hX ", *in);
+    aReturn.AppendPrintf("\\%hx ", *in);
     ++in;
   }
 
@@ -126,7 +128,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
     }
     if (ch < 0x20 || (0x7F <= ch && ch < 0xA0)) {
       // Escape U+0000 through U+001F and U+007F through U+009F numerically.
-      aReturn.AppendPrintf("\\%hX ", *in);
+      aReturn.AppendPrintf("\\%hx ", *in);
     } else {
       // Escape ASCII non-identifier printables as a backslash plus
       // the character.
@@ -214,7 +216,7 @@ nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
       }
     }
   }
-  NS_ABORT_IF_FALSE(aMaskedValue == 0, "unexpected bit remaining in bitfield");
+  MOZ_ASSERT(aMaskedValue == 0, "unexpected bit remaining in bitfield");
 }
 
 /* static */ void
@@ -461,6 +463,105 @@ nsStyleUtil::ComputeFunctionalAlternates(const nsCSSValueList* aList,
   }
 }
 
+static void
+AppendSerializedUnicodePoint(uint32_t aCode, nsACString& aBuf)
+{
+  aBuf.Append(nsPrintfCString("%0X", aCode));
+}
+
+// A unicode-range: descriptor is represented as an array of integers,
+// to be interpreted as a sequence of pairs: min max min max ...
+// It is in source order.  (Possibly it should be sorted and overlaps
+// consolidated, but right now we don't do that.)
+/* static */ void
+nsStyleUtil::AppendUnicodeRange(const nsCSSValue& aValue, nsAString& aResult)
+{
+  NS_PRECONDITION(aValue.GetUnit() == eCSSUnit_Null ||
+                  aValue.GetUnit() == eCSSUnit_Array,
+                  "improper value unit for unicode-range:");
+  aResult.Truncate();
+  if (aValue.GetUnit() != eCSSUnit_Array)
+    return;
+
+  nsCSSValue::Array const & sources = *aValue.GetArrayValue();
+  nsAutoCString buf;
+
+  MOZ_ASSERT(sources.Count() % 2 == 0,
+             "odd number of entries in a unicode-range: array");
+
+  for (uint32_t i = 0; i < sources.Count(); i += 2) {
+    uint32_t min = sources[i].GetIntValue();
+    uint32_t max = sources[i+1].GetIntValue();
+
+    // We don't try to replicate the U+XX?? notation.
+    buf.AppendLiteral("U+");
+    AppendSerializedUnicodePoint(min, buf);
+
+    if (min != max) {
+      buf.Append('-');
+      AppendSerializedUnicodePoint(max, buf);
+    }
+    buf.AppendLiteral(", ");
+  }
+  buf.Truncate(buf.Length() - 2); // remove the last comma-space
+  CopyASCIItoUTF16(buf, aResult);
+}
+
+/* static */ void
+nsStyleUtil::AppendSerializedFontSrc(const nsCSSValue& aValue,
+                                     nsAString& aResult)
+{
+  // A src: descriptor is represented as an array value; each entry in
+  // the array can be eCSSUnit_URL, eCSSUnit_Local_Font, or
+  // eCSSUnit_Font_Format.  Blocks of eCSSUnit_Font_Format may appear
+  // only after one of the first two.  (css3-fonts only contemplates
+  // annotating URLs with formats, but we handle the general case.)
+
+  NS_PRECONDITION(aValue.GetUnit() == eCSSUnit_Array,
+                  "improper value unit for src:");
+
+  const nsCSSValue::Array& sources = *aValue.GetArrayValue();
+  size_t i = 0;
+
+  while (i < sources.Count()) {
+    nsAutoString formats;
+
+    if (sources[i].GetUnit() == eCSSUnit_URL) {
+      aResult.AppendLiteral("url(");
+      nsDependentString url(sources[i].GetOriginalURLValue());
+      nsStyleUtil::AppendEscapedCSSString(url, aResult);
+      aResult.Append(')');
+    } else if (sources[i].GetUnit() == eCSSUnit_Local_Font) {
+      aResult.AppendLiteral("local(");
+      nsDependentString local(sources[i].GetStringBufferValue());
+      nsStyleUtil::AppendEscapedCSSString(local, aResult);
+      aResult.Append(')');
+    } else {
+      NS_NOTREACHED("entry in src: descriptor with improper unit");
+      i++;
+      continue;
+    }
+
+    i++;
+    formats.Truncate();
+    while (i < sources.Count() &&
+           sources[i].GetUnit() == eCSSUnit_Font_Format) {
+      formats.Append('"');
+      formats.Append(sources[i].GetStringBufferValue());
+      formats.AppendLiteral("\", ");
+      i++;
+    }
+    if (formats.Length() > 0) {
+      formats.Truncate(formats.Length() - 2); // remove the last comma
+      aResult.AppendLiteral(" format(");
+      aResult.Append(formats);
+      aResult.Append(')');
+    }
+    aResult.AppendLiteral(", ");
+  }
+  aResult.Truncate(aResult.Length() - 2); // remove the last comma-space
+}
+
 /* static */ float
 nsStyleUtil::ColorComponentToFloat(uint8_t aAlpha)
 {
@@ -495,6 +596,57 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
           !aChild->TextIsOnlyWhitespace());
 }
 
+// For a replaced element whose concrete object size is no larger than the
+// element's content-box, this method checks whether the given
+// "object-position" coordinate might cause overflow in its dimension.
+typedef nsStyleBackground::Position::PositionCoord PositionCoord;
+static bool
+ObjectPositionCoordMightCauseOverflow(const PositionCoord& aCoord)
+{
+  // Any nonzero length in "object-position" can push us to overflow
+  // (particularly if our concrete object size is exactly the same size as the
+  // replaced element's content-box).
+  if (aCoord.mLength != 0) {
+    return true;
+  }
+
+  // Percentages are interpreted as a fraction of the extra space. So,
+  // percentages in the 0-100% range are safe, but values outside of that
+  // range could cause overflow.
+  if (aCoord.mHasPercent &&
+      (aCoord.mPercent < 0.0f || aCoord.mPercent > 1.0f)) {
+    return true;
+  }
+  return false;
+}
+
+
+/* static */ bool
+nsStyleUtil::ObjectPropsMightCauseOverflow(const nsStylePosition* aStylePos)
+{
+  auto objectFit = aStylePos->mObjectFit;
+
+  // "object-fit: cover" & "object-fit: none" can give us a render rect that's
+  // larger than our container element's content-box.
+  if (objectFit == NS_STYLE_OBJECT_FIT_COVER ||
+      objectFit == NS_STYLE_OBJECT_FIT_NONE) {
+    return true;
+  }
+  // (All other object-fit values produce a concrete object size that's no larger
+  // than the constraint region.)
+
+  // Check each of our "object-position" coords to see if it could cause
+  // overflow in its dimension:
+  const nsStyleBackground::Position& objectPosistion = aStylePos->mObjectPosition;
+  if (ObjectPositionCoordMightCauseOverflow(objectPosistion.mXPosition) ||
+      ObjectPositionCoordMightCauseOverflow(objectPosistion.mYPosition)) {
+    return true;
+  }
+
+  return false;
+}
+
+
 /* static */ bool
 nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
                                   nsIPrincipal* aPrincipal,
@@ -509,7 +661,7 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     *aRv = NS_OK;
   }
 
-  MOZ_ASSERT(!aContent || aContent->Tag() == nsGkAtoms::style,
+  MOZ_ASSERT(!aContent || aContent->NodeInfo()->NameAtom() == nsGkAtoms::style,
       "aContent passed to CSPAllowsInlineStyle "
       "for an element that is not <style>");
 

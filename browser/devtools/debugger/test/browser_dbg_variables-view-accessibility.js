@@ -5,13 +5,12 @@
  * Make sure that the variables view is keyboard accessible.
  */
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gVariablesView;
 
 function test() {
-  initDebugger("about:blank").then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger("about:blank").then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gVariablesView = gDebugger.DebuggerView.Variables;
@@ -63,7 +62,7 @@ function performTest() {
   gVariablesView.rawObject = test;
   gVariablesView.scrollPageSize = 5;
 
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     yield waitForTick();
 
     // Part 0: Test generic focus methods on the variables view.
@@ -504,7 +503,6 @@ function performTest() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gVariablesView = null;

@@ -3,6 +3,14 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+///////////////////
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejections should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed(null);
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.toolbox is null");
+
 // Test the webconsole output for various types of DOM Nodes.
 
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-dom-elements.html";
@@ -91,6 +99,7 @@ let inputTests = [
 ];
 
 function test() {
+  requestLongerTimeout(2);
   Task.spawn(function*() {
     let {tab} = yield loadTab(TEST_URI);
     let hud = yield openConsole(tab);

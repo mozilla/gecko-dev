@@ -175,8 +175,34 @@ MOCHITEST = ("SimpleTest" in window);
 if (MOCHITEST) {
   SimpleTest.waitForExplicitFinish();
   window.addEventListener("load", function() {
-    SimpleTest.waitForFocus(function() {
-      SpecialPowers.pushPrefEnv({'set': [["dom.webcrypto.enabled", true]]}, start);
-    });
+    SimpleTest.waitForFocus(start);
   });
+}
+
+function error(test) {
+  return function(x) {
+    console.log("ERROR :: " + x);
+    test.complete(false);
+    throw x;
+  }
+}
+
+function complete(test, valid) {
+  return function(x) {
+    console.log("COMPLETE")
+    console.log(x);
+    if (valid) {
+      test.complete(valid(x));
+    } else {
+      test.complete(true);
+    }
+  }
+}
+
+function memcmp_complete(test, value) {
+  return function(x) {
+    console.log("COMPLETE")
+    console.log(x);
+    test.memcmp_complete(value, x);
+  }
 }

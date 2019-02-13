@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "mozilla/NullPtr.h"
 #include "common/linux/http_upload.h"
 #include "crashreporter.h"
 #include "crashreporter_gtk_common.h"
@@ -47,7 +46,7 @@ GtkWidget* gRestartButton = 0;
 
 bool gInitialized = false;
 bool gDidTrySend = false;
-string gDumpFile;
+StringTable gFiles;
 StringTable gQueryParameters;
 string gHttpProxy;
 string gAuth;
@@ -196,8 +195,7 @@ gpointer SendThread(gpointer args)
   bool success = google_breakpad::HTTPUpload::SendRequest
     (gSendURL,
      gQueryParameters,
-     gDumpFile,
-     "upload_file_minidump",
+     gFiles,
      gHttpProxy, gAuth,
      gCACertificateFile,
      &response,
@@ -439,9 +437,19 @@ std::ifstream* UIOpenRead(const string& filename)
   return new std::ifstream(filename.c_str(), std::ios::in);
 }
 
-std::ofstream* UIOpenWrite(const string& filename, bool append) // append=false
+std::ofstream* UIOpenWrite(const string& filename,
+                           bool append, // append=false
+                           bool binary) // binary=false
 {
-  return new std::ofstream(filename.c_str(),
-                           append ? std::ios::out | std::ios::app
-                                  : std::ios::out);
+  std::ios_base::openmode mode = std::ios::out;
+
+  if (append) {
+    mode = mode | std::ios::app;
+  }
+
+  if (binary) {
+    mode = mode | std::ios::binary;
+  }
+
+  return new std::ofstream(filename.c_str(), mode);
 }

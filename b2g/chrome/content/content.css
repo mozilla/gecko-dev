@@ -10,6 +10,13 @@ xul|window xul|scrollbar {
   display: none;
 }
 
+/* Bug 1041576 - Scrollable with scrollgrab should not have scrollbars */
+@-moz-document domain(system.gaiamobile.org) {
+  .browser-container > xul|scrollbar {
+    display: none;
+  }
+}
+
 html xul|scrollbar[root="true"] {
   position: relative;
   z-index: 2147483647;
@@ -21,11 +28,12 @@ html xul|scrollbar {
   background-image: none !important;
   border: 0px solid transparent !important;
   pointer-events: none;
-  opacity: 1;
 }
 
+/* Scrollbar code will reset the margin to the correct side depending on
+   where layout actually puts the scrollbar */
 xul|scrollbar[orient="vertical"] {
-  -moz-margin-start: -8px;
+  margin-left: -8px;
   min-width: 8px;
   max-width: 8px;
 }
@@ -49,7 +57,6 @@ xul|scrollbar[orient="horizontal"] xul|thumb {
 xul|scrollbar:not([active="true"]),
 xul|scrollbar[disabled] {
   opacity: 0;
-  transition: opacity 1s ease;
 }
 
 xul|scrollbarbutton {
@@ -158,7 +165,10 @@ select[size="1"] {
 textarea {
   resize: none;
   border-width: 1px;
-  padding: 2px 1px 2px 1px;
+  -moz-padding-start: 1px;
+  -moz-padding-end: 1px;
+  padding-block-start: 2px;
+  padding-block-end: 2px;
 }
 
 input[type="button"],
@@ -166,15 +176,19 @@ input[type="submit"],
 input[type="reset"],
 button {
   border-width: 1px;
-  padding: 0 7px 0 7px;
+  -moz-padding-start: 7px;
+  -moz-padding-end: 7px;
+  padding-block-start: 0;
+  padding-block-end: 0;
 }
 
 input[type="radio"],
 input[type="checkbox"] {
-  max-width: 14px;
-  max-height: 14px;
   border: 1px solid #a7a7a7 !important;
-  padding: 2px 1px 2px 1px;
+  -moz-padding-start: 1px;
+  -moz-padding-end: 1px;
+  padding-block-start: 2px;
+  padding-block-end: 2px;
 }
 
 select > button {
@@ -260,7 +274,10 @@ input[type="button"][disabled],
 input[type="submit"][disabled],
 input[type="reset"][disabled],
 button[disabled] {
-  padding: 0 7px 0 7px;
+  -moz-padding-start: 7px;
+  -moz-padding-end: 7px;
+  padding-block-start: 0;
+  padding-block-end: 0;
   background: transparent linear-gradient(rgba(255,255,255,0.4) 0, rgba(235,235,235,0.4) 3px, rgba(185,185,185,0.4) 100%);
 }
 

@@ -19,11 +19,10 @@ const PAGE_CONTENT = [
 
 let TYPE = "CssTransformHighlighter";
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html," + PAGE_CONTENT);
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8," + PAGE_CONTENT);
 
-
-  let {view: rView} = yield openRuleView();
+  let {inspector, view: rView} = yield openRuleView();
   let hs = rView.highlighters;
 
   ok(!hs.highlighters[TYPE], "No highlighter exists in the rule-view (1)");
@@ -36,28 +35,34 @@ let test = asyncTest(function*() {
   ok(!hs.promises[TYPE], "No highlighter is being created in the rule-view (2)");
 
   info("Faking a mousemove on a transform property");
-  let {valueSpan} = getRuleViewProperty(rView, "body", "transform");
+  ({valueSpan} = getRuleViewProperty(rView, "body", "transform"));
+  let onHighlighterShown = hs.once("highlighter-shown");
   hs._onMouseMove({target: valueSpan});
+  yield onHighlighterShown;
   ok(hs.promises[TYPE], "The highlighter is being initialized");
   let h = yield hs.promises[TYPE];
   is(h, hs.highlighters[TYPE], "The initialized highlighter is the right one");
 
+  let onComputedViewReady = inspector.once("computed-view-refreshed");
   let {view: cView} = yield openComputedView();
-  let hs = cView.highlighters;
+  yield onComputedViewReady;
+  hs = cView.highlighters;
 
   ok(!hs.highlighters[TYPE], "No highlighter exists in the computed-view (1)");
   ok(!hs.promises[TYPE], "No highlighter is being created in the computed-view (1)");
 
   info("Faking a mousemove on a non-transform property");
-  let {valueSpan} = getComputedViewProperty(cView, "color");
+  ({valueSpan} = getComputedViewProperty(cView, "color"));
   hs._onMouseMove({target: valueSpan});
   ok(!hs.highlighters[TYPE], "No highlighter exists in the computed-view (2)");
   ok(!hs.promises[TYPE], "No highlighter is being created in the computed-view (2)");
 
   info("Faking a mousemove on a transform property");
-  let {valueSpan} = getComputedViewProperty(cView, "transform");
+  ({valueSpan} = getComputedViewProperty(cView, "transform"));
+  onHighlighterShown = hs.once("highlighter-shown");
   hs._onMouseMove({target: valueSpan});
+  yield onHighlighterShown;
   ok(hs.promises[TYPE], "The highlighter is being initialized");
-  let h = yield hs.promises[TYPE];
+  h = yield hs.promises[TYPE];
   is(h, hs.highlighters[TYPE], "The initialized highlighter is the right one");
 });

@@ -1,6 +1,73 @@
 Version history
 ===============
 
+### 3.2.0 (2015-02-19) ###
+
+* Update ALPN token to final RFC version (h2).
+* Update altsvc implementation to draft 06: [draft-ietf-httpbis-alt-svc-06]
+
+[draft-ietf-httpbis-altsvc-06]: http://tools.ietf.org/html/draft-ietf-httpbis-alt-svc-06
+
+### 3.1.2 (2015-02-17) ###
+
+* Update the example server to have a safe push example.
+
+### 3.1.1 (2015-01-29) ###
+
+* Bugfix release.
+* Fixes an issue sending a push promise that is large enough to fill the frame (#93).
+
+### 3.1.0 (2014-12-11) ###
+
+* Upgrade to the latest draft: [draft-ietf-httpbis-http2-16]
+ * This involves some state transition changes that are technically incompatible with draft-14. If you need to be assured to interop on -14, continue using 3.0.1
+
+[draft-ietf-httpbis-http2-16]: http://tools.ietf.org/html/draft-ietf-httpbis-http2-16
+
+### 3.0.1 (2014-11-20) ###
+
+* Bugfix release.
+* Fixed #81 and #87
+* Fixed a bug in flow control (without GitHub issue)
+
+### 3.0.0 (2014-08-25) ###
+
+* Re-join node-http2 and node-http2-protocol into one repository
+* API Changes
+ * The default versions of createServer, request, and get now enforce TLS-only
+ * The raw versions of createServer, request, and get are now under http2.raw instead of http2
+ * What was previously in the http2-protocol repository/module is now available under http2.protocol from this repo/module
+ * http2-protocol.ImplementedVersion is now http2.protocol.VERSION (the ALPN token)
+
+### 2.7.1 (2014-08-01) ###
+
+* Require protocol 0.14.1 (bugfix release)
+
+### 2.7.0 (2014-07-31) ###
+
+* Upgrade to the latest draft: [draft-ietf-httpbis-http2-14]
+
+[draft-ietf-httpbis-http2-14]: http://tools.ietf.org/html/draft-ietf-httpbis-http2-14
+
+### 2.6.0 (2014-06-18) ###
+
+* Upgrade to the latest draft: [draft-ietf-httpbis-http2-13]
+
+[draft-ietf-httpbis-http2-13]: http://tools.ietf.org/html/draft-ietf-httpbis-http2-13
+
+### 2.5.3 (2014-06-15) ###
+
+* Exposing API to send ALTSVC frames
+
+### 2.5.2 (2014-05-25) ###
+
+* Fix a bug that occurs when the ALPN negotiation is unsuccessful
+
+### 2.5.1 (2014-05-25) ###
+
+* Support for node 0.11.x
+* New cipher suite priority list with comformant ciphers on the top (only available in node >=0.11.x)
+
 ### 2.5.0 (2014-04-24) ###
 
 * Upgrade to the latest draft: [draft-ietf-httpbis-http2-12]

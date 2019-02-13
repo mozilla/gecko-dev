@@ -49,29 +49,42 @@
 #ifndef SAMPLER_H
 #define SAMPLER_H
 
-#include "mozilla/NullPtr.h"
+#ifndef SPS_STANDALONE
 #include "js/TypeDecls.h"
+#endif
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 class TimeStamp;
-}
+
+namespace dom {
+class Promise;
+} // namespace dom
+
+} // namespace mozilla
 
 enum TracingMetadata {
   TRACING_DEFAULT,
   TRACING_INTERVAL_START,
   TRACING_INTERVAL_END,
   TRACING_EVENT,
-  TRACING_EVENT_BACKTRACE
+  TRACING_EVENT_BACKTRACE,
+  TRACING_TIMESTAMP
 };
 
-#ifndef MOZ_ENABLE_PROFILER_SPS
+#if !defined(MOZ_ENABLE_PROFILER_SPS) || defined(MOZILLA_XPCOMRT_API)
 
 #include <stdint.h>
+#include <stdarg.h>
 
 // Insert a RAII in this scope to active a pseudo label. Any samples collected
 // in this scope will contain this annotation. For dynamic strings use
 // PROFILER_LABEL_PRINTF. Arguments must be string literals.
 #define PROFILER_LABEL(name_space, info, category) do {} while (0)
+
+// Similar to PROFILER_LABEL, PROFILER_LABEL_FUNC will push/pop the enclosing
+// functon name as the pseudostack label.
+#define PROFILER_LABEL_FUNC(category) do {} while (0)
 
 // Format a dynamic string as a pseudo label. These labels will a considerable
 // storage size in the circular buffer compared to regular labels. This function
@@ -84,7 +97,7 @@ enum TracingMetadata {
 // only recorded if a sample is collected while it is active, marker will always
 // be collected.
 #define PROFILER_MARKER(info) do {} while (0)
-#define PROFILER_MARKER_PAYLOAD(info, payload) do {} while (0)
+#define PROFILER_MARKER_PAYLOAD(info, payload) do { nsAutoPtr<ProfilerMarkerPayload> payloadDeletor(payload); } while (0)
 
 // Main thread specilization to avoid TLS lookup for performance critical use.
 #define PROFILER_MAIN_THREAD_LABEL(name_space, info, category) do {} while (0)
@@ -142,6 +155,11 @@ static inline void profiler_free_backtrace(ProfilerBacktrace* aBacktrace) {}
 
 static inline bool profiler_is_active() { return false; }
 
+// Check if an external profiler feature is active.
+// Supported:
+//  * gpu
+static inline bool profiler_feature_active(const char*) { return false; }
+
 // Internal-only. Used by the event tracer.
 static inline void profiler_responsiveness(const mozilla::TimeStamp& aTime) {}
 
@@ -149,10 +167,21 @@ static inline void profiler_responsiveness(const mozilla::TimeStamp& aTime) {}
 static inline void profiler_set_frame_number(int frameNumber) {}
 
 // Get the profile encoded as a JSON string.
-static inline char* profiler_get_profile() { return nullptr; }
+static inline mozilla::UniquePtr<char[]> profiler_get_profile(double aSinceTime = 0) {
+  return nullptr;
+}
 
 // Get the profile encoded as a JSON object.
-static inline JSObject* profiler_get_profile_jsobject(JSContext* aCx) { return nullptr; }
+static inline JSObject* profiler_get_profile_jsobject(JSContext* aCx,
+                                                      double aSinceTime = 0) {
+  return nullptr;
+}
+
+#ifndef SPS_STANDALONE
+// Get the profile encoded as a JSON object.
+static inline void profiler_get_profile_jsobject_async(double aSinceTime = 0,
+                                                       mozilla::dom::Promise* = 0) {}
+#endif
 
 // Get the profile and write it into a file
 static inline void profiler_save_profile_to_file(char* aFilename) { }
@@ -161,10 +190,21 @@ static inline void profiler_save_profile_to_file(char* aFilename) { }
 // Returns a null terminated char* array.
 static inline char** profiler_get_features() { return nullptr; }
 
-// Print the current location to the console. This functill will do it best effort
-// to show the profiler's combined js/c++ if the profiler is running. Note that
-// printing the location require symbolicating which is very slow.
-static inline void profiler_print_location() {}
+// Get information about the current buffer status.
+// Retursn (using outparams) the current write position in the buffer,
+// the total size of the buffer, and the generation of the buffer.
+// This information may be useful to a user-interface displaying the
+// current status of the profiler, allowing the user to get a sense
+// for how fast the buffer is being written to, and how much
+// data is visible.
+static inline void profiler_get_buffer_info(uint32_t *aCurrentPosition,
+                                            uint32_t *aTotalSize,
+                                            uint32_t *aGeneration)
+{
+  *aCurrentPosition = 0;
+  *aTotalSize = 0;
+  *aGeneration = 0;
+}
 
 // Discard the profile, throw away the profile and notify 'profiler-locked'.
 // This function is to be used when entering private browsing to prevent
@@ -192,6 +232,9 @@ static inline double profiler_time(const mozilla::TimeStamp& aTime) { return 0; 
 
 static inline bool profiler_in_privacy_mode() { return false; }
 
+static inline void profiler_log(const char *str) {}
+static inline void profiler_log(const char *fmt, va_list args) {}
+
 #else
 
 #include "GeckoProfilerImpl.h"
@@ -200,7 +243,7 @@ static inline bool profiler_in_privacy_mode() { return false; }
 
 class GeckoProfilerInitRAII {
 public:
-  GeckoProfilerInitRAII(void* stackTop) {
+  explicit GeckoProfilerInitRAII(void* stackTop) {
     profiler_init(stackTop);
   }
   ~GeckoProfilerInitRAII() {

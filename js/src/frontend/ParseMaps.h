@@ -27,9 +27,9 @@ namespace frontend {
 class DefinitionSingle;
 class DefinitionList;
 
-typedef InlineMap<JSAtom *, jsatomid, 24> AtomIndexMap;
-typedef InlineMap<JSAtom *, DefinitionSingle, 24> AtomDefnMap;
-typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
+typedef InlineMap<JSAtom*, jsatomid, 24> AtomIndexMap;
+typedef InlineMap<JSAtom*, DefinitionSingle, 24> AtomDefnMap;
+typedef InlineMap<JSAtom*, DefinitionList, 24> AtomDefnListMap;
 
 /*
  * For all unmapped atoms recorded in al, add a mapping from the atom's index
@@ -37,7 +37,7 @@ typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
  * the list and map->vector must point to pre-allocated memory.
  */
 void
-InitAtomMap(AtomIndexMap *indices, HeapPtrAtom *atoms);
+InitAtomMap(AtomIndexMap* indices, HeapPtrAtom* atoms);
 
 /*
  * A pool that permits the reuse of the backing storage for the defn, index, or
@@ -48,38 +48,38 @@ InitAtomMap(AtomIndexMap *indices, HeapPtrAtom *atoms);
  */
 class ParseMapPool
 {
-    typedef Vector<void *, 32, SystemAllocPolicy> RecyclableMaps;
+    typedef Vector<void*, 32, SystemAllocPolicy> RecyclableMaps;
 
     RecyclableMaps      all;
     RecyclableMaps      recyclable;
 
     void checkInvariants();
 
-    void recycle(void *map) {
-        JS_ASSERT(map);
+    void recycle(void* map) {
+        MOZ_ASSERT(map);
 #ifdef DEBUG
         bool ok = false;
         /* Make sure the map is in |all| but not already in |recyclable|. */
-        for (void **it = all.begin(), **end = all.end(); it != end; ++it) {
+        for (void** it = all.begin(); it != all.end(); ++it) {
             if (*it == map) {
                 ok = true;
                 break;
             }
         }
-        JS_ASSERT(ok);
-        for (void **it = recyclable.begin(), **end = recyclable.end(); it != end; ++it)
-            JS_ASSERT(*it != map);
+        MOZ_ASSERT(ok);
+        for (void** it = recyclable.begin(); it != recyclable.end(); ++it)
+            MOZ_ASSERT(*it != map);
 #endif
-        JS_ASSERT(recyclable.length() < all.length());
+        MOZ_ASSERT(recyclable.length() < all.length());
         recyclable.infallibleAppend(map); /* Reserved in allocateFresh. */
     }
 
-    void *allocateFresh();
-    void *allocate() {
+    void* allocateFresh();
+    void* allocate() {
         if (recyclable.empty())
             return allocateFresh();
 
-        void *map = recyclable.popCopy();
+        void* map = recyclable.popCopy();
         asAtomMap(map)->clear();
         return map;
     }
@@ -87,8 +87,8 @@ class ParseMapPool
     /* Arbitrary atom map type, that has keys and values of the same kind. */
     typedef AtomIndexMap AtomMapT;
 
-    static AtomMapT *asAtomMap(void *ptr) {
-        return reinterpret_cast<AtomMapT *>(ptr);
+    static AtomMapT* asAtomMap(void* ptr) {
+        return reinterpret_cast<AtomMapT*>(ptr);
     }
 
   public:
@@ -104,22 +104,22 @@ class ParseMapPool
 
     /* Fallibly aquire one of the supported map types from the pool. */
     template <typename T>
-    T *acquire() {
-        return reinterpret_cast<T *>(allocate());
+    T* acquire() {
+        return reinterpret_cast<T*>(allocate());
     }
 
     /* Release one of the supported map types back to the pool. */
 
-    void release(AtomIndexMap *map) {
-        recycle((void *) map);
+    void release(AtomIndexMap* map) {
+        recycle((void*) map);
     }
 
-    void release(AtomDefnMap *map) {
-        recycle((void *) map);
+    void release(AtomDefnMap* map) {
+        recycle((void*) map);
     }
 
-    void release(AtomDefnListMap *map) {
-        recycle((void *) map);
+    void release(AtomDefnListMap* map) {
+        recycle((void*) map);
     }
 }; /* ParseMapPool */
 
@@ -130,21 +130,21 @@ class ParseMapPool
 template <class Map>
 struct AtomThingMapPtr
 {
-    Map *map_;
+    Map* map_;
 
     void init() { clearMap(); }
 
-    bool ensureMap(ExclusiveContext *cx);
-    void releaseMap(ExclusiveContext *cx);
+    bool ensureMap(ExclusiveContext* cx);
+    void releaseMap(ExclusiveContext* cx);
 
     bool hasMap() const { return map_; }
-    Map *getMap() { return map_; }
-    void setMap(Map *newMap) { JS_ASSERT(!map_); map_ = newMap; }
+    Map* getMap() { return map_; }
+    void setMap(Map* newMap) { MOZ_ASSERT(!map_); map_ = newMap; }
     void clearMap() { map_ = nullptr; }
 
-    Map *operator->() { return map_; }
-    const Map *operator->() const { return map_; }
-    Map &operator*() const { return *map_; }
+    Map* operator->() { return map_; }
+    const Map* operator->() const { return map_; }
+    Map& operator*() const { return *map_; }
 };
 
 typedef AtomThingMapPtr<AtomIndexMap> AtomIndexMapPtr;
@@ -156,10 +156,10 @@ typedef AtomThingMapPtr<AtomIndexMap> AtomIndexMapPtr;
 template <typename AtomThingMapPtrT>
 class OwnedAtomThingMapPtr : public AtomThingMapPtrT
 {
-    ExclusiveContext *cx;
+    ExclusiveContext* cx;
 
   public:
-    explicit OwnedAtomThingMapPtr(ExclusiveContext *cx) : cx(cx) {
+    explicit OwnedAtomThingMapPtr(ExclusiveContext* cx) : cx(cx) {
         AtomThingMapPtrT::init();
     }
 
@@ -203,7 +203,7 @@ struct AtomDefnMapPtr : public AtomThingMapPtr<AtomDefnMap>
 {
     template <typename ParseHandler>
     MOZ_ALWAYS_INLINE
-    typename ParseHandler::DefinitionNode lookupDefn(JSAtom *atom) {
+    typename ParseHandler::DefinitionNode lookupDefn(JSAtom* atom) {
         AtomDefnMap::Ptr p = map_->lookup(atom);
         return p ? p.value().get<ParseHandler>() : ParseHandler::nullDefinition();
     }
@@ -235,33 +235,33 @@ class DefinitionList
     struct Node
     {
         uintptr_t bits;
-        Node *next;
+        Node* next;
 
-        Node(uintptr_t bits, Node *next) : bits(bits), next(next) {}
+        Node(uintptr_t bits, Node* next) : bits(bits), next(next) {}
     };
 
     union {
         uintptr_t bits;
-        Node *head;
+        Node* head;
     } u;
 
-    Node *firstNode() const {
-        JS_ASSERT(isMultiple());
-        return (Node *) (u.bits & ~0x1);
+    Node* firstNode() const {
+        MOZ_ASSERT(isMultiple());
+        return (Node*) (u.bits & ~0x1);
     }
 
-    static Node *
-    allocNode(ExclusiveContext *cx, LifoAlloc &alloc, uintptr_t bits, Node *tail);
+    static Node*
+    allocNode(ExclusiveContext* cx, LifoAlloc& alloc, uintptr_t bits, Node* tail);
 
   public:
     class Range
     {
         friend class DefinitionList;
 
-        Node *node;
+        Node* node;
         uintptr_t bits;
 
-        explicit Range(const DefinitionList &list) {
+        explicit Range(const DefinitionList& list) {
             if (list.isMultiple()) {
                 node = list.firstNode();
                 bits = node->bits;
@@ -276,7 +276,7 @@ class DefinitionList
         Range() : node(nullptr), bits(0) {}
 
         void popFront() {
-            JS_ASSERT(!empty());
+            MOZ_ASSERT(!empty());
             if (!node) {
                 bits = 0;
                 return;
@@ -287,12 +287,12 @@ class DefinitionList
 
         template <typename ParseHandler>
         typename ParseHandler::DefinitionNode front() {
-            JS_ASSERT(!empty());
+            MOZ_ASSERT(!empty());
             return ParseHandler::definitionFromBits(bits);
         }
 
         bool empty() const {
-            JS_ASSERT_IF(!bits, !node);
+            MOZ_ASSERT_IF(!bits, !node);
             return !bits;
         }
     };
@@ -303,13 +303,13 @@ class DefinitionList
 
     explicit DefinitionList(uintptr_t bits) {
         u.bits = bits;
-        JS_ASSERT(!isMultiple());
+        MOZ_ASSERT(!isMultiple());
     }
 
-    explicit DefinitionList(Node *node) {
+    explicit DefinitionList(Node* node) {
         u.head = node;
         u.bits |= 0x1;
-        JS_ASSERT(isMultiple());
+        MOZ_ASSERT(isMultiple());
     }
 
     bool isMultiple() const { return (u.bits & 0x1) != 0; }
@@ -328,8 +328,8 @@ class DefinitionList
         if (!isMultiple())
             return false;
 
-        Node *node = firstNode();
-        Node *next = node->next;
+        Node* node = firstNode();
+        Node* next = node->next;
         if (next->next)
             *this = DefinitionList(next);
         else
@@ -343,9 +343,9 @@ class DefinitionList
      * Return true on success. On OOM, report on cx and return false.
      */
     template <typename ParseHandler>
-    bool pushFront(ExclusiveContext *cx, LifoAlloc &alloc,
+    bool pushFront(ExclusiveContext* cx, LifoAlloc& alloc,
                    typename ParseHandler::DefinitionNode defn) {
-        Node *tail;
+        Node* tail;
         if (isMultiple()) {
             tail = firstNode();
         } else {
@@ -354,7 +354,7 @@ class DefinitionList
                 return false;
         }
 
-        Node *node = allocNode(cx, alloc, ParseHandler::definitionToBits(defn), tail);
+        Node* node = allocNode(cx, alloc, ParseHandler::definitionToBits(defn), tail);
         if (!node)
             return false;
         *this = DefinitionList(node);
@@ -412,15 +412,15 @@ class AtomDecls
     /* AtomDeclsIter needs to get at the DefnListMap directly. */
     friend class AtomDeclsIter;
 
-    ExclusiveContext *cx;
-    LifoAlloc &alloc;
-    AtomDefnListMap  *map;
+    ExclusiveContext* cx;
+    LifoAlloc& alloc;
+    AtomDefnListMap* map;
 
-    AtomDecls(const AtomDecls &other) MOZ_DELETE;
-    void operator=(const AtomDecls &other) MOZ_DELETE;
+    AtomDecls(const AtomDecls& other) = delete;
+    void operator=(const AtomDecls& other) = delete;
 
   public:
-    explicit AtomDecls(ExclusiveContext *cx, LifoAlloc &alloc) : cx(cx),
+    explicit AtomDecls(ExclusiveContext* cx, LifoAlloc& alloc) : cx(cx),
                                                                  alloc(alloc),
                                                                  map(nullptr) {}
 
@@ -433,8 +433,8 @@ class AtomDecls
     }
 
     /* Return the definition at the head of the chain for |atom|. */
-    DefinitionNode lookupFirst(JSAtom *atom) const {
-        JS_ASSERT(map);
+    DefinitionNode lookupFirst(JSAtom* atom) const {
+        MOZ_ASSERT(map);
         AtomDefnListPtr p = map->lookup(atom);
         if (!p)
             return ParseHandler::nullDefinition();
@@ -442,42 +442,42 @@ class AtomDecls
     }
 
     /* Perform a lookup that can iterate over the definitions associated with |atom|. */
-    DefinitionList::Range lookupMulti(JSAtom *atom) const {
-        JS_ASSERT(map);
+    DefinitionList::Range lookupMulti(JSAtom* atom) const {
+        MOZ_ASSERT(map);
         if (AtomDefnListPtr p = map->lookup(atom))
             return p.value().all();
         return DefinitionList::Range();
     }
 
     /* Add-or-update a known-unique definition for |atom|. */
-    bool addUnique(JSAtom *atom, DefinitionNode defn) {
-        JS_ASSERT(map);
+    bool addUnique(JSAtom* atom, DefinitionNode defn) {
+        MOZ_ASSERT(map);
         AtomDefnListAddPtr p = map->lookupForAdd(atom);
         if (!p)
             return map->add(p, atom, DefinitionList(ParseHandler::definitionToBits(defn)));
-        JS_ASSERT(!p.value().isMultiple());
+        MOZ_ASSERT(!p.value().isMultiple());
         p.value() = DefinitionList(ParseHandler::definitionToBits(defn));
         return true;
     }
 
-    bool addShadow(JSAtom *atom, DefinitionNode defn);
+    bool addShadow(JSAtom* atom, DefinitionNode defn);
 
     /* Updating the definition for an entry that is known to exist is infallible. */
-    void updateFirst(JSAtom *atom, DefinitionNode defn) {
-        JS_ASSERT(map);
+    void updateFirst(JSAtom* atom, DefinitionNode defn) {
+        MOZ_ASSERT(map);
         AtomDefnListMap::Ptr p = map->lookup(atom);
-        JS_ASSERT(p);
+        MOZ_ASSERT(p);
         p.value().setFront<ParseHandler>(defn);
     }
 
     /* Remove the node at the head of the chain for |atom|. */
-    void remove(JSAtom *atom) {
-        JS_ASSERT(map);
+    void remove(JSAtom* atom) {
+        MOZ_ASSERT(map);
         AtomDefnListMap::Ptr p = map->lookup(atom);
         if (!p)
             return;
 
-        DefinitionList &list = p.value();
+        DefinitionList& list = p.value();
         if (!list.popFront()) {
             map->remove(p);
             return;
@@ -485,7 +485,7 @@ class AtomDecls
     }
 
     AtomDefnListMap::Range all() const {
-        JS_ASSERT(map);
+        MOZ_ASSERT(map);
         return map->all();
     }
 

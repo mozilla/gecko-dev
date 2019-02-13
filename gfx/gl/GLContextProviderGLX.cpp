@@ -481,7 +481,7 @@ GLXLibrary::AfterGLXCall()
         if (sErrorEvent.mError.error_code) {
             char buffer[2048];
             XGetErrorText(DefaultXDisplay(), sErrorEvent.mError.error_code, buffer, sizeof(buffer));
-            printf_stderr("X ERROR: %s (%i) - Request: %i.%i, Serial: %i",
+            printf_stderr("X ERROR: %s (%i) - Request: %i.%i, Serial: %lu",
                           buffer,
                           sErrorEvent.mError.error_code,
                           sErrorEvent.mError.request_code,
@@ -834,8 +834,9 @@ GLContextGLX::~GLContextGLX()
     bool success =
 #endif
     mGLX->xMakeCurrent(mDisplay, None, nullptr);
-    NS_ABORT_IF_FALSE(success,
-        "glXMakeCurrent failed to release GL context before we call glXDestroyContext!");
+    MOZ_ASSERT(success,
+               "glXMakeCurrent failed to release GL context before we call "
+               "glXDestroyContext!");
 
     mGLX->xDestroyContext(mDisplay, mContext);
 
@@ -1098,7 +1099,7 @@ GLContextProviderGLX::CreateForWindow(nsIWidget *aWidget)
 }
 
 static already_AddRefed<GLContextGLX>
-CreateOffscreenPixmapContext(const gfxIntSize& size)
+CreateOffscreenPixmapContext(const IntSize& size)
 {
     GLXLibrary& glx = sGLXLibrary;
     if (!glx.EnsureInitialized()) {
@@ -1125,7 +1126,8 @@ CreateOffscreenPixmapContext(const gfxIntSize& size)
     }
 
     MOZ_ASSERT(numConfigs > 0,
-               "glXChooseFBConfig() failed to match our requested format and violated its spec!");
+               "glXChooseFBConfig() failed to match our requested format and "
+               "violated its spec!");
 
     int visid = None;
     int chosenIndex = 0;
@@ -1160,7 +1162,7 @@ CreateOffscreenPixmapContext(const gfxIntSize& size)
     GLXPixmap glxpixmap = 0;
     bool error = false;
 
-    gfxIntSize dummySize(16, 16);
+    IntSize dummySize(16, 16);
     nsRefPtr<gfxXlibSurface> xsurface = gfxXlibSurface::Create(DefaultScreenOfDisplay(display),
                                                                visual,
                                                                dummySize);
@@ -1213,17 +1215,26 @@ DONE_CREATING_PIXMAP:
 }
 
 already_AddRefed<GLContext>
-GLContextProviderGLX::CreateOffscreen(const gfxIntSize& size,
-                                      const SurfaceCaps& caps)
+GLContextProviderGLX::CreateHeadless(bool)
 {
-    gfxIntSize dummySize = gfxIntSize(16, 16);
-    nsRefPtr<GLContextGLX> glContext =
-        CreateOffscreenPixmapContext(dummySize);
-
+    IntSize dummySize = IntSize(16, 16);
+    nsRefPtr<GLContext> glContext = CreateOffscreenPixmapContext(dummySize);
     if (!glContext)
         return nullptr;
 
-    if (!glContext->InitOffscreen(ToIntSize(size), caps))
+    return glContext.forget();
+}
+
+already_AddRefed<GLContext>
+GLContextProviderGLX::CreateOffscreen(const IntSize& size,
+                                      const SurfaceCaps& caps,
+                                      bool requireCompatProfile)
+{
+    nsRefPtr<GLContext> glContext = CreateHeadless(requireCompatProfile);
+    if (!glContext)
+        return nullptr;
+
+    if (!glContext->InitOffscreen(size, caps))
         return nullptr;
 
     return glContext.forget();
@@ -1249,7 +1260,7 @@ GLContextProviderGLX::GetGlobalContext()
     if (!triedToCreateContext && !gGlobalContext) {
         triedToCreateContext = true;
 
-        gfxIntSize dummySize = gfxIntSize(16, 16);
+        IntSize dummySize = IntSize(16, 16);
         // StaticPtr doesn't support assignments from already_AddRefed,
         // so use a temporary nsRefPtr to make the reference counting
         // fall out correctly.

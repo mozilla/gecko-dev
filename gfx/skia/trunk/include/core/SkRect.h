@@ -157,6 +157,20 @@ struct SK_API SkIRect {
         fRight = fBottom = SK_MinS32;
     }
 
+    /**
+     *  Return a new IRect, built as an offset of this rect.
+     */
+    SkIRect makeOffset(int dx, int dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight + dx, fBottom + dy);
+    }
+
+    /**
+     *  Return a new IRect, built as an inset of this rect.
+     */
+    SkIRect makeInset(int dx, int dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight - dx, fBottom - dy);
+    }
+
     /** Offset set the rectangle by adding dx to its left and right,
         and adding dy to its top and bottom.
     */
@@ -263,7 +277,6 @@ struct SK_API SkIRect {
         rectangle. If either rectangle is empty, do nothing and return false.
     */
     bool intersect(const SkIRect& a, const SkIRect& b) {
-        SkASSERT(&a && &b);
 
         if (!a.isEmpty() && !b.isEmpty() &&
                 a.fLeft < b.fRight && b.fLeft < a.fRight &&
@@ -284,7 +297,6 @@ struct SK_API SkIRect {
         we assert that both rectangles are non-empty.
     */
     bool intersectNoEmptyCheck(const SkIRect& a, const SkIRect& b) {
-        SkASSERT(&a && &b);
         SkASSERT(!a.isEmpty() && !b.isEmpty());
 
         if (a.fLeft < b.fRight && b.fLeft < a.fRight &&
@@ -443,11 +455,11 @@ struct SK_API SkRect {
         accum *= fBottom;
 
         // accum is either NaN or it is finite (zero).
-        SkASSERT(0 == accum || !(accum == accum));
+        SkASSERT(0 == accum || SkScalarIsNaN(accum));
 
         // value==value will be true iff value is not NaN
         // TODO: is it faster to say !accum or accum==accum?
-        return accum == accum;
+        return !SkScalarIsNaN(accum);
     }
 
     SkScalar    x() const { return fLeft; }
@@ -575,6 +587,20 @@ struct SK_API SkRect {
     void setLargestInverted() {
         fLeft = fTop = SK_ScalarMax;
         fRight = fBottom = SK_ScalarMin;
+    }
+
+    /**
+     *  Return a new Rect, built as an offset of this rect.
+     */
+    SkRect makeOffset(SkScalar dx, SkScalar dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight + dx, fBottom + dy);
+    }
+
+    /**
+     *  Return a new Rect, built as an inset of this rect.
+     */
+    SkRect makeInset(SkScalar dx, SkScalar dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight - dx, fBottom - dy);
     }
 
     /** Offset set the rectangle by adding dx to its left and right,
@@ -732,6 +758,24 @@ struct SK_API SkRect {
     }
 
     /**
+     *  Variant of round() that explicitly performs the rounding step (i.e. floor(x + 0.5)) using
+     *  double instead of SkScalar (float). It does this by calling SkDScalarRoundToInt(), which
+     *  may be slower than calling SkScalarRountToInt(), but gives slightly more accurate results.
+     *
+     *  e.g.
+     *      SkScalar x = 0.49999997f;
+     *      int ix = SkScalarRoundToInt(x);
+     *      SkASSERT(0 == ix);  // <--- fails
+     *      ix = SkDScalarRoundToInt(x);
+     *      SkASSERT(0 == ix);  // <--- succeeds
+     */
+    void dround(SkIRect* dst) const {
+        SkASSERT(dst);
+        dst->set(SkDScalarRoundToInt(fLeft), SkDScalarRoundToInt(fTop),
+                 SkDScalarRoundToInt(fRight), SkDScalarRoundToInt(fBottom));
+    }
+
+    /**
      *  Set the dst rectangle by rounding "out" this rectangle, choosing the
      *  SkScalarFloor of top and left, and the SkScalarCeil of right and bottom.
      */
@@ -787,6 +831,17 @@ struct SK_API SkRect {
      *  cast-safe way to treat the rect as an array of (4) SkScalars.
      */
     const SkScalar* asScalars() const { return &fLeft; }
+
+#ifdef SK_DEVELOPER
+    /**
+     * Dumps the rect using SkDebugf. This is intended for Skia development debugging. Don't
+     * rely on the existence of this function or the formatting of its output.
+     */
+    void dump() const {
+        SkDebugf("{ l: %f, t: %f, r: %f, b: %f }", fLeft, fTop, fRight, fBottom);
+    }
+#endif
+
 };
 
 #endif

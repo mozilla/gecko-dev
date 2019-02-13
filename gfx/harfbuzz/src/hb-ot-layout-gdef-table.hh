@@ -71,7 +71,8 @@ struct AttachList
     return points.len;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (coverage.sanitize (c, this) && attachPoint.sanitize (c, this));
   }
@@ -101,7 +102,8 @@ struct CaretValueFormat1
     return HB_DIRECTION_IS_HORIZONTAL (direction) ? font->em_scale_x (coordinate) : font->em_scale_y (coordinate);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (c->check_struct (this));
   }
@@ -127,7 +129,8 @@ struct CaretValueFormat2
       return 0;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (c->check_struct (this));
   }
@@ -150,7 +153,8 @@ struct CaretValueFormat3
            font->em_scale_y (coordinate) + (this+deviceTable).get_y_delta (font);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (c->check_struct (this) && deviceTable.sanitize (c, this));
   }
@@ -178,7 +182,8 @@ struct CaretValue
     }
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     if (!u.format.sanitize (c)) return TRACE_RETURN (false);
     switch (u.format) {
@@ -219,7 +224,8 @@ struct LigGlyph
     return carets.len;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (carets.sanitize (c, this));
   }
@@ -253,7 +259,8 @@ struct LigCaretList
     return lig_glyph.get_lig_carets (font, direction, glyph_id, start_offset, caret_count, caret_array);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (coverage.sanitize (c, this) && ligGlyph.sanitize (c, this));
   }
@@ -275,14 +282,15 @@ struct MarkGlyphSetsFormat1
   inline bool covers (unsigned int set_index, hb_codepoint_t glyph_id) const
   { return (this+coverage[set_index]).get_coverage (glyph_id) != NOT_COVERED; }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (coverage.sanitize (c, this));
   }
 
   protected:
   USHORT	format;			/* Format identifier--format = 1 */
-  LongOffsetArrayOf<Coverage>
+  ArrayOf<OffsetTo<Coverage, ULONG> >
 		coverage;		/* Array of long offsets to mark set
 					 * coverage tables */
   public:
@@ -299,7 +307,8 @@ struct MarkGlyphSets
     }
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     if (!u.format.sanitize (c)) return TRACE_RETURN (false);
     switch (u.format) {
@@ -360,11 +369,12 @@ struct GDEF
 				      hb_position_t *caret_array /* OUT */) const
   { return (this+ligCaretList).get_lig_carets (font, direction, glyph_id, start_offset, caret_count, caret_array); }
 
-  inline bool has_mark_sets (void) const { return version.to_int () >= 0x00010002 && markGlyphSetsDef[0] != 0; }
+  inline bool has_mark_sets (void) const { return version.to_int () >= 0x00010002u && markGlyphSetsDef[0] != 0; }
   inline bool mark_set_covers (unsigned int set_index, hb_codepoint_t glyph_id) const
-  { return version.to_int () >= 0x00010002 && (this+markGlyphSetsDef[0]).covers (set_index, glyph_id); }
+  { return version.to_int () >= 0x00010002u && (this+markGlyphSetsDef[0]).covers (set_index, glyph_id); }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     return TRACE_RETURN (version.sanitize (c) &&
 			 likely (version.major == 1) &&
@@ -372,7 +382,7 @@ struct GDEF
 			 attachList.sanitize (c, this) &&
 			 ligCaretList.sanitize (c, this) &&
 			 markAttachClassDef.sanitize (c, this) &&
-			 (version.to_int () < 0x00010002 || markGlyphSetsDef[0].sanitize (c, this)));
+			 (version.to_int () < 0x00010002u || markGlyphSetsDef[0].sanitize (c, this)));
   }
 
 
@@ -400,7 +410,7 @@ struct GDEF
 
   protected:
   FixedVersion	version;		/* Version of the GDEF table--currently
-					 * 0x00010002 */
+					 * 0x00010002u */
   OffsetTo<ClassDef>
 		glyphClassDef;		/* Offset to class definition table
 					 * for glyph type--from beginning of

@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import json
 import os
@@ -10,7 +10,8 @@ import os
 import mozpack.path as mozpath
 
 from .base import MozbuildObject
-from .util import DefaultOnReadDict
+from .util import OrderedDefaultDict
+from collections import defaultdict
 
 
 def rewrite_test_base(test, new_base, honor_install_to_subdir=False):
@@ -28,8 +29,10 @@ def rewrite_test_base(test, new_base, honor_install_to_subdir=False):
     test['here'] = mozpath.join(new_base, test['dir_relpath'])
 
     if honor_install_to_subdir and test.get('install-to-subdir'):
+        manifest_relpath = mozpath.relpath(test['path'],
+            mozpath.dirname(test['manifest']))
         test['path'] = mozpath.join(new_base, test['dir_relpath'],
-            test['install-to-subdir'], test['relpath'])
+            test['install-to-subdir'], manifest_relpath)
     else:
         test['path'] = mozpath.join(new_base, test['file_relpath'])
 
@@ -44,8 +47,8 @@ class TestMetadata(object):
     """
 
     def __init__(self, filename=None):
-        self._tests_by_path = DefaultOnReadDict({}, global_default=[])
-        self._tests_by_flavor = DefaultOnReadDict({}, global_default=set())
+        self._tests_by_path = OrderedDefaultDict(list)
+        self._tests_by_flavor = defaultdict(set)
         self._test_dirs = set()
 
         if filename:
@@ -69,7 +72,7 @@ class TestMetadata(object):
         for path in sorted(self._tests_by_flavor.get(flavor, [])):
             yield self._tests_by_path[path]
 
-    def resolve_tests(self, paths=None, flavor=None, under_path=None):
+    def resolve_tests(self, paths=None, flavor=None, subsuite=None, under_path=None):
         """Resolve tests from an identifier.
 
         This is a generator of dicts describing each test.
@@ -77,8 +80,9 @@ class TestMetadata(object):
         ``paths`` can be an iterable of values to use to identify tests to run.
         If an entry is a known test file, tests associated with that file are
         returned (there may be multiple configurations for a single file). If
-        an entry is a directory, all tests in that directory are returned. If
-        the string appears in a known test file, that test file is considered.
+        an entry is a directory, or a prefix of a directory containing tests,
+        all tests in that directory are returned. If the string appears in a
+        known test file, that test file is considered.
 
         If ``under_path`` is a string, it will be used to filter out tests that
         aren't in the specified path prefix relative to topsrcdir or the
@@ -87,12 +91,18 @@ class TestMetadata(object):
         If ``flavor`` is a string, it will be used to filter returned tests
         to only be the flavor specified. A flavor is something like
         ``xpcshell``.
+
+        If ``subsuite`` is a string, it will be used to filter returned tests
+        to only be in the subsuite specified.
         """
         def fltr(tests):
             for test in tests:
                 if flavor:
                    if (flavor == 'devtools' and test.get('flavor') != 'browser-chrome') or \
                       (flavor != 'devtools' and test.get('flavor') != flavor):
+                    continue
+
+                if subsuite and test.get('subsuite') != subsuite:
                     continue
 
                 if under_path \
@@ -114,8 +124,10 @@ class TestMetadata(object):
                 candidate_paths |= set(self._tests_by_path.keys())
                 continue
 
-            # If the path is a directory, pull in all tests in that directory.
-            if path in self._test_dirs:
+            # If the path is a directory, or the path is a prefix of a directory
+            # containing tests, pull in all tests in that directory.
+            if (path in self._test_dirs or
+                any(p.startswith(path) for p in self._tests_by_path)):
                 candidate_paths |= {p for p in self._tests_by_path
                                     if p.startswith(path)}
                 continue
@@ -143,10 +155,20 @@ class TestResolver(MozbuildObject):
                 'mochitest', 'a11y'),
             'browser-chrome': os.path.join(self.topobjdir, '_tests', 'testing',
                 'mochitest', 'browser'),
+            'jetpack-package': os.path.join(self.topobjdir, '_tests', 'testing',
+                'mochitest', 'jetpack-package'),
+            'jetpack-addon': os.path.join(self.topobjdir, '_tests', 'testing',
+                'mochitest', 'jetpack-addon'),
             'chrome': os.path.join(self.topobjdir, '_tests', 'testing',
                 'mochitest', 'chrome'),
             'mochitest': os.path.join(self.topobjdir, '_tests', 'testing',
                 'mochitest', 'tests'),
+            'webapprt-chrome': os.path.join(self.topobjdir, '_tests', 'testing',
+                'mochitest', 'webapprtChrome'),
+            'webapprt-content': os.path.join(self.topobjdir, '_tests', 'testing',
+                'mochitest', 'webapprtContent'),
+            'web-platform-tests': os.path.join(self.topobjdir, '_tests', 'testing',
+                                               'web-platform'),
             'xpcshell': os.path.join(self.topobjdir, '_tests', 'xpcshell'),
         }
 

@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,10 +6,19 @@
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
+let Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var global = this;
+
+
+// Lazily load the finder code
+addMessageListener("Finder:Initialize", function () {
+  let {RemoteFinderListener} = Cu.import("resource://gre/modules/RemoteFinder.jsm", {});
+  new RemoteFinderListener(global);
+});
 
 let ClickEventHandler = {
   init: function init() {
@@ -21,9 +30,7 @@ let ClickEventHandler = {
     this._screenY = null;
     this._lastFrame = null;
 
-    Cc["@mozilla.org/eventlistenerservice;1"]
-      .getService(Ci.nsIEventListenerService)
-      .addSystemEventListener(global, "mousedown", this, true);
+    Services.els.addSystemEventListener(global, "mousedown", this, true);
 
     addMessageListener("Autoscroll:Stop", this);
   },
@@ -53,13 +60,13 @@ let ClickEventHandler = {
     return false;
   },
 
-  startScroll: function(event) {
+  findNearestScrollableElement: function(aNode) {
     // this is a list of overflow property values that allow scrolling
     const scrollingAllowed = ['scroll', 'auto'];
 
     // go upward in the DOM and find any parent element that has a overflow
     // area and can therefore be scrolled
-    for (this._scrollable = event.originalTarget; this._scrollable;
+    for (this._scrollable = aNode; this._scrollable;
          this._scrollable = this._scrollable.parentNode) {
       // do not use overflow based autoscroll for <html> and <body>
       // Elements or non-html elements such as svg or Document nodes
@@ -96,16 +103,25 @@ let ClickEventHandler = {
     }
 
     if (!this._scrollable) {
-      this._scrollable = event.originalTarget.ownerDocument.defaultView;
+      this._scrollable = aNode.ownerDocument.defaultView;
       if (this._scrollable.scrollMaxX > 0) {
         this._scrolldir = this._scrollable.scrollMaxY > 0 ? "NSEW" : "EW";
       } else if (this._scrollable.scrollMaxY > 0) {
         this._scrolldir = "NS";
+      } else if (this._scrollable.frameElement) {
+        this.findNearestScrollableElement(this._scrollable.frameElement);
       } else {
         this._scrollable = null; // abort scrolling
-        return;
       }
     }
+  },
+
+  startScroll: function(event) {
+
+    this.findNearestScrollableElement(event.originalTarget);
+
+    if (!this._scrollable)
+      return;
 
     let [enabled] = sendSyncMessage("Autoscroll:Start",
                                     {scrolldir: this._scrolldir,
@@ -116,9 +132,7 @@ let ClickEventHandler = {
       return;
     }
 
-    Cc["@mozilla.org/eventlistenerservice;1"]
-      .getService(Ci.nsIEventListenerService)
-      .addSystemEventListener(global, "mousemove", this, true);
+    Services.els.addSystemEventListener(global, "mousemove", this, true);
     addEventListener("pagehide", this, true);
 
     this._ignoreMouseEvents = true;
@@ -135,11 +149,10 @@ let ClickEventHandler = {
 
   stopScroll: function() {
     if (this._scrollable) {
+      this._scrollable.mozScrollSnap();
       this._scrollable = null;
 
-      Cc["@mozilla.org/eventlistenerservice;1"]
-        .getService(Ci.nsIEventListenerService)
-        .removeSystemEventListener(global, "mousemove", this, true);
+      Services.els.removeSystemEventListener(global, "mousemove", this, true);
       removeEventListener("pagehide", this, true);
     }
   },
@@ -340,3 +353,297 @@ let PopupBlocking = {
   },
 };
 PopupBlocking.init();
+
+XPCOMUtils.defineLazyGetter(this, "console", () => {
+  // Set up console.* for frame scripts.
+  let Console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+  return new Console.ConsoleAPI();
+});
+
+let Printing = {
+  // Bug 1088061: nsPrintEngine's DoCommonPrint currently expects the
+  // progress listener passed to it to QI to an nsIPrintingPromptService
+  // in order to know that a printing progress dialog has been shown. That's
+  // really all the interface is used for, hence the fact that I don't actually
+  // implement the interface here. Bug 1088061 has been filed to remove
+  // this hackery.
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsIPrintingPromptService]),
+
+  MESSAGES: [
+    "Printing:Preview:Enter",
+    "Printing:Preview:Exit",
+    "Printing:Preview:Navigate",
+    "Printing:Preview:UpdatePageCount",
+    "Printing:Print",
+  ],
+
+  init() {
+    this.MESSAGES.forEach(msgName => addMessageListener(msgName, this));
+  },
+
+  get shouldSavePrintSettings() {
+    return Services.prefs.getBoolPref("print.use_global_printsettings", false) &&
+           Services.prefs.getBoolPref("print.save_print_settings", false);
+  },
+
+  receiveMessage(message) {
+    let objects = message.objects;
+    let data = message.data;
+    switch(message.name) {
+      case "Printing:Preview:Enter": {
+        this.enterPrintPreview(objects.contentWindow);
+        break;
+      }
+
+      case "Printing:Preview:Exit": {
+        this.exitPrintPreview();
+        break;
+      }
+
+      case "Printing:Preview:Navigate": {
+        this.navigate(data.navType, data.pageNum);
+        break;
+      }
+
+      case "Printing:Preview:UpdatePageCount": {
+        this.updatePageCount();
+        break;
+      }
+
+      case "Printing:Print": {
+        this.print(objects.contentWindow);
+        break;
+      }
+    }
+  },
+
+  getPrintSettings() {
+    try {
+      let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"]
+                    .getService(Ci.nsIPrintSettingsService);
+
+      let printSettings = PSSVC.globalPrintSettings;
+      if (!printSettings.printerName) {
+        printSettings.printerName = PSSVC.defaultPrinterName;
+      }
+      // First get any defaults from the printer
+      PSSVC.initPrintSettingsFromPrinter(printSettings.printerName,
+                                         printSettings);
+      // now augment them with any values from last time
+      PSSVC.initPrintSettingsFromPrefs(printSettings, true,
+                                       printSettings.kInitSaveAll);
+
+      return printSettings;
+    } catch(e) {
+      Components.utils.reportError(e);
+    }
+
+    return null;
+  },
+
+  enterPrintPreview(contentWindow) {
+    // We'll call this whenever we've finished reflowing the document, or if
+    // we errored out while attempting to print preview (in which case, we'll
+    // notify the parent that we've failed).
+    let notifyEntered = (error) => {
+      removeEventListener("printPreviewUpdate", onPrintPreviewReady);
+      sendAsyncMessage("Printing:Preview:Entered", {
+        failed: !!error,
+      });
+    };
+
+    let onPrintPreviewReady = () => {
+      notifyEntered();
+    };
+
+    // We have to wait for the print engine to finish reflowing all of the
+    // documents and subdocuments before we can tell the parent to flip to
+    // the print preview UI - otherwise, the print preview UI might ask for
+    // information (like the number of pages in the document) before we have
+    // our PresShells set up.
+    addEventListener("printPreviewUpdate", onPrintPreviewReady);
+
+    try {
+      let printSettings = this.getPrintSettings();
+      docShell.printPreview.printPreview(printSettings, contentWindow, this);
+    } catch(error) {
+      // This might fail if we, for example, attempt to print a XUL document.
+      // In that case, we inform the parent to bail out of print preview.
+      Components.utils.reportError(error);
+      notifyEntered(error);
+    }
+  },
+
+  exitPrintPreview() {
+    docShell.printPreview.exitPrintPreview();
+  },
+
+  print(contentWindow) {
+    let printSettings = this.getPrintSettings();
+    let rv = Cr.NS_OK;
+    try {
+      let print = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebBrowserPrint);
+      print.print(printSettings, null);
+    } catch(e) {
+      // Pressing cancel is expressed as an NS_ERROR_ABORT return value,
+      // causing an exception to be thrown which we catch here.
+      if (e.result != Cr.NS_ERROR_ABORT) {
+        Cu.reportError(`In Printing:Print:Done handler, got unexpected rv
+                        ${e.result}.`);
+      }
+    }
+
+    if (this.shouldSavePrintSettings) {
+      let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"]
+                    .getService(Ci.nsIPrintSettingsService);
+
+      PSSVC.savePrintSettingsToPrefs(printSettings, true,
+                                     printSettings.kInitSaveAll);
+      PSSVC.savePrintSettingsToPrefs(printSettings, false,
+                                     printSettings.kInitSavePrinterName);
+    }
+  },
+
+  updatePageCount() {
+    let numPages = docShell.printPreview.printPreviewNumPages;
+    sendAsyncMessage("Printing:Preview:UpdatePageCount", {
+      numPages: numPages,
+    });
+  },
+
+  navigate(navType, pageNum) {
+    docShell.printPreview.printPreviewNavigate(navType, pageNum);
+  },
+
+  /* nsIWebProgressListener for print preview */
+
+  onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
+    sendAsyncMessage("Printing:Preview:StateChange", {
+      stateFlags: aStateFlags,
+      status: aStatus,
+    });
+  },
+
+  onProgressChange(aWebProgress, aRequest, aCurSelfProgress,
+                   aMaxSelfProgress, aCurTotalProgress,
+                   aMaxTotalProgress) {
+    sendAsyncMessage("Printing:Preview:ProgressChange", {
+      curSelfProgress: aCurSelfProgress,
+      maxSelfProgress: aMaxSelfProgress,
+      curTotalProgress: aCurTotalProgress,
+      maxTotalProgress: aMaxTotalProgress,
+    });
+  },
+
+  onLocationChange(aWebProgress, aRequest, aLocation, aFlags) {},
+  onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {},
+  onSecurityChange(aWebProgress, aRequest, aState) {},
+}
+Printing.init();
+
+function SwitchDocumentDirection(aWindow) {
+ // document.dir can also be "auto", in which case it won't change
+  if (aWindow.document.dir == "ltr" || aWindow.document.dir == "") {
+    aWindow.document.dir = "rtl";
+  } else if (aWindow.document.dir == "rtl") {
+    aWindow.document.dir = "ltr";
+  }
+  for (let run = 0; run < aWindow.frames.length; run++) {
+    SwitchDocumentDirection(aWindow.frames[run]);
+  }
+}
+
+addMessageListener("SwitchDocumentDirection", () => {
+  SwitchDocumentDirection(content.window);
+});
+
+let FindBar = {
+  /* Please keep in sync with toolkit/content/widgets/findbar.xml */
+  FIND_NORMAL: 0,
+  FIND_TYPEAHEAD: 1,
+  FIND_LINKS: 2,
+  FAYT_LINKS_KEY: "'".charCodeAt(0),
+  FAYT_TEXT_KEY: "/".charCodeAt(0),
+
+  _findMode: 0,
+  get _findAsYouType() {
+    return Services.prefs.getBoolPref("accessibility.typeaheadfind");
+  },
+
+  init() {
+    addMessageListener("Findbar:UpdateState", this);
+    Services.els.addSystemEventListener(global, "keypress", this, false);
+    Services.els.addSystemEventListener(global, "mouseup", this, false);
+  },
+
+  receiveMessage(msg) {
+    switch (msg.name) {
+      case "Findbar:UpdateState":
+        this._findMode = msg.data.findMode;
+        this._findAsYouType = msg.data.findAsYouType;
+        break;
+    }
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "keypress":
+        this._onKeypress(event);
+        break;
+      case "mouseup":
+        this._onMouseup(event);
+        break;
+    }
+  },
+
+  /**
+   * Returns whether FAYT can be used for the given event in
+   * the current content state.
+   */
+  _shouldFastFind() {
+    //XXXgijs: why all these shenanigans? Why not use the event's target?
+    let focusedWindow = {};
+    let elt = Services.focus.getFocusedElementForWindow(content, true, focusedWindow);
+    let win = focusedWindow.value;
+    let {BrowserUtils} = Cu.import("resource://gre/modules/BrowserUtils.jsm", {});
+    return BrowserUtils.shouldFastFind(elt, win);
+  },
+
+  _onKeypress(event) {
+    // Useless keys:
+    if (event.ctrlKey || event.altKey || event.metaKey || event.defaultPrevented) {
+      return;
+    }
+    // Not interested in random keypresses most of the time:
+    if (this._findMode == this.FIND_NORMAL && !this._findAsYouType &&
+        event.charCode != this.FAYT_LINKS_KEY && event.charCode != this.FAYT_TEXT_KEY) {
+      return;
+    }
+
+    // Check the focused element etc.
+    if (!this._shouldFastFind()) {
+      return;
+    }
+
+    let fakeEvent = {};
+    for (let k in event) {
+      if (typeof event[k] != "object" && typeof event[k] != "function") {
+        fakeEvent[k] = event[k];
+      }
+    }
+    // sendSyncMessage returns an array of the responses from all listeners
+    let rv = sendSyncMessage("Findbar:Keypress", fakeEvent);
+    if (rv.indexOf(false) !== -1) {
+      event.preventDefault();
+      return false;
+    }
+  },
+
+  _onMouseup(event) {
+    if (this._findMode != this.FIND_NORMAL)
+      sendAsyncMessage("Findbar:Mouseup");
+  },
+};
+FindBar.init();

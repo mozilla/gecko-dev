@@ -81,10 +81,10 @@
 { 0x56c778e4, 0x1bee, 0x45f3, \
   { 0xa6, 0x89, 0x88, 0x66, 0x92, 0xa9, 0x7f, 0xe7 } }
 
-class mozHunspell : public mozISpellCheckingEngine,
-                    public nsIObserver,
-                    public nsSupportsWeakReference,
-                    public nsIMemoryReporter
+class mozHunspell final : public mozISpellCheckingEngine,
+                          public nsIObserver,
+                          public nsSupportsWeakReference,
+                          public nsIMemoryReporter
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -93,17 +93,16 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(mozHunspell, mozISpellCheckingEngine)
 
   mozHunspell();
-  virtual ~mozHunspell();
 
   nsresult Init();
 
-  void LoadDictionaryList();
+  void LoadDictionaryList(bool aNotifyChildProcesses);
 
   // helper method for converting a word to the charset of the dictionary
   nsresult ConvertCharset(const char16_t* aStr, char ** aDst);
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize) override
   {
     return MOZ_COLLECT_REPORT(
       "explicit/spell-check", KIND_HEAP, UNITS_BYTES, HunspellAllocator::MemoryAllocated(),
@@ -111,6 +110,7 @@ public:
   }
 
 protected:
+  virtual ~mozHunspell();
 
   nsCOMPtr<mozIPersonalDictionary> mPersonalDictionary;
   nsCOMPtr<nsIUnicodeEncoder>      mEncoder;

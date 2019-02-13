@@ -5,7 +5,7 @@
 # This file contains code for populating the virtualenv environment for
 # Mozilla's build system. It is typically called as part of configure.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import distutils.sysconfig
 import os
@@ -14,11 +14,11 @@ import subprocess
 import sys
 import warnings
 
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 
 # Minimum version of Python required to build.
-MINIMUM_PYTHON_VERSION = StrictVersion('2.7.3')
+MINIMUM_PYTHON_VERSION = LooseVersion('2.7.3')
 MINIMUM_PYTHON_MAJOR = 2
 
 
@@ -395,6 +395,8 @@ class VirtualenvManager(object):
         """
 
         execfile(self.activate_path, dict(__file__=self.activate_path))
+        if isinstance(os.environ['PATH'], unicode):
+            os.environ['PATH'] = os.environ['PATH'].encode('utf-8')
 
     def install_pip_package(self, package):
         """Install a package via pip.
@@ -434,7 +436,7 @@ def verify_python_version(log_handle):
     """Ensure the current version of Python is sufficient."""
     major, minor, micro = sys.version_info[:3]
 
-    our = StrictVersion('%d.%d.%d' % (major, minor, micro))
+    our = LooseVersion('%d.%d.%d' % (major, minor, micro))
 
     if major != MINIMUM_PYTHON_MAJOR or our < MINIMUM_PYTHON_VERSION:
         log_handle.write('Python %s or greater (but not Python 3) is '

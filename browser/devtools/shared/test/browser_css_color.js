@@ -1,42 +1,31 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
-
-let origColorUnit;
-let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
-let {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
+const TEST_URI = "data:text/html;charset=utf-8,browser_css_color.js";
 let {colorUtils} = devtools.require("devtools/css-color");
+let origColorUnit;
 
-function test() {
-  waitForExplicitFinish();
+add_task(function*() {
+  yield promiseTab("about:blank");
+  let [host, win, doc] = yield createHost("bottom", TEST_URI);
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(init, content);
-  }, true);
+  info("Creating a test canvas element to test colors");
+  let canvas = createTestCanvas(doc);
+  info("Starting the test");
+  testColorUtils(canvas);
 
-  content.location = "data:text/html,browser_css_color.js";
-}
+  host.destroy();
+  gBrowser.removeCurrentTab();
+});
 
-function init() {
-  origColorUnit = Services.prefs.getCharPref(COLOR_UNIT_PREF);
-  createDocument();
-}
-
-function createDocument()
-{
-  let doc = content.document;
-
+function createTestCanvas(doc) {
   let canvas = doc.createElement("canvas");
   canvas.width = canvas.height = 10;
   doc.body.appendChild(canvas);
-
-  testColorUtils();
+  return canvas;
 }
 
-function testColorUtils() {
+function testColorUtils(canvas) {
   let data = getTestData();
 
   for (let {authored, name, hex, hsl, rgb} of data) {
@@ -50,35 +39,28 @@ function testColorUtils() {
     is(color.rgb, rgb, "color.rgb === rgb");
 
     testToString(color, name, hex, hsl, rgb);
-    testColorMatch(name, hex, hsl, rgb, color.rgba);
+    testColorMatch(name, hex, hsl, rgb, color.rgba, canvas);
   }
-  testProcessCSSString();
-  finishUp();
+
+  testSetAlpha();
 }
 
 function testToString(color, name, hex, hsl, rgb) {
-  switchColorUnit(colorUtils.CssColor.COLORUNIT.name);
+  color.colorUnit = colorUtils.CssColor.COLORUNIT.name;
   is(color.toString(), name, "toString() with authored type");
 
-  switchColorUnit(colorUtils.CssColor.COLORUNIT.hex);
+  color.colorUnit = colorUtils.CssColor.COLORUNIT.hex;
   is(color.toString(), hex, "toString() with hex type");
 
-  switchColorUnit(colorUtils.CssColor.COLORUNIT.hsl);
+  color.colorUnit = colorUtils.CssColor.COLORUNIT.hsl;
   is(color.toString(), hsl, "toString() with hsl type");
 
-  switchColorUnit(colorUtils.CssColor.COLORUNIT.rgb);
+  color.colorUnit = colorUtils.CssColor.COLORUNIT.rgb;
   is(color.toString(), rgb, "toString() with rgb type");
-
 }
 
-function switchColorUnit(unit) {
-  Services.prefs.setCharPref(COLOR_UNIT_PREF, unit);
-}
-
-function testColorMatch(name, hex, hsl, rgb, rgba) {
+function testColorMatch(name, hex, hsl, rgb, rgba, canvas) {
   let target;
-
-  let canvas = content.document.querySelector("canvas");
   let ctx = canvas.getContext("2d");
 
   let clearCanvas = function() {
@@ -121,27 +103,29 @@ function testColorMatch(name, hex, hsl, rgb, rgba) {
   test(hex, "hex");
   test(hsl, "hsl");
   test(rgb, "rgb");
-  switchColorUnit(origColorUnit);
 }
 
-function testProcessCSSString() {
-  let before = "border: 1px solid red; border-radius: 5px; " +
-               "color rgb(0, 255, 0); font-weight: bold; " +
-               "background-color: transparent; " +
-               "border-top-color: rgba(0, 0, 255, 0.5);";
-  let expected = "border: 1px solid #F00; border-radius: 5px; " +
-                 "color #0F0; font-weight: bold; " +
-                 "background-color: transparent; " +
-                 "border-top-color: rgba(0, 0, 255, 0.5);";
-  let after = colorUtils.processCSSString(before);
+function testSetAlpha() {
+  let values = [
+    ["longhex", "#ff0000", 0.5, "rgba(255, 0, 0, 0.5)"],
+    ["hex", "#f0f", 0.2, "rgba(255, 0, 255, 0.2)"],
+    ["rgba", "rgba(120, 34, 23, 1)", 0.25, "rgba(120, 34, 23, 0.25)"],
+    ["rgb", "rgb(120, 34, 23)", 0.25, "rgba(120, 34, 23, 0.25)"],
+    ["hsl", "hsl(208, 100%, 97%)", 0.75, "rgba(239, 247, 255, 0.75)"],
+    ["hsla", "hsla(208, 100%, 97%, 1)", 0.75, "rgba(239, 247, 255, 0.75)"]
+  ];
+  values.forEach(([type, value, alpha, expected]) => {
+    is(colorUtils.setAlpha(value, alpha), expected, "correctly sets alpha value for " + type);
+  });
 
-  is(after, expected, "CSS string processed correctly");
-}
+  try {
+    colorUtils.setAlpha("rgb(24, 25, 45, 1)", 1);
+    ok(false, "Should fail when passing in an invalid color.");
+  } catch (e) {
+    ok(true, "Fails when setAlpha receives an invalid color.");
+  }
 
-function finishUp() {
-  Services = colorUtils = Loader = null;
-  gBrowser.removeCurrentTab();
-  finish();
+  is(colorUtils.setAlpha("#fff"), "rgba(255, 255, 255, 1)", "sets alpha to 1 if invalid.");
 }
 
 function getTestData() {
@@ -264,6 +248,7 @@ function getTestData() {
     {authored: "plum", name: "plum", hex: "#DDA0DD", hsl: "hsl(300, 47%, 75%)", rgb: "rgb(221, 160, 221)"},
     {authored: "powderblue", name: "powderblue", hex: "#B0E0E6", hsl: "hsl(187, 52%, 80%)", rgb: "rgb(176, 224, 230)"},
     {authored: "purple", name: "purple", hex: "#800080", hsl: "hsl(300, 100%, 25%)", rgb: "rgb(128, 0, 128)"},
+    {authored: "rebeccapurple", name: "rebeccapurple", hex: "#639", hsl: "hsl(270, 50%, 40%)", rgb: "rgb(102, 51, 153)"},
     {authored: "red", name: "red", hex: "#F00", hsl: "hsl(0, 100%, 50%)", rgb: "rgb(255, 0, 0)"},
     {authored: "rosybrown", name: "rosybrown", hex: "#BC8F8F", hsl: "hsl(0, 25%, 65%)", rgb: "rgb(188, 143, 143)"},
     {authored: "royalblue", name: "royalblue", hex: "#4169E1", hsl: "hsl(225, 73%, 57%)", rgb: "rgb(65, 105, 225)"},

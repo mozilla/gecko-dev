@@ -13,8 +13,9 @@ let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let {require, TargetFactory} = devtools;
 let {Utils: WebConsoleUtils} = require("devtools/toolkit/webconsole/utils");
 let {Messages} = require("devtools/webconsole/console-output");
+const asyncStorage = require("devtools/toolkit/shared/async-storage");
 
-// promise._reportErrors = true; // please never leave me.
+//Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 let gPendingOutputTest = 0;
 
@@ -40,35 +41,13 @@ const WEBCONSOLE_STRINGS_URI = "chrome://browser/locale/devtools/webconsole.prop
 let WCU_l10n = new WebConsoleUtils.l10n(WEBCONSOLE_STRINGS_URI);
 
 gDevTools.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  gDevTools.testing = false;
-});
 
-function log(aMsg)
-{
-  dump("*** WebConsoleTest: " + aMsg + "\n");
+function asyncTest(generator) {
+  return () => {
+    Task.spawn(generator).then(finishTest);
+  };
 }
 
-function pprint(aObj)
-{
-  for (let prop in aObj) {
-    if (typeof aObj[prop] == "function") {
-      log("function " + prop);
-    }
-    else {
-      log(prop + ": " + aObj[prop]);
-    }
-  }
-}
-
-let tab, browser, hudId, hud, hudBox, filterBox, outputNode, cs;
-
-function addTab(aURL)
-{
-  gBrowser.selectedTab = gBrowser.addTab(aURL);
-  tab = gBrowser.selectedTab;
-  browser = gBrowser.getBrowserForTab(tab);
-}
 
 function loadTab(url) {
   let deferred = promise.defer();
@@ -89,7 +68,7 @@ function loadBrowser(browser) {
 
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
-    deferred.resolve(null)
+    deferred.resolve(null);
   }, true);
 
   return deferred.promise;
@@ -198,18 +177,16 @@ function findLogEntry(aString)
  * @return object
  *         A promise that is resolved once the web console is open.
  */
-function openConsole(aTab, aCallback = function() { })
-{
-  let deferred = promise.defer();
-  let target = TargetFactory.forTab(aTab || tab);
-  gDevTools.showToolbox(target, "webconsole").then(function(toolbox) {
+let openConsole = function(aTab) {
+  let webconsoleOpened = promise.defer();
+  let target = TargetFactory.forTab(aTab || gBrowser.selectedTab);
+  gDevTools.showToolbox(target, "webconsole").then(toolbox => {
     let hud = toolbox.getCurrentPanel().hud;
     hud.jsterm._lazyVariablesView = false;
-    aCallback(hud);
-    deferred.resolve(hud);
+    webconsoleOpened.resolve(hud);
   });
-  return deferred.promise;
-}
+  return webconsoleOpened.promise;
+};
 
 /**
  * Close the Web Console for the given tab.
@@ -223,22 +200,13 @@ function openConsole(aTab, aCallback = function() { })
  * @return object
  *         A promise that is resolved once the web console is closed.
  */
-function closeConsole(aTab, aCallback = function() { })
-{
-  let target = TargetFactory.forTab(aTab || tab);
+let closeConsole = Task.async(function* (aTab) {
+  let target = TargetFactory.forTab(aTab || gBrowser.selectedTab);
   let toolbox = gDevTools.getToolbox(target);
   if (toolbox) {
-    let panel = toolbox.getPanel("webconsole");
-    if (panel) {
-      let hudId = panel.hud.hudId;
-      return toolbox.destroy().then(aCallback.bind(null, hudId)).then(null, console.debug);
-    }
-    return toolbox.destroy().then(aCallback.bind(null));
+    yield toolbox.destroy();
   }
-
-  aCallback();
-  return promise.resolve(null);
-}
+});
 
 /**
  * Wait for a context menu popup to open.
@@ -252,14 +220,19 @@ function closeConsole(aTab, aCallback = function() { })
  *        Function to invoke on popupshown event.
  * @param function aOnHidden
  *        Function to invoke on popuphidden event.
+ * @return object
+ *         A Promise object that is resolved after the popuphidden event
+ *         callback is invoked.
  */
 function waitForContextMenu(aPopup, aButton, aOnShown, aOnHidden)
 {
+  let deferred = promise.defer();
+
   function onPopupShown() {
     info("onPopupShown");
     aPopup.removeEventListener("popupshown", onPopupShown);
 
-    aOnShown();
+    aOnShown && aOnShown();
 
     // Use executeSoon() to get out of the popupshown event.
     aPopup.addEventListener("popuphidden", onPopupHidden);
@@ -268,16 +241,35 @@ function waitForContextMenu(aPopup, aButton, aOnShown, aOnHidden)
   function onPopupHidden() {
     info("onPopupHidden");
     aPopup.removeEventListener("popuphidden", onPopupHidden);
-    aOnHidden();
+
+    aOnHidden && aOnHidden();
+
+    deferred.resolve(aPopup);
   }
 
   aPopup.addEventListener("popupshown", onPopupShown);
 
   info("wait for the context menu to open");
-  let eventDetails = { type: "contextmenu", button: 2};
+  let eventDetails = {type: "contextmenu", button: 2};
   EventUtils.synthesizeMouse(aButton, 2, 2, eventDetails,
                              aButton.ownerDocument.defaultView);
+  return deferred.promise;
 }
+
+/**
+ * Listen for a new tab to open and return a promise that resolves when one
+ * does and completes the load event.
+ * @return a promise that resolves to the tab object
+ */
+let waitForTab = Task.async(function*() {
+  info("Waiting for a tab to open");
+  yield once(gBrowser.tabContainer, "TabOpen");
+  let tab = gBrowser.selectedTab;
+  let browser = tab.linkedBrowser;
+  yield once(browser, "load", true);
+  info("The tab load completed");
+  return tab;
+});
 
 /**
  * Dump the output of all open Web Consoles - used only for debugging purposes.
@@ -326,10 +318,7 @@ function dumpMessageElement(aMessage)
                 "text", text);
 }
 
-function finishTest()
-{
-  browser = hudId = hud = filterBox = outputNode = cs = hudBox = null;
-
+let finishTest = Task.async(function* () {
   dumpConsoles();
 
   let browserConsole = HUDService.getBrowserConsole();
@@ -337,27 +326,21 @@ function finishTest()
     if (browserConsole.jsterm) {
       browserConsole.jsterm.clearOutput(true);
     }
-    HUDService.toggleBrowserConsole().then(finishTest);
-    return;
+    yield HUDService.toggleBrowserConsole();
   }
 
-  let hud = HUDService.getHudByWindow(content);
-  if (!hud) {
-    finish();
-    return;
-  }
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
 
-  if (hud.jsterm) {
-    hud.jsterm.clearOutput(true);
-  }
+  finish();
+});
 
-  closeConsole(hud.target.tab, finish);
+registerCleanupFunction(function*() {
+  gDevTools.testing = false;
 
-  hud = null;
-}
+  // Remove stored console commands in between tests
+  yield asyncStorage.removeItem("webConsoleHistory");
 
-function tearDown()
-{
   dumpConsoles();
 
   if (HUDService.getBrowserConsole()) {
@@ -365,14 +348,12 @@ function tearDown()
   }
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  gDevTools.closeToolbox(target);
+  yield gDevTools.closeToolbox(target);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
-  WCU_l10n = tab = browser = hudId = hud = filterBox = outputNode = cs = null;
-}
-
-registerCleanupFunction(tearDown);
+});
 
 waitForExplicitFinish();
 
@@ -381,55 +362,56 @@ waitForExplicitFinish();
  *
  * @param object aOptions
  *        Options object with the following properties:
- *        - validatorFn
+ *        - validator
  *        A validator function that returns a boolean. This is called every few
- *        milliseconds to check if the result is true. When it is true, succesFn
- *        is called and polling stops. If validatorFn never returns true, then
- *        polling timeouts after several tries and a failure is recorded.
- *        - successFn
- *        A function called when the validator function returns true.
- *        - failureFn
- *        A function called if the validator function timeouts - fails to return
- *        true in the given time.
+ *        milliseconds to check if the result is true. When it is true, the
+ *        promise is resolved and polling stops. If validator never returns
+ *        true, then polling timeouts after several tries and the promise is
+ *        rejected.
  *        - name
  *        Name of test. This is used to generate the success and failure
  *        messages.
  *        - timeout
  *        Timeout for validator function, in milliseconds. Default is 5000.
+ * @return object
+ *         A Promise object that is resolved based on the validator function.
  */
 function waitForSuccess(aOptions)
 {
+  let deferred = promise.defer();
   let start = Date.now();
   let timeout = aOptions.timeout || 5000;
+  let {validator} = aOptions;
 
-  function wait(validatorFn, successFn, failureFn)
+
+  function wait()
   {
     if ((Date.now() - start) > timeout) {
       // Log the failure.
       ok(false, "Timed out while waiting for: " + aOptions.name);
-      failureFn(aOptions);
+      deferred.reject(null);
       return;
     }
 
-    if (validatorFn(aOptions)) {
+    if (validator(aOptions)) {
       ok(true, aOptions.name);
-      successFn();
+      deferred.resolve(null);
     }
     else {
-      setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
+      setTimeout(wait, 100);
     }
   }
 
-  wait(aOptions.validatorFn, aOptions.successFn, aOptions.failureFn);
+  setTimeout(wait, 100);
+
+  return deferred.promise;
 }
 
-function openInspector(aCallback, aTab = gBrowser.selectedTab)
-{
+let openInspector = Task.async(function* (aTab = gBrowser.selectedTab) {
   let target = TargetFactory.forTab(aTab);
-  gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    aCallback(toolbox.getCurrentPanel());
-  });
-}
+  let toolbox = yield gDevTools.showToolbox(target, "inspector");
+  return toolbox.getCurrentPanel();
+});
 
 /**
  * Find variables or properties in a VariablesView instance.
@@ -773,10 +755,10 @@ function variablesViewExpandTo(aOptions)
  *          - or "value" to change the property value.
  *        - string: the new string to write into the field.
  *        - webconsole: reference to the Web Console instance we work with.
- *        - callback: function to invoke after the property is updated.
+ * @return object
+ *         A Promise object that is resolved once the property is updated.
  */
-function updateVariablesViewProperty(aOptions)
-{
+let updateVariablesViewProperty = Task.async(function* (aOptions) {
   let view = aOptions.property._variablesView;
   view.window.focus();
   aOptions.property.focus();
@@ -790,27 +772,34 @@ function updateVariablesViewProperty(aOptions)
       break;
     default:
       throw new Error("options.field is incorrect");
-      return;
   }
+
+  let deferred = promise.defer();
 
   executeSoon(() => {
     EventUtils.synthesizeKey("A", { accelKey: true }, view.window);
 
     for (let c of aOptions.string) {
-      EventUtils.synthesizeKey(c, {}, gVariablesView.window);
+      EventUtils.synthesizeKey(c, {}, view.window);
     }
 
     if (aOptions.webconsole) {
-      aOptions.webconsole.jsterm.once("variablesview-fetched", aOptions.callback);
+      aOptions.webconsole.jsterm.once("variablesview-fetched").then((varView) => {
+        deferred.resolve(varView);
+      });
     }
 
     EventUtils.synthesizeKey("VK_RETURN", {}, view.window);
 
     if (!aOptions.webconsole) {
-      executeSoon(aOptions.callback);
+      executeSoon(() => {
+        deferred.resolve(null);
+      });
     }
   });
-}
+
+  return deferred.promise;
+});
 
 /**
  * Open the JavaScript debugger.
@@ -837,7 +826,7 @@ function openDebugger(aOptions = {})
 
   let target = TargetFactory.forTab(aOptions.tab);
   let toolbox = gDevTools.getToolbox(target);
-  let dbgPanelAlreadyOpen = toolbox.getPanel("jsdebugger");
+  let dbgPanelAlreadyOpen = toolbox && toolbox.getPanel("jsdebugger");
 
   gDevTools.showToolbox(target, "jsdebugger").then(function onSuccess(aToolbox) {
     let panel = aToolbox.getCurrentPanel();
@@ -866,6 +855,24 @@ function openDebugger(aOptions = {})
   });
 
   return deferred.promise;
+}
+
+/**
+ * Returns true if the caret in the debugger editor is placed at the specified
+ * position.
+ * @param  aPanel The debugger panel.
+ * @param {number} aLine The line number.
+ * @param {number} [aCol] The column number.
+ * @returns {boolean}
+ */
+function isDebuggerCaretPos(aPanel, aLine, aCol = 1) {
+  let editor = aPanel.panelWin.DebuggerView.editor;
+  let cursor = editor.getCursor();
+
+  // Source editor starts counting line and column numbers from 0.
+  info("Current editor caret position: " + (cursor.line + 1) + ", " +
+    (cursor.ch + 1));
+  return cursor.line == (aLine - 1) && cursor.ch == (aCol - 1);
 }
 
 /**
@@ -905,6 +912,8 @@ function openDebugger(aOptions = {})
  *            message.
  *            - consoleGroup: boolean, set to |true| to match a console.group()
  *            message.
+ *            - consoleTable: boolean, set to |true| to match a console.table()
+ *            message.
  *            - longString: boolean, set to |true} to match long strings in the
  *            message.
  *            - collapsible: boolean, set to |true| to match messages that can
@@ -917,6 +926,7 @@ function openDebugger(aOptions = {})
  *            - source: object of the shape { url, line }. This is used to
  *            match the source URL and line number of the error message or
  *            console API call.
+ *            - prefix: prefix text to check for in the prefix element.
  *            - stacktrace: array of objects of the form { file, fn, line } that
  *            can match frames in the stacktrace associated with the message.
  *            - groupDepth: number used to check the depth of the message in
@@ -937,6 +947,8 @@ function openDebugger(aOptions = {})
  */
 function waitForMessages(aOptions)
 {
+  info("Waiting for messages...");
+
   gPendingOutputTest++;
   let webconsole = aOptions.webconsole;
   let rules = WebConsoleUtils.cloneObject(aOptions.messages, true);
@@ -961,6 +973,22 @@ function waitForMessages(aOptions)
       result = aRule == aText;
     }
     return result;
+  }
+
+  function checkConsoleTable(aRule, aElement)
+  {
+    let elemText = aElement.textContent;
+    let table = aRule.consoleTable;
+
+    if (!checkText("console.table():", elemText)) {
+      return false;
+    }
+
+    aRule.category = CATEGORY_WEBDEV;
+    aRule.severity = SEVERITY_LOG;
+    aRule.type = Messages.ConsoleTable;
+
+    return true;
   }
 
   function checkConsoleTrace(aRule, aElement)
@@ -1127,6 +1155,14 @@ function waitForMessages(aOptions)
     return true;
   }
 
+  function hasXhrLabel(aElement) {
+    let xhr = aElement.querySelector('.xhr');
+    if (!xhr) {
+      return false;
+    }
+    return true;
+  }
+
   function checkMessage(aRule, aElement)
   {
     let elemText = aElement.textContent;
@@ -1136,6 +1172,10 @@ function waitForMessages(aOptions)
     }
 
     if (aRule.noText && checkText(aRule.noText, elemText)) {
+      return false;
+    }
+
+    if (aRule.consoleTable && !checkConsoleTable(aRule, aElement)) {
       return false;
     }
 
@@ -1164,6 +1204,14 @@ function waitForMessages(aOptions)
     }
 
     if ("collapsible" in aRule && !checkCollapsible(aRule, aElement)) {
+      return false;
+    }
+
+    if (aRule.isXhr && !hasXhrLabel(aElement)) {
+      return false;
+    }
+
+    if (!aRule.isXhr && hasXhrLabel(aElement)) {
       return false;
     }
 
@@ -1264,6 +1312,11 @@ function waitForMessages(aOptions)
       aRule.clickableElements = clickables;
     }
 
+    if ("prefix" in aRule) {
+      let prefixNode = aElement.querySelector(".prefix");
+      is(prefixNode && prefixNode.textContent, aRule.prefix, "Check prefix");
+    }
+
     let count = aRule.count || 1;
     if (!aRule.matched) {
       aRule.matched = new Set();
@@ -1273,9 +1326,10 @@ function waitForMessages(aOptions)
     return aRule.matched.size == count;
   }
 
-  function onMessagesAdded(aEvent, aNewElements)
+  function onMessagesAdded(aEvent, aNewMessages)
   {
-    for (let elem of aNewElements) {
+    for (let msg of aNewMessages) {
+      let elem = msg.node;
       let location = elem.querySelector(".message-location");
       if (location) {
         let url = location.title;
@@ -1314,8 +1368,7 @@ function waitForMessages(aOptions)
   {
     if (allRulesMatched()) {
       if (listenerAdded) {
-        webconsole.ui.off("messages-added", onMessagesAdded);
-        webconsole.ui.off("messages-updated", onMessagesAdded);
+        webconsole.ui.off("new-messages", onMessagesAdded);
       }
       gPendingOutputTest--;
       deferred.resolve(rules);
@@ -1330,7 +1383,7 @@ function waitForMessages(aOptions)
     }
 
     if (webconsole.ui) {
-      webconsole.ui.off("messages-added", onMessagesAdded);
+      webconsole.ui.off("new-messages", onMessagesAdded);
     }
 
     for (let rule of rules) {
@@ -1353,12 +1406,21 @@ function waitForMessages(aOptions)
   }
 
   executeSoon(() => {
-    onMessagesAdded("messages-added", webconsole.outputNode.childNodes);
+
+    let messages = [];
+    for (let elem of webconsole.outputNode.childNodes) {
+      messages.push({
+        node: elem,
+        update: false,
+      });
+    }
+
+    onMessagesAdded("new-messages", messages);
+
     if (!allRulesMatched()) {
       listenerAdded = true;
       registerCleanupFunction(testCleanup);
-      webconsole.ui.on("messages-added", onMessagesAdded);
-      webconsole.ui.on("messages-updated", onMessagesAdded);
+      webconsole.ui.on("new-messages", onMessagesAdded);
     }
   });
 
@@ -1398,6 +1460,9 @@ function whenDelayedStartupFinished(aWindow, aCallback)
  *        opening vview for them is very slow (they can cause timeouts in debug
  *        builds).
  *
+ *        - consoleOutput: string|RegExp, optional, expected consoleOutput
+ *        If not provided consoleOuput = output;
+ *
  *        - printOutput: string|RegExp, optional, expected output for
  *        |print(input)|. If this is not provided, printOutput = output.
  *
@@ -1435,14 +1500,18 @@ function checkOutputForInputs(hud, inputTests)
 
   function* checkConsoleLog(entry)
   {
+    info("Logging: " + entry.input);
     hud.jsterm.clearOutput();
     hud.jsterm.execute("console.log(" + entry.input + ")");
+
+    let consoleOutput = "consoleOutput" in entry ?
+                        entry.consoleOutput : entry.output;
 
     let [result] = yield waitForMessages({
       webconsole: hud,
       messages: [{
-        name: "console.log() output: " + entry.output,
-        text: entry.output,
+        name: "console.log() output: " + consoleOutput,
+        text: consoleOutput,
         category: CATEGORY_WEBDEV,
         severity: SEVERITY_LOG,
       }],
@@ -1450,12 +1519,14 @@ function checkOutputForInputs(hud, inputTests)
 
     if (typeof entry.inspectorIcon == "boolean") {
       let msg = [...result.matched][0];
-      yield checkLinkToInspector(entry, msg);
+      info("Checking Inspector Link: " + entry.input);
+      yield checkLinkToInspector(entry.inspectorIcon, msg);
     }
   }
 
   function checkPrintOutput(entry)
   {
+    info("Printing: " + entry.input);
     hud.jsterm.clearOutput();
     hud.jsterm.execute("print(" + entry.input + ")");
 
@@ -1473,6 +1544,7 @@ function checkOutputForInputs(hud, inputTests)
 
   function* checkJSEval(entry)
   {
+    info("Evaluating: " + entry.input);
     hud.jsterm.clearOutput();
     hud.jsterm.execute(entry.input);
 
@@ -1490,12 +1562,14 @@ function checkOutputForInputs(hud, inputTests)
       yield checkObjectClick(entry, msg);
     }
     if (typeof entry.inspectorIcon == "boolean") {
-      yield checkLinkToInspector(entry, msg);
+      info("Checking Inspector Link: " + entry.input);
+      yield checkLinkToInspector(entry.inspectorIcon, msg);
     }
   }
 
   function* checkObjectClick(entry, msg)
   {
+    info("Clicking: " + entry.input);
     let body = msg.querySelector(".message-body a") ||
                msg.querySelector(".message-body");
     ok(body, "the message body");
@@ -1529,31 +1603,9 @@ function checkOutputForInputs(hud, inputTests)
     yield promise.resolve(null);
   }
 
-  function checkLinkToInspector(entry, msg)
-  {
-    let elementNodeWidget = [...msg._messageObject.widgets][0];
-    if (!elementNodeWidget) {
-      ok(!entry.inspectorIcon, "The message has no ElementNode widget");
-      return;
-    }
-
-    return elementNodeWidget.linkToInspector().then(() => {
-      // linkToInspector resolved, check for the .open-inspector element
-      if (entry.inspectorIcon) {
-        ok(msg.querySelectorAll(".open-inspector").length,
-          "The ElementNode widget is linked to the inspector");
-      } else {
-        ok(!msg.querySelectorAll(".open-inspector").length,
-          "The ElementNode widget isn't linked to the inspector");
-      }
-    }, () => {
-      // linkToInspector promise rejected, node not linked to inspector
-      ok(!entry.inspectorIcon, "The ElementNode widget isn't linked to the inspector");
-    });
-  }
-
   function onVariablesViewOpen(entry, {resolve, reject}, event, view, options)
   {
+    info("Variables view opened: " + entry.input);
     let label = entry.variablesViewLabel || entry.output;
     if (typeof label == "string" && options.label != label) {
       return;
@@ -1585,4 +1637,98 @@ function checkOutputForInputs(hud, inputTests)
   }
 
   return Task.spawn(runner);
+}
+
+/**
+ * Wait for eventName on target.
+ * @param {Object} target An observable object that either supports on/off or
+ * addEventListener/removeEventListener
+ * @param {String} eventName
+ * @param {Boolean} useCapture Optional, for addEventListener/removeEventListener
+ * @return A promise that resolves when the event has been handled
+ */
+function once(target, eventName, useCapture=false) {
+  info("Waiting for event: '" + eventName + "' on " + target + ".");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        target[remove](eventName, onEvent, useCapture);
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
+  return deferred.promise;
+}
+
+/**
+ * Checks a link to the inspector
+ *
+ * @param {boolean} hasLinkToInspector Set to true if the message should
+ *  link to the inspector panel.
+ * @param {element} msg The message to test.
+ */
+function checkLinkToInspector(hasLinkToInspector, msg)
+{
+  let elementNodeWidget = [...msg._messageObject.widgets][0];
+  if (!elementNodeWidget) {
+    ok(!hasLinkToInspector, "The message has no ElementNode widget");
+    return;
+  }
+
+  return elementNodeWidget.linkToInspector().then(() => {
+    // linkToInspector resolved, check for the .open-inspector element
+    if (hasLinkToInspector) {
+      ok(msg.querySelectorAll(".open-inspector").length,
+        "The ElementNode widget is linked to the inspector");
+    } else {
+      ok(!msg.querySelectorAll(".open-inspector").length,
+        "The ElementNode widget isn't linked to the inspector");
+    }
+  }, () => {
+    // linkToInspector promise rejected, node not linked to inspector
+    ok(!hasLinkToInspector, "The ElementNode widget isn't linked to the inspector");
+  });
+}
+
+function getSourceActor(aSources, aURL) {
+  let item = aSources.getItemForAttachment(a => a.source.url === aURL);
+  return item && item.value;
+}
+
+/**
+ * Verify that clicking on a link from a popup notification message tries to
+ * open the expected URL.
+ */
+function simulateMessageLinkClick(element, expectedLink) {
+  let deferred = promise.defer();
+
+  // Invoke the click event and check if a new tab would
+  // open to the correct page.
+  let oldOpenUILinkIn = window.openUILinkIn;
+  window.openUILinkIn = function(link) {
+    if (link == expectedLink) {
+      ok(true, "Clicking the message link opens the desired page");
+      window.openUILinkIn = oldOpenUILinkIn;
+      deferred.resolve();
+    }
+  };
+
+  let event = new MouseEvent("click", {
+    detail: 1,
+    button: 0,
+    bubbles: true,
+    cancelable: true
+  });
+  element.dispatchEvent(event);
+
+  return deferred.promise;
 }

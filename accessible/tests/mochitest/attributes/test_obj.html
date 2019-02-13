@@ -28,20 +28,24 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=558036
       testAbsentAttrs(getNode("atomic_false").firstChild, {"container-atomic" : "false"});
 
       testAttrs("autocomplete", {"autocomplete" : "true"}, true);
-      testAttrs("checkbox", {"checkable" : "true"}, true); 
-      testAttrs("checkedCheckbox", {"checkable" : "true"}, true); 
-      testAttrs("checkedMenuitem", {"checkable" : "true"}, true); 
-      testAttrs("checkedOption", {"checkable" : "true"}, true); 
-      testAttrs("checkedRadio", {"checkable" : "true"}, true); 
-      testAttrs("checkedTreeitem", {"checkable" : "true"}, true); 
+      testAttrs("checkbox", {"checkable" : "true"}, true);
+      testAttrs("checkedCheckbox", {"checkable" : "true"}, true);
+      testAttrs("checkedMenuitem", {"checkable" : "true"}, true);
+      testAttrs("checkedOption", {"checkable" : "true"}, true);
+      testAttrs("checkedRadio", {"checkable" : "true"}, true);
+      testAttrs("checkedTreeitem", {"checkable" : "true"}, true);
       testAttrs("dropeffect", {"dropeffect" : "copy"}, true);
       testAttrs("grabbed", {"grabbed" : "true"}, true);
+      testAbsentAttrs("haspopup", { "haspopup": "false" });
       testAttrs("hidden", {"hidden" : "true"}, true);
       testAbsentAttrs("hidden_false", { "hidden": "false" });
+      testAbsentAttrs("modal", {"modal" : "true"});
       testAttrs("sortAscending", {"sort" : "ascending"}, true);
       testAttrs("sortDescending", {"sort" : "descending"}, true);
       testAttrs("sortNone", {"sort" : "none"}, true);
       testAttrs("sortOther", {"sort" : "other"}, true);
+      testAttrs("roledescr", {"roledescription" : "spreadshit"}, true);
+      testAttrs("currentPage", {"current" : "page"}, true);
 
       // inherited attributes by subdocuments
       var subdoc = getAccessible("iframe").firstChild;
@@ -105,6 +109,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=558036
       testAttrs("search", {"text-input-type" : "search"}, true);
       testAttrs("tel", {"text-input-type" : "tel"}, true);
       testAttrs("url", {"text-input-type" : "url"}, true);
+
+      // ARIA
+      testAttrs("searchbox", {"text-input-type" : "search"}, true);
 
       // html
       testAttrs("radio", {"checkable" : "true"}, true); 
@@ -181,6 +188,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=558036
      title="aria-hidden false value shouldn't be exposed via object attributes">
     Mozilla Bug 838407
   </a>
+  <a target="_blank"
+     href="https://bugzilla.mozilla.org/show_bug.cgi?id=1121518"
+     title="ARIA 1.1: Support role 'searchbox'">
+    Mozilla Bug 1121518
+  </a>
   <p id="display"></p>
   <div id="content" style="display: none"></div>
   <pre id="test">
@@ -198,12 +210,16 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=558036
   <div id="checkedTreeitem" role="treeitem" aria-checked="true"></div>
   <div id="dropeffect" aria-dropeffect="copy"></div>
   <div id="grabbed" aria-grabbed="true"></div>
+  <div id="haspopup" aria-haspopup="true"></div>
   <div id="hidden" aria-hidden="true"></div>
   <div id="hidden_false" aria-hidden="false"></div>
+  <div id="modal" aria-modal="true"></div>
   <div id="sortAscending" role="columnheader" aria-sort="ascending"></div>
   <div id="sortDescending" role="columnheader" aria-sort="descending"></div>
   <div id="sortNone" role="columnheader" aria-sort="none"></div>
   <div id="sortOther" role="columnheader" aria-sort="other"></div>
+  <div id="roledescr" aria-roledescription="spreadshit"></div>
+  <div id="currentPage" aria-current="page"></div>
 
   <!-- inherited from iframe -->
   <iframe id="iframe" src="data:text/html,<html><body></body></html>"
@@ -238,6 +254,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=558036
   <input id="search" type="search"/>
   <input id="tel" type="tel"/>
   <input id="url" type="url"/>
+  <div id="searchbox" role="searchbox"></div>
 
   <!-- html -->
   <input id="radio" type="radio"/>

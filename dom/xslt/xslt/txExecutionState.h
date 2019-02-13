@@ -21,13 +21,12 @@
 class txAOutputHandlerFactory;
 class txAXMLEventHandler;
 class txInstruction;
-class txIOutputHandlerFactory;
 
 class txLoadedDocumentEntry : public nsStringHashKey
 {
 public:
-    txLoadedDocumentEntry(KeyTypePointer aStr) : nsStringHashKey(aStr),
-                                                 mLoadResult(NS_OK)
+    explicit txLoadedDocumentEntry(KeyTypePointer aStr) : nsStringHashKey(aStr),
+                                                          mLoadResult(NS_OK)
     {
     }
     txLoadedDocumentEntry(const txLoadedDocumentEntry& aToCopy)
@@ -57,7 +56,7 @@ class txLoadedDocumentsHash : public nsTHashtable<txLoadedDocumentEntry>
 {
 public:
     txLoadedDocumentsHash()
-        : nsTHashtable<txLoadedDocumentEntry>(8),
+        : nsTHashtable<txLoadedDocumentEntry>(4),
           mSourceDocument(nullptr)
     {
     }

@@ -9,11 +9,11 @@
 #include "jscntxt.h"
 #include "jsscript.h"
 
+#include "asmjs/AsmJSLink.h"
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/FoldConstants.h"
 #include "frontend/NameFunctions.h"
 #include "frontend/Parser.h"
-#include "jit/AsmJSLink.h"
 #include "vm/GlobalObject.h"
 #include "vm/TraceLogging.h"
 
@@ -21,20 +21,21 @@
 #include "jsscriptinlines.h"
 
 #include "frontend/Parser-inl.h"
+#include "vm/ScopeObject-inl.h"
 
 using namespace js;
 using namespace js::frontend;
 using mozilla::Maybe;
 
 static bool
-CheckLength(ExclusiveContext *cx, SourceBufferHolder &srcBuf)
+CheckLength(ExclusiveContext* cx, SourceBufferHolder& srcBuf)
 {
     // Note this limit is simply so we can store sourceStart and sourceEnd in
     // JSScript as 32-bits. It could be lifted fairly easily, since the compiler
     // is using size_t internally already.
     if (srcBuf.length() > UINT32_MAX) {
         if (cx->isJSContext())
-            JS_ReportErrorNumber(cx->asJSContext(), js_GetErrorMessage, nullptr,
+            JS_ReportErrorNumber(cx->asJSContext(), GetErrorMessage, nullptr,
                                  JSMSG_SOURCE_TOO_LONG);
         return false;
     }
@@ -42,7 +43,7 @@ CheckLength(ExclusiveContext *cx, SourceBufferHolder &srcBuf)
 }
 
 static bool
-SetDisplayURL(ExclusiveContext *cx, TokenStream &tokenStream, ScriptSource *ss)
+SetDisplayURL(ExclusiveContext* cx, TokenStream& tokenStream, ScriptSource* ss)
 {
     if (tokenStream.hasDisplayURL()) {
         if (!ss->setDisplayURL(cx, tokenStream.displayURL()))
@@ -52,9 +53,10 @@ SetDisplayURL(ExclusiveContext *cx, TokenStream &tokenStream, ScriptSource *ss)
 }
 
 static bool
-SetSourceMap(ExclusiveContext *cx, TokenStream &tokenStream, ScriptSource *ss)
+SetSourceMap(ExclusiveContext* cx, TokenStream& tokenStream, ScriptSource* ss)
 {
     if (tokenStream.hasSourceMapURL()) {
+        MOZ_ASSERT(!ss->hasSourceMapURL());
         if (!ss->setSourceMapURL(cx, tokenStream.sourceMapURL()))
             return false;
     }
@@ -62,7 +64,7 @@ SetSourceMap(ExclusiveContext *cx, TokenStream &tokenStream, ScriptSource *ss)
 }
 
 static bool
-CheckArgumentsWithinEval(JSContext *cx, Parser<FullParseHandler> &parser, HandleFunction fun)
+CheckArgumentsWithinEval(JSContext* cx, Parser<FullParseHandler>& parser, HandleFunction fun)
 {
     if (fun->hasRest()) {
         // It's an error to use |arguments| in a function that has a rest
@@ -91,15 +93,15 @@ CheckArgumentsWithinEval(JSContext *cx, Parser<FullParseHandler> &parser, Handle
 }
 
 static bool
-MaybeCheckEvalFreeVariables(ExclusiveContext *cxArg, HandleScript evalCaller, HandleObject scopeChain,
-                            Parser<FullParseHandler> &parser,
-                            ParseContext<FullParseHandler> &pc)
+MaybeCheckEvalFreeVariables(ExclusiveContext* cxArg, HandleScript evalCaller, HandleObject scopeChain,
+                            Parser<FullParseHandler>& parser,
+                            ParseContext<FullParseHandler>& pc)
 {
     if (!evalCaller || !evalCaller->functionOrCallerFunction())
         return true;
 
     // Eval scripts are only compiled on the main thread.
-    JSContext *cx = cxArg->asJSContext();
+    JSContext* cx = cxArg->asJSContext();
 
     // Watch for uses of 'arguments' within the evaluated script, both as
     // free variables and as variables redeclared with 'var'.
@@ -142,32 +144,31 @@ MaybeCheckEvalFreeVariables(ExclusiveContext *cxArg, HandleScript evalCaller, Ha
 }
 
 static inline bool
-CanLazilyParse(ExclusiveContext *cx, const ReadOnlyCompileOptions &options)
+CanLazilyParse(ExclusiveContext* cx, HandleObject staticScope,
+               const ReadOnlyCompileOptions& options)
 {
     return options.canLazilyParse &&
-        options.compileAndGo &&
-        !cx->compartment()->options().discardSource() &&
-        !options.sourceIsLazy &&
-        !(cx->compartment()->debugMode() &&
-          cx->compartment()->runtimeFromAnyThread()->debugHooks.newScriptHook);
+           !HasNonSyntacticStaticScopeChain(staticScope) &&
+           !cx->compartment()->options().disableLazyParsing() &&
+           !cx->compartment()->options().discardSource() &&
+           !options.sourceIsLazy;
 }
 
 static void
-MarkFunctionsWithinEvalScript(JSScript *script)
+MarkFunctionsWithinEvalScript(JSScript* script)
 {
-    // Mark top level functions in an eval script as being within an eval and,
-    // if applicable, inside a with statement.
+    // Mark top level functions in an eval script as being within an eval.
 
     if (!script->hasObjects())
         return;
 
-    ObjectArray *objects = script->objects();
+    ObjectArray* objects = script->objects();
     size_t start = script->innerObjectsStart();
 
     for (size_t i = start; i < objects->length; i++) {
-        JSObject *obj = objects->vector[i];
+        JSObject* obj = objects->vector[i];
         if (obj->is<JSFunction>()) {
-            JSFunction *fun = &obj->as<JSFunction>();
+            JSFunction* fun = &obj->as<JSFunction>();
             if (fun->hasScript())
                 fun->nonLazyScript()->setDirectlyInsideEval();
             else if (fun->isInterpretedLazy())
@@ -176,24 +177,10 @@ MarkFunctionsWithinEvalScript(JSScript *script)
     }
 }
 
-void
-frontend::MaybeCallSourceHandler(JSContext *cx, const ReadOnlyCompileOptions &options,
-                                 SourceBufferHolder &srcBuf)
+ScriptSourceObject*
+frontend::CreateScriptSourceObject(ExclusiveContext* cx, const ReadOnlyCompileOptions& options)
 {
-    JSSourceHandler listener = cx->runtime()->debugHooks.sourceHandler;
-    void *listenerData = cx->runtime()->debugHooks.sourceHandlerData;
-
-    if (listener) {
-        void *listenerTSData;
-        listener(options.filename(), options.lineno, srcBuf.get(), srcBuf.length(),
-                 &listenerTSData, listenerData);
-    }
-}
-
-ScriptSourceObject *
-frontend::CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOptions &options)
-{
-    ScriptSource *ss = cx->new_<ScriptSource>();
+    ScriptSource* ss = cx->new_<ScriptSource>();
     if (!ss)
         return nullptr;
     ScriptSourceHolder ssHolder(ss);
@@ -201,54 +188,71 @@ frontend::CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOp
     if (!ss->initFromOptions(cx, options))
         return nullptr;
 
-    return ScriptSourceObject::create(cx, ss, options);
+    RootedScriptSource sso(cx, ScriptSourceObject::create(cx, ss));
+    if (!sso)
+        return nullptr;
+
+    // Off-thread compilations do all their GC heap allocation, including the
+    // SSO, in a temporary compartment. Hence, for the SSO to refer to the
+    // gc-heap-allocated values in |options|, it would need cross-compartment
+    // wrappers from the temporary compartment to the real compartment --- which
+    // would then be inappropriate once we merged the temporary and real
+    // compartments.
+    //
+    // Instead, we put off populating those SSO slots in off-thread compilations
+    // until after we've merged compartments.
+    if (cx->isJSContext()) {
+        if (!ScriptSourceObject::initFromOptions(cx->asJSContext(), sso, options))
+            return nullptr;
+    }
+
+    return sso;
 }
 
-JSScript *
-frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject scopeChain,
+JSScript*
+frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject scopeChain,
+                        Handle<ScopeObject*> enclosingStaticScope,
                         HandleScript evalCaller,
-                        const ReadOnlyCompileOptions &options,
-                        SourceBufferHolder &srcBuf,
-                        JSString *source_ /* = nullptr */,
+                        const ReadOnlyCompileOptions& options,
+                        SourceBufferHolder& srcBuf,
+                        JSString* source_ /* = nullptr */,
                         unsigned staticLevel /* = 0 */,
-                        SourceCompressionTask *extraSct /* = nullptr */)
+                        SourceCompressionTask* extraSct /* = nullptr */)
 {
-    JS_ASSERT(srcBuf.get());
+    MOZ_ASSERT(srcBuf.get());
 
     RootedString source(cx, source_);
 
-    js::TraceLogger *logger = nullptr;
+    js::TraceLoggerThread* logger = nullptr;
     if (cx->isJSContext())
         logger = TraceLoggerForMainThread(cx->asJSContext()->runtime());
     else
         logger = TraceLoggerForCurrentThread();
-    uint32_t logId = js::TraceLogCreateTextId(logger, options);
-    js::AutoTraceLog scriptLogger(logger, logId);
-    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileScript);
-
-    if (cx->isJSContext())
-        MaybeCallSourceHandler(cx->asJSContext(), options, srcBuf);
+    js::TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, options);
+    js::AutoTraceLog scriptLogger(logger, event);
+    js::AutoTraceLog typeLogger(logger, TraceLogger_ParserCompileScript);
 
     /*
      * The scripted callerFrame can only be given for compile-and-go scripts
      * and non-zero static level requires callerFrame.
      */
-    JS_ASSERT_IF(evalCaller, options.compileAndGo);
-    JS_ASSERT_IF(evalCaller, options.forEval);
-    JS_ASSERT_IF(staticLevel != 0, evalCaller);
+    MOZ_ASSERT_IF(evalCaller, options.isRunOnce);
+    MOZ_ASSERT_IF(evalCaller, options.forEval);
+    MOZ_ASSERT_IF(evalCaller && evalCaller->strict(), options.strictOption);
+    MOZ_ASSERT_IF(staticLevel != 0, evalCaller);
 
     if (!CheckLength(cx, srcBuf))
         return nullptr;
-    JS_ASSERT_IF(staticLevel != 0, !options.sourceIsLazy);
+    MOZ_ASSERT_IF(staticLevel != 0, !options.sourceIsLazy);
 
     RootedScriptSource sourceObject(cx, CreateScriptSourceObject(cx, options));
     if (!sourceObject)
         return nullptr;
 
-    ScriptSource *ss = sourceObject->source();
+    ScriptSource* ss = sourceObject->source();
 
     SourceCompressionTask mysct(cx);
-    SourceCompressionTask *sct = extraSct ? extraSct : &mysct;
+    SourceCompressionTask* sct = extraSct ? extraSct : &mysct;
 
     if (!cx->compartment()->options().discardSource()) {
         if (options.sourceIsLazy)
@@ -257,43 +261,46 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
             return nullptr;
     }
 
-    bool canLazilyParse = CanLazilyParse(cx, options);
+    bool canLazilyParse = CanLazilyParse(cx, enclosingStaticScope, options);
 
     Maybe<Parser<SyntaxParseHandler> > syntaxParser;
     if (canLazilyParse) {
-        syntaxParser.construct(cx, alloc, options, srcBuf.get(), srcBuf.length(),
-                               /* foldConstants = */ false,
-                               (Parser<SyntaxParseHandler> *) nullptr,
-                               (LazyScript *) nullptr);
+        syntaxParser.emplace(cx, alloc, options, srcBuf.get(), srcBuf.length(),
+                             /* foldConstants = */ false,
+                             (Parser<SyntaxParseHandler>*) nullptr,
+                             (LazyScript*) nullptr);
+
+        if (!syntaxParser->checkOptions())
+            return nullptr;
     }
 
     Parser<FullParseHandler> parser(cx, alloc, options, srcBuf.get(), srcBuf.length(),
                                     /* foldConstants = */ true,
-                                    canLazilyParse ? &syntaxParser.ref() : nullptr, nullptr);
+                                    canLazilyParse ? syntaxParser.ptr() : nullptr, nullptr);
     parser.sct = sct;
     parser.ss = ss;
 
-    Directives directives(options.strictOption);
-    GlobalSharedContext globalsc(cx, scopeChain, directives, options.extraWarningsOption);
+    if (!parser.checkOptions())
+        return nullptr;
 
-    bool savedCallerFun = options.compileAndGo &&
-                          evalCaller && evalCaller->functionOrCallerFunction();
-    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
+    bool savedCallerFun = evalCaller && evalCaller->functionOrCallerFunction();
+    Directives directives(options.strictOption);
+    GlobalSharedContext globalsc(cx, directives, enclosingStaticScope, options.extraWarningsOption);
+
+    Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingStaticScope, savedCallerFun,
                                                   options, staticLevel, sourceObject, 0,
                                                   srcBuf.length()));
     if (!script)
         return nullptr;
 
-    // We can specialize a bit for the given scope chain if that scope chain is the global object.
-    JSObject *globalScope =
-        scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : nullptr;
-    JS_ASSERT_IF(globalScope, globalScope->isNative());
-    JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
-
+    bool insideNonGlobalEval =
+        enclosingStaticScope && enclosingStaticScope->is<StaticEvalObject>() &&
+        enclosingStaticScope->as<StaticEvalObject>().enclosingScopeForStaticScopeIter();
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
-    BytecodeEmitter bce(/* parent = */ nullptr, &parser, &globalsc, script, options.forEval,
-                        evalCaller, !!globalScope, options.lineno, emitterMode);
+    BytecodeEmitter bce(/* parent = */ nullptr, &parser, &globalsc, script,
+                        /* lazyScript = */ nullptr, options.forEval,
+                        evalCaller, insideNonGlobalEval, options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
 
@@ -302,58 +309,40 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     // reset when this occurs.
     Maybe<ParseContext<FullParseHandler> > pc;
 
-    pc.construct(&parser, (GenericParseContext *) nullptr, (ParseNode *) nullptr, &globalsc,
-                 (Directives *) nullptr, staticLevel, /* bodyid = */ 0,
-                 /* blockScopeDepth = */ 0);
-    if (!pc.ref().init(parser.tokenStream))
+    pc.emplace(&parser, (GenericParseContext*) nullptr, (ParseNode*) nullptr, &globalsc,
+               (Directives*) nullptr, staticLevel, /* bodyid = */ 0,
+               /* blockScopeDepth = */ 0);
+    if (!pc->init(parser.tokenStream))
         return nullptr;
 
-    /* If this is a direct call to eval, inherit the caller's strictness.  */
-    if (evalCaller && evalCaller->strict())
-        globalsc.strict = true;
-
-    if (options.compileAndGo) {
-        if (source) {
-            /*
-             * Save eval program source in script->atoms[0] for the
-             * eval cache (see EvalCacheLookup in jsobj.cpp).
-             */
-            JSAtom *atom = AtomizeString(cx, source);
-            jsatomid _;
-            if (!atom || !bce.makeAtomIndex(atom, &_))
-                return nullptr;
-        }
-
-        if (evalCaller && evalCaller->functionOrCallerFunction()) {
-            /*
-             * An eval script in a caller frame needs to have its enclosing
-             * function captured in case it refers to an upvar, and someone
-             * wishes to decompile it while it's running.
-             */
-            JSFunction *fun = evalCaller->functionOrCallerFunction();
-            Directives directives(/* strict = */ fun->strict());
-            ObjectBox *funbox = parser.newFunctionBox(/* fn = */ nullptr, fun, pc.addr(),
-                                                      directives, fun->generatorKind());
-            if (!funbox)
-                return nullptr;
-            bce.objectList.add(funbox);
-        }
+    if (savedCallerFun) {
+        /*
+         * An eval script in a caller frame needs to have its enclosing
+         * function captured in case it refers to an upvar, and someone
+         * wishes to decompile it while it's running.
+         */
+        JSFunction* fun = evalCaller->functionOrCallerFunction();
+        MOZ_ASSERT_IF(fun->strict(), options.strictOption);
+        Directives directives(/* strict = */ options.strictOption);
+        ObjectBox* funbox = parser.newFunctionBox(/* fn = */ nullptr, fun, pc.ptr(),
+                                                  directives, fun->generatorKind());
+        if (!funbox)
+            return nullptr;
+        bce.objectList.add(funbox);
     }
 
     bool canHaveDirectives = true;
     for (;;) {
-        TokenKind tt = parser.tokenStream.peekToken(TokenStream::Operand);
-        if (tt <= TOK_EOF) {
-            if (tt == TOK_EOF)
-                break;
-            JS_ASSERT(tt == TOK_ERROR);
+        TokenKind tt;
+        if (!parser.tokenStream.peekToken(&tt, TokenStream::Operand))
             return nullptr;
-        }
+        if (tt == TOK_EOF)
+            break;
 
         TokenStream::Position pos(parser.keepAtoms);
         parser.tokenStream.tell(&pos);
 
-        ParseNode *pn = parser.statement(canHaveDirectives);
+        ParseNode* pn = parser.statement(YieldIsName, canHaveDirectives);
         if (!pn) {
             if (parser.hadAbortedSyntaxParse()) {
                 // Parsing inner functions lazily may lead the parser into an
@@ -366,29 +355,29 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
                 // Destroying the parse context will destroy its free
                 // variables, so check if any deoptimization is needed.
-                if (!MaybeCheckEvalFreeVariables(cx, evalCaller, scopeChain, parser, pc.ref()))
+                if (!MaybeCheckEvalFreeVariables(cx, evalCaller, scopeChain, parser, *pc))
                     return nullptr;
 
-                pc.destroy();
-                pc.construct(&parser, (GenericParseContext *) nullptr, (ParseNode *) nullptr,
-                             &globalsc, (Directives *) nullptr, staticLevel, /* bodyid = */ 0,
-                             script->bindings.numBlockScoped());
-                if (!pc.ref().init(parser.tokenStream))
+                pc.reset();
+                pc.emplace(&parser, (GenericParseContext*) nullptr, (ParseNode*) nullptr,
+                           &globalsc, (Directives*) nullptr, staticLevel, /* bodyid = */ 0,
+                           script->bindings.numBlockScoped());
+                if (!pc->init(parser.tokenStream))
                     return nullptr;
-                JS_ASSERT(parser.pc == pc.addr());
+                MOZ_ASSERT(parser.pc == pc.ptr());
 
-                pn = parser.statement();
+                pn = parser.statement(YieldIsName);
             }
             if (!pn) {
-                JS_ASSERT(!parser.hadAbortedSyntaxParse());
+                MOZ_ASSERT(!parser.hadAbortedSyntaxParse());
                 return nullptr;
             }
         }
 
-        // Accumulate the maximum block scope depth, so that EmitTree can assert
+        // Accumulate the maximum block scope depth, so that emitTree can assert
         // when emitting JSOP_GETLOCAL that the local is indeed within the fixed
         // part of the stack frame.
-        script->bindings.updateNumBlockScoped(pc.ref().blockScopeDepth);
+        script->bindings.updateNumBlockScoped(pc->blockScopeDepth);
 
         if (canHaveDirectives) {
             if (!parser.maybeParseDirective(/* stmtList = */ nullptr, pn, &canHaveDirectives))
@@ -401,13 +390,16 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         if (!NameFunctions(cx, pn))
             return nullptr;
 
-        if (!EmitTree(cx, &bce, pn))
+        if (!bce.updateLocalsToFrameSlots())
+            return nullptr;
+
+        if (!bce.emitTree(pn))
             return nullptr;
 
         parser.handler.freeTree(pn);
     }
 
-    if (!MaybeCheckEvalFreeVariables(cx, evalCaller, scopeChain, parser, pc.ref()))
+    if (!MaybeCheckEvalFreeVariables(cx, evalCaller, scopeChain, parser, *pc))
         return nullptr;
 
     if (!SetDisplayURL(cx, parser.tokenStream, ss))
@@ -421,6 +413,13 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
      * header) override any source map urls passed as comment pragmas.
      */
     if (options.sourceMapURL()) {
+        // Warn about the replacement, but use the new one.
+        if (ss->hasSourceMapURL()) {
+            if(!parser.report(ParseWarning, false, nullptr, JSMSG_ALREADY_HAS_PRAGMA,
+                              ss->filename(), "//# sourceMappingURL"))
+                return nullptr;
+        }
+
         if (!ss->setSourceMapURL(cx, options.sourceMapURL()))
             return nullptr;
     }
@@ -429,7 +428,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
      * Nowadays the threaded interpreter needs a last return instruction, so we
      * do have to emit that here.
      */
-    if (Emit1(cx, &bce, JSOP_RETRVAL) < 0)
+    if (!bce.emit1(JSOP_RETRVAL))
         return nullptr;
 
     // Global/eval script bindings are always empty (all names are added to the
@@ -437,9 +436,11 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     // locals, however, which are allocated to the fixed part of the stack
     // frame.
     InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, nullptr,
-                                            pc.ref().blockScopeDepth))
+    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, 0,
+                                            pc->blockScopeDepth, 0, 0, nullptr))
+    {
         return nullptr;
+    }
 
     if (!JSScript::fullyInitFromEmitter(cx, script, &bce))
         return nullptr;
@@ -455,35 +456,37 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     if (sct && !extraSct && !sct->complete())
         return nullptr;
 
+    MOZ_ASSERT_IF(cx->isJSContext(), !cx->asJSContext()->isExceptionPending());
     return script;
 }
 
 bool
-frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const jschar *chars, size_t length)
+frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy, const char16_t* chars, size_t length)
 {
-    JS_ASSERT(cx->compartment() == lazy->functionNonDelazifying()->compartment());
+    MOZ_ASSERT(cx->compartment() == lazy->functionNonDelazifying()->compartment());
 
     CompileOptions options(cx, lazy->version());
-    options.setOriginPrincipals(lazy->originPrincipals())
-           .setFileAndLine(lazy->source()->filename(), lazy->lineno())
+    options.setMutedErrors(lazy->mutedErrors())
+           .setFileAndLine(lazy->filename(), lazy->lineno())
            .setColumn(lazy->column())
-           .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setSelfHostingMode(false);
 
-    js::TraceLogger *logger = js::TraceLoggerForMainThread(cx->runtime());
-    uint32_t logId = js::TraceLogCreateTextId(logger, options);
-    js::AutoTraceLog scriptLogger(logger, logId);
-    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileLazy);
+    js::TraceLoggerThread* logger = js::TraceLoggerForMainThread(cx->runtime());
+    js::TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, options);
+    js::AutoTraceLog scriptLogger(logger, event);
+    js::AutoTraceLog typeLogger(logger, TraceLogger_ParserCompileLazy);
 
     Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options, chars, length,
                                     /* foldConstants = */ true, nullptr, lazy);
+    if (!parser.checkOptions())
+        return false;
 
     uint32_t staticLevel = lazy->staticLevel(cx);
 
     Rooted<JSFunction*> fun(cx, lazy->functionNonDelazifying());
-    JS_ASSERT(!lazy->isLegacyGenerator());
-    ParseNode *pn = parser.standaloneLazyFunction(fun, staticLevel, lazy->strict(),
+    MOZ_ASSERT(!lazy->isLegacyGenerator());
+    ParseNode* pn = parser.standaloneLazyFunction(fun, staticLevel, lazy->strict(),
                                                   lazy->generatorKind());
     if (!pn)
         return false;
@@ -493,7 +496,7 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const jsc
 
     RootedObject enclosingScope(cx, lazy->enclosingScope());
     RootedScriptSource sourceObject(cx, lazy->sourceObject());
-    JS_ASSERT(sourceObject);
+    MOZ_ASSERT(sourceObject);
 
     Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingScope, false,
                                                   options, staticLevel,
@@ -505,39 +508,44 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const jsc
 
     if (lazy->directlyInsideEval())
         script->setDirectlyInsideEval();
-    if (lazy->usesArgumentsAndApply())
-        script->setUsesArgumentsAndApply();
+    if (lazy->usesArgumentsApplyAndThis())
+        script->setUsesArgumentsApplyAndThis();
     if (lazy->hasBeenCloned())
         script->setHasBeenCloned();
 
-    BytecodeEmitter bce(/* parent = */ nullptr, &parser, pn->pn_funbox, script, options.forEval,
-                        /* evalCaller = */ NullPtr(), /* hasGlobalScope = */ true,
-                        options.lineno, BytecodeEmitter::LazyFunction);
+    /*
+     * We just pass false for insideNonGlobalEval and insideEval, because we
+     * don't actually know whether we are or not.  The only consumer of those
+     * booleans is TryConvertFreeName, and it has special machinery to avoid
+     * doing bad things when a lazy function is inside eval.
+     */
+    MOZ_ASSERT(!options.forEval);
+    BytecodeEmitter bce(/* parent = */ nullptr, &parser, pn->pn_funbox, script, lazy,
+                        /* insideEval = */ false, /* evalCaller = */ nullptr,
+                        /* insideNonGlobalEval = */ false, options.lineno,
+                        BytecodeEmitter::LazyFunction);
     if (!bce.init())
         return false;
 
-    if (lazy->treatAsRunOnce())
-        bce.lazyRunOnceLambda = true;
-
-    return EmitFunctionScript(cx, &bce, pn->pn_body);
+    return bce.emitFunctionScript(pn->pn_body);
 }
 
 // Compile a JS function body, which might appear as the value of an event
 // handler attribute in an HTML <INPUT> tag, or in a Function() constructor.
 static bool
-CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyCompileOptions &options,
-                    const AutoNameVector &formals, SourceBufferHolder &srcBuf,
-                    GeneratorKind generatorKind)
+CompileFunctionBody(JSContext* cx, MutableHandleFunction fun, const ReadOnlyCompileOptions& options,
+                    const AutoNameVector& formals, SourceBufferHolder& srcBuf,
+                    HandleObject enclosingStaticScope, GeneratorKind generatorKind)
 {
-    js::TraceLogger *logger = js::TraceLoggerForMainThread(cx->runtime());
-    uint32_t logId = js::TraceLogCreateTextId(logger, options);
-    js::AutoTraceLog scriptLogger(logger, logId);
-    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileFunction);
+    MOZ_ASSERT(!options.isRunOnce);
+
+    js::TraceLoggerThread* logger = js::TraceLoggerForMainThread(cx->runtime());
+    js::TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, options);
+    js::AutoTraceLog scriptLogger(logger, event);
+    js::AutoTraceLog typeLogger(logger, TraceLogger_ParserCompileFunction);
 
     // FIXME: make Function pass in two strings and parse them as arguments and
     // ProgramElements respectively.
-
-    MaybeCallSourceHandler(cx, options, srcBuf);
 
     if (!CheckLength(cx, srcBuf))
         return false;
@@ -545,37 +553,42 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
     RootedScriptSource sourceObject(cx, CreateScriptSourceObject(cx, options));
     if (!sourceObject)
         return false;
-    ScriptSource *ss = sourceObject->source();
+    ScriptSource* ss = sourceObject->source();
 
     SourceCompressionTask sct(cx);
-    JS_ASSERT(!options.sourceIsLazy);
+    MOZ_ASSERT(!options.sourceIsLazy);
     if (!cx->compartment()->options().discardSource()) {
         if (!ss->setSourceCopy(cx, srcBuf, true, &sct))
             return false;
     }
 
-    bool canLazilyParse = CanLazilyParse(cx, options);
+    bool canLazilyParse = CanLazilyParse(cx, enclosingStaticScope, options);
 
     Maybe<Parser<SyntaxParseHandler> > syntaxParser;
     if (canLazilyParse) {
-        syntaxParser.construct(cx, &cx->tempLifoAlloc(),
-                               options, srcBuf.get(), srcBuf.length(),
-                               /* foldConstants = */ false,
-                               (Parser<SyntaxParseHandler> *) nullptr,
-                               (LazyScript *) nullptr);
+        syntaxParser.emplace(cx, &cx->tempLifoAlloc(),
+                             options, srcBuf.get(), srcBuf.length(),
+                             /* foldConstants = */ false,
+                             (Parser<SyntaxParseHandler>*) nullptr,
+                             (LazyScript*) nullptr);
+        if (!syntaxParser->checkOptions())
+            return false;
     }
 
-    JS_ASSERT(!options.forEval);
+    MOZ_ASSERT(!options.forEval);
 
     Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(),
                                     options, srcBuf.get(), srcBuf.length(),
                                     /* foldConstants = */ true,
-                                    canLazilyParse ? &syntaxParser.ref() : nullptr, nullptr);
+                                    canLazilyParse ? syntaxParser.ptr() : nullptr, nullptr);
     parser.sct = &sct;
     parser.ss = ss;
 
-    JS_ASSERT(fun);
-    JS_ASSERT(fun->isTenured());
+    if (!parser.checkOptions())
+        return false;
+
+    MOZ_ASSERT(fun);
+    MOZ_ASSERT(fun->isTenured());
 
     fun->setArgCount(formals.length());
 
@@ -588,7 +601,7 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
     TokenStream::Position start(parser.keepAtoms);
     parser.tokenStream.tell(&start);
 
-    ParseNode *fn;
+    ParseNode* fn;
     while (true) {
         Directives newDirectives = directives;
         fn = parser.standaloneFunctionBody(fun, formals, generatorKind, directives, &newDirectives);
@@ -605,8 +618,8 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
                 return false;
 
             // Assignment must be monotonic to prevent reparsing iloops
-            JS_ASSERT_IF(directives.strict(), newDirectives.strict());
-            JS_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
+            MOZ_ASSERT_IF(directives.strict(), newDirectives.strict());
+            MOZ_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
             directives = newDirectives;
         }
 
@@ -616,10 +629,16 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
     if (!NameFunctions(cx, fn))
         return false;
 
-    if (fn->pn_funbox->function()->isInterpreted()) {
-        JS_ASSERT(fun == fn->pn_funbox->function());
+    if (!SetDisplayURL(cx, parser.tokenStream, ss))
+        return false;
 
-        Rooted<JSScript*> script(cx, JSScript::Create(cx, js::NullPtr(), false, options,
+    if (!SetSourceMap(cx, parser.tokenStream, ss))
+        return false;
+
+    if (fn->pn_funbox->function()->isInterpreted()) {
+        MOZ_ASSERT(fun == fn->pn_funbox->function());
+
+        Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingStaticScope, false, options,
                                                       /* staticLevel = */ 0, sourceObject,
                                                       /* sourceStart = */ 0, srcBuf.length()));
         if (!script)
@@ -627,32 +646,19 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
         script->bindings = fn->pn_funbox->bindings;
 
-        /*
-         * The reason for checking fun->environment() below is that certain
-         * consumers of JS::CompileFunction, namely
-         * EventListenerManager::CompileEventHandlerInternal, passes in a
-         * nullptr environment. This compiled function is never used, but
-         * instead is cloned immediately onto the right scope chain.
-         */
         BytecodeEmitter funbce(/* parent = */ nullptr, &parser, fn->pn_funbox, script,
-                               /* insideEval = */ false, /* evalCaller = */ js::NullPtr(),
-                               fun->environment() && fun->environment()->is<GlobalObject>(),
-                               options.lineno);
+                               /* lazyScript = */ nullptr, /* insideEval = */ false,
+                               /* evalCaller = */ nullptr,
+                               /* insideNonGlobalEval = */ false, options.lineno);
         if (!funbce.init())
             return false;
 
-        if (!EmitFunctionScript(cx, &funbce, fn->pn_body))
+        if (!funbce.emitFunctionScript(fn->pn_body))
             return false;
     } else {
         fun.set(fn->pn_funbox->function());
-        JS_ASSERT(IsAsmJSModuleNative(fun->native()));
+        MOZ_ASSERT(IsAsmJSModuleNative(fun->native()));
     }
-
-    if (!SetDisplayURL(cx, parser.tokenStream, ss))
-        return false;
-
-    if (!SetSourceMap(cx, parser.tokenStream, ss))
-        return false;
 
     if (!sct.complete())
         return false;
@@ -661,17 +667,19 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 }
 
 bool
-frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun,
-                              const ReadOnlyCompileOptions &options,
-                              const AutoNameVector &formals, JS::SourceBufferHolder &srcBuf)
+frontend::CompileFunctionBody(JSContext* cx, MutableHandleFunction fun,
+                              const ReadOnlyCompileOptions& options,
+                              const AutoNameVector& formals, JS::SourceBufferHolder& srcBuf,
+                              HandleObject enclosingStaticScope)
 {
-    return CompileFunctionBody(cx, fun, options, formals, srcBuf, NotGenerator);
+    return CompileFunctionBody(cx, fun, options, formals, srcBuf,
+                               enclosingStaticScope, NotGenerator);
 }
 
 bool
-frontend::CompileStarGeneratorBody(JSContext *cx, MutableHandleFunction fun,
-                                   const ReadOnlyCompileOptions &options, const AutoNameVector &formals,
-                                   JS::SourceBufferHolder &srcBuf)
+frontend::CompileStarGeneratorBody(JSContext* cx, MutableHandleFunction fun,
+                                   const ReadOnlyCompileOptions& options, const AutoNameVector& formals,
+                                   JS::SourceBufferHolder& srcBuf)
 {
-    return CompileFunctionBody(cx, fun, options, formals, srcBuf, StarGenerator);
+    return CompileFunctionBody(cx, fun, options, formals, srcBuf, nullptr, StarGenerator);
 }

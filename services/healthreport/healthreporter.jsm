@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-
 #ifndef MERGED_COMPARTMENT
+
+"use strict";
 
 this.EXPORTED_SYMBOLS = ["HealthReporter"];
 
@@ -28,6 +28,8 @@ Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryController",
+                                  "resource://gre/modules/TelemetryController.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 
@@ -127,8 +129,13 @@ HealthReporterState.prototype = Object.freeze({
   },
 
   init: function () {
-    return Task.spawn(function init() {
-      OS.File.makeDir(this._stateDir);
+    return Task.spawn(function* init() {
+      yield OS.File.makeDir(this._stateDir);
+
+      let drs = Cc["@mozilla.org/datareporting/service;1"]
+                  .getService(Ci.nsISupports)
+                  .wrappedJSObject;
+      let drsClientID = yield drs.getClientID();
 
       let resetObjectState = function () {
         this._s = {
@@ -136,7 +143,7 @@ HealthReporterState.prototype = Object.freeze({
           // backwards-incompatible change.
           v: 1,
           // The persistent client identifier.
-          clientID: CommonUtils.generateUUID(),
+          clientID: drsClientID,
           // Denotes the mechanism used to generate the client identifier.
           // 1: Random UUID.
           clientIDVersion: 1,
@@ -176,22 +183,7 @@ HealthReporterState.prototype = Object.freeze({
         // comes along and fixes us.
       }
 
-      let regen = false;
-      if (!this._s.clientID) {
-        this._log.warn("No client ID stored. Generating random ID.");
-        regen = true;
-      }
-
-      if (typeof(this._s.clientID) != "string") {
-        this._log.warn("Client ID is not a string. Regenerating.");
-        regen = true;
-      }
-
-      if (regen) {
-        this._s.clientID = CommonUtils.generateUUID();
-        this._s.clientIDVersion = 1;
-        yield this.save();
-      }
+      this._s.clientID = drsClientID;
 
       // Always look for preferences. This ensures that downgrades followed
       // by reupgrades don't result in excessive data loss.
@@ -253,24 +245,6 @@ HealthReporterState.prototype = Object.freeze({
     return this.removeRemoteIDs(ids);
   },
 
-  /**
-   * Reset the client ID to something else.
-   *
-   * This fails if remote IDs are stored because changing the client ID
-   * while there is remote data will create orphaned records.
-   */
-  resetClientID: function () {
-    if (this.remoteIDs.length) {
-      throw new Error("Cannot reset client ID while remote IDs are stored.");
-    }
-
-    this._log.warn("Resetting client ID.");
-    this._s.clientID = CommonUtils.generateUUID();
-    this._s.clientIDVersion = 1;
-
-    return this.save();
-  },
-
   _migratePrefs: function () {
     let prefs = this._reporter._prefs;
 
@@ -298,7 +272,7 @@ HealthReporterState.prototype = Object.freeze({
       yield this.save();
       prefs.reset(["lastSubmitID", "lastPingTime"]);
     } else {
-      this._log.warn("No prefs data found.");
+      this._log.debug("No prefs data found.");
     }
   },
 });
@@ -350,6 +324,13 @@ function AbstractHealthReporter(branch, policy, sessionRecorder) {
   let hasFirstRun = this._prefs.get("service.firstRun", false);
   this._initHistogram = hasFirstRun ? TELEMETRY_INIT : TELEMETRY_INIT_FIRSTRUN;
   this._dbOpenHistogram = hasFirstRun ? TELEMETRY_DB_OPEN : TELEMETRY_DB_OPEN_FIRSTRUN;
+
+  // This is set to the name for the provider that we are currently initializing,
+  // shutting down or collecting data from, if any.
+  // This is used for AsyncShutdownTimeout diagnostics.
+  this._currentProviderInShutdown = null;
+  this._currentProviderInInit = null;
+  this._currentProviderInCollect = null;
 }
 
 AbstractHealthReporter.prototype = Object.freeze({
@@ -420,7 +401,10 @@ AbstractHealthReporter.prototype = Object.freeze({
             storageInProgress: this._storageInProgress,
             hasProviderManager: !!this._providerManager,
             hasStorage: !!this._storage,
-            shutdownComplete: this._shutdownComplete
+            shutdownComplete: this._shutdownComplete,
+            currentProviderInShutdown: this._currentProviderInShutdown,
+            currentProviderInInit: this._currentProviderInInit,
+            currentProviderInCollect: this._currentProviderInCollect,
           }));
 
       try {
@@ -494,7 +478,7 @@ AbstractHealthReporter.prototype = Object.freeze({
     }.bind(this));
   },
 
-  _initializeProviderManager: function () {
+  _initializeProviderManager: Task.async(function* _initializeProviderManager() {
     if (this._collector) {
       throw new Error("Provider manager has already been initialized.");
     }
@@ -508,10 +492,12 @@ AbstractHealthReporter.prototype = Object.freeze({
     let catString = this._prefs.get("service.providerCategories") || "";
     if (catString.length) {
       for (let category of catString.split(",")) {
-        yield this._providerManager.registerProvidersFromCategoryManager(category);
+        yield this._providerManager.registerProvidersFromCategoryManager(category,
+                     providerName => this._currentProviderInInit = providerName);
       }
+      this._currentProviderInInit = null;
     }
-  },
+  }),
 
   _onProviderManagerInitialized: function () {
     TelemetryStopwatch.finish(this._initHistogram, this);
@@ -546,7 +532,7 @@ AbstractHealthReporter.prototype = Object.freeze({
       // HealthReporter instances, we need to encode a unique identifier in
       // the timer ID.
       try {
-        let timerName = this._branch.replace(".", "-", "g") + "lastDailyCollection";
+        let timerName = this._branch.replace(/\./g, "-") + "lastDailyCollection";
         let tm = Cc["@mozilla.org/updates/timer-manager;1"]
                    .getService(Ci.nsIUpdateTimerManager);
         tm.registerTimer(timerName, this.collectMeasurements.bind(this),
@@ -625,6 +611,8 @@ AbstractHealthReporter.prototype = Object.freeze({
           this._log.info("Shutting down provider manager.");
           for (let provider of this._providerManager.providers) {
             try {
+              this._log.info("Shutting down provider: " + provider.name);
+              this._currentProviderInShutdown = provider.name;
               yield provider.shutdown();
             } catch (ex) {
               this._log.warn("Error when shutting down provider: " +
@@ -633,6 +621,7 @@ AbstractHealthReporter.prototype = Object.freeze({
           }
           this._log.info("Provider manager shut down.");
           this._providerManager = null;
+          this._currentProviderInShutdown = null;
           this._onProviderManagerShutdown();
         }
         if (this._storage) {
@@ -760,16 +749,21 @@ AbstractHealthReporter.prototype = Object.freeze({
     // where UAppData is underneath the profile directory (or vice-versa) so we
     // don't substitute incomplete strings.
 
+    // Return a /g regex that matches the provided string exactly.
+    function regexify(s) {
+      return new RegExp(s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&"), "g");
+    }
+
     function replace(uri, path, thing) {
       // Try is because .spec can throw on invalid URI.
       try {
-        recordMessage = recordMessage.replace(uri.spec, '<' + thing + 'URI>', 'g');
+        recordMessage = recordMessage.replace(regexify(uri.spec), "<" + thing + "URI>");
       } catch (ex) { }
 
-      recordMessage = recordMessage.replace(path, '<' + thing + 'Path>', 'g');
+      recordMessage = recordMessage.replace(regexify(path), "<" + thing + "Path>");
     }
 
-    if (appData.path.contains(profile.path)) {
+    if (appData.path.includes(profile.path)) {
       replace(appDataURI, appData.path, 'AppData');
       replace(profileURI, profile.path, 'Profile');
     } else {
@@ -794,7 +788,8 @@ AbstractHealthReporter.prototype = Object.freeze({
 
       try {
         TelemetryStopwatch.start(TELEMETRY_COLLECT_CONSTANT, this);
-        yield this._providerManager.collectConstantData();
+        yield this._providerManager.collectConstantData(name => this._currentProviderInCollect = name);
+        this._currentProviderInCollect = null;
         TelemetryStopwatch.finish(TELEMETRY_COLLECT_CONSTANT, this);
       } catch (ex) {
         TelemetryStopwatch.cancel(TELEMETRY_COLLECT_CONSTANT, this);
@@ -814,7 +809,8 @@ AbstractHealthReporter.prototype = Object.freeze({
         try {
           TelemetryStopwatch.start(TELEMETRY_COLLECT_DAILY, this);
           this._lastDailyDate = new Date();
-          yield this._providerManager.collectDailyData();
+          yield this._providerManager.collectDailyData(name => this._currentProviderInCollect = name);
+          this._currentProviderInCollect = null;
           TelemetryStopwatch.finish(TELEMETRY_COLLECT_DAILY, this);
         } catch (ex) {
           TelemetryStopwatch.cancel(TELEMETRY_COLLECT_DAILY, this);
@@ -1178,11 +1174,11 @@ AbstractHealthReporter.prototype = Object.freeze({
  * @param policy
  *        (HealthReportPolicy) Policy driving execution of HealthReporter.
  */
-this.HealthReporter = function (branch, policy, sessionRecorder, stateLeaf=null) {
+this.HealthReporter = function (branch, policy, stateLeaf=null) {
   this._stateLeaf = stateLeaf;
   this._uploadInProgress = false;
 
-  AbstractHealthReporter.call(this, branch, policy, sessionRecorder);
+  AbstractHealthReporter.call(this, branch, policy, TelemetryController.getSessionRecorder());
 
   if (!this.serverURI) {
     throw new Error("No server URI defined. Did you forget to define the pref?");
@@ -1260,8 +1256,8 @@ this.HealthReporter.prototype = Object.freeze({
    * Whether this instance will upload data to a server.
    */
   get willUploadData() {
-    return this._policy.dataSubmissionPolicyAccepted &&
-           this._policy.healthReportUploadEnabled;
+    return  this._policy.userNotifiedOfCurrentPolicy &&
+            this._policy.healthReportUploadEnabled;
   },
 
   /**
@@ -1321,8 +1317,8 @@ this.HealthReporter.prototype = Object.freeze({
     // Need to capture this before we call the parent else it's always
     // set.
     let inShutdown = this._shutdownRequested;
-
     let result;
+
     try {
       result = AbstractHealthReporter.prototype._onInitError.call(this, error);
     } catch (ex) {
@@ -1335,8 +1331,8 @@ this.HealthReporter.prototype = Object.freeze({
     // startup errors is important. And, they should not occur with much
     // frequency in the wild. So, it shouldn't be too big of a deal.
     if (!inShutdown &&
-        this._policy.ensureNotifyResponse(new Date()) &&
-        this._policy.healthReportUploadEnabled) {
+        this._policy.healthReportUploadEnabled &&
+        this._policy.ensureUserNotified()) {
       // We don't care about what happens to this request. It's best
       // effort.
       let request = {
@@ -1363,7 +1359,12 @@ this.HealthReporter.prototype = Object.freeze({
         // The built-in provider may not be initialized if this instance failed
         // to initialize fully.
         if (hrProvider && !isDelete) {
-          hrProvider.recordEvent("uploadTransportFailure", date);
+          try {
+            hrProvider.recordEvent("uploadTransportFailure", date);
+          } catch (ex) {
+            this._log.error("Error recording upload transport failure: " +
+                            CommonUtils.exceptionStr(ex));
+          }
         }
 
         request.onSubmissionFailureSoft("Network transport error.");
@@ -1372,7 +1373,12 @@ this.HealthReporter.prototype = Object.freeze({
 
       if (!result.serverSuccess) {
         if (hrProvider && !isDelete) {
-          hrProvider.recordEvent("uploadServerFailure", date);
+          try {
+            hrProvider.recordEvent("uploadServerFailure", date);
+          } catch (ex) {
+            this._log.error("Error recording server failure: " +
+                            CommonUtils.exceptionStr(ex));
+          }
         }
 
         request.onSubmissionFailureHard("Server failure.");
@@ -1380,7 +1386,12 @@ this.HealthReporter.prototype = Object.freeze({
       }
 
       if (hrProvider && !isDelete) {
-        hrProvider.recordEvent("uploadSuccess", date);
+        try {
+          hrProvider.recordEvent("uploadSuccess", date);
+        } catch (ex) {
+          this._log.error("Error recording upload success: " +
+                          CommonUtils.exceptionStr(ex));
+        }
       }
 
       if (isDelete) {
@@ -1445,7 +1456,12 @@ this.HealthReporter.prototype = Object.freeze({
         if (hrProvider) {
           let event = lastID ? "continuationUploadAttempt"
                              : "firstDocumentUploadAttempt";
-          hrProvider.recordEvent(event, now);
+          try {
+            hrProvider.recordEvent(event, now);
+          } catch (ex) {
+            this._log.error("Error when recording upload attempt: " +
+                            CommonUtils.exceptionStr(ex));
+          }
         }
 
         TelemetryStopwatch.start(TELEMETRY_UPLOAD, this);
@@ -1461,7 +1477,12 @@ this.HealthReporter.prototype = Object.freeze({
         } catch (ex) {
           TelemetryStopwatch.cancel(TELEMETRY_UPLOAD, this);
           if (hrProvider) {
-            hrProvider.recordEvent("uploadClientFailure", now);
+            try {
+              hrProvider.recordEvent("uploadClientFailure", now);
+            } catch (ex) {
+              this._log.error("Error when recording client failure: " +
+                              CommonUtils.exceptionStr(ex));
+            }
           }
           throw ex;
         }
@@ -1497,13 +1518,6 @@ this.HealthReporter.prototype = Object.freeze({
       } catch (ex) {
         this._log.error("Error processing request to delete data: " +
                         CommonUtils.exceptionStr(error));
-      } finally {
-        // If we don't have any remote documents left, nuke the ID.
-        // This is done for privacy reasons. Why preserve the ID if we
-        // don't need to?
-        if (!this.haveRemoteData()) {
-          yield this._state.resetClientID();
-        }
       }
     }.bind(this));
   },

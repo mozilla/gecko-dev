@@ -22,6 +22,7 @@
 #include "malloc_decls.h"
 
 #include "mozilla/Likely.h"
+
 /*
  * Windows doesn't come with weak imports as they are possible with
  * LD_PRELOAD or DYLD_INSERT_LIBRARIES on Linux/OSX. On this platform,
@@ -76,10 +77,11 @@ replace_malloc_init_funcs()
 }
 #  elif defined(MOZ_WIDGET_ANDROID)
 #    include <dlfcn.h>
+#    include <stdlib.h>
 static void
 replace_malloc_init_funcs()
 {
-  char *replace_malloc_lib = getenv("MOZ_REPLACE_MALLOC_LIB");
+  const char *replace_malloc_lib = getenv("MOZ_REPLACE_MALLOC_LIB");
   if (replace_malloc_lib && *replace_malloc_lib) {
     void *handle = dlopen(replace_malloc_lib, RTLD_LAZY);
     if (handle) {
@@ -101,17 +103,6 @@ replace_malloc_init_funcs()
  * Below is the malloc implementation overriding jemalloc and calling the
  * replacement functions if they exist.
  */
-
-/*
- * On OSX, MOZ_MEMORY_API is defined to nothing, because malloc functions
- * are meant to have hidden visibility. But since the functions are only
- * used locally in the zone allocator further below, we can allow the
- * compiler to optimize more by switching to static.
- */
-#ifdef XP_DARWIN
-#undef MOZ_MEMORY_API
-#define MOZ_MEMORY_API static
-#endif
 
 /*
  * Malloc implementation functions are MOZ_MEMORY_API, and jemalloc
@@ -139,6 +130,16 @@ init()
   replace_malloc_initialized = 1;
   if (replace_init)
     replace_init(&malloc_table);
+}
+
+MFBT_API struct ReplaceMallocBridge*
+get_bridge(void)
+{
+  if (MOZ_UNLIKELY(!replace_malloc_initialized))
+    init();
+  if (MOZ_LIKELY(!replace_get_bridge))
+    return NULL;
+  return replace_get_bridge();
 }
 
 void*

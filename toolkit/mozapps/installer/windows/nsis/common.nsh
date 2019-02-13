@@ -957,7 +957,7 @@
 !ifndef KEY_WOW64_64KEY
   !define KEY_WOW64_64KEY 0x0100
 !endif
-!ifndef HAVE_64BIT_OS
+!ifndef HAVE_64BIT_BUILD
   !define CREATE_KEY_SAM ${KEY_SET_VALUE}
 !else
   !define CREATE_KEY_SAM ${KEY_SET_VALUE}|${KEY_WOW64_64KEY}
@@ -1641,8 +1641,8 @@
 
 !macroend
 
-!define RegisterDLL `!insertmacro RegisterDLL`
-!define UnregisterDLL `!insertmacro UnregisterDLL`
+!define RegisterDLL "!insertmacro RegisterDLL"
+!define UnregisterDLL "!insertmacro UnregisterDLL"
 
 
 ################################################################################
@@ -2527,7 +2527,7 @@
         ; Set the registry to the 32 bit registry for 64 bit installations or to
         ; the 64 bit registry for 32 bit installations at the beginning so it can
         ; easily be set back to the correct registry view when finished.
-        !ifdef HAVE_64BIT_OS
+        !ifdef HAVE_64BIT_BUILD
           SetRegView 32
         !else
           SetRegView 64
@@ -2584,7 +2584,7 @@
       ${If} ${RunningX64}
       ${AndIf} "$R0" == "false"
         ; Set the registry to the correct view.
-        !ifdef HAVE_64BIT_OS
+        !ifdef HAVE_64BIT_BUILD
           SetRegView 64
         !else
           SetRegView 32
@@ -2693,7 +2693,7 @@
         ; Set the registry to the 32 bit registry for 64 bit installations or to
         ; the 64 bit registry for 32 bit installations at the beginning so it can
         ; easily be set back to the correct registry view when finished.
-        !ifdef HAVE_64BIT_OS
+        !ifdef HAVE_64BIT_BUILD
           SetRegView 32
         !else
           SetRegView 64
@@ -2720,7 +2720,7 @@
       ${If} ${RunningX64}
       ${AndIf} "$R3" == "false"
         ; Set the registry to the correct view.
-        !ifdef HAVE_64BIT_OS
+        !ifdef HAVE_64BIT_BUILD
           SetRegView 64
         !else
           SetRegView 32
@@ -4332,136 +4332,172 @@
 !macroend
 
 /**
- * Parses the uninstall.log for the stub installer on install to first remove a
- * previous installation's files prior to installing.
+ * Parses the precomplete file to remove an installation's files and
+ * directories.
  *
- * When modifying this macro be aware that LineFind uses all registers except
- * $R0-$R3 so be cautious. Callers of this macro are not affected.
+ * @param   _CALLBACK
+ *          The function address of a callback function for progress or "false"
+ *          if there is no callback function.
  *
- * @param   _PROGRESSBAR
- *          The progress bar to update using PBM_STEPIT. Can also be "false" if
- *          updating a progressbar isn't needed.
- * @param   _INSTALL_STEP_COUNTER
- *          The install step counter to increment. The variable specified in
- *          this parameter is also updated. Can also be "false" if a counter
- *          isn't needed.
- *
- * $R2 = _INSTALL_STEP_COUNTER
- * $R3 = _PROGRESSBAR
+ * $R3 = false if all files were deleted or moved to the tobedeleted directory.
+ *       true if file(s) could not be moved to the tobedeleted directory.
+ * $R4 = Path to temporary precomplete file.
+ * $R5 = File handle for the temporary precomplete file.
+ * $R6 = String returned from FileRead.
+ * $R7 = First seven characters of the string returned from FileRead.
+ * $R8 = Temporary file path used to rename files that are in use.
+ * $R9 = _CALLBACK
  */
-!macro OnStubInstallUninstall
+!macro RemovePrecompleteEntries
 
-  !ifndef OnStubInstallUninstall
-    !insertmacro GetParent
-    !insertmacro LineFind
-    !insertmacro TrimNewLines
+  !ifndef ${_MOZFUNC_UN}RemovePrecompleteEntries
+    !define _MOZFUNC_UN_TMP ${_MOZFUNC_UN}
+    !insertmacro ${_MOZFUNC_UN_TMP}GetParent
+    !insertmacro ${_MOZFUNC_UN_TMP}TrimNewLines
+    !insertmacro ${_MOZFUNC_UN_TMP}WordReplace
+    !undef _MOZFUNC_UN
+    !define _MOZFUNC_UN ${_MOZFUNC_UN_TMP}
+    !undef _MOZFUNC_UN_TMP
 
     !verbose push
     !verbose ${_MOZFUNC_VERBOSE}
-    !define OnStubInstallUninstall "!insertmacro OnStubInstallUninstallCall"
+    !define ${_MOZFUNC_UN}RemovePrecompleteEntries "!insertmacro ${_MOZFUNC_UN}RemovePrecompleteEntriesCall"
 
-    Function OnStubInstallUninstall
-      Exch $R2
-      Exch 1
-      Exch $R3
-      Push $R9
+    Function ${_MOZFUNC_UN}RemovePrecompleteEntries
+      Exch $R9
       Push $R8
       Push $R7
       Push $R6
       Push $R5
       Push $R4
-      Push $R1
-      Push $R0
-      Push $TmpVal
+      Push $R3
 
-      IfFileExists "$INSTDIR\uninstall\uninstall.log" +1 end
+      ${If} ${FileExists} "$INSTDIR\precomplete"
+        StrCpy $R3 "false"
 
-      ; Copy the uninstall log file to a temporary file
-      GetTempFileName $TmpVal
-      CopyFiles /SILENT /FILESONLY "$INSTDIR\uninstall\uninstall.log" "$TmpVal"
+        RmDir /r "$INSTDIR\${TO_BE_DELETED}"
+        CreateDirectory "$INSTDIR\${TO_BE_DELETED}"
+        GetTempFileName $R4 "$INSTDIR\${TO_BE_DELETED}"
+        Delete "$R4"
+        Rename "$INSTDIR\precomplete" "$R4"
 
-      CreateDirectory "$INSTDIR\${TO_BE_DELETED}"
+        ClearErrors
+        ; Rename and then remove files
+        FileOpen $R5 "$R4" r
+        ${Do}
+          FileRead $R5 $R6
+          ${If} ${Errors}
+            ${Break}
+          ${EndIf}
 
-      ; Delete files
-      ${LineFind} "$TmpVal" "/NUL" "1:-1" "StubRemoveFilesCallback"
+          ${${_MOZFUNC_UN}TrimNewLines} "$R6" $R6
+          ; Replace all occurrences of "/" with "\".
+          ${${_MOZFUNC_UN}WordReplace} "$R6" "/" "\" "+" $R6
 
-      ; Delete the temporary uninstall log file
-      Delete /REBOOTOK "$TmpVal"
+          ; Copy the first 7 chars
+          StrCpy $R7 "$R6" 7
+          ${If} "$R7" == "remove "
+            ; Copy the string starting after the 8th char
+            StrCpy $R6 "$R6" "" 8
+            ; Copy all but the last char to remove the double quote.
+            StrCpy $R6 "$R6" -1
+            ${If} ${FileExists} "$INSTDIR\$R6"
+              ${Unless} "$R9" == "false"
+                Call $R9
+              ${EndUnless}
 
-      RmDir /r /REBOOTOK "$INSTDIR\${TO_BE_DELETED}"
+              ClearErrors
+              Delete "$INSTDIR\$R6"
+              ${If} ${Errors}
+                GetTempFileName $R8 "$INSTDIR\${TO_BE_DELETED}"
+                Delete "$R8"
+                ClearErrors
+                Rename "$INSTDIR\$R6" "$R8"
+                ${Unless} ${Errors}
+                  Delete /REBOOTOK "$R8"
 
-      end:
+                  ClearErrors
+                ${EndUnless}
+!ifdef __UNINSTALL__
+                ${If} ${Errors}
+                  Delete /REBOOTOK "$INSTDIR\$R6"
+                  StrCpy $R3 "true"
+                  ClearErrors
+                ${EndIf}
+!endif
+              ${EndIf}
+            ${EndIf}
+          ${ElseIf} "$R7" == "rmdir $\""
+            ; Copy the string starting after the 7th char.
+            StrCpy $R6 "$R6" "" 7
+            ; Copy all but the last two chars to remove the slash and the double quote.
+            StrCpy $R6 "$R6" -2
+            ${If} ${FileExists} "$INSTDIR\$R6"
+              ; Ignore directory removal errors
+              RmDir "$INSTDIR\$R6"
+              ClearErrors
+            ${EndIf}
+          ${EndIf}
+        ${Loop}
+        FileClose $R5
+
+        ; Delete the temporary precomplete file
+        Delete /REBOOTOK "$R4"
+
+        RmDir /r /REBOOTOK "$INSTDIR\${TO_BE_DELETED}"
+
+        ${If} ${RebootFlag}
+        ${AndIf} "$R3" == "false"
+          ; Clear the reboot flag if all files were deleted or moved to the
+          ; tobedeleted directory.
+          SetRebootFlag false
+        ${EndIf}
+      ${EndIf}
+
       ClearErrors
 
-      Pop $TmpVal
-      Pop $R0
-      Pop $R1
+      Pop $R3
       Pop $R4
       Pop $R5
       Pop $R6
       Pop $R7
       Pop $R8
-      Pop $R9
-      Exch $R3
-      Exch 1
-      Exch $R2
-    FunctionEnd
-
-    Function StubRemoveFilesCallback
-      ${TrimNewLines} "$R9" $R9
-      StrCpy $R1 "$R9" 5       ; Copy the first five chars
-
-      StrCmp "$R1" "File:" +1 end
-      StrCpy $R9 "$R9" "" 6    ; Copy string starting after the 6th char
-      StrCpy $R0 "$R9" 1       ; Copy the first char
-
-      StrCmp "$R0" "\" +1 end  ; If this isn't a relative path goto end
-      StrCmp "$R9" "\MapiProxy_InUse.dll" end +1 ; Skip the MapiProxy_InUse.dll
-      StrCmp "$R9" "\mozMapi32_InUse.dll" end +1 ; Skip the mozMapi32_InUse.dll
-
-      StrCpy $R1 "$INSTDIR$R9" ; Copy the install dir path and suffix it with the string
-      IfFileExists "$R1" +1 end
-
-      ${Unless} "$R2" == "false"
-        IntOp $R2 $R2 + 2
-      ${EndIf}
-      ${Unless} "$R3" == "false"
-        SendMessage $R3 ${PBM_STEPIT} 0 0
-        SendMessage $R3 ${PBM_STEPIT} 0 0
-      ${EndIf}
-
-      ClearErrors
-      Delete "$R1"
-      ${Unless} ${Errors}
-        Goto end
-      ${EndUnless}
-
-      GetTempFileName $R0 "$INSTDIR\${TO_BE_DELETED}"
-      Delete "$R0"
-      ClearErrors
-      Rename "$R1" "$R0"
-      ${If} ${Errors}
-        Delete /REBOOTOK "$R1"
-      ${EndUnless}
-
-      end:
-      ClearErrors
-
-      Push 0
+      Exch $R9
     FunctionEnd
 
     !verbose pop
   !endif
 !macroend
 
-!macro OnStubInstallUninstallCall _PROGRESSBAR _INSTALL_STEP_COUNTER
+!macro RemovePrecompleteEntriesCall _CALLBACK
   !verbose push
-  Push "${_PROGRESSBAR}"
-  Push "${_INSTALL_STEP_COUNTER}"
+  Push "${_CALLBACK}"
   !verbose ${_MOZFUNC_VERBOSE}
-  Call OnStubInstallUninstall
-  Pop ${_INSTALL_STEP_COUNTER}
+  Call RemovePrecompleteEntries
   !verbose pop
+!macroend
+
+!macro un.RemovePrecompleteEntriesCall _CALLBACK
+  !verbose push
+  !verbose ${_MOZFUNC_VERBOSE}
+  Push "${_CALLBACK}"
+  Call un.RemovePrecompleteEntries
+  !verbose pop
+!macroend
+
+!macro un.RemovePrecompleteEntries
+  !ifndef un.RemovePrecompleteEntries
+    !verbose push
+    !verbose ${_MOZFUNC_VERBOSE}
+    !undef _MOZFUNC_UN
+    !define _MOZFUNC_UN "un."
+
+    !insertmacro RemovePrecompleteEntries
+
+    !undef _MOZFUNC_UN
+    !define _MOZFUNC_UN
+    !verbose pop
+  !endif
 !macroend
 
 /**
@@ -5037,9 +5073,9 @@
       Push $R6
       Push $R5
 
-      !ifdef HAVE_64BIT_OS
+      !ifdef HAVE_64BIT_BUILD
         ${Unless} ${RunningX64}
-        ${OrUnless} ${AtLeastWinVista}
+        ${OrUnless} ${AtLeastWin7}
           MessageBox MB_OK|MB_ICONSTOP "$R9" IDOK
           ; Nothing initialized so no need to call OnEndCommon
           Quit
@@ -5114,7 +5150,7 @@
             SetSilent silent
             ReadINIStr $R8 $R7 "Install" "InstallDirectoryName"
             ${If} $R8 != ""
-              !ifdef HAVE_64BIT_OS
+              !ifdef HAVE_64BIT_BUILD
                 StrCpy $INSTDIR "$PROGRAMFILES64\$R8"
               !else
                 StrCpy $INSTDIR "$PROGRAMFILES32\$R8"
@@ -5267,7 +5303,7 @@
       Reboot
       Quit ; Nothing initialized so no need to call OnEndCommon
 
-      !ifdef HAVE_64BIT_OS
+      !ifdef HAVE_64BIT_BUILD
         SetRegView 64
       !endif
 
@@ -5442,7 +5478,7 @@
         Abort
       ${EndUnless}
 
-      !ifdef HAVE_64BIT_OS
+      !ifdef HAVE_64BIT_BUILD
         SetRegView 64
       !endif
 
@@ -5674,8 +5710,6 @@
       RmDir /r "$INSTDIR\updates"
       Delete "$INSTDIR\updates.xml"
       Delete "$INSTDIR\active-update.xml"
-
-      RmDir /r "$INSTDIR\distribution"
 
       ; Remove files from the uninstall directory.
       ${If} ${FileExists} "$INSTDIR\uninstall"
@@ -6061,13 +6095,15 @@
         ${LogMsg} "OS Name    : Windows 7"
       ${ElseIf} ${IsWin8}
         ${LogMsg} "OS Name    : Windows 8"
-      ${ElseIf} ${AtLeastWin8}
-        ${LogMsg} "OS Name    : Above Windows 8"
+      ${ElseIf} ${IsWin8.1}
+        ${LogMsg} "OS Name    : Windows 8.1"
+      ${ElseIf} ${AtLeastWin8.1}
+        ${LogMsg} "OS Name    : Above Windows 8.1"
       ${Else}
         ${LogMsg} "OS Name    : Unable to detect"
       ${EndIf}
 
-      !ifdef HAVE_64BIT_OS
+      !ifdef HAVE_64BIT_BUILD
         ${LogMsg} "Target CPU : x64"
       !else
         ${LogMsg} "Target CPU : x86"
@@ -7276,6 +7312,153 @@
   !endif
 !macroend
 
+################################################################################
+# Helpers for taskbar progress
+
+!ifndef CLSCTX_INPROC_SERVER
+  !define CLSCTX_INPROC_SERVER  1
+!endif
+
+!define CLSID_ITaskbarList {56fdf344-fd6d-11d0-958a-006097c9a090}
+!define IID_ITaskbarList3 {ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf}
+!define ITaskbarList3->SetProgressValue $ITaskbarList3->9
+!define ITaskbarList3->SetProgressState $ITaskbarList3->10
+
+/**
+ * Creates a single uninitialized object of the ITaskbarList class with a
+ * reference to the ITaskbarList3 interface. This object can be used to set
+ * progress and state on the installer's taskbar icon using the helper macros
+ * in this section.
+ */
+!macro ITBL3Create
+
+  !ifndef ${_MOZFUNC_UN}ITBL3Create
+    Var ITaskbarList3
+
+    !verbose push
+    !verbose ${_MOZFUNC_VERBOSE}
+    !define ${_MOZFUNC_UN}ITBL3Create "!insertmacro ${_MOZFUNC_UN}ITBL3CreateCall"
+
+    Function ${_MOZFUNC_UN}ITBL3Create
+      ; Setting to 0 allows the helper macros to detect when the object was not
+      ; created.
+      StrCpy $ITaskbarList3 0
+      ; Don't create when running silently.
+      ${Unless} ${Silent}
+        ; This is only supported on Win 7 and above.
+        ${If} ${AtLeastWin7}
+          System::Call "ole32::CoCreateInstance(g '${CLSID_ITaskbarList}', \
+                                                i 0, \
+                                                i ${CLSCTX_INPROC_SERVER}, \
+                                                g '${IID_ITaskbarList3}', \
+                                                *i .s)"
+          Pop $ITaskbarList3
+        ${EndIf}
+      ${EndUnless}
+    FunctionEnd
+
+    !verbose pop
+  !endif
+!macroend
+
+!macro ITBL3CreateCall
+  !verbose push
+  !verbose ${_MOZFUNC_VERBOSE}
+  Call ITBL3Create
+  !verbose pop
+!macroend
+
+!macro un.ITBL3CreateCall _PATH_TO_IMAGE
+  !verbose push
+  !verbose ${_MOZFUNC_VERBOSE}
+  Call un.ITBL3Create
+  !verbose pop
+!macroend
+
+!macro un.ITBL3Create
+  !ifndef un.ITBL3Create
+    !verbose push
+    !verbose ${_MOZFUNC_VERBOSE}
+    !undef _MOZFUNC_UN
+    !define _MOZFUNC_UN "un."
+
+    !insertmacro ITBL3Create
+
+    !undef _MOZFUNC_UN
+    !define _MOZFUNC_UN
+    !verbose pop
+  !endif
+!macroend
+
+/**
+ * Sets the percentage completed on the taskbar process icon progress indicator.
+ *
+ * @param   _COMPLETED
+ *          The proportion of the operation that has been completed in relation
+ *          to _TOTAL.
+ * @param   _TOTAL
+ *          The value _COMPLETED will have when the operation has completed.
+ *
+ * $R8 = _COMPLETED
+ * $R9 = _TOTAL
+ */
+!macro ITBL3SetProgressValueCall _COMPLETED _TOTAL
+  Push ${_COMPLETED}
+  Push ${_TOTAL}
+  ${CallArtificialFunction} ITBL3SetProgressValue_
+!macroend
+
+!define ITBL3SetProgressValue "!insertmacro ITBL3SetProgressValueCall"
+!define un.ITBL3SetProgressValue "!insertmacro ITBL3SetProgressValueCall"
+
+!macro ITBL3SetProgressValue_
+  Exch $R9
+  Exch 1
+  Exch $R8
+  ${If} $ITaskbarList3 <> 0
+    System::Call "${ITaskbarList3->SetProgressValue}(i$HWNDPARENT, l$R8, l$R9)"
+  ${EndIf}
+  Exch $R8
+  Exch 1
+  Exch $R9
+!macroend
+
+; Normal state / no progress bar
+!define TBPF_NOPROGRESS       0x00000000
+; Marquee style progress bar
+!define TBPF_INDETERMINATE    0x00000001
+; Standard progress bar
+!define TBPF_NORMAL           0x00000002
+; Red taskbar button to indicate an error occurred
+!define TBPF_ERROR            0x00000004
+; Yellow taskbar button to indicate user attention (input) is required to
+; resume progress
+!define TBPF_PAUSED           0x00000008
+
+/**
+ * Sets the state on the taskbar process icon progress indicator.
+ *
+ * @param   _STATE
+ *          The state to set on the taskbar icon progress indicator. Only one of
+ *          the states defined above should be specified.
+ *
+ * $R9 = _STATE
+ */
+!macro ITBL3SetProgressStateCall _STATE
+  Push ${_STATE}
+  ${CallArtificialFunction} ITBL3SetProgressState_
+!macroend
+
+!define ITBL3SetProgressState "!insertmacro ITBL3SetProgressStateCall"
+!define un.ITBL3SetProgressState "!insertmacro ITBL3SetProgressStateCall"
+
+!macro ITBL3SetProgressState_
+  Exch $R9
+  ${If} $ITaskbarList3 <> 0
+    System::Call "${ITaskbarList3->SetProgressState}(i$HWNDPARENT, i$R9)"
+  ${EndIf}
+  Exch $R9
+!macroend
 
 ################################################################################
 # Helpers for the new user interface
@@ -7378,7 +7561,7 @@
   Exch $0
   Pop ${HANDLE}
 !macroend
-!define SetStretchedTransparentImage `!insertmacro __SetStretchedTransparentImage`
+!define SetStretchedTransparentImage "!insertmacro __SetStretchedTransparentImage"
 
 /**
  * Removes a single style from a control.
@@ -7717,8 +7900,8 @@
  * System::Call "kernel32::GetTickCount()l .s"
  * Pop $varname
  *
- * _START_TICK_COUNT    
- * _FINISH_TICK_COUNT   
+ * _START_TICK_COUNT
+ * _FINISH_TICK_COUNT
  * _RES_ELAPSED_SECONDS return value - elapsed time between _START_TICK_COUNT
  *                      and _FINISH_TICK_COUNT in seconds.
  */
@@ -7750,129 +7933,4 @@
   Pop $1
   Exch $0 ; return elapsed seconds
 !macroend
-
-!ifdef MOZ_METRO
-; Removes the CEH registration if it's set to our installation directory.
-; If it's set to some other installation directory, then it should be removed
-; by that installation.
-!macro RemoveDEHRegistrationIfMatchingCall un
-
-  Function ${un}RemoveDEHRegistrationIfMatchingCall
-    ; Retrieve DEH ID from the stack into $R9
-    Exch $R9
-    Exch 1
-
-    ; Retrieve Protocol Activation ID from stack into $R8
-    Exch $R8
-    Exch 2
-
-    ; Retrieve File Activation ID from stack into $R7
-    Exch $R7
-
-    ; Backup the old values of R6 and R5 on the stack
-    Push $R6
-    Push $R5
-
-    ; Conditionally remove the DEH as long as we are the default (HKCU)
-    ReadRegStr $R6 HKCU "Software\Classes\CLSID\$R9\LocalServer32" ""
-    ${${un}GetLongPath} "$INSTDIR" $R5
-    StrCmp "$R6" "" next +1
-    IfFileExists "$R6" +1 clearHKCU
-    ${${un}GetParent} "$R6" $R6
-    ${${un}GetLongPath} "$R6" $R6
-    StrCmp "$R5" "$R6" clearHKCU next
-    clearHKCU:
-    DeleteRegKey HKCU "Software\Classes\CLSID\$R9"
-    DeleteRegValue HKCU "Software\Classes\$R8\shell\open\command" "DelegateExecute"
-    DeleteRegValue HKCU "Software\Classes\$R7\shell\open\command" "DelegateExecute"
-    next:
-
-    ; Conditionally remove the DEH as long as we are the default (HKLM)
-    ReadRegStr $R6 HKLM "Software\Classes\CLSID\$R9\LocalServer32" ""
-    ${${un}GetLongPath} "$INSTDIR" $R5
-    StrCmp "$R6" "" done +1
-    IfFileExists "$R6" +1 clearHKLM
-    ${${un}GetParent} "$R6" $R6
-    ${${un}GetLongPath} "$R6" $R6
-    StrCmp "$R5" "$R6" clearHKLM done
-    clearHKLM:
-    DeleteRegKey HKLM "Software\Classes\CLSID\$R9"
-    DeleteRegValue HKLM "Software\Classes\$R8\shell\open\command" "DelegateExecute"
-    DeleteRegValue HKLM "Software\Classes\$R7\shell\open\command" "DelegateExecute"
-    done:
-
-    ; Always remove the AppUserModelID keys for this installation
-    DeleteRegKey HKCU "Software\Classes\$AppUserModelID"
-    DeleteRegKey HKLM "Software\Classes\$AppUserModelID"
-
-    ; Restore the registers back to their original state
-    Pop $R5
-    Pop $R6
-    Exch $R7
-    Exch 2
-    Exch $R8
-    Exch 1
-    Exch $R9
-  FunctionEnd
-!macroend
-
-!macro RemoveDEHRegistrationIfMatching
-  !insertmacro RemoveDEHRegistrationIfMatchingCall ""
-!macroend
-
-!macro un.RemoveDEHRegistrationIfMatching
-  !insertmacro RemoveDEHRegistrationIfMatchingCall "un."
-!macroend
-
-!macro CleanupMetroBrowserHandlerValues un DELEGATE_EXECUTE_HANDLER_ID \
-                                           PROTOCOL_ACTIVATION_ID \
-                                           FILE_ACTIVATION_ID
-  Push ${FILE_ACTIVATION_ID}
-  Push ${PROTOCOL_ACTIVATION_ID}
-  Push ${DELEGATE_EXECUTE_HANDLER_ID}
-  Call ${un}RemoveDEHRegistrationIfMatchingCall
-!macroend
-!define CleanupMetroBrowserHandlerValues '!insertmacro CleanupMetroBrowserHandlerValues ""'
-!define un.CleanupMetroBrowserHandlerValues '!insertmacro CleanupMetroBrowserHandlerValues "un."'
-
-!macro AddMetroBrowserHandlerValues DELEGATE_EXECUTE_HANDLER_ID \
-                                    DELEGATE_EXECUTE_HANDLER_PATH \
-                                    APP_USER_MODEL_ID \
-                                    PROTOCOL_ACTIVATION_ID \
-                                    FILE_ACTIVATION_ID
-  ; Win8 doesn't use conventional progid command data to launch anymore.
-  ; Instead it uses a delegate execute handler which is a light weight COM
-  ; server for choosing the metro or desktop browser to launch depending
-  ; on the current environment (metro/desktop) it was activated in.
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}" "" ""
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}\.exe" "" ""
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell" "" "open"
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell\open" "CommandId" "open"
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell\open\command" "" "$2"
-  WriteRegStr SHCTX "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell\open\command" "DelegateExecute" "${DELEGATE_EXECUTE_HANDLER_ID}"
-
-  ; Augment the url handler registrations with additional data needed for Metro
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}" "AppUserModelID" "${APP_USER_MODEL_ID}"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application" "AppUserModelID" "${APP_USER_MODEL_ID}"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application" "ApplicationName" "$BrandShortName"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application" "ApplicationIcon" "$INSTDIR\${FileMainEXE},0"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application" "ApplicationCompany" "${CompanyName}"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application" "ApplicationDescription" "$(REG_APP_DESC)"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\shell" "" "open"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\shell\open" "CommandId" "open"
-  WriteRegStr SHCTX "Software\Classes\${PROTOCOL_ACTIVATION_ID}\shell\open\command" "DelegateExecute" "${DELEGATE_EXECUTE_HANDLER_ID}"
-
-  ; Augment the file handler registrations with additional data needed for Metro
-  WriteRegStr SHCTX "Software\Classes\${FILE_ACTIVATION_ID}" "AppUserModelID" "${APP_USER_MODEL_ID}"
-  WriteRegStr SHCTX "Software\Classes\${FILE_ACTIVATION_ID}\shell" "" "open"
-  WriteRegStr SHCTX "Software\Classes\${FILE_ACTIVATION_ID}\shell\open" "CommandId" "open"
-  WriteRegStr SHCTX "Software\Classes\${FILE_ACTIVATION_ID}\shell\open\command" "DelegateExecute" "${DELEGATE_EXECUTE_HANDLER_ID}"
-
-  ; Win8 Metro delegate execute handler registration
-  WriteRegStr SHCTX "Software\Classes\CLSID\${DELEGATE_EXECUTE_HANDLER_ID}" "" "$BrandShortName CommandExecuteHandler"
-  WriteRegStr SHCTX "Software\Classes\CLSID\${DELEGATE_EXECUTE_HANDLER_ID}" "AppId" "${DELEGATE_EXECUTE_HANDLER_ID}"
-  WriteRegStr SHCTX "Software\Classes\CLSID\${DELEGATE_EXECUTE_HANDLER_ID}\LocalServer32" "" "${DELEGATE_EXECUTE_HANDLER_PATH}"
-!macroend
-!define AddMetroBrowserHandlerValues "!insertmacro AddMetroBrowserHandlerValues"
-!endif ;end MOZ_METRO
 

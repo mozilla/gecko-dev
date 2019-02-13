@@ -6,7 +6,7 @@
 
 FAIL_ON_WARNINGS = True
 
-PROGRAM = 'plugin-hang-ui'
+Program('plugin-hang-ui')
 
 UNIFIED_SOURCES += [
     'MiniShmChild.cpp',
@@ -18,8 +18,13 @@ DEFINES['NS_NO_XPCOM'] = True
 DEFINES['_HAS_EXCEPTIONS'] = 0
 
 DISABLE_STL_WRAPPING = True
+USE_STATIC_LIBS = True
 
 if CONFIG['GNU_CC']:
     WIN32_EXE_LDFLAGS += ['-municode']
 
 RCINCLUDE = 'HangUIDlg.rc'
+
+OS_LIBS += [
+    'comctl32',
+]

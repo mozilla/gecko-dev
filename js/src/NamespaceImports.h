@@ -24,12 +24,17 @@ class Latin1Chars;
 class Latin1CharsZ;
 class ConstTwoByteChars;
 class TwoByteChars;
+class TwoByteCharsZ;
+class UTF8Chars;
+class UTF8CharsZ;
 
-class AutoFunctionVector;
-class AutoIdVector;
-class AutoObjectVector;
-class AutoScriptVector;
-class AutoValueVector;
+template <typename T>
+class AutoVectorRooter;
+typedef AutoVectorRooter<Value> AutoValueVector;
+typedef AutoVectorRooter<jsid> AutoIdVector;
+typedef AutoVectorRooter<JSObject*> AutoObjectVector;
+typedef AutoVectorRooter<JSFunction*> AutoFunctionVector;
+typedef AutoVectorRooter<JSScript*> AutoVector;
 
 class AutoIdArray;
 
@@ -42,6 +47,7 @@ class MOZ_STACK_CLASS SourceBufferHolder;
 
 class HandleValueArray;
 
+class ObjectOpResult;
 }
 
 // Do the importing.
@@ -52,7 +58,6 @@ using JS::BooleanValue;
 using JS::DoubleValue;
 using JS::Float32Value;
 using JS::Int32Value;
-using JS::IsPoisonedValue;
 using JS::MagicValue;
 using JS::NullValue;
 using JS::NumberValue;
@@ -63,25 +68,26 @@ using JS::PrivateValue;
 using JS::StringValue;
 using JS::UndefinedValue;
 
-using JS::IsPoisonedPtr;
-
 using JS::Latin1Char;
 using JS::Latin1Chars;
 using JS::Latin1CharsZ;
 using JS::ConstTwoByteChars;
 using JS::TwoByteChars;
+using JS::TwoByteCharsZ;
+using JS::UTF8Chars;
+using JS::UTF8CharsZ;
 
-using JS::AutoFunctionVector;
-using JS::AutoIdVector;
-using JS::AutoObjectVector;
-using JS::AutoScriptVector;
-using JS::AutoValueVector;
+using JS::AutoVectorRooter;
+typedef AutoVectorRooter<Value> AutoValueVector;
+typedef AutoVectorRooter<jsid> AutoIdVector;
+typedef AutoVectorRooter<JSObject*> AutoObjectVector;
+typedef AutoVectorRooter<JSFunction*> AutoFunctionVector;
+typedef AutoVectorRooter<JSScript*> AutoScriptVector;
 
 using JS::AutoIdArray;
 
 using JS::AutoHashMapRooter;
 using JS::AutoHashSetRooter;
-using JS::AutoVectorRooter;
 using JS::RootedGeneric;
 
 using JS::CallArgs;
@@ -100,6 +106,7 @@ using JS::RootedId;
 using JS::RootedObject;
 using JS::RootedScript;
 using JS::RootedString;
+using JS::RootedSymbol;
 using JS::RootedValue;
 
 using JS::PersistentRooted;
@@ -108,6 +115,7 @@ using JS::PersistentRootedId;
 using JS::PersistentRootedObject;
 using JS::PersistentRootedScript;
 using JS::PersistentRootedString;
+using JS::PersistentRootedSymbol;
 using JS::PersistentRootedValue;
 
 using JS::Handle;
@@ -116,6 +124,7 @@ using JS::HandleId;
 using JS::HandleObject;
 using JS::HandleScript;
 using JS::HandleString;
+using JS::HandleSymbol;
 using JS::HandleValue;
 
 using JS::MutableHandle;
@@ -124,12 +133,17 @@ using JS::MutableHandleId;
 using JS::MutableHandleObject;
 using JS::MutableHandleScript;
 using JS::MutableHandleString;
+using JS::MutableHandleSymbol;
 using JS::MutableHandleValue;
 
 using JS::NullHandleValue;
 using JS::UndefinedHandleValue;
+using JS::TrueHandleValue;
+using JS::FalseHandleValue;
 
 using JS::HandleValueArray;
+
+using JS::ObjectOpResult;
 
 using JS::Zone;
 

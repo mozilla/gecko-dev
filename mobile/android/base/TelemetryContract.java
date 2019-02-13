@@ -62,11 +62,25 @@ public interface TelemetryContract {
         SANITIZE("sanitize.1"),
 
         // Saving a resource (reader, bookmark, etc) for viewing later.
-        // Note: Only used in JavaScript for now, but here for completeness.
         SAVE("save.1"),
+
+        // Perform a search -- currently used when starting a search in the search activity.
+        SEARCH("search.1"),
+
+        // Remove a search engine.
+        SEARCH_REMOVE("search.remove.1"),
+
+        // Restore default search engines.
+        SEARCH_RESTORE_DEFAULTS("search.restoredefaults.1"),
+
+        // Set default search engine.
+        SEARCH_SET_DEFAULT("search.setdefault.1"),
 
         // Sharing content.
         SHARE("share.1"),
+
+        // Show a UI element.
+        SHOW("show.1"),
 
         // Undoing a user action.
         // Note: Only used in JavaScript for now, but here for completeness.
@@ -76,7 +90,6 @@ public interface TelemetryContract {
         UNPIN("unpin.1"),
 
         // Stop holding a resource (reader, bookmark, etc) for viewing later.
-        // Note: Only used in JavaScript for now, but here for completeness.
         UNSAVE("unsave.1"),
 
         // VALUES BELOW THIS LINE ARE EXCLUSIVE TO TESTING.
@@ -114,6 +127,9 @@ public interface TelemetryContract {
         // Action triggered from a button.
         BUTTON("button"),
 
+        // Action taken from a content page -- for example, a search results web page.
+        CONTENT("content"),
+
         // Action occurred via a context menu.
         CONTEXT_MENU("contextmenu"),
 
@@ -141,9 +157,18 @@ public interface TelemetryContract {
         // No method is specified.
         NONE(null),
 
+        // Action triggered from a notification in the Android notification bar.
+        NOTIFICATION("notification"),
+
         // Action triggered from a pageaction in the URLBar.
         // Note: Only used in JavaScript for now, but here for completeness.
         PAGEACTION("pageaction"),
+
+        // Action triggered from a settings screen.
+        SETTINGS("settings"),
+
+        // Actions triggered from the share overlay.
+        SHARE_OVERLAY("shareoverlay"),
 
         // Action triggered from a suggestion provided to the user.
         SUGGESTION("suggestion"),
@@ -151,6 +176,9 @@ public interface TelemetryContract {
         // Action triggered from a SuperToast.
         // Note: Only used in JavaScript for now, but here for completeness.
         TOAST("toast"),
+
+        // Action triggerred by pressing a SearchWidget button
+        WIDGET("widget"),
 
         // VALUES BELOW THIS LINE ARE EXCLUSIVE TO TESTING.
         _TEST1("_test_method_1"),
@@ -185,9 +213,6 @@ public interface TelemetryContract {
         // Awesomescreen frecency search is active.
         FRECENCY("frecency.1"),
 
-        // Started when a user enters about:home.
-        HOME("home.1"),
-
         // Started when a user enters a given home panel.
         // Session name is dynamic, encoded as "homepanel.1:<panel_id>"
         HOME_PANEL("homepanel.1"),
@@ -195,6 +220,12 @@ public interface TelemetryContract {
         // Started when a Reader viewer becomes active in the foreground.
         // Note: Only used in JavaScript for now, but here for completeness.
         READER("reader.1"),
+
+        // Started when the search activity launches.
+        SEARCH_ACTIVITY("searchactivity.1"),
+
+        // Settings activity is active.
+        SETTINGS("settings.1"),
 
         // VALUES BELOW THIS LINE ARE EXCLUSIVE TO TESTING.
         _TEST_STARTED_TWICE("_test_session_started_twice.1"),

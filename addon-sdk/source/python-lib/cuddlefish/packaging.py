@@ -22,8 +22,8 @@ DEFAULT_ICON = 'icon.png'
 DEFAULT_ICON64 = 'icon64.png'
 
 METADATA_PROPS = ['name', 'description', 'keywords', 'author', 'version',
-                  'translators', 'contributors', 'license', 'homepage', 'icon',
-                  'icon64', 'main', 'directories', 'permissions', 'preferences']
+                  'developers', 'translators', 'contributors', 'license', 'homepage',
+                  'icon', 'icon64', 'main', 'directories', 'permissions', 'preferences']
 
 RESOURCE_HOSTNAME_RE = re.compile(r'^[a-z0-9_\-]+$')
 
@@ -84,7 +84,7 @@ def validate_resource_hostname(name):
     """
 
     # See https://bugzilla.mozilla.org/show_bug.cgi?id=568131 for details.
-    if not name.islower():
+    if not name.lower() == name:
         raise ValueError("""Error: the name of your package contains upper-case letters.
 Package names can contain only lower-case letters, numbers, underscores, and dashes.
 Current package name: %s""" % name)
@@ -401,12 +401,7 @@ def generate_build_for_target(pkg_cfg, target, deps,
         build['preferencesBranch'] = jid
 
     if 'preferences-branch' in target_cfg:
-        # check it's a non-empty, valid branch name
-        preferencesBranch = target_cfg['preferences-branch']
-        if re.match('^[\w{@}-]+$', preferencesBranch):
-            build['preferencesBranch'] = preferencesBranch
-        elif not is_running_tests:
-            print >>sys.stderr, "IGNORING preferences-branch (not a valid branch name)"
+        build['preferencesBranch'] = target_cfg['preferences-branch']
 
     return build
 

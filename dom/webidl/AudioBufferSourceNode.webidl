@@ -15,16 +15,20 @@ interface AudioBufferSourceNode : AudioNode {
     attribute AudioBuffer? buffer;
 
     readonly attribute AudioParam playbackRate;
+    readonly attribute AudioParam detune;
 
     attribute boolean loop;
     attribute double loopStart;
     attribute double loopEnd;
 
-    [Throws]
+    [Throws, UnsafeInPrerendering]
     void start(optional double when = 0, optional double grainOffset = 0,
                optional double grainDuration);
-    [Throws]
+    [Throws, UnsafeInPrerendering]
     void stop(optional double when = 0);
 
     attribute EventHandler onended;
 };
+
+// Mozilla extensions
+AudioBufferSourceNode implements AudioNodePassThrough;

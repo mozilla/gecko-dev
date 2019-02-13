@@ -29,8 +29,6 @@
 #undef KeyPress
 #endif
 
-class nsIDOMHTMLSelectElement;
-class nsIDOMHTMLOptionsCollection;
 class nsIComboboxControlFrame;
 class nsPresContext;
 class nsListEventListener;
@@ -46,10 +44,10 @@ class HTMLOptionsCollection;
  * Frame-based listbox.
  */
 
-class nsListControlFrame : public nsHTMLScrollFrame,
-                           public nsIFormControlFrame, 
-                           public nsIListControlFrame,
-                           public nsISelectControlFrame
+class nsListControlFrame final : public nsHTMLScrollFrame,
+                                 public nsIFormControlFrame,
+                                 public nsIListControlFrame,
+                                 public nsISelectControlFrame
 {
 public:
   friend nsContainerFrame* NS_NewListControlFrame(nsIPresShell* aPresShell,
@@ -61,109 +59,109 @@ public:
     // nsIFrame
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
   
   virtual void SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+                                   nsFrameList&    aChildList) override;
 
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
 
   virtual void Reflow(nsPresContext*           aCX,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   virtual void DidReflow(nsPresContext*            aPresContext, 
                          const nsHTMLReflowState*  aReflowState, 
-                         nsDidReflowStatus         aStatus) MOZ_OVERRIDE;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+                         nsDidReflowStatus         aStatus) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
-  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE;
+  virtual nsContainerFrame* GetContentInsertionFrame() override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::scrollFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsHTMLScrollFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
     // nsIFormControlFrame
-  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
-  virtual void SetFocus(bool aOn = true, bool aRepaint = false) MOZ_OVERRIDE;
+  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) override;
+  virtual void SetFocus(bool aOn = true, bool aRepaint = false) override;
 
-  virtual mozilla::ScrollbarStyles GetScrollbarStyles() const MOZ_OVERRIDE;
-  virtual bool ShouldPropagateComputedHeightToScrolledContent() const MOZ_OVERRIDE;
+  virtual mozilla::ScrollbarStyles GetScrollbarStyles() const override;
+  virtual bool ShouldPropagateComputedBSizeToScrolledContent() const override;
 
     // for accessibility purposes
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
     // nsIListControlFrame
-  virtual void SetComboboxFrame(nsIFrame* aComboboxFrame) MOZ_OVERRIDE;
-  virtual int32_t GetSelectedIndex() MOZ_OVERRIDE;
-  virtual mozilla::dom::HTMLOptionElement* GetCurrentOption() MOZ_OVERRIDE;
+  virtual void SetComboboxFrame(nsIFrame* aComboboxFrame) override;
+  virtual int32_t GetSelectedIndex() override;
+  virtual mozilla::dom::HTMLOptionElement* GetCurrentOption() override;
 
   /**
    * Gets the text of the currently selected item.
    * If the there are zero items then an empty string is returned
    * If there is nothing selected, then the 0th item's text is returned.
    */
-  virtual void GetOptionText(uint32_t aIndex, nsAString& aStr) MOZ_OVERRIDE;
+  virtual void GetOptionText(uint32_t aIndex, nsAString& aStr) override;
 
-  virtual void CaptureMouseEvents(bool aGrabMouseEvents) MOZ_OVERRIDE;
-  virtual nscoord GetHeightOfARow() MOZ_OVERRIDE;
-  virtual uint32_t GetNumberOfOptions() MOZ_OVERRIDE;
-  virtual void AboutToDropDown() MOZ_OVERRIDE;
+  virtual void CaptureMouseEvents(bool aGrabMouseEvents) override;
+  virtual nscoord GetBSizeOfARow() override;
+  virtual uint32_t GetNumberOfOptions() override;
+  virtual void AboutToDropDown() override;
 
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  virtual void AboutToRollup() MOZ_OVERRIDE;
+  virtual void AboutToRollup() override;
 
   /**
    * Dispatch a DOM onchange event synchroniously.
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  virtual void FireOnChange() MOZ_OVERRIDE;
+  virtual void FireOnChange() override;
 
   /**
    * Makes aIndex the selected option of a combobox list.
    * @note This method might destroy the frame, pres shell and other objects.
    */
-  virtual void ComboboxFinish(int32_t aIndex) MOZ_OVERRIDE;
-  virtual void OnContentReset() MOZ_OVERRIDE;
+  virtual void ComboboxFinish(int32_t aIndex) override;
+  virtual void OnContentReset() override;
 
   // nsISelectControlFrame
-  NS_IMETHOD AddOption(int32_t index) MOZ_OVERRIDE;
-  NS_IMETHOD RemoveOption(int32_t index) MOZ_OVERRIDE;
-  NS_IMETHOD DoneAddingChildren(bool aIsDone) MOZ_OVERRIDE;
+  NS_IMETHOD AddOption(int32_t index) override;
+  NS_IMETHOD RemoveOption(int32_t index) override;
+  NS_IMETHOD DoneAddingChildren(bool aIsDone) override;
 
   /**
    * Gets the content (an option) by index and then set it as
    * being selected or not selected.
    */
-  NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected) MOZ_OVERRIDE;
-  NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex) MOZ_OVERRIDE;
+  NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected) override;
+  NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex) override;
 
   /**
    * Mouse event listeners.
@@ -205,10 +203,11 @@ public:
   void InvalidateFocus();
 
   /**
-   * Function to calculate the height a row, for use with the "size" attribute.
+   * Function to calculate the block size of a row, for use with the
+   * "size" attribute.
    * Can't be const because GetNumberOfOptions() isn't const.
    */
-  nscoord CalcHeightOfARow();
+  nscoord CalcBSizeOfARow();
 
   /**
    * Function to ask whether we're currently in what might be the
@@ -241,7 +240,7 @@ public:
   /**
    * Dropdowns need views
    */
-  virtual bool NeedsView() MOZ_OVERRIDE { return IsInDropDownMode(); }
+  virtual bool NeedsView() override { return IsInDropDownMode(); }
 
   /**
    * Frees statics owned by this class.
@@ -315,7 +314,7 @@ protected:
    */
   virtual void ResetList(bool aAllowScrolling);
 
-  nsListControlFrame(nsIPresShell* aShell, nsIDocument* aDocument, nsStyleContext* aContext);
+  explicit nsListControlFrame(nsStyleContext* aContext);
   virtual ~nsListControlFrame();
 
   /**
@@ -329,12 +328,13 @@ protected:
   bool     CheckIfAllFramesHere();
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
 
-  // guess at a row height based on our own style.
-  nscoord  CalcFallbackRowHeight(float aFontSizeInflation);
+  // guess at a row block size based on our own style.
+  nscoord  CalcFallbackRowBSize(float aFontSizeInflation);
 
-  // CalcIntrinsicHeight computes our intrinsic height (taking the "size"
-  // attribute into account).  This should only be called in non-dropdown mode.
-  nscoord CalcIntrinsicHeight(nscoord aHeightOfARow, int32_t aNumberOfOptions);
+  // CalcIntrinsicBSize computes our intrinsic block size (taking the
+  // "size" attribute into account).  This should only be called in
+  // non-dropdown mode.
+  nscoord CalcIntrinsicBSize(nscoord aBSizeOfARow, int32_t aNumberOfOptions);
 
   // Dropped down stuff
   void     SetComboboxItem(int32_t aIndex);
@@ -380,8 +380,8 @@ public:
   }
 
 protected:
-  nscoord HeightOfARow() {
-    return GetOptionsContainer()->HeightOfARow();
+  nscoord BSizeOfARow() {
+    return GetOptionsContainer()->BSizeOfARow();
   }
 
   /**
@@ -423,11 +423,15 @@ protected:
   // True if the drop-down can show more rows.  Always false if this list
   // is not in drop-down mode.
   bool mDropdownCanGrow:1;
+
+  // True if the selection can be set to nothing or disabled options.
+  bool mForceSelection:1;
   
-  // The last computed height we reflowed at if we're a combobox dropdown.
+  // The last computed block size we reflowed at if we're a combobox
+  // dropdown.
   // XXXbz should we be using a subclass here?  Or just not worry
   // about the extra member on listboxes?
-  nscoord mLastDropdownComputedHeight;
+  nscoord mLastDropdownComputedBSize;
 
   // At the time of our last dropdown, the backstop color to draw in case we
   // are translucent.

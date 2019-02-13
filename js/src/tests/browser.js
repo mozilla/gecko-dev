@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -161,21 +161,6 @@ function gc()
   catch(ex)
   {
     print('gc: ' + ex);
-  }
-}
-
-function jsdgc()
-{
-  try
-  {
-    var jsdIDebuggerService = SpecialPowers.Ci.jsdIDebuggerService;
-    var service = SpecialPowers.Cc['@mozilla.org/js/jsd/debugger-service;1'].
-      getService(jsdIDebuggerService);
-    service.GC();
-  }
-  catch(ex)
-  {
-    print('jsdgc: ' + ex);
   }
 }
 
@@ -344,6 +329,14 @@ function jsTestDriverBrowserInit()
       properties.version = '1.8';
     }
     else if (properties.test.match(/^ecma_6\/LexicalEnvironment/))
+    {
+      properties.version = '1.8';
+    }
+    else if (properties.test.match(/^ecma_6\/Class/))
+    {
+      properties.version = '1.8';
+    }
+    else if (properties.test.match(/^ecma_6\/extensions/))
     {
       properties.version = '1.8';
     }
@@ -565,6 +558,16 @@ function closeDialog()
       subject.close();
     }
   }
+}
+
+function newGlobal() {
+  var iframe = document.createElement("iframe");
+  document.documentElement.appendChild(iframe);
+  var win = iframe.contentWindow;
+  iframe.remove();
+  // Shim in "evaluate"
+  win.evaluate = win.eval;
+  return win;
 }
 
 registerDialogCloser();

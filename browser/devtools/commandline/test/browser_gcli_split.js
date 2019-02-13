@@ -15,30 +15,15 @@
  */
 
 'use strict';
-// <INJECTED SOURCE:START>
 
 // THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+// PLEASE TALK TO SOMEONE IN DEVELOPER TOOLS BEFORE EDITING IT
 
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testSplit.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_split.js");
 }
-
-// <INJECTED SOURCE:END>
 
 // var assert = require('../testharness/assert');
 
@@ -66,7 +51,7 @@ exports.testFlatCommand = function(options) {
 };
 
 exports.testJavascript = function(options) {
-  if (!options.requisition.canon.getCommand('{')) {
+  if (!options.requisition.system.commands.get('{')) {
     assert.log('Skipping testJavascript because { is not registered');
     return;
   }

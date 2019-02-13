@@ -20,7 +20,14 @@ const STATE_ENABLED = 1;
 const STATE_DISABLED = 2;
 
 function GetFileAsText(file) {
-  let channel = Services.io.newChannel(file, null, null);
+  let channel = Services.io.newChannel2(file,
+                                        null,
+                                        null,
+                                        null,      // aLoadingNode
+                                        Services.scriptSecurityManager.getSystemPrincipal(),
+                                        null,      // aTriggeringPrincipal
+                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                        Ci.nsIContentPolicy.TYPE_OTHER);
   let inputStream = channel.open();
   if (channel instanceof Ci.nsIHttpChannel &&
       channel.responseStatus != 200) {
@@ -83,7 +90,7 @@ Addon.prototype = {
       Logger.AssertTrue(addon.userDisabled, "add-on is enabled: " + addon.id);
       return true;
     } else if (state) {
-      throw Error("Don't know how to handle state: " + state);
+      throw new Error("Don't know how to handle state: " + state);
     } else {
       // No state, so just checking that it exists.
       return true;

@@ -19,6 +19,7 @@ this.EXPORTED_SYMBOLS = [
 
 this.SelectContentHelper = function (aElement, aGlobal) {
   this.element = aElement;
+  this.initialSelection = aElement[aElement.selectedIndex] || null;
   this.global = aGlobal;
   this.init();
   this.showDropDown();
@@ -45,7 +46,7 @@ this.SelectContentHelper.prototype = {
     this.global.sendAsyncMessage("Forms:ShowDropDown", {
       rect: rect,
       options: this._buildOptionList(),
-      selectedIndex: this.element.selectedIndex,
+      selectedIndex: this.element.selectedIndex
     });
   },
 
@@ -60,16 +61,16 @@ this.SelectContentHelper.prototype = {
   receiveMessage: function(message) {
     switch (message.name) {
       case "Forms:SelectDropDownItem":
-        if (this.element.selectedIndex != message.data.value) {
-          this.element.selectedIndex = message.data.value;
+        this.element.selectedIndex = message.data.value;
+        break;
 
+      case "Forms:DismissedDropDown":
+        if (this.initialSelection != this.element.item(this.element.selectedIndex)) {
           let event = this.element.ownerDocument.createEvent("Events");
           event.initEvent("change", true, true);
           this.element.dispatchEvent(event);
         }
 
-        //intentional fall-through
-      case "Forms:DismissedDropDown":
         this.uninit();
         break;
     }
@@ -88,12 +89,29 @@ this.SelectContentHelper.prototype = {
 
 function buildOptionListForChildren(node) {
   let result = [];
-  for (let child = node.firstChild; child; child = child.nextSibling) {
-    if (child.tagName == 'OPTION' || child.tagName == 'OPTGROUP') {
+  let win = node.ownerDocument.defaultView;
+
+  for (let child of node.children) {
+    let tagName = child.tagName.toUpperCase();
+
+    if (tagName == 'OPTION' || tagName == 'OPTGROUP') {
+      let textContent =
+        tagName == 'OPTGROUP' ? child.getAttribute("label")
+                              : child.textContent;
+
+      if (textContent != null) {
+        textContent = textContent.trim();
+      } else {
+        textContent = ""
+      }
+
       let info = {
         tagName: child.tagName,
-        textContent: child.tagName == 'OPTGROUP' ? child.getAttribute("label")
-                                                 : child.textContent,
+        textContent: textContent,
+        disabled: child.disabled,
+        // We need to do this for every option element as each one can have
+        // an individual style set for direction
+        textDirection: win.getComputedStyle(child).getPropertyValue("direction"),
         // XXX this uses a highlight color when this is the selected element.
         // We need to suppress such highlighting in the content process to get
         // the option's correct unhighlighted color here.
@@ -101,7 +119,7 @@ function buildOptionListForChildren(node) {
         // color does not override color: menutext in the parent.
         // backgroundColor: computedStyle.backgroundColor,
         // color: computedStyle.color,
-        children: child.tagName == 'OPTGROUP' ? buildOptionListForChildren(child) : []
+        children: tagName == 'OPTGROUP' ? buildOptionListForChildren(child) : []
       };
       result.push(info);
     }

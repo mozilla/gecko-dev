@@ -9,23 +9,20 @@ const Services = require("Services");
 
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events = require("sdk/event/core");
+const { on: systemOn, off: systemOff } = require("sdk/system/events");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
-const { ThreadActor } = require("devtools/server/actors/script");
-
+const { createValueGrip } = require("devtools/server/actors/object");
+const AutomationTimeline = require("./utils/automation-timeline");
 const { on, once, off, emit } = events;
-const { method, Arg, Option, RetVal } = protocol;
-
-exports.register = function(handle) {
-  handle.addTabActor(WebAudioActor, "webaudioActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeTabActor(WebAudioActor);
-};
+const { types, method, Arg, Option, RetVal } = protocol;
+const AUDIO_NODE_DEFINITION = require("devtools/server/actors/utils/audionodes.json");
+const ENABLE_AUTOMATION = false;
+const AUTOMATION_GRANULARITY = 2000;
+const AUTOMATION_GRANULARITY_MAX = 6000;
 
 const AUDIO_GLOBALS = [
-  "AudioContext", "AudioNode"
+  "AudioContext", "AudioNode", "AudioParam"
 ];
 
 const NODE_CREATION_METHODS = [
@@ -33,84 +30,23 @@ const NODE_CREATION_METHODS = [
   "createMediaStreamDestination", "createScriptProcessor", "createAnalyser",
   "createGain", "createDelay", "createBiquadFilter", "createWaveShaper",
   "createPanner", "createConvolver", "createChannelSplitter", "createChannelMerger",
-  "createDynamicsCompressor", "createOscillator"
+  "createDynamicsCompressor", "createOscillator", "createStereoPanner"
+];
+
+const AUTOMATION_METHODS = [
+  "setValueAtTime", "linearRampToValueAtTime", "exponentialRampToValueAtTime",
+  "setTargetAtTime", "setValueCurveAtTime", "cancelScheduledValues"
 ];
 
 const NODE_ROUTING_METHODS = [
   "connect", "disconnect"
 ];
 
-const NODE_PROPERTIES = {
-  "OscillatorNode": {
-    "type": {},
-    "frequency": {},
-    "detune": {}
-  },
-  "GainNode": {
-    "gain": {}
-  },
-  "DelayNode": {
-    "delayTime": {}
-  },
-  "AudioBufferSourceNode": {
-    "buffer": { "Buffer": true },
-    "playbackRate": {},
-    "loop": {},
-    "loopStart": {},
-    "loopEnd": {}
-  },
-  "ScriptProcessorNode": {
-    "bufferSize": { "readonly": true }
-  },
-  "PannerNode": {
-    "panningModel": {},
-    "distanceModel": {},
-    "refDistance": {},
-    "maxDistance": {},
-    "rolloffFactor": {},
-    "coneInnerAngle": {},
-    "coneOuterAngle": {},
-    "coneOuterGain": {}
-  },
-  "ConvolverNode": {
-    "buffer": { "Buffer": true },
-    "normalize": {},
-  },
-  "DynamicsCompressorNode": {
-    "threshold": {},
-    "knee": {},
-    "ratio": {},
-    "reduction": {},
-    "attack": {},
-    "release": {}
-  },
-  "BiquadFilterNode": {
-    "type": {},
-    "frequency": {},
-    "Q": {},
-    "detune": {},
-    "gain": {}
-  },
-  "WaveShaperNode": {
-    "curve": { "Float32Array": true },
-    "oversample": {}
-  },
-  "AnalyserNode": {
-    "fftSize": {},
-    "minDecibels": {},
-    "maxDecibels": {},
-    "smoothingTimeConstant": {},
-    "frequencyBinCount": { "readonly": true },
-  },
-  "AudioDestinationNode": {},
-  "ChannelSplitterNode": {},
-  "ChannelMergerNode": {}
-};
-
 /**
  * An Audio Node actor allowing communication to a specific audio node in the
  * Audio Context graph.
  */
+types.addActorType("audionode");
 let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   typeName: "audionode",
 
@@ -131,11 +67,21 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     this.nativeID = node.id;
     this.node = Cu.getWeakReference(node);
 
+    // Stores the AutomationTimelines for this node's AudioParams.
+    this.automation = {};
+
     try {
       this.type = getConstructorName(node);
     } catch (e) {
       this.type = "";
     }
+
+    // Create automation timelines for all AudioParams
+    Object.keys(AUDIO_NODE_DEFINITION[this.type].properties || {})
+      .filter(isAudioParam.bind(null, node))
+      .forEach(paramName => {
+        this.automation[paramName] = new AutomationTimeline(node[paramName].defaultValue);
+      });
   },
 
   /**
@@ -159,6 +105,53 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   }),
 
   /**
+   * Returns a boolean indicating if the AudioNode has been "bypassed",
+   * via `AudioNodeActor#bypass` method.
+   *
+   * @return Boolean
+   */
+  isBypassed: method(function () {
+    let node = this.node.get();
+    if (node === null) {
+      return false;
+    }
+
+    // Cast to boolean incase `passThrough` is undefined,
+    // like for AudioDestinationNode
+    return !!node.passThrough;
+  }, {
+    response: { bypassed: RetVal("boolean") }
+  }),
+
+  /**
+   * Takes a boolean, either enabling or disabling the "passThrough" option
+   * on an AudioNode. If a node is bypassed, an effects processing node (like gain, biquad),
+   * will allow the audio stream to pass through the node, unaffected. Returns
+   * the bypass state of the node.
+   *
+   * @param Boolean enable
+   *        Whether the bypass value should be set on or off.
+   * @return Boolean
+   */
+  bypass: method(function (enable) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return;
+    }
+
+    let bypassable = !AUDIO_NODE_DEFINITION[this.type].unbypassable;
+    if (bypassable) {
+      node.passThrough = enable;
+    }
+
+    return this.isBypassed();
+  }, {
+    request: { enable: Arg(0, "boolean") },
+    response: { bypassed: RetVal("boolean") }
+  }),
+
+  /**
    * Changes a param on the audio node. Responds with either `undefined`
    * on success, or a description of the error upon param set failure.
    *
@@ -175,10 +168,13 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     }
 
     try {
-      if (isAudioParam(node, param))
+      if (isAudioParam(node, param)) {
         node[param].value = value;
-      else
+        this.automation[param].setValue(value);
+      }
+      else {
         node[param] = value;
+      }
       return undefined;
     } catch (e) {
       return constructError(e);
@@ -213,13 +209,8 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     // AudioBuffer or Float32Array references and the like,
     // so this just formats the value to be displayed in the VariablesView,
     // without using real grips and managing via actor pools.
-    let grip;
-    try {
-      grip = ThreadActor.prototype.createValueGrip(value);
-    }
-    catch (e) {
-      grip = createObjectGrip(value);
-    }
+    let grip = createValueGrip(value, null, createObjectGrip);
+
     return grip;
   }, {
     request: {
@@ -237,7 +228,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Name of the AudioParam whose flags are desired.
    */
   getParamFlags: method(function (param) {
-    return (NODE_PROPERTIES[this.type] || {})[param];
+    return ((AUDIO_NODE_DEFINITION[this.type] || {}).properties || {})[param];
   }, {
     request: { param: Arg(0, "string") },
     response: { flags: RetVal("nullable:primitive") }
@@ -248,12 +239,219 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    * corresponding to a property name and current value of the audio node.
    */
   getParams: method(function (param) {
-    let props = Object.keys(NODE_PROPERTIES[this.type]);
+    let props = Object.keys(AUDIO_NODE_DEFINITION[this.type].properties || {});
     return props.map(prop =>
       ({ param: prop, value: this.getParam(prop), flags: this.getParamFlags(prop) }));
   }, {
     response: { params: RetVal("json") }
-  })
+  }),
+
+  /**
+   * Connects this audionode to an AudioParam via `node.connect(param)`.
+   */
+  connectParam: method(function (destActor, paramName, output) {
+    let srcNode = this.node.get();
+    let destNode = destActor.node.get();
+
+    if (srcNode === null || destNode === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      // Connect via the unwrapped node, so we can call the
+      // patched method that fires the webaudio actor's `connect-param` event.
+      // Connect directly to the wrapped `destNode`, otherwise
+      // the patched method thinks this is a new node and won't be
+      // able to find it in `_nativeToActorID`.
+      XPCNativeWrapper.unwrap(srcNode).connect(destNode[paramName], output);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: {
+      destActor: Arg(0, "audionode"),
+      paramName: Arg(1, "string"),
+      output: Arg(2, "nullable:number")
+    },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  /**
+   * Connects this audionode to another via `node.connect(dest)`.
+   */
+  connectNode: method(function (destActor, output, input) {
+    let srcNode = this.node.get();
+    let destNode = destActor.node.get();
+
+    if (srcNode === null || destNode === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      // Connect via the unwrapped node, so we can call the
+      // patched method that fires the webaudio actor's `connect-node` event.
+      // Connect directly to the wrapped `destNode`, otherwise
+      // the patched method thinks this is a new node and won't be
+      // able to find it in `_nativeToActorID`.
+      XPCNativeWrapper.unwrap(srcNode).connect(destNode, output, input);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: {
+      destActor: Arg(0, "audionode"),
+      output: Arg(1, "nullable:number"),
+      input: Arg(2, "nullable:number")
+    },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  /**
+   * Disconnects this audionode from all connections via `node.disconnect()`.
+   */
+  disconnect: method(function (destActor, output) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      // Disconnect via the unwrapped node, so we can call the
+      // patched method that fires the webaudio actor's `disconnect` event.
+      XPCNativeWrapper.unwrap(node).disconnect(output);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: { output: Arg(0, "nullable:number") },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  getAutomationData: method(function (paramName) {
+    let timeline = this.automation[paramName];
+    if (!timeline) {
+      return null;
+    }
+
+    let events = timeline.events;
+    let values = [];
+    let i = 0;
+
+    if (!timeline.events.length) {
+      return { events, values };
+    }
+
+    let firstEvent = events[0];
+    let lastEvent = events[timeline.events.length - 1];
+    // `setValueCurveAtTime` will have a duration value -- other
+    // events will have duration of `0`.
+    let timeDelta = (lastEvent.time + lastEvent.duration) - firstEvent.time;
+    let scale = timeDelta / AUTOMATION_GRANULARITY;
+
+    for (; i < AUTOMATION_GRANULARITY; i++) {
+      let delta = firstEvent.time + (i * scale);
+      let value = timeline.getValueAtTime(delta);
+      values.push({ delta, value });
+    }
+
+    // If the last event is setTargetAtTime, the automation
+    // doesn't actually begin until the event's time, and exponentially
+    // approaches the target value. In this case, we add more values
+    // until we're "close enough" to the target.
+    if (lastEvent.type === "setTargetAtTime") {
+      for (; i < AUTOMATION_GRANULARITY_MAX; i++) {
+        let delta = firstEvent.time + (++i * scale);
+        let value = timeline.getValueAtTime(delta);
+        values.push({ delta, value });
+      }
+    }
+
+    return { events, values };
+  }, {
+    request: { paramName: Arg(0, "string") },
+    response: { values: RetVal("nullable:json") }
+  }),
+
+  /**
+   * Called via WebAudioActor, registers an automation event
+   * for the AudioParam called.
+   *
+   * @param String paramName
+   *        Name of the AudioParam.
+   * @param String eventName
+   *        Name of the automation event called.
+   * @param Array args
+   *        Arguments passed into the automation call.
+   */
+  addAutomationEvent: method(function (paramName, eventName, args=[]) {
+    let node = this.node.get();
+    let timeline = this.automation[paramName];
+
+    if (node === null) {
+      return CollectedAudioNodeError();
+    }
+
+    if (!timeline || !node[paramName][eventName]) {
+      return InvalidCommandError();
+    }
+
+    try {
+      // Using the unwrapped node and parameter, the corresponding
+      // WebAudioActor event will be fired, subsequently calling
+      // `_recordAutomationEvent`. Some finesse is required to handle
+      // the cast of TypedArray arguments over the protocol, which is
+      // taken care of below. The event will cast the argument back
+      // into an array to be broadcasted from WebAudioActor, but the
+      // double-casting will only occur when starting from `addAutomationEvent`,
+      // which is only used in tests.
+      let param = XPCNativeWrapper.unwrap(node[paramName]);
+      let contentGlobal = Cu.getGlobalForObject(param);
+      let contentArgs = Cu.cloneInto(args, contentGlobal);
+
+      // If calling `setValueCurveAtTime`, the first argument
+      // is a Float32Array, which won't be able to be serialized
+      // over the protocol. Cast a normal array to a Float32Array here.
+      if (eventName === "setValueCurveAtTime") {
+        // Create a Float32Array from the content, seeding with an array
+        // from the same scope.
+        let curve = new contentGlobal.Float32Array(contentArgs[0]);
+        contentArgs[0] = curve;
+      }
+
+      // Apply the args back from the content scope, which is necessary
+      // due to the method wrapping changing in bug 1130901 to be exported
+      // directly to the content scope.
+      param[eventName].apply(param, contentArgs);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: {
+      paramName: Arg(0, "string"),
+      eventName: Arg(1, "string"),
+      args: Arg(2, "nullable:json")
+    },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  /**
+   * Registers the automation event in the AudioNodeActor's
+   * internal timeline. Called when setting automation via
+   * `addAutomationEvent`, or from the WebAudioActor's listening
+   * to the event firing via content.
+   *
+   * @param String paramName
+   *        Name of the AudioParam.
+   * @param String eventName
+   *        Name of the automation event called.
+   * @param Array args
+   *        Arguments passed into the automation call.
+   */
+  _recordAutomationEvent: function (paramName, eventName, args) {
+    let timeline = this.automation[paramName];
+    timeline[eventName].apply(timeline, args);
+  }
 });
 
 /**
@@ -262,8 +460,11 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 let AudioNodeFront = protocol.FrontClass(AudioNodeActor, {
   initialize: function (client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
-    client.addActorPool(this);
-    this.manage(this);
+    // if we were manually passed a form, this was created manually and
+    // needs to own itself for now.
+    if (form) {
+      this.manage(this);
+    }
   }
 });
 
@@ -284,12 +485,26 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     // to the associated actorID, so we don't have to expose `nativeID`
     // to the client in any way.
     this._nativeToActorID = new Map();
+
+    this._onDestroyNode = this._onDestroyNode.bind(this);
+    this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
+    this._onGlobalCreated = this._onGlobalCreated.bind(this);
   },
 
   destroy: function(conn) {
     protocol.Actor.prototype.destroy.call(this, conn);
     this.finalize();
   },
+
+  /**
+   * Returns definition of all AudioNodes, such as AudioParams, and
+   * flags.
+   */
+  getDefinition: method(function () {
+    return AUDIO_NODE_DEFINITION;
+  }, {
+    response: { definition: RetVal("json") }
+  }),
 
   /**
    * Starts waiting for the current tab actor's document global to be
@@ -319,8 +534,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       tracedGlobals: AUDIO_GLOBALS,
       startRecording: true,
       performReload: reload,
-      holdWeak: true
+      holdWeak: true,
+      storeCalls: false
     });
+    // Bind to `window-ready` so we can reenable recording on the
+    // call watcher
+    on(this.tabActor, "window-ready", this._onGlobalCreated);
+    // Bind to the `window-destroyed` event so we can unbind events between
+    // the global destruction and the `finalize` cleanup method on the actor.
+    on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
   }, {
     request: { reload: Option(0, "boolean") },
     oneway: true
@@ -341,13 +563,16 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     else if (WebAudioFront.NODE_CREATION_METHODS.has(name)) {
       this._handleCreationCall(functionCall);
     }
+    else if (ENABLE_AUTOMATION && WebAudioFront.AUTOMATION_METHODS.has(name)) {
+      this._handleAutomationCall(functionCall);
+    }
   },
 
   _handleRoutingCall: function(functionCall) {
-    let { caller, args, window, name } = functionCall.details;
+    let { caller, args, name } = functionCall.details;
     let source = caller;
     let dest = args[0];
-    let isAudioParam = dest instanceof window.AudioParam;
+    let isAudioParam = dest ? getConstructorName(dest) === "AudioParam" : false;
 
     // audionode.connect(param)
     if (name === "connect" && isAudioParam) {
@@ -379,6 +604,26 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this._onCreateNode(result);
   },
 
+  _handleAutomationCall: function (functionCall) {
+    let { caller, name, args } = functionCall.details;
+    let wrappedParam = new XPCNativeWrapper(caller);
+
+    // Sanitize arguments, as these should all be numbers,
+    // with the exception of a TypedArray, which needs
+    // casted to an Array
+    args = sanitizeAutomationArgs(args);
+
+    let nodeActor = this._getActorByNativeID(wrappedParam._parentID);
+    nodeActor._recordAutomationEvent(wrappedParam._paramName, name, args);
+
+    this._onAutomationEvent({
+      node: nodeActor,
+      paramName: wrappedParam._paramName,
+      eventName: name,
+      args: args
+    });
+  },
+
   /**
    * Stops listening for document global changes and puts this actor
    * to hibernation. This method is called automatically just before the
@@ -388,8 +633,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     if (!this._initialized) {
       return;
     }
-    this.tabActor = null;
     this._initialized = false;
+    systemOff("webaudio-node-demise", this._onDestroyNode);
+
+    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
+    off(this.tabActor, "window-ready", this._onGlobalCreated);
+    this.tabActor = null;
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
@@ -416,8 +665,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     },
     "connect-param": {
       type: "connectParam",
-      source: Arg(0, "audionode"),
-      param: Arg(1, "string")
+      source: Option(0, "audionode"),
+      dest: Option(0, "audionode"),
+      param: Option(0, "string")
     },
     "change-param": {
       type: "changeParam",
@@ -428,6 +678,17 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     "create-node": {
       type: "createNode",
       source: Arg(0, "audionode")
+    },
+    "destroy-node": {
+      type: "destroyNode",
+      source: Arg(0, "audionode")
+    },
+    "automation-event": {
+      type: "automationEvent",
+      node: Option(0, "audionode"),
+      paramName: Option(0, "string"),
+      eventName: Option(0, "string"),
+      args: Option(0, "json")
     }
   },
 
@@ -440,10 +701,28 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     // Ensure AudioNode is wrapped.
     node = new XPCNativeWrapper(node);
 
+    this._instrumentParams(node);
+
     let actor = new AudioNodeActor(this.conn, node);
     this.manage(actor);
     this._nativeToActorID.set(node.id, actor.actorID);
     return actor;
+  },
+
+  /**
+   * Takes an XrayWrapper node, and attaches the node's `nativeID`
+   * to the AudioParams as `_parentID`, as well as the the type of param
+   * as a string on `_paramName`.
+   */
+  _instrumentParams: function (node) {
+    let type = getConstructorName(node);
+    Object.keys(AUDIO_NODE_DEFINITION[type].properties || {})
+      .filter(isAudioParam.bind(null, node))
+      .forEach(paramName => {
+        let param = node[paramName];
+        param._parentID = node.id;
+        param._paramName = paramName;
+      });
   },
 
   /**
@@ -466,6 +745,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Called on first audio node creation, signifying audio context usage
    */
   _onStartContext: function () {
+    systemOn("webaudio-node-demise", this._onDestroyNode);
     emit(this, "start-context");
   },
 
@@ -475,6 +755,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onConnectNode: function (source, dest) {
     let sourceActor = this._getActorByNativeID(source.id);
     let destActor = this._getActorByNativeID(dest.id);
+
     emit(this, "connect-node", {
       source: sourceActor,
       dest: destActor
@@ -483,10 +764,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
   /**
    * Called when an audio node is connected to an audio param.
-   * Implement in bug 986705
    */
-  _onConnectParam: function (source, dest) {
-    // TODO bug 986705
+  _onConnectParam: function (source, param) {
+    let sourceActor = this._getActorByNativeID(source.id);
+    let destActor = this._getActorByNativeID(param._parentID);
+    emit(this, "connect-param", {
+      source: sourceActor,
+      dest: destActor,
+      param: param._paramName
+    });
   },
 
   /**
@@ -515,6 +801,60 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onCreateNode: function (node) {
     let actor = this._constructAudioNode(node);
     emit(this, "create-node", actor);
+  },
+
+  /** Called when `webaudio-node-demise` is triggered,
+   * and emits the associated actor to the front if found.
+   */
+  _onDestroyNode: function ({data}) {
+    // Cast to integer.
+    let nativeID = ~~data;
+
+    let actor = this._getActorByNativeID(nativeID);
+
+    // If actorID exists, emit; in the case where we get demise
+    // notifications for a document that no longer exists,
+    // the mapping should not be found, so we do not emit an event.
+    if (actor) {
+      this._nativeToActorID.delete(nativeID);
+      emit(this, "destroy-node", actor);
+    }
+  },
+
+  /**
+   * Ensures that the new global has recording on
+   * so we can proxy the function calls.
+   */
+  _onGlobalCreated: function () {
+    this._callWatcher.resumeRecording();
+  },
+
+  /**
+   * Fired when an automation event is added to an AudioNode.
+   */
+  _onAutomationEvent: function ({node, paramName, eventName, args}) {
+    emit(this, "automation-event",  {
+      node: node,
+      paramName: paramName,
+      eventName: eventName,
+      args: args
+    });
+  },
+
+  /**
+   * Called when the underlying ContentObserver fires `global-destroyed`
+   * so we can cleanup some things between the global being destroyed and
+   * when the actor's `finalize` method gets called.
+   */
+  _onGlobalDestroyed: function ({id}) {
+    if (this._callWatcher._tracedWindowId !== id) {
+      return;
+    }
+
+    if (this._nativeToActorID) {
+      this._nativeToActorID.clear();
+    }
+    systemOff("webaudio-node-demise", this._onDestroyNode);
   }
 });
 
@@ -524,11 +864,11 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 let WebAudioFront = exports.WebAudioFront = protocol.FrontClass(WebAudioActor, {
   initialize: function(client, { webaudioActor }) {
     protocol.Front.prototype.initialize.call(this, client, { actor: webaudioActor });
-    client.addActorPool(this);
     this.manage(this);
   }
 });
 
+WebAudioFront.AUTOMATION_METHODS = new Set(AUTOMATION_METHODS);
 WebAudioFront.NODE_CREATION_METHODS = new Set(NODE_CREATION_METHODS);
 WebAudioFront.NODE_ROUTING_METHODS = new Set(NODE_ROUTING_METHODS);
 
@@ -572,6 +912,13 @@ function CollectedAudioNodeError () {
   };
 }
 
+function InvalidCommandError () {
+  return {
+    message: "The command on AudioNode is invalid.",
+    type: "InvalidCommand"
+  };
+}
+
 /**
  * Takes an object and converts it's `toString()` form, like
  * "[object OscillatorNode]" or "[object Float32Array]",
@@ -597,4 +944,38 @@ function createObjectGrip (value) {
     },
     class: getConstructorName(value)
   };
+}
+
+/**
+ * Converts all TypedArrays of the array that cannot
+ * be passed over the wire into a normal Array equivilent.
+ */
+function sanitizeAutomationArgs (args) {
+  return args.reduce((newArgs, el) => {
+    newArgs.push(typeof el === "object" && getConstructorName(el) === "Float32Array" ? castToArray(el) : el);
+    return newArgs;
+  }, []);
+}
+
+/**
+ * Casts TypedArray to a normal array via a
+ * new scope.
+ */
+function castToArray (typedArray) {
+  // The Xray machinery for TypedArrays denies indexed access on the grounds
+  // that it's slow, and advises callers to do a structured clone instead.
+  let global = Cu.getGlobalForObject(this);
+  let safeView = Cu.cloneInto(typedArray.subarray(), global);
+  return copyInto([], safeView);
+}
+
+/**
+ * Copies values of an array-like `source` into
+ * a similarly array-like `dest`.
+ */
+function copyInto (dest, source) {
+  for (let i = 0; i < source.length; i++) {
+    dest[i] = source[i];
+  }
+  return dest;
 }

@@ -7,7 +7,7 @@ MARIONETTE_HEAD_JS = 'head.js';
 function muxModem(id) {
   let deferred = Promise.defer();
 
-  emulator.run("mux modem " + id, function() {
+  emulator.runCmdWithCallback("mux modem " + id, function() {
     deferred.resolve();
   });
 
@@ -73,8 +73,6 @@ function testIncomingCall() {
 startDSDSTest(function() {
   testOutgoingCall()
     .then(testIncomingCall)
-    .then(null, () => {
-      ok(false, "promise rejects during test.");
-    })
+    .catch(error => ok(false, "Promise reject: " + error))
     .then(finish);
 });

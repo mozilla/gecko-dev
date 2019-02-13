@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 const SEARCH_ENGINES = {
   "Google": {
     // This is the "2x" image designed for OS X retina resolution, Windows at 192dpi, etc.;
@@ -144,11 +146,12 @@ const DEFAULT_SNIPPETS_URLS = [
 , "https://addons.mozilla.org/firefox/?utm_source=snippet&utm_medium=snippet&utm_campaign=addons"
 ];
 
-const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; // 1 Day.
+const SNIPPETS_UPDATE_INTERVAL_MS = 14400000; // 4 hours.
 
 // IndexedDB storage constants.
 const DATABASE_NAME = "abouthome";
 const DATABASE_VERSION = 1;
+const DATABASE_STORAGE = "persistent";
 const SNIPPETS_OBJECTSTORE_NAME = "snippets";
 
 // This global tracks if the page has been set up before, to prevent double inits
@@ -222,7 +225,8 @@ function ensureSnippetsMapThen(aCallback)
     gSnippetsMapCallbacks.length = 0;
   }
 
-  let openRequest = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+  let openRequest = indexedDB.open(DATABASE_NAME, {version: DATABASE_VERSION,
+                                                   storage: DATABASE_STORAGE});
 
   openRequest.onerror = function (event) {
     // Try to delete the old database so that we can start this process over
@@ -269,13 +273,13 @@ function ensureSnippetsMapThen(aCallback)
 
       // The cache has been filled up, create the snippets map.
       gSnippetsMap = Object.freeze({
-        get: function (aKey) cache.get(aKey),
+        get: (aKey) => cache.get(aKey),
         set: function (aKey, aValue) {
           db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).put(aValue, aKey);
           return cache.set(aKey, aValue);
         },
-        has: function (aKey) cache.has(aKey),
+        has: (aKey) => cache.has(aKey),
         delete: function (aKey) {
           db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).delete(aKey);
@@ -286,7 +290,7 @@ function ensureSnippetsMapThen(aCallback)
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).clear();
           return cache.clear();
         },
-        get size() cache.size
+        get size() { return cache.size; },
       });
 
       setTimeout(invokeCallbacks, 0);
@@ -296,23 +300,50 @@ function ensureSnippetsMapThen(aCallback)
 
 function onSearchSubmit(aEvent)
 {
-  let searchTerms = document.getElementById("searchText").value;
+  let searchText = document.getElementById("searchText");
+  let searchTerms = searchText.value;
   let engineName = document.documentElement.getAttribute("searchEngineName");
 
   if (engineName && searchTerms.length > 0) {
     // Send an event that will perform a search and Firefox Health Report will
     // record that a search from about:home has occurred.
-    let eventData = JSON.stringify({
+    let eventData = {
       engineName: engineName,
-      searchTerms: searchTerms
-    });
+      searchTerms: searchTerms,
+      originalEvent: {
+        target: {
+          ownerDocument: null
+        },
+        shiftKey: aEvent.shiftKey,
+        ctrlKey: aEvent.ctrlKey,
+        metaKey: aEvent.metaKey,
+        altKey: aEvent.altKey,
+        button: aEvent.button,
+      },
+    };
+
+    if (searchText.hasAttribute("selection-index")) {
+      eventData.selection = {
+        index: searchText.getAttribute("selection-index"),
+        kind: searchText.getAttribute("selection-kind")
+      };
+    }
+
+    eventData = JSON.stringify(eventData);
+
     let event = new CustomEvent("AboutHomeSearchEvent", {detail: eventData});
     document.dispatchEvent(event);
   }
 
-  aEvent.preventDefault();
+  gSearchSuggestionController.addInputValueToFormHistory();
+
+  if (aEvent) {
+    aEvent.preventDefault();
+  }
 }
 
+
+let gSearchSuggestionController;
 
 function setupSearchEngine()
 {
@@ -341,14 +372,20 @@ function setupSearchEngine()
     searchText.placeholder = searchEngineName;
   }
 
+  if (!gSearchSuggestionController) {
+    gSearchSuggestionController =
+      new SearchSuggestionUIController(searchText, searchText.parentNode,
+                                       onSearchSubmit);
+  }
+  gSearchSuggestionController.engineName = searchEngineName;
 }
 
 /**
  * Inform the test harness that we're done loading the page.
  */
-function loadSucceeded()
+function loadCompleted()
 {
-  var event = new CustomEvent("AboutHomeLoadSnippetsSucceeded", {bubbles:true});
+  var event = new CustomEvent("AboutHomeLoadSnippetsCompleted", {bubbles:true});
   document.dispatchEvent(event);
 }
 
@@ -381,32 +418,29 @@ function loadSnippets()
   if (updateURL && shouldUpdate) {
     // Try to update from network.
     let xhr = new XMLHttpRequest();
+    xhr.timeout = 5000;
     try {
       xhr.open("GET", updateURL, true);
     } catch (ex) {
       showSnippets();
-      loadSucceeded();
+      loadCompleted();
       return;
     }
     // Even if fetching should fail we don't want to spam the server, thus
     // set the last update time regardless its results.  Will retry tomorrow.
     gSnippetsMap.set("snippets-last-update", Date.now());
-    xhr.onerror = function (event) {
-      showSnippets();
-    };
-    xhr.onload = function (event)
-    {
+    xhr.onloadend = function (event) {
       if (xhr.status == 200) {
         gSnippetsMap.set("snippets", xhr.responseText);
         gSnippetsMap.set("snippets-cached-version", currentVersion);
       }
       showSnippets();
-      loadSucceeded();
+      loadCompleted();
     };
     xhr.send(null);
   } else {
     showSnippets();
-    loadSucceeded();
+    loadCompleted();
   }
 }
 

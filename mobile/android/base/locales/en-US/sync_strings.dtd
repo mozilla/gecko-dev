@@ -34,7 +34,7 @@
 <!ENTITY sync.input.key.label 'Recovery Key'>
 <!ENTITY sync.checkbox.server.label 'Use custom server'>
 <!ENTITY sync.input.server.label 'Server URL'>
-  
+
 <!-- Setup Fail -->
 <!ENTITY sync.title.fail.label 'Cannot Set Up &syncBrand.shortName.label;'>
 <!ENTITY sync.subtitle.fail.label '&syncBrand.fullName.label; could not connect to the server. Would you like to try again?'>
@@ -43,7 +43,7 @@
 <!ENTITY sync.subtitle.nointernet.label 'No internet connection available.'>
 <!ENTITY sync.subtitle.failaccount.label 'Account creation on your device failed.'>
 <!ENTITY sync.subtitle.failmultiple.label 'Do you have more than one Firefox installed? Currently, &syncBrand.fullName.label; only supports one Firefox installation at a time. Please uninstall other instances to use &syncBrand.shortName.label;.'>
-  
+
 <!-- Setup Success -->
 <!ENTITY sync.title.success.label 'Setup Complete'>
 <!ENTITY sync.subtitle.success.label1 'Your data is now being downloaded in the background. You can go to Settings to manage your account, or start browsing with &brandShortName;.'>
@@ -62,7 +62,7 @@
 <!ENTITY sync.configure.engines.title.label 'What to sync'>
 <!ENTITY sync.configure.engines.sync.my.title.label 'Sync your…'>
 <!ENTITY sync.configure.engines.title.bookmarks 'Bookmarks'>
-<!ENTITY sync.configure.engines.title.passwords 'Passwords'>
+<!ENTITY sync.configure.engines.title.passwords2 'Logins'>
 <!ENTITY sync.configure.engines.title.history 'History'>
 <!ENTITY sync.configure.engines.title.tabs 'Tabs'>
 
@@ -73,6 +73,13 @@
 
 <!-- Account strings -->
 <!ENTITY sync.account.label '&syncBrand.fullName.label; (deprecated)'>
+
+<!-- Localization note (sync.default.client.name): Default string of the "Device
+     name" menu item upon setting up Firefox Sync.  The placeholder &formatS1
+     will be replaced by the name of the Firefox release channel and &formatS2
+     by the model name of the Android device. Examples look like "Aurora on
+     GT-I1950" and "Fennec on MI 2S". -->
+<!ENTITY sync.default.client.name '&formatS1; on &formatS2;'>
 
 <!-- Bookmark folder strings -->
 <!ENTITY bookmarks.folder.menu.label 'Bookmarks Menu'>
@@ -109,6 +116,9 @@
 
 <!ENTITY fxaccount_full_label 'Firefox Accounts'>
 
+<!ENTITY fxaccount_custom_server_account_title 'Using account on server'>
+<!ENTITY fxaccount_custom_server_sync_title 'Storing Sync data on server'>
+
 <!-- Localization note: these are shown in all screens that query the
      user for an email address and password. Hide and show are button
      labels. -->
@@ -131,7 +141,7 @@
 <!ENTITY fxaccount_policy_linkprivacy 'Privacy Notice'>
 
 <!ENTITY fxaccount_getting_started_welcome_to_sync 'Welcome to &syncBrand.shortName.label;'>
-<!ENTITY fxaccount_getting_started_description 'Sign in to sync your tabs, bookmarks, passwords &amp; more.'>
+<!ENTITY fxaccount_getting_started_description2 'Sign in to sync your tabs, bookmarks, logins &amp; more.'>
 <!ENTITY fxaccount_getting_started_get_started 'Get started'>
 <!ENTITY fxaccount_getting_started_old_firefox 'Using an older version of &syncBrand.shortName.label;?'>
 
@@ -140,6 +150,8 @@
      etc).  The account remains a "Firefox Account". -->
 <!ENTITY fxaccount_create_account_header2 'Create a Firefox Account'>
 <!ENTITY fxaccount_create_account_password_length_restriction 'Must be at least 8 characters'>
+<!ENTITY fxaccount_create_account_day_of_birth 'Day'>
+<!ENTITY fxaccount_create_account_month_of_birth 'Month'>
 <!ENTITY fxaccount_create_account_year_of_birth 'Year of birth'>
 <!-- Localization note: &formatS1; is fxaccount_policy_linktos, &formatS2; is fxaccount_policy_linkprivacy, both hyperlinked. -->
 <!ENTITY fxaccount_create_account_policy_text2 'By proceeding, I agree to the &formatS1; and &formatS2; of Firefox cloud services.'>
@@ -157,8 +169,12 @@
 <!-- Localization note: &formatS; is the Firefox Account's email address. -->
 <!ENTITY fxaccount_confirm_account_verification_link 'A verification link has been sent to &formatS;'>
 <!ENTITY fxaccount_confirm_account_resend_email 'Resend email'>
+<!ENTITY fxaccount_confirm_account_change_email 'Forget this email address?'>
 <!ENTITY fxaccount_confirm_account_verification_link_sent2 'Verification email sent'>
 <!ENTITY fxaccount_confirm_account_verification_link_not_sent2 'Couldn\&apos;t send verification email'>
+<!ENTITY fxaccount_resend_unlock_code_button_label 'Resend unlock email'>
+<!ENTITY fxaccount_unlock_code_sent 'Account unlock email sent'>
+<!ENTITY fxaccount_unlock_code_not_sent 'Couldn\&apos;t send account unlock email'>
 
 <!ENTITY fxaccount_sign_in_sub_header 'Sign in'>
 <!ENTITY fxaccount_sign_in_button_label 'Sign in'>
@@ -169,23 +185,34 @@
 <!ENTITY fxaccount_account_verified_sub_header 'Account verified'>
 <!ENTITY fxaccount_account_verified_description2 'Your data will begin syncing momentarily.'>
 
+<!ENTITY fxaccount_migration_finished_header 'Upgrade finished'>
+
 <!ENTITY fxaccount_update_credentials_header 'Sign in'>
 <!ENTITY fxaccount_update_credentials_button_label 'Sign in'>
 <!ENTITY fxaccount_update_credentials_unknown_error 'Could not sign in'>
 
+<!ENTITY fxaccount_finish_migrating_header 'Sign in to finish upgrading'>
+<!ENTITY fxaccount_finish_migrating_button_label 'Finish upgrading'>
+<!ENTITY fxaccount_finish_migrating_description 'Upgrading can transfer a lot of data. It\&apos;s best to be on a Wi-Fi network.'>
+
 <!ENTITY fxaccount_status_header2 'Firefox Account'>
 <!ENTITY fxaccount_status_signed_in_as 'Signed in as'>
+<!ENTITY fxaccount_status_auth_server 'Account server'>
+<!ENTITY fxaccount_status_sync_now 'Sync now'>
+<!ENTITY fxaccount_status_syncing2 'Syncing…'>
 <!ENTITY fxaccount_status_device_name 'Device name'>
+<!ENTITY fxaccount_status_sync_server 'Sync server'>
 <!ENTITY fxaccount_status_sync '&syncBrand.shortName.label;'>
 <!ENTITY fxaccount_status_sync_enabled '&syncBrand.shortName.label;: enabled'>
 <!ENTITY fxaccount_status_needs_verification2 'Your account needs to be verified. Tap to resend verification email.'>
 <!ENTITY fxaccount_status_needs_credentials 'Cannot connect. Tap to sign in.'>
 <!ENTITY fxaccount_status_needs_upgrade 'You need to upgrade &brandShortName; to sign in.'>
 <!ENTITY fxaccount_status_needs_master_sync_automatically_enabled '&syncBrand.shortName.label; is set up, but not syncing automatically. Toggle “Auto-sync data” in Android Settings &gt; Data Usage.'>
-<!ENTITY fxaccount_status_needs_account_enabled '&syncBrand.shortName.label; is set up, but not syncing automatically. Tap to start syncing.'>
+<!ENTITY fxaccount_status_needs_master_sync_automatically_enabled_v21 '&syncBrand.shortName.label; is set up, but not syncing automatically. Toggle “Auto-sync data” in the menu of Android Settings &gt; Accounts.'>
+<!ENTITY fxaccount_status_needs_finish_migrating 'Tap to sign in to your new Firefox Account.'>
 <!ENTITY fxaccount_status_bookmarks 'Bookmarks'>
 <!ENTITY fxaccount_status_history 'History'>
-<!ENTITY fxaccount_status_passwords 'Passwords'>
+<!ENTITY fxaccount_status_passwords2 'Logins'>
 <!ENTITY fxaccount_status_tabs 'Open tabs'>
 <!ENTITY fxaccount_status_legal 'Legal' >
 <!-- Localization note: when tapped, the following two strings link to
@@ -194,14 +221,23 @@
      the two uses differently. -->
 <!ENTITY fxaccount_status_linktos 'Terms of Service'>
 <!ENTITY fxaccount_status_linkprivacy 'Privacy Notice'>
+<!ENTITY fxaccount_status_more 'More&ellipsis;'>
+
+<!ENTITY fxaccount_remove_account_dialog_title 'Remove Firefox Account?'>
+<!ENTITY fxaccount_remove_account_dialog_message '&brandShortName; will stop syncing with your account, but won’t delete any of your browsing data on this device.'>
+<!-- Localization note: format string below will be replaced
+     with the Firefox Account's email address. -->
+<!ENTITY fxaccount_remove_account_toast 'Firefox Account &formatS; removed.'>
+
+<!ENTITY fxaccount_remove_account_menu_item 'Remove Account'>
 
 <!-- Localization note: this is the name shown by the Android system
      itself for a Firefox Account. Don't localize this. -->
 <!ENTITY fxaccount_account_type_label 'Firefox'>
 
 <!-- Localization note: these are shown by the Android system itself,
-     when the user navigates to the Android > Accounts > [Firefox
-     Account] Screen. The link takes the user to the Firefox Account
+     when the user navigates to the Android > Accounts > {Firefox
+     Account} Screen. The link takes the user to the Firefox Account
      status activity, which lets them manage their Firefox
      Account. -->
 <!ENTITY fxaccount_options_title '&syncBrand.shortName.label; Options'>
@@ -221,8 +257,14 @@
 <!ENTITY fxaccount_remote_error_SERVICE_TEMPORARILY_UNAVAILABLE_TO_DUE_HIGH_LOAD 'Server busy, try again soon'>
 <!ENTITY fxaccount_remote_error_UNKNOWN_ERROR 'There was a problem'>
 <!ENTITY fxaccount_remote_error_COULD_NOT_CONNECT 'Cannot connect to network'>
+<!ENTITY fxaccount_remote_error_ACCOUNT_LOCKED 'Account is locked. &formatS1;'>
 
 <!ENTITY fxaccount_sync_sign_in_error_notification_title2 '&syncBrand.shortName.label; is not connected'>
-<!-- Note to translators: the format string below will be replaced
+<!-- Localization note: the format string below will be replaced
      with the Firefox Account's email address. -->
 <!ENTITY fxaccount_sync_sign_in_error_notification_text2 'Tap to sign in as &formatS;'>
+
+<!ENTITY fxaccount_sync_finish_migrating_notification_title 'Finish upgrading &syncBrand.shortName.label;?'>
+<!-- Localization note: the format string below will be replaced
+     with the Firefox Account's email address. -->
+<!ENTITY fxaccount_sync_finish_migrating_notification_text 'Tap to sign in as &formatS;'>

@@ -4,17 +4,23 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_TOOL_DIRS += ['cpp']
+TEST_DIRS += ['cpp']
+
+TESTING_JS_MODULES += [
+    'PlacesTestUtils.jsm',
+]
 
 XPCSHELL_TESTS_MANIFESTS += [
     'autocomplete/xpcshell.ini',
     'bookmarks/xpcshell.ini',
     'expiration/xpcshell.ini',
     'favicons/xpcshell.ini',
+    'history/xpcshell.ini',
     'inline/xpcshell.ini',
     'migration/xpcshell.ini',
     'network/xpcshell.ini',
     'queries/xpcshell.ini',
+    'unifiedcomplete/xpcshell.ini',
     'unit/xpcshell.ini',
     'xpcshell.ini',
 ]

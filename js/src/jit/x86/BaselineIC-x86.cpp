@@ -5,10 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/BaselineCompiler.h"
-#include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
-#include "jit/IonLinker.h"
+#include "jit/Linker.h"
+#include "jit/SharedICHelpers.h"
 
 using namespace js;
 using namespace js::jit;
@@ -19,7 +19,7 @@ namespace jit {
 // ICCompare_Int32
 
 bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -28,7 +28,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
     // Compare payload regs of R0 and R1.
     Assembler::Condition cond = JSOpToCondition(op, /* signed = */true);
-    masm.cmpl(R0.payloadReg(), R1.payloadReg());
+    masm.cmp32(R0.payloadReg(), R1.payloadReg());
     masm.setCC(cond, R0.payloadReg());
     masm.movzbl(R0.payloadReg(), R0.payloadReg());
 
@@ -45,7 +45,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 // ICBinaryArith_Int32
 
 bool
-ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -54,7 +54,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
     // Add R0 and R1.  Don't need to explicitly unbox, just use the TailCallReg which
     // should be available.
-    Register scratchReg = BaselineTailCallReg;
+    Register scratchReg = ICTailCallReg;
 
     Label revertRegister, maybeNegZero;
     switch(op_) {
@@ -81,7 +81,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.imull(R1.payloadReg(), scratchReg);
         masm.j(Assembler::Overflow, &failure);
 
-        masm.testl(scratchReg, scratchReg);
+        masm.test32(scratchReg, scratchReg);
         masm.j(Assembler::Zero, &maybeNegZero);
 
         masm.movl(scratchReg, R0.payloadReg());
@@ -100,7 +100,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.bind(&notZero);
 
         // For idiv we need eax.
-        JS_ASSERT(R1.typeReg() == eax);
+        MOZ_ASSERT(R1.typeReg() == eax);
         masm.movl(R0.payloadReg(), eax);
         // Preserve R0.payloadReg()/edx, eax is JSVAL_TYPE_INT32.
         masm.movl(R0.payloadReg(), scratchReg);
@@ -123,7 +123,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.branchTest32(Assembler::Zero, R0.payloadReg(), Imm32(0x7fffffff), &failure);
 
         // For idiv we need eax.
-        JS_ASSERT(R1.typeReg() == eax);
+        MOZ_ASSERT(R1.typeReg() == eax);
         masm.movl(R0.payloadReg(), eax);
         // Preserve R0.payloadReg()/edx, eax is JSVAL_TYPE_INT32.
         masm.movl(R0.payloadReg(), scratchReg);
@@ -139,8 +139,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
         masm.bind(&done);
         // Result is in edx, tag in ecx remains untouched.
-        JS_ASSERT(R0.payloadReg() == edx);
-        JS_ASSERT(R0.typeReg() == ecx);
+        MOZ_ASSERT(R0.payloadReg() == edx);
+        MOZ_ASSERT(R0.typeReg() == ecx);
         break;
       }
       case JSOP_BITOR:
@@ -156,7 +156,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         break;
       case JSOP_LSH:
         // RHS needs to be in ecx for shift operations.
-        JS_ASSERT(R0.typeReg() == ecx);
+        MOZ_ASSERT(R0.typeReg() == ecx);
         masm.movl(R1.payloadReg(), ecx);
         masm.shll_cl(R0.payloadReg());
         // We need to tag again, because we overwrote it.
@@ -173,7 +173,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
         masm.movl(R1.payloadReg(), ecx);
         masm.shrl_cl(R0.payloadReg());
-        masm.testl(R0.payloadReg(), R0.payloadReg());
+        masm.test32(R0.payloadReg(), R0.payloadReg());
         if (allowDouble_) {
             Label toUint;
             masm.j(Assembler::Signed, &toUint);
@@ -183,15 +183,15 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
             EmitReturnFromIC(masm);
 
             masm.bind(&toUint);
-            masm.convertUInt32ToDouble(R0.payloadReg(), ScratchFloatReg);
-            masm.boxDouble(ScratchFloatReg, R0);
+            masm.convertUInt32ToDouble(R0.payloadReg(), ScratchDoubleReg);
+            masm.boxDouble(ScratchDoubleReg, R0);
         } else {
             masm.j(Assembler::Signed, &revertRegister);
             masm.tagValue(JSVAL_TYPE_INT32, R0.payloadReg(), R0);
         }
         break;
       default:
-       MOZ_ASSUME_UNREACHABLE("Unhandled op for BinaryArith_Int32.  ");
+       MOZ_CRASH("Unhandled op for BinaryArith_Int32.");
     }
 
     // Return.
@@ -237,7 +237,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
@@ -252,7 +252,7 @@ ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.negl(R0.payloadReg());
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected op");
+        MOZ_CRASH("Unexpected op");
     }
 
     EmitReturnFromIC(masm);

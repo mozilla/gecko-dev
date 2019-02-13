@@ -4,7 +4,7 @@
 
 #include "jsapi-tests/tests.h"
 
-using JS::CreateTypeError;
+using JS::CreateError;
 using JS::Rooted;
 using JS::ObjectValue;
 using JS::Value;
@@ -13,7 +13,7 @@ static size_t uncaughtCount = 0;
 
 BEGIN_TEST(testUncaughtError)
 {
-    JSErrorReporter old = JS_SetErrorReporter(cx, UncaughtErrorReporter);
+    JSErrorReporter old = JS_SetErrorReporter(rt, UncaughtErrorReporter);
 
     CHECK(uncaughtCount == 0);
 
@@ -22,7 +22,7 @@ BEGIN_TEST(testUncaughtError)
         return false;
 
     Rooted<Value> err(cx);
-    if (!CreateTypeError(cx, empty, empty, 0, 0, nullptr, empty, &err))
+    if (!CreateError(cx, JSEXN_TYPEERR, nullptr, empty, 0, 0, nullptr, empty, &err))
         return false;
 
     Rooted<JSObject*> errObj(cx, &err.toObject());
@@ -42,13 +42,13 @@ BEGIN_TEST(testUncaughtError)
 
     CHECK(uncaughtCount == 1);
 
-    JS_SetErrorReporter(cx, old);
+    JS_SetErrorReporter(rt, old);
 
     return true;
 }
 
 static void
-UncaughtErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
+UncaughtErrorReporter(JSContext* cx, const char* message, JSErrorReport* report)
 {
     uncaughtCount++;
 }

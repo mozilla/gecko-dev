@@ -1,84 +1,131 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+// Tests that changing preferences in the options panel updates the prefs
+// and toggles appropriate things in the toolbox.
+
 let doc = null, toolbox = null, panelWin = null, modifiedPrefs = [];
 
-function test() {
-  waitForExplicitFinish();
-
+add_task(function*() {
   const URL = "data:text/html;charset=utf8,test for dynamically registering and unregistering tools";
-  Task.spawn(function* () {
-    let { target } = yield addTab(URL);
-    let toolbox = yield gDevTools.showToolbox(target);
-    yield testSelectTool(toolbox);
-    yield testOptionsShortcut();
-    yield testOptions();
-    yield testToggleTools();
-  }).then(cleanup, errorHandler);
-}
-
-function testSelectTool(aToolbox) {
-  let deferred = promise.defer();
-
-  toolbox = aToolbox;
+  registerNewTool();
+  let tab = yield addTab(URL);
+  let target = TargetFactory.forTab(tab);
+  toolbox = yield gDevTools.showToolbox(target);
   doc = toolbox.doc;
-  toolbox.once("options-selected", () => {
-    ok(true, "Toolbox selected via selectTool method");
-    deferred.resolve();
-  });
-  toolbox.selectTool("options");
+  yield testSelectTool();
+  yield testOptionsShortcut();
+  yield testOptions();
+  yield testToggleTools();
+  yield cleanup();
+});
 
-  return deferred.promise;
+function registerNewTool() {
+  let toolDefinition = {
+    id: "test-tool",
+    isTargetSupported: () => true,
+    visibilityswitch: "devtools.test-tool.enabled",
+    url: "about:blank",
+    label: "someLabel"
+  };
+
+  ok(gDevTools, "gDevTools exists");
+  ok(!gDevTools.getToolDefinitionMap().has("test-tool"),
+    "The tool is not registered");
+
+  gDevTools.registerTool(toolDefinition);
+  ok(gDevTools.getToolDefinitionMap().has("test-tool"),
+    "The tool is registered");
 }
 
-function testOptionsShortcut() {
-  let deferred = promise.defer();
+function* testSelectTool() {
+  info ("Checking to make sure that the options panel can be selected.");
 
-  toolbox.selectTool("webconsole")
+  let onceSelected = toolbox.once("options-selected");
+  toolbox.selectTool("options");
+  yield onceSelected;
+  ok(true, "Toolbox selected via selectTool method");
+}
+
+function* testOptionsShortcut() {
+  info ("Selecting another tool, then reselecting options panel with keyboard.");
+
+  yield toolbox.selectTool("webconsole")
          .then(() => synthesizeKeyFromKeyTag("toolbox-options-key", doc))
          .then(() => {
            ok(true, "Toolbox selected via shortcut key");
-           deferred.resolve();
          });
-
-  return deferred.promise;
 }
 
-function testOptions() {
+function* testOptions() {
   let tool = toolbox.getPanel("options");
   panelWin = tool.panelWin;
   let prefNodes = tool.panelDoc.querySelectorAll("checkbox[data-pref]");
 
   // Store modified pref names so that they can be cleared on error.
-  for (let node of prefNodes) {
+  for (let node of tool.panelDoc.querySelectorAll("[data-pref]")) {
     let pref = node.getAttribute("data-pref");
     modifiedPrefs.push(pref);
   }
 
-  // Test each options pref
-  let p = promise.resolve();
   for (let node of prefNodes) {
-    let prefValue = Services.prefs.getBoolPref(node.getAttribute("data-pref"));
-    p = p.then(testMouseClick.bind(null, node, prefValue));
-  }
-  // Do again with opposite values to reset prefs
-  for (let node of prefNodes) {
-    let prefValue = !Services.prefs.getBoolPref(node.getAttribute("data-pref"));
-    p = p.then(testMouseClick.bind(null, node, prefValue));
+    let prefValue = GetPref(node.getAttribute("data-pref"));
+
+    // Test clicking the checkbox for each options pref
+    yield testMouseClick(node, prefValue);
+
+    // Do again with opposite values to reset prefs
+    yield testMouseClick(node, !prefValue);
   }
 
-  return p;
+  let prefDropdowns = tool.panelDoc.querySelectorAll("menulist[data-pref]");
+  for (let node of prefDropdowns) {
+    yield testMenuList(node);
+  }
 }
 
-function testMouseClick(node, prefValue) {
+function* testMenuList(menulist) {
+  let pref = menulist.getAttribute("data-pref");
+  let menuitems = menulist.querySelectorAll("menuitem");
+  info ("Checking menu list for: " + pref);
+
+  is (menulist.selectedItem.value, GetPref(pref), "Menu starts out selected");
+
+  for (let menuitem of menuitems) {
+    if (menuitem === menulist.selectedItem) {
+      continue;
+    }
+
+    let deferred = promise.defer();
+    gDevTools.once("pref-changed", (event, data) => {
+      if (data.pref == pref) {
+        ok(true, "Correct pref was changed");
+        is (GetPref(pref), menuitem.value, "Preference been switched for " + pref);
+      } else {
+        ok(false, "Pref " + pref + " was not changed correctly");
+      }
+      deferred.resolve();
+    });
+
+    menulist.selectedItem = menuitem;
+    let commandEvent = menulist.ownerDocument.createEvent("XULCommandEvent");
+    commandEvent.initCommandEvent("command", true, true, window, 0, false, false,
+                                  false, false, null);
+    menulist.dispatchEvent(commandEvent);
+
+    yield deferred.promise;
+  }
+}
+
+function* testMouseClick(node, prefValue) {
   let deferred = promise.defer();
 
   let pref = node.getAttribute("data-pref");
   gDevTools.once("pref-changed", (event, data) => {
     if (data.pref == pref) {
       ok(true, "Correct pref was changed");
-      is(data.oldValue, prefValue, "Previous value is correct");
-      is(data.newValue, !prefValue, "New value is correct");
+      is(data.oldValue, prefValue, "Previous value is correct for " + pref);
+      is(data.newValue, !prefValue, "New value is correct for " + pref);
     } else {
       ok(false, "Pref " + pref + " was not changed correctly");
     }
@@ -94,14 +141,17 @@ function testMouseClick(node, prefValue) {
     EventUtils.synthesizeMouseAtCenter(node, {}, panelWin);
   });
 
-  return deferred.promise;
+  yield deferred.promise;
 }
 
-function testToggleTools() {
-  let toolNodes = panelWin.document.querySelectorAll("#default-tools-box > checkbox:not([unsupported])");
-  let enabledTools = Array.prototype.filter.call(toolNodes, node => node.checked);
+function* testToggleTools() {
+  let toolNodes = panelWin.document.querySelectorAll("#default-tools-box > checkbox:not([unsupported]), #additional-tools-box > checkbox:not([unsupported])");
+  let enabledTools = [...toolNodes].filter(node => node.checked);
 
-  let toggleableTools = gDevTools.getDefaultTools().filter(tool => tool.visibilityswitch);
+  let toggleableTools = gDevTools.getDefaultTools().filter(tool => {
+    return tool.visibilityswitch;
+  }).concat(gDevTools.getAdditionalTools());
+
   for (let node of toolNodes) {
     let id = node.getAttribute("id");
     ok (toggleableTools.some(tool => tool.id === id),
@@ -115,23 +165,22 @@ function testToggleTools() {
   }
 
   // Toggle each tool
-  let p = promise.resolve();
   for (let node of toolNodes) {
-    p = p.then(toggleTool.bind(null, node));
+    yield toggleTool(node);
   }
   // Toggle again to reset tool enablement state
   for (let node of toolNodes) {
-    p = p.then(toggleTool.bind(null, node));
+    yield toggleTool(node);
   }
 
   // Test that a tool can still be added when no tabs are present:
   // Disable all tools
   for (let node of enabledTools) {
-    p = p.then(toggleTool.bind(null, node));
+    yield toggleTool(node);
   }
   // Re-enable the tools which are enabled by default
   for (let node of enabledTools) {
-    p = p.then(toggleTool.bind(null, node));
+    yield toggleTool(node);
   }
 
   // Toggle first, middle, and last tools to ensure that toolbox tabs are
@@ -140,20 +189,19 @@ function testToggleTools() {
       middleTool = toolNodes[(toolNodes.length / 2) | 0],
       lastTool   = toolNodes[toolNodes.length - 1];
 
-  p = p.then(toggleTool.bind(null, firstTool))
-       .then(toggleTool.bind(null, firstTool))
-       .then(toggleTool.bind(null, middleTool))
-       .then(toggleTool.bind(null, middleTool))
-       .then(toggleTool.bind(null, lastTool))
-       .then(toggleTool.bind(null, lastTool));
-
-  return p;
+  yield toggleTool(firstTool);
+  yield toggleTool(firstTool);
+  yield toggleTool(middleTool);
+  yield toggleTool(middleTool);
+  yield toggleTool(lastTool);
+  yield toggleTool(lastTool);
 }
 
-function toggleTool(node) {
+function* toggleTool(node) {
   let deferred = promise.defer();
 
   let toolId = node.getAttribute("id");
+  let onRegistrationChange;
   if (node.checked) {
     gDevTools.once("tool-unregistered", checkUnregistered.bind(null, toolId, deferred));
   } else {
@@ -162,7 +210,7 @@ function toggleTool(node) {
   node.scrollIntoView();
   EventUtils.synthesizeMouseAtCenter(node, {}, panelWin);
 
-  return deferred.promise;
+  yield deferred.promise;
 }
 
 function checkUnregistered(toolId, deferred, event, data) {
@@ -202,18 +250,26 @@ function checkRegistered(toolId, deferred, event, data) {
   deferred.resolve();
 }
 
-function cleanup() {
-  toolbox.destroy().then(function() {
-    gBrowser.removeCurrentTab();
-    for (let pref of modifiedPrefs) {
-      Services.prefs.clearUserPref(pref);
-    }
-    toolbox = doc = panelWin = modifiedPrefs = null;
-    finish();
-  });
+function GetPref(name) {
+  let type = Services.prefs.getPrefType(name);
+  switch (type) {
+    case Services.prefs.PREF_STRING:
+      return Services.prefs.getCharPref(name);
+    case Services.prefs.PREF_INT:
+      return Services.prefs.getIntPref(name);
+    case Services.prefs.PREF_BOOL:
+      return Services.prefs.getBoolPref(name);
+    default:
+      throw new Error("Unknown type");
+  }
 }
 
-function errorHandler(error) {
-  ok(false, "Unexpected error: " + error);
-  cleanup();
+function* cleanup() {
+  gDevTools.unregisterTool("test-tool");
+  yield toolbox.destroy();
+  gBrowser.removeCurrentTab();
+  for (let pref of modifiedPrefs) {
+    Services.prefs.clearUserPref(pref);
+  }
+  toolbox = doc = panelWin = modifiedPrefs = null;
 }

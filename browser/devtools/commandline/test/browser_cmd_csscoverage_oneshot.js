@@ -14,7 +14,7 @@ const SHEET_B = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetB.css";
 const SHEET_C = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetC.css";
 const SHEET_D = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetD.css";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let options = yield helpers.openTab(PAGE_3);
   yield helpers.openToolbar(options);
 
@@ -23,7 +23,12 @@ let test = asyncTest(function*() {
   yield navigate(usage, options);
   yield checkPages(usage);
   yield checkEditorReport(usage);
-  yield checkPageReport(usage);
+  // usage.createPageReport is not supported for usage.oneshot data as of
+  // bug 1035300 because the page report assumed we have preload data which
+  // oneshot can't gather. The ideal solution is to have a special no-preload
+  // mode for the page report, but since oneshot isn't needed for the UI to
+  // function, we're currently not supporting page report for oneshot data
+  // yield checkPageReport(usage);
 
   yield helpers.closeToolbar(options);
   yield helpers.closeTab(options);
@@ -33,13 +38,11 @@ let test = asyncTest(function*() {
  * Just check current page
  */
 function* navigate(usage, options) {
-  let running = yield usage._testOnly_isRunning();
-  ok(!running, "csscoverage not is running");
+  ok(!usage.isRunning(), "csscoverage is not running");
 
   yield usage.oneshot();
 
-  running = yield usage._testOnly_isRunning();
-  ok(!running, "csscoverage not is running");
+  ok(!usage.isRunning(), "csscoverage is still not running");
 }
 
 /**

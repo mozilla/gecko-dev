@@ -38,10 +38,10 @@ class nsDownload;
 #include "nsDownloadScanner.h"
 #endif
 
-class nsDownloadManager : public nsIDownloadManager,
-                          public nsINavHistoryObserver,
-                          public nsIObserver,
-                          public nsSupportsWeakReference
+class nsDownloadManager final : public nsIDownloadManager,
+                                public nsINavHistoryObserver,
+                                public nsIObserver,
+                                public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -53,7 +53,6 @@ public:
 
   static nsDownloadManager *GetSingleton();
 
-  virtual ~nsDownloadManager();
   nsDownloadManager()
 #ifdef DOWNLOAD_SCANNER
     : mScanner(nullptr)
@@ -62,6 +61,8 @@ public:
   }
 
 protected:
+  virtual ~nsDownloadManager();
+
   nsresult InitDB();
   nsresult InitFileDB();
   void CloseAllDBs();
@@ -263,7 +264,7 @@ private:
   friend class nsDownload;
 };
 
-class nsDownload : public nsIDownload
+class nsDownload final : public nsIDownload
 {
 public:
   NS_DECL_NSIWEBPROGRESSLISTENER
@@ -273,7 +274,6 @@ public:
   NS_DECL_ISUPPORTS
 
   nsDownload();
-  virtual ~nsDownload();
 
   /**
    * This method MUST be called when changing states on a download.  It will
@@ -283,6 +283,8 @@ public:
   nsresult SetState(DownloadState aState);
 
 protected:
+  virtual ~nsDownload();
+
   /**
    * Finish up the download by breaking reference cycles and clearing unneeded
    * data. Additionally, the download removes itself from the download
@@ -304,6 +306,11 @@ protected:
    * dummy target and renaming the temporary.
    */
   nsresult MoveTempToTarget();
+
+  /**
+   * Set the target file permissions to be appropriate.
+   */
+  nsresult FixTargetPermissions();
 
   /**
    * Update the start time which also implies the last update time is the same.

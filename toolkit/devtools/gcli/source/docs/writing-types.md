@@ -7,7 +7,7 @@ number of built in types:
 
 * string. This is a JavaScript string
 * number. A JavaScript number
-* boolean. A Javascript boolean
+* boolean. A JavaScript boolean
 * selection. This is an selection from a number of alternatives
 * delegate. This type could change depending on other factors, but is well
   defined when one of the conversion routines is called.
@@ -49,12 +49,12 @@ All types must inherit from Type and have the following methods:
      */
     name: 'example',
 
-In addition, defining the following functions can be helpful, although Type
+In addition, defining the following function can be helpful, although Type
 contains default implementations:
-* increment(value)
-* decrement(value)
 
-Type, Conversion and Status are all declared by canon.js.
+* nudge(value, by)
+
+Type, Conversion and Status are all declared by commands.js.
 
 The values produced by the parse function can be of any type, but if you are
 producing your own, you are strongly encouraged to include properties called

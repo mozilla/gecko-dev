@@ -14,7 +14,7 @@ add_task(function flush_on_tabclose() {
   let browser = tab.linkedBrowser;
 
   yield modifySessionStorage(browser, {test: "on-tab-close"});
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   let [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
   is(storage["http://example.com"].test, "on-tab-close",
@@ -54,12 +54,9 @@ add_task(function flush_on_duplicate() {
 
   yield modifySessionStorage(browser, {test: "on-duplicate"});
   let tab2 = ss.duplicateTab(window, tab);
-  let {storage} = JSON.parse(ss.getTabState(tab2));
-  is(storage["http://example.com"].test, "on-duplicate",
-    "sessionStorage data has been flushed when duplicating tabs");
-
   yield promiseTabRestored(tab2);
-  gBrowser.removeTab(tab2)
+
+  yield promiseRemoveTab(tab2);
   let [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
   is(storage["http://example.com"].test, "on-duplicate",
     "sessionStorage data has been flushed when duplicating tabs");
@@ -93,17 +90,16 @@ add_task(function flush_on_settabstate() {
   let browser = tab.linkedBrowser;
 
   // Flush to make sure our tab state is up-to-date.
-  SyncHandlers.get(browser).flush();
+  yield TabStateFlusher.flush(browser);
 
   let state = ss.getTabState(tab);
   yield modifySessionStorage(browser, {test: "on-set-tab-state"});
 
   // Flush all data contained in the content script but send it using
   // asynchronous messages.
-  SyncHandlers.get(browser).flushAsync();
+  TabState.flushAsync(browser);
 
-  ss.setTabState(tab, state);
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, state);
 
   let {storage} = JSON.parse(ss.getTabState(tab));
   is(storage["http://example.com"].test, INITIAL_VALUE,
@@ -122,14 +118,14 @@ add_task(function flush_on_tabclose_racy() {
   let browser = tab.linkedBrowser;
 
   // Flush to make sure we start with an empty queue.
-  SyncHandlers.get(browser).flush();
+  yield TabStateFlusher.flush(browser);
 
   yield modifySessionStorage(browser, {test: "on-tab-close-racy"});
 
   // Flush all data contained in the content script but send it using
   // asynchronous messages.
-  SyncHandlers.get(browser).flushAsync();
-  gBrowser.removeTab(tab);
+  TabState.flushAsync(browser);
+  yield promiseRemoveTab(tab);
 
   let [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
   is(storage["http://example.com"].test, "on-tab-close-racy",
@@ -175,17 +171,8 @@ function createTabWithStorageData(urls, win = window) {
   });
 }
 
-function waitForStorageEvent(browser) {
-  return promiseContentMessage(browser, "ss-test:MozStorageChanged");
-}
-
 function sendQuitApplicationRequested() {
   let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
                      .createInstance(Ci.nsISupportsPRBool);
   Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
-}
-
-function modifySessionStorage(browser, data) {
-  browser.messageManager.sendAsyncMessage("ss-test:modifySessionStorage", data);
-  return waitForStorageEvent(browser);
 }

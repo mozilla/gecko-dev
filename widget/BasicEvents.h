@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/TimeStamp.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
@@ -16,63 +17,6 @@
 #include "nsIWidget.h"
 #include "nsString.h"
 #include "Units.h"
-
-/******************************************************************************
- * Event Struct Types
- *
- * TODO: Move it into mozilla namespace.
- ******************************************************************************/
-enum nsEventStructType
-{
-  // BasicEvents.h
-  NS_EVENT,                          // WidgetEvent
-  NS_GUI_EVENT,                      // WidgetGUIEvent
-  NS_INPUT_EVENT,                    // WidgetInputEvent
-  NS_UI_EVENT,                       // InternalUIEvent
-
-  // TextEvents.h
-  NS_KEY_EVENT,                      // WidgetKeyboardEvent
-  NS_COMPOSITION_EVENT,              // WidgetCompositionEvent
-  NS_TEXT_EVENT,                     // WidgetTextEvent
-  NS_QUERY_CONTENT_EVENT,            // WidgetQueryContentEvent
-  NS_SELECTION_EVENT,                // WidgetSelectionEvent
-  NS_EDITOR_INPUT_EVENT,             // InternalEditorInputEvent
-
-  // MouseEvents.h
-  NS_MOUSE_EVENT,                    // WidgetMouseEvent
-  NS_DRAG_EVENT,                     // WidgetDragEvent
-  NS_MOUSE_SCROLL_EVENT,             // WidgetMouseScrollEvent
-  NS_WHEEL_EVENT,                    // WidgetWheelEvent
-  NS_POINTER_EVENT,                  // PointerEvent
-
-  // TouchEvents.h
-  NS_GESTURENOTIFY_EVENT,            // WidgetGestureNotifyEvent
-  NS_SIMPLE_GESTURE_EVENT,           // WidgetSimpleGestureEvent
-  NS_TOUCH_EVENT,                    // WidgetTouchEvent
-
-  // ContentEvents.h
-  NS_SCROLLPORT_EVENT,               // InternalScrollPortEvent
-  NS_SCROLLAREA_EVENT,               // InternalScrollAreaEvent
-  NS_FORM_EVENT,                     // InternalFormEvent
-  NS_FOCUS_EVENT,                    // InternalFocusEvent
-  NS_CLIPBOARD_EVENT,                // InternalClipboardEvent
-  NS_TRANSITION_EVENT,               // InternalTransitionEvent
-  NS_ANIMATION_EVENT,                // InternalAnimationEvent
-
-  // MiscEvents.h
-  NS_COMMAND_EVENT,                  // WidgetCommandEvent
-  NS_CONTENT_COMMAND_EVENT,          // WidgetContentCommandEvent
-  NS_PLUGIN_EVENT,                   // WidgetPluginEvent
-
-  // InternalMutationEvent.h (dom/events)
-  NS_MUTATION_EVENT,                 // InternalMutationEvent
-
-  // Follwoing struct type values are ugly.  They indicate other struct type
-  // actually.  However, they are used for distinguishing which DOM event
-  // should be created for the event.
-  NS_SVGZOOM_EVENT,                  // WidgetGUIEvent
-  NS_SMIL_TIME_EVENT                 // InternalUIEvent
-};
 
 /******************************************************************************
  * Messages
@@ -97,6 +41,11 @@ enum nsEventStructType
 // Key is pressed within a window
 #define NS_KEY_DOWN                     (NS_WINDOW_START + 33)
 
+#define NS_KEY_BEFORE_DOWN              (NS_WINDOW_START + 34)
+#define NS_KEY_AFTER_DOWN               (NS_WINDOW_START + 35)
+#define NS_KEY_BEFORE_UP                (NS_WINDOW_START + 36)
+#define NS_KEY_AFTER_UP                 (NS_WINDOW_START + 37)
+
 #define NS_RESIZE_EVENT                 (NS_WINDOW_START + 60)
 #define NS_SCROLL_EVENT                 (NS_WINDOW_START + 61)
 
@@ -116,24 +65,19 @@ enum nsEventStructType
 #define NS_MOZ_USER_IDLE                 (NS_WINDOW_START + 67)
 #define NS_MOZ_USER_ACTIVE               (NS_WINDOW_START + 68)
 
-// The resolution at which a plugin should draw has changed, for
-// example as the result of changing from a HiDPI mode to a non-
-// HiDPI mode.
-#define NS_PLUGIN_RESOLUTION_CHANGED     (NS_WINDOW_START + 69)
-
 #define NS_LANGUAGECHANGE                (NS_WINDOW_START + 70)
 
 #define NS_MOUSE_MESSAGE_START          300
 #define NS_MOUSE_MOVE                   (NS_MOUSE_MESSAGE_START)
 #define NS_MOUSE_BUTTON_UP              (NS_MOUSE_MESSAGE_START + 1)
 #define NS_MOUSE_BUTTON_DOWN            (NS_MOUSE_MESSAGE_START + 2)
-#define NS_MOUSE_ENTER                  (NS_MOUSE_MESSAGE_START + 22)
-#define NS_MOUSE_EXIT                   (NS_MOUSE_MESSAGE_START + 23)
+#define NS_MOUSE_ENTER_WIDGET           (NS_MOUSE_MESSAGE_START + 22)
+#define NS_MOUSE_EXIT_WIDGET            (NS_MOUSE_MESSAGE_START + 23)
 #define NS_MOUSE_DOUBLECLICK            (NS_MOUSE_MESSAGE_START + 24)
 #define NS_MOUSE_CLICK                  (NS_MOUSE_MESSAGE_START + 27)
 #define NS_MOUSE_ACTIVATE               (NS_MOUSE_MESSAGE_START + 30)
-#define NS_MOUSE_ENTER_SYNTH            (NS_MOUSE_MESSAGE_START + 31)
-#define NS_MOUSE_EXIT_SYNTH             (NS_MOUSE_MESSAGE_START + 32)
+#define NS_MOUSE_OVER                   (NS_MOUSE_MESSAGE_START + 31)
+#define NS_MOUSE_OUT                    (NS_MOUSE_MESSAGE_START + 32)
 #define NS_MOUSE_MOZHITTEST             (NS_MOUSE_MESSAGE_START + 33)
 #define NS_MOUSEENTER                   (NS_MOUSE_MESSAGE_START + 34)
 #define NS_MOUSELEAVE                   (NS_MOUSE_MESSAGE_START + 35)
@@ -188,9 +132,7 @@ enum nsEventStructType
 #define NS_DRAGDROP_END                 (NS_DRAGDROP_EVENT_START + 6)
 #define NS_DRAGDROP_START               (NS_DRAGDROP_EVENT_START + 7)
 #define NS_DRAGDROP_DROP                (NS_DRAGDROP_EVENT_START + 8)
-#define NS_DRAGDROP_OVER_SYNTH          (NS_DRAGDROP_EVENT_START + 1)
-#define NS_DRAGDROP_EXIT_SYNTH          (NS_DRAGDROP_EVENT_START + 2)
-#define NS_DRAGDROP_LEAVE_SYNTH         (NS_DRAGDROP_EVENT_START + 9)
+#define NS_DRAGDROP_LEAVE               (NS_DRAGDROP_EVENT_START + 9)
 
 // Events for popups
 #define NS_XUL_EVENT_START            1500
@@ -227,12 +169,33 @@ enum nsEventStructType
 // composition events
 #define NS_COMPOSITION_EVENT_START    2200
 #define NS_COMPOSITION_START          (NS_COMPOSITION_EVENT_START)
+// NS_COMPOSITION_END is the message for DOM compositionend event.
+// This event should NOT be dispatched from widget if NS_COMPOSITION_COMMIT
+// is available.
 #define NS_COMPOSITION_END            (NS_COMPOSITION_EVENT_START + 1)
+// NS_COMPOSITION_UPDATE is the message for DOM compositionupdate event.
+// This event should NOT be dispatched from widget since it will be dispatched
+// by mozilla::TextComposition automatically if NS_COMPOSITION_CHANGE event
+// will change composition string.
 #define NS_COMPOSITION_UPDATE         (NS_COMPOSITION_EVENT_START + 2)
-
-// text events
-#define NS_TEXT_START                 2400
-#define NS_TEXT_TEXT                  (NS_TEXT_START)
+// NS_COMPOSITION_CHANGE is the message for representing a change of
+// composition string.  This should be dispatched from widget even if
+// composition string isn't changed but the ranges are changed.  This causes
+// a DOM "text" event which is a non-standard DOM event.
+#define NS_COMPOSITION_CHANGE         (NS_COMPOSITION_EVENT_START + 3)
+// NS_COMPOSITION_COMMIT_AS_IS is the message for representing a commit of
+// composition string.  TextComposition will commit composition with the
+// last data.  TextComposition will dispatch this event to the DOM tree as
+// NS_COMPOSITION_CHANGE without clause information.  After that,
+// NS_COMPOSITION_END will be dispatched automatically.
+// Its mData and mRanges should be empty and nullptr.
+#define NS_COMPOSITION_COMMIT_AS_IS   (NS_COMPOSITION_EVENT_START + 4)
+// NS_COMPOSITION_COMMIT is the message for representing a commit of
+// composition string with its mData value.  TextComposition will dispatch this
+// event to the DOM tree as NS_COMPOSITION_CHANGE without clause information.
+// After that, NS_COMPOSITION_END will be dispatched automatically.
+// Its mRanges should be nullptr.
+#define NS_COMPOSITION_COMMIT         (NS_COMPOSITION_EVENT_START + 5)
 
 // UI events
 #define NS_UI_EVENT_START          2500
@@ -293,8 +256,9 @@ enum nsEventStructType
 #define NS_QUERY_CONTENT_STATE          (NS_QUERY_CONTENT_EVENT_START + 6)
 // Query for the selection in the form of a nsITransferable.
 #define NS_QUERY_SELECTION_AS_TRANSFERABLE (NS_QUERY_CONTENT_EVENT_START + 7)
-// Query for character at a point.  This returns the character offset and its
-// rect.  The point is specified by Event::refPoint.
+// Query for character at a point.  This returns the character offset, its
+// rect and also tentative caret point if the point is clicked.  The point is
+// specified by Event::refPoint.
 #define NS_QUERY_CHARACTER_AT_POINT     (NS_QUERY_CONTENT_EVENT_START + 8)
 // Query if the DOM element under Event::refPoint belongs to our widget
 // or not.
@@ -434,9 +398,7 @@ enum nsEventStructType
 #define NS_TOUCH_START               (NS_TOUCH_EVENT_START)
 #define NS_TOUCH_MOVE                (NS_TOUCH_EVENT_START+1)
 #define NS_TOUCH_END                 (NS_TOUCH_EVENT_START+2)
-#define NS_TOUCH_ENTER               (NS_TOUCH_EVENT_START+3)
-#define NS_TOUCH_LEAVE               (NS_TOUCH_EVENT_START+4)
-#define NS_TOUCH_CANCEL              (NS_TOUCH_EVENT_START+5)
+#define NS_TOUCH_CANCEL              (NS_TOUCH_EVENT_START+3)
 
 // Pointerlock DOM API
 #define NS_POINTERLOCK_START         5300
@@ -481,6 +443,11 @@ enum nsEventStructType
 // input and beforeinput events.
 #define NS_EDITOR_EVENT_START    6100
 #define NS_EDITOR_INPUT          (NS_EDITOR_EVENT_START)
+
+namespace IPC {
+template<typename T>
+struct ParamTraits;
+}
 
 namespace mozilla {
 
@@ -527,6 +494,10 @@ public:
   // consumed by content.
   // Note that mDefaultPrevented must be true when this is true.
   bool    mDefaultPreventedByContent : 1;
+  // If mDefaultPreventedByChrome is true, the event has been
+  // consumed by chrome.
+  // Note that mDefaultPrevented must be true when this is true.
+  bool    mDefaultPreventedByChrome : 1;
   // mMultipleActionsPrevented may be used when default handling don't want to
   // be prevented, but only one of the event targets should handle the event.
   // For example, when a <label> element is in another <label> element and
@@ -566,6 +537,10 @@ public:
   // for when the parent process need the know first how the event was used
   // by content before handling it itself.
   bool mWantReplyFromContentProcess : 1;
+  // The event's action will be handled by APZ. The main thread should not
+  // perform its associated action. This is currently only relevant for
+  // wheel events.
+  bool mHandledByAPZ : 1;
 
   // If the event is being handled in target phase, returns true.
   inline bool InTargetPhase() const
@@ -622,10 +597,14 @@ struct EventFlags : public BaseEventFlags
 class WidgetEvent
 {
 protected:
-  WidgetEvent(bool aIsTrusted, uint32_t aMessage,
-              nsEventStructType aStructType) :
-    eventStructType(aStructType), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
+  WidgetEvent(bool aIsTrusted, uint32_t aMessage, EventClassID aEventClassID)
+    : mClass(aEventClassID)
+    , message(aMessage)
+    , refPoint(0, 0)
+    , lastRefPoint(0, 0)
+    , time(0)
+    , timeStamp(TimeStamp::Now())
+    , userType(nullptr)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -640,9 +619,14 @@ protected:
   }
 
 public:
-  WidgetEvent(bool aIsTrusted, uint32_t aMessage) :
-    eventStructType(NS_EVENT), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
+  WidgetEvent(bool aIsTrusted, uint32_t aMessage)
+    : mClass(eBasicEventClass)
+    , message(aMessage)
+    , refPoint(0, 0)
+    , lastRefPoint(0, 0)
+    , time(0)
+    , timeStamp(TimeStamp::Now())
+    , userType(nullptr)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -664,7 +648,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const
   {
-    MOZ_ASSERT(eventStructType == NS_EVENT,
+    MOZ_ASSERT(mClass == eBasicEventClass,
                "Duplicate() must be overridden by sub class");
     WidgetEvent* result = new WidgetEvent(false, message);
     result->AssignEventData(*this, true);
@@ -672,8 +656,7 @@ public:
     return result;
   }
 
-  // See event struct types
-  nsEventStructType eventStructType;
+  EventClassID mClass;
   // See GUI MESSAGES,
   uint32_t message;
   // Relative to the widget of the event, or if there is no widget then it is
@@ -702,10 +685,7 @@ public:
 
   void AssignEventData(const WidgetEvent& aEvent, bool aCopyTargets)
   {
-    // eventStructType should be initialized with the constructor.
-    // However, NS_SVGZOOM_EVENT and NS_SMIL_TIME_EVENT are set after that.
-    // Therefore, we need to copy eventStructType here.
-    eventStructType = aEvent.eventStructType;
+    // mClass should be initialized with the constructor.
     // message should be initialized with the constructor.
     refPoint = aEvent.refPoint;
     // lastRefPoint doesn't need to be copied.
@@ -838,30 +818,28 @@ class WidgetGUIEvent : public WidgetEvent
 {
 protected:
   WidgetGUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                 nsEventStructType aStructType) :
-    WidgetEvent(aIsTrusted, aMessage, aStructType),
-    widget(aWidget), pluginEvent(nullptr)
+                 EventClassID aEventClassID)
+    : WidgetEvent(aIsTrusted, aMessage, aEventClassID)
+    , widget(aWidget)
   {
   }
 
-  WidgetGUIEvent() :
-    pluginEvent(nullptr)
+  WidgetGUIEvent()
   {
   }
 
 public:
-  virtual WidgetGUIEvent* AsGUIEvent() MOZ_OVERRIDE { return this; }
+  virtual WidgetGUIEvent* AsGUIEvent() override { return this; }
 
   WidgetGUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
-    WidgetEvent(aIsTrusted, aMessage, NS_GUI_EVENT),
-    widget(aWidget), pluginEvent(nullptr)
+    WidgetEvent(aIsTrusted, aMessage, eGUIEventClass),
+    widget(aWidget)
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
-    MOZ_ASSERT(eventStructType == NS_GUI_EVENT ||
-                 eventStructType == NS_SVGZOOM_EVENT,
+    MOZ_ASSERT(mClass == eGUIEventClass,
                "Duplicate() must be overridden by sub class");
     // Not copying widget, it is a weak reference.
     WidgetGUIEvent* result = new WidgetGUIEvent(false, message, nullptr);
@@ -873,8 +851,69 @@ public:
   /// Originator of the event
   nsCOMPtr<nsIWidget> widget;
 
+  /*
+   * Explanation for this PluginEvent class:
+   *
+   * WidgetGUIEvent's mPluginEvent member used to be a void* pointer,
+   * used to reference external, OS-specific data structures.
+   *
+   * That void* pointer wasn't serializable by itself, causing
+   * certain plugin events not to function in e10s. See bug 586656.
+   *
+   * To make this serializable, we changed this void* pointer into
+   * a proper buffer, and copy these external data structures into this
+   * buffer.
+   *
+   * That buffer is PluginEvent::mBuffer below.
+   *
+   * We wrap this in that PluginEvent class providing operators to
+   * be compatible with existing code that was written around
+   * the old void* field.
+   *
+   * Ideally though, we wouldn't allow arbitrary reinterpret_cast'ing here;
+   * instead, we would at least store type information here so that
+   * this class can't be used to reinterpret one structure type into another.
+   * We can also wonder if it would be possible to properly extend
+   * WidgetGUIEvent and other Event classes to remove the need for this
+   * mPluginEvent field.
+   */
+  class PluginEvent final
+  {
+    nsTArray<uint8_t> mBuffer;
+
+    friend struct IPC::ParamTraits<mozilla::WidgetGUIEvent>;
+
+  public:
+
+    MOZ_EXPLICIT_CONVERSION operator bool() const
+    {
+      return !mBuffer.IsEmpty();
+    }
+
+    template<typename T>
+    MOZ_EXPLICIT_CONVERSION operator const T*() const
+    {
+      return mBuffer.IsEmpty()
+             ? nullptr
+             : reinterpret_cast<const T*>(mBuffer.Elements());
+    }
+
+    template <typename T>
+    void Copy(const T& other)
+    {
+      static_assert(!mozilla::IsPointer<T>::value, "Don't want a pointer!");
+      mBuffer.SetLength(sizeof(T));
+      memcpy(mBuffer.Elements(), &other, mBuffer.Length());
+    }
+
+    void Clear()
+    {
+      mBuffer.Clear();
+    }
+  };
+
   /// Event for NPAPI plugin
-  void* pluginEvent;
+  PluginEvent mPluginEvent;
 
   void AssignGUIEventData(const WidgetGUIEvent& aEvent, bool aCopyTargets)
   {
@@ -882,9 +921,7 @@ public:
 
     // widget should be initialized with the constructor.
 
-    // pluginEvent shouldn't be copied because it may be referred after its
-    // instance is destroyed.
-    pluginEvent = nullptr;
+    mPluginEvent = aEvent.mPluginEvent;
   }
 };
 
@@ -903,12 +940,14 @@ enum Modifier
   MODIFIER_CAPSLOCK   = 0x0004,
   MODIFIER_CONTROL    = 0x0008,
   MODIFIER_FN         = 0x0010,
-  MODIFIER_META       = 0x0020,
-  MODIFIER_NUMLOCK    = 0x0040,
-  MODIFIER_SCROLLLOCK = 0x0080,
-  MODIFIER_SHIFT      = 0x0100,
-  MODIFIER_SYMBOLLOCK = 0x0200,
-  MODIFIER_OS         = 0x0400
+  MODIFIER_FNLOCK     = 0x0020,
+  MODIFIER_META       = 0x0040,
+  MODIFIER_NUMLOCK    = 0x0080,
+  MODIFIER_SCROLLLOCK = 0x0100,
+  MODIFIER_SHIFT      = 0x0200,
+  MODIFIER_SYMBOL     = 0x0400,
+  MODIFIER_SYMBOLLOCK = 0x0800,
+  MODIFIER_OS         = 0x1000
 };
 
 /******************************************************************************
@@ -920,10 +959,12 @@ enum Modifier
 #define NS_DOM_KEYNAME_CAPSLOCK   "CapsLock"
 #define NS_DOM_KEYNAME_CONTROL    "Control"
 #define NS_DOM_KEYNAME_FN         "Fn"
+#define NS_DOM_KEYNAME_FNLOCK     "FnLock"
 #define NS_DOM_KEYNAME_META       "Meta"
 #define NS_DOM_KEYNAME_NUMLOCK    "NumLock"
 #define NS_DOM_KEYNAME_SCROLLLOCK "ScrollLock"
 #define NS_DOM_KEYNAME_SHIFT      "Shift"
+#define NS_DOM_KEYNAME_SYMBOL     "Symbol"
 #define NS_DOM_KEYNAME_SYMBOLLOCK "SymbolLock"
 #define NS_DOM_KEYNAME_OS         "OS"
 
@@ -941,9 +982,9 @@ class WidgetInputEvent : public WidgetGUIEvent
 {
 protected:
   WidgetInputEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                   nsEventStructType aStructType) :
-    WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aStructType),
-    modifiers(0)
+                   EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
+    , modifiers(0)
   {
   }
 
@@ -952,17 +993,17 @@ protected:
   }
 
 public:
-  virtual WidgetInputEvent* AsInputEvent() MOZ_OVERRIDE { return this; }
+  virtual WidgetInputEvent* AsInputEvent() override { return this; }
 
-  WidgetInputEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
-    WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_INPUT_EVENT),
-    modifiers(0)
+  WidgetInputEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eInputEventClass)
+    , modifiers(0)
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
-    MOZ_ASSERT(eventStructType == NS_INPUT_EVENT,
+    MOZ_ASSERT(mClass == eInputEventClass,
                "Duplicate() must be overridden by sub class");
     // Not copying widget, it is a weak reference.
     WidgetInputEvent* result = new WidgetInputEvent(false, message, nullptr);
@@ -977,6 +1018,11 @@ public:
    * key.
    */
   static Modifier AccelModifier();
+
+  /**
+   * GetModifier() returns a modifier flag which is activated by aDOMKeyName.
+   */
+  static Modifier GetModifier(const nsAString& aDOMKeyName);
 
   // true indicates the accel key on the environment is down
   bool IsAccel() const
@@ -1017,29 +1063,42 @@ public:
   {
     return ((modifiers & MODIFIER_ALTGRAPH) != 0);
   }
-  // true indeicates the CapLock LED is turn on.
+  // true indicates the CapLock LED is turn on.
   bool IsCapsLocked() const
   {
     return ((modifiers & MODIFIER_CAPSLOCK) != 0);
   }
-  // true indeicates the NumLock LED is turn on.
+  // true indicates the NumLock LED is turn on.
   bool IsNumLocked() const
   {
     return ((modifiers & MODIFIER_NUMLOCK) != 0);
   }
-  // true indeicates the ScrollLock LED is turn on.
+  // true indicates the ScrollLock LED is turn on.
   bool IsScrollLocked() const
   {
     return ((modifiers & MODIFIER_SCROLLLOCK) != 0);
   }
 
-  // true indeicates the Fn key is down, but this is not supported by native
+  // true indicates the Fn key is down, but this is not supported by native
   // key event on any platform.
   bool IsFn() const
   {
     return ((modifiers & MODIFIER_FN) != 0);
   }
-  // true indeicates the ScrollLock LED is turn on.
+  // true indicates the FnLock LED is turn on, but we don't know such
+  // keyboards nor platforms.
+  bool IsFnLocked() const
+  {
+    return ((modifiers & MODIFIER_FNLOCK) != 0);
+  }
+  // true indicates the Symbol is down, but this is not supported by native
+  // key event on any platforms.
+  bool IsSymbol() const
+  {
+    return ((modifiers & MODIFIER_SYMBOL) != 0);
+  }
+  // true indicates the SymbolLock LED is turn on, but we don't know such
+  // keyboards nor platforms.
   bool IsSymbolLocked() const
   {
     return ((modifiers & MODIFIER_SYMBOLLOCK) != 0);
@@ -1090,32 +1149,31 @@ protected:
   }
 
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                  nsEventStructType aStructType)
-    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aStructType)
+                  EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
     , detail(0)
   {
   }
 
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage,
-                  nsEventStructType aStructType)
-    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, aStructType)
+                  EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, aEventClassID)
     , detail(0)
   {
   }
 
 public:
-  virtual InternalUIEvent* AsUIEvent() MOZ_OVERRIDE { return this; }
+  virtual InternalUIEvent* AsUIEvent() override { return this; }
 
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage)
-    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, NS_UI_EVENT)
+    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, eUIEventClass)
     , detail(0)
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
-    MOZ_ASSERT(eventStructType == NS_UI_EVENT ||
-                 eventStructType == NS_SMIL_TIME_EVENT,
+    MOZ_ASSERT(mClass == eUIEventClass,
                "Duplicate() must be overridden by sub class");
     InternalUIEvent* result = new InternalUIEvent(false, message);
     result->AssignUIEventData(*this, true);

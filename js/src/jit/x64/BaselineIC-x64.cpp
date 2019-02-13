@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
+#include "jit/SharedICHelpers.h"
 
 using namespace js;
 using namespace js::jit;
@@ -16,7 +16,7 @@ namespace jit {
 // ICCompare_Int32
 
 bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -26,7 +26,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     // Directly compare the int32 payload of R0 and R1.
     Assembler::Condition cond = JSOpToCondition(op, /* signed = */true);
     masm.mov(ImmWord(0), ScratchReg);
-    masm.cmpl(R0.valueReg(), R1.valueReg());
+    masm.cmp32(R0.valueReg(), R1.valueReg());
     masm.setCC(cond, ScratchReg);
 
     // Box the result and return
@@ -43,7 +43,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 // ICBinaryArith_Int32
 
 bool
-ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -79,9 +79,9 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         break;
       case JSOP_DIV:
       {
-        JS_ASSERT(R2.scratchReg() == rax);
-        JS_ASSERT(R0.valueReg() != rdx);
-        JS_ASSERT(R1.valueReg() != rdx);
+        MOZ_ASSERT(R2.scratchReg() == rax);
+        MOZ_ASSERT(R0.valueReg() != rdx);
+        MOZ_ASSERT(R1.valueReg() != rdx);
         masm.unboxInt32(R0, eax);
         masm.unboxInt32(R1, ExtractTemp0);
 
@@ -108,9 +108,9 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
       }
       case JSOP_MOD:
       {
-        JS_ASSERT(R2.scratchReg() == rax);
-        JS_ASSERT(R0.valueReg() != rdx);
-        JS_ASSERT(R1.valueReg() != rdx);
+        MOZ_ASSERT(R2.scratchReg() == rax);
+        MOZ_ASSERT(R0.valueReg() != rdx);
+        MOZ_ASSERT(R1.valueReg() != rdx);
         masm.unboxInt32(R0, eax);
         masm.unboxInt32(R1, ExtractTemp0);
 
@@ -166,7 +166,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.unboxInt32(R1, ecx); // This clobbers R0
 
         masm.shrl_cl(ExtractTemp0);
-        masm.testl(ExtractTemp0, ExtractTemp0);
+        masm.test32(ExtractTemp0, ExtractTemp0);
         if (allowDouble_) {
             Label toUint;
             masm.j(Assembler::Signed, &toUint);
@@ -176,15 +176,15 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
             EmitReturnFromIC(masm);
 
             masm.bind(&toUint);
-            masm.convertUInt32ToDouble(ExtractTemp0, ScratchFloatReg);
-            masm.boxDouble(ScratchFloatReg, R0);
+            masm.convertUInt32ToDouble(ExtractTemp0, ScratchDoubleReg);
+            masm.boxDouble(ScratchDoubleReg, R0);
         } else {
             masm.j(Assembler::Signed, &revertRegister);
             masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
         }
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unhandled op in BinaryArith_Int32");
+        MOZ_CRASH("Unhandled op in BinaryArith_Int32");
     }
 
     // Return from stub.
@@ -218,7 +218,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
@@ -233,7 +233,7 @@ ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.negl(R0.valueReg());
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected op");
+        MOZ_CRASH("Unexpected op");
     }
 
     masm.tagValue(JSVAL_TYPE_INT32, R0.valueReg(), R0);

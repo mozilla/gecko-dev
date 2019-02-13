@@ -28,7 +28,6 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/prctl.h>
-#include "Zip.h"
 #include "sqlite3.h"
 #include "SQLiteBridge.h"
 #include "NSSBridge.h"
@@ -124,6 +123,50 @@ JNI_Throw(JNIEnv* jenv, const char* classname, const char* msg)
     jenv->DeleteLocalRef(cls);
 }
 
+namespace {
+    JavaVM* sJavaVM;
+}
+
+void
+abortThroughJava(const char* msg)
+{
+    struct sigaction sigact = {};
+    if (SEGVHandler::__wrap_sigaction(SIGSEGV, nullptr, &sigact)) {
+        return; // sigaction call failed.
+    }
+
+    Dl_info info = {};
+    if ((sigact.sa_flags & SA_SIGINFO) &&
+        __wrap_dladdr(reinterpret_cast<void*>(sigact.sa_sigaction), &info) &&
+        info.dli_fname && strstr(info.dli_fname, "libxul.so")) {
+
+        return; // Existing signal handler is in libxul (i.e. we have crash reporter).
+    }
+
+    JNIEnv* env = nullptr;
+    if (!sJavaVM || sJavaVM->AttachCurrentThreadAsDaemon(&env, nullptr) != JNI_OK) {
+        return;
+    }
+
+    if (!env || env->PushLocalFrame(2) != JNI_OK) {
+        return;
+    }
+
+    jclass loader = env->FindClass("org/mozilla/gecko/mozglue/GeckoLoader");
+    if (!loader) {
+        return;
+    }
+
+    jmethodID method = env->GetStaticMethodID(loader, "abort", "(Ljava/lang/String;)V");
+    jstring str = env->NewStringUTF(msg);
+
+    if (method && str) {
+        env->CallStaticVoidMethod(loader, method, str);
+    }
+
+    env->PopLocalFrame(nullptr);
+}
+
 #define JNI_STUBS
 #include "jni-stubs.inc"
 #undef JNI_STUBS
@@ -166,17 +209,13 @@ report_mapping(char *name, void *base, uint32_t len, uint32_t offset)
 static mozglueresult
 loadGeckoLibs(const char *apkName)
 {
-  chdir(getenv("GRE_HOME"));
-
   uint64_t t0 = TimeStamp_Now();
   struct rusage usage1_thread, usage1;
   getrusage(RUSAGE_THREAD, &usage1_thread);
   getrusage(RUSAGE_SELF, &usage1);
   
-  RefPtr<Zip> zip = ZipCollection::GetZip(apkName);
-
-  char *file = new char[strlen(apkName) + sizeof("!/assets/libxul.so")];
-  sprintf(file, "%s!/assets/libxul.so", apkName);
+  char *file = new char[strlen(apkName) + sizeof("!/assets/" ANDROID_CPU_ARCH "/libxul.so")];
+  sprintf(file, "%s!/assets/" ANDROID_CPU_ARCH "/libxul.so", apkName);
   xul_handle = __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
   delete[] file;
 
@@ -227,15 +266,12 @@ loadSQLiteLibs(const char *apkName)
   if (loadNSSLibs(apkName) != SUCCESS)
     return FAILURE;
 #else
-  chdir(getenv("GRE_HOME"));
-
-  RefPtr<Zip> zip = ZipCollection::GetZip(apkName);
   if (!lib_mapping) {
     lib_mapping = (struct mapping_info *)calloc(MAX_MAPPING_INFO, sizeof(*lib_mapping));
   }
 
-  char *file = new char[strlen(apkName) + sizeof("!/assets/libmozsqlite3.so")];
-  sprintf(file, "%s!/assets/libmozsqlite3.so", apkName);
+  char *file = new char[strlen(apkName) + sizeof("!/assets/" ANDROID_CPU_ARCH "/libmozsqlite3.so")];
+  sprintf(file, "%s!/assets/" ANDROID_CPU_ARCH "/libmozsqlite3.so", apkName);
   sqlite_handle = __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
   delete [] file;
 
@@ -255,26 +291,23 @@ loadNSSLibs(const char *apkName)
   if (nss_handle && nspr_handle && plc_handle)
     return SUCCESS;
 
-  chdir(getenv("GRE_HOME"));
-
-  RefPtr<Zip> zip = ZipCollection::GetZip(apkName);
   if (!lib_mapping) {
     lib_mapping = (struct mapping_info *)calloc(MAX_MAPPING_INFO, sizeof(*lib_mapping));
   }
 
-  char *file = new char[strlen(apkName) + sizeof("!/assets/libnss3.so")];
-  sprintf(file, "%s!/assets/libnss3.so", apkName);
+  char *file = new char[strlen(apkName) + sizeof("!/assets/" ANDROID_CPU_ARCH "/libnss3.so")];
+  sprintf(file, "%s!/assets/" ANDROID_CPU_ARCH "/libnss3.so", apkName);
   nss_handle = __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
   delete [] file;
 
 #ifndef MOZ_FOLD_LIBS
-  file = new char[strlen(apkName) + sizeof("!/assets/libnspr4.so")];
-  sprintf(file, "%s!/assets/libnspr4.so", apkName);
+  file = new char[strlen(apkName) + sizeof("!/assets/" ANDROID_CPU_ARCH "/libnspr4.so")];
+  sprintf(file, "%s!/assets/" ANDROID_CPU_ARCH "/libnspr4.so", apkName);
   nspr_handle = __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
   delete [] file;
 
-  file = new char[strlen(apkName) + sizeof("!/assets/libplc4.so")];
-  sprintf(file, "%s!/assets/libplc4.so", apkName);
+  file = new char[strlen(apkName) + sizeof("!/assets/" ANDROID_CPU_ARCH "/libplc4.so")];
+  sprintf(file, "%s!/assets/" ANDROID_CPU_ARCH "/libplc4.so", apkName);
   plc_handle = __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
   delete [] file;
 #endif
@@ -302,6 +335,8 @@ loadNSSLibs(const char *apkName)
 extern "C" NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_mozglue_GeckoLoader_loadGeckoLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName)
 {
+  jenv->GetJavaVM(&sJavaVM);
+
   const char* str;
   // XXX: java doesn't give us true UTF8, we should figure out something
   // better to do here
@@ -317,11 +352,7 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_loadGeckoLibsNative(JNIEnv *jenv, jcl
 }
 
 extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_mozglue_GeckoLoader_loadSQLiteLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName, jboolean jShouldExtract) {
-  if (jShouldExtract) {
-    putenv("MOZ_LINKER_EXTRACT=1");
-  }
-
+Java_org_mozilla_gecko_mozglue_GeckoLoader_loadSQLiteLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName) {
   const char* str;
   // XXX: java doesn't give us true UTF8, we should figure out something
   // better to do here
@@ -339,11 +370,7 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_loadSQLiteLibsNative(JNIEnv *jenv, jc
 }
 
 extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_mozglue_GeckoLoader_loadNSSLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName, jboolean jShouldExtract) {
-  if (jShouldExtract) {
-    putenv("MOZ_LINKER_EXTRACT=1");
-  }
-
+Java_org_mozilla_gecko_mozglue_GeckoLoader_loadNSSLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName) {
   const char* str;
   // XXX: java doesn't give us true UTF8, we should figure out something
   // better to do here
@@ -376,7 +403,9 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(JNIEnv *jenv, jclass jc, js
   char *args = (char *) malloc(len + 1);
   jenv->GetStringUTFRegion(jargs, 0, len, args);
   args[len] = '\0';
+  ElfLoader::Singleton.ExpectShutdown(false);
   GeckoStart(args, &sAppData);
+  ElfLoader::Singleton.ExpectShutdown(true);
   free(args);
 }
 
@@ -404,14 +433,14 @@ ChildProcessInit(int argc, char* argv[])
     return FAILURE;
   }
 
-  GeckoProcessType (*fXRE_StringToChildProcessType)(char*);
-  xul_dlsym("XRE_StringToChildProcessType", &fXRE_StringToChildProcessType);
+  void (*fXRE_SetProcessType)(char*);
+  xul_dlsym("XRE_SetProcessType", &fXRE_SetProcessType);
 
-  mozglueresult (*fXRE_InitChildProcess)(int, char**, GeckoProcessType);
+  mozglueresult (*fXRE_InitChildProcess)(int, char**, void*);
   xul_dlsym("XRE_InitChildProcess", &fXRE_InitChildProcess);
 
-  GeckoProcessType proctype = fXRE_StringToChildProcessType(argv[--argc]);
+  fXRE_SetProcessType(argv[--argc]);
 
-  return fXRE_InitChildProcess(argc, argv, proctype);
+  return fXRE_InitChildProcess(argc, argv, nullptr);
 }
 

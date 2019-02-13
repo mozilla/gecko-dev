@@ -13,6 +13,8 @@ this.EXPORTED_SYMBOLS = [ "AboutHomeUtils", "AboutHome" ];
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
@@ -27,7 +29,9 @@ const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
 const STARTPAGE_VERSION = 4;
 
 this.AboutHomeUtils = {
-  get snippetsVersion() STARTPAGE_VERSION,
+  get snippetsVersion() {
+    return STARTPAGE_VERSION;
+  },
 
   /*
    * showKnowYourRights - Determines if the user should be shown the
@@ -48,10 +52,10 @@ this.AboutHomeUtils = {
       return !Services.prefs.getBoolPref("browser.EULA.override");
     } catch (e) { }
 
-#ifndef MOZILLA_OFFICIAL
-    // Non-official builds shouldn't show the notification.
-    return false;
-#endif
+    if (!AppConstants.MOZILLA_OFFICIAL) {
+      // Non-official builds shouldn't show the notification.
+      return false;
+    }
 
     // Look to see if the user has seen the current version or not.
     var currentVersion = Services.prefs.getIntPref("browser.rights.version");
@@ -97,6 +101,7 @@ let AboutHome = {
     "AboutHome:Settings",
     "AboutHome:RequestUpdate",
     "AboutHome:Search",
+    "AboutHome:OpenSearchPanel",
   ],
 
   init: function() {
@@ -142,7 +147,7 @@ let AboutHome = {
         break;
 
       case "AboutHome:Apps":
-        window.openUILinkIn("https://marketplace.mozilla.org/", "tab");
+        window.BrowserOpenApps();
         break;
 
       case "AboutHome:Addons":
@@ -159,7 +164,7 @@ let AboutHome = {
             if (userData) {
               window.openPreferences("paneSync");
             } else {
-              window.loadURI("about:accounts");
+              window.loadURI("about:accounts?entrypoint=abouthome");
             }
           });
         } else {
@@ -190,18 +195,48 @@ let AboutHome = {
           }
 
           let engine = Services.search.currentEngine;
-#ifdef MOZ_SERVICES_HEALTHREPORT
-          window.BrowserSearch.recordSearchInHealthReport(engine, "abouthome");
-#endif
+          if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
+            window.BrowserSearch.recordSearchInHealthReport(engine, "abouthome", data.selection);
+          }
+
           // Trigger a search through nsISearchEngine.getSubmission()
           let submission = engine.getSubmission(data.searchTerms, null, "homepage");
-          window.loadURI(submission.uri.spec, null, submission.postData);
+          let where = window.whereToOpenLink(data.originalEvent);
 
+          // There is a chance that by the time we receive the search message, the
+          // user has switched away from the tab that triggered the search. If,
+          // based on the event, we need to load the search in the same tab that
+          // triggered it (i.e. where == "current"), openUILinkIn will not work
+          // because that tab is no longer the current one. For this case we
+          // manually load the URI in the target browser.
+          if (where == "current") {
+            aMessage.target.loadURIWithFlags(submission.uri.spec,
+                                             Ci.nsIWebNavigation.LOAD_FLAGS_NONE,
+                                             null, null, submission.postData);
+          } else {
+            let params = {
+              postData: submission.postData,
+              inBackground: Services.prefs.getBoolPref("browser.tabs.loadInBackground"),
+            };
+            window.openLinkIn(submission.uri.spec, where, params);
+          }
           // Used for testing
           let mm = aMessage.target.messageManager;
           mm.sendAsyncMessage("AboutHome:SearchTriggered", aMessage.data.searchData);
         });
 
+        break;
+
+      case "AboutHome:OpenSearchPanel":
+        let panel = window.document.getElementById("abouthome-search-panel");
+        let anchor = aMessage.objects.anchor;
+        panel.hidden = false;
+        panel.openPopup(anchor);
+        anchor.setAttribute("active", "true");
+        panel.addEventListener("popuphidden", function onHidden() {
+          panel.removeEventListener("popuphidden", onHidden);
+          anchor.removeAttribute("active");
+        });
         break;
     }
   },
@@ -241,7 +276,7 @@ let AboutHome = {
         Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
       }
 
-      if (target) {
+      if (target && target.messageManager) {
         target.messageManager.sendAsyncMessage("AboutHome:Update", data);
       } else {
         let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
@@ -251,4 +286,13 @@ let AboutHome = {
       Cu.reportError("Error in AboutHome.sendAboutHomeData: " + x);
     });
   },
+
+  /**
+   * Focuses the search input in the page with the given message manager.
+   * @param  messageManager
+   *         The MessageManager object of the selected browser.
+   */
+  focusInput: function (messageManager) {
+    messageManager.sendAsyncMessage("AboutHome:FocusInput");
+  }
 };

@@ -30,7 +30,6 @@ AudioChannelManager::AudioChannelManager()
 {
   RegisterSwitchObserver(SWITCH_HEADPHONES, this);
   mState = GetCurrentSwitchState(SWITCH_HEADPHONES);
-  SetIsDOMBinding();
 }
 
 AudioChannelManager::~AudioChannelManager()
@@ -61,9 +60,9 @@ AudioChannelManager::Init(nsPIDOMWindow* aWindow)
 }
 
 JSObject*
-AudioChannelManager::WrapObject(JSContext* aCx)
+AudioChannelManager::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return AudioChannelManagerBinding::Wrap(aCx, this);
+  return AudioChannelManagerBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
@@ -132,7 +131,7 @@ AudioChannelManager::NotifyVolumeControlChannelChanged()
   bool isActive = false;
   docshell->GetIsActive(&isActive);
 
-  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
+  AudioChannelService* service = AudioChannelService::GetOrCreateAudioChannelService();
   if (isActive) {
     service->SetDefaultVolumeControlChannel(mVolumeChannel, isActive);
   } else {

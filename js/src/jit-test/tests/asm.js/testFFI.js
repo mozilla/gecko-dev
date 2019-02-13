@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 load(libdir + "asserts.js");
 
@@ -29,7 +30,7 @@ assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { retu
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { return +(inc() + 1.1) } return f');
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { return (+inc() + 1)|0 } return f');
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { var i = 0; inc(i>>>0) } return f');
-assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { return inc(); return } return f');
+assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { if (0) return inc(); return } return f');
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { inc(inc()) } return f');
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { g(inc()) } function g() {} return f');
 assertAsmTypeFail('glob', 'imp', USE_ASM + 'var inc=imp.inc; function f() { inc()|inc() } return f');
@@ -98,7 +99,9 @@ assertThrowsValue(function() { f(8,2.4) }, 2.4+36);
 assertEq(asmLink(asmCompile('glob', 'imp', USE_ASM + 'var identity=imp.identity; function g(x) { x=+x; return +identity(x) } return g'), null, imp)(13.37), 13.37);
 
 // Test asm.js => ion paths
-setJitCompilerOption("ion.usecount.trigger", 20);
+setJitCompilerOption("ion.warmup.trigger", 10);
+setJitCompilerOption("baseline.warmup.trigger", 0);
+setJitCompilerOption("offthread-compilation.enable", 0);
 
 // In registers on x64 and ARM, on the stack for x86
 function ffiIntFew(a,b,c,d) { return d+1 }
@@ -109,44 +112,54 @@ for (var i = 0; i < 40; i++)
 // Stack and registers for x64 and ARM, stack for x86
 function ffiIntMany(a,b,c,d,e,f,g,h,i,j) { return j+1 }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=i|0; return ffi(i|0,(i+1)|0,(i+2)|0,(i+3)|0,(i+4)|0,(i+5)|0,(i+6)|0,(i+7)|0,(i+8)|0,(i+9)|0)|0 } return f'), null, {ffi:ffiIntMany});
-for (var i = 0; i < 40; i++)
+for (var i = 0; i < 15; i++)
     assertEq(f(i), i+10);
 
 // In registers on x64 and ARM, on the stack for x86
 function ffiDoubleFew(a,b,c,d) { return d+1 }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=+i; return +ffi(i,i+1.0,i+2.0,i+3.0) } return f'), null, {ffi:ffiDoubleFew});
-for (var i = 0; i < 40; i++)
+for (var i = 0; i < 15; i++)
     assertEq(f(i), i+4);
 
 // Stack and registers for x64 and ARM, stack for x86
 function ffiDoubleMany(a,b,c,d,e,f,g,h,i,j) { return j+1 }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=+i; return +ffi(i,i+1.0,i+2.0,i+3.0,i+4.0,i+5.0,i+6.0,i+7.0,i+8.0,i+9.0) } return f'), null, {ffi:ffiDoubleMany});
-for (var i = 0; i < 40; i++)
+for (var i = 0; i < 15; i++)
     assertEq(f(i), i+10);
 
 // Test the throw path
-function ffiThrow(n) { if (n == 38) throw 'yolo'; }
+function ffiThrow(n) { if (n == 14) throw 'yolo'; }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=i|0; ffi(i >> 0); } return f'), null, {ffi:ffiThrow});
 var i = 0;
 try {
-    for (; i < 40; i++)
+    for (; i < 15; i++)
         f(i);
     throw 'assume unreachable';
 } catch (e) {
     assertEq(e, 'yolo');
-    assertEq(i, 38);
+    assertEq(i, 14);
 }
 
 // OOL conversion paths
 var INT32_MAX = Math.pow(2, 31) - 1;
-function ffiOOLConvertInt(n) { if (n == 40) return INT32_MAX + 1; return 42; }
+function ffiOOLConvertInt(n) { if (n == 40) return valueToConvert; return 42; }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=i|0; return ffi(i >> 0) | 0; } return f'), null, {ffi:ffiOOLConvertInt});
 for (var i = 0; i < 40; i++)
     assertEq(f(i), 42);
+valueToConvert = INT32_MAX + 1;
 assertEq(f(40), INT32_MAX + 1 | 0);
+function testBadConversions(f) {
+    valueToConvert = {valueOf: function () { throw "FAIL"; }};
+    assertThrowsValue(() => f(40), "FAIL");
+    valueToConvert = Symbol();
+    assertThrowsInstanceOf(() => f(40), TypeError);
+}
+testBadConversions(f);
 
-function ffiOOLConvertDouble(n) { if (n == 40) return {valueOf: function() { return 13.37 }}; return 42.5; }
+function ffiOOLConvertDouble(n) { if (n == 40) return valueToConvert; return 42.5; }
 var f = asmLink(asmCompile('glob', 'imp', USE_ASM + 'var ffi=imp.ffi; function f(i) { i=i|0; return +ffi(i >> 0); } return f'), null, {ffi:ffiOOLConvertDouble});
 for (var i = 0; i < 40; i++)
     assertEq(f(i), 42.5);
+valueToConvert = {valueOf: function() { return 13.37 }};
 assertEq(f(40), 13.37);
+testBadConversions(f);

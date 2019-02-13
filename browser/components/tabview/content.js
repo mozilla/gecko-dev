@@ -61,7 +61,8 @@ let WindowMessageHandler = {
   // Function: isDocumentLoaded
   // Checks if the currently active document is loaded.
   isDocumentLoaded: function WMH_isDocumentLoaded(cx) {
-    let isLoaded = (content.document.readyState != "uninitialized" &&
+    let isLoaded = (content &&
+                    content.document.readyState != "uninitialized" &&
                     !webProgress.isLoadingDocument);
 
     sendAsyncMessage(cx.name, {isLoaded: isLoaded});
@@ -71,13 +72,21 @@ let WindowMessageHandler = {
   // Function: isImageDocument
   // Checks if the currently active document is an image document or not.
   isImageDocument: function WMH_isImageDocument(cx) {
-    let isImageDocument = (content.document instanceof Ci.nsIImageDocument);
+    let isImageDocument = (content &&
+                           content.document instanceof Ci.nsIImageDocument);
 
     sendAsyncMessage(cx.name, {isImageDocument: isImageDocument});
-  }
+  },
+
+  waitForDocumentLoad: function WMH_waitForDocumentLoad() {
+    addEventListener("load", function listener() {
+      removeEventListener("load", listener, true);
+      sendAsyncMessage("Panorama:documentLoaded");
+    }, true);
+  },
 };
 
 // add message listeners
 addMessageListener("Panorama:isDocumentLoaded", WindowMessageHandler.isDocumentLoaded);
 addMessageListener("Panorama:isImageDocument", WindowMessageHandler.isImageDocument);
-
+addMessageListener("Panorama:waitForDocumentLoad", WindowMessageHandler.waitForDocumentLoad);

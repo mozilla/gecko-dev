@@ -13,12 +13,15 @@ Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
+const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const {require} = devtools;
+const {AppActorFront} = require("devtools/app-actor-front");
 
-let gClient, gActor;
+let gClient, gActor, gActorFront;
 
 function connect(onDone) {
   // Initialize a loopback remote protocol connection
-  DebuggerServer.init(function () { return true; });
+  DebuggerServer.init();
   // We need to register browser actors to have `listTabs` working
   // and also have a root actor
   DebuggerServer.addBrowserActors();
@@ -28,6 +31,7 @@ function connect(onDone) {
   gClient.connect(function onConnect() {
     gClient.listTabs(function onListTabs(aResponse) {
       gActor = aResponse.webappsActor;
+      gActorFront = new AppActorFront(gClient, aResponse);
       onDone();
     });
   });

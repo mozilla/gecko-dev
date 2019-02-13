@@ -10,8 +10,8 @@
 const TAB_URL = EXAMPLE_URL + "doc_frame-parameters.html";
 
 function test() {
-  Task.spawn(function() {
-    let [tab, debuggee, panel] = yield initDebugger(TAB_URL);
+  Task.spawn(function*() {
+    let [tab,, panel] = yield initDebugger(TAB_URL);
     let win = panel.panelWin;
     let events = win.EVENTS;
     let editor = win.DebuggerView.editor;
@@ -20,8 +20,7 @@ function test() {
     let expressions = win.DebuggerView.WatchExpressions;
     let tooltip = bubble._tooltip.panel;
 
-    // Allow this generator function to yield first.
-    executeSoon(() => debuggee.start());
+    callInTab(tab, "start");
     yield waitForSourceAndCaretAndScopes(panel, ".html", 24);
 
     let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
@@ -49,7 +48,7 @@ function test() {
       }
     });
 
-    let expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
+    expressionsEvaluated = waitForDebuggerEvents(panel, events.FETCHED_WATCH_EXPRESSIONS);
     yield openVarPopup(panel, { line: 14, ch: 15 });
     yield expressionsEvaluated;
 

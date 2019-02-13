@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -37,9 +37,9 @@ public:
                                            const WheelEventInit& aParam,
                                            ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return WheelEventBinding::Wrap(aCx, this);
+    return WheelEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   // NOTE: DeltaX(), DeltaY() and DeltaZ() return CSS pixels when deltaMode is
@@ -49,6 +49,9 @@ public:
   double DeltaY();
   double DeltaZ();
   uint32_t DeltaMode();
+
+protected:
+  ~WheelEvent() {}
 
 private:
   int32_t mAppUnitsPerDevPixel;

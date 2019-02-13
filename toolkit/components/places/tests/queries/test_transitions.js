@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* ***** BEGIN LICENSE BLOCK *****
   Any copyright is dedicated to the Public Domain.
@@ -97,7 +97,7 @@ add_task(function test_transitions()
 {
   let timeNow = Date.now();
   for each (let item in testData) {
-    yield promiseAddVisits({
+    yield PlacesTestUtils.addVisits({
       uri: uri(item.uri),
       transition: item.transType,
       visitDate: timeNow++ * 1000,
@@ -150,7 +150,7 @@ add_task(function test_transitions()
   var root = result.root;
   root.containerOpen = true;
   do_check_eq(testDataDownload.length, root.childCount);
-  yield promiseAddVisits({
+  yield PlacesTestUtils.addVisits({
     uri: uri("http://getfirefox.com"),
     transition: TRANSITION_DOWNLOAD
   });

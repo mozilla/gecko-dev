@@ -9,9 +9,11 @@
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
 #include "nsNetUtil.h"
+#include "nsContentUtils.h"
 #include "nsEscape.h"
 #include "nsAboutProtocolUtils.h"
 #include "nsPrintfCString.h"
+#include "nsDOMString.h"
 
 #include "nsICacheStorageService.h"
 #include "nsICacheStorage.h"
@@ -25,7 +27,9 @@ using namespace mozilla::net;
 NS_IMPL_ISUPPORTS(nsAboutCache, nsIAboutModule, nsICacheStorageVisitor)
 
 NS_IMETHODIMP
-nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
+nsAboutCache::NewChannel(nsIURI* aURI,
+                         nsILoadInfo* aLoadInfo,
+                         nsIChannel** result)
 {
     NS_ENSURE_ARG_POINTER(aURI);
 
@@ -60,9 +64,12 @@ nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
     mEntriesHeaderAdded = false;
 
     nsCOMPtr<nsIChannel> channel;
-    rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, inputStream,
-                                  NS_LITERAL_CSTRING("text/html"),
-                                  NS_LITERAL_CSTRING("utf-8"));
+    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                          aURI,
+                                          inputStream,
+                                          NS_LITERAL_CSTRING("text/html"),
+                                          NS_LITERAL_CSTRING("utf-8"),
+                                          aLoadInfo);
     if (NS_FAILED(rv)) return rv;
 
     mBuffer.AssignLiteral(
@@ -103,7 +110,7 @@ nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
         mBuffer.AppendLiteral("<a href=\"about:cache?storage=&amp;context=");
         char* escapedContext = nsEscapeHTML(mContextString.get());
         mBuffer.Append(escapedContext);
-        nsMemory::Free(escapedContext);
+        free(escapedContext);
         mBuffer.AppendLiteral("\">Back to overview</a>");
     }
 
@@ -184,13 +191,17 @@ nsAboutCache::FireVisitStorage()
     rv = VisitStorage(mStorageName);
     if (NS_FAILED(rv)) {
         if (mLoadInfo) {
+            char* escaped = nsEscapeHTML(mStorageName.get());
             mBuffer.Append(
                 nsPrintfCString("<p>Unrecognized storage name '%s' in about:cache URL</p>",
-                                mStorageName.get()));
+                                escaped));
+            free(escaped);
         } else {
+            char* escaped = nsEscapeHTML(mContextString.get());
             mBuffer.Append(
                 nsPrintfCString("<p>Unrecognized context key '%s' in about:cache URL</p>",
-                                mContextString.get()));
+                                escaped));
+            free(escaped);
         }
 
         FlushBuffer();
@@ -308,7 +319,7 @@ nsAboutCache::OnCacheStorageInfo(uint32_t aEntryCount, uint64_t aConsumption,
             mBuffer.AppendLiteral("&amp;context=");
             char* escapedContext = nsEscapeHTML(mContextString.get());
             mBuffer.Append(escapedContext);
-            nsMemory::Free(escapedContext);
+            free(escapedContext);
             mBuffer.AppendLiteral("\">List Cache Entries</a></th>\n"
                                   "  </tr>\n");
         }
@@ -372,12 +383,12 @@ nsAboutCache::OnCacheEntryInfo(nsIURI *aURI, const nsACString & aIdEnhance,
     url.AppendLiteral("&amp;context=");
     char* escapedContext = nsEscapeHTML(mContextString.get());
     url += escapedContext;
-    nsMemory::Free(escapedContext);
+    free(escapedContext);
 
     url.AppendLiteral("&amp;eid=");
     char* escapedEID = nsEscapeHTML(aIdEnhance.BeginReading());
     url += escapedEID;
-    nsMemory::Free(escapedEID);
+    free(escapedEID);
 
     nsAutoCString cacheUriSpec;
     aURI->GetAsciiSpec(cacheUriSpec);
@@ -399,7 +410,7 @@ nsAboutCache::OnCacheEntryInfo(nsIURI *aURI, const nsACString & aIdEnhance,
     mBuffer.Append(escapedCacheURI);
     mBuffer.AppendLiteral("</a></td>\n");
 
-    nsMemory::Free(escapedCacheURI);
+    free(escapedCacheURI);
 
     // Content length
     mBuffer.AppendLiteral("    <td>");
@@ -483,6 +494,13 @@ nsAboutCache::GetURIFlags(nsIURI *aURI, uint32_t *result)
 {
     *result = 0;
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAboutCache::GetIndexedDBOriginPostfix(nsIURI *aURI, nsAString &result)
+{
+    SetDOMStringToNull(result);
+    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 // static

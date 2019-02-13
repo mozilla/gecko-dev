@@ -4,32 +4,43 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-CPP_UNIT_TESTS += [
-    'TestAtomics.cpp',
-    'TestBinarySearch.cpp',
-    'TestBloomFilter.cpp',
-    'TestCasting.cpp',
-    'TestCeilingFloor.cpp',
-    'TestCheckedInt.cpp',
-    'TestCountPopulation.cpp',
-    'TestCountZeroes.cpp',
-    'TestEndian.cpp',
-    'TestEnumSet.cpp',
-    'TestFloatingPoint.cpp',
-    'TestIntegerPrintfMacros.cpp',
-    'TestMacroArgs.cpp',
-    'TestMacroForEach.cpp',
-    'TestRollingMean.cpp',
-    'TestSHA1.cpp',
-    'TestTypedEnum.cpp',
-    'TestTypeTraits.cpp',
-    'TestWeakPtr.cpp',
-]
+CppUnitTests([
+    'TestArrayUtils',
+    'TestAtomics',
+    'TestBinarySearch',
+    'TestBloomFilter',
+    'TestCasting',
+    'TestCeilingFloor',
+    'TestCheckedInt',
+    'TestCountPopulation',
+    'TestCountZeroes',
+    'TestEndian',
+    'TestEnumSet',
+    'TestFloatingPoint',
+    'TestIntegerPrintfMacros',
+    'TestJSONWriter',
+    'TestMacroArgs',
+    'TestMacroForEach',
+    'TestMaybe',
+    'TestPair',
+    'TestRefPtr',
+    'TestRollingMean',
+    'TestSegmentedVector',
+    'TestSHA1',
+    'TestSplayTree',
+    'TestTemplateLib',
+    'TestTuple',
+    'TestTypedEnum',
+    'TestTypeTraits',
+    'TestUniquePtr',
+    'TestVector',
+    'TestWeakPtr',
+])
 
 if not CONFIG['MOZ_ASAN']:
-    CPP_UNIT_TESTS += [
-        'TestPoisonArea.cpp',
-    ]
+    CppUnitTests([
+        'TestPoisonArea',
+    ])
 
 # Since we link directly with MFBT object files, define IMPL_MFBT
 DEFINES['IMPL_MFBT'] = True
@@ -43,3 +54,7 @@ if CONFIG['_MSC_VER']:
   ]
 
 FAIL_ON_WARNINGS = True
+
+USE_LIBS += [
+    'mfbt',
+]

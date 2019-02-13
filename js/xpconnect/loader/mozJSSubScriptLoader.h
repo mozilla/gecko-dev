@@ -25,22 +25,28 @@ class mozJSSubScriptLoader : public mozIJSSubScriptLoader
 {
 public:
     mozJSSubScriptLoader();
-    virtual ~mozJSSubScriptLoader();
 
     // all the interface method declarations...
     NS_DECL_ISUPPORTS
     NS_DECL_MOZIJSSUBSCRIPTLOADER
 
 private:
-    nsresult ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_obj,
-                        const nsAString &charset, const char *uriStr,
-                        nsIIOService *serv, nsIPrincipal *principal,
-                        bool reuseGlobal, JSScript **scriptp,
-                        JSFunction **functionp);
+    virtual ~mozJSSubScriptLoader();
 
-    nsresult DoLoadSubScriptWithOptions(const nsAString &url,
-                                        LoadSubScriptOptions  &options,
-                                        JSContext *cx,
+    nsresult ReadScript(nsIURI* uri, JSContext* cx, JSObject* target_obj,
+                        const nsAString& charset, const char* uriStr,
+                        nsIIOService* serv, nsIPrincipal* principal,
+                        bool reuseGlobal, JS::MutableHandleScript script,
+                        JS::MutableHandleFunction function);
+
+    nsresult ReadScriptAsync(nsIURI* uri, JSObject* target_obj,
+                             const nsAString& charset,
+                             nsIIOService* serv, bool reuseGlobal,
+                             bool cache, JS::MutableHandleValue retval);
+
+    nsresult DoLoadSubScriptWithOptions(const nsAString& url,
+                                        LoadSubScriptOptions& options,
+                                        JSContext* cx,
                                         JS::MutableHandle<JS::Value> retval);
 
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;

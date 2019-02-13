@@ -12,9 +12,9 @@
  * up.
  */
 
-"use strict";
-
 #ifndef MERGED_COMPARTMENT
+
+"use strict";
 
 this.EXPORTED_SYMBOLS = [
   "AddonsProvider",
@@ -23,6 +23,7 @@ this.EXPORTED_SYMBOLS = [
   "CrashesProvider",
 #endif
   "HealthReportProvider",
+  "HotfixProvider",
   "PlacesProvider",
   "SearchesProvider",
   "SessionsProvider",
@@ -55,9 +56,15 @@ const LAST_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_LAST_NUMERIC};
 const LAST_TEXT_FIELD = {type: Metrics.Storage.FIELD_LAST_TEXT};
 const DAILY_DISCRETE_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_DAILY_DISCRETE_NUMERIC};
 const DAILY_LAST_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC};
+const DAILY_LAST_TEXT_FIELD = {type: Metrics.Storage.FIELD_DAILY_LAST_TEXT};
 const DAILY_COUNTER_FIELD = {type: Metrics.Storage.FIELD_DAILY_COUNTER};
 
 const TELEMETRY_PREF = "toolkit.telemetry.enabled";
+const SEARCH_COHORT_PREF = "browser.search.cohort";
+
+function isTelemetryEnabled(prefs) {
+  return prefs.get(TELEMETRY_PREF, false);
+}
 
 /**
  * Represents basic application state.
@@ -353,7 +360,7 @@ AppInfoProvider.prototype = Object.freeze({
   },
 
   _recordIsTelemetryEnabled: function (m) {
-    let enabled = TELEMETRY_PREF && this._prefs.get(TELEMETRY_PREF, false);
+    let enabled = isTelemetryEnabled(this._prefs);
     this._log.debug("Recording telemetry enabled (" + TELEMETRY_PREF + "): " + enabled);
     yield m.setDailyLastNumeric("isTelemetryEnabled", enabled ? 1 : 0);
   },
@@ -752,6 +759,36 @@ ActivePluginsMeasurement.prototype = Object.freeze({
   },
 });
 
+function ActiveGMPluginsMeasurement() {
+  Metrics.Measurement.call(this);
+
+  this._serializers = {};
+  this._serializers[this.SERIALIZE_JSON] = {
+    singular: this._serializeJSONSingular.bind(this),
+  };
+}
+
+ActiveGMPluginsMeasurement.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "gm-plugins",
+  version: 1,
+
+  fields: {
+    "gm-plugins": LAST_TEXT_FIELD,
+  },
+
+  _serializeJSONSingular: function (data) {
+    if (!data.has("gm-plugins")) {
+      this._log.warn("Don't have GM plugins info. Weird.");
+      return null;
+    }
+
+    let result = JSON.parse(data.get("gm-plugins")[1]);
+    result._v = this.version;
+    return result;
+  },
+});
 
 function AddonCountsMeasurement() {
   Metrics.Measurement.call(this);
@@ -828,6 +865,7 @@ AddonsProvider.prototype = Object.freeze({
   measurementTypes: [
     ActiveAddonsMeasurement,
     ActivePluginsMeasurement,
+    ActiveGMPluginsMeasurement,
     AddonCountsMeasurement1,
     AddonCountsMeasurement,
   ],
@@ -859,14 +897,16 @@ AddonsProvider.prototype = Object.freeze({
   _collectAndStoreAddons: function () {
     let deferred = Promise.defer();
 
-    AddonManager.getAllAddons(function onAllAddons(addons) {
+    AddonManager.getAllAddons(function onAllAddons(allAddons) {
       let data;
       let addonsField;
       let pluginsField;
+      let gmPluginsField;
       try {
-        data = this._createDataStructure(addons);
+        data = this._createDataStructure(allAddons);
         addonsField = JSON.stringify(data.addons);
         pluginsField = JSON.stringify(data.plugins);
+        gmPluginsField = JSON.stringify(data.gmPlugins);
       } catch (ex) {
         this._log.warn("Exception when populating add-ons data structure: " +
                        CommonUtils.exceptionStr(ex));
@@ -877,6 +917,7 @@ AddonsProvider.prototype = Object.freeze({
       let now = new Date();
       let addons = this.getMeasurement("addons", 2);
       let plugins = this.getMeasurement("plugins", 1);
+      let gmPlugins = this.getMeasurement("gm-plugins", 1);
       let counts = this.getMeasurement(AddonCountsMeasurement.prototype.name,
                                        AddonCountsMeasurement.prototype.version);
 
@@ -895,7 +936,15 @@ AddonsProvider.prototype = Object.freeze({
         return addons.setLastText("addons", addonsField).then(
           function onSuccess() {
             return plugins.setLastText("plugins", pluginsField).then(
-              function onSuccess() { deferred.resolve(); },
+              function onSuccess() {
+                return gmPlugins.setLastText("gm-plugins", gmPluginsField).then(
+                  function onSuccess() {
+                    deferred.resolve();
+                  },
+                  function onError(error) {
+                    deferred.reject(error);
+                  });
+              },
               function onError(error) { deferred.reject(error); }
             );
           },
@@ -932,6 +981,7 @@ AddonsProvider.prototype = Object.freeze({
     let data = {
       addons: {},
       plugins: {},
+      gmPlugins: {},
       counts: {}
     };
 
@@ -939,8 +989,16 @@ AddonsProvider.prototype = Object.freeze({
       let type = addon.type;
 
       // We count plugins separately below.
-      if (addon.type == "plugin")
+      if (addon.type == "plugin") {
+        if (addon.isGMPlugin) {
+          data.gmPlugins[addon.id] = {
+            version: addon.version,
+            userDisabled: addon.userDisabled,
+            applyBackgroundUpdates: addon.applyBackgroundUpdates,
+          };
+        }
         continue;
+      }
 
       data.counts[type] = (data.counts[type] || 0) + 1;
 
@@ -1042,6 +1100,109 @@ DailyCrashesMeasurement3.prototype = Object.freeze({
   },
 });
 
+function DailyCrashesMeasurement4() {
+  Metrics.Measurement.call(this);
+}
+
+DailyCrashesMeasurement4.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "crashes",
+  version: 4,
+
+  fields: {
+    "main-crash": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+  },
+});
+
+function DailyCrashesMeasurement5() {
+  Metrics.Measurement.call(this);
+}
+
+DailyCrashesMeasurement5.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "crashes",
+  version: 5,
+
+  fields: {
+    "main-crash": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+  },
+});
+
+function DailyCrashesMeasurement6() {
+  Metrics.Measurement.call(this);
+}
+
+DailyCrashesMeasurement6.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "crashes",
+  version: 6,
+
+  fields: {
+    "main-crash": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-oom": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "main-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "content-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "plugin-hang-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash-submission-succeeded": DAILY_LAST_NUMERIC_FIELD,
+    "gmplugin-crash-submission-failed": DAILY_LAST_NUMERIC_FIELD,
+  },
+});
+
 this.CrashesProvider = function () {
   Metrics.Provider.call(this);
 
@@ -1058,6 +1219,9 @@ CrashesProvider.prototype = Object.freeze({
     DailyCrashesMeasurement1,
     DailyCrashesMeasurement2,
     DailyCrashesMeasurement3,
+    DailyCrashesMeasurement4,
+    DailyCrashesMeasurement5,
+    DailyCrashesMeasurement6,
   ],
 
   pullOnly: true,
@@ -1070,8 +1234,34 @@ CrashesProvider.prototype = Object.freeze({
     this._log.info("Grabbing crash counts from crash manager.");
     let crashCounts = yield this._manager.getCrashCountsByDay();
 
-    let m = this.getMeasurement("crashes", 3);
-    let fields = DailyCrashesMeasurement3.prototype.fields;
+    // TODO: CrashManager no longer stores submissions as crashes, but we still
+    // want to send the submission data to FHR. As a temporary workaround, we
+    // populate |crashCounts| with the submission data to match past behaviour.
+    // See bug 1056160.
+    let crashes = yield this._manager.getCrashes();
+    for (let crash of crashes) {
+      for (let [submissionID, submission] of crash.submissions) {
+        if (!submission.responseDate) {
+          continue;
+        }
+
+        let day = Metrics.dateToDays(submission.responseDate);
+        if (!crashCounts.has(day)) {
+          crashCounts.set(day, new Map());
+        }
+
+        let succeeded =
+          submission.result == this._manager.SUBMISSION_RESULT_OK;
+        let type = crash.type + "-submission-" + (succeeded ? "succeeded" :
+                                                              "failed");
+
+        let count = (crashCounts.get(day).get(type) || 0) + 1;
+        crashCounts.get(day).set(type, count);
+      }
+    }
+
+    let m = this.getMeasurement("crashes", 6);
+    let fields = DailyCrashesMeasurement6.prototype.fields;
 
     for (let [day, types] of crashCounts) {
       let date = Metrics.daysToDate(day);
@@ -1089,6 +1279,157 @@ CrashesProvider.prototype = Object.freeze({
 
 #endif
 
+/**
+ * Records data from update hotfixes.
+ *
+ * This measurement has dynamic fields. Field names are of the form
+ * <version>.<thing> where <version> is the hotfix version that produced
+ * the data. e.g. "v20140527". The sub-version of the hotfix is omitted
+ * because hotfixes can go through multiple minor versions during development
+ * and we don't want to introduce more fields than necessary. Furthermore,
+ * the subsequent dots make parsing field names slightly harder. By stripping,
+ * we can just split on the first dot.
+ */
+function UpdateHotfixMeasurement1() {
+  Metrics.Measurement.call(this);
+}
+
+UpdateHotfixMeasurement1.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "update",
+  version: 1,
+
+  hotfixFieldTypes: {
+    "upgradedFrom": Metrics.Storage.FIELD_LAST_TEXT,
+    "uninstallReason": Metrics.Storage.FIELD_LAST_TEXT,
+    "downloadAttempts": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "downloadFailures": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "installAttempts": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "installFailures": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "notificationsShown": Metrics.Storage.FIELD_LAST_NUMERIC,
+  },
+
+  fields: { },
+
+  // Our fields have dynamic names from the hotfix version that supplied them.
+  // We need to override the default behavior to deal with unknown fields.
+  shouldIncludeField: function (name) {
+    return name.includes(".");
+  },
+
+  fieldType: function (name) {
+    for (let known in this.hotfixFieldTypes) {
+      if (name.endsWith(known)) {
+        return this.hotfixFieldTypes[known];
+      }
+    }
+
+    return Metrics.Measurement.prototype.fieldType.call(this, name);
+  },
+});
+
+this.HotfixProvider = function () {
+  Metrics.Provider.call(this);
+};
+
+HotfixProvider.prototype = Object.freeze({
+  __proto__: Metrics.Provider.prototype,
+
+  name: "org.mozilla.hotfix",
+  measurementTypes: [
+    UpdateHotfixMeasurement1,
+  ],
+
+  pullOnly: true,
+
+  collectDailyData: function () {
+    return this.storage.enqueueTransaction(this._populateHotfixData.bind(this));
+  },
+
+  _populateHotfixData: function* () {
+    let m = this.getMeasurement("update", 1);
+
+    // The update hotfix retains its JSON state file after uninstall.
+    // The initial update hotfix had a hard-coded filename. We treat it
+    // specially. Subsequent update hotfixes named their files in a
+    // recognizeable pattern so we don't need to update this probe code to
+    // know about them.
+    let files = [
+        ["v20140527", OS.Path.join(OS.Constants.Path.profileDir,
+                                   "hotfix.v20140527.01.json")],
+    ];
+
+    let it = new OS.File.DirectoryIterator(OS.Constants.Path.profileDir);
+    try {
+      yield it.forEach((e, index, it) => {
+        let m = e.name.match(/^updateHotfix\.([a-zA-Z0-9]+)\.json$/);
+        if (m) {
+          files.push([m[1], e.path]);
+        }
+      });
+    } finally {
+      it.close();
+    }
+
+    let decoder = new TextDecoder();
+    for (let e of files) {
+      let [version, path] = e;
+      let p;
+      try {
+        let data = yield OS.File.read(path);
+        p = JSON.parse(decoder.decode(data));
+      } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+        continue;
+      } catch (ex) {
+        this._log.warn("Error loading update hotfix payload: " + ex.message);
+      }
+
+      // Wrap just in case.
+      try {
+        for (let k in m.hotfixFieldTypes) {
+          if (!(k in p)) {
+            continue;
+          }
+
+          let value = p[k];
+          if (value === null && k == "uninstallReason") {
+            value = "STILL_INSTALLED";
+          }
+
+          let field = version + "." + k;
+          let fieldType;
+          let storageOp;
+          switch (typeof(value)) {
+            case "string":
+              fieldType = this.storage.FIELD_LAST_TEXT;
+              storageOp = "setLastTextFromFieldID";
+              break;
+            case "number":
+              fieldType = this.storage.FIELD_LAST_NUMERIC;
+              storageOp = "setLastNumericFromFieldID";
+              break;
+            default:
+              this._log.warn("Unknown value in hotfix state: " + k + "=" + value);
+              continue;
+          }
+
+          if (this.storage.hasFieldFromMeasurement(m.id, field, fieldType)) {
+            let fieldID = this.storage.fieldIDFromMeasurement(m.id, field);
+            yield this.storage[storageOp](fieldID, value);
+          } else {
+            let fieldID = yield this.storage.registerField(m.id, field,
+                                                           fieldType);
+            yield this.storage[storageOp](fieldID, value);
+          }
+        }
+
+      } catch (ex) {
+        this._log.warn("Error processing update hotfix data: " + ex);
+      }
+    }
+  },
+});
 
 /**
  * Holds basic statistics about the Places database.
@@ -1223,7 +1564,7 @@ SearchCountMeasurementBase.prototype = Object.freeze({
    * data.
    */
   shouldIncludeField: function (name) {
-    return name.contains(".");
+    return name.includes(".");
   },
 
   /**
@@ -1282,8 +1623,26 @@ SearchCountMeasurement3.prototype = Object.freeze({
   },
 });
 
+function SearchEnginesMeasurement1() {
+  Metrics.Measurement.call(this);
+}
+
+SearchEnginesMeasurement1.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "engines",
+  version: 2,
+
+  fields: {
+    default: DAILY_LAST_TEXT_FIELD,
+    cohort: DAILY_LAST_TEXT_FIELD,
+  },
+});
+
 this.SearchesProvider = function () {
   Metrics.Provider.call(this);
+
+  this._prefs = new Preferences({defaultBranch: null});
 };
 
 this.SearchesProvider.prototype = Object.freeze({
@@ -1294,6 +1653,7 @@ this.SearchesProvider.prototype = Object.freeze({
     SearchCountMeasurement1,
     SearchCountMeasurement2,
     SearchCountMeasurement3,
+    SearchEnginesMeasurement1,
   ],
 
   /**
@@ -1306,6 +1666,34 @@ this.SearchesProvider.prototype = Object.freeze({
       deferred.resolve();
     });
     return deferred.promise;
+  },
+
+  collectDailyData: function () {
+    return this.storage.enqueueTransaction(function getDaily() {
+      let m = this.getMeasurement(SearchEnginesMeasurement1.prototype.name,
+                                  SearchEnginesMeasurement1.prototype.version);
+
+      let engine;
+      try {
+        engine = Services.search.defaultEngine;
+      } catch (e) {}
+      let name;
+
+      if (!engine) {
+        name = "NONE";
+      } else if (engine.identifier) {
+        name = engine.identifier;
+      } else if (engine.name) {
+        name = "other-" + engine.name;
+      } else {
+        name = "UNDEFINED";
+      }
+
+      yield m.setDailyLastText("default", name);
+
+      if (Services.prefs.prefHasUserValue(SEARCH_COHORT_PREF))
+        yield m.setDailyLastText("cohort", Services.prefs.getCharPref(SEARCH_COHORT_PREF));
+    }.bind(this));
   },
 
   /**

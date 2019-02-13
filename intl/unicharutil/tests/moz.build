@@ -4,19 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
-
 SOURCES += [
     'NormalizationTest.cpp',
-    'UnicharSelfTest.cpp',
 ]
 
-SIMPLE_PROGRAMS += [
-    "%s" % (fyl[0:-4]) for fyl in SOURCES
-]
-
-LOCAL_INCLUDES += [
-    '../public',
-]
-
-USE_STATIC_LIBS = True
+FINAL_LIBRARY = 'xul-gtest'

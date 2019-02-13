@@ -8,6 +8,7 @@
 
 #include "xpcprivate.h"
 #include "jswrapper.h"
+#include "jsfriendapi.h"
 
 using namespace mozilla;
 using namespace xpc;
@@ -21,8 +22,8 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                HandleObject funobj /* = nullptr               */,
                                HandleId name       /* = JSID_VOID             */,
                                unsigned argc       /* = NO_ARGS               */,
-                               jsval *argv         /* = nullptr               */,
-                               jsval *rval         /* = nullptr               */)
+                               jsval* argv         /* = nullptr               */,
+                               jsval* rval         /* = nullptr               */)
     :   mAr(cx),
         mState(INIT_FAILED),
         mXPC(nsXPConnect::XPConnect()),
@@ -56,24 +57,20 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 
     mTearOff = nullptr;
 
-    // If the object is a security wrapper, GetWrappedNativeOfJSObject can't
-    // handle it. Do special handling here to make cross-origin Xrays work.
-    JSObject *unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
+    JSObject* unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
     if (!unwrapped) {
-        mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
-        if (!mWrapper) {
-            JS_ReportError(mJSContext, "Permission denied to call method on |this|");
-            mState = INIT_FAILED;
-            return;
-        }
-    } else {
-        const js::Class *clasp = js::GetObjectClass(unwrapped);
-        if (IS_WN_CLASS(clasp)) {
-            mWrapper = XPCWrappedNative::Get(unwrapped);
-        } else if (IS_TEAROFF_CLASS(clasp)) {
-            mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
-            mWrapper = XPCWrappedNative::Get(js::GetObjectParent(unwrapped));
-        }
+        JS_ReportError(mJSContext, "Permission denied to call method on |this|");
+        mState = INIT_FAILED;
+        return;
+    }
+    const js::Class* clasp = js::GetObjectClass(unwrapped);
+    if (IS_WN_CLASS(clasp)) {
+        mWrapper = XPCWrappedNative::Get(unwrapped);
+    } else if (IS_TEAROFF_CLASS(clasp)) {
+        mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
+        mWrapper = XPCWrappedNative::Get(
+          &js::GetReservedSlot(unwrapped,
+                               XPC_WN_TEAROFF_FLAT_OBJECT_SLOT).toObject());
     }
     if (mWrapper) {
         if (mTearOff)
@@ -92,7 +89,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 }
 
 // static
-JSContext *
+JSContext*
 XPCCallContext::GetDefaultJSContext()
 {
     // This is slightly questionable. If called without an explicit
@@ -104,7 +101,7 @@ XPCCallContext::GetDefaultJSContext()
     // Note: this *is* what the pre-XPCCallContext xpconnect did too.
 
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    JSContext *topJSContext = stack->Peek();
+    JSContext* topJSContext = stack->Peek();
 
     return topJSContext ? topJSContext : stack->GetSafeJSContext();
 }
@@ -169,8 +166,8 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 
 void
 XPCCallContext::SetArgsAndResultPtr(unsigned argc,
-                                    jsval *argv,
-                                    jsval *rval)
+                                    jsval* argv,
+                                    jsval* rval)
 {
     CHECK_STATE(HAVE_OBJECT);
 
@@ -247,7 +244,7 @@ XPCCallContext::GetCallee(nsISupports * *aCallee)
 
 /* readonly attribute uint16_t CalleeMethodIndex; */
 NS_IMETHODIMP
-XPCCallContext::GetCalleeMethodIndex(uint16_t *aCalleeMethodIndex)
+XPCCallContext::GetCalleeMethodIndex(uint16_t* aCalleeMethodIndex)
 {
     *aCalleeMethodIndex = mMethodIndex;
     return NS_OK;
@@ -282,7 +279,7 @@ XPCCallContext::GetJSContext(JSContext * *aJSContext)
 
 /* readonly attribute uint32_t Argc; */
 NS_IMETHODIMP
-XPCCallContext::GetArgc(uint32_t *aArgc)
+XPCCallContext::GetArgc(uint32_t* aArgc)
 {
     *aArgc = (uint32_t) mArgc;
     return NS_OK;
@@ -297,7 +294,7 @@ XPCCallContext::GetArgvPtr(jsval * *aArgvPtr)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
+XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetPrevCallContext();
@@ -305,71 +302,9 @@ XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetLanguage(uint16_t *aResult)
+XPCCallContext::GetLanguage(uint16_t* aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetCallerLanguage();
   return NS_OK;
 }
-
-XPCWrappedNative*
-XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned argc)
-{
-    // We should only get here for objects that aren't safe to unwrap.
-    MOZ_ASSERT(!js::CheckedUnwrap(obj));
-    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
-
-    // We can't do anything here without a function.
-    if (!fun)
-        return nullptr;
-
-    // Determine if we're allowed to unwrap the security wrapper to invoke the
-    // method.
-    //
-    // We have the Interface and Member that this corresponds to, but
-    // unfortunately our access checks are based on the object class name and
-    // property name. So we cheat a little bit here - we verify that the object
-    // does indeed implement the method's Interface, and then just check that we
-    // can successfully access property with method's name from the object.
-
-    // First, get the XPCWN out of the underlying object. We should have a wrapper
-    // here, potentially an outer window proxy, and then an XPCWN.
-    MOZ_ASSERT(js::IsWrapper(obj));
-    RootedObject unwrapped(mJSContext, js::UncheckedUnwrap(obj, /* stopAtOuter = */ false));
-#ifdef DEBUG
-    JS::Rooted<JSObject*> wrappedObj(mJSContext, js::Wrapper::wrappedObject(obj));
-    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, wrappedObj));
-#endif
-
-    // Make sure we have an XPCWN, and grab it.
-    if (!IS_WN_REFLECTOR(unwrapped))
-        return nullptr;
-    XPCWrappedNative *wn = XPCWrappedNative::Get(unwrapped);
-
-    // Next, get the call info off the function object.
-    XPCNativeInterface *interface;
-    XPCNativeMember *member;
-    XPCNativeMember::GetCallInfo(fun, &interface, &member);
-
-    // To be extra safe, make sure that the underlying native implements the
-    // interface before unwrapping. Even if we didn't check this, we'd still
-    // theoretically fail during tearoff lookup for mismatched methods.
-    if (!wn->HasInterfaceNoQI(*interface->GetIID()))
-        return nullptr;
-
-    // See if the access is permitted.
-    //
-    // NB: This calculation of SET vs GET is a bit wonky, but that's what
-    // XPC_WN_GetterSetter does.
-    bool set = argc && argc != NO_ARGS && member->IsWritableAttribute();
-    js::Wrapper::Action act = set ? js::Wrapper::SET : js::Wrapper::GET;
-    js::Wrapper *handler = js::Wrapper::wrapperHandler(obj);
-    bool ignored;
-    JS::Rooted<jsid> id(mJSContext, member->GetName());
-    if (!handler->enter(mJSContext, obj, id, act, &ignored))
-        return nullptr;
-
-    // Ok, this call is safe.
-    return wn;
-}
-

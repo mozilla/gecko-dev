@@ -11,11 +11,11 @@ import time
 import types
 import weakref
 
-from b2ginstance import B2GInstance
-from errors import InvalidResponseException
-from marionette import Marionette
+from marionette_driver.marionette import Marionette
 from marionette_test import MarionetteTestCase
 from marionette_transport import MarionetteTransport
+
+from b2ginstance import B2GInstance
 from runtests import MarionetteTestRunner, cli
 
 class B2GUpdateMarionetteClient(MarionetteTransport):
@@ -25,7 +25,7 @@ class B2GUpdateMarionetteClient(MarionetteTransport):
     MAX_RETRIES     = 24
 
     def __init__(self, addr, port, runner):
-        super(B2GUpdateMarionetteClient, self).__init__(addr, port)
+        super(B2GUpdateMarionetteClient, self).__init__(addr, port, self.CONNECT_TIMEOUT)
         self.runner = runner
 
     def connect(self):
@@ -36,7 +36,7 @@ class B2GUpdateMarionetteClient(MarionetteTransport):
         """
         for i in range(self.MAX_RETRIES):
             try:
-                MarionetteTransport.connect(self, timeout=self.CONNECT_TIMEOUT)
+                MarionetteTransport.connect(self)
                 break
             except:
                 if i == self.MAX_RETRIES - 1:
@@ -237,16 +237,9 @@ class B2GUpdateTestCase(MarionetteTestCase):
 
         self.print_status(status, os.path.basename(path))
 
-        try:
-            results = self.marionette.execute_async_script(data,
-                                                           script_args=[self.testvars],
-                                                           special_powers=True)
-            self.handle_results(path, stage, results)
-        except InvalidResponseException, e:
-            # If the update test causes a restart, we will get an invalid
-            # response from the socket here.
-            if not will_restart:
-                raise e
+        results = self.marionette.execute_async_script(data,
+                                                       script_args=[self.testvars])
+        self.handle_results(path, stage, results)
 
     def handle_results(self, path, stage, results):
         passed = results['passed']

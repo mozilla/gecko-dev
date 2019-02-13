@@ -9,13 +9,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_pretty-print-3.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gEditor, gSources;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gEditor = gDebugger.DebuggerView.editor;
@@ -41,7 +40,7 @@ function test() {
 }
 
 function testSourceIsUgly() {
-  ok(!gEditor.getText().contains("\n  "),
+  ok(!gEditor.getText().includes("\n  "),
      "The source shouldn't be pretty printed yet.");
 }
 
@@ -55,7 +54,7 @@ function testProgressBarShown() {
 }
 
 function testSourceIsPretty() {
-  ok(gEditor.getText().contains("\n  "),
+  ok(gEditor.getText().includes("\n  "),
      "The source should be pretty printed.")
 }
 
@@ -69,7 +68,7 @@ function testSourceIsStillPretty() {
 
   const { source } = gSources.selectedItem.attachment;
   gDebugger.DebuggerController.SourceScripts.getText(source).then(([, text]) => {
-    ok(text.contains("\n  "),
+    ok(text.includes("\n  "),
        "Subsequent calls to getText return the pretty printed source.");
     deferred.resolve();
   });
@@ -79,7 +78,6 @@ function testSourceIsStillPretty() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gEditor = null;

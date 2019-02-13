@@ -2,35 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
-
-#include "base/logging.h"
 #include "sandbox/linux/seccomp-bpf/codegen.h"
 
-namespace {
+#include <linux/filter.h>
 
-// Helper function for Traverse().
-void TraverseRecursively(std::set<sandbox::Instruction*>* visited,
-                         sandbox::Instruction* instruction) {
-  if (visited->find(instruction) == visited->end()) {
-    visited->insert(instruction);
-    switch (BPF_CLASS(instruction->code)) {
-      case BPF_JMP:
-        if (BPF_OP(instruction->code) != BPF_JA) {
-          TraverseRecursively(visited, instruction->jf_ptr);
-        }
-        TraverseRecursively(visited, instruction->jt_ptr);
-        break;
-      case BPF_RET:
-        break;
-      default:
-        TraverseRecursively(visited, instruction->next);
-        break;
-    }
-  }
-}
+#include <set>
 
-}  // namespace
+#include "base/logging.h"
+#include "sandbox/linux/seccomp-bpf/basicblock.h"
+#include "sandbox/linux/seccomp-bpf/die.h"
+#include "sandbox/linux/seccomp-bpf/instruction.h"
 
 namespace sandbox {
 
@@ -47,92 +28,6 @@ CodeGen::~CodeGen() {
        ++iter) {
     delete *iter;
   }
-}
-
-void CodeGen::PrintProgram(const SandboxBPF::Program& program) {
-  for (SandboxBPF::Program::const_iterator iter = program.begin();
-       iter != program.end();
-       ++iter) {
-    int ip = (int)(iter - program.begin());
-    fprintf(stderr, "%3d) ", ip);
-    switch (BPF_CLASS(iter->code)) {
-      case BPF_LD:
-        if (iter->code == BPF_LD + BPF_W + BPF_ABS) {
-          fprintf(stderr, "LOAD %d  // ", (int)iter->k);
-          if (iter->k == offsetof(struct arch_seccomp_data, nr)) {
-            fprintf(stderr, "System call number\n");
-          } else if (iter->k == offsetof(struct arch_seccomp_data, arch)) {
-            fprintf(stderr, "Architecture\n");
-          } else if (iter->k ==
-                     offsetof(struct arch_seccomp_data, instruction_pointer)) {
-            fprintf(stderr, "Instruction pointer (LSB)\n");
-          } else if (iter->k ==
-                     offsetof(struct arch_seccomp_data, instruction_pointer) +
-                         4) {
-            fprintf(stderr, "Instruction pointer (MSB)\n");
-          } else if (iter->k >= offsetof(struct arch_seccomp_data, args) &&
-                     iter->k < offsetof(struct arch_seccomp_data, args) + 48 &&
-                     (iter->k - offsetof(struct arch_seccomp_data, args)) % 4 ==
-                         0) {
-            fprintf(
-                stderr,
-                "Argument %d (%cSB)\n",
-                (int)(iter->k - offsetof(struct arch_seccomp_data, args)) / 8,
-                (iter->k - offsetof(struct arch_seccomp_data, args)) % 8 ? 'M'
-                                                                         : 'L');
-          } else {
-            fprintf(stderr, "???\n");
-          }
-        } else {
-          fprintf(stderr, "LOAD ???\n");
-        }
-        break;
-      case BPF_JMP:
-        if (BPF_OP(iter->code) == BPF_JA) {
-          fprintf(stderr, "JMP %d\n", ip + iter->k + 1);
-        } else {
-          fprintf(stderr, "if A %s 0x%x; then JMP %d else JMP %d\n",
-              BPF_OP(iter->code) == BPF_JSET ? "&" :
-              BPF_OP(iter->code) == BPF_JEQ ? "==" :
-              BPF_OP(iter->code) == BPF_JGE ? ">=" :
-              BPF_OP(iter->code) == BPF_JGT ? ">"  : "???",
-              (int)iter->k,
-              ip + iter->jt + 1, ip + iter->jf + 1);
-        }
-        break;
-      case BPF_RET:
-        fprintf(stderr, "RET 0x%x  // ", iter->k);
-        if ((iter->k & SECCOMP_RET_ACTION) == SECCOMP_RET_TRAP) {
-          fprintf(stderr, "Trap #%d\n", iter->k & SECCOMP_RET_DATA);
-        } else if ((iter->k & SECCOMP_RET_ACTION) == SECCOMP_RET_ERRNO) {
-          fprintf(stderr, "errno = %d\n", iter->k & SECCOMP_RET_DATA);
-        } else if (iter->k == SECCOMP_RET_ALLOW) {
-          fprintf(stderr, "Allowed\n");
-        } else {
-          fprintf(stderr, "???\n");
-        }
-        break;
-      case BPF_ALU:
-        fprintf(stderr, BPF_OP(iter->code) == BPF_NEG
-            ? "A := -A\n" : "A := A %s 0x%x\n",
-            BPF_OP(iter->code) == BPF_ADD ? "+"  :
-            BPF_OP(iter->code) == BPF_SUB ? "-"  :
-            BPF_OP(iter->code) == BPF_MUL ? "*"  :
-            BPF_OP(iter->code) == BPF_DIV ? "/"  :
-            BPF_OP(iter->code) == BPF_MOD ? "%"  :
-            BPF_OP(iter->code) == BPF_OR  ? "|"  :
-            BPF_OP(iter->code) == BPF_XOR ? "^"  :
-            BPF_OP(iter->code) == BPF_AND ? "&"  :
-            BPF_OP(iter->code) == BPF_LSH ? "<<" :
-            BPF_OP(iter->code) == BPF_RSH ? ">>" : "???",
-            (int)iter->k);
-        break;
-      default:
-        fprintf(stderr, "???\n");
-        break;
-    }
-  }
-  return;
 }
 
 Instruction* CodeGen::MakeInstruction(uint16_t code,
@@ -163,17 +58,6 @@ Instruction* CodeGen::MakeInstruction(uint16_t code,
   }
 }
 
-Instruction* CodeGen::MakeInstruction(uint16_t code, const ErrorCode& err) {
-  if (BPF_CLASS(code) != BPF_RET) {
-    SANDBOX_DIE("ErrorCodes can only be used in return expressions");
-  }
-  if (err.error_type_ != ErrorCode::ET_SIMPLE &&
-      err.error_type_ != ErrorCode::ET_TRAP) {
-    SANDBOX_DIE("ErrorCode is not suitable for returning from a BPF program");
-  }
-  return MakeInstruction(code, err.err_);
-}
-
 Instruction* CodeGen::MakeInstruction(uint16_t code,
                                       uint32_t k,
                                       Instruction* jt,
@@ -183,55 +67,12 @@ Instruction* CodeGen::MakeInstruction(uint16_t code,
   if (BPF_CLASS(code) != BPF_JMP || BPF_OP(code) == BPF_JA) {
     SANDBOX_DIE("Expected a BPF_JMP instruction");
   }
-  if (!jt && !jf) {
-    // We allow callers to defer specifying exactly one of the branch
-    // targets. It must then be set later by calling "JoinInstructions".
+  if (!jt || !jf) {
     SANDBOX_DIE("Branches must jump to a valid instruction");
   }
   Instruction* insn = new Instruction(code, k, jt, jf);
   instructions_.push_back(insn);
   return insn;
-}
-
-void CodeGen::JoinInstructions(Instruction* head, Instruction* tail) {
-  // Merge two instructions, or set the branch target for an "always" jump.
-  // This function should be called, if the caller didn't initially provide
-  // a value for "next" when creating the instruction.
-  if (BPF_CLASS(head->code) == BPF_JMP) {
-    if (BPF_OP(head->code) == BPF_JA) {
-      if (head->jt_ptr) {
-        SANDBOX_DIE("Cannot append instructions in the middle of a sequence");
-      }
-      head->jt_ptr = tail;
-    } else {
-      if (!head->jt_ptr && head->jf_ptr) {
-        head->jt_ptr = tail;
-      } else if (!head->jf_ptr && head->jt_ptr) {
-        head->jf_ptr = tail;
-      } else {
-        SANDBOX_DIE("Cannot append instructions after a jump");
-      }
-    }
-  } else if (BPF_CLASS(head->code) == BPF_RET) {
-    SANDBOX_DIE("Cannot append instructions after a return statement");
-  } else if (head->next) {
-    SANDBOX_DIE("Cannot append instructions in the middle of a sequence");
-  } else {
-    head->next = tail;
-  }
-  return;
-}
-
-void CodeGen::Traverse(Instruction* instruction,
-                       void (*fnc)(Instruction*, void*),
-                       void* aux) {
-  std::set<Instruction*> visited;
-  TraverseRecursively(&visited, instruction);
-  for (std::set<Instruction*>::const_iterator iter = visited.begin();
-       iter != visited.end();
-       ++iter) {
-    fnc(*iter, aux);
-  }
 }
 
 void CodeGen::FindBranchTargets(const Instruction& instructions,
@@ -443,80 +284,74 @@ static int PointerCompare(const BasicBlock* block1,
     // If we have reached the end of the sequence of instructions in one or
     // both basic blocks, we know the relative ordering between the two blocks
     // and can return.
-    if (iter1 == insns1.end()) {
-      if (iter2 == insns2.end()) {
-        // If the two blocks are the same length (and have elementwise-equal
-        // code and k fields, which is the only way we can reach this point),
-        // and the last instruction isn't a JMP or a RET, then we must compare
-        // their successors.
-        Instruction* const insns1_last = insns1.back();
-        Instruction* const insns2_last = insns2.back();
-        if (BPF_CLASS(insns1_last->code) != BPF_JMP &&
-            BPF_CLASS(insns1_last->code) != BPF_RET) {
-          // Non jumping instructions will always have a valid next instruction.
-          CHECK(insns1_last->next);
-          CHECK(insns2_last->next);
-          return PointerCompare(blocks.find(insns1_last->next)->second,
-                                blocks.find(insns2_last->next)->second,
-                                blocks);
-        } else {
-          return 0;
-        }
+    if (iter1 == insns1.end() || iter2 == insns2.end()) {
+      if (iter1 != insns1.end()) {
+        return 1;
       }
-      return -1;
-    } else if (iter2 == insns2.end()) {
-      return 1;
+      if (iter2 != insns2.end()) {
+        return -1;
+      }
+
+      // If the two blocks are the same length (and have elementwise-equal code
+      // and k fields) and their last instructions are neither a JMP nor a RET
+      // (which is the only way we can reach this point), then we must compare
+      // their successors.
+      Instruction* const insns1_last = insns1.back();
+      Instruction* const insns2_last = insns2.back();
+      CHECK(BPF_CLASS(insns1_last->code) != BPF_JMP &&
+            BPF_CLASS(insns1_last->code) != BPF_RET);
+
+      // Non jumping instructions will always have a valid next instruction.
+      CHECK(insns1_last->next);
+      CHECK(insns2_last->next);
+      return PointerCompare(blocks.find(insns1_last->next)->second,
+                            blocks.find(insns2_last->next)->second,
+                            blocks);
     }
 
     // Compare the individual fields for both instructions.
     const Instruction& insn1 = **iter1;
     const Instruction& insn2 = **iter2;
-    if (insn1.code == insn2.code) {
-      if (insn1.k == insn2.k) {
-        // Only conditional jump instructions use the jt_ptr and jf_ptr
-        // fields.
-        if (BPF_CLASS(insn1.code) == BPF_JMP) {
-          if (BPF_OP(insn1.code) != BPF_JA) {
-            // Recursively compare the "true" and "false" branches.
-            // A well-formed BPF program can't have any cycles, so we know
-            // that our recursive algorithm will ultimately terminate.
-            // In the unlikely event that the programmer made a mistake and
-            // went out of the way to give us a cyclic program, we will crash
-            // with a stack overflow. We are OK with that.
-            int c = PointerCompare(blocks.find(insn1.jt_ptr)->second,
-                                   blocks.find(insn2.jt_ptr)->second,
-                                   blocks);
-            if (c == 0) {
-              c = PointerCompare(blocks.find(insn1.jf_ptr)->second,
-                                 blocks.find(insn2.jf_ptr)->second,
-                                 blocks);
-              if (c == 0) {
-                continue;
-              } else {
-                return c;
-              }
-            } else {
-              return c;
-            }
-          } else {
-            int c = PointerCompare(blocks.find(insn1.jt_ptr)->second,
-                                   blocks.find(insn2.jt_ptr)->second,
-                                   blocks);
-            if (c == 0) {
-              continue;
-            } else {
-              return c;
-            }
-          }
-        } else {
-          continue;
-        }
-      } else {
-        return insn1.k - insn2.k;
-      }
-    } else {
+    if (insn1.code != insn2.code) {
       return insn1.code - insn2.code;
     }
+    if (insn1.k != insn2.k) {
+      return insn1.k - insn2.k;
+    }
+
+    // Sanity check: If we're looking at a JMP or RET instruction, by definition
+    // it should be the last instruction of the basic block.
+    if (BPF_CLASS(insn1.code) == BPF_JMP || BPF_CLASS(insn1.code) == BPF_RET) {
+      CHECK_EQ(insns1.back(), &insn1);
+      CHECK_EQ(insns2.back(), &insn2);
+    }
+
+    // RET instructions terminate execution, and only JMP instructions use the
+    // jt_ptr and jf_ptr fields.  Anything else can continue to the next
+    // instruction in the basic block.
+    if (BPF_CLASS(insn1.code) == BPF_RET) {
+      return 0;
+    } else if (BPF_CLASS(insn1.code) != BPF_JMP) {
+      continue;
+    }
+
+    // Recursively compare the "true" and "false" branches.
+    // A well-formed BPF program can't have any cycles, so we know
+    // that our recursive algorithm will ultimately terminate.
+    // In the unlikely event that the programmer made a mistake and
+    // went out of the way to give us a cyclic program, we will crash
+    // with a stack overflow. We are OK with that.
+    if (BPF_OP(insn1.code) != BPF_JA) {
+      int c = PointerCompare(blocks.find(insn1.jf_ptr)->second,
+                             blocks.find(insn2.jf_ptr)->second,
+                             blocks);
+      if (c != 0) {
+        return c;
+      }
+    }
+    return PointerCompare(blocks.find(insn1.jt_ptr)->second,
+                          blocks.find(insn2.jt_ptr)->second,
+                          blocks);
   }
 }
 
@@ -730,7 +565,7 @@ void CodeGen::ComputeRelativeJumps(BasicBlocks* basic_blocks,
 }
 
 void CodeGen::ConcatenateBasicBlocks(const BasicBlocks& basic_blocks,
-                                     SandboxBPF::Program* program) {
+                                     Program* program) {
   // Our basic blocks have been sorted and relative jump offsets have been
   // computed. The last remaining step is for all the instructions in our
   // basic blocks to be concatenated into a BPF program.
@@ -750,7 +585,7 @@ void CodeGen::ConcatenateBasicBlocks(const BasicBlocks& basic_blocks,
   return;
 }
 
-void CodeGen::Compile(Instruction* instructions, SandboxBPF::Program* program) {
+void CodeGen::Compile(Instruction* instructions, Program* program) {
   if (compiled_) {
     SANDBOX_DIE(
         "Cannot call Compile() multiple times. Create a new code "

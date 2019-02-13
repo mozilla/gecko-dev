@@ -19,7 +19,7 @@ public:
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   void BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
@@ -28,21 +28,22 @@ public:
   virtual void Reflow(nsPresContext*           aCX,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  nscoord HeightOfARow() const { return mHeightOfARow; }
+  nscoord BSizeOfARow() const { return mBSizeOfARow; }
   
 protected:
-  nsSelectsAreaFrame(nsStyleContext* aContext) :
+  explicit nsSelectsAreaFrame(nsStyleContext* aContext) :
     nsBlockFrame(aContext),
-    mHeightOfARow(0)
+    mBSizeOfARow(0)
   {}
 
-  // We cache the height of a single row so that changes to the "size"
-  // attribute, padding, etc. can all be handled with only one reflow.  We'll
-  // have to reflow twice if someone changes our font size or something like
-  // that, so that the heights of our options will change.
-  nscoord mHeightOfARow;
+  // We cache the block size of a single row so that changes to the
+  // "size" attribute, padding, etc. can all be handled with only one
+  // reflow.  We'll have to reflow twice if someone changes our font
+  // size or something like that, so that the block size of our options
+  // will change.
+  nscoord mBSizeOfARow;
 };
 
 #endif /* nsSelectsAreaFrame_h___ */

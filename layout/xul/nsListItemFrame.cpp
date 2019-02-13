@@ -5,18 +5,19 @@
 
 #include "nsListItemFrame.h"
 
+#include <algorithm>
+
 #include "nsCOMPtr.h"
 #include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsDisplayList.h"
 #include "nsBoxLayout.h"
-#include <algorithm>
+#include "nsIContent.h"
 
-nsListItemFrame::nsListItemFrame(nsIPresShell* aPresShell,
-                                 nsStyleContext* aContext,
+nsListItemFrame::nsListItemFrame(nsStyleContext* aContext,
                                  bool aIsRoot,
                                  nsBoxLayout* aLayoutManager)
-  : nsGridRowLeafFrame(aPresShell, aContext, aIsRoot, aLayoutManager) 
+  : nsGridRowLeafFrame(aContext, aIsRoot, aLayoutManager) 
 {
 }
 
@@ -62,7 +63,7 @@ NS_NewListItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
     return nullptr;
   }
   
-  return new (aPresShell) nsListItemFrame(aPresShell, aContext, false, layout);
+  return new (aPresShell) nsListItemFrame(aContext, false, layout);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsListItemFrame)

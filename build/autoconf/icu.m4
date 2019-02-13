@@ -19,9 +19,25 @@ MOZ_ARG_WITH_BOOL(system-icu,
 if test -n "$MOZ_NATIVE_ICU"; then
     PKG_CHECK_MODULES(MOZ_ICU, icu-i18n >= 50.1)
     MOZ_SHARED_ICU=1
+elif test -n "$gonkdir" && test "$ANDROID_VERSION" -ge 18; then
+    dnl Use system's ICU since version is 50.1+.
+    if test -d "$gonkdir/external/icu/icu4c/source"; then
+        dnl gonk-L (API version is 21)
+        MOZ_ICU_GONK_PATH="$gonkdir/external/icu/icu4c/source"
+    elif test -d "$gonkdir/external/icu4c"; then
+        MOZ_ICU_GONK_PATH="$gonkdir/external/icu4c"
+    else
+        AC_MSG_ERROR([Cannot find ICU source code under gonk])
+    fi
+    MOZ_ICU_CFLAGS="-I$MOZ_ICU_GONK_PATH/common -I$MOZ_ICU_GONK_PATH/i18n"
+    dnl icudata is a datafile under /usr/icu/icudt<version number>l.dat,
+    dnl not shared library.  So we don't link to icudata on B2G.
+    MOZ_ICU_LIBS='-licui18n -licuuc'
+    MOZ_NATIVE_ICU=1
+    MOZ_SHARED_ICU=1
 else
     MOZ_ICU_CFLAGS='-I$(topsrcdir)/intl/icu/source/common -I$(topsrcdir)/intl/icu/source/i18n'
-    AC_SUBST(MOZ_ICU_CFLAGS)
+    AC_SUBST_LIST(MOZ_ICU_CFLAGS)
 fi
 
 AC_SUBST(MOZ_NATIVE_ICU)
@@ -51,14 +67,20 @@ yes)
     ;;
 esac
 
+if test -n "$ENABLE_INTL_API"; then
+    USE_ICU=1
+fi
+
 if test -n "$EXPOSE_INTL_API"; then
     AC_DEFINE(EXPOSE_INTL_API)
 fi
 
-dnl Settings for the implementation of the ECMAScript Internationalization API
 if test -n "$ENABLE_INTL_API"; then
     AC_DEFINE(ENABLE_INTL_API)
+fi
 
+dnl Settings for the implementation of the ECMAScript Internationalization API
+if test -n "$USE_ICU"; then
     icudir="$_topsrcdir/intl/icu/source"
     if test ! -d "$icudir"; then
         icudir="$_topsrcdir/../../intl/icu/source"
@@ -72,6 +94,10 @@ if test -n "$ENABLE_INTL_API"; then
        AC_MSG_ERROR([cannot determine icu version number from uvernum.h header file $lineno])
     fi
     MOZ_ICU_VERSION="$version"
+
+    if test "$OS_TARGET" = WINNT; then
+        MOZ_SHARED_ICU=1
+    fi
 
     if test -z "${JS_STANDALONE}" -a -n "${JS_SHARED_LIBRARY}${MOZ_NATIVE_ICU}"; then
         MOZ_SHARED_ICU=1
@@ -88,37 +114,28 @@ if test -n "$ENABLE_INTL_API"; then
                 if test -n "$MOZ_DEBUG" -a -z "$MOZ_NO_DEBUG_RTL"; then
                     MOZ_ICU_DBG_SUFFIX=d
                 fi
-                if test -n "$MOZ_SHARED_ICU"; then
-                    MOZ_ICU_LIBS='$(foreach lib,$(ICU_LIB_NAMES),$(DEPTH)/intl/icu/target/lib/$(LIB_PREFIX)$(lib)$(MOZ_ICU_DBG_SUFFIX).$(LIB_SUFFIX))'
-                fi
                 ;;
-            Darwin)
-                ICU_LIB_NAMES="icui18n icuuc icudata"
-                if test -n "$MOZ_SHARED_ICU"; then
-                   MOZ_ICU_LIBS='$(foreach lib,$(ICU_LIB_NAMES),$(DEPTH)/intl/icu/target/lib/$(DLL_PREFIX)$(lib).$(MOZ_ICU_VERSION)$(DLL_SUFFIX))'
+            Android)
+                if test -z "$gonkdir"; then
+                    AC_MSG_ERROR([ECMAScript Internationalization API is not yet supported on this platform])
                 fi
+                ICU_LIB_NAMES="icui18n icuuc icudata"
                 ;;
-            Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|GNU/kFreeBSD)
+            Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|GNU/kFreeBSD|SunOS)
                 ICU_LIB_NAMES="icui18n icuuc icudata"
-                if test -n "$MOZ_SHARED_ICU"; then
-                   MOZ_ICU_LIBS='$(foreach lib,$(ICU_LIB_NAMES),$(DEPTH)/intl/icu/target/lib/$(DLL_PREFIX)$(lib)$(DLL_SUFFIX).$(MOZ_ICU_VERSION))'
-                fi
                 ;;
             *)
                 AC_MSG_ERROR([ECMAScript Internationalization API is not yet supported on this platform])
         esac
-        if test -z "$MOZ_SHARED_ICU"; then
-            MOZ_ICU_LIBS='$(call EXPAND_LIBNAME_PATH,$(addsuffix $(MOZ_ICU_DBG_SUFFIX),$(ICU_LIB_NAMES)),$(DEPTH)/intl/icu/target/lib)'
-        fi
     fi
 fi
 
 AC_SUBST(MOZ_ICU_DBG_SUFFIX)
 AC_SUBST(ENABLE_INTL_API)
-AC_SUBST(ICU_LIB_NAMES)
-AC_SUBST(MOZ_ICU_LIBS)
+AC_SUBST(USE_ICU)
+AC_SUBST_LIST(ICU_LIB_NAMES)
 
-if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
+if test -n "$USE_ICU" -a -z "$MOZ_NATIVE_ICU"; then
     dnl We build ICU as a static library for non-shared js builds and as a shared library for shared js builds.
     if test -z "$MOZ_SHARED_ICU"; then
         AC_DEFINE(U_STATIC_IMPLEMENTATION)
@@ -135,7 +152,7 @@ AC_DEFUN([MOZ_SUBCONFIGURE_ICU], [
 
 if test -z "$BUILDING_JS" -o -n "$JS_STANDALONE"; then
 
-    if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
+    if test -n "$USE_ICU" -a -z "$MOZ_NATIVE_ICU"; then
         # Set ICU compile options
         ICU_CPPFLAGS=""
         # don't use icu namespace automatically in client code
@@ -154,27 +171,8 @@ if test -z "$BUILDING_JS" -o -n "$JS_STANDALONE"; then
         ICU_CPPFLAGS="$ICU_CPPFLAGS -I$icudir/common -I$icudir/i18n"
 
         ICU_CROSS_BUILD_OPT=""
-        ICU_SRCDIR=""
-        if test "$HOST_OS_ARCH" = "WINNT"; then
-    	ICU_SRCDIR="--srcdir=$(cd $srcdir/intl/icu/source; pwd -W)"
-        fi
 
         if test "$CROSS_COMPILE"; then
-    	# Building host tools.  It is necessary to build target binary.
-    	case "$HOST_OS_ARCH" in
-    	    Darwin)
-    		ICU_TARGET=MacOSX
-    		;;
-    	    Linux)
-    		ICU_TARGET=Linux
-    		;;
-    	    WINNT)
-    		ICU_TARGET=MSYS/MSVC
-    		;;
-            DragonFly|FreeBSD|NetBSD|OpenBSD|GNU_kFreeBSD)
-    		ICU_TARGET=BSD
-    		;;
-    	esac
     	# Remove _DEPEND_CFLAGS from HOST_FLAGS to avoid configure error
     	HOST_ICU_CFLAGS="$HOST_CFLAGS"
     	HOST_ICU_CXXFLAGS="$HOST_CXXFLAGS"
@@ -196,30 +194,26 @@ if test -z "$BUILDING_JS" -o -n "$JS_STANDALONE"; then
 
     	abs_srcdir=`(cd $srcdir; pwd)`
     	mkdir -p $_objdir/intl/icu/host
-    	(cd $_objdir/intl/icu/host
-    	 MOZ_SUBCONFIGURE_WRAP([.],[
-    	 AR="$HOST_AR" RANLIB="$HOST_RANLIB" \
-    	 CC="$HOST_CC" CXX="$HOST_CXX" LD="$HOST_LD" \
-    	 CFLAGS="$HOST_ICU_CFLAGS $HOST_OPTIMIZE_FLAGS" \
-    	 CPPFLAGS="$ICU_CPPFLAGS" \
-    	 CXXFLAGS="$HOST_ICU_CXXFLAGS $HOST_OPTIMIZE_FLAGS" \
-    	 LDFLAGS="$HOST_LDFLAGS" \
-    		$SHELL $abs_srcdir/intl/icu/source/runConfigureICU \
-    		$HOST_ICU_BUILD_OPTS \
-    		$ICU_TARGET \
-    	dnl Shell quoting is fun.
-    		${ICU_SRCDIR+"$ICU_SRCDIR"} \
-    		--enable-static --disable-shared \
-    		--enable-extras=no --enable-icuio=no --enable-layout=no \
-    		--enable-tests=no --enable-samples=no || exit 1
-    	 ])
-    	) || exit 1
+        (export AR="$HOST_AR"
+         export RANLIB="$HOST_RANLIB"
+         export CC="$HOST_CC"
+         export CXX="$HOST_CXX"
+         export CPP="$HOST_CPP"
+         export LD="$HOST_LD"
+         export CFLAGS="$HOST_ICU_CFLAGS $HOST_OPTIMIZE_FLAGS"
+         export CPPFLAGS="$ICU_CPPFLAGS"
+         export CXXFLAGS="$HOST_ICU_CXXFLAGS $HOST_OPTIMIZE_FLAGS"
+         export LDFLAGS="$HOST_LDFLAGS"
+         ac_configure_args="$HOST_ICU_BUILD_OPTS"
+         ac_configure_args="$ac_configure_args --enable-static --disable-shared --enable-extras=no --enable-icuio=no --enable-layout=no --enable-tests=no --enable-samples=no"
+         AC_OUTPUT_SUBDIRS_NOW(intl/icu/source:intl/icu/host)
+        ) || exit 1
     	# generate config/icucross.mk
     	$GMAKE -C $_objdir/intl/icu/host/ config/icucross.mk
 
     	# --with-cross-build requires absolute path
     	ICU_HOST_PATH=`cd $_objdir/intl/icu/host && pwd`
-    	ICU_CROSS_BUILD_OPT="--with-cross-build=$ICU_HOST_PATH"
+    	ICU_CROSS_BUILD_OPT="--with-cross-build=$ICU_HOST_PATH --disable-tools"
     	ICU_TARGET_OPT="--build=$build --host=$target"
         else
     	# CROSS_COMPILE isn't set build and target are i386 and x86-64.
@@ -299,29 +293,31 @@ if test -z "$BUILDING_JS" -o -n "$JS_STANDALONE"; then
     	fi
         fi
 
-        # We cannot use AC_OUTPUT_SUBDIRS since ICU tree is out of spidermonkey.
-        # When using AC_OUTPUT_SUBDIRS, objdir of ICU is out of objdir
-        # due to relative path.
-        # If building ICU moves into root of mozilla tree, we can use
-        # AC_OUTPUT_SUBDIR instead.
-        mkdir -p $_objdir/intl/icu/target
-        (cd $_objdir/intl/icu/target
-         MOZ_SUBCONFIGURE_WRAP([.],[
-           AR="$AR" CC="$CC" CXX="$CXX" LD="$LD" \
-           ARFLAGS="$ARFLAGS" \
-           CPPFLAGS="$ICU_CPPFLAGS $CPPFLAGS" \
-           CFLAGS="$ICU_CFLAGS" \
-           CXXFLAGS="$ICU_CXXFLAGS" \
-           LDFLAGS="$ICU_LDFLAGS $LDFLAGS" \
-           $SHELL $_topsrcdir/intl/icu/source/configure \
-    		$ICU_BUILD_OPTS \
-    		$ICU_CROSS_BUILD_OPT \
-    		$ICU_LINK_OPTS \
-    		${ICU_SRCDIR+"$ICU_SRCDIR"} \
-    		$ICU_TARGET_OPT \
-    		--disable-extras --disable-icuio --disable-layout \
-    		--disable-tests --disable-samples || exit 1
-           ])
+        if test -n "$gonkdir"; then
+            ICU_CXXFLAGS="-I$gonkdir/abi/cpp/include $ICU_CXXFLAGS"
+        fi
+
+        if test -z "$MOZ_SHARED_ICU"; then
+          ICU_CXXFLAGS="$ICU_CXXFLAGS -DU_STATIC_IMPLEMENTATION"
+          ICU_CFLAGS="$ICU_CFLAGS -DU_STATIC_IMPLEMENTATION"
+          if test "$GNU_CC"; then
+            ICU_CFLAGS="$ICU_CFLAGS -fvisibility=hidden"
+            ICU_CXXFLAGS="$ICU_CXXFLAGS -fvisibility=hidden"
+          fi
+        fi
+
+        (export AR="$AR"
+         export CC="$CC"
+         export CXX="$CXX"
+         export LD="$LD"
+         export ARFLAGS="$ARFLAGS"
+         export CPPFLAGS="$ICU_CPPFLAGS $CPPFLAGS"
+         export CFLAGS="$ICU_CFLAGS"
+         export CXXFLAGS="$ICU_CXXFLAGS"
+         export LDFLAGS="$ICU_LDFLAGS $LDFLAGS"
+         ac_configure_args="$ICU_BUILD_OPTS $ICU_CROSS_BUILD_OPT $ICU_LINK_OPTS $ICU_TARGET_OPT"
+         ac_configure_args="$ac_configure_args --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict"
+         AC_OUTPUT_SUBDIRS(intl/icu/source:intl/icu/target)
         ) || exit 1
     fi
 

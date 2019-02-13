@@ -14,8 +14,6 @@
 #include "nsBaseWidget.h"
 #include "mozilla/EventForwards.h"
 
-#include "nsWeakReference.h"
-
 #include "nsGkAtoms.h"
 #include "nsIIdleServiceInternal.h"
 #include "nsIRunnable.h"
@@ -23,10 +21,7 @@
 
 #ifdef MOZ_LOGGING
 
-// make sure that logging is enabled before including prlog.h
-#define FORCE_PR_LOG
-
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsTArray.h"
 
 extern PRLogModuleInfo *gWidgetLog;
@@ -34,10 +29,10 @@ extern PRLogModuleInfo *gWidgetFocusLog;
 extern PRLogModuleInfo *gWidgetIMLog;
 extern PRLogModuleInfo *gWidgetDrawLog;
 
-#define LOG(args) PR_LOG(gWidgetLog, 4, args)
-#define LOGFOCUS(args) PR_LOG(gWidgetFocusLog, 4, args)
-#define LOGIM(args) PR_LOG(gWidgetIMLog, 4, args)
-#define LOGDRAW(args) PR_LOG(gWidgetDrawLog, 4, args)
+#define LOG(args) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, args)
+#define LOGFOCUS(args) MOZ_LOG(gWidgetFocusLog, mozilla::LogLevel::Debug, args)
+#define LOGIM(args) MOZ_LOG(gWidgetIMLog, mozilla::LogLevel::Debug, args)
+#define LOGDRAW(args) MOZ_LOG(gWidgetDrawLog, mozilla::LogLevel::Debug, args)
 
 #else
 
@@ -64,7 +59,6 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 
 #endif /* MOZ_LOGGING */
 
-class nsIdleService;
 class QCloseEvent;
 class QFocusEvent;
 class QHideEvent;
@@ -80,12 +74,10 @@ class QWheelEvent;
 namespace mozilla {
 namespace widget {
 class MozQWidget;
-class nsWindow : public nsBaseWidget,
-                 public nsSupportsWeakReference
+class nsWindow : public nsBaseWidget
 {
 public:
     nsWindow();
-    virtual ~nsWindow();
 
     NS_DECL_ISUPPORTS_INHERITED
 
@@ -95,7 +87,6 @@ public:
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
-                      nsDeviceContext *aContext,
                       nsWidgetInitData *aInitData);
     NS_IMETHOD Destroy(void);
 
@@ -128,7 +119,7 @@ public:
     {
         return NS_OK;
     }
-    virtual nsIntPoint WidgetToScreenOffset();
+    virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset();
     NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                              nsEventStatus& aStatus);
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener *aListener,
@@ -138,7 +129,7 @@ public:
     }
     NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent);
 
-    NS_IMETHOD MakeFullScreen(bool aFullScreen);
+    NS_IMETHOD MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen = nullptr);
     virtual mozilla::layers::LayerManager*
         GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
                         LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
@@ -149,9 +140,9 @@ public:
                                       const InputContextAction& aAction);
     NS_IMETHOD_(InputContext) GetInputContext();
 
-    virtual uint32_t GetGLFrameBufferFormat() MOZ_OVERRIDE;
+    virtual uint32_t GetGLFrameBufferFormat() override;
 
-    mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() MOZ_OVERRIDE;
+    mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() override;
 
     // Widget notifications
     virtual void OnPaint();
@@ -172,6 +163,8 @@ public:
     virtual nsEventStatus tabletEvent(QTabletEvent* event);
 
 protected:
+    virtual ~nsWindow();
+
     nsWindow* mParent;
     bool  mVisible;
     InputContext mInputContext;

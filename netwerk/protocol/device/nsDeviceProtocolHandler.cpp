@@ -50,17 +50,31 @@ nsDeviceProtocolHandler::NewURI(const nsACString &spec,
   nsresult rv = uri->SetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return CallQueryInterface(uri, result);
+  uri.forget(result);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDeviceProtocolHandler::NewChannel(nsIURI* aURI, nsIChannel **aResult)
+nsDeviceProtocolHandler::NewChannel2(nsIURI* aURI,
+                                     nsILoadInfo* aLoadInfo,
+                                     nsIChannel** aResult)
 {
   nsRefPtr<nsDeviceChannel> channel = new nsDeviceChannel();
   nsresult rv = channel->Init(aURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return CallQueryInterface(channel, aResult);
+  // set the loadInfo on the new channel
+  rv = channel->SetLoadInfo(aLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  channel.forget(aResult);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDeviceProtocolHandler::NewChannel(nsIURI* aURI, nsIChannel **aResult)
+{
+  return NewChannel2(aURI, nullptr, aResult);
 }
 
 NS_IMETHODIMP 

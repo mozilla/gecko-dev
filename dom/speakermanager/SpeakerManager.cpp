@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,20 +27,18 @@ SpeakerManager::SpeakerManager()
   : mForcespeaker(false)
   , mVisible(false)
 {
-  SetIsDOMBinding();
   SpeakerManagerService *service =
-    SpeakerManagerService::GetSpeakerManagerService();
-  if (service) {
-    service->RegisterSpeakerManager(this);
-  }
+    SpeakerManagerService::GetOrCreateSpeakerManagerService();
+  MOZ_ASSERT(service);
+  service->RegisterSpeakerManager(this);
 }
 
 SpeakerManager::~SpeakerManager()
 {
-  SpeakerManagerService *service = SpeakerManagerService::GetSpeakerManagerService();
-  if (service) {
-    service->UnRegisterSpeakerManager(this);
-  }
+  SpeakerManagerService *service = SpeakerManagerService::GetOrCreateSpeakerManagerService();
+  MOZ_ASSERT(service);
+
+  service->UnRegisterSpeakerManager(this);
   nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner());
   NS_ENSURE_TRUE_VOID(target);
 
@@ -55,11 +55,10 @@ SpeakerManager::Speakerforced()
   if (mForcespeaker && !mVisible) {
     return false;
   }
-  SpeakerManagerService *service = SpeakerManagerService::GetSpeakerManagerService();
-  if (service) {
-    return service->GetSpeakerStatus();
-  }
-  return false;
+  SpeakerManagerService *service = SpeakerManagerService::GetOrCreateSpeakerManagerService();
+  MOZ_ASSERT(service);
+  return service->GetSpeakerStatus();
+
 }
 
 bool
@@ -71,17 +70,17 @@ SpeakerManager::Forcespeaker()
 void
 SpeakerManager::SetForcespeaker(bool aEnable)
 {
-  SpeakerManagerService *service = SpeakerManagerService::GetSpeakerManagerService();
-  if (service) {
-    service->ForceSpeaker(aEnable, mVisible);
-  }
+  SpeakerManagerService *service = SpeakerManagerService::GetOrCreateSpeakerManagerService();
+  MOZ_ASSERT(service);
+
+  service->ForceSpeaker(aEnable, mVisible);
   mForcespeaker = aEnable;
 }
 
 void
 SpeakerManager::DispatchSimpleEvent(const nsAString& aStr)
 {
-  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
+  MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
   nsresult rv = CheckInnerWindowCorrectness();
   if (NS_FAILED(rv)) {
     return;
@@ -168,9 +167,9 @@ SpeakerManager::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
 }
 
 JSObject*
-SpeakerManager::WrapObject(JSContext* aCx)
+SpeakerManager::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MozSpeakerManagerBinding::Wrap(aCx, this);
+  return MozSpeakerManagerBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMETHODIMP
@@ -192,8 +191,10 @@ SpeakerManager::HandleEvent(nsIDOMEvent* aEvent)
   // switches to true in all apps. I.e. the app doesn't have to
   // call forcespeaker=true again when it comes into foreground.
   SpeakerManagerService *service =
-    SpeakerManagerService::GetSpeakerManagerService();
-  if (service && mVisible && mForcespeaker) {
+    SpeakerManagerService::GetOrCreateSpeakerManagerService();
+  MOZ_ASSERT(service);
+
+  if (mVisible && mForcespeaker) {
     service->ForceSpeaker(mForcespeaker, mVisible);
   }
   // If an application that has called forcespeaker=true, but no audio is
@@ -201,7 +202,7 @@ SpeakerManager::HandleEvent(nsIDOMEvent* aEvent)
   // the background, we switch 'speakerforced' to false.
   if (!mVisible && mForcespeaker) {
     AudioChannelService* audioChannelService =
-      AudioChannelService::GetAudioChannelService();
+      AudioChannelService::GetOrCreateAudioChannelService();
     if (audioChannelService && !audioChannelService->AnyAudioChannelIsActive()) {
       service->ForceSpeaker(false, mVisible);
     }
@@ -212,12 +213,11 @@ SpeakerManager::HandleEvent(nsIDOMEvent* aEvent)
 void
 SpeakerManager::SetAudioChannelActive(bool isActive)
 {
-  if (!isActive && !mVisible) {
+  if (mForcespeaker) {
     SpeakerManagerService *service =
-      SpeakerManagerService::GetSpeakerManagerService();
-    if (service) {
-      service->ForceSpeaker(false, mVisible);
-    }
+      SpeakerManagerService::GetOrCreateSpeakerManagerService();
+    MOZ_ASSERT(service);
+    service->ForceSpeaker(isActive, mVisible);
   }
 }
 

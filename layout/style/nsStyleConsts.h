@@ -14,10 +14,11 @@
 // XXX fold this into nsStyleContext and group by nsStyleXXX struct
 
 // Indices into border/padding/margin arrays
-#define NS_SIDE_TOP     mozilla::css::eSideTop
-#define NS_SIDE_RIGHT   mozilla::css::eSideRight
-#define NS_SIDE_BOTTOM  mozilla::css::eSideBottom
-#define NS_SIDE_LEFT    mozilla::css::eSideLeft
+namespace mozilla {
+namespace css {
+typedef mozilla::Side Side;
+}
+}
 
 #define NS_FOR_CSS_SIDES(var_) for (mozilla::css::Side var_ = NS_SIDE_TOP; var_ <= NS_SIDE_LEFT; var_++)
 static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
@@ -55,14 +56,26 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_SIDE_TO_HALF_CORNER(side_, second_, parallel_) \
   ((((side_) + !!(second_))*2 + ((side_) + !(parallel_))%2) % 8)
 
-// {margin,border-{width,style,color},padding}-{left,right}-{ltr,rtl}-source
-#define NS_BOXPROP_SOURCE_PHYSICAL 0
-#define NS_BOXPROP_SOURCE_LOGICAL  1
-
 // box-sizing
 #define NS_STYLE_BOX_SIZING_CONTENT       0
 #define NS_STYLE_BOX_SIZING_PADDING       1
 #define NS_STYLE_BOX_SIZING_BORDER        2
+
+// clip-path sizing
+#define NS_STYLE_CLIP_SHAPE_SIZING_NOBOX   0
+#define NS_STYLE_CLIP_SHAPE_SIZING_CONTENT 1
+#define NS_STYLE_CLIP_SHAPE_SIZING_PADDING 2
+#define NS_STYLE_CLIP_SHAPE_SIZING_BORDER  3
+#define NS_STYLE_CLIP_SHAPE_SIZING_MARGIN  4
+#define NS_STYLE_CLIP_SHAPE_SIZING_FILL    5
+#define NS_STYLE_CLIP_SHAPE_SIZING_STROKE  6
+#define NS_STYLE_CLIP_SHAPE_SIZING_VIEW    7
+
+// Basic Shapes
+#define NS_STYLE_BASIC_SHAPE_POLYGON       0
+#define NS_STYLE_BASIC_SHAPE_CIRCLE        1
+#define NS_STYLE_BASIC_SHAPE_ELLIPSE       2
+#define NS_STYLE_BASIC_SHAPE_INSET         3
 
 // box-shadow
 #define NS_STYLE_BOX_SHADOW_INSET         0
@@ -104,6 +117,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_USER_MODIFY_READ_WRITE  1
 #define NS_STYLE_USER_MODIFY_WRITE_ONLY  2
 
+// -moz-window-dragging
+#define NS_STYLE_WINDOW_DRAGGING_DRAG    0
+#define NS_STYLE_WINDOW_DRAGGING_NO_DRAG 1
+
 // box-align
 #define NS_STYLE_BOX_ALIGN_STRETCH     0
 #define NS_STYLE_BOX_ALIGN_START       1
@@ -130,9 +147,13 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_BOX_ORIENT_VERTICAL   1
 
 // orient
-#define NS_STYLE_ORIENT_HORIZONTAL 0
-#define NS_STYLE_ORIENT_VERTICAL   1
-#define NS_STYLE_ORIENT_AUTO       2
+#define NS_STYLE_ORIENT_INLINE     0
+#define NS_STYLE_ORIENT_BLOCK      1
+#define NS_STYLE_ORIENT_HORIZONTAL 2
+#define NS_STYLE_ORIENT_VERTICAL   3
+
+#define NS_RADIUS_FARTHEST_SIDE 0
+#define NS_RADIUS_CLOSEST_SIDE  1
 
 // stack-sizing
 #define NS_STYLE_STACK_SIZING_IGNORE         0
@@ -375,12 +396,13 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 // See nsStyleVisibility
 #define NS_STYLE_DIRECTION_LTR                  0
 #define NS_STYLE_DIRECTION_RTL                  1
-#define NS_STYLE_DIRECTION_INHERIT              2
 
 // See nsStyleVisibility
+// WritingModes.h depends on the particular values used here
 #define NS_STYLE_WRITING_MODE_HORIZONTAL_TB     0
-#define NS_STYLE_WRITING_MODE_VERTICAL_LR       1
-#define NS_STYLE_WRITING_MODE_VERTICAL_RL       2
+#define NS_STYLE_WRITING_MODE_VERTICAL_RL       1
+// #define NS_STYLE_WRITING_MODE_HORIZONTAL_BT  2  // hypothetical
+#define NS_STYLE_WRITING_MODE_VERTICAL_LR       3
 
 // See nsStyleDisplay
 #define NS_STYLE_DISPLAY_NONE                   0
@@ -415,6 +437,25 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_DISPLAY_INLINE_FLEX            30
 #define NS_STYLE_DISPLAY_GRID                   31
 #define NS_STYLE_DISPLAY_INLINE_GRID            32
+#define NS_STYLE_DISPLAY_RUBY                   33
+#define NS_STYLE_DISPLAY_RUBY_BASE              34
+#define NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER    35
+#define NS_STYLE_DISPLAY_RUBY_TEXT              36
+#define NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER    37
+#define NS_STYLE_DISPLAY_CONTENTS               38
+
+// See nsStyleDisplay
+// If these are re-ordered, nsComputedDOMStyle::DoGetContain() and
+// nsCSSValue::AppendToString() must be updated.
+#define NS_STYLE_CONTAIN_NONE                   0
+#define NS_STYLE_CONTAIN_STRICT                 0x1
+#define NS_STYLE_CONTAIN_LAYOUT                 0x2
+#define NS_STYLE_CONTAIN_STYLE                  0x4
+#define NS_STYLE_CONTAIN_PAINT                  0x8
+// NS_STYLE_CONTAIN_ALL_BITS does not correspond to a keyword.
+#define NS_STYLE_CONTAIN_ALL_BITS               (NS_STYLE_CONTAIN_LAYOUT | \
+                                                 NS_STYLE_CONTAIN_STYLE  | \
+                                                 NS_STYLE_CONTAIN_PAINT)
 
 // See nsStylePosition
 #define NS_STYLE_ALIGN_CONTENT_FLEX_START       0
@@ -468,6 +509,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_FLOAT_LEFT                     1
 #define NS_STYLE_FLOAT_RIGHT                    2
 
+// See nsStyleClipPath
+#define NS_STYLE_CLIP_PATH_NONE                 0
+#define NS_STYLE_CLIP_PATH_URL                  1
+#define NS_STYLE_CLIP_PATH_SHAPE                2
+#define NS_STYLE_CLIP_PATH_BOX                  3
+
 // See nsStyleFilter
 #define NS_STYLE_FILTER_NONE                    0
 #define NS_STYLE_FILTER_URL                     1
@@ -487,11 +534,6 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_FONT_STYLE_NORMAL              NS_FONT_STYLE_NORMAL
 #define NS_STYLE_FONT_STYLE_ITALIC              NS_FONT_STYLE_ITALIC
 #define NS_STYLE_FONT_STYLE_OBLIQUE             NS_FONT_STYLE_OBLIQUE
-
-// See nsStyleFont
-// We should eventually stop using the NS_STYLE_* variants here.
-#define NS_STYLE_FONT_VARIANT_NORMAL            NS_FONT_VARIANT_NORMAL
-#define NS_STYLE_FONT_VARIANT_SMALL_CAPS        NS_FONT_VARIANT_SMALL_CAPS
 
 // See nsStyleFont
 // We should eventually stop using the NS_STYLE_* variants here.
@@ -544,10 +586,9 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_FONT_FIELD                     16
 
 // grid-auto-flow keywords
-#define NS_STYLE_GRID_AUTO_FLOW_STACK           (1 << 0)
-#define NS_STYLE_GRID_AUTO_FLOW_ROW             (1 << 1)
-#define NS_STYLE_GRID_AUTO_FLOW_COLUMN          (1 << 2)
-#define NS_STYLE_GRID_AUTO_FLOW_DENSE           (1 << 3)
+#define NS_STYLE_GRID_AUTO_FLOW_ROW             (1 << 0)
+#define NS_STYLE_GRID_AUTO_FLOW_COLUMN          (1 << 1)
+#define NS_STYLE_GRID_AUTO_FLOW_DENSE           (1 << 2)
 
 // 'subgrid' keyword in grid-template-{columns,rows}
 #define NS_STYLE_GRID_TEMPLATE_SUBGRID          0
@@ -640,24 +681,26 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_LIST_STYLE_CIRCLE                2
 #define NS_STYLE_LIST_STYLE_SQUARE                3
 #define NS_STYLE_LIST_STYLE_DECIMAL               4
-#define NS_STYLE_LIST_STYLE_LOWER_ROMAN           5
-#define NS_STYLE_LIST_STYLE_UPPER_ROMAN           6
-#define NS_STYLE_LIST_STYLE_LOWER_ALPHA           7
-#define NS_STYLE_LIST_STYLE_UPPER_ALPHA           8
-#define NS_STYLE_LIST_STYLE_HEBREW                9
-#define NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL     10
-#define NS_STYLE_LIST_STYLE_JAPANESE_FORMAL       11
-#define NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL  12
-#define NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL 13
-#define NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL   14
-#define NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL 15
-#define NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL   16
-#define NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL 17
-#define NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL   18
-#define NS_STYLE_LIST_STYLE_ETHIOPIC_NUMERIC      19
-#define NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED     20
-#define NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN       21
-#define NS_STYLE_LIST_STYLE__MAX                  22
+#define NS_STYLE_LIST_STYLE_HEBREW                5
+#define NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL     6
+#define NS_STYLE_LIST_STYLE_JAPANESE_FORMAL       7
+#define NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL  8
+#define NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL 9
+#define NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL   10
+#define NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL 11
+#define NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL   12
+#define NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL 13
+#define NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL   14
+#define NS_STYLE_LIST_STYLE_ETHIOPIC_NUMERIC      15
+#define NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED     16
+#define NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN       17
+#define NS_STYLE_LIST_STYLE__MAX                  18
+// These styles are handled as custom styles defined in counterstyles.css.
+// They are preserved here only for html attribute map.
+#define NS_STYLE_LIST_STYLE_LOWER_ROMAN           100
+#define NS_STYLE_LIST_STYLE_UPPER_ROMAN           101
+#define NS_STYLE_LIST_STYLE_LOWER_ALPHA           102
+#define NS_STYLE_LIST_STYLE_UPPER_ALPHA           103
 
 // See nsStyleList
 #define NS_STYLE_LIST_STYLE_POSITION_INSIDE     0
@@ -683,6 +726,17 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_IMAGE_ORIENTATION_FROM_IMAGE   1
 
 // See nsStyleDisplay
+#define NS_STYLE_ISOLATION_AUTO                 0
+#define NS_STYLE_ISOLATION_ISOLATE              1
+
+// See nsStylePosition.mObjectFit
+#define NS_STYLE_OBJECT_FIT_FILL                0
+#define NS_STYLE_OBJECT_FIT_CONTAIN             1
+#define NS_STYLE_OBJECT_FIT_COVER               2
+#define NS_STYLE_OBJECT_FIT_NONE                3
+#define NS_STYLE_OBJECT_FIT_SCALE_DOWN          4
+
+// See nsStyleDisplay
 #define NS_STYLE_RESIZE_NONE                    0
 #define NS_STYLE_RESIZE_BOTH                    1
 #define NS_STYLE_RESIZE_HORIZONTAL              2
@@ -704,6 +758,7 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 // is never present in stylesheets or computed data.
 #define NS_STYLE_TEXT_ALIGN_MOZ_CENTER_OR_INHERIT 11
 #define NS_STYLE_TEXT_ALIGN_TRUE                  12
+#define NS_STYLE_TEXT_ALIGN_MATCH_PARENT          13
 // Note: make sure that the largest NS_STYLE_TEXT_ALIGN_* value is smaller than
 // the smallest NS_STYLE_VERTICAL_ALIGN_* value below!
 
@@ -748,6 +803,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_TOUCH_ACTION_MANIPULATION    (1 << 4)
 
 // See nsStyleDisplay
+#define NS_STYLE_TRANSFORM_BOX_BORDER_BOX                0
+#define NS_STYLE_TRANSFORM_BOX_FILL_BOX                  1
+#define NS_STYLE_TRANSFORM_BOX_VIEW_BOX                  2
+
+// See nsStyleDisplay
 #define NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE         0
 #define NS_STYLE_TRANSITION_TIMING_FUNCTION_LINEAR       1
 #define NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN      2
@@ -760,15 +820,15 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 // Note: these values pickup after the text-align values because there
 // are a few html cases where an object can have both types of
 // alignment applied with a single attribute
-#define NS_STYLE_VERTICAL_ALIGN_BASELINE             13
-#define NS_STYLE_VERTICAL_ALIGN_SUB                  14
-#define NS_STYLE_VERTICAL_ALIGN_SUPER                15
-#define NS_STYLE_VERTICAL_ALIGN_TOP                  16
-#define NS_STYLE_VERTICAL_ALIGN_TEXT_TOP             17
-#define NS_STYLE_VERTICAL_ALIGN_MIDDLE               18
-#define NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM          19
-#define NS_STYLE_VERTICAL_ALIGN_BOTTOM               20
-#define NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE 21
+#define NS_STYLE_VERTICAL_ALIGN_BASELINE             14
+#define NS_STYLE_VERTICAL_ALIGN_SUB                  15
+#define NS_STYLE_VERTICAL_ALIGN_SUPER                16
+#define NS_STYLE_VERTICAL_ALIGN_TOP                  17
+#define NS_STYLE_VERTICAL_ALIGN_TEXT_TOP             18
+#define NS_STYLE_VERTICAL_ALIGN_MIDDLE               19
+#define NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM          20
+#define NS_STYLE_VERTICAL_ALIGN_BOTTOM               21
+#define NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE 22
 
 // See nsStyleVisibility
 #define NS_STYLE_VISIBILITY_HIDDEN              0
@@ -800,14 +860,27 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_HYPHENS_MANUAL                 1
 #define NS_STYLE_HYPHENS_AUTO                   2
 
+// ruby-align, see nsStyleText
+#define NS_STYLE_RUBY_ALIGN_START               0
+#define NS_STYLE_RUBY_ALIGN_CENTER              1
+#define NS_STYLE_RUBY_ALIGN_SPACE_BETWEEN       2
+#define NS_STYLE_RUBY_ALIGN_SPACE_AROUND        3
+
+// ruby-position, see nsStyleText
+#define NS_STYLE_RUBY_POSITION_OVER             0
+#define NS_STYLE_RUBY_POSITION_UNDER            1
+#define NS_STYLE_RUBY_POSITION_INTER_CHARACTER  2 /* placeholder, not yet parsed */
+
 // See nsStyleText
 #define NS_STYLE_TEXT_SIZE_ADJUST_NONE          0
 #define NS_STYLE_TEXT_SIZE_ADJUST_AUTO          1
 
 // See nsStyleText
-#define NS_STYLE_TEXT_ORIENTATION_AUTO          0
-#define NS_STYLE_TEXT_ORIENTATION_UPRIGHT       1
-#define NS_STYLE_TEXT_ORIENTATION_SIDEWAYS      2
+#define NS_STYLE_TEXT_ORIENTATION_MIXED          0
+#define NS_STYLE_TEXT_ORIENTATION_UPRIGHT        1
+#define NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_RIGHT 2
+#define NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_LEFT  3 /* placeholder, not yet parsed */
+#define NS_STYLE_TEXT_ORIENTATION_SIDEWAYS       4 /* placeholder, not yet parsed */
 
 // See nsStyleText
 #define NS_STYLE_TEXT_COMBINE_UPRIGHT_NONE        0
@@ -827,30 +900,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_UNICODE_BIDI_ISOLATE_OVERRIDE  0x6
 #define NS_STYLE_UNICODE_BIDI_PLAINTEXT         0x8
 
-// See nsStyleTable (here for HTML 4.0 for now, should probably change to side flags)
-#define NS_STYLE_TABLE_FRAME_NONE               0
-#define NS_STYLE_TABLE_FRAME_ABOVE              1
-#define NS_STYLE_TABLE_FRAME_BELOW              2
-#define NS_STYLE_TABLE_FRAME_HSIDES             3
-#define NS_STYLE_TABLE_FRAME_VSIDES             4
-#define NS_STYLE_TABLE_FRAME_LEFT               5
-#define NS_STYLE_TABLE_FRAME_RIGHT              6
-#define NS_STYLE_TABLE_FRAME_BOX                7
-#define NS_STYLE_TABLE_FRAME_BORDER             8
-
-// See nsStyleTable
-#define NS_STYLE_TABLE_RULES_NONE               0
-#define NS_STYLE_TABLE_RULES_GROUPS             1
-#define NS_STYLE_TABLE_RULES_ROWS               2
-#define NS_STYLE_TABLE_RULES_COLS               3
-#define NS_STYLE_TABLE_RULES_ALL                4
-
 #define NS_STYLE_TABLE_LAYOUT_AUTO              0
 #define NS_STYLE_TABLE_LAYOUT_FIXED             1
 
 #define NS_STYLE_TABLE_EMPTY_CELLS_HIDE            0
 #define NS_STYLE_TABLE_EMPTY_CELLS_SHOW            1
-#define NS_STYLE_TABLE_EMPTY_CELLS_SHOW_BACKGROUND 2
 
 #define NS_STYLE_CAPTION_SIDE_TOP               0
 #define NS_STYLE_CAPTION_SIDE_RIGHT             1
@@ -1035,6 +1089,15 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_COUNTER_SPEAKAS_WORDS      2
 #define NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT  3
 #define NS_STYLE_COUNTER_SPEAKAS_OTHER      255 // refer to another style
+
+// See nsStyleDisplay::mScrollBehavior
+#define NS_STYLE_SCROLL_BEHAVIOR_AUTO       0
+#define NS_STYLE_SCROLL_BEHAVIOR_SMOOTH     1
+
+// See nsStyleDisplay::mScrollSnapType{X,Y}
+#define NS_STYLE_SCROLL_SNAP_TYPE_NONE              0
+#define NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY         1
+#define NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY         2
 
 /*****************************************************************************
  * Constants for media features.                                             *

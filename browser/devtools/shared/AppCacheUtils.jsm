@@ -185,7 +185,14 @@ AppCacheUtils.prototype = {
                         .createInstance(Ci.nsIScriptableInputStream);
     let deferred = promise.defer();
     let buffer = "";
-    let channel = Services.io.newChannel(uri, null, null);
+    let channel = Services.io.newChannel2(uri,
+                                          null,
+                                          null,
+                                          null,      // aLoadingNode
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      // aTriggeringPrincipal
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
 
     // Avoid the cache:
     channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
@@ -293,7 +300,14 @@ AppCacheUtils.prototype = {
   },
 
   clearAll: function ACU_clearAll() {
-    Services.cache.evictEntries(Ci.nsICache.STORE_OFFLINE);
+    if (!Services.prefs.getBoolPref("browser.cache.disk.enable")) {
+      throw new Error(l10n.GetStringFromName("cacheDisabled"));
+    }
+
+    let appCacheStorage = Services.cache2.appCacheStorage(LoadContextInfo.default, null);
+    appCacheStorage.asyncEvictStorage({
+      onCacheEntryDoomed: function(result) {}
+    });
   },
 
   _getManifestURI: function ACU__getManifestURI() {

@@ -11,16 +11,16 @@
 #include "nsAutoPtr.h"
 #include "gfxPoint.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 
 class gfxContext;
 struct gfxRect;
 struct gfxRGBA;
-class gfxCornerSizes;
-class gfxMatrix;
 
 namespace mozilla {
   namespace gfx {
     class AlphaBoxBlur;
+    struct RectCornerRadii;
     class SourceSurface;
     class DrawTarget;
   }
@@ -47,6 +47,8 @@ namespace mozilla {
  */
 class gfxAlphaBoxBlur
 {
+    typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+
 public:
     gfxAlphaBoxBlur();
 
@@ -71,8 +73,8 @@ public:
      *  for speed reasons. It is safe to pass nullptr here.
      */
     gfxContext* Init(const gfxRect& aRect,
-                     const gfxIntSize& aSpreadRadius,
-                     const gfxIntSize& aBlurRadius,
+                     const mozilla::gfx::IntSize& aSpreadRadius,
+                     const mozilla::gfx::IntSize& aBlurRadius,
                      const gfxRect* aDirtyRect,
                      const gfxRect* aSkipRect);
 
@@ -104,7 +106,7 @@ public:
      * this function should be used as the aBlurRadius parameter to Init,
      * above.
      */
-    static gfxIntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
+    static mozilla::gfx::IntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
 
     /**
      * Blurs a coloured rectangle onto aDestinationCtx. This is equivalent
@@ -125,7 +127,7 @@ public:
      */
     static void BlurRectangle(gfxContext *aDestinationCtx,
                               const gfxRect& aRect,
-                              gfxCornerSizes* aCornerRadii,
+                              RectCornerRadii* aCornerRadii,
                               const gfxPoint& aBlurStdDev,
                               const gfxRGBA& aShadowColor,
                               const gfxRect& aDirtyRect,
@@ -149,7 +151,7 @@ protected:
      /**
       * The object that actually does the blurring for us.
       */
-    mozilla::gfx::AlphaBoxBlur *mBlur;
+    mozilla::UniquePtr<mozilla::gfx::AlphaBoxBlur> mBlur;
 };
 
 #endif /* GFX_BLUR_H */

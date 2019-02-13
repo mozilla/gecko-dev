@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,12 +18,10 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "nsIDOMCustomEvent.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
 #include "mozilla/dom/BrowserElementDictionariesBinding.h"
-#include "nsCxPusher.h"
-#include "GeneratedEventClasses.h"
+#include "mozilla/dom/CustomEvent.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -39,7 +39,7 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
   nsNodeInfoManager *nodeInfoManager =
     aOpenerFrameElement->OwnerDoc()->NodeInfoManager();
 
-  nsCOMPtr<nsINodeInfo> nodeInfo =
+  nsRefPtr<NodeInfo> nodeInfo =
     nodeInfoManager->GetNodeInfo(nsGkAtoms::iframe,
                                  /* aPrefix = */ nullptr,
                                  kNameSpaceID_XHTML,
@@ -77,6 +77,14 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
                              aRemote ? NS_LITERAL_STRING("true") :
                                        NS_LITERAL_STRING("false"),
                              /* aNotify = */ false);
+
+  // Copy the opener frame's mozprivatebrowsing attribute to the popup frame.
+  nsAutoString mozprivatebrowsing;
+  if (aOpenerFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozprivatebrowsing,
+                                   mozprivatebrowsing)) {
+    popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::mozprivatebrowsing,
+                               mozprivatebrowsing, /* aNotify = */ false);
+  }
 
   return popupFrameElement.forget();
 }
@@ -164,6 +172,13 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
   if (!ToJSValue(cx, detail, &val)) {
     MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
     return BrowserElementParent::OPEN_WINDOW_IGNORED;
+  }
+
+  // Do not dispatch a mozbrowseropenwindow event of a widget to its embedder
+  nsCOMPtr<nsIMozBrowserFrame> browserFrame =
+    do_QueryInterface(aOpenerFrameElement);
+  if (browserFrame && browserFrame->GetReallyIsWidget()) {
+    return BrowserElementParent::OPEN_WINDOW_CANCELLED;
   }
 
   nsEventStatus status;
@@ -351,6 +366,14 @@ BrowserElementParent::DispatchAsyncScrollEvent(TabParent* aTabParent,
                                                const CSSRect& aContentRect,
                                                const CSSSize& aContentSize)
 {
+  // Do not dispatch a mozbrowserasyncscroll event of a widget to its embedder
+  nsCOMPtr<Element> frameElement = aTabParent->GetOwnerElement();
+  NS_ENSURE_TRUE(frameElement, false);
+  nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(frameElement);
+  if (browserFrame && browserFrame->GetReallyIsWidget()) {
+    return true;
+  }
+
   nsRefPtr<DispatchAsyncScrollEventRunnable> runnable =
     new DispatchAsyncScrollEventRunnable(aTabParent, aContentRect,
                                          aContentSize);

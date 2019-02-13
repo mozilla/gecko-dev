@@ -9,6 +9,7 @@ function runTestOnPrivacyPrefPane(testFunc) {
     browser.addEventListener("Initialized", function(aEvent) {
       browser.removeEventListener("Initialized", arguments.callee, true);
       is(browser.contentWindow.location.href, "about:preferences", "Checking if the preferences tab was opened");
+      browser.contentWindow.gotoPref("panePrivacy");
       testFunc(browser.contentWindow);
       gBrowser.removeCurrentTab();
       testRunner.runNext();
@@ -39,6 +40,8 @@ function test_pane_visibility(win) {
     controlChanged(historymode);
     is(historypane.selectedPanel, win.document.getElementById(modes[mode]),
       "The correct pane should be selected for the " + mode + " mode");
+    is_element_visible(historypane.selectedPanel,
+                       "Correct pane should be visible for the " + mode + " mode");
   }
 }
 
@@ -301,26 +304,29 @@ function test_custom_retention(controlToChange, expect, valueIncrement) {
   };
 }
 
-function test_locbar_suggestion_retention(mode, expect) {
+function test_locbar_suggestion_retention(suggestion, autocomplete) {
   return function(win) {
-    let locbarsuggest = win.document.getElementById("locationBarSuggestion");
-    ok(locbarsuggest, "location bar suggestion menulist should exist");
+    let elem = win.document.getElementById(suggestion + "Suggestion");
+    ok(elem, "Suggest " + suggestion + " checkbox should exist.");
+    elem.click();
 
-    if (expect !== undefined) {
-      is(locbarsuggest.value, expect,
-        "location bar suggestion is expected to remain " + expect);
-    }
-
-    locbarsuggest.value = mode;
-    controlChanged(locbarsuggest);
+    is(Services.prefs.getBoolPref("browser.urlbar.autocomplete.enabled"), autocomplete,
+       "browser.urlbar.autocomplete.enabled pref should be " + autocomplete);
   };
+}
+
+const gPrefCache = new Map();
+
+function cache_preferences(win) {
+  let prefs = win.document.querySelectorAll("#privacyPreferences > preference");
+  for (let pref of prefs)
+    gPrefCache.set(pref.name, pref.value);
 }
 
 function reset_preferences(win) {
   let prefs = win.document.querySelectorAll("#privacyPreferences > preference");
-  for (let i = 0; i < prefs.length; ++i)
-    if (prefs[i].hasUserValue)
-      prefs[i].reset();
+  for (let pref of prefs)
+    pref.value = gPrefCache.get(pref.name);
 }
 
 let testRunner;
@@ -335,7 +341,7 @@ function run_test_subset(subset) {
   });
 
   testRunner = {
-    tests: subset,
+    tests: [cache_preferences, ...subset, reset_preferences],
     counter: 0,
     runNext: function() {
       if (this.counter == this.tests.length) {

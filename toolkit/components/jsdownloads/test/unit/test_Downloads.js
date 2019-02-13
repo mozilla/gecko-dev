@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -58,6 +58,31 @@ add_task(function test_createDownload_public()
     saver: { type: "copy" }
   });
   do_check_false(download.source.isPrivate);
+});
+
+/**
+ * Tests createDownload for a pdf saver throws if only given a url.
+ */
+add_task(function test_createDownload_pdf()
+{
+  let download = yield Downloads.createDownload({
+    source: { url: "about:blank" },
+    target: { path: getTempFile(TEST_TARGET_FILE_NAME).path },
+    saver: { type: "pdf" },
+  });
+
+  try {
+    yield download.start();
+    do_throw("The download should have failed.");
+  } catch (ex if ex instanceof Downloads.Error && ex.becauseSourceFailed) { }
+
+  do_check_false(download.succeeded);
+  do_check_true(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error !== null);
+  do_check_true(download.error.becauseSourceFailed);
+  do_check_false(download.error.becauseTargetFailed);
+  do_check_false(yield OS.File.exists(download.target.path));
 });
 
 /**

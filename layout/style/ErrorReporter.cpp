@@ -6,11 +6,12 @@
 /* diagnostic reporting for CSS style sheet parser */
 
 #include "mozilla/css/ErrorReporter.h"
+
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsCSSScanner.h"
-#include "nsCSSStyleSheet.h"
 #include "nsIConsoleService.h"
 #include "nsIDocument.h"
 #include "nsIFactory.h"
@@ -22,8 +23,7 @@
 
 #ifdef CSS_REPORT_PARSE_ERRORS
 
-using mozilla::Preferences;
-namespace services = mozilla::services;
+using namespace mozilla;
 
 namespace {
 class ShortTermURISpecCache : public nsRunnable {
@@ -71,8 +71,8 @@ static ShortTermURISpecCache *sSpecCache;
 static bool
 InitGlobals()
 {
-  NS_ABORT_IF_FALSE(!sConsoleService && !sScriptErrorFactory && !sStringBundle,
-                    "should not have been called");
+  MOZ_ASSERT(!sConsoleService && !sScriptErrorFactory && !sStringBundle,
+             "should not have been called");
 
   if (NS_FAILED(Preferences::AddBoolVarCache(&sReportErrors, CSS_ERRORS_PREF,
                                              true))) {
@@ -132,7 +132,7 @@ ErrorReporter::ReleaseGlobals()
 }
 
 ErrorReporter::ErrorReporter(const nsCSSScanner& aScanner,
-                             const nsCSSStyleSheet* aSheet,
+                             const CSSStyleSheet* aSheet,
                              const Loader* aLoader,
                              nsIURI* aURI)
   : mScanner(&aScanner), mSheet(aSheet), mLoader(aLoader), mURI(aURI),
@@ -243,7 +243,11 @@ ErrorReporter::AddToError(const nsString &aErrorText)
     // for all errors on that line.  That causes the text of the line to
     // be shared among all the nsIScriptError objects.
     if (mErrorLine.IsEmpty() || mErrorLineNumber != mPrevErrorLineNumber) {
-      mErrorLine = mScanner->GetCurrentLine();
+      // Be careful here: the error line might be really long and OOM
+      // when we try to make a copy here.  If so, just leave it empty.
+      if (!mErrorLine.Assign(mScanner->GetCurrentLine(), fallible)) {
+        mErrorLine.Truncate();
+      }
       mPrevErrorLineNumber = mErrorLineNumber;
     }
   } else {

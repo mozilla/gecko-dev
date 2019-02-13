@@ -60,12 +60,16 @@ mozilla::plugins::ConvertToVariant(const Variant& aRemoteVariant,
 
     case Variant::TnsCString: {
       const nsCString& string = aRemoteVariant.get_nsCString();
-      NPUTF8* buffer = reinterpret_cast<NPUTF8*>(strdup(string.get()));
+      const size_t length = string.Length();
+      NPUTF8* buffer = static_cast<NPUTF8*>(::malloc(sizeof(NPUTF8) * (length + 1)));
       if (!buffer) {
         NS_ERROR("Out of memory!");
         return false;
       }
-      STRINGN_TO_NPVARIANT(buffer, string.Length(), aVariant);
+
+      std::copy(string.get(), string.get() + length, buffer);
+      buffer[length] = '\0';
+      STRINGN_TO_NPVARIANT(buffer, length, aVariant);
       break;
     }
 
@@ -90,7 +94,7 @@ mozilla::plugins::ConvertToVariant(const Variant& aRemoteVariant,
 
     case Variant::TPPluginScriptableObjectChild: {
       NS_ASSERTION(!aInstance, "No instance should be given!");
-      NS_ASSERTION(PluginModuleChild::current(),
+      NS_ASSERTION(XRE_GetProcessType() == GeckoProcessType_Plugin,
                    "Should be running on child only!");
 
       NPObject* object = NPObjectFromVariant(aRemoteVariant);

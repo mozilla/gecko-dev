@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = [ "InlineSpellChecker" ];
+this.EXPORTED_SYMBOLS = [ "InlineSpellChecker",
+                          "SpellCheckHelper" ];
 var gLanguageBundle;
 var gRegionBundle;
 const MAX_UNDO_STACK_DEPTH = 1;
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
 
 this.InlineSpellChecker = function InlineSpellChecker(aEditor) {
   this.init(aEditor);
@@ -26,9 +31,27 @@ InlineSpellChecker.prototype = {
     }
   },
 
+  initFromRemote: function(aSpellInfo)
+  {
+    if (this.mRemote)
+      throw new Error("Unexpected state");
+    this.uninit();
+
+    if (!aSpellInfo)
+      return;
+    this.mInlineSpellChecker = this.mRemote = new RemoteSpellChecker(aSpellInfo);
+    this.mOverMisspelling = aSpellInfo.overMisspelling;
+    this.mMisspelling = aSpellInfo.misspelling;
+  },
+
   // call this to clear state
   uninit: function()
   {
+    if (this.mRemote) {
+      this.mRemote.uninit();
+      this.mRemote = null;
+    }
+
     this.mEditor = null;
     this.mInlineSpellChecker = null;
     this.mOverMisspelling = false;
@@ -73,18 +96,33 @@ InlineSpellChecker.prototype = {
   {
     // inline spell checker objects will be created only if there are actual
     // dictionaries available
-    return (this.mInlineSpellChecker != null);
+    if (this.mRemote)
+      return this.mRemote.canSpellCheck;
+    return this.mInlineSpellChecker != null;
+  },
+
+  get initialSpellCheckPending() {
+    if (this.mRemote) {
+      return this.mRemote.spellCheckPending;
+    }
+    return !!(this.mInlineSpellChecker &&
+              !this.mInlineSpellChecker.spellChecker &&
+              this.mInlineSpellChecker.spellCheckPending);
   },
 
   // Whether spellchecking is enabled in the current box
   get enabled()
   {
+    if (this.mRemote)
+      return this.mRemote.enableRealTimeSpell;
     return (this.mInlineSpellChecker &&
             this.mInlineSpellChecker.enableRealTimeSpell);
   },
   set enabled(isEnabled)
   {
-    if (this.mInlineSpellChecker)
+    if (this.mRemote)
+      this.mRemote.setSpellcheckUserOverride(isEnabled);
+    else if (this.mInlineSpellChecker)
       this.mEditor.setSpellcheckUserOverride(isEnabled);
   },
 
@@ -98,12 +136,12 @@ InlineSpellChecker.prototype = {
   // for the word under the cursor. Returns the number of suggestions inserted.
   addSuggestionsToMenu: function(menu, insertBefore, maxNumber)
   {
-    if (! this.mInlineSpellChecker || ! this.mOverMisspelling)
+    if (!this.mRemote && (!this.mInlineSpellChecker || !this.mOverMisspelling))
       return 0; // nothing to do
 
-    var spellchecker = this.mInlineSpellChecker.spellChecker;
+    var spellchecker = this.mRemote || this.mInlineSpellChecker.spellChecker;
     try {
-      if (! spellchecker.CheckCurrentWord(this.mMisspelling))
+      if (!this.mRemote && !spellchecker.CheckCurrentWord(this.mMisspelling))
         return 0;  // word seems not misspelled after all (?)
     } catch(e) {
         return 0;
@@ -142,26 +180,7 @@ InlineSpellChecker.prototype = {
     this.mSuggestionItems = [];
   },
 
-  // returns the number of dictionary languages. If insertBefore is NULL, this
-  // does an append to the given menu
-  addDictionaryListToMenu: function(menu, insertBefore)
-  {
-    this.mDictionaryMenu = menu;
-    this.mDictionaryNames = [];
-    this.mDictionaryItems = [];
-
-    if (! this.mInlineSpellChecker || ! this.enabled)
-      return 0;
-    var spellchecker = this.mInlineSpellChecker.spellChecker;
-    var o1 = {}, o2 = {};
-    spellchecker.GetDictionaryList(o1, o2);
-    var list = o1.value;
-    var listcount = o2.value;
-    var curlang = "";
-    try {
-        curlang = spellchecker.GetCurrentDictionary();
-    } catch(e) {}
-
+  sortDictionaryList: function(list) {
     var sortedList = [];
     for (var i = 0; i < list.length; i ++) {
       sortedList.push({"id": list[i],
@@ -175,6 +194,39 @@ InlineSpellChecker.prototype = {
       return 0;
     });
 
+    return sortedList;
+  },
+
+  // returns the number of dictionary languages. If insertBefore is NULL, this
+  // does an append to the given menu
+  addDictionaryListToMenu: function(menu, insertBefore)
+  {
+    this.mDictionaryMenu = menu;
+    this.mDictionaryNames = [];
+    this.mDictionaryItems = [];
+
+    if (!this.enabled)
+      return 0;
+
+    var list;
+    var curlang = "";
+    if (this.mRemote) {
+      list = this.mRemote.dictionaryList;
+      curlang = this.mRemote.currentDictionary;
+    }
+    else if (this.mInlineSpellChecker) {
+      var spellchecker = this.mInlineSpellChecker.spellChecker;
+      var o1 = {}, o2 = {};
+      spellchecker.GetDictionaryList(o1, o2);
+      list = o1.value;
+      var listcount = o2.value;
+      try {
+        curlang = spellchecker.GetCurrentDictionary();
+      } catch(e) {}
+    }
+
+    var sortedList = this.sortDictionaryList(list);
+
     for (var i = 0; i < sortedList.length; i ++) {
       this.mDictionaryNames.push(sortedList[i].id);
       var item = menu.ownerDocument.createElement("menuitem");
@@ -185,8 +237,19 @@ InlineSpellChecker.prototype = {
       if (curlang == sortedList[i].id) {
         item.setAttribute("checked", "true");
       } else {
-        var callback = function(me, val) { return function(evt) { me.selectDictionary(val); } };
-        item.addEventListener("command", callback(this, i), true);
+        var callback = function(me, val, dictName) {
+          return function(evt) {
+            me.selectDictionary(val);
+            // Notify change of dictionary, especially for Thunderbird,
+            // which is otherwise not notified any more.
+            var view = menu.ownerDocument.defaultView;
+            var spellcheckChangeEvent = new view.CustomEvent(
+                  "spellcheck-changed", {detail: { dictionary: dictName}});
+            menu.ownerDocument.dispatchEvent(spellcheckChangeEvent);
+          }
+        };
+        item.addEventListener
+          ("command", callback(this, i, sortedList[i].id), true);
       }
       if (insertBefore)
         menu.insertBefore(item, insertBefore);
@@ -268,6 +331,10 @@ InlineSpellChecker.prototype = {
   // callback for selecting a dictionary
   selectDictionary: function(index)
   {
+    if (this.mRemote) {
+      this.mRemote.selectDictionary(index);
+      return;
+    }
     if (! this.mInlineSpellChecker || index < 0 || index >= this.mDictionaryNames.length)
       return;
     var spellchecker = this.mInlineSpellChecker.spellChecker;
@@ -275,9 +342,13 @@ InlineSpellChecker.prototype = {
     this.mInlineSpellChecker.spellCheckRange(null); // causes recheck
   },
 
-  // callback for selecting a suggesteed replacement
+  // callback for selecting a suggested replacement
   replaceMisspelling: function(index)
   {
+    if (this.mRemote) {
+      this.mRemote.replaceMisspelling(index);
+      return;
+    }
     if (! this.mInlineSpellChecker || ! this.mOverMisspelling)
       return;
     if (index < 0 || index >= this.mSpellSuggestions.length)
@@ -289,7 +360,10 @@ InlineSpellChecker.prototype = {
   // callback for enabling or disabling spellchecking
   toggleEnabled: function()
   {
-    this.mEditor.setSpellcheckUserOverride(!this.mInlineSpellChecker.enableRealTimeSpell);
+    if (this.mRemote)
+      this.mRemote.toggleEnabled();
+    else
+      this.mEditor.setSpellcheckUserOverride(!this.mInlineSpellChecker.enableRealTimeSpell);
   },
 
   // callback for adding the current misspelling to the user-defined dictionary
@@ -300,7 +374,11 @@ InlineSpellChecker.prototype = {
       this.mAddedWordStack.shift();
 
     this.mAddedWordStack.push(this.mMisspelling);
-    this.mInlineSpellChecker.addWordToDictionary(this.mMisspelling);
+    if (this.mRemote)
+      this.mRemote.addToDictionary();
+    else {
+      this.mInlineSpellChecker.addWordToDictionary(this.mMisspelling);
+    }
   },
   // callback for removing the last added word to the dictionary LIFO fashion
   undoAddToDictionary: function()
@@ -308,7 +386,10 @@ InlineSpellChecker.prototype = {
     if (this.mAddedWordStack.length > 0)
     {
       var word = this.mAddedWordStack.pop();
-      this.mInlineSpellChecker.removeWordFromDictionary(word);
+      if (this.mRemote)
+        this.mRemote.undoAddToDictionary(word);
+      else
+        this.mInlineSpellChecker.removeWordFromDictionary(word);
     }
   },
   canUndo : function()
@@ -318,6 +399,190 @@ InlineSpellChecker.prototype = {
   },
   ignoreWord: function()
   {
-    this.mInlineSpellChecker.ignoreWord(this.mMisspelling);
+    if (this.mRemote)
+      this.mRemote.ignoreWord();
+    else
+      this.mInlineSpellChecker.ignoreWord(this.mMisspelling);
   }
+};
+
+var SpellCheckHelper = {
+  // Set when over a non-read-only <textarea> or editable <input>.
+  EDITABLE: 0x1,
+
+  // Set when over an <input> element of any type.
+  INPUT: 0x2,
+
+  // Set when over any <textarea>.
+  TEXTAREA: 0x4,
+
+  // Set when over any text-entry <input>.
+  TEXTINPUT: 0x8,
+
+  // Set when over an <input> that can be used as a keyword field.
+  KEYWORD: 0x10,
+
+  // Set when over an element that otherwise would not be considered
+  // "editable" but is because content editable is enabled for the document.
+  CONTENTEDITABLE: 0x20,
+
+  // Set when over an <input type="number"> or other non-text field.
+  NUMERIC: 0x40,
+
+  isTargetAKeywordField(aNode, window) {
+    if (!(aNode instanceof window.HTMLInputElement))
+      return false;
+
+    var form = aNode.form;
+    if (!form || aNode.type == "password")
+      return false;
+
+    var method = form.method.toUpperCase();
+
+    // These are the following types of forms we can create keywords for:
+    //
+    // method   encoding type       can create keyword
+    // GET      *                                 YES
+    //          *                                 YES
+    // POST                                       YES
+    // POST     application/x-www-form-urlencoded YES
+    // POST     text/plain                        NO (a little tricky to do)
+    // POST     multipart/form-data               NO
+    // POST     everything else                   YES
+    return (method == "GET" || method == "") ||
+           (form.enctype != "text/plain") && (form.enctype != "multipart/form-data");
+  },
+
+  // Returns the computed style attribute for the given element.
+  getComputedStyle(aElem, aProp) {
+    return aElem.ownerDocument
+                .defaultView
+                .getComputedStyle(aElem, "").getPropertyValue(aProp);
+  },
+
+  isEditable(element, window) {
+    var flags = 0;
+    if (element instanceof window.HTMLInputElement) {
+      flags |= this.INPUT;
+
+      if (element.mozIsTextField(false) || element.type == "number") {
+        flags |= this.TEXTINPUT;
+
+        if (element.type == "number") {
+          flags |= this.NUMERIC;
+        }
+
+        // Allow spellchecking UI on all text and search inputs.
+        if (!element.readOnly &&
+            (element.type == "text" || element.type == "search")) {
+          flags |= this.EDITABLE;
+        }
+        if (this.isTargetAKeywordField(element, window))
+          flags |= this.KEYWORD;
+      }
+    } else if (element instanceof window.HTMLTextAreaElement) {
+      flags |= this.TEXTINPUT | this.TEXTAREA;
+      if (!element.readOnly) {
+        flags |= this.EDITABLE;
+      }
+    }
+
+    if (!(flags & this.EDITABLE)) {
+      var win = element.ownerDocument.defaultView;
+      if (win) {
+        var isEditable = false;
+        try {
+          var editingSession = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIWebNavigation)
+                                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIEditingSession);
+          if (editingSession.windowIsEditable(win) &&
+              this.getComputedStyle(element, "-moz-user-modify") == "read-write") {
+            isEditable = true;
+          }
+        }
+        catch(ex) {
+          // If someone built with composer disabled, we can't get an editing session.
+        }
+
+        if (isEditable)
+          flags |= this.CONTENTEDITABLE;
+      }
+    }
+
+    return flags;
+  },
+};
+
+function RemoteSpellChecker(aSpellInfo) {
+  this._spellInfo = aSpellInfo;
+  this._suggestionGenerator = null;
+}
+
+RemoteSpellChecker.prototype = {
+  get canSpellCheck() { return this._spellInfo.canSpellCheck; },
+  get spellCheckPending() { return this._spellInfo.initialSpellCheckPending; },
+  get overMisspelling() { return this._spellInfo.overMisspelling; },
+  get enableRealTimeSpell() { return this._spellInfo.enableRealTimeSpell; },
+
+  GetSuggestedWord() {
+    if (!this._suggestionGenerator) {
+      this._suggestionGenerator = (function*(spellInfo) {
+        for (let i of spellInfo.spellSuggestions)
+          yield i;
+      })(this._spellInfo);
+    }
+
+    let next = this._suggestionGenerator.next();
+    if (next.done) {
+      this._suggestionGenerator = null;
+      return "";
+    }
+    return next.value;
+  },
+
+  get currentDictionary() { return this._spellInfo.currentDictionary },
+  get dictionaryList() { return this._spellInfo.dictionaryList.slice(); },
+
+  selectDictionary(index) {
+    this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:selectDictionary",
+                                            { index });
+  },
+
+  replaceMisspelling(index) {
+    this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:replaceMisspelling",
+                                            { index });
+  },
+
+  toggleEnabled() { this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:toggleEnabled", {}); },
+  addToDictionary() {
+    // This is really ugly. There is an nsISpellChecker somewhere in the
+    // parent that corresponds to our current element's spell checker in the
+    // child, but it's hard to access it. However, we know that
+    // addToDictionary adds the word to the singleton personal dictionary, so
+    // we just do that here.
+    // NB: We also rely on the fact that we only ever pass an empty string in
+    // as the "lang".
+
+    let dictionary = Cc["@mozilla.org/spellchecker/personaldictionary;1"]
+                       .getService(Ci.mozIPersonalDictionary);
+    dictionary.addWord(this._spellInfo.misspelling, "");
+
+    this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:recheck", {});
+  },
+  undoAddToDictionary(word) {
+    let dictionary = Cc["@mozilla.org/spellchecker/personaldictionary;1"]
+                       .getService(Ci.mozIPersonalDictionary);
+    dictionary.removeWord(word, "");
+
+    this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:recheck", {});
+  },
+  ignoreWord() {
+    let dictionary = Cc["@mozilla.org/spellchecker/personaldictionary;1"]
+                       .getService(Ci.mozIPersonalDictionary);
+    dictionary.ignoreWord(this._spellInfo.misspelling);
+
+    this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:recheck", {});
+  },
+  uninit() { this._spellInfo.target.sendAsyncMessage("InlineSpellChecker:uninit", {}); }
 };

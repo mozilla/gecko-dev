@@ -11,19 +11,14 @@
 #include "nsIInputStream.h"
 #include "nsISeekableStream.h"
 #include "nsIFile.h"
-#include "nsAutoPtr.h"
+#include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 // NSPR_LOG_MODULES=UrlClassifierDbService:5
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
-#if defined(PR_LOGGING)
-#define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, 4)
-#else
-#define LOG(args)
-#define LOG_ENABLED() (false)
-#endif
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
 #define STORE_DIRECTORY      NS_LITERAL_CSTRING("safebrowsing")
 #define TO_DELETE_DIR_SUFFIX NS_LITERAL_CSTRING("-to_delete")
@@ -55,7 +50,6 @@ Classifier::SplitTables(const nsACString& str, nsTArray<nsCString>& tables)
 }
 
 Classifier::Classifier()
-  : mFreshTime(45 * 60)
 {
 }
 
@@ -182,19 +176,17 @@ Classifier::TableRequest(nsACString& aResult)
   nsTArray<nsCString> tables;
   ActiveTables(tables);
   for (uint32_t i = 0; i < tables.Length(); i++) {
-    nsAutoPtr<HashStore> store(new HashStore(tables[i], mStoreDirectory));
-    if (!store)
-      continue;
+    HashStore store(tables[i], mStoreDirectory);
 
-    nsresult rv = store->Open();
+    nsresult rv = store.Open();
     if (NS_FAILED(rv))
       continue;
 
-    aResult.Append(store->TableName());
+    aResult.Append(store.TableName());
     aResult.Append(';');
 
-    ChunkSet &adds = store->AddChunks();
-    ChunkSet &subs = store->SubChunks();
+    ChunkSet &adds = store.AddChunks();
+    ChunkSet &subs = store.SubChunks();
 
     if (adds.Length() > 0) {
       aResult.AppendLiteral("a:");
@@ -219,6 +211,7 @@ Classifier::TableRequest(nsACString& aResult)
 nsresult
 Classifier::Check(const nsACString& aSpec,
                   const nsACString& aTables,
+                  uint32_t aFreshnessGuarantee,
                   LookupResultArray& aResults)
 {
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_CHECK_TIME> timer;
@@ -257,7 +250,7 @@ Classifier::Check(const nsACString& aSpec,
       continue;
     }
 
-#if DEBUG && defined(PR_LOGGING)
+#if DEBUG
     if (LOG_ENABLED()) {
       nsAutoCString checking;
       lookupHash.ToHexString(checking);
@@ -265,6 +258,7 @@ Classifier::Check(const nsACString& aSpec,
            checking.get(), lookupHash.ToUint32()));
     }
 #endif
+
     for (uint32_t i = 0; i < cacheArray.Length(); i++) {
       LookupCache *cache = cacheArray[i];
       bool has, complete;
@@ -291,7 +285,7 @@ Classifier::Check(const nsACString& aSpec,
 
         result->hash.complete = lookupHash;
         result->mComplete = complete;
-        result->mFresh = (age < mFreshTime);
+        result->mFresh = (age < aFreshnessGuarantee);
         result->mTableName.Assign(cache->TableName());
       }
     }
@@ -306,19 +300,17 @@ Classifier::ApplyUpdates(nsTArray<TableUpdate*>* aUpdates)
 {
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_UPDATE_TIME> timer;
 
-#if defined(PR_LOGGING)
   PRIntervalTime clockStart = 0;
-  if (LOG_ENABLED() || true) {
+  if (LOG_ENABLED()) {
     clockStart = PR_IntervalNow();
   }
-#endif
 
   LOG(("Backup before update."));
 
   nsresult rv = BackupTables();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  LOG(("Applying table updates."));
+  LOG(("Applying %d table updates.", aUpdates->Length()));
 
   for (uint32_t i = 0; i < aUpdates->Length(); i++) {
     // Previous ApplyTableUpdates() may have consumed this update..
@@ -352,13 +344,11 @@ Classifier::ApplyUpdates(nsTArray<TableUpdate*>* aUpdates)
 
   LOG(("Done applying updates."));
 
-#if defined(PR_LOGGING)
-  if (LOG_ENABLED() || true) {
+  if (LOG_ENABLED()) {
     PRIntervalTime clockEnd = PR_IntervalNow();
     LOG(("update took %dms\n",
          PR_IntervalToMilliseconds(clockEnd - clockStart)));
   }
-#endif
 
   return NS_OK;
 }
@@ -401,15 +391,14 @@ Classifier::RegenActiveTables()
   ScanStoreDir(foundTables);
 
   for (uint32_t i = 0; i < foundTables.Length(); i++) {
-    nsAutoPtr<HashStore> store(new HashStore(nsCString(foundTables[i]), mStoreDirectory));
-    if (!store)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsCString table(foundTables[i]);
+    HashStore store(table, mStoreDirectory);
 
-    nsresult rv = store->Open();
+    nsresult rv = store.Open();
     if (NS_FAILED(rv))
       continue;
 
-    LookupCache *lookupCache = GetLookupCache(store->TableName());
+    LookupCache *lookupCache = GetLookupCache(store.TableName());
     if (!lookupCache) {
       continue;
     }
@@ -417,14 +406,14 @@ Classifier::RegenActiveTables()
     if (!lookupCache->IsPrimed())
       continue;
 
-    const ChunkSet &adds = store->AddChunks();
-    const ChunkSet &subs = store->SubChunks();
+    const ChunkSet &adds = store.AddChunks();
+    const ChunkSet &subs = store.SubChunks();
 
     if (adds.Length() == 0 && subs.Length() == 0)
       continue;
 
-    LOG(("Active table: %s", store->TableName().get()));
-    mActiveTablesCache.AppendElement(store->TableName());
+    LOG(("Active table: %s", store.TableName().get()));
+    mActiveTablesCache.AppendElement(store.TableName());
   }
 
   return NS_OK;
@@ -574,10 +563,7 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 {
   LOG(("Classifier::ApplyTableUpdates(%s)", PromiseFlatCString(aTable).get()));
 
-  nsAutoPtr<HashStore> store(new HashStore(aTable, mStoreDirectory));
-
-  if (!store)
-    return NS_ERROR_FAILURE;
+  HashStore store(aTable, mStoreDirectory);
 
   // take the quick exit if there is no valid update for us
   // (common case)
@@ -585,7 +571,7 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 
   for (uint32_t i = 0; i < aUpdates->Length(); i++) {
     TableUpdate *update = aUpdates->ElementAt(i);
-    if (!update || !update->TableName().Equals(store->TableName()))
+    if (!update || !update->TableName().Equals(store.TableName()))
       continue;
     if (update->Empty()) {
       aUpdates->ElementAt(i) = nullptr;
@@ -600,20 +586,20 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
     return NS_OK;
   }
 
-  nsresult rv = store->Open();
+  nsresult rv = store.Open();
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = store->BeginUpdate();
+  rv = store.BeginUpdate();
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Read the part of the store that is (only) in the cache
-  LookupCache *prefixSet = GetLookupCache(store->TableName());
+  LookupCache *prefixSet = GetLookupCache(store.TableName());
   if (!prefixSet) {
     return NS_ERROR_FAILURE;
   }
-  nsTArray<uint32_t> AddPrefixHashes;
-  rv = prefixSet->GetPrefixes(&AddPrefixHashes);
+  FallibleTArray<uint32_t> AddPrefixHashes;
+  rv = prefixSet->GetPrefixes(AddPrefixHashes);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = store->AugmentAdds(AddPrefixHashes);
+  rv = store.AugmentAdds(AddPrefixHashes);
   NS_ENSURE_SUCCESS(rv, rv);
   AddPrefixHashes.Clear();
 
@@ -623,15 +609,15 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 
   for (uint32_t i = 0; i < aUpdates->Length(); i++) {
     TableUpdate *update = aUpdates->ElementAt(i);
-    if (!update || !update->TableName().Equals(store->TableName()))
+    if (!update || !update->TableName().Equals(store.TableName()))
       continue;
 
-    rv = store->ApplyUpdate(*update);
+    rv = store.ApplyUpdate(*update);
     NS_ENSURE_SUCCESS(rv, rv);
 
     applied++;
 
-    LOG(("Applied update to table %s:", store->TableName().get()));
+    LOG(("Applied update to table %s:", store.TableName().get()));
     LOG(("  %d add chunks", update->AddChunks().Length()));
     LOG(("  %d add prefixes", update->AddPrefixes().Length()));
     LOG(("  %d add completions", update->AddCompletes().Length()));
@@ -656,33 +642,33 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
     delete update;
   }
 
-  LOG(("Applied %d update(s) to %s.", applied, store->TableName().get()));
+  LOG(("Applied %d update(s) to %s.", applied, store.TableName().get()));
 
-  rv = store->Rebuild();
+  rv = store.Rebuild();
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Not an update with Completes, clear all completes data.
   if (!hasCompletes) {
-    store->ClearCompletes();
+    store.ClearCompletes();
   }
 
-  LOG(("Table %s now has:", store->TableName().get()));
-  LOG(("  %d add chunks", store->AddChunks().Length()));
-  LOG(("  %d add prefixes", store->AddPrefixes().Length()));
-  LOG(("  %d add completions", store->AddCompletes().Length()));
-  LOG(("  %d sub chunks", store->SubChunks().Length()));
-  LOG(("  %d sub prefixes", store->SubPrefixes().Length()));
-  LOG(("  %d sub completions", store->SubCompletes().Length()));
+  LOG(("Table %s now has:", store.TableName().get()));
+  LOG(("  %d add chunks", store.AddChunks().Length()));
+  LOG(("  %d add prefixes", store.AddPrefixes().Length()));
+  LOG(("  %d add completions", store.AddCompletes().Length()));
+  LOG(("  %d sub chunks", store.SubChunks().Length()));
+  LOG(("  %d sub prefixes", store.SubPrefixes().Length()));
+  LOG(("  %d sub completions", store.SubCompletes().Length()));
 
-  rv = store->WriteFile();
+  rv = store.WriteFile();
   NS_ENSURE_SUCCESS(rv, rv);
 
   // At this point the store is updated and written out to disk, but
   // the data is still in memory.  Build our quick-lookup table here.
-  rv = prefixSet->Build(store->AddPrefixes(), store->AddCompletes());
+  rv = prefixSet->Build(store.AddPrefixes(), store.AddCompletes());
   NS_ENSURE_SUCCESS(rv, rv);
 
-#if defined(DEBUG) && defined(PR_LOGGING)
+#if defined(DEBUG)
   prefixSet->Dump();
 #endif
   rv = prefixSet->WriteFile();
@@ -690,8 +676,8 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 
   if (updateFreshness) {
     int64_t now = (PR_Now() / PR_USEC_PER_SEC);
-    LOG(("Successfully updated %s", store->TableName().get()));
-    mTableFreshness.Put(store->TableName(), now);
+    LOG(("Successfully updated %s", store.TableName().get()));
+    mTableFreshness.Put(store.TableName(), now);
   }
 
   return NS_OK;
@@ -733,8 +719,8 @@ Classifier::ReadNoiseEntries(const Prefix& aPrefix,
     return NS_ERROR_FAILURE;
   }
 
-  nsTArray<uint32_t> prefixes;
-  nsresult rv = cache->GetPrefixes(&prefixes);
+  FallibleTArray<uint32_t> prefixes;
+  nsresult rv = cache->GetPrefixes(prefixes);
   NS_ENSURE_SUCCESS(rv, rv);
 
   size_t idx = prefixes.BinaryIndexOf(aPrefix.ToUint32());

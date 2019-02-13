@@ -18,20 +18,20 @@ public:
 
   NS_DECL_ISUPPORTS
 
-  virtual ~nsFrameIterator() {}
+  virtual void First() override;
+  virtual void Next() override;
+  virtual nsIFrame* CurrentItem() override;
+  virtual bool IsDone() override;
 
-  virtual void First() MOZ_OVERRIDE;
-  virtual void Next() MOZ_OVERRIDE;
-  virtual nsIFrame* CurrentItem() MOZ_OVERRIDE;
-  virtual bool IsDone() MOZ_OVERRIDE;
-
-  virtual void Last() MOZ_OVERRIDE;
-  virtual void Prev() MOZ_OVERRIDE;
+  virtual void Last() override;
+  virtual void Prev() override;
 
   nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
                   nsIteratorType aType, bool aLockScroll, bool aFollowOOFs);
 
 protected:
+  virtual ~nsFrameIterator() {}
+
   void      setCurrent(nsIFrame *aFrame){mCurrent = aFrame;}
   nsIFrame *getCurrent(){return mCurrent;}
   nsIFrame *getStart(){return mStart;}
@@ -107,11 +107,11 @@ public:
   nsFrameIterator(aPresContext, aStart, aType, aLockScroll, aFollowOOFs) {}
 
 protected:
-  nsIFrame* GetFirstChildInner(nsIFrame* aFrame) MOZ_OVERRIDE;
-  nsIFrame* GetLastChildInner(nsIFrame* aFrame) MOZ_OVERRIDE;  
+  nsIFrame* GetFirstChildInner(nsIFrame* aFrame) override;
+  nsIFrame* GetLastChildInner(nsIFrame* aFrame) override;  
   
-  nsIFrame* GetNextSiblingInner(nsIFrame* aFrame) MOZ_OVERRIDE;
-  nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame) MOZ_OVERRIDE;  
+  nsIFrame* GetNextSiblingInner(nsIFrame* aFrame) override;
+  nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame) override;  
 };
 
 /************IMPLEMENTATIONS**************/

@@ -13,37 +13,47 @@ public:
   virtual void
   Init(nsIContent*       aContent,
        nsContainerFrame* aParent,
-       nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+       nsIFrame*         aPrevInFlow) override;
 
   NS_IMETHOD
-  TransmitAutomaticData() MOZ_OVERRIDE;
+  TransmitAutomaticData() override;
 
   virtual void
   SetInitialChildList(ChildListID     aListID,
-                      nsFrameList&    aChildList) MOZ_OVERRIDE;
+                      nsFrameList&    aChildList) override;
 
   virtual nsresult
-  ChildListChanged(int32_t aModType) MOZ_OVERRIDE;
+  ChildListChanged(int32_t aModType) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual nsresult
   Place(nsRenderingContext& aRenderingContext,
         bool                 aPlaceOrigin,
-        nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+        nsHTMLReflowMetrics& aDesiredSize) override;
+
+  virtual mozilla::LogicalSize
+  ComputeSize(nsRenderingContext *aRenderingContext,
+              mozilla::WritingMode aWritingMode,
+              const mozilla::LogicalSize& aCBSize,
+              nscoord aAvailableISize,
+              const mozilla::LogicalSize& aMargin,
+              const mozilla::LogicalSize& aBorder,
+              const mozilla::LogicalSize& aPadding,
+              ComputeSizeFlags aFlags) override;
 
   virtual void
   Reflow(nsPresContext*          aPresContext,
          nsHTMLReflowMetrics&     aDesiredSize,
          const nsHTMLReflowState& aReflowState,
-         nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+         nsReflowStatus&          aStatus) override;
 
-  virtual nsQueryFrame::FrameIID GetFrameId() = 0;
+  virtual nsQueryFrame::FrameIID GetFrameId() override = 0;
 
 protected:
-  nsMathMLSelectedFrame(nsStyleContext* aContext) :
+  explicit nsMathMLSelectedFrame(nsStyleContext* aContext) :
     nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLSelectedFrame();
   
@@ -53,7 +63,7 @@ protected:
   bool            mInvalidMarkup;
   
 private:
-  void* operator new(size_t, nsIPresShell*) MOZ_MUST_OVERRIDE MOZ_DELETE;
+  void* operator new(size_t, nsIPresShell*) MOZ_MUST_OVERRIDE = delete;
 };
 
 #endif /* nsMathMLSelectedFrame_h___ */

@@ -14,22 +14,24 @@ function run_test() {
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
   setTestFilesAndDirsForFailure();
-  setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
+  setupUpdaterTest(FILE_PARTIAL_MAR);
 
   // Exclusively lock an existing file so it is in use during the update.
   let helperBin = getTestDirFile(FILE_HELPER_BIN);
-  let helperDestDir = getApplyDirFile("a/b/");
+  let helperDestDir = getApplyDirFile(DIR_RESOURCES);
   helperBin.copyTo(helperDestDir, FILE_HELPER_BIN);
-  helperBin = getApplyDirFile("a/b/" + FILE_HELPER_BIN);
+  helperBin = getApplyDirFile(DIR_RESOURCES + FILE_HELPER_BIN);
   // Strip off the first two directories so the path has to be from the helper's
   // working directory.
   let lockFileRelPath = gTestFiles[2].relPathDir.split("/");
-  lockFileRelPath = lockFileRelPath.slice(2);
+  if (IS_MACOSX) {
+    lockFileRelPath = lockFileRelPath.slice(2);
+  }
   lockFileRelPath = lockFileRelPath.join("/") + "/" + gTestFiles[2].fileName;
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
+  let args = [getApplyDirPath() + DIR_RESOURCES, "input", "output", "-s",
               HELPER_SLEEP_TIMEOUT, lockFileRelPath];
-  let lockFileProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                     createInstance(AUS_Ci.nsIProcess);
+  let lockFileProcess = Cc["@mozilla.org/process/util;1"].
+                        createInstance(Ci.nsIProcess);
   lockFileProcess.init(helperBin);
   lockFileProcess.run(false, args, args.length);
 
@@ -41,15 +43,14 @@ function setupAppFilesFinished() {
 }
 
 function doUpdate() {
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_FAILED);
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_FAILED_WRITE_ERROR_FILE_COPY);
 }
 
 function checkUpdateFinished() {
   // Switch the application to the staged application that was updated.
   gStageUpdate = false;
   gSwitchApp = true;
-  gDisableReplaceFallback = true;
-  runUpdate(1, STATE_FAILED_WRITE_ERROR);
+  runUpdate(1, STATE_PENDING, checkUpdateApplied);
 }
 
 function checkUpdateApplied() {
@@ -57,7 +58,9 @@ function checkUpdateApplied() {
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateFailure(getApplyDirFile);
+  checkFilesAfterUpdateFailure(getApplyDirFile, false, false);
   checkUpdateLogContains(ERR_RENAME_FILE);
+  checkUpdateLogContains(ERR_MOVE_DESTDIR_7);
+  standardInit();
   checkCallbackAppLog();
 }

@@ -40,7 +40,7 @@ const browserWindows = exports.browserWindows = BrowserWindows();
  * registered, `null` otherwise.
  */
 function getRegisteredWindow(chromeWindow) {
-  for each (let window in browserWindows) {
+  for (let window of browserWindows) {
     if (chromeWindow === windowNS(window).window)
       return window;
   }
@@ -51,7 +51,7 @@ function getRegisteredWindow(chromeWindow) {
 /**
  * Gets a `BrowserWindow` for the provided window options obj
  * @params {Object} options
- *    Options that are passed to the the `BrowserWindowTrait`
+ *    Options that are passed to the the `BrowserWindow`
  * @returns {BrowserWindow}
  */
 function getBrowserWindow(options) {
@@ -64,7 +64,7 @@ function getBrowserWindow(options) {
     return window;
 
   // we don't have a BrowserWindow yet, so create one
-  var window = BrowserWindow(options);
+  window = BrowserWindow(options);
   addListItem(browserWindows, window);
   return window;
 }

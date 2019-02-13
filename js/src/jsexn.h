@@ -12,17 +12,17 @@
 #define jsexn_h
 
 #include "jsapi.h"
+#include "jscntxt.h"
 #include "NamespaceImports.h"
 
 namespace js {
 class ErrorObject;
 
-JSErrorReport *
-CopyErrorReport(JSContext *cx, JSErrorReport *report);
+JSErrorReport*
+CopyErrorReport(JSContext* cx, JSErrorReport* report);
 
-JSString *
-ComputeStackString(JSContext *cx);
-}
+JSString*
+ComputeStackString(JSContext* cx);
 
 /*
  * Given a JSErrorReport, check to see if there is an exception associated with
@@ -51,8 +51,8 @@ ComputeStackString(JSContext *cx);
  *     unless the caller decides to call CallErrorReporter explicitly.
  */
 extern bool
-js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
-                    JSErrorCallback callback, void *userRef);
+ErrorToException(JSContext* cx, const char* message, JSErrorReport* reportp,
+                 JSErrorCallback callback, void* userRef);
 
 /*
  * Called if a JS API call to js_Execute or js_InternalCall fails; calls the
@@ -71,32 +71,68 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
  * this flag.
  */
 extern bool
-js_ReportUncaughtException(JSContext *cx);
+ReportUncaughtException(JSContext* cx);
 
-extern JSErrorReport *
-js_ErrorFromException(JSContext *cx, js::HandleObject obj);
-
-extern const JSErrorFormatString *
-js_GetLocalizedErrorMessage(js::ExclusiveContext *cx, void *userRef, const char *locale,
-                            const unsigned errorNumber);
+extern JSErrorReport*
+ErrorFromException(JSContext* cx, HandleObject obj);
 
 /*
- * Make a copy of errobj parented to scope.
+ * Make a copy of errobj parented to cx's compartment's global.
  *
- * cx must be in the same compartment as scope. errobj may be in a different
- * compartment, but it must be an Error object (not a wrapper of one) and it
- * must not be one of the prototype objects created by js_InitExceptionClasses
- * (errobj->getPrivate() must not be nullptr).
+ * errobj may be in a different compartment than cx, but it must be an Error
+ * object (not a wrapper of one) and it must not be one of the standard error
+ * prototype objects (errobj->getPrivate() must not be nullptr).
  */
-extern JSObject *
-js_CopyErrorObject(JSContext *cx, JS::Handle<js::ErrorObject*> errobj, js::HandleObject scope);
+extern JSObject*
+CopyErrorObject(JSContext* cx, JS::Handle<ErrorObject*> errobj);
+
+static_assert(JSEXN_ERR == 0 &&
+              JSProto_Error + JSEXN_INTERNALERR == JSProto_InternalError &&
+              JSProto_Error + JSEXN_EVALERR == JSProto_EvalError &&
+              JSProto_Error + JSEXN_RANGEERR == JSProto_RangeError &&
+              JSProto_Error + JSEXN_REFERENCEERR == JSProto_ReferenceError &&
+              JSProto_Error + JSEXN_SYNTAXERR == JSProto_SyntaxError &&
+              JSProto_Error + JSEXN_TYPEERR == JSProto_TypeError &&
+              JSProto_Error + JSEXN_URIERR == JSProto_URIError &&
+              JSEXN_URIERR + 1 == JSEXN_LIMIT,
+              "GetExceptionProtoKey and ExnTypeFromProtoKey require that "
+              "each corresponding JSExnType and JSProtoKey value be separated "
+              "by the same constant value");
 
 static inline JSProtoKey
 GetExceptionProtoKey(JSExnType exn)
 {
-    JS_ASSERT(JSEXN_ERR <= exn);
-    JS_ASSERT(exn < JSEXN_LIMIT);
+    MOZ_ASSERT(JSEXN_ERR <= exn);
+    MOZ_ASSERT(exn < JSEXN_LIMIT);
     return JSProtoKey(JSProto_Error + int(exn));
 }
+
+static inline JSExnType
+ExnTypeFromProtoKey(JSProtoKey key)
+{
+    JSExnType type = static_cast<JSExnType>(key - JSProto_Error);
+    MOZ_ASSERT(type >= JSEXN_ERR);
+    MOZ_ASSERT(type < JSEXN_LIMIT);
+    return type;
+}
+
+class AutoClearPendingException
+{
+    JSContext* cx;
+
+  public:
+    explicit AutoClearPendingException(JSContext* cxArg)
+      : cx(cxArg)
+    { }
+
+    ~AutoClearPendingException() {
+        JS_ClearPendingException(cx);
+    }
+};
+
+extern const char*
+ValueToSourceForError(JSContext* cx, HandleValue val, JSAutoByteString& bytes);
+
+} // namespace js
 
 #endif /* jsexn_h */

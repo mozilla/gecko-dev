@@ -7,8 +7,8 @@
 #ifndef vm_ProxyObject_h
 #define vm_ProxyObject_h
 
-#include "jsobj.h"
-#include "jsproxy.h"
+#include "js/Proxy.h"
+#include "vm/NativeObject.h"
 
 namespace js {
 
@@ -16,91 +16,96 @@ namespace js {
 // instantiated.
 class ProxyObject : public JSObject
 {
-    // These are just local renamings of the slot constants that are part of
-    // the API in jsproxy.h.
-    static const uint32_t PRIVATE_SLOT = PROXY_PRIVATE_SLOT;
-    static const uint32_t HANDLER_SLOT = PROXY_HANDLER_SLOT;
-    static const uint32_t EXTRA_SLOT   = PROXY_EXTRA_SLOT;
+    HeapPtrShape shape;
+
+    // GetProxyDataLayout computes the address of this field.
+    ProxyDataLayout data;
+
+    void static_asserts() {
+        static_assert(sizeof(ProxyObject) == sizeof(JSObject_Slots0),
+                      "proxy object size must match GC thing size");
+        static_assert(offsetof(ProxyObject, data) == ProxyDataOffset,
+                      "proxy object layout must match shadow interface");
+    }
 
   public:
-    static ProxyObject *New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv,
-                            TaggedProto proto_, JSObject *parent_,
-                            const ProxyOptions &options);
+    static ProxyObject* New(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv,
+                            TaggedProto proto_, const ProxyOptions& options);
 
-    const Value &private_() {
-        return GetReservedSlot(this, PRIVATE_SLOT);
+    const Value& private_() {
+        return GetProxyPrivate(this);
     }
 
-    void initCrossCompartmentPrivate(HandleValue priv);
+    void setCrossCompartmentPrivate(const Value& priv);
+    void setSameCompartmentPrivate(const Value& priv);
 
-    HeapSlot *slotOfPrivate() {
-        return &getReservedSlotRef(PRIVATE_SLOT);
+    HeapValue* slotOfPrivate() {
+        return reinterpret_cast<HeapValue*>(&GetProxyDataLayout(this)->values->privateSlot);
     }
 
-    JSObject *target() const {
+    JSObject* target() const {
         return const_cast<ProxyObject*>(this)->private_().toObjectOrNull();
     }
 
-    BaseProxyHandler *handler() {
-        return static_cast<BaseProxyHandler*>(GetReservedSlot(this, HANDLER_SLOT).toPrivate());
+    const BaseProxyHandler* handler() const {
+        return GetProxyHandler(const_cast<ProxyObject*>(this));
     }
 
-    void initHandler(BaseProxyHandler *handler);
-
-    void setHandler(BaseProxyHandler *handler) {
-        SetReservedSlot(this, HANDLER_SLOT, PrivateValue(handler));
+    void setHandler(const BaseProxyHandler* handler) {
+        SetProxyHandler(this, handler);
     }
 
+    static size_t offsetOfValues() {
+        return offsetof(ProxyObject, data.values);
+    }
     static size_t offsetOfHandler() {
-        return getFixedSlotOffset(HANDLER_SLOT);
+        return offsetof(ProxyObject, data.handler);
+    }
+    static size_t offsetOfExtraSlotInValues(size_t slot) {
+        MOZ_ASSERT(slot < PROXY_EXTRA_SLOTS);
+        return offsetof(ProxyValueArray, extraSlots) + slot * sizeof(Value);
     }
 
-    const Value &extra(size_t n) const {
-        JS_ASSERT(n == 0 || n == 1);
-        return GetReservedSlot(const_cast<ProxyObject*>(this), EXTRA_SLOT + n);
+    const Value& extra(size_t n) const {
+        return GetProxyExtra(const_cast<ProxyObject*>(this), n);
     }
 
-    void setExtra(size_t n, const Value &extra) {
-        JS_ASSERT(n == 0 || n == 1);
-        SetReservedSlot(this, EXTRA_SLOT + n, extra);
+    void setExtra(size_t n, const Value& extra) {
+        SetProxyExtra(this, n, extra);
     }
 
   private:
-    HeapSlot *slotOfExtra(size_t n) {
-        JS_ASSERT(n == 0 || n == 1);
-        return &getReservedSlotRef(EXTRA_SLOT + n);
+    HeapValue* slotOfExtra(size_t n) {
+        MOZ_ASSERT(n < PROXY_EXTRA_SLOTS);
+        return reinterpret_cast<HeapValue*>(&GetProxyDataLayout(this)->values->extraSlots[n]);
     }
 
-    HeapSlot *slotOfClassSpecific(size_t n) {
-        JS_ASSERT(n >= PROXY_MINIMUM_SLOTS);
-        JS_ASSERT(n < JSCLASS_RESERVED_SLOTS(getClass()));
-        return &getReservedSlotRef(n);
-    }
-
-    static bool isValidProxyClass(const Class *clasp) {
+    static bool isValidProxyClass(const Class* clasp) {
         // Since we can take classes from the outside, make sure that they
         // are "sane". They have to quack enough like proxies for us to belive
         // they should be treated as such.
 
         // proxy_Trace is just a trivial wrapper around ProxyObject::trace for
         // friend api exposure.
+
+        // Proxy classes are not allowed to have call or construct hooks directly. Their
+        // callability is instead decided by handler()->isCallable().
         return clasp->isProxy() &&
                (clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS) &&
                clasp->trace == proxy_Trace &&
-               JSCLASS_RESERVED_SLOTS(clasp) >= PROXY_MINIMUM_SLOTS;
+               !clasp->call && !clasp->construct;
     }
 
   public:
-    static unsigned grayLinkSlot(JSObject *obj);
+    static unsigned grayLinkExtraSlot(JSObject* obj);
 
-    void renew(JSContext *cx, BaseProxyHandler *handler, Value priv);
+    void renew(JSContext* cx, const BaseProxyHandler* handler, Value priv);
 
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void trace(JSTracer* trc, JSObject* obj);
 
-    void nuke(BaseProxyHandler *handler);
+    void nuke(const BaseProxyHandler* handler);
 
-    static const Class callableClass_;
-    static const Class uncallableClass_;
+    static const Class class_;
 };
 
 } // namespace js

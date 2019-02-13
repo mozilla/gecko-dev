@@ -5,7 +5,7 @@
 # This file contains a build backend for generating Visual Studio project
 # files.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import errno
 import os
@@ -20,9 +20,12 @@ from mozpack.files import FileFinder
 from .common import CommonBackend
 from ..frontend.data import (
     Defines,
-    LibraryDefinition,
+    GeneratedSources,
+    HostSources,
+    Library,
     LocalInclude,
-    VariablePassthru,
+    Sources,
+    UnifiedSources,
 )
 
 
@@ -97,13 +100,21 @@ class VisualStudioBackend(CommonBackend):
         if hasattr(obj, 'config') and reldir not in self._paths_to_configs:
             self._paths_to_configs[reldir] = obj.config
 
-        if isinstance(obj, VariablePassthru):
-            for k, v in obj.variables.items():
-                if k.endswith('SRCS'):
-                    s = self._paths_to_sources.setdefault(reldir, set())
-                    s.update(v)
+        if isinstance(obj, Sources):
+            self._add_sources(reldir, obj)
 
-        elif isinstance(obj, LibraryDefinition):
+        elif isinstance(obj, HostSources):
+            self._add_sources(reldir, obj)
+
+        elif isinstance(obj, GeneratedSources):
+            self._add_sources(reldir, obj)
+
+        elif isinstance(obj, UnifiedSources):
+            # XXX we should be letting CommonBackend.consume_object call this
+            # for us instead.
+            self._process_unified_sources(obj);
+
+        elif isinstance(obj, Library):
             self._libs_to_paths[obj.basename] = reldir
 
         elif isinstance(obj, Defines):
@@ -117,6 +128,16 @@ class VisualStudioBackend(CommonBackend):
                 includes.append(os.path.join('$(TopSrcDir)', p[1:]))
             else:
                 includes.append(os.path.join('$(TopSrcDir)', reldir, p))
+
+    def _add_sources(self, reldir, obj):
+        s = self._paths_to_sources.setdefault(reldir, set())
+        s.update(obj.files)
+
+    def _process_unified_sources(self, obj):
+        reldir = getattr(obj, 'relativedir', None)
+
+        s = self._paths_to_sources.setdefault(reldir, set())
+        s.update(obj.files)
 
     def consume_finished(self):
         out_dir = self._out_dir

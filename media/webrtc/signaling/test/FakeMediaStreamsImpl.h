@@ -17,7 +17,7 @@ static const int AUDIO_BUFFER_SIZE = 1600;
 static const int NUM_CHANNELS      = 2;
 static const int GRAPH_RATE        = 16000;
 
-NS_IMPL_ISUPPORTS(Fake_DOMMediaStream, nsIDOMMediaStream)
+NS_IMPL_ISUPPORTS0(Fake_DOMMediaStream)
 
 // Fake_MediaStream
 double Fake_MediaStream::StreamTimeToSeconds(mozilla::StreamTime aTime) {
@@ -114,7 +114,6 @@ void Fake_AudioStreamSource::Periodic() {
        it != mListeners.end(); ++it) {
     (*it)->NotifyQueuedTrackChanges(nullptr, // Graph
                                     0, // TrackID
-                                    GRAPH_RATE, // Rate (hz)
                                     0, // Offset TODO(ekr@rtfm.com) fix
                                     0, // ???
                                     segment);

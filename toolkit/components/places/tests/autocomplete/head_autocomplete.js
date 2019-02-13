@@ -10,7 +10,8 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 
 // Import common head.
-let (commonFile = do_get_file("../head_common.js", false)) {
+{
+  let commonFile = do_get_file("../head_common.js", false);
   let uri = Services.io.newFileURI(commonFile);
   Services.scriptloader.loadSubScript(uri.spec, this);
 }
@@ -197,7 +198,7 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit
   gNextTestSetupTasks.push([task_addPageBook, arguments]);
 }
 
-function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
+function* task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
 {
   // Add a page entry for the current uri
   gPages[aURI] = [aURI, aBook != undefined ? aBook : aTitle, aTags];
@@ -211,7 +212,7 @@ function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNo
 
   // Add the page and a visit if we need to
   if (!aNoVisit) {
-    yield promiseAddVisits({
+    yield PlacesTestUtils.addVisits({
       uri: uri,
       transition: aTransitionType || TRANSITION_LINK,
       visitDate: gDate,
@@ -229,7 +230,7 @@ function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNo
 
     // Add a keyword to the bookmark if we need to
     if (aKey != undefined)
-      bmsvc.setKeywordForBookmark(bmid, aKey);
+      yield PlacesUtils.keywords.insert({url: uri.spec, keyword: aKey});
 
     // Add tags if we need to
     if (aTags != undefined && aTags.length > 0) {
@@ -246,8 +247,10 @@ function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNo
 function run_test() {
   print("\n");
   // always search in history + bookmarks, no matter what the default is
-  prefs.setIntPref("browser.urlbar.search.sources", 3);
-  prefs.setIntPref("browser.urlbar.default.behavior", 0);
+  prefs.setBoolPref("browser.urlbar.suggest.history", true);
+  prefs.setBoolPref("browser.urlbar.suggest.bookmark", true);
+  prefs.setBoolPref("browser.urlbar.suggest.openpage", true);
+  prefs.setBoolPref("browser.urlbar.suggest.history.onlyTyped", false);
 
   // Search is asynchronous, so don't let the test finish immediately
   do_test_pending();
@@ -275,7 +278,7 @@ function run_test() {
     // At this point frecency could still be updating due to latest pages
     // updates.  This is not a problem in real life, but autocomplete tests
     // should return reliable resultsets, thus we have to wait.
-    yield promiseAsyncUpdates();
+    yield PlacesTestUtils.promiseAsyncUpdates();
 
   }).then(function () ensure_results(search, expected),
           do_report_unexpected_exception);
@@ -302,7 +305,7 @@ function markTyped(aURIs, aTitle)
 function task_markTyped(aURIs, aTitle)
 {
   for (let uri of aURIs) {
-    yield promiseAddVisits({
+    yield PlacesTestUtils.addVisits({
       uri: toURI(kURIs[uri]),
       transition: TRANSITION_TYPED,
       title: kTitles[aTitle]

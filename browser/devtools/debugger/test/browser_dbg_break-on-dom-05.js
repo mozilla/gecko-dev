@@ -10,14 +10,14 @@
 const TAB_URL = EXAMPLE_URL + "doc_event-listeners-02.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     let gDebugger = aPanel.panelWin;
     let gView = gDebugger.DebuggerView;
     let gController = gDebugger.DebuggerController
     let gEvents = gView.EventListeners;
     let gBreakpoints = gController.Breakpoints;
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       yield waitForSourceShown(aPanel, ".html");
 
       let fetched = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_LISTENERS_FETCHED);
@@ -31,48 +31,48 @@ function test() {
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", false);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "");
+      testEventArrays("change,click,keydown,keyup", "");
 
       let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
       EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("interactionEvents"), gDebugger);
-      yield updated;
-
-      testEventItem(0, false);
-      testEventItem(1, false);
-      testEventItem(2, true);
-      testEventItem(3, false);
-      testEventGroup("interactionEvents", true);
-      testEventGroup("keyboardEvents", false);
-      testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "change");
-
-      let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
-      EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("interactionEvents"), gDebugger);
-      yield updated;
-
-      testEventItem(0, false);
-      testEventItem(1, false);
-      testEventItem(2, false);
-      testEventItem(3, false);
-      testEventGroup("interactionEvents", false);
-      testEventGroup("keyboardEvents", false);
-      testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "");
-
-      let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
-      EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("keyboardEvents"), gDebugger);
       yield updated;
 
       testEventItem(0, true);
       testEventItem(1, false);
       testEventItem(2, false);
+      testEventItem(3, false);
+      testEventGroup("interactionEvents", true);
+      testEventGroup("keyboardEvents", false);
+      testEventGroup("mouseEvents", false);
+      testEventArrays("change,click,keydown,keyup", "change");
+
+      updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
+      EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("interactionEvents"), gDebugger);
+      yield updated;
+
+      testEventItem(0, false);
+      testEventItem(1, false);
+      testEventItem(2, false);
+      testEventItem(3, false);
+      testEventGroup("interactionEvents", false);
+      testEventGroup("keyboardEvents", false);
+      testEventGroup("mouseEvents", false);
+      testEventArrays("change,click,keydown,keyup", "");
+
+      updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
+      EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("keyboardEvents"), gDebugger);
+      yield updated;
+
+      testEventItem(0, false);
+      testEventItem(1, false);
+      testEventItem(2, true);
       testEventItem(3, true);
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", true);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "keydown,keyup");
+      testEventArrays("change,click,keydown,keyup", "keydown,keyup");
 
-      let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
+      updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
       EventUtils.sendMouseEvent({ type: "click" }, getGroupCheckboxNode("keyboardEvents"), gDebugger);
       yield updated;
 
@@ -83,7 +83,7 @@ function test() {
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", false);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "");
+      testEventArrays("change,click,keydown,keyup", "");
 
       yield ensureThreadClientState(aPanel, "resumed");
       yield closeDebuggerAndFinish(aPanel);

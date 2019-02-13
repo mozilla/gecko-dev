@@ -1,13 +1,10 @@
-// Iterators from another compartment work with their own .next method
-// when called from another compartment, but not with the other
-// compartment's .next method.
-
-// FIXME: 'next' should work cross-realm.  Bug 924059.
+// Iterators from another compartment work with both their own .next method
+// with the other compartment's .next method.
 
 load(libdir + "asserts.js");
 load(libdir + "iteration.js");
 
 var g = newGlobal();
-g.eval("var it = [1, 2]['" + std_iterator + "']();");
+g.eval(`var it = [1, 2][Symbol.iterator]();`);
 assertIteratorNext(g.it, 1);
-assertThrowsInstanceOf([][std_iterator]().next.bind(g.it), TypeError)
+assertDeepEq([][Symbol.iterator]().next.call(g.it), { value: 2, done: false })

@@ -6,6 +6,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/*globals gChromeWin */
+
 let Ci = Components.interfaces, Cc = Components.classes, Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm")
@@ -18,14 +20,15 @@ const DEFAULT_ICON = "chrome://browser/skin/images/default-app-icon.png";
 
 let gStrings = Services.strings.createBundle("chrome://browser/locale/aboutApps.properties");
 
-XPCOMUtils.defineLazyGetter(window, "gChromeWin", function()
-  window.QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIWebNavigation)
-    .QueryInterface(Ci.nsIDocShellTreeItem)
-    .rootTreeItem
-    .QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIDOMWindow)
-    .QueryInterface(Ci.nsIDOMChromeWindow));
+XPCOMUtils.defineLazyGetter(window, "gChromeWin", function() {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIWebNavigation)
+           .QueryInterface(Ci.nsIDocShellTreeItem)
+           .rootTreeItem
+           .QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIDOMWindow)
+           .QueryInterface(Ci.nsIDOMChromeWindow);
+});
 
 document.addEventListener("DOMContentLoaded", onLoad, false);
 
@@ -105,17 +108,16 @@ function updateList() {
 
 function addApplication(aApp) {
   let list = document.getElementById("appgrid");
-  let manifest = new ManifestHelper(aApp.manifest, aApp.origin);
+  let manifest = new ManifestHelper(aApp.manifest, aApp.origin, aApp.manifestURL);
 
   let container = document.createElement("div");
   container.className = "app list-item";
   container.setAttribute("contextmenu", "appmenu");
-  container.setAttribute("id", "app-" + aApp.origin);
-  container.setAttribute("mozApp", aApp.origin);
+  container.setAttribute("id", "app-" + aApp.manifestURL);
   container.setAttribute("title", manifest.name);
 
   let img = document.createElement("img");
-  img.src = manifest.biggestIconURL || DEFAULT_ICON;
+  img.src = manifest.biggestIconURL() || DEFAULT_ICON;
   img.onerror = function() {
     // If the image failed to load, and it was not our default icon, attempt to
     // use our default as a fallback.
@@ -140,7 +142,7 @@ function addApplication(aApp) {
 }
 
 function onInstall(aEvent) {
-  let node = document.getElementById("app-" + aEvent.application.origin);
+  let node = document.getElementById("app-" + aEvent.application.manifestURL);
   if (node)
     return;
 
@@ -149,7 +151,7 @@ function onInstall(aEvent) {
 }
 
 function onUninstall(aEvent) {
-  let node = document.getElementById("app-" + aEvent.application.origin);
+  let node = document.getElementById("app-" + aEvent.application.manifestURL);
   if (node) {
     let parent = node.parentNode;
     parent.removeChild(node);

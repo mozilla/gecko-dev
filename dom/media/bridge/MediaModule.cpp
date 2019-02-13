@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "base/linked_ptr.h"
-
 #include "mozilla/ModuleUtils.h"
 #include "nsIClassInfoImpl.h"
 
@@ -23,9 +21,9 @@ NS_DEFINE_NAMED_CID(NS_STUN_UDP_SOCKET_FILTER_HANDLER_CID)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsStunUDPSocketFilterHandler)
 
 
-namespace sipcc
+namespace mozilla
 {
-// Factory defined in sipcc::, defines sipcc::PeerConnectionImplConstructor
+// Factory defined in mozilla::, defines mozilla::PeerConnectionImplConstructor
 NS_GENERIC_FACTORY_CONSTRUCTOR(PeerConnectionImpl)
 }
 
@@ -33,7 +31,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(PeerConnectionImpl)
 NS_DEFINE_NAMED_CID(PEERCONNECTION_CID);
 
 static const mozilla::Module::CIDEntry kCIDs[] = {
-  { &kPEERCONNECTION_CID, false, nullptr, sipcc::PeerConnectionImplConstructor },
+  { &kPEERCONNECTION_CID, false, nullptr, mozilla::PeerConnectionImplConstructor },
   { &kNS_STUN_UDP_SOCKET_FILTER_HANDLER_CID, false, nullptr, nsStunUDPSocketFilterHandlerConstructor },
   { nullptr }
 };

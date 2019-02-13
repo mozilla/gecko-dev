@@ -49,118 +49,120 @@ class GradientStopsCairo : public GradientStops
     ExtendMode mExtendMode;
 };
 
-class DrawTargetCairo : public DrawTarget
+class DrawTargetCairo final : public DrawTarget
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetCairo)
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetCairo, override)
   friend class BorrowedCairoContext;
+  friend class BorrowedXlibDrawable;
 
   DrawTargetCairo();
   virtual ~DrawTargetCairo();
 
-  virtual BackendType GetType() const { return BackendType::CAIRO; }
-  virtual TemporaryRef<SourceSurface> Snapshot();
-  virtual IntSize GetSize();
+  virtual DrawTargetType GetType() const override;
+  virtual BackendType GetBackendType() const override { return BackendType::CAIRO; }
+  virtual TemporaryRef<SourceSurface> Snapshot() override;
+  virtual IntSize GetSize() override;
 
-  virtual void SetPermitSubpixelAA(bool aPermitSubpixelAA);
+  virtual void SetPermitSubpixelAA(bool aPermitSubpixelAA) override;
 
   virtual bool LockBits(uint8_t** aData, IntSize* aSize,
-                        int32_t* aStride, SurfaceFormat* aFormat);
-  virtual void ReleaseBits(uint8_t* aData);
+                        int32_t* aStride, SurfaceFormat* aFormat) override;
+  virtual void ReleaseBits(uint8_t* aData) override;
 
-  virtual void Flush();
+  virtual void Flush() override;
   virtual void DrawSurface(SourceSurface *aSurface,
                            const Rect &aDest,
                            const Rect &aSource,
                            const DrawSurfaceOptions &aSurfOptions = DrawSurfaceOptions(),
-                           const DrawOptions &aOptions = DrawOptions());
+                           const DrawOptions &aOptions = DrawOptions()) override;
   virtual void DrawFilter(FilterNode *aNode,
                           const Rect &aSourceRect,
                           const Point &aDestPoint,
-                          const DrawOptions &aOptions = DrawOptions());
+                          const DrawOptions &aOptions = DrawOptions()) override;
   virtual void DrawSurfaceWithShadow(SourceSurface *aSurface,
                                      const Point &aDest,
                                      const Color &aColor,
                                      const Point &aOffset,
                                      Float aSigma,
-                                     CompositionOp aOperator);
+                                     CompositionOp aOperator) override;
 
-  virtual void ClearRect(const Rect &aRect);
+  virtual void ClearRect(const Rect &aRect) override;
 
   virtual void CopySurface(SourceSurface *aSurface,
                            const IntRect &aSourceRect,
-                           const IntPoint &aDestination);
+                           const IntPoint &aDestination) override;
   virtual void CopyRect(const IntRect &aSourceRect,
-                        const IntPoint &aDestination);
+                        const IntPoint &aDestination) override;
 
   virtual void FillRect(const Rect &aRect,
                         const Pattern &aPattern,
-                        const DrawOptions &aOptions = DrawOptions());
+                        const DrawOptions &aOptions = DrawOptions()) override;
   virtual void StrokeRect(const Rect &aRect,
                           const Pattern &aPattern,
                           const StrokeOptions &aStrokeOptions = StrokeOptions(),
-                          const DrawOptions &aOptions = DrawOptions());
+                          const DrawOptions &aOptions = DrawOptions()) override;
   virtual void StrokeLine(const Point &aStart,
                           const Point &aEnd,
                           const Pattern &aPattern,
                           const StrokeOptions &aStrokeOptions = StrokeOptions(),
-                          const DrawOptions &aOptions = DrawOptions());
+                          const DrawOptions &aOptions = DrawOptions()) override;
 
   virtual void Stroke(const Path *aPath,
                       const Pattern &aPattern,
                       const StrokeOptions &aStrokeOptions = StrokeOptions(),
-                      const DrawOptions &aOptions = DrawOptions());
+                      const DrawOptions &aOptions = DrawOptions()) override;
 
   virtual void Fill(const Path *aPath,
                     const Pattern &aPattern,
-                    const DrawOptions &aOptions = DrawOptions());
+                    const DrawOptions &aOptions = DrawOptions()) override;
 
   virtual void FillGlyphs(ScaledFont *aFont,
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
                           const DrawOptions &aOptions,
-                          const GlyphRenderingOptions *aRenderingOptions = nullptr);
+                          const GlyphRenderingOptions *aRenderingOptions = nullptr) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
-                    const DrawOptions &aOptions = DrawOptions());
+                    const DrawOptions &aOptions = DrawOptions()) override;
   virtual void MaskSurface(const Pattern &aSource,
                            SourceSurface *aMask,
                            Point aOffset,
-                           const DrawOptions &aOptions = DrawOptions());
+                           const DrawOptions &aOptions = DrawOptions()) override;
 
-  virtual void PushClip(const Path *aPath);
-  virtual void PushClipRect(const Rect &aRect);
-  virtual void PopClip();
+  virtual void PushClip(const Path *aPath) override;
+  virtual void PushClipRect(const Rect &aRect) override;
+  virtual void PopClip() override;
 
-  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const override;
 
   virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                             const IntSize &aSize,
                                                             int32_t aStride,
-                                                            SurfaceFormat aFormat) const;
-  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const;
+                                                            SurfaceFormat aFormat) const override;
+  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override;
   virtual TemporaryRef<SourceSurface>
-    CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const;
+    CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const override;
   virtual TemporaryRef<DrawTarget>
-    CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const;
+    CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const override;
   virtual TemporaryRef<DrawTarget>
     CreateShadowDrawTarget(const IntSize &aSize, SurfaceFormat aFormat,
-                           float aSigma) const;
+                           float aSigma) const override;
 
   virtual TemporaryRef<GradientStops>
     CreateGradientStops(GradientStop *aStops,
                         uint32_t aNumStops,
-                        ExtendMode aExtendMode = ExtendMode::CLAMP) const;
+                        ExtendMode aExtendMode = ExtendMode::CLAMP) const override;
 
-  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType);
+  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) override;
 
-  virtual void *GetNativeSurface(NativeSurfaceType aType);
+  virtual void *GetNativeSurface(NativeSurfaceType aType) override;
 
   bool Init(cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat = nullptr);
   bool Init(const IntSize& aSize, SurfaceFormat aFormat);
   bool Init(unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat);
 
-  virtual void SetTransform(const Matrix& aTransform);
+  virtual void SetTransform(const Matrix& aTransform) override;
 
   // Call to set up aContext for drawing (with the current transform, etc).
   // Pass the path you're going to be using if you have one.
@@ -168,6 +170,11 @@ public:
   void PrepareForDrawing(cairo_t* aContext, const Path* aPath = nullptr);
 
   static cairo_surface_t *GetDummySurface();
+
+  // Cairo hardcodes this as its maximum surface size.
+  static size_t GetMaxSurfaceSize() {
+    return 32767;
+  }
 
 private: // methods
   // Init cairo surface without doing a cairo_surface_reference() call.
@@ -197,6 +204,7 @@ private: // methods
   // If the current operator is "source" then clear the destination before we
   // draw into it, to simulate the effect of an unbounded source operator.
   void ClearSurfaceForUnboundedSource(const CompositionOp &aOperator);
+
 private: // data
   cairo_t* mContext;
   cairo_surface_t* mSurface;

@@ -38,7 +38,7 @@ const FILE_OLD_DATABASE               = "extensions.rdf";
 const FILE_XPI_ADDONS_LIST            = "extensions.ini";
 
 // The value for this is in Makefile.in
-#expand const DB_SCHEMA                       = __MOZ_EXTENSIONS_DB_SCHEMA__;
+#expand const DB_SCHEMA               = __MOZ_EXTENSIONS_DB_SCHEMA__;
 
 // The last version of DB_SCHEMA implemented in SQLITE
 const LAST_SQLITE_DB_SCHEMA           = 14;
@@ -46,7 +46,6 @@ const PREF_DB_SCHEMA                  = "extensions.databaseSchema";
 const PREF_PENDING_OPERATIONS         = "extensions.pendingOperations";
 const PREF_EM_ENABLED_ADDONS          = "extensions.enabledAddons";
 const PREF_EM_DSS_ENABLED             = "extensions.dss.enabled";
-
 
 // Properties that only exist in the database
 const DB_METADATA        = ["syncGUID",
@@ -71,7 +70,7 @@ const PROP_JSON_FIELDS = ["id", "syncGUID", "location", "version", "type",
                           "skinnable", "size", "sourceURI", "releaseNotesURI",
                           "softDisabled", "foreignInstall", "hasBinaryComponents",
                           "strictCompatibility", "locales", "targetApplications",
-                          "targetPlatforms"];
+                          "targetPlatforms", "multiprocessCompatible", "signedState"];
 
 // Time to wait before async save of XPI JSON database, in milliseconds
 const ASYNC_SAVE_DELAY_MS = 20;
@@ -211,7 +210,6 @@ function resultRows(aStatement) {
   }
 }
 
-
 /**
  * A helper function to log an SQL error.
  *
@@ -251,7 +249,6 @@ function stepStatement(aStatement) {
     throw e;
   }
 }
-
 
 /**
  * Copies properties from one object to another. If no target object is passed
@@ -345,6 +342,8 @@ function DBAddonInternalPrototype()
 {
   this.applyCompatibilityUpdate =
     function(aUpdate, aSyncCompatibility) {
+      let wasCompatible = this.isCompatible;
+
       this.targetApplications.forEach(function(aTargetApp) {
         aUpdate.targetApplications.forEach(function(aUpdateTarget) {
           if (aTargetApp.id == aUpdateTarget.id && (aSyncCompatibility ||
@@ -355,7 +354,14 @@ function DBAddonInternalPrototype()
           }
         });
       });
-      XPIProvider.updateAddonDisabledState(this);
+      if (aUpdate.multiprocessCompatible !== undefined &&
+          aUpdate.multiprocessCompatible != this.multiprocessCompatible) {
+        this.multiprocessCompatible = aUpdate.multiprocessCompatible;
+        XPIDatabase.saveChanges();
+      }
+
+      if (wasCompatible != this.isCompatible)
+        XPIProvider.updateAddonDisabledState(this);
     };
 
   this.toJSON =
@@ -376,7 +382,7 @@ DBAddonInternal.prototype = new DBAddonInternalPrototype();
  * Internal interface: find an addon from an already loaded addonDB
  */
 function _findAddon(addonDB, aFilter) {
-  for (let [, addon] of addonDB) {
+  for (let addon of addonDB.values()) {
     if (aFilter(addon)) {
       return addon;
     }
@@ -388,14 +394,7 @@ function _findAddon(addonDB, aFilter) {
  * Internal interface to get a filtered list of addons from a loaded addonDB
  */
 function _filterDB(addonDB, aFilter) {
-  let addonList = [];
-  for (let [, addon] of addonDB) {
-    if (aFilter(addon)) {
-      addonList.push(addon);
-    }
-  }
-
-  return addonList;
+  return [for (addon of addonDB.values()) if (aFilter(addon)) addon];
 }
 
 this.XPIDatabase = {
@@ -428,6 +427,13 @@ this.XPIDatabase = {
       throw new Error("Attempt to use XPI database when it is not initialized");
     }
 
+    if (XPIProvider._closing) {
+      // use an Error here so we get a stack trace.
+      let err = new Error("XPI database modified after shutdown began");
+      logger.warn(err);
+      AddonManagerPrivate.recordSimpleMeasure("XPIDB_late_stack", Log.stackTrace(err));
+    }
+
     if (!this._deferredSave) {
       this._deferredSave = new DeferredSave(this.jsonFile.path,
                                             () => JSON.stringify(this),
@@ -437,7 +443,7 @@ this.XPIDatabase = {
     let promise = this._deferredSave.saveChanges();
     if (!this._schemaVersionSet) {
       this._schemaVersionSet = true;
-      promise.then(
+      promise = promise.then(
         count => {
           // Update the XPIDB schema version preference the first time we successfully
           // save the database.
@@ -449,12 +455,17 @@ this.XPIDatabase = {
         error => {
           // Need to try setting the schema version again later
           this._schemaVersionSet = false;
-          logger.warn("Failed to save XPI database", error);
           // this._deferredSave.lastError has the most recent error so we don't
           // need this any more
           this._loadError = null;
+
+          throw error;
         });
     }
+
+    promise.catch(error => {
+      logger.warn("Failed to save XPI database", error);
+    });
   },
 
   flush: function() {
@@ -543,13 +554,14 @@ this.XPIDatabase = {
         cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"].
                 createInstance(Components.interfaces.nsIConverterInputStream);
         cstream.init(fstream, "UTF-8", 0, 0);
-        let (str = {}) {
-          let read = 0;
-          do {
-            read = cstream.readString(0xffffffff, str); // read as much as we can and put it in str.value
-            data += str.value;
-          } while (read != 0);
-        }
+
+        let str = {};
+        let read = 0;
+        do {
+          read = cstream.readString(0xffffffff, str); // read as much as we can and put it in str.value
+          data += str.value;
+        } while (read != 0);
+
         readTimer.done();
         this.parseDB(data, aRebuildOnError);
       }
@@ -759,7 +771,7 @@ this.XPIDatabase = {
     this.addonDB = new Map();
     this.initialized = true;
 
-    if (XPIProvider.installStates && XPIProvider.installStates.length == 0) {
+    if (XPIStates.size == 0) {
       // No extensions installed, so we're done
       logger.debug("Rebuilding XPI database with no extensions");
       return;
@@ -773,7 +785,7 @@ this.XPIDatabase = {
     if (aRebuildOnError) {
       logger.warn("Rebuilding add-ons database from installed extensions.");
       try {
-        XPIProvider.processFileChanges(XPIProvider.installStates, {}, false);
+        XPIProvider.processFileChanges({}, false);
       }
       catch (e) {
         logger.error("Failed to rebuild XPI database from installed extensions", e);
@@ -1036,26 +1048,6 @@ this.XPIDatabase = {
   },
 
   /**
-   * Return a list of all install locations known about by the database. This
-   * is often a a subset of the total install locations when not all have
-   * installed add-ons, occasionally a superset when an install location no
-   * longer exists. Only called from XPIProvider.processFileChanges, when
-   * the database should already be loaded.
-   *
-   * @return  a Set of names of install locations
-   */
-  getInstallLocations: function XPIDB_getInstallLocations() {
-    let locations = new Set();
-    if (!this.addonDB)
-      return locations;
-
-    for (let [, addon] of this.addonDB) {
-      locations.add(addon.location);
-    }
-    return locations;
-  },
-
-  /**
    * Asynchronously list all addons that match the filter function
    * @param  aFilter
    *         Function that takes an addon instance and returns
@@ -1095,18 +1087,6 @@ this.XPIDatabase = {
           logger.error("getAddon failed", e);
           makeSafe(aCallback)(null);
         });
-  },
-
-  /**
-   * Synchronously reads all the add-ons in a particular install location.
-   * Always called with the addon database already loaded.
-   *
-   * @param  aLocation
-   *         The name of the install location
-   * @return an array of DBAddonInternals
-   */
-  getAddonsInLocation: function XPIDB_getAddonsInLocation(aLocation) {
-    return _filterDB(this.addonDB, aAddon => (aAddon.location == aLocation));
   },
 
   /**
@@ -1208,10 +1188,9 @@ this.XPIDatabase = {
     this.getAddonList(
         aAddon => (aAddon.visible &&
                    (aAddon.pendingUninstall ||
-                    // Logic here is tricky. If we're active but either
-                    // disabled flag is set, we're pending disable; if we're not
-                    // active and neither disabled flag is set, we're pending enable
-                    (aAddon.active == (aAddon.userDisabled || aAddon.appDisabled))) &&
+                    // Logic here is tricky. If we're active but disabled,
+                    // we're pending disable; !active && !disabled, we're pending enable
+                    (aAddon.active == aAddon.disabled)) &&
                    (!aTypes || (aTypes.length == 0) || (aTypes.indexOf(aAddon.type) > -1))),
         aCallback);
   },
@@ -1292,8 +1271,7 @@ this.XPIDatabase = {
     aNewAddon.installDate = aOldAddon.installDate;
     aNewAddon.applyBackgroundUpdates = aOldAddon.applyBackgroundUpdates;
     aNewAddon.foreignInstall = aOldAddon.foreignInstall;
-    aNewAddon.active = (aNewAddon.visible && !aNewAddon.userDisabled &&
-                        !aNewAddon.appDisabled && !aNewAddon.pendingUninstall);
+    aNewAddon.active = (aNewAddon.visible && !aNewAddon.disabled && !aNewAddon.pendingUninstall);
 
     // addAddonMetadata does a saveChanges()
     return this.addAddonMetadata(aNewAddon, aDescriptor);
@@ -1394,9 +1372,7 @@ this.XPIDatabase = {
     }
     logger.debug("Updating add-on states");
     for (let [, addon] of this.addonDB) {
-      let newActive = (addon.visible && !addon.userDisabled &&
-                      !addon.softDisabled && !addon.appDisabled &&
-                      !addon.pendingUninstall);
+      let newActive = (addon.visible && !addon.disabled && !addon.pendingUninstall);
       if (newActive != addon.active) {
         addon.active = newActive;
         this.saveChanges();
@@ -1466,6 +1442,15 @@ this.XPIDatabase = {
                            encodeURIComponent(row.version));
       }
       fullCount += count;
+    }
+
+    text += "\r\n[MultiprocessIncompatibleExtensions]\r\n";
+
+    count = 0;
+    for (let row of activeAddons) {
+      if (!row.multiprocessCompatible) {
+        text += "Extension" + (count++) + "=" + row.id + "\r\n";
+      }
     }
 
     if (fullCount > 0) {

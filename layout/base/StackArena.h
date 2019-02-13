@@ -8,7 +8,6 @@
 #include "nsError.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/NullPtr.h"
 
 namespace mozilla {
 
@@ -22,8 +21,6 @@ private:
   friend class AutoStackArena;
   StackArena();
   ~StackArena();
-
-  nsresult Init() { return mBlocks ? NS_OK : NS_ERROR_OUT_OF_MEMORY; }
 
   // Memory management functions.
   void* Allocate(size_t aSize);
@@ -71,7 +68,6 @@ public:
     if (!gStackArena) {
       gStackArena = new StackArena();
       mOwnsStackArena = true;
-      gStackArena->Init();
     }
     gStackArena->Push();
   }

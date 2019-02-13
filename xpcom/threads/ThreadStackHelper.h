@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,27 @@
 #include <mach/mach.h>
 #endif
 
+// Support pseudostack on these platforms.
+#if defined(XP_LINUX) || defined(XP_WIN) || defined(XP_MACOSX)
+#  ifdef MOZ_ENABLE_PROFILER_SPS
+#    define MOZ_THREADSTACKHELPER_PSEUDO
+#  endif
+#endif
+
+#ifdef MOZ_THREADSTACKHELPER_PSEUDO
+#  define MOZ_THREADSTACKHELPER_NATIVE
+#  if defined(__i386__) || defined(_M_IX86)
+#    define MOZ_THREADSTACKHELPER_X86
+#  elif defined(__x86_64__) || defined(_M_X64)
+#    define MOZ_THREADSTACKHELPER_X64
+#  elif defined(__arm__) || defined(_M_ARM)
+#    define MOZ_THREADSTACKHELPER_ARM
+#  else
+     // Unsupported architecture
+#    undef MOZ_THREADSTACKHELPER_NATIVE
+#  endif
+#endif
+
 namespace mozilla {
 
 /**
@@ -37,20 +59,33 @@ namespace mozilla {
 class ThreadStackHelper
 {
 public:
-  typedef Telemetry::HangHistogram::Stack Stack;
+  typedef Telemetry::HangStack Stack;
 
 private:
-#ifdef MOZ_ENABLE_PROFILER_SPS
+  Stack* mStackToFill;
+#ifdef MOZ_THREADSTACKHELPER_PSEUDO
   const PseudoStack* const mPseudoStack;
+#ifdef MOZ_THREADSTACKHELPER_NATIVE
+  class CodeModulesProvider;
+  class ThreadContext;
+  // Set to non-null if GetStack should get the thread context.
+  ThreadContext* mContextToFill;
+  intptr_t mThreadStackBase;
 #endif
-  Stack mStackBuffer;
   size_t mMaxStackSize;
+  size_t mMaxBufferSize;
+#endif
 
   bool PrepareStackBuffer(Stack& aStack);
   void FillStackBuffer();
-#ifdef MOZ_ENABLE_PROFILER_SPS
+  void FillThreadContext(void* aContext = nullptr);
+#ifdef MOZ_THREADSTACKHELPER_PSEUDO
   const char* AppendJSEntry(const volatile StackEntry* aEntry,
+                            intptr_t& aAvailableBufferSize,
                             const char* aPrevLabel);
+#endif
+#ifdef MOZ_THREADSTACKHELPER_NATIVE
+  void GetThreadStackBase();
 #endif
 
 public:
@@ -78,15 +113,22 @@ public:
    */
   void GetStack(Stack& aStack);
 
+  /**
+   * Retrieve the current native stack of the thread associated
+   * with this ThreadStackHelper.
+   *
+   * @param aNativeStack Stack instance to be filled.
+   */
+  void GetNativeStack(Stack& aStack);
+
 #if defined(XP_LINUX)
 private:
   static int sInitialized;
-  static sem_t sSem;
-  static struct sigaction sOldSigAction;
-  static ThreadStackHelper* sCurrent;
+  static int sFillStackSignum;
 
-  static void SigAction(int aSignal, siginfo_t* aInfo, void* aContext);
+  static void FillStackHandler(int aSignal, siginfo_t* aInfo, void* aContext);
 
+  sem_t mSem;
   pid_t mThreadID;
 
 #elif defined(XP_WIN)

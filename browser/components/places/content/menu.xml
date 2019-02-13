@@ -45,14 +45,11 @@
         <body><![CDATA[
           let target = aEvent.target;
 
-          // Don't draw the drop indicator outside of markers.
-          // The markers are hidden, since otherwise sometimes popups acquire
-          // scrollboxes on OS X, so we can't use them directly.
-          let firstChildTop = this._startMarker.nextSibling.boxObject.y;
-          let lastChildBottom = this._endMarker.previousSibling.boxObject.y +
-                                this._endMarker.previousSibling.boxObject.height;
-          let betweenMarkers = target.boxObject.y >= firstChildTop ||
-                               target.boxObject.y <= lastChildBottom;
+          // Don't draw the drop indicator outside of markers or if current
+          // node is not a Places node.
+          let betweenMarkers =
+            (this._startMarker.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+            (this._endMarker.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_PRECEDING);
 
           // Hide the dropmarker if current node is not a Places node.
           return !(target && target._placesNode && betweenMarkers);
@@ -103,9 +100,12 @@
                 dropPoint.folderElt = elt;
               return dropPoint;
             }
-            else if ((PlacesUtils.nodeIsFolder(elt._placesNode) ||
-                      PlacesUtils.nodeIsTagQuery(elt._placesNode)) &&
-                     !PlacesUtils.nodeIsReadOnly(elt._placesNode)) {
+
+            let tagName = PlacesUtils.nodeIsTagQuery(elt._placesNode) ?
+                            elt._placesNode.title : null;
+            if ((PlacesUtils.nodeIsFolder(elt._placesNode) &&
+                 !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) ||
+                PlacesUtils.nodeIsTagQuery(elt._placesNode)) {
               // This is a folder or a tag container.
               if (eventY - eltY < eltHeight * 0.20) {
                 // If mouse is in the top part of the element, drop above folder.
@@ -113,7 +113,7 @@
                                     PlacesUtils.getConcreteItemId(resultNode),
                                     -1,
                                     Ci.nsITreeView.DROP_BEFORE,
-                                    PlacesUtils.nodeIsTagQuery(elt._placesNode),
+                                    tagName,
                                     elt._placesNode.itemId);
                 return dropPoint;
               }
@@ -123,7 +123,7 @@
                                     PlacesUtils.getConcreteItemId(elt._placesNode),
                                     -1,
                                     Ci.nsITreeView.DROP_ON,
-                                    PlacesUtils.nodeIsTagQuery(elt._placesNode));
+                                    tagName);
                 dropPoint.folderElt = elt;
                 return dropPoint;
               }
@@ -135,7 +135,7 @@
                                   PlacesUtils.getConcreteItemId(resultNode),
                                   -1,
                                   Ci.nsITreeView.DROP_BEFORE,
-                                  PlacesUtils.nodeIsTagQuery(elt._placesNode),
+                                  tagName,
                                   elt._placesNode.itemId);
               return dropPoint;
             }
@@ -145,7 +145,7 @@
                                 PlacesUtils.getConcreteItemId(resultNode),
                                 -1,
                                 Ci.nsITreeView.DROP_AFTER,
-                                PlacesUtils.nodeIsTagQuery(elt._placesNode),
+                                tagName,
                                 elt._placesNode.itemId);
             return dropPoint;
         ]]></body>
@@ -364,7 +364,8 @@
 
         let dropPoint = this._getDropPoint(event);
         if (dropPoint && dropPoint.ip) {
-          PlacesControllerDragHelper.onDrop(dropPoint.ip, event.dataTransfer);
+          PlacesControllerDragHelper.onDrop(dropPoint.ip, event.dataTransfer)
+                                    .then(null, Components.utils.reportError);
           event.preventDefault();
         }
 
@@ -591,7 +592,7 @@
           let cs = getComputedStyle(container);
           let transitionProp = cs.transitionProperty;
           let transitionTime = parseFloat(cs.transitionDuration);
-          disablePointerEvents = (transitionProp.contains("transform") ||
+          disablePointerEvents = (transitionProp.includes("transform") ||
                                   transitionProp == "all") &&
                                  transitionTime > 0;
           this.setAttribute("disablepointereventsfortransition", disablePointerEvents);

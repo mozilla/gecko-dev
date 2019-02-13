@@ -16,12 +16,13 @@ interface HTMLSourceElement : HTMLElement {
            attribute DOMString src;
            [SetterThrows]
            attribute DOMString type;
-           [SetterThrows]
-           attribute DOMString media;
 };
 
-// Encrypted Media Extensions
 partial interface HTMLSourceElement {
-  [Pref="media.eme.enabled"]
-  attribute DOMString keySystem;
+           [SetterThrows, Pref="dom.image.picture.enabled"]
+           attribute DOMString srcset;
+           [SetterThrows, Pref="dom.image.picture.enabled"]
+           attribute DOMString sizes;
+           [SetterThrows]
+           attribute DOMString media;
 };

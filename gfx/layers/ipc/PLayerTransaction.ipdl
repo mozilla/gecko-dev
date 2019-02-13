@@ -19,6 +19,8 @@ using struct mozilla::layers::TextureInfo from "mozilla/layers/CompositorTypes.h
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
 using class mozilla::layers::APZTestData from "mozilla/layers/APZTestData.h";
+using mozilla::layers::FrameMetrics::ViewID from "FrameMetrics.h";
+using struct mozilla::layers::ScrollableLayerGuid from "FrameMetrics.h";
 
 /**
  * The layers protocol is spoken between thread contexts that manage
@@ -32,12 +34,12 @@ namespace mozilla {
 namespace layers {
 
 union MaybeTransform {
-  gfx3DMatrix;
+  Matrix4x4;
   void_t;
 };
 
 sync protocol PLayerTransaction {
-  manager PRenderFrame or PCompositor;
+  manager PCompositor;
   manages PLayer;
   manages PCompositable;
   manages PTexture;
@@ -52,14 +54,18 @@ parent:
 
   // The isFirstPaint flag can be used to indicate that this is the first update
   // for a particular document.
-  sync Update(Edit[] cset, uint64_t id, TargetConfig targetConfig, bool isFirstPaint,
-              bool scheduleComposite, uint32_t paintSequenceNumber)
+  sync Update(Edit[] cset, uint64_t id, TargetConfig targetConfig,
+              PluginWindowData[] plugins, bool isFirstPaint,
+              bool scheduleComposite, uint32_t paintSequenceNumber,
+              bool isRepeatTransaction, TimeStamp transactionStart)
     returns (EditReply[] reply);
-  
+
   // We don't need to send a sync transaction if
   // no transaction operate require a swap.
-  async UpdateNoSwap(Edit[] cset, uint64_t id, TargetConfig targetConfig, bool isFirstPaint,
-                     bool scheduleComposite, uint32_t paintSequenceNumber);
+  async UpdateNoSwap(Edit[] cset, uint64_t id, TargetConfig targetConfig,
+                     PluginWindowData[] plugins, bool isFirstPaint,
+                     bool scheduleComposite, uint32_t paintSequenceNumber,
+                     bool isRepeatTransaction, TimeStamp transactionStart);
 
   // Testing APIs
 
@@ -78,10 +84,18 @@ parent:
   // be void_t.
   sync GetAnimationTransform(PLayer layer) returns (MaybeTransform transform);
 
-  // The next time this layer is composited, add this async scroll offset in
-  // CSS pixels.
+  // The next time the layer tree is composited, add this async scroll offset in
+  // CSS pixels for the given ViewID.
   // Useful for testing rendering of async scrolling.
-  async SetAsyncScrollOffset(PLayer layer, int32_t x, int32_t y);
+  sync SetAsyncScrollOffset(ViewID id, int32_t x, int32_t y);
+
+  // The next time the layer tree is composited, include this async zoom in
+  // for the given ViewID.
+  // Useful for testing rendering of async zooming.
+  sync SetAsyncZoom(ViewID id, float zoom);
+
+  // Flush any pending APZ repaints to the main thread.
+  async FlushApzRepaints();
 
   // Drop any front buffers that might be retained on the compositor
   // side.
@@ -94,8 +108,17 @@ parent:
   // layers id.
   sync GetAPZTestData() returns (APZTestData data);
 
+  // Query a named property from the last frame
+  sync RequestProperty(nsString property) returns (float value);
+
+  // Tell the compositor to notify APZ that a layer has been confirmed for an
+  // input event.
+  async SetConfirmedTargetAPZC(uint64_t aInputBlockId, ScrollableLayerGuid[] aTargets);
+
   async ChildAsyncMessages(AsyncChildMessageData[] aMessages);
 
+  async Shutdown();
+child:
   async __delete__();
 };
 

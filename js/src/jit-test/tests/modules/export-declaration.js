@@ -1,5 +1,6 @@
 load(libdir + "match.js");
 load(libdir + "asserts.js");
+load(libdir + "class.js");
 
 var { Pattern, MatchError } = Match;
 
@@ -7,11 +8,12 @@ program = (elts) => Pattern({
     type: "Program",
     body: elts
 })
-exportDeclaration = (declaration, specifiers, source) => Pattern({
+exportDeclaration = (declaration, specifiers, source, isDefault) => Pattern({
     type: "ExportDeclaration",
     declaration: declaration,
     specifiers: specifiers,
-    source: source
+    source: source,
+    isDefault: isDefault
 });
 exportSpecifier = (id, name) => Pattern({
     type: "ExportSpecifier",
@@ -33,6 +35,10 @@ functionDeclaration = (id, params, body) => Pattern({
     body: body,
     rest: null,
     generator: false
+});
+classDeclaration = (name) => Pattern({
+    type: "ClassStatement",
+    name: name
 });
 variableDeclaration = (decls) => Pattern({
     type: "VariableDeclaration",
@@ -62,7 +68,8 @@ program([
     exportDeclaration(
         null,
         [],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export {}"));
 
@@ -75,7 +82,8 @@ program([
                 ident("a")
             )
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { a }"));
 
@@ -88,7 +96,8 @@ program([
                 ident("b")
             )
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { a as b }"));
 
@@ -101,7 +110,8 @@ program([
                 ident("as")
             )
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { as as as }"));
 
@@ -114,7 +124,8 @@ program([
                 ident("true")
             )
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { a as true }"));
 
@@ -131,7 +142,8 @@ program([
                 ident("b")
             ),
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { a, b }"));
 
@@ -148,7 +160,8 @@ program([
                 ident("d")
             ),
         ],
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export { a as b, c as d }"));
 
@@ -156,11 +169,15 @@ program([
     exportDeclaration(
         null,
         [
-            exportBatchSpecifier()
+            exportSpecifier(
+                ident("a"),
+                ident("a")
+            )
         ],
-        null
+        lit("b"),
+        false
     )
-]).assert(Reflect.parse("export *"));
+]).assert(Reflect.parse("export { a } from 'b'"));
 
 program([
     exportDeclaration(
@@ -168,7 +185,8 @@ program([
         [
             exportBatchSpecifier()
         ],
-        lit("a")
+        lit("a"),
+        false
     )
 ]).assert(Reflect.parse("export * from 'a'"));
 
@@ -180,9 +198,23 @@ program([
             blockStatement([])
         ),
         null,
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export function f() {}"));
+
+if (classesEnabled()) {
+    program([
+        exportDeclaration(
+            classDeclaration(
+                ident("Foo")
+            ),
+            null,
+            null,
+            false
+        )
+    ]).assert(Reflect.parse("export class Foo { constructor() {} }"));
+}
 
 program([
     exportDeclaration(
@@ -196,7 +228,8 @@ program([
             }
         ]),
         null,
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export var a = 1, b = 2;"));
 
@@ -212,12 +245,13 @@ program([
             }
         ]),
         null,
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export const a = 1, b = 2;"));
 
 // FIXME: In scripts, top level lets are converted back to vars. Fix this when
-// we implement compiling scripts as modules.
+// we implement compiling scripts as modules (bug 589199).
 program([
     exportDeclaration(
         variableDeclaration([
@@ -230,27 +264,73 @@ program([
             }
         ]),
         null,
-        null
+        null,
+        false
     )
 ]).assert(Reflect.parse("export let a = 1, b = 2;"));
 
-// NOTE: binding lists are treated as if they were let declarations by esprima,
-// so we follow that convention.
 program([
     exportDeclaration(
-        variableDeclaration([
-            {
-                id: ident("a"),
-                init: lit(1)
-            }, {
-                id: ident("b"),
-                init: lit(2)
-            }
-        ]),
+        functionDeclaration(
+            ident("*default*"),
+            [],
+            blockStatement([])
+        ),
         null,
-        null
+        null,
+        true
     )
-]).assert(Reflect.parse("export a = 1, b = 2;"));
+]).assert(Reflect.parse("export default function() {}"));
+
+program([
+    exportDeclaration(
+        functionDeclaration(
+            ident("foo"),
+            [],
+            blockStatement([])
+        ),
+        null,
+        null,
+        true
+    )
+]).assert(Reflect.parse("export default function foo() {}"));
+
+if (classesEnabled()) {
+    program([
+        exportDeclaration(
+            classDeclaration(
+                ident("*default*")
+            ),
+            null,
+            null,
+            true
+        )
+    ]).assert(Reflect.parse("export default class { constructor() {} }"));
+
+    program([
+        exportDeclaration(
+            classDeclaration(
+                ident("Foo")
+            ),
+            null,
+            null,
+            true
+        )
+    ]).assert(Reflect.parse("export default class Foo { constructor() {} }"));
+}
+
+program([
+    exportDeclaration(
+        lit(1234),
+        null,
+        null,
+        true
+    )
+]).assert(Reflect.parse("export default 1234"));
+
+assertThrowsInstanceOf(function () {
+   Reflect.parse("export default 1234 5678");
+}, SyntaxError);
 
 var loc = Reflect.parse("export { a as b } from 'c'", {
     loc: true
@@ -290,9 +370,29 @@ assertThrowsInstanceOf(function () {
 }, SyntaxError);
 
 assertThrowsInstanceOf(function () {
+    Reflect.parse("export *");
+}, SyntaxError);
+
+assertThrowsInstanceOf(function () {
     Reflect.parse("export * from 'b' f();");
 }, SyntaxError);
 
 assertThrowsInstanceOf(function() {
     Reflect.parse("export {}\nfrom ()");
+}, SyntaxError);
+
+assertThrowsInstanceOf(function() {
+    Reflect.parse("function() {}");
+}, SyntaxError);
+
+assertThrowsInstanceOf(function() {
+    Reflect.parse("class() { constructor() {} }");
+}, SyntaxError);
+
+assertThrowsInstanceOf(function() {
+    Reflect.parse("export x");
+}, SyntaxError);
+
+assertThrowsInstanceOf(function() {
+    Reflect.parse("export foo = 5");
 }, SyntaxError);

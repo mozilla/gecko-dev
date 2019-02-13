@@ -14,6 +14,8 @@
 #include "nsCSSRendering.h"
 #include "nsIPresShell.h"
 
+using namespace mozilla;
+
 #define COL_GROUP_TYPE_BITS          (NS_FRAME_STATE_BIT(30) | \
                                       NS_FRAME_STATE_BIT(31))
 #define COL_GROUP_TYPE_OFFSET        30
@@ -73,7 +75,7 @@ nsTableColGroupFrame::AddColsToTable(int32_t                   aFirstColIndex,
                                      bool                      aResetSubsequentColIndices,
                                      const nsFrameList::Slice& aCols)
 {
-  nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
+  nsTableFrame* tableFrame = GetTableFrame();
 
   tableFrame->InvalidateFrameSubtree();
 
@@ -139,9 +141,8 @@ nsTableColGroupFrame::SetInitialChildList(ChildListID     aListID,
              "unexpected second call to SetInitialChildList");
   MOZ_ASSERT(aListID == kPrincipalList, "unexpected child list");
   if (aChildList.IsEmpty()) { 
-    nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
-    tableFrame->AppendAnonymousColFrames(this, GetSpan(), eColAnonymousColGroup, 
-                                         false);
+    GetTableFrame()->AppendAnonymousColFrames(this, GetSpan(),
+                                              eColAnonymousColGroup, false);
     return; 
   }
 
@@ -156,13 +157,13 @@ nsTableColGroupFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   if (!aOldStyleContext) //avoid this on init
     return;
      
-  nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
+  nsTableFrame* tableFrame = GetTableFrame();
   if (tableFrame->IsBorderCollapse() &&
       tableFrame->BCRecalcNeeded(aOldStyleContext, StyleContext())) {
     int32_t colCount = GetColCount();
     if (!colCount)
       return; // this is a degenerated colgroup 
-    nsIntRect damageArea(GetFirstColumn()->GetColIndex(), 0, colCount,
+    TableArea damageArea(GetFirstColumn()->GetColIndex(), 0, colCount,
                          tableFrame->GetRowCount());
     tableFrame->AddBCDamageArea(damageArea);
   }
@@ -293,9 +294,9 @@ nsTableColGroupFrame::RemoveFrame(ChildListID     aListID,
       nsTableColFrame* nextCol;
       while (col && col->GetColType() == eColAnonymousCol) {
 #ifdef DEBUG
-        nsIFrame* providerFrame = colFrame->GetParentStyleContextFrame();
-        if (colFrame->StyleContext()->GetParent() ==
-            providerFrame->StyleContext()) {
+        nsIFrame* providerFrame;
+        nsStyleContext* psc = colFrame->GetParentStyleContext(&providerFrame);
+        if (colFrame->StyleContext()->GetParent() == psc) {
           NS_ASSERTION(col->StyleContext() == colFrame->StyleContext() &&
                        col->GetContent() == colFrame->GetContent(),
                        "How did that happen??");
@@ -315,7 +316,7 @@ nsTableColGroupFrame::RemoveFrame(ChildListID     aListID,
     // The RemoveChild call handles calling FrameNeedsReflow on us.
     RemoveChild(*colFrame, true);
     
-    nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
+    nsTableFrame* tableFrame = GetTableFrame();
     tableFrame->RemoveCol(this, colIndex, true, true);
     if (mFrames.IsEmpty() && contentRemoval && 
         GetColType() == eColGroupContent) {
@@ -328,30 +329,31 @@ nsTableColGroupFrame::RemoveFrame(ChildListID     aListID,
   }
 }
 
-int
+nsIFrame::LogicalSides
 nsTableColGroupFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                      NS_STYLE_BOX_DECORATION_BREAK_CLONE)) {
-    return 0;
+    return LogicalSides();
   }
 
-  int skip = 0;
+  LogicalSides skip;
   if (nullptr != GetPrevInFlow()) {
-    skip |= 1 << LOGICAL_SIDE_B_START;
+    skip |= eLogicalSideBitsBStart;
   }
   if (nullptr != GetNextInFlow()) {
-    skip |= 1 << LOGICAL_SIDE_B_END;
+    skip |= eLogicalSideBitsBEnd;
   }
   return skip;
 }
 
 void
 nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
-                                       nsHTMLReflowMetrics&     aDesiredSize,
-                                       const nsHTMLReflowState& aReflowState,
-                                       nsReflowStatus&          aStatus)
+                             nsHTMLReflowMetrics&     aDesiredSize,
+                             const nsHTMLReflowState& aReflowState,
+                             nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsTableColGroupFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   NS_ASSERTION(nullptr!=mContent, "bad state -- null content for frame");
@@ -359,8 +361,7 @@ nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
   const nsStyleVisibility* groupVis = StyleVisibility();
   bool collapseGroup = (NS_STYLE_VISIBILITY_COLLAPSE == groupVis->mVisible);
   if (collapseGroup) {
-    nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
-    tableFrame->SetNeedToCollapse(true);
+    GetTableFrame()->SetNeedToCollapse(true);
   }
   // for every content child that (is a column thingy and does not already have a frame)
   // create a frame and adjust it's style
@@ -370,15 +371,14 @@ nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
     // Give the child frame a chance to reflow, even though we know it'll have 0 size
     nsHTMLReflowMetrics kidSize(aReflowState);
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
-                                     nsSize(0,0));
+                                     LogicalSize(kidFrame->GetWritingMode()));
 
     nsReflowStatus status;
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, 0, 0, 0, status);
     FinishReflowChild(kidFrame, aPresContext, kidSize, nullptr, 0, 0, 0);
   }
 
-  aDesiredSize.Width() = 0;
-  aDesiredSize.Height() = 0;
+  aDesiredSize.ClearSize();
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
 }
@@ -416,31 +416,32 @@ int32_t nsTableColGroupFrame::GetSpan()
   return StyleTable()->mSpan;
 }
 
-void nsTableColGroupFrame::SetContinuousBCBorderWidth(uint8_t     aForSide,
+void nsTableColGroupFrame::SetContinuousBCBorderWidth(LogicalSide aForSide,
                                                       BCPixelSize aPixelValue)
 {
   switch (aForSide) {
-    case NS_SIDE_TOP:
-      mTopContBorderWidth = aPixelValue;
+    case eLogicalSideBStart:
+      mBStartContBorderWidth = aPixelValue;
       return;
-    case NS_SIDE_BOTTOM:
-      mBottomContBorderWidth = aPixelValue;
+    case eLogicalSideBEnd:
+      mBEndContBorderWidth = aPixelValue;
       return;
     default:
       NS_ERROR("invalid side arg");
   }
 }
 
-void nsTableColGroupFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
+void nsTableColGroupFrame::GetContinuousBCBorderWidth(WritingMode aWM,
+                                                      LogicalMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  nsTableFrame* table = nsTableFrame::GetTableFrame(this);
-  nsTableColFrame* col = table->GetColFrame(mStartColIndex + mColCount - 1);
-  col->GetContinuousBCBorderWidth(aBorder);
-  aBorder.top = BC_BORDER_BOTTOM_HALF_COORD(aPixelsToTwips,
-                                            mTopContBorderWidth);
-  aBorder.bottom = BC_BORDER_TOP_HALF_COORD(aPixelsToTwips,
-                                            mBottomContBorderWidth);
+  nsTableColFrame* col = GetTableFrame()->
+    GetColFrame(mStartColIndex + mColCount - 1);
+  col->GetContinuousBCBorderWidth(aWM, aBorder);
+  aBorder.BStart(aWM) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                                 mBStartContBorderWidth);
+  aBorder.BEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mBEndContBorderWidth);
 }
 
 /* ----- global methods ----- */
@@ -520,3 +521,4 @@ void nsTableColGroupFrame::Dump(int32_t aIndent)
   delete [] indent;
 }
 #endif
+

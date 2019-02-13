@@ -6,7 +6,6 @@
 #ifdef GL_PROVIDER_GLX
 
 #include "X11TextureSourceOGL.h"
-#include "mozilla/layers/CompositorOGL.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 
@@ -61,7 +60,7 @@ X11TextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
 IntSize
 X11TextureSourceOGL::GetSize() const
 {
-  return ToIntSize(mSurface->GetSize());
+  return mSurface->GetSize();
 }
 
 SurfaceFormat
@@ -102,7 +101,7 @@ X11TextureSourceOGL::ContentTypeToSurfaceFormat(gfxContentType aType)
   }
 }
 
-#endif
+}
+}
 
-}
-}
+#endif

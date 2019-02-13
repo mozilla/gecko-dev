@@ -2,18 +2,74 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include protocol PBackgroundIDBFactory;
 include protocol PBackgroundTest;
+include protocol PBlob;
+include protocol PBroadcastChannel;
+include protocol PCache;
+include protocol PCacheStorage;
+include protocol PCacheStreamControl;
+include protocol PFileDescriptorSet;
+include protocol PMessagePort;
+include protocol PServiceWorkerManager;
+include protocol PUDPSocket;
+include protocol PVsync;
+
+include DOMTypes;
+include PBackgroundSharedTypes;
+include PBackgroundIDBSharedTypes;
+
+using mozilla::dom::cache::Namespace from "mozilla/dom/cache/Types.h";
+include "mozilla/dom/cache/IPCUtils.h";
 
 namespace mozilla {
 namespace ipc {
 
-protocol PBackground
+sync protocol PBackground
 {
+  manages PBackgroundIDBFactory;
   manages PBackgroundTest;
+  manages PBlob;
+  manages PBroadcastChannel;
+  manages PCache;
+  manages PCacheStorage;
+  manages PCacheStreamControl;
+  manages PFileDescriptorSet;
+  manages PMessagePort;
+  manages PServiceWorkerManager;
+  manages PUDPSocket;
+  manages PVsync;
 
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
   PBackgroundTest(nsCString testArg);
+
+  PBackgroundIDBFactory(LoggingInfo loggingInfo);
+
+  PVsync();
+
+  PUDPSocket(OptionalPrincipalInfo pInfo, nsCString filter);
+  PBroadcastChannel(PrincipalInfo pInfo, nsString origin, nsString channel,
+                    bool privateBrowsing);
+
+  PServiceWorkerManager();
+
+  ShutdownServiceWorkerRegistrar();
+
+  PCacheStorage(Namespace aNamespace, PrincipalInfo aPrincipalInfo);
+
+  PMessagePort(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
+
+  MessagePortForceClose(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
+
+child:
+  PCache();
+  PCacheStreamControl();
+
+both:
+  PBlob(BlobConstructorParams params);
+
+  PFileDescriptorSet(FileDescriptor fd);
 };
 
 } // namespace ipc

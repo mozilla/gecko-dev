@@ -8,8 +8,9 @@
 
 #include "xpcprivate.h"
 #include "jsprf.h"
+#include "mozilla/DeferredFinalize.h"
+#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "nsCCUncollectableMarker.h"
-#include "nsCxPusher.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 
@@ -64,14 +65,17 @@ nsXPCWrappedJS::CanSkip()
         return true;
 
     // If this wrapper holds a gray object, need to trace it.
-    JSObject *obj = GetJSObjectPreserveColor();
-    if (obj && xpc_IsGrayGCThing(obj))
+    JSObject* obj = GetJSObjectPreserveColor();
+    if (obj && JS::ObjectIsMarkedGray(obj))
         return false;
 
     // For non-root wrappers, check if the root wrapper will be
     // added to the CC graph.
-    if (!IsRootWrapper())
+    if (!IsRootWrapper()) {
+        // mRoot points to null after unlinking.
+        NS_ENSURE_TRUE(mRoot, false);
         return mRoot->CanSkip();
+    }
 
     // For the root wrapper, check if there is an aggregated
     // native object that will be added to the CC graph.
@@ -89,11 +93,11 @@ nsXPCWrappedJS::CanSkip()
 
 NS_IMETHODIMP
 NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
-   (void *p, nsCycleCollectionTraversalCallback &cb)
+   (void* p, nsCycleCollectionTraversalCallback& cb)
 {
-    nsISupports *s = static_cast<nsISupports*>(p);
+    nsISupports* s = static_cast<nsISupports*>(p);
     MOZ_ASSERT(CheckForRightISupports(s), "not the nsISupports pointer we expect");
-    nsXPCWrappedJS *tmp = Downcast(s);
+    nsXPCWrappedJS* tmp = Downcast(s);
 
     nsrefcnt refcnt = tmp->mRefCnt.get();
     if (cb.WantDebugInfo()) {
@@ -120,7 +124,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
     if (tmp->IsValid()) {
         MOZ_ASSERT(refcnt > 1);
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mJSObj");
-        cb.NoteJSChild(tmp->GetJSObjectPreserveColor());
+        cb.NoteJSObject(tmp->GetJSObjectPreserveColor());
     }
 
     if (tmp->IsRootWrapper()) {
@@ -158,6 +162,7 @@ NS_IMETHODIMP
 nsXPCWrappedJS::AggregatedQueryInterface(REFNSIID aIID, void** aInstancePtr)
 {
     MOZ_ASSERT(IsAggregatedToNative(), "bad AggregatedQueryInterface call");
+    *aInstancePtr = nullptr;
 
     if (!IsValid())
         return NS_ERROR_UNEXPECTED;
@@ -179,9 +184,11 @@ NS_IMETHODIMP
 nsXPCWrappedJS::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 {
     if (nullptr == aInstancePtr) {
-        NS_PRECONDITION(0, "null pointer");
+        NS_PRECONDITION(false, "null pointer");
         return NS_ERROR_NULL_POINTER;
     }
+
+    *aInstancePtr = nullptr;
 
     if ( aIID.Equals(NS_GET_IID(nsXPCOMCycleCollectionParticipant)) ) {
         *aInstancePtr = NS_CYCLE_COLLECTION_PARTICIPANT(nsXPCWrappedJS);
@@ -225,7 +232,7 @@ nsXPCWrappedJS::AddRef(void)
         MOZ_CRASH();
 
     MOZ_ASSERT(int32_t(mRefCnt) >= 0, "illegal refcnt");
-    nsISupports *base = NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(this);
+    nsISupports* base = NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(this);
     nsrefcnt cnt = mRefCnt.incr(base);
     NS_LOG_ADDREF(this, cnt, "nsXPCWrappedJS", sizeof(*this));
 
@@ -246,7 +253,7 @@ nsXPCWrappedJS::Release(void)
     NS_ASSERT_OWNINGTHREAD(nsXPCWrappedJS);
 
     bool shouldDelete = false;
-    nsISupports *base = NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(this);
+    nsISupports* base = NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(this);
     nsrefcnt cnt = mRefCnt.decr(base, &shouldDelete);
     NS_LOG_RELEASE(this, cnt, "nsXPCWrappedJS");
 
@@ -284,18 +291,7 @@ void
 nsXPCWrappedJS::TraceJS(JSTracer* trc)
 {
     MOZ_ASSERT(mRefCnt >= 2 && IsValid(), "must be strongly referenced");
-    trc->setTracingDetails(GetTraceName, this, 0);
-    JS_CallHeapObjectTracer(trc, &mJSObj, "nsXPCWrappedJS::mJSObj");
-}
-
-// static
-void
-nsXPCWrappedJS::GetTraceName(JSTracer* trc, char *buf, size_t bufsize)
-{
-    const nsXPCWrappedJS* self = static_cast<const nsXPCWrappedJS*>
-                                            (trc->debugPrintArg());
-    JS_snprintf(buf, bufsize, "nsXPCWrappedJS[%s,0x%p:0x%p].mJSObj",
-                self->GetClass()->GetInterfaceName(), self, self->mXPTCStub);
+    JS_CallObjectTracer(trc, &mJSObj, "nsXPCWrappedJS::mJSObj");
 }
 
 NS_IMETHODIMP
@@ -334,7 +330,9 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
         return NS_ERROR_FAILURE;
     }
 
-    nsRefPtr<nsXPCWrappedJSClass> clasp = nsXPCWrappedJSClass::GetNewOrUsed(cx, aIID);
+    bool allowNonScriptable = mozilla::jsipc::IsWrappedCPOW(jsObj);
+    nsRefPtr<nsXPCWrappedJSClass> clasp = nsXPCWrappedJSClass::GetNewOrUsed(cx, aIID,
+                                                                            allowNonScriptable);
     if (!clasp)
         return NS_ERROR_FAILURE;
 
@@ -342,6 +340,7 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
     if (!rootJSObj)
         return NS_ERROR_FAILURE;
 
+    nsresult rv = NS_ERROR_FAILURE;
     nsRefPtr<nsXPCWrappedJS> root = map->Find(rootJSObj);
     if (root) {
         nsRefPtr<nsXPCWrappedJS> wrapper = root->FindOrFindInherited(aIID);
@@ -358,10 +357,16 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
         if (!rootClasp)
             return NS_ERROR_FAILURE;
 
-        root = new nsXPCWrappedJS(cx, rootJSObj, rootClasp, nullptr);
+        root = new nsXPCWrappedJS(cx, rootJSObj, rootClasp, nullptr, &rv);
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
     }
 
-    nsRefPtr<nsXPCWrappedJS> wrapper = new nsXPCWrappedJS(cx, jsObj, clasp, root);
+    nsRefPtr<nsXPCWrappedJS> wrapper = new nsXPCWrappedJS(cx, jsObj, clasp, root, &rv);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
     wrapper.forget(wrapperResult);
     return NS_OK;
 }
@@ -369,13 +374,16 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
 nsXPCWrappedJS::nsXPCWrappedJS(JSContext* cx,
                                JSObject* aJSObj,
                                nsXPCWrappedJSClass* aClass,
-                               nsXPCWrappedJS* root)
+                               nsXPCWrappedJS* root,
+                               nsresult* rv)
     : mJSObj(aJSObj),
       mClass(aClass),
-      mRoot(root ? root : MOZ_THIS_IN_INITIALIZER_LIST()),
+      mRoot(root ? root : this),
       mNext(nullptr)
 {
-    InitStub(GetClass()->GetIID());
+    *rv = InitStub(GetClass()->GetIID());
+    // Continue even in the failure case, so that our refcounting/Destroy
+    // behavior works correctly.
 
     // There is an extra AddRef to support weak references to wrappers
     // that are subject to finalization. See the top of the file for more
@@ -450,7 +458,7 @@ nsXPCWrappedJS::Unlink()
     if (mOuter) {
         XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
         if (rt->GCIsRunning()) {
-            nsContentUtils::DeferredFinalize(mOuter.forget().take());
+            DeferredFinalize(mOuter.forget().take());
         } else {
             mOuter = nullptr;
         }
@@ -550,6 +558,25 @@ nsXPCWrappedJS::SystemIsBeingShutDown()
         mNext->SystemIsBeingShutDown();
 }
 
+size_t
+nsXPCWrappedJS::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+    // mJSObject is a JS pointer, so don't measure the object.
+    // mClass is not uniquely owned by this WrappedJS. Measure it in IID2WrappedJSClassMap.
+    // mRoot is not measured because it is either |this| or we have already measured it.
+    // mOuter is rare and probably not uniquely owned by this.
+    size_t n = mallocSizeOf(this);
+    n += nsAutoXPTCStub::SizeOfExcludingThis(mallocSizeOf);
+
+    // Wrappers form a linked list via the mNext field, so include them all
+    // in the measurement. Only root wrappers are stored in the map, so
+    // everything will be measured exactly once.
+    if (mNext)
+        n += mNext->SizeOfIncludingThis(mallocSizeOf);
+
+    return n;
+}
+
 /***************************************************************************/
 
 /* readonly attribute nsISimpleEnumerator enumerator; */
@@ -567,7 +594,7 @@ nsXPCWrappedJS::GetEnumerator(nsISimpleEnumerator * *aEnumerate)
 
 /* nsIVariant getProperty (in AString name); */
 NS_IMETHODIMP
-nsXPCWrappedJS::GetProperty(const nsAString & name, nsIVariant **_retval)
+nsXPCWrappedJS::GetProperty(const nsAString & name, nsIVariant** _retval)
 {
     AutoJSContext cx;
     XPCCallContext ccx(NATIVE_CALLER, cx);
@@ -593,11 +620,11 @@ nsXPCWrappedJS::DebugDump(int16_t depth)
         GetClass()->GetInterfaceInfo()->GetName(&name);
         XPC_LOG_ALWAYS(("interface name is %s", name));
         if (name)
-            nsMemory::Free(name);
+            free(name);
         char * iid = GetClass()->GetIID().ToString();
         XPC_LOG_ALWAYS(("IID number is %s", iid ? iid : "invalid"));
         if (iid)
-            NS_Free(iid);
+            free(iid);
         XPC_LOG_ALWAYS(("nsXPCWrappedJSClass @ %x", mClass.get()));
 
         if (!IsRootWrapper())

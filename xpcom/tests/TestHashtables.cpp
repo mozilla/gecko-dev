@@ -21,7 +21,7 @@ namespace TestHashtables {
 class TestUniChar // for nsClassHashtable
 {
 public:
-  TestUniChar(uint32_t aWord)
+  explicit TestUniChar(uint32_t aWord)
   {
     printf("    TestUniChar::TestUniChar() %u\n", aWord);
     mWord = aWord;
@@ -70,7 +70,7 @@ public:
   typedef const char* KeyType;
   typedef const char* KeyTypePointer;
 
-  EntityToUnicodeEntry(const char* aKey) { mNode = nullptr; }
+  explicit EntityToUnicodeEntry(const char* aKey) { mNode = nullptr; }
   EntityToUnicodeEntry(const EntityToUnicodeEntry& aEntry) { mNode = aEntry.mNode; }
   ~EntityToUnicodeEntry() { }
 
@@ -192,7 +192,7 @@ nsCEnum(const nsACString& aKey, nsAutoPtr<TestUniChar>& aData, void* userArg) {
 { 0x6f7652e0,  0xee43, 0x11d1, \
  { 0x9c, 0xc3, 0x00, 0x60, 0x08, 0x8c, 0xa6, 0xb3 } }
 
-class IFoo MOZ_FINAL : public nsISupports
+class IFoo final : public nsISupports
   {
     public:
       NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFOO_IID)
@@ -547,8 +547,7 @@ main(void) {
     nsCOMPtr<IFoo> foo;
     CreateIFoo(getter_AddRefs(foo));
     foo->SetString(nsDependentCString(gEntities[i].mStr));
-    
-    
+
     fooArray.InsertObjectAt(foo, i);
 
     EntToUniClass2.Put(foo, gEntities[i].mUnicode);
@@ -613,7 +612,7 @@ main(void) {
     nsCOMPtr<IFoo> foo;
     CreateIFoo(getter_AddRefs(foo));
     foo->SetString(nsDependentCString(gEntities[i].mStr));
-    
+
     UniToEntClass2.Put(gEntities[i].mUnicode, foo);
     printf("OK...\n");
   }

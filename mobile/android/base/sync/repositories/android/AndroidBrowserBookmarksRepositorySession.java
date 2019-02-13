@@ -42,8 +42,8 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   public static final int DEFAULT_INSERTION_FLUSH_THRESHOLD = 50;
 
   // TODO: synchronization for these.
-  private HashMap<String, Long> parentGuidToIDMap = new HashMap<String, Long>();
-  private HashMap<Long, String> parentIDToGuidMap = new HashMap<Long, String>();
+  private final HashMap<String, Long> parentGuidToIDMap = new HashMap<String, Long>();
+  private final HashMap<Long, String> parentIDToGuidMap = new HashMap<Long, String>();
 
   /**
    * Some notes on reparenting/reordering.
@@ -100,11 +100,11 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
    */
 
   // TODO: can we guarantee serial access to these?
-  private HashMap<String, ArrayList<String>> missingParentToChildren = new HashMap<String, ArrayList<String>>();
-  private HashMap<String, JSONArray>         parentToChildArray      = new HashMap<String, JSONArray>();
+  private final HashMap<String, ArrayList<String>> missingParentToChildren = new HashMap<String, ArrayList<String>>();
+  private final HashMap<String, JSONArray>         parentToChildArray      = new HashMap<String, JSONArray>();
   private int needsReparenting = 0;
 
-  private AndroidBrowserBookmarksDataAccessor dataAccessor;
+  private final AndroidBrowserBookmarksDataAccessor dataAccessor;
 
   protected BookmarksDeletionManager deletionManager;
   protected BookmarksInsertionManager insertionManager;
@@ -112,7 +112,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   /**
    * An array of known-special GUIDs.
    */
-  public static String[] SPECIAL_GUIDS = new String[] {
+  public static final String[] SPECIAL_GUIDS = new String[] {
     // Mobile and desktop places roots have to come first.
     "places",
     "mobile",
@@ -203,8 +203,6 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
    */
   public static boolean forbiddenGUID(final String recordGUID) {
     return recordGUID == null ||
-           // Temporarily exclude reading list items (Bug 762118; re-enable in Bug 762109.)
-           BrowserContract.Bookmarks.READING_LIST_FOLDER_GUID.equals(recordGUID) ||
            BrowserContract.Bookmarks.PINNED_FOLDER_GUID.equals(recordGUID) ||
            BrowserContract.Bookmarks.PLACES_FOLDER_GUID.equals(recordGUID) ||
            BrowserContract.Bookmarks.TAGS_FOLDER_GUID.equals(recordGUID);
@@ -221,8 +219,6 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
    */
   public static boolean forbiddenParent(final String parentGUID) {
     return parentGUID == null ||
-           // Temporarily exclude reading list items (Bug 762118; re-enable in Bug 762109.)
-           BrowserContract.Bookmarks.READING_LIST_FOLDER_GUID.equals(parentGUID) ||
            BrowserContract.Bookmarks.PINNED_FOLDER_GUID.equals(parentGUID);
   }
 
@@ -272,7 +268,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       Logger.warn(LOG_TAG, "Couldn't find local ID for GUID " + guid);
       return -1;
     }
-    return id.longValue();
+    return id;
   }
 
   private String getGUID(Cursor cur) {
@@ -364,7 +360,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       boolean changed = false;
       int i = 0;
       for (Entry<Long, ArrayList<String>> entry : guids.entrySet()) {
-        long pos = entry.getKey().longValue();
+        long pos = entry.getKey();
         int atPos = entry.getValue().size();
 
         // If every element has a different index, and the indices are
@@ -567,9 +563,6 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       Logger.debug(LOG_TAG, "Got GUIDs for folders.");
     } catch (android.database.sqlite.SQLiteConstraintException e) {
       Logger.error(LOG_TAG, "Got sqlite constraint exception working with Fennec bookmark DB.", e);
-      delegate.onBeginFailed(e);
-      return;
-    } catch (NullCursorException e) {
       delegate.onBeginFailed(e);
       return;
     } catch (Exception e) {
@@ -1086,9 +1079,9 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     if (typeString == null) {
       Logger.warn(LOG_TAG, "Unsupported type code " + rowType);
       return null;
-    } else {
-      Logger.trace(LOG_TAG, "Record " + guid + " has type " + typeString);
     }
+
+    Logger.trace(LOG_TAG, "Record " + guid + " has type " + typeString);
 
     rec.type = typeString;
     rec.title = RepoUtils.getStringFromCursor(cur, BrowserContract.Bookmarks.TITLE);

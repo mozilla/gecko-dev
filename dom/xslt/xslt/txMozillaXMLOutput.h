@@ -20,16 +20,13 @@ class nsIContent;
 class nsIDOMDocument;
 class nsIAtom;
 class nsIDOMDocumentFragment;
-class nsIDOMElement;
-class nsIStyleSheet;
-class nsIDOMNode;
 class nsITransformObserver;
 class nsNodeInfoManager;
 class nsIDocument;
 class nsINode;
 
-class txTransformNotifier MOZ_FINAL : public nsIScriptLoaderObserver,
-                                      public nsICSSLoaderObserver
+class txTransformNotifier final : public nsIScriptLoaderObserver,
+                                  public nsICSSLoaderObserver
 {
 public:
     txTransformNotifier();
@@ -38,9 +35,9 @@ public:
     NS_DECL_NSISCRIPTLOADEROBSERVER
     
     // nsICSSLoaderObserver
-    NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet,
+    NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
                                 bool aWasAlternate,
-                                nsresult aStatus) MOZ_OVERRIDE;
+                                nsresult aStatus) override;
 
     void Init(nsITransformObserver* aObserver);
     nsresult AddScriptElement(nsIScriptElement* aElement);
@@ -50,6 +47,7 @@ public:
     nsresult SetOutputDocument(nsIDocument* aDocument);
 
 private:
+    ~txTransformNotifier();
     void SignalTransformEnd(nsresult aResult = NS_OK);
 
     nsCOMPtr<nsIDocument> mDocument;

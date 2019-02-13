@@ -5,11 +5,11 @@
  * Tests that params view shows params when they exist, and are hidden otherwise.
  */
 
-function spawnTest() {
-  let [target, debuggee, panel] = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
+add_task(function*() {
+  let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
-  let { gFront, $, $$, EVENTS, WebAudioInspectorView } = panelWin;
-  let gVars = WebAudioInspectorView._propsView;
+  let { gFront, $, $$, EVENTS, PropertiesView } = panelWin;
+  let gVars = PropertiesView._propsView;
 
   let started = once(gFront, "start-context");
 
@@ -23,21 +23,20 @@ function spawnTest() {
 
   // Gain node
   click(panelWin, findGraphNode(panelWin, nodeIds[2]));
-  yield once(panelWin, EVENTS.UI_INSPECTOR_NODE_SET);
+  yield waitForInspectorRender(panelWin, EVENTS);
 
-  ok(isVisible($("#properties-tabpanel-content")), "Parameters shown when they exist.");
-  ok(!isVisible($("#properties-tabpanel-content-empty")),
+  ok(isVisible($("#properties-content")), "Parameters shown when they exist.");
+  ok(!isVisible($("#properties-empty")),
     "Empty message hidden when AudioParams exist.");
 
   // Destination node
   click(panelWin, findGraphNode(panelWin, nodeIds[0]));
-  yield once(panelWin, EVENTS.UI_INSPECTOR_NODE_SET);
+  yield waitForInspectorRender(panelWin, EVENTS);
 
-  ok(!isVisible($("#properties-tabpanel-content")),
+  ok(!isVisible($("#properties-content")),
     "Parameters hidden when they don't exist.");
-  ok(isVisible($("#properties-tabpanel-content-empty")),
+  ok(isVisible($("#properties-empty")),
     "Empty message shown when no AudioParams exist.");
 
-  yield teardown(panel);
-  finish();
-}
+  yield teardown(target);
+});

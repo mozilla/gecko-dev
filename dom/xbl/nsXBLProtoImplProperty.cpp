@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +10,6 @@
 #include "nsIContent.h"
 #include "nsXBLProtoImplProperty.h"
 #include "nsUnicharUtils.h"
-#include "nsCxPusher.h"
 #include "nsReadableUtils.h"
 #include "nsJSUtils.h"
 #include "nsXBLPrototypeBinding.h"
@@ -17,6 +17,7 @@
 #include "xpcpublic.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 nsXBLProtoImplProperty::nsXBLProtoImplProperty(const char16_t* aName,
                                                const char16_t* aGetter, 
@@ -128,36 +129,43 @@ nsXBLProtoImplProperty::InstallMember(JSContext *aCx,
                   "Should not be installing an uncompiled property");
   MOZ_ASSERT(mGetter.IsCompiled() && mSetter.IsCompiled());
   MOZ_ASSERT(js::IsObjectInContextCompartment(aTargetClassObject, aCx));
-  JS::Rooted<JSObject*> globalObject(aCx, JS_GetGlobalForObject(aCx, aTargetClassObject));
-  MOZ_ASSERT(xpc::IsInContentXBLScope(globalObject) ||
-             globalObject == xpc::GetXBLScope(aCx, globalObject));
+
+#ifdef DEBUG
+  {
+    JS::Rooted<JSObject*> globalObject(aCx, JS_GetGlobalForObject(aCx, aTargetClassObject));
+    MOZ_ASSERT(xpc::IsInContentXBLScope(globalObject) ||
+               xpc::IsInAddonScope(globalObject) ||
+               globalObject == xpc::GetXBLScope(aCx, globalObject));
+    MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx) == globalObject);
+  }
+#endif
 
   JS::Rooted<JSObject*> getter(aCx, mGetter.GetJSFunction());
   JS::Rooted<JSObject*> setter(aCx, mSetter.GetJSFunction());
   if (getter || setter) {
     if (getter) {
-      if (!(getter = ::JS_CloneFunctionObject(aCx, getter, globalObject)))
+      if (!(getter = JS::CloneFunctionObject(aCx, getter)))
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
     if (setter) {
-      if (!(setter = ::JS_CloneFunctionObject(aCx, setter, globalObject)))
+      if (!(setter = JS::CloneFunctionObject(aCx, setter)))
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
     nsDependentString name(mName);
     if (!::JS_DefineUCProperty(aCx, aTargetClassObject,
-                               static_cast<const jschar*>(mName),
+                               static_cast<const char16_t*>(mName),
                                name.Length(), JS::UndefinedHandleValue, mJSAttributes,
-                               JS_DATA_TO_FUNC_PTR(JSPropertyOp, getter.get()),
-                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, setter.get())))
+                               JS_DATA_TO_FUNC_PTR(JSNative, getter.get()),
+                               JS_DATA_TO_FUNC_PTR(JSNative, setter.get())))
       return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;
 }
 
 nsresult
-nsXBLProtoImplProperty::CompileMember(const nsCString& aClassStr,
+nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassStr,
                                       JS::Handle<JSObject*> aClassObject)
 {
   AssertInCompilationScope();
@@ -166,6 +174,7 @@ nsXBLProtoImplProperty::CompileMember(const nsCString& aClassStr,
   NS_PRECONDITION(aClassObject,
                   "Must have class object to compile");
   MOZ_ASSERT(!mGetter.IsCompiled() && !mSetter.IsCompiled());
+  JSContext *cx = jsapi.cx();
 
   if (!mName)
     return NS_ERROR_FAILURE; // Without a valid name, we can't install the member.
@@ -175,7 +184,7 @@ nsXBLProtoImplProperty::CompileMember(const nsCString& aClassStr,
 
   nsAutoCString functionUri;
   if (mGetter.GetUncompiled() || mSetter.GetUncompiled()) {
-    functionUri = aClassStr;
+    functionUri = NS_ConvertUTF16toUTF8(aClassStr);
     int32_t hash = functionUri.RFindChar('#');
     if (hash != kNotFound) {
       functionUri.Truncate(hash);
@@ -187,14 +196,14 @@ nsXBLProtoImplProperty::CompileMember(const nsCString& aClassStr,
   if (getterText && getterText->GetText()) {
     nsDependentString getter(getterText->GetText());
     if (!getter.IsEmpty()) {
-      AutoJSContext cx;
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), getterText->GetLineNumber())
              .setVersion(JSVERSION_LATEST);
       nsCString name = NS_LITERAL_CSTRING("get_") + NS_ConvertUTF16toUTF8(mName);
       JS::Rooted<JSObject*> getterObject(cx);
-      rv = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options, name, 0,
+      JS::AutoObjectVector emptyVector(cx);
+      rv = nsJSUtils::CompileFunction(jsapi, emptyVector, options, name, 0,
                                       nullptr, getter, getterObject.address());
 
       delete getterText;
@@ -233,14 +242,14 @@ nsXBLProtoImplProperty::CompileMember(const nsCString& aClassStr,
   if (setterText && setterText->GetText()) {
     nsDependentString setter(setterText->GetText());
     if (!setter.IsEmpty()) {
-      AutoJSContext cx;
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), setterText->GetLineNumber())
              .setVersion(JSVERSION_LATEST);
       nsCString name = NS_LITERAL_CSTRING("set_") + NS_ConvertUTF16toUTF8(mName);
       JS::Rooted<JSObject*> setterObject(cx);
-      rv = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options, name, 1,
+      JS::AutoObjectVector emptyVector(cx);
+      rv = nsJSUtils::CompileFunction(jsapi, emptyVector, options, name, 1,
                                       gPropertyArgs, setter,
                                       setterObject.address());
 

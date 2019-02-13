@@ -116,6 +116,21 @@ add_task(function test_collect() {
       updateDate: now,
       description: "addon3 description"
     },
+    {
+      // Should be excluded from the report completely
+      id: "pluginfake",
+      type: "plugin",
+      userDisabled: false,
+      appDisabled: false,
+    },
+    {
+      // Should be in gm-plugins
+      id: "gmp-testgmp",
+      type: "plugin",
+      userDisabled: false,
+      version: "7.2",
+      isGMPlugin: true,
+    },
   ];
 
   monkeypatchAddons(provider, testAddons);
@@ -154,6 +169,28 @@ add_task(function test_collect() {
         "application/x-java-test"
       ],
     },
+    "Third Test Plug-in":
+    {
+      "version": "1.0.0.0",
+      "description": "Third plug-in for testing purposes.",
+      "blocklisted": false,
+      "disabled": false,
+      "clicktoplay": false,
+      "mimeTypes":[
+        "application/x-third-test"
+      ],
+    },
+    "Flash Test Plug-in":
+    {
+      "version": "1.0.0.0",
+      "description": "Flash plug-in for testing purposes.",
+      "blocklisted": false,
+      "disabled": false,
+      "clicktoplay": false,
+      "mimeTypes":[
+        "application/x-shockwave-flash-test"
+      ],
+    },
   };
 
   let pluginTags = Cc["@mozilla.org/plugin/host;1"]
@@ -186,6 +223,8 @@ add_task(function test_collect() {
   do_check_true(!("addon1" in value));
   do_check_true(!("addon2" in value));
   do_check_true("addon3" in value);
+  do_check_true(!("pluginfake" in value));
+  do_check_true(!("gmp-testgmp" in value));
 
   let serializer = addons.serializer(addons.SERIALIZE_JSON);
   let serialized = serializer.singular(data.singular);
@@ -233,8 +272,39 @@ add_task(function test_collect() {
   do_check_eq(typeof(serialized), "object");
   do_check_eq(Object.keys(serialized).length, pluginTags.length+1); // Our entries, plus _v.
   for (let name in testPlugins) {
+    // Special case for bug 1165981. There is a test plugin that
+    // exists to make sure we don't load it on certain platforms.
+    // We skip the check for that plugin here, as it will work on some
+    // platforms but not others.
+    if (name == "Third Test Plug-in") {
+      continue;
+    }
     do_check_true(testPlugins[name].id in serialized);
   }
+  do_check_eq(serialized._v, 1);
+
+  // Test GMP plugins measurement.
+
+  let gmPlugins = provider.getMeasurement("gm-plugins", 1);
+  data = yield gmPlugins.getValues();
+
+  do_check_eq(data.days.size, 0);
+  do_check_eq(data.singular.size, 1);
+  do_check_true(data.singular.has("gm-plugins"));
+
+  json = data.singular.get("gm-plugins")[1];
+  value = JSON.parse(json);
+  do_print("value: " + json);
+  do_check_eq(typeof(value), "object");
+  do_check_eq(Object.keys(value).length, 1);
+
+  do_check_eq(value["gmp-testgmp"].version, "7.2");
+  do_check_eq(value["gmp-testgmp"].userDisabled, false);
+
+  serializer = gmPlugins.serializer(plugins.SERIALIZE_JSON);
+  serialized = serializer.singular(data.singular);
+  do_check_eq(typeof(serialized), "object");
+  do_check_eq(serialized["gmp-testgmp"].version, "7.2");
   do_check_eq(serialized._v, 1);
 
   // Test counts measurement.

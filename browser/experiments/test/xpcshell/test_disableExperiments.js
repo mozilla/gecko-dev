@@ -19,7 +19,6 @@ let gProfileDir          = null;
 let gHttpServer          = null;
 let gHttpRoot            = null;
 let gDataRoot            = null;
-let gReporter            = null;
 let gPolicy              = null;
 let gManifestObject      = null;
 let gManifestHandlerURI  = null;
@@ -47,23 +46,15 @@ add_task(function* test_setup() {
   });
   do_register_cleanup(() => gHttpServer.stop(() => {}));
 
-  disableCertificateChecks();
-
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setIntPref(PREF_LOGGING_LEVEL, 0);
   Services.prefs.setBoolPref(PREF_LOGGING_DUMP, true);
   Services.prefs.setCharPref(PREF_MANIFEST_URI, gManifestHandlerURI);
   Services.prefs.setIntPref(PREF_FETCHINTERVAL, 0);
 
-  gReporter = yield getReporter("json_payload_simple");
-  yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(false);
-  do_register_cleanup(() => gReporter._shutdown());
-
   gPolicy = new Experiments.Policy();
   patchPolicy(gPolicy, {
     updatechannel: () => "nightly",
-    healthReportPayload: () => Promise.resolve(payload),
     oneshotTimer: (callback, timeout, thisObj, name) => {},
   });
 });
@@ -184,6 +175,6 @@ add_task(function* test_disableExperiments() {
   // Cleanup.
 
   Services.obs.removeObserver(observer, OBSERVER_TOPIC);
-  yield experiments.uninit();
+  yield promiseRestartManager();
   yield removeCacheFile();
 });

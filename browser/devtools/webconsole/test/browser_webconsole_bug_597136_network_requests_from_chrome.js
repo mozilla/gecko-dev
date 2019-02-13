@@ -11,7 +11,8 @@ let listener = {
     QueryInterface: XPCOMUtils.generateQI([ Ci.nsIObserver ]),
     observe: function(aSubject, aTopic, aData) {
         if (aSubject instanceof Ci.nsIScriptError &&
-                aSubject.category === "XPConnect JavaScript") {
+            aSubject.category === "XPConnect JavaScript" &&
+            aSubject.sourceName.contains("webconsole")) {
             good = false;
         }
     }
@@ -40,7 +41,7 @@ function checkForException() {
        "chrome window");
 
     Services.console.unregisterListener(listener);
-    listener = null;
+    listener = xhr = null;
 
     finishTest();
 }

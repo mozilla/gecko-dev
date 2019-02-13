@@ -10,13 +10,13 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import org.json.JSONObject;
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.widget.AllCapsTextView;
 import org.mozilla.gecko.widget.DateTimePicker;
 import org.mozilla.gecko.widget.FloatingHintEditText;
 
 import android.content.Context;
 import android.content.res.Configuration;
-import android.os.Build;
 import android.text.Html;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -62,6 +62,7 @@ public class PromptInput {
             mAutofocus = object.optBoolean("autofocus");
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
             EditText input = new FloatingHintEditText(context);
             input.setInputType(InputType.TYPE_CLASS_TEXT);
@@ -100,6 +101,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
             EditText input = (EditText) super.getView(context);
             input.setRawInputType(Configuration.KEYBOARD_12KEY);
@@ -115,6 +117,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             EditText input = (EditText) super.getView(context);
             input.setInputType(InputType.TYPE_CLASS_TEXT |
@@ -132,16 +135,17 @@ public class PromptInput {
 
     public static class CheckboxInput extends PromptInput {
         public static final String INPUT_TYPE = "checkbox";
-        private boolean mChecked;
+        private final boolean mChecked;
 
         public CheckboxInput(JSONObject obj) {
             super(obj);
             mChecked = obj.optBoolean("checked");
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             CheckBox checkbox = new CheckBox(context);
-            checkbox.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
+            checkbox.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             checkbox.setText(mLabel);
             checkbox.setChecked(mChecked);
             mView = (View)checkbox;
@@ -169,6 +173,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             if (mType.equals("date")) {
                 try {
@@ -211,7 +216,7 @@ public class PromptInput {
                 input.setCurrentMinute(calendar.get(GregorianCalendar.MINUTE));
                 mView = (View)input;
             } else if (mType.equals("datetime-local") || mType.equals("datetime")) {
-                DateTimePicker input = new DateTimePicker(context, "yyyy-MM-dd HH:mm", mValue,
+                DateTimePicker input = new DateTimePicker(context, "yyyy-MM-dd HH:mm", mValue.replace("T"," ").replace("Z", ""),
                                                           DateTimePicker.PickersState.DATETIME);
                 input.toggleCalendar(true);
                 mView = (View)input;
@@ -229,7 +234,7 @@ public class PromptInput {
 
         @Override
         public Object getValue() {
-            if (Build.VERSION.SDK_INT < 11 && mType.equals("date")) {
+            if (Versions.preHC && mType.equals("date")) {
                 // We can't use the custom DateTimePicker with a sdk older than 11.
                 // Fallback on the native DatePicker.
                 DatePicker dp = (DatePicker)mView;
@@ -250,11 +255,11 @@ public class PromptInput {
                 } else if (mType.equals("week")) {
                     return formatDateString("yyyy-'W'ww",calendar);
                 } else if (mType.equals("datetime-local")) {
-                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
+                    return formatDateString("yyyy-MM-dd'T'HH:mm",calendar);
                 } else if (mType.equals("datetime")) {
                     calendar.set(GregorianCalendar.ZONE_OFFSET,0);
                     calendar.setTimeInMillis(dp.getTimeInMillis());
-                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
+                    return formatDateString("yyyy-MM-dd'T'HH:mm'Z'",calendar);
                 } else if (mType.equals("month")) {
                     return formatDateString("yyyy-MM",calendar);
                 }
@@ -277,8 +282,9 @@ public class PromptInput {
             mSelected = obj.optInt("selected");
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            if (Versions.preHC) {
                 spinner = new Spinner(context);
             } else {
                 spinner = new Spinner(context, Spinner.MODE_DIALOG);
@@ -291,7 +297,8 @@ public class PromptInput {
                     spinner.setAdapter(adapter);
                     spinner.setSelection(mSelected);
                 }
-            } catch(Exception ex) { }
+            } catch (Exception ex) {
+            }
 
             if (!TextUtils.isEmpty(mLabel)) {
                 LinearLayout container = new LinearLayout(context);
@@ -310,7 +317,7 @@ public class PromptInput {
 
         @Override
         public Object getValue() {
-            return new Integer(spinner.getSelectedItemPosition());
+            return spinner.getSelectedItemPosition();
         }
     }
 
@@ -320,6 +327,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             // not really an input, but a way to add labels and such to the dialog
             TextView view = new TextView(context);
@@ -339,31 +347,35 @@ public class PromptInput {
 
     public static PromptInput getInput(JSONObject obj) {
         String type = obj.optString("type");
-        if (EditInput.INPUT_TYPE.equals(type)) {
-            return new EditInput(obj);
-        } else if (NumberInput.INPUT_TYPE.equals(type)) {
-            return new NumberInput(obj);
-        } else if (PasswordInput.INPUT_TYPE.equals(type)) {
-            return new PasswordInput(obj);
-        } else if (CheckboxInput.INPUT_TYPE.equals(type)) {
-            return new CheckboxInput(obj);
-        } else if (MenulistInput.INPUT_TYPE.equals(type)) {
-            return new MenulistInput(obj);
-        } else if (LabelInput.INPUT_TYPE.equals(type)) {
-            return new LabelInput(obj);
-        } else if (IconGridInput.INPUT_TYPE.equals(type)) {
-            return new IconGridInput(obj);
-        } else if (ColorPickerInput.INPUT_TYPE.equals(type)) {
-            return new ColorPickerInput(obj);
-        } else if (TabInput.INPUT_TYPE.equals(type)) {
-            return new TabInput(obj);
-        } else {
-            for (String dtType : DateTimeInput.INPUT_TYPES) {
-                if (dtType.equals(type)) {
-                    return new DateTimeInput(obj);
+        switch (type) {
+            case EditInput.INPUT_TYPE:
+                return new EditInput(obj);
+            case NumberInput.INPUT_TYPE:
+                return new NumberInput(obj);
+            case PasswordInput.INPUT_TYPE:
+                return new PasswordInput(obj);
+            case CheckboxInput.INPUT_TYPE:
+                return new CheckboxInput(obj);
+            case MenulistInput.INPUT_TYPE:
+                return new MenulistInput(obj);
+            case LabelInput.INPUT_TYPE:
+                return new LabelInput(obj);
+            case IconGridInput.INPUT_TYPE:
+                return new IconGridInput(obj);
+            case ColorPickerInput.INPUT_TYPE:
+                return new ColorPickerInput(obj);
+            case TabInput.INPUT_TYPE:
+                return new TabInput(obj);
+            default:
+                for (String dtType : DateTimeInput.INPUT_TYPES) {
+                    if (dtType.equals(type)) {
+                        return new DateTimeInput(obj);
+                    }
                 }
-            }
+
+                break;
         }
+
         return null;
     }
 

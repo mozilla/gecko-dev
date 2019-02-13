@@ -2,10 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-import re
 import subprocess
 
 from mach.decorators import (
@@ -35,7 +34,7 @@ class MachCommands(MachCommandBase):
 
     @Command('valgrind-test', category='testing',
         conditions=[conditions.is_firefox, is_valgrind_build],
-        description='Run the Valgrind test job.')
+        description='Run the Valgrind test job (memory-related errors).')
     @CommandArgument('--suppressions', default=[], action='append',
         metavar='FILENAME',
         help='Specify a suppression file for Valgrind to use. Use '
@@ -108,7 +107,8 @@ class MachCommands(MachCommandBase):
                 '--num-callers=36',
                 '--leak-check=full',
                 '--show-possibly-lost=no',
-                '--track-origins=yes'
+                '--track-origins=yes',
+                '--trace-children=yes',
             ]
 
             for s in suppressions:
@@ -126,21 +126,25 @@ class MachCommands(MachCommandBase):
                 valgrind_args.append('--suppressions=' + supps_file2)
 
             exitcode = None
+            timeout = 1100
             try:
                 runner = FirefoxRunner(profile=profile,
                                        binary=self.get_binary_path(),
                                        cmdargs=firefox_args,
                                        env=env,
-                                       kp_kwargs=kp_kwargs)
+                                       process_args=kp_kwargs)
                 runner.start(debug_args=valgrind_args)
-                exitcode = runner.wait()
+                # This timeout is slightly less than the no-output timeout on
+                # TBPL, so we'll timeout here first and give an informative
+                # message.
+                exitcode = runner.wait(timeout=timeout)
 
             finally:
                 errs = outputHandler.error_count
                 supps = outputHandler.suppression_count
                 if errs != supps:
                     status = 1  # turns the TBPL job orange
-                    print('TEST-UNEXPECTED-FAILURE | valgrind-test | error parsing:', errs, "errors seen, but", supps, "generated suppressions seen")
+                    print('TEST-UNEXPECTED-FAIL | valgrind-test | error parsing: {} errors seen, but {} generated suppressions seen'.format(errs, supps))
 
                 elif errs == 0:
                     status = 0
@@ -149,7 +153,10 @@ class MachCommands(MachCommandBase):
                     status = 1  # turns the TBPL job orange
                     # We've already printed details of the errors.
 
-                if exitcode != 0:
+                if exitcode == None:
+                    status = 2  # turns the TBPL job red
+                    print('TEST-UNEXPECTED-FAIL | valgrind-test | Valgrind timed out (reached {} second limit)'.format(timeout))
+                elif exitcode != 0:
                     status = 2  # turns the TBPL job red
                     print('TEST-UNEXPECTED-FAIL | valgrind-test | non-zero exit code from Valgrind')
 

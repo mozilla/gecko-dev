@@ -17,8 +17,6 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = 'necko_cookie'
 
 if CONFIG['NECKO_COOKIES']:
-    MSVC_ENABLE_PGO = True
-
     EXPORTS.mozilla.net = [
         'CookieServiceChild.h',
         'CookieServiceParent.h',
@@ -28,19 +26,18 @@ if CONFIG['NECKO_COOKIES']:
         'CookieServiceParent.cpp',
         'nsCookie.cpp',
     ]
-    # nsCookieService.cpp can't be unified because it forces NSPR logging.
+    # nsCookieService.cpp can't be unified because of symbol conflicts
     SOURCES += [
         'nsCookieService.cpp',
     ]
     LOCAL_INCLUDES += [
-        '/intl/uconv/src',
+        '/intl/uconv',
     ]
 
-    XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
-
-    # FIXME/bug 575918: out-of-process xpcshell is broken on OS X
-    if CONFIG['OS_ARCH'] != 'Darwin':
-        XPCSHELL_TESTS_MANIFESTS += ['test/unit_ipc/xpcshell.ini']
+    XPCSHELL_TESTS_MANIFESTS += [
+        'test/unit/xpcshell.ini',
+        'test/unit_ipc/xpcshell.ini',
+    ]
 
 IPDL_SOURCES = [
     'PCookieService.ipdl',
@@ -50,4 +47,4 @@ FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'necko'
+FINAL_LIBRARY = 'xul'

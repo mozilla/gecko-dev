@@ -4,20 +4,50 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += [
-    'server',
-    'client',
-    'gcli',
-    'sourcemap',
-    'webconsole',
-    'apps',
-    'styleinspector',
+DIRS += [
     'acorn',
+    'apps',
+    'client',
+    'discovery',
+    'gcli',
+    'jsbeautify',
     'pretty-fast',
     'qrcode',
-    'transport',
+    'security',
+    'server',
+    'sourcemap',
+    'shared',
+    'styleinspector',
     'tern',
+    'touch',
+    'transport',
+    'webconsole'
 ]
 
 MOCHITEST_CHROME_MANIFESTS += ['tests/mochitest/chrome.ini']
 XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
+
+EXTRA_JS_MODULES.devtools += [
+    'async-utils.js',
+    'content-observer.js',
+    'css-color.js',
+    'deprecated-sync-thenables.js',
+    'DevToolsUtils.js',
+    'event-emitter.js',
+    'event-parsers.js',
+    'output-parser.js',
+    'path.js',
+    'worker-loader.js',
+]
+
+EXTRA_JS_MODULES.devtools += [
+    'Console.jsm',
+    'DevToolsUtils.jsm',
+    'LayoutHelpers.jsm',
+    'Loader.jsm',
+    'Require.jsm',
+]
+
+EXTRA_JS_MODULES.devtools.server.actors += [
+    'server/actors/highlighter.css'
+]

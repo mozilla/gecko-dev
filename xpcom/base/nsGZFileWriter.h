@@ -13,11 +13,12 @@
 /**
  * A simple class for writing .gz files.
  */
-class nsGZFileWriter : public nsIGZFileWriter
+class nsGZFileWriter final : public nsIGZFileWriter
 {
+  virtual ~nsGZFileWriter();
+
 public:
   nsGZFileWriter();
-  virtual ~nsGZFileWriter();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGZFILEWRITER

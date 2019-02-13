@@ -19,8 +19,6 @@
 var util = require('../util/util');
 var l10n = require('../util/l10n');
 
-var centralTypes = require('../types/types').centralTypes;
-
 /**
  * Implement the localization algorithm for any documentation objects (i.e.
  * description and manual) in a command.
@@ -68,7 +66,7 @@ function lookup(data, onUndefined) {
 
 /**
  * The command object is mostly just setup around a commandSpec (as passed to
- * #addCommand()).
+ * Commands.add()).
  */
 function Command(types, commandSpec) {
   Object.keys(commandSpec).forEach(function(key) {
@@ -163,8 +161,11 @@ function Command(types, commandSpec) {
 
 /**
  * JSON serializer that avoids non-serializable data
+ * @param customProps Array of strings containing additional properties which,
+ * if specified in the command spec, will be included in the JSON. Normally we
+ * transfer only the properties required for GCLI to function.
  */
-Command.prototype.toJson = function() {
+Command.prototype.toJson = function(customProps) {
   var json = {
     item: 'command',
     name: this.name,
@@ -172,6 +173,7 @@ Command.prototype.toJson = function() {
     returnType: this.returnType,
     isParent: (this.exec == null)
   };
+
   if (this.description !==  l10n.lookup('canonDescNone')) {
     json.description = this.description;
   }
@@ -181,7 +183,29 @@ Command.prototype.toJson = function() {
   if (this.hidden != null) {
     json.hidden = this.hidden;
   }
+
+  if (Array.isArray(customProps)) {
+    customProps.forEach(function(prop) {
+      if (this[prop] != null) {
+        json[prop] = this[prop];
+      }
+    }.bind(this));
+  }
+
   return json;
+};
+
+/**
+ * Easy way to lookup parameters by full name
+ */
+Command.prototype.getParameterByName = function(name) {
+  var reply;
+  this.params.forEach(function(param) {
+    if (param.name === name) {
+      reply = param;
+    }
+  });
+  return reply;
 };
 
 /**
@@ -253,9 +277,17 @@ function Parameter(types, paramSpec, command, groupName) {
                     ': Missing defaultValue for optional parameter.');
   }
 
-  this.defaultValue = (this.paramSpec.defaultValue !== undefined) ?
-                      this.paramSpec.defaultValue :
-                      this.type.getBlank().value;
+  if (this.paramSpec.defaultValue !== undefined) {
+    this.defaultValue = this.paramSpec.defaultValue;
+  }
+  else {
+    Object.defineProperty(this, 'defaultValue', {
+      get: function() {
+        return this.type.getBlank().value;
+      },
+      enumerable: true
+    });
+  }
 
   // Resolve the documentation
   this.manual = lookup(this.paramSpec.manual);
@@ -263,6 +295,9 @@ function Parameter(types, paramSpec, command, groupName) {
 
   // Is the user required to enter data for this parameter? (i.e. has
   // defaultValue been set to something other than undefined)
+  // TODO: When the defaultValue comes from type.getBlank().value (see above)
+  // then perhaps we should set using something like
+  //   isDataRequired = (type.getBlank().status !== VALID)
   this.isDataRequired = (this.defaultValue === undefined);
 
   // Are we allowed to assign data to this parameter using positional
@@ -328,11 +363,15 @@ exports.Parameter = Parameter;
 
 
 /**
- * A canon is a store for a list of commands
+ * A store for a list of commands
+ * @param types Each command uses a set of Types to parse its parameters so the
+ * Commands container needs access to the list of available types.
+ * @param location String that, if set will force all commands to have a
+ * matching runAt property to be accepted
  */
-function Canon(options) {
-  options  = options || {};
-  this.types = options.types || centralTypes;
+function Commands(types, location) {
+  this.types = types;
+  this.location = location;
 
   // A lookup hash of our registered commands
   this._commands = {};
@@ -342,19 +381,23 @@ function Canon(options) {
   this._commandSpecs = {};
 
   // Enable people to be notified of changes to the list of commands
-  this.onCanonChange = util.createEvent('canon.onCanonChange');
+  this.onCommandsChange = util.createEvent('commands.onCommandsChange');
 }
 
 /**
- * Add a command to the canon of known commands.
- * This function is exposed to the outside world (via gcli/index). It is
- * documented in docs/index.md for all the world to see.
+ * Add a command to the list of known commands.
  * @param commandSpec The command and its metadata.
- * @return The new command
+ * @return The new command, or null if a location property has been set and the
+ * commandSpec doesn't have a matching runAt property.
  */
-Canon.prototype.addCommand = function(commandSpec) {
+Commands.prototype.add = function(commandSpec) {
+  if (this.location != null && commandSpec.runAt != null &&
+      commandSpec.runAt !== this.location) {
+    return;
+  }
+
   if (this._commands[commandSpec.name] != null) {
-    // Roughly canon.removeCommand() without the event call, which we do later
+    // Roughly commands.remove() without the event call, which we do later
     delete this._commands[commandSpec.name];
     this._commandNames = this._commandNames.filter(function(test) {
       return test !== commandSpec.name;
@@ -368,17 +411,17 @@ Canon.prototype.addCommand = function(commandSpec) {
 
   this._commandSpecs[commandSpec.name] = commandSpec;
 
-  this.onCanonChange();
+  this.onCommandsChange();
   return command;
 };
 
 /**
- * Remove an individual command. The opposite of #addCommand().
+ * Remove an individual command. The opposite of Commands.add().
  * Removing a non-existent command is a no-op.
  * @param commandOrName Either a command name or the command itself.
  * @return true if a command was removed, false otherwise.
  */
-Canon.prototype.removeCommand = function(commandOrName) {
+Commands.prototype.remove = function(commandOrName) {
   var name = typeof commandOrName === 'string' ?
           commandOrName :
           commandOrName.name;
@@ -387,14 +430,14 @@ Canon.prototype.removeCommand = function(commandOrName) {
     return false;
   }
 
-  // See start of canon.addCommand if changing this code
+  // See start of commands.add if changing this code
   delete this._commands[name];
   delete this._commandSpecs[name];
   this._commandNames = this._commandNames.filter(function(test) {
     return test !== name;
   });
 
-  this.onCanonChange();
+  this.onCommandsChange();
   return true;
 };
 
@@ -402,7 +445,7 @@ Canon.prototype.removeCommand = function(commandOrName) {
  * Retrieve a command by name
  * @param name The name of the command to retrieve
  */
-Canon.prototype.getCommand = function(name) {
+Commands.prototype.get = function(name) {
   // '|| undefined' is to silence 'reference to undefined property' warnings
   return this._commands[name] || undefined;
 };
@@ -410,30 +453,26 @@ Canon.prototype.getCommand = function(name) {
 /**
  * Get an array of all the registered commands.
  */
-Canon.prototype.getCommands = function() {
+Commands.prototype.getAll = function() {
   return Object.keys(this._commands).map(function(name) {
     return this._commands[name];
   }, this);
 };
 
 /**
- * Get an array containing the names of the registered commands.
- */
-Canon.prototype.getCommandNames = function() {
-  return this._commandNames.slice(0);
-};
-
-/**
  * Get access to the stored commandMetaDatas (i.e. before they were made into
  * instances of Command/Parameters) so we can remote them.
+ * @param customProps Array of strings containing additional properties which,
+ * if specified in the command spec, will be included in the JSON. Normally we
+ * transfer only the properties required for GCLI to function.
  */
-Canon.prototype.getCommandSpecs = function() {
+Commands.prototype.getCommandSpecs = function(customProps) {
   var commandSpecs = [];
 
   Object.keys(this._commands).forEach(function(name) {
     var command = this._commands[name];
     if (!command.noRemote) {
-      commandSpecs.push(command.toJson());
+      commandSpecs.push(command.toJson(customProps));
     }
   }.bind(this));
 
@@ -452,7 +491,7 @@ Canon.prototype.getCommandSpecs = function() {
  * @param to URL-like string that describes where the commands are executed.
  * This is to complete the parent command description.
  */
-Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
+Commands.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
   if (prefix != null) {
     if (this._commands[prefix] != null) {
       throw new Error(l10n.lookupFormat('canonProxyExists', [ prefix ]));
@@ -460,7 +499,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
 
     // We need to add the parent command so all the commands from the other
     // system have a parent
-    this.addCommand({
+    this.add({
       name: prefix,
       isProxy: true,
       description: l10n.lookupFormat('canonProxyDesc', [ to ]),
@@ -481,7 +520,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
       commandSpec.name = prefix + ' ' + commandSpec.name;
     }
     commandSpec.isProxy = true;
-    this.addCommand(commandSpec);
+    this.add(commandSpec);
   }.bind(this));
 };
 
@@ -489,7 +528,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
  * Remove a set of commands added with addProxyCommands.
  * @param prefix The name prefix that we assign to all command names
  */
-Canon.prototype.removeProxyCommands = function(prefix) {
+Commands.prototype.removeProxyCommands = function(prefix) {
   var toRemove = [];
   Object.keys(this._commandSpecs).forEach(function(name) {
     if (name.indexOf(prefix) === 0) {
@@ -499,9 +538,9 @@ Canon.prototype.removeProxyCommands = function(prefix) {
 
   var removed = [];
   toRemove.forEach(function(name) {
-    var command = this.getCommand(name);
+    var command = this.get(name);
     if (command.isProxy) {
-      this.removeCommand(name);
+      this.remove(name);
       removed.push(name);
     }
     else {
@@ -513,9 +552,7 @@ Canon.prototype.removeProxyCommands = function(prefix) {
   return removed;
 };
 
-exports.Canon = Canon;
-
-exports.centralCanon = new Canon();
+exports.Commands = Commands;
 
 /**
  * CommandOutputManager stores the output objects generated by executed

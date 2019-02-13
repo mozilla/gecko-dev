@@ -4,12 +4,16 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const {classes: Cc,
+       interfaces: Ci,
+       utils: Cu,
+       results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const PREF_FXA_ENABLED = "identity.fxaccounts.enabled";
+const FXA_PERMISSION = "firefox-accounts";
 
 // This is the parent process corresponding to nsDOMIdentity.
 this.EXPORTED_SYMBOLS = ["DOMIdentity"];
@@ -17,12 +21,14 @@ this.EXPORTED_SYMBOLS = ["DOMIdentity"];
 XPCOMUtils.defineLazyModuleGetter(this, "objectCopy",
                                   "resource://gre/modules/identity/IdentityUtils.jsm");
 
+/* jshint ignore:start */
 XPCOMUtils.defineLazyModuleGetter(this, "IdentityService",
 #ifdef MOZ_B2G_VERSION
                                   "resource://gre/modules/identity/MinimalIdentity.jsm");
 #else
                                   "resource://gre/modules/identity/Identity.jsm");
 #endif
+/* jshint ignore:end */
 
 XPCOMUtils.defineLazyModuleGetter(this, "FirefoxAccounts",
                                   "resource://gre/modules/identity/FirefoxAccounts.jsm");
@@ -38,6 +44,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageListenerManager");
 
+XPCOMUtils.defineLazyServiceGetter(this, "permissionManager",
+                                   "@mozilla.org/permissionmanager;1",
+                                   "nsIPermissionManager");
+
 function log(...aMessageArgs) {
   Logger.log.apply(Logger, ["DOMIdentity"].concat(aMessageArgs));
 }
@@ -45,6 +55,23 @@ function log(...aMessageArgs) {
 function IDDOMMessage(aOptions) {
   objectCopy(aOptions, this);
 }
+
+function _sendAsyncMessage(identifier, message) {
+  if (this._mm) {
+    try {
+      this._mm.sendAsyncMessage(identifier, message);
+    } catch(err) {
+      // We may receive a NS_ERROR_NOT_INITIALIZED if the target window has
+      // been closed.  This can legitimately happen if an app has been killed
+      // while we are in the midst of a sign-in flow.
+      if (err.result == Cr.NS_ERROR_NOT_INITIALIZED) {
+        log("Cannot sendAsyncMessage because the recipient frame has closed");
+        return;
+      }
+      log("ERROR: sendAsyncMessage: " + err);
+    }
+  }
+};
 
 function IDPProvisioningContext(aID, aOrigin, aTargetMM) {
   this._id = aID;
@@ -56,19 +83,21 @@ IDPProvisioningContext.prototype = {
   get id() this._id,
   get origin() this._origin,
 
+  sendAsyncMessage: _sendAsyncMessage,
+
   doBeginProvisioningCallback: function IDPPC_doBeginProvCB(aID, aCertDuration) {
     let message = new IDDOMMessage({id: this.id});
     message.identity = aID;
     message.certDuration = aCertDuration;
-    this._mm.sendAsyncMessage("Identity:IDP:CallBeginProvisioningCallback",
-                              message);
+    this.sendAsyncMessage("Identity:IDP:CallBeginProvisioningCallback",
+                          message);
   },
 
   doGenKeyPairCallback: function IDPPC_doGenKeyPairCallback(aPublicKey) {
     log("doGenKeyPairCallback");
     let message = new IDDOMMessage({id: this.id});
     message.publicKey = aPublicKey;
-    this._mm.sendAsyncMessage("Identity:IDP:CallGenKeyPairCallback", message);
+    this.sendAsyncMessage("Identity:IDP:CallGenKeyPairCallback", message);
   },
 
   doError: function(msg) {
@@ -86,11 +115,13 @@ IDPAuthenticationContext.prototype = {
   get id() this._id,
   get origin() this._origin,
 
+  sendAsyncMessage: _sendAsyncMessage,
+
   doBeginAuthenticationCallback: function IDPAC_doBeginAuthCB(aIdentity) {
     let message = new IDDOMMessage({id: this.id});
     message.identity = aIdentity;
-    this._mm.sendAsyncMessage("Identity:IDP:CallBeginAuthenticationCallback",
-                              message);
+    this.sendAsyncMessage("Identity:IDP:CallBeginAuthenticationCallback",
+                          message);
   },
 
   doError: function IDPAC_doError(msg) {
@@ -98,13 +129,15 @@ IDPAuthenticationContext.prototype = {
   }
 };
 
-function RPWatchContext(aOptions, aTargetMM) {
+function RPWatchContext(aOptions, aTargetMM, aPrincipal) {
   objectCopy(aOptions, this);
 
   // id and origin are required
   if (! (this.id && this.origin)) {
     throw new Error("id and origin are required for RP watch context");
   }
+
+  this.principal = aPrincipal;
 
   // default for no loggedInUser is undefined, not null
   this.loggedInUser = aOptions.loggedInUser;
@@ -116,37 +149,39 @@ function RPWatchContext(aOptions, aTargetMM) {
 }
 
 RPWatchContext.prototype = {
+  sendAsyncMessage: _sendAsyncMessage,
+
   doLogin: function RPWatchContext_onlogin(aAssertion, aMaybeInternalParams) {
     log("doLogin: " + this.id);
     let message = new IDDOMMessage({id: this.id, assertion: aAssertion});
     if (aMaybeInternalParams) {
       message._internalParams = aMaybeInternalParams;
     }
-    this._mm.sendAsyncMessage("Identity:RP:Watch:OnLogin", message);
+    this.sendAsyncMessage("Identity:RP:Watch:OnLogin", message);
   },
 
   doLogout: function RPWatchContext_onlogout() {
     log("doLogout: " + this.id);
     let message = new IDDOMMessage({id: this.id});
-    this._mm.sendAsyncMessage("Identity:RP:Watch:OnLogout", message);
+    this.sendAsyncMessage("Identity:RP:Watch:OnLogout", message);
   },
 
   doReady: function RPWatchContext_onready() {
     log("doReady: " + this.id);
     let message = new IDDOMMessage({id: this.id});
-    this._mm.sendAsyncMessage("Identity:RP:Watch:OnReady", message);
+    this.sendAsyncMessage("Identity:RP:Watch:OnReady", message);
   },
 
   doCancel: function RPWatchContext_oncancel() {
     log("doCancel: " + this.id);
     let message = new IDDOMMessage({id: this.id});
-    this._mm.sendAsyncMessage("Identity:RP:Watch:OnCancel", message);
+    this.sendAsyncMessage("Identity:RP:Watch:OnCancel", message);
   },
 
   doError: function RPWatchContext_onerror(aMessage) {
     log("doError: " + this.id + ": " + JSON.stringify(aMessage));
     let message = new IDDOMMessage({id: this.id, message: aMessage});
-    this._mm.sendAsyncMessage("Identity:RP:Watch:OnError", message);
+    this.sendAsyncMessage("Identity:RP:Watch:OnError", message);
   }
 };
 
@@ -182,8 +217,8 @@ this.DOMIdentity = {
   /*
    * Create a new RPWatchContext, and update the context maps.
    */
-  newContext: function(message, targetMM) {
-    let context = new RPWatchContext(message, targetMM);
+  newContext: function(message, targetMM, principal) {
+    let context = new RPWatchContext(message, targetMM, principal);
     this._serviceContexts.set(message.id, context);
     this._mmContexts.set(targetMM, message.id);
     return context;
@@ -200,7 +235,8 @@ this.DOMIdentity = {
    */
   getService: function(message) {
     if (!this._serviceContexts.has(message.id)) {
-      throw new Error("getService called before newContext for " + message.id);
+      log("ERROR: getService called before newContext for " + message.id);
+      return null;
     }
 
     let context = this._serviceContexts.get(message.id);
@@ -234,6 +270,23 @@ this.DOMIdentity = {
     this._mmContexts.delete(targetMM);
   },
 
+  hasPermission: function(aMessage) {
+    // We only check that the firefox accounts permission is present in the
+    // manifest.
+    if (aMessage.json && aMessage.json.wantIssuer == "firefox-accounts") {
+      if (!aMessage.principal) {
+        return false;
+      }
+
+      let permission =
+        permissionManager.testPermissionFromPrincipal(aMessage.principal,
+                                                      FXA_PERMISSION);
+      return permission != Ci.nsIPermissionManager.UNKNOWN_ACTION &&
+             permission != Ci.nsIPermissionManager.DENY_ACTION;
+    }
+    return true;
+  },
+
   // nsIMessageListener
   receiveMessage: function DOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
@@ -242,19 +295,23 @@ this.DOMIdentity = {
     // used to send replies back to the proper window.
     let targetMM = aMessage.target;
 
+    if (!this.hasPermission(aMessage)) {
+      throw new Error("PERMISSION_DENIED");
+    }
+
     switch (aMessage.name) {
       // RP
       case "Identity:RP:Watch":
-        this._watch(msg, targetMM);
+        this._watch(msg, targetMM, aMessage.principal);
         break;
       case "Identity:RP:Unwatch":
         this._unwatch(msg, targetMM);
         break;
       case "Identity:RP:Request":
-        this._request(msg, targetMM);
+        this._request(msg);
         break;
       case "Identity:RP:Logout":
-        this._logout(msg, targetMM);
+        this._logout(msg);
         break;
       // IDP
       case "Identity:IDP:BeginProvisioning":
@@ -315,7 +372,9 @@ this.DOMIdentity = {
   },
 
   _subscribeListeners: function DOMIdentity__subscribeListeners() {
-    if (!ppmm) return;
+    if (!ppmm) {
+      return;
+    }
     for (let message of this.messages) {
       ppmm.addMessageListener(message, this);
     }
@@ -328,9 +387,9 @@ this.DOMIdentity = {
     ppmm = null;
   },
 
-  _watch: function DOMIdentity__watch(message, targetMM) {
-    log("DOMIdentity__watch: " + message.id);
-    let context = this.newContext(message, targetMM);
+  _watch: function DOMIdentity__watch(message, targetMM, principal) {
+    log("DOMIdentity__watch: " + message.id + " - " + principal);
+    let context = this.newContext(message, targetMM, principal);
     this.getService(message).RP.watch(context);
   },
 
@@ -340,20 +399,31 @@ this.DOMIdentity = {
     // not have the right callbacks, we don't want unwatch to throw, because it
     // will break the process of releasing the page's resources and leak
     // memory.
-    try {
-      this.getService(message).RP.unwatch(message.id, targetMM);
-    } catch(ex) {
-      log("ERROR: can't unwatch " + message.id + ": " + ex);
+    let service = this.getService(message);
+    if (service && service.RP) {
+      service.RP.unwatch(message.id, targetMM);
+      this.deleteContextForMM(targetMM);
+      return;
     }
+    log("Can't find a service to unwatch() for " + message.id);
   },
 
   _request: function DOMIdentity__request(message) {
-    this.getService(message).RP.request(message.id, message);
+    let service = this.getService(message);
+    if (service && service.RP) {
+      service.RP.request(message.id, message);
+      return;
+    }
+    log("No context in which to call request(); Did you call watch() first?");
   },
 
   _logout: function DOMIdentity__logout(message) {
-    log("logout " + message + "\n");
-    this.getService(message).RP.logout(message.id, message.origin, message);
+    let service = this.getService(message);
+    if (service && service.RP) {
+      service.RP.logout(message.id, message.origin, message);
+      return;
+    }
+    log("No context in which to call logout(); Did you call watch() first?");
   },
 
   _childProcessShutdown: function DOMIdentity__childProcessShutdown(targetMM) {
@@ -361,7 +431,11 @@ this.DOMIdentity = {
       return;
     }
 
-    this.getContextForMM(targetMM).RP.childProcessShutdown(targetMM);
+    let service = this.getContextForMM(targetMM);
+    if (service && service.RP) {
+      service.RP.childProcessShutdown(targetMM);
+    }
+
     this.deleteContextForMM(targetMM);
 
     let options = makeMessageObject({messageManager: targetMM, id: null, origin: null});

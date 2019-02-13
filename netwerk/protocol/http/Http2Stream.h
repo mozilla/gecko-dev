@@ -6,9 +6,14 @@
 #ifndef mozilla_net_Http2Stream_h
 #define mozilla_net_Http2Stream_h
 
+// HTTP/2 - RFC7540
+// https://www.rfc-editor.org/rfc/rfc7540.txt
+
 #include "mozilla/Attributes.h"
 #include "nsAHttpTransaction.h"
 #include "nsISupportsPriority.h"
+
+class nsStandardURL;
 
 namespace mozilla {
 namespace net {
@@ -47,9 +52,15 @@ public:
 
   virtual nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
   virtual nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
-  virtual bool DeferCleanupOnSuccess() { return false; }
+  virtual bool DeferCleanup(nsresult status) { return false; }
+
+  // The consumer stream is the synthetic pull stream hooked up to this stream
+  // http2PushedStream overrides it
+  virtual Http2Stream *GetConsumerStream() { return nullptr; };
 
   const nsAFlatCString &Origin() const { return mOrigin; }
+  const nsAFlatCString &Host() const { return mHeaderHost; }
+  const nsAFlatCString &Path() const { return mHeaderPath; }
 
   bool RequestBlockedOnRead()
   {
@@ -81,17 +92,22 @@ public:
   void SetSentReset(bool aStatus);
   bool SentReset() { return mSentReset; }
 
+  void SetQueued(bool aStatus) { mQueued = aStatus ? 1 : 0; }
+  bool Queued() { return mQueued; }
+
   void SetCountAsActive(bool aStatus) { mCountAsActive = aStatus ? 1 : 0; }
   bool CountAsActive() { return mCountAsActive; }
 
   void SetAllHeadersReceived();
+  void UnsetAllHeadersReceived() { mAllHeadersReceived = 0; }
   bool AllHeadersReceived() { return mAllHeadersReceived; }
 
   void UpdateTransportSendEvents(uint32_t count);
   void UpdateTransportReadEvents(uint32_t count);
 
   // NS_ERROR_ABORT terminates stream, other failure terminates session
-  nsresult ConvertResponseHeaders(Http2Decompressor *, nsACString &, nsACString &);
+  nsresult ConvertResponseHeaders(Http2Decompressor *, nsACString &,
+                                  nsACString &, int32_t &);
   nsresult ConvertPushHeaders(Http2Decompressor *, nsACString &, nsACString &);
 
   bool AllowFlowControlledWrite();
@@ -116,12 +132,22 @@ public:
   uint32_t Priority() { return mPriority; }
   void SetPriority(uint32_t);
   void SetPriorityDependency(uint32_t, uint8_t, bool);
+  void UpdatePriorityDependency();
 
   // A pull stream has an implicit sink, a pushed stream has a sink
   // once it is matched to a pull stream.
   virtual bool HasSink() { return true; }
 
   virtual ~Http2Stream();
+
+  Http2Session *Session() { return mSession; }
+
+  static nsresult MakeOriginURL(const nsACString &origin,
+                                nsRefPtr<nsStandardURL> &url);
+
+  static nsresult MakeOriginURL(const nsACString &scheme,
+                                const nsACString &origin,
+                                nsRefPtr<nsStandardURL> &url);
 
 protected:
   static void CreatePushHashKey(const nsCString &scheme,
@@ -158,11 +184,18 @@ protected:
   // The HTTP/2 state for the stream from section 5.1
   enum stateType mState;
 
-  // Flag is set when all http request headers have been read and ID is stable
-  uint32_t                     mAllHeadersSent       : 1;
+  // Flag is set when all http request headers have been read ID is not stable
+  uint32_t                     mRequestHeadersDone   : 1;
 
-  // Flag is set when all http request headers have been read and ID is stable
+  // Flag is set when ID is stable and concurrency limits are met
+  uint32_t                     mOpenGenerated        : 1;
+
+  // Flag is set when all http response headers have been read
   uint32_t                     mAllHeadersReceived   : 1;
+
+  // Flag is set when stream is queued inside the session due to
+  // concurrency limits being exceeded
+  uint32_t                     mQueued               : 1;
 
   void     ChangeState(enum upstreamStateType);
 
@@ -170,6 +203,8 @@ private:
   friend class nsAutoPtr<Http2Stream>;
 
   nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
+  nsresult GenerateOpen();
+
   void     AdjustPushedPriority();
   void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);
@@ -245,8 +280,9 @@ private:
   // close by setting this to the max value.
   int64_t                      mRequestBodyLenRemaining;
 
-  uint32_t                     mPriority;
-  uint8_t                      mPriorityWeight;
+  uint32_t                     mPriority; // geckoish weight
+  uint32_t                     mPriorityDependency; // h2 stream id 3 - 0xb
+  uint8_t                      mPriorityWeight; // h2 weight
 
   // mClientReceiveWindow, mServerReceiveWindow, and mLocalUnacked are for flow control.
   // *window are signed because the race conditions in asynchronous SETTINGS
@@ -281,9 +317,11 @@ public:
   bool IsTunnel() { return mIsTunnel; }
 private:
   void ClearTransactionsBlockedOnTunnel();
+  void MapStreamToPlainText();
   void MapStreamToHttpConnection();
 
   bool mIsTunnel;
+  bool mPlainTextTunnel;
 };
 
 } // namespace mozilla::net

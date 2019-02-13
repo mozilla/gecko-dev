@@ -17,9 +17,7 @@ add_task(function* setup() {
 
   // We'll clear all closed windows to make sure our state is clean
   // forgetClosedWindow doesn't trigger a delayed save
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
   is(ss.getClosedWindowCount(), 0, "starting with no closed windows");
 });
 
@@ -36,7 +34,7 @@ add_task(function* new_window() {
     yield promiseWindowClosed(newWin);
     newWin = null;
 
-    let state = JSON.parse((yield promiseSaveFileContents()));
+    let state = JSON.parse((yield promiseRecoveryFileContents()));
     is(state.windows.length, 2,
       "observe1: 2 windows in data written to disk");
     is(state._closedWindows.length, 0,
@@ -60,7 +58,7 @@ add_task(function* new_tab() {
   try {
     newTab = gBrowser.addTab("about:mozilla");
 
-    let state = JSON.parse((yield promiseSaveFileContents()));
+    let state = JSON.parse((yield promiseRecoveryFileContents()));
     is(state.windows.length, 1,
       "observe2: 1 window in data being written to disk");
     is(state._closedWindows.length, 1,
@@ -79,8 +77,6 @@ add_task(function* done() {
   // The API still represents the closed window as closed, so we can clear it
   // with the API, but just to make sure...
 //  is(ss.getClosedWindowCount(), 1, "1 closed window according to API");
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
   Services.prefs.clearUserPref("browser.sessionstore.interval");
 });

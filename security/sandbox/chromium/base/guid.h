@@ -15,7 +15,7 @@ namespace base {
 
 // Generate a 128-bit random GUID of the form: "%08X-%04X-%04X-%04X-%012llX".
 // If GUID generation fails an empty string is returned.
-// The POSIX implementation uses psuedo random number generation to create
+// The POSIX implementation uses pseudo random number generation to create
 // the GUID.  The Windows implementation uses system services.
 BASE_EXPORT std::string GenerateGUID();
 
@@ -27,6 +27,6 @@ BASE_EXPORT bool IsValidGUID(const std::string& guid);
 BASE_EXPORT std::string RandomDataToGUIDString(const uint64 bytes[2]);
 #endif
 
-}  // namespace guid
+}  // namespace base
 
 #endif  // BASE_GUID_H_

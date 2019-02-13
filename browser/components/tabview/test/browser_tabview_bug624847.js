@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
+
 function test() {
   let cw;
   let win;
@@ -54,18 +56,19 @@ function test() {
     assertNumberOfTabs(2);
 
     afterAllTabsLoaded(function () {
-      win.gBrowser.removeTab(tab);
-      assertNumberOfTabs(1);
-      assertNumberOfPinnedTabs(0);
+      BrowserTestUtils.removeTab(tab).then(() => {
+        assertNumberOfTabs(1);
+        assertNumberOfPinnedTabs(0);
 
-      restoreTab(function () {
-        prefix = 'unpinned-restored';
-        assertValidPrerequisites();
-        assertGroupItemPreserved();
+        restoreTab(function () {
+          prefix = 'unpinned-restored';
+          assertValidPrerequisites();
+          assertGroupItemPreserved();
 
-        createBlankTab();
-        afterAllTabsLoaded(testUndoCloseWithSelectedBlankPinnedTab, win);
-      }, 0, win);
+          createBlankTab();
+          afterAllTabsLoaded(testUndoCloseWithSelectedBlankPinnedTab, win);
+        }, 0, win);
+      });
     }, win);
   }
 

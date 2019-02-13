@@ -1,7 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 var rootDir = getRootDirectory(gTestPath);
 const gTestRoot = rootDir;
 
@@ -90,7 +86,6 @@ function prepareTest(nextTest, url, skip) {
 // Tests a page with normal play preview registration (1/2)
 function test1a() {
   var notificationBox = gBrowser.getNotificationBox(gTestBrowser);
-  ok(!notificationBox.getNotificationWithValue("missing-plugins"), "Test 1a, Should not have displayed the missing plugin notification");
   ok(!notificationBox.getNotificationWithValue("blocked-plugins"), "Test 1a, Should not have displayed the blocked plugin notification");
 
   var pluginInfo = getTestPlugin();

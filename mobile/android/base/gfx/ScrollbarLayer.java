@@ -11,15 +11,25 @@ import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.nio.FloatBuffer;
+import java.nio.ByteBuffer;
 
-public class ScrollbarLayer extends TileLayer {
+public class ScrollbarLayer extends Layer {
+    private static final String LOGTAG = "GeckoScrollbarLayer";
+
     public static final long FADE_DELAY = 500; // milliseconds before fade-out starts
-    private static final float FADE_AMOUNT = 0.03f; // how much (as a percent) the scrollbar should fade per frame
+    private static final float FADE_MILLIS = 250; // how long the scrollbar should take to fade
 
     private final boolean mVertical;
     private float mOpacity;
+    private final Rect mDirtyRect;
+    private IntSize mSize;
+
+    private int[] mTextureIDs;
+
+    private final BufferedImage mImage;
 
     // To avoid excessive GC, declare some objects here that would otherwise
     // be created and destroyed frequently during draw().
@@ -28,7 +38,7 @@ public class ScrollbarLayer extends TileLayer {
     private final float[] mCoords;
     private final RectF mCapRectF;
 
-    private LayerRenderer mRenderer;
+    private final LayerRenderer mRenderer;
     private int mProgram;
     private int mPositionHandle;
     private int mTextureHandle;
@@ -59,7 +69,8 @@ public class ScrollbarLayer extends TileLayer {
     private final Rect mEndCapTexCoords;    // bottom/right endcap coordinates
 
     ScrollbarLayer(LayerRenderer renderer, Bitmap scrollbarImage, IntSize imageSize, boolean vertical) {
-        super(new BufferedCairoImage(scrollbarImage), TileLayer.PaintMode.NORMAL);
+        super(new IntSize(scrollbarImage.getHeight(), scrollbarImage.getWidth()));
+        mImage = new BufferedImage(scrollbarImage);
         mRenderer = renderer;
         mVertical = vertical;
 
@@ -67,6 +78,8 @@ public class ScrollbarLayer extends TileLayer {
         mBarRect = new Rect();
         mCoords = new float[20];
         mCapRectF = new RectF();
+        mDirtyRect = new Rect();
+        mSize = new IntSize(0, 0);
 
         mTexHeight = scrollbarImage.getHeight();
         mTexWidth = scrollbarImage.getWidth();
@@ -128,16 +141,17 @@ public class ScrollbarLayer extends TileLayer {
     }
 
     /**
-     * Decrease the opacity of the scrollbar by one frame's worth.
+     * Set the opacity of the scrollbar depending on how much time has
+     * passed from the given start time, current time, and the constant duration.
      * Return true if the opacity was decreased, or false if the scrollbars
      * are already fully faded out.
      */
-    public boolean fade() {
+    public boolean fade(final long startMillis, final long currentMillis) {
         if (FloatUtils.fuzzyEquals(mOpacity, 0.0f)) {
             return false;
         }
         beginTransaction(); // called on compositor thread
-        mOpacity = Math.max(mOpacity - FADE_AMOUNT, 0.0f);
+        mOpacity = Math.max(1 - (currentMillis - startMillis) / FADE_MILLIS, 0.0f);
         endTransaction();
         return true;
     }
@@ -293,5 +307,125 @@ public class ScrollbarLayer extends TileLayer {
             barStart = barEnd = middle;
         }
         dest.set(barStart, viewport.height() - mBarWidth, barEnd, viewport.height());
+    }
+
+    private void validateTexture() {
+        /* Calculate the ideal texture size. This must be a power of two if
+         * the texture is repeated or OpenGL ES 2.0 isn't supported, as
+         * OpenGL ES 2.0 is required for NPOT texture support (without
+         * extensions), but doesn't support repeating NPOT textures.
+         *
+         * XXX Currently, we don't pick a GLES 2.0 context, so always round.
+         */
+        IntSize textureSize = mImage.getSize().nextPowerOfTwo();
+
+        if (!textureSize.equals(mSize)) {
+            mSize = textureSize;
+
+            // Delete the old texture
+            if (mTextureIDs != null) {
+                TextureReaper.get().add(mTextureIDs);
+                mTextureIDs = null;
+
+                // Free the texture immediately, so we don't incur a
+                // temporarily increased memory usage.
+                TextureReaper.get().reap();
+            }
+        }
+    }
+
+    @Override
+    protected void performUpdates(RenderContext context) {
+        super.performUpdates(context);
+
+        // Reallocate the texture if the size has changed
+        validateTexture();
+
+        // Don't do any work if the image has an invalid size.
+        if (!mImage.getSize().isPositive())
+            return;
+
+        // If we haven't allocated a texture, assume the whole region is dirty
+        if (mTextureIDs == null) {
+            uploadFullTexture();
+        } else {
+            uploadDirtyRect(mDirtyRect);
+        }
+
+        mDirtyRect.setEmpty();
+    }
+
+    private void uploadFullTexture() {
+        IntSize bufferSize = mImage.getSize();
+        uploadDirtyRect(new Rect(0, 0, bufferSize.width, bufferSize.height));
+    }
+
+    private void uploadDirtyRect(Rect dirtyRect) {
+        // If we have nothing to upload, just return for now
+        if (dirtyRect.isEmpty())
+            return;
+
+        // It's possible that the buffer will be null, check for that and return
+        ByteBuffer imageBuffer = mImage.getBuffer();
+        if (imageBuffer == null)
+            return;
+
+        if (mTextureIDs == null) {
+            mTextureIDs = new int[1];
+            GLES20.glGenTextures(mTextureIDs.length, mTextureIDs, 0);
+        }
+
+        int imageFormat = mImage.getFormat();
+        BufferedImageGLInfo glInfo = new BufferedImageGLInfo(imageFormat);
+
+        bindAndSetGLParameters();
+
+        // XXX TexSubImage2D is too broken to rely on on Adreno, and very slow
+        //     on other chipsets, so we always upload the entire buffer.
+        IntSize bufferSize = mImage.getSize();
+        if (mSize.equals(bufferSize)) {
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
+                                mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
+        } else {
+            // Our texture has been expanded to the next power of two.
+            // XXX We probably never want to take this path, so throw an exception.
+            throw new RuntimeException("Buffer/image size mismatch in ScrollbarLayer!");
+        }
+    }
+
+    private void bindAndSetGLParameters() {
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIDs[0]);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
+                               GLES20.GL_LINEAR);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER,
+                               GLES20.GL_LINEAR);
+
+        int repeatMode = GLES20.GL_CLAMP_TO_EDGE;
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, repeatMode);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, repeatMode);
+    }
+
+    public void destroy() {
+        try {
+            if (mImage != null) {
+                mImage.destroy();
+            }
+        } catch (Exception ex) {
+            Log.e(LOGTAG, "error clearing buffers: ", ex);
+        }
+    }
+
+    protected int getTextureID() { return mTextureIDs[0]; }
+    protected boolean initialized() { return mImage != null && mTextureIDs != null; }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (mTextureIDs != null)
+                TextureReaper.get().add(mTextureIDs);
+        } finally {
+            super.finalize();
+        }
     }
 }

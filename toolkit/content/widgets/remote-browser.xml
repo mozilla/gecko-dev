@@ -10,7 +10,8 @@
 
   <binding id="remote-browser" extends="chrome://global/content/bindings/browser.xml#browser">
 
-    <implementation type="application/javascript" implements="nsIObserver, nsIDOMEventListener, nsIMessageListener">
+    <implementation type="application/javascript"
+                    implements="nsIObserver, nsIDOMEventListener, nsIMessageListener, nsIRemoteBrowser">
 
       <field name="_securityUI">null</field>
 
@@ -18,6 +19,11 @@
                 readonly="true">
         <getter><![CDATA[
           if (!this._securityUI) {
+            // Don't attempt to create the remote web progress if the
+            // messageManager has already gone away
+            if (!this.messageManager)
+              return null;
+
             let jsm = "resource://gre/modules/RemoteSecurityUI.jsm";
             let RemoteSecurityUI = Components.utils.import(jsm, {}).RemoteSecurityUI;
             this._securityUI = new RemoteSecurityUI();
@@ -39,6 +45,10 @@
         ]]></body>
       </method>
 
+      <field name="_controller">null</field>
+
+      <field name="_selectParentHelper">null</field>
+
       <field name="_remoteWebNavigation">null</field>
 
       <property name="webNavigation"
@@ -51,8 +61,13 @@
       	<getter>
       	  <![CDATA[
             if (!this._remoteWebProgress) {
+              // Don't attempt to create the remote web progress if the
+              // messageManager has already gone away
+              if (!this.messageManager)
+                return null;
+
               let jsm = "resource://gre/modules/RemoteWebProgress.jsm";
-              let RemoteWebProgressManager = Cu.import(jsm, {}).RemoteWebProgressManager;
+              let { RemoteWebProgressManager } = Cu.import(jsm, {});
               this._remoteWebProgressManager = new RemoteWebProgressManager(this);
               this._remoteWebProgress = this._remoteWebProgressManager.topLevelWebProgress;
             }
@@ -66,8 +81,13 @@
       <property name="finder" readonly="true">
         <getter><![CDATA[
           if (!this._remoteFinder) {
+            // Don't attempt to create the remote finder if the
+            // messageManager has already gone away
+            if (!this.messageManager)
+              return null;
+
             let jsm = "resource://gre/modules/RemoteFinder.jsm";
-            let RemoteFinder = Cu.import(jsm, {}).RemoteFinder;
+            let { RemoteFinder } = Cu.import(jsm, {});
             this._remoteFinder = new RemoteFinder(this);
           }
           return this._remoteFinder;
@@ -108,23 +128,41 @@
       <field name="_characterSet">""</field>
 
       <property name="characterSet"
-                onget="return this._characterSet"
+                onget="return this._characterSet">
+        <setter><![CDATA[
+          this.messageManager.sendAsyncMessage("UpdateCharacterSet", {value: val});
+          this._characterSet = val;
+        ]]></setter>
+      </property>
+
+      <field name="_mayEnableCharacterEncodingMenu">null</field>
+
+      <property name="mayEnableCharacterEncodingMenu"
+                onget="return this._mayEnableCharacterEncodingMenu;"
                 readonly="true"/>
 
       <field name="_contentWindow">null</field>
 
       <property name="contentWindow"
+                onget="return null"
+                readonly="true"/>
+
+      <property name="contentWindowAsCPOW"
                 onget="return this._contentWindow"
                 readonly="true"/>
 
       <property name="contentDocument"
-                onget="return this.contentWindow ? this.contentWindow.document : null"
+                onget="return null"
                 readonly="true"/>
 
-      <field name="_syncHandler">null</field>
+      <field name="_contentPrincipal">null</field>
 
-      <property name="syncHandler"
-                onget="return this._syncHandler"
+      <property name="contentPrincipal"
+                onget="return this._contentPrincipal"
+                readonly="true"/>
+
+      <property name="contentDocumentAsCPOW"
+                onget="return this.contentWindowAsCPOW ? this.contentWindowAsCPOW.document : null"
                 readonly="true"/>
 
       <field name="_imageDocument">null</field>
@@ -162,6 +200,18 @@
         ]]></getter>
       </property>
 
+      <property name="hasContentOpener">
+        <getter><![CDATA[
+          let {frameLoader} = this.QueryInterface(Ci.nsIFrameLoaderOwner);
+          return frameLoader.tabParent.hasContentOpener;
+        ]]></getter>
+      </property>
+
+      <field name="_outerWindowID">null</field>
+      <property name="outerWindowID"
+                onget="return this._outerWindowID"
+                readonly="true"/>
+
       <property name="autoCompletePopup"
                 onget="return document.getElementById(this.getAttribute('autocompletepopup'))"
                 readonly="true"/>
@@ -181,6 +231,8 @@
         </setter>
       </property>
 
+      <field name="mDestroyed">false</field>
+
       <constructor>
         <![CDATA[
           /*
@@ -195,13 +247,15 @@
           this.messageManager.addMessageListener("Browser:Init", this);
           this.messageManager.addMessageListener("DOMTitleChanged", this);
           this.messageManager.addMessageListener("ImageDocumentLoaded", this);
-          this.messageManager.addMessageListener("SetSyncHandler", this);
           this.messageManager.addMessageListener("DocumentInserted", this);
           this.messageManager.addMessageListener("FullZoomChange", this);
           this.messageManager.addMessageListener("TextZoomChange", this);
+          this.messageManager.addMessageListener("ZoomChangeUsingMouseWheel", this);
+          this.messageManager.addMessageListener("DOMFullscreen:RequestExit", this);
+          this.messageManager.addMessageListener("DOMFullscreen:RequestRollback", this);
           this.messageManager.loadFrameScript("chrome://global/content/browser-child.js", true);
 
-          if (this.hasAttribute("selectpopup")) {
+          if (this.hasAttribute("selectmenulist")) {
             this.messageManager.addMessageListener("Forms:ShowDropDown", this);
             this.messageManager.addMessageListener("Forms:HideDropDown", this);
             this.messageManager.loadFrameScript("chrome://global/content/select-child.js", true);
@@ -211,12 +265,26 @@
           let RemoteController = Components.utils.import(jsm, {}).RemoteController;
           this._controller = new RemoteController(this);
           this.controllers.appendController(this._controller);
-
-          jsm = "resource://gre/modules/RemoteAddonsParent.jsm";
-          let RemoteAddonsParent = Components.utils.import(jsm, {}).RemoteAddonsParent;
-          RemoteAddonsParent.init();
         ]]>
       </constructor>
+
+      <destructor>
+        <![CDATA[
+          this.destroy();
+        ]]>
+      </destructor>
+
+      <!-- This is necessary because the destructor doesn't always get called when
+           we are removed from a tabbrowser. This will be explicitly called by tabbrowser -->
+      <method name="destroy">
+        <body><![CDATA[
+          if (this.mDestroyed)
+            return;
+          this.mDestroyed = true;
+
+          this.controllers.removeController(this._controller);
+        ]]></body>
+      </method>
 
       <method name="receiveMessage">
         <parameter name="aMessage"/>
@@ -224,6 +292,7 @@
           let data = aMessage.data;
           switch (aMessage.name) {
             case "Browser:Init":
+              this._outerWindowID = data.outerWindowID;
               let result = {};
               result.useGlobalHistory = !this.hasAttribute("disableglobalhistory");
               result.initPopup = this.autoCompletePopup != null;
@@ -239,34 +308,60 @@
               };
               break;
 
-            case "SetSyncHandler":
-              this._syncHandler = aMessage.objects.handler;
-              break;
-
             case "Forms:ShowDropDown": {
-              Cu.import("resource://gre/modules/SelectParentHelper.jsm");
-              let dropdown = document.getElementById(this.getAttribute("selectpopup"));
-              SelectParentHelper.populate(dropdown, data.options, data.selectedIndex);
-              SelectParentHelper.open(this, dropdown, data.rect);
+              if (!this._selectParentHelper) {
+                this._selectParentHelper =
+                  Cu.import("resource://gre/modules/SelectParentHelper.jsm", {}).SelectParentHelper;
+              }
+
+              let menulist = document.getElementById(this.getAttribute("selectmenulist"));
+              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex, this._fullZoom);
+              this._selectParentHelper.open(this, menulist, data.rect);
               break;
             }
 
-            case "DocumentInserted":
-              this._isSyntheticDocument = data.synthetic;
-              break;
-
-            case "FullZoomChange":
+            case "FullZoomChange": {
               this._fullZoom = data.value;
+              let event = document.createEvent("Events");
+              event.initEvent("FullZoomChange", true, false);
+              this.dispatchEvent(event);
               break;
+            }
 
-            case "TextZoomChange":
+            case "TextZoomChange": {
               this._textZoom = data.value;
+              let event = document.createEvent("Events");
+              event.initEvent("TextZoomChange", true, false);
+              this.dispatchEvent(event);
               break;
+            }
+
+            case "ZoomChangeUsingMouseWheel": {
+              let event = document.createEvent("Events");
+              event.initEvent("ZoomChangeUsingMouseWheel", true, false);
+              this.dispatchEvent(event);
+              break;
+            }
 
             case "Forms:HideDropDown": {
-              Cu.import("resource://gre/modules/SelectParentHelper.jsm");
-              let dropdown = document.getElementById(this.getAttribute("selectpopup"));
-              SelectParentHelper.hide(dropdown);
+              if (this._selectParentHelper) {
+                let menulist = document.getElementById(this.getAttribute("selectmenulist"));
+                this._selectParentHelper.hide(menulist);
+              }
+              break;
+            }
+
+            case "DOMFullscreen:RequestExit": {
+              let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                      .getInterface(Ci.nsIDOMWindowUtils);
+              windowUtils.exitFullscreen();
+              break;
+            }
+
+            case "DOMFullscreen:RequestRollback": {
+              let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                      .getInterface(Ci.nsIDOMWindowUtils);
+              windowUtils.remoteFrameFullscreenReverted();
               break;
             }
 
@@ -278,24 +373,18 @@
         ]]></body>
       </method>
 
-      <!--
-        For out-of-process code, event.screen[XY] is relative to the
-        left/top of the content view. For in-process code,
-        event.screen[XY] is relative to the left/top of the screen. We
-        use this method to map screen coordinates received from a
-        (possibly out-of-process) <browser> element to coordinates
-        that are relative to the screen. This code handles the
-        out-of-process case, where we need to translate by the screen
-        position of the <browser> element.
-      -->
-      <method name="mapScreenCoordinatesFromContent">
-        <parameter name="aScreenX"/>
-        <parameter name="aScreenY"/>
+      <method name="enableDisableCommands">
+        <parameter name="aAction"/>
+        <parameter name="aEnabledLength"/>
+        <parameter name="aEnabledCommands"/>
+        <parameter name="aDisabledLength"/>
+        <parameter name="aDisabledCommands"/>
         <body>
-        <![CDATA[
-          return { x: aScreenX + this.boxObject.screenX,
-                   y: aScreenY + this.boxObject.screenY };
-        ]]>
+          if (this._controller) {
+            this._controller.enableDisableCommands(aAction,
+                                                   aEnabledLength, aEnabledCommands,
+                                                   aDisabledLength, aDisabledCommands);
+          }
         </body>
       </method>
 

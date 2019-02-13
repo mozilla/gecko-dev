@@ -13,8 +13,12 @@
 #ifdef MOZ_NUWA_PROCESS
 #include "ipc/Nuwa.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/ContentParent.h"
+#include "mozilla/hal_sandbox/PHalParent.h"
 #endif
 
+#include "mozilla/Assertions.h"
+#include "mozilla/DebugOnly.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsXULAppAPI.h"
@@ -58,25 +62,29 @@ MessageLink::MessageLink(MessageChannel *aChan)
 
 MessageLink::~MessageLink()
 {
+#ifdef DEBUG
     mChan = nullptr;
+#endif
 }
 
 ProcessLink::ProcessLink(MessageChannel *aChan)
-  : MessageLink(aChan),
-    mExistingListener(nullptr)
+  : MessageLink(aChan)
+  , mTransport(nullptr)
+  , mIOLoop(nullptr)
+  , mExistingListener(nullptr)
+#ifdef MOZ_NUWA_PROCESS
+  , mIsToNuwaProcess(false)
+#endif
 {
 }
 
 ProcessLink::~ProcessLink()
 {
-    mIOLoop = 0;
-    if (mTransport) {
-        mTransport->set_listener(0);
-        
-        // we only hold a weak ref to the transport, which is "owned"
-        // by GeckoChildProcess/GeckoThread
-        mTransport = 0;
-    }
+#ifdef DEBUG
+    mTransport = nullptr;
+    mIOLoop = nullptr;
+    mExistingListener = nullptr;
+#endif
 }
 
 void 
@@ -165,6 +173,27 @@ ProcessLink::SendMessage(Message *msg)
     mChan->AssertWorkerThread();
     mChan->mMonitor->AssertCurrentThreadOwns();
 
+#ifdef MOZ_NUWA_PROCESS
+    if (mIsToNuwaProcess && mozilla::dom::ContentParent::IsNuwaReady()) {
+        switch (msg->type()) {
+        case mozilla::dom::PContent::Msg_NuwaFork__ID:
+        case mozilla::dom::PContent::Reply_AddNewProcess__ID:
+        case mozilla::dom::PContent::Msg_NotifyPhoneStateChange__ID:
+        case mozilla::hal_sandbox::PHal::Msg_NotifyNetworkChange__ID:
+        case GOODBYE_MESSAGE_TYPE:
+            break;
+        default:
+#ifdef DEBUG
+            MOZ_CRASH();
+#else
+            // In optimized build, message will be dropped.
+            printf_stderr("Sending message to frozen Nuwa");
+            return;
+#endif
+        }
+    }
+#endif
+
     mIOLoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(mTransport, &Transport::Send, msg));
@@ -188,7 +217,10 @@ ThreadLink::ThreadLink(MessageChannel *aChan, MessageChannel *aTargetChan)
 
 ThreadLink::~ThreadLink()
 {
-    // :TODO: MonitorAutoLock lock(*mChan->mMonitor);
+    MOZ_ASSERT(mChan);
+    MOZ_ASSERT(mChan->mMonitor);
+    MonitorAutoLock lock(*mChan->mMonitor);
+
     // Bug 848949: We need to prevent the other side
     // from sending us any more messages to avoid Use-After-Free.
     // The setup here is as shown:
@@ -203,11 +235,13 @@ ThreadLink::~ThreadLink()
     // We want to null out the diagonal link from their ThreadLink
     // to our MessageChannel.  Note that we must hold the monitor so
     // that we do this atomically with respect to them trying to send
-    // us a message.
+    // us a message.  Since the channels share the same monitor this
+    // also protects against the two ~ThreadLink() calls racing.
     if (mTargetChan) {
-        static_cast<ThreadLink*>(mTargetChan->mLink)->mTargetChan = 0;
+        MOZ_ASSERT(mTargetChan->mLink);
+        static_cast<ThreadLink*>(mTargetChan->mLink)->mTargetChan = nullptr;
     }
-    mTargetChan = 0;
+    mTargetChan = nullptr;
 }
 
 void
@@ -286,7 +320,8 @@ ProcessLink::OnEchoMessage(Message* msg)
 void
 ProcessLink::OnChannelOpened()
 {
-    mChan->AssertLinkThread();
+    AssertIOThread();
+
     {
         MonitorAutoLock lock(*mChan->mMonitor);
 
@@ -335,23 +370,40 @@ ProcessLink::OnChannelConnected(int32_t peer_pid)
 {
     AssertIOThread();
 
+    bool notifyChannel = false;
+
     {
         MonitorAutoLock lock(*mChan->mMonitor);
-        mChan->mChannelState = ChannelConnected;
-        mChan->mMonitor->Notify();
+        // Only update channel state if its still thinks its opening.  Do not
+        // force it into connected if it has errored out, started closing, etc.
+        if (mChan->mChannelState == ChannelOpening) {
+          mChan->mChannelState = ChannelConnected;
+          mChan->mMonitor->Notify();
+          notifyChannel = true;
+        }
     }
 
     if (mExistingListener)
         mExistingListener->OnChannelConnected(peer_pid);
 
-    mChan->OnChannelConnected(peer_pid);
+#ifdef MOZ_NUWA_PROCESS
+    mIsToNuwaProcess = (peer_pid == mozilla::dom::ContentParent::NuwaPid());
+#endif
+
+    if (notifyChannel) {
+      mChan->OnChannelConnected(peer_pid);
+    }
 }
 
 void
 ProcessLink::OnChannelError()
 {
     AssertIOThread();
+
     MonitorAutoLock lock(*mChan->mMonitor);
+
+    MOZ_ALWAYS_TRUE(this == mTransport->set_listener(mExistingListener));
+
     mChan->OnChannelErrorFromLink();
 }
 
@@ -363,6 +415,14 @@ ProcessLink::OnCloseChannel()
     mTransport->Close();
 
     MonitorAutoLock lock(*mChan->mMonitor);
+
+    DebugOnly<IPC::Channel::Listener*> previousListener =
+      mTransport->set_listener(mExistingListener);
+
+    // OnChannelError may have reset the listener already.
+    MOZ_ASSERT(previousListener == this ||
+               previousListener == mExistingListener);
+
     mChan->mChannelState = ChannelClosed;
     mChan->mMonitor->Notify();
 }

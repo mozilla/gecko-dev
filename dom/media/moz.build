@@ -4,70 +4,329 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('*'):
+    BUG_COMPONENT = ('Core', 'Video/Audio')
+
+component_signaling = ('Core', 'WebRTC: Signaling')
+with Files('IdpSandbox.jsm'):
+    BUG_COMPONENT = component_signaling
+with Files('PeerConnection*'):
+    BUG_COMPONENT = component_signaling
+with Files('RTC*'):
+    BUG_COMPONENT = component_signaling
+
+component_av = ('Core', 'WebRTC: Audio/Video')
+with Files('GetUserMedia*'):
+    BUG_COMPONENT = component_av
+
+DIRS += [
+    'encoder',
+    'gmp',
+    'gmp-plugin',
+    'gmp-plugin-openh264',
+    'imagecapture',
+    'mediasource',
+    'ogg',
+    'platforms',
+    'systemservices',
+    'webaudio',
+    'webrtc',
+    'webspeech',
+    'webvtt',
+    'standalone',
+]
+
+if CONFIG['MOZ_RAW']:
+    DIRS += ['raw']
+
+if CONFIG['MOZ_WAVE']:
+    DIRS += ['wave']
+
+if CONFIG['MOZ_WEBM']:
+    DIRS += ['webm']
+
+if CONFIG['MOZ_GSTREAMER']:
+    DIRS += ['gstreamer']
+
+if CONFIG['MOZ_DIRECTSHOW']:
+    DIRS += ['directshow']
+
+if CONFIG['MOZ_ANDROID_OMX']:
+    DIRS += ['android']
+
+if CONFIG['MOZ_FMP4']:
+    DIRS += ['fmp4']
+
+if CONFIG['MOZ_APPLEMEDIA']:
+    DIRS += ['apple']
+
 if CONFIG['MOZ_WEBRTC']:
     DIRS += ['bridge']
 
-    LOCAL_INCLUDES += [
-        '/media/webrtc/signaling/src/common',
-        '/media/webrtc/trunk',
-    ]
+if CONFIG['MOZ_OMX_DECODER']:
+    DIRS += ['omx']
+    DIRS += ['omx/mediaresourcemanager']
 
-    if CONFIG['GNU_CXX']:
-        CXXFLAGS += [
-            '-Wno-unused-local-typedefs', # Workaround until we fix bug 1020661
-        ]
+if CONFIG['MOZ_EME']:
+    DIRS += ['eme']
 
-TEST_DIRS += ['tests/mochitest', 'tests/ipc', 'tests/identity']
+TEST_DIRS += [
+    'compiledtest',
+    'gtest',
+]
+
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+
+MOCHITEST_MANIFESTS += [
+    'test/mochitest.ini',
+    'tests/mochitest/identity/mochitest.ini',
+    'tests/mochitest/ipc/mochitest.ini',
+]
+
+if CONFIG['MOZ_WEBRTC']:
+    MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
+    WEBRTC_SIGNALLING_TEST_MANIFESTS += ['tests/mochitest/steeplechase.ini']
 
 XPIDL_SOURCES += [
-    'nsIDOMMediaStream.idl',
     'nsIDOMNavigatorUserMedia.idl',
     'nsIMediaManager.idl',
 ]
 
 XPIDL_MODULE = 'dom_media'
 
-EXPORTS.mozilla.dom += [
-    'GetUserMediaRequest.h',
+EXPORTS += [
+    'AbstractMediaDecoder.h',
+    'AbstractThread.h',
+    'AudioBufferUtils.h',
+    'AudioChannelFormat.h',
+    'AudioCompactor.h',
+    'AudioMixer.h',
+    'AudioSampleFormat.h',
+    'AudioSegment.h',
+    'AudioStream.h',
+    'BufferMediaResource.h',
+    'CubebUtils.h',
+    'DecodedStream.h',
+    'DecoderTraits.h',
+    'DOMMediaStream.h',
+    'EncodedBufferCache.h',
+    'FileBlockCache.h',
+    'GraphDriver.h',
+    'Intervals.h',
+    'Latency.h',
+    'MediaCache.h',
+    'MediaData.h',
+    'MediaDataDemuxer.h',
+    'MediaDecoder.h',
+    'MediaDecoderOwner.h',
+    'MediaDecoderReader.h',
+    'MediaDecoderStateMachine.h',
+    'MediaFormatReader.h',
+    'MediaInfo.h',
+    'MediaMetadataManager.h',
+    'MediaPromise.h',
+    'MediaQueue.h',
+    'MediaRecorder.h',
+    'MediaResource.h',
+    'MediaSegment.h',
+    'MediaStreamGraph.h',
+    'MediaTaskQueue.h',
+    'MediaTimer.h',
+    'MediaTrack.h',
+    'MediaTrackList.h',
+    'MP3Decoder.h',
+    'MP3Demuxer.h',
+    'MP3FrameParser.h',
+    'nsIDocumentActivity.h',
+    'RtspMediaResource.h',
+    'SelfRef.h',
+    'SharedBuffer.h',
+    'SharedThreadPool.h',
+    'StateMirroring.h',
+    'StateWatching.h',
+    'StreamBuffer.h',
+    'TaskDispatcher.h',
+    'ThreadPoolCOMListener.h',
+    'TimeUnits.h',
+    'TimeVarying.h',
+    'TrackUnionStream.h',
+    'VideoFrameContainer.h',
+    'VideoSegment.h',
+    'VideoUtils.h',
+    'VorbisUtils.h',
 ]
 
 EXPORTS.mozilla += [
     'MediaManager.h',
 ]
 
-UNIFIED_SOURCES += [
-    'GetUserMediaRequest.cpp',
-    'MediaManager.cpp',
+EXPORTS.mozilla.media.webrtc += [
+    'webrtc/WebrtcGlobal.h',
 ]
 
-EXTRA_COMPONENTS += [
-    'PeerConnection.js',
-    'PeerConnection.manifest',
-]
-
-JS_MODULES_PATH = 'modules/media'
-
-EXTRA_JS_MODULES += [
-    'IdpProxy.jsm',
-    'PeerConnectionIdp.jsm',
+IPDL_SOURCES += [
+    'webrtc/PWebrtcGlobal.ipdl'
 ]
 
 if CONFIG['MOZ_B2G']:
     EXPORTS.mozilla += [
         'MediaPermissionGonk.h',
     ]
+
+EXPORTS.mozilla.dom += [
+    'AudioStreamTrack.h',
+    'AudioTrack.h',
+    'AudioTrackList.h',
+    'CanvasCaptureMediaStream.h',
+    'GetUserMediaRequest.h',
+    'MediaDeviceInfo.h',
+    'MediaDevices.h',
+    'MediaStreamError.h',
+    'MediaStreamTrack.h',
+    'RTCIdentityProviderRegistrar.h',
+    'TextTrack.h',
+    'TextTrackCue.h',
+    'TextTrackCueList.h',
+    'TextTrackList.h',
+    'TextTrackRegion.h',
+    'VideoPlaybackQuality.h',
+    'VideoStreamTrack.h',
+    'VideoTrack.h',
+    'VideoTrackList.h',
+]
+
+UNIFIED_SOURCES += [
+    'AbstractThread.cpp',
+    'AudioChannelFormat.cpp',
+    'AudioCompactor.cpp',
+    'AudioSegment.cpp',
+    'AudioSink.cpp',
+    'AudioStream.cpp',
+    'AudioStreamTrack.cpp',
+    'AudioTrack.cpp',
+    'AudioTrackList.cpp',
+    'CanvasCaptureMediaStream.cpp',
+    'CubebUtils.cpp',
+    'DecodedStream.cpp',
+    'DOMMediaStream.cpp',
+    'EncodedBufferCache.cpp',
+    'FileBlockCache.cpp',
+    'GetUserMediaRequest.cpp',
+    'GraphDriver.cpp',
+    'Latency.cpp',
+    'MediaCache.cpp',
+    'MediaData.cpp',
+    'MediaDecoder.cpp',
+    'MediaDecoderReader.cpp',
+    'MediaDecoderStateMachine.cpp',
+    'MediaDeviceInfo.cpp',
+    'MediaDevices.cpp',
+    'MediaFormatReader.cpp',
+    'MediaManager.cpp',
+    'MediaRecorder.cpp',
+    'MediaResource.cpp',
+    'MediaShutdownManager.cpp',
+    'MediaStreamError.cpp',
+    'MediaStreamGraph.cpp',
+    'MediaStreamTrack.cpp',
+    'MediaTaskQueue.cpp',
+    'MediaTimer.cpp',
+    'MediaTrack.cpp',
+    'MediaTrackList.cpp',
+    'MP3Decoder.cpp',
+    'MP3Demuxer.cpp',
+    'MP3FrameParser.cpp',
+    'RTCIdentityProviderRegistrar.cpp',
+    'RtspMediaResource.cpp',
+    'SharedThreadPool.cpp',
+    'StreamBuffer.cpp',
+    'TextTrack.cpp',
+    'TextTrackCue.cpp',
+    'TextTrackCueList.cpp',
+    'TextTrackList.cpp',
+    'TextTrackRegion.cpp',
+    'TrackUnionStream.cpp',
+    'VideoFrameContainer.cpp',
+    'VideoPlaybackQuality.cpp',
+    'VideoSegment.cpp',
+    'VideoStreamTrack.cpp',
+    'VideoTrack.cpp',
+    'VideoTrackList.cpp',
+    'VideoUtils.cpp',
+    'WebVTTListener.cpp',
+]
+
+if CONFIG['OS_TARGET'] == 'WINNT':
+  SOURCES += [ 'ThreadPoolCOMListener.cpp' ]
+
+if CONFIG['MOZ_B2G']:
     SOURCES += [
         'MediaPermissionGonk.cpp',
     ]
 
+# DecoderTraits.cpp needs to be built separately because of Mac OS X headers.
+SOURCES += [
+    'DecoderTraits.cpp',
+]
+
+# Some codec-related code uses multi-character constants, which GCC and clang
+# warn about. Suppress turning this warning into an error.
+if CONFIG['GNU_CC'] or CONFIG['CLANG_CL']:
+  SOURCES['DecoderTraits.cpp'].flags += ['-Wno-error=multichar']
+
+EXTRA_COMPONENTS += [
+    'PeerConnection.js',
+    'PeerConnection.manifest',
+]
+
+EXTRA_JS_MODULES.media += [
+    'IdpSandbox.jsm',
+    'PeerConnectionIdp.jsm',
+    'RTCStatsReport.jsm',
+]
+
 FAIL_ON_WARNINGS = True
 
 LOCAL_INCLUDES += [
-    '../base',
-    '../camera',
-    '/caps/include',
+    '/caps',
+    '/dom/base',
+    '/dom/camera',
+    '/layout/generic',
+    '/layout/xul',
+    '/netwerk/base',
 ]
+
+if CONFIG['MOZ_DIRECTSHOW']:
+    LOCAL_INCLUDES += [
+        '/media/webrtc/trunk/webrtc/modules/video_capture/windows',
+    ]
+
+if CONFIG['MOZ_WEBRTC']:
+    LOCAL_INCLUDES += [
+        '/media/webrtc/signaling/src/common',
+        '/media/webrtc/trunk',
+    ]
+
+DEFINES['MOZILLA_INTERNAL_API'] = True
+
+if CONFIG['MOZ_OMX_DECODER']:
+    DEFINES['MOZ_OMX_DECODER'] = True
+
+if CONFIG['ANDROID_VERSION'] > '15':
+    DEFINES['MOZ_OMX_WEBM_DECODER'] = True
+
+if CONFIG['MOZ_GONK_MEDIACODEC']:
+    DEFINES['MOZ_GONK_MEDIACODEC'] = True
+
+CFLAGS += CONFIG['GSTREAMER_CFLAGS']
+CXXFLAGS += CONFIG['GSTREAMER_CFLAGS']
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+# Suppress some GCC warnings being treated as errors:
+#  - about attributes on forward declarations for types that are already
+#    defined, which complains about an important MOZ_EXPORT for android::AString
+if CONFIG['GNU_CC']:
+  CXXFLAGS += ['-Wno-error=attributes']
+
+FINAL_LIBRARY = 'xul'

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 let SocialService = Components.utils.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+let MockRegistrar = Components.utils.import("resource://testing-common/MockRegistrar.jsm", {}).MockRegistrar;
 
 // A helper to run a suite of tests.
 // The "test object" should be an object with function names as keys and a
@@ -13,7 +14,13 @@ let SocialService = Components.utils.import("resource://gre/modules/SocialServic
 //   foo: function(cbnext) {... cbnext();}
 // }
 function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
-  let testIter = Iterator(tests);
+  let testIter = (function*() {
+    for (let name in tests) {
+      if (tests.hasOwnProperty(name)) {
+        yield [name, tests[name]];
+      }
+    }
+  })();
 
   if (cbPreTest === undefined) {
     cbPreTest = function(cb) {cb()};
@@ -23,14 +30,13 @@ function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
   }
 
   function runNextTest() {
-    let name, func;
-    try {
-      [name, func] = testIter.next();
-    } catch (err if err instanceof StopIteration) {
+    let result = testIter.next();
+    if (result.done) {
       // out of items:
       (cbFinish || finish)();
       return;
     }
+    let [name, func] = result.value;
     // We run on a timeout as the frameworker also makes use of timeouts, so
     // this helps keep the debug messages sane.
     executeSoon(function() {
@@ -54,11 +60,8 @@ function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
 
 // A mock notifications server.  Based on:
 // dom/tests/mochitest/notification/notification_common.js
-const FAKE_CID = Cc["@mozilla.org/uuid-generator;1"].
-    getService(Ci.nsIUUIDGenerator).generateUUID();
 
 const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
-const ALERTS_SERVICE_CID = Components.ID(Cc[ALERTS_SERVICE_CONTRACT_ID].number);
 
 function MockAlertsService() {}
 
@@ -92,25 +95,13 @@ MockAlertsService.prototype = {
     }
 };
 
-var factory = {
-    createInstance: function(aOuter, aIID) {
-        if (aOuter != null)
-            throw Cr.NS_ERROR_NO_AGGREGATION;
-        return new MockAlertsService().QueryInterface(aIID);
-    }
-};
-
+let originalAlertsServiceCID;
 function replaceAlertsService() {
-  Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-            .registerFactory(FAKE_CID, "",
-                             ALERTS_SERVICE_CONTRACT_ID,
-                             factory)
+  originalAlertsServiceCID =
+    MockRegistrar.register(ALERTS_SERVICE_CONTRACT_ID, MockAlertsService);
 }
 
 function restoreAlertsService() {
-  Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-            .registerFactory(ALERTS_SERVICE_CID, "",
-                             ALERTS_SERVICE_CONTRACT_ID,
-                             null);
+  MockRegistrar.unregister(originalAlertsServiceCID);
 }
 // end of alerts service mock.

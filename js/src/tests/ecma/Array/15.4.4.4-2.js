@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -64,8 +64,6 @@ writeHeaderToLog( SECTION + " Array.prototype.reverse()");
 var ARR_PROTOTYPE = Array.prototype;
 
 new TestCase( SECTION, "Array.prototype.reverse.length",           0,      Array.prototype.reverse.length );
-new TestCase( SECTION, "delete Array.prototype.reverse.length",    false,  delete Array.prototype.reverse.length );
-new TestCase( SECTION, "delete Array.prototype.reverse.length; Array.prototype.reverse.length",    0, eval("delete Array.prototype.reverse.length; Array.prototype.reverse.length") );
 
 // length of array is 0
 new TestCase(   SECTION,

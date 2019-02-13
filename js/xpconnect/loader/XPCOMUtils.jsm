@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 et filetype=javascript
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -107,7 +107,16 @@ this.XPCOMUtils = {
    */
   generateQI: function XPCU_generateQI(interfaces) {
     /* Note that Ci[Ci.x] == Ci.x for all x */
-    return makeQI([Ci[i].name for each (i in interfaces) if (Ci[i])]);
+    let a = [];
+    if (interfaces) {
+      for (let i = 0; i < interfaces.length; i++) {
+        let iface = interfaces[i];
+        if (Ci[iface]) {
+          a.push(Ci[iface].name);
+        }
+      }
+    }
+    return makeQI(a);
   },
 
   /**
@@ -123,17 +132,22 @@ this.XPCOMUtils = {
     if (QueryInterface in classInfo)
       throw Error("In generateCI, don't use a component for generating classInfo");
     /* Note that Ci[Ci.x] == Ci.x for all x */
-    var _interfaces = [Ci[i] for each (i in classInfo.interfaces) if (Ci[i])];
+    let _interfaces = [];
+    for (let i = 0; i < classInfo.interfaces.length; i++) {
+      let iface = classInfo.interfaces[i];
+      if (Ci[iface]) {
+        _interfaces.push(Ci[iface]);
+      }
+    }
     return {
       getInterfaces: function XPCU_getInterfaces(countRef) {
         countRef.value = _interfaces.length;
         return _interfaces;
       },
-      getHelperForLanguage: function XPCU_getHelperForLanguage(language) null,
+      getScriptableHelper: function XPCU_getScriptableHelper() null,
       contractID: classInfo.contractID,
       classDescription: classInfo.classDescription,
       classID: classInfo.classID,
-      implementationLanguage: Ci.nsIProgrammingLanguage.JAVASCRIPT,
       flags: classInfo.flags,
       QueryInterface: this.generateQI([Ci.nsIClassInfo])
     };
@@ -144,7 +158,8 @@ this.XPCOMUtils = {
    */
   generateNSGetFactory: function XPCU_generateNSGetFactory(componentsArray) {
     let classes = {};
-    for each (let component in componentsArray) {
+    for (let i = 0; i < componentsArray.length; i++) {
+        let component = componentsArray[i];
         if (!(component.prototype.classID instanceof Components.ID))
           throw Error("In generateNSGetFactory, classID missing or incorrect for component " + component);
 
@@ -173,8 +188,19 @@ this.XPCOMUtils = {
   {
     Object.defineProperty(aObject, aName, {
       get: function () {
+        // Redefine this accessor property as a data property.
+        // Delete it first, to rule out "too much recursion" in case aObject is
+        // a proxy whose defineProperty handler might unwittingly trigger this
+        // getter again.
         delete aObject[aName];
-        return aObject[aName] = aLambda.apply(aObject);
+        let value = aLambda.apply(aObject);
+        Object.defineProperty(aObject, aName, {
+          value,
+          writable: true,
+          configurable: true,
+          enumerable: true
+        });
+        return value;
       },
       configurable: true,
       enumerable: true
@@ -205,7 +231,9 @@ this.XPCOMUtils = {
 
   /**
    * Defines a getter on a specified object for a module.  The module will not
-   * be imported until first use.
+   * be imported until first use. The getter allows to execute setup and
+   * teardown code (e.g.  to register/unregister to services) and accepts
+   * a proxy object which acts on behalf of the module until it is imported.
    *
    * @param aObject
    *        The object to define the lazy getter on.
@@ -216,15 +244,35 @@ this.XPCOMUtils = {
    * @param aSymbol
    *        The name of the symbol exported by the module.
    *        This parameter is optional and defaults to aName.
+   * @param aPreLambda
+   *        A function that is executed when the proxy is set up.
+   *        This will only ever be called once.
+   * @param aPostLambda
+   *        A function that is executed when the module has been imported to
+   *        run optional teardown procedures on the proxy object.
+   *        This will only ever be called once.
+   * @param aProxy
+   *        An object which acts on behalf of the module to be imported until
+   *        the module has been imported.
    */
-  defineLazyModuleGetter: function XPCU_defineLazyModuleGetter(aObject, aName,
-                                                               aResource,
-                                                               aSymbol)
+  defineLazyModuleGetter: function XPCU_defineLazyModuleGetter(
+                                   aObject, aName, aResource, aSymbol,
+                                   aPreLambda, aPostLambda, aProxy)
   {
+    let proxy = aProxy || {};
+
+    if (typeof(aPreLambda) === "function") {
+      aPreLambda.apply(proxy);
+    }
+
     this.defineLazyGetter(aObject, aName, function XPCU_moduleLambda() {
       var temp = {};
       try {
         Cu.import(aResource, temp);
+
+        if (typeof(aPostLambda) === "function") {
+          aPostLambda.apply(proxy);
+        }
       } catch (ex) {
         Cu.reportError("Failed to load module " + aResource + ".");
         throw ex;
@@ -274,7 +322,8 @@ this.XPCOMUtils = {
           if (outer)
             throw Cr.NS_ERROR_NO_AGGREGATION;
           return (new component()).QueryInterface(iid);
-        }
+        },
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
       }
     }
     return factory;
@@ -329,8 +378,8 @@ function makeQI(interfaceNames) {
       return this;
     if (iid.equals(Ci.nsIClassInfo) && "classInfo" in this)
       return this.classInfo;
-    for each(let interfaceName in interfaceNames) {
-      if (Ci[interfaceName].equals(iid))
+    for (let i = 0; i < interfaceNames.length; i++) {
+      if (Ci[interfaceNames[i]].equals(iid))
         return this;
     }
 

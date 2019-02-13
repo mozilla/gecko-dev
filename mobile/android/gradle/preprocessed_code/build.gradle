@@ -1,0 +1,44 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion "22.0.1"
+
+    defaultConfig {
+        targetSdkVersion 22
+        minSdkVersion 9
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDir "${topsrcdir}/mobile/android/base/adjust"
+                if (mozconfig.substs.MOZ_INSTALL_TRACKING) {
+                    exclude 'StubAdjustHelper.java'
+                } else {
+                    exclude 'AdjustHelper.java'
+                }
+            }
+        }
+    }
+}
+
+android.libraryVariants.all { variant ->
+    variant.checkManifest.dependsOn rootProject.generateCodeAndResources
+}
+
+
+dependencies {
+    if (mozconfig.substs.MOZ_INSTALL_TRACKING) {
+        compile project(':thirdparty_adjust_sdk')
+    }
+}

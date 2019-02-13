@@ -13,7 +13,7 @@
 #define mozilla_SplayTree_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -56,7 +56,7 @@ class SplayTree
   T* mRoot;
 
 public:
-  SplayTree()
+  MOZ_CONSTEXPR SplayTree()
     : mRoot(nullptr)
   {}
 
@@ -73,7 +73,6 @@ public:
 
     T* last = lookup(aValue);
     splay(last);
-    checkCoherency(mRoot, nullptr);
     return Comparator::compare(aValue, *last) == 0 ? last : nullptr;
   }
 
@@ -88,15 +87,11 @@ public:
     T* last = lookup(*aValue);
     int cmp = Comparator::compare(*aValue, *last);
 
-    T** parentPointer = (cmp < 0) ? &last->mLeft : &last->mRight;
-    MOZ_ASSERT(!*parentPointer);
-    *parentPointer = aValue;
-    aValue->mParent = last;
-
-    splay(aValue);
-    checkCoherency(mRoot, nullptr);
+    finishInsertion(last, cmp, aValue);
     return true;
   }
+
+  T* findOrInsert(const T& aValue);
 
   T* remove(const T& aValue)
   {
@@ -154,7 +149,6 @@ public:
       mRoot->mRight->mParent = mRoot;
     }
 
-    checkCoherency(mRoot, nullptr);
     return last;
   }
 
@@ -167,6 +161,12 @@ public:
       min = min->mLeft;
     }
     return remove(*min);
+  }
+
+  // For testing purposes only.
+  void checkCoherency()
+  {
+    checkCoherency(mRoot, nullptr);
   }
 
 private:
@@ -192,6 +192,19 @@ private:
       }
     } while (node);
     return parent;
+  }
+
+  T* finishInsertion(T* aLast, int32_t aCmp, T* aNew)
+  {
+    MOZ_ASSERT(aCmp, "Nodes shouldn't be equal!");
+
+    T** parentPointer = (aCmp < 0) ? &aLast->mLeft : &aLast->mRight;
+    MOZ_ASSERT(!*parentPointer);
+    *parentPointer = aNew;
+    aNew->mParent = aLast;
+
+    splay(aNew);
+    return aNew;
   }
 
   /**
@@ -264,32 +277,52 @@ private:
 
   T* checkCoherency(T* aNode, T* aMinimum)
   {
-#ifdef DEBUG
-    MOZ_ASSERT_IF(mRoot, !mRoot->mParent);
+    if (mRoot) {
+      MOZ_RELEASE_ASSERT(!mRoot->mParent);
+    }
     if (!aNode) {
-      MOZ_ASSERT(!mRoot);
+      MOZ_RELEASE_ASSERT(!mRoot);
       return nullptr;
     }
-    MOZ_ASSERT_IF(!aNode->mParent, aNode == mRoot);
-    MOZ_ASSERT_IF(aMinimum, Comparator::compare(*aMinimum, *aNode) < 0);
+    if (!aNode->mParent) {
+      MOZ_RELEASE_ASSERT(aNode == mRoot);
+    }
+    if (aMinimum) {
+      MOZ_RELEASE_ASSERT(Comparator::compare(*aMinimum, *aNode) < 0);
+    }
     if (aNode->mLeft) {
-      MOZ_ASSERT(aNode->mLeft->mParent == aNode);
+      MOZ_RELEASE_ASSERT(aNode->mLeft->mParent == aNode);
       T* leftMaximum = checkCoherency(aNode->mLeft, aMinimum);
-      MOZ_ASSERT(Comparator::compare(*leftMaximum, *aNode) < 0);
+      MOZ_RELEASE_ASSERT(Comparator::compare(*leftMaximum, *aNode) < 0);
     }
     if (aNode->mRight) {
-      MOZ_ASSERT(aNode->mRight->mParent == aNode);
+      MOZ_RELEASE_ASSERT(aNode->mRight->mParent == aNode);
       return checkCoherency(aNode->mRight, aNode);
     }
     return aNode;
-#else
-    return nullptr;
-#endif
   }
 
-  SplayTree(const SplayTree&) MOZ_DELETE;
-  void operator=(const SplayTree&) MOZ_DELETE;
+  SplayTree(const SplayTree&) = delete;
+  void operator=(const SplayTree&) = delete;
 };
+
+template<typename T, class Comparator>
+T*
+SplayTree<T, Comparator>::findOrInsert(const T& aValue)
+{
+  if (!mRoot) {
+    mRoot = new T(aValue);
+    return mRoot;
+  }
+
+  T* last = lookup(aValue);
+  int cmp = Comparator::compare(aValue, *last);
+  if (!cmp) {
+    return last;
+  }
+
+  return finishInsertion(last, cmp, new T(aValue));
+}
 
 }  /* namespace mozilla */
 

@@ -7,19 +7,18 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_editor-mode.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gSearchBox;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gSearchBox = gDebugger.DebuggerView.Filtering._searchbox;
 
-    gDebugger.DebuggerView.FilteredSources._autoSelectFirstItem = false;
-    gDebugger.DebuggerView.FilteredFunctions._autoSelectFirstItem = false;
+    gDebugger.DebuggerView.Filtering.FilteredSources._autoSelectFirstItem = false;
+    gDebugger.DebuggerView.Filtering.FilteredFunctions._autoSelectFirstItem = false;
 
     waitForSourceShown(gPanel, "-01.js")
       .then(superGenericFileSearch)
@@ -47,6 +46,7 @@ function test() {
       .then(() => ensureSourceIs(aPanel, "doc_editor-mode"))
       .then(() => ensureCaretAt(aPanel, 1))
       .then(() => typeText(gSearchBox, ":"))
+      .then(() => waitForSourceShown(gPanel, "code_test-editor-mode"))
       .then(() => ensureSourceIs(aPanel, "code_test-editor-mode", true))
       .then(() => ensureCaretAt(aPanel, 1))
       .then(() => typeText(gSearchBox, "5"))
@@ -111,7 +111,6 @@ function pressKeyToHide(aKey) {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gSearchBox = null;

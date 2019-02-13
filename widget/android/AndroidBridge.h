@@ -15,31 +15,29 @@
 #include "nsCOMArray.h"
 
 #include "GeneratedJNIWrappers.h"
+#include "AndroidJavaWrappers.h"
 
 #include "nsIMutableArray.h"
 #include "nsIMIMEInfo.h"
 #include "nsColor.h"
 #include "gfxRect.h"
+#include "mozilla/gfx/Point.h"
 
 #include "nsIAndroidBridge.h"
 #include "nsIMobileMessageCallback.h"
 
 #include "mozilla/Likely.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Types.h"
+#include "mozilla/jni/Utils.h"
 
 // Some debug #defines
 // #define DEBUG_ANDROID_EVENTS
 // #define DEBUG_ANDROID_WIDGET
 
-class nsWindow;
-class nsIDOMMozSmsMessage;
 class nsIObserver;
-
-/* See the comment in AndroidBridge about this function before using it */
-extern "C" MOZ_EXPORT JNIEnv * GetJNIForThread();
+class Task;
 
 extern bool mozilla_AndroidBridge_SetMainThread(pthread_t);
 
@@ -59,13 +57,8 @@ class NetworkInformation;
 namespace dom {
 namespace mobilemessage {
 struct SmsFilterData;
-struct SmsSegmentInfoData;
 } // namespace mobilemessage
 } // namespace dom
-
-namespace layers {
-class CompositorParent;
-} // namespace layers
 
 // The order and number of the members in this structure must correspond
 // to the attrsAppearance array in GeckoAppShell.getSystemColors()
@@ -96,7 +89,7 @@ class DelayedTask {
 public:
     DelayedTask(Task* aTask, int aDelayMs) {
         mTask = aTask;
-        mRunTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(aDelayMs);
+        mRunTime = mozilla::TimeStamp::Now() + mozilla::TimeDuration::FromMilliseconds(aDelayMs);
     }
 
     bool IsEarlierThan(DelayedTask *aOther) {
@@ -104,7 +97,7 @@ public:
     }
 
     int64_t MillisecondsToRunTime() {
-        TimeDuration timeLeft = mRunTime - TimeStamp::Now();
+        mozilla::TimeDuration timeLeft = mRunTime - mozilla::TimeStamp::Now();
         return (int64_t)timeLeft.ToMilliseconds();
     }
 
@@ -114,10 +107,10 @@ public:
 
 private:
     Task* mTask;
-    TimeStamp mRunTime;
+    mozilla::TimeStamp mRunTime;
 };
 
-class AndroidBridge MOZ_FINAL : public mozilla::layers::GeckoContentController
+class AndroidBridge final
 {
 public:
     enum {
@@ -132,10 +125,20 @@ public:
         LAYER_CLIENT_TYPE_GL = 2            // AndroidGeckoGLLayerClient
     };
 
-    static void ConstructBridge(JNIEnv *jEnv);
+    static void RegisterJavaUiThread() {
+        sJavaUiThread = pthread_self();
+    }
+
+    static bool IsJavaUiThread() {
+        return pthread_equal(pthread_self(), sJavaUiThread);
+    }
+
+    static void ConstructBridge(JNIEnv *jEnv,
+                                jni::Object::Param clsLoader,
+                                jni::Object::Param msgQueue);
 
     static AndroidBridge *Bridge() {
-        return sBridge.get();
+        return sBridge;
     }
 
     static JavaVM *GetVM() {
@@ -159,29 +162,16 @@ public:
 
     static bool ThrowException(JNIEnv *aEnv, const char *aClass,
                                const char *aMessage) {
-        MOZ_ASSERT(aEnv, "Invalid thread JNI env");
-        jclass cls = aEnv->FindClass(aClass);
-        MOZ_ASSERT(cls, "Cannot find exception class");
-        bool ret = !aEnv->ThrowNew(cls, aMessage);
-        aEnv->DeleteLocalRef(cls);
-        return ret;
+
+        return jni::ThrowException(aEnv, aClass, aMessage);
     }
 
     static bool ThrowException(JNIEnv *aEnv, const char *aMessage) {
-        return ThrowException(aEnv, "java/lang/Exception", aMessage);
+        return jni::ThrowException(aEnv, aMessage);
     }
 
     static void HandleUncaughtException(JNIEnv *aEnv) {
-        MOZ_ASSERT(aEnv);
-        if (!aEnv->ExceptionCheck()) {
-            return;
-        }
-        jthrowable e = aEnv->ExceptionOccurred();
-        MOZ_ASSERT(e);
-        aEnv->ExceptionClear();
-        mozilla::widget::android::GeckoAppShell::HandleUncaughtException(nullptr, e);
-        // Should be dead by now...
-        MOZ_CRASH("Failed to handle uncaught exception");
+        jni::HandleUncaughtException(aEnv);
     }
 
     // The bridge needs to be constructed via ConstructBridge first,
@@ -195,15 +185,17 @@ public:
     bool GetThreadNameJavaProfiling(uint32_t aThreadId, nsCString & aResult);
     bool GetFrameNameJavaProfiling(uint32_t aThreadId, uint32_t aSampleId, uint32_t aFrameId, nsCString & aResult);
 
-    nsresult CaptureThumbnail(nsIDOMWindow *window, int32_t bufW, int32_t bufH, int32_t tabId, jobject buffer, bool &shouldStore);
+    nsresult CaptureZoomedView(nsIDOMWindow *window, nsIntRect zoomedViewRect, jni::Object::Param buffer, float zoomFactor);
+    nsresult CaptureThumbnail(nsIDOMWindow *window, int32_t bufW, int32_t bufH, int32_t tabId, jni::Object::Param buffer, bool &shouldStore);
     void GetDisplayPort(bool aPageSizeUpdate, bool aIsBrowserContentDisplayed, int32_t tabId, nsIAndroidViewport* metrics, nsIAndroidDisplayport** displayPort);
     void ContentDocumentChanged();
     bool IsContentDocumentDisplayed();
 
-    bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical, mozilla::ParentLayerRect& aCompositionBounds, mozilla::CSSToParentLayerScale& aZoom);
+    bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical,
+                                   mozilla::ParentLayerPoint& aScrollOffset, mozilla::CSSToParentLayerScale& aZoom);
 
-    void SetLayerClient(JNIEnv* env, jobject jobj);
-    mozilla::widget::android::GeckoLayerClient* GetLayerClient() { return mLayerClient; }
+    void SetLayerClient(widget::GeckoLayerClient::Param jobj);
+    const widget::GeckoLayerClient::Ref& GetLayerClient() { return mLayerClient; }
 
     bool GetHandlersForURL(const nsAString& aURL,
                            nsIMutableArray* handlersArray = nullptr,
@@ -229,10 +221,6 @@ public:
 
     int GetDPI();
     int GetScreenDepth();
-
-    void ShowFilePickerForExtensions(nsAString& aFilePath, const nsAString& aExtensions);
-    void ShowFilePickerForMimeType(nsAString& aFilePath, const nsAString& aMimeType);
-    void ShowFilePickerAsync(const nsAString& aMimeType, nsFilePickerCallback* callback);
 
     void Vibrate(const nsTArray<uint32_t>& aPattern);
 
@@ -273,6 +261,7 @@ public:
 
     void *AcquireNativeWindow(JNIEnv* aEnv, jobject aSurface);
     void ReleaseNativeWindow(void *window);
+    mozilla::gfx::IntSize GetNativeWindowSize(void* window);
 
     void *AcquireNativeWindowFromSurfaceTexture(JNIEnv* aEnv, jobject aSurface);
     void ReleaseNativeWindowForSurfaceTexture(void *window);
@@ -302,9 +291,9 @@ public:
     void SetFirstPaintViewport(const LayerIntPoint& aOffset, const CSSToLayerScale& aZoom, const CSSRect& aCssPageRect);
     void SetPageRect(const CSSRect& aCssPageRect);
     void SyncViewportInfo(const LayerIntRect& aDisplayPort, const CSSToLayerScale& aDisplayResolution,
-                          bool aLayersUpdated, ScreenPoint& aScrollOffset, CSSToScreenScale& aScale,
+                          bool aLayersUpdated, ParentLayerPoint& aScrollOffset, CSSToParentLayerScale& aScale,
                           LayerMargin& aFixedLayerMargins, ScreenPoint& aOffset);
-    void SyncFrameMetrics(const ScreenPoint& aScrollOffset, float aZoom, const CSSRect& aCssPageRect,
+    void SyncFrameMetrics(const ParentLayerPoint& aScrollOffset, float aZoom, const CSSRect& aCssPageRect,
                           bool aLayersUpdated, const CSSRect& aDisplayPort, const CSSToLayerScale& aDisplayResolution,
                           bool aIsFirstPaint, LayerMargin& aFixedLayerMargins, ScreenPoint& aOffset);
 
@@ -327,6 +316,8 @@ public:
                             const int32_t      aPort,
                             nsACString & aResult);
 
+    bool PumpMessageLoop();
+
     // Utility methods.
     static jstring NewJavaString(JNIEnv* env, const char16_t* string, uint32_t len);
     static jstring NewJavaString(JNIEnv* env, const nsAString& string);
@@ -344,14 +335,17 @@ public:
     static jmethodID GetMethodID(JNIEnv* env, jclass jClass, const char* methodName, const char* methodType);
     static jmethodID GetStaticMethodID(JNIEnv* env, jclass jClass, const char* methodName, const char* methodType);
 
-    static jobject ChannelCreate(jobject);
+    static jni::Object::LocalRef ChannelCreate(jni::Object::Param);
 
-    static void InputStreamClose(jobject obj);
-    static uint32_t InputStreamAvailable(jobject obj);
-    static nsresult InputStreamRead(jobject obj, char *aBuf, uint32_t aCount, uint32_t *aRead);
+    static void InputStreamClose(jni::Object::Param obj);
+    static uint32_t InputStreamAvailable(jni::Object::Param obj);
+    static nsresult InputStreamRead(jni::Object::Param obj, char *aBuf, uint32_t aCount, uint32_t *aRead);
+
+    static nsresult GetExternalPublicDirectory(const nsAString& aType, nsAString& aPath);
 
 protected:
-    static StaticRefPtr<AndroidBridge> sBridge;
+    static pthread_t sJavaUiThread;
+    static AndroidBridge* sBridge;
     nsTArray<nsCOMPtr<nsIMobileMessageCallback> > mSmsRequests;
 
     // the global JavaVM
@@ -361,7 +355,7 @@ protected:
     JNIEnv *mJNIEnv;
     pthread_t mThread;
 
-    mozilla::widget::android::GeckoLayerClient *mLayerClient;
+    widget::GeckoLayerClient::GlobalRef mLayerClient;
 
     // the android.telephony.SmsMessage class
     jclass mAndroidSmsMessageClass;
@@ -370,7 +364,7 @@ protected:
     ~AndroidBridge();
 
     void InitStubs(JNIEnv *jEnv);
-    bool Init(JNIEnv *jEnv);
+    void Init(JNIEnv *jEnv, jni::Object::Param clsLoader);
 
     bool mOpenedGraphicsLibraries;
     void OpenGraphicsLibraries();
@@ -412,10 +406,17 @@ protected:
     jclass jLayerView;
 
     jfieldID jEGLSurfacePointerField;
-    mozilla::widget::android::GLController *mGLControllerObj;
+    widget::GLController::GlobalRef mGLControllerObj;
 
     // some convinient types to have around
     jclass jStringClass;
+
+    jni::Object::GlobalRef mClassLoader;
+    jmethodID mClassLoaderLoadClass;
+
+    jni::Object::GlobalRef mMessageQueue;
+    jfieldID mMessageQueueMessages;
+    jmethodID mMessageQueueNext;
 
     // calls we've dlopened from libjnigraphics.so
     int (* AndroidBitmap_getInfo)(JNIEnv *env, jobject bitmap, void *info);
@@ -429,6 +430,8 @@ protected:
 
     int (* ANativeWindow_lock)(void *window, void *outBuffer, void *inOutDirtyBounds);
     int (* ANativeWindow_unlockAndPost)(void *window);
+    int (* ANativeWindow_getWidth)(void * window);
+    int (* ANativeWindow_getHeight)(void * window);
 
     int (* Surface_lock)(void* surface, void* surfaceInfo, void* region, bool block);
     int (* Surface_unlockAndPost)(void* surface);
@@ -436,35 +439,61 @@ protected:
     void (* Region_set)(void* region, void* rect);
 
 private:
-    mozilla::widget::android::NativePanZoomController* mNativePanZoomController;
-    // This will always be accessed from one thread (the APZC "controller"
-    // thread, which is the Java UI thread), so we don't need to do locking
-    // to touch it
+    // This will always be accessed from one thread (the Java UI thread),
+    // so we don't need to do locking to touch it.
     nsTArray<DelayedTask*> mDelayedTaskQueue;
+public:
+    void PostTaskToUiThread(Task* aTask, int aDelayMs);
+    int64_t RunDelayedUiThreadTasks();
+
+    void* GetPresentationWindow();
+    void SetPresentationWindow(void* aPresentationWindow);
+
+    EGLSurface GetPresentationSurface();
+    void SetPresentationSurface(EGLSurface aPresentationSurface);
+private:
+    void* mPresentationWindow;
+    EGLSurface mPresentationSurface;
+};
+
+class AutoJNIClass {
+private:
+    JNIEnv* const mEnv;
+    const jclass mClass;
 
 public:
-    mozilla::widget::android::NativePanZoomController* SetNativePanZoomController(jobject obj);
-    // GeckoContentController methods
-    void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
-    void AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
-                                 const uint32_t& aScrollGeneration) MOZ_OVERRIDE;
-    void HandleDoubleTap(const CSSPoint& aPoint,
-                         int32_t aModifiers,
-                         const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleSingleTap(const CSSPoint& aPoint,
-                         int32_t aModifiers,
-                         const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTap(const CSSPoint& aPoint,
-                       int32_t aModifiers,
-                       const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTapUp(const CSSPoint& aPoint,
-                         int32_t aModifiers,
-                         const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void SendAsyncScrollDOMEvent(bool aIsRoot,
-                                 const CSSRect& aContentRect,
-                                 const CSSSize& aScrollableSize) MOZ_OVERRIDE;
-    void PostDelayedTask(Task* aTask, int aDelayMs) MOZ_OVERRIDE;
-    int64_t RunDelayedTasks();
+    AutoJNIClass(JNIEnv* jEnv, const char* name)
+        : mEnv(jEnv)
+        , mClass(AndroidBridge::GetClassGlobalRef(jEnv, name))
+    {}
+
+    ~AutoJNIClass() {
+        mEnv->DeleteGlobalRef(mClass);
+    }
+
+    jclass getRawRef() const {
+        return mClass;
+    }
+
+    jclass getGlobalRef() const {
+        return static_cast<jclass>(mEnv->NewGlobalRef(mClass));
+    }
+
+    jfieldID getField(const char* name, const char* type) const {
+        return AndroidBridge::GetFieldID(mEnv, mClass, name, type);
+    }
+
+    jfieldID getStaticField(const char* name, const char* type) const {
+        return AndroidBridge::GetStaticFieldID(mEnv, mClass, name, type);
+    }
+
+    jmethodID getMethod(const char* name, const char* type) const {
+        return AndroidBridge::GetMethodID(mEnv, mClass, name, type);
+    }
+
+    jmethodID getStaticMethod(const char* name, const char* type) const {
+        return AndroidBridge::GetStaticMethodID(mEnv, mClass, name, type);
+    }
 };
 
 class AutoJObject {
@@ -533,7 +562,7 @@ public:
 
     bool CheckForException() {
         if (mJNIEnv->ExceptionCheck()) {
-            AndroidBridge::HandleUncaughtException(mJNIEnv);
+            jni::HandleUncaughtException(mJNIEnv);
             return true;
         }
         return false;
@@ -579,7 +608,7 @@ private:
 { 0x0FE2321D, 0xEBD9, 0x467D, \
     { 0xA7, 0x43, 0x03, 0xA6, 0x8D, 0x40, 0x59, 0x9E } }
 
-class nsAndroidBridge MOZ_FINAL : public nsIAndroidBridge
+class nsAndroidBridge final : public nsIAndroidBridge
 {
 public:
   NS_DECL_ISUPPORTS

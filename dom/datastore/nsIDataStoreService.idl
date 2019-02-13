@@ -6,8 +6,10 @@
 #include "nsISupports.idl"
 
 interface nsIDOMWindow;
+interface nsIPrincipal;
+interface nsIArray;
 
-[scriptable, uuid(0a050c4f-d292-4a14-8712-09bc1019840a)]
+[scriptable, uuid(79944b1c-187d-11e4-abb6-74d02b97e723)]
 interface nsIDataStoreService : nsISupports
 {
   void installDataStore(in unsigned long appId,
@@ -23,5 +25,10 @@ interface nsIDataStoreService : nsISupports
                               in boolean readOnly);
 
   nsISupports getDataStores(in nsIDOMWindow window,
-                            in DOMString name);
+                            in DOMString name,
+                            in DOMString owner);
+
+  nsIArray getAppManifestURLsForDataStore(in DOMString name);
+
+  boolean checkPermission(in nsIPrincipal principal);
 };

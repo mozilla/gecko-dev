@@ -7,6 +7,8 @@
 #ifndef jit_Label_h
 #define jit_Label_h
 
+#include "jit/Ion.h"
+
 namespace js {
 namespace jit {
 
@@ -19,15 +21,11 @@ struct LabelBase
     bool bound_   : 1;
 
     // Disallow assignment.
-    void operator =(const LabelBase &label);
+    void operator =(const LabelBase& label);
   public:
     static const int32_t INVALID_OFFSET = -1;
 
     LabelBase() : offset_(INVALID_OFFSET), bound_(false)
-    { }
-    LabelBase(const LabelBase &label)
-      : offset_(label.offset_),
-        bound_(label.bound_)
     { }
 
     // If the label is bound, all incoming edges have been patched and any
@@ -36,7 +34,7 @@ struct LabelBase
         return bound_;
     }
     int32_t offset() const {
-        JS_ASSERT(bound() || used());
+        MOZ_ASSERT(bound() || used());
         return offset_;
     }
     // Returns whether the label is not bound, but has incoming uses.
@@ -45,10 +43,10 @@ struct LabelBase
     }
     // Binds the label, fixing its final position in the code stream.
     void bind(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
         offset_ = offset;
         bound_ = true;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset);
     }
     // Marks the label as neither bound nor used.
     void reset() {
@@ -58,11 +56,11 @@ struct LabelBase
     // Sets the label's latest used position, returning the old use position in
     // the process.
     int32_t use(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
 
         int32_t old = offset_;
         offset_ = offset;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset);
 
         return old;
     }
@@ -79,10 +77,20 @@ struct LabelBase
 class Label : public LabelBase
 {
   public:
-    Label()
-    { }
-    Label(const Label &label) : LabelBase(label)
-    { }
+    ~Label()
+    {
+#ifdef DEBUG
+        // The assertion below doesn't hold if an error occurred.
+        if (OOM_counter > OOM_maxAllocations)
+            return;
+        if (JitContext* context = MaybeGetJitContext()) {
+            if (context->runtime->hadOutOfMemory())
+                return;
+        }
+
+        MOZ_ASSERT(!used());
+#endif
+    }
 };
 
 // Label's destructor asserts that if it has been used it has also been bound.
@@ -90,6 +98,14 @@ class Label : public LabelBase
 // trigger this failure innocuously. This Label silences the assertion.
 class NonAssertingLabel : public Label
 {
+  public:
+    ~NonAssertingLabel()
+    {
+#ifdef DEBUG
+        if (used())
+            bind(0);
+#endif
+    }
 };
 
 } } // namespace js::jit

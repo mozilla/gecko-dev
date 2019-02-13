@@ -4,22 +4,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import with_statement
-import codecs
-import itertools
-import json
 import logging
 import os
 import re
 import select
-import shutil
 import signal
 import subprocess
 import sys
-import threading
 import tempfile
-import sqlite3
 from datetime import datetime, timedelta
-from string import Template
 
 SCRIPT_DIR = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
 sys.path.insert(0, SCRIPT_DIR)
@@ -38,8 +31,6 @@ if os.path.isdir(mozbase):
             sys.path.append(package_path)
 
 import mozcrash
-from mozprofile import Profile, Preferences
-from mozprofile.permissions import ServerLocations
 
 # ---------------------------------------------------------------
 
@@ -66,9 +57,7 @@ _APP_STATUS_CERTIFIED     = 3
 #else
 _IS_CYGWIN = False
 #endif
-#expand _IS_CAMINO = __IS_CAMINO__ != 0
 #expand _BIN_SUFFIX = __BIN_SUFFIX__
-#expand _PERL = __PERL__
 
 #expand _DEFAULT_APP = "./" + __BROWSER_PATH__
 #expand _CERTS_SRC_DIR = __CERTS_SRC_DIR__
@@ -82,10 +71,6 @@ if _IS_WIN32:
   import ctypes, ctypes.wintypes, time, msvcrt
 else:
   import errno
-
-
-def getGlobalLog():
-  return _log
 
 def resetGlobalLog(log):
   while _log.handlers:
@@ -105,31 +90,6 @@ resetGlobalLog(sys.stdout)
 # PROFILE SETUP #
 #################
 
-class SyntaxError(Exception):
-  "Signifies a syntax error on a particular line in server-locations.txt."
-
-  def __init__(self, lineno, msg = None):
-    self.lineno = lineno
-    self.msg = msg
-
-  def __str__(self):
-    s = "Syntax error on line " + str(self.lineno)
-    if self.msg:
-      s += ": %s." % self.msg
-    else:
-      s += "."
-    return s
-
-
-class Location:
-  "Represents a location line in server-locations.txt."
-
-  def __init__(self, scheme, host, port, options):
-    self.scheme = scheme
-    self.host = host
-    self.port = port
-    self.options = options
-
 class Automation(object):
   """
   Runs the browser from a script, and provides useful utilities
@@ -141,9 +101,7 @@ class Automation(object):
   IS_MAC = _IS_MAC
   IS_LINUX = _IS_LINUX
   IS_CYGWIN = _IS_CYGWIN
-  IS_CAMINO = _IS_CAMINO
   BIN_SUFFIX = _BIN_SUFFIX
-  PERL = _PERL
 
   UNIXISH = not IS_WIN32 and not IS_MAC
 
@@ -185,8 +143,6 @@ class Automation(object):
            "log",
            "runApp",
            "Process",
-           "addCommonOptions",
-           "initializeProfile",
            "DIST_BIN",
            "DEFAULT_APP",
            "CERTS_SRC_DIR",
@@ -217,7 +173,6 @@ class Automation(object):
                  universal_newlines=False,
                  startupinfo=None,
                  creationflags=0):
-      args = automationutils.wrapCommand(args)
       _log.info("INFO | automation.py | Launching: %s", subprocess.list2cmdline(args))
       subprocess.Popen.__init__(self, args, bufsize, executable,
                                 stdin, stdout, stderr,
@@ -243,238 +198,7 @@ class Automation(object):
       else:
         os.kill(self.pid, signal.SIGKILL)
 
-  def readLocations(self, locationsPath = "server-locations.txt"):
-    """
-    Reads the locations at which the Mochitest HTTP server is available from
-    server-locations.txt.
-    """
-
-    locationFile = codecs.open(locationsPath, "r", "UTF-8")
-
-    # Perhaps more detail than necessary, but it's the easiest way to make sure
-    # we get exactly the format we want.  See server-locations.txt for the exact
-    # format guaranteed here.
-    lineRe = re.compile(r"^(?P<scheme>[a-z][-a-z0-9+.]*)"
-                      r"://"
-                      r"(?P<host>"
-                        r"\d+\.\d+\.\d+\.\d+"
-                        r"|"
-                        r"(?:[a-z0-9](?:[-a-z0-9]*[a-z0-9])?\.)*"
-                        r"[a-z](?:[-a-z0-9]*[a-z0-9])?"
-                      r")"
-                      r":"
-                      r"(?P<port>\d+)"
-                      r"(?:"
-                      r"\s+"
-                      r"(?P<options>\S+(?:,\S+)*)"
-                      r")?$")
-    locations = []
-    lineno = 0
-    seenPrimary = False
-    for line in locationFile:
-      lineno += 1
-      if line.startswith("#") or line == "\n":
-        continue
-      
-      match = lineRe.match(line)
-      if not match:
-        raise SyntaxError(lineno)
-
-      options = match.group("options")
-      if options:
-        options = options.split(",")
-        if "primary" in options:
-          if seenPrimary:
-            raise SyntaxError(lineno, "multiple primary locations")
-          seenPrimary = True
-      else:
-        options = []
-
-      locations.append(Location(match.group("scheme"), match.group("host"),
-                                match.group("port"), options))
-
-    if not seenPrimary:
-      raise SyntaxError(lineno + 1, "missing primary location")
-
-    return locations
-
-  def setupPermissionsDatabase(self, profileDir, permissions):
-    # Included for reftest compatibility;
-    # see https://bugzilla.mozilla.org/show_bug.cgi?id=688667
-
-    # Open database and create table
-    permDB = sqlite3.connect(os.path.join(profileDir, "permissions.sqlite"))
-    cursor = permDB.cursor();
-
-    cursor.execute("PRAGMA user_version=3");
-
-    # SQL copied from nsPermissionManager.cpp
-    cursor.execute("""CREATE TABLE IF NOT EXISTS moz_hosts (
-      id INTEGER PRIMARY KEY,
-      host TEXT,
-      type TEXT,
-      permission INTEGER,
-      expireType INTEGER,
-      expireTime INTEGER,
-      appId INTEGER,
-      isInBrowserElement INTEGER)""")
-
-    # Insert desired permissions
-    for perm in permissions.keys():
-      for host,allow in permissions[perm]:
-        cursor.execute("INSERT INTO moz_hosts values(NULL, ?, ?, ?, 0, 0, 0, 0)",
-                       (host, perm, 1 if allow else 2))
-
-    # Commit and close
-    permDB.commit()
-    cursor.close()
-
-  def initializeProfile(self, profileDir,
-                              extraPrefs=None,
-                              useServerLocations=False,
-                              prefsPath=_DEFAULT_PREFERENCE_FILE,
-                              appsPath=_DEFAULT_APPS_FILE,
-                              addons=None):
-    " Sets up the standard testing profile."
-
-    extraPrefs = extraPrefs or []
-
-    # create the profile
-    prefs = {}
-    locations = None
-    if useServerLocations:
-        locations = ServerLocations()
-        locations.read(os.path.abspath('server-locations.txt'), True)
-    else:
-      prefs['network.proxy.type'] = 0
-
-    prefs.update(Preferences.read_prefs(prefsPath))
-
-    for v in extraPrefs:
-      thispref = v.split("=", 1)
-      if len(thispref) < 2:
-        print "Error: syntax error in --setpref=" + v
-        sys.exit(1)
-      prefs[thispref[0]] = thispref[1]
-
-
-    interpolation = {"server": "%s:%s" % (self.webServer, self.httpPort)}
-    prefs = json.loads(json.dumps(prefs) % interpolation)
-    for pref in prefs:
-        prefs[pref] = Preferences.cast(prefs[pref])
-
-    # load apps
-    apps = None
-    if appsPath and os.path.exists(appsPath):
-        with open(appsPath, 'r') as apps_file:
-            apps = json.load(apps_file)
-
-    proxy = {'remote': str(self.webServer),
-             'http': str(self.httpPort),
-             'https': str(self.sslPort),
-    # use SSL port for legacy compatibility; see
-    # - https://bugzilla.mozilla.org/show_bug.cgi?id=688667#c66
-    # - https://bugzilla.mozilla.org/show_bug.cgi?id=899221
-    #             'ws': str(self.webSocketPort)
-             'ws': str(self.sslPort)
-             }
-
-    # return profile object
-    profile = Profile(profile=profileDir,
-                      addons=addons,
-                      locations=locations,
-                      preferences=prefs,
-                      restore=False,
-                      apps=apps,
-                      proxy=proxy)
-    return profile
-
-  def addCommonOptions(self, parser):
-    "Adds command-line options which are common to mochitest and reftest."
-
-    parser.add_option("--setpref",
-                      action = "append", type = "string",
-                      default = [],
-                      dest = "extraPrefs", metavar = "PREF=VALUE",
-                      help = "defines an extra user preference")
-
-  def fillCertificateDB(self, profileDir, certPath, utilityPath, xrePath):
-    pwfilePath = os.path.join(profileDir, ".crtdbpw")
-    pwfile = open(pwfilePath, "w")
-    pwfile.write("\n")
-    pwfile.close()
-
-    # Create head of the ssltunnel configuration file
-    sslTunnelConfigPath = os.path.join(profileDir, "ssltunnel.cfg")
-    sslTunnelConfig = open(sslTunnelConfigPath, "w")
-  
-    sslTunnelConfig.write("httpproxy:1\n")
-    sslTunnelConfig.write("certdbdir:%s\n" % certPath)
-    sslTunnelConfig.write("forward:127.0.0.1:%s\n" % self.httpPort)
-    sslTunnelConfig.write("websocketserver:%s:%s\n" % (self.webServer, self.webSocketPort))
-    sslTunnelConfig.write("listen:*:%s:pgo server certificate\n" % self.sslPort)
-
-    # Configure automatic certificate and bind custom certificates, client authentication
-    locations = self.readLocations()
-    locations.pop(0)
-    for loc in locations:
-      if loc.scheme == "https" and "nocert" not in loc.options:
-        customCertRE = re.compile("^cert=(?P<nickname>[0-9a-zA-Z_ ]+)")
-        clientAuthRE = re.compile("^clientauth=(?P<clientauth>[a-z]+)")
-        redirRE      = re.compile("^redir=(?P<redirhost>[0-9a-zA-Z_ .]+)")
-        for option in loc.options:
-          match = customCertRE.match(option)
-          if match:
-            customcert = match.group("nickname");
-            sslTunnelConfig.write("listen:%s:%s:%s:%s\n" %
-                      (loc.host, loc.port, self.sslPort, customcert))
-
-          match = clientAuthRE.match(option)
-          if match:
-            clientauth = match.group("clientauth");
-            sslTunnelConfig.write("clientauth:%s:%s:%s:%s\n" %
-                      (loc.host, loc.port, self.sslPort, clientauth))
-
-          match = redirRE.match(option)
-          if match:
-            redirhost = match.group("redirhost")
-            sslTunnelConfig.write("redirhost:%s:%s:%s:%s\n" %
-                      (loc.host, loc.port, self.sslPort, redirhost))
-
-    sslTunnelConfig.close()
-
-    # Pre-create the certification database for the profile
-    env = self.environment(xrePath = xrePath)
-    certutil = os.path.join(utilityPath, "certutil" + self.BIN_SUFFIX)
-    pk12util = os.path.join(utilityPath, "pk12util" + self.BIN_SUFFIX)
-
-    status = self.Process([certutil, "-N", "-d", profileDir, "-f", pwfilePath], env = env).wait()
-    automationutils.printstatus(status, "certutil")
-    if status != 0:
-      return status
-
-    # Walk the cert directory and add custom CAs and client certs
-    files = os.listdir(certPath)
-    for item in files:
-      root, ext = os.path.splitext(item)
-      if ext == ".ca":
-        trustBits = "CT,,"
-        if root.endswith("-object"):
-          trustBits = "CT,,CT"
-        status = self.Process([certutil, "-A", "-i", os.path.join(certPath, item),
-                    "-d", profileDir, "-f", pwfilePath, "-n", root, "-t", trustBits],
-                    env = env).wait()
-        automationutils.printstatus(status, "certutil")
-      if ext == ".client":
-        status = self.Process([pk12util, "-i", os.path.join(certPath, item), "-w",
-                    pwfilePath, "-d", profileDir], 
-                    env = env).wait()
-        automationutils.printstatus(status, "pk12util")
-
-    os.unlink(pwfilePath)
-    return 0
-
-  def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None):
+  def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None):
     if xrePath == None:
       xrePath = self.DIST_BIN
     if env == None:
@@ -501,7 +225,6 @@ class Automation(object):
       preloadEnvVar = "MOZ_REPLACE_MALLOC_LIB"
 
     if dmdPath and dmdLibrary and preloadEnvVar:
-      env['DMD'] = '1'
       env[preloadEnvVar] = os.path.join(dmdPath, dmdLibrary)
 
     if crashreporter and not debugger:
@@ -510,15 +233,17 @@ class Automation(object):
     else:
       env['MOZ_CRASHREPORTER_DISABLE'] = '1'
 
-    # Crash on non-local network connections.
-    env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
+    # Crash on non-local network connections by default.
+    # MOZ_DISABLE_NONLOCAL_CONNECTIONS can be set to "0" to temporarily
+    # enable non-local connections for the purposes of local testing.  Don't
+    # override the user's choice here.  See bug 1049688.
+    env.setdefault('MOZ_DISABLE_NONLOCAL_CONNECTIONS', '1')
 
     env['GNOME_DISABLE_CRASH_DIALOG'] = '1'
     env['XRE_NO_WINDOWS_CRASH_DIALOG'] = '1'
-    env['NS_TRACE_MALLOC_DISABLE_STACKS'] = '1'
 
     # Set WebRTC logging in case it is not set yet
-    env.setdefault('NSPR_LOG_MODULES', 'signaling:5,mtransport:5,datachannel:5')
+    env.setdefault('NSPR_LOG_MODULES', 'signaling:3,mtransport:4,datachannel:4,jsep:4,MediaPipelineFactory:4')
     env.setdefault('R_LOG_LEVEL', '6')
     env.setdefault('R_LOG_DESTINATION', 'stderr')
     env.setdefault('R_LOG_VERBOSE', '1')
@@ -672,7 +397,6 @@ class Automation(object):
 
   def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath):
     """ Look for timeout or crashes and return the status after the process terminates """
-    stackFixerProcess = None
     stackFixerFunction = None
     didTimeout = False
     hitMaxTime = False
@@ -688,19 +412,19 @@ class Automation(object):
         import fix_stack_using_bpsyms as stackFixerModule
         stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line, symbolsPath)
         del sys.path[0]
-      elif self.IS_DEBUG_BUILD and self.IS_MAC and False:
+      elif self.IS_DEBUG_BUILD and self.IS_MAC:
         # Run each line through a function in fix_macosx_stack.py (uses atos)
         sys.path.insert(0, utilityPath)
         import fix_macosx_stack as stackFixerModule
         stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line)
         del sys.path[0]
       elif self.IS_DEBUG_BUILD and self.IS_LINUX:
-        # Run logsource through fix-linux-stack.pl (uses addr2line)
+        # Run each line through a function in fix_linux_stack.py (uses addr2line)
         # This method is preferred for developer machines, so we don't have to run "make buildsymbols".
-        stackFixerProcess = self.Process([self.PERL, os.path.join(utilityPath, "fix-linux-stack.pl")],
-                                         stdin=logsource,
-                                         stdout=subprocess.PIPE)
-        logsource = stackFixerProcess.stdout
+        sys.path.insert(0, utilityPath)
+        import fix_linux_stack as stackFixerModule
+        stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line)
+        del sys.path[0]
 
       # With metro browser runs this script launches the metro test harness which launches the browser.
       # The metro test harness hands back the real browser process id via log output which we need to
@@ -719,14 +443,8 @@ class Automation(object):
 
         (line, didTimeout) = self.readWithTimeout(logsource, timeout)
 
-        if "METRO_BROWSER_PROCESS" in line:
-          index = line.find("=")
-          if index:
-            browserProcessId = line[index+1:].rstrip()
-            self.log.info("INFO | automation.py | metro browser sub process id detected: %s", browserProcessId)
-
         if not hitMaxTime and maxTime and datetime.now() - startTime > timedelta(seconds = maxTime):
-          # Kill the application, but continue reading from stack fixer so as not to deadlock on stackFixerProcess.wait().
+          # Kill the application.
           hitMaxTime = True
           self.log.info("TEST-UNEXPECTED-FAIL | %s | application ran for longer than allowed maximum time of %d seconds", self.lastTestSeen, int(maxTime))
           self.killAndGetStack(proc.pid, utilityPath, debuggerInfo)
@@ -744,18 +462,13 @@ class Automation(object):
       self.lastTestSeen = "Main app process exited normally"
     if status != 0 and not didTimeout and not hitMaxTime:
       self.log.info("TEST-UNEXPECTED-FAIL | %s | Exited with code %d during test run", self.lastTestSeen, status)
-    if stackFixerProcess is not None:
-      fixerStatus = stackFixerProcess.wait()
-      automationutils.printstatus(status, "stackFixerProcess")
-      if fixerStatus != 0 and not didTimeout and not hitMaxTime:
-        self.log.info("TEST-UNEXPECTED-FAIL | automation.py | Stack fixer process exited with code %d during test run", fixerStatus)
     return status
 
   def buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs):
     """ build the application command line """
 
     cmd = os.path.abspath(app)
-    if self.IS_MAC and not self.IS_CAMINO and os.path.exists(cmd + "-bin"):
+    if self.IS_MAC and os.path.exists(cmd + "-bin"):
       # Prefer 'app-bin' in case 'app' is a shell script.
       # We can remove this hack once bug 673899 etc are fixed.
       cmd += "-bin"
@@ -763,9 +476,9 @@ class Automation(object):
     args = []
 
     if debuggerInfo:
-      args.extend(debuggerInfo["args"])
+      args.extend(debuggerInfo.args)
       args.append(cmd)
-      cmd = os.path.abspath(debuggerInfo["path"])
+      cmd = os.path.abspath(debuggerInfo.path)
 
     if self.IS_MAC:
       args.append("-foreground")
@@ -777,10 +490,7 @@ class Automation(object):
 
     args.extend(("-no-remote", "-profile", profileDirectory))
     if testURL is not None:
-      if self.IS_CAMINO:
-        args.extend(("-url", testURL))
-      else:
-        args.append((testURL))
+      args.append((testURL))
     args.extend(extraArgs)
     return cmd, args
 
@@ -814,12 +524,11 @@ class Automation(object):
   def checkForCrashes(self, minidumpDir, symbolsPath):
     return mozcrash.check_for_crashes(minidumpDir, symbolsPath, test_name=self.lastTestSeen)
 
-  def runApp(self, testURL, env, app, profileDir, extraArgs,
-             runSSLTunnel = False, utilityPath = None,
+  def runApp(self, testURL, env, app, profileDir, extraArgs, utilityPath = None,
              xrePath = None, certPath = None,
              debuggerInfo = None, symbolsPath = None,
              timeout = -1, maxTime = None, onLaunch = None,
-             webapprtChrome = False, screenshotOnFail=False, testPath=None):
+             detectShutdownLeaks = False, screenshotOnFail=False, testPath=None, bisectChunk=None):
     """
     Run the app, log the duration it took to execute, return the status code.
     Kills the app if it runs for longer than |maxTime| seconds, or outputs nothing for |timeout| seconds.
@@ -841,24 +550,11 @@ class Automation(object):
     os.close(tmpfd)
     env["MOZ_PROCESS_LOG"] = processLog
 
-    if self.IS_TEST_BUILD and runSSLTunnel:
-      # create certificate database for the profile
-      certificateStatus = self.fillCertificateDB(profileDir, certPath, utilityPath, xrePath)
-      if certificateStatus != 0:
-        self.log.info("TEST-UNEXPECTED-FAIL | automation.py | Certificate integration failed")
-        return certificateStatus
-
-      # start ssltunnel to provide https:// URLs capability
-      ssltunnel = os.path.join(utilityPath, "ssltunnel" + self.BIN_SUFFIX)
-      ssltunnelProcess = self.Process([ssltunnel, 
-                               os.path.join(profileDir, "ssltunnel.cfg")], 
-                               env = self.environment(xrePath = xrePath))
-      self.log.info("INFO | automation.py | SSL tunnel pid: %d", ssltunnelProcess.pid)
 
     cmd, args = self.buildCommandLine(app, debuggerInfo, profileDir, testURL, extraArgs)
     startTime = datetime.now()
 
-    if debuggerInfo and debuggerInfo["interactive"]:
+    if debuggerInfo and debuggerInfo.interactive:
       # If an interactive debugger is attached, don't redirect output,
       # don't use timeouts, and don't capture ctrl-c.
       timeout = None
@@ -895,95 +591,7 @@ class Automation(object):
     if os.path.exists(processLog):
       os.unlink(processLog)
 
-    if self.IS_TEST_BUILD and runSSLTunnel:
-      ssltunnelProcess.kill()
-
     return status
-
-  def getExtensionIDFromRDF(self, rdfSource):
-    """
-    Retrieves the extension id from an install.rdf file (or string).
-    """
-    from xml.dom.minidom import parse, parseString, Node
-
-    if isinstance(rdfSource, file):
-      document = parse(rdfSource)
-    else:
-      document = parseString(rdfSource)
-
-    # Find the <em:id> element. There can be multiple <em:id> tags
-    # within <em:targetApplication> tags, so we have to check this way.
-    for rdfChild in document.documentElement.childNodes:
-      if rdfChild.nodeType == Node.ELEMENT_NODE and rdfChild.tagName == "Description":
-        for descChild in rdfChild.childNodes:
-          if descChild.nodeType == Node.ELEMENT_NODE and descChild.tagName == "em:id":
-            return descChild.childNodes[0].data
-
-    return None
-
-  def installExtension(self, extensionSource, profileDir, extensionID = None):
-    """
-    Copies an extension into the extensions directory of the given profile.
-    extensionSource - the source location of the extension files.  This can be either
-                      a directory or a path to an xpi file.
-    profileDir      - the profile directory we are copying into.  We will create the
-                      "extensions" directory there if it doesn't exist.
-    extensionID     - the id of the extension to be used as the containing directory for the
-                      extension, if extensionSource is a directory, i.e.
-                  this is the name of the folder in the <profileDir>/extensions/<extensionID>
-    """
-    if not os.path.isdir(profileDir):
-      self.log.info("INFO | automation.py | Cannot install extension, invalid profileDir at: %s", profileDir)
-      return
-
-    installRDFFilename = "install.rdf"
-
-    extensionsRootDir = os.path.join(profileDir, "extensions", "staged")
-    if not os.path.isdir(extensionsRootDir):
-      os.makedirs(extensionsRootDir)
-
-    if os.path.isfile(extensionSource):
-      reader = automationutils.ZipFileReader(extensionSource)
-
-      for filename in reader.namelist():
-        # Sanity check the zip file.
-        if os.path.isabs(filename):
-          self.log.info("INFO | automation.py | Cannot install extension, bad files in xpi")
-          return
-
-        # We may need to dig the extensionID out of the zip file...
-        if extensionID is None and filename == installRDFFilename:
-          extensionID = self.getExtensionIDFromRDF(reader.read(filename))
-
-      # We must know the extensionID now.
-      if extensionID is None:
-        self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
-        return
-
-      # Make the extension directory.
-      extensionDir = os.path.join(extensionsRootDir, extensionID)
-      os.mkdir(extensionDir)
-
-      # Extract all files.
-      reader.extractall(extensionDir)
-
-    elif os.path.isdir(extensionSource):
-      if extensionID is None:
-        filename = os.path.join(extensionSource, installRDFFilename)
-        if os.path.isfile(filename):
-          with open(filename, "r") as installRDF:
-            extensionID = self.getExtensionIDFromRDF(installRDF)
-
-        if extensionID is None:
-          self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
-          return
-
-      # Copy extension tree into its own directory.
-      # "destination directory must not already exist".
-      shutil.copytree(extensionSource, os.path.join(extensionsRootDir, extensionID))
-
-    else:
-      self.log.info("INFO | automation.py | Cannot install extension, invalid extensionSource at: %s", extensionSource)
 
   def elf_arm(self, filename):
     data = open(filename, 'rb').read(20)

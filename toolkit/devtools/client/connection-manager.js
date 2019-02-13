@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,13 +6,18 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, Cr} = require("chrome");
 const {setTimeout, clearTimeout} = require('sdk/timers');
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+DevToolsUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+
+const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
 
 /**
  * Connection Manager.
@@ -23,12 +28,12 @@ Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
  * # ConnectionManager
  *
  * Methods:
- *  ⬩ Connection createConnection(host, port)
- *  ⬩ void       destroyConnection(connection)
- *  ⬩ Number     getFreeTCPPort()
+ *  . Connection createConnection(host, port)
+ *  . void       destroyConnection(connection)
+ *  . Number     getFreeTCPPort()
  *
  * Properties:
- *  ⬩ Array      connections
+ *  . Array      connections
  *
  * # Connection
  *
@@ -38,33 +43,42 @@ Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
  * will re-create a debugger client.
  *
  * Methods:
- *  ⬩ connect()         Connect to host:port. Expect a "connecting" event. If
- *                      host is not specified, a local pipe is used
- *  ⬩ disconnect()      Disconnect if connected. Expect a "disconnecting" event
+ *  . connect()             Connect to host:port. Expect a "connecting" event.
+ *                          If no host is not specified, a local pipe is used
+ *  . connect(transport)    Connect via transport. Expect a "connecting" event.
+ *  . disconnect()          Disconnect if connected. Expect a "disconnecting" event
  *
  * Properties:
- *  ⬩ host              IP address or hostname
- *  ⬩ port              Port
- *  ⬩ logs              Current logs. "newlog" event notifies new available logs
- *  ⬩ store             Reference to a local data store (see below)
- *  ⬩ keepConnecting    Should the connection keep trying connecting
- *  ⬩ status            Connection status:
- *                        Connection.Status.CONNECTED
- *                        Connection.Status.DISCONNECTED
- *                        Connection.Status.CONNECTING
- *                        Connection.Status.DISCONNECTING
- *                        Connection.Status.DESTROYED
+ *  . host                  IP address or hostname
+ *  . port                  Port
+ *  . logs                  Current logs. "newlog" event notifies new available logs
+ *  . store                 Reference to a local data store (see below)
+ *  . keepConnecting        Should the connection keep trying to connect?
+ *  . timeoutDelay          When should we give up (in ms)?
+ *                          0 means wait forever.
+ *  . encryption            Should the connection be encrypted?
+ *  . authentication        What authentication scheme should be used?
+ *  . authenticator         The |Authenticator| instance used.  Overriding
+ *                          properties of this instance may be useful to
+ *                          customize authentication UX for a specific use case.
+ *  . advertisement         The server's advertisement if found by discovery
+ *  . status                Connection status:
+ *                            Connection.Status.CONNECTED
+ *                            Connection.Status.DISCONNECTED
+ *                            Connection.Status.CONNECTING
+ *                            Connection.Status.DISCONNECTING
+ *                            Connection.Status.DESTROYED
  *
  * Events (as in event-emitter.js):
- *  ⬩ Connection.Events.CONNECTING      Trying to connect to host:port
- *  ⬩ Connection.Events.CONNECTED       Connection is successful
- *  ⬩ Connection.Events.DISCONNECTING   Trying to disconnect from server
- *  ⬩ Connection.Events.DISCONNECTED    Disconnected (at client request, or because of a timeout or connection error)
- *  ⬩ Connection.Events.STATUS_CHANGED  The connection status (connection.status) has changed
- *  ⬩ Connection.Events.TIMEOUT         Connection timeout
- *  ⬩ Connection.Events.HOST_CHANGED    Host has changed
- *  ⬩ Connection.Events.PORT_CHANGED    Port has changed
- *  ⬩ Connection.Events.NEW_LOG         A new log line is available
+ *  . Connection.Events.CONNECTING      Trying to connect to host:port
+ *  . Connection.Events.CONNECTED       Connection is successful
+ *  . Connection.Events.DISCONNECTING   Trying to disconnect from server
+ *  . Connection.Events.DISCONNECTED    Disconnected (at client request, or because of a timeout or connection error)
+ *  . Connection.Events.STATUS_CHANGED  The connection status (connection.status) has changed
+ *  . Connection.Events.TIMEOUT         Connection timeout
+ *  . Connection.Events.HOST_CHANGED    Host has changed
+ *  . Connection.Events.PORT_CHANGED    Port has changed
+ *  . Connection.Events.NEW_LOG         A new log line is available
  *
  */
 
@@ -86,7 +100,7 @@ let ConnectionManager = {
     }
   },
   get connections() {
-    return [c for (c of this._connections)];
+    return [...this._connections];
   },
   getFreeTCPPort: function () {
     let serv = Cc['@mozilla.org/network/server-socket;1']
@@ -111,7 +125,7 @@ function Connection(host, port) {
   this._onDisconnected = this._onDisconnected.bind(this);
   this._onConnected = this._onConnected.bind(this);
   this._onTimeout = this._onTimeout.bind(this);
-  this.keepConnecting = false;
+  this.resetOptions();
 }
 
 Connection.Status = {
@@ -174,6 +188,65 @@ Connection.prototype = {
     this.emit(Connection.Events.PORT_CHANGED);
   },
 
+  get authentication() {
+    return this._authentication;
+  },
+
+  set authentication(value) {
+    this._authentication = value;
+    // Create an |Authenticator| of this type
+    if (!value) {
+      this.authenticator = null;
+      return;
+    }
+    let AuthenticatorType = DebuggerClient.Authenticators.get(value);
+    this.authenticator = new AuthenticatorType.Client();
+  },
+
+  get advertisement() {
+    return this._advertisement;
+  },
+
+  set advertisement(advertisement) {
+    // The full advertisement may contain more info than just the standard keys
+    // below, so keep a copy for use during connection later.
+    this._advertisement = advertisement;
+    if (advertisement) {
+      ["host", "port", "encryption", "authentication"].forEach(key => {
+        this[key] = advertisement[key];
+      });
+    }
+  },
+
+  /**
+   * Settings to be passed to |socketConnect| at connection time.
+   */
+  get socketSettings() {
+    let settings = {};
+    if (this.advertisement) {
+      // Use the advertisement as starting point if it exists, as it may contain
+      // extra data, like the server's cert.
+      Object.assign(settings, this.advertisement);
+    }
+    Object.assign(settings, {
+      host: this.host,
+      port: this.port,
+      encryption: this.encryption,
+      authenticator: this.authenticator
+    });
+    return settings;
+  },
+
+  timeoutDelay: Services.prefs.getIntPref(REMOTE_TIMEOUT),
+
+  resetOptions() {
+    this.keepConnecting = false;
+    this.timeoutDelay = Services.prefs.getIntPref(REMOTE_TIMEOUT);
+    this.encryption = false;
+    this.authentication = null;
+    this.advertisement = null;
+  },
+
   disconnect: function(force) {
     if (this.status == Connection.Status.DESTROYED) {
       return;
@@ -183,20 +256,28 @@ Connection.prototype = {
         this.status == Connection.Status.CONNECTING) {
       this.log("disconnecting");
       this._setStatus(Connection.Status.DISCONNECTING);
-      this._client.close();
+      if (this._client) {
+        this._client.close();
+      }
     }
   },
 
-  connect: function() {
+  connect: function(transport) {
     if (this.status == Connection.Status.DESTROYED) {
       return;
     }
     if (!this._client) {
-      this.log("connecting to " + this.host + ":" + this.port);
+      this._customTransport = transport;
+      if (this._customTransport) {
+        this.log("connecting (custom transport)");
+      } else {
+        this.log("connecting to " + this.host + ":" + this.port);
+      }
       this._setStatus(Connection.Status.CONNECTING);
-      let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
-      this._timeoutID = setTimeout(this._onTimeout, delay);
 
+      if (this.timeoutDelay > 0) {
+        this._timeoutID = setTimeout(this._onTimeout, this.timeoutDelay);
+      }
       this._clientConnect();
     } else {
       let msg = "Can't connect. Client is not fully disconnected";
@@ -216,26 +297,39 @@ Connection.prototype = {
     this._setStatus(Connection.Status.DESTROYED);
   },
 
-  _clientConnect: function () {
-    let transport;
+  _getTransport: Task.async(function*() {
+    if (this._customTransport) {
+      return this._customTransport;
+    }
     if (!this.host) {
-      transport = DebuggerServer.connectPipe();
-    } else {
-      try {
-        transport = debuggerSocketConnect(this.host, this.port);
-      } catch (e) {
-        // In some cases, especially on Mac, the openOutputStream call in
-        // debuggerSocketConnect may throw NS_ERROR_NOT_INITIALIZED.
-        // It occurs when we connect agressively to the simulator,
-        // and keep trying to open a socket to the server being started in
-        // the simulator.
-        this._onDisconnected();
+      return DebuggerServer.connectPipe();
+    }
+    let settings = this.socketSettings;
+    let transport = yield DebuggerClient.socketConnect(settings);
+    return transport;
+  }),
+
+  _clientConnect: function () {
+    this._getTransport().then(transport => {
+      if (!transport) {
         return;
       }
-    }
-    this._client = new DebuggerClient(transport);
-    this._client.addOneTimeListener("closed", this._onDisconnected);
-    this._client.connect(this._onConnected);
+      this._client = new DebuggerClient(transport);
+      this._client.addOneTimeListener("closed", this._onDisconnected);
+      this._client.connect(this._onConnected);
+    }, e => {
+      // If we're continuously trying to connect, we expect the connection to be
+      // rejected a couple times, so don't log these.
+      if (!this.keepConnecting || e.result !== Cr.NS_ERROR_CONNECTION_REFUSED) {
+        console.error(e);
+      }
+      // In some cases, especially on Mac, the openOutputStream call in
+      // DebuggerClient.socketConnect may throw NS_ERROR_NOT_INITIALIZED.
+      // It occurs when we connect agressively to the simulator,
+      // and keep trying to open a socket to the server being started in
+      // the simulator.
+      this._onDisconnected();
+    });
   },
 
   get status() {
@@ -252,6 +346,7 @@ Connection.prototype = {
 
   _onDisconnected: function() {
     this._client = null;
+    this._customTransport = null;
 
     if (this._status == Connection.Status.CONNECTING && this.keepConnecting) {
       setTimeout(() => this._clientConnect(), 100);
@@ -288,4 +383,3 @@ Connection.prototype = {
 
 exports.ConnectionManager = ConnectionManager;
 exports.Connection = Connection;
-

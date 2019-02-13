@@ -10,9 +10,14 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIByteRangeRequest.h"
+#include "nsILoadInfo.h"
 #include "nsIMultiPartChannel.h"
 #include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
+#include "nsIResponseHeadProvider.h"
+#include "nsHttpResponseHead.h"
+
+using mozilla::net::nsHttpResponseHead;
 
 #define NS_MULTIMIXEDCONVERTER_CID                         \
 { /* 7584CE90-5B25-11d3-A175-0050041CAF44 */         \
@@ -29,9 +34,10 @@
 // Instances on this channel are passed out to the consumer through the
 // nsIStreamListener interface.
 //
-class nsPartChannel MOZ_FINAL : public nsIChannel,
-                                public nsIByteRangeRequest,
-                                public nsIMultiPartChannel
+class nsPartChannel final : public nsIChannel,
+                            public nsIByteRangeRequest,
+                            public nsIResponseHeadProvider,
+                            public nsIMultiPartChannel
 {
 public:
   nsPartChannel(nsIChannel *aMultipartChannel, uint32_t aPartID,
@@ -46,11 +52,13 @@ public:
   /* SetContentDisposition expects the full value of the Content-Disposition
    * header */
   void SetContentDisposition(const nsACString& aContentDispositionHeader);
+  void SetResponseHead(nsHttpResponseHead * head) { mResponseHead = head; }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUEST
   NS_DECL_NSICHANNEL
   NS_DECL_NSIBYTERANGEREQUEST
+  NS_DECL_NSIRESPONSEHEADPROVIDER
   NS_DECL_NSIMULTIPARTCHANNEL
 
 protected:
@@ -59,7 +67,8 @@ protected:
 protected:
   nsCOMPtr<nsIChannel>    mMultipartChannel;
   nsCOMPtr<nsIStreamListener> mListener;
-  
+  nsAutoPtr<nsHttpResponseHead> mResponseHead;
+
   nsresult                mStatus;
   nsLoadFlags             mLoadFlags;
 
@@ -126,9 +135,10 @@ public:
     NS_DECL_NSIREQUESTOBSERVER
 
     nsMultiMixedConv();
-    virtual ~nsMultiMixedConv();
 
 protected:
+    virtual ~nsMultiMixedConv();
+
     nsresult SendStart(nsIChannel *aChannel);
     nsresult SendStop(nsresult aStatus);
     nsresult SendData(char *aBuffer, uint32_t aLen);
@@ -166,6 +176,12 @@ protected:
     bool                mIsByteRangeRequest;
 
     uint32_t            mCurrentPartID;
+
+    // This is true if the content-type is application/package
+    // Streamable packages don't require the boundary in the header
+    // as it can be ascertained from the package file.
+    bool                mPackagedApp;
+    nsAutoPtr<nsHttpResponseHead> mResponseHead;
 };
 
 #endif /* __nsmultimixedconv__h__ */

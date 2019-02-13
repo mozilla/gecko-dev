@@ -6,23 +6,20 @@
 function test() {
   Task.spawn(function* () {
     const TAB_URL = EXAMPLE_URL + "doc_closure-optimized-out.html";
-    let panel, debuggee, gDebugger, sources;
+    let gDebugger, sources;
 
-    let [, debuggee, panel] = yield initDebugger(TAB_URL);
+    let [tab,, panel] = yield initDebugger(TAB_URL);
     gDebugger = panel.panelWin;
     sources = gDebugger.DebuggerView.Sources;
 
     yield waitForSourceShown(panel, ".html");
-    yield panel.addBreakpoint({ url: sources.values[0], line: 18 });
+    yield panel.addBreakpoint({ actor: sources.values[0],
+                                line: 18 });
     yield ensureThreadClientState(panel, "resumed");
 
     // Spin the event loop before causing the debuggee to pause, to allow
     // this function to return first.
-    executeSoon(() => {
-      EventUtils.sendMouseEvent({ type: "click" },
-        debuggee.document.querySelector("button"),
-        debuggee);
-    });
+    generateMouseClickInTab(tab, "content.document.querySelector('button')");
 
     yield waitForDebuggerEvents(panel, gDebugger.EVENTS.FETCHED_SCOPES);
     let gVars = gDebugger.DebuggerView.Variables;
@@ -30,10 +27,10 @@ function test() {
     outerScope.expand();
 
     let upvarVar = outerScope.get("upvar");
-    ok(!upvarVar, "upvar was optimized out.");
-    if (upvarVar) {
-      ok(false, "upvar = " + upvarVar.target.querySelector(".value").getAttribute("value"));
-    }
+    ok(upvarVar, "The variable `upvar` is shown.");
+    is(upvarVar.target.querySelector(".value").getAttribute("value"),
+       gDebugger.L10N.getStr('variablesViewOptimizedOut'),
+       "Should show the optimized out message for upvar.");
 
     let argVar = outerScope.get("arg");
     is(argVar.target.querySelector(".name").getAttribute("value"), "arg",

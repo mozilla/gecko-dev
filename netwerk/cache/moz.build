@@ -21,8 +21,7 @@ EXPORTS += [
     'nsDeleteDir.h'
 ]
 
-# These files cannot be built in unified mode because they force NSPR logging.
-SOURCES += [
+UNIFIED_SOURCES += [
     'nsApplicationCacheService.cpp',
     'nsCache.cpp',
     'nsCacheEntry.cpp',
@@ -44,10 +43,8 @@ SOURCES += [
 
 FAIL_ON_WARNINGS = True
 
-MSVC_ENABLE_PGO = True
-
-FINAL_LIBRARY = 'necko'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../base/src',
+    '/netwerk/base',
 ]

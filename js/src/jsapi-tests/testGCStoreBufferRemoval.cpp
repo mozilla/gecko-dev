@@ -5,8 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef JSGC_GENERATIONAL
-
 #include "gc/Barrier.h"
 #include "jsapi-tests/tests.h"
 
@@ -36,8 +34,8 @@ BEGIN_TEST(testGCStoreBufferRemoval)
 
     // Test removal of store buffer entries added by RelocatablePtr<T>.
     {
-        JSObject *badObject = reinterpret_cast<JSObject*>(1);
-        JSObject *punnedPtr = nullptr;
+        JSObject* badObject = reinterpret_cast<JSObject*>(1);
+        JSObject* punnedPtr = nullptr;
         RelocatablePtrObject* relocPtr =
             reinterpret_cast<RelocatablePtrObject*>(&punnedPtr);
         new (relocPtr) RelocatablePtrObject;
@@ -64,7 +62,7 @@ BEGIN_TEST(testGCStoreBufferRemoval)
     // Test removal of store buffer entries added by RelocatableValue.
     {
         Value punnedValue;
-        RelocatableValue *relocValue = reinterpret_cast<RelocatableValue*>(&punnedValue);
+        RelocatableValue* relocValue = reinterpret_cast<RelocatableValue*>(&punnedValue);
         new (relocValue) RelocatableValue;
         *relocValue = ObjectValue(*NurseryObject());
         relocValue->~RelocatableValue();
@@ -88,8 +86,8 @@ BEGIN_TEST(testGCStoreBufferRemoval)
 
     // Test removal of store buffer entries added by Heap<T>.
     {
-        JSObject *badObject = reinterpret_cast<JSObject*>(1);
-        JSObject *punnedPtr = nullptr;
+        JSObject* badObject = reinterpret_cast<JSObject*>(1);
+        JSObject* punnedPtr = nullptr;
         Heap<JSObject*>* heapPtr =
             reinterpret_cast<Heap<JSObject*>*>(&punnedPtr);
         new (heapPtr) Heap<JSObject*>;
@@ -116,10 +114,8 @@ BEGIN_TEST(testGCStoreBufferRemoval)
     return true;
 }
 
-JSObject *NurseryObject()
+JSObject* NurseryObject()
 {
-    return JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
+    return JS_NewPlainObject(cx);
 }
 END_TEST(testGCStoreBufferRemoval)
-
-#endif

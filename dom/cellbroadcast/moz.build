@@ -4,5 +4,37 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['interfaces', 'src']
-TEST_DIRS += ['tests']
+DIRS += ['interfaces']
+
+EXPORTS.mozilla.dom += [
+    'CellBroadcast.h',
+    'CellBroadcastMessage.h',
+]
+
+UNIFIED_SOURCES += [
+    'CellBroadcast.cpp',
+    'CellBroadcastMessage.cpp',
+    'ipc/CellBroadcastIPCService.cpp',
+    'ipc/CellBroadcastParent.cpp',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL'] and not CONFIG['DISABLE_MOZ_RIL_GEOLOC']:
+    EXTRA_COMPONENTS += [
+        'gonk/CellBroadcastService.js',
+        'gonk/CellBroadcastService.manifest',
+    ]
+
+EXPORTS.mozilla.dom.cellbroadcast += [
+    'ipc/CellBroadcastIPCService.h',
+    'ipc/CellBroadcastParent.h',
+]
+
+IPDL_SOURCES += [
+    'ipc/PCellBroadcast.ipdl',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FAIL_ON_WARNINGS = True
+
+FINAL_LIBRARY = 'xul'

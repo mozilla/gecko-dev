@@ -15,43 +15,42 @@
 #include "GeneratedJNIWrappers.h"
 
 using namespace mozilla;
-using namespace mozilla::widget::android;
 
 class AndroidInputStream : public nsIInputStream
 {
 public:
-    AndroidInputStream(jobject connection) {
-        JNIEnv *env = GetJNIForThread();
-        mBridgeInputStream = env->NewGlobalRef(GeckoAppShell::CreateInputStream(connection));
-        mBridgeChannel = env->NewGlobalRef(AndroidBridge::ChannelCreate(mBridgeInputStream));
+    AndroidInputStream(jni::Object::Param connection) {
+        mBridgeInputStream = widget::GeckoAppShell::CreateInputStream(connection);
+        mBridgeChannel = AndroidBridge::ChannelCreate(mBridgeInputStream);
     }
+
+private:
     virtual ~AndroidInputStream() {
-        JNIEnv *env = GetJNIForThread();
-        env->DeleteGlobalRef(mBridgeInputStream);
-        env->DeleteGlobalRef(mBridgeChannel);
     }
+
+public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIINPUTSTREAM
 
-    private:
-    jobject mBridgeInputStream;
-    jobject mBridgeChannel;
+private:
+    jni::Object::GlobalRef mBridgeInputStream;
+    jni::Object::GlobalRef mBridgeChannel;
 };
 
 NS_IMPL_ISUPPORTS(AndroidInputStream, nsIInputStream)
 
 NS_IMETHODIMP AndroidInputStream::Close(void) {
-    mozilla::AndroidBridge::InputStreamClose(mBridgeInputStream);
+    AndroidBridge::InputStreamClose(mBridgeInputStream);
     return NS_OK;
 }
 
 NS_IMETHODIMP AndroidInputStream::Available(uint64_t *_retval) {
-    *_retval = mozilla::AndroidBridge::InputStreamAvailable(mBridgeInputStream);
+    *_retval = AndroidBridge::InputStreamAvailable(mBridgeInputStream);
     return NS_OK;
 }
 
 NS_IMETHODIMP AndroidInputStream::Read(char *aBuf, uint32_t aCount, uint32_t *_retval) {
-    return  mozilla::AndroidBridge::InputStreamRead(mBridgeChannel, aBuf, aCount, _retval);
+    return  AndroidBridge::InputStreamRead(mBridgeChannel, aBuf, aCount, _retval);
 }
 
 NS_IMETHODIMP AndroidInputStream::ReadSegments(nsWriteSegmentFun aWriter, void *aClosure, uint32_t aCount, uint32_t *_retval) {
@@ -67,27 +66,26 @@ NS_IMETHODIMP AndroidInputStream::IsNonBlocking(bool *_retval) {
 class AndroidChannel : public nsBaseChannel
 {
 private:
-    AndroidChannel(nsIURI *aURI, jobject aConnection) {
-        JNIEnv *env = GetJNIForThread();
-        mConnection = env->NewGlobalRef(aConnection);
+    AndroidChannel(nsIURI *aURI, jni::Object::Param aConnection) {
+        mConnection = aConnection;
         mURI = aURI;
-        nsCString type;
-        jstring jtype = GeckoAppShell::ConnectionGetMimeType(mConnection);
-        if (jtype)
-            SetContentType(nsJNICString(jtype, env));
+
+        auto type = widget::GeckoAppShell::ConnectionGetMimeType(mConnection);
+        if (type) {
+            SetContentType(nsCString(type));
+        }
     }
+
 public:
     static AndroidChannel* CreateChannel(nsIURI *aURI)  {
         nsCString spec;
         aURI->GetSpec(spec);
-        jobject connection = GeckoAppShell::GetConnection(spec);
-        if (!connection)
-            return NULL;
-        return new AndroidChannel(aURI, connection);
+
+        auto connection = widget::GeckoAppShell::GetConnection(spec);
+        return connection ? new AndroidChannel(aURI, connection) : nullptr;
     }
-    ~AndroidChannel() {
-        JNIEnv *env = GetJNIForThread();
-        env->DeleteGlobalRef(mConnection);
+
+    virtual ~AndroidChannel() {
     }
 
     virtual nsresult OpenContentStream(bool async, nsIInputStream **result,
@@ -96,8 +94,9 @@ public:
         NS_ADDREF(*result = stream);
         return NS_OK;
     }
+
 private:
-    jobject mConnection;
+    jni::Object::GlobalRef mConnection;
 };
 
 NS_IMPL_ISUPPORTS(nsAndroidProtocolHandler,
@@ -159,12 +158,25 @@ nsAndroidProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsAndroidProtocolHandler::NewChannel(nsIURI* aURI,
-                                     nsIChannel* *aResult)
+nsAndroidProtocolHandler::NewChannel2(nsIURI* aURI,
+                                      nsILoadInfo* aLoadInfo,
+                                      nsIChannel** aResult)
 {
     nsCOMPtr<nsIChannel> channel = AndroidChannel::CreateChannel(aURI);
     if (!channel)
         return NS_ERROR_FAILURE;
+
+    // set the loadInfo on the new channel
+    nsresult rv = channel->SetLoadInfo(aLoadInfo);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     NS_ADDREF(*aResult = channel);
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAndroidProtocolHandler::NewChannel(nsIURI* aURI,
+                                     nsIChannel* *aResult)
+{
+    return NewChannel2(aURI, nullptr, aResult);
 }

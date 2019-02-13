@@ -1,10 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/ContentEvents.h"
 #include "mozilla/dom/TimeEvent.h"
-#include "mozilla/BasicEvents.h"
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsPresContext.h"
@@ -14,25 +15,16 @@ namespace dom {
 
 TimeEvent::TimeEvent(EventTarget* aOwner,
                      nsPresContext* aPresContext,
-                     WidgetEvent* aEvent)
+                     InternalSMILTimeEvent* aEvent)
   : Event(aOwner, aPresContext,
-          aEvent ? aEvent : new InternalUIEvent(false, 0))
-  , mDetail(0)
+          aEvent ? aEvent : new InternalSMILTimeEvent(false, 0))
+  , mDetail(mEvent->AsSMILTimeEvent()->detail)
 {
-  SetIsDOMBinding();
   if (aEvent) {
     mEventIsInternal = false;
   } else {
     mEventIsInternal = true;
-    mEvent->eventStructType = NS_SMIL_TIME_EVENT;
   }
-
-  if (mEvent->eventStructType == NS_SMIL_TIME_EVENT) {
-    mDetail = mEvent->AsUIEvent()->detail;
-  }
-
-  mEvent->mFlags.mBubbles = false;
-  mEvent->mFlags.mCancelable = false;
 
   if (mPresContext) {
     nsCOMPtr<nsIDocShell> docShell = mPresContext->GetDocShell();
@@ -92,7 +84,7 @@ nsresult
 NS_NewDOMTimeEvent(nsIDOMEvent** aInstancePtrResult,
                    EventTarget* aOwner,
                    nsPresContext* aPresContext,
-                   WidgetEvent* aEvent)
+                   InternalSMILTimeEvent* aEvent)
 {
   TimeEvent* it = new TimeEvent(aOwner, aPresContext, aEvent);
   NS_ADDREF(it);

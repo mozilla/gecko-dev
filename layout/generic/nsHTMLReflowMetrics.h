@@ -8,13 +8,13 @@
 #ifndef nsHTMLReflowMetrics_h___
 #define nsHTMLReflowMetrics_h___
 
-#include "nsRect.h"
+#include "mozilla/WritingModes.h"
 #include "nsBoundingMetrics.h"
-#include "WritingModes.h"
+#include "nsRect.h"
 
 //----------------------------------------------------------------------
 
-class nsHTMLReflowState;
+struct nsHTMLReflowState;
 
 // Option flags
 #define NS_REFLOW_CALC_BOUNDING_METRICS  0x0001
@@ -204,7 +204,7 @@ public:
   // XXX width/height/ascent are OUT parameters and so they shouldn't
   // have to be initialized, but there are some bad frame classes that
   // aren't properly setting them when returning from Reflow()...
-  nsHTMLReflowMetrics(mozilla::WritingMode aWritingMode, uint32_t aFlags = 0)
+  explicit nsHTMLReflowMetrics(mozilla::WritingMode aWritingMode, uint32_t aFlags = 0)
     : mISize(0)
     , mBSize(0)
     , mBlockStartAscent(ASK_FOR_BASELINE)
@@ -212,7 +212,7 @@ public:
     , mWritingMode(aWritingMode)
   {}
 
-  nsHTMLReflowMetrics(const nsHTMLReflowState& aState, uint32_t aFlags = 0);
+  explicit nsHTMLReflowMetrics(const nsHTMLReflowState& aState, uint32_t aFlags = 0);
 
   // ISize and BSize are logical-coordinate dimensions:
   // ISize is the size in the writing mode's inline direction (which equates to
@@ -238,6 +238,21 @@ public:
   nscoord& BSize(mozilla::WritingMode aWritingMode) {
     CHECK_WRITING_MODE(aWritingMode);
     return mBSize;
+  }
+
+  // Set inline and block size from a LogicalSize, converting to our
+  // writing mode as necessary.
+  void SetSize(mozilla::WritingMode aWM, mozilla::LogicalSize aSize)
+  {
+    mozilla::LogicalSize convertedSize = aSize.ConvertTo(mWritingMode, aWM);
+    mBSize = convertedSize.BSize(mWritingMode);
+    mISize = convertedSize.ISize(mWritingMode);
+  }
+
+  // Set both inline and block size to zero -- no need for a writing mode!
+  void ClearSize()
+  {
+    mISize = mBSize = 0;
   }
 
   // Width and Height are physical dimensions, independent of writing mode.
@@ -272,9 +287,9 @@ public:
   // of the base and the text of the superscript.
   nsBoundingMetrics mBoundingMetrics;  // [OUT]
 
-  // Carried out bottom margin values. This is the collapsed
-  // (generational) bottom margin value.
-  nsCollapsingMargin mCarriedOutBottomMargin;
+  // Carried out block-end margin values. This is the collapsed
+  // (generational) block-end margin value.
+  nsCollapsingMargin mCarriedOutBEndMargin;
 
   // For frames that have content that overflow their content area
   // (HasOverflowAreas() is true) these rectangles represent the total

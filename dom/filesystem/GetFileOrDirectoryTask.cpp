@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,10 +8,13 @@
 
 #include "js/Value.h"
 #include "mozilla/dom/Directory.h"
+#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Promise.h"
-#include "nsDOMFile.h"
+#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/BlobParent.h"
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
@@ -21,7 +24,8 @@ namespace dom {
 GetFileOrDirectoryTask::GetFileOrDirectoryTask(
   FileSystemBase* aFileSystem,
   const nsAString& aTargetPath,
-  bool aDirectoryOnly)
+  bool aDirectoryOnly,
+  ErrorResult& aRv)
   : FileSystemTaskBase(aFileSystem)
   , mTargetRealPath(aTargetPath)
   , mIsDirectory(aDirectoryOnly)
@@ -33,7 +37,7 @@ GetFileOrDirectoryTask::GetFileOrDirectoryTask(
   if (!globalObject) {
     return;
   }
-  mPromise = new Promise(globalObject);
+  mPromise = Promise::Create(globalObject, aRv);
 }
 
 GetFileOrDirectoryTask::GetFileOrDirectoryTask(
@@ -77,7 +81,8 @@ GetFileOrDirectoryTask::GetSuccessRequestResult() const
   if (mIsDirectory) {
     return FileSystemDirectoryResponse(mTargetRealPath);
   }
-  BlobParent* actor = GetBlobParent(mTargetFile);
+
+  BlobParent* actor = GetBlobParent(mTargetBlobImpl);
   if (!actor) {
     return FileSystemErrorResponse(NS_ERROR_DOM_FILESYSTEM_UNKNOWN_ERR);
   }
@@ -94,8 +99,7 @@ GetFileOrDirectoryTask::SetSuccessRequestResult(const FileSystemResponseValue& a
     case FileSystemResponseValue::TFileSystemFileResponse: {
       FileSystemFileResponse r = aValue;
       BlobChild* actor = static_cast<BlobChild*>(r.blobChild());
-      nsCOMPtr<nsIDOMBlob> blob = actor->GetBlob();
-      mTargetFile = do_QueryInterface(blob);
+      mTargetBlobImpl = actor->GetBlobImpl();
       mIsDirectory = false;
       break;
     }
@@ -180,7 +184,7 @@ GetFileOrDirectoryTask::Work()
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  mTargetFile = new nsDOMFileFile(file);
+  mTargetBlobImpl = new BlobImplFile(file);
 
   return NS_OK;
 }
@@ -209,7 +213,8 @@ GetFileOrDirectoryTask::HandlerCallback()
     return;
   }
 
-  mPromise->MaybeResolve(mTargetFile);
+  nsRefPtr<Blob> blob = Blob::Create(mFileSystem->GetWindow(), mTargetBlobImpl);
+  mPromise->MaybeResolve(blob);
   mPromise = nullptr;
 }
 

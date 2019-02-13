@@ -7,10 +7,10 @@
 #include "jsiter.h"
 
 #include "jit/BaselineCompiler.h"
-#include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
-#include "jit/IonLinker.h"
+#include "jit/Linker.h"
+#include "jit/SharedICHelpers.h"
 
 #include "jsboolinlines.h"
 
@@ -23,7 +23,7 @@ namespace jit {
 // ICCompare_Int32
 
 bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -46,7 +46,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Double::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure, isNaN;
     masm.ensureDouble(R0, FloatReg0, &failure);
@@ -70,7 +70,7 @@ ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
 // ICBinaryArith_Int32
 
 bool
-ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -81,9 +81,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     Register scratchReg = R2.payloadReg();
 
     // DIV and MOD need an extra non-volatile ValueOperand to hold R0.
-    GeneralRegisterSet savedRegs = availableGeneralRegs(2);
-    savedRegs = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs);
-    ValueOperand savedValue = savedRegs.takeAnyValue();
+    AllocatableGeneralRegisterSet savedRegs(availableGeneralRegs(2));
+    savedRegs.set() = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs.set());
 
     Label goodMul, divTest1, divTest2;
     switch(op_) {
@@ -180,7 +179,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         }
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unhandled op for BinaryArith_Int32.");
+        MOZ_CRASH("Unhandled op for BinaryArith_Int32.");
     }
 
     EmitReturnFromIC(masm);
@@ -193,7 +192,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
@@ -209,7 +208,7 @@ ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.neg32(R0.payloadReg());
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected op");
+        MOZ_CRASH("Unexpected op");
         return false;
     }
 

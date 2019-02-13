@@ -26,16 +26,16 @@ public class SQLiteBridge {
     private static final String LOGTAG = "SQLiteBridge";
 
     // Path to the database. If this database was not opened with openDatabase, we reopen it every query.
-    private String mDb;
+    private final String mDb;
 
     // Pointer to the database if it was opened with openDatabase. 0 implies closed.
-    protected volatile long mDbPointer = 0L;
+    protected volatile long mDbPointer;
 
     // Values remembered after a query.
     private long[] mQueryResults;
 
-    private boolean mTransactionSuccess = false;
-    private boolean mInTransaction = false;
+    private boolean mTransactionSuccess;
+    private boolean mInTransaction;
 
     private static final int RESULT_INSERT_ROW_ID = 0;
     private static final int RESULT_ROWS_CHANGED = 1;
@@ -68,13 +68,15 @@ public class SQLiteBridge {
     // Executes a simple line of sql.
     public void execSQL(String sql)
                 throws SQLiteBridgeException {
-        internalQuery(sql, null);
+        Cursor cursor = internalQuery(sql, null);
+        cursor.close();
     }
 
     // Executes a simple line of sql. Allow you to bind arguments
     public void execSQL(String sql, String[] bindArgs)
                 throws SQLiteBridgeException {
-        internalQuery(sql, bindArgs);
+        Cursor cursor = internalQuery(sql, bindArgs);
+        cursor.close();
     }
 
     // Executes a DELETE statement on the database
@@ -86,7 +88,7 @@ public class SQLiteBridge {
             sb.append(" WHERE " + whereClause);
         }
 
-        internalQuery(sb.toString(), whereArgs);
+        execSQL(sb.toString(), whereArgs);
         return (int)mQueryResults[RESULT_ROWS_CHANGED];
     }
 
@@ -172,7 +174,7 @@ public class SQLiteBridge {
 
         String[] binds = new String[valueBinds.size()];
         valueBinds.toArray(binds);
-        internalQuery(sb.toString(), binds);
+        execSQL(sb.toString(), binds);
         return mQueryResults[RESULT_INSERT_ROW_ID];
     }
 
@@ -215,7 +217,7 @@ public class SQLiteBridge {
         String[] binds = new String[valueNames.size()];
         valueNames.toArray(binds);
 
-        internalQuery(sb.toString(), binds);
+        execSQL(sb.toString(), binds);
         return (int)mQueryResults[RESULT_ROWS_CHANGED];
     }
 
@@ -350,14 +352,14 @@ public class SQLiteBridge {
                     // Success! Let's make sure we autocheckpoint at a reasonable interval.
                     final int pageSizeBytes = bridge.getPageSizeBytes();
                     final int checkpointPageCount = MAX_WAL_SIZE_BYTES / pageSizeBytes;
-                    bridge.internalQuery("PRAGMA wal_autocheckpoint=" + checkpointPageCount, null).close();
+                    bridge.execSQL("PRAGMA wal_autocheckpoint=" + checkpointPageCount);
                 } else {
                     if (!"truncate".equals(journalMode)) {
                         Log.w(LOGTAG, "Unable to activate WAL journal mode. Using truncate instead.");
-                        bridge.internalQuery("PRAGMA journal_mode=TRUNCATE", null).close();
+                        bridge.execSQL("PRAGMA journal_mode=TRUNCATE");
                     }
                     Log.w(LOGTAG, "Not using WAL mode: using synchronous=FULL instead.");
-                    bridge.internalQuery("PRAGMA synchronous=FULL", null).close();
+                    bridge.execSQL("PRAGMA synchronous=FULL");
                 }
             }
         } finally {

@@ -11,7 +11,7 @@ let subscriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
 
 /**
  * Start a new RIL worker.
- * 
+ *
  * @param custom_ns
  *        Namespace with symbols to be injected into the new worker
  *        namespace.
@@ -79,6 +79,60 @@ function newWorker(custom_ns) {
 }
 
 /**
+ * Create a buffered RIL worker.
+ *
+ * @return A worker object that stores sending octets in a internal buffer.
+ */
+function newUint8Worker() {
+  let worker = newWorker();
+  let index = 0; // index for read
+  let buf = [];
+
+  let context = worker.ContextPool._contexts[0];
+  context.Buf.writeUint8 = function(value) {
+    buf.push(value);
+  };
+
+  context.Buf.readUint8 = function() {
+    return buf[index++];
+  };
+
+  context.Buf.seekIncoming = function(offset) {
+    index += offset;
+  };
+
+  context.Buf.getReadAvailable = function() {
+    return buf.length - index;
+  };
+
+  worker.debug = do_print;
+
+  return worker;
+}
+
+/**
+ * Create a worker that keeps posted chrome message.
+ */
+function newInterceptWorker() {
+  let postedMessage;
+  let worker = newWorker({
+    postRILMessage: function(data) {
+    },
+    postMessage: function(message) {
+      postedMessage = message;
+    }
+  });
+  return {
+    get postedMessage() {
+      return postedMessage;
+    },
+    get worker() {
+      return worker;
+    }
+  };
+}
+
+/**
  * Create a parcel suitable for postRILMessage().
  *
  * @param fakeParcelSize
@@ -137,51 +191,3 @@ function newIncomingParcel(fakeParcelSize, response, request, data) {
 
   return bytes;
 }
-
-/**
- *
- */
-let ril_ns;
-function newRadioInterface() {
-  if (!ril_ns) {
-    ril_ns = {};
-    subscriptLoader.loadSubScript("resource://gre/components/RadioInterfaceLayer.js", ril_ns);
-  }
-
-  return {
-    __proto__: ril_ns.RadioInterface.prototype,
-  };
-}
-
-/**
- * Test whether specified function throws exception with expected
- * result.
- *
- * @param func
- *        Function to be tested.
- * @param message
- *        Message of expected exception. <code>null</code> for no throws.
- * @param stack
- *        Optional stack object to be printed. <code>null</code> for
- *        Components#stack#caller.
- */
-function do_check_throws(func, message, stack)
-{
-  if (!stack)
-    stack = Components.stack.caller;
-
-  try {
-    func();
-  } catch (exc) {
-    if (exc.message === message) {
-      return;
-    }
-    do_throw("expecting exception '" + message
-             + "', caught '" + exc.message + "'", stack);
-  }
-
-  if (message) {
-    do_throw("expecting exception '" + message + "', none thrown", stack);
-  }
-}
-

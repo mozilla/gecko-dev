@@ -7,12 +7,15 @@
 DIRS += ['unit']
 
 TEST_DIRS += [
-	'gtest',
-	'mochitest',
+    'gtest',
+    'mochitest',
 ]
 
-TEST_TOOL_DIRS += [
+TEST_DIRS += [
   'compiled',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
+
+if not CONFIG['MOZ_NO_SMART_CARDS']:
+    XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell-smartcards.ini']

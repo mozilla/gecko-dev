@@ -5,7 +5,8 @@
 include protocol PNecko;
 include protocol PBrowser;
 include URIParams;
-
+include PBackgroundSharedTypes;
+include PBrowserOrId;
 
 using class IPC::SerializedLoadContext from "SerializedLoadContext.h";
 
@@ -20,12 +21,16 @@ protocol PWyciwygChannel
 parent:
   __delete__();
 
-  Init(URIParams uri);
+  Init(URIParams     uri,
+       PrincipalInfo requestingPrincipalInfo,
+       PrincipalInfo triggeringPrincipalInfo,
+       uint32_t      securityFlags,
+       uint32_t      contentPolicyType);
   AsyncOpen(URIParams             originalURI,
             uint32_t              loadFlags,
             SerializedLoadContext loadContext,
-            PBrowser browser);
-  AppData(SerializedLoadContext loadContext, PBrowser browser);
+            PBrowserOrId browser);
+  AppData(SerializedLoadContext loadContext, PBrowserOrId browser);
 
   // methods corresponding to those of nsIWyciwygChannel
   WriteToCacheEntry(nsString data);

@@ -13,17 +13,19 @@
 #include "mozilla/net/NeckoParent.h"
 #include "nsIParentChannel.h"
 #include "nsIInterfaceRequestor.h"
+#include "OfflineObserver.h"
 
-class nsFtpChannel;
 class nsILoadContext;
 
 namespace mozilla {
 namespace net {
 
-class FTPChannelParent : public PFTPChannelParent
-                       , public nsIParentChannel
-                       , public nsIInterfaceRequestor
-                       , public ADivertableParentChannel
+class FTPChannelParent final : public PFTPChannelParent
+                             , public nsIParentChannel
+                             , public nsIInterfaceRequestor
+                             , public ADivertableParentChannel
+                             , public nsIChannelEventSink
+                             , public DisconnectableParent
 {
 public:
   NS_DECL_ISUPPORTS
@@ -31,15 +33,15 @@ public:
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSIPARENTCHANNEL
   NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSICHANNELEVENTSINK
 
   FTPChannelParent(nsILoadContext* aLoadContext, PBOverrideStatus aOverrideStatus);
-  virtual ~FTPChannelParent();
 
   bool Init(const FTPChannelCreationArgs& aOpenArgs);
 
   // ADivertableParentChannel functions.
-  void DivertTo(nsIStreamListener *aListener) MOZ_OVERRIDE;
-  nsresult SuspendForDiversion() MOZ_OVERRIDE;
+  void DivertTo(nsIStreamListener *aListener) override;
+  nsresult SuspendForDiversion() override;
 
   // Calls OnStartRequest for "DivertTo" listener, then notifies child channel
   // that it should divert OnDataAvailable and OnStopRequest calls to this
@@ -51,6 +53,8 @@ public:
   void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
 
 protected:
+  virtual ~FTPChannelParent();
+
   // private, supporting function for ADivertableParentChannel.
   nsresult ResumeForDiversion();
 
@@ -59,24 +63,29 @@ protected:
 
   bool DoAsyncOpen(const URIParams& aURI, const uint64_t& aStartPos,
                    const nsCString& aEntityID,
-                   const OptionalInputStreamParams& aUploadStream);
+                   const OptionalInputStreamParams& aUploadStream,
+                   const LoadInfoArgs& aLoadInfoArgs);
 
   // used to connect redirected-to channel in parent with just created
   // ChildChannel.  Used during HTTP->FTP redirects.
   bool ConnectChannel(const uint32_t& channelId);
 
-  virtual bool RecvCancel(const nsresult& status) MOZ_OVERRIDE;
-  virtual bool RecvSuspend() MOZ_OVERRIDE;
-  virtual bool RecvResume() MOZ_OVERRIDE;
+  virtual bool RecvCancel(const nsresult& status) override;
+  virtual bool RecvSuspend() override;
+  virtual bool RecvResume() override;
   virtual bool RecvDivertOnDataAvailable(const nsCString& data,
                                          const uint64_t& offset,
-                                         const uint32_t& count) MOZ_OVERRIDE;
-  virtual bool RecvDivertOnStopRequest(const nsresult& statusCode) MOZ_OVERRIDE;
-  virtual bool RecvDivertComplete() MOZ_OVERRIDE;
+                                         const uint32_t& count) override;
+  virtual bool RecvDivertOnStopRequest(const nsresult& statusCode) override;
+  virtual bool RecvDivertComplete() override;
 
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
-  nsRefPtr<nsFtpChannel> mChannel;
+  void OfflineDisconnect() override;
+  uint32_t GetAppId() override;
+
+  // if configured to use HTTP proxy for FTP, this can an an HTTP channel.
+  nsCOMPtr<nsIChannel> mChannel;
 
   bool mIPCClosed;
 
@@ -99,6 +108,7 @@ protected:
   // Set if we successfully suspended the nsHttpChannel for diversion. Unset
   // when we call ResumeForDiversion.
   bool mSuspendedForDiversion;
+  nsRefPtr<OfflineObserver> mObserver;
 };
 
 } // namespace net

@@ -27,7 +27,7 @@ struct MSGResult;
  * API set. By using this class, non-IME handler classes don't need to worry
  * that we're in which mode.
  */
-class IMEHandler MOZ_FINAL
+class IMEHandler final
 {
 public:
   static void Initialize();
@@ -122,6 +122,7 @@ private:
   static bool sPluginHasFocus;
 
   static bool IsTSFAvailable() { return (sIsInTSFMode && !sPluginHasFocus); }
+  static bool IsIMMActive();
 #endif // #ifdef NS_ENABLE_TSF
 };
 

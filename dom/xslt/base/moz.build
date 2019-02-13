@@ -6,6 +6,7 @@
 
 UNIFIED_SOURCES += [
     'txDouble.cpp',
+    'txExpandedName.cpp',
     'txExpandedNameMap.cpp',
     'txList.cpp',
     'txNamespaceMap.cpp',
@@ -21,4 +22,4 @@ LOCAL_INCLUDES += [
     '../xslt',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'

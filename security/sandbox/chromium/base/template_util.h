@@ -28,6 +28,17 @@ typedef integral_constant<bool, false> false_type;
 template <class T> struct is_pointer : false_type {};
 template <class T> struct is_pointer<T*> : true_type {};
 
+// Member function pointer detection. This is built-in to C++ 11's stdlib, and
+// we can remove this when we switch to it.
+template<typename T>
+struct is_member_function_pointer : false_type {};
+
+template <typename R, typename Z, typename... A>
+struct is_member_function_pointer<R(Z::*)(A...)> : true_type {};
+template <typename R, typename Z, typename... A>
+struct is_member_function_pointer<R(Z::*)(A...) const> : true_type {};
+
+
 template <class T, class U> struct is_same : public false_type {};
 template <class T> struct is_same<T,T> : true_type {};
 
@@ -38,6 +49,9 @@ template<class T> struct is_array<T[]> : public true_type {};
 template <class T> struct is_non_const_reference : false_type {};
 template <class T> struct is_non_const_reference<T&> : true_type {};
 template <class T> struct is_non_const_reference<const T&> : false_type {};
+
+template <class T> struct is_const : false_type {};
+template <class T> struct is_const<const T> : true_type {};
 
 template <class T> struct is_void : false_type {};
 template <> struct is_void<void> : true_type {};
@@ -102,6 +116,12 @@ struct is_class
                         sizeof(internal::IsClassHelper::Test<T>(0)) ==
                             sizeof(internal::YesType)> {
 };
+
+template<bool B, class T = void>
+struct enable_if {};
+
+template<class T>
+struct enable_if<true, T> { typedef T type; };
 
 }  // namespace base
 

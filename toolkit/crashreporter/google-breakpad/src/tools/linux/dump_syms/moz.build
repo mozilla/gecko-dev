@@ -8,7 +8,16 @@ HOST_SOURCES += [
     'dump_syms.cc',
 ]
 
-HOST_PROGRAM = 'dump_syms'
+HostProgram('dump_syms')
+
+# host_breakpad_linux_common_s needs to come first
+HOST_USE_LIBS += [
+    'host_breakpad_linux_common_s',
+]
+HOST_USE_LIBS += [
+    'host_breakpad_common_s',
+    'host_breakpad_dwarf_s',
+]
 
 LOCAL_INCLUDES += [
     '../../..',

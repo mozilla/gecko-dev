@@ -73,7 +73,18 @@
 <!ENTITY btnConsoleInfo         "Info">
 <!ENTITY btnConsoleWarnings     "Warnings">
 <!ENTITY btnConsoleLog          "Log">
+<!ENTITY btnConsoleXhr          "XHR">
 <!ENTITY btnConsoleReflows      "Reflows">
+
+<!-- LOCALIZATION NODE (btnConsoleSharedWorkers) the term "Shared Workers"
+  -  should not be translated. -->
+<!ENTITY btnConsoleSharedWorkers "Shared Workers">
+<!-- LOCALIZATION NODE (btnConsoleServiceWorkers) the term "Service Workers"
+  -  should not be translated. -->
+<!ENTITY btnConsoleServiceWorkers "Service Workers">
+<!-- LOCALIZATION NODE (btnConsoleWindowlessWorkers) the term "Workers"
+  -  should not be translated. -->
+<!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
 
 <!ENTITY filterOutput.placeholder "Filter output">
 <!ENTITY btnClear.label        "Clear">
@@ -96,3 +107,5 @@
 <!ENTITY closeCmd.key         "W">
 <!ENTITY findCmd.key          "F">
 <!ENTITY clearOutputCtrl.key  "L">
+<!ENTITY openInVarViewCmd.label "Open in Variables View">
+<!ENTITY openInVarViewCmd.accesskey "V">

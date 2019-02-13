@@ -22,7 +22,7 @@ namespace layers {
 void
 LayerTransactionChild::Destroy()
 {
-  if (!IPCOpen() || mDestroyed) {
+  if (!IPCOpen()) {
     return;
   }
   // mDestroyed is used to prevent calling Send__delete__() twice.
@@ -32,9 +32,17 @@ LayerTransactionChild::Destroy()
   // When it happens, IPCOpen() is still true.
   // See bug 1004191.
   mDestroyed = true;
-  NS_ABORT_IF_FALSE(0 == ManagedPLayerChild().Length(),
-                    "layers should have been cleaned up by now");
-  PLayerTransactionChild::Send__delete__(this);
+  MOZ_ASSERT(0 == ManagedPLayerChild().Length(),
+             "layers should have been cleaned up by now");
+
+  for (size_t i = 0; i < ManagedPTextureChild().Length(); ++i) {
+    TextureClient* texture = TextureClient::AsTextureClient(ManagedPTextureChild()[i]);
+    if (texture) {
+      texture->ForceRemove();
+    }
+  }
+
+  SendShutdown();
 }
 
 
@@ -56,6 +64,7 @@ LayerTransactionChild::DeallocPLayerChild(PLayerChild* actor)
 PCompositableChild*
 LayerTransactionChild::AllocPCompositableChild(const TextureInfo& aInfo)
 {
+  MOZ_ASSERT(!mDestroyed);
   return CompositableClient::CreateIPDLActor();
 }
 
@@ -66,7 +75,7 @@ LayerTransactionChild::DeallocPCompositableChild(PCompositableChild* actor)
 }
 
 bool
-LayerTransactionChild::RecvParentAsyncMessages(const InfallibleTArray<AsyncParentMessageData>& aMessages)
+LayerTransactionChild::RecvParentAsyncMessages(InfallibleTArray<AsyncParentMessageData>&& aMessages)
 {
   for (AsyncParentMessageArray::index_type i = 0; i < aMessages.Length(); ++i) {
     const AsyncParentMessageData& message = aMessages[i];
@@ -81,19 +90,13 @@ LayerTransactionChild::RecvParentAsyncMessages(const InfallibleTArray<AsyncParen
         if (texture) {
           texture->SetReleaseFenceHandle(fence);
         }
-        if (mForwarder) {
-          mForwarder->HoldTransactionsToRespond(op.transactionId());
-        } else {
-          // Send back a response.
-          InfallibleTArray<AsyncChildMessageData> replies;
-          replies.AppendElement(OpReplyDeliverFence(op.transactionId()));
-          SendChildAsyncMessages(replies);
-        }
         break;
       }
-      case AsyncParentMessageData::TOpReplyDeliverFence: {
-        const OpReplyDeliverFence& op = message.get_OpReplyDeliverFence();
-        TransactionCompleteted(op.transactionId());
+      case AsyncParentMessageData::TOpReplyRemoveTexture: {
+        const OpReplyRemoveTexture& op = message.get_OpReplyRemoveTexture();
+
+        AsyncTransactionTrackersHolder::TransactionCompleteted(op.holderId(),
+                                                               op.transactionId());
         break;
       }
       default:
@@ -105,21 +108,9 @@ LayerTransactionChild::RecvParentAsyncMessages(const InfallibleTArray<AsyncParen
 }
 
 void
-LayerTransactionChild::SendFenceHandle(AsyncTransactionTracker* aTracker,
-                                       PTextureChild* aTexture,
-                                       const FenceHandle& aFence)
-{
-  HoldUntilComplete(aTracker);
-  InfallibleTArray<AsyncChildMessageData> messages;
-  messages.AppendElement(OpDeliverFenceFromChild(aTracker->GetId(),
-                                                 nullptr, aTexture,
-                                                 FenceHandleFromChild(aFence)));
-  SendChildAsyncMessages(messages);
-}
-
-void
 LayerTransactionChild::ActorDestroy(ActorDestroyReason why)
 {
+  mDestroyed = true;
   DestroyAsyncTransactionTrackersHolder();
 #ifdef MOZ_B2G
   // Due to poor lifetime management of gralloc (and possibly shmems) we will
@@ -136,6 +127,7 @@ PTextureChild*
 LayerTransactionChild::AllocPTextureChild(const SurfaceDescriptor&,
                                           const TextureFlags&)
 {
+  MOZ_ASSERT(!mDestroyed);
   return TextureClient::CreateIPDLActor();
 }
 

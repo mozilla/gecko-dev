@@ -5,15 +5,18 @@
 #ifndef DECODER_DATA_H_
 #define DECODER_DATA_H_
 
+#include "MediaData.h"
+#include "MediaInfo.h"
 #include "mozilla/Types.h"
 #include "mozilla/Vector.h"
-#include "nsAutoPtr.h"
+#include "nsRefPtr.h"
+#include "nsString.h"
+#include "nsTArray.h"
+#include "nsString.h"
 
 namespace stagefright
 {
-template <typename T> class sp;
 class MetaData;
-class MediaBuffer;
 }
 
 namespace mp4_demuxer
@@ -21,80 +24,57 @@ namespace mp4_demuxer
 
 class MP4Demuxer;
 
-class AudioDecoderConfig
+struct PsshInfo
+{
+  PsshInfo() {}
+  PsshInfo(const PsshInfo& aOther) : uuid(aOther.uuid), data(aOther.data) {}
+  nsTArray<uint8_t> uuid;
+  nsTArray<uint8_t> data;
+};
+
+class CryptoFile
 {
 public:
-  AudioDecoderConfig()
-    : mime_type(nullptr)
-    , duration(0)
-    , channel_count(0)
-    , bits_per_sample(0)
-    , samples_per_second(0)
-    , aac_profile(0)
+  CryptoFile() : valid(false) {}
+  CryptoFile(const CryptoFile& aCryptoFile) : valid(aCryptoFile.valid)
   {
+    pssh.AppendElements(aCryptoFile.pssh);
   }
 
-  const char* mime_type;
-  int64_t duration;
-  uint32_t channel_count;
-  uint32_t bits_per_sample;
-  uint32_t samples_per_second;
-  int8_t frequency_index;
-  mozilla::Vector<uint8_t> extra_data;
-  mozilla::Vector<uint8_t> audio_specific_config;
-
-  void Update(stagefright::sp<stagefright::MetaData>& aMetaData, const char* aMimeType);
-  bool IsValid();
-
-private:
-  friend class MP4Demuxer;
-  int8_t aac_profile;
-};
-
-class VideoDecoderConfig
-{
-public:
-  VideoDecoderConfig()
-    : mime_type(nullptr)
-    , duration(0)
-    , display_width(0)
-    , display_height(0)
+  void Update(const uint8_t* aData, size_t aLength)
   {
+    valid = DoUpdate(aData, aLength);
   }
 
-  const char* mime_type;
-  int64_t duration;
-  int32_t display_width;
-  int32_t display_height;
-
-  mozilla::Vector<uint8_t> annex_b;
-
-  void Update(stagefright::sp<stagefright::MetaData>& aMetaData, const char* aMimeType);
-  bool IsValid();
-};
-
-class MP4Sample
-{
-public:
-  MP4Sample();
-  ~MP4Sample();
-  void Update();
-
-  stagefright::MediaBuffer* mMediaBuffer;
-
-  int64_t composition_timestamp;
-  int64_t duration;
-  int64_t byte_offset;
-  bool is_sync_point;
-
-  uint8_t* data;
-  size_t size;
-
-  void Prepend(const uint8_t* aData, size_t aSize);
+  bool valid;
+  nsTArray<PsshInfo> pssh;
 
 private:
-  nsAutoPtr<uint8_t> extra_buffer;
+  bool DoUpdate(const uint8_t* aData, size_t aLength);
 };
+
+class MP4AudioInfo : public mozilla::AudioInfo
+{
+public:
+  MP4AudioInfo() = default;
+
+  void Update(const stagefright::MetaData* aMetaData,
+              const char* aMimeType);
+
+  virtual bool IsValid() const override;
+};
+
+class MP4VideoInfo : public mozilla::VideoInfo
+{
+public:
+  MP4VideoInfo() = default;
+
+  void Update(const stagefright::MetaData* aMetaData,
+              const char* aMimeType);
+
+  virtual bool IsValid() const override;
+};
+
 }
 
 #endif

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,8 +13,6 @@
 
 let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
 
 let tests = [
 
@@ -81,7 +79,7 @@ add_task(function test_notifications_onDeleteVisits() {
     for (let j = 0; j < currentTest.visitsPerPage; j++) {
       for (let i = 0; i < currentTest.addPages; i++) {
         let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-        yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
+        yield PlacesTestUtils.addVisits({ uri: uri(page), visitDate: now++ });
       }
     }
 
@@ -89,8 +87,11 @@ add_task(function test_notifications_onDeleteVisits() {
     currentTest.bookmarks = [];
     for (let i = 0; i < currentTest.addBookmarks; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      bs.insertBookmark(bs.unfiledBookmarksFolder, uri(page),
-                        bs.DEFAULT_INDEX, null);
+      yield PlacesUtils.bookmarks.insert({
+        parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+        title: null,
+        url: page
+      });
       currentTest.bookmarks.push(page);
     }
 
@@ -125,11 +126,11 @@ add_task(function test_notifications_onDeleteVisits() {
                 currentTest.expectedNotifications);
 
     // Clean up.
-    bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-    yield promiseClearHistory();
+    yield PlacesUtils.bookmarks.eraseEverything();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-  yield promiseClearHistory();
+  yield PlacesUtils.bookmarks.eraseEverything();
+  yield PlacesTestUtils.clearHistory();
 });

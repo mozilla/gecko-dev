@@ -5,8 +5,8 @@
  * Tests if the shader editor shows the appropriate UI when opened.
  */
 
-function ifWebGLSupported() {
-  let [target, debuggee, panel] = yield initShaderEditor(SIMPLE_CANVAS_URL);
+function* ifWebGLSupported() {
+  let { target, panel } = yield initShaderEditor(SIMPLE_CANVAS_URL);
   let { gFront, $ } = panel.panelWin;
 
   is($("#reload-notice").hidden, false,

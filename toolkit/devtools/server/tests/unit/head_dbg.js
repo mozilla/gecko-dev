@@ -6,10 +6,13 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
+const CC = Components.Constructor;
 
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const { worker } = Cu.import("resource://gre/modules/devtools/worker-loader.js", {})
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
+const { promiseInvoke } = devtools.require("devtools/async-utils");
 
 const Services = devtools.require("Services");
 // Always log packets when running tests. runxpcshelltests.py will throw
@@ -22,12 +25,108 @@ const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 const { DebuggerServer } = devtools.require("devtools/server/main");
 const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
 
+let loadSubScript = Cc[
+  '@mozilla.org/moz/jssubscript-loader;1'
+].getService(Ci.mozIJSSubScriptLoader).loadSubScript;
+
+function createTestGlobal(name) {
+  let sandbox = Cu.Sandbox(
+    Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal)
+  );
+  sandbox.__name = name;
+  return sandbox;
+}
+
+function connect(client) {
+  dump("Connecting client.\n");
+  return new Promise(function (resolve) {
+    client.connect(function () {
+      resolve();
+    });
+  });
+}
+
+function close(client) {
+  dump("Closing client.\n");
+  return new Promise(function (resolve) {
+    client.close(function () {
+      resolve();
+    });
+  });
+}
+
+function listTabs(client) {
+  dump("Listing tabs.\n");
+  return rdpRequest(client, client.listTabs);
+}
+
+function findTab(tabs, title) {
+  dump("Finding tab with title '" + title + "'.\n");
+  for (let tab of tabs) {
+    if (tab.title === title) {
+      return tab;
+    }
+  }
+  return null;
+}
+
+function attachTab(client, tab) {
+  dump("Attaching to tab with title '" + tab.title + "'.\n");
+  return rdpRequest(client, client.attachTab, tab.actor);
+}
+
+function waitForNewSource(threadClient, url) {
+  dump("Waiting for new source with url '" + url + "'.\n");
+  return waitForEvent(threadClient, "newSource", function (packet) {
+    return packet.source.url === url;
+  });
+}
+
+function attachThread(tabClient, options = {}) {
+  dump("Attaching to thread.\n");
+  return rdpRequest(tabClient, tabClient.attachThread, options);
+}
+
+function resume(threadClient) {
+  dump("Resuming thread.\n");
+  return rdpRequest(threadClient, threadClient.resume);
+}
+
+function getSources(threadClient) {
+  dump("Getting sources.\n");
+  return rdpRequest(threadClient, threadClient.getSources);
+}
+
+function findSource(sources, url) {
+  dump("Finding source with url '" + url + "'.\n");
+  for (let source of sources) {
+    if (source.url === url) {
+      return source;
+    }
+  }
+  return null;
+}
+
+function waitForPause(threadClient) {
+  dump("Waiting for pause.\n");
+  return waitForEvent(threadClient, "paused");
+}
+
+function setBreakpoint(sourceClient, location) {
+  dump("Setting breakpoint.\n");
+  return rdpRequest(sourceClient, sourceClient.setBreakpoint, location);
+}
+
+function dumpn(msg) {
+  dump("DBG-TEST: " + msg + "\n");
+}
+
 function tryImport(url) {
   try {
     Cu.import(url);
   } catch (e) {
-    dump("Error importing " + url + "\n");
-    dump(DevToolsUtils.safeErrorString(e) + "\n");
+    dumpn("Error importing " + url);
+    dumpn(DevToolsUtils.safeErrorString(e));
     throw e;
   }
 }
@@ -78,9 +177,9 @@ let listener = {
       // If we've been given an nsIScriptError, then we can print out
       // something nicely formatted, for tools like Emacs to pick up.
       var scriptError = aMessage.QueryInterface(Ci.nsIScriptError);
-      dump(aMessage.sourceName + ":" + aMessage.lineNumber + ": " +
-           scriptErrorFlagsToKind(aMessage.flags) + ": " +
-           aMessage.errorMessage + "\n");
+      dumpn(aMessage.sourceName + ":" + aMessage.lineNumber + ": " +
+            scriptErrorFlagsToKind(aMessage.flags) + ": " +
+            aMessage.errorMessage);
       var string = aMessage.errorMessage;
     } catch (x) {
       // Be a little paranoid with message, as the whole goal here is to lose
@@ -93,7 +192,8 @@ let listener = {
     }
 
     // Make sure we exit all nested event loops so that the test can finish.
-    while (DebuggerServer.xpcInspector.eventLoopNestLevel > 0) {
+    while (DebuggerServer.xpcInspector
+           && DebuggerServer.xpcInspector.eventLoopNestLevel > 0) {
       DebuggerServer.xpcInspector.exitNestedEventLoop();
     }
 
@@ -106,7 +206,7 @@ let listener = {
     // If we throw an error here because of them our tests start failing.
     // So, we'll just dump the message to the logs instead, to make sure the
     // information isn't lost.
-    dump("head_dbg.js observed a console message: " + string + "\n");
+    dumpn("head_dbg.js observed a console message: " + string);
   }
 };
 
@@ -121,7 +221,7 @@ function check_except(func)
     do_check_true(true);
     return;
   }
-  dump("Should have thrown an exception: " + func.toString());
+  dumpn("Should have thrown an exception: " + func.toString());
   do_check_true(false);
 }
 
@@ -168,11 +268,14 @@ function attachTestTab(aClient, aTitle, aCallback) {
 // TabClient referring to the tab, and a ThreadClient referring to the
 // thread.
 function attachTestThread(aClient, aTitle, aCallback) {
-  attachTestTab(aClient, aTitle, function (aResponse, aTabClient) {
+  attachTestTab(aClient, aTitle, function (aTabResponse, aTabClient) {
     function onAttach(aResponse, aThreadClient) {
-      aCallback(aResponse, aTabClient, aThreadClient);
+      aCallback(aResponse, aTabClient, aThreadClient, aTabResponse);
     }
-    aTabClient.attachThread({ useSourceMaps: true }, onAttach);
+    aTabClient.attachThread({
+      useSourceMaps: true,
+      autoBlackBox: true
+    }, onAttach);
   });
 }
 
@@ -193,17 +296,33 @@ function attachTestTabAndResume(aClient, aTitle, aCallback) {
  */
 function initTestDebuggerServer(aServer = DebuggerServer)
 {
-  aServer.registerModule("devtools/server/actors/script");
   aServer.registerModule("xpcshell-test/testactors");
   // Allow incoming connections.
   aServer.init(function () { return true; });
 }
 
+/**
+ * Initialize the testing debugger server with a tab whose title is |title|.
+ */
+function startTestDebuggerServer(title, server = DebuggerServer) {
+  initTestDebuggerServer(server);
+  addTestGlobal(title);
+  DebuggerServer.addTabActors();
+
+  let transport = DebuggerServer.connectPipe();
+  let client = new DebuggerClient(transport);
+
+  return connect(client).then(() => client);
+}
+
 function initTestTracerServer(aServer = DebuggerServer)
 {
-  aServer.registerModule("devtools/server/actors/script");
   aServer.registerModule("xpcshell-test/testactors");
-  aServer.registerModule("devtools/server/actors/tracer");
+  aServer.registerModule("devtools/server/actors/tracer", {
+    prefix: "trace",
+    constructor: "TracerActor",
+    type: { global: true, tab: true }
+  });
   // Allow incoming connections.
   aServer.init(function () { return true; });
 }
@@ -211,8 +330,32 @@ function initTestTracerServer(aServer = DebuggerServer)
 function finishClient(aClient)
 {
   aClient.close(function() {
+    DebuggerServer.destroy();
     do_test_finished();
   });
+}
+
+// Create a server, connect to it and fetch tab actors for the parent process;
+// pass |aCallback| the debugger client and tab actor form with all actor IDs.
+function get_chrome_actors(callback)
+{
+  if (!DebuggerServer.initialized) {
+    DebuggerServer.init();
+    DebuggerServer.addBrowserActors();
+  }
+  DebuggerServer.allowChromeProcess = true;
+
+  let client = new DebuggerClient(DebuggerServer.connectPipe());
+  client.connect(() => {
+    client.getProcess().then(response => {
+      callback(client, response.form);
+    });
+  });
+}
+
+function getChromeActors(client, server = DebuggerServer) {
+  server.allowChromeProcess = true;
+  return client.getProcess().then(response => response.form);
 }
 
 /**
@@ -227,7 +370,7 @@ function getFileUrl(aName, aAllowMissing=false) {
  * Returns the full path of the file with the specified name in a
  * platform-independent and URL-like form.
  */
-function getFilePath(aName, aAllowMissing=false)
+function getFilePath(aName, aAllowMissing=false, aUsePlatformPathSeparator=false)
 {
   let file = do_get_file(aName, aAllowMissing);
   let path = Services.io.newFileURI(file).spec;
@@ -236,7 +379,14 @@ function getFilePath(aName, aAllowMissing=false)
       file instanceof Ci.nsILocalFileWin) {
     filePrePath += "/";
   }
-  return path.slice(filePrePath.length);
+
+  path = path.slice(filePrePath.length);
+
+  if (aUsePlatformPathSeparator && path.match(/^\w:/)) {
+    path = path.replace(/\//g, "\\");
+  }
+
+  return path;
 }
 
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -336,9 +486,9 @@ TracingTransport.prototype = {
   dumpLog: function() {
     for (let entry of this.packets) {
       if (entry.type === "sent") {
-        dump("trace.expectSend(" + entry.packet + ");\n");
+        dumpn("trace.expectSend(" + entry.packet + ");");
       } else {
-        dump("trace.expectReceive(" + entry.packet + ");\n");
+        dumpn("trace.expectReceive(" + entry.packet + ");");
       }
     }
   }
@@ -407,3 +557,230 @@ const Test = task => () => {
 };
 
 const assert = do_check_true;
+
+/**
+ * Create a promise that is resolved on the next occurence of the given event.
+ *
+ * @param DebuggerClient client
+ * @param String event
+ * @param Function predicate
+ * @returns Promise
+ */
+function waitForEvent(client, type, predicate) {
+  return new Promise(function (resolve) {
+    function listener(type, packet) {
+      if (!predicate(packet)) {
+        return;
+      }
+      client.removeListener(listener);
+      resolve(packet);
+    }
+
+    if (predicate) {
+      client.addListener(type, listener);
+    } else {
+      client.addOneTimeListener(type, function (type, packet) {
+        resolve(packet);
+      });
+    }
+  });
+}
+
+/**
+ * Execute the action on the next tick and return a promise that is resolved on
+ * the next pause.
+ *
+ * When using promises and Task.jsm, we often want to do an action that causes a
+ * pause and continue the task once the pause has ocurred. Unfortunately, if we
+ * do the action that causes the pause within the task's current tick we will
+ * pause before we have a chance to yield the promise that waits for the pause
+ * and we enter a dead lock. The solution is to create the promise that waits
+ * for the pause, schedule the action to run on the next tick of the event loop,
+ * and finally yield the promise.
+ *
+ * @param Function action
+ * @param DebuggerClient client
+ * @returns Promise
+ */
+function executeOnNextTickAndWaitForPause(action, client) {
+  const paused = waitForPause(client);
+  executeSoon(action);
+  return paused;
+}
+
+/**
+ * Create a promise that is resolved with the server's response to the client's
+ * Remote Debugger Protocol request. If a response with the `error` property is
+ * received, the promise is rejected. Any extra arguments passed in are
+ * forwarded to the method invocation.
+ *
+ * See `setBreakpoint` below, for example usage.
+ *
+ * @param DebuggerClient/ThreadClient/SourceClient/etc client
+ * @param Function method
+ * @param any args
+ * @returns Promise
+ */
+function rdpRequest(client, method, ...args) {
+  return promiseInvoke(client, method, ...args)
+    .then(response => {
+      const { error, message } = response;
+      if (error) {
+        throw new Error(error + ": " + message);
+      }
+      return response;
+    });
+}
+
+/**
+ * Interrupt JS execution for the specified thread.
+ *
+ * @param ThreadClient threadClient
+ * @returns Promise
+ */
+function interrupt(threadClient) {
+  dumpn("Interrupting.");
+  return rdpRequest(threadClient, threadClient.interrupt);
+}
+
+/**
+ * Resume JS execution for the specified thread and then wait for the next pause
+ * event.
+ *
+ * @param DebuggerClient client
+ * @param ThreadClient threadClient
+ * @returns Promise
+ */
+function resumeAndWaitForPause(client, threadClient) {
+  const paused = waitForPause(client);
+  return resume(threadClient).then(() => paused);
+}
+
+/**
+ * Resume JS execution for a single step and wait for the pause after the step
+ * has been taken.
+ *
+ * @param DebuggerClient client
+ * @param ThreadClient threadClient
+ * @returns Promise
+ */
+function stepIn(client, threadClient) {
+  dumpn("Stepping in.");
+  const paused = waitForPause(client);
+  return rdpRequest(threadClient, threadClient.stepIn)
+    .then(() => paused);
+}
+
+/**
+ * Get the list of `count` frames currently on stack, starting at the index
+ * `first` for the specified thread.
+ *
+ * @param ThreadClient threadClient
+ * @param Number first
+ * @param Number count
+ * @returns Promise
+ */
+function getFrames(threadClient, first, count) {
+  dumpn("Getting frames.");
+  return rdpRequest(threadClient, threadClient.getFrames, first, count);
+}
+
+/**
+ * Black box the specified source.
+ *
+ * @param SourceClient sourceClient
+ * @returns Promise
+ */
+function blackBox(sourceClient) {
+  dumpn("Black boxing source: " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.blackBox);
+}
+
+/**
+ * Stop black boxing the specified source.
+ *
+ * @param SourceClient sourceClient
+ * @returns Promise
+ */
+function unBlackBox(sourceClient) {
+  dumpn("Un-black boxing source: " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.unblackBox);
+}
+
+/**
+ * Perform a "source" RDP request with the given SourceClient to get the source
+ * content and content type.
+ *
+ * @param SourceClient sourceClient
+ * @returns Promise
+ */
+function getSourceContent(sourceClient) {
+  dumpn("Getting source content for " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.source);
+}
+
+/**
+ * Get a source at the specified url.
+ *
+ * @param ThreadClient threadClient
+ * @param string url
+ * @returns Promise<SourceClient>
+ */
+function getSource(threadClient, url) {
+  let deferred = promise.defer();
+  threadClient.getSources((res) => {
+    let source = res.sources.filter(function(s) {
+      return s.url === url;
+    });
+    if (source.length) {
+      deferred.resolve(threadClient.source(source[0]));
+    }
+    else {
+      deferred.reject(new Error("source not found"));
+    }
+  });
+  return deferred.promise;
+}
+
+/**
+ * Do a fake reload which clears the thread debugger
+ *
+ * @param TabClient tabClient
+ * @returns Promise<response>
+ */
+function reload(tabClient) {
+  let deferred = promise.defer();
+  tabClient._reload({}, deferred.resolve);
+  return deferred.promise;
+}
+
+/**
+ * Returns an array of stack location strings given a thread and a sample.
+ *
+ * @param object thread
+ * @param object sample
+ * @returns object
+ */
+function getInflatedStackLocations(thread, sample) {
+  let stackTable = thread.stackTable;
+  let frameTable = thread.frameTable;
+  let stringTable = thread.stringTable;
+  let SAMPLE_STACK_SLOT = thread.samples.schema.stack;
+  let STACK_PREFIX_SLOT = stackTable.schema.prefix;
+  let STACK_FRAME_SLOT = stackTable.schema.frame;
+  let FRAME_LOCATION_SLOT = frameTable.schema.location;
+
+  // Build the stack from the raw data and accumulate the locations in
+  // an array.
+  let stackIndex = sample[SAMPLE_STACK_SLOT];
+  let locations = [];
+  while (stackIndex !== null) {
+    let stackEntry = stackTable.data[stackIndex];
+    let frame = frameTable.data[stackEntry[STACK_FRAME_SLOT]];
+    locations.push(stringTable[frame[FRAME_LOCATION_SLOT]]);
+    stackIndex = stackEntry[STACK_PREFIX_SLOT];
+  }
+
+  // The profiler tree is inverted, so reverse the array.
+  return locations.reverse();
+}

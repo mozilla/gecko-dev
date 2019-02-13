@@ -11,10 +11,10 @@
 #include "webrtc/modules/video_coding/main/source/session_info.h"
 
 #include "webrtc/modules/video_coding/main/source/packet.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_format_h264.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 namespace webrtc {
-
+namespace {
 // Used in determining whether a frame is decodable.
 enum {kRttThreshold = 100};  // Not decodable if Rtt is lower than this.
 
@@ -22,6 +22,11 @@ enum {kRttThreshold = 100};  // Not decodable if Rtt is lower than this.
 // thresholds.
 static const float kLowPacketPercentageThreshold = 0.2f;
 static const float kHighPacketPercentageThreshold = 0.8f;
+
+uint16_t BufferToUWord16(const uint8_t* dataBuffer) {
+  return (dataBuffer[0] << 8) | dataBuffer[1];
+}
+}  // namespace
 
 VCMSessionInfo::VCMSessionInfo()
     : session_nack_(false),
@@ -121,9 +126,6 @@ int VCMSessionInfo::InsertBuffer(uint8_t* frame_buffer,
   VCMPacket& packet = *packet_it;
   PacketIterator it;
 
-  int packet_size = packet.sizeBytes;
-  packet_size += (packet.insertStartCode ? kH264StartCodeLengthBytes : 0);
-
   // Calculate the offset into the frame buffer for this packet.
   int offset = 0;
   for (it = packets_.begin(); it != packet_it; ++it)
@@ -131,23 +133,64 @@ int VCMSessionInfo::InsertBuffer(uint8_t* frame_buffer,
 
   // Set the data pointer to pointing to the start of this packet in the
   // frame buffer.
-  const uint8_t* data = packet.dataPtr;
+  const uint8_t* packet_buffer = packet.dataPtr;
   packet.dataPtr = frame_buffer + offset;
-  packet.sizeBytes = packet_size;
 
-  ShiftSubsequentPackets(packet_it, packet_size);
-
-  const uint8_t startCode[] = {0, 0, 0, 1};
-  if (packet.insertStartCode) {
-    memcpy(const_cast<uint8_t*>(packet.dataPtr), startCode,
-           kH264StartCodeLengthBytes);
+  // We handle H.264 STAP-A packets in a special way as we need to remove the
+  // two length bytes between each NAL unit, and potentially add start codes.
+  const size_t kH264NALHeaderLengthInBytes = 1;
+  const size_t kLengthFieldLength = 2;
+  if (packet.codecSpecificHeader.codec == kRtpVideoH264 &&
+      packet.codecSpecificHeader.codecHeader.H264.stap_a) {
+    size_t required_length = 0;
+    const uint8_t* nalu_ptr = packet_buffer + kH264NALHeaderLengthInBytes;
+    while (nalu_ptr < packet_buffer + packet.sizeBytes) {
+      uint32_t length = BufferToUWord16(nalu_ptr);
+      required_length +=
+          length + (packet.insertStartCode ? kH264StartCodeLengthBytes : 0);
+      nalu_ptr += kLengthFieldLength + length;
+    }
+    ShiftSubsequentPackets(packet_it, required_length);
+    nalu_ptr = packet_buffer + kH264NALHeaderLengthInBytes;
+    uint8_t* frame_buffer_ptr = frame_buffer + offset;
+    while (nalu_ptr < packet_buffer + packet.sizeBytes) {
+      uint32_t length = BufferToUWord16(nalu_ptr);
+      nalu_ptr += kLengthFieldLength;
+      frame_buffer_ptr += Insert(nalu_ptr,
+                                 length,
+                                 packet.insertStartCode,
+                                 const_cast<uint8_t*>(frame_buffer_ptr));
+      nalu_ptr += length;
+    }
+    packet.sizeBytes = required_length;
+    return packet.sizeBytes;
   }
-  memcpy(const_cast<uint8_t*>(packet.dataPtr
-      + (packet.insertStartCode ? kH264StartCodeLengthBytes : 0)),
-      data,
-      packet.sizeBytes);
+  ShiftSubsequentPackets(
+      packet_it,
+      packet.sizeBytes +
+          (packet.insertStartCode ? kH264StartCodeLengthBytes : 0));
 
-  return packet_size;
+  packet.sizeBytes = Insert(packet_buffer,
+                            packet.sizeBytes,
+                            packet.insertStartCode,
+                            const_cast<uint8_t*>(packet.dataPtr));
+  return packet.sizeBytes;
+}
+
+size_t VCMSessionInfo::Insert(const uint8_t* buffer,
+                              size_t length,
+                              bool insert_start_code,
+                              uint8_t* frame_buffer) {
+  if (insert_start_code) {
+    const unsigned char startCode[] = {0, 0, 0, 1};
+    memcpy(frame_buffer, startCode, kH264StartCodeLengthBytes);
+  }
+  memcpy(frame_buffer + (insert_start_code ? kH264StartCodeLengthBytes : 0),
+         buffer,
+         length);
+  length += (insert_start_code ? kH264StartCodeLengthBytes : 0);
+
+  return length;
 }
 
 void VCMSessionInfo::ShiftSubsequentPackets(PacketIterator it,
@@ -404,6 +447,7 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
   }
 
   if (packets_.size() == kMaxPacketsInSession) {
+    LOG(LS_ERROR) << "Max number of packets per frame has been reached.";
     return -1;
   }
 
@@ -419,39 +463,32 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
       (*rit).seqNum == packet.seqNum && (*rit).sizeBytes > 0)
     return -2;
 
-  PacketIterator packet_list_it;
   if (packet.codec == kVideoCodecH264) {
-    RTPVideoHeaderH264 h264 = packet.codecSpecificHeader.codecHeader.H264;
-    uint8_t nal_type = h264.nalu_header & RtpFormatH264::kH264NAL_TypeMask;
-
-    if (packet.isFirstPacket) {
-      if (HaveFirstPacket() == false ||
-          IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum)) {
-        first_packet_seq_num_ = packet.seqNum;
-        frame_type_ = packet.frameType;
-      }
+    // H.264 can have leading or trailing non-VCL (Video Coding Layer)
+    // NALUs, such as SPS/PPS/SEI and others.  Also, the RTP marker bit is
+    // not reliable for the last packet of a frame (RFC 6184 5.1 - "Decoders
+    // [] MUST NOT rely on this property"), so allow out-of-order packets to
+    // update the first and last seq# range.  Also mark as a key frame if
+    // any packet is of that type.
+    if (frame_type_ != kVideoFrameKey) {
+      frame_type_ = packet.frameType;
     }
-
-    // TODO(jesup) Handle STAP-A's here, since they must share a timestamp.  Break
-    // into individual packets at this point, then handle like kNaluCompletes
-
-    // Ignore Marker bit for reassembly, since it's not 100% guaranteed to be correct
-    // Look at kNaluComplete (single_nal), or an unbroken sequence of
-    // isFirstPacket/kNaluStart (FU-A with S bit), FU-A's, FU-A with E bit (kNaluEnd)
-    if ((packet.completeNALU == kNaluComplete || packet.completeNALU == kNaluEnd) &&
-        last_packet_seq_num_ == -1) {
-      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (last_packet_seq_num_ != -1 &&
-      IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      //LOG(LS_WARNING) << "Received packet with a sequence number which is out "
-      //                 " of frame boundaries";
-      return -3;
+    if (packet.isFirstPacket &&
+        (first_packet_seq_num_ == -1 ||
+         IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum))) {
+      first_packet_seq_num_ = packet.seqNum;
     }
-
-    // The insert operation invalidates the iterator |rit|.
-    packet_list_it = packets_.insert(rit.base(), packet);
+    // Note: the code does *not* currently handle the Marker bit being totally
+    // absent from a frame.  It does not, however, depend on it being on the last
+    // packet of the 'frame'/'session'.
+    if (packet.markerBit &&
+        (last_packet_seq_num_ == -1 ||
+         IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_))) {
+      last_packet_seq_num_ = packet.seqNum;
+    }
   } else {
-    // Only insert media packets between first and last packets (when available).
+    // Only insert media packets between first and last packets (when
+    // available).
     // Placing check here, as to properly account for duplicate packets.
     // Check if this is first packet (only valid for some codecs)
     // Should only be set for one packet per session.
@@ -461,9 +498,9 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
       // Store the sequence number for the first packet.
       first_packet_seq_num_ = static_cast<int>(packet.seqNum);
     } else if (first_packet_seq_num_ != -1 &&
-      !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
-      //LOG(LS_WARNING) << "Received packet with a sequence number which is out "
-      //                 "of frame boundaries";
+               !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
+      LOG(LS_WARNING) << "Received packet with a sequence number which is out "
+                         "of frame boundaries";
       return -3;
     } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
       // Update the frame type with the type of the first media packet.
@@ -475,18 +512,21 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
     if (packet.markerBit && last_packet_seq_num_ == -1) {
       last_packet_seq_num_ = static_cast<int>(packet.seqNum);
     } else if (last_packet_seq_num_ != -1 &&
-        IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      //LOG(LS_WARNING) << "Received packet with a sequence number which is out "
-      //                 "of frame boundaries";
+               IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
+      LOG(LS_WARNING) << "Received packet with a sequence number which is out "
+                         "of frame boundaries";
       return -3;
     }
-
-    // The insert operation invalidates the iterator |rit|.
-    packet_list_it = packets_.insert(rit.base(), packet);
   }
+
+  // The insert operation invalidates the iterator |rit|.
+  PacketIterator packet_list_it = packets_.insert(rit.base(), packet);
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();
+  // We call MakeDecodable() before decoding, which removes packets after a loss
+  // (and which means h.264 mode 1 frames with a loss in the first packet will be
+  // totally removed)
   if (decode_error_mode == kWithErrors)
     decodable_ = true;
   else if (decode_error_mode == kSelectiveErrors)

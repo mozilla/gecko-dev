@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*globals PermissionsInstaller */
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
@@ -9,7 +12,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
-Cu.import("resource://gre/modules/PermissionPromptHelper.jsm");
 Cu.import("resource://gre/modules/ContactService.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 
@@ -23,8 +25,6 @@ function pref(name, value) {
 }
 
 let WebappRT = {
-  DEFAULT_PREFS_FILENAME: "default-prefs.js",
-
   prefs: [
     // Disable all add-on locations other than the profile (which can't be disabled this way)
     pref("extensions.enabledScopes", 1),
@@ -37,8 +37,6 @@ let WebappRT = {
     pref("toolkit.telemetry.notifiedOptOut", 999),
     pref("media.useAudioChannelService", true),
     pref("dom.mozTCPSocket.enabled", true),
-    // Don't check for updates in webapp processes to avoid duplicate notifications.
-    pref("browser.webapps.checkForUpdates", 0),
 
     // Enabled system messages for web activity support
     pref("dom.sysmsg.enabled", true),
@@ -50,7 +48,7 @@ let WebappRT = {
 
     // on first run, update any prefs
     if (aStatus == "new") {
-      this.getDefaultPrefs().forEach(this.addPref);
+      this.prefs.forEach(this.addPref);
 
       // update the blocklist url to use a different app id
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
@@ -69,40 +67,60 @@ let WebappRT = {
     }
 
     // If the app is in debug mode, configure and enable the remote debugger.
-    sendMessageToJava({ type: "NativeApp:IsDebuggable" }, (response) => {
-      if (response.isDebuggable) {
-        this._enableRemoteDebugger(aUrl);
+    Messaging.sendRequestForResult({ type: "NativeApp:IsDebuggable" }).then((response) => {
+      let that = this;
+      let name = this._getAppName(aUrl);
+
+       if (response.isDebuggable) {
+        Notifications.create({
+          title: Strings.browser.formatStringFromName("remoteStartNotificationTitle", [name], 1),
+          message: Strings.browser.GetStringFromName("remoteStartNotificationMessage"),
+          icon: "drawable://warning_doorhanger",
+          onClick: function(aId, aCookie) {
+            that._enableRemoteDebugger(aUrl);
+          },
+        });
       }
     });
 
-    this.findManifestUrlFor(aUrl, aCallback);
+    this.findManifestUrlFor(aUrl, (function(aLaunchUrl) {
+      if (aStatus == "new") {
+        if (BrowserApp.manifest && BrowserApp.manifest.orientation) {
+          let orientation = BrowserApp.manifest.orientation;
+          if (Array.isArray(orientation)) {
+            orientation = orientation.join(",");
+          }
+          this.addPref(pref("app.orientation.default", orientation));
+        }
+      }
+
+      aCallback(aLaunchUrl);
+    }).bind(this));
   },
 
   getManifestFor: function (aUrl, aCallback) {
-    DOMApplicationRegistry.registryReady.then(() => {
-      let request = navigator.mozApps.mgmt.getAll();
-      request.onsuccess = function() {
-        let apps = request.result;
-        for (let i = 0; i < apps.length; i++) {
-          let app = apps[i];
-          let manifest = new ManifestHelper(app.manifest, app.origin);
+    let request = navigator.mozApps.mgmt.getAll();
+    request.onsuccess = function() {
+      let apps = request.result;
+      for (let i = 0; i < apps.length; i++) {
+        let app = apps[i];
+        let manifest = new ManifestHelper(app.manifest, app.origin, app.manifestURL);
 
-          // if this is a path to the manifest, or the launch path, then we have a hit.
-          if (app.manifestURL == aUrl || manifest.fullLaunchPath() == aUrl) {
-            aCallback(manifest, app);
-            return;
-          }
+        // if this is a path to the manifest, or the launch path, then we have a hit.
+        if (app.manifestURL == aUrl || manifest.fullLaunchPath() == aUrl) {
+          aCallback(manifest, app);
+          return;
         }
+      }
 
-        // Otherwise, once we loop through all of them, we have a miss.
-        aCallback(undefined);
-      };
+      // Otherwise, once we loop through all of them, we have a miss.
+      aCallback(undefined);
+    };
 
-      request.onerror = function() {
-        // Treat an error like a miss. We can't find the manifest.
-        aCallback(undefined);
-      };
-    });
+    request.onerror = function() {
+      // Treat an error like a miss. We can't find the manifest.
+      aCallback(undefined);
+    };
   },
 
   findManifestUrlFor: function(aUrl, aCallback) {
@@ -120,31 +138,6 @@ let WebappRT = {
     });
   },
 
-  getDefaultPrefs: function() {
-    // read default prefs from the disk
-    try {
-      let defaultPrefs = [];
-      try {
-          defaultPrefs = this.readDefaultPrefs(FileUtils.getFile("ProfD", [this.DEFAULT_PREFS_FILENAME]));
-      } catch(ex) {
-          // this can throw if the defaultprefs.js file doesn't exist
-      }
-      for (let i = 0; i < defaultPrefs.length; i++) {
-        this.prefs.push(defaultPrefs[i]);
-      }
-    } catch(ex) {
-      console.log("Error reading defaultPrefs file: " + ex);
-    }
-    return this.prefs;
-  },
-
-  readDefaultPrefs: function webapps_readDefaultPrefs(aFile) {
-    let fstream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream);
-    fstream.init(aFile, -1, 0, 0);
-    let prefsString = NetUtil.readInputStreamToString(fstream, fstream.available(), {});
-    return JSON.parse(prefsString);
-  },
-
   addPref: function(aPref) {
     switch (typeof aPref.value) {
       case "string":
@@ -159,6 +152,18 @@ let WebappRT = {
     }
   },
 
+  _getAppName: function(aUrl) {
+    let name = Strings.browser.GetStringFromName("remoteNotificationGenericName");
+    let app = DOMApplicationRegistry.getAppByManifestURL(aUrl);
+
+    if (app) {
+      name = app.name;
+    }
+
+    return name;
+  },
+
+
   _enableRemoteDebugger: function(aUrl) {
     // Skip the connection prompt in favor of notifying the user below.
     Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
@@ -169,19 +174,16 @@ let WebappRT = {
     let port = serv.port;
     serv.close();
     Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+    // Clear the UNIX domain socket path to ensure a TCP socket will be used
+    // instead.
+    Services.prefs.setCharPref("devtools.debugger.unix-domain-socket", "");
 
     Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
     // Notify the user that we enabled the debugger and which port it's using
     // so they can use the DevTools Connect… dialog to connect the client to it.
     DOMApplicationRegistry.registryReady.then(() => {
-      let name;
-      let app = DOMApplicationRegistry.getAppByManifestURL(aUrl);
-      if (app) {
-        name = app.name;
-      } else {
-        name = Strings.browser.GetStringFromName("remoteNotificationGenericName");
-      }
+      let name = this._getAppName(aUrl);
 
       Notifications.create({
         title: Strings.browser.formatStringFromName("remoteNotificationTitle", [name], 1),

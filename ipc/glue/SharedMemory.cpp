@@ -17,13 +17,16 @@ namespace ipc {
 static Atomic<size_t> gShmemAllocated;
 static Atomic<size_t> gShmemMapped;
 
-class ShmemReporter MOZ_FINAL : public nsIMemoryReporter
+class ShmemReporter final : public nsIMemoryReporter
 {
+  ~ShmemReporter() {}
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   NS_IMETHOD
-  CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData)
+  CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
+                 bool aAnonymize) override
   {
     nsresult rv;
     rv = MOZ_COLLECT_REPORT(
@@ -48,7 +51,6 @@ SharedMemory::SharedMemory()
   : mAllocSize(0)
   , mMappedSize(0)
 {
-  MOZ_COUNT_CTOR(SharedMemory);
   static Atomic<bool> registered;
   if (registered.compareExchange(false, true)) {
     RegisterStrongMemoryReporter(new ShmemReporter());
@@ -80,8 +82,8 @@ SharedMemory::Mapped(size_t aNBytes)
 void
 SharedMemory::Unmapped()
 {
-  NS_ABORT_IF_FALSE(gShmemMapped >= mMappedSize,
-                    "Can't unmap more than mapped");
+  MOZ_ASSERT(gShmemMapped >= mMappedSize,
+             "Can't unmap more than mapped");
   gShmemMapped -= mMappedSize;
   mMappedSize = 0;
 }
@@ -89,8 +91,8 @@ SharedMemory::Unmapped()
 /*static*/ void
 SharedMemory::Destroyed()
 {
-  NS_ABORT_IF_FALSE(gShmemAllocated >= mAllocSize,
-                    "Can't destroy more than allocated");
+  MOZ_ASSERT(gShmemAllocated >= mAllocSize,
+             "Can't destroy more than allocated");
   gShmemAllocated -= mAllocSize;
   mAllocSize = 0;
 }

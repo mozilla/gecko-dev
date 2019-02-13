@@ -4,7 +4,12 @@
 
 <!-- Content panel -->
 
-<preferences id="contentPreferences">
+<preferences id="contentPreferences" hidden="true" data-category="paneContent">
+
+  <!-- DRM content -->
+  <preference id="media.eme.enabled"
+              name="media.eme.enabled"
+              type="bool"/>
 
   <!-- Popups -->
   <preference id="dom.disable_open_during_load"
@@ -14,8 +19,7 @@
   <!-- Fonts -->
   <preference id="font.language.group"
               name="font.language.group"
-              type="wstring"
-              onchange="gContentPane._rebuildFonts();"/>
+              type="wstring"/>
 
   <!-- Languages -->
   <preference id="browser.translation.detectLanguage"
@@ -23,22 +27,41 @@
               type="bool"/>
 </preferences>
 
-<script type="application/javascript" 
+<script type="application/javascript"
         src="chrome://mozapps/content/preferences/fontbuilder.js"/>
-<script type="application/javascript" 
+<script type="application/javascript"
         src="chrome://browser/content/preferences/in-content/content.js"/>
 
 <hbox id="header-content"
       class="header"
       hidden="true"
       data-category="paneContent">
-  <image class="header-icon"/>
   <label class="header-name">&paneContent.title;</label>
 </hbox>
 
+<groupbox id="drmGroup" data-category="paneContent" hidden="true">
+  <caption><label>&drmContent.label;</label></caption>
+  <grid id="contentGrid2">
+    <columns>
+      <column flex="1"/>
+      <column/>
+    </columns>
+    <rows id="contentRows-2">
+      <row id="playDRMContentRow">
+        <vbox align="start">
+          <checkbox id="playDRMContent" preference="media.eme.enabled"
+                    label="&playDRMContent.label;" accesskey="&playDRMContent.accesskey;"/>
+        </vbox>
+        <hbox pack="end" align="center">
+          <label id="playDRMContentLink" class="text-link" value="&playDRMContent.learnMore.label;"/>
+        </hbox>
+      </row>
+    </rows>
+  </grid>
+</groupbox>
+
 <groupbox id="miscGroup" data-category="paneContent" hidden="true">
   <caption><label>&popups.label;</label></caption>
-
   <grid id="contentGrid">
     <columns>
       <column flex="1"/>
@@ -52,9 +75,10 @@
                     onsyncfrompreference="return gContentPane.updateButtons('popupPolicyButton',
                                                                         'dom.disable_open_during_load');"/>
         </vbox>
-        <button id="popupPolicyButton" label="&popupExceptions.label;"
-                oncommand="gContentPane.showPopupExceptions();"
-                accesskey="&popupExceptions.accesskey;"/>
+        <hbox pack="end">
+          <button id="popupPolicyButton" label="&popupExceptions.label;"
+                  accesskey="&popupExceptions.accesskey;"/>
+        </hbox>
       </row>
     </rows>
   </grid>
@@ -73,9 +97,9 @@
       <row id="fontRow">
         <hbox align="center">
           <label control="defaultFont" accesskey="&defaultFont.accesskey;">&defaultFont.label;</label>
-          <menulist id="defaultFont" />
-          <label control="defaultFontSize" accesskey="&defaultSize.accesskey;">&defaultSize.label;</label>
-          <menulist id="defaultFontSize">
+          <menulist id="defaultFont" delayprefsave="true"/>
+          <label id="defaultFontSizeLabel" control="defaultFontSize" accesskey="&defaultSize.accesskey;">&defaultSize.label;</label>
+          <menulist id="defaultFontSize" delayprefsave="true">
             <menupopup>
               <menuitem value="9" label="9"/>
               <menuitem value="10" label="10"/>
@@ -107,15 +131,13 @@
         </hbox>
         <button id="advancedFonts" icon="select-font"
                 label="&advancedFonts.label;"
-                accesskey="&advancedFonts.accesskey;"
-                oncommand="gContentPane.configureFonts();"/>
+                accesskey="&advancedFonts.accesskey;"/>
       </row>
       <row id="colorsRow">
         <hbox/>
         <button id="colors" icon="select-color"
                 label="&colors.label;"
-                accesskey="&colors.accesskey;"
-                oncommand="gContentPane.configureColors();"/>
+                accesskey="&colors.accesskey;"/>
       </row>
     </rows>
   </grid>
@@ -129,17 +151,23 @@
     <description flex="1" control="chooseLanguage">&chooseLanguage.label;</description>
     <button id="chooseLanguage"
             label="&chooseButton.label;"
-            accesskey="&chooseButton.accesskey;"
-            oncommand="gContentPane.showLanguages();"/>
+            accesskey="&chooseButton.accesskey;"/>
   </hbox>
 
   <hbox id="translationBox" hidden="true">
-    <checkbox id="translate" preference="browser.translation.detectLanguage" flex="1"
-              label="&translateWebPages.label;" accesskey="&translateWebPages.accesskey;"
-              onsyncfrompreference="return gContentPane.updateButtons('translateButton',
-                                    'browser.translation.detectLanguage');"/>
+    <hbox align="center" flex="1">
+      <checkbox id="translate" preference="browser.translation.detectLanguage"
+                label="&translateWebPages.label;." accesskey="&translateWebPages.accesskey;"
+                onsyncfrompreference="return gContentPane.updateButtons('translateButton',
+                                              'browser.translation.detectLanguage');"/>
+      <label>&translation.options.attribution.beforeLogo;</label>
+      <separator orient="vertical" class="thin"/>
+      <image id="translationAttributionImage" aria-label="Microsoft Translator"
+             src="chrome://browser/content/microsoft-translator-attribution.png"/>
+      <separator orient="vertical" class="thin"/>
+      <label>&translation.options.attribution.afterLogo;</label>
+    </hbox>
     <button id="translateButton" label="&translateExceptions.label;"
-            oncommand="gContentPane.showTranslationExceptions();"
             accesskey="&translateExceptions.accesskey;"/>
   </hbox>
 </groupbox>

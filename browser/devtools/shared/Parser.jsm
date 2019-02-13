@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,7 @@ this.EXPORTED_SYMBOLS = ["Parser", "ParserHelpers", "SyntaxTreeVisitor"];
 this.Parser = function Parser() {
   this._cache = new Map();
   this.errors = [];
+  this.logExceptions = true;
 };
 
 Parser.prototype = {
@@ -66,7 +67,9 @@ Parser.prototype = {
         syntaxTrees.push(new SyntaxTree(nodes, aUrl, length));
       } catch (e) {
         this.errors.push(e);
-        DevToolsUtils.reportException(aUrl, e);
+        if (this.logExceptions) {
+          DevToolsUtils.reportException(aUrl, e);
+        }
       }
     }
     // Generate the AST nodes for each script.
@@ -80,7 +83,9 @@ Parser.prototype = {
           syntaxTrees.push(new SyntaxTree(nodes, aUrl, length, offset));
         } catch (e) {
           this.errors.push(e);
-          DevToolsUtils.reportException(aUrl, e);
+          if (this.logExceptions) {
+            DevToolsUtils.reportException(aUrl, e);
+          }
         }
       }
     }
@@ -218,7 +223,7 @@ SyntaxTreesPool.prototype = {
         // Can't guarantee that the tree traversal logic is forever perfect :)
         // Language features may be added, in which case the recursive methods
         // need to be updated. If an exception is thrown here, file a bug.
-        DevToolsUtils.reportException("Syntax tree visitor for " + aUrl, e);
+        DevToolsUtils.reportException("Syntax tree visitor for " + this._url, e);
       }
     }
     this._cache.set(requestId, results);
@@ -327,7 +332,7 @@ SyntaxTree.prototype = {
        */
       onFunctionDeclaration: function(aNode) {
         let functionName = aNode.id.name;
-        if (functionName.toLowerCase().contains(lowerCaseToken)) {
+        if (functionName.toLowerCase().includes(lowerCaseToken)) {
           store.push({
             functionName: functionName,
             functionLocation: ParserHelpers.getNodeLocation(aNode)
@@ -355,8 +360,8 @@ SyntaxTree.prototype = {
           this.onFunctionExpression(aNode._parent);
         }
 
-        if ((functionName && functionName.toLowerCase().contains(lowerCaseToken)) ||
-            (inferredName && inferredName.toLowerCase().contains(lowerCaseToken))) {
+        if ((functionName && functionName.toLowerCase().includes(lowerCaseToken)) ||
+            (inferredName && inferredName.toLowerCase().includes(lowerCaseToken))) {
           store.push({
             functionName: functionName,
             functionLocation: functionLocation,
@@ -371,7 +376,7 @@ SyntaxTree.prototype = {
        * Callback invoked for each arrow expression node.
        * @param Node aNode
        */
-      onArrowExpression: function(aNode) {
+      onArrowFunctionExpression: function(aNode) {
         // Infer the function's name from an enclosing syntax tree node.
         let inferredInfo = ParserHelpers.inferFunctionExpressionInfo(aNode);
         let inferredName = inferredInfo.name;
@@ -383,7 +388,7 @@ SyntaxTree.prototype = {
           this.onFunctionExpression(aNode._parent);
         }
 
-        if (inferredName && inferredName.toLowerCase().contains(lowerCaseToken)) {
+        if (inferredName && inferredName.toLowerCase().includes(lowerCaseToken)) {
           store.push({
             inferredName: inferredName,
             inferredChain: inferredChain,
@@ -450,8 +455,8 @@ let ParserHelpers = {
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;
       }
-      if (parentType == "ContinueStatement") {
-        // e.g. continue label
+      if (parentType == "ContinueStatement" || parentType == "BreakStatement") {
+        // e.g. continue label; or break label;
         // The location is unavailable for the identifier node "label".
         let loc = Cu.cloneInto(parentLocation, {});
         loc.start.line = loc.end.line;
@@ -1617,8 +1622,8 @@ let SyntaxTreeVisitor = {
   /**
    * An arrow expression.
    *
-   * interface ArrowExpression <: Function, Expression {
-   *   type: "ArrowExpression";
+   * interface ArrowFunctionExpression <: Function, Expression {
+   *   type: "ArrowFunctionExpression";
    *   params: [ Pattern ];
    *   defaults: [ Expression ];
    *   rest: Identifier | null;
@@ -1627,7 +1632,7 @@ let SyntaxTreeVisitor = {
    *   expression: boolean;
    * }
    */
-  ArrowExpression: function(aNode, aParent, aCallbacks) {
+  ArrowFunctionExpression: function(aNode, aParent, aCallbacks) {
     aNode._parent = aParent;
 
     if (this.break) {
@@ -1638,8 +1643,8 @@ let SyntaxTreeVisitor = {
         return;
       }
     }
-    if (aCallbacks.onArrowExpression) {
-      aCallbacks.onArrowExpression(aNode);
+    if (aCallbacks.onArrowFunctionExpression) {
+      aCallbacks.onArrowFunctionExpression(aNode);
     }
     for (let param of aNode.params) {
       this[param.type](param, aNode, aCallbacks);

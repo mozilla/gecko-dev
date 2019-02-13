@@ -62,13 +62,11 @@ if CONFIG['ENABLE_TESTS']:
         'mozilla/GTestRunner.cpp',
     ]
 
-    LIBRARY_NAME = 'gtest'
+    Library('gtest')
 
     SOURCES += [
         'mozilla/SanityTest.cpp',
     ]
-
-    EXPORT_LIBRARY = True
 
     LOCAL_INCLUDES += [
         'gmock',

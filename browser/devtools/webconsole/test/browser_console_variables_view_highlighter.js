@@ -12,11 +12,11 @@ let gWebConsole, gJSTerm, gVariablesView, gToolbox;
 
 function test()
 {
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, consoleOpened);
-  }, true);
+  loadTab(TEST_URI).then(() => {
+    openConsole().then(hud => {
+      consoleOpened(hud);
+    })
+  });
 }
 
 function consoleOpened(hud)
@@ -24,7 +24,7 @@ function consoleOpened(hud)
   gWebConsole = hud;
   gJSTerm = hud.jsterm;
   gToolbox = gDevTools.getToolbox(hud.target);
-  gJSTerm.execute("document.querySelectorAll('p')", onQSAexecuted);
+  gJSTerm.execute("document.querySelectorAll('p')").then(onQSAexecuted);
 }
 
 function onQSAexecuted(msg)
@@ -46,7 +46,8 @@ function onNodeListVviewFetched(aEvent, aVar)
   ok(gVariablesView, "variables view object");
 
   // Transform the vview into an array we can filter properties from
-  let props = [[id, prop] for([id, prop] of aVar)];
+  let props = [...aVar].map(([id, prop]) => [id, prop]);
+
   // These properties are the DOM nodes ones
   props = props.filter(v => v[0].match(/[0-9]+/));
 

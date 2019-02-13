@@ -1,0 +1,175 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+
+option optimize_for = LITE_RUNTIME;
+
+package mozilla.layers.layerscope;
+
+// ===============================
+// Server to Client messages
+// ===============================
+message FramePacket {
+  optional uint64 value = 1;
+}
+
+message ColorPacket {
+  required uint64 layerref = 1;
+  optional uint32 width = 2;
+  optional uint32 height = 3;
+  optional uint32 color = 4;
+}
+
+message TexturePacket {
+  required uint64 layerref = 1;
+  optional uint32 width = 2;
+  optional uint32 height = 3;
+  optional uint32 stride = 4;
+  optional uint32 name = 5;
+  optional uint32 target = 6;
+  optional uint32 dataformat = 7;
+  optional uint64 glcontext = 8;
+  optional bytes data = 9;
+}
+
+message LayersPacket {
+  message Layer {
+    enum LayerType {
+      UnknownLayer = 0;
+      LayerManager = 1;
+      ContainerLayer = 2;
+      PaintedLayer = 3;
+      CanvasLayer = 4;
+      ImageLayer = 5;
+      ColorLayer = 6;
+      RefLayer = 7;
+      ReadbackLayer = 8;
+    }
+    enum ScrollingDirect {
+      VERTICAL = 1;
+      HORIZONTAL = 2;
+    }
+    enum Filter {
+      FILTER_FAST = 0;
+      FILTER_GOOD = 1;
+      FILTER_BEST = 2;
+      FILTER_NEAREST = 3;
+      FILTER_BILINEAR = 4;
+      FILTER_GAUSSIAN = 5;
+      FILTER_SENTINEL = 6;
+    }
+    message Size {
+      optional int32 w = 1;
+      optional int32 h = 2;
+    }
+    message Rect {
+      optional int32 x = 1;
+      optional int32 y = 2;
+      optional int32 w = 3;
+      optional int32 h = 4;
+    }
+    message Region {
+      repeated Rect r = 1;
+    }
+    message Matrix {
+      optional bool is2D = 1;
+      optional bool isId = 2;
+      repeated float m = 3;
+    }
+    message Shadow {
+      optional Rect clip = 1;
+      optional Matrix transform = 2;
+      optional Region vRegion = 3;
+    }
+
+    // Basic info
+    // Note: Parent's pointer is used to recontruct the layer tree
+    required LayerType type = 1;
+    required uint64 ptr = 2;
+    required uint64 parentPtr = 3;
+
+    // Common info (10 to 99)
+    optional Rect clip = 10;
+    optional Matrix transform = 11;
+    optional Region vRegion = 12; // visible region
+    optional Shadow shadow = 13;  // shadow info
+    optional float opacity = 14;
+    optional bool cOpaque = 15;   // content opaque
+    optional bool cAlpha = 16;    // component alpha
+    optional ScrollingDirect direct = 17;
+    optional uint64 barID = 18;
+    optional uint64 mask = 19;    // mask layer
+    optional Region hitRegion = 20;
+    optional Region dispatchRegion = 21;
+    optional Region noActionRegion = 22;
+    optional Region hPanRegion = 23;
+    optional Region vPanRegion = 24;
+
+    // Specific info (100 to max)
+    // Painted Layer
+    optional Region valid = 100;
+    // Color Layer
+    optional uint32 color = 101;
+    // Canvas & Image Layer
+    optional Filter filter = 102;
+    // Ref Layer
+    optional uint64 refID = 103;
+    // Readback Layer
+    optional Size size = 104;
+  }
+  repeated Layer layer = 1;
+}
+
+message MetaPacket {
+  optional bool composedByHwc = 1;
+}
+
+message DrawPacket {
+  message Rect {
+    required float x = 1;
+    required float y = 2;
+    required float w = 3;
+    required float h = 4;
+  }
+
+  required float  offsetX = 1;
+  required float  offsetY = 2;
+  repeated float  mvMatrix = 3;
+  required uint32 totalRects = 4;
+  repeated Rect   layerRect = 5;
+  required uint64 layerref = 6;
+}
+
+// We only need to use this Packet.
+// Other packet definitions are just type defines
+message Packet {
+  enum DataType {
+    FRAMESTART = 1;
+    FRAMEEND = 2;
+    COLOR = 3;
+    TEXTURE = 4;
+    LAYERS = 5;
+    META = 6;
+    DRAW = 7;
+  }
+  required DataType type = 1;
+
+  optional FramePacket frame = 2;
+  optional ColorPacket color = 3;
+  optional TexturePacket texture = 4;
+  optional LayersPacket layers = 5;
+  optional MetaPacket meta = 6;
+  optional DrawPacket draw = 7;
+}
+
+
+// ===============================
+// Client to Server messages
+// ===============================
+message CommandPacket {
+  enum CmdType {
+    NO_OP = 0;
+    LAYERS_TREE = 1;
+    LAYERS_BUFFER = 2;
+  }
+  required CmdType type = 1;
+  optional bool value = 2;
+}

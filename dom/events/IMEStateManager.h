@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,12 +8,13 @@
 #define mozilla_IMEStateManager_h_
 
 #include "mozilla/EventForwards.h"
+#include "mozilla/StaticPtr.h"
 #include "nsIWidget.h"
 
 class nsIContent;
 class nsIDOMMouseEvent;
+class nsIEditor;
 class nsINode;
-class nsPIDOMWindow;
 class nsPresContext;
 class nsISelection;
 
@@ -32,11 +34,13 @@ class TextComposition;
 class IMEStateManager
 {
   typedef widget::IMEMessage IMEMessage;
+  typedef widget::IMENotification IMENotification;
   typedef widget::IMEState IMEState;
   typedef widget::InputContext InputContext;
   typedef widget::InputContextAction InputContextAction;
 
 public:
+  static void Init();
   static void Shutdown();
 
   static nsresult OnDestroyPresContext(nsPresContext* aPresContext);
@@ -64,7 +68,15 @@ public:
   // Note that this method changes the IME state of the active element in the
   // widget.  So, the caller must have focus.
   static void UpdateIMEState(const IMEState &aNewIMEState,
-                             nsIContent* aContent);
+                             nsIContent* aContent,
+                             nsIEditor* aEditor);
+
+  // This method is called when user operates mouse button in focused editor
+  // and before the editor handles it.
+  // Returns true if IME consumes the event.  Otherwise, false.
+  static bool OnMouseButtonEventInEditor(nsPresContext* aPresContext,
+                                         nsIContent* aContent,
+                                         nsIDOMMouseEvent* aMouseEvent);
 
   // This method is called when user clicked in an editor.
   // aContent must be:
@@ -81,20 +93,36 @@ public:
   //   If the editor is for contenteditable, the active editinghost.
   //   If the editor is for designMode, nullptr.
   static void OnFocusInEditor(nsPresContext* aPresContext,
-                              nsIContent* aContent);
+                              nsIContent* aContent,
+                              nsIEditor* aEditor);
+
+  // This method is called when the editor is initialized.
+  static void OnEditorInitialized(nsIEditor* aEditor);
+
+  // This method is called when the editor is (might be temporarily) being
+  // destroyed.
+  static void OnEditorDestroying(nsIEditor* aEditor);
 
   /**
-   * All DOM composition events and DOM text events must be dispatched via
-   * DispatchCompositionEvent() for storing the composition target
-   * and ensuring a set of composition events must be fired the stored target.
-   * If the stored composition event target is destroying, this removes the
-   * stored composition automatically.
+   * All composition events must be dispatched via DispatchCompositionEvent()
+   * for storing the composition target and ensuring a set of composition
+   * events must be fired the stored target.  If the stored composition event
+   * target is destroying, this removes the stored composition automatically.
    */
-  static void DispatchCompositionEvent(nsINode* aEventTargetNode,
-                                       nsPresContext* aPresContext,
-                                       WidgetEvent* aEvent,
-                                       nsEventStatus* aStatus,
-                                       EventDispatchingCallback* aCallBack);
+  static void DispatchCompositionEvent(
+                nsINode* aEventTargetNode,
+                nsPresContext* aPresContext,
+                WidgetCompositionEvent* aCompositionEvent,
+                nsEventStatus* aStatus,
+                EventDispatchingCallback* aCallBack,
+                bool aIsSynthesized = false);
+
+  /**
+   * This is called when PresShell ignores a composition event due to not safe
+   * to dispatch events.
+   */
+  static void OnCompositionEventDiscarded(
+                const WidgetCompositionEvent* aCompositionEvent);
 
   /**
    * Get TextComposition from widget.
@@ -105,22 +133,27 @@ public:
   /**
    * Returns TextComposition instance for the event.
    *
-   * @param aEvent      Should be a composition event or a text event which is
-   *                    being dispatched.
+   * @param aGUIEvent Should be a composition event which is being dispatched.
    */
   static already_AddRefed<TextComposition>
-    GetTextCompositionFor(WidgetGUIEvent* aEvent);
+    GetTextCompositionFor(WidgetGUIEvent* aGUIEvent);
 
   /**
    * Send a notification to IME.  It depends on the IME or platform spec what
    * will occur (or not occur).
    */
-  static nsresult NotifyIME(IMEMessage aMessage, nsIWidget* aWidget);
-  static nsresult NotifyIME(IMEMessage aMessage, nsPresContext* aPresContext);
+  static nsresult NotifyIME(const IMENotification& aNotification,
+                            nsIWidget* aWidget,
+                            bool aOriginIsRemote = false);
+  static nsresult NotifyIME(IMEMessage aMessage,
+                            nsIWidget* aWidget,
+                            bool aOriginIsRemote = false);
+  static nsresult NotifyIME(IMEMessage aMessage,
+                            nsPresContext* aPresContext,
+                            bool aOriginIsRemote = false);
 
   static nsINode* GetRootEditableNode(nsPresContext* aPresContext,
                                       nsIContent* aContent);
-  static bool IsTestingIME() { return sIsTestingIME; }
 
 protected:
   static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,
@@ -134,17 +167,36 @@ protected:
                                  nsIContent* aContent);
 
   static void EnsureTextCompositionArray();
-  static void CreateIMEContentObserver();
-  static void DestroyTextStateManager();
+  static void CreateIMEContentObserver(nsIEditor* aEditor);
+  static void DestroyIMEContentObserver();
 
   static bool IsEditable(nsINode* node);
 
-  static bool IsEditableIMEState(nsIWidget* aWidget);
+  static bool IsIMEObserverNeeded(const IMEState& aState);
 
   static nsIContent*    sContent;
   static nsPresContext* sPresContext;
+  static StaticRefPtr<nsIWidget> sFocusedIMEWidget;
   static bool           sInstalledMenuKeyboardListener;
-  static bool           sIsTestingIME;
+  static bool           sIsGettingNewIMEState;
+  static bool           sCheckForIMEUnawareWebApps;
+  static bool           sRemoteHasFocus;
+
+  class MOZ_STACK_CLASS GettingNewIMEStateBlocker final
+  {
+  public:
+    GettingNewIMEStateBlocker()
+      : mOldValue(IMEStateManager::sIsGettingNewIMEState)
+    {
+      IMEStateManager::sIsGettingNewIMEState = true;
+    }
+    ~GettingNewIMEStateBlocker()
+    {
+      IMEStateManager::sIsGettingNewIMEState = mOldValue;
+    }
+  private:
+    bool mOldValue;
+  };
 
   static IMEContentObserver* sActiveIMEContentObserver;
 

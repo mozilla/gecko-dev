@@ -20,7 +20,7 @@ let { merge } = require('../util/object');
 let { setTimeout, clearTimeout } = require('../timers');
 let isWindows = platform.indexOf('win') === 0;
 
-let processes = WeakMap();
+let processes = new WeakMap();
 
 
 /**
@@ -195,7 +195,7 @@ function execFile (file, ...args) {
     env: null,
     encoding: 'utf8',
     timeout: 0,
-    maxBuffer: 200 * 1024,
+    maxBuffer: 204800,    //200 KB (200*1024 bytes)
     killSignal: 'SIGTERM'
   };
 

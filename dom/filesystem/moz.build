@@ -13,7 +13,7 @@ EXPORTS.mozilla.dom += [
     'FileSystemUtils.h',
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     'CreateDirectoryTask.cpp',
     'CreateFileTask.cpp',
     'DeviceStorageFileSystem.cpp',
@@ -27,7 +27,7 @@ SOURCES += [
     'RemoveTask.cpp',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 IPDL_SOURCES += [
     'PFileSystemRequest.ipdl',
@@ -39,3 +39,5 @@ LOCAL_INCLUDES += [
     '/dom/base',
 ]
 
+if not CONFIG['CLANG_CXX']:
+    FAIL_ON_WARNINGS = True

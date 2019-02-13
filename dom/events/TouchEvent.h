@@ -1,4 +1,5 @@
-/* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,8 +11,8 @@
 #include "mozilla/dom/UIEvent.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TouchEvents.h"
 #include "nsJSEnvironment.h"
-#include "nsTArray.h"
 #include "nsWrapperCache.h"
 
 class nsAString;
@@ -19,25 +20,23 @@ class nsAString;
 namespace mozilla {
 namespace dom {
 
-class TouchList MOZ_FINAL : public nsISupports
-                          , public nsWrapperCache
+class TouchList final : public nsISupports
+                      , public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TouchList)
 
-  TouchList(nsISupports* aParent)
+  explicit TouchList(nsISupports* aParent)
     : mParent(aParent)
   {
-    SetIsDOMBinding();
     nsJSContext::LikelyShortLivingObjectCreated();
   }
   TouchList(nsISupports* aParent,
-            const nsTArray<nsRefPtr<Touch> >& aTouches)
+            const WidgetTouchEvent::TouchArray& aTouches)
     : mParent(aParent)
     , mPoints(aTouches)
   {
-    SetIsDOMBinding();
     nsJSContext::LikelyShortLivingObjectCreated();
   }
 
@@ -46,7 +45,7 @@ public:
     mPoints.AppendElement(aPoint);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const
   {
@@ -75,8 +74,10 @@ public:
   Touch* IdentifiedTouch(int32_t aIdentifier) const;
 
 protected:
+  ~TouchList() {}
+
   nsCOMPtr<nsISupports> mParent;
-  nsTArray<nsRefPtr<Touch> > mPoints;
+  WidgetTouchEvent::TouchArray mPoints;
 };
 
 class TouchEvent : public UIEvent
@@ -89,9 +90,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TouchEvent, UIEvent)
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return TouchEventBinding::Wrap(aCx, this);
+    return TouchEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   TouchList* Touches();
@@ -119,7 +120,10 @@ public:
 
   static bool PrefEnabled(JSContext* aCx = nullptr,
                           JSObject* aGlobal = nullptr);
+
 protected:
+  ~TouchEvent() {}
+
   nsRefPtr<TouchList> mTouches;
   nsRefPtr<TouchList> mTargetTouches;
   nsRefPtr<TouchList> mChangedTouches;

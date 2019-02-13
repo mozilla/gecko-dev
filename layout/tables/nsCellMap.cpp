@@ -11,24 +11,25 @@
 #include "nsTableRowGroupFrame.h"
 #include <algorithm>
 
+using namespace mozilla;
 
 static void
-SetDamageArea(int32_t aXOrigin,
-              int32_t aYOrigin,
-              int32_t aWidth,
-              int32_t aHeight,
-              nsIntRect& aDamageArea)
+SetDamageArea(int32_t aStartCol,
+              int32_t aStartRow,
+              int32_t aColCount,
+              int32_t aRowCount,
+              TableArea& aDamageArea)
 {
-  NS_ASSERTION(aXOrigin >= 0, "negative col index");
-  NS_ASSERTION(aYOrigin >= 0, "negative row index");
-  NS_ASSERTION(aWidth >= 0, "negative horizontal damage");
-  NS_ASSERTION(aHeight >= 0, "negative vertical damage");
-  aDamageArea.x      = aXOrigin;
-  aDamageArea.y      = aYOrigin;
-  aDamageArea.width  = aWidth;
-  aDamageArea.height = aHeight;
+  NS_ASSERTION(aStartCol >= 0, "negative col index");
+  NS_ASSERTION(aStartRow >= 0, "negative row index");
+  NS_ASSERTION(aColCount >= 0, "negative col count");
+  NS_ASSERTION(aRowCount >= 0, "negative row count");
+  aDamageArea.StartCol() = aStartCol;
+  aDamageArea.StartRow() = aStartRow;
+  aDamageArea.ColCount() = aColCount;
+  aDamageArea.RowCount() = aRowCount;
 }
- 
+
 // Empty static array used for SafeElementAt() calls on mRows.
 static nsCellMap::CellDataArray * sEmptyRow;
 
@@ -92,48 +93,48 @@ nsTableCellMap::~nsTableCellMap()
   }
 
   if (mBCInfo) {
-    DeleteRightBottomBorders();
+    DeleteIEndBEndBorders();
     delete mBCInfo;
   }
 }
 
-// Get the bcData holding the border segments of the right edge of the table
+// Get the bcData holding the border segments of the iEnd edge of the table
 BCData*
-nsTableCellMap::GetRightMostBorder(int32_t aRowIndex)
+nsTableCellMap::GetIEndMostBorder(int32_t aRowIndex)
 {
   if (!mBCInfo) ABORT1(nullptr);
 
-  int32_t numRows = mBCInfo->mRightBorders.Length();
+  int32_t numRows = mBCInfo->mIEndBorders.Length();
   if (aRowIndex < numRows) {
-    return &mBCInfo->mRightBorders.ElementAt(aRowIndex);
+    return &mBCInfo->mIEndBorders.ElementAt(aRowIndex);
   }
 
-  mBCInfo->mRightBorders.SetLength(aRowIndex+1);
-  return &mBCInfo->mRightBorders.ElementAt(aRowIndex);
+  mBCInfo->mIEndBorders.SetLength(aRowIndex+1);
+  return &mBCInfo->mIEndBorders.ElementAt(aRowIndex);
 }
 
-// Get the bcData holding the border segments of the bottom edge of the table
+// Get the bcData holding the border segments of the bEnd edge of the table
 BCData*
-nsTableCellMap::GetBottomMostBorder(int32_t aColIndex)
+nsTableCellMap::GetBEndMostBorder(int32_t aColIndex)
 {
   if (!mBCInfo) ABORT1(nullptr);
 
-  int32_t numCols = mBCInfo->mBottomBorders.Length();
+  int32_t numCols = mBCInfo->mBEndBorders.Length();
   if (aColIndex < numCols) {
-    return &mBCInfo->mBottomBorders.ElementAt(aColIndex);
+    return &mBCInfo->mBEndBorders.ElementAt(aColIndex);
   }
 
-  mBCInfo->mBottomBorders.SetLength(aColIndex+1);
-  return &mBCInfo->mBottomBorders.ElementAt(aColIndex);
+  mBCInfo->mBEndBorders.SetLength(aColIndex+1);
+  return &mBCInfo->mBEndBorders.ElementAt(aColIndex);
 }
 
-// delete the borders corresponding to the right and bottom edges of the table
+// delete the borders corresponding to the iEnd and bEnd edges of the table
 void
-nsTableCellMap::DeleteRightBottomBorders()
+nsTableCellMap::DeleteIEndBEndBorders()
 {
   if (mBCInfo) {
-    mBCInfo->mBottomBorders.Clear();
-    mBCInfo->mRightBorders.Clear();
+    mBCInfo->mBEndBorders.Clear();
+    mBCInfo->mIEndBorders.Clear();
   }
 }
 
@@ -425,7 +426,7 @@ nsTableCellMap::AddColsAtEnd(uint32_t aNumCols)
     NS_WARNING("Could not AppendElement");
   }
   if (mBCInfo) {
-    if (!mBCInfo->mBottomBorders.AppendElements(aNumCols)) {
+    if (!mBCInfo->mBEndBorders.AppendElements(aNumCols)) {
       NS_WARNING("Could not AppendElement");
     }
   }
@@ -444,9 +445,9 @@ nsTableCellMap::RemoveColsAtEnd()
       mCols.RemoveElementAt(colX);
 
       if (mBCInfo) {
-        int32_t count = mBCInfo->mBottomBorders.Length();
+        int32_t count = mBCInfo->mBEndBorders.Length();
         if (colX < count) {
-          mBCInfo->mBottomBorders.RemoveElementAt(colX);
+          mBCInfo->mBEndBorders.RemoveElementAt(colX);
         }
       }
     }
@@ -459,14 +460,14 @@ nsTableCellMap::ClearCols()
 {
   mCols.Clear();
   if (mBCInfo)
-    mBCInfo->mBottomBorders.Clear();
+    mBCInfo->mBEndBorders.Clear();
 }
 void
 nsTableCellMap::InsertRows(nsTableRowGroupFrame*       aParent,
                            nsTArray<nsTableRowFrame*>& aRows,
                            int32_t                     aFirstRowIndex,
                            bool                        aConsiderSpans,
-                           nsIntRect&                  aDamageArea)
+                           TableArea&                  aDamageArea)
 {
   int32_t numNewRows = aRows.Length();
   if ((numNewRows <= 0) || (aFirstRowIndex < 0)) ABORT0();
@@ -483,16 +484,16 @@ nsTableCellMap::InsertRows(nsTableRowGroupFrame*       aParent,
       Dump("after InsertRows");
 #endif
       if (mBCInfo) {
-        int32_t count = mBCInfo->mRightBorders.Length();
+        int32_t count = mBCInfo->mIEndBorders.Length();
         if (aFirstRowIndex < count) {
           for (int32_t rowX = aFirstRowIndex; rowX < aFirstRowIndex + numNewRows; rowX++) {
-            mBCInfo->mRightBorders.InsertElementAt(rowX);
+            mBCInfo->mIEndBorders.InsertElementAt(rowX);
           }
         }
         else {
-          GetRightMostBorder(aFirstRowIndex); // this will create missing entries
+          GetIEndMostBorder(aFirstRowIndex); // this will create missing entries
           for (int32_t rowX = aFirstRowIndex + 1; rowX < aFirstRowIndex + numNewRows; rowX++) {
-            mBCInfo->mRightBorders.AppendElement();
+            mBCInfo->mIEndBorders.AppendElement();
           }
         }
       }
@@ -511,7 +512,7 @@ void
 nsTableCellMap::RemoveRows(int32_t         aFirstRowIndex,
                            int32_t         aNumRowsToRemove,
                            bool            aConsiderSpans,
-                           nsIntRect&      aDamageArea)
+                           TableArea&      aDamageArea)
 {
   int32_t rowIndex = aFirstRowIndex;
   int32_t rgStartRowIndex = 0;
@@ -523,8 +524,8 @@ nsTableCellMap::RemoveRows(int32_t         aFirstRowIndex,
                           rgStartRowIndex, aDamageArea);
       if (mBCInfo) {
         for (int32_t rowX = aFirstRowIndex + aNumRowsToRemove - 1; rowX >= aFirstRowIndex; rowX--) {
-          if (uint32_t(rowX) < mBCInfo->mRightBorders.Length()) {
-            mBCInfo->mRightBorders.RemoveElementAt(rowX);
+          if (uint32_t(rowX) < mBCInfo->mIEndBorders.Length()) {
+            mBCInfo->mIEndBorders.RemoveElementAt(rowX);
           }
         }
       }
@@ -545,7 +546,7 @@ CellData*
 nsTableCellMap::AppendCell(nsTableCellFrame& aCellFrame,
                            int32_t           aRowIndex,
                            bool              aRebuildIfNecessary,
-                           nsIntRect&        aDamageArea)
+                           TableArea&        aDamageArea)
 {
   MOZ_ASSERT(&aCellFrame == aCellFrame.FirstInFlow(),
              "invalid call on continuing frame");
@@ -581,7 +582,7 @@ void
 nsTableCellMap::InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
                             int32_t                      aRowIndex,
                             int32_t                      aColIndexBefore,
-                            nsIntRect&                   aDamageArea)
+                            TableArea&                   aDamageArea)
 {
   int32_t rowIndex = aRowIndex;
   int32_t rgStartRowIndex = 0;
@@ -606,7 +607,7 @@ nsTableCellMap::InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
 void
 nsTableCellMap::RemoveCell(nsTableCellFrame* aCellFrame,
                            int32_t           aRowIndex,
-                           nsIntRect&        aDamageArea)
+                           TableArea&        aDamageArea)
 {
   if (!aCellFrame) ABORT0();
   MOZ_ASSERT(aCellFrame == aCellFrame->FirstInFlow(),
@@ -641,7 +642,7 @@ nsTableCellMap::RebuildConsideringCells(nsCellMap*                   aCellMap,
                                         int32_t                      aRowIndex,
                                         int32_t                      aColIndex,
                                         bool                         aInsert,
-                                        nsIntRect&                   aDamageArea)
+                                        TableArea&                   aDamageArea)
 {
   int32_t numOrigCols = GetColCount();
   ClearCols();
@@ -667,7 +668,7 @@ nsTableCellMap::RebuildConsideringRows(nsCellMap*                  aCellMap,
                                        int32_t                     aStartRowIndex,
                                        nsTArray<nsTableRowFrame*>* aRowsToInsert,
                                        int32_t                     aNumRowsToRemove,
-                                       nsIntRect&                  aDamageArea)
+                                       TableArea&                  aDamageArea)
 {
   NS_PRECONDITION(!aRowsToInsert || aNumRowsToRemove == 0,
                   "Can't handle both removing and inserting rows at once");
@@ -725,25 +726,25 @@ nsTableCellMap::Dump(char* aString) const
     cellMap = cellMap->GetNextSibling();
   }
   if (nullptr != mBCInfo) {
-    printf("***** bottom borders *****\n");
+    printf("***** block-end borders *****\n");
     nscoord       size;
     BCBorderOwner owner;
-    mozilla::css::Side side;
+    LogicalSide side;
     bool          segStart;
     bool          bevel;
     int32_t       colIndex;
-    int32_t numCols = mBCInfo->mBottomBorders.Length();
+    int32_t numCols = mBCInfo->mBEndBorders.Length();
     for (int32_t i = 0; i <= 2; i++) {
 
       printf("\n          ");
       for (colIndex = 0; colIndex < numCols; colIndex++) {
-        BCData& cd = mBCInfo->mBottomBorders.ElementAt(colIndex);
+        BCData& cd = mBCInfo->mBEndBorders.ElementAt(colIndex);
         if (0 == i) {
-          size = cd.GetTopEdge(owner, segStart);
+          size = cd.GetBStartEdge(owner, segStart);
           printf("t=%d%X%d ", int32_t(size), owner, segStart);
         }
         else if (1 == i) {
-          size = cd.GetLeftEdge(owner, segStart);
+          size = cd.GetIStartEdge(owner, segStart);
           printf("l=%d%X%d ", int32_t(size), owner, segStart);
         }
         else {
@@ -751,13 +752,13 @@ nsTableCellMap::Dump(char* aString) const
           printf("c=%d%X%d ", int32_t(size), side, bevel);
         }
       }
-      BCData& cd = mBCInfo->mLowerRightCorner;
+      BCData& cd = mBCInfo->mBEndIEndCorner;
       if (0 == i) {
-         size = cd.GetTopEdge(owner, segStart);
+         size = cd.GetBStartEdge(owner, segStart);
          printf("t=%d%X%d ", int32_t(size), owner, segStart);
       }
       else if (1 == i) {
-        size = cd.GetLeftEdge(owner, segStart);
+        size = cd.GetIStartEdge(owner, segStart);
         printf("l=%d%X%d ", int32_t(size), owner, segStart);
       }
       else {
@@ -911,28 +912,28 @@ void nsTableCellMap::ExpandZeroColSpans()
 }
 
 void
-nsTableCellMap::ResetTopStart(uint8_t    aSide,
-                              nsCellMap& aCellMap,
-                              uint32_t   aRowIndex,
-                              uint32_t   aColIndex,
-                              bool       aIsLowerRight)
+nsTableCellMap::ResetBStartStart(LogicalSide aSide,
+                                 nsCellMap&  aCellMap,
+                                 uint32_t    aRowIndex,
+                                 uint32_t    aColIndex,
+                                 bool        aIsBEndIEnd)
 {
-  if (!mBCInfo || aIsLowerRight) ABORT0();
+  if (!mBCInfo || aIsBEndIEnd) ABORT0();
 
   BCCellData* cellData;
   BCData* bcData = nullptr;
 
   switch(aSide) {
-  case NS_SIDE_BOTTOM:
+  case eLogicalSideBEnd:
     aRowIndex++;
     // FALLTHROUGH
-  case NS_SIDE_TOP:
+  case eLogicalSideBStart:
     cellData = (BCCellData*)aCellMap.GetDataAt(aRowIndex, aColIndex);
     if (cellData) {
       bcData = &cellData->mData;
     }
     else {
-      NS_ASSERTION(aSide == NS_SIDE_BOTTOM, "program error");
+      NS_ASSERTION(aSide == eLogicalSideBEnd, "program error");
       // try the next row group
       nsCellMap* cellMap = aCellMap.GetNextSibling();
       if (cellMap) {
@@ -941,36 +942,36 @@ nsTableCellMap::ResetTopStart(uint8_t    aSide,
           bcData = &cellData->mData;
         }
         else {
-          bcData = GetBottomMostBorder(aColIndex);
+          bcData = GetBEndMostBorder(aColIndex);
         }
       }
     }
     break;
-  case NS_SIDE_RIGHT:
+  case eLogicalSideIEnd:
     aColIndex++;
     // FALLTHROUGH
-  case NS_SIDE_LEFT:
+  case eLogicalSideIStart:
     cellData = (BCCellData*)aCellMap.GetDataAt(aRowIndex, aColIndex);
     if (cellData) {
       bcData = &cellData->mData;
     }
     else {
-      NS_ASSERTION(aSide == NS_SIDE_RIGHT, "program error");
-      bcData = GetRightMostBorder(aRowIndex);
+      NS_ASSERTION(aSide == eLogicalSideIEnd, "program error");
+      bcData = GetIEndMostBorder(aRowIndex);
     }
     break;
   }
   if (bcData) {
-    bcData->SetTopStart(false);
+    bcData->SetBStartStart(false);
   }
 }
 
-// store the aSide border segment at coord = (aRowIndex, aColIndex). For top/left, store
-// the info at coord. For bottom/left store it at the adjacent location so that it is
-// top/left at that location. If the new location is at the right or bottom edge of the
-// table, then store it one of the special arrays (right most borders, bottom most borders).
+// store the aSide border segment at coord = (aRowIndex, aColIndex). For bStart/iStart, store
+// the info at coord. For bEnd/iStart store it at the adjacent location so that it is
+// bStart/iStart at that location. If the new location is at the iEnd or bEnd edge of the
+// table, then store it one of the special arrays (iEnd-most borders, bEnd-most borders).
 void
-nsTableCellMap::SetBCBorderEdge(mozilla::css::Side aSide,
+nsTableCellMap::SetBCBorderEdge(LogicalSide aSide,
                                 nsCellMap&    aCellMap,
                                 uint32_t      aCellMapStart,
                                 uint32_t      aRowIndex,
@@ -990,10 +991,10 @@ nsTableCellMap::SetBCBorderEdge(mozilla::css::Side aSide,
   bool changed;
 
   switch(aSide) {
-  case NS_SIDE_BOTTOM:
+  case eLogicalSideBEnd:
     rgYPos++;
     yPos++;
-  case NS_SIDE_TOP:
+  case eLogicalSideBStart:
     lastIndex = xPos + aLength - 1;
     for (xIndex = xPos; xIndex <= lastIndex; xIndex++) {
       changed = aChanged && (xIndex == xPos);
@@ -1002,13 +1003,13 @@ nsTableCellMap::SetBCBorderEdge(mozilla::css::Side aSide,
       if (!cellData) {
         int32_t numRgRows = aCellMap.GetRowCount();
         if (yPos < numRgRows) { // add a dead cell data
-          nsIntRect damageArea;
+          TableArea damageArea;
           cellData = (BCCellData*)aCellMap.AppendCell(*this, nullptr, rgYPos,
                                                        false, 0, damageArea);
           if (!cellData) ABORT0();
         }
         else {
-          NS_ASSERTION(aSide == NS_SIDE_BOTTOM, "program error");
+          NS_ASSERTION(aSide == eLogicalSideBEnd, "program error");
           // try the next non empty row group
           nsCellMap* cellMap = aCellMap.GetNextSibling();
           while (cellMap && (0 == cellMap->GetRowCount())) {
@@ -1017,14 +1018,14 @@ nsTableCellMap::SetBCBorderEdge(mozilla::css::Side aSide,
           if (cellMap) {
             cellData = (BCCellData*)cellMap->GetDataAt(0, xIndex);
             if (!cellData) { // add a dead cell
-              nsIntRect damageArea;
+              TableArea damageArea;
               cellData = (BCCellData*)cellMap->AppendCell(*this, nullptr, 0,
                                                            false, 0,
                                                            damageArea);
             }
           }
           else { // must be at the end of the table
-            bcData = GetBottomMostBorder(xIndex);
+            bcData = GetBEndMostBorder(xIndex);
           }
         }
       }
@@ -1032,53 +1033,53 @@ nsTableCellMap::SetBCBorderEdge(mozilla::css::Side aSide,
         bcData = &cellData->mData;
       }
       if (bcData) {
-        bcData->SetTopEdge(aOwner, aSize, changed);
+        bcData->SetBStartEdge(aOwner, aSize, changed);
       }
-      else NS_ERROR("Cellmap: Top edge not found");
+      else NS_ERROR("Cellmap: BStart edge not found");
     }
     break;
-  case NS_SIDE_RIGHT:
+  case eLogicalSideIEnd:
     xPos++;
-  case NS_SIDE_LEFT:
-    // since top, bottom borders were set, there should already be a cellData entry
+  case eLogicalSideIStart:
+    // since bStart, bEnd borders were set, there should already be a cellData entry
     lastIndex = rgYPos + aLength - 1;
     for (yIndex = rgYPos; yIndex <= lastIndex; yIndex++) {
       changed = aChanged && (yIndex == rgYPos);
       cellData = (BCCellData*)aCellMap.GetDataAt(yIndex, xPos);
       if (cellData) {
-        cellData->mData.SetLeftEdge(aOwner, aSize, changed);
+        cellData->mData.SetIStartEdge(aOwner, aSize, changed);
       }
       else {
-        NS_ASSERTION(aSide == NS_SIDE_RIGHT, "program error");
-        BCData* bcData = GetRightMostBorder(yIndex + aCellMapStart);
+        NS_ASSERTION(aSide == eLogicalSideIEnd, "program error");
+        BCData* bcData = GetIEndMostBorder(yIndex + aCellMapStart);
         if (bcData) {
-          bcData->SetLeftEdge(aOwner, aSize, changed);
+          bcData->SetIStartEdge(aOwner, aSize, changed);
         }
-        else NS_ERROR("Cellmap: Left edge not found");
+        else NS_ERROR("Cellmap: IStart edge not found");
       }
     }
     break;
   }
 }
 
-// store corner info (aOwner, aSubSize, aBevel). For aCorner = eTopLeft, store the info at
-// (aRowIndex, aColIndex). For eTopRight, store it in the entry to the right where
-// it would be top left. For eBottomRight, store it in the entry to the bottom. etc.
+// store corner info (aOwner, aSubSize, aBevel). For aCorner = eBStartIStart, store the info at
+// (aRowIndex, aColIndex). For eBStartIEnd, store it in the entry to the iEnd-wards where
+// it would be BStartIStart. For eBEndIEnd, store it in the entry to the bEnd-wards. etc.
 void
 nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
                                   nsCellMap&  aCellMap,
                                   uint32_t    aCellMapStart,
                                   uint32_t    aRowIndex,
                                   uint32_t    aColIndex,
-                                  mozilla::css::Side aOwner,
+                                  LogicalSide aOwner,
                                   nscoord     aSubSize,
                                   bool        aBevel,
-                                  bool        aIsBottomRight)
+                                  bool        aIsBEndIEnd)
 {
   if (!mBCInfo) ABORT0();
 
-  if (aIsBottomRight) {
-    mBCInfo->mLowerRightCorner.SetCorner(aSubSize, aOwner, aBevel);
+  if (aIsBEndIEnd) {
+    mBCInfo->mBEndIEndCorner.SetCorner(aSubSize, aOwner, aBevel);
     return;
   }
 
@@ -1086,15 +1087,15 @@ nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
   int32_t yPos = aRowIndex;
   int32_t rgYPos = aRowIndex - aCellMapStart;
 
-  if (eTopRight == aCorner) {
+  if (eBStartIEnd == aCorner) {
     xPos++;
   }
-  else if (eBottomRight == aCorner) {
+  else if (eBEndIEnd == aCorner) {
     xPos++;
     rgYPos++;
     yPos++;
   }
-  else if (eBottomLeft == aCorner) {
+  else if (eBEndIStart == aCorner) {
     rgYPos++;
     yPos++;
   }
@@ -1103,16 +1104,16 @@ nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
   BCData*     bcData   = nullptr;
   if (GetColCount() <= xPos) {
     NS_ASSERTION(xPos == GetColCount(), "program error");
-    // at the right edge of the table as we checked the corner before
-    NS_ASSERTION(!aIsBottomRight, "should be handled before");
-    bcData = GetRightMostBorder(yPos);
+    // at the iEnd edge of the table as we checked the corner before
+    NS_ASSERTION(!aIsBEndIEnd, "should be handled before");
+    bcData = GetIEndMostBorder(yPos);
   }
   else {
     cellData = (BCCellData*)aCellMap.GetDataAt(rgYPos, xPos);
     if (!cellData) {
       int32_t numRgRows = aCellMap.GetRowCount();
       if (yPos < numRgRows) { // add a dead cell data
-        nsIntRect damageArea;
+        TableArea damageArea;
         cellData = (BCCellData*)aCellMap.AppendCell(*this, nullptr, rgYPos,
                                                      false, 0, damageArea);
       }
@@ -1125,13 +1126,13 @@ nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
         if (cellMap) {
           cellData = (BCCellData*)cellMap->GetDataAt(0, xPos);
           if (!cellData) { // add a dead cell
-            nsIntRect damageArea;
+            TableArea damageArea;
             cellData = (BCCellData*)cellMap->AppendCell(*this, nullptr, 0,
                                                          false, 0, damageArea);
           }
         }
-        else { // must be at the bottom of the table
-          bcData = GetBottomMostBorder(xPos);
+        else { // must be at the bEnd of the table
+          bcData = GetBEndMostBorder(xPos);
         }
       }
     }
@@ -1172,7 +1173,7 @@ nsCellMap::~nsCellMap()
 void
 nsCellMap::Init()
 {
-  NS_ABORT_IF_FALSE(!sEmptyRow, "How did that happen?");
+  MOZ_ASSERT(!sEmptyRow, "How did that happen?");
   sEmptyRow = new nsCellMap::CellDataArray();
 }
 
@@ -1332,7 +1333,7 @@ nsCellMap::InsertRows(nsTableCellMap&             aMap,
                       int32_t                     aFirstRowIndex,
                       bool                        aConsiderSpans,
                       int32_t                     aRgFirstRowIndex,
-                      nsIntRect&                  aDamageArea)
+                      TableArea&                  aDamageArea)
 {
   int32_t numCols = aMap.GetColCount();
   NS_ASSERTION(aFirstRowIndex >= 0, "nsCellMap::InsertRows called with negative rowIndex");
@@ -1377,7 +1378,7 @@ nsCellMap::RemoveRows(nsTableCellMap& aMap,
                       int32_t         aNumRowsToRemove,
                       bool            aConsiderSpans,
                       int32_t         aRgFirstRowIndex,
-                      nsIntRect&      aDamageArea)
+                      TableArea&      aDamageArea)
 {
   int32_t numRows = mRows.Length();
   int32_t numCols = aMap.GetColCount();
@@ -1420,7 +1421,7 @@ nsCellMap::AppendCell(nsTableCellMap&   aMap,
                       int32_t           aRowIndex,
                       bool              aRebuildIfNecessary,
                       int32_t           aRgFirstRowIndex,
-                      nsIntRect&        aDamageArea,
+                      TableArea&        aDamageArea,
                       int32_t*          aColToBeginSearch)
 {
   NS_ASSERTION(!!aMap.mBCInfo == mIsBC, "BC state mismatch");
@@ -1730,7 +1731,7 @@ void nsCellMap::InsertCells(nsTableCellMap&              aMap,
                             int32_t                      aRowIndex,
                             int32_t                      aColIndexBefore,
                             int32_t                      aRgFirstRowIndex,
-                            nsIntRect&                   aDamageArea)
+                            TableArea&                   aDamageArea)
 {
   if (aCellFrames.Length() == 0) return;
   NS_ASSERTION(aColIndexBefore >= -1, "index out of range");
@@ -1801,7 +1802,7 @@ nsCellMap::ExpandWithRows(nsTableCellMap&             aMap,
                           nsTArray<nsTableRowFrame*>& aRowFrames,
                           int32_t                     aStartRowIndexIn,
                           int32_t                     aRgFirstRowIndex,
-                          nsIntRect&                  aDamageArea)
+                          TableArea&                  aDamageArea)
 {
   int32_t startRowIndex = (aStartRowIndexIn >= 0) ? aStartRowIndexIn : 0;
   NS_ASSERTION(uint32_t(startRowIndex) <= mRows.Length(), "caller should have grown cellmap before");
@@ -1848,7 +1849,7 @@ void nsCellMap::ExpandWithCells(nsTableCellMap&              aMap,
                                 int32_t                      aRowSpan, // same for all cells
                                 bool                         aRowSpanIsZero,
                                 int32_t                      aRgFirstRowIndex,
-                                nsIntRect&                   aDamageArea)
+                                TableArea&                   aDamageArea)
 {
   NS_ASSERTION(!!aMap.mBCInfo == mIsBC, "BC state mismatch");
   int32_t endRowIndex = aRowIndex + aRowSpan - 1;
@@ -1968,7 +1969,7 @@ void nsCellMap::ShrinkWithoutRows(nsTableCellMap& aMap,
                                   int32_t         aStartRowIndex,
                                   int32_t         aNumRowsToRemove,
                                   int32_t         aRgFirstRowIndex,
-                                  nsIntRect&      aDamageArea)
+                                  TableArea&      aDamageArea)
 {
   NS_ASSERTION(!!aMap.mBCInfo == mIsBC, "BC state mismatch");
   int32_t endRowIndex = aStartRowIndex + aNumRowsToRemove - 1;
@@ -2148,7 +2149,7 @@ void nsCellMap::ShrinkWithoutCell(nsTableCellMap&   aMap,
                                   int32_t           aRowIndex,
                                   int32_t           aColIndex,
                                   int32_t           aRgFirstRowIndex,
-                                  nsIntRect&        aDamageArea)
+                                  TableArea&        aDamageArea)
 {
   NS_ASSERTION(!!aMap.mBCInfo == mIsBC, "BC state mismatch");
   uint32_t colX, rowX;
@@ -2273,7 +2274,7 @@ nsCellMap::RebuildConsideringRows(nsTableCellMap&             aMap,
   // rowX keeps track of where we are in mRows while setting up the
   // new cellmap.
   uint32_t rowX = 0;
-  nsIntRect damageArea;
+  TableArea damageArea;
   // put back the rows before the affected ones just as before.  Note that we
   // can't just copy the old rows in bit-for-bit, because they might be
   // spanning out into the rows we're adding/removing.
@@ -2363,7 +2364,7 @@ nsCellMap::RebuildConsideringCells(nsTableCellMap&              aMap,
   // build the new cell map.  Hard to say what, if anything, we can preallocate
   // here...  Should come back to that sometime, perhaps.
   int32_t rowX;
-  nsIntRect damageArea;
+  TableArea damageArea;
   for (rowX = 0; rowX < numOrigRows; rowX++) {
     const CellDataArray& row = origRows[rowX];
     for (int32_t colX = 0; colX < numCols; colX++) {
@@ -2416,7 +2417,7 @@ void nsCellMap::RemoveCell(nsTableCellMap&   aMap,
                            nsTableCellFrame* aCellFrame,
                            int32_t           aRowIndex,
                            int32_t           aRgFirstRowIndex,
-                           nsIntRect&        aDamageArea)
+                           TableArea&        aDamageArea)
 {
   uint32_t numRows = mRows.Length();
   if (uint32_t(aRowIndex) >= numRows) {
@@ -2584,7 +2585,7 @@ void nsCellMap::Dump(bool aIsBorderCollapse) const
     if (aIsBorderCollapse) {
       nscoord       size;
       BCBorderOwner owner;
-      mozilla::css::Side side;
+      LogicalSide side;
       bool          segStart;
       bool          bevel;
       for (int32_t i = 0; i <= 2; i++) {
@@ -2593,11 +2594,11 @@ void nsCellMap::Dump(bool aIsBorderCollapse) const
           BCCellData* cd = (BCCellData *)row[colIndex];
           if (cd) {
             if (0 == i) {
-              size = cd->mData.GetTopEdge(owner, segStart);
+              size = cd->mData.GetBStartEdge(owner, segStart);
               printf("t=%d%d%d ", int32_t(size), owner, segStart);
             }
             else if (1 == i) {
-              size = cd->mData.GetLeftEdge(owner, segStart);
+              size = cd->mData.GetIStartEdge(owner, segStart);
               printf("l=%d%d%d ", int32_t(size), owner, segStart);
             }
             else {
@@ -2898,8 +2899,8 @@ nsCellMapColumnIterator::GetNextFrame(int32_t* aRow, int32_t* aColSpan)
 
     ++mFoundCells;
 
-    NS_ABORT_IF_FALSE(cellData == mMap->GetDataAt(*aRow, mCol),
-                      "Giving caller bogus row?");
+    MOZ_ASSERT(cellData == mMap->GetDataAt(*aRow, mCol),
+               "Giving caller bogus row?");
 
     return cellFrame;
   }

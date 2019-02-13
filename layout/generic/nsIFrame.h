@@ -20,22 +20,22 @@
    we're midway through this process, so you will see inlined functions and member
    variables in this file.  -dwh */
 
+#include <algorithm>
 #include <stdio.h>
+
+#include "CaretAssociationHint.h"
+#include "FramePropertyTable.h"
+#include "mozilla/layout/FrameChildList.h"
+#include "mozilla/WritingModes.h"
+#include "nsDirection.h"
+#include "nsFrameList.h"
+#include "nsFrameState.h"
+#include "nsHTMLReflowMetrics.h"
+#include "nsITheme.h"
+#include "nsLayoutUtils.h"
 #include "nsQueryFrame.h"
 #include "nsStyleContext.h"
 #include "nsStyleStruct.h"
-#include "nsHTMLReflowMetrics.h"
-#include "nsFrameList.h"
-#include "mozilla/layout/FrameChildList.h"
-#include "FramePropertyTable.h"
-#include "mozilla/TypedEnum.h"
-#include "nsDirection.h"
-#include "WritingModes.h"
-#include <algorithm>
-#include "nsITheme.h"
-#include "gfx3DMatrix.h"
-#include "nsLayoutUtils.h"
-#include "nsFrameState.h"
 
 #ifdef ACCESSIBILITY
 #include "mozilla/a11y/AccTypes.h"
@@ -59,16 +59,12 @@
  */
 
 struct nsHTMLReflowState;
-class nsHTMLReflowCommand;
-
-struct gfxMatrix;
 class nsIAtom;
 class nsPresContext;
 class nsIPresShell;
 class nsRenderingContext;
 class nsView;
 class nsIWidget;
-class nsIDOMRange;
 class nsISelectionController;
 class nsBoxLayoutState;
 class nsBoxLayout;
@@ -162,14 +158,18 @@ enum nsSelectionAmount {
                         // choice for movement or selection by "character"
                         // as perceived by the user
   eSelectWord      = 2,
-  eSelectLine      = 3, // previous drawn line in flow.
-  eSelectBeginLine = 4,
-  eSelectEndLine   = 5,
-  eSelectNoAmount  = 6, // just bounce back current offset.
-  eSelectParagraph = 7,  // select a "paragraph"
-  eSelectWordNoSpace = 8 // select a "word" without selecting the following
-                         // space, no matter what the default platform
-                         // behavior is
+  eSelectWordNoSpace = 3, // select a "word" without selecting the following
+                          // space, no matter what the default platform
+                          // behavior is
+  eSelectLine      = 4, // previous drawn line in flow.
+  // NOTE that selection code depends on the ordering of the above values,
+  // allowing simple <= tests to check categories of caret movement.
+  // Don't rearrange without checking the usage in nsSelection.cpp!
+
+  eSelectBeginLine = 5,
+  eSelectEndLine   = 6,
+  eSelectNoAmount  = 7, // just bounce back current offset.
+  eSelectParagraph = 8  // select a "paragraph"
 };
 
 enum nsSpread {
@@ -245,14 +245,6 @@ typedef uint32_t nsReflowStatus;
 #define NS_FRAME_SET_OVERFLOW_INCOMPLETE(status) \
   status = (status & ~NS_FRAME_NOT_COMPLETE) | NS_FRAME_OVERFLOW_INCOMPLETE
 
-// This macro tests to see if an nsReflowStatus is an error value
-// or just a regular return value
-#define NS_IS_REFLOW_ERROR(_status) (int32_t(_status) < 0)
-
-/**
- * Extensions to the reflow status bits defined by nsIFrameReflow
- */
-
 // This bit is set, when a break is requested. This bit is orthogonal
 // to the nsIFrame::nsReflowStatus completion bits.
 #define NS_INLINE_BREAK              0x0100
@@ -322,10 +314,10 @@ void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
 /**
  * DidReflow status values.
  */
-MOZ_BEGIN_ENUM_CLASS(nsDidReflowStatus, uint32_t)
+enum class nsDidReflowStatus : uint32_t {
   NOT_FINISHED,
   FINISHED
-MOZ_END_ENUM_CLASS(nsDidReflowStatus)
+};
 
 /**
  * When there is no scrollable overflow rect, the visual overflow rect
@@ -374,6 +366,20 @@ struct IntrinsicSize {
 };
 }
 
+/// Generic destructor for frame properties. Calls delete.
+template<typename T>
+static void DeleteValue(void* aPropertyValue)
+{
+  delete static_cast<T*>(aPropertyValue);
+}
+
+/// Generic destructor for frame properties. Calls Release().
+template<typename T>
+static void ReleaseValue(void* aPropertyValue)
+{
+  static_cast<T*>(aPropertyValue)->Release();
+}
+
 //----------------------------------------------------------------------
 
 /**
@@ -409,6 +415,9 @@ public:
   typedef mozilla::layout::FrameChildListIterator ChildListIterator;
   typedef mozilla::layout::FrameChildListArrayIterator ChildListArrayIterator;
   typedef mozilla::gfx::Matrix Matrix;
+  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
+  typedef mozilla::Sides Sides;
+  typedef mozilla::LogicalSides LogicalSides;
 
   NS_DECL_QUERYFRAME_TARGET(nsIFrame)
 
@@ -528,7 +537,13 @@ public:
       nsStyleContext* oldStyleContext = mStyleContext;
       mStyleContext = aContext;
       aContext->AddRef();
+#ifdef DEBUG
+      aContext->FrameAddRef();
+#endif
       DidSetStyleContext(oldStyleContext);
+#ifdef DEBUG
+      oldStyleContext->FrameRelease();
+#endif
       oldStyleContext->Release();
     }
   }
@@ -542,9 +557,15 @@ public:
   void SetStyleContextWithoutNotification(nsStyleContext* aContext)
   {
     if (aContext != mStyleContext) {
+#ifdef DEBUG
+      mStyleContext->FrameRelease();
+#endif
       mStyleContext->Release();
       mStyleContext = aContext;
       aContext->AddRef();
+#ifdef DEBUG
+      aContext->FrameAddRef();
+#endif
     }
   }
 
@@ -606,8 +627,8 @@ public:
   /**
    * The frame's writing-mode, used for logical layout computations.
    */
-  mozilla::WritingMode GetWritingMode() const {
-    return mozilla::WritingMode(StyleVisibility());
+  virtual mozilla::WritingMode GetWritingMode() const {
+    return mozilla::WritingMode(StyleContext());
   }
 
   /**
@@ -711,10 +732,51 @@ public:
                nscoord aContainerWidth) {
     SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
   }
+
+  /**
+   * Set this frame's size from a logical size in its own writing direction.
+   * This leaves the frame's logical position unchanged, which means its
+   * physical position may change (for right-to-left modes).
+   */
+  void SetSize(const mozilla::LogicalSize& aSize) {
+    SetSize(GetWritingMode(), aSize);
+  }
+  /*
+   * Set this frame's size from a logical size in a different writing direction.
+   * This leaves the frame's logical position in the given mode unchanged,
+   * which means its physical position may change (for right-to-left modes).
+   */
+  void SetSize(mozilla::WritingMode aWritingMode,
+               const mozilla::LogicalSize& aSize)
+  {
+    if ((!aWritingMode.IsVertical() && !aWritingMode.IsBidiLTR()) ||
+        aWritingMode.IsVerticalRL()) {
+      nscoord oldWidth = mRect.width;
+      SetSize(aSize.GetPhysicalSize(aWritingMode));
+      mRect.x -= mRect.width - oldWidth;
+    } else {
+      SetSize(aSize.GetPhysicalSize(aWritingMode));
+    }
+  }
+
+  /**
+   * Set this frame's physical size. This leaves the frame's physical position
+   * (topLeft) unchanged.
+   */
   void SetSize(const nsSize& aSize) {
     SetRect(nsRect(mRect.TopLeft(), aSize));
   }
+
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
+  void SetPosition(mozilla::WritingMode aWritingMode,
+                   const mozilla::LogicalPoint& aPt,
+                   nscoord aContainerWidth) {
+    // We subtract mRect.width from the container width to account for
+    // the fact that logical origins in RTL coordinate systems are at
+    // the top right of the frame instead of the top left.
+    mRect.MoveTo(aPt.GetPhysicalPoint(aWritingMode,
+                                      aContainerWidth - mRect.width));
+  }
 
   /**
    * Move the frame, accounting for relative positioning. Use this when
@@ -730,6 +792,20 @@ public:
   void MovePositionBy(const nsPoint& aTranslation);
 
   /**
+   * As above, using a logical-point delta in a given writing mode.
+   */
+  void MovePositionBy(mozilla::WritingMode aWritingMode,
+                      const mozilla::LogicalPoint& aTranslation)
+  {
+    MovePositionBy(aTranslation.GetPhysicalPoint(aWritingMode, 0));
+  }
+
+  /**
+   * Return frame's rect without relative positioning
+   */
+  nsRect GetNormalRect() const;
+
+  /**
    * Return frame's position without relative positioning
    */
   nsPoint GetNormalPosition() const;
@@ -737,8 +813,12 @@ public:
   GetLogicalNormalPosition(mozilla::WritingMode aWritingMode,
                            nscoord aContainerWidth) const
   {
+    // Subtract the width of this frame from the container width to get
+    // the correct position in rtl frames where the origin is on the
+    // right instead of the left
     return mozilla::LogicalPoint(aWritingMode,
-                                 GetNormalPosition(), aContainerWidth);
+                                 GetNormalPosition(),
+                                 aContainerWidth - mRect.width);
   }
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)
@@ -746,30 +826,7 @@ public:
   
   nsPoint GetPositionIgnoringScrolling();
 
-  static void DestroyRegion(void* aPropertyValue);
-
-  static void DestroyMargin(void* aPropertyValue)
-  {
-    delete static_cast<nsMargin*>(aPropertyValue);
-  }
-
-  static void DestroyRect(void* aPropertyValue)
-  {
-    delete static_cast<nsRect*>(aPropertyValue);
-  }
-
-  static void DestroyPoint(void* aPropertyValue)
-  {
-    delete static_cast<nsPoint*>(aPropertyValue);
-  }
-
-  static void DestroyOverflowAreas(void* aPropertyValue)
-  {
-    delete static_cast<nsOverflowAreas*>(aPropertyValue);
-  }
-
-  static void DestroySurface(void* aPropertyValue);
-  static void DestroyDT(void* aPropertyValue);
+  static void DestroyContentArray(void* aPropertyValue);
 
 #ifdef _MSC_VER
 // XXX Workaround MSVC issue by making the static FramePropertyDescriptor
@@ -794,18 +851,19 @@ public:
   NS_DECLARE_FRAME_PROPERTY(IBSplitSibling, nullptr)
   NS_DECLARE_FRAME_PROPERTY(IBSplitPrevSibling, nullptr)
 
-  NS_DECLARE_FRAME_PROPERTY(NormalPositionProperty, DestroyPoint)
-  NS_DECLARE_FRAME_PROPERTY(ComputedOffsetProperty, DestroyMargin)
+  NS_DECLARE_FRAME_PROPERTY(NormalPositionProperty, DeleteValue<nsPoint>)
+  NS_DECLARE_FRAME_PROPERTY(ComputedOffsetProperty, DeleteValue<nsMargin>)
 
-  NS_DECLARE_FRAME_PROPERTY(OutlineInnerRectProperty, DestroyRect)
-  NS_DECLARE_FRAME_PROPERTY(PreEffectsBBoxProperty, DestroyRect)
+  NS_DECLARE_FRAME_PROPERTY(OutlineInnerRectProperty, DeleteValue<nsRect>)
+  NS_DECLARE_FRAME_PROPERTY(PreEffectsBBoxProperty, DeleteValue<nsRect>)
   NS_DECLARE_FRAME_PROPERTY(PreTransformOverflowAreasProperty,
-                            DestroyOverflowAreas)
+                            DeleteValue<nsOverflowAreas>)
 
   // The initial overflow area passed to FinishAndStoreOverflow. This is only set
   // on frames that Preserve3D() or HasPerspective() or IsTransformed(), and
   // when at least one of the overflow areas differs from the frame bound rect.
-  NS_DECLARE_FRAME_PROPERTY(InitialOverflowProperty, DestroyOverflowAreas)
+  NS_DECLARE_FRAME_PROPERTY(InitialOverflowProperty,
+                            DeleteValue<nsOverflowAreas>)
 
 #ifdef DEBUG
   // InitialOverflowPropertyDebug is added to the frame to indicate that either
@@ -814,20 +872,26 @@ public:
   NS_DECLARE_FRAME_PROPERTY(DebugInitialOverflowPropertyApplied, nullptr)
 #endif
 
-  NS_DECLARE_FRAME_PROPERTY(UsedMarginProperty, DestroyMargin)
-  NS_DECLARE_FRAME_PROPERTY(UsedPaddingProperty, DestroyMargin)
-  NS_DECLARE_FRAME_PROPERTY(UsedBorderProperty, DestroyMargin)
-
-  NS_DECLARE_FRAME_PROPERTY(ScrollLayerCount, nullptr)
+  NS_DECLARE_FRAME_PROPERTY(UsedMarginProperty, DeleteValue<nsMargin>)
+  NS_DECLARE_FRAME_PROPERTY(UsedPaddingProperty, DeleteValue<nsMargin>)
+  NS_DECLARE_FRAME_PROPERTY(UsedBorderProperty, DeleteValue<nsMargin>)
 
   NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nullptr)
 
-  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, DestroySurface)
-  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImageDT, DestroyDT)
+  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, ReleaseValue<gfxASurface>)
+  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImageDT,
+                            ReleaseValue<mozilla::gfx::DrawTarget>)
 
-  NS_DECLARE_FRAME_PROPERTY(InvalidationRect, DestroyRect)
+  NS_DECLARE_FRAME_PROPERTY(InvalidationRect, DeleteValue<nsRect>)
 
   NS_DECLARE_FRAME_PROPERTY(RefusedAsyncAnimation, nullptr)
+
+  NS_DECLARE_FRAME_PROPERTY(GenConProperty, DestroyContentArray)
+
+  nsTArray<nsIContent*>* GetGenConPseudos() {
+    const FramePropertyDescriptor* prop = GenConProperty();
+    return static_cast<nsTArray<nsIContent*>*>(Properties().Get(prop));
+  }
 
   /**
    * Return the distance between the border edge of the frame and the
@@ -882,27 +946,6 @@ public:
   }
 
   /**
-   * Apply the result of GetSkipSides() on this frame to an nsMargin by
-   * setting to zero any sides that are skipped.
-   *
-   * @param aMargin The margin to apply the result of GetSkipSides() to.
-   * @param aReflowState An optional reflow state parameter, which is used if
-   *        ApplySkipSides() is being called in the middle of reflow.
-   *
-   * @note (See also bug 743402, comment 11) GetSkipSides() and its sister
-   *       method, ApplySkipSides() checks to see if this frame has a previous
-   *       or next continuation to determine if a side should be skipped.
-   *       Unfortunately, this only works after reflow has been completed. In
-   *       lieu of this, during reflow, an nsHTMLReflowState parameter can be
-   *       passed in, indicating that it should be used to determine if sides
-   *       should be skipped during reflow.
-   */
-  void ApplySkipSides(nsMargin& aMargin,
-                      const nsHTMLReflowState* aReflowState = nullptr) const;
-  void ApplyLogicalSkipSides(mozilla::LogicalMargin& aMargin,
-                             const nsHTMLReflowState* aReflowState = nullptr) const;
-
-  /**
    * Like the frame's rect (see |GetRect|), which is the border rect,
    * other rectangles of the frame, in app units, relative to the parent.
    */
@@ -939,10 +982,10 @@ public:
    * Return whether any radii are nonzero.
    */
   static bool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
-                                   const nsSize& aFrameSize,
-                                   const nsSize& aBorderArea,
-                                   int aSkipSides,
-                                   nscoord aRadii[8]);
+                                 const nsSize& aFrameSize,
+                                 const nsSize& aBorderArea,
+                                 Sides aSkipSides,
+                                 nscoord aRadii[8]);
 
   /*
    * Given a set of border radii for one box (e.g., border box), convert
@@ -968,7 +1011,7 @@ public:
    */
   virtual bool GetBorderRadii(const nsSize& aFrameSize,
                               const nsSize& aBorderArea,
-                              int aSkipSides,
+                              Sides aSkipSides,
                               nscoord aRadii[8]) const;
   bool GetBorderRadii(nscoord aRadii[8]) const;
 
@@ -1250,22 +1293,24 @@ public:
   // Note that the primary offset can be after the secondary offset; for places
   // that need the beginning and end of the object, the StartOffset and 
   // EndOffset helpers can be used.
-  struct MOZ_STACK_CLASS ContentOffsets {
-    ContentOffsets();
-    ContentOffsets(const ContentOffsets&);
-    ~ContentOffsets();
-    nsCOMPtr<nsIContent> content;
+  struct MOZ_STACK_CLASS ContentOffsets
+  {
+    ContentOffsets() : offset(0)
+                     , secondaryOffset(0)
+                     , associate(mozilla::CARET_ASSOCIATE_BEFORE) {}
     bool IsNull() { return !content; }
-    int32_t offset;
-    int32_t secondaryOffset;
     // Helpers for places that need the ends of the offsets and expect them in
     // numerical order, as opposed to wanting the primary and secondary offsets
     int32_t StartOffset() { return std::min(offset, secondaryOffset); }
     int32_t EndOffset() { return std::max(offset, secondaryOffset); }
-    // This boolean indicates whether the associated content is before or after
+
+    nsCOMPtr<nsIContent> content;
+    int32_t offset;
+    int32_t secondaryOffset;
+    // This value indicates whether the associated content is before or after
     // the offset; the most visible use is to allow the caret to know which line
     // to display on.
-    bool associateWithNext;
+    mozilla::CaretAssociationHint associate;
   };
   enum {
     IGNORE_SELECTION_STYLE = 0x01,
@@ -1438,17 +1483,21 @@ public:
     return const_cast<nsIFrame*>(this);
   }
 
+  /**
+   * Note: "width" in the names and comments on the following methods
+   * means inline-size, which could be height in vertical layout
+   */
 
   /**
    * Mark any stored intrinsic width information as dirty (requiring
    * re-calculation).  Note that this should generally not be called
    * directly; nsPresShell::FrameNeedsReflow will call it instead.
    */
-  virtual void MarkIntrinsicWidthsDirty() = 0;
+  virtual void MarkIntrinsicISizesDirty() = 0;
 
   /**
-   * Get the intrinsic minimum width of the frame.  This must be less
-   * than or equal to the intrinsic width.
+   * Get the min-content intrinsic inline size of the frame.  This must be
+   * less than or equal to the max-content intrinsic inline size.
    *
    * This is *not* affected by the CSS 'min-width', 'width', and
    * 'max-width' properties on this frame, but it is affected by the
@@ -1460,32 +1509,32 @@ public:
    * padding and border.
    *
    * Note that many frames will cache the result of this function call
-   * unless MarkIntrinsicWidthsDirty is called.
+   * unless MarkIntrinsicISizesDirty is called.
    *
    * It is not acceptable for a frame to mark itself dirty when this
    * method is called.
    *
    * This method must not return a negative value.
    */
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) = 0;
 
   /**
-   * Get the intrinsic width of the frame.  This must be greater than or
-   * equal to the intrinsic minimum width.
+   * Get the max-content intrinsic inline size of the frame.  This must be
+   * greater than or equal to the min-content intrinsic inline size.
    *
-   * Otherwise, all the comments for |GetMinWidth| above apply.
+   * Otherwise, all the comments for |GetMinISize| above apply.
    */
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) = 0;
 
   /**
-   * |InlineIntrinsicWidth| represents the intrinsic width information
+   * |InlineIntrinsicISize| represents the intrinsic width information
    * in inline layout.  Code that determines the intrinsic width of a
    * region of inline layout accumulates the result into this structure.
    * This pattern is needed because we need to maintain state
    * information about whitespace (for both collapsing and trimming).
    */
-  struct InlineIntrinsicWidthData {
-    InlineIntrinsicWidthData()
+  struct InlineIntrinsicISizeData {
+    InlineIntrinsicISizeData()
       : line(nullptr)
       , lineContainer(nullptr)
       , prevLines(0)
@@ -1535,8 +1584,8 @@ public:
     nsTArray<FloatInfo> floats;
   };
 
-  struct InlineMinWidthData : public InlineIntrinsicWidthData {
-    InlineMinWidthData()
+  struct InlineMinISizeData : public InlineIntrinsicISizeData {
+    InlineMinISizeData()
       : trailingTextFrame(nullptr)
       , atStartOfLine(true)
     {}
@@ -1563,62 +1612,67 @@ public:
     bool atStartOfLine;
   };
 
-  struct InlinePrefWidthData : public InlineIntrinsicWidthData {
+  struct InlinePrefISizeData : public InlineIntrinsicISizeData {
     void ForceBreak(nsRenderingContext *aRenderingContext);
   };
 
   /**
    * Add the intrinsic minimum width of a frame in a way suitable for
-   * use in inline layout to an |InlineIntrinsicWidthData| object that
+   * use in inline layout to an |InlineIntrinsicISizeData| object that
    * represents the intrinsic width information of all the previous
    * frames in the inline layout region.
    *
    * All *allowed* breakpoints within the frame determine what counts as
-   * a line for the |InlineIntrinsicWidthData|.  This means that
+   * a line for the |InlineIntrinsicISizeData|.  This means that
    * |aData->trailingWhitespace| will always be zero (unlike for
-   * AddInlinePrefWidth).
+   * AddInlinePrefISize).
    *
-   * All the comments for |GetMinWidth| apply, except that this function
+   * All the comments for |GetMinISize| apply, except that this function
    * is responsible for adding padding, border, and margin and for
    * considering the effects of 'width', 'min-width', and 'max-width'.
    *
    * This may be called on any frame.  Frames that do not participate in
    * line breaking can inherit the default implementation on nsFrame,
-   * which calls |GetMinWidth|.
+   * which calls |GetMinISize|.
    */
   virtual void
-  AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                    InlineMinWidthData *aData) = 0;
+  AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                    InlineMinISizeData *aData) = 0;
 
   /**
    * Add the intrinsic preferred width of a frame in a way suitable for
-   * use in inline layout to an |InlineIntrinsicWidthData| object that
+   * use in inline layout to an |InlineIntrinsicISizeData| object that
    * represents the intrinsic width information of all the previous
    * frames in the inline layout region.
    *
-   * All the comments for |AddInlineMinWidth| and |GetPrefWidth| apply,
-   * except that this fills in an |InlineIntrinsicWidthData| structure
+   * All the comments for |AddInlineMinISize| and |GetPrefISize| apply,
+   * except that this fills in an |InlineIntrinsicISizeData| structure
    * based on using all *mandatory* breakpoints within the frame.
    */
   virtual void
-  AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                     InlinePrefWidthData *aData) = 0;
+  AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                     InlinePrefISizeData *aData) = 0;
 
   /**
    * Return the horizontal components of padding, border, and margin
    * that contribute to the intrinsic width that applies to the parent.
    */
-  struct IntrinsicWidthOffsetData {
+  struct IntrinsicISizeOffsetData {
     nscoord hPadding, hBorder, hMargin;
     float hPctPadding, hPctMargin;
 
-    IntrinsicWidthOffsetData()
+    IntrinsicISizeOffsetData()
       : hPadding(0), hBorder(0), hMargin(0)
       , hPctPadding(0.0f), hPctMargin(0.0f)
     {}
   };
-  virtual IntrinsicWidthOffsetData
-    IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext) = 0;
+  virtual IntrinsicISizeOffsetData IntrinsicISizeOffsets() = 0;
+
+  /**
+   * Return the bsize components of padding, border, and margin
+   * that contribute to the intrinsic width that applies to the parent.
+   */
+  IntrinsicISizeOffsetData IntrinsicBSizeOffsets();
 
   virtual mozilla::IntrinsicSize GetIntrinsicSize() = 0;
 
@@ -1636,7 +1690,8 @@ public:
   /**
    * Bit-flags to pass to ComputeSize in |aFlags| parameter.
    */
-  enum {
+  enum ComputeSizeFlags {
+    eDefault =           0,
     /* Set if the frame is in a context where non-replaced blocks should
      * shrink-wrap (e.g., it's floating, absolutely positioned, or
      * inline-block). */
@@ -1660,6 +1715,10 @@ public:
    * separately is so that the 'box-sizing' property can be handled.
    * Thus aMargin includes absolute positioning offsets as well.
    *
+   * @param aWritingMode  The writing mode to use for the returned size
+   *                      (need not match this frame's writing mode).
+   *                      This is also the writing mode of the passed-in
+   *                      LogicalSize parameters.
    * @param aCBSize  The size of the element's containing block.  (Well,
    *                 the |height| component isn't really.)
    * @param aAvailableWidth  The available width for 'auto' widths.
@@ -1683,10 +1742,15 @@ public:
    *                 percentages.
    * @param aFlags   Flags to further customize behavior (definitions above).
    */
-  virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
-                             nsSize aCBSize, nscoord aAvailableWidth,
-                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) = 0;
+  virtual mozilla::LogicalSize
+  ComputeSize(nsRenderingContext *aRenderingContext,
+              mozilla::WritingMode aWritingMode,
+              const mozilla::LogicalSize& aCBSize,
+              nscoord aAvailableISize,
+              const mozilla::LogicalSize& aMargin,
+              const mozilla::LogicalSize& aBorder,
+              const mozilla::LogicalSize& aPadding,
+              ComputeSizeFlags aFlags) = 0;
 
   /**
    * Compute a tight bounding rectangle for the frame. This is a rectangle
@@ -1704,7 +1768,7 @@ public:
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
 
   /**
-   * This function is similar to GetPrefWidth and ComputeTightBounds: it
+   * This function is similar to GetPrefISize and ComputeTightBounds: it
    * computes the left and right coordinates of a preferred tight bounding
    * rectangle for the frame. This is a rectangle that would enclose the pixels
    * that are drawn if we lay out the element without taking any optional line
@@ -1722,17 +1786,6 @@ public:
   virtual nsresult GetPrefWidthTightBounds(nsRenderingContext* aContext,
                                            nscoord* aX,
                                            nscoord* aXMost);
-
-  /**
-   * Pre-reflow hook. Before a frame is reflowed this method will be called.
-   * This call will always be invoked at least once before a subsequent Reflow
-   * and DidReflow call. It may be called more than once, In general you will
-   * receive on WillReflow notification before each Reflow request.
-   *
-   * XXX Is this really the semantics we want? Because we have the NS_FRAME_IN_REFLOW
-   * bit we can ensure we don't call it more than once...
-   */
-  virtual void WillReflow(nsPresContext* aPresContext) = 0;
 
   /**
    * The frame is given an available size and asked for its desired
@@ -1916,6 +1969,12 @@ public:
   nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther) const;
 
   /**
+   * Like GetOffsetToCrossDoc, but the caller can specify which appunits
+   * to return the result in.
+   */
+  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const;
+
+  /**
    * Get the screen rect of the frame in pixels.
    * @return the pixel rect of the frame in screen coordinates.
    */
@@ -1972,11 +2031,11 @@ public:
    * document as this frame. If this frame IsTransformed(), then *aOutAncestor
    * will be the parent frame (if not preserve-3d) or the nearest non-transformed
    * ancestor (if preserve-3d).
-   * @return A gfxMatrix that converts points in this frame's coordinate space
+   * @return A Matrix4x4 that converts points in this frame's coordinate space
    *   into points in aOutAncestor's coordinate space.
    */
-  gfx3DMatrix GetTransformMatrix(const nsIFrame* aStopAtAncestor,
-                                 nsIFrame **aOutAncestor);
+  Matrix4x4 GetTransformMatrix(const nsIFrame* aStopAtAncestor,
+                               nsIFrame **aOutAncestor);
 
   /**
    * Bit-flags to pass to IsFrameOfType()
@@ -2188,6 +2247,9 @@ public:
    * If no layer is found, calls InvalidateFrame() instead.
    *
    * @param aDamageRect Area of the layer to invalidate.
+   * @param aFrameDamageRect If no layer is found, the area of the frame to
+   *                         invalidate. If null, the entire frame will be
+   *                         invalidated.
    * @param aDisplayItemKey Display item type.
    * @param aFlags UPDATE_IS_ASYNC : Will skip the invalidation
    * if the found layer is being composited by a remote
@@ -2197,7 +2259,10 @@ public:
   enum {
     UPDATE_IS_ASYNC = 1 << 0
   };
-  Layer* InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect = nullptr, uint32_t aFlags = 0);
+  Layer* InvalidateLayer(uint32_t aDisplayItemKey,
+                         const nsIntRect* aDamageRect = nullptr,
+                         const nsRect* aFrameDamageRect = nullptr,
+                         uint32_t aFlags = 0);
 
   /**
    * Returns a rect that encompasses everything that might be painted by
@@ -2290,6 +2355,15 @@ public:
   nsRect GetVisualOverflowRectRelativeToSelf() const;
 
   /**
+   * Same as GetVisualOverflowRect, except relative to the parent
+   * frame.
+   *
+   * @return the rect relative to the parent frame, in the parent frame's
+   * coordinate system
+   */
+  nsRect GetVisualOverflowRectRelativeToParent() const;
+
+  /**
    * Returns this frame's visual overflow rect as it would be before taking
    * account of SVG effects or transforms. The rect returned is relative to
    * this frame.
@@ -2325,29 +2399,23 @@ public:
   bool ClearOverflowRects();
 
   /**
-   * Determine whether borders should not be painted on certain sides of the
-   * frame.
+   * Determine whether borders, padding, margins etc should NOT be applied
+   * on certain sides of the frame.
+   * @see mozilla::Sides in gfx/2d/BaseMargin.h
+   * @see mozilla::LogicalSides in layout/generic/WritingModes.h
    *
-   * @note (See also bug 743402, comment 11) GetSkipSides() and its sister
-   *       method, ApplySkipSides() checks to see if this frame has a previous
-   *       or next continuation to determine if a side should be skipped.
+   * @note (See also bug 743402, comment 11) GetSkipSides() checks to see
+   *       if this frame has a previous or next continuation to determine
+   *       if a side should be skipped.
    *       Unfortunately, this only works after reflow has been completed. In
    *       lieu of this, during reflow, an nsHTMLReflowState parameter can be
    *       passed in, indicating that it should be used to determine if sides
    *       should be skipped during reflow.
    */
-#define LOGICAL_SIDE_B_START 1
-#define LOGICAL_SIDE_I_START 2
-#define LOGICAL_SIDE_B_END   4
-#define LOGICAL_SIDE_I_END   8
-#define LOGICAL_SIDES_I_BOTH (LOGICAL_SIDE_I_START | LOGICAL_SIDE_I_END)
-#define LOGICAL_SIDES_B_BOTH (LOGICAL_SIDE_B_START | LOGICAL_SIDE_B_END)
-#define LOGICAL_SIDES_ALL (LOGICAL_SIDE_I_START | LOGICAL_SIDE_I_END | \
-                           LOGICAL_SIDE_B_START | LOGICAL_SIDE_B_END)
-  int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
-  virtual int
+  Sides GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
+  virtual LogicalSides
   GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const {
-    return 0;
+    return LogicalSides();
   }
 
   /**
@@ -2394,7 +2462,7 @@ public:
   virtual nsresult PeekOffset(nsPeekOffsetStruct *aPos);
 
   /**
-   *  called to find the previous/next selectable leaf frame.
+   *  called to find the previous/next non-anonymous selectable leaf frame.
    *  @param aDirection [in] the direction to move in (eDirPrevious or eDirNext)
    *  @param aVisual [in] whether bidi caret behavior is visual (true) or logical (false)
    *  @param aJumpLines [in] whether to allow jumping across line boundaries
@@ -2403,10 +2471,13 @@ public:
    *  @param aOutOffset [out] 0 indicates that we arrived at the beginning of the output frame;
    *                          -1 indicates that we arrived at its end.
    *  @param aOutJumpedLine [out] whether this frame and the returned frame are on different lines
+   *  @param aOutMovedOverNonSelectableText [out] whether we jumped over a non-selectable
+   *                                              frame during the search
    */
   nsresult GetFrameFromDirection(nsDirection aDirection, bool aVisual,
-                                 bool aJumpLines, bool aScrollViewStop, 
-                                 nsIFrame** aOutFrame, int32_t* aOutOffset, bool* aOutJumpedLine);
+                                 bool aJumpLines, bool aScrollViewStop,
+                                 nsIFrame** aOutFrame, int32_t* aOutOffset,
+                                 bool* aOutJumpedLine, bool* aOutMovedOverNonSelectableText);
 
   /**
    *  called to see if the children of the frame are visible from indexstart to index end.
@@ -2448,11 +2519,13 @@ public:
    * return a grandparent or higher!  Furthermore, if a child frame is
    * returned it must have the same GetContent() as this frame.
    *
-   * @return The frame whose style context should be the parent of this frame's
+   * @param aProviderFrame (out) the frame associated with the returned value
+   *     or nullptr if the style context is for display:contents content.
+   * @return The style context that should be the parent of this frame's
    *         style context.  Null is permitted, and means that this frame's
    *         style context should be the root of the style context tree.
    */
-  virtual nsIFrame* GetParentStyleContextFrame() const = 0;
+  virtual nsStyleContext* GetParentStyleContext(nsIFrame** aProviderFrame) const = 0;
 
   /**
    * Determines whether a frame is visible for painting;
@@ -2746,8 +2819,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    * incremented during empty transactions.
    */  
   void AddPaintedPresShell(nsIPresShell* shell) { 
-    nsWeakPtr weakShell = do_GetWeakReference(shell);
-    PaintedPresShellList()->AppendElement(weakShell);
+    PaintedPresShellList()->AppendElement(do_GetWeakReference(shell));
   }
   
   /**
@@ -2755,15 +2827,27 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    * the last repaint.
    */  
   void UpdatePaintCountForPaintedPresShells() {
-    nsTArray<nsWeakPtr> * list = PaintedPresShellList();
-    for (int i = 0, l = list->Length(); i < l; i++) {
-      nsCOMPtr<nsIPresShell> shell = do_QueryReferent(list->ElementAt(i));
-      
+    for (nsWeakPtr& item : *PaintedPresShellList()) {
+      nsCOMPtr<nsIPresShell> shell = do_QueryReferent(item);
       if (shell) {
         shell->IncrementPaintCount();
       }
     }
   }  
+
+  /**
+   * @return true if we painted @aShell during the last repaint.
+   */
+  bool DidPaintPresShell(nsIPresShell* aShell)
+  {
+    for (nsWeakPtr& item : *PaintedPresShellList()) {
+      nsCOMPtr<nsIPresShell> shell = do_QueryReferent(item);
+      if (shell == aShell) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**
    * Accessors for the absolute containing block.
@@ -2832,12 +2916,17 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    */
   inline bool IsFlexOrGridItem() const;
 
+  /**
+   * @return true if this frame is used as a table caption.
+   */
+  inline bool IsTableCaption() const;
+
   inline bool IsBlockInside() const;
   inline bool IsBlockOutside() const;
   inline bool IsInlineOutside() const;
   inline uint8_t GetDisplay() const;
   inline bool IsFloating() const;
-  inline bool IsPositioned() const;
+  inline bool IsAbsPosContaininingBlock() const;
   inline bool IsRelativelyPositioned() const;
   inline bool IsAbsolutelyPositioned() const;
 
@@ -2954,6 +3043,14 @@ private:
   }
 
 protected:
+  void MarkInReflow() {
+#ifdef DEBUG_dbaron_off
+    // bug 81268
+    NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW), "frame is already in reflow");
+#endif
+    mState |= NS_FRAME_IN_REFLOW;
+  }
+
   nsFrameState     mState;
 
   // When there is an overflow area only slightly larger than mRect,
@@ -3080,8 +3177,8 @@ protected:
 private:
   nsOverflowAreas* GetOverflowAreasProperty();
   nsRect GetVisualOverflowFromDeltas() const {
-    NS_ABORT_IF_FALSE(mOverflow.mType != NS_FRAME_OVERFLOW_LARGE,
-                      "should not be called when overflow is in a property");
+    MOZ_ASSERT(mOverflow.mType != NS_FRAME_OVERFLOW_LARGE,
+               "should not be called when overflow is in a property");
     // Calculate the rect using deltas from the frame's border rect.
     // Note that the mOverflow.mDeltas fields are unsigned, but we will often
     // need to return negative values for the left and top, so take care
@@ -3097,7 +3194,6 @@ private:
    * Returns true if any overflow changed.
    */
   bool SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
-  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const;
 
   // Helper-functions for SortFrameList():
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
@@ -3172,7 +3268,7 @@ public:
     Init(aOther.GetFrame());
   }
 
-  nsWeakFrame(nsIFrame* aFrame) : mPrev(nullptr), mFrame(nullptr)
+  MOZ_IMPLICIT nsWeakFrame(nsIFrame* aFrame) : mPrev(nullptr), mFrame(nullptr)
   {
     Init(aFrame);
   }
@@ -3283,6 +3379,27 @@ nsFrameList::FrameLinkEnumerator::Next()
 {
   mPrev = mFrame;
   Enumerator::Next();
+}
+
+// Operators of nsFrameList::Iterator
+// ---------------------------------------------------
+
+inline nsFrameList::Iterator&
+nsFrameList::Iterator::operator++()
+{
+  mCurrent = mCurrent->GetNextSibling();
+  return *this;
+}
+
+inline nsFrameList::Iterator&
+nsFrameList::Iterator::operator--()
+{
+  if (!mCurrent) {
+    mCurrent = mList.LastChild();
+  } else {
+    mCurrent = mCurrent->GetPrevSibling();
+  }
+  return *this;
 }
 
 // Helper-functions for nsIFrame::SortFrameList()

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -56,7 +56,7 @@ add_task(function test_logins_decrypt_failure()
   for (let loginInfo of logins) {
     Services.logins.addLogin(loginInfo);
   }
-  LoginTest.checkLogins(logins);
+  LoginTestUtils.checkLogins(logins);
   do_check_eq(Services.logins.countLogins("", "", ""), logins.length * 2);
 
   // Finding logins doesn't return the non-decryptable duplicates.

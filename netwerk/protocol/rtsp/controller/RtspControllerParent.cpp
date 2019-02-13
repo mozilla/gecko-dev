@@ -13,13 +13,13 @@
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/unused.h"
 #include "nsNetUtil.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include <sys/types.h>
 
 PRLogModuleInfo* gRtspLog;
 #undef LOG
-#define LOG(args) PR_LOG(gRtspLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gRtspLog, mozilla::LogLevel::Debug, args)
 
 #define SEND_DISCONNECT_IF_ERROR(rv)                         \
   if (NS_FAILED(rv) && mIPCOpen && mTotalTracks > 0ul) {     \
@@ -62,10 +62,8 @@ RtspControllerParent::RtspControllerParent()
   : mIPCOpen(true)
   , mTotalTracks(0)
 {
-#if defined(PR_LOGGING)
   if (!gRtspLog)
     gRtspLog = PR_NewLogModule("nsRtsp");
-#endif
 }
 
 RtspControllerParent::~RtspControllerParent()
@@ -164,6 +162,17 @@ RtspControllerParent::RecvStop()
 
   nsresult rv = mController->Stop();
   NS_ENSURE_SUCCESS(rv, true);
+  return true;
+}
+
+bool
+RtspControllerParent::RecvPlaybackEnded()
+{
+  LOG(("RtspControllerParent::RecvPlaybackEnded()"));
+  NS_ENSURE_TRUE(mController, true);
+
+  nsresult rv = mController->PlaybackEnded();
+  SEND_DISCONNECT_IF_ERROR(rv)
   return true;
 }
 

@@ -15,30 +15,15 @@
  */
 
 'use strict';
-// <INJECTED SOURCE:START>
 
 // THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+// PLEASE TALK TO SOMEONE IN DEVELOPER TOOLS BEFORE EDITING IT
 
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testContext.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_context.js");
 }
-
-// <INJECTED SOURCE:END>
 
 // var helpers = require('./helpers');
 
@@ -100,7 +85,7 @@ exports.testContext = function(options) {
         args: {
           command: { name: 'context' },
           prefix: {
-            value: options.requisition.canon.getCommand('tsn'),
+            value: options.requisition.system.commands.get('tsn'),
             status: 'VALID',
             message: ''
           }
@@ -195,7 +180,7 @@ exports.testContext = function(options) {
         args: {
           command: { name: 'context' },
           prefix: {
-            value: options.requisition.canon.getCommand('tsn ext'),
+            value: options.requisition.system.commands.get('tsn ext'),
             status: 'VALID',
             message: ''
           }
@@ -220,7 +205,7 @@ exports.testContext = function(options) {
         args: {
           command: { name: 'context' },
           prefix: {
-            value: options.requisition.canon.getCommand('tsn deep'),
+            value: options.requisition.system.commands.get('tsn deep'),
             status: 'VALID',
             message: ''
           }

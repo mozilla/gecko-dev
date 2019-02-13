@@ -11,6 +11,8 @@
 %{ C++
 #include "jspubtd.h"
 #include "js/TypeDecls.h"
+#include "mozilla/Attributes.h"
+#include "nsCOMPtr.h"
 
 struct JSFreeOp;
 
@@ -27,7 +29,6 @@ class nsAXPCNativeCallContext;
 [ptr] native JSFreeOpPtr(JSFreeOp);
 [ptr] native JSObjectPtr(JSObject);
 [ptr] native JSValConstPtr(const JS::Value);
-      native JSPropertyOp(JSPropertyOp);
       native JSEqualityOp(JSEqualityOp);
 [ptr] native JSScriptPtr(JSScript);
 [ptr] native voidPtrPtr(void*);
@@ -53,13 +54,13 @@ interface nsIObjectInputStream;
 interface nsIObjectOutputStream;
 
 /***************************************************************************/
-[uuid(909e8641-7c54-4dff-9b94-ba631f057b33)]
+[uuid(73e6ff4a-ab99-4d99-ac00-ba39ccb8e4d7)]
 interface nsIXPConnectJSObjectHolder : nsISupports
 {
     [notxpcom, nostdcall] JSObjectPtr GetJSObject();
 };
 
-[uuid(675b01ba-397b-472a-9b80-5716376a2ec6)]
+[uuid(e787be29-db5d-4a45-a3d6-1de1d6b85c30)]
 interface nsIXPConnectWrappedNative : nsIXPConnectJSObjectHolder
 {
     /* attribute 'JSObject' inherited from nsIXPConnectJSObjectHolder */
@@ -77,14 +78,6 @@ interface nsIXPConnectWrappedNative : nsIXPConnectJSObjectHolder
     void debugDump(in short depth);
 
     /*
-     * This finishes initializing a wrapped global, doing the parts that we
-     * couldn't do while the global and window were being simultaneously
-     * bootstrapped. This should be called exactly once, and only for wrapped
-     * globals.
-     */
-    void finishInitForWrappedGlobal();
-
-    /*
      * NOTE: Add new IDL methods _before_ the C++ block below if you
      * add them.  Otherwise the vtable won't be what xpidl thinks it
      * is, since GetObjectPrincipal() is virtual.
@@ -97,13 +90,12 @@ interface nsIXPConnectWrappedNative : nsIXPConnectJSObjectHolder
     nsISupports* Native() const { return mIdentity; }
 
 protected:
-    nsISupports *mIdentity;
+    nsCOMPtr<nsISupports> mIdentity;
 public:
 %}
 };
 
 %{C++
-#include "nsCOMPtr.h"
 
 inline
 const nsQueryInterface
@@ -123,7 +115,7 @@ do_QueryWrappedNative(nsIXPConnectWrappedNative *aWrappedNative,
 
 %}
 
-[uuid(BED52030-BCA6-11d2-BA79-00805F8A5DD7)]
+[uuid(3a01b0d6-074b-49ed-bac3-08c76366cae4)]
 interface nsIXPConnectWrappedJS : nsIXPConnectJSObjectHolder
 {
     /* attribute 'JSObject' inherited from nsIXPConnectJSObjectHolder */
@@ -274,19 +266,12 @@ interface nsIXPCFunctionThisTranslator : nsISupports
     { 0xbd, 0xd6, 0x0, 0x0, 0x64, 0x65, 0x73, 0x74 } }
 %}
 
-[noscript, uuid(47fbe8ff-0507-4647-9ea7-e0e1fc76c995)]
+[noscript, uuid(241fbefa-89dc-42b2-b180-08167d4b351b)]
 interface nsIXPConnect : nsISupports
 {
 %{ C++
   NS_DEFINE_STATIC_CID_ACCESSOR(NS_XPCONNECT_CID)
 %}
-
-    /**
-     * Initializes classes on a global object that has already been created.
-     */
-    void
-    initClasses(in JSContextPtr aJSContext,
-                in JSObjectPtr  aGlobalJSObj);
 
     /**
      * Creates a new global object using the given aCOMObj as the global
@@ -422,14 +407,6 @@ interface nsIXPConnect : nsISupports
     getNativeOfWrapper(in JSContextPtr aJSContext,
                        in JSObjectPtr  aJSObj);
 
-    nsIStackFrame
-    createStackFrameLocation(in uint32_t       aLanguage,
-                             in string         aFilename,
-                             in string         aFunctionName,
-                             in int32_t        aLineNumber,
-                             in nsIStackFrame  aCaller);
-
-
     [noscript,notxpcom,nostdcall] JSContextPtr getCurrentJSContext();
     [noscript,notxpcom,nostdcall] JSContextPtr getSafeJSContext();
 
@@ -441,8 +418,6 @@ interface nsIXPConnect : nsISupports
     void debugDumpJSStack(in boolean showArgs,
                           in boolean showLocals,
                           in boolean showThisProps);
-    void debugDumpEvalInJSStackFrame(in uint32_t aFrameNumber,
-                                     in string aSourceText);
 
     /**
     * wrapJSAggregatedToNative is just like wrapJS except it is used in cases
@@ -481,14 +456,6 @@ interface nsIXPConnect : nsISupports
     setFunctionThisTranslator(in nsIIDRef aIID,
                               in nsIXPCFunctionThisTranslator aTranslator);
 
-    void
-    reparentWrappedNativeIfFound(in JSContextPtr aJSContext,
-                                 in JSObjectPtr  aScope,
-                                 in JSObjectPtr  aNewParent,
-                                 in nsISupports  aCOMObj);
-    void
-    rescueOrphansInScope(in JSContextPtr aJSContext, in JSObjectPtr  aScope);
-
     nsIXPConnectJSObjectHolder
     getWrappedNativePrototype(in JSContextPtr aJSContext,
                               in JSObjectPtr  aScope,
@@ -518,10 +485,6 @@ interface nsIXPConnect : nsISupports
      *           the script. The actual evaluation will happen on a new
      *           temporary context.
      * @param sandbox The sandbox object to evaluate the script in.
-     * @param returnStringOnly The only results to come out of the
-     *                         computation (including exceptions) will
-     *                         be coerced into strings created in the
-     *                         sandbox.
      * @return The result of the evaluation as a jsval. If the caller
      *         intends to use the return value from this call the caller
      *         is responsible for rooting the jsval before making a call
@@ -529,8 +492,7 @@ interface nsIXPConnect : nsISupports
      */
     [noscript] jsval evalInSandboxObject(in AString source, in string filename,
                                          in JSContextPtr cx,
-                                         in JSObjectPtr sandbox,
-                                         in boolean returnStringOnly);
+                                         in JSObjectPtr sandbox);
 
     /**
      * Whether or not XPConnect should report all JS exceptions when returning
@@ -566,23 +528,6 @@ interface nsIXPConnect : nsISupports
                                     bool showThisProps) = 0;
 %}
 
-    /**
-     * Creates a JS object holder around aObject that will hold the object
-     * alive for as long as the holder stays alive.
-     */
-    nsIXPConnectJSObjectHolder holdObject(in JSContextPtr aJSContext,
-                                          in JSObjectPtr aObject);
-
-    /**
-     * When we place the browser in JS debug mode, there can't be any
-     * JS on the stack. This is because we currently activate debugMode 
-     * on all scripts in the JSRuntime when the debugger is activated.
-     * This method will turn debug mode on or off when the context 
-     * stack reaches zero length.
-     */
-    [noscript] void setDebugModeWhenPossible(in boolean mode,
-                                             in boolean allowSyncDisable);
-
     [noscript] void writeScript(in nsIObjectOutputStream aStream,
                                 in JSContextPtr aJSContext,
                                 in JSScriptPtr aJSScript);
@@ -596,11 +541,4 @@ interface nsIXPConnect : nsISupports
 
     [noscript] JSObjectPtr readFunction(in nsIObjectInputStream aStream,
                                         in JSContextPtr aJSContext);
-
-    /**
-     * This function should be called in JavaScript error reporters
-     * to signal that they are ignoring the error. In this case,
-     * XPConnect can print a warning to the console.
-     */
-    [noscript] void markErrorUnreported(in JSContextPtr aJSContext);
 };

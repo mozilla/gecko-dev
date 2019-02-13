@@ -263,10 +263,9 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     uint8_t* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
-    // *outToken has to be freed by nsMemory::Free, which may not be free() 
     *outToken = nsMemory::Clone(buf, *outTokenLen);
+    free(buf);
     if (!*outToken) {
-        free(buf);
         return NS_ERROR_OUT_OF_MEMORY;
     }
     

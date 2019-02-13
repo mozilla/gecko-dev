@@ -38,10 +38,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
   typedArrayClasses = ['Uint8Array', 'Int8Array', 'Uint16Array', 'Int16Array',
                        'Uint32Array', 'Int32Array', 'Float32Array', 'Float64Array',
                        'Uint8ClampedArray'];
+  errorObjectClasses = ['Error', 'InternalError', 'EvalError', 'RangeError', 'ReferenceError',
+                        'SyntaxError', 'TypeError', 'URIError'];
   simpleConstructors = ['Object', 'Function', 'Array', 'Boolean', 'Date', 'Number',
-                        'String', 'RegExp', 'Error', 'InternalError', 'EvalError',
-                        'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError',
-                        'URIError', 'ArrayBuffer', 'WeakMap', 'Map', 'Set'].concat(typedArrayClasses);
+                        'String', 'RegExp', 'ArrayBuffer', 'WeakMap', 'Map', 'Set'].concat(typedArrayClasses)
+                                                                                   .concat(errorObjectClasses);
 
   function go() {
     window.iwin = document.getElementById('ifr').contentWindow;
@@ -53,19 +54,20 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
          "we end up with the appropriate constructor: " + c);
       is(Cu.unwaiveXrays(Cu.waiveXrays(new iwin[c]).constructor), iwin[c],
          "constructor property is set up right: " + c);
-      is(Object.getPrototypeOf(new iwin[c]),
-         Cu.unwaiveXrays(Cu.waiveXrays(iwin[c]).prototype),
+      let expectedProto = /Opaque/.test(new iwin[c]) ? iwin['Object'].prototype
+                                                     : iwin[c].prototype;
+      is(Object.getPrototypeOf(new iwin[c]), expectedProto,
          "prototype is correct: " + c);
       is(global(new iwin[c]), iwin, "Got the right global: " + c);
     }
 
     // Test Object in more detail.
     var num = new iwin.Object(4);
-    is(num.valueOf(), 4, "primitive object construction works");
+    is(Cu.waiveXrays(num).valueOf(), 4, "primitive object construction works");
     is(global(num), iwin, "correct global for num");
     var obj = new iwin.Object();
     obj.foo = 2;
-    var withProto = iwin.Object.create(obj);
+    var withProto = Cu.unwaiveXrays(Cu.waiveXrays(iwin).Object.create(obj));
     is(global(withProto), iwin, "correct global for withProto");
     is(Cu.waiveXrays(withProto).foo, 2, "Inherits properly");
 
@@ -85,27 +87,32 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     is(global(factoryFun), iwin, "proper global for factoryFun");
     is(factoryFun().foo, 32, "factoryFun invokable");
     is(global(factoryFun()), iwin, "minted objects live in the content scope");
-
-    // Test interface objects that don't actually construct things.
-    is(iwin.Math.tan(4.5), Math.tan(4.5), "Math.tan works");
-    is(iwin.Math.E, Math.E, "Math.E works");
-    var json = JSON.stringify({a: 2, b: 'hi', c: {d: 'there'}});
-    is(global(iwin.JSON.parse(json)), iwin, "JSON rehydrated into the right context");
-    is(iwin.JSON.stringify(iwin.JSON.parse(json)), json, "JSON composition identity holds");
+    testXray('Function', factoryFun, new iwin.Function(), ['length', 'name']);
+    var echoThis = new iwin.Function('return this;');
+    echoThis.wrappedJSObject.bind = 42;
+    var boundEchoThis = echoThis.bind(document);
+    is(boundEchoThis(), document, "bind() works correctly over Xrays");
+    is(global(boundEchoThis), window, "bound functions live in the caller's scope");
+    ok(/return this/.test(echoThis.toSource()), 'toSource works: ' + echoThis.toSource());
+    ok(/return this/.test(echoThis.toString()), 'toString works: ' + echoThis.toString());
+    is(iwin.Function.prototype, Object.getPrototypeOf(echoThis), "Function.prototype works for standard classes");
+    is(echoThis.prototype, undefined, "Function.prototype not visible for non standard constructors");
+    iwin.eval('var foopyFunction = function namedFoopyFunction(a, b, c) {}');
+    var foopyFunction = Cu.unwaiveXrays(Cu.waiveXrays(iwin).foopyFunction);
+    ok(Cu.isXrayWrapper(foopyFunction), "Should be Xrays");
+    is(foopyFunction.name, "namedFoopyFunction", ".name works over Xrays");
+    is(foopyFunction.length, 3, ".length works over Xrays");
+    ok(Object.getOwnPropertyNames(foopyFunction).indexOf('length') >= 0, "Should list length");
+    ok(Object.getOwnPropertyNames(foopyFunction).indexOf('name') >= 0, "Should list name");
+    ok(Object.getOwnPropertyNames(foopyFunction).indexOf('prototype') == -1, "Should not list prototype");
+    ok(Object.getOwnPropertyNames(iwin.Array).indexOf('prototype') >= 0, "Should list prototype for standard constructor");
 
     // Test proxies.
     var targetObject = new iwin.Object();
     targetObject.foo = 9;
     var forwardingProxy = new iwin.Proxy(targetObject, new iwin.Object());
     is(global(forwardingProxy), iwin, "proxy global correct");
-    is(forwardingProxy.foo, 9, "forwards correctly");
-    // NB: COW-implemented proxy handlers are super dangerous, and we should not
-    // encourage them.
-    var handler = {get: function(target, name) { return name * 2; }, __exposedProps__: {get: 'r'}};
-    var doublingProxy = new iwin.Proxy(targetObject, handler);
-    is(global(doublingProxy), iwin, "doubling proxy global correct");
-    is(doublingProxy[3], 6, "Doubles correctly");
-    is(doublingProxy[20], 40, "Doubles correctly");
+    is(Cu.waiveXrays(forwardingProxy).foo, 9, "forwards correctly");
 
     // Test eval.
     var toEval = "({a: 2, b: {foo: 'bar'}, f: function() { return window; }})";
@@ -121,6 +128,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
 
     testTypedArrays();
 
+    testErrorObjects();
+
+    testRegExp();
+
     // We could also test DataView and Iterator here for completeness, but it's
     // more trouble than it's worth.
 
@@ -133,7 +144,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
   // Xray-safe.
   //
   // DO NOT CHANGE WTIHOUT REVIEW FROM AN XPCONNECT PEER.
-  var isReleaseBuild = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).isReleaseBuild;
+  var version = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).version;
+  var isNightlyBuild = version.endsWith("a1");
+  var isReleaseBuild = !version.includes("a");
   var gPrototypeProperties = {};
   gPrototypeProperties['Date'] =
     ["getTime", "getTimezoneOffset", "getYear", "getFullYear", "getUTCFullYear",
@@ -147,47 +160,83 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     "toLocaleDateString", "toLocaleTimeString", "toDateString", "toTimeString",
     "toISOString", "toJSON", "toSource", "toString", "valueOf", "constructor",
     "toGMTString"];
-  gPrototypeProperties['Object'] = /* __proto__ is intentionally excluded here, because
-                                      the JS engine filters it out of getOwnPropertyNames */
+  gPrototypeProperties['Object'] =
     ["constructor", "toSource", "toString", "toLocaleString", "valueOf", "watch",
      "unwatch", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable",
-     "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"];
+     "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__",
+     "__proto__"];
   gPrototypeProperties['Array'] =
     ["length", "toSource", "toString", "toLocaleString", "join", "reverse", "sort", "push",
       "pop", "shift", "unshift", "splice", "concat", "slice", "lastIndexOf", "indexOf",
-      "forEach", "map", "reduce", "reduceRight", "filter", "some", "every", "mapPar",
-      "reducePar", "scanPar", "scatterPar", "filterPar", "find", "findIndex", "copyWithin",
-      "fill", "@@iterator", "entries", "keys", "constructor"];
-  for (var c of typedArrayClasses) {
-    gPrototypeProperties[c] = ["constructor", "BYTES_PER_ELEMENT", "length", "buffer",
-                               "byteLength", "byteOffset", "@@iterator", "subarray", "set"];
-    if (!isReleaseBuild)
-      gPrototypeProperties[c].push("move");
+      "forEach", "map", "reduce", "reduceRight", "filter", "some", "every", "find",
+      "findIndex", "copyWithin", "fill", Symbol.iterator, "entries", "keys", "constructor"];
+  if (isNightlyBuild) {
+    gPrototypeProperties['Array'].push('includes');
   }
+  for (var c of typedArrayClasses) {
+    gPrototypeProperties[c] = ["constructor", "BYTES_PER_ELEMENT"];
+  }
+  gPrototypeProperties['TypedArray'] =
+    ["length", "buffer", "byteLength", "byteOffset", Symbol.iterator, "subarray",
+     "set", "copyWithin", "find", "findIndex", "forEach","indexOf", "lastIndexOf", "reverse",
+     "join", "every", "some", "reduce", "reduceRight", "entries", "keys", "values", "slice",
+     "map", "filter"];
+  if (isNightlyBuild) {
+    gPrototypeProperties['TypedArray'].push('includes');
+  }
+  for (var c of errorObjectClasses) {
+      gPrototypeProperties[c] = ["constructor", "name",
+                                 // We don't actually resolve these empty data properties
+                                 // onto the Xray prototypes, but we list them here to make
+                                 // the test happy.
+                                 "lineNumber", "columnNumber", "fileName", "message", "stack"];
+  }
+  // toString and toSource only live on the parent proto (Error.prototype).
+  gPrototypeProperties['Error'].push('toString');
+  gPrototypeProperties['Error'].push('toSource');
+
+  gPrototypeProperties['Function'] =
+    ["constructor", "toSource", "toString", "apply", "call", "bind",
+     "isGenerator", "length", "name", "arguments", "caller"];
+  gPrototypeProperties['Function'] =
+    ["constructor", "toSource", "toString", "apply", "call", "bind",
+     "isGenerator", "length", "name", "arguments", "caller"];
+
+  gPrototypeProperties['RegExp'] =
+    ["constructor", "toSource", "toString", "compile", "exec", "test",
+     "flags", "global", "ignoreCase", "multiline", "source", "sticky",
+     "lastIndex"];
+
+  if (isNightlyBuild) {
+    gPrototypeProperties['TypedArray'].push('includes');
+  }
+
+  // Sort an array that may contain symbols as well as strings.
+  function sortProperties(arr) {
+    function sortKey(prop) {
+      return typeof prop + ":" + prop.toString();
+    }
+    arr.sort((a, b) => sortKey(a) < sortKey(b) ? -1 : +1);
+  }
+
+  // Sort all the lists so we don't need to mutate them later (or copy them
+  // again to sort them).
+  for (var c of Object.keys(gPrototypeProperties))
+    sortProperties(gPrototypeProperties[c]);
 
   function filterOut(array, props) {
     return array.filter(p => props.indexOf(p) == -1);
   }
 
-  function testXray(classname, xray, xray2, propsToSkip) {
-    propsToSkip = propsToSkip || [];
-    let xrayProto = Object.getPrototypeOf(xray);
-    let localProto = window[classname].prototype;
-    is(Object.getOwnPropertyNames(localProto).sort().toSource(),
-       gPrototypeProperties[classname].sort().toSource(),
-       "A new property on the " + classname +
-       " prototype has been added! You need a security audit from an XPConnect peer");
+  function isTypedArrayClass(classname) {
+    return typedArrayClasses.indexOf(classname) >= 0;
+  }
 
-    let protoProps = filterOut(Object.getOwnPropertyNames(localProto), propsToSkip).sort();
-    let protoCallables = protoProps.filter(name => Object.getOwnPropertyDescriptor(localProto, name).get ||
-                                                   typeof localProto[name] == 'function' &&
-                                                   name != 'constructor');
-    let protoGetters = protoProps.filter(name => Object.getOwnPropertyDescriptor(localProto, name).get);
-    ok(protoCallables.length > 0, "Need something to test");
-    is(xrayProto, iwin[classname].prototype, "Xray proto is correct");
-    is(xrayProto, xray.__proto__, "Proto accessors agree");
-    var protoProto = classname == "Object" ? null : iwin.Object.prototype;
-    is(Object.getPrototypeOf(xrayProto), protoProto, "proto proto is correct");
+  function propertyIsGetter(obj, name, classname) {
+    return !!Object.getOwnPropertyDescriptor(obj, name).get;
+  }
+
+  function testProtoCallables(protoCallables, xray, xrayProto, localProto) {
     for (let name of protoCallables) {
       info("Running tests for property: " + name);
       // Test both methods and getter properties.
@@ -212,12 +261,50 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
       if (method.length == 0) {
         is(method.call(xray) + "", local.call(xray) + "",
            "Xray and local method results stringify identically");
-         is(method.call(xray) + "", lookupCallable(xray.wrappedJSObject).call(xray.wrappedJSObject) + "",
-            "Xray and waived method results stringify identically");
+
+        // If invoking this method returns something non-Xrayable, the
+        // stringification is going to return [object Opaque]. This happens for
+        // xrayedTypedArray.buffer, for instance, since we don't have Xrays
+        // to ArrayBuffers. Just check for that case.
+        if (!/Opaque/.test(method.call(xray))) {
+          is(method.call(xray) + "",
+             lookupCallable(xray.wrappedJSObject).call(xray.wrappedJSObject) + "",
+             "Xray and waived method results stringify identically");
+        }
       }
     }
+  }
+
+  function testXray(classname, xray, xray2, propsToSkip) {
+    propsToSkip = propsToSkip || [];
+    let xrayProto = Object.getPrototypeOf(xray);
+    let localProto = window[classname].prototype;
+    let desiredProtoProps = Object.getOwnPropertyNames(localProto).sort();
+
+    is(desiredProtoProps.toSource(),
+       gPrototypeProperties[classname].filter(id => typeof id === "string").toSource(),
+       "A property on the " + classname +
+       " prototype has changed! You need a security audit from an XPConnect peer");
+    is(Object.getOwnPropertySymbols(localProto).map(uneval).sort().toSource(),
+       gPrototypeProperties[classname].filter(id => typeof id !== "string").map(uneval).sort().toSource(),
+       "A symbol-keyed property on the " + classname +
+       " prototype has been changed! You need a security audit from an XPConnect peer");
+
+    let protoProps = filterOut(desiredProtoProps, propsToSkip);
+    let protoCallables = protoProps.filter(name => propertyIsGetter(localProto, name, classname) ||
+                                                   typeof localProto[name] == 'function' &&
+                                                   name != 'constructor');
+    ok(protoCallables.length > 0, "Need something to test");
+    is(xrayProto, iwin[classname].prototype, "Xray proto is correct");
+    is(xrayProto, xray.__proto__, "Proto accessors agree");
+    var protoProto = classname == "Object" ? null : iwin.Object.prototype;
+    is(Object.getPrototypeOf(xrayProto), protoProto, "proto proto is correct");
+    testProtoCallables(protoCallables, xray, xrayProto, localProto);
     is(Object.getOwnPropertyNames(xrayProto).sort().toSource(),
        protoProps.toSource(), "getOwnPropertyNames works");
+    is(Object.getOwnPropertySymbols(xrayProto).map(uneval).sort().toSource(),
+       gPrototypeProperties[classname].filter(id => typeof id !== "string").map(uneval).sort().toSource(),
+       protoProps.toSource(), "getOwnPropertySymbols works");
 
     is(xrayProto.constructor, iwin[classname], "constructor property works");
 
@@ -241,25 +328,38 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     is(d.toLocaleString('de-DE'), d.wrappedJSObject.toLocaleString('de-DE'), "Results match");
   }
 
+  var uniqueSymbol;
+
   function testObject() {
-    testXray('Object', iwin.Object.create(new iwin.Object()), new iwin.Object(), []);
+    testXray('Object', Cu.unwaiveXrays(Cu.waiveXrays(iwin).Object.create(new iwin.Object())),
+             new iwin.Object(), []);
 
     // Construct an object full of tricky things.
+    let symbolProps = '';
+    uniqueSymbol = iwin.eval('var uniqueSymbol = Symbol("uniqueSymbol"); uniqueSymbol');
+    symbolProps = `, [uniqueSymbol]: 43,
+                   [Symbol.for("registrySymbolProp")]: 44`;
     var trickyObject =
-      iwin.eval('new Object({ \
-                   primitiveProp: 42, objectProp: { foo: 2 }, \
-                   xoProp: top.location, hasOwnProperty: 10, \
-                   get getterProp() { return 2; }, \
-                   set setterProp(x) { }, \
-                   get getterSetterProp() { return 3; }, \
-                   set getterSetterProp(x) { }, \
-                   callableProp: function() { }, \
-                   nonXrayableProp: new WeakMap() })');
+      iwin.eval(`(function() {
+                 var o = new Object({
+                   primitiveProp: 42, objectProp: { foo: 2 },
+                   xoProp: top, hasOwnProperty: 10,
+                   get getterProp() { return 2; },
+                   set setterProp(x) { },
+                   get getterSetterProp() { return 3; },
+                   set getterSetterProp(x) { },
+                   callableProp: function() { },
+                   nonXrayableProp: new WeakMap()
+                   ${symbolProps}
+                 });
+                 Object.defineProperty(o, "nonConfigurableGetterSetterProp",
+                    { get: function() { return 5; }, set: function() {} });
+                 return o;
+                 })()`);
     testTrickyObject(trickyObject);
-
   }
 
-function testArray() {
+  function testArray() {
     // The |length| property is generally very weird, especially with respect
     // to its behavior on the prototype. Array.prototype is actually an Array
     // instance, and therefore has a vestigial .length. But we don't want to
@@ -269,18 +369,24 @@ function testArray() {
     let propsToSkip = ['length'];
     testXray('Array', new iwin.Array(20), new iwin.Array(), propsToSkip);
 
+    let symbolProps = '';
+    uniqueSymbol = iwin.eval('var uniqueSymbol = Symbol("uniqueSymbol"); uniqueSymbol');
+    symbolProps = `trickyArray[uniqueSymbol] = 43;
+                   trickyArray[Symbol.for("registrySymbolProp")] = 44;`;
     var trickyArray =
-      iwin.eval("var trickyArray = []; \
-                 trickyArray.primitiveProp = 42; \
-                 trickyArray.objectProp = { foo: 2 }; \
-                 trickyArray.xoProp = top.location; \
-                 trickyArray.hasOwnProperty = 10; \
-                 Object.defineProperty(trickyArray, 'getterProp', { get: function() { return 2; }}); \
-                 Object.defineProperty(trickyArray, 'setterProp', { set: function(x) {}}); \
-                 Object.defineProperty(trickyArray, 'getterSetterProp', { get: function() { return 3; }, set: function(x) {}}); \
-                 trickyArray.callableProp = function() {}; \
-                 trickyArray.nonXrayableProp = new WeakMap(); \
-                 trickyArray;");
+      iwin.eval(`var trickyArray = [];
+                 trickyArray.primitiveProp = 42;
+                 trickyArray.objectProp = { foo: 2 };
+                 trickyArray.xoProp = top;
+                 trickyArray.hasOwnProperty = 10;
+                 Object.defineProperty(trickyArray, 'getterProp', { get: function() { return 2; }});
+                 Object.defineProperty(trickyArray, 'setterProp', { set: function(x) {}});
+                 Object.defineProperty(trickyArray, 'getterSetterProp', { get: function() { return 3; }, set: function(x) {}, configurable: true});
+                 Object.defineProperty(trickyArray, 'nonConfigurableGetterSetterProp', { get: function() { return 5; }, set: function(x) {}});
+                 trickyArray.callableProp = function() {};
+                 trickyArray.nonXrayableProp = new WeakMap();
+                 ${symbolProps}
+                 trickyArray;`);
 
     // Test indexed access.
     trickyArray.wrappedJSObject[9] = "some indexed property";
@@ -303,15 +409,15 @@ function testArray() {
     is(trickyArray[1], undefined, "Frozen length forbids new properties");
 
     testTrickyObject(trickyArray);
-}
+  }
 
-// Parts of this function are kind of specific to testing Object, but we factor
-// it out so that we can re-use the trickyObject stuff on Arrays.
-function testTrickyObject(trickyObject) {
+  // Parts of this function are kind of specific to testing Object, but we factor
+  // it out so that we can re-use the trickyObject stuff on Arrays.
+  function testTrickyObject(trickyObject) {
 
     // Make sure it looks right under the hood.
     is(trickyObject.wrappedJSObject.getterProp, 2, "Underlying object has getter");
-    is(Cu.unwaiveXrays(trickyObject.wrappedJSObject.xoProp), top.location, "Underlying object has xo property");
+    is(Cu.unwaiveXrays(trickyObject.wrappedJSObject.xoProp), top, "Underlying object has xo property");
 
     // Test getOwnPropertyNames.
     var expectedNames = ['objectProp', 'primitiveProp'];
@@ -319,6 +425,17 @@ function testTrickyObject(trickyObject) {
       expectedNames.push('length');
     is(Object.getOwnPropertyNames(trickyObject).sort().toSource(),
        expectedNames.sort().toSource(), "getOwnPropertyNames should be filtered correctly");
+    var expectedSymbols = [Symbol.for("registrySymbolProp"), uniqueSymbol];
+    is(Object.getOwnPropertySymbols(trickyObject).map(uneval).sort().toSource(),
+       expectedSymbols.map(uneval).sort().toSource(),
+       "getOwnPropertySymbols should be filtered correctly");
+
+    // Test that cloning uses the Xray view.
+    var cloned = Cu.cloneInto(trickyObject, this);
+    is(Object.getOwnPropertyNames(cloned).sort().toSource(),
+       expectedNames.sort().toSource(), "structured clone should use the Xray view");
+    is(Object.getOwnPropertySymbols(cloned).map(uneval).sort().toSource(),
+       "[]", "structured cloning doesn't clone symbol-keyed properties yet");
 
     // Test iteration and in-place modification. Beware of 'expando', which is the property
     // we placed on the xray proto.
@@ -375,6 +492,23 @@ function testTrickyObject(trickyObject) {
     is(trickyObject.getterSetterProp, 'redefined', "Redefinition works");
     is(trickyObject.wrappedJSObject.getterSetterProp, 'redefined', "Redefinition forwards");
 
+    // We should NOT be able to overwrite an existing non-configurable accessor
+    // prop, though.
+    is(trickyObject.wrappedJSObject.nonConfigurableGetterSetterProp, 5,
+       "Underlying object has getter");
+    is(trickyObject.nonConfigurableGetterSetterProp, undefined,
+       "Filtering properly over Xray here too");
+    is((trickyObject.nonConfigurableGetterSetterProp = 'redefined'), 'redefined',
+       "Assigning to non-configurable prop should fail silently in non-strict mode");
+    checkThrows(function() {
+      "use strict";
+      trickyObject.nonConfigurableGetterSetterProp = 'redefined';
+    }, /config/, "Should throw when redefining non-configurable prop in strict mode");
+    is(trickyObject.nonConfigurableGetterSetterProp, undefined,
+       "Redefinition should have failed");
+    is(trickyObject.wrappedJSObject.nonConfigurableGetterSetterProp, 5,
+       "Redefinition really should have failed");
+
     checkThrows(function() { trickyObject.hasOwnProperty = 33; }, /shadow/,
                 "Should reject shadowing of pre-existing inherited properties over Xrays");
 
@@ -383,9 +517,23 @@ function testTrickyObject(trickyObject) {
   }
 
   function testTypedArrays() {
-    for (var c of typedArrayClasses) {
-      testXray(c, new iwin[c](4), new iwin[c](), ['BYTES_PER_ELEMENT']);
+    // We don't invoke testXray with %TypedArray%, because that function isn't
+    // set up to deal with "anonymous" dependent classes (that is, classes not
+    // visible as a global property, which %TypedArray% is not), and fixing it
+    // up is more trouble than it's worth.
 
+    var typedArrayProto = Object.getPrototypeOf(Int8Array.prototype);
+
+    var desiredInheritedProps = Object.getOwnPropertyNames(typedArrayProto).sort();
+    var inheritedProps =
+      filterOut(desiredInheritedProps, ["BYTES_PER_ELEMENT", "constructor"]);
+
+    var inheritedCallables =
+      inheritedProps.filter(name => (propertyIsGetter(typedArrayProto, name) ||
+                                     typeof typedArrayProto[name] === "function") &&
+                                    name !== "constructor");
+
+    for (var c of typedArrayClasses) {
       var t = new iwin[c](10);
       checkThrows(function() { t[2]; }, /performant/, "direct property-wise reading of typed arrays forbidden over Xrays");
       checkThrows(function() { t[2] = 3; }, /performant/, "direct property-wise writing of typed arrays forbidden over Xrays");
@@ -395,14 +543,104 @@ function testTrickyObject(trickyObject) {
       is(t.wrappedJSObject.expando, 'hi', "access expandos over waivers works");
       is(Cu.cloneInto(t, window)[2], 3, "cloneInto works");
       is(Cu.cloneInto(t, window).expando, undefined, "cloneInto does not copy expandos");
-      is(Object.getOwnPropertyNames(t).sort().toSource(), Array.apply(null, Array(10)).map(function (_, i) {return i + "";}).toSource(),
+      is(Object.getOwnPropertyNames(t).sort().toSource(),
+         '["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]',
          "Only indexed properties visible over Xrays");
       Object.defineProperty(t.wrappedJSObject, 'length', {value: 42});
       is(t.wrappedJSObject.length, 42, "Set tricky expando")
       is(t.length, 10, "Length accessor works over Xrays")
       is(t.byteLength, t.length * window[c].prototype.BYTES_PER_ELEMENT, "byteLength accessor works over Xrays")
+
+      var xray = new iwin[c](0);
+      var xrayTypedArrayProto = Object.getPrototypeOf(Object.getPrototypeOf(xray));
+      testProtoCallables(inheritedCallables, new iwin[c](0), xrayTypedArrayProto, typedArrayProto);
     }
   }
+
+  function testErrorObjects() {
+    // We only invoke testXray with Error, because that function isn't set up
+    // to deal with dependent classes and fixing it up is more trouble than
+    // it's worth.
+    testXray('Error', new iwin.Error('some error message'), new iwin.Error(),
+             ['fileName', 'lineNumber', 'columnNumber', 'message']);
+
+    // Make sure that the dependent classes have their prototypes set up correctly.
+    for (let c of errorObjectClasses.filter(x => x != "Error")) {
+      var e = new iwin[c]('some message');
+      is(Object.getPrototypeOf(e).name, c, "Prototype has correct name");
+      is(Object.getPrototypeOf(Object.getPrototypeOf(e)), iwin.Error.prototype, "Dependent prototype set up correctly");
+      is(e.name, c, "Exception name inherited correctly");
+
+      function testProperty(name, criterion, goodReplacement, faultyReplacement) {
+        ok(criterion(e[name]), name + " property is correct: " + e[name]);
+        e.wrappedJSObject[name] = goodReplacement;
+        is(e[name], goodReplacement, name + " property ok after replacement: " + goodReplacement);
+        e.wrappedJSObject[name] = faultyReplacement;
+        is(e[name], undefined, name + " property censored after suspicious replacement");
+      }
+      testProperty('message', x => x == 'some message', 'some other message', 42);
+      testProperty('fileName', x => x == '', 'otherFilename.html', new iwin.Object());
+      testProperty('columnNumber', x => x == 1, 99, 99.5);
+      testProperty('lineNumber', x => x == 0, 50, 'foo');
+
+      // Note - an Exception newed via Xrays is going to have an empty stack given the
+      // current semantics and implementation. This tests the current behavior, but that
+      // may change in bug 1036527 or similar.
+      //
+      // Furthermore, xrays should always return an error's original stack, and
+      // not overwrite it.
+      var stack = e.stack;
+      ok(/^\s*$/.test(stack), "stack property should be correct");
+      e.wrappedJSObject.stack = "not a stack";
+      is(e.stack, stack, "Xrays should never get an overwritten stack property.");
+    }
+  }
+
+  function testRegExp() {
+    testXray('RegExp', new iwin.RegExp('foo'), new iwin.RegExp());
+
+    // Test the self-hosted |flags| property, toString, and toSource.
+    for (var flags of ["", "g", "i", "m", "y", "gimy"]) {
+      var re = new iwin.RegExp("foo", flags);
+      is(re.flags, re.wrappedJSObject.flags, "Results match");
+
+      isnot(re.toString, Cu.unwaiveXrays(re.wrappedJSObject.toString), "Different function identities");
+      is(Cu.getGlobalForObject(re.toString), window, "Xray global is correct");
+      is(Cu.getGlobalForObject(re.wrappedJSObject.toString), iwin, "Underlying global is correct");
+      is(re.toString(), re.wrappedJSObject.toString(), "Results match");
+
+      isnot(re.toSource, Cu.unwaiveXrays(re.wrappedJSObject.toSource), "Different function identities");
+      is(Cu.getGlobalForObject(re.toSource), window, "Xray global is correct");
+      is(Cu.getGlobalForObject(re.wrappedJSObject.toSource), iwin, "Underlying global is correct");
+      is(re.toSource(), re.wrappedJSObject.toSource(), "Results match");
+
+      // Test with modified flags accessors
+      iwin.eval(`
+var props = ["global", "ignoreCase", "multiline", "sticky", "source"];
+var origDescs = {};
+for (var prop of props) {
+  origDescs[prop] = Object.getOwnPropertyDescriptor(RegExp.prototype, prop);
+  Object.defineProperty(RegExp.prototype, prop, {
+    get: function() {
+      throw new Error("modified accessor is called");
+    }
+  });
+}
+`);
+      try {
+        is(re.flags, flags, "Unmodified flags accessors are called");
+        is(re.toString(), "/foo/" + flags, "Unmodified flags and source accessors are called");
+        is(re.toSource(), "/foo/" + flags, "Unmodified flags and source accessors are called");
+      } finally {
+        iwin.eval(`
+for (var prop of props) {
+  Object.defineProperty(RegExp.prototype, prop, origDescs[prop]);
+}
+`);
+      }
+    }
+  }
+
 
   ]]>
   </script>

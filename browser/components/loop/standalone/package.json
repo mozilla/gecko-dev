@@ -1,19 +1,24 @@
 {
-  "name": "Loop-client",
-  "description": "Video conferencing app powered by WebRTC.",
+  "name": "loop-client",
+  "description": "Video conferencing app powered by WebRTC",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mozilla/loop-client.git"
+  },
   "engines": {
     "node": "0.10.x",
-    "npm":"1.3.x"
+    "npm": "1.3.x"
   },
-  "dependencies": {
-    "express": "3.x"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "jshint": "2.x"
+    "eslint": "0.21.x",
+    "eslint-plugin-react": "2.3.x",
+    "express": "4.x"
   },
   "scripts": {
     "test": "make test",
     "start": "make runserver"
-  }
+  },
+  "license": "MPL-2.0"
 }

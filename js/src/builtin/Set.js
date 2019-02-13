@@ -8,18 +8,19 @@ function SetForEach(callbackfn, thisArg = undefined) {
     /* Step 1-2. */
     var S = this;
     if (!IsObject(S))
-        ThrowError(JSMSG_BAD_TYPE, typeof S);
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "Set", "forEach", typeof S);
 
     /* Step 3-4. */
     try {
         callFunction(std_Set_has, S);
     } catch (e) {
-        ThrowError(JSMSG_BAD_TYPE, typeof S);
+        // has will throw on non-Set objects, throw our own error in that case.
+        ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "Set", "forEach", typeof S);
     }
 
     /* Step 5-6. */
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+        ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     /* Step 7-8. */
     var values = callFunction(std_Set_iterator, S);
@@ -30,4 +31,10 @@ function SetForEach(callbackfn, thisArg = undefined) {
         var value = result.value;
         callFunction(callbackfn, thisArg, value, value, S);
     }
+}
+
+// ES6 final draft 23.2.2.2.
+function SetSpecies() {
+    // Step 1.
+    return this;
 }

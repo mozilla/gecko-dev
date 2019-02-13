@@ -20,9 +20,9 @@
 namespace mozilla {
 namespace net {
 
-const char kContextEvictionPrefix[] = "ce_";
+#define CONTEXT_EVICTION_PREFIX "ce_"
 const uint32_t kContextEvictionPrefixLength =
-  sizeof(kContextEvictionPrefix) - 1;
+  sizeof(CONTEXT_EVICTION_PREFIX) - 1;
 
 bool CacheFileContextEvictor::sDiskAlreadySearched = false;
 
@@ -56,7 +56,7 @@ CacheFileContextEvictor::Init(nsIFile *aCacheDirectory)
     return rv;
   }
 
-  rv = mEntriesDir->AppendNative(NS_LITERAL_CSTRING(kEntriesDir));
+  rv = mEntriesDir->AppendNative(NS_LITERAL_CSTRING(ENTRIES_DIR));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -246,10 +246,8 @@ CacheFileContextEvictor::PersistEvictionInfoToDisk(
     return rv;
   }
 
-#ifdef PR_LOGGING
   nsAutoCString path;
   file->GetNativePath(path);
-#endif
 
   PRFileDesc *fd;
   rv = file->OpenNSPRFileDesc(PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE, 0600,
@@ -285,10 +283,8 @@ CacheFileContextEvictor::RemoveEvictInfoFromDisk(
     return rv;
   }
 
-#ifdef PR_LOGGING
   nsAutoCString path;
   file->GetNativePath(path);
-#endif
 
   rv = file->Remove(false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -350,7 +346,7 @@ CacheFileContextEvictor::LoadEvictInfoFromDisk()
       continue;
     }
 
-    if (!StringBeginsWith(leaf, NS_LITERAL_CSTRING(kContextEvictionPrefix))) {
+    if (!StringBeginsWith(leaf, NS_LITERAL_CSTRING(CONTEXT_EVICTION_PREFIX))) {
       continue;
     }
 
@@ -399,7 +395,7 @@ CacheFileContextEvictor::GetContextFile(nsILoadContextInfo *aLoadContextInfo,
   nsresult rv;
 
   nsAutoCString leafName;
-  leafName.Assign(NS_LITERAL_CSTRING(kContextEvictionPrefix));
+  leafName.AssignLiteral(CONTEXT_EVICTION_PREFIX);
 
   nsAutoCString keyPrefix;
   CacheFileUtils::AppendKeyPrefix(aLoadContextInfo, keyPrefix);
@@ -551,7 +547,7 @@ CacheFileContextEvictor::EvictEntries()
          mEntries[0]->mIterator.get(), mEntries[0]->mInfo.get()));
 
     nsRefPtr<CacheFileHandle> handle;
-    CacheFileIOManager::gInstance->mHandles.GetHandle(&hash, false,
+    CacheFileIOManager::gInstance->mHandles.GetHandle(&hash,
                                                       getter_AddRefs(handle));
     if (handle) {
       // We doom any active handle in CacheFileIOManager::EvictByContext(), so

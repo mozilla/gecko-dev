@@ -4,6 +4,42 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('ActiveLayerTracker.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('Display*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('FrameLayerBuilder.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('LayerState.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('MaskLayerImageCache.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('PaintTracker.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('nsCSSRendering.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('nsDisplay*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('Restyle*'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsStyle*'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsChangeHint.h'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsBidi*'):
+    BUG_COMPONENT = ('Core', 'Layout: Text')
+
 XPIDL_SOURCES += [
     'nsIStyleSheetService.idl',
 ]
@@ -17,10 +53,13 @@ XPIDL_MODULE = 'layout_base'
 
 EXPORTS += [
     'ActiveLayerTracker.h',
+    'CaretAssociationHint.h',
     'DisplayItemClip.h',
     'DisplayListClipState.h',
     'FrameLayerBuilder.h',
     'FramePropertyTable.h',
+    'LayerState.h',
+    'LayoutLogging.h',
     'nsArenaMemoryStats.h',
     'nsBidi.h',
     'nsBidiPresUtils.h',
@@ -38,7 +77,7 @@ EXPORTS += [
     'nsIFrameTraversal.h',
     'nsILayoutDebugger.h',
     'nsILayoutHistoryState.h',
-    'nsIPercentHeightObserver.h',
+    'nsIPercentBSizeObserver.h',
     'nsIPresShell.h',
     'nsIReflowCallback.h',
     'nsLayoutUtils.h',
@@ -51,20 +90,27 @@ EXPORTS += [
     'StackArena.h',
     'Units.h',
     'UnitTransforms.h',
+    'WordMovementType.h',
 ]
 
 EXPORTS.mozilla += [
     'GeometryUtils.h',
     'PaintTracker.h',
+    'RestyleLogging.h',
 ]
 
 UNIFIED_SOURCES += [
+    'AccessibleCaret.cpp',
+    'AccessibleCaretEventHub.cpp',
+    'AccessibleCaretLogger.cpp',
+    'AccessibleCaretManager.cpp',
     'ActiveLayerTracker.cpp',
     'DisplayItemClip.cpp',
     'DisplayListClipState.cpp',
     'FrameLayerBuilder.cpp',
     'FramePropertyTable.cpp',
     'GeometryUtils.cpp',
+    'LayoutLogging.cpp',
     'MaskLayerImageCache.cpp',
     'nsBidi.cpp',
     'nsBidiPresUtils.cpp',
@@ -76,6 +122,7 @@ UNIFIED_SOURCES += [
     'nsCSSRenderingBorders.cpp',
     'nsDisplayList.cpp',
     'nsDisplayListInvalidation.cpp',
+    'nsDocumentViewer.cpp',
     'nsFrameManager.cpp',
     'nsFrameTraversal.cpp',
     'nsGenConList.cpp',
@@ -83,6 +130,7 @@ UNIFIED_SOURCES += [
     'nsLayoutHistoryState.cpp',
     'nsLayoutUtils.cpp',
     'nsPresContext.cpp',
+    'nsPresShell.cpp',
     'nsQuoteList.cpp',
     'nsStyleChangeList.cpp',
     'nsStyleSheetService.cpp',
@@ -90,33 +138,29 @@ UNIFIED_SOURCES += [
     'PositionedEventTargeting.cpp',
     'RestyleManager.cpp',
     'RestyleTracker.cpp',
+    'ScrollbarStyles.cpp',
     'SelectionCarets.cpp',
     'StackArena.cpp',
     'TouchCaret.cpp',
+    'TouchManager.cpp',
+    'ZoomConstraintsClient.cpp',
 ]
 
-# nsDocumentViewer.cpp and nsPresShell.cpp need to be built separately
-# because they force NSPR logging.
 # nsPresArena.cpp needs to be built separately because it uses plarena.h.
 # nsRefreshDriver.cpp needs to be built separately because of name clashes in the OS X headers
 SOURCES += [
-    'nsDocumentViewer.cpp',
     'nsPresArena.cpp',
-    'nsPresShell.cpp',
     'nsRefreshDriver.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+if CONFIG['ENABLE_TESTS']:
+    DIRS += ['gtest']
 
-MSVC_ENABLE_PGO = True
+FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
-    '../../content/svg/content/src',
-    '../../view/src',
     '../forms',
     '../generic',
     '../mathml',
@@ -128,11 +172,16 @@ LOCAL_INCLUDES += [
     '../xul/tree/',
     '/docshell/base',
     '/dom/base',
+    '/dom/html',
+    '/dom/svg',
     '/dom/xbl',
+    '/view',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 MOCHITEST_MANIFESTS += ['tests/mochitest.ini']
 MOCHITEST_CHROME_MANIFESTS += ['tests/chrome/chrome.ini']
 BROWSER_CHROME_MANIFESTS += ['tests/browser.ini']
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']

@@ -7,17 +7,42 @@ function run_test() {
   run_next_test();
 }
 
+function buildHexStr(aNum, aNumSemiOctets) {
+  let str = aNum.toString(16);
+  while (str.length < aNumSemiOctets) {
+    str = "0" + str;
+  }
+  return str;
+}
+
+function hexStringToParcelByteArrayData(hexString) {
+  let bytes = [];
+
+  let length = hexString.length / 2;
+
+  bytes.push(length & 0xFF);
+  bytes.push((length >>  8) & 0xFF);
+  bytes.push((length >> 16) & 0xFF);
+  bytes.push((length >> 24) & 0xFF);
+
+  for (let i = 0; i < hexString.length; i += 2) {
+    bytes.push(Number.parseInt(hexString.substr(i, 2), 16));
+  }
+
+  return bytes;
+}
+
 add_test(function test_ril_consts_cellbroadcast_misc() {
   // Must be 16 for indexing.
-  do_check_eq(CB_DCS_LANG_GROUP_1.length, 16);
-  do_check_eq(CB_DCS_LANG_GROUP_2.length, 16);
+  equal(CB_DCS_LANG_GROUP_1.length, 16);
+  equal(CB_DCS_LANG_GROUP_2.length, 16);
 
   // Array length must be even.
-  do_check_eq(CB_NON_MMI_SETTABLE_RANGES.length & 0x01, 0);
+  equal(CB_NON_MMI_SETTABLE_RANGES.length & 0x01, 0);
   for (let i = 0; i < CB_NON_MMI_SETTABLE_RANGES.length;) {
     let from = CB_NON_MMI_SETTABLE_RANGES[i++];
     let to = CB_NON_MMI_SETTABLE_RANGES[i++];
-    do_check_eq(from < to, true);
+    equal(from < to, true);
   }
 
   run_next_test();
@@ -42,11 +67,11 @@ add_test(function test_ril_worker_GsmPDUHelper_readCbDataCodingScheme() {
     let msg = {};
     context.GsmPDUHelper.readCbDataCodingScheme(msg);
 
-    do_check_eq(msg.dcs, dcs);
-    do_check_eq(msg.encoding, encoding);
-    do_check_eq(msg.language, language);
-    do_check_eq(msg.hasLanguageIndicator, hasLanguageIndicator);
-    do_check_eq(msg.messageClass, messageClass);
+    equal(msg.dcs, dcs);
+    equal(msg.encoding, encoding);
+    equal(msg.language, language);
+    equal(msg.hasLanguageIndicator, hasLanguageIndicator);
+    equal(msg.messageClass, messageClass);
   }
 
   function test_dcs_throws(dcs) {
@@ -54,7 +79,7 @@ add_test(function test_ril_worker_GsmPDUHelper_readCbDataCodingScheme() {
       return dcs;
     };
 
-    do_check_throws(function() {
+    throws(function() {
       context.GsmPDUHelper.readCbDataCodingScheme({});
     }, "Unsupported CBS data coding scheme: " + dcs);
   }
@@ -164,15 +189,15 @@ add_test(function test_ril_worker_GsmPDUHelper_readGsmCbData() {
     };
     context.GsmPDUHelper.readGsmCbData(msg, options[3].length);
 
-    do_check_eq(msg.body, expected[0]);
-    do_check_eq(msg.data == null, expected[1] == null);
+    equal(msg.body, expected[0]);
+    equal(msg.data == null, expected[1] == null);
     if (expected[1] != null) {
-      do_check_eq(msg.data.length, expected[1].length);
+      equal(msg.data.length, expected[1].length);
       for (let i = 0; i < expected[1].length; i++) {
-        do_check_eq(msg.data[i], expected[1][i]);
+        equal(msg.data[i], expected[1][i]);
       }
     }
-    do_check_eq(msg.language, expected[2]);
+    equal(msg.language, expected[2]);
   }
 
   // We're testing Cell Broadcast message body with all zeros octet stream. As
@@ -224,7 +249,7 @@ add_test(function test_ril_worker__checkCellBroadcastMMISettable() {
   let ril = context.RIL;
 
   function test(from, to, expected) {
-    do_check_eq(expected, ril._checkCellBroadcastMMISettable(from, to));
+    equal(expected, ril._checkCellBroadcastMMISettable(from, to));
   }
 
   test(-2, -1, false);
@@ -276,7 +301,7 @@ add_test(function test_ril_worker__mergeCellBroadcastConfigs() {
 
   function test(olist, from, to, expected) {
     let result = ril._mergeCellBroadcastConfigs(olist, from, to);
-    do_check_eq(JSON.stringify(expected), JSON.stringify(result));
+    equal(JSON.stringify(expected), JSON.stringify(result));
   }
 
   test(null, 0, 1, [0, 1]);
@@ -434,3 +459,92 @@ add_test(function test_ril_worker__mergeCellBroadcastConfigs() {
   run_next_test();
 });
 
+
+/**
+ * Verify GsmPDUHelper#readUmtsCbMessage with numOfPages from 1 to 15.
+ */
+add_test(function test_GsmPDUHelper_readUmtsCbMessage_MultiParts() {
+  let CB_UMTS_MESSAGE_PAGE_SIZE = 82;
+  let CB_MAX_CONTENT_PER_PAGE_7BIT = 93;
+  let workerHelper = newInterceptWorker(),
+      worker = workerHelper.worker,
+      context = worker.ContextPool._contexts[0],
+      GsmPDUHelper = context.GsmPDUHelper;
+
+  function test_MultiParts(aNumOfPages) {
+    let pdu = buildHexStr(CB_UMTS_MESSAGE_TYPE_CBS, 2) // msg_type
+            + buildHexStr(0, 4) // skip msg_id
+            + buildHexStr(0, 4) // skip SN
+            + buildHexStr(0, 2) // skip dcs
+            + buildHexStr(aNumOfPages, 2); // set num_of_pages
+    for (let i = 1; i <= aNumOfPages; i++) {
+      pdu = pdu + buildHexStr(0, CB_UMTS_MESSAGE_PAGE_SIZE * 2)
+                + buildHexStr(CB_UMTS_MESSAGE_PAGE_SIZE, 2); // msg_info_length
+    }
+
+    worker.onRILMessage(0, newIncomingParcel(-1,
+                           RESPONSE_TYPE_UNSOLICITED,
+                           UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS,
+                           hexStringToParcelByteArrayData(pdu)));
+
+    let postedMessage = workerHelper.postedMessage;
+    equal("cellbroadcast-received", postedMessage.rilMessageType);
+    equal(postedMessage.fullBody.length,
+                aNumOfPages * CB_MAX_CONTENT_PER_PAGE_7BIT);
+  }
+
+  [1, 5, 15].forEach(function(i) {
+    test_MultiParts(i);
+  });
+
+  run_next_test();
+});
+
+/**
+ * Verify GsmPDUHelper#readUmtsCbMessage with 8bit encoded.
+ */
+add_test(function test_GsmPDUHelper_readUmtsCbMessage_Binary() {
+  let CB_UMTS_MESSAGE_PAGE_SIZE = 82;
+  let CB_MAX_CONTENT_PER_PAGE_7BIT = 93;
+  let TEXT_BINARY = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                  + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                  + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                  + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                  + "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                  + "FFFF";
+  let workerHelper = newInterceptWorker(),
+      worker = workerHelper.worker,
+      context = worker.ContextPool._contexts[0],
+      GsmPDUHelper = context.GsmPDUHelper;
+
+  function test_MultiPartsBinary(aNumOfPages) {
+    let pdu = buildHexStr(CB_UMTS_MESSAGE_TYPE_CBS, 2) // msg_type
+            + buildHexStr(0, 4) // skip msg_id
+            + buildHexStr(0, 4) // skip SN
+            + buildHexStr(68, 2) // set DCS to 8bit data
+            + buildHexStr(aNumOfPages, 2); // set num_of_pages
+    for (let i = 1; i <= aNumOfPages; i++) {
+      pdu = pdu + TEXT_BINARY
+                + buildHexStr(CB_UMTS_MESSAGE_PAGE_SIZE, 2); // msg_info_length
+    }
+
+    worker.onRILMessage(0, newIncomingParcel(-1,
+                           RESPONSE_TYPE_UNSOLICITED,
+                           UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS,
+                           hexStringToParcelByteArrayData(pdu)));
+
+    let postedMessage = workerHelper.postedMessage;
+    equal("cellbroadcast-received", postedMessage.rilMessageType);
+    equal(postedMessage.fullData.length,
+                aNumOfPages * CB_UMTS_MESSAGE_PAGE_SIZE);
+    for (let i = 0; i < postedMessage.fullData.length; i++) {
+      equal(postedMessage.fullData[i], 255);
+    }
+  }
+
+  [1, 5, 15].forEach(function(i) {
+    test_MultiPartsBinary(i);
+  });
+
+  run_next_test();
+});

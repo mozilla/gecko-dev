@@ -13,16 +13,16 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
-  "@mozilla.org/childprocessmessagemanager;1", "nsIMessageSender");
+  "@mozilla.org/childprocessmessagemanager;1", "nsISyncMessageSender");
 
 XPCOMUtils.defineLazyServiceGetter(this, "tm",
   "@mozilla.org/thread-manager;1", "nsIThreadManager");
 
 /*
- * A WeakMap to map input method iframe window to its active status.
+ * A WeakMap to map input method iframe window to its active status and kbID.
  */
 let WindowMap = {
-  // WeakMap of <window, boolean> pairs.
+  // WeakMap of <window, object> pairs.
   _map: null,
 
   /*
@@ -32,7 +32,13 @@ let WindowMap = {
     if (!this._map || !win) {
       return false;
     }
-    return this._map.get(win) || false;
+
+    let obj = this._map.get(win);
+    if (obj && 'active' in obj) {
+      return obj.active;
+    }else{
+      return false;
+    }
   },
 
   /*
@@ -45,8 +51,48 @@ let WindowMap = {
     if (!this._map) {
       this._map = new WeakMap();
     }
-    this._map.set(win, isActive);
+    if (!this._map.has(win)) {
+      this._map.set(win, {});
+    }
+    this._map.get(win).active = isActive;
+  },
+
+  /*
+   * Get the keyboard ID (assigned by Keyboard.ksm) of the given window.
+   */
+  getKbID: function(win) {
+    if (!this._map || !win) {
+      return null;
+    }
+
+    let obj = this._map.get(win);
+    if (obj && 'kbID' in obj) {
+      return obj.kbID;
+    }else{
+      return null;
+    }
+  },
+
+  /*
+   * Set the keyboard ID (assigned by Keyboard.ksm) of the given window.
+   */
+  setKbID: function(win, kbID) {
+    if (!win) {
+      return;
+    }
+    if (!this._map) {
+      this._map = new WeakMap();
+    }
+    if (!this._map.has(win)) {
+      this._map.set(win, {});
+    }
+    this._map.get(win).kbID = kbID;
   }
+};
+
+let cpmmSendAsyncMessageWithKbID = function (self, msg, data) {
+  data.kbID = WindowMap.getKbID(self._window);
+  cpmm.sendAsyncMessage(msg, data);
 };
 
 /**
@@ -70,14 +116,14 @@ MozInputMethodManager.prototype = {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:ShowInputMethodPicker', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:ShowInputMethodPicker', {});
   },
 
   next: function() {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:SwitchToNextInputMethod', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:SwitchToNextInputMethod', {});
   },
 
   supportsSwitching: function() {
@@ -91,7 +137,7 @@ MozInputMethodManager.prototype = {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:RemoveFocus', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:RemoveFocus', {});
   }
 };
 
@@ -103,7 +149,10 @@ MozInputMethodManager.prototype = {
 function MozInputMethod() { }
 
 MozInputMethod.prototype = {
+  __proto__: DOMRequestIpcHelper.prototype,
+
   _inputcontext: null,
+  _wrappedInputContext: null,
   _layouts: {},
   _window: null,
   _isSystem: false,
@@ -149,6 +198,8 @@ MozInputMethod.prototype = {
     cpmm.addWeakMessageListener('Keyboard:SelectionChange', this);
     cpmm.addWeakMessageListener('Keyboard:GetContext:Result:OK', this);
     cpmm.addWeakMessageListener('Keyboard:LayoutsChange', this);
+    cpmm.addWeakMessageListener('InputRegistry:Result:OK', this);
+    cpmm.addWeakMessageListener('InputRegistry:Result:Error', this);
   },
 
   uninit: function mozInputMethodUninit() {
@@ -163,21 +214,26 @@ MozInputMethod.prototype = {
     cpmm.removeWeakMessageListener('Keyboard:SelectionChange', this);
     cpmm.removeWeakMessageListener('Keyboard:GetContext:Result:OK', this);
     cpmm.removeWeakMessageListener('Keyboard:LayoutsChange', this);
+    cpmm.removeWeakMessageListener('InputRegistry:Result:OK', this);
+    cpmm.removeWeakMessageListener('InputRegistry:Result:Error', this);
     this.setActive(false);
   },
 
   receiveMessage: function mozInputMethodReceiveMsg(msg) {
-    if (!WindowMap.isActive(this._window)) {
+    if (!msg.name.startsWith('InputRegistry') &&
+        !WindowMap.isActive(this._window)) {
       return;
     }
 
-    let json = msg.json;
+    let data = msg.data;
+    let resolver = ('requestId' in data) ?
+      this.takePromiseResolver(data.requestId) : null;
 
     switch(msg.name) {
       case 'Keyboard:FocusChange':
-        if (json.type !== 'blur') {
+        if (data.type !== 'blur') {
           // XXX Bug 904339 could receive 'text' event twice
-          this.setInputContext(json);
+          this.setInputContext(data);
         }
         else {
           this.setInputContext(null);
@@ -185,14 +241,24 @@ MozInputMethod.prototype = {
         break;
       case 'Keyboard:SelectionChange':
         if (this.inputcontext) {
-          this._inputcontext.updateSelectionContext(json);
+          this._inputcontext.updateSelectionContext(data, false);
         }
         break;
       case 'Keyboard:GetContext:Result:OK':
-        this.setInputContext(json);
+        this.setInputContext(data);
         break;
       case 'Keyboard:LayoutsChange':
-        this._layouts = json;
+        this._layouts = data;
+        break;
+
+      case 'InputRegistry:Result:OK':
+        resolver.resolve();
+
+        break;
+
+      case 'InputRegistry:Result:Error':
+        resolver.reject(data.error);
+
         break;
     }
   },
@@ -211,7 +277,7 @@ MozInputMethod.prototype = {
     if (!WindowMap.isActive(this._window)) {
       return null;
     }
-    return this._inputcontext;
+    return this._wrappedInputContext;
   },
 
   set oninputcontextchange(handler) {
@@ -226,6 +292,7 @@ MozInputMethod.prototype = {
     if (this._inputcontext) {
       this._inputcontext.destroy();
       this._inputcontext = null;
+      this._wrappedInputContext = null;
       this._mgmt._supportsSwitching = false;
     }
 
@@ -236,6 +303,10 @@ MozInputMethod.prototype = {
 
       this._inputcontext = new MozInputContext(data);
       this._inputcontext.init(this._window);
+      // inputcontext will be exposed as a WebIDL object. Create its
+      // content-side object explicitly to avoid Bug 1001325.
+      this._wrappedInputContext =
+        this._window.MozInputContext._create(this._window, this._inputcontext);
     }
 
     let event = new this._window.Event("inputcontextchange",
@@ -255,15 +326,52 @@ MozInputMethod.prototype = {
       // If there is already an active context, then this will trigger
       // a GetContext:Result:OK event, and we can initialize ourselves.
       // Otherwise silently ignored.
-      cpmm.sendAsyncMessage('Keyboard:Register', {});
-      cpmm.sendAsyncMessage("Keyboard:GetContext", {});
+
+      // get keyboard ID from Keyboard.jsm,
+      // or if we already have it, get it from our map
+      // Note: if we need to get it from Keyboard.jsm,
+      // we have to use a synchronous message
+      var kbID = WindowMap.getKbID(this._window);
+      if (kbID !== null) {
+        cpmmSendAsyncMessageWithKbID(this, 'Keyboard:Register', {});
+      }else{
+        let res = cpmm.sendSyncMessage('Keyboard:Register', {});
+        WindowMap.setKbID(this._window, res[0]);
+      }
+
+      cpmmSendAsyncMessageWithKbID(this, 'Keyboard:GetContext', {});
     } else {
       // Deactive current input method.
-      cpmm.sendAsyncMessage('Keyboard:Unregister', {});
+      cpmmSendAsyncMessageWithKbID(this, 'Keyboard:Unregister', {});
       if (this._inputcontext) {
         this.setInputContext(null);
       }
     }
+  },
+
+  addInput: function(inputId, inputManifest) {
+    return this._sendPromise(function(resolverId) {
+      let appId = this._window.document.nodePrincipal.appId;
+
+      cpmm.sendAsyncMessage('InputRegistry:Add', {
+        requestId: resolverId,
+        inputId: inputId,
+        inputManifest: inputManifest,
+        appId: appId
+      });
+    }.bind(this));
+  },
+
+  removeInput: function(inputId) {
+    return this._sendPromise(function(resolverId) {
+      let appId = this._window.document.nodePrincipal.appId;
+
+      cpmm.sendAsyncMessage('InputRegistry:Remove', {
+        requestId: resolverId,
+        inputId: inputId,
+        appId: appId
+      });
+    }.bind(this));
   },
 
   setValue: function(value) {
@@ -294,9 +402,16 @@ MozInputMethod.prototype = {
 
   _ensureIsSystem: function() {
     if (!this._isSystem) {
-      throw new this._window.DOMError("Security",
-                                      "Should have 'input-manage' permssion.");
+      throw new this._window.Error("Should have 'input-manage' permssion.");
     }
+  },
+
+  _sendPromise: function(callback) {
+    let self = this;
+    return this.createPromise(function(resolve, reject) {
+      let resolverId = self.getPromiseResolverId({ resolve: resolve, reject: reject });
+      callback(resolverId);
+    });
   }
 };
 
@@ -388,6 +503,11 @@ MozInputContext.prototype = {
       return;
     }
 
+    // Update context first before resolving promise to avoid race condition
+    if (json.selectioninfo) {
+      this.updateSelectionContext(json.selectioninfo, true);
+    }
+
     switch (msg.name) {
       case "Keyboard:SendKey:Result:OK":
         resolver.resolve();
@@ -422,7 +542,7 @@ MozInputContext.prototype = {
     }
   },
 
-  updateSelectionContext: function ic_updateSelectionContext(ctx) {
+  updateSelectionContext: function ic_updateSelectionContext(ctx, ownAction) {
     if (!this._context) {
       return;
     }
@@ -440,14 +560,16 @@ MozInputContext.prototype = {
     if (selectionDirty) {
       this._fireEvent("selectionchange", {
         selectionStart: ctx.selectionStart,
-        selectionEnd: ctx.selectionEnd
+        selectionEnd: ctx.selectionEnd,
+        ownAction: ownAction
       });
     }
 
     if (surroundDirty) {
       this._fireEvent("surroundingtextchange", {
         beforeString: ctx.textBeforeCursor,
-        afterString: ctx.textAfterCursor
+        afterString: ctx.textAfterCursor,
+        ownAction: ownAction
       });
     }
   },
@@ -457,8 +579,8 @@ MozInputContext.prototype = {
       detail: aDetail
     };
 
-    let event = new this._window.Event(eventName,
-                                       Cu.cloneInto(aDetail, this._window));
+    let event = new this._window.CustomEvent(eventName,
+                                             Cu.cloneInto(detail, this._window));
     this.__DOM_IMPL__.dispatchEvent(event);
   },
 
@@ -483,7 +605,7 @@ MozInputContext.prototype = {
   getText: function ic_getText(offset, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:GetText', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:GetText', {
         contextId: self._contextId,
         requestId: resolverId,
         offset: offset,
@@ -511,7 +633,7 @@ MozInputContext.prototype = {
   setSelectionRange: function ic_setSelectionRange(start, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage("Keyboard:SetSelectionRange", {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SetSelectionRange', {
         contextId: self._contextId,
         requestId: resolverId,
         selectionStart: start,
@@ -539,7 +661,7 @@ MozInputContext.prototype = {
   replaceSurroundingText: function ic_replaceSurrText(text, offset, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:ReplaceSurroundingText', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:ReplaceSurroundingText', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text,
@@ -556,7 +678,7 @@ MozInputContext.prototype = {
   sendKey: function ic_sendKey(keyCode, charCode, modifiers, repeat) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:SendKey', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SendKey', {
         contextId: self._contextId,
         requestId: resolverId,
         keyCode: keyCode,
@@ -570,11 +692,11 @@ MozInputContext.prototype = {
   setComposition: function ic_setComposition(text, cursor, clauses) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:SetComposition', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SetComposition', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text,
-        cursor: cursor || text.length,
+        cursor: (typeof cursor !== 'undefined') ? cursor : text.length,
         clauses: clauses || null
       });
     });
@@ -583,7 +705,7 @@ MozInputContext.prototype = {
   endComposition: function ic_endComposition(text) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:EndComposition', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:EndComposition', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text || ''

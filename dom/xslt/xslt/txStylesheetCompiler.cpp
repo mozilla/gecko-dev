@@ -24,21 +24,25 @@
 #include "nsTArray.h"
 
 using namespace mozilla;
+using mozilla::net::ReferrerPolicy;
 
 txStylesheetCompiler::txStylesheetCompiler(const nsAString& aStylesheetURI,
+                                           ReferrerPolicy aReferrerPolicy,
                                            txACompileObserver* aObserver)
     : txStylesheetCompilerState(aObserver)
 {
-    mStatus = init(aStylesheetURI, nullptr, nullptr);
+    mStatus = init(aStylesheetURI, aReferrerPolicy, nullptr, nullptr);
 }
 
 txStylesheetCompiler::txStylesheetCompiler(const nsAString& aStylesheetURI,
                                            txStylesheet* aStylesheet,
                                            txListIterator* aInsertPosition,
+                                           ReferrerPolicy aReferrerPolicy,
                                            txACompileObserver* aObserver)
     : txStylesheetCompilerState(aObserver)
 {
-    mStatus = init(aStylesheetURI, aStylesheet, aInsertPosition);
+    mStatus = init(aStylesheetURI, aReferrerPolicy, aStylesheet,
+                   aInsertPosition);
 }
 
 void
@@ -373,7 +377,7 @@ txStylesheetCompiler::characters(const nsAString& aStr)
 nsresult
 txStylesheetCompiler::doneLoading()
 {
-    PR_LOG(txLog::xslt, PR_LOG_ALWAYS,
+    MOZ_LOG(txLog::xslt, LogLevel::Info,
            ("Compiler::doneLoading: %s\n",
             NS_LossyConvertUTF16toASCII(mStylesheetURI).get()));
     if (NS_FAILED(mStatus)) {
@@ -389,7 +393,7 @@ void
 txStylesheetCompiler::cancel(nsresult aError, const char16_t *aErrorText,
                              const char16_t *aParam)
 {
-    PR_LOG(txLog::xslt, PR_LOG_ALWAYS,
+    MOZ_LOG(txLog::xslt, LogLevel::Info,
            ("Compiler::cancel: %s, module: %d, code %d\n",
             NS_LossyConvertUTF16toASCII(mStylesheetURI).get(),
             NS_ERROR_GET_MODULE(aError),
@@ -415,17 +419,19 @@ txStylesheetCompiler::getStylesheet()
 nsresult
 txStylesheetCompiler::loadURI(const nsAString& aUri,
                               const nsAString& aReferrerUri,
+                              ReferrerPolicy aReferrerPolicy,
                               txStylesheetCompiler* aCompiler)
 {
-    PR_LOG(txLog::xslt, PR_LOG_ALWAYS,
+    MOZ_LOG(txLog::xslt, LogLevel::Info,
            ("Compiler::loadURI forwards %s thru %s\n",
             NS_LossyConvertUTF16toASCII(aUri).get(),
             NS_LossyConvertUTF16toASCII(mStylesheetURI).get()));
     if (mStylesheetURI.Equals(aUri)) {
         return NS_ERROR_XSLT_LOAD_RECURSION;
     }
-    return mObserver ? mObserver->loadURI(aUri, aReferrerUri, aCompiler) :
-                       NS_ERROR_FAILURE;
+    return mObserver ?
+        mObserver->loadURI(aUri, aReferrerUri, aReferrerPolicy, aCompiler) :
+        NS_ERROR_FAILURE;
 }
 
 void
@@ -536,12 +542,14 @@ txStylesheetCompilerState::txStylesheetCompilerState(txACompileObserver* aObserv
 
 nsresult
 txStylesheetCompilerState::init(const nsAString& aStylesheetURI,
+                                ReferrerPolicy aReferrerPolicy,
                                 txStylesheet* aStylesheet,
                                 txListIterator* aInsertPosition)
 {
     NS_ASSERTION(!aStylesheet || aInsertPosition,
                  "must provide insertposition if loading subsheet");
     mStylesheetURI = aStylesheetURI;
+    mReferrerPolicy = aReferrerPolicy;
     // Check for fragment identifier of an embedded stylesheet.
     int32_t fragment = aStylesheetURI.FindChar('#') + 1;
     if (fragment > 0) {
@@ -668,7 +676,7 @@ nsresult
 txStylesheetCompilerState::pushPtr(void* aPtr, enumStackType aType)
 {
 #ifdef TX_DEBUG_STACK
-    PR_LOG(txLog::xslt, PR_LOG_DEBUG, ("pushPtr: 0x%x type %u\n", aPtr, aType));
+    MOZ_LOG(txLog::xslt, LogLevel::Debug, ("pushPtr: 0x%x type %u\n", aPtr, aType));
 #endif
     mTypeStack.AppendElement(aType);
     return mOtherStack.push(aPtr);
@@ -687,7 +695,7 @@ txStylesheetCompilerState::popPtr(enumStackType aType)
     void* value = mOtherStack.pop();
     
 #ifdef TX_DEBUG_STACK
-    PR_LOG(txLog::xslt, PR_LOG_DEBUG, ("popPtr: 0x%x type %u requested %u\n", value, type, aType));
+    MOZ_LOG(txLog::xslt, LogLevel::Debug, ("popPtr: 0x%x type %u requested %u\n", value, type, aType));
 #endif
     
     if (type != aType) {
@@ -742,7 +750,7 @@ txStylesheetCompilerState::addInstruction(nsAutoPtr<txInstruction>&& aInstructio
 nsresult
 txStylesheetCompilerState::loadIncludedStylesheet(const nsAString& aURI)
 {
-    PR_LOG(txLog::xslt, PR_LOG_ALWAYS,
+    MOZ_LOG(txLog::xslt, LogLevel::Info,
            ("CompilerState::loadIncludedStylesheet: %s\n",
             NS_LossyConvertUTF16toASCII(aURI).get()));
     if (mStylesheetURI.Equals(aURI)) {
@@ -765,7 +773,7 @@ txStylesheetCompilerState::loadIncludedStylesheet(const nsAString& aURI)
 
     nsRefPtr<txStylesheetCompiler> compiler =
         new txStylesheetCompiler(aURI, mStylesheet, &mToplevelIterator,
-                                 observer);
+                                 mReferrerPolicy, observer);
     NS_ENSURE_TRUE(compiler, NS_ERROR_OUT_OF_MEMORY);
 
     // step forward before calling the observer in case of syncronous loading
@@ -775,7 +783,7 @@ txStylesheetCompilerState::loadIncludedStylesheet(const nsAString& aURI)
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    rv = mObserver->loadURI(aURI, mStylesheetURI, compiler);
+    rv = mObserver->loadURI(aURI, mStylesheetURI, mReferrerPolicy, compiler);
     if (NS_FAILED(rv)) {
         mChildCompilerList.RemoveElement(compiler);
     }
@@ -787,7 +795,7 @@ nsresult
 txStylesheetCompilerState::loadImportedStylesheet(const nsAString& aURI,
                                                   txStylesheet::ImportFrame* aFrame)
 {
-    PR_LOG(txLog::xslt, PR_LOG_ALWAYS,
+    MOZ_LOG(txLog::xslt, LogLevel::Info,
            ("CompilerState::loadImportedStylesheet: %s\n",
             NS_LossyConvertUTF16toASCII(aURI).get()));
     if (mStylesheetURI.Equals(aURI)) {
@@ -801,14 +809,16 @@ txStylesheetCompilerState::loadImportedStylesheet(const nsAString& aURI,
     txACompileObserver* observer = static_cast<txStylesheetCompiler*>(this);
 
     nsRefPtr<txStylesheetCompiler> compiler =
-        new txStylesheetCompiler(aURI, mStylesheet, &iter, observer);
+        new txStylesheetCompiler(aURI, mStylesheet, &iter, mReferrerPolicy,
+                                 observer);
     NS_ENSURE_TRUE(compiler, NS_ERROR_OUT_OF_MEMORY);
 
     if (mChildCompilerList.AppendElement(compiler) == nullptr) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    nsresult rv = mObserver->loadURI(aURI, mStylesheetURI, compiler);
+    nsresult rv = mObserver->loadURI(aURI, mStylesheetURI, mReferrerPolicy,
+                                     compiler);
     if (NS_FAILED(rv)) {
         mChildCompilerList.RemoveElement(compiler);
     }
@@ -857,7 +867,7 @@ txStylesheetCompilerState::resolveNamespacePrefix(nsIAtom* aPrefix,
 class txErrorFunctionCall : public FunctionCall
 {
 public:
-    txErrorFunctionCall(nsIAtom* aName)
+    explicit txErrorFunctionCall(nsIAtom* aName)
       : mName(aName)
     {
     }
@@ -1070,7 +1080,8 @@ extern bool
 TX_XSLTFunctionAvailable(nsIAtom* aName, int32_t aNameSpaceID)
 {
     nsRefPtr<txStylesheetCompiler> compiler =
-        new txStylesheetCompiler(EmptyString(), nullptr);
+        new txStylesheetCompiler(EmptyString(),
+                                 mozilla::net::RP_Default, nullptr);
     NS_ENSURE_TRUE(compiler, false);
 
     nsAutoPtr<FunctionCall> fnCall;

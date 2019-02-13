@@ -28,6 +28,8 @@
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/Utils.h>
 
+#include <stdint.h>
+
 namespace stagefright {
 
 // static
@@ -38,6 +40,11 @@ const uint32_t SampleTable::kChunkOffsetType64 = FOURCC('c', 'o', '6', '4');
 const uint32_t SampleTable::kSampleSizeType32 = FOURCC('s', 't', 's', 'z');
 // static
 const uint32_t SampleTable::kSampleSizeTypeCompact = FOURCC('s', 't', 'z', '2');
+
+const uint32_t kAuxTypeCenc = FOURCC('c', 'e', 'n', 'c');
+
+static const uint32_t kMAX_ALLOCATION =
+    (SIZE_MAX < INT32_MAX ? SIZE_MAX : INT32_MAX) - 128;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -127,7 +134,11 @@ SampleTable::SampleTable(const sp<DataSource> &source)
       mNumSyncSamples(0),
       mSyncSamples(NULL),
       mLastSyncSampleIndex(0),
-      mSampleToChunkEntries(NULL) {
+      mSampleToChunkEntries(NULL),
+      mCencInfo(NULL),
+      mCencInfoCount(0),
+      mCencDefaultSize(0)
+{
     mSampleIterator = new SampleIterator(this);
 }
 
@@ -149,6 +160,15 @@ SampleTable::~SampleTable() {
 
     delete[] mTimeToSample;
     mTimeToSample = NULL;
+
+    if (mCencInfo) {
+        for (uint32_t i = 0; i < mCencInfoCount; i++) {
+            if (mCencInfo[i].mSubsamples) {
+                delete[] mCencInfo[i].mSubsamples;
+            }
+        }
+        delete[] mCencInfo;
+    }
 
     delete mSampleIterator;
     mSampleIterator = NULL;
@@ -190,11 +210,11 @@ status_t SampleTable::setChunkOffsetParams(
     mNumChunkOffsets = U32_AT(&header[4]);
 
     if (mChunkOffsetType == kChunkOffsetType32) {
-        if (data_size < 8 + mNumChunkOffsets * 4) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 4) {
             return ERROR_MALFORMED;
         }
     } else {
-        if (data_size < 8 + mNumChunkOffsets * 8) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -227,7 +247,7 @@ status_t SampleTable::setSampleToChunkParams(
 
     mNumSampleToChunkOffsets = U32_AT(&header[4]);
 
-    if (data_size < 8 + mNumSampleToChunkOffsets * 12) {
+    if (data_size < 8 + (uint64_t)mNumSampleToChunkOffsets * 12) {
         return ERROR_MALFORMED;
     }
 
@@ -242,7 +262,10 @@ status_t SampleTable::setSampleToChunkParams(
             return ERROR_IO;
         }
 
-        CHECK(U32_AT(buffer) >= 1);  // chunk index is 1 based in the spec.
+        if (!U32_AT(buffer)) {
+          ALOGE("error reading sample to chunk table");
+          return ERROR_MALFORMED;  // chunk index is 1 based in the spec.
+        }
 
         // We want the chunk index to be 0-based.
         mSampleToChunkEntries[i].startChunk = U32_AT(buffer) - 1;
@@ -288,7 +311,7 @@ status_t SampleTable::setSampleSizeParams(
             return OK;
         }
 
-        if (data_size < 12 + mNumSampleSizes * 4) {
+        if (data_size < 12 + (uint64_t)mNumSampleSizes * 4) {
             return ERROR_MALFORMED;
         }
     } else {
@@ -305,7 +328,7 @@ status_t SampleTable::setSampleSizeParams(
             return ERROR_MALFORMED;
         }
 
-        if (data_size < 12 + (mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
+        if (data_size < 12 + ((uint64_t)mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -331,6 +354,10 @@ status_t SampleTable::setTimeToSampleParams(
     }
 
     mTimeToSampleCount = U32_AT(&header[4]);
+    if (mTimeToSampleCount > kMAX_ALLOCATION / 2 / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
     mTimeToSample = new uint32_t[mTimeToSampleCount * 2];
 
     size_t size = sizeof(uint32_t) * mTimeToSampleCount * 2;
@@ -366,9 +393,9 @@ status_t SampleTable::setCompositionTimeToSampleParams(
         return ERROR_MALFORMED;
     }
 
-    size_t numEntries = U32_AT(&header[4]);
+    uint32_t numEntries = U32_AT(&header[4]);
 
-    if (data_size != (numEntries + 1) * 8) {
+    if (data_size != ((uint64_t)numEntries + 1) * 8) {
         return ERROR_MALFORMED;
     }
 
@@ -413,6 +440,10 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
     }
 
     mNumSyncSamples = U32_AT(&header[4]);
+    if (mNumSyncSamples > kMAX_ALLOCATION / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
 
     if (mNumSyncSamples < 2) {
         ALOGV("Table of sync samples is empty or has only a single entry!");
@@ -427,6 +458,231 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
 
     for (size_t i = 0; i < mNumSyncSamples; ++i) {
         mSyncSamples[i] = ntohl(mSyncSamples[i]) - 1;
+    }
+
+    return OK;
+}
+
+static status_t
+validateCencBoxHeader(
+        sp<DataSource>& data_source, off64_t& data_offset,
+        uint8_t* out_version, uint32_t* out_aux_type) {
+    *out_aux_type = 0;
+
+    if (data_source->readAt(data_offset++, out_version, 1) < 1) {
+        ALOGE("error reading sample aux info header");
+        return ERROR_IO;
+    }
+
+    uint32_t flags;
+    if (!data_source->getUInt24(data_offset, &flags)) {
+        ALOGE("error reading sample aux info flags");
+        return ERROR_IO;
+    }
+    data_offset += 3;
+
+    if (flags & 1) {
+        uint32_t aux_type;
+        uint32_t aux_param;
+        if (!data_source->getUInt32(data_offset, &aux_type) ||
+            !data_source->getUInt32(data_offset + 4, &aux_param)) {
+            ALOGE("error reading aux info type");
+            return ERROR_IO;
+        }
+        data_offset += 8;
+        *out_aux_type = aux_type;
+    }
+
+    return OK;
+}
+
+status_t
+SampleTable::setSampleAuxiliaryInformationSizeParams(
+        off64_t data_offset, size_t data_size, uint32_t drm_scheme) {
+    off64_t data_end = data_offset + data_size;
+
+    uint8_t version;
+    uint32_t aux_type;
+    status_t err = validateCencBoxHeader(
+                mDataSource, data_offset, &version, &aux_type);
+    if (err != OK) {
+        return err;
+    }
+
+    if (aux_type && aux_type != kAuxTypeCenc && drm_scheme != kAuxTypeCenc) {
+        // Quietly skip aux types we don't care about.
+        return OK;
+    }
+
+    if (!mCencSizes.isEmpty() || mCencDefaultSize) {
+        ALOGE("duplicate cenc saiz box");
+        return ERROR_MALFORMED;
+    }
+
+    if (version) {
+        ALOGV("unsupported cenc saiz version");
+        return ERROR_UNSUPPORTED;
+    }
+
+    if (mDataSource->readAt(
+                data_offset++, &mCencDefaultSize, sizeof(mCencDefaultSize))
+                < sizeof(mCencDefaultSize)) {
+        return ERROR_IO;
+    }
+
+    if (!mDataSource->getUInt32(data_offset, &mCencInfoCount)) {
+        return ERROR_IO;
+    }
+    data_offset += 4;
+
+    if (!mCencDefaultSize) {
+        mCencSizes.insertAt(0, 0, mCencInfoCount);
+        if (mDataSource->readAt(
+                    data_offset, mCencSizes.editArray(), mCencInfoCount)
+                    < mCencInfoCount) {
+            return ERROR_IO;
+        }
+        data_offset += mCencInfoCount;
+    }
+
+    CHECK(data_offset == data_end);
+
+    return parseSampleCencInfo();
+}
+
+status_t
+SampleTable::setSampleAuxiliaryInformationOffsetParams(
+        off64_t data_offset, size_t data_size, uint32_t drm_scheme) {
+    off64_t data_end = data_offset + data_size;
+
+    uint8_t version;
+    uint32_t aux_type;
+    status_t err = validateCencBoxHeader(mDataSource, data_offset,
+                                         &version, &aux_type);
+    if (err != OK) {
+        return err;
+    }
+
+    if (aux_type && aux_type != kAuxTypeCenc && drm_scheme != kAuxTypeCenc) {
+        // Quietly skip aux types we don't care about.
+        return OK;
+    }
+
+    if (!mCencOffsets.isEmpty()) {
+        ALOGE("duplicate cenc saio box");
+        return ERROR_MALFORMED;
+    }
+
+    uint32_t cencOffsetCount;
+    if (!mDataSource->getUInt32(data_offset, &cencOffsetCount)) {
+        ALOGE("error reading cenc aux info offset count");
+        return ERROR_IO;
+    }
+    data_offset += 4;
+
+    if (mCencOffsets.setCapacity(cencOffsetCount) < 0) {
+        return ERROR_MALFORMED;
+    }
+    if (!version) {
+        for (uint32_t i = 0; i < cencOffsetCount; i++) {
+            uint32_t tmp;
+            if (!mDataSource->getUInt32(data_offset, &tmp)) {
+                ALOGE("error reading cenc aux info offsets");
+                return ERROR_IO;
+            }
+            mCencOffsets.push(tmp);
+            data_offset += 4;
+        }
+    } else {
+        for (uint32_t i = 0; i < cencOffsetCount; i++) {
+            if (!mDataSource->getUInt64(data_offset, &mCencOffsets.editItemAt(i))) {
+                ALOGE("error reading cenc aux info offsets");
+                return ERROR_IO;
+            }
+            data_offset += 8;
+        }
+    }
+
+    CHECK(data_offset == data_end);
+
+    return parseSampleCencInfo();
+}
+
+status_t
+SampleTable::parseSampleCencInfo() {
+    if ((!mCencDefaultSize && !mCencInfoCount) || mCencOffsets.isEmpty()) {
+        // We don't have all the cenc information we need yet. Quietly fail and
+        // hope we get the data we need later in the track header.
+        ALOGV("Got half of cenc saio/saiz pair. Deferring parse until we get the other half.");
+        return OK;
+    }
+
+    if (!mCencSizes.isEmpty() && mCencOffsets.size() > 1 &&
+        mCencSizes.size() != mCencOffsets.size()) {
+        return ERROR_MALFORMED;
+    }
+
+    if (mCencInfoCount > kMAX_ALLOCATION / sizeof(SampleCencInfo)) {
+        // Avoid future OOM.
+        return ERROR_MALFORMED;
+    }
+
+    mCencInfo = new SampleCencInfo[mCencInfoCount];
+    for (uint32_t i = 0; i < mCencInfoCount; i++) {
+        mCencInfo[i].mSubsamples = NULL;
+    }
+
+    uint64_t nextOffset = mCencOffsets[0];
+    for (uint32_t i = 0; i < mCencInfoCount; i++) {
+        uint8_t size = mCencDefaultSize ? mCencDefaultSize : mCencSizes[i];
+        uint64_t offset = mCencOffsets.size() == 1 ? nextOffset : mCencOffsets[i];
+        nextOffset = offset + size;
+
+        auto& info = mCencInfo[i];
+
+        if (size < IV_BYTES) {
+            ALOGE("cenc aux info too small");
+            return ERROR_MALFORMED;
+        }
+
+        if (mDataSource->readAt(offset, info.mIV, IV_BYTES) < IV_BYTES) {
+            ALOGE("couldn't read init vector");
+            return ERROR_IO;
+        }
+        offset += IV_BYTES;
+
+        if (size == IV_BYTES) {
+            info.mSubsampleCount = 0;
+            continue;
+        }
+
+        if (size < IV_BYTES + sizeof(info.mSubsampleCount)) {
+            ALOGE("subsample count overflows sample aux info buffer");
+            return ERROR_MALFORMED;
+        }
+
+        if (!mDataSource->getUInt16(offset, &info.mSubsampleCount)) {
+            ALOGE("error reading sample cenc info subsample count");
+            return ERROR_IO;
+        }
+        offset += sizeof(info.mSubsampleCount);
+
+        if (size < IV_BYTES + sizeof(info.mSubsampleCount) + info.mSubsampleCount * 6) {
+            ALOGE("subsample descriptions overflow sample aux info buffer");
+            return ERROR_MALFORMED;
+        }
+
+        info.mSubsamples = new SampleCencInfo::SubsampleSizes[info.mSubsampleCount];
+        for (uint16_t j = 0; j < info.mSubsampleCount; j++) {
+            auto& subsample = info.mSubsamples[j];
+            if (!mDataSource->getUInt16(offset, &subsample.mClearBytes) ||
+                !mDataSource->getUInt32(offset + sizeof(subsample.mClearBytes),
+                                        &subsample.mCipherBytes)) {
+                ALOGE("error reading cenc subsample aux info");
+                return ERROR_IO;
+            }
+            offset += 6;
+        }
     }
 
     return OK;
@@ -780,7 +1036,8 @@ status_t SampleTable::getMetaDataForSample(
         size_t *size,
         uint32_t *compositionTime,
         uint32_t *duration,
-        bool *isSyncSample) {
+        bool *isSyncSample,
+        uint32_t *decodeTime) {
     Mutex::Autolock autoLock(mLock);
 
     status_t err;
@@ -798,6 +1055,10 @@ status_t SampleTable::getMetaDataForSample(
 
     if (compositionTime) {
         *compositionTime = mSampleIterator->getSampleTime();
+    }
+
+    if (decodeTime) {
+        *decodeTime = mSampleIterator->getSampleDecodeTime();
     }
 
     if (duration) {
@@ -831,6 +1092,35 @@ status_t SampleTable::getMetaDataForSample(
 
 uint32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
     return mCompositionDeltaLookup->getCompositionTimeOffset(sampleIndex);
+}
+
+status_t
+SampleTable::getSampleCencInfo(
+        uint32_t sample_index, Vector<uint16_t>& clear_sizes,
+        Vector<uint32_t>& cipher_sizes, uint8_t iv[]) {
+    CHECK(clear_sizes.isEmpty() && cipher_sizes.isEmpty());
+
+    if (sample_index >= mCencInfoCount) {
+        ALOGE("cenc info requested for out of range sample index");
+        return ERROR_MALFORMED;
+    }
+
+    auto& info = mCencInfo[sample_index];
+    if (clear_sizes.setCapacity(info.mSubsampleCount) < 0) {
+        return ERROR_MALFORMED;
+    }
+    if (cipher_sizes.setCapacity(info.mSubsampleCount) < 0) {
+        return ERROR_MALFORMED;
+    }
+
+    for (uint32_t i = 0; i < info.mSubsampleCount; i++) {
+        clear_sizes.push(info.mSubsamples[i].mClearBytes);
+        cipher_sizes.push(info.mSubsamples[i].mCipherBytes);
+    }
+
+    memcpy(iv, info.mIV, IV_BYTES);
+
+    return OK;
 }
 
 }  // namespace stagefright

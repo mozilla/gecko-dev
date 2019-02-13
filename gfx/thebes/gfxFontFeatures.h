@@ -48,7 +48,7 @@ operator==(const gfxAlternateValue& a, const gfxAlternateValue& b)
     return (a.alternate == b.alternate) && (a.value == b.value);
 }
 
-class gfxFontFeatureValueSet MOZ_FINAL {
+class gfxFontFeatureValueSet final {
 public:
     NS_INLINE_DECL_REFCOUNTING(gfxFontFeatureValueSet)
 
@@ -104,7 +104,7 @@ private:
         typedef const FeatureValueHashKey &KeyType;
         typedef const FeatureValueHashKey *KeyTypePointer;
 
-        FeatureValueHashEntry(KeyTypePointer aKey) { }
+        explicit FeatureValueHashEntry(KeyTypePointer aKey) { }
         FeatureValueHashEntry(const FeatureValueHashEntry& toCopy)
         {
             NS_ERROR("Should not be called");

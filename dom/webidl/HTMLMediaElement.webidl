@@ -22,7 +22,7 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute DOMString currentSrc;
 
   [SetterThrows]
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
   const unsigned short NETWORK_EMPTY = 0;
   const unsigned short NETWORK_IDLE = 1;
   const unsigned short NETWORK_LOADING = 2;
@@ -50,6 +50,8 @@ interface HTMLMediaElement : HTMLElement {
   [Throws]
   void fastSeek(double time);
   readonly attribute unrestricted double duration;
+  [ChromeOnly]
+  readonly attribute boolean isEncrypted;
   // TODO: Bug 847376 - readonly attribute any startDate;
   readonly attribute boolean paused;
   [SetterThrows]
@@ -86,10 +88,12 @@ interface HTMLMediaElement : HTMLElement {
 
   // TODO: Bug 847379
   // tracks
-  //readonly attribute AudioTrackList audioTracks;
-  //readonly attribute VideoTrackList videoTracks;
+  [Pref="media.track.enabled"]
+  readonly attribute AudioTrackList audioTracks;
+  [Pref="media.track.enabled"]
+  readonly attribute VideoTrackList videoTracks;
   [Pref="media.webvtt.enabled"]
-  readonly attribute TextTrackList textTracks;
+  readonly attribute TextTrackList? textTracks;
   [Pref="media.webvtt.enabled"]
   TextTrack addTextTrack(TextTrackKind kind,
                          optional DOMString label = "",
@@ -98,6 +102,8 @@ interface HTMLMediaElement : HTMLElement {
 
 // Mozilla extensions:
 partial interface HTMLMediaElement {
+  [ChromeOnly]
+  readonly attribute MediaSource? mozMediaSourceObject;
   attribute MediaStream? mozSrcObject;
   attribute boolean mozPreservesPitch;
   readonly attribute boolean mozAutoplayEnabled;
@@ -108,9 +114,9 @@ partial interface HTMLMediaElement {
   [Func="IsChromeOrXBL"] attribute boolean mozIsCasting;
 
   // Mozilla extension: stream capture
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   MediaStream mozCaptureStream();
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   MediaStream mozCaptureStreamUntilEnded();
   readonly attribute boolean mozAudioCaptured;
 
@@ -136,24 +142,17 @@ partial interface HTMLMediaElement {
   // * onmozinterruptend - called when the interruption is concluded
 };
 
-enum MediaWaitingFor {
-  "none",
-  "data",
-  "key"
-};
-
+#ifdef MOZ_EME
 // Encrypted Media Extensions
 partial interface HTMLMediaElement {
-  [Pref="media.eme.enabled"]
+  [Pref="media.eme.apiVisible"]
   readonly attribute MediaKeys? mediaKeys;
-  
-  // Promise<any>
-  [Pref="media.eme.enabled", Throws, NewObject]
-  Promise setMediaKeys(MediaKeys? mediaKeys);
-  
-  [Pref="media.eme.enabled"]
-  attribute EventHandler onneedkey;
 
-  [Pref="media.eme.enabled"]
-  readonly attribute MediaWaitingFor waitingFor;
+  // void, not any: https://www.w3.org/Bugs/Public/show_bug.cgi?id=26457
+  [Pref="media.eme.apiVisible", NewObject]
+  Promise<void> setMediaKeys(MediaKeys? mediaKeys);
+
+  [Pref="media.eme.apiVisible"]
+  attribute EventHandler onencrypted;
 };
+#endif

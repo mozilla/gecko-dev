@@ -11,10 +11,10 @@
 
 #include "mozilla/css/StyleRule.h"
 
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/css/Declaration.h"
-#include "nsCSSStyleSheet.h"
 #include "nsIDocument.h"
 #include "nsIAtom.h"
 #include "nsString.h"
@@ -210,7 +210,7 @@ nsPseudoClassList::~nsPseudoClassList(void)
   if (nsCSSPseudoClasses::HasSelectorListArg(mType)) {
     delete u.mSelectors;
   } else if (u.mMemory) {
-    NS_Free(u.mMemory);
+    free(u.mMemory);
   }
   NS_CSS_DELETE_LIST_MEMBER(nsPseudoClassList, this, mNext);
 }
@@ -541,7 +541,7 @@ int32_t nsCSSSelector::CalcWeight() const
 // StyleRule:selectorText
 //
 void
-nsCSSSelector::ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
+nsCSSSelector::ToString(nsAString& aString, CSSStyleSheet* aSheet,
                         bool aAppend) const
 {
   if (!aAppend)
@@ -584,7 +584,7 @@ nsCSSSelector::ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
 
 void
 nsCSSSelector::AppendToStringWithoutCombinators
-                   (nsAString& aString, nsCSSStyleSheet* aSheet) const
+                   (nsAString& aString, CSSStyleSheet* aSheet) const
 {
   AppendToStringWithoutCombinatorsOrNegations(aString, aSheet, false);
 
@@ -599,7 +599,7 @@ nsCSSSelector::AppendToStringWithoutCombinators
 
 void
 nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
-                   (nsAString& aString, nsCSSStyleSheet* aSheet,
+                   (nsAString& aString, CSSStyleSheet* aSheet,
                    bool aIsNegated) const
 {
   nsAutoString temp;
@@ -677,9 +677,10 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
         // XXXldb Why?
         aString.Append(char16_t('*'));
       }
-      if (!nsCSSPseudoElements::IsCSS2PseudoElement(mLowercaseTag)) {
-        aString.Append(char16_t(':'));
-      }
+      // While our atoms use one colon, most pseudo-elements require two
+      // colons (those not in CSS level 2) and all pseudo-elements allow
+      // two colons. So serialize to the non-deprecated two colon syntax.
+      aString.Append(char16_t(':'));
       // This should not be escaped since (a) the pseudo-element string
       // has a ":" that can't be escaped and (b) all pseudo-elements at
       // this point are known, and therefore we know they don't need
@@ -705,8 +706,8 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
   if (mClassList) {
     if (isPseudoElement) {
 #ifdef MOZ_XUL
-      NS_ABORT_IF_FALSE(nsCSSAnonBoxes::IsTreePseudoElement(mLowercaseTag),
-                        "must be tree pseudo-element");
+      MOZ_ASSERT(nsCSSAnonBoxes::IsTreePseudoElement(mLowercaseTag),
+                 "must be tree pseudo-element");
 
       aString.Append(char16_t('('));
       for (nsAtomList* list = mClassList; list; list = list->mNext) {
@@ -895,7 +896,22 @@ nsCSSSelectorList::AddSelector(char16_t aOperator)
 }
 
 void
-nsCSSSelectorList::ToString(nsAString& aResult, nsCSSStyleSheet* aSheet)
+nsCSSSelectorList::RemoveRightmostSelector()
+{
+  nsCSSSelector* current = mSelectors;
+  mSelectors = mSelectors->mNext;
+  MOZ_ASSERT(mSelectors,
+             "Rightmost selector has been removed, but now "
+             "mSelectors is null");
+  mSelectors->SetOperator(char16_t(0));
+
+  // Make sure that deleting current won't delete the whole list.
+  current->mNext = nullptr;
+  delete current;
+}
+
+void
+nsCSSSelectorList::ToString(nsAString& aResult, CSSStyleSheet* aSheet)
 {
   aResult.Truncate();
   nsCSSSelectorList *p = this;
@@ -962,10 +978,13 @@ ImportantRule::MapRuleInfoInto(nsRuleData* aRuleData)
 ImportantRule::List(FILE* out, int32_t aIndent) const
 {
   // Indent
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
+  nsAutoCString str;
+  for (int32_t index = aIndent; --index >= 0; ) {
+    str.AppendLiteral("  ");
+  }
 
-  fprintf(out, "! Important declaration=%p\n",
-          static_cast<void*>(mDeclaration));
+  str.AppendLiteral("! important rule\n");
+  fprintf_stderr(out, "%s", str.get());
 }
 #endif
 
@@ -982,23 +1001,25 @@ class DOMCSSStyleRule;
 
 class DOMCSSDeclarationImpl : public nsDOMCSSDeclaration
 {
-public:
-  DOMCSSDeclarationImpl(css::StyleRule *aRule);
+protected:
   virtual ~DOMCSSDeclarationImpl(void);
 
-  NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) MOZ_OVERRIDE;
+public:
+  explicit DOMCSSDeclarationImpl(css::StyleRule *aRule);
+
+  NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) override;
   void DropReference(void);
-  virtual css::Declaration* GetCSSDeclaration(bool aAllocate) MOZ_OVERRIDE;
-  virtual nsresult SetCSSDeclaration(css::Declaration* aDecl) MOZ_OVERRIDE;
-  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) MOZ_OVERRIDE;
-  virtual nsIDocument* DocToUpdate() MOZ_OVERRIDE;
+  virtual css::Declaration* GetCSSDeclaration(Operation aOperation) override;
+  virtual nsresult SetCSSDeclaration(css::Declaration* aDecl) override;
+  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) override;
+  virtual nsIDocument* DocToUpdate() override;
 
   // Override |AddRef| and |Release| for being a member of
   // |DOMCSSStyleRule|.  Also, we need to forward QI for cycle
   // collection things to DOMCSSStyleRule.
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual nsINode *GetParentObject() MOZ_OVERRIDE
+  virtual nsINode *GetParentObject() override
   {
     return mRule ? mRule->GetDocument() : nullptr;
   }
@@ -1025,8 +1046,7 @@ namespace css {
 class DOMCSSStyleRule : public nsICSSStyleRuleDOMWrapper
 {
 public:
-  DOMCSSStyleRule(StyleRule *aRule);
-  virtual ~DOMCSSStyleRule();
+  explicit DOMCSSStyleRule(StyleRule *aRule);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCSSStyleRule)
@@ -1034,13 +1054,15 @@ public:
   NS_DECL_NSIDOMCSSSTYLERULE
 
   // nsICSSStyleRuleDOMWrapper
-  NS_IMETHOD GetCSSStyleRule(StyleRule **aResult);
+  NS_IMETHOD GetCSSStyleRule(StyleRule **aResult) override;
 
   DOMCSSDeclarationImpl* DOMDeclaration() { return &mDOMDeclaration; }
 
   friend class ::DOMCSSDeclarationImpl;
 
 protected:
+  virtual ~DOMCSSStyleRule();
+
   DOMCSSDeclarationImpl mDOMDeclaration;
 
   StyleRule* Rule() {
@@ -1092,7 +1114,7 @@ DOMCSSDeclarationImpl::DropReference(void)
 }
 
 css::Declaration*
-DOMCSSDeclarationImpl::GetCSSDeclaration(bool aAllocate)
+DOMCSSDeclarationImpl::GetCSSDeclaration(Operation aOperation)
 {
   if (mRule) {
     return mRule->GetDeclaration();
@@ -1157,9 +1179,6 @@ DOMCSSDeclarationImpl::DocToUpdate()
 {
   return nullptr;
 }
-
-// needs to be outside the namespace
-DOMCI_DATA(CSSStyleRule, css::DOMCSSStyleRule)
 
 namespace mozilla {
 namespace css {
@@ -1255,6 +1274,12 @@ DOMCSSStyleRule::GetParentRule(nsIDOMCSSRule** aParentRule)
   return Rule()->GetParentRule(aParentRule);
 }
 
+css::Rule*
+DOMCSSStyleRule::GetCSSRule()
+{
+  return Rule();
+}
+
 NS_IMETHODIMP
 DOMCSSStyleRule::GetSelectorText(nsAString& aSelectorText)
 {
@@ -1300,15 +1325,12 @@ namespace mozilla {
 namespace css {
 
 StyleRule::StyleRule(nsCSSSelectorList* aSelector,
-                     Declaration* aDeclaration)
-  : Rule(),
+                     Declaration* aDeclaration,
+                     uint32_t aLineNumber,
+                     uint32_t aColumnNumber)
+  : Rule(aLineNumber, aColumnNumber),
     mSelector(aSelector),
-    mDeclaration(aDeclaration),
-    mImportantRule(nullptr),
-    mDOMRule(nullptr),
-    mLineNumber(0),
-    mColumnNumber(0),
-    mWasMatched(false)
+    mDeclaration(aDeclaration)
 {
   NS_PRECONDITION(aDeclaration, "must have a declaration");
 }
@@ -1317,12 +1339,7 @@ StyleRule::StyleRule(nsCSSSelectorList* aSelector,
 StyleRule::StyleRule(const StyleRule& aCopy)
   : Rule(aCopy),
     mSelector(aCopy.mSelector ? aCopy.mSelector->Clone() : nullptr),
-    mDeclaration(new Declaration(*aCopy.mDeclaration)),
-    mImportantRule(nullptr),
-    mDOMRule(nullptr),
-    mLineNumber(aCopy.mLineNumber),
-    mColumnNumber(aCopy.mColumnNumber),
-    mWasMatched(false)
+    mDeclaration(new Declaration(*aCopy.mDeclaration))
 {
   // rest is constructed lazily on existing data
 }
@@ -1333,15 +1350,10 @@ StyleRule::StyleRule(StyleRule& aCopy,
   : Rule(aCopy),
     mSelector(aCopy.mSelector),
     mDeclaration(aDeclaration),
-    mImportantRule(nullptr),
-    mDOMRule(aCopy.mDOMRule),
-    mLineNumber(aCopy.mLineNumber),
-    mColumnNumber(aCopy.mColumnNumber),
-    mWasMatched(false)
+    mDOMRule(aCopy.mDOMRule.forget())
 {
   // The DOM rule is replacing |aCopy| with |this|, so transfer
   // the reverse pointer as well (and transfer ownership).
-  aCopy.mDOMRule = nullptr;
 
   // Similarly for the selector.
   aCopy.mSelector = nullptr;
@@ -1360,10 +1372,8 @@ StyleRule::~StyleRule()
 {
   delete mSelector;
   delete mDeclaration;
-  NS_IF_RELEASE(mImportantRule);
   if (mDOMRule) {
     mDOMRule->DOMDeclaration()->DropReference();
-    NS_RELEASE(mDOMRule);
   }
 }
 
@@ -1386,12 +1396,12 @@ void
 StyleRule::RuleMatched()
 {
   if (!mWasMatched) {
-    NS_ABORT_IF_FALSE(!mImportantRule, "should not have important rule yet");
+    MOZ_ASSERT(!mImportantRule, "should not have important rule yet");
 
     mWasMatched = true;
     mDeclaration->SetImmutable();
     if (mDeclaration->HasImportantData()) {
-      NS_ADDREF(mImportantRule = new ImportantRule(mDeclaration));
+      mImportantRule = new ImportantRule(mDeclaration);
     }
   }
 }
@@ -1420,7 +1430,6 @@ StyleRule::GetDOMRule()
       return nullptr;
     }
     mDOMRule = new DOMCSSStyleRule(this);
-    NS_ADDREF(mDOMRule);
   }
   return mDOMRule;
 }
@@ -1438,7 +1447,7 @@ StyleRule::DeclarationChanged(Declaration* aDecl,
   nsRefPtr<StyleRule> clone = new StyleRule(*this, aDecl);
 
   if (aHandleContainer) {
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     if (mParentRule) {
       if (sheet) {
         sheet->ReplaceRuleInGroup(mParentRule, this, clone);
@@ -1456,8 +1465,8 @@ StyleRule::DeclarationChanged(Declaration* aDecl,
 /* virtual */ void
 StyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
-  NS_ABORT_IF_FALSE(mWasMatched,
-                    "somebody forgot to call css::StyleRule::RuleMatched");
+  MOZ_ASSERT(mWasMatched,
+             "somebody forgot to call css::StyleRule::RuleMatched");
   mDeclaration->MapNormalRuleInfoInto(aRuleData);
 }
 
@@ -1465,22 +1474,44 @@ StyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 /* virtual */ void
 StyleRule::List(FILE* out, int32_t aIndent) const
 {
+  nsAutoCString str;
   // Indent
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
+  for (int32_t index = aIndent; --index >= 0; ) {
+    str.AppendLiteral("  ");
+  }
 
-  nsAutoString buffer;
-  if (mSelector)
+  if (mSelector) {
+    nsAutoString buffer;
     mSelector->ToString(buffer, GetStyleSheet());
+    AppendUTF16toUTF8(buffer, str);
+    str.Append(' ');
+  }
 
-  buffer.Append(' ');
-  fputs(NS_LossyConvertUTF16toASCII(buffer).get(), out);
   if (nullptr != mDeclaration) {
-    mDeclaration->List(out);
+    nsAutoString buffer;
+    str.AppendLiteral("{ ");
+    mDeclaration->ToString(buffer);
+    AppendUTF16toUTF8(buffer, str);
+    str.Append('}');
+    CSSStyleSheet* sheet = GetStyleSheet();
+    if (sheet) {
+      nsIURI* uri = sheet->GetSheetURI();
+      if (uri) {
+        nsAutoCString uristr;
+        str.Append(" /* ");
+        uri->GetSpec(uristr);
+        str.Append(uristr);
+        str.Append(':');
+        str.AppendInt(mLineNumber);
+        str.Append(" */");
+      }
+    }
   }
   else {
-    fputs("{ null declaration }", out);
+    str.AppendLiteral("{ null declaration }");
   }
-  fputs("\n", out);
+  str.Append('\n');
+  fprintf_stderr(out, "%s", str.get());
 }
 #endif
 

@@ -11,6 +11,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 const UPDATE_URL_PREF = "browser.webapps.updateCheckUrl";
 
 Cu.import("resource://gre/modules/AppsUtils.jsm");
+Cu.import("resource://gre/modules/Downloads.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -22,12 +23,15 @@ Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications", "resource://gre/modules/Notifications.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "sendMessageToJava", "resource://gre/modules/Messaging.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Messaging", "resource://gre/modules/Messaging.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "Strings", function() {
   return Services.strings.createBundle("chrome://browser/locale/webapp.properties");
 });
+
+XPCOMUtils.defineLazyServiceGetter(this, "ParentalControls",
+  "@mozilla.org/parental-controls-service;1", "nsIParentalControlsService");
 
 /**
  * Get the formatted plural form of a string.  Escapes semicolons in arguments
@@ -89,6 +93,12 @@ this.WebappManager = {
   },
 
   _installApk: function(aMessage, aMessageManager) { return Task.spawn((function*() {
+    if (!ParentalControls.isAllowed(ParentalControls.INSTALL_APPS)) {
+      aMessage.error = Strings.GetStringFromName("webappsDisabled"),
+      aMessageManager.sendAsyncMessage("Webapps:Install:Return:KO", aMessage);
+      return;
+    }
+
     let filePath;
 
     try {
@@ -100,16 +110,14 @@ this.WebappManager = {
       return;
     }
 
-    sendMessageToJava({
+    Messaging.sendRequestForResult({
       type: "Webapps:InstallApk",
       filePath: filePath,
       data: aMessage,
-    }, (data, error) => {
-      if (!!error) {
-        aMessage.error = error;
-        aMessageManager.sendAsyncMessage("Webapps:Install:Return:KO", aMessage);
-        debug("error downloading APK: " + error);
-      }
+    }).catch(function (error) {
+      aMessage.error = error;
+      aMessageManager.sendAsyncMessage("Webapps:Install:Return:KO", aMessage);
+      debug("error downloading APK: " + error);
     });
   }).bind(this)); },
 
@@ -130,30 +138,29 @@ this.WebappManager = {
       [p + "=" + encodeURIComponent(params[p]) for (p in params)].join("&");
     debug("downloading APK from " + generatorUrl.spec);
 
-    let file = Cc["@mozilla.org/download-manager;1"].
-               getService(Ci.nsIDownloadManager).
-               defaultDownloadsDirectory.
-               clone();
-    file.append(aManifestUrl.replace(/[^a-zA-Z0-9]/gi, "") + ".apk");
-    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-    debug("downloading APK to " + file.path);
+    Downloads.getSystemDownloadsDirectory().then(function(downloadsDir) {
+      let file = new FileUtils.File(downloadsDir);
+      file.append(aManifestUrl.replace(/[^a-zA-Z0-9]/gi, "") + ".apk");
+      file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      debug("downloading APK to " + file.path);
 
-    let worker = new ChromeWorker("resource://gre/modules/WebappManagerWorker.js");
-    worker.onmessage = function(event) {
-      let { type, message } = event.data;
+      let worker = new ChromeWorker("resource://gre/modules/WebappManagerWorker.js");
+      worker.onmessage = function(event) {
+        let { type, message } = event.data;
 
-      worker.terminate();
+        worker.terminate();
 
-      if (type == "success") {
-        deferred.resolve(file.path);
-      } else { // type == "failure"
-        debug("error downloading APK: " + message);
-        deferred.reject(message);
+        if (type == "success") {
+          deferred.resolve(file.path);
+        } else { // type == "failure"
+          debug("error downloading APK: " + message);
+          deferred.reject(message);
+        }
       }
-    }
 
-    // Trigger the download.
-    worker.postMessage({ url: generatorUrl.spec, path: file.path });
+      // Trigger the download.
+      worker.postMessage({ url: generatorUrl.spec, path: file.path });
+    });
 
     return deferred.promise;
   },
@@ -178,33 +185,34 @@ this.WebappManager = {
     this._deleteAppcachePath(aData.app.manifest);
 
     DOMApplicationRegistry.registryReady.then(() => {
-      DOMApplicationRegistry.confirmInstall(aData, file, (function(aManifest) {
-        this._postInstall(aData.profilePath, aManifest, aData.app.origin, aData.app.apkPackageName);
+      DOMApplicationRegistry.confirmInstall(aData, file, (function(aApp, aManifest) {
+        this._postInstall(aData.profilePath, aManifest, aData.app.origin,
+                          aData.app.apkPackageName, aData.app.manifestURL);
       }).bind(this));
     });
   },
 
-  _postInstall: function(aProfilePath, aNewManifest, aOrigin, aApkPackageName) {
+  _postInstall: function(aProfilePath, aNewManifest, aOrigin, aApkPackageName, aManifestURL) {
     // aOrigin may now point to the app: url that hosts this app.
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "Webapps:Postinstall",
       apkPackageName: aApkPackageName,
       origin: aOrigin,
     });
-
-    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-    file.initWithPath(aProfilePath);
-    let localeManifest = new ManifestHelper(aNewManifest, aOrigin);
-    this.writeDefaultPrefs(file, localeManifest);
   },
 
-  launch: function({ manifestURL, origin }) {
-    debug("launchWebapp: " + manifestURL);
+  askUninstall: function(aData) {
+    // Android does not currently support automatic uninstalling of apps.
+    // See bug 1019054.
+    DOMApplicationRegistry.denyUninstall(aData, "NOT_SUPPORTED");
+  },
 
-    sendMessageToJava({
-      type: "Webapps:Open",
-      manifestURL: manifestURL,
-      origin: origin
+  launch: function({ apkPackageName }) {
+    debug("launch: " + apkPackageName);
+
+    Messaging.sendRequest({
+      type: "Webapps:Launch",
+      packageName: apkPackageName,
     });
   },
 
@@ -226,10 +234,9 @@ this.WebappManager = {
 
     // If the APK is installed, then _getAPKVersions will return a version
     // for it, so we can use that function to determine its install status.
-    let apkVersions = yield this._getAPKVersions([ app.apkPackageName ]);
-    if (app.apkPackageName in apkVersions) {
+    if (app.apkPackageName && app.apkPackageName in (yield this._getAPKVersions([ app.apkPackageName ]))) {
       debug("APK is installed; requesting uninstallation");
-      sendMessageToJava({
+      Messaging.sendRequest({
         type: "Webapps:UninstallApk",
         apkPackageName: app.apkPackageName,
       });
@@ -251,23 +258,13 @@ this.WebappManager = {
       // to ensure the user can always remove an app from the registry (and thus
       // about:apps) even if it's out of sync with installed APKs.
       debug("APK not installed; proceeding directly to removal from registry");
-      DOMApplicationRegistry.doUninstall(aData, aMessageManager);
+      DOMApplicationRegistry.uninstall(aData.manifestURL);
     }
 
   }),
 
   autoInstall: function(aData) {
     debug("autoInstall " + aData.manifestURL);
-
-    // If the app is already installed, update the existing installation.
-    // We should be able to use DOMApplicationRegistry.getAppByManifestURL,
-    // but it returns a mozIApplication, while _autoUpdate needs the original
-    // object from DOMApplicationRegistry.webapps in order to modify it.
-    for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
-      if (app.manifestURL == aData.manifestURL) {
-        return this._autoUpdate(aData, app);
-      }
-    }
 
     let mm = {
       sendAsyncMessage: function (aMessageName, aData) {
@@ -303,6 +300,16 @@ this.WebappManager = {
     message.apkInstall = true;
 
     DOMApplicationRegistry.registryReady.then(() => {
+      // If the app is already installed, update the existing installation.
+      // We should be able to use DOMApplicationRegistry.getAppByManifestURL,
+      // but it returns a mozIApplication, while _autoUpdate needs the original
+      // object from DOMApplicationRegistry.webapps in order to modify it.
+      for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
+        if (app.manifestURL == aData.manifestURL) {
+          return this._autoUpdate(aData, app);
+        }
+      }
+
       switch (aData.type) { // can be hosted or packaged.
         case "hosted":
           DOMApplicationRegistry.doInstall(message, mm);
@@ -334,7 +341,7 @@ this.WebappManager = {
       yield this._autoUpdatePackagedApp(aData, aOldApp);
     }
 
-    this._postInstall(aData.profilePath, aData.manifest, aOldApp.origin, aOldApp.apkPackageName);
+    this._postInstall(aData.profilePath, aData.manifest, aOldApp.origin, aOldApp.apkPackageName, aOldApp.manifestURL);
   }).bind(this)); },
 
   _autoUpdatePackagedApp: Task.async(function*(aData, aOldApp) {
@@ -351,7 +358,7 @@ this.WebappManager = {
 
     try {
       yield DOMApplicationRegistry.startDownload(aData.manifestURL);
-    } catch (ex if ex.message == "PACKAGE_UNCHANGED") {
+    } catch (ex if ex == "PACKAGE_UNCHANGED") {
       debug("package unchanged");
       // If the package is unchanged, then there's nothing more to do.
       return;
@@ -448,14 +455,10 @@ this.WebappManager = {
   }).bind(this)); },
 
   _getAPKVersions: function(packageNames) {
-    let deferred = Promise.defer();
-
-    sendMessageToJava({
+    return Messaging.sendRequestForResult({
       type: "Webapps:GetApkVersions",
       packageNames: packageNames 
-    }, data => deferred.resolve(data.versions));
-
-    return deferred.promise;
+    }).then(data => data.versions);
   },
 
   _getInstalledApps: function() {
@@ -573,16 +576,14 @@ this.WebappManager = {
           // TODO: figure out why Webapps:InstallApk needs the "from" property.
           from: apk.app.installOrigin,
         };
-        sendMessageToJava({
+        Messaging.sendRequestForResult({
           type: "Webapps:InstallApk",
           filePath: apk.filePath,
           data: msg,
-        }, (data, error) => {
-          if (!!error) {
-            // There's no page to report back to so drop the error.
-            // TODO: we should notify the user about this failure.
-            debug("APK install failed : " + returnError);
-          }
+        }).catch((error) => {
+          // There's no page to report back to so drop the error.
+          // TODO: we should notify the user about this failure.
+          debug("APK install failed : " + error);
         });
       }
     } else {
@@ -638,8 +639,7 @@ this.WebappManager = {
         let app = DOMApplicationRegistry.webapps[id];
         if (aData.apkPackageNames.indexOf(app.apkPackageName) > -1) {
           debug("attempting to uninstall " + app.name);
-          DOMApplicationRegistry.uninstall(
-            app.manifestURL,
+          DOMApplicationRegistry.uninstall(app.manifestURL).then(
             function() {
               debug("success uninstalling " + app.name);
             },
@@ -651,33 +651,4 @@ this.WebappManager = {
       }
     });
   },
-
-  writeDefaultPrefs: function(aProfile, aManifest) {
-      // build any app specific default prefs
-      let prefs = [];
-      if (aManifest.orientation) {
-        let orientation = aManifest.orientation;
-        if (Array.isArray(orientation)) {
-          orientation = orientation.join(",");
-        }
-        prefs.push({ name: "app.orientation.default", value: orientation });
-      }
-
-      // write them into the app profile
-      let defaultPrefsFile = aProfile.clone();
-      defaultPrefsFile.append(this.DEFAULT_PREFS_FILENAME);
-      this._writeData(defaultPrefsFile, prefs);
-  },
-
-  _writeData: function(aFile, aPrefs) {
-    if (aPrefs.length > 0) {
-      let array = new TextEncoder().encode(JSON.stringify(aPrefs));
-      OS.File.writeAtomic(aFile.path, array, { tmpPath: aFile.path + ".tmp" }).then(null, function onError(reason) {
-        debug("Error writing default prefs: " + reason);
-      });
-    }
-  },
-
-  DEFAULT_PREFS_FILENAME: "default-prefs.js",
-
 };

@@ -9,17 +9,22 @@
  */
 
 
-#ifndef VP9_DECODER_VP9_SUBEXP_H_
-#define VP9_DECODER_VP9_SUBEXP_H_
+#ifndef VP9_ENCODER_VP9_SUBEXP_H_
+#define VP9_ENCODER_VP9_SUBEXP_H_
 
-void vp9_compute_update_table();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include "vp9/common/vp9_prob.h"
 
-void vp9_write_prob_diff_update(vp9_writer *w,
+struct vp9_writer;
+
+void vp9_write_prob_diff_update(struct vp9_writer *w,
                                 vp9_prob newp, vp9_prob oldp);
 
-void vp9_cond_prob_diff_update(vp9_writer *w, vp9_prob *oldp,
-                               unsigned int *ct);
+void vp9_cond_prob_diff_update(struct vp9_writer *w, vp9_prob *oldp,
+                               const unsigned int ct[2]);
 
 int vp9_prob_diff_update_savings_search(const unsigned int *ct,
                                         vp9_prob oldp, vp9_prob *bestp,
@@ -30,6 +35,10 @@ int vp9_prob_diff_update_savings_search_model(const unsigned int *ct,
                                               const vp9_prob *oldp,
                                               vp9_prob *bestp,
                                               vp9_prob upd,
-                                              int b, int r);
+                                              int stepsize);
 
-#endif  // VP9_DECODER_VP9_SUBEXP_H_
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+#endif  // VP9_ENCODER_VP9_SUBEXP_H_

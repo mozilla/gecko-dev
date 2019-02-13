@@ -45,9 +45,9 @@ public:
         // unref here??
     }
 
-    virtual void SetPlugin(nsNPAPIPlugin*) { }
+    virtual void SetPlugin(nsNPAPIPlugin*) override { }
 
-    virtual bool HasRequiredFunctions() {
+    virtual bool HasRequiredFunctions() override {
         mNP_Initialize = (NP_InitializeFunc)
             PR_FindFunctionSymbol(mLibrary, "NP_Initialize");
         if (!mNP_Initialize)
@@ -82,46 +82,48 @@ public:
     }
 
 #if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
-    virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs,
-                                   NPPluginFuncs* pFuncs, NPError* error);
+    virtual nsresult NP_Initialize(NPNetscapeFuncs* aNetscapeFuncs,
+                                   NPPluginFuncs* aFuncs, NPError* aError) override;
 #else
-    virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs,
-                                   NPError* error);
+    virtual nsresult NP_Initialize(NPNetscapeFuncs* aNetscapeFuncs,
+                                   NPError* aError) override;
 #endif
 
-    virtual nsresult NP_Shutdown(NPError* error);
-    virtual nsresult NP_GetMIMEDescription(const char** mimeDesc);
+    virtual nsresult NP_Shutdown(NPError* aError) override;
+    virtual nsresult NP_GetMIMEDescription(const char** aMimeDesc) override;
 
-    virtual nsresult NP_GetValue(void *future, NPPVariable aVariable,
-                                 void *aValue, NPError* error);
+    virtual nsresult NP_GetValue(void* aFuture, NPPVariable aVariable,
+                                 void* aValue, NPError* aError) override;
 
 #if defined(XP_WIN) || defined(XP_MACOSX)
-    virtual nsresult NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error);
+    virtual nsresult NP_GetEntryPoints(NPPluginFuncs* aFuncs, NPError* aError) override;
 #endif
 
-    virtual nsresult NPP_New(NPMIMEType pluginType, NPP instance,
-                             uint16_t mode, int16_t argc, char* argn[],
-                             char* argv[], NPSavedData* saved,
-                             NPError* error);
+    virtual nsresult NPP_New(NPMIMEType aPluginType, NPP aInstance,
+                             uint16_t aMode, int16_t aArgc, char* aArgn[],
+                             char* aArgv[], NPSavedData* aSaved,
+                             NPError* aError) override;
 
-    virtual nsresult NPP_ClearSiteData(const char* site, uint64_t flags,
-                                       uint64_t maxAge);
-    virtual nsresult NPP_GetSitesWithData(InfallibleTArray<nsCString>& result);
+    virtual nsresult NPP_ClearSiteData(const char* aSite, uint64_t aFlags,
+                                       uint64_t aMaxAge) override;
+    virtual nsresult NPP_GetSitesWithData(InfallibleTArray<nsCString>& aResult) override;
 
-    virtual nsresult AsyncSetWindow(NPP instance, NPWindow* window);
-    virtual nsresult GetImageContainer(NPP instance, mozilla::layers::ImageContainer** aContainer);
-    virtual nsresult GetImageSize(NPP instance, nsIntSize* aSize);
-    virtual bool IsOOP() MOZ_OVERRIDE { return false; }
+    virtual nsresult AsyncSetWindow(NPP aInstance, NPWindow* aWindow) override;
+    virtual nsresult GetImageContainer(NPP aInstance, mozilla::layers::ImageContainer** aContainer) override;
+    virtual nsresult GetImageSize(NPP aInstance, nsIntSize* aSize) override;
+    virtual bool IsOOP() override { return false; }
 #if defined(XP_MACOSX)
-    virtual nsresult IsRemoteDrawingCoreAnimation(NPP instance, bool *aDrawing);
-    virtual nsresult ContentsScaleFactorChanged(NPP instance, double aContentsScaleFactor);
+    virtual nsresult IsRemoteDrawingCoreAnimation(NPP aInstance, bool* aDrawing) override;
+    virtual nsresult ContentsScaleFactorChanged(NPP aInstance, double aContentsScaleFactor) override;
 #endif
-    virtual nsresult SetBackgroundUnknown(NPP instance) MOZ_OVERRIDE;
+    virtual nsresult SetBackgroundUnknown(NPP instance) override;
     virtual nsresult BeginUpdateBackground(NPP instance,
-                                           const nsIntRect&, gfxContext** aCtx) MOZ_OVERRIDE;
+                                           const nsIntRect&, gfxContext** aCtx) override;
     virtual nsresult EndUpdateBackground(NPP instance,
-                                         gfxContext* aCtx, const nsIntRect&) MOZ_OVERRIDE;
+                                         gfxContext* aCtx, const nsIntRect&) override;
     virtual void GetLibraryPath(nsACString& aPath) { aPath.Assign(mFilePath); }
+    virtual nsresult GetRunID(uint32_t* aRunID) override { return NS_ERROR_NOT_IMPLEMENTED; }
+    virtual void SetHasLocalInstance() override { }
 
 private:
     NP_InitializeFunc mNP_Initialize;

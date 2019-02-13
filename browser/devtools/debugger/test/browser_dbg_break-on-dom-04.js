@@ -9,14 +9,14 @@
 const TAB_URL = EXAMPLE_URL + "doc_event-listeners-02.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     let gDebugger = aPanel.panelWin;
     let gView = gDebugger.DebuggerView;
     let gController = gDebugger.DebuggerController
     let gEvents = gView.EventListeners;
     let gBreakpoints = gController.Breakpoints;
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       yield waitForSourceShown(aPanel, ".html");
 
       let fetched = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_LISTENERS_FETCHED);
@@ -30,7 +30,7 @@ function test() {
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", false);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "");
+      testEventArrays("change,click,keydown,keyup", "");
 
       let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
       EventUtils.sendMouseEvent({ type: "click" }, getItemCheckboxNode(0), gDebugger);
@@ -43,9 +43,9 @@ function test() {
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", false);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "keydown");
+      testEventArrays("change,click,keydown,keyup", "change");
 
-      let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
+      updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
       EventUtils.sendMouseEvent({ type: "click" }, getItemCheckboxNode(0), gDebugger);
       yield updated;
 
@@ -56,7 +56,7 @@ function test() {
       testEventGroup("interactionEvents", false);
       testEventGroup("keyboardEvents", false);
       testEventGroup("mouseEvents", false);
-      testEventArrays("keydown,click,change,keyup", "");
+      testEventArrays("change,click,keydown,keyup", "");
 
       yield ensureThreadClientState(aPanel, "resumed");
       yield closeDebuggerAndFinish(aPanel);

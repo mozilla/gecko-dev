@@ -25,7 +25,6 @@ var Status = require('../types/types').Status;
 var cli = require('../cli');
 var Requisition = require('../cli').Requisition;
 var CommandAssignment = require('../cli').CommandAssignment;
-var fields = require('../fields/fields');
 var intro = require('../ui/intro');
 
 var RESOLVED = Promise.resolve(true);
@@ -72,7 +71,7 @@ var commandLanguage = exports.commandLanguage = {
   constructor: function(terminal) {
     this.terminal = terminal;
     this.document = terminal.document;
-    this.focusManager = this.terminal.focusManager;
+    this.focusManager = terminal.focusManager;
 
     var options = this.terminal.options;
     this.requisition = options.requisition;
@@ -83,7 +82,7 @@ var commandLanguage = exports.commandLanguage = {
         options.environment.window = options.environment.document.defaultView;
       }
 
-      this.requisition = new Requisition(options);
+      this.requisition = new Requisition(terminal.system, options);
     }
 
     // We also keep track of the last known arg text for the current assignment
@@ -106,6 +105,8 @@ var commandLanguage = exports.commandLanguage = {
       var mapping = cli.getMapping(this.requisition.executionContext);
       mapping.terminal = this.terminal;
 
+      this.requisition.onExternalUpdate.add(this.textChanged, this);
+
       return this;
     }.bind(this));
   },
@@ -115,13 +116,13 @@ var commandLanguage = exports.commandLanguage = {
     delete mapping.terminal;
 
     this.requisition.commandOutputManager.onOutput.remove(this.outputted, this);
+    this.requisition.onExternalUpdate.remove(this.textChanged, this);
 
     this.terminal = undefined;
     this.requisition = undefined;
     this.commandDom = undefined;
   },
 
-  // From the requisition.textChanged event
   textChanged: function() {
     if (this.terminal == null) {
       return; // This can happen post-destroy()
@@ -163,7 +164,14 @@ var commandLanguage = exports.commandLanguage = {
   // Called internally whenever we think that the current assignment might
   // have changed, typically on mouse-clicks or key presses.
   caretMoved: function(start) {
+    if (!this.requisition.isUpToDate()) {
+      return;
+    }
     var newAssignment = this.requisition.getAssignmentAt(start);
+    if (newAssignment == null) {
+      return;
+    }
+
     if (this.assignment !== newAssignment) {
       if (this.assignment.param.type.onLeave) {
         this.assignment.param.type.onLeave(this.assignment);
@@ -175,7 +183,7 @@ var commandLanguage = exports.commandLanguage = {
       var isNew = (this.assignment !== newAssignment);
 
       this.assignment = newAssignment;
-      this.terminal.updateCompletion();
+      this.terminal.updateCompletion().catch(util.errorHandler);
 
       if (isNew) {
         this.updateHints();
@@ -207,7 +215,8 @@ var commandLanguage = exports.commandLanguage = {
       field.destroy();
     }
 
-    field = this.terminal.field = fields.getField(this.assignment.param.type, {
+    var fields = this.terminal.system.fields;
+    field = this.terminal.field = fields.get(this.assignment.param.type, {
       document: this.terminal.document,
       requisition: this.requisition
     });
@@ -241,7 +250,7 @@ var commandLanguage = exports.commandLanguage = {
     // If the user is on a valid value, then we increment the value, but if
     // they've typed something that's not right we page through predictions
     if (this.assignment.getStatus() === Status.VALID) {
-      return this.requisition.increment(this.assignment).then(function() {
+      return this.requisition.nudge(this.assignment, 1).then(function() {
         this.textChanged();
         this.focusManager.onInputChange();
         return true;
@@ -256,7 +265,7 @@ var commandLanguage = exports.commandLanguage = {
    */
   handleDownArrow: function() {
     if (this.assignment.getStatus() === Status.VALID) {
-      return this.requisition.decrement(this.assignment).then(function() {
+      return this.requisition.nudge(this.assignment, -1).then(function() {
         this.textChanged();
         this.focusManager.onInputChange();
         return true;
@@ -276,7 +285,10 @@ var commandLanguage = exports.commandLanguage = {
     }
 
     this.terminal.history.add(input);
-    this.terminal.unsetChoice();
+    this.terminal.unsetChoice().catch(util.errorHandler);
+
+    this.terminal._previousValue = this.terminal.inputElement.value;
+    this.terminal.inputElement.value = '';
 
     return this.requisition.exec().then(function() {
       this.textChanged();
@@ -486,7 +498,7 @@ var commandLanguage = exports.commandLanguage = {
         this.terminal.scrollToBottom();
         data.throbEle.style.display = ev.output.completed ? 'none' : 'block';
       }.bind(this));
-    }.bind(this)).then(null, console.error);
+    }.bind(this)).catch(console.error);
 
     this.terminal.addElement(data.rowinEle);
     this.terminal.addElement(data.rowoutEle);

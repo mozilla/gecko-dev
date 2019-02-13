@@ -97,8 +97,8 @@ static struct RSABlindingParamsListStr blindingParamsList = { 0 };
 static PRBool nssRSAUseBlinding = PR_TRUE;
 
 static SECStatus
-rsa_build_from_primes(mp_int *p, mp_int *q, 
-		mp_int *e, PRBool needPublicExponent, 
+rsa_build_from_primes(const mp_int *p, const mp_int *q,
+		mp_int *e, PRBool needPublicExponent,
 		mp_int *d, PRBool needPrivateExponent,
 		RSAPrivateKey *key, unsigned int keySizeInBits)
 {
@@ -116,6 +116,12 @@ rsa_build_from_primes(mp_int *p, mp_int *q,
     CHECK_MPI_OK( mp_init(&psub1) );
     CHECK_MPI_OK( mp_init(&qsub1) );
     CHECK_MPI_OK( mp_init(&tmp)   );
+    /* p and q must be distinct. */
+    if (mp_cmp(p, q) == 0) {
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);
+	rv = SECFailure;
+	goto cleanup;
+    }
     /* 1.  Compute n = p*q */
     CHECK_MPI_OK( mp_mul(p, q, &n) );
     /*     verify that the modulus has the desired number of bits */
@@ -280,7 +286,11 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 	PORT_SetError(0);
 	CHECK_SEC_OK( generate_prime(&p, primeLen) );
 	CHECK_SEC_OK( generate_prime(&q, primeLen) );
-	/* Assure q < p */
+	/* Assure p > q */
+	/* NOTE: PKCS #1 does not require p > q, and NSS doesn't use any
+	 * implementation optimization that requires p > q. We can remove
+	 * this code in the future.
+	 */
 	if (mp_cmp(&p, &q) < 0)
 	    mp_exch(&p, &q);
 	/* Attempt to use these primes to generate a key */
@@ -762,7 +772,11 @@ RSA_PopulatePrivateKey(RSAPrivateKey *key)
 	}
      }
 
-     /* force p to the the larger prime */
+     /* Assure p > q */
+     /* NOTE: PKCS #1 does not require p > q, and NSS doesn't use any
+      * implementation optimization that requires p > q. We can remove
+      * this code in the future.
+      */
      if (mp_cmp(&p, &q) < 0)
 	mp_exch(&p, &q);
 
@@ -1093,7 +1107,7 @@ get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
 {
     RSABlindingParams *rsabp           = NULL;
     blindingParams    *bpUnlinked      = NULL;
-    blindingParams    *bp, *prevbp     = NULL;
+    blindingParams    *bp;
     PRCList           *el;
     SECStatus          rv              = SECSuccess;
     mp_err             err             = MP_OKAY;
@@ -1183,7 +1197,6 @@ get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
 	}
 	/* We did not find a usable set of blinding params.  Can we make one? */
 	/* Find a free bp struct. */
-	prevbp = NULL;
 	if ((bp = rsabp->free) != NULL) {
 	    /* unlink this bp */
 	    rsabp->free  = bp->next;
@@ -1386,7 +1399,7 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
         !key->publicExponent.data || !key->privateExponent.data ||
         !key->exponent1.data || !key->exponent2.data ||
         !key->coefficient.data) {
-        /*call RSA_PopulatePrivateKey first, if the application wishes to
+        /* call RSA_PopulatePrivateKey first, if the application wishes to
          * recover these parameters */
         err = MP_BADARG;
         goto cleanup;
@@ -1400,8 +1413,8 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
     SECITEM_TO_MPINT(key->exponent1,       &d_p);
     SECITEM_TO_MPINT(key->exponent2,       &d_q);
     SECITEM_TO_MPINT(key->coefficient,     &qInv);
-    /* p > q */
-    if (mp_cmp(&p, &q) <= 0) {
+    /* p and q must be distinct. */
+    if (mp_cmp(&p, &q) == 0) {
 	rv = SECFailure;
 	goto cleanup;
     }
@@ -1415,9 +1428,6 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
 	rv = SECFailure;         \
 	goto cleanup;            \
     }
-    /*
-     * The following errors cannot be recovered from.
-     */
     /* n == p * q */
     CHECK_MPI_OK( mp_mul(&p, &q, &res) );
     VERIFY_MPI_EQUAL(&res, &n);
@@ -1435,10 +1445,6 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
     /* d*e == 1 mod q-1 */
     CHECK_MPI_OK( mp_mulmod(&d, &e, &qsub1, &res) );
     VERIFY_MPI_EQUAL_1(&res);
-    /*
-     * The following errors can be recovered from. However, the purpose of this
-     * function is to check consistency, so they are not.
-     */
     /* d_p == d mod p-1 */
     CHECK_MPI_OK( mp_mod(&d, &psub1, &res) );
     VERIFY_MPI_EQUAL(&res, &d_p);

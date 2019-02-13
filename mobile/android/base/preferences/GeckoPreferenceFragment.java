@@ -5,21 +5,23 @@
 
 package org.mozilla.gecko.preferences;
 
-import java.lang.reflect.Field;
 import java.util.Locale;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.LocaleManager;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.TelemetryContract.Method;
 
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
@@ -27,7 +29,6 @@ import android.preference.PreferenceScreen;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
-import android.view.ViewConfiguration;
 
 /* A simple implementation of PreferenceFragment for large screen devices
  * This will strip category headers (so that they aren't shown to the user twice)
@@ -50,7 +51,7 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
     }
 
     private static final String LOGTAG = "GeckoPreferenceFragment";
-    private int mPrefsRequestId = 0;
+    private int mPrefsRequestId;
     private Locale lastLocale = Locale.getDefault();
 
     @Override
@@ -61,6 +62,12 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
         getPreferenceManager().setSharedPreferencesName(GeckoSharedPrefs.APP_PREFS_NAME);
 
         int res = getResource();
+        if (res == R.xml.preferences) {
+            Telemetry.startUISession(TelemetryContract.Session.SETTINGS);
+        } else {
+            final String resourceName = getArguments().getString("resource");
+            Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, Method.SETTINGS, resourceName);
+        }
 
         // Display a menu for Search preferences.
         if (res == R.xml.preferences_search) {
@@ -110,7 +117,7 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
         }
 
         final PreferenceActivity activity = (PreferenceActivity) getActivity();
-        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) && activity.isMultiPane()) {
+        if (Versions.feature11Plus && activity.isMultiPane()) {
             // In a multi-pane activity, the title is "Settings", and the action
             // bar is along the top of the screen. We don't want to change those.
             activity.showBreadCrumbs(newTitle, newTitle);
@@ -120,9 +127,11 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
         Log.v(LOGTAG, "Setting activity title to " + newTitle);
         activity.setTitle(newTitle);
 
-        if (Build.VERSION.SDK_INT >= 14) {
+        if (Versions.feature14Plus) {
             final ActionBar actionBar = activity.getActionBar();
-            actionBar.setTitle(newTitle);
+            if (actionBar != null) {
+                actionBar.setTitle(newTitle);
+            }
         }
     }
 
@@ -175,7 +184,7 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
             // The resource was invalid. Use the default resource.
             Log.e(LOGTAG, "Failed to find resource: " + resourceName + ". Displaying default settings.");
 
-            boolean isMultiPane = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) &&
+            boolean isMultiPane = Versions.feature11Plus &&
                                   ((PreferenceActivity) activity).isMultiPane();
             resid = isMultiPane ? R.xml.preferences_customize_tablet : R.xml.preferences;
         }
@@ -195,30 +204,10 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
         if (mPrefsRequestId > 0) {
             PrefsHelper.removeObserver(mPrefsRequestId);
         }
-    }
 
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        showOverflowMenu(activity);
-    }
-
-    /*
-     * Force the overflow 3-dot menu to be displayed if it isn't already displayed.
-     *
-     * This is an ugly hack for 4.0+ Android devices that don't have a dedicated menu button
-     * because Android does not provide a public API to display the ActionBar overflow menu.
-     */
-    private void showOverflowMenu(Activity activity) {
-        try {
-            ViewConfiguration config = ViewConfiguration.get(activity);
-            Field menuOverflow = ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
-            if (menuOverflow != null) {
-                menuOverflow.setAccessible(true);
-                menuOverflow.setBoolean(config, false);
-            }
-        } catch (Exception e) {
-            Log.d(LOGTAG, "Failed to force overflow menu, ignoring.");
+        final int res = getResource();
+        if (res == R.xml.preferences) {
+            Telemetry.stopUISession(TelemetryContract.Session.SETTINGS);
         }
     }
 }

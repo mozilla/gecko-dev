@@ -15,10 +15,15 @@
 #include "nsNetUtil.h"
 #include "nsProxyRelease.h"
 #include "nsAutoPtr.h"
+#include "nsIContentPolicy.h"
+#include "nsContentUtils.h"
 
 #include "nsIFileURL.h"
 #include "nsIMIMEService.h"
 #include <algorithm>
+
+using namespace mozilla;
+using namespace mozilla::net;
 
 //-----------------------------------------------------------------------------
 
@@ -173,11 +178,13 @@ public:
   }
 
   NS_IMETHODIMP ReadSegments(nsWriteSegmentFun fun, void *closure,
-                             uint32_t count, uint32_t *result);
+                             uint32_t count, uint32_t *result) override;
   NS_IMETHODIMP AsyncWait(nsIInputStreamCallback *callback, uint32_t flags,
-                          uint32_t count, nsIEventTarget *target);
+                          uint32_t count, nsIEventTarget *target) override;
 
 private:
+  virtual ~nsFileUploadContentStream() {}
+
   void OnCopyComplete();
 
   nsRefPtr<nsFileCopyEvent> mCopyEvent;
@@ -269,6 +276,10 @@ nsFileChannel::nsFileChannel(nsIURI *uri)
   }
 }
 
+nsFileChannel::~nsFileChannel()
+{
+}
+
 nsresult
 nsFileChannel::MakeFileInputStream(nsIFile *file,
                                    nsCOMPtr<nsIInputStream> &stream,
@@ -330,7 +341,12 @@ nsFileChannel::OpenContentStream(bool async, nsIInputStream **result,
   rv = fileHandler->ReadURLFile(file, getter_AddRefs(newURI));
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIChannel> newChannel;
-    rv = NS_NewChannel(getter_AddRefs(newChannel), newURI);
+    rv = NS_NewChannel(getter_AddRefs(newChannel),
+                       newURI,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER);
+
     if (NS_FAILED(rv))
       return rv;
 
@@ -353,14 +369,13 @@ nsFileChannel::OpenContentStream(bool async, nsIInputStream **result,
     if (NS_FAILED(rv))
       return rv;
 
-    nsFileUploadContentStream *uploadStream =
+    nsRefPtr<nsFileUploadContentStream> uploadStream =
         new nsFileUploadContentStream(async, fileStream, mUploadStream,
                                       mUploadLength, this);
     if (!uploadStream || !uploadStream->IsInitialized()) {
-      delete uploadStream;
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    stream = uploadStream;
+    stream = uploadStream.forget();
 
     mContentLength = 0;
 
@@ -441,8 +456,9 @@ nsFileChannel::SetUploadStream(nsIInputStream *stream,
       nsresult rv = mUploadStream->Available(&avail);
       if (NS_FAILED(rv))
         return rv;
-      if (avail < INT64_MAX)
-        mUploadLength = avail;
+      // if this doesn't fit in the javascript MAX_SAFE_INTEGER
+      // pretend we don't know the size
+      mUploadLength = InScriptableRange(avail) ? avail : -1;
     }
   } else {
     mUploadLength = -1;

@@ -34,25 +34,38 @@ function isTopBrowserElement(docShell) {
 }
 
 if (!('BrowserElementIsPreloaded' in this)) {
-  if (isTopBrowserElement(docShell) &&
-      Services.prefs.getBoolPref("dom.mozInputMethod.enabled")) {
-    try {
-      Services.scriptloader.loadSubScript("chrome://global/content/forms.js");
-    } catch (e) {
+  if (isTopBrowserElement(docShell)) {
+    if (Services.prefs.getBoolPref("dom.mozInputMethod.enabled")) {
+      try {
+        Services.scriptloader.loadSubScript("chrome://global/content/forms.js");
+      } catch (e) {
+      }
     }
+
+    Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementCopyPaste.js");
   }
 
-  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js");
-  ContentPanning.init();
+  if (Services.prefs.getIntPref("dom.w3c_touch_events.enabled") == 1) {
+    if (docShell.asyncPanZoomEnabled === false) {
+      Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanningAPZDisabled.js");
+      ContentPanningAPZDisabled.init();
+    }
+
+    Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js");
+    ContentPanning.init();
+  }
 
   Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementChildPreload.js");
 } else {
-  ContentPanning.init();
+  if (Services.prefs.getIntPref("dom.w3c_touch_events.enabled") == 1) {
+    if (docShell.asyncPanZoomEnabled === false) {
+      ContentPanningAPZDisabled.init();
+    }
+    ContentPanning.init();
+  }
 }
 
 var BrowserElementIsReady = true;
 
-let infos = sendSyncMessage('browser-element-api:call',
-                            { 'msg_name': 'hello' })[0];
-docShell.QueryInterface(Ci.nsIDocShellTreeItem).name = infos.name;
-docShell.setFullscreenAllowed(infos.fullscreenAllowed);
+
+sendAsyncMessage('browser-element-api:call', { 'msg_name': 'hello' });

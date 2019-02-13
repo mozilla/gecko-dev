@@ -6,7 +6,7 @@
 
 // Test that changing the current element's style attribute refreshes the rule-view
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,browser_ruleview_update.js");
 
   content.document.body.innerHTML = '<div id="testid" class="testclass">Styled Node</div>';
@@ -14,7 +14,7 @@ let test = asyncTest(function*() {
   testElement.setAttribute("style", "margin-top: 1px; padding-top: 5px;");
 
   let {toolbox, inspector, view} = yield openRuleView();
-  yield selectNode(testElement, inspector);
+  yield selectNode("#testid", inspector);
 
   yield testPropertyChanges(inspector, view, testElement);
   yield testPropertyChange0(inspector, view, testElement);
@@ -96,14 +96,14 @@ function* testPropertyChange5(inspector, ruleView, testElement) {
 
 function* testPropertyChange6(inspector, ruleView, testElement) {
   info("Add an entirely new property again");
-  yield changeElementStyle(testElement, "background: url(\"chrome://branding/content/about-logo.png\") repeat scroll 0% 0% red", inspector);
+  yield changeElementStyle(testElement, "background: red url(\"chrome://branding/content/about-logo.png\") repeat scroll 0% 0%", inspector);
 
   let rule = ruleView._elementStyle.rules[0];
   is(rule.editor.element.querySelectorAll(".ruleview-property").length, 5, "Added a property");
   validateTextProp(rule.textProps[4], true, "background",
-                   "url(\"chrome://branding/content/about-logo.png\") repeat scroll 0% 0% red",
+                   "red url(\"chrome://branding/content/about-logo.png\") repeat scroll 0% 0%",
                    "shortcut property correctly set",
-                   "url('chrome://branding/content/about-logo.png') repeat scroll 0% 0% #F00");
+                   "#F00 url(\"chrome://branding/content/about-logo.png\") repeat scroll 0% 0%");
 }
 
 function* changeElementStyle(testElement, style, inspector) {

@@ -11,6 +11,8 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Atomics.h"
 
 class nsIRunnable;
 
@@ -19,12 +21,13 @@ namespace net {
 
 class CacheIOThread : public nsIThreadObserver
 {
+  virtual ~CacheIOThread();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITHREADOBSERVER
 
   CacheIOThread();
-  virtual ~CacheIOThread();
 
   enum ELevel {
     OPEN_PRIORITY,
@@ -86,13 +89,14 @@ private:
   mozilla::Monitor mMonitor;
   PRThread* mThread;
   nsCOMPtr<nsIThread> mXPCOMThread;
-  uint32_t mLowestLevelWaiting;
+  Atomic<uint32_t, Relaxed> mLowestLevelWaiting;
   uint32_t mCurrentlyExecutingLevel;
-  nsTArray<nsRefPtr<nsIRunnable> > mEventQueue[LAST_LEVEL];
+  nsTArray<nsCOMPtr<nsIRunnable> > mEventQueue[LAST_LEVEL];
 
-  bool mHasXPCOMEvents;
+  Atomic<bool, Relaxed> mHasXPCOMEvents;
   bool mRerunCurrentEvent;
   bool mShutdown;
+  DebugOnly<bool> mInsideLoop;
 };
 
 } // net

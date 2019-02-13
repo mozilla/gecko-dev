@@ -17,24 +17,25 @@ a {
 
 .message {
   display: flex;
-  flex: 0 0 auto;
+  flex: none;
   padding: 0 7px;
   width: 100%;
   box-sizing: border-box;
 }
 
+.message > .prefix,
 .message > .timestamp {
-  flex: 0 0 auto;
+  flex: none;
   color: GrayText;
-  margin: 4px 6px 0 0;
+  margin: 3px 6px 0 0;
 }
 
 .message > .indent {
-  flex: 0 0 auto;
+  flex: none;
 }
 
 .message > .icon {
-  flex: 0 0 auto;
+  flex: none;
   margin: 3px 6px 0 0;
   padding: 0 4px;
   height: 1em;
@@ -43,19 +44,17 @@ a {
 
 .message > .icon::before {
   content: "";
-  background-image: url(chrome://browser/skin/devtools/webconsole.png);
-  background-position: 8px 8px;
+  background-image: url(chrome://browser/skin/devtools/webconsole.svg);
+  background-position: 12px 12px;
   background-repeat: no-repeat;
-  background-size: 48px 40px;
-  width: 8px;
-  height: 8px;
+  background-size: 72px 60px;
+  width: 12px;
+  height: 12px;
   display: inline-block;
 }
 
-@media (min-resolution: 2dppx) {
-  .message > .icon::before {
-    background-image: url(chrome://browser/skin/devtools/webconsole@2x.png);
-  }
+.theme-light .message > .icon::before {
+  background-image: url(chrome://browser/skin/devtools/webconsole.svg#light-icons);
 }
 
 .message > .message-body-wrapper {
@@ -63,10 +62,14 @@ a {
   margin: 3px;
 }
 
+.message-body-wrapper .table-widget-body {
+  overflow: visible;
+}
+
 /* The red bubble that shows the number of times a message is repeated */
 .message-repeats {
   -moz-user-select: none;
-  flex: 0 0 auto;
+  flex: none;
   margin: 2px 6px;
   padding: 0 6px;
   height: 1.25em;
@@ -84,7 +87,7 @@ a {
 
 .message-location {
   display: flex;
-  flex: 0 0 auto;
+  flex: none;
   align-self: flex-start;
   justify-content: flex-end;
   width: 10em;
@@ -106,14 +109,14 @@ a {
 }
 
 .message-location > .line-number {
-  flex: 0 0 auto;
+  flex: none;
 }
 
 .message-flex-body {
   display: flex;
 }
 
-.message-body {
+.message-body > * {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -156,12 +159,8 @@ a {
   display: none;
 }
 
-.theme-dark #output-container.hideTimestamps > .message > .indent {
-  background-color: #14171a; /* .theme-body */
-}
-
-.theme-light #output-container.hideTimestamps > .message > .indent {
-  background-color: #fcfcfc; /* .theme-body */
+#output-container.hideTimestamps > .message > .indent {
+  background-color: var(--theme-body-background);
 }
 
 .filtered-by-type,
@@ -199,6 +198,10 @@ a {
   border-color: #777;
 }
 
+.message:hover {
+  background-color: var(--theme-selection-background-semitransparent) !important;
+}
+
 .theme-light .message[severity=error] {
   background-color: rgba(255, 150, 150, 0.3);
 }
@@ -207,12 +210,15 @@ a {
   background-color: rgba(235, 83, 104, 0.17);
 }
 
-.theme-dark .console-string {
-  color: #d99b28;
+.console-string {
+  color: var(--theme-highlight-lightorange);
 }
 
-.theme-light .console-string {
-  color: hsl(24,85%,39%);
+.theme-selected .console-string,
+.theme-selected .cm-number,
+.theme-selected .cm-variable,
+.theme-selected .kind-ArrayLike {
+  color: #f5f7fa !important; /* Selection Text Color */
 }
 
 .message[category=network] > .indent {
@@ -220,7 +226,7 @@ a {
 }
 
 .message[category=network][severity=error] > .icon::before {
-  background-position: -8px 0;
+  background-position: -12px 0;
 }
 
 .message[category=network] > .message-body {
@@ -228,7 +234,7 @@ a {
 }
 
 .message[category=network] .method {
-  flex: 0 0 auto;
+  flex: none;
 }
 
 .message[category=network]:not(.navigation-marker) .url {
@@ -242,7 +248,7 @@ a {
 }
 
 .message[category=network] .status {
-  flex: 0 0 auto;
+  flex: none;
   -moz-margin-start: 6px;
 }
 
@@ -253,6 +259,17 @@ a {
 .message .learn-more-link {
   color: -moz-nativehyperlinktext;
   margin: 0 6px;
+}
+
+.message[category=network] .xhr {
+  background-color: var(--theme-body-color-alt);
+  color: var(--theme-body-background);
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 10px;
+  padding: 2px;
+  line-height: 10px;
+  -moz-margin-end: 1ex;
 }
 
 /* CSS styles */
@@ -266,11 +283,11 @@ a {
 }
 
 .message[category=cssparser][severity=error] > .icon::before {
-  background-position: -8px -8px;
+  background-position: -12px -12px;
 }
 
 .message[category=cssparser][severity=warn] > .icon::before {
-  background-position: -16px -8px;
+  background-position: -24px -12px;
 }
 
 /* JS styles */
@@ -284,11 +301,11 @@ a {
 }
 
 .message[category=exception][severity=error] > .icon::before {
-  background-position: -8px -16px;
+  background-position: -12px -24px;
 }
 
 .message[category=exception][severity=warn] > .icon::before {
-  background-position: -16px -16px;
+  background-position: -24px -24px;
 }
 
 /* Web Developer styles */
@@ -303,15 +320,15 @@ a {
 
 .message[category=console][severity=error] > .icon::before,
 .message[category=output][severity=error] > .icon::before {
-  background-position: -8px -24px;
+  background-position: -12px -36px;
 }
 
 .message[category=console][severity=warn] > .icon::before {
-  background-position: -16px -24px;
+  background-position: -24px -36px;
 }
 
 .message[category=console][severity=info] > .icon::before {
-  background-position: -24px -24px;
+  background-position: -36px -36px;
 }
 
 /* Input and output styles */
@@ -321,11 +338,11 @@ a {
 }
 
 .message[category=input] > .icon::before {
-  background-position: -32px -24px;
+  background-position: -48px -36px;
 }
 
 .message[category=output] > .icon::before {
-  background-position: -40px -24px;
+  background-position: -60px -36px;
 }
 
 /* JSTerm Styles */
@@ -343,7 +360,7 @@ a {
   background-size: 16px 16px;
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.25dppx) {
   .jsterm-input-node {
     background-image: -moz-image-rect(url('chrome://browser/skin/devtools/commandline-icon@2x.png'), 0, 64, 32, 32);
   }
@@ -357,6 +374,9 @@ a {
 .inlined-variables-view .message-body {
   display: flex;
   flex-direction: column;
+  resize: vertical;
+  overflow: auto;
+  min-height: 200px;
 }
 .inlined-variables-view iframe {
   display: block;
@@ -389,11 +409,11 @@ a {
 }
 
 .message[category=security][severity=error] > .icon::before {
-  background-position: -8px -32px;
+  background-position: -12px -48px;
 }
 
 .message[category=security][severity=warn] > .icon::before {
-  background-position: -16px -32px;
+  background-position: -24px -48px;
 }
 
 .navigation-marker {
@@ -419,6 +439,10 @@ a {
   overflow-y: auto;
   border: 1px solid rgb(200,200,200);
   border-radius: 3px;
+}
+
+.consoletable {
+  margin: 5px 0 0 0;
 }
 
 .theme-light .message[severity=error] .stacktrace {
@@ -476,22 +500,21 @@ a {
   background-position: -16px 0;
 }
 
-/* Replace these values with CSS variables as available */
-.theme-dark .jsterm-input-container {
-  background-color: #252c33; /* tabToolbarBackgroundColor */
-  border-color: #14171a; /* mainBackgroundColor */
+.jsterm-input-container {
+  background-color: var(--theme-tab-toolbar-background);
+  border-color: var(--theme-body-background);
 }
 
-.theme-dark .jsterm-input-node {
-  color: #a9bacb; /* textColor */
+.jsterm-input-node {
+  color: var(--theme-content-color1);
 }
 
-.theme-dark .jsterm-complete-node {
-  color: #5c6773; /* commentColor */
+.jsterm-complete-node {
+  color: var(--theme-comment);
 }
 
-.theme-dark .navigation-marker .url {
-  background: #14171a; /* mainBackgroundColor */
+.navigation-marker .url {
+  background: var(--theme-body-background);
 }
 
 .theme-dark .inlined-variables-view iframe {
@@ -503,20 +526,13 @@ a {
 }
 
 .theme-light .jsterm-input-container {
-  background-color: #fff; /* mainBackgroundColor */
+  /* For light theme use a white background for the input - it looks better
+     than off-white */
+  background-color: #fff;
   border-color: ThreeDShadow;
 }
-
-.theme-light .jsterm-input-node {
-  color: black; /* textColor */
-}
-
-.theme-light .jsterm-complete-node {
-  color: hsl(90,2%,46%); /* commentColor */
-}
-
 .theme-light .navigation-marker .url {
-  background: #fff; /* mainBackgroundColor */
+  background: #fff;
 }
 
 .theme-light .inlined-variables-view iframe {

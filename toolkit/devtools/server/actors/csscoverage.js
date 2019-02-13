@@ -7,7 +7,9 @@
 const { Cc, Ci, Cu } = require("chrome");
 
 const Services = require("Services");
+const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 
+const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const { method, custom, RetVal, Arg } = protocol;
 
@@ -42,8 +44,8 @@ const l10n = exports.l10n = {
 };
 
 /**
- * UsageReport manages the collection of CSS usage data.
- * The core of a UsageReport is a JSON-able data structure called _knownRules
+ * CSSUsage manages the collection of CSS usage data.
+ * The core of a CSSUsage is a JSON-able data structure called _knownRules
  * which looks like this:
  * This records the CSSStyleRules and their usage.
  * The format is:
@@ -72,8 +74,15 @@ const l10n = exports.l10n = {
  *       }, ...
  *     });
  */
-let UsageReportActor = protocol.ActorClass({
-  typeName: "usageReport",
+let CSSUsageActor = protocol.ActorClass({
+  typeName: "cssUsage",
+
+  events: {
+    "state-change" : {
+      type: "stateChange",
+      stateChange: Arg(0, "json")
+    }
+  },
 
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -83,6 +92,9 @@ let UsageReportActor = protocol.ActorClass({
 
     this._onTabLoad = this._onTabLoad.bind(this);
     this._onChange = this._onChange.bind(this);
+
+    this._notifyOn = Ci.nsIWebProgress.NOTIFY_STATUS |
+                     Ci.nsIWebProgress.NOTIFY_STATE_ALL
   },
 
   destroy: function() {
@@ -96,23 +108,58 @@ let UsageReportActor = protocol.ActorClass({
 
   /**
    * Begin recording usage data
+   * @param noreload It's best if we start by reloading the current page
+   * because that starts the test at a known point, but there could be reasons
+   * why we don't want to do that (e.g. the page contains state that will be
+   * lost across a reload)
    */
-  start: method(function() {
+  start: method(function(noreload) {
     if (this._running) {
       throw new Error(l10n.lookup("csscoverageRunningError"));
     }
 
+    this._isOneShot = false;
     this._visitedPages = new Set();
     this._knownRules = new Map();
     this._running = true;
     this._tooManyUnused = false;
 
-    this._tabActor.browser.addEventListener("load", this._onTabLoad, true);
+    this._progressListener = {
+      QueryInterface: XPCOMUtils.generateQI([ Ci.nsIWebProgressListener,
+                                              Ci.nsISupportsWeakReference ]),
 
-    this._observeMutations(this._tabActor.window.document);
+      onStateChange: (progress, request, flags, status) => {
+        let isStop = flags & Ci.nsIWebProgressListener.STATE_STOP;
+        let isWindow = flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
 
-    this._populateKnownRules(this._tabActor.window.document);
-    this._updateUsage(this._tabActor.window.document, false);
+        if (isStop && isWindow) {
+          this._onTabLoad(progress.DOMWindow.document);
+        }
+      },
+
+      onLocationChange: () => {},
+      onProgressChange: () => {},
+      onSecurityChange: () => {},
+      onStatusChange: () => {},
+      destroy: () => {}
+    };
+
+    this._progress = this._tabActor.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                            .getInterface(Ci.nsIWebProgress);
+    this._progress.addProgressListener(this._progressListener, this._notifyOn);
+
+    if (noreload) {
+      // If we're not starting by reloading the page, then pretend that onload
+      // has just happened.
+      this._onTabLoad(this._tabActor.window.document);
+    }
+    else {
+      this._tabActor.window.location.reload();
+    }
+
+    events.emit(this, "state-change", { isRunning: true });
+  }, {
+    request: { url: Arg(0, "boolean") }
   }),
 
   /**
@@ -123,19 +170,18 @@ let UsageReportActor = protocol.ActorClass({
       throw new Error(l10n.lookup("csscoverageNotRunningError"));
     }
 
-    this._tabActor.browser.removeEventListener("load", this._onTabLoad, true);
+    this._progress.removeProgressListener(this._progressListener, this._notifyOn);
+    this._progress = undefined;
+
     this._running = false;
+    events.emit(this, "state-change", { isRunning: false });
   }),
 
   /**
    * Start/stop recording usage data depending on what we're currently doing.
    */
   toggle: method(function() {
-    return this._running ?
-        this.stop().then(() => false) :
-        this.start().then(() => true);
-  }, {
-    response: RetVal("boolean"),
+    return this._running ? this.stop() : this.start();
   }),
 
   /**
@@ -147,6 +193,7 @@ let UsageReportActor = protocol.ActorClass({
       throw new Error(l10n.lookup("csscoverageRunningError"));
     }
 
+    this._isOneShot = true;
     this._visitedPages = new Set();
     this._knownRules = new Map();
 
@@ -155,10 +202,9 @@ let UsageReportActor = protocol.ActorClass({
   }),
 
   /**
-   * Called from the tab "load" event
+   * Called by the ProgressListener to simulate a "load" event
    */
-  _onTabLoad: function(ev) {
-    let document = ev.target;
+  _onTabLoad: function(document) {
     this._populateKnownRules(document);
     this._updateUsage(document, true);
 
@@ -360,6 +406,10 @@ let UsageReportActor = protocol.ActorClass({
       throw new Error(l10n.lookup("csscoverageNotRunError"));
     }
 
+    if (this._isOneShot) {
+      throw new Error(l10n.lookup("csscoverageOneShotReportError"));
+    }
+
     // Helper function to create a JSONable data structure representing a rule
     const ruleToRuleReport = function(rule, ruleData) {
       return {
@@ -436,15 +486,6 @@ let UsageReportActor = protocol.ActorClass({
   }),
 
   /**
-   * For testing only. Is css coverage running.
-   */
-  _testOnly_isRunning: method(function() {
-    return this._running;
-  }, {
-    response: { value: RetVal("boolean") }
-  }),
-
-  /**
    * For testing only. What pages did we visit.
    */
   _testOnly_visitedPages: method(function() {
@@ -454,7 +495,7 @@ let UsageReportActor = protocol.ActorClass({
   }),
 });
 
-exports.UsageReportActor = UsageReportActor;
+exports.CSSUsageActor = CSSUsageActor;
 
 /**
  * Generator that filters the CSSRules out of _getAllRules so it only
@@ -698,88 +739,105 @@ const sheetToUrl = exports.sheetToUrl = function(stylesheet) {
 }
 
 /**
- * Front for UsageReportActor
+ * Running more than one usage report at a time is probably bad for performance
+ * and it isn't particularly useful, and it's confusing from a notification POV
+ * so we only allow one.
  */
-const UsageReportFront = protocol.FrontClass(UsageReportActor, {
+let isRunning = false;
+let notification;
+let target;
+let chromeWindow;
+
+/**
+ * Front for CSSUsageActor
+ */
+const CSSUsageFront = protocol.FrontClass(CSSUsageActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
-    this.actorID = form.usageReportActor;
+    this.actorID = form.cssUsageActor;
     this.manage(this);
   },
 
-  /**
-   * Server-side start is above. Client-side start adds a notification box
-   */
-  start: custom(function(chromeWindow, target) {
-    if (chromeWindow != null) {
-      let gnb = chromeWindow.document.getElementById("global-notificationbox");
-      this.notification = gnb.getNotificationWithValue("csscoverage-running");
+  _onStateChange: protocol.preEvent("state-change", function(ev) {
+    isRunning = ev.isRunning;
+    ev.target = target;
 
-      if (this.notification == null) {
-        let notifyStop = ev => {
-          if (ev == "removed") {
+    if (isRunning) {
+      let gnb = chromeWindow.document.getElementById("global-notificationbox");
+      notification = gnb.getNotificationWithValue("csscoverage-running");
+
+      if (notification == null) {
+        let notifyStop = reason => {
+          if (reason == "removed") {
             this.stop();
-            gDevTools.showToolbox(target, "styleeditor");
           }
         };
 
         let msg = l10n.lookup("csscoverageRunningReply");
-        this.notification = gnb.appendNotification(msg,
-                                                   "csscoverage-running",
-                                                   "", // i.e. no image
-                                                   gnb.PRIORITY_INFO_HIGH,
-                                                   null, // i.e. no buttons
-                                                   notifyStop);
+        notification = gnb.appendNotification(msg, "csscoverage-running",
+                                              "", // i.e. no image
+                                              gnb.PRIORITY_INFO_HIGH,
+                                              null, // i.e. no buttons
+                                              notifyStop);
       }
     }
+    else {
+      if (notification) {
+        notification.remove();
+        notification = undefined;
+      }
 
-    return this._start();
+      gDevTools.showToolbox(target, "styleeditor");
+      target = undefined;
+    }
+  }),
+
+  /**
+   * Server-side start is above. Client-side start adds a notification box
+   */
+  start: custom(function(newChromeWindow, newTarget, noreload=false) {
+    target = newTarget;
+    chromeWindow = newChromeWindow;
+
+    return this._start(noreload);
   }, {
     impl: "_start"
   }),
 
   /**
-   * Client-side stop also removes the notification box
+   * Server-side start is above. Client-side start adds a notification box
    */
-  stop: custom(function() {
-    if (this.notification != null) {
-      this.notification.remove();
-      this.notification = undefined;
-    }
+  toggle: custom(function(newChromeWindow, newTarget) {
+    target = newTarget;
+    chromeWindow = newChromeWindow;
 
-    return this._stop();
+    return this._toggle();
   }, {
-    impl: "_stop"
+    impl: "_toggle"
   }),
+
+  /**
+   * We count STARTING and STOPPING as 'running'
+   */
+  isRunning: function() {
+    return isRunning;
+  }
 });
 
-exports.UsageReportFront = UsageReportFront;
-
-/**
- * Registration / De-registration
- */
-exports.register = function(handle) {
-  handle.addGlobalActor(UsageReportActor, "usageReportActor");
-  handle.addTabActor(UsageReportActor, "usageReportActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeGlobalActor(UsageReportActor, "usageReportActor");
-  handle.removeTabActor(UsageReportActor, "usageReportActor");
-};
+exports.CSSUsageFront = CSSUsageFront;
 
 const knownFronts = new WeakMap();
 
 /**
- * Create a UsageReportFront only when needed (returns a promise)
+ * Create a CSSUsageFront only when needed (returns a promise)
  * For notes on target.makeRemote(), see
  * https://bugzilla.mozilla.org/show_bug.cgi?id=1016330#c7
  */
 const getUsage = exports.getUsage = function(target) {
   return target.makeRemote().then(() => {
     let front = knownFronts.get(target.client)
-    if (front == null && target.form.usageReportActor != null) {
-      front = new UsageReportFront(target.client, target.form);
+    if (front == null && target.form.cssUsageActor != null) {
+      front = new CSSUsageFront(target.client, target.form);
       knownFronts.set(target.client, front);
     }
     return front;

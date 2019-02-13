@@ -35,7 +35,6 @@ protected:
     struct _GtkStyle *mStyle;
 #else
     struct _GtkStyleContext *mBackgroundStyle;
-    struct _GtkStyleContext *mViewStyle;
     struct _GtkStyleContext *mButtonStyle;
 #endif
 
@@ -60,13 +59,14 @@ protected:
     nscolor sMenuBarText;
     nscolor sMenuBarHoverText;
     nscolor sMenuText;
+    nscolor sMenuTextInactive;
     nscolor sMenuHover;
     nscolor sMenuHoverText;
-    nscolor sButtonBackground;
     nscolor sButtonText;
     nscolor sButtonHoverText;
-    nscolor sButtonOuterLightBorder;
-    nscolor sButtonInnerDarkBorder;
+    nscolor sButtonBackground;
+    nscolor sFrameOuterLightBorder;
+    nscolor sFrameInnerDarkBorder;
     nscolor sOddCellBackground;
     nscolor sNativeHyperLinkText;
     nscolor sComboBoxText;
@@ -75,8 +75,8 @@ protected:
     nscolor sMozFieldBackground;
     nscolor sMozWindowText;
     nscolor sMozWindowBackground;
-    nscolor sMozWindowSelectedText;
-    nscolor sMozWindowSelectedBackground;
+    nscolor sTextSelectedText;
+    nscolor sTextSelectedBackground;
     nscolor sMozScrollbar;
     char16_t sInvisibleCharacter;
     float   sCaretRatio;

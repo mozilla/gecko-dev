@@ -6,12 +6,40 @@
 @namespace html url("http://www.w3.org/1999/xhtml");
 @namespace svg url("http://www.w3.org/2000/svg");
 
+:root {
+  --panelui-subview-transition-duration: 150ms;
+}
+
 #main-window:not([chromehidden~="toolbar"]) {
 %ifdef XP_MACOSX
   min-width: 335px;
 %else
   min-width: 300px;
 %endif
+}
+
+/* These values are chosen to keep the Loop detached chat window from
+ * getting too small.  When it's too small, three bad things happen:
+ *
+ * - It looks terrible
+ * - It's not really usable
+ * - It's possible for the user to be transmitting video that's cropped by the
+ *   the edge of the window, so that they're not aware of it, which is a
+ *   privacy problem
+ *
+ * Note that if the chat window grows more users than Loop who want this
+ * ability, we'll need to generalize.  A partial patch for this is in
+ * bug 1112264.
+ */
+
+#chat-window {
+ /*
+  * In some ideal world, we'd have a simple way to express "block resizing
+  * along any dimension beyond the point at which an overflow event would
+  * occur".  But none of -moz-{fit,max,min}-content do what we want here. So..
+  */
+  min-width: 260px;
+  min-height: 315px;
 }
 
 #main-window[customize-entered] {
@@ -22,8 +50,18 @@ searchbar {
   -moz-binding: url("chrome://browser/content/search/search.xml#searchbar");
 }
 
+/* Prevent shrinking the page content to 0 height and width */
+.browserStack > browser {
+  min-height: 25px;
+  min-width: 25px;
+}
+
+.browserStack > browser {
+  -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-browser");
+}
+
 .browserStack > browser[remote="true"] {
-  -moz-binding: url("chrome://global/content/bindings/remote-browser.xml#remote-browser");
+  -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-remote-browser");
 }
 
 toolbar[customizable="true"] {
@@ -76,11 +114,12 @@ panelview {
 }
 
 .panel-mainview {
-  transition: transform 150ms;
+  transition: transform var(--panelui-subview-transition-duration);
 }
 
 panelview:not([mainview]):not([current]) {
-  display: none;
+  transition: visibility 0s linear var(--panelui-subview-transition-duration);
+  visibility: collapse;
 }
 
 tabbrowser {
@@ -188,6 +227,10 @@ toolbar[customizing] > .overflow-button {
 
 #titlebar {
   -moz-binding: url("chrome://global/content/bindings/general.xml#windowdragbox");
+
+%ifdef XP_MACOSX
+  -moz-window-dragging: drag;
+%endif
 }
 
 #titlebar-spacer {
@@ -252,6 +295,20 @@ toolbar[customizing] > .overflow-button {
 
 %endif
 
+#main-window[inFullscreen][inDOMFullscreen] #navigator-toolbox,
+#main-window[inFullscreen][inDOMFullscreen] #fullscr-toggler,
+#main-window[inFullscreen][inDOMFullscreen] #sidebar-box,
+#main-window[inFullscreen][inDOMFullscreen] #sidebar-splitter,
+#main-window[inFullscreen]:not([OSXLionFullscreen]) toolbar:not([fullscreentoolbar=true]),
+#main-window[inFullscreen] #global-notificationbox,
+#main-window[inFullscreen] #high-priority-global-notificationbox {
+  visibility: collapse;
+}
+
+#navigator-toolbox[fullscreenShouldAnimate] {
+  transition: 1.5s margin-top ease-out;
+}
+
 /* Rules to help integrate SDK widgets */
 toolbaritem[sdkstylewidget="true"] > toolbarbutton,
 toolbarpaletteitem > toolbaritem[sdkstylewidget="true"] > iframe,
@@ -290,6 +347,7 @@ toolbarpaletteitem > #personal-bookmarks > #bookmarks-toolbar-placeholder,
   display: -moz-box;
 }
 
+#nav-bar-customization-target > #personal-bookmarks,
 toolbar:not(#TabsToolbar) > #wrapper-personal-bookmarks,
 toolbar:not(#TabsToolbar) > #personal-bookmarks {
   -moz-box-flex: 1;
@@ -318,6 +376,14 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 
 #search-container {
   min-width: 25ch;
+}
+
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  .searchbar-engine-image,
+  .searchbar-engine-menuitem > .menu-iconic-left > .menu-iconic-icon {
+    image-rendering: -moz-crisp-edges;
+  }
 }
 
 #urlbar,
@@ -371,25 +437,40 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 
 /* For results that are actions, their description text is shown instead of
    the URL - this needs to follow the locale's direction, unlike URLs. */
-panel:not([noactions]) > richlistbox > richlistitem[type~="action"]:-moz-locale-dir(rtl) > .ac-url-box {
+panel:not([noactions]) > richlistbox > richlistitem.overridable-action:-moz-locale-dir(rtl) > .ac-url-box {
   direction: rtl;
 }
 
-panel[noactions] > richlistbox > richlistitem[type~="action"] > .ac-url-box > .ac-url > .ac-action-text,
-panel[noactions] > richlistbox > richlistitem[type~="action"] > .ac-url-box > .ac-action-icon {
+panel[noactions] > richlistbox > richlistitem.overridable-action > .ac-url-box > .ac-url > .ac-action-text,
+panel[noactions] > richlistbox > richlistitem.overridable-action > .ac-url-box > .ac-action-icon {
   visibility: collapse;
 }
 
-panel[noactions] > richlistbox > richlistitem[type~="action"] > .ac-url-box > .ac-url > .ac-url-text {
+panel[noactions] > richlistbox > richlistitem.overridable-action > .ac-url-box > .ac-url > .ac-url-text {
   visibility: visible;
 }
 
-#urlbar:not([actiontype]) > #urlbar-display-box {
+#urlbar:not([actiontype="switchtab"]) > #urlbar-display-box {
   display: none;
 }
 
 #PopupAutoComplete {
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#browser-autocomplete-result-popup");
+}
+
+#PopupSearchAutoComplete {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#browser-search-autocomplete-result-popup");
+}
+
+/* Overlay a badge on top of the icon of additional open search providers
+   in the search panel. */
+.addengine-item > .button-box > .button-icon {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#addengine-icon");
+  display: -moz-stack;
+}
+
+searchbar[oneoffui] {
+  -moz-binding: url("chrome://browser/content/search/search.xml#searchbar-flare") !important;
 }
 
 #PopupAutoCompleteRichResult {
@@ -472,6 +553,20 @@ toolbarbutton.bookmark-item {
   max-width: 13em;
 }
 
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  .alltabs-popup > .menuitem-iconic > .menu-iconic-left > .menu-iconic-icon,
+  .menuitem-with-favicon > .menu-iconic-left > .menu-iconic-icon {
+    image-rendering: -moz-crisp-edges;
+  }
+
+  .bookmark-item > .toolbarbutton-icon,
+  .bookmark-item > .menu-iconic-left > .menu-iconic-icon,
+  #personal-bookmarks[cui-areatype="toolbar"] > #bookmarks-toolbar-placeholder > .toolbarbutton-icon {
+    image-rendering: -moz-crisp-edges;
+  }
+}
+
 #editBMPanel_tagsSelector {
   /* override default listbox width from xul.css */
   width: auto;
@@ -501,7 +596,7 @@ window[sizemode="maximized"] #content .notification-inner {
 
 /* Hide extension toolbars that neglected to set the proper class */
 window[chromehidden~="location"][chromehidden~="toolbar"] toolbar:not(.chromeclass-menubar),
-window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-menubar) {
+window[chromehidden~="toolbar"] toolbar:not(#nav-bar):not(#TabsToolbar):not(#print-preview-toolbar):not(.chromeclass-menubar) {
   display: none;
 }
 
@@ -544,21 +639,6 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 
 #historySwipeAnimationNextPage {
   background-image: -moz-element(#historySwipeAnimationNextPageSnapshot);
-}
-
-/* Identity UI */
-#identity-popup-content-box:not(.chromeUI) > #identity-popup-brandName,
-#identity-popup-content-box:not(.chromeUI) > #identity-popup-chromeLabel,
-#identity-popup-content-box.chromeUI > .identity-popup-label:not(#identity-popup-brandName):not(#identity-popup-chromeLabel),
-#identity-popup-content-box.chromeUI > .identity-popup-description,
-#identity-popup.chromeUI > #identity-popup-button-container,
-#identity-popup-content-box.unknownIdentity > #identity-popup-connectedToLabel ,
-#identity-popup-content-box.unknownIdentity > #identity-popup-runByLabel ,
-#identity-popup-content-box.unknownIdentity > #identity-popup-content-host ,
-#identity-popup-content-box.unknownIdentity > #identity-popup-content-owner ,
-#identity-popup-content-box.verifiedIdentity > #identity-popup-connectedToLabel2 ,
-#identity-popup-content-box.verifiedDomain > #identity-popup-connectedToLabel2 {
-  display: none;
 }
 
 /*  Full Screen UI */
@@ -628,6 +708,13 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   height: 16px;
 }
 
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  .ctrlTab-favicon {
+    image-rendering: -moz-crisp-edges;
+  }
+}
+
 .ctrlTab-preview {
   -moz-binding: url("chrome://browser/content/browser-tabPreviews.xml#ctrlTab-preview");
 }
@@ -652,6 +739,13 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   max-width: 280px;
 }
 
+.form-validation-anchor {
+  /* should occupy space but not be visible */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #addon-progress-notification {
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#addon-progress-notification");
 }
@@ -660,8 +754,20 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#identity-request-notification");
 }
 
+#bad-content-notification {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#bad-content-notification");
+}
+
 #click-to-play-plugins-notification {
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#click-to-play-plugins-notification");
+}
+
+#login-fill-notification {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#login-fill-notification");
+}
+
+.login-fill-item {
+  -moz-binding: url("chrome://passwordmgr/content/login.xml#login");
 }
 
 .plugin-popupnotification-centeritem {
@@ -731,9 +837,6 @@ statuspanel[inactive][previoustype=overLink] {
   max-width: 32em;
 }
 
-/* highlighter */
-%include highlighter.css
-
 /* gcli */
 
 html|*#gcli-tooltip-frame,
@@ -781,24 +884,8 @@ html|*#gcli-output-frame,
   transition: none;
 }
 
-.toolbarbutton-badge[badge]:not([badge=""])::after {
-  content: attr(badge);
-}
-
-toolbarbutton[type="badged"] {
-  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#toolbarbutton-badged");
-}
-
 toolbarbutton[type="socialmark"] {
   -moz-binding: url("chrome://browser/content/socialmarks.xml#toolbarbutton-marks");
-}
-
-toolbarbutton[type="badged"] > .toolbarbutton-badge-container > .toolbarbutton-icon,
-toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
-  max-width: 16px;
-}
-toolbarpaletteitem[place="palette"] > toolbarbutton[type="badged"] > .toolbarbutton-badge-container > .toolbarbutton-icon {
-  max-width: 32px;
 }
 
 panelview > .social-panel-frame {
@@ -811,6 +898,11 @@ notification[value="translation"] {
   -moz-binding: url("chrome://browser/content/translation-infobar.xml#translationbar");
 }
 
+/* Loop/ Hello */
+notification[value="loop-sharing-notification"] .close-icon {
+  display: none;
+}
+
 /* Social */
 /* Note the chatbox 'width' values are duplicated in socialchat.xml */
 chatbox {
@@ -818,6 +910,34 @@ chatbox {
   transition: height 150ms ease-out, width 150ms ease-out;
   height: 285px;
   width: 260px; /* CHAT_WIDTH_OPEN in socialchat.xml */
+}
+
+chatbox[customSize] {
+  width: 300px; /* CHAT_WIDTH_OPEN_ALT in socialchat.xml */
+}
+
+#chat-window[customSize] {
+  min-width: 300px;
+}
+
+chatbox[customSize="loopChatEnabled"] {
+  /* 325px as defined per UX */
+  height: 325px;
+}
+
+#chat-window[customSize="loopChatEnabled"] {
+  /* 325px + 30px top bar height. */
+  min-height: calc(325px + 30px);
+}
+
+chatbox[customSize="loopChatMessageAppended"] {
+  /* 445px as defined per UX */
+  height: 445px;
+}
+
+#chat-window[customSize="loopChatMessageAppended"] {
+  /* 445px + 30px top bar height. */
+  min-height: calc(445px + 30px);
 }
 
 chatbox[minimized="true"] {
@@ -829,6 +949,24 @@ chatbar {
   -moz-binding: url("chrome://browser/content/socialchat.xml#chatbar");
   height: 0;
   max-height: 0;
+}
+
+.chatbar-innerbox {
+  margin: -285px 0 0;
+}
+
+chatbar[customSize] > .chatbar-innerbox {
+  /* 425px to make room for the maximum custom-size chatbox; currently 'loopChatMessageAppended'. */
+  margin-top: -425px;
+}
+
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  #social-sidebar-favico,
+  .social-status-button,
+  .chat-status-icon {
+    image-rendering: -moz-crisp-edges;
+  }
 }
 
 /** See bug 872317 for why the following rule is necessary. */
@@ -915,18 +1053,16 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 }
 
 /* Combobox dropdown renderer */
-#ContentSelectDropdown {
-  max-height: 400px;
+#ContentSelectDropdown > menupopup {
+  max-height: 350px;
+  /* The menupopup itself should always be rendered LTR to ensure the scrollbar aligns with
+   * the dropdown arrow on the dropdown widget. If a menuitem is RTL, its style will be set accordingly */
+  direction: ltr;
 }
 
-.contentSelectDropdown-optgroup {
-  font-weight: bold;
-  /* color: menutext used to overwrite the disabled color */
-  color: menutext;
-}
-
-.contentSelectDropdown-ingroup {
-  -moz-margin-start: 2em;
+/* Indent options in optgroups */
+.contentSelectDropdown-ingroup .menu-iconic-text {
+  -moz-padding-start: 2em;
 }
 
 /* Give this menupopup an arrow panel styling */
@@ -954,30 +1090,28 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
   opacity: 1.0;
 }
 
-#BMB_bookmarksPopup[arrowposition="after_start"] {
+#BMB_bookmarksPopup[animate="cancel"] {
+  transform: none;
+}
+
+#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(rtl) {
   transform-origin: 20px top;
 }
 
-#BMB_bookmarksPopup[arrowposition="after_end"] {
+#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(rtl) {
   transform-origin: calc(100% - 20px) top;
 }
 
-#BMB_bookmarksPopup[arrowposition="before_start"] {
+#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(rtl) {
   transform-origin: 20px bottom;
 }
 
-#BMB_bookmarksPopup[arrowposition="before_end"] {
+#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(rtl) {
   transform-origin: calc(100% - 20px) bottom;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_start"][animate="cancel"],
-#BMB_bookmarksPopup[arrowposition="before_end"][animate="cancel"] {
-  transform: none;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_end"][animate="cancel"],
-#BMB_bookmarksPopup[arrowposition="before_start"][animate="cancel"] {
-  transform: none;
 }
 
 %endif
@@ -999,6 +1133,15 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 
 #PanelUI-contents > .panel-customization-placeholder > .panel-customization-placeholder-child {
   list-style-image: none;
+}
+
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
+  #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
+  #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {
+    image-rendering: -moz-crisp-edges;
+  }
 }
 
 #customization-panelHolder {
@@ -1040,10 +1183,27 @@ toolbarpaletteitem[dragover] {
   border-right-color: transparent;
 }
 
+#customization-palette-container {
+  display: flex;
+  flex-direction: column;
+}
+
 #customization-palette:not([hidden]) {
   display: block;
+  flex: 1 1 auto;
   overflow: auto;
   min-height: 3em;
+}
+
+#customization-footer-spacer,
+#customization-spacer {
+  flex: 1 1 auto;
+}
+
+#customization-footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 #customization-toolbar-visibility-button > .box-inherit > .button-menu-dropmarker {
@@ -1052,7 +1212,9 @@ toolbarpaletteitem[dragover] {
 
 toolbarpaletteitem[place="palette"] {
   width: 10em;
-  height: calc(40px + 2em);
+  /* icon (32) + margin (2 * 4) + button padding/border (2 * 4) + label margin (~2) + label
+   * line-height (1.5em): */
+  height: calc(50px + 1.5em);
   margin-bottom: 5px;
   overflow: hidden;
   display: inline-block;
@@ -1067,6 +1229,10 @@ toolbarpaletteitem[place="palette"][hidden] {
   -moz-box-flex: 1;
   width: 10em;
   max-width: 10em;
+}
+
+#main-window[customizing=true] #PanelUI-update-status {
+  display: none;
 }
 
 /* UI Tour */
@@ -1134,8 +1300,68 @@ toolbarpaletteitem[place="palette"][hidden] {
   animation-duration: 2s;
 }
 
+#abouthome-search-panel > .panel-arrowcontainer > .panel-arrowcontent {
+  padding: 0;
+  font-size: 110%;
+}
+
+#abouthome-search-panel-manage {
+  padding: 4px 24px;
+}
+
+#abouthome-search-panel-manage > label {
+  padding: 0;
+  margin: 0;
+}
+
 /* Combined context-menu items */
 #context-navigation > .menuitem-iconic > .menu-iconic-text,
 #context-navigation > .menuitem-iconic > .menu-accel-container {
   display: none;
+}
+
+/* Tracking protection doorhanger */
+.popup-notification-footer[popupid="bad-content"] {
+  display: none;
+}
+
+.popup-notification-footer[popupid="bad-content"][mixedblockdisabled],
+.popup-notification-footer[popupid="bad-content"][trackingblockdisabled] {
+  display: block;
+}
+
+#login-fill-doorhanger:not([inDetailView]) > #login-fill-clickcapturer {
+  pointer-events: none;
+}
+
+.popup-notification-invalid-input {
+  box-shadow: 0 0 1.5px 1px red;
+}
+
+.popup-notification-invalid-input[focused] {
+  box-shadow: 0 0 2px 2px rgba(255,0,0,0.4);
+}
+
+#password-notification-password::after {
+  color: hsl(0,0%,60%);
+  content: attr(show-content);
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  transition: color 250ms;
+}
+
+#password-notification-password:hover::after {
+  color: hsl(210,100%,50%);
+}
+
+#password-notification-password[focused]::after {
+  content: none;
+}
+
+/* Bug 1175941: Disable the transition on 10.10 due to flickering, possibly due to an OS X bug. */
+@media (-moz-mac-yosemite-theme) {
+  #password-notification-password::after {
+    transition: none;
+  }
 }

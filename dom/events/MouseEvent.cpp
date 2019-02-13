@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -69,13 +70,13 @@ MouseEvent::InitMouseEvent(const nsAString& aType,
     UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, aDetail);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  switch(mEvent->eventStructType) {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT: {
+  switch(mEvent->mClass) {
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+    case eSimpleGestureEventClass: {
       WidgetMouseEventBase* mouseEventBase = mEvent->AsMouseEventBase();
       mouseEventBase->relatedTarget = aRelatedTarget;
       mouseEventBase->button = aButton;
@@ -123,18 +124,27 @@ MouseEvent::InitMouseEvent(const nsAString& aType,
                                aButton, aRelatedTarget);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  switch(mEvent->eventStructType) {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
+  switch(mEvent->mClass) {
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+    case eSimpleGestureEventClass:
       mEvent->AsInputEvent()->modifiers = modifiers;
       return NS_OK;
     default:
       MOZ_CRASH("There is no space to store the modifiers");
   }
+}
+
+void
+MouseEvent::InitializeExtraMouseEventDictionaryMembers(const MouseEventInit& aParam)
+{
+  InitModifiers(aParam);
+  mEvent->AsMouseEventBase()->buttons = aParam.mButtons;
+  mMovementPoint.x = aParam.mMovementX;
+  mMovementPoint.y = aParam.mMovementY;
 }
 
 already_AddRefed<MouseEvent>
@@ -152,20 +162,8 @@ MouseEvent::Constructor(const GlobalObject& aGlobal,
                     aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey,
                     aParam.mMetaKey, aParam.mButton, aParam.mRelatedTarget,
                     aRv);
+  e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
-
-  switch (e->mEvent->eventStructType) {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
-      e->mEvent->AsMouseEventBase()->buttons = aParam.mButtons;
-      break;
-    default:
-      break;
-  }
 
   return e.forget();
 }
@@ -213,14 +211,13 @@ MouseEvent::GetButton(int16_t* aButton)
 int16_t
 MouseEvent::Button()
 {
-  switch(mEvent->eventStructType)
-  {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
+  switch(mEvent->mClass) {
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+    case eSimpleGestureEventClass:
       return mEvent->AsMouseEventBase()->button;
     default:
       NS_WARNING("Tried to get mouse button for non-mouse event!");
@@ -239,14 +236,13 @@ MouseEvent::GetButtons(uint16_t* aButtons)
 uint16_t
 MouseEvent::Buttons()
 {
-  switch(mEvent->eventStructType)
-  {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
+  switch(mEvent->mClass) {
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+    case eSimpleGestureEventClass:
       return mEvent->AsMouseEventBase()->buttons;
     default:
       MOZ_CRASH("Tried to get mouse buttons for non-mouse event!");
@@ -265,14 +261,13 @@ already_AddRefed<EventTarget>
 MouseEvent::GetRelatedTarget()
 {
   nsCOMPtr<EventTarget> relatedTarget;
-  switch(mEvent->eventStructType)
-  {
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_DRAG_EVENT:
-    case NS_POINTER_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
+  switch(mEvent->mClass) {
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+    case eSimpleGestureEventClass:
       relatedTarget =
         do_QueryInterface(mEvent->AsMouseEventBase()->relatedTarget);
       break;
@@ -282,6 +277,13 @@ MouseEvent::GetRelatedTarget()
 
   if (relatedTarget) {
     nsCOMPtr<nsIContent> content = do_QueryInterface(relatedTarget);
+    nsCOMPtr<nsIContent> currentTarget = do_QueryInterface(mEvent->currentTarget);
+
+    nsIContent* shadowRelatedTarget = GetShadowRelatedTarget(currentTarget, content);
+    if (shadowRelatedTarget) {
+      relatedTarget = shadowRelatedTarget;
+    }
+
     if (content && content->ChromeOnlyAccess() &&
         !nsContentUtils::CanAccessNativeAnon()) {
       relatedTarget = do_QueryInterface(content->FindFirstNonChromeOnlyAccessContent());
@@ -309,7 +311,7 @@ NS_IMETHODIMP
 MouseEvent::GetMozMovementX(int32_t* aMovementX)
 {
   NS_ENSURE_ARG_POINTER(aMovementX);
-  *aMovementX = MozMovementX();
+  *aMovementX = MovementX();
 
   return NS_OK;
 }
@@ -318,7 +320,7 @@ NS_IMETHODIMP
 MouseEvent::GetMozMovementY(int32_t* aMovementY)
 {
   NS_ENSURE_ARG_POINTER(aMovementY);
-  *aMovementY = MozMovementY();
+  *aMovementY = MovementY();
 
   return NS_OK;
 }
@@ -379,6 +381,20 @@ int32_t
 MouseEvent::ClientY()
 {
   return Event::GetClientCoords(mPresContext, mEvent, mEvent->refPoint,
+                                mClientPoint).y;
+}
+
+int32_t
+MouseEvent::OffsetX()
+{
+  return Event::GetOffsetCoords(mPresContext, mEvent, mEvent->refPoint,
+                                mClientPoint).x;
+}
+
+int32_t
+MouseEvent::OffsetY()
+{
+  return Event::GetOffsetCoords(mPresContext, mEvent, mEvent->refPoint,
                                 mClientPoint).y;
 }
 
@@ -460,6 +476,12 @@ MouseEvent::GetMozPressure(float* aPressure)
   NS_ENSURE_ARG_POINTER(aPressure);
   *aPressure = MozPressure();
   return NS_OK;
+}
+
+bool
+MouseEvent::HitCluster() const
+{
+  return mEvent->AsMouseEventBase()->hitCluster;
 }
 
 uint16_t

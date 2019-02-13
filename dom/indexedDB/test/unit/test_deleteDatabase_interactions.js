@@ -35,7 +35,7 @@ function testSteps()
 
   db.close();
 
-  let request = indexedDB.deleteDatabase(name);
+  request = indexedDB.deleteDatabase(name);
 
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
@@ -49,7 +49,7 @@ function testSteps()
   event = yield undefined;
   is(event.type, "success", "expect a success event");
   is(event.target, request, "event has right target");
-  is(event.target.result, null, "event should have no result");
+  is(event.target.result, undefined, "event should have no result");
 
   openRequest.onsuccess = grabEventAndContinueHandler;
 

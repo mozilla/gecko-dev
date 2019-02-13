@@ -32,8 +32,8 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'PoisonIOInterposerBase.cpp',
         'PoisonIOInterposerWin.cpp',
     ]
-elif CONFIG['OS_ARCH'] == 'Darwin':
-    SOURCES += [
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    UNIFIED_SOURCES += [
         'mach_override.c',
         'PoisonIOInterposerBase.cpp',
         'PoisonIOInterposerMac.cpp',
@@ -51,9 +51,9 @@ UNIFIED_SOURCES += [
     'IOInterposer.cpp',
     'LateWriteChecks.cpp',
     'MainThreadIOLogger.cpp',
-    'nsXPComInit.cpp',
     'nsXPCOMStrings.cpp',
     'Services.cpp',
+    'XPCOMInit.cpp',
 ]
 
 if CONFIG['OS_ARCH'] != 'WINNT':
@@ -68,9 +68,7 @@ SOURCES += [
     'Omnijar.cpp',
 ]
 
-MSVC_ENABLE_PGO = True
-
-LIBRARY_NAME = 'xpcom_core'
+FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -79,12 +77,6 @@ FINAL_LIBRARY = 'xul'
 DEFINES['_IMPL_NS_STRINGAPI'] = True
 DEFINES['OMNIJAR_NAME'] = CONFIG['OMNIJAR_NAME']
 
-if CONFIG['TARGET_XPCOM_ABI']:
-    DEFINES['TARGET_XPCOM_ABI'] = '"%s"' % CONFIG['TARGET_XPCOM_ABI']
-
-if CONFIG['MOZ_OPTIMIZE']:
-    DEFINES['MOZ_OPTIMIZE'] = True
-
 GENERATED_INCLUDES += ['..']
 LOCAL_INCLUDES += [
     '../base',
@@ -92,9 +84,9 @@ LOCAL_INCLUDES += [
     '../ds',
     '../glue',
     '../io',
-    '../reflect/xptinfo/src',
+    '../reflect/xptinfo',
     '../threads',
-    '/chrome/src',
+    '/chrome',
     '/docshell/base',
 ]
 
@@ -102,3 +94,6 @@ if CONFIG['MOZ_VPX']:
     LOCAL_INCLUDES += [
         '/media/libvpx',
     ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    CXXFLAGS += CONFIG['TK_CFLAGS']

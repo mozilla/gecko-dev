@@ -6,15 +6,16 @@
  * and that their stack is successfully retrieved.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, front] = yield initCallWatcherBackend(SIMPLE_CANVAS_URL);
+function* ifTestingSupported() {
+  let { target, front } = yield initCallWatcherBackend(SIMPLE_CANVAS_URL);
 
   let navigated = once(target, "navigate");
 
   yield front.setup({
     tracedGlobals: ["CanvasRenderingContext2D", "WebGLRenderingContext"],
     startRecording: true,
-    performReload: true
+    performReload: true,
+    storeCalls: true
   });
   ok(true, "The front was setup up successfully.");
 

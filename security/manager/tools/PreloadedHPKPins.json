@@ -19,24 +19,32 @@
 //   name: (string) the DNS name of the host in question
 //   include_subdomains: (optional bool) whether subdomains of |name| are also covered
 //   pins: (string) the |name| member of an object in |pinsets|
+//
+// "extra_certs" is a list of base64-encoded certificates. These are used in
+// pinsets that reference certificates not in our root program (for example,
+// Facebook).
 
 // equifax -> aus3
 // Geotrust Primary -> www.mozilla.org
 // Geotrust Global -> *. addons.mozilla.org
 {
   "chromium_data" : {
-    "cert_file_url": "https://src.chromium.org/chrome/trunk/src/net/http/transport_security_state_static.certs",
-    "json_file_url": "https://src.chromium.org/chrome/trunk/src/net/http/transport_security_state_static.json",
+    "cert_file_url": "https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.certs?format=TEXT",
+    "json_file_url": "https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json?format=TEXT",
     "substitute_pinsets": {
       // Use the larger google_root_pems pinset instead of google
       "google": "google_root_pems"
     },
     "production_pinsets": [
-      "google_root_pems"
+      "google_root_pems",
+      "facebook"
     ],
     "production_domains": [
       // Chrome's test domain.
       "pinningtest.appspot.com",
+      // Dropbox
+      "dropbox.com",
+      "www.dropbox.com",
       // Twitter
       "api.twitter.com",
       "business.twitter.com",
@@ -45,8 +53,20 @@
       "oauth.twitter.com",
       "platform.twitter.com",
       "twimg.com",
-      "twitter.com",
-      "www.twitter.com"
+      "www.twitter.com",
+      // Tor
+      "torproject.org",
+      "blog.torproject.org",
+      "check.torproject.org",
+      "dist.torproject.org",
+      "www.torproject.org",
+      // SpiderOak
+      "spideroak.com"
+    ],
+    "exclude_domains" : [
+      // Chrome's entry for twitter.com doesn't include subdomains, so replace
+      // it with our own entry below which also uses an expanded pinset.
+      "twitter.com"
     ]
    },
   "pinsets": [
@@ -81,7 +101,7 @@
       ]
     },
     {
-      "name": "mozilla_fxa",
+      "name": "mozilla_services",
       "sha256_hashes": [
         "DigiCert Global Root CA"
       ]
@@ -97,6 +117,7 @@
     // Google's root PEMs. Chrome pins only to their intermediate certs, but
     // they'd like us to be more liberal. For the initial list, we are using
     // the certs from http://pki.google.com/roots.pem.
+    // We have no built-in for commented out CAs.
     {
       "name": "google_root_pems",
       "sha256_hashes": [
@@ -108,8 +129,8 @@
         "AffirmTrust Networking",
         "AffirmTrust Premium",
         "AffirmTrust Premium ECC",
-        "America Online Root Certification Authority 1",
-        "America Online Root Certification Authority 2",
+        // "America Online Root Certification Authority 1",
+        // "America Online Root Certification Authority 2",
         "Baltimore CyberTrust Root",
         "Comodo AAA Services root",
         "COMODO Certification Authority",
@@ -121,11 +142,10 @@
         "DigiCert Global Root CA",
         "DigiCert High Assurance EV Root CA",
         "Entrust.net Premium 2048 Secure Server CA",
-        "Entrust.net Secure Server CA",
+        // "Entrust.net Secure Server CA",
         "Entrust Root Certification Authority",
         "Equifax Secure CA",
         "Equifax Secure eBusiness CA 1",
-        // We have no built-in for this.
         // "Equifax Secure eBusiness CA 2",
         "Equifax Secure Global eBusiness CA",
         "GeoTrust Global CA",
@@ -140,9 +160,9 @@
         "GlobalSign Root CA - R3",
         "Go Daddy Class 2 CA",
         "Go Daddy Root Certificate Authority - G2",
-        "GTE CyberTrust Global Root",
+        // "GTE CyberTrust Global Root",
         "Network Solutions Certificate Authority",
-        "RSA Root Certificate 1",
+        // "RSA Root Certificate 1",
         "Starfield Class 2 CA",
         "Starfield Root Certificate Authority - G2",
         "Starfield Services Root Certificate Authority - G2",
@@ -153,15 +173,15 @@
         "TC TrustCenter Class 3 CA II",
         "TC TrustCenter Universal CA I",
         "TC TrustCenter Universal CA III",
-        "Thawte Premium Server CA",
+        // "Thawte Premium Server CA",
         "thawte Primary Root CA",
         "thawte Primary Root CA - G2",
         "thawte Primary Root CA - G3",
-        "Thawte Server CA",
+        // "Thawte Server CA",
         "UTN DATACorp SGC Root CA",
         "UTN USERFirst Hardware Root CA",
-        "ValiCert Class 1 VA",
-        "ValiCert Class 2 VA",
+        // "ValiCert Class 1 VA",
+        // "ValiCert Class 2 VA",
         "Verisign Class 3 Public Primary Certification Authority",
         "Verisign Class 3 Public Primary Certification Authority",
         "Verisign Class 3 Public Primary Certification Authority - G2",
@@ -185,13 +205,15 @@
     { "name": "aus4.mozilla.org", "include_subdomains": true,
       "pins": "mozilla", "test_mode": true, "id": 3 },
     { "name": "accounts.firefox.com", "include_subdomains": true,
-      "pins": "mozilla_fxa", "test_mode": true, "id": 4 },
+      "pins": "mozilla_services", "test_mode": false, "id": 4 },
+    { "name": "api.accounts.firefox.com", "include_subdomains": true,
+      "pins": "mozilla_services", "test_mode": false, "id": 5 },
     { "name": "cdn.mozilla.net", "include_subdomains": true,
       "pins": "mozilla", "test_mode": false },
     { "name": "cdn.mozilla.org", "include_subdomains": true,
       "pins": "mozilla", "test_mode": false },
-    { "name": "media.mozilla.com", "include_subdomains": true,
-      "pins": "mozilla", "test_mode": false },
+    { "name": "services.mozilla.com", "include_subdomains": true,
+      "pins": "mozilla_services", "test_mode": false, "id": 6 },
     { "name": "include-subdomains.pinning.example.com",
       "include_subdomains": true, "pins": "mozilla_test",
       "test_mode": false },
@@ -200,6 +222,13 @@
       "include_subdomains": false, "pins": "mozilla_test",
       "test_mode": false, "id": 0 },
     { "name": "test-mode.pinning.example.com", "include_subdomains": true,
-      "pins": "mozilla_test", "test_mode": true }
-  ]
+      "pins": "mozilla_test", "test_mode": true },
+    // Expand twitter's pinset to include all of *.twitter.com and use
+    // twitterCDN. More specific rules take precedence because we search for
+    // exact domain name first.
+    { "name": "twitter.com", "include_subdomains": true,
+      "pins": "twitterCDN", "test_mode": false }
+  ],
+
+  "extra_certificates": []
 }

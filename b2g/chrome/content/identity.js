@@ -1,4 +1,4 @@
-/* -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- /
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -31,15 +31,15 @@ function log(...aMessageArgs) {
 log("\n\n======================= identity.js =======================\n\n");
 
 // This script may be injected more than once into an iframe.
-// Ensure we don't redefine contstants
+// It's hard to do this with |const| like we should, so use var instead.
 if (typeof kIdentityJSLoaded === 'undefined') {
-  const kIdentityDelegateWatch = "identity-delegate-watch";
-  const kIdentityDelegateRequest = "identity-delegate-request";
-  const kIdentityDelegateLogout = "identity-delegate-logout";
-  const kIdentityDelegateReady = "identity-delegate-ready";
-  const kIdentityDelegateFinished = "identity-delegate-finished";
-  const kIdentityControllerDoMethod = "identity-controller-doMethod";
-  const kIdentktyJSLoaded = true;
+  var kIdentityDelegateWatch = "identity-delegate-watch";
+  var kIdentityDelegateRequest = "identity-delegate-request";
+  var kIdentityDelegateLogout = "identity-delegate-logout";
+  var kIdentityDelegateReady = "identity-delegate-ready";
+  var kIdentityDelegateFinished = "identity-delegate-finished";
+  var kIdentityControllerDoMethod = "identity-controller-doMethod";
+  var kIdentktyJSLoaded = true;
 }
 
 var showUI = false;

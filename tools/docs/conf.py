@@ -6,13 +6,17 @@ from __future__ import unicode_literals
 
 import os
 import re
+import sys
 
 from datetime import datetime
 
+# Set up Python environment to load build system packages.
+OUR_DIR = os.path.dirname(__file__)
+topsrcdir = os.path.normpath(os.path.join(OUR_DIR, '..', '..'))
 
-mozilla_dir = os.environ['MOZILLA_DIR']
-
-import mdn_theme
+sys.path.insert(0, os.path.join(topsrcdir, 'python', 'jsmin'))
+sys.path.insert(0, os.path.join(topsrcdir, 'python', 'mozbuild'))
+sys.path.insert(0, OUR_DIR)
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -29,7 +33,7 @@ year = datetime.now().year
 
 # Grab the version from the source tree's milestone.
 # FUTURE Use Python API from bug 941299.
-with open(os.path.join(mozilla_dir, 'config', 'milestone.txt'), 'rt') as fh:
+with open(os.path.join(topsrcdir, 'config', 'milestone.txt'), 'rt') as fh:
     for line in fh:
         line = line.strip()
 
@@ -41,12 +45,17 @@ with open(os.path.join(mozilla_dir, 'config', 'milestone.txt'), 'rt') as fh:
 
 version = re.sub(r'[ab]\d+$', '', release)
 
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '_staging', '_venv']
 pygments_style = 'sphinx'
 
-# TODO MDN theme is busted (bug 987332)
-#html_theme_path = [mdn_theme.get_theme_dir()]
-#html_theme = 'mdn'
+# Read The Docs can't import sphinx_rtd_theme, so don't import it there.
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
 
 html_static_path = ['_static']
 htmlhelp_basename = 'MozillaTreeDocs'

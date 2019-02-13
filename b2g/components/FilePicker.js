@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -181,7 +181,7 @@ FilePicker.prototype = {
     }
 
     // The name to be shown can be part of the message, or can be taken from
-    // the DOMFile (if the blob is a DOMFile).
+    // the File (if the blob is a File).
     let name = data.result.name;
     if (!name &&
         (data.result.blob instanceof this.mParent.File) &&
@@ -207,9 +207,9 @@ FilePicker.prototype = {
       }
     }
 
-    let file = new this.mParent.File(data.result.blob,
-                                     { name: name,
-                                       type: data.result.blob.type });
+    let file = new this.mParent.File([data.result.blob],
+                                     name,
+                                     { type: data.result.blob.type });
 
     if (file) {
       this.fireSuccess(file);

@@ -4,10 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-LIBRARY_NAME = 'cubeb'
+Library('cubeb')
 
 SOURCES += [
     'cubeb.c',
+    'cubeb_panner.cpp'
 ]
 
 if CONFIG['MOZ_ALSA']:
@@ -34,6 +35,10 @@ if CONFIG['OS_TARGET'] == 'Darwin':
     SOURCES += [
         'cubeb_audiounit.c',
     ]
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+        SOURCES += [
+            'cubeb_osx_run_loop.c',
+        ]
     DEFINES['USE_AUDIOUNIT'] = True
 
 if CONFIG['OS_TARGET'] == 'WINNT':
@@ -56,8 +61,6 @@ if CONFIG['OS_TARGET'] == 'Android':
         ]
         DEFINES['USE_AUDIOTRACK'] = True
 
-MSVC_ENABLE_PGO = True
-
 if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
     NO_VISIBILITY_FLAGS = True
 
@@ -70,3 +73,8 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
             'system/media/wilhelm/include',
         ]
     ]
+
+FAIL_ON_WARNINGS = True
+
+CFLAGS += CONFIG['MOZ_ALSA_CFLAGS']
+CFLAGS += CONFIG['MOZ_PULSEAUDIO_CFLAGS']

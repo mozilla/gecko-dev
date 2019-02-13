@@ -4,10 +4,19 @@
 
 <!-- General panel -->
 
-<script type="application/javascript" 
+<script type="application/javascript"
         src="chrome://browser/content/preferences/in-content/main.js"/>
 
-<preferences id="mainPreferences">
+<preferences id="mainPreferences" hidden="true" data-category="paneGeneral">
+
+#ifdef E10S_TESTING_ONLY
+    <preference id="browser.tabs.remote.autostart"
+                name="browser.tabs.remote.autostart"
+                type="bool"/>
+    <preference id="e10sTempPref"
+                name="browser.tabs.remote.autostart.2"
+                type="bool"/>
+#endif
 
     <!-- Startup -->
     <preference id="browser.startup.page"
@@ -16,6 +25,16 @@
     <preference id="browser.startup.homepage"
                 name="browser.startup.homepage"
                 type="wstring"/>
+
+#ifdef HAVE_SHELL_SERVICE
+    <preference id="browser.shell.checkDefaultBrowser"
+                name="browser.shell.checkDefaultBrowser"
+                type="bool"/>
+
+    <preference id="pref.general.disable_button.default_browser"
+                name="pref.general.disable_button.default_browser"
+                type="bool"/>
+#endif
 
     <preference id="pref.browser.homepage.disable_button.current_page"
                 name="pref.browser.homepage.disable_button.current_page"
@@ -29,8 +48,7 @@
 
     <preference id="browser.privatebrowsing.autostart"
                 name="browser.privatebrowsing.autostart"
-                type="bool"
-                onchange="gMainPane.updateBrowserStartupLastSession();"/>
+                type="bool"/>
 
     <!-- Downloads -->
     <preference id="browser.download.useDownloadDir"
@@ -42,9 +60,8 @@
                 type="int"/>
     <preference id="browser.download.dir"
                 name="browser.download.dir"
-                type="file"
-                onchange="gMainPane.displayDownloadDirPref();"/>
-    <!-- Tab preferences 
+                type="file"/>
+    <!-- Tab preferences
     Preferences:
 
     browser.link.open_newwindow
@@ -61,7 +78,7 @@
     - true if the user should be warned if he attempts to open a lot of tabs at
       once (e.g. a large folder of bookmarks), false otherwise
     browser.taskbar.previews.enable
-    - true if tabs are to be shown in the Windows 7 taskbar    
+    - true if tabs are to be shown in the Windows 7 taskbar
     -->
 
     <preference id="browser.link.open_newwindow"
@@ -91,7 +108,6 @@
       class="header"
       hidden="true"
       data-category="paneGeneral">
-  <image class="header-icon"/>
   <label class="header-name">&paneGeneral.title;</label>
 </hbox>
 
@@ -101,57 +117,106 @@
           hidden="true">
   <caption><label>&startup.label;</label></caption>
 
-  <hbox align="center">
-    <label accesskey="&startupPage.accesskey;"
-           control="browserStartupPage">&startupPage.label;</label>
-    <menulist id="browserStartupPage"
-              preference="browser.startup.page">
-      <menupopup>
-      <menuitem label="&startupHomePage.label;"
-                value="1"
-                id="browserStartupHomePage"/>
-      <menuitem label="&startupBlankPage.label;"
-                value="0"
-                id="browserStartupBlank"/>
-      <menuitem label="&startupLastSession.label;"
-                value="3"
-                id="browserStartupLastSession"/>
-      </menupopup>
-    </menulist>
-  </hbox>
-  <separator class="thin"/>
-  <hbox align="center">
-    <label accesskey="&homepage.accesskey;"
-           control="browserHomePage">&homepage.label;</label>
-    <textbox id="browserHomePage"
-             class="padded uri-element"
-             flex="1"
-             type="autocomplete"
-             autocompletesearch="history"
-             onsyncfrompreference="return gMainPane.syncFromHomePref();"
-             onsynctopreference="return gMainPane.syncToHomePref(this.value);"
-             placeholder="&abouthome.pageTitle;"
-             preference="browser.startup.homepage"/>
-  </hbox>
-  <hbox align="center" pack="end">
-    <button label=""
-            accesskey="&useCurrentPage.accesskey;"
-            label1="&useCurrentPage.label;"
-            label2="&useMultiple.label;"
-            oncommand="gMainPane.setHomePageToCurrent();"
-            id="useCurrent"
-            preference="pref.browser.homepage.disable_button.current_page"/>
-    <button label="&chooseBookmark.label;"
-            accesskey="&chooseBookmark.accesskey;"
-            oncommand="gMainPane.setHomePageToBookmark();"
-            id="useBookmark"
-            preference="pref.browser.homepage.disable_button.bookmark_page"/>
-    <button label="&restoreDefault.label;"
-            accesskey="&restoreDefault.accesskey;"
-            oncommand="gMainPane.restoreDefaultHomePage();"
-            id="restoreDefaultHomePage"
-            preference="pref.browser.homepage.disable_button.restore_default"/>
-  </hbox>
+#ifdef MOZ_DEV_EDITION
+  <vbox id="separateProfileBox">
+    <checkbox id="separateProfileMode"
+              label="&separateProfileMode.label;"/>
+    <hbox align="center" class="indent">
+      <label id="useFirefoxSync">&useFirefoxSync.label;</label>
+      <label id="getStarted" class="text-link">&getStarted.label;</label>
+    </hbox>
+  </vbox>
+#endif
+
+#ifdef E10S_TESTING_ONLY
+  <checkbox id="e10sAutoStart"
+            label="&e10sEnabled.label;"/>
+#endif
+
+#ifdef HAVE_SHELL_SERVICE
+  <vbox id="defaultBrowserBox">
+    <hbox align="center">
+      <checkbox id="alwaysCheckDefault" preference="browser.shell.checkDefaultBrowser"
+                label="&alwaysCheckDefault2.label;" accesskey="&alwaysCheckDefault2.accesskey;"/>
+    </hbox>
+    <deck id="setDefaultPane">
+      <hbox align="center" class="indent">
+        <label id="isNotDefaultLabel" flex="1">&isNotDefault.label;</label>
+        <button id="setDefaultButton"
+                label="&setAsMyDefaultBrowser2.label;" accesskey="&setAsMyDefaultBrowser2.accesskey;"
+                preference="pref.general.disable_button.default_browser"/>
+      </hbox>
+      <hbox align="center" class="indent">
+        <label id="isDefaultLabel" flex="1">&isDefault.label;</label>
+      </hbox>
+    </deck>
+    <separator class="thin"/>
+  </vbox>
+#endif
+
+  <html:table id="startupTable">
+    <html:tr>
+      <html:td class="label-cell">
+        <label accesskey="&startupPage.accesskey;"
+               control="browserStartupPage">&startupPage.label;</label>
+      </html:td>
+      <html:td class="content-cell">
+        <menulist id="browserStartupPage"
+                  class="content-cell-item"
+                  preference="browser.startup.page">
+          <menupopup>
+          <menuitem label="&startupHomePage.label;"
+                    value="1"
+                    id="browserStartupHomePage"/>
+          <menuitem label="&startupBlankPage.label;"
+                    value="0"
+                    id="browserStartupBlank"/>
+          <menuitem label="&startupLastSession.label;"
+                    value="3"
+                    id="browserStartupLastSession"/>
+          </menupopup>
+        </menulist>
+      </html:td>
+    </html:tr>
+    <html:tr>
+      <html:td class="label-cell">
+        <label accesskey="&homepage.accesskey;"
+               control="browserHomePage">&homepage.label;</label>
+      </html:td>
+      <html:td class="content-cell">
+        <textbox id="browserHomePage"
+                 class="padded uri-element content-cell-item"
+                 type="autocomplete"
+                 autocompletesearch="history"
+                 onsyncfrompreference="return gMainPane.syncFromHomePref();"
+                 onsynctopreference="return gMainPane.syncToHomePref(this.value);"
+                 placeholder="&abouthome.pageTitle;"
+                 preference="browser.startup.homepage"/>
+      </html:td>
+    </html:tr>
+    <html:tr>
+      <html:td class="label-cell" />
+      <html:td class="content-cell homepage-buttons">
+        <button id="useCurrent"
+                class="content-cell-item"
+                label=""
+                accesskey="&useCurrentPage.accesskey;"
+                label1="&useCurrentPage.label;"
+                label2="&useMultiple.label;"
+                preference="pref.browser.homepage.disable_button.current_page"/>
+        <button id="useBookmark"
+                class="content-cell-item"
+                label="&chooseBookmark.label;"
+                accesskey="&chooseBookmark.accesskey;"
+                preference="pref.browser.homepage.disable_button.bookmark_page"/>
+        <button id="restoreDefaultHomePage"
+                class="content-cell-item"
+                label="&restoreDefault.label;"
+                accesskey="&restoreDefault.accesskey;"
+                preference="pref.browser.homepage.disable_button.restore_default"/>
+      </html:td>
+    </html:tr>
+  </html:table>
 </groupbox>
 
 <!-- Downloads -->
@@ -174,10 +239,8 @@
                  preference="browser.download.folderList"
                  preference-editable="true"
                  aria-labelledby="saveTo"
-                 onsyncfrompreference="return gMainPane.displayDownloadDirPref();"
-                 onsynctopreference="return gMainPane.getFolderListPref()"/>
+                 onsyncfrompreference="return gMainPane.displayDownloadDirPref();"/>
       <button id="chooseFolder"
-              oncommand="gMainPane.chooseFolder();"
 #ifdef XP_MACOSX
               accesskey="&chooseFolderMac.accesskey;"
               label="&chooseFolderMac.label;"
@@ -185,8 +248,7 @@
               accesskey="&chooseFolderWin.accesskey;"
               label="&chooseFolderWin.label;"
 #endif
-              preference="browser.download.folderList"
-              onsynctopreference="return gMainPane.getFolderListPref();"/>
+      />
     </hbox>
     <hbox>
       <radio id="alwaysAsk"

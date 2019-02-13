@@ -9,90 +9,156 @@ this.EXPORTED_SYMBOLS = ["PlacesTransactions"];
 /**
  * Overview
  * --------
- * This modules serves as the transactions manager for Places, and implements
- * all the standard transactions for its UI commands (creating items, editing
- * various properties, etc.). It shares most of its semantics with common
- * command pattern implementations, the HTML5 Undo Manager in particular.
- * However, the asynchronous design of [future] Places APIs, combined with the
- * commitment to serialize all UI operations, makes things a little bit
- * different.  For example, when |undo| is called in order to undo the top undo
- * entry, the caller cannot tell for sure what entry would it be because the
- * execution of some transaction is either in process, or queued.
+ * This modules serves as the transactions manager for Places (hereinafter PTM).
+ * It implements all the elementary transactions for its UI commands: creating
+ * items, editing their various properties, and so forth.
  *
- * GUIDs and item-ids
- * -------------------
- * The Bookmarks API still relies heavily on item-ids, but since those do not
- * play nicely with the concept of undo and redo (especially not in an
- * asynchronous environment), this API only accepts bookmark GUIDs, both for
- * input (e.g. for specifying the parent folder for a new bookmark) and for
- * output (when the GUID for such a bookmark is propagated).
+ * Note that since the effect of invoking a Places command is not limited to the
+ * window in which it was performed (e.g. a folder created in the Library may be
+ * the parent of a bookmark created in some browser window), PTM is a singleton.
+ * It's therefore unnecessary to initialize PTM in any way apart importing this
+ * module.
  *
- * GUIDs are readily available when dealing with the "output" of this API and
- * when result nodes are used (see nsINavHistoryResultNode::bookmarkGUID).
- * If you only have item-ids in hand, use PlacesUtils.promiseItemGUID for
- * converting them.  Should you need to convert them back into itemIds, use
- * PlacesUtils.promiseItemId.
+ * PTM shares most of its semantics with common command pattern implementations.
+ * However, the asynchronous design of contemporary and future APIs, combined
+ * with the commitment to serialize all UI operations, does make things a little
+ * bit different.  For example, when |undo| is called in order to undo the top
+ * undo entry, the caller cannot tell for sure what entry would it be, because
+ * the execution of some transactions is either in process, or enqueued to be.
  *
- * The Standard Transactions
+ * Also note that unlike the nsITransactionManager, for example, this API is by
+ * no means generic.  That is, it cannot be used to execute anything but the
+ * elementary transactions implemented here (Please file a bug if you find
+ * anything uncovered).  More-complex transactions (e.g. creating a folder and
+ * moving a bookmark into it) may be implemented as a batch (see below).
+ *
+ * A note about GUIDs and item-ids
+ * -------------------------------
+ * There's an ongoing effort (see bug 1071511) to deprecate item-ids in Places
+ * in favor of GUIDs.  Both because new APIs (e.g. Bookmark.jsm) expose them to
+ * the minimum necessary, and because GUIDs play much better with implementing
+ * |redo|, this API doesn't support item-ids at all, and only accepts bookmark
+ * GUIDs, both for input (e.g. for setting the parent folder for a new bookmark)
+ * and for output (when the GUID for such a bookmark is propagated).
+ *
+ * When working in conjugation with older Places API which only expose item ids,
+ * use PlacesUtils.promiseItemGuid for converting those to GUIDs (note that
+ * for result nodes, the guid is available through their bookmarkGuid getter).
+ * Should you need to convert GUIDs to item-ids, use PlacesUtils.promiseItemId.
+ *
+ * Constructing transactions
  * -------------------------
- * At the bottom of this module you will find implementations for all Places UI
- * commands (One should almost never fallback to raw Places APIs.  Please file
- * a bug if you find anything uncovered). The transactions' constructors are
- * set on the PlacesTransactions object (e.g. PlacesTransactions.NewFolder).
- * The input for this constructors is taken in the form of a single argument
- * plain object.  Input properties may be either required (e.g. the |keyword|
- * property for the EditKeyword transaction) or optional (e.g. the |keyword|
- * property for NewBookmark).  Once a transaction is created, you may pass it
- * to |transact| or use it in the for batching (see next section).
- *
- * The constructors throw right away when any required input is missing or when
- * some input is invalid "on the surface" (e.g. GUID values are validated to be
- * 12-characters strings, but are not validated to point to existing item.  Such
- * an error will reveal when the transaction is executed).
+ * At the bottom of this module you will find transactions for all Places UI
+ * commands.  They are exposed as constructors set on the PlacesTransactions
+ * object (e.g. PlacesTransactions.NewFolder).  The input for this constructors
+ * is taken in the form of a single argument, a plain object consisting of the
+ * properties for the transaction.  Input properties may be either required or
+ * optional (for example, |keyword| is required for the EditKeyword transaction,
+ * but optional for the NewBookmark transaction).
  *
  * To make things simple, a given input property has the same basic meaning and
  * valid values across all transactions which accept it in the input object.
  * Here is a list of all supported input properties along with their expected
  * values:
- *  - uri: an nsIURI object.
- *  - feedURI: an nsIURI object, holding the url for a live bookmark.
- *  - siteURI: an nsIURI object, holding the url for the site with which
- *             a live bookmark is associated.
- *  - GUID, parentGUID, newParentGUID: a valid places GUID string.
+ *  - url: a URL object, an nsIURI object, or a href.
+ *  - urls: an array of urls, as above.
+ *  - feedUrl: an url (as above), holding the url for a live bookmark.
+ *  - siteUrl an url (as above), holding the url for the site with which
+ *            a live bookmark is associated.
+ *  - tag - a string.
+ *  - tags: an array of strings.
+ *  - guid, parentGuid, newParentGuid: a valid Places GUID string.
+ *  - guids: an array of valid Places GUID strings.
  *  - title: a string
  *  - index, newIndex: the position of an item in its containing folder,
  *    starting from 0.
  *    integer and PlacesUtils.bookmarks.DEFAULT_INDEX
- *  - annotationObject: see PlacesUtils.setAnnotationsForItem
+ *  - annotation: see PlacesUtils.setAnnotationsForItem
  *  - annotations: an array of annotation objects as above.
- *  - tags: an array of strings.
+ *  - excludingAnnotation: a string (annotation name).
+ *  - excludingAnnotations: an array of string (annotation names).
  *
- * Batching transactions
- * ---------------------
- * Sometimes it is useful to "batch" or "merge" transactions. For example,
- * "Bookmark All Tabs" may be implemented as one NewFolder transaction followed
- * by numerous NewBookmark transactions - all to be undone or redone in a single
- * command.  The |transact| method makes this possible using a generator
- * function as an input.  These generators have the same semantics as in
- * Task.jsm except that when you yield a transaction, it's executed, and the
- * resolution (e.g. the new bookmark GUID) is sent to the generator so you can
- * use it as the input for another transaction.  See |transact| for the details.
+ * If a required property is missing in the input object (e.g. not specifying
+ * parentGuid for NewBookmark), or if the value for any of the input properties
+ * is invalid "on the surface" (e.g. a numeric value for GUID, or a string that
+ * isn't 12-characters long), the transaction constructor throws right way.
+ * More complex errors (e.g. passing a non-existent GUID for parentGuid) only
+ * reveal once the transaction is executed.
  *
- * "Custom" transactions
- * ---------------------
- * In the legacy transactions API it was possible to pass-in transactions
- * implemented "externally".  For various reason this isn't allowed anymore:
- * transact throws right away if one attempts to pass a transaction that was not
- * created by this module.  However, it's almost always possible to achieve the
- * same functionality with the batching technique described above.
+ * Executing Transactions (the |transact| method of transactions)
+ * --------------------------------------------------------------
+ * Once a transaction is created, you must call its |transact| method for it to
+ * be executed and take effect.  |transact| is an asynchronous method that takes
+ * no arguments, and returns a promise that resolves once the transaction is
+ * executed.  Executing one of the transactions for creating items (NewBookmark,
+ * NewFolder, NewSeparator or NewLivemark) resolve to the new item's GUID.
+ * There's no resolution value for other transactions.
+ * If a transaction fails to execute, |transact| rejects and the transactions
+ * history is not affected.
+ *
+ * |transact| throws if it's called more than once (successfully or not) on the
+ * same transaction object.
+ *
+ * Batches
+ * -------
+ * Sometimes it is useful to "batch" or "merge" transactions.  For example,
+ * something like "Bookmark All Tabs" may be implemented as one NewFolder
+ * transaction followed by numerous NewBookmark transactions - all to be undone
+ * or redone in a single undo or redo command.  Use |PlacesTransactions.batch|
+ * in such cases.  It can take either an array of transactions which will be
+ * executed in the given order and later be treated a a single entry in the
+ * transactions history, or a generator function that is passed to Task.spawn,
+ * that is to "contain" the batch: once the generator function is called a batch
+ * starts, and it lasts until the asynchronous generator iteration is complete
+ * All transactions executed by |transact| during this time are to be treated as
+ * a single entry in the transactions history.
+ *
+ * In both modes, |PlacesTransactions.batch| returns a promise that is to be
+ * resolved when the batch ends.  In the array-input mode, there's no resolution
+ * value.  In the generator mode, the resolution value is whatever the generator
+ * function returned (the semantics are the same as in Task.spawn, basically).
+ *
+ * The array-input mode of |PlacesTransactions.batch| is useful for implementing
+ * a batch of mostly-independent transaction (for example, |paste| into a folder
+ * can be implemented as a batch of multiple NewBookmark transactions).
+ * The generator mode is useful when the resolution value of executing one
+ * transaction is the input of one more subsequent transaction.
+ *
+ * In the array-input mode, if any transactions fails to execute, the batch
+ * continues (exceptions are logged).  Only transactions that were executed
+ * successfully are added to the transactions history.
+ *
+ * WARNING: "nested" batches are not supported, if you call batch while another
+ * batch is still running, the new batch is enqueued with all other PTM work
+ * and thus not run until the running batch ends. The same goes for undo, redo
+ * and clearTransactionsHistory (note batches cannot be done partially, meaning
+ * undo and redo calls that during a batch are just enqueued).
+ *
+ * *****************************************************************************
+ * IT"S PARTICULARLY IMPORTANT NOT TO YIELD ANY PROMISE RETURNED BY ANY OF
+ * THESE METHODS (undo, redo, clearTransactionsHistory) FROM A BATCH FUNCTION.
+ * UNTIL WE FIND A WAY TO THROW IN THAT CASE (SEE BUG 1091446) DOING SO WILL
+ * COMPLETELY BREAK PTM UNTIL SHUTDOWN, NOT ALLOWING THE EXECUTION OF ANY
+ * TRANSACTION!
+ * *****************************************************************************
+ *
+ * Serialization
+ * -------------
+ * All |PlacesTransaction| operations are serialized.  That is, even though the
+ * implementation is asynchronous, the order in which PlacesTransactions methods
+ * is called does guarantee the order in which they are to be invoked.
+ *
+ * The only exception to this rule is |transact| calls done during a batch (see
+ * above).  |transact| calls are serialized with each other (and with undo, redo
+ * and clearTransactionsHistory), but they  are, of course, not serialized with
+ * batches.
  *
  * The transactions-history structure
  * ----------------------------------
  * The transactions-history is a two-dimensional stack of transactions: the
  * transactions are ordered in reverse to the order they were committed.
- * It's two-dimensional because the undo manager allows batching transactions
- * together for the purpose of undo or redo (batched transactions can never be
- * undone or redone partially).
+ * It's two-dimensional because PTM allows batching transactions together for
+ * the purpose of undo or redo (see Batches above).
  *
  * The undoPosition property is set to the index of the top entry. If there is
  * no entry at that index, there is nothing to undo.
@@ -121,22 +187,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "console",
                                   "resource://gre/modules/devtools/Console.jsm");
 
-// Updates commands in the undo group of the active window commands.
-// Inactive windows commands will be updated on focus.
-function updateCommandsOnActiveWindow() {
-  // Updating "undo" will cause a group update including "redo".
-  try {
-    let win = Services.focus.activeWindow;
-    if (win)
-      win.updateCommands("undo");
-  }
-  catch(ex) { console.error(ex, "Couldn't update undo commands"); }
-}
+Components.utils.importGlobalProperties(["URL"]);
 
-// The internal object for managing the transactions history.
-// The public API is included in PlacesTransactions.
-// TODO bug 982099: extending the array "properly" makes it painful to implement
-// getters.  If/when ES6 gets proper array subclassing we can revise this.
 let TransactionsHistory = [];
 TransactionsHistory.__proto__ = {
   __proto__: Array.prototype,
@@ -147,10 +199,12 @@ TransactionsHistory.__proto__ = {
   get undoPosition() this._undoPosition,
 
   // Handy shortcuts
-  get topUndoEntry() this.undoPosition < this.length ?
-                     this[this.undoPosition] : null,
-  get topRedoEntry() this.undoPosition > 0 ?
-                     this[this.undoPosition - 1] : null,
+  get topUndoEntry() {
+    return this.undoPosition < this.length ? this[this.undoPosition] : null;
+  },
+  get topRedoEntry() {
+    return this.undoPosition > 0 ? this[this.undoPosition - 1] : null;
+  },
 
   // Outside of this module, the API of transactions is inaccessible, and so
   // are any internal properties.  To achieve that, transactions are proxified
@@ -166,7 +220,11 @@ TransactionsHistory.__proto__ = {
    * @see getRawTransaction for retrieving the raw transaction.
    */
   proxifyTransaction: function (aRawTransaction) {
-    let proxy = Object.freeze({});
+    let proxy = Object.freeze({
+      transact() {
+        return TransactionsManager.transact(this);
+      }
+    });
     this.proxifiedToRaw.set(proxy, aRawTransaction);
     return proxy;
   },
@@ -178,8 +236,9 @@ TransactionsHistory.__proto__ = {
    * @return true if aValue is the proxy object for some transaction, false
    * otherwise.
    */
-  isProxifiedTransactionObject:
-  function (aValue) this.proxifiedToRaw.has(aValue),
+  isProxifiedTransactionObject(aValue) {
+    return this.proxifiedToRaw.has(aValue);
+  },
 
   /**
    * Get the raw transaction for the given proxy.
@@ -188,60 +247,8 @@ TransactionsHistory.__proto__ = {
    * @return the transaction proxified by aProxy; |undefined| is returned if
    * aProxy is not a proxified transaction.
    */
-  getRawTransaction: function (aProxy) this.proxifiedToRaw.get(aProxy),
-
-  /**
-   * Undo the top undo entry, if any, and update the undo position accordingly.
-   */
-  undo: function* () {
-    let entry = this.topUndoEntry;
-    if (!entry)
-      return;
-
-    for (let transaction of entry) {
-      try {
-        yield TransactionsHistory.getRawTransaction(transaction).undo();
-      }
-      catch(ex) {
-        // If one transaction is broken, it's not safe to work with any other
-        // undo entry.  Report the error and clear the undo history.
-        console.error(ex,
-                      "Couldn't undo a transaction, clearing all undo entries.");
-        this.clearUndoEntries();
-        return;
-      }
-    }
-    this._undoPosition++;
-    updateCommandsOnActiveWindow();
-  },
-
-  /**
-   * Redo the top redo entry, if any, and update the undo position accordingly.
-   */
-  redo: function* () {
-    let entry = this.topRedoEntry;
-    if (!entry)
-      return;
-
-    for (let i = entry.length - 1; i >= 0; i--) {
-      let transaction = TransactionsHistory.getRawTransaction(entry[i]);
-      try {
-        if (transaction.redo)
-          yield transaction.redo();
-        else
-          yield transaction.execute();
-      }
-      catch(ex) {
-        // If one transaction is broken, it's not safe to work with any other
-        // redo entry. Report the error and clear the undo history.
-        console.error(ex,
-                      "Couldn't redo a transaction, clearing all redo entries.");
-        this.clearRedoEntries();
-        return;
-      }
-    }
-    this._undoPosition--;
-    updateCommandsOnActiveWindow();
+  getRawTransaction(aProxy) {
+    return this.proxifiedToRaw.get(aProxy);
   },
 
   /**
@@ -256,7 +263,7 @@ TransactionsHistory.__proto__ = {
    *        If false, an entry will we created only if there's no undo entry
    *        to extend.
    */
-  add: function (aProxifiedTransaction, aForceNewEntry = false) {
+  add(aProxifiedTransaction, aForceNewEntry = false) {
     if (!this.isProxifiedTransactionObject(aProxifiedTransaction))
       throw new Error("aProxifiedTransaction is not a proxified transaction");
 
@@ -267,13 +274,12 @@ TransactionsHistory.__proto__ = {
     else {
       this[this.undoPosition].unshift(aProxifiedTransaction);
     }
-    updateCommandsOnActiveWindow();
   },
 
   /**
    * Clear all undo entries.
    */
-  clearUndoEntries: function () {
+  clearUndoEntries() {
     if (this.undoPosition < this.length)
       this.splice(this.undoPosition);
   },
@@ -281,7 +287,7 @@ TransactionsHistory.__proto__ = {
   /**
    * Clear all redo entries.
    */
-  clearRedoEntries: function () {
+  clearRedoEntries() {
     if (this.undoPosition > 0) {
       this.splice(0, this.undoPosition);
       this._undoPosition = 0;
@@ -291,7 +297,7 @@ TransactionsHistory.__proto__ = {
   /**
    * Clear all entries.
    */
-  clearAllEntries: function () {
+  clearAllEntries() {
     if (this.length > 0) {
       this.splice(0);
       this._undoPosition = 0;
@@ -300,125 +306,36 @@ TransactionsHistory.__proto__ = {
 };
 
 
-// Our transaction manager is asynchronous in the sense that all of its methods
-// don't execute synchronously. However, all actions must be serialized.
-let currentTask = Promise.resolve();
-function Serialize(aTask) {
-  // Ignore failures.
-  return currentTask = currentTask.then( () => Task.spawn(aTask) )
-                                  .then(null, Components.utils.reportError);
-}
-
-// Transactions object should never be recycled (that is, |execute| should
-// only be called once, or not at all, after they're constructed.
-// This keeps track of all transactions which were executed.
-let executedTransactions = new WeakMap(); // TODO: use WeakSet (bug 792439)
-executedTransactions.add = k => executedTransactions.set(k, null);
-
 let PlacesTransactions = {
   /**
-   * Asynchronously transact either a single transaction, or a sequence of
-   * transactions that would be treated as a single entry in the transactions
-   * history.
-   *
-   * @param aToTransact
-   *        Either a transaction object or a generator function (ES6-style only)
-   *        that yields transaction objects.
-   *
-   *        Generator mode how-to: when a transaction is yielded, it's executed.
-   *        Then, if it was executed successfully, the resolution of |execute|
-   *        is sent to the generator.  If |execute| threw or rejected, the
-   *        exception is propagated to the generator.
-   *        Any other value yielded by a generator function is handled the
-   *        same way as in a Task (see Task.jsm).
-   *
-   * @return {Promise}
-   * @resolves either to the resolution of |execute|, in single-transaction mode,
-   * or to the return value of the generator, in generator-mode.
-   * @rejects either if |execute| threw, in single-transaction mode, or if
-   * the generator function threw (or didn't handle) an exception, in generator
-   * mode.
-   * @throws if aTransactionOrGeneratorFunction is neither a transaction object
-   * created by this module or a generator function.
-   * @note If no transaction was executed successfully, the transactions history
-   * is not affected.
-   *
-   * @note All PlacesTransactions operations are serialized. This means that the
-   * transactions history state may change by the time the transaction/generator
-   * is processed.  It's guaranteed, however, that a generator function "blocks"
-   * the queue: that is, it is assured that no other operations are performed
-   * by or on PlacesTransactions until the generator returns.  Keep in mind you
-   * are not protected from consumers who use the raw places APIs directly.
+   * @see Batches in the module documentation.
    */
-  transact: function (aToTransact) {
-    let isGeneratorObj =
-      o => Object.prototype.toString.call(o) ==  "[object Generator]";
+  batch(aToBatch) {
+    let batchFunc;
+    if (Array.isArray(aToBatch)) {
+      if (aToBatch.length == 0)
+        throw new Error("aToBatch must not be an empty array");
 
-    let generator = null;
-    if (typeof(aToTransact) == "function") {
-      generator = aToTransact();
-      if (!isGeneratorObj(generator))
-        throw new Error("aToTransact is not a generator function");
-    }
-    else if (!TransactionsHistory.isProxifiedTransactionObject(aToTransact)) {
-      throw new Error("aToTransact is not a valid transaction object");
-    }
-    else if (executedTransactions.has(aToTransact)) {
-      throw new Error("Transactions objects may not be recycled.");
-    }
-
-    return Serialize(function* () {
-      // The entry in the transactions history is created once the first
-      // transaction is committed. This means that if |transact| is called
-      // in its "generator mode" and no transactions are committed by the
-      // generator, the transactions history is left unchanged.
-      // Bug 982115: Depending on how this API is actually used we may revise
-      // this decision and make it so |transact| always forces a new entry.
-      let forceNewEntry = true;
-      function* transactOneTransaction(aTransaction) {
-        let retval =
-          yield TransactionsHistory.getRawTransaction(aTransaction).execute();
-        executedTransactions.add(aTransaction);
-        TransactionsHistory.add(aTransaction, forceNewEntry);
-        forceNewEntry = false;
-        return retval;
+      if (aToBatch.some(
+           o => !TransactionsHistory.isProxifiedTransactionObject(o))) {
+        throw new Error("aToBatch contains non-transaction element");
       }
-
-      function* transactBatch(aGenerator) {
-        let error = false;
-        let sendValue = undefined;
-        while (true) {
-          let next = error ?
-                     aGenerator.throw(sendValue) : aGenerator.next(sendValue);
-          sendValue = next.value;
-          if (isGeneratorObj(sendValue)) {
-            sendValue = yield transactBatch(sendValue);
+      return TransactionsManager.batch(function* () {
+        for (let txn of aToBatch) {
+          try {
+            yield txn.transact();
           }
-          else if (typeof(sendValue) == "object" && sendValue) {
-            if (TransactionsHistory.isProxifiedTransactionObject(sendValue)) {
-              if (executedTransactions.has(sendValue)) {
-                sendValue = new Error("Transactions may not be recycled.");
-                error = true;
-              }
-              else {
-                sendValue = yield transactOneTransaction(sendValue);
-              }
-            }
-            else if ("then" in sendValue) {
-              sendValue = yield sendValue;
-            }
+          catch(ex) {
+            console.error(ex);
           }
-          if (next.done)
-            break;
         }
-        return sendValue;
-      }
+      });
+    }
+    if (typeof(aToBatch) == "function") {
+      return TransactionsManager.batch(aToBatch);
+    }
 
-      if (generator)
-        return yield transactBatch(generator);
-      else
-        return yield transactOneTransaction(aToTransact);
-    }.bind(this));
+    throw new Error("aToBatch must be either a function or a transactions array");
   },
 
   /**
@@ -430,7 +347,9 @@ let PlacesTransactions = {
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
-  undo: function () Serialize(() => TransactionsHistory.undo()),
+  undo() {
+    return TransactionsManager.undo();
+  },
 
   /**
    * Asynchronously redo the transaction immediately before the current undo
@@ -441,7 +360,9 @@ let PlacesTransactions = {
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
-  redo: function () Serialize(() => TransactionsHistory.redo()),
+  redo() {
+    return TransactionsManager.redo();
+  },
 
   /**
    * Asynchronously clear the undo, redo, or all entries from the transactions
@@ -457,24 +378,16 @@ let PlacesTransactions = {
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
-  clearTransactionsHistory:
-  function (aUndoEntries = true, aRedoEntries = true) {
-    return Serialize(function* () {
-      if (aUndoEntries && aRedoEntries)
-        TransactionsHistory.clearAllEntries();
-      else if (aUndoEntries)
-        TransactionsHistory.clearUndoEntries();
-      else if (aRedoEntries)
-        TransactionsHistory.clearRedoEntries();
-      else
-        throw new Error("either aUndoEntries or aRedoEntries should be true");
-    });
+  clearTransactionsHistory(aUndoEntries = true, aRedoEntries = true) {
+    return TransactionsManager.clearTransactionsHistory(aUndoEntries, aRedoEntries);
   },
 
   /**
    * The numbers of entries in the transactions history.
    */
-  get length() TransactionsHistory.length,
+  get length() {
+    return TransactionsHistory.length;
+  },
 
   /**
    * Get the transaction history entry at a given index.  Each entry consists
@@ -488,7 +401,7 @@ let PlacesTransactions = {
    * @note the returned array is a clone of the history entry and is not
    * kept in sync with the original entry if it changes.
    */
-  entry: function (aIndex) {
+  entry(aIndex) {
     if (!Number.isInteger(aIndex) || aIndex < 0 || aIndex >= this.length)
       throw new Error("Invalid index");
 
@@ -501,17 +414,234 @@ let PlacesTransactions = {
    * Entries past this point
    * Entries at and past this point are redo entries.
    */
-  get undoPosition() TransactionsHistory.undoPosition,
+  get undoPosition() {
+    return TransactionsHistory.undoPosition;
+  },
 
   /**
    * Shortcut for accessing the top undo entry in the transaction history.
    */
-  get topUndoEntry() TransactionsHistory.topUndoEntry,
+  get topUndoEntry() {
+    return TransactionsHistory.topUndoEntry;
+  },
 
   /**
    * Shortcut for accessing the top redo entry in the transaction history.
    */
-  get topRedoEntry() TransactionsHistory.topRedoEntry
+  get topRedoEntry() {
+    return TransactionsHistory.topRedoEntry;
+  }
+};
+
+/**
+ * Helper for serializing the calls to TransactionsManager methods. It allows
+ * us to guarantee that the order in which TransactionsManager asynchronous
+ * methods are called also enforces the order in which they're executed, and
+ * that they are never executed in parallel.
+ *
+ * In other words: Enqueuer.enqueue(aFunc1); Enqueuer.enqueue(aFunc2) is roughly
+ * the same as Task.spawn(aFunc1).then(Task.spawn(aFunc2)).
+ */
+function Enqueuer() {
+  this._promise = Promise.resolve();
+}
+Enqueuer.prototype = {
+  /**
+   * Spawn a functions once all previous functions enqueued are done running,
+   * and all promises passed to alsoWaitFor are no longer pending.
+   *
+   * @param   aFunc
+   *          @see Task.spawn.
+   * @return  a promise that resolves once aFunc is done running. The promise
+   *          "mirrors" the promise returned by aFunc.
+   */
+  enqueue(aFunc) {
+    let promise = this._promise.then(Task.async(aFunc));
+
+    // Propagate exceptions to the caller, but dismiss them internally.
+    this._promise = promise.catch(console.error);
+    return promise;
+  },
+
+  /**
+   * Same as above, but for a promise returned by a function that already run.
+   * This is useful, for example, for serializing transact calls with undo calls,
+   * even though transact has its own Enqueuer.
+   *
+   * @param aPromise
+   *        any promise.
+   */
+  alsoWaitFor(aPromise) {
+    // We don't care if aPromise resolves or rejects, but just that is not
+    // pending anymore.
+    let promise = aPromise.catch(console.error);
+    this._promise = Promise.all([this._promise, promise]);
+  },
+
+  /**
+   * The promise for this queue.
+   */
+  get promise() {
+    return this._promise;
+  }
+};
+
+let TransactionsManager = {
+  // See the documentation at the top of this file. |transact| calls are not
+  // serialized with |batch| calls.
+  _mainEnqueuer: new Enqueuer(),
+  _transactEnqueuer: new Enqueuer(),
+
+  // Is a batch in progress? set when we enter a batch function and unset when
+  // it's execution is done.
+  _batching: false,
+
+  // If a batch started, this indicates if we've already created an entry in the
+  // transactions history for the batch (i.e. if at least one transaction was
+  // executed successfully).
+  _createdBatchEntry: false,
+
+  // Transactions object should never be recycled (that is, |execute| should
+  // only be called once (or not at all) after they're constructed.
+  // This keeps track of all transactions which were executed.
+  _executedTransactions: new WeakSet(),
+
+  transact(aTxnProxy) {
+    let rawTxn = TransactionsHistory.getRawTransaction(aTxnProxy);
+    if (!rawTxn)
+      throw new Error("|transact| was called with an unexpected object");
+
+    if (this._executedTransactions.has(rawTxn))
+      throw new Error("Transactions objects may not be recycled.");
+
+    // Add it in advance so one doesn't accidentally do
+    // sameTxn.transact(); sameTxn.transact();
+    this._executedTransactions.add(rawTxn);
+
+    let promise = this._transactEnqueuer.enqueue(function* () {
+      // Don't try to catch exceptions. If execute fails, we better not add the
+      // transaction to the undo stack.
+      let retval = yield rawTxn.execute();
+
+      let forceNewEntry = !this._batching || !this._createdBatchEntry;
+      TransactionsHistory.add(aTxnProxy, forceNewEntry);
+      if (this._batching)
+        this._createdBatchEntry = true;
+
+      this._updateCommandsOnActiveWindow();
+      return retval;
+    }.bind(this));
+    this._mainEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  batch(aTask) {
+    return this._mainEnqueuer.enqueue(function* () {
+      this._batching = true;
+      this._createdBatchEntry = false;
+      let rv;
+      try {
+        // We should return here, but bug 958949 makes that impossible.
+        rv = (yield Task.spawn(aTask));
+      }
+      finally {
+        this._batching = false;
+        this._createdBatchEntry = false;
+      }
+      return rv;
+    }.bind(this));
+  },
+
+  /**
+   * Undo the top undo entry, if any, and update the undo position accordingly.
+   */
+  undo() {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      let entry = TransactionsHistory.topUndoEntry;
+      if (!entry)
+        return;
+
+      for (let txnProxy of entry) {
+        try {
+          yield TransactionsHistory.getRawTransaction(txnProxy).undo();
+        }
+        catch(ex) {
+          // If one transaction is broken, it's not safe to work with any other
+          // undo entry.  Report the error and clear the undo history.
+          console.error(ex,
+                        "Couldn't undo a transaction, clearing all undo entries.");
+          TransactionsHistory.clearUndoEntries();
+          return;
+        }
+      }
+      TransactionsHistory._undoPosition++;
+      this._updateCommandsOnActiveWindow();
+    }.bind(this));
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  /**
+   * Redo the top redo entry, if any, and update the undo position accordingly.
+   */
+  redo() {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      let entry = TransactionsHistory.topRedoEntry;
+      if (!entry)
+        return;
+
+      for (let i = entry.length - 1; i >= 0; i--) {
+        let transaction = TransactionsHistory.getRawTransaction(entry[i]);
+        try {
+          if (transaction.redo)
+            yield transaction.redo();
+          else
+            yield transaction.execute();
+        }
+        catch(ex) {
+          // If one transaction is broken, it's not safe to work with any other
+          // redo entry. Report the error and clear the undo history.
+          console.error(ex,
+                        "Couldn't redo a transaction, clearing all redo entries.");
+          TransactionsHistory.clearRedoEntries();
+          return;
+        }
+      }
+      TransactionsHistory._undoPosition--;
+      this._updateCommandsOnActiveWindow();
+    }.bind(this));
+
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  clearTransactionsHistory(aUndoEntries, aRedoEntries) {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      if (aUndoEntries && aRedoEntries)
+        TransactionsHistory.clearAllEntries();
+      else if (aUndoEntries)
+        TransactionsHistory.clearUndoEntries();
+      else if (aRedoEntries)
+        TransactionsHistory.clearRedoEntries();
+      else
+        throw new Error("either aUndoEntries or aRedoEntries should be true");
+    }.bind(this));
+
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  // Updates commands in the undo group of the active window commands.
+  // Inactive windows commands will be updated on focus.
+  _updateCommandsOnActiveWindow() {
+    // Updating "undo" will cause a group update including "redo".
+    try {
+      let win = Services.focus.activeWindow;
+      if (win)
+        win.updateCommands("undo");
+    }
+    catch(ex) { console.error(ex, "Couldn't update undo commands"); }
+  }
 };
 
 /**
@@ -557,15 +687,28 @@ function DefineTransaction(aRequiredProps = [], aOptionalProps = []) {
   return ctor;
 }
 
-DefineTransaction.isStr = v => typeof(v) == "string";
-DefineTransaction.isStrOrNull = v => typeof(v) == "string" || v === null;
-DefineTransaction.isURI = v => v instanceof Components.interfaces.nsIURI;
-DefineTransaction.isIndex = v => Number.isInteger(v) &&
-                                 v >= PlacesUtils.bookmarks.DEFAULT_INDEX;
-DefineTransaction.isGUID = v => /^[a-zA-Z0-9\-_]{12}$/.test(v);
-DefineTransaction.isPrimitive = v => v === null || (typeof(v) != "object" &&
-                                                    typeof(v) != "function");
-DefineTransaction.isAnnotationObject = function (obj) {
+function simpleValidateFunc(aCheck) {
+  return v => {
+    if (!aCheck(v))
+      throw new Error("Invalid value");
+    return v;
+  };
+}
+
+DefineTransaction.strValidate = simpleValidateFunc(v => typeof(v) == "string");
+DefineTransaction.strOrNullValidate =
+  simpleValidateFunc(v => typeof(v) == "string" || v === null);
+DefineTransaction.indexValidate =
+  simpleValidateFunc(v => Number.isInteger(v) &&
+                          v >= PlacesUtils.bookmarks.DEFAULT_INDEX);
+DefineTransaction.guidValidate =
+  simpleValidateFunc(v => /^[a-zA-Z0-9\-_]{12}$/.test(v));
+
+function isPrimitive(v) {
+  return v === null || (typeof(v) != "object" && typeof(v) != "function");
+}
+
+DefineTransaction.annotationObjectValidate = function (obj) {
   let checkProperty = (aPropName, aRequired, aCheckFunc) => {
     if (aPropName in obj)
       return aCheckFunc(obj[aPropName]);
@@ -574,113 +717,159 @@ DefineTransaction.isAnnotationObject = function (obj) {
   };
 
   if (obj &&
-      checkProperty("name",    true,  DefineTransaction.isStr)      &&
+      checkProperty("name", true, v => typeof(v) == "string" && v.length > 0) &&
       checkProperty("expires", false, Number.isInteger) &&
-      checkProperty("flags",   false, Number.isInteger) &&
-      checkProperty("value",   false, DefineTransaction.isPrimitive) ) {
+      checkProperty("flags", false, Number.isInteger) &&
+      checkProperty("value", false, isPrimitive) ) {
     // Nothing else should be set
     let validKeys = ["name", "value", "flags", "expires"];
     if (Object.keys(obj).every( (k) => validKeys.indexOf(k) != -1 ))
-      return true;
+      return obj;
   }
-  return false;
+  throw new Error("Invalid annotation object");
+};
+
+DefineTransaction.urlValidate = function(url) {
+  // When this module is updated to use Bookmarks.jsm, we should actually
+  // convert nsIURIs/spec to URL objects.
+  if (url instanceof Components.interfaces.nsIURI)
+    return url;
+  let spec = url instanceof URL ? url.href : url;
+  return NetUtil.newURI(spec);
 };
 
 DefineTransaction.inputProps = new Map();
 DefineTransaction.defineInputProps =
 function (aNames, aValidationFunction, aDefaultValue) {
   for (let name of aNames) {
-    this.inputProps.set(name, {
-      validate:     aValidationFunction,
-      defaultValue: aDefaultValue,
-      isGUIDProp:   false
+    // Workaround bug 449811.
+    let propName = name;
+    this.inputProps.set(propName, {
+      validateValue: function (aValue) {
+        if (aValue === undefined)
+          return aDefaultValue;
+        try {
+          return aValidationFunction(aValue);
+        }
+        catch(ex) {
+          throw new Error(`Invalid value for input property ${propName}`);
+        }
+      },
+
+      validateInput: function (aInput, aRequired) {
+        if (aRequired && !(propName in aInput))
+          throw new Error(`Required input property is missing: ${propName}`);
+        return this.validateValue(aInput[propName]);
+      },
+
+      isArrayProperty: false
     });
   }
 };
 
 DefineTransaction.defineArrayInputProp =
-function (aName, aValidationFunction, aDefaultValue) {
+function (aName, aBasePropertyName) {
+  let baseProp = this.inputProps.get(aBasePropertyName);
+  if (!baseProp)
+    throw new Error(`Unknown input property: ${aBasePropertyName}`);
+
   this.inputProps.set(aName, {
-    validate:     (v) => Array.isArray(v) && v.every(aValidationFunction),
-    defaultValue: aDefaultValue,
-    isGUIDProp:   false
+    validateValue: function (aValue) {
+      if (aValue == undefined)
+        return [];
+
+      if (!Array.isArray(aValue))
+        throw new Error(`${aName} input property value must be an array`);
+
+      // This also takes care of abandoning the global scope of the input
+      // array (through Array.prototype).
+      return [for (e of aValue) baseProp.validateValue(e)];
+    },
+
+    // We allow setting either the array property itself (e.g. urls), or a
+    // single element of it (url, in that example), that is then transformed
+    // into a single-element array.
+    validateInput: function (aInput, aRequired) {
+      if (aName in aInput) {
+        // It's not allowed to set both though.
+        if (aBasePropertyName in aInput) {
+          throw new Error(`It is not allowed to set both ${aName} and
+                          ${aBasePropertyName} as  input properties`);
+        }
+        let array = this.validateValue(aInput[aName]);
+        if (aRequired && array.length == 0) {
+          throw new Error(`Empty array passed for required input property:
+                           ${aName}`);
+        }
+        return array;
+      }
+      // If the property is required and it's not set as is, check if the base
+      // property is set.
+      if (aRequired && !(aBasePropertyName in aInput))
+        throw new Error(`Required input property is missing: ${aName}`);
+
+      if (aBasePropertyName in aInput)
+        return [baseProp.validateValue(aInput[aBasePropertyName])];
+
+      return [];
+    },
+
+    isArrayProperty: true
   });
 };
 
-DefineTransaction.verifyPropertyValue =
-function (aProp, aValue, aRequired) {
-  if (aValue === undefined) {
-    if (aRequired)
-      throw new Error("Required property is missing: " + aProp);
-    return this.inputProps.get(aProp).defaultValue;
+DefineTransaction.validatePropertyValue =
+function (aProp, aInput, aRequired) {
+  return this.inputProps.get(aProp).validateInput(aInput, aRequired);
+};
+
+DefineTransaction.getInputObjectForSingleValue =
+function (aInput, aRequiredProps, aOptionalProps) {
+  // The following input forms may be deduced from a single value:
+  // * a single required property with or without optional properties (the given
+  //   value is set to the required property).
+  // * a single optional property with no required properties.
+  if (aRequiredProps.length > 1 ||
+      (aRequiredProps.length == 0 && aOptionalProps.length > 1)) {
+    throw new Error("Transaction input isn't an object");
   }
 
-  if (!this.inputProps.get(aProp).validate(aValue))
-    throw new Error("Invalid value for property: " + aProp);
-
-  if (Array.isArray(aValue)) {
-    // The original array cannot be referenced by this module because it would
-    // then implicitly reference its global as well.
-    return Components.utils.cloneInto(aValue, {});
-  }
-
-  return aValue;
+  let propName = aRequiredProps.length == 1 ?
+                 aRequiredProps[0] : aOptionalProps[0];
+  let propValue =
+    this.inputProps.get(propName).isArrayProperty && !Array.isArray(aInput) ?
+    [aInput] : aInput;
+  return { [propName]: propValue };
 };
 
 DefineTransaction.verifyInput =
-function (aInput, aRequired = [], aOptional = []) {
-  if (aRequired.length == 0 && aOptional.length == 0)
+function (aInput, aRequiredProps = [], aOptionalProps = []) {
+  if (aRequiredProps.length == 0 && aOptionalProps.length == 0)
     return {};
 
   // If there's just a single required/optional property, we allow passing it
-  // as is, so, for example, one could do PlacesTransactions.RemoveItem(myGUID)
-  // rather than PlacesTransactions.RemoveItem({ GUID: myGUID}).
+  // as is, so, for example, one could do PlacesTransactions.RemoveItem(myGuid)
+  // rather than PlacesTransactions.RemoveItem({ guid: myGuid}).
   // This shortcut isn't supported for "complex" properties - e.g. one cannot
   // pass an annotation object this way (note there is no use case for this at
   // the moment anyway).
+  let input = aInput;
   let isSinglePropertyInput =
-    this.isPrimitive(aInput) ||
+    isPrimitive(aInput) ||
+    Array.isArray(aInput) ||
     (aInput instanceof Components.interfaces.nsISupports);
-  let fixedInput = { };
-  if (aRequired.length > 0) {
-    if (isSinglePropertyInput) {
-      if (aRequired.length == 1) {
-        let prop = aRequired[0], value = aInput;
-        value = this.verifyPropertyValue(prop, value, true);
-        fixedInput[prop] = value;
-      }
-      else {
-        throw new Error("Transaction input isn't an object");
-      }
-    }
-    else {
-      for (let prop of aRequired) {
-        let value = this.verifyPropertyValue(prop, aInput[prop], true);
-        fixedInput[prop] = value;
-      }
-    }
+  if (isSinglePropertyInput) {
+    input =  this.getInputObjectForSingleValue(aInput,
+                                               aRequiredProps,
+                                               aOptionalProps);
   }
 
-  if (aOptional.length > 0) {
-    if (isSinglePropertyInput && !aRequired.length > 0) {
-      if (aOptional.length == 1) {
-        let prop = aOptional[0], value = aInput;
-        value = this.verifyPropertyValue(prop, value, true);
-        fixedInput[prop] = value;
-      }
-      else if (aInput !== null && aInput !== undefined) {
-        throw new Error("Transaction input isn't an object");
-      }
-    }
-    else {
-      for (let prop of aOptional) {
-        let value = this.verifyPropertyValue(prop, aInput[prop], false);
-        if (value !== undefined)
-          fixedInput[prop] = value;
-        else
-          fixedInput[prop] = this.defaultValues[prop];
-      }
-    }
+  let fixedInput = { };
+  for (let prop of aRequiredProps) {
+    fixedInput[prop] = this.validatePropertyValue(prop, input, true);
+  }
+  for (let prop of aOptionalProps) {
+    fixedInput[prop] = this.validatePropertyValue(prop, input, false);
   }
 
   return fixedInput;
@@ -688,24 +877,26 @@ function (aInput, aRequired = [], aOptional = []) {
 
 // Update the documentation at the top of this module if you add or
 // remove properties.
-DefineTransaction.defineInputProps(["uri", "feedURI", "siteURI"],
-                                   DefineTransaction.isURI, null);
-DefineTransaction.defineInputProps(["GUID", "parentGUID", "newParentGUID"],
-                                   DefineTransaction.isGUID);
+DefineTransaction.defineInputProps(["url", "feedUrl", "siteUrl"],
+                                   DefineTransaction.urlValidate, null);
+DefineTransaction.defineInputProps(["guid", "parentGuid", "newParentGuid"],
+                                   DefineTransaction.guidValidate);
 DefineTransaction.defineInputProps(["title"],
-                                   DefineTransaction.isStrOrNull, null);
-DefineTransaction.defineInputProps(["keyword", "postData"],
-                                   DefineTransaction.isStr, "");
+                                   DefineTransaction.strOrNullValidate, null);
+DefineTransaction.defineInputProps(["keyword", "postData", "tag",
+                                    "excludingAnnotation"],
+                                   DefineTransaction.strValidate, "");
 DefineTransaction.defineInputProps(["index", "newIndex"],
-                                   DefineTransaction.isIndex,
+                                   DefineTransaction.indexValidate,
                                    PlacesUtils.bookmarks.DEFAULT_INDEX);
-DefineTransaction.defineInputProps(["annotationObject"],
-                                   DefineTransaction.isAnnotationObject);
-DefineTransaction.defineArrayInputProp("tags",
-                                       DefineTransaction.isStr, null);
-DefineTransaction.defineArrayInputProp("annotations",
-                                       DefineTransaction.isAnnotationObject,
-                                       null);
+DefineTransaction.defineInputProps(["annotation"],
+                                   DefineTransaction.annotationObjectValidate);
+DefineTransaction.defineArrayInputProp("guids", "guid");
+DefineTransaction.defineArrayInputProp("urls", "url");
+DefineTransaction.defineArrayInputProp("tags", "tag");
+DefineTransaction.defineArrayInputProp("annotations", "annotation");
+DefineTransaction.defineArrayInputProp("excludingAnnotations",
+                                       "excludingAnnotation");
 
 /**
  * Internal helper for implementing the execute method of NewBookmark, NewFolder
@@ -713,22 +904,22 @@ DefineTransaction.defineArrayInputProp("annotations",
  *
  * @param aTransaction
  *        The transaction object
- * @param aParentGUID
- *        The guid of the parent folder
- * @param aCreateItemFunction(aParentId, aGUIDToRestore)
+ * @param aParentGuid
+ *        The GUID of the parent folder
+ * @param aCreateItemFunction(aParentId, aGuidToRestore)
  *        The function to be called for creating the item on execute and redo.
  *        It should return the itemId for the new item
- *        - aGUIDToRestore - the GUID to set for the item (used for redo).
+ *        - aGuidToRestore - the GUID to set for the item (used for redo).
  * @param [optional] aOnUndo
  *        an additional function to call after undo
  * @param [optional] aOnRedo
  *        an additional function to call after redo
  */
-function* ExecuteCreateItem(aTransaction, aParentGUID, aCreateItemFunction,
+function* ExecuteCreateItem(aTransaction, aParentGuid, aCreateItemFunction,
                             aOnUndo = null, aOnRedo = null) {
-  let parentId = yield PlacesUtils.promiseItemId(aParentGUID),
+  let parentId = yield PlacesUtils.promiseItemId(aParentGuid),
       itemId = yield aCreateItemFunction(parentId, ""),
-      guid = yield PlacesUtils.promiseItemGUID(itemId);
+      guid = yield PlacesUtils.promiseItemGuid(itemId);
 
   // On redo, we'll restore the date-added and last-modified properties.
   let dateAdded = 0, lastModified = 0;
@@ -743,7 +934,7 @@ function* ExecuteCreateItem(aTransaction, aParentGUID, aCreateItemFunction,
     }
   };
   aTransaction.redo = function* () {
-    parentId = yield PlacesUtils.promiseItemId(aParentGUID);
+    parentId = yield PlacesUtils.promiseItemId(aParentGuid);
     itemId = yield aCreateItemFunction(parentId, guid);
     if (aOnRedo)
       yield aOnRedo();
@@ -752,8 +943,119 @@ function* ExecuteCreateItem(aTransaction, aParentGUID, aCreateItemFunction,
     // lastModified.
     PlacesUtils.bookmarks.setItemDateAdded(itemId, dateAdded);
     PlacesUtils.bookmarks.setItemLastModified(itemId, lastModified);
+    PlacesUtils.bookmarks.setItemLastModified(parentId, dateAdded);
   };
   return guid;
+}
+
+/**
+ * Creates items (all types) from a bookmarks tree representation, as defined
+ * in PlacesUtils.promiseBookmarksTree.
+ *
+ * @param aBookmarksTree
+ *        the bookmarks tree object.  You may pass either a bookmarks tree
+ *        returned by promiseBookmarksTree, or a manually defined one.
+ * @param [optional] aRestoring (default: false)
+ *        Whether or not the items are restored.  Only in restore mode, are
+ *        the guid, dateAdded and lastModified properties honored.
+ * @param [optional] aExcludingAnnotations
+ *        Array of annotations names to ignore in aBookmarksTree. This argument
+ *        is ignored if aRestoring is set.
+ * @note the id, root and charset properties of items in aBookmarksTree are
+ *       always ignored.  The index property is ignored for all items but the
+ *       root one.
+ * @return {Promise}
+ */
+function* createItemsFromBookmarksTree(aBookmarksTree, aRestoring = false,
+                                       aExcludingAnnotations = []) {
+  function extractLivemarkDetails(aAnnos) {
+    let feedURI = null, siteURI = null;
+    aAnnos = aAnnos.filter(
+      aAnno => {
+        switch (aAnno.name) {
+        case PlacesUtils.LMANNO_FEEDURI:
+          feedURI = NetUtil.newURI(aAnno.value);
+          return false;
+        case PlacesUtils.LMANNO_SITEURI:
+          siteURI = NetUtil.newURI(aAnno.value);
+          return false;
+        default:
+          return true;
+        }
+      } );
+    return [feedURI, siteURI];
+  }
+
+  function* createItem(aItem,
+                       aParentGuid,
+                       aIndex = PlacesUtils.bookmarks.DEFAULT_INDEX) {
+    let itemId;
+    let guid = aRestoring ? aItem.guid : undefined;
+    let parentId = yield PlacesUtils.promiseItemId(aParentGuid);
+    let annos = aItem.annos ? [...aItem.annos] : [];
+    switch (aItem.type) {
+      case PlacesUtils.TYPE_X_MOZ_PLACE: {
+        let uri = NetUtil.newURI(aItem.uri);
+        itemId = PlacesUtils.bookmarks.insertBookmark(
+          parentId, uri, aIndex, aItem.title, guid);
+        if ("keyword" in aItem)
+          PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aItem.keyword);
+        if ("tags" in aItem) {
+          PlacesUtils.tagging.tagURI(uri, aItem.tags.split(","));
+        }
+        break;
+      }
+      case PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER: {
+        // Either a folder or a livemark
+        let [feedURI, siteURI] = extractLivemarkDetails(annos);
+        if (!feedURI) {
+          itemId = PlacesUtils.bookmarks.createFolder(
+              parentId, aItem.title, aIndex, guid);
+          if (guid === undefined)
+            guid = yield PlacesUtils.promiseItemGuid(itemId);
+          if ("children" in aItem) {
+            for (let child of aItem.children) {
+              yield createItem(child, guid);
+            }
+          }
+        }
+        else {
+          let livemark =
+            yield PlacesUtils.livemarks.addLivemark({ title: aItem.title
+                                                    , feedURI: feedURI
+                                                    , siteURI: siteURI
+                                                    , parentId: parentId
+                                                    , index: aIndex
+                                                    , guid: guid});
+          itemId = livemark.id;
+        }
+        break;
+      }
+      case PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR: {
+        itemId = PlacesUtils.bookmarks.insertSeparator(parentId, aIndex, guid);
+        break;
+      }
+    }
+    if (annos.length > 0) {
+      if (!aRestoring && aExcludingAnnotations.length > 0) {
+        annos = [for(a of annos)
+                 if (aExcludingAnnotations.indexOf(a.name) == -1) a];
+      }
+
+      PlacesUtils.setAnnotationsForItem(itemId, annos);
+    }
+
+    if (aRestoring) {
+      if ("dateAdded" in aItem)
+        PlacesUtils.bookmarks.setItemDateAdded(itemId, aItem.dateAdded);
+      if ("lastModified" in aItem)
+        PlacesUtils.bookmarks.setItemLastModified(itemId, aItem.lastModified);
+    }
+    return itemId;
+  }
+  return yield createItem(aBookmarksTree,
+                          aBookmarksTree.parentGuid,
+                          aBookmarksTree.index);
 }
 
 /*****************************************************************************
@@ -768,18 +1070,18 @@ let PT = PlacesTransactions;
 /**
  * Transaction for creating a bookmark.
  *
- * Required Input Properties: uri, parentGUID.
+ * Required Input Properties: url, parentGuid.
  * Optional Input Properties: index, title, keyword, annotations, tags.
  *
  * When this transaction is executed, it's resolved to the new bookmark's GUID.
  */
-PT.NewBookmark = DefineTransaction(["parentGUID", "uri"],
+PT.NewBookmark = DefineTransaction(["parentGuid", "url"],
                                    ["index", "title", "keyword", "postData",
                                     "annotations", "tags"]);
 PT.NewBookmark.prototype = Object.seal({
-  execute: function (aParentGUID, aURI, aIndex, aTitle,
+  execute: function (aParentGuid, aURI, aIndex, aTitle,
                      aKeyword, aPostData, aAnnos, aTags) {
-    return ExecuteCreateItem(this, aParentGUID,
+    return ExecuteCreateItem(this, aParentGuid,
       function (parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.insertBookmark(
           parentId, aURI, aIndex, aTitle, guidToRestore);
@@ -787,9 +1089,9 @@ PT.NewBookmark.prototype = Object.seal({
           PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aKeyword);
         if (aPostData)
           PlacesUtils.setPostDataForBookmark(itemId, aPostData);
-        if (aAnnos)
+        if (aAnnos.length)
           PlacesUtils.setAnnotationsForItem(itemId, aAnnos);
-        if (aTags && aTags.length > 0) {
+        if (aTags.length > 0) {
           let currentTags = PlacesUtils.tagging.getTagsForURI(aURI);
           aTags = [t for (t of aTags) if (currentTags.indexOf(t) == -1)];
           PlacesUtils.tagging.tagURI(aURI, aTags);
@@ -798,7 +1100,7 @@ PT.NewBookmark.prototype = Object.seal({
         return itemId;
       },
       function _additionalOnUndo() {
-        if (aTags && aTags.length > 0)
+        if (aTags.length > 0)
           PlacesUtils.tagging.untagURI(aURI, aTags);
       });
   }
@@ -807,20 +1109,20 @@ PT.NewBookmark.prototype = Object.seal({
 /**
  * Transaction for creating a folder.
  *
- * Required Input Properties: title, parentGUID.
+ * Required Input Properties: title, parentGuid.
  * Optional Input Properties: index, annotations.
  *
  * When this transaction is executed, it's resolved to the new folder's GUID.
  */
-PT.NewFolder = DefineTransaction(["parentGUID", "title"],
+PT.NewFolder = DefineTransaction(["parentGuid", "title"],
                                  ["index", "annotations"]);
 PT.NewFolder.prototype = Object.seal({
-  execute: function (aParentGUID, aTitle, aIndex, aAnnos) {
-    return ExecuteCreateItem(this,  aParentGUID,
+  execute: function (aParentGuid, aTitle, aIndex, aAnnos) {
+    return ExecuteCreateItem(this,  aParentGuid,
       function(parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.createFolder(
           parentId, aTitle, aIndex, guidToRestore);
-        if (aAnnos)
+        if (aAnnos.length > 0)
           PlacesUtils.setAnnotationsForItem(itemId, aAnnos);
         return itemId;
       });
@@ -830,16 +1132,16 @@ PT.NewFolder.prototype = Object.seal({
 /**
  * Transaction for creating a separator.
  *
- * Required Input Properties: parentGUID.
+ * Required Input Properties: parentGuid.
  * Optional Input Properties: index.
  *
  * When this transaction is executed, it's resolved to the new separator's
  * GUID.
  */
-PT.NewSeparator = DefineTransaction(["parentGUID"], ["index"]);
+PT.NewSeparator = DefineTransaction(["parentGuid"], ["index"]);
 PT.NewSeparator.prototype = Object.seal({
-  execute: function (aParentGUID, aIndex) {
-    return ExecuteCreateItem(this, aParentGUID,
+  execute: function (aParentGuid, aIndex) {
+    return ExecuteCreateItem(this, aParentGuid,
       function (parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.insertSeparator(
           parentId, aIndex, guidToRestore);
@@ -852,58 +1154,66 @@ PT.NewSeparator.prototype = Object.seal({
  * Transaction for creating a live bookmark (see mozIAsyncLivemarks for the
  * semantics).
  *
- * Required Input Properties: feedURI, title, parentGUID.
- * Optional Input Properties: siteURI, index, annotations.
+ * Required Input Properties: feedUrl, title, parentGuid.
+ * Optional Input Properties: siteUrl, index, annotations.
  *
- * When this transaction is executed, it's resolved to the new separators's
+ * When this transaction is executed, it's resolved to the new livemark's
  * GUID.
  */
-PT.NewLivemark = DefineTransaction(["feedURI", "title", "parentGUID"],
-                                   ["siteURI", "index", "annotations"]);
+PT.NewLivemark = DefineTransaction(["feedUrl", "title", "parentGuid"],
+                                   ["siteUrl", "index", "annotations"]);
 PT.NewLivemark.prototype = Object.seal({
-  execute: function* (aFeedURI, aTitle, aParentGUID, aSiteURI, aIndex, aAnnos) {
-    let createItem = function* (aGUID = "") {
-      let parentId = yield PlacesUtils.promiseItemId(aParentGUID);
-      let livemarkInfo = {
-        title: aTitle
-      , feedURI: aFeedURI
-      , parentId: parentId
-      , index: aIndex
-      , siteURI: aSiteURI };
-      if (aGUID)
-        livemarkInfo.guid = aGUID;
-
+  execute: function* (aFeedURI, aTitle, aParentGuid, aSiteURI, aIndex, aAnnos) {
+    let livemarkInfo = { title: aTitle
+                       , feedURI: aFeedURI
+                       , siteURI: aSiteURI
+                       , index: aIndex };
+    let createItem = function* () {
+      livemarkInfo.parentId = yield PlacesUtils.promiseItemId(aParentGuid);
       let livemark = yield PlacesUtils.livemarks.addLivemark(livemarkInfo);
-      if (aAnnos)
+      if (aAnnos.length > 0)
         PlacesUtils.setAnnotationsForItem(livemark.id, aAnnos);
 
+      if ("dateAdded" in livemarkInfo) {
+        PlacesUtils.bookmarks.setItemDateAdded(livemark.id,
+                                               livemarkInfo.dateAdded);
+        PlacesUtils.bookmarks.setItemLastModified(livemark.id,
+                                                  livemarkInfo.lastModified);
+      }
       return livemark;
     };
 
-    let guid = (yield createItem()).guid;
+    let livemark = yield createItem();
     this.undo = function* () {
-      yield PlacesUtils.livemarks.removeLivemark({ guid: guid });
+      livemarkInfo.guid = livemark.guid;
+      if (!("dateAdded" in livemarkInfo)) {
+        livemarkInfo.dateAdded =
+          PlacesUtils.bookmarks.getItemDateAdded(livemark.id);
+        livemarkInfo.lastModified =
+          PlacesUtils.bookmarks.getItemLastModified(livemark.id);
+      }
+      yield PlacesUtils.livemarks.removeLivemark(livemark);
     };
     this.redo = function* () {
-      yield createItem(guid);
+      livemark = yield createItem();
     };
-    return guid;
+    return livemark.guid;
   }
 });
 
 /**
  * Transaction for moving an item.
  *
- * Required Input Properties: GUID, newParentGUID.
+ * Required Input Properties: guid, newParentGuid.
  * Optional Input Properties  newIndex.
  */
-PT.MoveItem = DefineTransaction(["GUID", "newParentGUID"], ["newIndex"]);
-PT.MoveItem.prototype = Object.seal({
-  execute: function* (aGUID, aNewParentGUID, aNewIndex) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+PT.Move = DefineTransaction(["guid", "newParentGuid"], ["newIndex"]);
+PT.Move.prototype = Object.seal({
+  execute: function* (aGuid, aNewParentGuid, aNewIndex) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldParentId = PlacesUtils.bookmarks.getFolderIdForItem(itemId),
         oldIndex = PlacesUtils.bookmarks.getItemIndex(itemId),
-        newParentId = yield PlacesUtils.promiseItemId(aNewParentGUID);
+        newParentId = yield PlacesUtils.promiseItemId(aNewParentGuid);
 
     PlacesUtils.bookmarks.moveItem(itemId, newParentId, aNewIndex);
 
@@ -922,12 +1232,12 @@ PT.MoveItem.prototype = Object.seal({
 /**
  * Transaction for setting the title for an item.
  *
- * Required Input Properties: GUID, title.
+ * Required Input Properties: guid, title.
  */
-PT.EditTitle = DefineTransaction(["GUID", "title"]);
+PT.EditTitle = DefineTransaction(["guid", "title"]);
 PT.EditTitle.prototype = Object.seal({
-  execute: function* (aGUID, aTitle) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aTitle) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldTitle = PlacesUtils.bookmarks.getItemTitle(itemId);
     PlacesUtils.bookmarks.setItemTitle(itemId, aTitle);
     this.undo = () => { PlacesUtils.bookmarks.setItemTitle(itemId, oldTitle); };
@@ -937,12 +1247,12 @@ PT.EditTitle.prototype = Object.seal({
 /**
  * Transaction for setting the URI for an item.
  *
- * Required Input Properties: GUID, uri.
+ * Required Input Properties: guid, url.
  */
-PT.EditURI = DefineTransaction(["GUID", "uri"]);
-PT.EditURI.prototype = Object.seal({
-  execute: function* (aGUID, aURI) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+PT.EditUrl = DefineTransaction(["guid", "url"]);
+PT.EditUrl.prototype = Object.seal({
+  execute: function* (aGuid, aURI) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldURI = PlacesUtils.bookmarks.getBookmarkURI(itemId),
         oldURITags = PlacesUtils.tagging.getTagsForURI(oldURI),
         newURIAdditionalTags = null;
@@ -978,42 +1288,57 @@ PT.EditURI.prototype = Object.seal({
 });
 
 /**
- * Transaction for setting an annotation for an item.
+ * Transaction for setting annotations for an item.
  *
- * Required Input Properties: GUID, annotationObject
+ * Required Input Properties: guid, annotationObject
  */
-PT.SetItemAnnotation = DefineTransaction(["GUID", "annotationObject"]);
-PT.SetItemAnnotation.prototype = {
-  execute: function* (aGUID, aAnno) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID), oldAnno;
-    if (PlacesUtils.annotations.itemHasAnnotation(itemId, aAnno.name)) {
-      // Fill the old anno if it is set.
-      let flags = {}, expires = {};
-      PlacesUtils.annotations.getItemAnnotationInfo(itemId, aAnno.name, flags,
-                                                    expires, { });
-      let value = PlacesUtils.annotations.getItemAnnotation(itemId, aAnno.name);
-      oldAnno = { name: aAnno.name, flags: flags.value,
-                  value: value, expires: expires.value };
-    }
-    else {
-      // An unset value removes the annoation.
-      oldAnno = { name: aAnno.name };
+PT.Annotate = DefineTransaction(["guids", "annotations"]);
+PT.Annotate.prototype = {
+  *execute(aGuids, aNewAnnos) {
+    let undoAnnosForItem = new Map(); // itemId => undoAnnos;
+    for (let guid of aGuids) {
+      let itemId = yield PlacesUtils.promiseItemId(guid);
+      let currentAnnos = PlacesUtils.getAnnotationsForItem(itemId);
+
+      let undoAnnos = [];
+      for (let newAnno of aNewAnnos) {
+        let currentAnno = currentAnnos.find(a => a.name == newAnno.name);
+        if (!!currentAnno) {
+          undoAnnos.push(currentAnno);
+        }
+        else {
+          // An unset value removes the annotation.
+          undoAnnos.push({ name: newAnno.name });
+        }
+      }
+      undoAnnosForItem.set(itemId, undoAnnos);
+
+      PlacesUtils.setAnnotationsForItem(itemId, aNewAnnos);
     }
 
-    PlacesUtils.setAnnotationsForItem(itemId, [aAnno]);
-    this.undo = () => { PlacesUtils.setAnnotationsForItem(itemId, [oldAnno]); };
+    this.undo = function() {
+      for (let [itemId, undoAnnos] of undoAnnosForItem) {
+        PlacesUtils.setAnnotationsForItem(itemId, undoAnnos);
+      }
+    };
+    this.redo = function* () {
+      for (let guid of aGuids) {
+        let itemId = yield PlacesUtils.promiseItemId(guid);
+        PlacesUtils.setAnnotationsForItem(itemId, aNewAnnos);
+      }
+    };
   }
 };
 
 /**
  * Transaction for setting the keyword for a bookmark.
  *
- * Required Input Properties: GUID, keyword.
+ * Required Input Properties: guid, keyword.
  */
-PT.EditKeyword = DefineTransaction(["GUID", "keyword"]);
+PT.EditKeyword = DefineTransaction(["guid", "keyword"]);
 PT.EditKeyword.prototype = Object.seal({
-  execute: function* (aGUID, aKeyword) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aKeyword) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldKeyword = PlacesUtils.bookmarks.getKeywordForBookmark(itemId);
     PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aKeyword);
     this.undo = () => {
@@ -1025,12 +1350,12 @@ PT.EditKeyword.prototype = Object.seal({
 /**
  * Transaction for sorting a folder by name.
  *
- * Required Input Properties: GUID.
+ * Required Input Properties: guid.
  */
-PT.SortByName = DefineTransaction(["GUID"]);
+PT.SortByName = DefineTransaction(["guid"]);
 PT.SortByName.prototype = {
-  execute: function* (aGUID) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldOrder = [],  // [itemId] = old index
         contents = PlacesUtils.getFolderContents(itemId, false, false).root,
         count = contents.childCount;
@@ -1093,180 +1418,192 @@ PT.SortByName.prototype = {
 /**
  * Transaction for removing an item (any type).
  *
- * Required Input Properties: GUID.
+ * Required Input Properties: guids.
  */
-PT.RemoveItem = DefineTransaction(["GUID"]);
-PT.RemoveItem.prototype = {
-  execute: function* (aGUID) {
-    const bms = PlacesUtils.bookmarks;
-
-    let itemsToRestoreOnUndo = [];
-    function* saveItemRestoreData(aItem, aNode = null) {
-      if (!aItem || !aItem.GUID)
-        throw new Error("invalid item object");
-
-      let itemId = aNode ?
-                   aNode.itemId : yield PlacesUtils.promiseItemId(aItem.GUID);
-      if (itemId == -1)
-        throw new Error("Unexpected non-bookmarks node");
-
-      aItem.itemType = function() {
-        if (aNode) {
-          switch (aNode.type) {
-            case aNode.RESULT_TYPE_SEPARATOR:
-              return bms.TYPE_SEPARATOR;
-            case aNode.RESULT_TYPE_URI:   // regular bookmarks
-            case aNode.RESULT_TYPE_FOLDER_SHORTCUT:  // place:folder= bookmarks
-            case aNode.RESULT_TYPE_QUERY: // smart bookmarks
-              return bms.TYPE_BOOKMARK;
-            case aNode.RESULT_TYPE_FOLDER:
-              return bms.TYPE_FOLDER;
-            default:
-              throw new Error("Unexpected node type");
-          }
-        }
-        return bms.getItemType(itemId);
-      }();
-
-      let node = aNode;
-      if (!node && aItem.itemType == bms.TYPE_FOLDER)
-        node = PlacesUtils.getFolderContents(itemId).root;
-
-      // dateAdded, lastModified and annotations apply to all types.
-      aItem.dateAdded = node ? node.dateAdded : bms.getItemDateAdded(itemId);
-      aItem.lastModified = node ?
-                           node.lastModified : bms.getItemLastModified(itemId);
-      aItem.annotations = PlacesUtils.getAnnotationsForItem(itemId);
-
-      // For the first-level item, we don't have the parent.
-      if (!aItem.parentGUID) {
-        let parentId     = PlacesUtils.bookmarks.getFolderIdForItem(itemId);
-        aItem.parentGUID = yield PlacesUtils.promiseItemGUID(parentId);
-        // For the first-level item, we also need the index.
-        // Note: node.bookmarkIndex doesn't work for root nodes.
-        aItem.index      = bms.getItemIndex(itemId);
+PT.Remove = DefineTransaction(["guids"]);
+PT.Remove.prototype = {
+  *execute(aGuids) {
+    function promiseBookmarksTree(guid) {
+      try {
+        return PlacesUtils.promiseBookmarksTree(guid);
       }
-
-      // Separators don't have titles.
-      if (aItem.itemType != bms.TYPE_SEPARATOR) {
-        aItem.title = node ? node.title : bms.getItemTitle(itemId);
-
-        if (aItem.itemType == bms.TYPE_BOOKMARK) {
-          aItem.uri =
-            node ? NetUtil.newURI(node.uri) : bms.getBookmarkURI(itemId);
-          aItem.keyword = PlacesUtils.bookmarks.getKeywordForBookmark(itemId);
-
-          // This may be the last bookmark (excluding the tag-items themselves)
-          // for the URI, so we need to preserve the tags.
-          let tags = PlacesUtils.tagging.getTagsForURI(aItem.uri);;
-          if (tags.length > 0)
-            aItem.tags = tags;
-        }
-        else { // folder
-          // We always have the node for folders
-          aItem.readOnly = node.childrenReadOnly;
-          for (let i = 0; i < node.childCount; i++) {
-            let childNode = node.getChild(i);
-            let childItem =
-              { GUID: yield PlacesUtils.promiseItemGUID(childNode.itemId)
-              , parentGUID: aItem.GUID };
-            itemsToRestoreOnUndo.push(childItem);
-            yield saveItemRestoreData(childItem, childNode);
-          }
-          node.containerOpen = false;
-        }
+      catch(ex) {
+        throw new Error("Failed to get info for the specified item (guid: " +
+                        guid + "). Ex: " + ex);
       }
     }
+    let toRestore = [for (guid of aGuids) yield promiseBookmarksTree(guid)];
 
-    let item = { GUID: aGUID, parentGUID: null };
-    itemsToRestoreOnUndo.push(item);
-    yield saveItemRestoreData(item);
+    let removeThem = Task.async(function* () {
+      for (let guid of aGuids) {
+        PlacesUtils.bookmarks.removeItem(yield PlacesUtils.promiseItemId(guid));
+      }
+    });
+    yield removeThem();
 
-    let itemId = yield PlacesUtils.promiseItemId(aGUID);
-    PlacesUtils.bookmarks.removeItem(itemId);
-    this.undo = function() {
-      for (let item of itemsToRestoreOnUndo) {
-        let parentId = yield PlacesUtils.promiseItemId(item.parentGUID);
-        let index = "index" in item ?
-                    index : PlacesUtils.bookmarks.DEFAULT_INDEX;
-        let itemId;
-        if (item.itemType == bms.TYPE_SEPARATOR) {
-          itemId = bms.insertSeparator(parentId, index, item.GUID);
-        }
-        else if (item.itemType == bms.TYPE_BOOKMARK) {
-          itemId = bms.insertBookmark(parentId, item.uri, index, item.title,
-                                       item.GUID);
-        }
-        else { // folder
-          itemId = bms.createFolder(parentId, item.title, index, item.GUID);
-        }
+    this.undo = Task.async(function* () {
+      for (let info of toRestore) {
+        yield createItemsFromBookmarksTree(info, true);
+      }
+    });
+    this.redo = removeThem;
+  }
+};
 
-        if (item.itemType == bms.TYPE_BOOKMARK) {
-          if (item.keyword)
-            bms.setKeywordForBookmark(itemId, item.keyword);
-          if ("tags" in item)
-            PlacesUtils.tagging.tagURI(item.uri, item.tags);
-        }
-        else if (item.readOnly === true) {
-          bms.setFolderReadonly(itemId, true);
-        }
+/**
+ * Transactions for removing all bookmarks for one or more urls.
+ *
+ * Required Input Properties: urls.
+ */
+PT.RemoveBookmarksForUrls = DefineTransaction(["urls"]);
+PT.RemoveBookmarksForUrls.prototype = {
+  *execute(aUrls) {
+    let guids = [];
+    for (let url of aUrls) {
+      yield PlacesUtils.bookmarks.fetch({ url }, info => {
+        guids.push(info.guid);
+      });
+    }
+    let removeTxn = TransactionsHistory.getRawTransaction(PT.Remove(guids));
+    yield removeTxn.execute();
+    this.undo = removeTxn.undo.bind(removeTxn);
+    this.redo = removeTxn.redo.bind(removeTxn);
+  }
+};
 
-        PlacesUtils.setAnnotationsForItem(itemId, item.annotations);
-        PlacesUtils.bookmarks.setItemDateAdded(itemId, item.dateAdded);
-        PlacesUtils.bookmarks.setItemLastModified(itemId, item.lastModified);
+/**
+ * Transaction for tagging urls.
+ *
+ * Required Input Properties: urls, tags.
+ */
+PT.Tag = DefineTransaction(["urls", "tags"]);
+PT.Tag.prototype = {
+  execute: function* (aURIs, aTags) {
+    let onUndo = [], onRedo = [];
+    for (let uri of aURIs) {
+      // Workaround bug 449811.
+      let currentURI = uri;
+
+      let promiseIsBookmarked = function* () {
+        let deferred = Promise.defer();
+        PlacesUtils.asyncGetBookmarkIds(
+          currentURI, ids => { deferred.resolve(ids.length > 0); });
+        return deferred.promise;
+      };
+
+      if (yield promiseIsBookmarked(currentURI)) {
+        // Tagging is only allowed for bookmarked URIs (but see 424160).
+        let createTxn = TransactionsHistory.getRawTransaction(
+          PT.NewBookmark({ url: currentURI
+                         , tags: aTags
+                         , parentGuid: PlacesUtils.bookmarks.unfiledGuid }));
+        yield createTxn.execute();
+        onUndo.unshift(createTxn.undo.bind(createTxn));
+        onRedo.push(createTxn.redo.bind(createTxn));
+      }
+      else {
+        let currentTags = PlacesUtils.tagging.getTagsForURI(currentURI);
+        let newTags = [t for (t of aTags) if (currentTags.indexOf(t) == -1)];
+        PlacesUtils.tagging.tagURI(currentURI, newTags);
+        onUndo.unshift(() => {
+          PlacesUtils.tagging.untagURI(currentURI, newTags);
+        });
+        onRedo.push(() => {
+          PlacesUtils.tagging.tagURI(currentURI, newTags);
+        });
+      }
+    }
+    this.undo = function* () {
+      for (let f of onUndo) {
+        yield f();
+      }
+    };
+    this.redo = function* () {
+      for (let f of onRedo) {
+        yield f();
       }
     };
   }
 };
 
 /**
- * Transaction for tagging a URI.
+ * Transaction for removing tags from a URI.
  *
- * Required Input Properties: uri, tags.
+ * Required Input Properties: urls.
+ * Optional Input Properties: tags.
+ *
+ * If |tags| is not set, all tags set for |url| are removed.
  */
-PT.TagURI = DefineTransaction(["uri", "tags"]);
-PT.TagURI.prototype = {
-  execute: function* (aURI, aTags) {
-    if (PlacesUtils.getMostRecentBookmarkForURI(aURI) == -1) {
-      // Tagging is only allowed for bookmarked URIs.
-      let unfileGUID =
-        yield PlacesUtils.promiseItemGUID(PlacesUtils.unfiledBookmarksFolderId);
-      let createTxn = TransactionsHistory.getRawTransaction(
-        PT.NewBookmark({ uri: aURI, tags: aTags, parentGUID: unfileGUID }));
-      yield createTxn.execute();
-      this.undo = createTxn.undo.bind(createTxn);
-      this.redo = createTxn.redo.bind(createTxn);
+PT.Untag = DefineTransaction(["urls"], ["tags"]);
+PT.Untag.prototype = {
+  execute: function* (aURIs, aTags) {
+    let onUndo = [], onRedo = [];
+    for (let uri of aURIs) {
+      // Workaround bug 449811.
+      let currentURI = uri;
+      let tagsToRemove;
+      let tagsSet = PlacesUtils.tagging.getTagsForURI(currentURI);
+      if (aTags.length > 0)
+        tagsToRemove = [t for (t of aTags) if (tagsSet.indexOf(t) != -1)];
+      else
+        tagsToRemove = tagsSet;
+      PlacesUtils.tagging.untagURI(currentURI, tagsToRemove);
+      onUndo.unshift(() => {
+        PlacesUtils.tagging.tagURI(currentURI, tagsToRemove);
+      });
+      onRedo.push(() => {
+        PlacesUtils.tagging.untagURI(currentURI, tagsToRemove);
+      });
     }
-    else {
-      let currentTags = PlacesUtils.tagging.getTagsForURI(aURI);
-      let newTags = [t for (t of aTags) if (currentTags.indexOf(t) == -1)];
-      PlacesUtils.tagging.tagURI(aURI, newTags);
-      this.undo = () => { PlacesUtils.tagging.untagURI(aURI, newTags); };
-      this.redo = () => { PlacesUtils.tagging.tagURI(aURI, newTags); };
-    }
+    this.undo = function* () {
+      for (let f of onUndo) {
+        yield f();
+      }
+    };
+    this.redo = function* () {
+      for (let f of onRedo) {
+        yield f();
+      }
+    };
   }
 };
 
 /**
- * Transaction for removing tags from a URI.
+ * Transaction for copying an item.
  *
- * Required Input Properties: uri.
- * Optional Input Properties: tags.
- *
- * If |tags| is not set, all tags set for |uri| are removed.
+ * Required Input Properties: guid, newParentGuid
+ * Optional Input Properties: newIndex, excludingAnnotations.
  */
-PT.UntagURI = DefineTransaction(["uri"], ["tags"]);
-PT.UntagURI.prototype = {
-  execute: function* (aURI, aTags) {
-    let tagsSet = PlacesUtils.tagging.getTagsForURI(aURI);
+PT.Copy = DefineTransaction(["guid", "newParentGuid"],
+                            ["newIndex", "excludingAnnotations"]);
+PT.Copy.prototype = {
+  execute: function* (aGuid, aNewParentGuid, aNewIndex, aExcludingAnnotations) {
+    let creationInfo = null;
+    try {
+      creationInfo = yield PlacesUtils.promiseBookmarksTree(aGuid);
+    }
+    catch(ex) {
+      throw new Error("Failed to get info for the specified item (guid: " +
+                      aGuid + "). Ex: " + ex);
+    }
+    creationInfo.parentGuid = aNewParentGuid;
+    creationInfo.index = aNewIndex;
 
-    if (aTags && aTags.length > 0)
-      aTags = [t for (t of aTags) if (tagsSet.indexOf(t) != -1)];
-    else
-      aTags = tagsSet;
+    let newItemId =
+      yield createItemsFromBookmarksTree(creationInfo, false,
+                                         aExcludingAnnotations);
+    let newItemInfo = null;
+    this.undo = function* () {
+      if (!newItemInfo) {
+        let newItemGuid = yield PlacesUtils.promiseItemGuid(newItemId);
+        newItemInfo = yield PlacesUtils.promiseBookmarksTree(newItemGuid);
+      }
+      PlacesUtils.bookmarks.removeItem(newItemId);
+    };
+    this.redo = function* () {
+      newItemId = yield createItemsFromBookmarksTree(newItemInfo, true);
+    }
 
-    PlacesUtils.tagging.untagURI(aURI, aTags);
-    this.undo = () => { PlacesUtils.tagging.tagURI(aURI, aTags); };
-    this.redo = () => { PlacesUtils.tagging.untagURI(aURI, aTags); };
+    return yield PlacesUtils.promiseItemGuid(newItemId);
   }
 };

@@ -50,7 +50,12 @@ public class ExtendedJSONObject {
    * @throws IOException
    */
   protected static Object parseRaw(Reader in) throws ParseException, IOException {
-    return getJSONParser().parse(in);
+    try {
+      return getJSONParser().parse(in);
+    } catch (Error e) {
+      // Don't be stupid, org.json.simple. Bug 1042929.
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+    }
   }
 
   /**
@@ -63,7 +68,12 @@ public class ExtendedJSONObject {
    * @throws ParseException
    */
   protected static Object parseRaw(String input) throws ParseException {
-    return getJSONParser().parse(input);
+    try {
+      return getJSONParser().parse(input);
+    } catch (Error e) {
+      // Don't be stupid, org.json.simple. Bug 1042929.
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+    }
   }
 
   /**
@@ -163,6 +173,37 @@ public class ExtendedJSONObject {
     this.object = o;
   }
 
+  public ExtendedJSONObject deepCopy() {
+    final ExtendedJSONObject out = new ExtendedJSONObject();
+    @SuppressWarnings("unchecked")
+    final Set<Map.Entry<String, Object>> entries = this.object.entrySet();
+    for (Map.Entry<String, Object> entry : entries) {
+      final String key = entry.getKey();
+      final Object value = entry.getValue();
+      if (value instanceof JSONArray) {
+        // Oh god.
+        try {
+          out.put(key, new JSONParser().parse(((JSONArray) value).toJSONString()));
+        } catch (ParseException e) {
+          // This should never occur, because we're round-tripping.
+        }
+        continue;
+      }
+      if (value instanceof JSONObject) {
+        out.put(key, new ExtendedJSONObject((JSONObject) value).deepCopy().object);
+        continue;
+      }
+      if (value instanceof ExtendedJSONObject) {
+        out.put(key, ((ExtendedJSONObject) value).deepCopy());
+        continue;
+      }
+      // Oh well.
+      out.put(key, value);
+    }
+
+    return out;
+  }
+
   public ExtendedJSONObject(Reader in) throws IOException, ParseException, NonObjectJSONException {
     if (in == null) {
       this.object = new JSONObject();
@@ -181,9 +222,26 @@ public class ExtendedJSONObject {
     this(jsonString == null ? null : new StringReader(jsonString));
   }
 
+  @Override
+  public ExtendedJSONObject clone() {
+    return new ExtendedJSONObject((JSONObject) this.object.clone());
+  }
+
   // Passthrough methods.
   public Object get(String key) {
     return this.object.get(key);
+  }
+
+  public long getLong(String key, long def) {
+    if (!object.containsKey(key)) {
+      return def;
+    }
+
+    Long val = getLong(key);
+    if (val == null) {
+      return def;
+    }
+    return val.longValue();
   }
 
   public Long getLong(String key) {
@@ -214,7 +272,7 @@ public class ExtendedJSONObject {
       return (Integer) val;
     }
     if (val instanceof Long) {
-      return Integer.valueOf(((Long) val).intValue());
+      return ((Long) val).intValue();
     }
     if (val instanceof String) {
       return Integer.parseInt((String) val, 10);
@@ -233,7 +291,7 @@ public class ExtendedJSONObject {
 
     // This is absurd.
     if (val instanceof Double) {
-      double millis = ((Double) val).doubleValue() * 1000;
+      double millis = ((Double) val) * 1000;
       return Double.valueOf(millis).longValue();
     }
     if (val instanceof Float) {
@@ -294,7 +352,7 @@ public class ExtendedJSONObject {
     if (o instanceof JSONObject) {
       return new ExtendedJSONObject((JSONObject) o);
     }
-    throw new NonObjectJSONException("key must be a JSON object: " + key);
+    throw new NonObjectJSONException("value must be a JSON object for key: " + key);
   }
 
   @SuppressWarnings("unchecked")
@@ -332,7 +390,7 @@ public class ExtendedJSONObject {
 
   @Override
   public boolean equals(Object o) {
-    if (o == null || !(o instanceof ExtendedJSONObject)) {
+    if (!(o instanceof ExtendedJSONObject)) {
       return false;
     }
     if (o == this) {

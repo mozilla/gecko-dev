@@ -31,21 +31,18 @@ exports.items = [
     prompt: '>',
 
     constructor: function(terminal) {
-      this.terminal = terminal;
-      this.document = this.terminal.document;
+      this.document = terminal.document;
       this.focusManager = terminal.focusManager;
 
       this.updateHints();
     },
 
     destroy: function() {
-      this.terminal = undefined;
       this.document = undefined;
     },
 
     exec: function(input) {
-      return this.eval(input).then(function(response) {
-        // console.log('javascript.exec', response);
+      return this.evaluate(input).then(function(response) {
         var output = (response.exception != null) ?
                       response.exception.class :
                       response.output;
@@ -82,8 +79,8 @@ exports.items = [
       }.bind(this));
     },
 
-    eval: function(input) {
-      return host.script.eval(input);
+    evaluate: function(input) {
+      return host.script.evaluate(input);
     }
   }
 ];

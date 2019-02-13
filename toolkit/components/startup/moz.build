@@ -34,4 +34,7 @@ else:
 
 FAIL_ON_WARNINGS = True
 
-FINAL_LIBRARY = 'toolkitcomps'
+FINAL_LIBRARY = 'xul'
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Startup and Profile System')

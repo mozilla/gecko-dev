@@ -7,6 +7,8 @@
 include protocol PTelephony;
 include TelephonyTypes;
 
+using nsTelephonyCallInfo from "mozilla/dom/telephony/TelephonyIPCSerializer.h";
+
 namespace mozilla {
 namespace dom {
 namespace telephony {
@@ -16,15 +18,47 @@ struct EnumerateCallsResponse
   // empty.
 };
 
-struct DialResponse
+struct SuccessResponse
 {
   // empty.
+};
+
+struct ErrorResponse
+{
+  nsString name;
+};
+
+struct DialResponseCallSuccess
+{
+  uint32_t clientId;
+  uint32_t callIndex;
+  nsString number;
+};
+
+struct DialResponseMMISuccess
+{
+  nsString statusMessage;
+  AdditionalInformation additionalInformation;
+};
+
+struct DialResponseMMIError
+{
+  nsString name;
+  AdditionalInformation additionalInformation;
 };
 
 union IPCTelephonyResponse
 {
   EnumerateCallsResponse;
-  DialResponse;
+
+  // General.
+  SuccessResponse;
+  ErrorResponse;
+
+  // dial
+  DialResponseCallSuccess;
+  DialResponseMMISuccess;
+  DialResponseMMIError;
 };
 
 protocol PTelephonyRequest
@@ -32,11 +66,9 @@ protocol PTelephonyRequest
   manager PTelephony;
 
 child:
-  NotifyEnumerateCallState(uint32_t aClientId, IPCCallStateData aData);
+  NotifyEnumerateCallState(nsTelephonyCallInfo aInfo);
 
-  NotifyDialError(nsString aError);
-
-  NotifyDialSuccess(uint32_t aCallIndex);
+  NotifyDialMMI(nsString aServiceCode);
 
   /**
    * Sent when the asynchronous request has completed.

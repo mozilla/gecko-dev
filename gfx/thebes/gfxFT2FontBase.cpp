@@ -20,7 +20,8 @@ gfxFT2FontBase::gfxFT2FontBase(cairo_scaled_font_t *aScaledFont,
       mHasMetrics(false)
 {
     cairo_scaled_font_reference(mScaledFont);
-    ConstructFontOptions();
+    gfxFT2LockedFace face(this);
+    mFUnitsConvFactor = face.XScale();
 }
 
 gfxFT2FontBase::~gfxFT2FontBase()
@@ -108,17 +109,17 @@ gfxFT2FontBase::GetGlyphExtents(uint32_t aGlyph, cairo_text_extents_t* aExtents)
 }
 
 const gfxFont::Metrics&
-gfxFT2FontBase::GetMetrics()
+gfxFT2FontBase::GetHorizontalMetrics()
 {
     if (mHasMetrics)
         return mMetrics;
 
-    if (MOZ_UNLIKELY(GetStyle()->size <= 0.0)) {
+    if (MOZ_UNLIKELY(GetStyle()->size <= 0.0) ||
+        MOZ_UNLIKELY(GetStyle()->sizeAdjust == 0.0)) {
         new(&mMetrics) gfxFont::Metrics(); // zero initialize
-        mSpaceGlyph = 0;
+        mSpaceGlyph = GetGlyph(' ');
     } else {
         gfxFT2LockedFace face(this);
-        mFUnitsConvFactor = face.XScale();
         face.GetMetrics(&mMetrics, &mSpaceGlyph);
     }
 
@@ -133,7 +134,7 @@ gfxFT2FontBase::GetMetrics()
     fprintf (stderr, "    maxAscent: %f maxDescent: %f\n", mMetrics.maxAscent, mMetrics.maxDescent);
     fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.externalLeading, mMetrics.internalLeading);
     fprintf (stderr, "    spaceWidth: %f aveCharWidth: %f xHeight: %f\n", mMetrics.spaceWidth, mMetrics.aveCharWidth, mMetrics.xHeight);
-    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
+    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize);
 #endif
 
     mHasMetrics = true;
@@ -144,9 +145,7 @@ gfxFT2FontBase::GetMetrics()
 uint32_t
 gfxFT2FontBase::GetSpaceGlyph()
 {
-    NS_ASSERTION(GetStyle()->size != 0,
-                 "forgot to short-circuit a text run with zero-sized font?");
-    GetMetrics();
+    GetHorizontalMetrics();
     return mSpaceGlyph;
 }
 
@@ -168,7 +167,7 @@ gfxFT2FontBase::GetGlyph(uint32_t unicode, uint32_t variation_selector)
 }
 
 int32_t
-gfxFT2FontBase::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
+gfxFT2FontBase::GetGlyphWidth(DrawTarget& aDrawTarget, uint16_t aGID)
 {
     cairo_text_extents_t extents;
     GetGlyphExtents(aGID, &extents);
@@ -215,26 +214,4 @@ gfxFT2FontBase::SetupCairoFont(gfxContext *aContext)
     // font for pdf and ps surfaces (bug 403513).
     cairo_set_scaled_font(cr, cairoFont);
     return true;
-}
-
-void
-gfxFT2FontBase::ConstructFontOptions()
-{
-  NS_LossyConvertUTF16toASCII name(this->GetName());
-  mFontOptions.mName = name.get();
-
-  const gfxFontStyle* style = this->GetStyle();
-  if (style->style == NS_FONT_STYLE_ITALIC) {
-    if (style->weight == NS_FONT_WEIGHT_BOLD) {
-      mFontOptions.mStyle = FontStyle::BOLD_ITALIC;
-    } else {
-      mFontOptions.mStyle = FontStyle::ITALIC;
-    }
-  } else {
-    if (style->weight == NS_FONT_WEIGHT_BOLD) {
-      mFontOptions.mStyle = FontStyle::BOLD;
-    } else {
-      mFontOptions.mStyle = FontStyle::NORMAL;
-    }
-  }
 }

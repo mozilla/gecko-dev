@@ -48,13 +48,15 @@ public final class WebActivityMapper {
         /**
          * If 'type' is present in data object, uses the value as the MIME type.
          */
+        @Override
         public String getMime(JSONObject data) throws JSONException {
             return data.optString("type", null);
         }
 
         /**
-         * If 'uri' or 'url' is present in data object, uses the respecitve value as the Uri.
+         * If 'uri' or 'url' is present in data object, uses the respective value as the Uri.
          */
+        @Override
         public String getUri(JSONObject data) throws JSONException {
             // Will return uri or url if present.
             String uri = data.optString("uri", null);
@@ -108,6 +110,13 @@ public final class WebActivityMapper {
         public String getAction() {
             return Intent.ACTION_GET_CONTENT;
         }
+
+        @Override
+        public String getMime(JSONObject data) throws JSONException {
+            // bug 1007112 - pick action needs a mimetype to work
+            String mime = data.optString("type", null);
+            return !TextUtils.isEmpty(mime) ? mime : "*/*";
+        }
     }
 
     private static class SendMapping extends BaseMapping {
@@ -121,6 +130,13 @@ public final class WebActivityMapper {
             optPutExtra("text", Intent.EXTRA_TEXT, data, intent);
             optPutExtra("html_text", Intent.EXTRA_HTML_TEXT, data, intent);
             optPutExtra("stream", Intent.EXTRA_STREAM, data, intent);
+        }
+
+        private static void optPutExtra(String key, String extraName, JSONObject data, Intent intent) {
+            final String extraValue = data.optString(key);
+            if (!TextUtils.isEmpty(extraValue)) {
+                intent.putExtra(extraName, extraValue);
+            }
         }
     }
 
@@ -139,13 +155,6 @@ public final class WebActivityMapper {
             } else {
                 return type;
             }
-        }
-    }
-
-    private static void optPutExtra(String key, String extraName, JSONObject data, Intent intent) {
-        final String extraValue = data.optString(key);
-        if (!TextUtils.isEmpty(extraValue)) {
-            intent.putExtra(extraName, extraValue);
         }
     }
 }

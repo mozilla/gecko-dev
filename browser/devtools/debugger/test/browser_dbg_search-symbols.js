@@ -7,19 +7,18 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_function-search.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gEditor, gSources, gSearchBox, gFilteredFunctions;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gEditor = gDebugger.DebuggerView.editor;
     gSources = gDebugger.DebuggerView.Sources;
     gSearchBox = gDebugger.DebuggerView.Filtering._searchbox;
-    gFilteredFunctions = gDebugger.DebuggerView.FilteredFunctions;
+    gFilteredFunctions = gDebugger.DebuggerView.Filtering.FilteredFunctions;
 
     waitForSourceShown(gPanel, "-01.js")
       .then(() => showSource("doc_function-search.html"))
@@ -53,7 +52,7 @@ function htmlSearch() {
     ok(gFilteredFunctions.selectedItem,
       "An item should be selected in the filtered functions view (2).");
 
-    if (gSources.selectedValue.indexOf(".html") != -1) {
+    if (gSources.selectedItem.attachment.source.url.indexOf(".html") != -1) {
       let expectedResults = [
         ["inline", ".html", "", 19, 16],
         ["arrow", ".html", "", 20, 11],
@@ -74,7 +73,7 @@ function htmlSearch() {
             "Shouldn't create empty label nodes.");
         }
         if (value) {
-          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").contains(value),
+          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").includes(value),
             "The corect value (" + value + ") is attached.");
         } else {
           ok(!target.querySelector(".results-panel-item-label-below"),
@@ -118,7 +117,7 @@ function firstJsSearch() {
     ok(gFilteredFunctions.selectedItem,
       "An item should be selected in the filtered functions view (2).");
 
-    if (gSources.selectedValue.indexOf("-01.js") != -1) {
+    if (gSources.selectedItem.attachment.source.url.indexOf("-01.js") != -1) {
       let s = " " + gDebugger.L10N.getStr("functionSearchSeparatorLabel") + " ";
       let expectedResults = [
         ["test", "-01.js", "", 4, 10],
@@ -145,7 +144,7 @@ function firstJsSearch() {
             "Shouldn't create empty label nodes.");
         }
         if (value) {
-          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").contains(value),
+          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").includes(value),
             "The corect value (" + value + ") is attached.");
         } else {
           ok(!target.querySelector(".results-panel-item-label-below"),
@@ -189,7 +188,7 @@ function secondJsSearch() {
     ok(gFilteredFunctions.selectedItem,
       "An item should be selected in the filtered functions view (2).");
 
-    if (gSources.selectedValue.indexOf("-02.js") != -1) {
+    if (gSources.selectedItem.attachment.source.url.indexOf("-02.js") != -1) {
       let s = " " + gDebugger.L10N.getStr("functionSearchSeparatorLabel") + " ";
       let expectedResults = [
         ["test2", "-02.js", "", 4, 5],
@@ -216,7 +215,7 @@ function secondJsSearch() {
             "Shouldn't create empty label nodes.");
         }
         if (value) {
-          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").contains(value),
+          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").includes(value),
             "The corect value (" + value + ") is attached.");
         } else {
           ok(!target.querySelector(".results-panel-item-label-below"),
@@ -260,7 +259,7 @@ function thirdJsSearch() {
     ok(gFilteredFunctions.selectedItem,
       "An item should be selected in the filtered functions view (2).");
 
-    if (gSources.selectedValue.indexOf("-03.js") != -1) {
+    if (gSources.selectedItem.attachment.source.url.indexOf("-03.js") != -1) {
       let s = " " + gDebugger.L10N.getStr("functionSearchSeparatorLabel") + " ";
       let expectedResults = [
         ["namedEventListener", "-03.js", "", 4, 43],
@@ -287,7 +286,7 @@ function thirdJsSearch() {
             "Shouldn't create empty label nodes.");
         }
         if (value) {
-          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").contains(value),
+          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").includes(value),
             "The corect value (" + value + ") is attached.");
         } else {
           ok(!target.querySelector(".results-panel-item-label-below"),
@@ -331,7 +330,7 @@ function filterSearch() {
     ok(gFilteredFunctions.selectedItem,
       "An item should be selected in the filtered functions view (2).");
 
-    if (gSources.selectedValue.indexOf("-03.js") != -1) {
+    if (gSources.selectedItem.attachment.source.url.indexOf("-03.js") != -1) {
       let s = " " + gDebugger.L10N.getStr("functionSearchSeparatorLabel") + " ";
       let expectedResults = [
         ["namedEventListener", "-03.js", "", 4, 43],
@@ -355,7 +354,7 @@ function filterSearch() {
             "Shouldn't create empty label nodes.");
         }
         if (value) {
-          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").contains(value),
+          ok(target.querySelector(".results-panel-item-label-below").getAttribute("value").includes(value),
             "The corect value (" + value + ") is attached.");
         } else {
           ok(!target.querySelector(".results-panel-item-label-below"),
@@ -453,13 +452,12 @@ function saveSearch() {
 }
 
 function writeInfo() {
-  info("Current source url:\n" + gSources.selectedValue);
+  info("Current source url:\n" + getSelectedSourceURL(gSources));
   info("Debugger editor text:\n" + gEditor.getText());
 }
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gEditor = null;

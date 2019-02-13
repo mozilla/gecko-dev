@@ -13,11 +13,13 @@
 #include "nsNavHistory.h"
 #include "nsFaviconService.h"
 #include "mozilla/storage.h"
+#include "mozilla/Telemetry.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"
 #include "nsStreamUtils.h"
 #include "nsIPrivateBrowsingChannel.h"
 #include "nsISupportsPriority.h"
+#include "nsContentUtils.h"
 #include <algorithm>
 
 using namespace mozilla::places;
@@ -142,18 +144,11 @@ SetIconInfo(nsRefPtr<Database>& aDB,
   NS_PRECONDITION(!NS_IsMainThread(),
                   "This should not be called on the main thread");
 
-  // The 'multi-coalesce' here ensures that replacing a favicon without
-  // specifying a :guid parameter doesn't cause it to be allocated a new
-  // GUID.
   nsCOMPtr<mozIStorageStatement> stmt = aDB->GetStatement(
     "INSERT OR REPLACE INTO moz_favicons "
-      "(id, url, data, mime_type, expiration, guid) "
+      "(id, url, data, mime_type, expiration) "
     "VALUES ((SELECT id FROM moz_favicons WHERE url = :icon_url), "
-            ":icon_url, :data, :mime_type, :expiration, "
-            "COALESCE(:guid, "
-                     "(SELECT guid FROM moz_favicons "
-                      "WHERE url = :icon_url), "
-                     "GENERATE_GUID()))"
+            ":icon_url, :data, :mime_type, :expiration) "
   );
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoper(stmt);
@@ -165,15 +160,6 @@ SetIconInfo(nsRefPtr<Database>& aDB,
   rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("mime_type"), aIcon.mimeType);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("expiration"), aIcon.expiration);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Binding a GUID allows us to override the current (or generated) GUID.
-  if (aIcon.guid.IsEmpty()) {
-    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("guid"));
-  }
-  else {
-    rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("guid"), aIcon.guid);
-  }
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = stmt->Execute();
@@ -362,7 +348,7 @@ OptimizeIconSize(IconData& aIcon,
 
 AsyncFaviconHelperBase::AsyncFaviconHelperBase(
   nsCOMPtr<nsIFaviconDataCallback>& aCallback
-) : mDB(Database::GetDatabase())
+)
 {
   // Don't AddRef or Release in runnables for thread-safety.
   mCallback.swap(aCallback);
@@ -465,7 +451,9 @@ AsyncFetchAndSetIconForPage::Run()
                   "This should not be called on the main thread");
 
   // Try to fetch the icon from the database.
-  nsresult rv = FetchIconInfo(mDB, mIcon);
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
+  nsresult rv = FetchIconInfo(DB, mIcon);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool isInvalidIcon = mIcon.data.IsEmpty() ||
@@ -478,7 +466,7 @@ AsyncFetchAndSetIconForPage::Run()
     // directly proceed with association.
     nsRefPtr<AsyncAssociateIconToPage> event =
         new AsyncAssociateIconToPage(mIcon, mPage, mCallback);
-    mDB->DispatchToAsyncThread(event);
+    DB->DispatchToAsyncThread(event);
 
     return NS_OK;
   }
@@ -540,7 +528,12 @@ AsyncFetchAndSetIconFromNetwork::Run()
   nsresult rv = NS_NewURI(getter_AddRefs(iconURI), mIcon.spec);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), iconURI);
+  rv = NS_NewChannel(getter_AddRefs(channel),
+                     iconURI,
+                     nsContentUtils::GetSystemPrincipal(),
+                     nsILoadInfo::SEC_NORMAL,
+                     nsIContentPolicy::TYPE_IMAGE);
+
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIInterfaceRequestor> listenerRequestor =
     do_QueryInterface(reinterpret_cast<nsISupports*>(this));
@@ -575,13 +568,23 @@ AsyncFetchAndSetIconFromNetwork::OnDataAvailable(nsIRequest* aRequest,
                                                  uint64_t aOffset,
                                                  uint32_t aCount)
 {
+  const size_t kMaxFaviconDownloadSize = 1 * 1024 * 1024;
+  if (mIcon.data.Length() + aCount > kMaxFaviconDownloadSize) {
+    mIcon.data.Truncate();
+    return NS_ERROR_FILE_TOO_BIG;
+  }
+
   nsAutoCString buffer;
   nsresult rv = NS_ConsumeStream(aInputStream, aCount, buffer);
   if (rv != NS_BASE_STREAM_WOULD_BLOCK && NS_FAILED(rv)) {
     return rv;
   }
 
-  mIcon.data.Append(buffer);
+  if (!mIcon.data.Append(buffer, fallible)) {
+    mIcon.data.Truncate();
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   return NS_OK;
 }
 
@@ -628,9 +631,21 @@ AsyncFetchAndSetIconFromNetwork::OnStopRequest(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, aRequest,
-                  TO_INTBUFFER(mIcon.data), mIcon.data.Length(),
-                  mIcon.mimeType);
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  // aRequest should always QI to nsIChannel.
+  // See AsyncFetchAndSetIconFromNetwork::Run()
+  MOZ_ASSERT(channel);
+
+  nsAutoCString contentType;
+  channel->GetContentType(contentType);
+  // Bug 366324 - can't sniff SVG yet, so rely on server-specified type
+  if (contentType.EqualsLiteral("image/svg+xml")) {
+    mIcon.mimeType.AssignLiteral("image/svg+xml");
+  } else {
+    NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, aRequest,
+                    TO_INTBUFFER(mIcon.data), mIcon.data.Length(),
+                    mIcon.mimeType);
+  }
 
   // If the icon does not have a valid MIME type, add it to the failed cache.
   if (mIcon.mimeType.IsEmpty()) {
@@ -642,11 +657,34 @@ AsyncFetchAndSetIconFromNetwork::OnStopRequest(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-  // aRequest should always QI to nsIChannel.
-  // See AsyncFetchAndSetIconFromNetwork::Run()
-  MOZ_ASSERT(channel);
   mIcon.expiration = GetExpirationTimeFromChannel(channel);
+
+  // Telemetry probes to measure the favicon file sizes for each different file type.
+  // This allow us to measure common file sizes while also observing each type popularity.
+  if (mIcon.mimeType.EqualsLiteral("image/png")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_PNG_SIZES, mIcon.data.Length());
+  }
+  else if (mIcon.mimeType.EqualsLiteral("image/x-icon") ||
+           mIcon.mimeType.EqualsLiteral("image/vnd.microsoft.icon")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_ICO_SIZES, mIcon.data.Length());
+  }
+  else if (mIcon.mimeType.EqualsLiteral("image/jpeg") ||
+           mIcon.mimeType.EqualsLiteral("image/pjpeg")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_JPEG_SIZES, mIcon.data.Length());
+  }
+  else if (mIcon.mimeType.EqualsLiteral("image/gif")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_GIF_SIZES, mIcon.data.Length());
+  }
+  else if (mIcon.mimeType.EqualsLiteral("image/bmp") ||
+           mIcon.mimeType.EqualsLiteral("image/x-windows-bmp")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_BMP_SIZES, mIcon.data.Length());
+  }
+  else if (mIcon.mimeType.EqualsLiteral("image/svg+xml")) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_SVG_SIZES, mIcon.data.Length());
+  }
+  else {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_OTHER_SIZES, mIcon.data.Length());
+  }
 
   rv = OptimizeIconSize(mIcon, favicons);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -659,9 +697,11 @@ AsyncFetchAndSetIconFromNetwork::OnStopRequest(nsIRequest* aRequest,
 
   mIcon.status = ICON_STATUS_CHANGED;
 
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
   nsRefPtr<AsyncAssociateIconToPage> event =
     new AsyncAssociateIconToPage(mIcon, mPage, mCallback);
-  mDB->DispatchToAsyncThread(event);
+  DB->DispatchToAsyncThread(event);
 
   return NS_OK;
 }
@@ -689,7 +729,9 @@ AsyncAssociateIconToPage::Run()
   NS_PRECONDITION(!NS_IsMainThread(),
                   "This should not be called on the main thread");
 
-  nsresult rv = FetchPageInfo(mDB, mPage);
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
+  nsresult rv = FetchPageInfo(DB, mPage);
   if (rv == NS_ERROR_NOT_AVAILABLE){
     // We have never seen this page.  If we can add the page to history,
     // we will try to do it later, otherwise just bail out.
@@ -701,19 +743,19 @@ AsyncAssociateIconToPage::Run()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  mozStorageTransaction transaction(mDB->MainConn(), false,
+  mozStorageTransaction transaction(DB->MainConn(), false,
                                     mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
   // If there is no entry for this icon, or the entry is obsolete, replace it.
   if (mIcon.id == 0 || (mIcon.status & ICON_STATUS_CHANGED)) {
-    rv = SetIconInfo(mDB, mIcon);
+    rv = SetIconInfo(DB, mIcon);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Get the new icon id.  Do this regardless mIcon.id, since other code
     // could have added a entry before us.  Indeed we interrupted the thread
     // after the previous call to FetchIconInfo.
     mIcon.status = (mIcon.status & ~(ICON_STATUS_CACHED)) | ICON_STATUS_SAVED;
-    rv = FetchIconInfo(mDB, mIcon);
+    rv = FetchIconInfo(DB, mIcon);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -728,7 +770,7 @@ AsyncAssociateIconToPage::Run()
   if (mPage.iconId != mIcon.id) {
     nsCOMPtr<mozIStorageStatement> stmt;
     if (mPage.id) {
-      stmt = mDB->GetStatement(
+      stmt = DB->GetStatement(
         "UPDATE moz_places SET favicon_id = :icon_id WHERE id = :page_id"
       );
       NS_ENSURE_STATE(stmt);
@@ -736,7 +778,7 @@ AsyncAssociateIconToPage::Run()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
-      stmt = mDB->GetStatement(
+      stmt = DB->GetStatement(
         "UPDATE moz_places SET favicon_id = :icon_id WHERE url = :page_url"
       );
       NS_ENSURE_STATE(stmt);
@@ -810,8 +852,10 @@ AsyncGetFaviconURLForPage::Run()
   NS_PRECONDITION(!NS_IsMainThread(),
                   "This should not be called on the main thread.");
 
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
   nsAutoCString iconSpec;
-  nsresult rv = FetchIconURL(mDB, mPageSpec, iconSpec);
+  nsresult rv = FetchIconURL(DB, mPageSpec, iconSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Now notify our callback of the icon spec we retrieved, even if empty.
@@ -875,8 +919,10 @@ AsyncGetFaviconDataForPage::Run()
   NS_PRECONDITION(!NS_IsMainThread(),
                   "This should not be called on the main thread.");
 
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
   nsAutoCString iconSpec;
-  nsresult rv = FetchIconURL(mDB, mPageSpec, iconSpec);
+  nsresult rv = FetchIconURL(DB, mPageSpec, iconSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   IconData iconData;
@@ -886,7 +932,7 @@ AsyncGetFaviconDataForPage::Run()
   pageData.spec.Assign(mPageSpec);
 
   if (!iconSpec.IsEmpty()) {
-    rv = FetchIconInfo(mDB, iconData);
+    rv = FetchIconInfo(DB, iconData);
     if (NS_FAILED(rv)) {
       iconData.spec.Truncate();
     }
@@ -939,16 +985,18 @@ AsyncReplaceFaviconData::Run()
   NS_PRECONDITION(!NS_IsMainThread(),
                   "This should not be called on the main thread");
 
+  nsRefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
   IconData dbIcon;
   dbIcon.spec.Assign(mIcon.spec);
-  nsresult rv = FetchIconInfo(mDB, dbIcon);
+  nsresult rv = FetchIconInfo(DB, dbIcon);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!dbIcon.id) {
     return NS_OK;
   }
 
-  rv = SetIconInfo(mDB, mIcon);
+  rv = SetIconInfo(DB, mIcon);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // We can invalidate the cache version since we now persist the icon.
@@ -1060,11 +1108,14 @@ NotifyIconObservers::SendGlobalNotifications(nsIURI* aIconURI)
     PageData bookmarkedPage;
     bookmarkedPage.spec = mPage.bookmarkedSpec;
 
+    nsRefPtr<Database> DB = Database::GetDatabase();
+    if (!DB)
+      return;
     // This will be silent, so be sure to not pass in the current callback.
     nsCOMPtr<nsIFaviconDataCallback> nullCallback;
     nsRefPtr<AsyncAssociateIconToPage> event =
         new AsyncAssociateIconToPage(mIcon, bookmarkedPage, nullCallback);
-    mDB->DispatchToAsyncThread(event);
+    DB->DispatchToAsyncThread(event);
   }
 }
 

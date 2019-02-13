@@ -12,7 +12,7 @@ const { make: makeWindow, getHiddenWindow } = require("../window/utils");
 const { create: makeFrame, getDocShell } = require("../frame/utils");
 const { defer } = require("../core/promise");
 const { when: unload } = require("../system/unload");
-const cfxArgs = require("@test/options");
+const cfxArgs = require("../test/options");
 
 let addonPrincipal = Cc["@mozilla.org/systemprincipal;1"].
                      createInstance(Ci.nsIPrincipal);
@@ -55,8 +55,6 @@ eventTarget.addEventListener("DOMContentLoaded", function handler(event) {
   eventTarget.removeEventListener("DOMContentLoaded", handler, false);
   resolve();
 }, false);
-
-
 
 exports.ready = promise;
 exports.window = window;

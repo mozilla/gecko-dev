@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* 
+/*
 */
 
 #ifndef nsDocLoader_h__
@@ -43,7 +43,7 @@
      {0x93, 0xb6, 0x6d, 0x23, 0x06, 0x9c, 0x06, 0xf2} \
  }
 
-class nsDocLoader : public nsIDocumentLoader, 
+class nsDocLoader : public nsIDocumentLoader,
                     public nsIRequestObserver,
                     public nsSupportsWeakReference,
                     public nsIProgressEventSink,
@@ -71,7 +71,7 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIDOCUMENTLOADER
-    
+
     // nsIProgressEventSink
     NS_DECL_NSIPROGRESSEVENTSINK
 
@@ -96,7 +96,7 @@ public:
     nsDocLoader* GetParent() const { return mParent; }
 
     struct nsListenerInfo {
-      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask) 
+      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask)
         : mWeakListener(aListener),
           mNotifyMask(aNotifyMask)
       {
@@ -199,7 +199,7 @@ protected:
     void ChildDoneWithOnload(nsIDocumentLoader* aChild) {
         mChildrenInOnload.RemoveObject(aChild);
         DocLoaderIsEmpty(true);
-    }        
+    }
 
 protected:
     struct nsStatusInfo : public mozilla::LinkedListElement<nsStatusInfo>
@@ -209,7 +209,7 @@ protected:
         // Weak mRequest is ok; we'll be told if it decides to go away.
         nsIRequest * const mRequest;
 
-        nsStatusInfo(nsIRequest* aRequest) :
+        explicit nsStatusInfo(nsIRequest* aRequest) :
             mRequest(aRequest)
         {
             MOZ_COUNT_CTOR(nsStatusInfo);
@@ -222,7 +222,7 @@ protected:
 
     struct nsRequestInfo : public PLDHashEntryHdr
     {
-        nsRequestInfo(const void* key)
+        explicit nsRequestInfo(const void* key)
             : mKey(key), mCurrentProgress(0), mMaxProgress(0), mUploading(false)
             , mLastStatus(nullptr)
         {
@@ -246,8 +246,7 @@ protected:
         nsAutoPtr<nsStatusInfo> mLastStatus;
     };
 
-    static bool RequestInfoHashInitEntry(PLDHashTable* table, PLDHashEntryHdr* entry,
-                                         const void* key);
+    static void RequestInfoHashInitEntry(PLDHashEntryHdr* entry, const void* key);
     static void RequestInfoHashClearEntry(PLDHashTable* table, PLDHashEntryHdr* entry);
 
     // IMPORTANT: The ownership implicit in the following member
@@ -255,7 +254,7 @@ protected:
     // for owning pointers and raw COM interface pointers for weak
     // (ie, non owning) references. If you add any members to this
     // class, please make the ownership explicit (pinkerton, scc).
-  
+
     nsCOMPtr<nsIRequest>       mDocumentRequest;       // [OWNER] ???compare with document
 
     nsDocLoader*               mParent;                // [WEAK]
@@ -267,7 +266,7 @@ protected:
     // We hold weak refs to all our kids
     nsTObserverArray<nsDocLoader*> mChildList;
 
-    // The following member variables are related to the new nsIWebProgress 
+    // The following member variables are related to the new nsIWebProgress
     // feedback interfaces that travis cooked up.
     int32_t mProgressStateFlags;
 
@@ -303,12 +302,14 @@ protected:
     bool mIsFlushingLayout;
 
 private:
+    static const PLDHashTableOps sRequestInfoHashOps;
+
     // A list of kids that are in the middle of their onload calls and will let
     // us know once they're done.  We don't want to fire onload for "normal"
     // DocLoaderIsEmpty calls (those coming from requests finishing in our
     // loadgroup) unless this is empty.
     nsCOMArray<nsIDocumentLoader> mChildrenInOnload;
-    
+
     // DocLoaderIsEmpty should be called whenever the docloader may be empty.
     // This method is idempotent and does nothing if the docloader is not in
     // fact empty.  This method _does_ make sure that layout is flushed if our
@@ -323,13 +324,10 @@ private:
     nsRequestInfo *GetRequestInfo(nsIRequest* aRequest);
     void ClearRequestInfoHash();
     int64_t CalculateMaxProgress();
-    static PLDHashOperator CalcMaxProgressCallback(PLDHashTable* table,
-                                                   PLDHashEntryHdr* hdr,
-                                                   uint32_t number, void* arg);
 ///    void DumpChannelInfo(void);
 
     // used to clear our internal progress state between loads...
-    void ClearInternalProgress(); 
+    void ClearInternalProgress();
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocLoader, NS_THIS_DOCLOADER_IMPL_CID)

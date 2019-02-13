@@ -49,19 +49,17 @@
 
 namespace mozilla {
 
-class TransportFlow : public nsISupports,
-                      public sigslot::has_slots<> {
+class TransportFlow final : public nsISupports,
+                            public sigslot::has_slots<> {
  public:
   TransportFlow()
     : id_("(anonymous)"),
       state_(TransportLayer::TS_NONE),
       layers_(new std::deque<TransportLayer *>) {}
-  TransportFlow(const std::string id)
+  explicit TransportFlow(const std::string id)
     : id_(id),
       state_(TransportLayer::TS_NONE),
       layers_(new std::deque<TransportLayer *>) {}
-
-  ~TransportFlow();
 
   const std::string& id() const { return id_; }
 
@@ -102,6 +100,8 @@ class TransportFlow : public nsISupports,
   NS_DECL_THREADSAFE_ISUPPORTS
 
  private:
+  ~TransportFlow();
+
   DISALLOW_COPY_ASSIGN(TransportFlow);
 
   // Check if we are on the right thread

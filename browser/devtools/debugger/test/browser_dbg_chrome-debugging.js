@@ -20,9 +20,10 @@ let DebuggerServer = loader.DebuggerServer;
 
 function test() {
   if (!DebuggerServer.initialized) {
-    DebuggerServer.init(() => true);
+    DebuggerServer.init();
     DebuggerServer.addBrowserActors();
   }
+  DebuggerServer.allowChromeProcess = true;
 
   let transport = DebuggerServer.connectPipe();
   gClient = new DebuggerClient(transport);
@@ -42,26 +43,26 @@ function test() {
 }
 
 function testChromeActor() {
-  gClient.listTabs(aResponse => {
-    ok(aResponse.chromeDebugger.contains("chromeDebugger"),
-      "Chrome debugger actor should identify itself accordingly.");
-
+  gClient.getProcess().then(aResponse => {
     gClient.addListener("newGlobal", onNewGlobal);
-    gClient.addListener("newSource", onNewSource);
 
-    gClient.attachThread(aResponse.chromeDebugger, (aResponse, aThreadClient) => {
-      gThreadClient = aThreadClient;
+    let actor = aResponse.form.actor;
+    gClient.attachTab(actor, (response, tabClient) => {
+      tabClient.attachThread(null, (aResponse, aThreadClient) => {
+        gThreadClient = aThreadClient;
+        gThreadClient.addListener("newSource", onNewSource);
 
-      if (aResponse.error) {
-        ok(false, "Couldn't attach to the chrome debugger.");
-        gAttached.reject();
-      } else {
-        ok(true, "Attached to the chrome debugger.");
-        gAttached.resolve();
+        if (aResponse.error) {
+          ok(false, "Couldn't attach to the chrome debugger.");
+          gAttached.reject();
+        } else {
+          ok(true, "Attached to the chrome debugger.");
+          gAttached.resolve();
 
-        // Ensure that a new chrome global will be created.
-        gBrowser.selectedTab = gBrowser.addTab("about:mozilla");
-      }
+          // Ensure that a new chrome global will be created.
+          gBrowser.selectedTab = gBrowser.addTab("about:mozilla");
+        }
+      });
     });
   });
 }
@@ -77,7 +78,7 @@ function onNewSource(aEvent, aPacket) {
   if (aPacket.source.url.startsWith("chrome:")) {
     ok(true, "Received a new chrome source: " + aPacket.source.url);
 
-    gClient.removeListener("newSource", onNewSource);
+    gThreadClient.removeListener("newSource", onNewSource);
     gNewChromeSource.resolve();
   }
 }
@@ -89,7 +90,6 @@ function resumeAndCloseConnection() {
 }
 
 registerCleanupFunction(function() {
-  removeTab(gBrowser.selectedTab);
   gClient = null;
   gThreadClient = null;
   gAttached = null;

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -31,6 +31,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
                                   "resource://testing-common/httpd.js");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+                                  "resource://testing-common/PlacesTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -41,6 +43,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "MockRegistrar",
+                                  "resource://testing-common/MockRegistrar.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
            "@mozilla.org/uriloader/external-helper-app-service;1",
@@ -65,7 +69,7 @@ const TEST_STORE_FILE_NAME = "test-downloads.json";
 const TEST_REFERRER_URL = "http://www.example.com/referrer.html";
 
 const TEST_DATA_SHORT = "This test string is downloaded.";
-// Generate using gzipCompressString in TelemetryPing.jsm.
+// Generate using gzipCompressString in TelemetryController.jsm.
 const TEST_DATA_SHORT_GZIP_ENCODED_FIRST = [
  31,139,8,0,0,0,0,0,0,3,11,201,200,44,86,40,73,45,46,81,40,46,41,202,204
 ];
@@ -133,8 +137,19 @@ function getTempFile(aLeafName)
   do_check_false(file.exists());
 
   do_register_cleanup(function () {
-    if (file.exists()) {
-      file.remove(false);
+    try {
+      file.remove(false)
+    } catch (e) {
+      if (!(e instanceof Components.Exception &&
+            (e.result == Cr.NS_ERROR_FILE_ACCESS_DENIED ||
+             e.result == Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
+             e.result == Cr.NS_ERROR_FILE_NOT_FOUND))) {
+        throw e;
+      }
+      // On Windows, we may get an access denied error if the file existed before,
+      // and was recently deleted.
+      // Don't bother checking file.exists() as that may also cause an access
+      // denied error.
     }
   });
 
@@ -167,43 +182,6 @@ function promiseTimeout(aTime)
   let deferred = Promise.defer();
   do_timeout(aTime, deferred.resolve);
   return deferred.promise;
-}
-
-/**
- * Allows waiting for an observer notification once.
- *
- * @param aTopic
- *        Notification topic to observe.
- *
- * @return {Promise}
- * @resolves The array [aSubject, aData] from the observed notification.
- * @rejects Never.
- */
-function promiseTopicObserved(aTopic)
-{
-  let deferred = Promise.defer();
-
-  Services.obs.addObserver(
-    function PTO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(PTO_observe, aTopic);
-      deferred.resolve([aSubject, aData]);
-    }, aTopic, false);
-
-  return deferred.promise;
-}
-
-/**
- * Clears history asynchronously.
- *
- * @return {Promise}
- * @resolves When history has been cleared.
- * @rejects Never.
- */
-function promiseClearHistory()
-{
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  do_execute_soon(function() PlacesUtils.bhistory.removeAllPages());
-  return promise;
 }
 
 /**
@@ -355,13 +333,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   persist.persistFlags |=
     Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
-  // We must create the nsITransfer implementation using its class ID because
-  // the "@mozilla.org/transfer;1" contract is currently implemented in
-  // "toolkit/components/downloads".  When the other folder is not included in
-  // builds anymore (bug 851471), we'll be able to use the contract ID.
-  let transfer =
-      Components.classesByID["{1b4c85df-cbdd-4bb6-b04e-613caece083c}"]
-                .createInstance(Ci.nsITransfer);
+  let transfer = Cc["@mozilla.org/transfer;1"].createInstance(Ci.nsITransfer);
 
   let deferred = Promise.defer();
 
@@ -391,7 +363,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
     persist.progressListener = transfer;
 
     // Start the actual download process.
-    persist.savePrivacyAwareURI(sourceURI, null, null, null, null, targetFile,
+    persist.savePrivacyAwareURI(sourceURI, null, null, 0, null, null, targetFile,
                                 isPrivate);
   }.bind(this)).then(null, do_report_unexpected_exception);
 
@@ -435,7 +407,10 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
       },
     }).then(null, do_report_unexpected_exception);
 
-    let channel = NetUtil.newChannel(sourceURI);
+    let channel = NetUtil.newChannel({
+      uri: sourceURI,
+      loadUsingSystemPrincipal: true,
+    });
 
     // Start the actual download process.
     channel.asyncOpen({
@@ -569,21 +544,24 @@ function promiseVerifyContents(aPath, aExpectedContents)
     }
 
     let deferred = Promise.defer();
-    NetUtil.asyncFetch(file, function(aInputStream, aStatus) {
-      do_check_true(Components.isSuccessCode(aStatus));
-      let contents = NetUtil.readInputStreamToString(aInputStream,
-                                                     aInputStream.available());
-      if (contents.length > TEST_DATA_SHORT.length * 2 ||
-          /[^\x20-\x7E]/.test(contents)) {
-        // Do not print the entire content string to the test log.
-        do_check_eq(contents.length, aExpectedContents.length);
-        do_check_true(contents == aExpectedContents);
-      } else {
-        // Print the string if it is short and made of printable characters.
-        do_check_eq(contents, aExpectedContents);
-      }
-      deferred.resolve();
-    });
+    NetUtil.asyncFetch(
+      { uri: NetUtil.newURI(file), loadUsingSystemPrincipal: true },
+      function(aInputStream, aStatus) {
+        do_check_true(Components.isSuccessCode(aStatus));
+        let contents = NetUtil.readInputStreamToString(aInputStream,
+                                                       aInputStream.available());
+        if (contents.length > TEST_DATA_SHORT.length * 2 ||
+            /[^\x20-\x7E]/.test(contents)) {
+          // Do not print the entire content string to the test log.
+          do_check_eq(contents.length, aExpectedContents.length);
+          do_check_true(contents == aExpectedContents);
+        } else {
+          // Print the string if it is short and made of printable characters.
+          do_check_eq(contents, aExpectedContents);
+        }
+        deferred.resolve();
+      });
+
     yield deferred.promise;
   });
 }
@@ -783,6 +761,17 @@ add_task(function test_common_initialize()
                          TEST_DATA_SHORT_GZIP_ENCODED_SECOND.length);
     });
 
+  gHttpServer.registerPathHandler("/shorter-than-content-length-http-1-1.txt",
+    function (aRequest, aResponse) {
+      aResponse.processAsync();
+      aResponse.setStatusLine("1.1", 200, "OK");
+      aResponse.setHeader("Content-Type", "text/plain", false);
+      aResponse.setHeader("Content-Length", "" + (TEST_DATA_SHORT.length * 2),
+                          false);
+      aResponse.write(TEST_DATA_SHORT);
+      aResponse.finish();
+    });
+
   // This URL will emulate being blocked by Windows Parental controls
   gHttpServer.registerPathHandler("/parentalblocked.zip",
     function (aRequest, aResponse) {
@@ -813,56 +802,22 @@ add_task(function test_common_initialize()
 
   // Make sure that downloads started using nsIExternalHelperAppService are
   // saved to disk without asking for a destination interactively.
-  let mockFactory = {
-    createInstance: function (aOuter, aIid) {
-      return {
-        QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
-        promptForSaveToFile: function (aLauncher, aWindowContext,
-                                       aDefaultFileName,
-                                       aSuggestedFileExtension,
-                                       aForcePrompt)
-        {
-          throw new Components.Exception(
-                             "Synchronous promptForSaveToFile not implemented.",
-                             Cr.NS_ERROR_NOT_AVAILABLE);
-        },
-        promptForSaveToFileAsync: function (aLauncher, aWindowContext,
-                                            aDefaultFileName,
-                                            aSuggestedFileExtension,
-                                            aForcePrompt)
-        {
-          // The dialog should create the empty placeholder file.
-          let file = getTempFile(TEST_TARGET_FILE_NAME);
-          file.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-          aLauncher.saveDestinationAvailable(file);
-        },
-      }.QueryInterface(aIid);
-    }
+  let mock = {
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+    promptForSaveToFileAsync(aLauncher,
+                             aWindowContext,
+                             aDefaultFileName,
+                             aSuggestedFileExtension,
+                             aForcePrompt) {
+      // The dialog should create the empty placeholder file.
+      let file = getTempFile(TEST_TARGET_FILE_NAME);
+      file.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      aLauncher.saveDestinationAvailable(file);
+    },
   };
 
-  let contractID = "@mozilla.org/helperapplauncherdialog;1";
-  let cid = registrar.contractIDToCID(contractID);
-  let oldFactory = Components.manager.getClassObject(Cc[contractID],
-                                                     Ci.nsIFactory);
-
-  registrar.unregisterFactory(cid, oldFactory);
-  registrar.registerFactory(cid, "", contractID, mockFactory);
-  do_register_cleanup(function () {
-    registrar.unregisterFactory(cid, mockFactory);
-    registrar.registerFactory(cid, "", contractID, oldFactory);
-  });
-
-  // We must also make sure that nsIExternalHelperAppService uses the
-  // JavaScript implementation of nsITransfer, because the
-  // "@mozilla.org/transfer;1" contract is currently implemented in
-  // "toolkit/components/downloads".  When the other folder is not included in
-  // builds anymore (bug 851471), we'll not need to do this anymore.
-  let transferContractID = "@mozilla.org/transfer;1";
-  let transferNewCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
-  let transferCid = registrar.contractIDToCID(transferContractID);
-
-  registrar.registerFactory(transferNewCid, "", transferContractID, null);
-  do_register_cleanup(function () {
-    registrar.registerFactory(transferCid, "", transferContractID, null);
+  let cid = MockRegistrar.register("@mozilla.org/helperapplauncherdialog;1", mock);
+  do_register_cleanup(() => {
+    MockRegistrar.unregister(cid);
   });
 });

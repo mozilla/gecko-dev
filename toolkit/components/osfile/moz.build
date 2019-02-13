@@ -29,4 +29,9 @@ EXTRA_PP_JS_MODULES += [
     'osfile.jsm',
 ]
 
-FINAL_LIBRARY = 'toolkitcomps'
+FINAL_LIBRARY = 'xul'
+
+FAIL_ON_WARNINGS = True
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'OS.File')

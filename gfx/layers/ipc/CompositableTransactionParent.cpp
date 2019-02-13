@@ -23,7 +23,7 @@
 #include "mozilla/layers/LayersTypes.h"  // for MOZ_LAYERS_LOG
 #include "mozilla/layers/TextureHost.h"  // for TextureHost
 #include "mozilla/layers/TextureHostOGL.h"  // for TextureHostOGL
-#include "mozilla/layers/ThebesLayerComposite.h"
+#include "mozilla/layers/PaintedLayerComposite.h"
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "mozilla/unused.h"
 #include "nsDebug.h"                    // for NS_WARNING, NS_ASSERTION
@@ -73,30 +73,16 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
                                                      EditReplyVector& replyv)
 {
   switch (aEdit.type()) {
-    case CompositableOperation::TOpCreatedIncrementalTexture: {
-      MOZ_LAYERS_LOG(("[ParentSide] Created texture"));
-      const OpCreatedIncrementalTexture& op = aEdit.get_OpCreatedIncrementalTexture();
-      CompositableHost* compositable = AsCompositable(op);
-
-      bool success =
-        compositable->CreatedIncrementalTexture(this,
-                                                op.textureInfo(),
-                                                op.bufferRect());
-      if (!success) {
-        return false;
-      }
-      break;
-    }
     case CompositableOperation::TOpPaintTextureRegion: {
-      MOZ_LAYERS_LOG(("[ParentSide] Paint ThebesLayer"));
+      MOZ_LAYERS_LOG(("[ParentSide] Paint PaintedLayer"));
 
       const OpPaintTextureRegion& op = aEdit.get_OpPaintTextureRegion();
       CompositableHost* compositable = AsCompositable(op);
       Layer* layer = compositable->GetLayer();
-      if (!layer || layer->GetType() != Layer::TYPE_THEBES) {
+      if (!layer || layer->GetType() != Layer::TYPE_PAINTED) {
         return false;
       }
-      ThebesLayerComposite* thebes = static_cast<ThebesLayerComposite*>(layer);
+      PaintedLayerComposite* thebes = static_cast<PaintedLayerComposite*>(layer);
 
       const ThebesBufferData& bufferData = op.bufferData();
 
@@ -116,22 +102,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       RenderTraceInvalidateEnd(thebes, "FF00FF");
       break;
     }
-    case CompositableOperation::TOpPaintTextureIncremental: {
-      MOZ_LAYERS_LOG(("[ParentSide] Paint ThebesLayer"));
-
-      const OpPaintTextureIncremental& op = aEdit.get_OpPaintTextureIncremental();
-
-      CompositableHost* compositable = AsCompositable(op);
-
-      SurfaceDescriptor desc = op.image();
-
-      compositable->UpdateIncremental(op.textureId(),
-                                      desc,
-                                      op.updatedRegion(),
-                                      op.bufferRect(),
-                                      op.bufferRotation());
-      break;
-    }
     case CompositableOperation::TOpUpdatePictureRect: {
       const OpUpdatePictureRect& op = aEdit.get_OpUpdatePictureRect();
       CompositableHost* compositable = AsCompositable(op);
@@ -148,7 +118,10 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       NS_ASSERTION(tileComposer, "compositable is not a tile composer");
 
       const SurfaceDescriptorTiles& tileDesc = op.tileLayerDescriptor();
-      tileComposer->UseTiledLayerBuffer(this, tileDesc);
+      bool success = tileComposer->UseTiledLayerBuffer(this, tileDesc);
+      if (!success) {
+        return false;
+      }
       break;
     }
     case CompositableOperation::TOpRemoveTexture: {
@@ -159,7 +132,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
       // send FenceHandle if present.
-      TextureHost::SendFenceHandleIfPresent(op.textureParent());
+      SendFenceHandleIfPresent(op.textureParent(), compositable);
       break;
     }
     case CompositableOperation::TOpRemoveTextureAsync: {
@@ -170,27 +143,26 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
 
-      if (!IsAsync() && GetChildProcessId()) {
+      if (!IsAsync() && ImageBridgeParent::GetInstance(GetChildProcessId())) {
         // send FenceHandle if present via ImageBridge.
-        ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
+        ImageBridgeParent::AppendDeliverFenceMessage(
                              GetChildProcessId(),
                              op.holderId(),
                              op.transactionId(),
-                             op.textureParent());
+                             op.textureParent(),
+                             compositable);
 
         // If the message is recievied via PLayerTransaction,
         // Send message back via PImageBridge.
         ImageBridgeParent::ReplyRemoveTexture(
                              GetChildProcessId(),
-                             OpReplyRemoveTexture(true, // isMain
-                                                  op.holderId(),
+                             OpReplyRemoveTexture(op.holderId(),
                                                   op.transactionId()));
       } else {
         // send FenceHandle if present.
-        TextureHost::SendFenceHandleIfPresent(op.textureParent());
+        SendFenceHandleIfPresent(op.textureParent(), compositable);
 
-        ReplyRemoveTexture(OpReplyRemoveTexture(false, // isMain
-                                                op.holderId(),
+        ReplyRemoveTexture(OpReplyRemoveTexture(op.holderId(),
                                                 op.transactionId()));
       }
       break;
@@ -203,13 +175,19 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->UseTextureHost(tex);
 
-      if (IsAsync()) {
+      MaybeFence maybeFence = op.fence();
+      if (maybeFence.type() == MaybeFence::TFenceHandle) {
+        FenceHandle fence = maybeFence.get_FenceHandle();
+        if (fence.IsValid() && tex) {
+          tex->SetAcquireFenceHandle(fence);
+        }
+      }
+
+      if (IsAsync() && compositable->GetLayer()) {
         ScheduleComposition(op);
         // Async layer updates don't trigger invalidation, manually tell the layer
         // that its content have changed.
-        if (compositable->GetLayer()) {
-          compositable->GetLayer()->SetInvalidRectToVisibleRegion();
-        }
+        compositable->GetLayer()->SetInvalidRectToVisibleRegion();
       }
       break;
     }
@@ -227,23 +205,57 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       }
       break;
     }
-    case CompositableOperation::TOpUpdateTexture: {
-      const OpUpdateTexture& op = aEdit.get_OpUpdateTexture();
-      RefPtr<TextureHost> texture = TextureHost::AsTextureHost(op.textureParent());
-      MOZ_ASSERT(texture);
-
-      texture->Updated(op.region().type() == MaybeRegion::TnsIntRegion
-                       ? &op.region().get_nsIntRegion()
-                       : nullptr); // no region means invalidate the entire surface
+#ifdef MOZ_WIDGET_GONK
+    case CompositableOperation::TOpUseOverlaySource: {
+      const OpUseOverlaySource& op = aEdit.get_OpUseOverlaySource();
+      CompositableHost* compositable = AsCompositable(op);
+      MOZ_ASSERT(compositable->GetType() == CompositableType::IMAGE_OVERLAY, "Invalid operation!");
+      compositable->UseOverlaySource(op.overlay());
       break;
     }
-
+#endif
     default: {
       MOZ_ASSERT(false, "bad type");
     }
   }
 
   return true;
+}
+
+void
+CompositableParentManager::SendPendingAsyncMessages()
+{
+  if (mPendingAsyncMessage.empty()) {
+    return;
+  }
+
+  // Some type of AsyncParentMessageData message could have
+  // one file descriptor (e.g. OpDeliverFence).
+  // A number of file descriptors per gecko ipc message have a limitation
+  // on OS_POSIX (MACOSX or LINUX).
+#if defined(OS_POSIX)
+  static const uint32_t kMaxMessageNumber = FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE;
+#else
+  // default number that works everywhere else
+  static const uint32_t kMaxMessageNumber = 250;
+#endif
+
+  InfallibleTArray<AsyncParentMessageData> messages;
+  messages.SetCapacity(mPendingAsyncMessage.size());
+  for (size_t i = 0; i < mPendingAsyncMessage.size(); i++) {
+    messages.AppendElement(mPendingAsyncMessage[i]);
+    // Limit maximum number of messages.
+    if (messages.Length() >= kMaxMessageNumber) {
+      SendAsyncMessage(messages);
+      // Initialize Messages.
+      messages.Clear();
+    }
+  }
+
+  if (messages.Length() > 0) {
+    SendAsyncMessage(messages);
+  }
+  mPendingAsyncMessage.clear();
 }
 
 } // namespace

@@ -21,11 +21,11 @@ public class PanningPerfAPI {
     // to measure.
     private static final int EXPECTED_FRAME_COUNT = 2048;
 
-    private static boolean mRecordingFrames = false;
+    private static boolean mRecordingFrames;
     private static List<Long> mFrameTimes;
     private static long mFrameStartTime;
 
-    private static boolean mRecordingCheckerboard = false;
+    private static boolean mRecordingCheckerboard;
     private static List<Float> mCheckerboardAmounts;
     private static long mCheckerboardStartTime;
 
@@ -98,6 +98,10 @@ public class PanningPerfAPI {
         // is still executing. As values are added to this list last, we use
         // this number as the canonical number of recordings.
         int values = mCheckerboardAmounts.size();
+        if (values == 0) {
+            Log.w(LOGTAG, "stopCheckerboardRecording() found no checkerboard amounts!");
+            return mCheckerboardAmounts;
+        }
 
         // The score will be the sum of all the values in mCheckerboardAmounts,
         // so weight the checkerboard values by time so that frame-rate and

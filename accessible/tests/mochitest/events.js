@@ -389,7 +389,7 @@ function eventQueue(aEventType)
 
       var res = this.onFinish();
       if (res != DO_NOT_FINISH_TEST)
-        SimpleTest.finish();
+        SimpleTest.executeSoon(SimpleTest.finish);
 
       return;
     }
@@ -1743,10 +1743,11 @@ function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUse
 /**
  * Caret move events checker.
  */
-function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
+function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg,
+                          aIsAsync)
 {
   this.__proto__ = new invokerChecker(EVENT_TEXT_CARET_MOVED,
-                                      aTargetOrFunc, aTargetFuncArg);
+                                      aTargetOrFunc, aTargetFuncArg, aIsAsync);
 
   this.check = function caretMoveChecker_check(aEvent)
   {
@@ -1754,6 +1755,12 @@ function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
        aCaretOffset,
        "Wrong caret offset for " + prettyName(aEvent.accessible));
   }
+}
+
+function asyncCaretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new caretMoveChecker(aCaretOffset, aTargetOrFunc,
+                                        aTargetFuncArg, true);
 }
 
 /**
@@ -1771,6 +1778,43 @@ function textSelectionChecker(aID, aStartOffset, aEndOffset)
       testTextGetSelection(aID, aStartOffset, aEndOffset, 0);
     }
   }
+}
+
+/**
+ * Object attribute changed checker
+ */
+function objAttrChangedChecker(aID, aAttr)
+{
+  this.__proto__ = new invokerChecker(EVENT_OBJECT_ATTRIBUTE_CHANGED, aID);
+
+  this.check = function objAttrChangedChecker_check(aEvent)
+  {
+    var event = null;
+    try {
+      var event = aEvent.QueryInterface(
+        nsIAccessibleObjectAttributeChangedEvent);
+    } catch (e) {
+      ok(false, "Object attribute changed event was expected");
+    }
+
+    if (!event) {
+      return;
+    }
+
+    is(event.changedAttribute.toString(), aAttr,
+      "Wrong attribute name of the object attribute changed event.");
+  };
+
+  this.match = function objAttrChangedChecker_match(aEvent)
+  {
+    if (aEvent instanceof nsIAccessibleObjectAttributeChangedEvent) {
+      var scEvent = aEvent.QueryInterface(
+        nsIAccessibleObjectAttributeChangedEvent);
+      return (aEvent.accessible == getAccessible(this.target)) &&
+        (scEvent.changedAttribute.toString() == aAttr);
+    }
+    return false;
+  };
 }
 
 /**

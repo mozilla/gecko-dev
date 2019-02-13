@@ -1,3 +1,5 @@
+MOZ_AUTOMATION_L10N_CHECK=0
+
 . "$topsrcdir/build/mozconfig.common"
 
 # Use Clang as specified in manifest

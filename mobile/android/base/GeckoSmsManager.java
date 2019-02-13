@@ -24,20 +24,10 @@ import android.telephony.SmsMessage;
 import android.util.Log;
 
 import static android.telephony.SmsMessage.MessageClass;
+import static org.mozilla.gecko.SmsManager.ISmsManager;
 
 import java.util.ArrayList;
-
-/**
- * This class is returning unique ids for PendingIntent requestCode attribute.
- * There are only |Integer.MAX_VALUE - Integer.MIN_VALUE| unique IDs available,
- * and they wrap around.
- */
-class PendingIntentUID
-{
-  static private int sUID = Integer.MIN_VALUE;
-
-  static public int generate() { return sUID++; }
-}
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The envelope class contains all information that are needed to keep track of
@@ -74,10 +64,9 @@ class Envelope
   public Envelope(int aId, int aParts) {
     mId = aId;
     mMessageId = -1;
-    mMessageTimestamp = 0;
     mError = GeckoSmsManager.kNoError;
 
-    int size = Envelope.SubParts.values().length;
+    int size = SubParts.values().length;
     mRemainingParts = new int[size];
     mFailing = new boolean[size];
 
@@ -87,7 +76,7 @@ class Envelope
     }
   }
 
-  public void decreaseRemainingParts(Envelope.SubParts aType) {
+  public void decreaseRemainingParts(SubParts aType) {
     --mRemainingParts[aType.ordinal()];
 
     if (mRemainingParts[SubParts.SENT_PART.ordinal()] >
@@ -96,15 +85,15 @@ class Envelope
     }
   }
 
-  public boolean arePartsRemaining(Envelope.SubParts aType) {
+  public boolean arePartsRemaining(SubParts aType) {
     return mRemainingParts[aType.ordinal()] != 0;
   }
 
-  public void markAsFailed(Envelope.SubParts aType) {
+  public void markAsFailed(SubParts aType) {
     mFailing[aType.ordinal()] = true;
   }
 
-  public boolean isFailing(Envelope.SubParts aType) {
+  public boolean isFailing(SubParts aType) {
     return mFailing[aType.ordinal()];
   }
 
@@ -142,7 +131,7 @@ class Postman
 
   private static final Postman sInstance = new Postman();
 
-  private ArrayList<Envelope> mEnvelopes = new ArrayList<Envelope>(1);
+  private final ArrayList<Envelope> mEnvelopes = new ArrayList<>(1);
 
   private Postman() {}
 
@@ -225,7 +214,7 @@ class MessagesListManager
     return sInstance;
   }
 
-  private ArrayList<Cursor> mCursors = new ArrayList<Cursor>(0);
+  private final ArrayList<Cursor> mCursors = new ArrayList<>();
 
   public int add(Cursor aCursor) {
     int size = mCursors.size();
@@ -292,7 +281,7 @@ public class GeckoSmsManager
 
   /*
    * Make sure that the following error codes are in sync with |ErrorType| in:
-   * dom/mobilemessage/src/Types.h
+   * dom/mobilemessage/Types.h
    * The error code are owned by the DOM.
    */
   public final static int kNoError               = 0;
@@ -318,7 +307,7 @@ public class GeckoSmsManager
 
   /*
    * Keep the following state codes in syng with |DeliveryState| in:
-   * dom/mobilemessage/src/Types.h
+   * dom/mobilemessage/Types.h
    */
   private final static int kDeliveryStateSent          = 0;
   private final static int kDeliveryStateReceived      = 1;
@@ -330,7 +319,7 @@ public class GeckoSmsManager
 
   /*
    * Keep the following status codes in sync with |DeliveryStatus| in:
-   * dom/mobilemessage/src/Types.h
+   * dom/mobilemessage/Types.h
    */
   private final static int kDeliveryStatusNotApplicable = 0;
   private final static int kDeliveryStatusSuccess       = 1;
@@ -348,7 +337,7 @@ public class GeckoSmsManager
 
   /*
    * Keep the following values in sync with |MessageClass| in:
-   * dom/mobilemessage/src/Types.h
+   * dom/mobilemessage/Types.h
    */
   private final static int kMessageClassNormal  = 0;
   private final static int kMessageClassClass0  = 1;
@@ -356,7 +345,13 @@ public class GeckoSmsManager
   private final static int kMessageClassClass2  = 3;
   private final static int kMessageClassClass3  = 4;
 
-  private final static String[] kRequiredMessageRows = new String[] { "_id", "address", "body", "date", "type", "status" };
+  private final static String[] kRequiredMessageRows = { "_id", "address", "body", "date", "type", "status" };
+
+  // Used to generate monotonically increasing GUIDs.
+  private static final AtomicInteger pendingIntentGuid = new AtomicInteger(Integer.MIN_VALUE);
+
+  // The maximum value of a 32 bit signed integer. Used to enforce a limit on ids.
+  private static final long UNSIGNED_INTEGER_MAX_VALUE = Integer.MAX_VALUE * 2L + 1L;
 
   public GeckoSmsManager() {
     SmsIOThread.getInstance().start();
@@ -365,9 +360,9 @@ public class GeckoSmsManager
   @Override
   public void start() {
     IntentFilter smsFilter = new IntentFilter();
-    smsFilter.addAction(GeckoSmsManager.ACTION_SMS_RECEIVED);
-    smsFilter.addAction(GeckoSmsManager.ACTION_SMS_SENT);
-    smsFilter.addAction(GeckoSmsManager.ACTION_SMS_DELIVERED);
+    smsFilter.addAction(ACTION_SMS_RECEIVED);
+    smsFilter.addAction(ACTION_SMS_SENT);
+    smsFilter.addAction(ACTION_SMS_DELIVERED);
 
     GeckoAppShell.getContext().registerReceiver(this, smsFilter);
   }
@@ -475,7 +470,7 @@ public class GeckoSmsManager
           envelope.setMessageId(id);
           envelope.setMessageTimestamp(timestamp);
 
-          Log.i("GeckoSmsManager", "SMS sending was successfull!");
+          Log.i("GeckoSmsManager", "SMS sending was successful!");
         } else {
           notifySmsDelivery(envelope.getMessageId(),
                             kDeliveryStatusSuccess,
@@ -491,8 +486,6 @@ public class GeckoSmsManager
           !envelope.arePartsRemaining(Envelope.SubParts.DELIVERED_PART)) {
         postman.destroyEnvelope(envelopeId);
       }
-
-      return;
     }
   }
 
@@ -531,12 +524,12 @@ public class GeckoSmsManager
          */
         PendingIntent sentPendingIntent =
           PendingIntent.getBroadcast(GeckoAppShell.getContext(),
-                                     PendingIntentUID.generate(), sentIntent,
+                                     pendingIntentGuid.incrementAndGet(), sentIntent,
                                      PendingIntent.FLAG_CANCEL_CURRENT);
 
         PendingIntent deliveredPendingIntent =
           PendingIntent.getBroadcast(GeckoAppShell.getContext(),
-                                     PendingIntentUID.generate(), deliveredIntent,
+                                     pendingIntentGuid.incrementAndGet(), deliveredIntent,
                                      PendingIntent.FLAG_CANCEL_CURRENT);
 
         sm.sendTextMessage(aNumber, "", aMessage,
@@ -557,13 +550,13 @@ public class GeckoSmsManager
         for (int i=0; i<parts.size(); ++i) {
           sentPendingIntents.add(
             PendingIntent.getBroadcast(GeckoAppShell.getContext(),
-                                       PendingIntentUID.generate(), sentIntent,
+                                       pendingIntentGuid.incrementAndGet(), sentIntent,
                                        PendingIntent.FLAG_CANCEL_CURRENT)
           );
 
           deliveredPendingIntents.add(
             PendingIntent.getBroadcast(GeckoAppShell.getContext(),
-                                       PendingIntentUID.generate(), deliveredIntent,
+                                       pendingIntentGuid.incrementAndGet(), deliveredIntent,
                                        PendingIntent.FLAG_CANCEL_CURRENT)
           );
         }
@@ -598,7 +591,7 @@ public class GeckoSmsManager
 
       // The DOM API takes a 32bits unsigned int for the id. It's unlikely that
       // we happen to need more than that but it doesn't cost to check.
-      if (id > Integer.MAX_VALUE) {
+      if (id > UNSIGNED_INTEGER_MAX_VALUE) {
         throw new IdTooHighException();
       }
 
@@ -615,8 +608,8 @@ public class GeckoSmsManager
   @Override
   public void getMessage(int aMessageId, int aRequestId) {
     class GetMessageRunnable implements Runnable {
-      private int mMessageId;
-      private int mRequestId;
+      private final int mMessageId;
+      private final int mRequestId;
 
       GetMessageRunnable(int aMessageId, int aRequestId) {
         mMessageId = aMessageId;
@@ -700,8 +693,8 @@ public class GeckoSmsManager
   @Override
   public void deleteMessage(int aMessageId, int aRequestId) {
     class DeleteMessageRunnable implements Runnable {
-      private int mMessageId;
-      private int mRequestId;
+      private final int mMessageId;
+      private final int mRequestId;
 
       DeleteMessageRunnable(int aMessageId, int aRequestId) {
         mMessageId = aMessageId;
@@ -738,22 +731,22 @@ public class GeckoSmsManager
   }
 
   @Override
-  public void createMessageList(long aStartDate, long aEndDate, String[] aNumbers, int aNumbersCount, int aDeliveryState, boolean aReverse, int aRequestId) {
+  public void createMessageList(long aStartDate, long aEndDate, String[] aNumbers, int aNumbersCount, String aDelivery, boolean aHasRead, boolean aRead, long aThreadId, boolean aReverse, int aRequestId) {
     class CreateMessageListRunnable implements Runnable {
-      private long     mStartDate;
-      private long     mEndDate;
-      private String[] mNumbers;
-      private int      mNumbersCount;
-      private int      mDeliveryState;
-      private boolean  mReverse;
-      private int      mRequestId;
+      private final long     mStartDate;
+      private final long     mEndDate;
+      private final String[] mNumbers;
+      private final int      mNumbersCount;
+      private final String   mDelivery;
+      private final boolean  mReverse;
+      private final int      mRequestId;
 
-      CreateMessageListRunnable(long aStartDate, long aEndDate, String[] aNumbers, int aNumbersCount, int aDeliveryState, boolean aReverse, int aRequestId) {
+      CreateMessageListRunnable(long aStartDate, long aEndDate, String[] aNumbers, int aNumbersCount, String aDelivery, boolean aHasRead, boolean aRead, long aThreadId, boolean aReverse, int aRequestId) {
         mStartDate = aStartDate;
         mEndDate = aEndDate;
         mNumbers = aNumbers;
         mNumbersCount = aNumbersCount;
-        mDeliveryState = aDeliveryState;
+        mDelivery = aDelivery;
         mReverse = aReverse;
         mRequestId = aRequestId;
       }
@@ -767,43 +760,47 @@ public class GeckoSmsManager
           // TODO: should use the |selectionArgs| argument in |ContentResolver.query()|.
           ArrayList<String> restrictions = new ArrayList<String>();
 
-          if (mStartDate != 0) {
+          if (mStartDate >= 0) {
             restrictions.add("date >= " + mStartDate);
           }
 
-          if (mEndDate != 0) {
+          if (mEndDate >= 0) {
             restrictions.add("date <= " + mEndDate);
           }
 
           if (mNumbersCount > 0) {
-            String numberRestriction = "address IN ('" + mNumbers[0] + "'";
+            final StringBuilder numberRestriction = new StringBuilder("address IN ('");
+            numberRestriction.append(mNumbers[0]).append("'");
 
             for (int i=1; i<mNumbersCount; ++i) {
-              numberRestriction += ", '" + mNumbers[i] + "'";
+              numberRestriction.append(", '").append(mNumbers[i]).append("'");
             }
-            numberRestriction += ")";
+            numberRestriction.append(')');
 
-            restrictions.add(numberRestriction);
+            restrictions.add(numberRestriction.toString());
           }
 
-          if (mDeliveryState == kDeliveryStateUnknown) {
+          if (mDelivery == null) {
             restrictions.add("type IN ('" + kSmsTypeSentbox + "', '" + kSmsTypeInbox + "')");
-          } else if (mDeliveryState == kDeliveryStateSent) {
+          } else if (mDelivery.equals("sent")) {
             restrictions.add("type = " + kSmsTypeSentbox);
-          } else if (mDeliveryState == kDeliveryStateReceived) {
+          } else if (mDelivery.equals("received")) {
             restrictions.add("type = " + kSmsTypeInbox);
           } else {
             throw new UnexpectedDeliveryStateException();
           }
 
-          String restrictionText = restrictions.size() > 0 ? restrictions.get(0) : "";
+          final StringBuilder restrictionText = new StringBuilder();
+          if (!restrictions.isEmpty()) {
+            restrictionText.append(restrictions.get(0));
+          }
 
           for (int i=1; i<restrictions.size(); ++i) {
-            restrictionText += " AND " + restrictions.get(i);
+            restrictionText.append(" AND ").append(restrictions.get(i));
           }
 
           ContentResolver cr = GeckoAppShell.getContext().getContentResolver();
-          cursor = cr.query(kSmsContentUri, kRequiredMessageRows, restrictionText, null,
+          cursor = cr.query(kSmsContentUri, kRequiredMessageRows, restrictionText.toString(), null,
                             mReverse ? "date DESC" : "date ASC");
 
           if (cursor.getCount() == 0) {
@@ -854,7 +851,7 @@ public class GeckoSmsManager
       }
     }
 
-    if (!SmsIOThread.getInstance().execute(new CreateMessageListRunnable(aStartDate, aEndDate, aNumbers, aNumbersCount, aDeliveryState, aReverse, aRequestId))) {
+    if (!SmsIOThread.getInstance().execute(new CreateMessageListRunnable(aStartDate, aEndDate, aNumbers, aNumbersCount, aDelivery, aHasRead, aRead, aThreadId, aReverse, aRequestId))) {
       Log.e("GeckoSmsManager", "Failed to add CreateMessageListRunnable to the SmsIOThread");
       notifyReadingMessageListFailed(kUnknownError, aRequestId);
     }
@@ -863,8 +860,8 @@ public class GeckoSmsManager
   @Override
   public void getNextMessageInList(int aListId, int aRequestId) {
     class GetNextMessageInListRunnable implements Runnable {
-      private int mListId;
-      private int mRequestId;
+      private final int mListId;
+      private final int mRequestId;
 
       GetNextMessageInListRunnable(int aListId, int aRequestId) {
         mListId = aListId;
@@ -964,27 +961,27 @@ public class GeckoSmsManager
     }
   }
 
-  class IdTooHighException extends Exception {
+  static class IdTooHighException extends Exception {
     private static final long serialVersionUID = 29935575131092050L;
   }
 
-  class InvalidTypeException extends Exception {
+  static class InvalidTypeException extends Exception {
     private static final long serialVersionUID = 47436856832535912L;
   }
 
-  class NotFoundException extends Exception {
+  static class NotFoundException extends Exception {
     private static final long serialVersionUID = 1940676816633984L;
   }
 
-  class TooManyResultsException extends Exception {
+  static class TooManyResultsException extends Exception {
     private static final long serialVersionUID = 51883196784325305L;
   }
 
-  class UnexpectedDeliveryStateException extends Exception {
+  static class UnexpectedDeliveryStateException extends Exception {
     private static final long serialVersionUID = 494122763684005716L;
   }
 
-  class UnmatchingIdException extends Exception {
+  static class UnmatchingIdException extends Exception {
     private static final long serialVersionUID = 158467542575633280L;
   }
 

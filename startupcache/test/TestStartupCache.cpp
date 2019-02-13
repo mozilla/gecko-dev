@@ -419,8 +419,26 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  manifest->AppendNative(NS_LITERAL_CSTRING("TestStartupCacheTelemetry.manifest"));
-  XRE_AddManifestLocation(NS_COMPONENT_LOCATION, manifest);
+#ifdef XP_MACOSX
+  nsCOMPtr<nsIFile> tempManifest;
+  manifest->Clone(getter_AddRefs(tempManifest));
+  manifest->AppendNative(
+    NS_LITERAL_CSTRING("TestStartupCacheTelemetry.manifest"));
+  bool exists;
+  manifest->Exists(&exists);
+  if (!exists) {
+    // Workaround for bug 1080338 in mozharness.
+    manifest = tempManifest.forget();
+    manifest->SetNativeLeafName(NS_LITERAL_CSTRING("MacOS"));
+    manifest->AppendNative(
+      NS_LITERAL_CSTRING("TestStartupCacheTelemetry.manifest"));
+  }
+#else
+  manifest->AppendNative(
+    NS_LITERAL_CSTRING("TestStartupCacheTelemetry.manifest"));
+#endif
+
+  XRE_AddManifestLocation(NS_APP_LOCATION, manifest);
 
   nsCOMPtr<nsIObserver> telemetryThing =
     do_GetService("@mozilla.org/testing/startup-cache-telemetry.js");

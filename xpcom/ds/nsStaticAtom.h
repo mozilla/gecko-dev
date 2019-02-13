@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,7 @@
 
 #include "nsIAtom.h"
 #include "nsStringBuffer.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 typedef char16_t nsStaticAtomStringType;
 
@@ -20,28 +21,32 @@ typedef char16_t nsStaticAtomStringType;
  * the above macros to initialize these structs. They should never be accessed
  * directly other than from AtomTable.cpp
  */
-struct nsStaticAtom {
-    nsStringBuffer* mStringBuffer;
-    nsIAtom ** mAtom;
+struct nsStaticAtom
+{
+  // mStringBuffer points to the string buffer for a permanent atom, and is
+  // therefore safe as a non-owning reference.
+  nsStringBuffer* MOZ_NON_OWNING_REF mStringBuffer;
+  nsIAtom** mAtom;
 };
 
 /**
  * This is a struct with the same binary layout as a nsStringBuffer.
  */
-template <uint32_t size>
-struct nsFakeStringBuffer {
-    int32_t mRefCnt;
-    uint32_t mSize;
-    nsStaticAtomStringType mStringData[size];
+template<uint32_t size>
+struct nsFakeStringBuffer
+{
+  int32_t mRefCnt;
+  uint32_t mSize;
+  nsStaticAtomStringType mStringData[size];
 };
 
 // Register an array of static atoms with the atom table
 template<uint32_t N>
 nsresult
-NS_RegisterStaticAtoms(const nsStaticAtom (&atoms)[N])
+NS_RegisterStaticAtoms(const nsStaticAtom (&aAtoms)[N])
 {
-    extern nsresult RegisterStaticAtoms(const nsStaticAtom*, uint32_t aAtomCount);
-    return RegisterStaticAtoms(atoms, N);
+  extern nsresult RegisterStaticAtoms(const nsStaticAtom*, uint32_t aAtomCount);
+  return RegisterStaticAtoms(aAtoms, N);
 }
 
 #endif

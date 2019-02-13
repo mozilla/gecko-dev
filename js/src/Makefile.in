@@ -4,7 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-ifndef .PYMAKE
 ifeq (,$(MAKE_VERSION))
 $(error GNU Make is required)
 endif
@@ -12,31 +11,12 @@ make_min_ver := 3.81
 ifneq ($(make_min_ver),$(firstword $(sort $(make_min_ver) $(MAKE_VERSION))))
 $(error GNU Make $(make_min_ver) or higher is required)
 endif
-endif
-
-TOPLEVEL_BUILD := 1
 
 run_for_side_effects := $(shell echo 'MAKE: $(MAKE)')
-STATIC_LIBRARY_NAME = js_static
-LIBS		= $(NSPR_LIBS)
-
-DIST_INSTALL = 1
-
-ifdef JS_STANDALONE
-SHARED_LIBRARY_LIBS += $(call EXPAND_LIBNAME_PATH,mfbt,$(DEPTH)/mfbt)
-endif
 
 ifdef JS_HAS_CTYPES
 ifdef MOZ_NATIVE_FFI
 LOCAL_INCLUDES = $(MOZ_FFI_CFLAGS)
-endif
-
-ifdef MOZ_NATIVE_FFI
-EXTRA_DSO_LDOPTS += $(MOZ_FFI_LIBS)
-else
-SHARED_LIBRARY_LIBS += \
-    ctypes/libffi/.libs/libffi.$(LIB_SUFFIX) \
-    $(NULL)
 endif
 
 # Windows needs this to be linked with a static library.
@@ -47,14 +27,6 @@ endif
 endif # JS_HAS_CTYPES
 
 DASH_R		= -r
-
-ifneq (,$(filter WINNT,$(OS_ARCH)))
-SDK_LIBRARY = $(IMPORT_LIBRARY)
-else
-SDK_LIBRARY = $(SHARED_LIBRARY)
-endif
-
-EXTRA_DSO_LDOPTS += $(NSPR_LIBS)
 
 # Define keyword generator before rules.mk, see bug 323979 comment 50
 
@@ -74,7 +46,7 @@ endif
 # Ensure symbol versions of shared library on Linux do not conflict
 # with those in libxul.
 ifeq (Linux,$(OS_TARGET))
-EXTRA_DSO_LDOPTS += -Wl,-version-script,symverscript
+OS_LDFLAGS += -Wl,-version-script,symverscript
 
 symverscript: symverscript.in
 	$(call py_action,preprocessor, \
@@ -157,28 +129,18 @@ check-style::
 
 check-jit-test::
 	$(JITTEST_ASAN_ENV) $(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/jit-test/jit_test.py \
-	        --no-slow --no-progress --tinderbox --tbpl $(JITTEST_VALGRIND_FLAG) \
+	        --no-slow --no-progress --format=automation --jitflags=all \
+			$(JITTEST_VALGRIND_FLAG) \
+			$(JITTEST_EXTRA_ARGS) \
 	        $(DIST)/bin/$(JS_SHELL_NAME)$(BIN_SUFFIX)
 
 check:: check-style
 
-# jstests doesn't have a --jitflags option, so we need to loop, updating the
-# exit code (RC) after each invocation.
-# FIXME: MethodJIT doesn't work for 1 test case (bug 644393), so
-# --no-extensions is set to skip that test. Remove as soon as possible.
 check-jstests:
-	RC=0; \
-	for f in `echo '$(JITFLAGS)' | tr ',' '\n'`; \
-		do \
-			$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/tests/jstests.py \
-				--tinderbox --no-progress \
-				--no-extensions \
-				--timeout 300 \
-				--args="`echo $$f | sed 's/\(.\)/ -\1/g'`" \
-				$(DIST)/bin/$(JS_SHELL_NAME)$(BIN_SUFFIX); \
-			RC=$$(( $$RC || $$?)); \
-		done; \
-	exit $$RC
+	$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/tests/jstests.py \
+		--no-progress --format=automation --timeout 300 \
+		$(JSTESTS_EXTRA_ARGS) \
+		$(DIST)/bin/$(JS_SHELL_NAME)$(BIN_SUFFIX)
 
 # FIXME:
 # We want to run check-jstests as part of |make check| on all platforms, on
@@ -208,44 +170,8 @@ DIST_GARBAGE = config.cache config.log config.status* \
 distclean::
 	$(RM) $(DIST_GARBAGE)
 
-ifneq ($(findstring -L,$(NSPR_LIBS)),)
-NSPR_STATIC_PATH = $(subst -L,,$(findstring -L,$(NSPR_LIBS)))
-else
-NSPR_STATIC_PATH = $(DIST)/lib
-endif
-
-# HP-UX does not require the extra linking of "-lm"
-ifeq (,$(filter HP-UX WINNT,$(OS_ARCH)))
-EXTRA_LIBS	+= -lm
-endif
-
 CFLAGS += $(MOZ_ZLIB_CFLAGS)
-EXTRA_LIBS += $(MOZ_ZLIB_LIBS)
-# Enable zlib usage if zlib has been located. When building the browser on
-# Windows, MOZ_ZLIB_LIBS is empty because zlib is part of libmozglue. We thus
-# also enable zlib if mozglue is present.
-ifneq (,$(MOZ_ZLIB_LIBS)$(MOZ_GLUE_LDFLAGS))
-DEFINES += -DUSE_ZLIB
-endif
 
-ifdef MOZ_SHARED_ICU
-EXTRA_DSO_LDOPTS += $(MOZ_ICU_LIBS)
-else
-SHARED_LIBRARY_LIBS += $(MOZ_ICU_LIBS)
-endif
-
-# Prevent floating point errors caused by VC++ optimizations
-ifdef _MSC_VER
-# XXX We should add this to CXXFLAGS, too?
-CFLAGS += -fp:precise
-endif # _MSC_VER
-
-ifeq ($(OS_ARCH),FreeBSD)
-EXTRA_LIBS	+= -pthread
-endif
-ifeq ($(OS_ARCH),Linux)
-EXTRA_LIBS	+= -ldl
-endif
 # Silence warnings on AIX/HP-UX from non-GNU compilers
 ifndef GNU_CC
 ifeq ($(OS_ARCH),AIX)
@@ -272,7 +198,6 @@ CXXFLAGS += -mcpu=v9
 endif # GNU_CC
 
 endif
-EXTRA_LIBS	+= -lposix4 -ldl -lnsl -lsocket
 endif
 
 SCRIPTS = $(JS_CONFIG_NAME)
@@ -283,6 +208,9 @@ $(LIBRARY_NAME).pc: js.pc
 
 install:: $(LIBRARY_NAME).pc
 	$(SYSINSTALL) $^ $(DESTDIR)$(libdir)/pkgconfig
+
+install:: js-config.h
+	$(SYSINSTALL) $^ $(DESTDIR)$(includedir)
 
 ######################################################
 # BEGIN SpiderMonkey header installation
@@ -355,7 +283,7 @@ endif
 
 ifdef HAVE_DTRACE
 $(CURDIR)/javascript-trace.h: $(srcdir)/devtools/javascript-trace.d
-	dtrace -h -s $(srcdir)/devtools/javascript-trace.d -o javascript-trace.h.in
+	dtrace -x nolibs -h -s $(srcdir)/devtools/javascript-trace.d -o javascript-trace.h.in
 	sed -e 's/if _DTRACE_VERSION/ifdef INCLUDE_MOZILLA_DTRACE/' \
 	    -e '/const/!s/char \*/const char */g' \
 	    javascript-trace.h.in > javascript-trace.h
@@ -371,17 +299,22 @@ selfhosting:: selfhosted.out.h
 
 selfhosting_srcs := \
   $(srcdir)/builtin/Utilities.js \
-  $(srcdir)/builtin/ParallelUtilities.js \
   $(srcdir)/builtin/Array.js \
   $(srcdir)/builtin/Date.js \
+  $(srcdir)/builtin/Error.js \
+  $(srcdir)/builtin/Generator.js \
   $(srcdir)/builtin/Intl.js \
   $(srcdir)/builtin/IntlData.js \
   $(srcdir)/builtin/Iterator.js \
   $(srcdir)/builtin/Map.js \
   $(srcdir)/builtin/Number.js \
+  $(srcdir)/builtin/Object.js \
+  $(srcdir)/builtin/RegExp.js \
   $(srcdir)/builtin/String.js \
   $(srcdir)/builtin/Set.js \
+  $(srcdir)/builtin/TypedArray.js \
   $(srcdir)/builtin/TypedObject.js \
+  $(srcdir)/builtin/WeakSet.js \
   $(NULL)
 
 selfhosted_out_h_deps := \

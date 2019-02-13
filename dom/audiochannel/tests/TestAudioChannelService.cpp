@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,6 +15,8 @@
 #include "AudioChannelService.h"
 #include "AudioChannelAgent.h"
 
+#include "nsThreadUtils.h"
+
 #define TEST_ENSURE_BASE(_test, _msg)       \
   PR_BEGIN_MACRO                            \
     if (!(_test)) {                         \
@@ -25,26 +29,38 @@
 
 using namespace mozilla::dom;
 
+void
+spin_events_loop_until_false(const bool* const aCondition)
+{
+  nsCOMPtr<nsIThread> thread(::do_GetCurrentThread());
+  nsresult rv = NS_OK;
+  bool processed = true;
+  while (*aCondition && NS_SUCCEEDED(rv)) {
+    rv = thread->ProcessNextEvent(true, &processed);
+  }
+}
+
 class Agent : public nsIAudioChannelAgentCallback,
               public nsSupportsWeakReference
 {
+protected:
+  virtual ~Agent()
+  {
+    if (mRegistered) {
+      StopPlaying();
+    }
+  }
+
 public:
   NS_DECL_ISUPPORTS
 
-  Agent(AudioChannel aChannel)
+  explicit Agent(AudioChannel aChannel)
   : mChannel(aChannel)
   , mWaitCallback(false)
   , mRegistered(false)
   , mCanPlay(AUDIO_CHANNEL_STATE_MUTED)
   {
     mAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1");
-  }
-
-  virtual ~Agent()
-  {
-    if (mRegistered) {
-      StopPlaying();
-    }
   }
 
   nsresult Init(bool video=false)
@@ -77,17 +93,7 @@ public:
   nsresult StopPlaying()
   {
     mRegistered = false;
-    int loop = 0;
-    while (mWaitCallback) {
-      #ifdef XP_WIN
-      Sleep(1000);
-      #else
-      sleep(1);
-      #endif
-      if (loop++ == 5) {
-        TEST_ENSURE_BASE(false, "StopPlaying timeout");
-      }
-    }
+    spin_events_loop_until_false(&mWaitCallback);
     return mAgent->StopPlaying();
   }
 
@@ -99,31 +105,25 @@ public:
     return mAgent->SetVisibilityState(visible);
   }
 
-  NS_IMETHODIMP CanPlayChanged(int32_t canPlay)
+  NS_IMETHODIMP CanPlayChanged(int32_t canPlay) override
   {
     mCanPlay = static_cast<AudioChannelState>(canPlay);
     mWaitCallback = false;
     return NS_OK;
   }
 
-  NS_IMETHODIMP WindowVolumeChanged()
+  NS_IMETHODIMP WindowVolumeChanged() override
   {
     return NS_OK;
   }
 
-  nsresult GetCanPlay(AudioChannelState *_ret)
+  nsresult GetCanPlay(AudioChannelState *_ret, bool aWaitCallback = false)
   {
-    int loop = 0;
-    while (mWaitCallback) {
-      #ifdef XP_WIN
-      Sleep(1000);
-      #else
-      sleep(1);
-      #endif
-      if (loop++ == 5) {
-        TEST_ENSURE_BASE(false, "GetCanPlay timeout");
-      }
+    if (aWaitCallback) {
+      mWaitCallback = true;
     }
+
+    spin_events_loop_until_false(&mWaitCallback);
     *_ret = mCanPlay;
     return NS_OK;
   }
@@ -347,7 +347,7 @@ TestFadedState()
   TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_NORMAL,
     "Test4: A notification channel visible agent must be playable");
 
-    rv = contentAgent->GetCanPlay(&playable);
+  rv = contentAgent->GetCanPlay(&playable, true);
   NS_ENSURE_SUCCESS(rv, rv);
   TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_FADED,
     "Test4: A content channel unvisible agent must be faded because of "
@@ -374,7 +374,7 @@ TestFadedState()
   rv = notificationAgent->StopPlaying();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = contentAgent->GetCanPlay(&playable);
+  rv = contentAgent->GetCanPlay(&playable, true);
   NS_ENSURE_SUCCESS(rv, rv);
   TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_NORMAL,
     "Test4: A content channel unvisible agent must be playable "

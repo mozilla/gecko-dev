@@ -16,24 +16,24 @@ using mozilla::tl::BitSize;
 namespace js {
 namespace detail {
 
-BumpChunk *
+BumpChunk*
 BumpChunk::new_(size_t chunkSize)
 {
-    JS_ASSERT(RoundUpPow2(chunkSize) == chunkSize);
-    void *mem = js_malloc(chunkSize);
+    MOZ_ASSERT(RoundUpPow2(chunkSize) == chunkSize);
+    void* mem = js_malloc(chunkSize);
     if (!mem)
         return nullptr;
-    BumpChunk *result = new (mem) BumpChunk(chunkSize - sizeof(BumpChunk));
+    BumpChunk* result = new (mem) BumpChunk(chunkSize - sizeof(BumpChunk));
 
     // We assume that the alignment of sAlign is less than that of
     // the underlying memory allocator -- creating a new BumpChunk should
     // always satisfy the sAlign alignment constraint.
-    JS_ASSERT(AlignPtr(result->bump) == result->bump);
+    MOZ_ASSERT(AlignPtr(result->bump) == result->bump);
     return result;
 }
 
 void
-BumpChunk::delete_(BumpChunk *chunk)
+BumpChunk::delete_(BumpChunk* chunk)
 {
 #ifdef DEBUG
     // Part of the chunk may have been marked as poisoned/noaccess.  Undo that
@@ -48,8 +48,8 @@ BumpChunk::delete_(BumpChunk *chunk)
 bool
 BumpChunk::canAlloc(size_t n)
 {
-    char *aligned = AlignPtr(bump);
-    char *bumped = aligned + n;
+    char* aligned = AlignPtr(bump);
+    char* bumped = aligned + n;
     return bumped <= limit && bumped > headerBase();
 }
 
@@ -60,7 +60,7 @@ void
 LifoAlloc::freeAll()
 {
     while (first) {
-        BumpChunk *victim = first;
+        BumpChunk* victim = first;
         first = first->next();
         decrementCurSize(victim->computedSizeOfIncludingThis());
         BumpChunk::delete_(victim);
@@ -69,10 +69,10 @@ LifoAlloc::freeAll()
 
     // Nb: maintaining curSize_ correctly isn't easy.  Fortunately, this is an
     // excellent sanity check.
-    JS_ASSERT(curSize_ == 0);
+    MOZ_ASSERT(curSize_ == 0);
 }
 
-LifoAlloc::BumpChunk *
+LifoAlloc::BumpChunk*
 LifoAlloc::getOrCreateChunk(size_t n)
 {
     if (first) {
@@ -102,29 +102,29 @@ LifoAlloc::getOrCreateChunk(size_t n)
     }
 
     // If we get here, we couldn't find an existing BumpChunk to fill the request.
-    BumpChunk *newChunk = BumpChunk::new_(chunkSize);
+    BumpChunk* newChunk = BumpChunk::new_(chunkSize);
     if (!newChunk)
         return nullptr;
     if (!first) {
         latest = first = last = newChunk;
     } else {
-        JS_ASSERT(latest && !latest->next());
+        MOZ_ASSERT(latest && !latest->next());
         latest->setNext(newChunk);
         latest = last = newChunk;
     }
 
     size_t computedChunkSize = newChunk->computedSizeOfIncludingThis();
-    JS_ASSERT(computedChunkSize == chunkSize);
+    MOZ_ASSERT(computedChunkSize == chunkSize);
     incrementCurSize(computedChunkSize);
 
     return newChunk;
 }
 
 void
-LifoAlloc::transferFrom(LifoAlloc *other)
+LifoAlloc::transferFrom(LifoAlloc* other)
 {
-    JS_ASSERT(!markCount);
-    JS_ASSERT(!other->markCount);
+    MOZ_ASSERT(!markCount);
+    MOZ_ASSERT(!other->markCount);
 
     if (!other->first)
         return;
@@ -139,10 +139,10 @@ LifoAlloc::transferFrom(LifoAlloc *other)
 }
 
 void
-LifoAlloc::transferUnusedFrom(LifoAlloc *other)
+LifoAlloc::transferUnusedFrom(LifoAlloc* other)
 {
-    JS_ASSERT(!markCount);
-    JS_ASSERT(latest == first);
+    MOZ_ASSERT(!markCount);
+    MOZ_ASSERT(latest == first);
 
     if (other->markCount || !other->first)
         return;
@@ -156,7 +156,7 @@ LifoAlloc::transferUnusedFrom(LifoAlloc *other)
             other->decrementCurSize(delta);
             incrementCurSize(delta);
         } else {
-            for (BumpChunk *chunk = other->latest->next(); chunk; chunk = chunk->next()) {
+            for (BumpChunk* chunk = other->latest->next(); chunk; chunk = chunk->next()) {
                 size_t size = chunk->computedSizeOfIncludingThis();
                 incrementCurSize(size);
                 other->decrementCurSize(size);

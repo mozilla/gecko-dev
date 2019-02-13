@@ -2,32 +2,59 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this file,
    - You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include ../../../shared/incontentprefs/preferences.css
+%include ../../../shared/incontentprefs/preferences.inc.css
 
-caption {
-  background-color: transparent;
-}
+@media not all and (-moz-windows-default-theme) {
+  #category-general > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#general-native");
+  }
 
-menulist:not([editable="true"]) > .menulist-dropmarker {
-  margin-top: 1px;
-  margin-bottom: 1px;
-}
+  #category-search > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#search-native");
+  }
 
-checkbox {
-  -moz-padding-start: 0;
-}
+  #category-content > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#content-native");
+  }
 
-radio {
-  -moz-binding: url("chrome://global/content/bindings/radio.xml#radio");
-  -moz-margin-start: 0;
-  -moz-padding-start: 0;
-}
+  #category-application > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#applications-native");
+  }
 
-.radio-icon,
-.checkbox-icon {
-  -moz-margin-end: 0;
+  #category-privacy > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#privacy-native");
+  }
+
+  #category-security > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#security-native");
+  }
+
+  #category-sync > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#sync-native");
+  }
+
+  #category-advanced > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#advanced-native");
+  }
 }
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
   -moz-margin-end: 9px;
+}
+
+textbox + button,
+filefield + button {
+  -moz-margin-start: -4px;
+}
+
+#advancedPrefs {
+  padding-bottom: 0; /* override padding from normal preferences.css */
+}
+
+/**
+ * Dialog
+ */
+
+#dialogTitle {
+  font-size: 1em;
 }

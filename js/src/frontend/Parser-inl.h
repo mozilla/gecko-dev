@@ -16,12 +16,17 @@ namespace frontend {
 
 template <typename ParseHandler>
 bool
-ParseContext<ParseHandler>::init(TokenStream &ts)
+ParseContext<ParseHandler>::init(TokenStream& ts)
 {
     if (!frontend::GenerateBlockId(ts, this, this->bodyid))
         return false;
 
-    return decls_.init() && lexdeps.ensureMap(sc->context);
+    if (!decls_.init() || !lexdeps.ensureMap(sc->context)) {
+        ReportOutOfMemory(sc->context);
+        return false;
+    }
+
+    return true;
 }
 
 template <typename ParseHandler>
@@ -29,9 +34,8 @@ ParseContext<ParseHandler>::~ParseContext()
 {
     // |*parserPC| pointed to this object.  Now that this object is about to
     // die, make |*parserPC| point to this object's parent.
-    JS_ASSERT(*parserPC == this);
+    MOZ_ASSERT(*parserPC == this);
     *parserPC = this->oldpc;
-    js_delete(funcStmts);
 }
 
 } // namespace frontend

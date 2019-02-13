@@ -7,38 +7,162 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
-this.EXPORTED_SYMBOLS = ["sendMessageToJava"];
+this.EXPORTED_SYMBOLS = ["sendMessageToJava", "Messaging"];
 
 XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
 function sendMessageToJava(aMessage, aCallback) {
+  Cu.reportError("sendMessageToJava is deprecated. Use Messaging API instead.");
+
   if (aCallback) {
-    let id = uuidgen.generateUUID().toString();
-    let obs = {
-      observe: function(aSubject, aTopic, aData) {
-        let data = JSON.parse(aData);
-        if (data.__guid__ != id) {
-          return;
+    Messaging.sendRequestForResult(aMessage)
+      .then(result => aCallback(result, null),
+            error => aCallback(null, error));
+  } else {
+    Messaging.sendRequest(aMessage);
+  }
+}
+
+let Messaging = {
+  /**
+   * Add a listener for the given message.
+   *
+   * Only one request listener can be registered for a given message.
+   *
+   * Example usage:
+   *   // aData is data sent from Java with the request. The return value is
+   *   // used to respond to the request. The return type *must* be an instance
+   *   // of Object.
+   *   let listener = function (aData) {
+   *     if (aData == "foo") {
+   *       return { response: "bar" };
+   *     }
+   *     return {};
+   *   };
+   *   Messaging.addListener(listener, "Demo:Request");
+   *
+   * The listener may also be a generator function, useful for performing a
+   * task asynchronously. For example:
+   *   let listener = function* (aData) {
+   *     // Respond with "bar" after 2 seconds.
+   *     yield new Promise(resolve => setTimeout(resolve, 2000));
+   *     return { response: "bar" };
+   *   };
+   *   Messaging.addListener(listener, "Demo:Request");
+   *
+   * @param aListener Listener callback taking a single data parameter (see
+   *                  example usage above).
+   * @param aMessage  Event name that this listener should observe.
+   */
+  addListener: function (aListener, aMessage) {
+    requestHandler.addListener(aListener, aMessage);
+  },
+
+  /**
+   * Removes a listener for a given message.
+   *
+   * @param aMessage The event to stop listening for.
+   */
+  removeListener: function (aMessage) {
+    requestHandler.removeListener(aMessage);
+  },
+
+  /**
+   * Sends a request to Java.
+   *
+   * @param aMessage  Message to send; must be an object with a "type" property
+   */
+  sendRequest: function (aMessage) {
+    Services.androidBridge.handleGeckoMessage(aMessage);
+  },
+
+  /**
+   * Sends a request to Java, returning a Promise that resolves to the response.
+   *
+   * @param aMessage Message to send; must be an object with a "type" property
+   * @returns A Promise resolving to the response
+   */
+  sendRequestForResult: function (aMessage) {
+    return new Promise((resolve, reject) => {
+      let id = uuidgen.generateUUID().toString();
+      let obs = {
+        observe: function (aSubject, aTopic, aData) {
+          let data = JSON.parse(aData);
+          if (data.__guid__ != id) {
+            return;
+          }
+
+          Services.obs.removeObserver(obs, aMessage.type + ":Response");
+
+          if (data.status === "success") {
+            resolve(data.response);
+          } else {
+            reject(data.response);
+          }
         }
+      };
 
-        Services.obs.removeObserver(obs, aMessage.type + ":Response", false);
+      aMessage.__guid__ = id;
+      Services.obs.addObserver(obs, aMessage.type + ":Response", false);
 
-        if (data.status === "cancel") {
-          // No Java-side listeners handled our callback.
-          return;
-        }
+      this.sendRequest(aMessage);
+    });
+  },
+};
 
-        aCallback(data.status === "success" ? data.response : null,
-                  data.status === "error"   ? data.response : null);
-      }
+let requestHandler = {
+  _listeners: {},
+
+  addListener: function (aListener, aMessage) {
+    if (aMessage in this._listeners) {
+      throw new Error("Error in addListener: A listener already exists for message " + aMessage);
     }
 
-    aMessage.__guid__ = id;
-    Services.obs.addObserver(obs, aMessage.type + ":Response", false);
-  }
+    if (typeof aListener !== "function") {
+      throw new Error("Error in addListener: Listener must be a function for message " + aMessage);
+    }
 
-  return Services.androidBridge.handleGeckoMessage(aMessage);
-}
+    this._listeners[aMessage] = aListener;
+    Services.obs.addObserver(this, aMessage, false);
+  },
+
+  removeListener: function (aMessage) {
+    if (!(aMessage in this._listeners)) {
+      throw new Error("Error in removeListener: There is no listener for message " + aMessage);
+    }
+
+    delete this._listeners[aMessage];
+    Services.obs.removeObserver(this, aMessage);
+  },
+
+  observe: Task.async(function* (aSubject, aTopic, aData) {
+    let wrapper = JSON.parse(aData);
+    let listener = this._listeners[aTopic];
+
+    try {
+      let response = yield listener(wrapper.data);
+      if (typeof response !== "object" || response === null) {
+        throw new Error("Gecko request listener did not return an object");
+      }
+
+      Messaging.sendRequest({
+        type: "Gecko:Request" + wrapper.id,
+        response: response
+      });
+    } catch (e) {
+      Cu.reportError("Error in Messaging handler for " + aTopic + ": " + e);
+
+      Messaging.sendRequest({
+        type: "Gecko:Request" + wrapper.id,
+        error: {
+          message: e.message || (e && e.toString()),
+          stack: e.stack || Components.stack.formattedStack,
+        }
+      });
+    }
+  })
+};

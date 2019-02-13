@@ -3,26 +3,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Test to see if the cached messages are displayed when the console UI is opened.
+// Test to see if the cached messages are displayed when the console UI is
+// opened.
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-webconsole-error-observer.html";
+"use strict";
 
-function test()
-{
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-webconsole-error-observer.html";
+
+function test() {
   waitForExplicitFinish();
 
   expectUncaughtException();
 
-  addTab(TEST_URI);
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-    testOpenUI(true);
-  }, true);
+  loadTab(TEST_URI).then(testOpenUI);
 }
 
-function testOpenUI(aTestReopen)
-{
-  openConsole(null, function(hud) {
+function testOpenUI(aTestReopen) {
+  openConsole().then((hud) => {
     waitForMessages({
       webconsole: hud,
       messages: [
@@ -48,7 +46,7 @@ function testOpenUI(aTestReopen)
         },
       ],
     }).then(() => {
-      closeConsole(gBrowser.selectedTab, function() {
+      closeConsole(gBrowser.selectedTab).then(() => {
         aTestReopen && info("will reopen the Web Console");
         executeSoon(aTestReopen ? testOpenUI : finishTest);
       });

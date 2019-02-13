@@ -15,8 +15,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Downloads", "resource://gre/modules/Dow
 const {require} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm");
 const {AppProjects} = require("devtools/app-manager/app-projects");
-const APP_CREATOR_LIST = "devtools.webide.templatesURL";
 const {AppManager} = require("devtools/webide/app-manager");
+const {getJSON} = require("devtools/shared/getjson");
+
+const TEMPLATES_URL = "devtools.webide.templatesURL";
 
 let gTemplateList = null;
 
@@ -29,24 +31,16 @@ window.addEventListener("load", function onLoad() {
   window.removeEventListener("load", onLoad);
   let projectNameNode = document.querySelector("#project-name");
   projectNameNode.addEventListener("input", canValidate, true);
-  getJSON();
+  getTemplatesJSON();
 }, true);
 
-function getJSON() {
-  let xhr = new XMLHttpRequest();
-  xhr.overrideMimeType('text/plain');
-  xhr.onload = function() {
-    let list;
-    try {
-      list = JSON.parse(this.responseText);
-      if (!Array.isArray(list)) {
-        throw new Error("JSON response not an array");
-      }
-      if (list.length == 0) {
-        throw new Error("JSON response is an empty array");
-      }
-    } catch(e) {
-      return failAndBail("Invalid response from server");
+function getTemplatesJSON() {
+  getJSON(TEMPLATES_URL).then(list => {
+    if (!Array.isArray(list)) {
+      throw new Error("JSON response not an array");
+    }
+    if (list.length == 0) {
+      throw new Error("JSON response is an empty array");
     }
     gTemplateList = list;
     let templatelistNode = document.querySelector("#templatelist");
@@ -76,13 +70,9 @@ function getJSON() {
       document.querySelector("#project-name").value = testOptions.name;
       doOK();
     }
-  };
-  xhr.onerror = function() {
-    failAndBail("Can't download app templates");
-  };
-  let url = Services.prefs.getCharPref(APP_CREATOR_LIST);
-  xhr.open("get", url);
-  xhr.send();
+  }, (e) => {
+    failAndBail("Can't download app templates: " + e);
+  });
 }
 
 function failAndBail(msg) {
@@ -138,13 +128,15 @@ function doOK() {
   }
 
   // Create subfolder with fs-friendly name of project
-  let subfolder = projectName.replace(/\W/g, '').toLowerCase();
+  let subfolder = projectName.replace(/[\\/:*?"<>|]/g, '').toLowerCase();
+  let win = Services.wm.getMostRecentWindow("devtools:webide");
   folder.append(subfolder);
 
   try {
     folder.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
   } catch(e) {
-    console.error(e);
+    win.UI.reportError("error_folderCreationFailed");
+    window.close();
     return false;
   }
 
@@ -164,11 +156,11 @@ function doOK() {
     target.remove(false);
     AppProjects.addPackaged(folder).then((project) => {
       window.arguments[0].location = project.location;
-      AppManager.validateProject(project).then(() => {
+      AppManager.validateAndUpdateProject(project).then(() => {
         if (project.manifest) {
           project.manifest.name = projectName;
           AppManager.writeManifest(project).then(() => {
-            AppManager.validateProject(project).then(
+            AppManager.validateAndUpdateProject(project).then(
               () => {window.close()}, bail)
           }, bail)
         } else {

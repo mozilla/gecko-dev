@@ -21,13 +21,8 @@ radio {
   -moz-binding: url("chrome://global/skin/globalBindings.xml#radio-with-spacing");
 }
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
-}
-
-.menulist-compact {
-  -moz-binding: url("chrome://global/skin/globalBindings.xml#menulist-compact");
 }
 
 progressmeter[mode="undetermined"] {
@@ -65,6 +60,7 @@ window.dialog {
   list-style-image: url("moz-icon://stock/gtk-dialog-info?size=dialog");
 }
 
+.alert-dialog #info\.icon,
 .alert-icon {
   list-style-image: url("moz-icon://stock/gtk-dialog-warning?size=dialog");
 }
@@ -268,21 +264,24 @@ label[disabled="true"] {
 
 .text-link {
   color: -moz-nativehyperlinktext;
-  border: 1px solid transparent;
   cursor: pointer;
 }
 
 .text-link:hover {
   text-decoration: underline;
 }
-  
-.text-link:focus {
-  border: 1px dotted -moz-DialogText;
+
+.text-link:-moz-focusring {
+  outline: 1px dotted;
 }
 
 notification > button {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+popupnotificationcontent {
+  margin-top: .5em;
 }
 
 /* :::::: autoscroll popup ::::: */

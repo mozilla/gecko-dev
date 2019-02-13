@@ -79,7 +79,8 @@ SkTypeface* ScaledFontMac::GetSkTypeface()
 TemporaryRef<Path>
 ScaledFontMac::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget)
 {
-  if (aTarget->GetType() == BackendType::COREGRAPHICS || aTarget->GetType() == BackendType::COREGRAPHICS_ACCELERATED) {
+  if (aTarget->GetBackendType() == BackendType::COREGRAPHICS ||
+      aTarget->GetBackendType() == BackendType::COREGRAPHICS_ACCELERATED) {
       CGMutablePathRef path = CGPathCreateMutable();
 
       for (unsigned int i = 0; i < aBuffer.mNumGlyphs; i++) {
@@ -93,9 +94,9 @@ ScaledFontMac::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aT
           CGPathAddPath(path, &matrix, glyphPath);
           CGPathRelease(glyphPath);
       }
-      TemporaryRef<Path> ret = new PathCG(path, FillRule::FILL_WINDING);
+      RefPtr<Path> ret = new PathCG(path, FillRule::FILL_WINDING);
       CGPathRelease(path);
-      return ret;
+      return ret.forget();
   }
   return ScaledFontBase::GetPathForGlyphs(aBuffer, aTarget);
 }
@@ -160,7 +161,7 @@ int maxPow2LessThan(int a)
 
 struct writeBuf
 {
-    writeBuf(int size)
+    explicit writeBuf(int size)
     {
         this->data = new unsigned char [size];
         this->offset = 0;

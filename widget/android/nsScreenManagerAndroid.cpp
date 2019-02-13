@@ -20,6 +20,13 @@ nsScreenAndroid::~nsScreenAndroid()
 }
 
 NS_IMETHODIMP
+nsScreenAndroid::GetId(uint32_t *outId)
+{
+    *outId = 1;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
 nsScreenAndroid::GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
 {
     gfxIntSize sz = nsWindow::GetAndroidScreenBounds();
@@ -59,7 +66,7 @@ nsScreenAndroid::GetColorDepth(int32_t *aColorDepth)
 void
 nsScreenAndroid::ApplyMinimumBrightness(uint32_t aBrightness)
 {
-  mozilla::widget::android::GeckoAppShell::SetKeepScreenOn(aBrightness == BRIGHTNESS_FULL);
+    widget::GeckoAppShell::SetKeepScreenOn(aBrightness == BRIGHTNESS_FULL);
 }
 
 NS_IMPL_ISUPPORTS(nsScreenManagerAndroid, nsIScreenManager)
@@ -78,6 +85,13 @@ nsScreenManagerAndroid::GetPrimaryScreen(nsIScreen **outScreen)
 {
     NS_IF_ADDREF(*outScreen = mOneScreen.get());
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScreenManagerAndroid::ScreenForId(uint32_t aId,
+                                    nsIScreen **outScreen)
+{
+    return GetPrimaryScreen(outScreen);
 }
 
 NS_IMETHODIMP

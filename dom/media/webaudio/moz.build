@@ -1,0 +1,123 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files('*'):
+    BUG_COMPONENT = ('Core', 'Web Audio')
+
+DIRS += ['blink']
+
+TEST_DIRS += ['compiledtest']
+
+MOCHITEST_MANIFESTS += [
+    'test/blink/mochitest.ini',
+    'test/mochitest.ini',
+]
+
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+
+EXPORTS += [
+    'AlignedTArray.h',
+    'AudioContext.h',
+    'AudioEventTimeline.h',
+    'AudioNodeEngine.h',
+    'AudioNodeExternalInputStream.h',
+    'AudioNodeStream.h',
+    'AudioParamTimeline.h',
+    'MediaBufferDecoder.h',
+    'ThreeDPoint.h',
+    'WebAudioUtils.h',
+]
+
+EXPORTS.mozilla += [
+    'FFTBlock.h',
+    'MediaStreamAudioDestinationNode.h',
+]
+
+EXPORTS.mozilla.dom += [
+    'AnalyserNode.h',
+    'AudioBuffer.h',
+    'AudioBufferSourceNode.h',
+    'AudioContext.h',
+    'AudioDestinationNode.h',
+    'AudioListener.h',
+    'AudioNode.h',
+    'AudioParam.h',
+    'AudioProcessingEvent.h',
+    'BiquadFilterNode.h',
+    'ChannelMergerNode.h',
+    'ChannelSplitterNode.h',
+    'ConvolverNode.h',
+    'DelayNode.h',
+    'DynamicsCompressorNode.h',
+    'GainNode.h',
+    'MediaElementAudioSourceNode.h',
+    'MediaStreamAudioDestinationNode.h',
+    'MediaStreamAudioSourceNode.h',
+    'OfflineAudioCompletionEvent.h',
+    'OscillatorNode.h',
+    'PannerNode.h',
+    'PeriodicWave.h',
+    'ScriptProcessorNode.h',
+    'StereoPannerNode.h',
+    'WaveShaperNode.h',
+]
+
+UNIFIED_SOURCES += [
+    'AnalyserNode.cpp',
+    'AudioBuffer.cpp',
+    'AudioBufferSourceNode.cpp',
+    'AudioContext.cpp',
+    'AudioDestinationNode.cpp',
+    'AudioListener.cpp',
+    'AudioNode.cpp',
+    'AudioNodeEngine.cpp',
+    'AudioNodeExternalInputStream.cpp',
+    'AudioNodeStream.cpp',
+    'AudioParam.cpp',
+    'AudioProcessingEvent.cpp',
+    'BiquadFilterNode.cpp',
+    'BufferDecoder.cpp',
+    'ChannelMergerNode.cpp',
+    'ChannelSplitterNode.cpp',
+    'ConvolverNode.cpp',
+    'DelayBuffer.cpp',
+    'DelayNode.cpp',
+    'DynamicsCompressorNode.cpp',
+    'FFTBlock.cpp',
+    'GainNode.cpp',
+    'MediaBufferDecoder.cpp',
+    'MediaElementAudioSourceNode.cpp',
+    'MediaStreamAudioDestinationNode.cpp',
+    'MediaStreamAudioSourceNode.cpp',
+    'OfflineAudioCompletionEvent.cpp',
+    'OscillatorNode.cpp',
+    'PannerNode.cpp',
+    'PeriodicWave.cpp',
+    'ScriptProcessorNode.cpp',
+    'StereoPannerNode.cpp',
+    'ThreeDPoint.cpp',
+    'WaveShaperNode.cpp',
+    'WebAudioUtils.cpp',
+]
+
+if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['BUILD_ARM_NEON']:
+    SOURCES += ['AudioNodeEngineNEON.cpp']
+    SOURCES['AudioNodeEngineNEON.cpp'].flags += ['-mfpu=neon']
+    LOCAL_INCLUDES += [
+        '/media/openmax_dl/dl/api/'
+    ]
+
+FAIL_ON_WARNINGS = True
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+LOCAL_INCLUDES += [
+    '..'
+]
+

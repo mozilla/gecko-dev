@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -87,7 +87,7 @@ function task_setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
   for (let i = 0; i < aCount; i++) {
     visits.push({ uri: aURI, visitDate: d1, transition: TRANSITION_TYPED });
   }
-  yield promiseAddVisits(visits);
+  yield PlacesTestUtils.addVisits(visits);
 
   // Make a nsIAutoCompleteController and friends for instrumentation feedback.
   let thing = {
@@ -165,10 +165,10 @@ Services.obs.addObserver(observer, PlacesUtils.TOPIC_FEEDBACK_UPDATED, false);
 /**
  * Make the result object for a given URI that will be passed to ensure_results.
  */
-function makeResult(aURI) {
+function makeResult(aURI, aStyle = "favicon") {
   return {
     uri: aURI,
-    style: "favicon",
+    style: aStyle,
   };
 }
 
@@ -314,11 +314,12 @@ let tests = [
     doAdaptiveDecay();
     yield task_setCountRank(uri1, c1, c1, s1);
   },
-  // Test that bookmarks or tags are hidden if the preferences are set right.
+  // Test that bookmarks are hidden if the preferences are set right.
   function() {
     print("Test 12 same count, diff rank, same term; no search; history only");
-    Services.prefs.setIntPref("browser.urlbar.matchBehavior",
-                              Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.bookmark", false);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.openpage", false);
     observer.results = [
       makeResult(uri1),
       makeResult(uri2),
@@ -328,12 +329,14 @@ let tests = [
     yield task_setCountRank(uri1, c1, c1, s2, "bookmark");
     yield task_setCountRank(uri2, c1, c2, s2);
   },
+  // Test that tags are shown if the preferences are set right.
   function() {
     print("Test 13 same count, diff rank, same term; no search; history only with tag");
-    Services.prefs.setIntPref("browser.urlbar.matchBehavior",
-                              Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.bookmark", false);
+    Services.prefs.setBoolPref("browser.urlbar.suggest.openpage", false);
     observer.results = [
-      makeResult(uri1),
+      makeResult(uri1, "tag"),
       makeResult(uri2),
     ];
     observer.search = s0;
@@ -365,7 +368,12 @@ add_task(function test_adaptive()
     PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.tagsFolderId);
     observer.runCount = -1;
 
-    yield promiseClearHistory();
+    let types = ["history", "bookmark", "openpage"];
+    for (let type of types) {
+      Services.prefs.clearUserPref("browser.urlbar.suggest." + type);
+    }
+
+    yield PlacesTestUtils.clearHistory();
 
     deferEnsureResults = Promise.defer();
     yield test();

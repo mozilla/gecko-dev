@@ -14,9 +14,9 @@ using namespace std;
 #include "mozilla/Scoped.h"
 #include "mozilla/SyncRunnable.h"
 #include <MediaConduitInterface.h>
+#include "GmpVideoCodec.h"
 #include "nsIEventTarget.h"
 #include "FakeMediaStreamsImpl.h"
-#include "GmpVideoCodec.h"
 #include "nsThreadUtils.h"
 #include "runnable_utils.h"
 
@@ -301,12 +301,15 @@ void AudioSendAndReceive::GenerateAndReadSamples()
    FILE* inFile = fopen( iFile.c_str(), "wb+");
    if(!inFile) {
      cerr << "Input File Creation Failed " << endl;
+     free(inbuf);
      return;
    }
 
    FILE* outFile = fopen( oFile.c_str(), "wb+");
    if(!outFile) {
      cerr << "Output File Creation Failed " << endl;
+     free(inbuf);
+     fclose(inFile);
      return;
    }
 
@@ -323,6 +326,8 @@ void AudioSendAndReceive::GenerateAndReadSamples()
    {
     if(!memcpy(audioInput.get(), inbuf, sampleLengthInBytes))
     {
+      free(inbuf);
+      fclose(outFile);
       return;
     }
 
@@ -350,6 +355,7 @@ void AudioSendAndReceive::GenerateAndReadSamples()
    }while(numSamplesReadFromInput < SAMPLES);
 
    FinishWaveHeader(outFile);
+   free(inbuf);
    fclose(outFile);
 }
 
@@ -526,18 +532,14 @@ class TransportConduitTest : public ::testing::Test
     //get pointer to AudioSessionConduit
     int err=0;
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::AudioSessionConduit::Create,
-                                                nullptr,
-                                                &mAudioSession));
+                                            WrapRunnableNMRet(&mAudioSession,
+                                                &mozilla::AudioSessionConduit::Create));
     if( !mAudioSession )
       ASSERT_NE(mAudioSession, (void*)nullptr);
 
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::AudioSessionConduit::Create,
-                                                nullptr,
-                                                &mAudioSession2));
+                                            WrapRunnableNMRet(&mAudioSession2,
+                                                &mozilla::AudioSessionConduit::Create));
     if( !mAudioSession2 )
       ASSERT_NE(mAudioSession2, (void*)nullptr);
 
@@ -547,9 +549,9 @@ class TransportConduitTest : public ::testing::Test
     mAudioTransport = xport;
 
     // attach the transport to audio-conduit
-    err = mAudioSession->AttachTransport(mAudioTransport);
+    err = mAudioSession->SetTransmitterTransport(mAudioTransport);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
-    err = mAudioSession2->AttachTransport(mAudioTransport);
+    err = mAudioSession2->SetReceiverTransport(mAudioTransport);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
 
     //configure send and recv codecs on the audio-conduit
@@ -592,19 +594,15 @@ class TransportConduitTest : public ::testing::Test
     int err = 0;
     //get pointer to VideoSessionConduit
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::VideoSessionConduit::Create,
-                                                nullptr,
-                                                &mVideoSession));
+                                            WrapRunnableNMRet(&mVideoSession,
+                                                &mozilla::VideoSessionConduit::Create));
     if( !mVideoSession )
       ASSERT_NE(mVideoSession, (void*)nullptr);
 
    // This session is for other one
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::VideoSessionConduit::Create,
-                                                nullptr,
-                                                &mVideoSession2));
+                                            WrapRunnableNMRet(&mVideoSession2,
+                                                &mozilla::VideoSessionConduit::Create));
     if( !mVideoSession2 )
       ASSERT_NE(mVideoSession2,(void*)nullptr);
 
@@ -623,14 +621,14 @@ class TransportConduitTest : public ::testing::Test
     // attach the transport and renderer to video-conduit
     err = mVideoSession2->AttachRenderer(mVideoRenderer);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
-    err = mVideoSession->AttachTransport(mVideoTransport);
+    err = mVideoSession->SetTransmitterTransport(mVideoTransport);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
-    err = mVideoSession2->AttachTransport(mVideoTransport);
+    err = mVideoSession2->SetReceiverTransport(mVideoTransport);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
 
     //configure send and recv codecs on theconduit
-    mozilla::VideoCodecConfig cinst1(120, "VP8", 0);
-    mozilla::VideoCodecConfig cinst2(124, "I420", 0);
+    mozilla::VideoCodecConfig cinst1(120, "VP8");
+    mozilla::VideoCodecConfig cinst2(124, "I420");
 
 
     std::vector<mozilla::VideoCodecConfig* > rcvCodecList;
@@ -692,10 +690,8 @@ class TransportConduitTest : public ::testing::Test
     mozilla::RefPtr<mozilla::VideoSessionConduit> videoSession;
     //get pointer to VideoSessionConduit
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::VideoSessionConduit::Create,
-                                                nullptr,
-                                                &videoSession));
+                                            WrapRunnableNMRet(&videoSession,
+                                                &mozilla::VideoSessionConduit::Create));
     if( !videoSession )
       ASSERT_NE(videoSession, (void*)nullptr);
 
@@ -711,8 +707,8 @@ class TransportConduitTest : public ::testing::Test
     cerr << "    1. Same Codec (VP8) Repeated Twice " << endl;
     cerr << "   *************************************************" << endl;
 
-    mozilla::VideoCodecConfig cinst1(120, "VP8", 0);
-    mozilla::VideoCodecConfig cinst2(120, "VP8", 0);
+    mozilla::VideoCodecConfig cinst1(120, "VP8");
+    mozilla::VideoCodecConfig cinst2(120, "VP8");
     rcvCodecList.push_back(&cinst1);
     rcvCodecList.push_back(&cinst2);
     err = videoSession->ConfigureRecvMediaCodecs(rcvCodecList);
@@ -728,8 +724,8 @@ class TransportConduitTest : public ::testing::Test
     cerr << "   Setting payload 1 with name: I4201234tttttthhhyyyy89087987y76t567r7756765rr6u6676" << endl;
     cerr << "   Setting payload 2 with name of zero length" << endl;
 
-    mozilla::VideoCodecConfig cinst3(124, "I4201234tttttthhhyyyy89087987y76t567r7756765rr6u6676", 0);
-    mozilla::VideoCodecConfig cinst4(124, "", 0);
+    mozilla::VideoCodecConfig cinst3(124, "I4201234tttttthhhyyyy89087987y76t567r7756765rr6u6676");
+    mozilla::VideoCodecConfig cinst4(124, "");
 
     rcvCodecList.push_back(&cinst3);
     rcvCodecList.push_back(&cinst4);
@@ -783,7 +779,7 @@ class TransportConduitTest : public ::testing::Test
 
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
                                             WrapRunnable(
-                                                videoSession.forget().drop(),
+                                                videoSession.forget().take(),
                                                 &mozilla::VideoSessionConduit::Release));
   }
 
@@ -804,15 +800,13 @@ class TransportConduitTest : public ::testing::Test
 
     // Get pointer to VideoSessionConduit.
     mozilla::SyncRunnable::DispatchToThread(gMainThread,
-                                            WrapRunnableNMRet(
-                                                &mozilla::VideoSessionConduit::Create,
-                                                nullptr,
-                                                &mVideoSession));
+                                            WrapRunnableNMRet(&mVideoSession,
+                                                &mozilla::VideoSessionConduit::Create));
     if( !mVideoSession )
       ASSERT_NE(mVideoSession, (void*)nullptr);
 
     // Configure send codecs on the conduit.
-    mozilla::VideoCodecConfig cinst1(120, "VP8", 0, max_fs);
+    mozilla::VideoCodecConfig cinst1(120, "VP8", max_fs);
 
     err = mVideoSession->ConfigureSendMediaCodec(&cinst1);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
@@ -947,7 +941,7 @@ class TransportConduitTest : public ::testing::Test
   void SetGmpCodecs() {
     mExternalEncoder = mozilla::GmpVideoCodec::CreateEncoder();
     mExternalDecoder = mozilla::GmpVideoCodec::CreateDecoder();
-    mozilla::VideoCodecConfig config(124, "H264", 0);
+    mozilla::VideoCodecConfig config(124, "H264");
     mVideoSession->SetExternalSendCodec(&config, mExternalEncoder);
     mVideoSession2->SetExternalRecvCodec(&config, mExternalDecoder);
   }
@@ -1046,7 +1040,7 @@ int main(int argc, char **argv)
 
   int result;
   gGtestThread->Dispatch(
-    mozilla::WrapRunnableNMRet(gtest_main, argc, argv, &result), NS_DISPATCH_NORMAL);
+    mozilla::WrapRunnableNMRet(&result, gtest_main, argc, argv), NS_DISPATCH_NORMAL);
 
   // Here we handle the event queue for dispatches to the main thread
   // When the GTest thread is complete it will send one more dispatch

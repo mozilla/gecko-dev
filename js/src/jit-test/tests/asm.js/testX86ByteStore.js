@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 
 var body =
@@ -20,7 +21,7 @@ var body =
     }\
     return g;';
 
-var buf=new ArrayBuffer(4096);
+var buf=new ArrayBuffer(BUF_MIN);
 var g = asmLink(asmCompile('global','foreign','buffer',body), this, null, buf);
 assertEq(g(1,2,3), 46);
 assertEq(new Int8Array(buf)[1], 7);
@@ -45,7 +46,7 @@ var body =
     }\
     return g;';
 
-var buf=new ArrayBuffer(4096);
+var buf=new ArrayBuffer(BUF_MIN);
 var g = asmLink(asmCompile('global','foreign','buffer',body), this, null, buf);
 assertEq(g(1,2,3), 46);
 assertEq(new Int8Array(buf)[1], 9);
@@ -71,7 +72,7 @@ var body =
     }\
     return g;';
 
-var buf=new ArrayBuffer(4096);
+var buf=new ArrayBuffer(BUF_MIN);
 var g = asmLink(asmCompile('global','foreign','buffer',body), this, null, buf);
 assertEq(g(1,2,3), 63);
 assertEq(new Int8Array(buf)[1], 17);

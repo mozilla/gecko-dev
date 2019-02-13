@@ -3,7 +3,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+  "resource://testing-common/PlacesTestUtils.jsm");
 
 function run_test() {
   initApp();
@@ -51,8 +53,8 @@ function testAddProviders(manifests, next) {
 
 function testRemoveProviders(manifests, next) {
   do_check_true(SocialService.enabled);
-  yield SocialService.removeProvider(manifests[0].origin, next);
-  yield SocialService.removeProvider(manifests[1].origin, next);
+  yield SocialService.disableProvider(manifests[0].origin, next);
+  yield SocialService.disableProvider(manifests[1].origin, next);
   do_check_false(SocialService.enabled);
 }
 
@@ -106,7 +108,7 @@ function testAddRemoveProvider(manifests, next) {
   do_check_neq(providersAfter.indexOf(newProvider), -1);
 
   // Now remove the provider
-  yield SocialService.removeProvider(newProvider.origin, next);
+  yield SocialService.disableProvider(newProvider.origin, next);
   providersAfter = yield SocialService.getProviderList(next);
   do_check_eq(providersAfter.length, originalProviders.length);
   do_check_eq(providersAfter.indexOf(newProvider), -1);
@@ -155,12 +157,12 @@ function testOrderedProviders(manifests, next) {
     });
   }
 
-  promiseAddVisits(visits).then(next);
+  PlacesTestUtils.addVisits(visits).then(next);
   yield;
   let orderedProviders = yield SocialService.getOrderedProviderList(next);
   do_check_eq(orderedProviders[0], providers[1]);
   do_check_eq(orderedProviders[1], providers[0]);
   do_check_true(orderedProviders[0].frecency > orderedProviders[1].frecency);
-  promiseClearHistory().then(next);
+  PlacesTestUtils.clearHistory().then(next);
   yield;
 }

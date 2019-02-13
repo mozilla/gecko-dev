@@ -20,7 +20,7 @@
 #include "nsISupportsUtils.h"
 #include "prio.h"
 #include "plstr.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "stdlib.h"
 #include "nsWildCard.h"
 #include "nsZipArchive.h"
@@ -171,7 +171,8 @@ nsZipHandle::nsZipHandle()
 NS_IMPL_ADDREF(nsZipHandle)
 NS_IMPL_RELEASE(nsZipHandle)
 
-nsresult nsZipHandle::Init(nsIFile *file, nsZipHandle **ret, PRFileDesc **aFd)
+nsresult nsZipHandle::Init(nsIFile *file, bool aMustCacheFd, nsZipHandle **ret,
+                           PRFileDesc **aFd)
 {
   mozilla::AutoFDClose fd;
   int32_t flags = PR_RDONLY;
@@ -208,6 +209,10 @@ nsresult nsZipHandle::Init(nsIFile *file, nsZipHandle **ret, PRFileDesc **aFd)
   if (aFd) {
     *aFd = fd.forget();
   }
+#else
+  if (aMustCacheFd) {
+    handle->mNSPRFileDesc = fd.forget();
+  }
 #endif
   handle->mMap = map;
   handle->mFile.Init(file);
@@ -239,9 +244,30 @@ nsresult nsZipHandle::Init(nsZipArchive *zip, const char *entry,
   return NS_OK;
 }
 
+nsresult nsZipHandle::Init(const uint8_t* aData, uint32_t aLen,
+                           nsZipHandle **aRet)
+{
+  nsRefPtr<nsZipHandle> handle = new nsZipHandle();
+
+  handle->mFileData = aData;
+  handle->mLen = aLen;
+  handle.forget(aRet);
+  return NS_OK;
+}
+
 int64_t nsZipHandle::SizeOfMapping()
 {
     return mLen;
+}
+
+nsresult nsZipHandle::GetNSPRFileDesc(PRFileDesc** aNSPRFileDesc)
+{
+  if (!aNSPRFileDesc) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
+  *aNSPRFileDesc = mNSPRFileDesc;
+  return NS_OK;
 }
 
 nsZipHandle::~nsZipHandle()
@@ -279,14 +305,15 @@ nsresult nsZipArchive::OpenArchive(nsZipHandle *aZipHandle, PRFileDesc *aFd)
   return rv;
 }
 
-nsresult nsZipArchive::OpenArchive(nsIFile *aFile)
+nsresult nsZipArchive::OpenArchive(nsIFile *aFile, bool aMustCacheFd)
 {
   nsRefPtr<nsZipHandle> handle;
 #if defined(XP_WIN)
   mozilla::AutoFDClose fd;
-  nsresult rv = nsZipHandle::Init(aFile, getter_AddRefs(handle), &fd.rwget());
+  nsresult rv = nsZipHandle::Init(aFile, aMustCacheFd, getter_AddRefs(handle),
+                                  &fd.rwget());
 #else
-  nsresult rv = nsZipHandle::Init(aFile, getter_AddRefs(handle));
+  nsresult rv = nsZipHandle::Init(aFile, aMustCacheFd, getter_AddRefs(handle));
 #endif
   if (NS_FAILED(rv))
     return rv;
@@ -617,8 +644,13 @@ MOZ_WIN_MEM_TRY_BEGIN
   if (!centralOffset)
     return NS_ERROR_FILE_CORRUPTED;
 
-  //-- Read the central directory headers
   buf = startp + centralOffset;
+
+  // avoid overflow of startp + centralOffset.
+  if (buf < startp)
+    return NS_ERROR_FILE_CORRUPTED;
+
+  //-- Read the central directory headers
   uint32_t sig = 0;
   while (buf + int32_t(sizeof(uint32_t)) <= endp &&
          (sig = xtolong(buf)) == CENTRALSIG) {
@@ -632,17 +664,19 @@ MOZ_WIN_MEM_TRY_BEGIN
     uint16_t namelen = xtoint(central->filename_len);
     uint16_t extralen = xtoint(central->extrafield_len);
     uint16_t commentlen = xtoint(central->commentfield_len);
-
-    // Point to the next item at the top of loop
-    buf += ZIPCENTRAL_SIZE + namelen + extralen + commentlen;
+    uint32_t diff = ZIPCENTRAL_SIZE + namelen + extralen + commentlen;
 
     // Sanity check variable sizes and refuse to deal with
     // anything too big: it's likely a corrupt archive.
     if (namelen < 1 ||
         namelen > kMaxNameLength ||
-        buf >= endp) {
+        buf >= buf + diff || // No overflow
+        buf >= endp - diff) {
       return NS_ERROR_FILE_CORRUPTED;
     }
+
+    // Point to the next item at the top of loop
+    buf += diff;
 
     nsZipItem* item = CreateZipItem();
     if (!item)
@@ -774,7 +808,7 @@ MOZ_WIN_MEM_TRY_BEGIN
   uint32_t len = mFd->mLen;
   const uint8_t* data = mFd->mFileData;
   uint32_t offset = aItem->LocalOffset();
-  if (offset + ZIPLOCAL_SIZE > len)
+  if (len < ZIPLOCAL_SIZE || offset > len - ZIPLOCAL_SIZE)
     return 0;
 
   // -- check signature before using the structure, in case the zip file is corrupt
@@ -803,7 +837,9 @@ MOZ_WIN_MEM_TRY_BEGIN
   uint32_t offset = GetDataOffset(aItem);
 
   // -- check if there is enough source data in the file
-  if (!offset || offset + aItem->Size() > mFd->mLen)
+  if (!offset ||
+      mFd->mLen < aItem->Size() ||
+      offset > mFd->mLen - aItem->Size())
     return nullptr;
 
   return mFd->mFileData + offset;
@@ -1141,7 +1177,7 @@ nsZipItemPtr_base::nsZipItemPtr_base(nsZipArchive *aZip, const char * aEntryName
   uint32_t size = 0;
   if (item->Compression() == DEFLATED) {
     size = item->RealSize();
-    mAutoBuf = new ((fallible_t())) uint8_t[size];
+    mAutoBuf = new (fallible) uint8_t[size];
     if (!mAutoBuf) {
       return;
     }

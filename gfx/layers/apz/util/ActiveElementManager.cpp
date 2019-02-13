@@ -4,13 +4,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ActiveElementManager.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Services.h"
-#include "inIDOMUtils.h"
 #include "base/message_loop.h"
 #include "base/task.h"
 #include "mozilla/dom/Element.h"
+#include "nsIDocument.h"
+#include "nsStyleSet.h"
 
 #define AEM_LOG(...)
 // #define AEM_LOG(...) printf_stderr("AEM: " __VA_ARGS__)
@@ -22,10 +23,10 @@ static int32_t sActivationDelayMs = 100;
 static bool sActivationDelayMsSet = false;
 
 ActiveElementManager::ActiveElementManager()
-  : mDomUtils(services::GetInDOMUtils()),
-    mCanBePan(false),
+  : mCanBePan(false),
     mCanBePanSet(false),
-    mSetActiveTask(nullptr)
+    mSetActiveTask(nullptr),
+    mActiveElementUsesStyle(false)
 {
   if (!sActivationDelayMsSet) {
     Preferences::AddIntVarCache(&sActivationDelayMs,
@@ -108,9 +109,9 @@ ActiveElementManager::HandlePanStart()
 }
 
 void
-ActiveElementManager::HandleTouchEnd(bool aWasClick)
+ActiveElementManager::HandleTouchEndEvent(bool aWasClick)
 {
-  AEM_LOG("Touch end, aWasClick: %d\n", aWasClick);
+  AEM_LOG("Touch end event, aWasClick: %d\n", aWasClick);
 
   // If the touch was a click, make mTarget :active right away.
   // nsEventStateManager will reset the active element when processing
@@ -118,18 +119,68 @@ ActiveElementManager::HandleTouchEnd(bool aWasClick)
   CancelTask();
   if (aWasClick) {
     SetActive(mTarget);
+  } else {
+    // We might reach here if mCanBePan was false on touch-start and
+    // so we set the element active right away. Now it turns out the
+    // action was not a click so we need to reset the active element.
+    ResetActive();
   }
 
   ResetTouchBlockState();
 }
 
 void
+ActiveElementManager::HandleTouchEnd()
+{
+  AEM_LOG("Touch end, clearing pan state\n");
+  mCanBePanSet = false;
+}
+
+bool
+ActiveElementManager::ActiveElementUsesStyle() const
+{
+  return mActiveElementUsesStyle;
+}
+
+static nsPresContext*
+GetPresContextFor(nsIContent* aContent)
+{
+  if (!aContent) {
+    return nullptr;
+  }
+  nsIPresShell* shell = aContent->OwnerDoc()->GetShell();
+  if (!shell) {
+    return nullptr;
+  }
+  return shell->GetPresContext();
+}
+
+static bool
+ElementHasActiveStyle(dom::Element* aElement)
+{
+  nsPresContext* pc = GetPresContextFor(aElement);
+  if (!pc) {
+    return false;
+  }
+  nsStyleSet* styleSet = pc->StyleSet();
+  for (dom::Element* e = aElement; e; e = e->GetParentElement()) {
+    if (styleSet->HasStateDependentStyle(e, NS_EVENT_STATE_ACTIVE)) {
+      AEM_LOG("Element %p's style is dependent on the active state\n", e);
+      return true;
+    }
+  }
+  AEM_LOG("Element %p doesn't use active styles\n", aElement);
+  return false;
+}
+
+void
 ActiveElementManager::SetActive(dom::Element* aTarget)
 {
   AEM_LOG("Setting active %p\n", aTarget);
-  if (mDomUtils) {
-    nsCOMPtr<nsIDOMElement> target = do_QueryInterface(aTarget);
-    mDomUtils->SetContentState(target, NS_EVENT_STATE_ACTIVE.GetInternalValue());
+
+  if (nsPresContext* pc = GetPresContextFor(aTarget)) {
+    pc->EventStateManager()->SetContentState(aTarget, NS_EVENT_STATE_ACTIVE);
+    mActiveElementUsesStyle = ElementHasActiveStyle(aTarget);
   }
 }
 
@@ -142,7 +193,7 @@ ActiveElementManager::ResetActive()
   if (mTarget) {
     dom::Element* root = mTarget->OwnerDoc()->GetDocumentElement();
     if (root) {
-      AEM_LOG("Found root %p, making active\n", root.get());
+      AEM_LOG("Found root %p, making active\n", root);
       SetActive(root);
     }
   }

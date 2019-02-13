@@ -12,6 +12,8 @@ const nsIAccessibleTextChangeEvent =
   Components.interfaces.nsIAccessibleTextChangeEvent;
 const nsIAccessibleVirtualCursorChangeEvent =
   Components.interfaces.nsIAccessibleVirtualCursorChangeEvent;
+const nsIAccessibleObjectAttributeChangedEvent =
+  Components.interfaces.nsIAccessibleObjectAttributeChangedEvent;
 
 const nsIAccessibleStates = Components.interfaces.nsIAccessibleStates;
 const nsIAccessibleRole = Components.interfaces.nsIAccessibleRole;
@@ -32,7 +34,6 @@ const nsIAccessibleEditableText = Components.interfaces.nsIAccessibleEditableTex
 const nsIAccessibleHyperLink = Components.interfaces.nsIAccessibleHyperLink;
 const nsIAccessibleHyperText = Components.interfaces.nsIAccessibleHyperText;
 
-const nsIAccessibleCursorable = Components.interfaces.nsIAccessibleCursorable;
 const nsIAccessibleImage = Components.interfaces.nsIAccessibleImage;
 const nsIAccessiblePivot = Components.interfaces.nsIAccessiblePivot;
 const nsIAccessibleSelectable = Components.interfaces.nsIAccessibleSelectable;
@@ -171,7 +172,7 @@ function getNode(aAccOrNodeOrID, aDocument)
   if (aAccOrNodeOrID instanceof nsIAccessible)
     return aAccOrNodeOrID.DOMNode;
 
-  node = (aDocument || document).getElementById(aAccOrNodeOrID);
+  var node = (aDocument || document).getElementById(aAccOrNodeOrID);
   if (!node) {
     ok(false, "Can't get DOM element for " + aAccOrNodeOrID);
     return null;
@@ -212,7 +213,7 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj, aDoNotFailIf)
   var elm = null;
 
   if (aAccOrElmOrID instanceof nsIAccessible) {
-    elm = aAccOrElmOrID.DOMNode;
+    try { elm = aAccOrElmOrID.DOMNode; } catch(e) { }
 
   } else if (aAccOrElmOrID instanceof nsIDOMNode) {
     elm = aAccOrElmOrID;
@@ -237,7 +238,7 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj, aDoNotFailIf)
 
     if (!acc) {
       if (!(aDoNotFailIf & DONOTFAIL_IF_NO_ACC))
-        ok(false, "Can't get accessible for " + aAccOrElmOrID);
+        ok(false, "Can't get accessible for " + prettyName(aAccOrElmOrID));
 
       return null;
     }
@@ -369,7 +370,8 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree, aFlags)
 
   // Test accessible properties.
   for (var prop in accTree) {
-    var msg = "Wrong value of property '" + prop + "' for " + prettyName(acc) + ".";
+    var msg = "Wrong value of property '" + prop + "' for " +
+               prettyName(acc) + ".";
 
     switch (prop) {
     case "actions": {
@@ -423,9 +425,9 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree, aFlags)
       for (var offset in accTree[prop]) {
         if (prevOffset !=- 1) {
           var attrs = accTree[prop][prevOffset];
-          testTextAttrs(acc, prevOffset, attrs, { }, prevOffset, offset, true);
+          testTextAttrs(acc, prevOffset, attrs, { }, prevOffset, +offset, true);
         }
-        prevOffset = offset;
+        prevOffset = +offset;
       }
 
       if (prevOffset != -1) {
@@ -450,10 +452,29 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree, aFlags)
     var children = acc.children;
     var childCount = children.length;
 
-    is(childCount, accTree.children.length,
-       "Different amount of expected children of " + prettyName(acc) + ".");
 
-    if (accTree.children.length == childCount) {
+    if (accTree.children.length != childCount) {
+      for (var i = 0; i < Math.max(accTree.children.length, childCount); i++) {
+        var accChild;
+        try {
+          accChild = children.queryElementAt(i, nsIAccessible);
+          if (!accTree.children[i]) {
+            ok(false, prettyName(acc) + " has an extra child at index " + i +
+              " : " + prettyName(accChild));
+          }
+          if (accChild.role !== accTree.children[i].role) {
+            ok(false, prettyName(accTree) + " and " + prettyName(acc) +
+              " have different children at index " + i + " : " +
+              prettyName(accTree.children[i]) + ", " + prettyName(accChild));
+          }
+          info("Matching " + prettyName(accTree) + " and " + prettyName(acc) +
+               " child at index " + i + " : " + prettyName(accChild));
+        } catch (e) {
+          ok(false, prettyName(accTree) + " has an extra child at index " + i +
+             " : " + prettyName(accTree.children[i]));
+        }
+      }
+    } else {
       if (aFlags & kSkipTreeFullCheck) {
         for (var i = 0; i < childCount; i++) {
           var child = children.queryElementAt(i, nsIAccessible);
@@ -536,7 +557,8 @@ function testDefunctAccessible(aAcc, aNodeOrId)
     ok(!isAccessible(aNodeOrId),
        "Accessible for " + aNodeOrId + " wasn't properly shut down!");
 
-  var msg = " doesn't fail for shut down accessible " + prettyName(aNodeOrId) + "!";
+  var msg = " doesn't fail for shut down accessible " +
+             prettyName(aNodeOrId) + "!";
 
   // firstChild
   var success = false;
@@ -699,8 +721,9 @@ function prettyName(aIdentifier)
 
   if (aIdentifier instanceof nsIAccessible) {
     var acc = getAccessible(aIdentifier);
-    var msg = "[" + getNodePrettyName(acc.DOMNode);
+    var msg = "[";
     try {
+      msg += getNodePrettyName(acc.DOMNode);
       msg += ", role: " + roleToString(acc.role);
       if (acc.name)
         msg += ", name: '" + shortenString(acc.name) + "'";
@@ -717,6 +740,10 @@ function prettyName(aIdentifier)
 
   if (aIdentifier instanceof nsIDOMNode)
     return "[ " + getNodePrettyName(aIdentifier) + " ]";
+
+  if (aIdentifier && typeof aIdentifier === "object" ) {
+    return JSON.stringify(aIdentifier);
+  }
 
   return " '" + aIdentifier + "' ";
 }

@@ -54,7 +54,10 @@ function test() {
       let day = data.days.getDay(now);
 
       // Will need to be changed if Google isn't the default search engine.
-      let field = "google.contextmenu";
+      // Note: geoSpecificDefaults are disabled for mochitests, so this is the
+      // non-US en-US default.
+      let defaultProviderID = "google";
+      let field = defaultProviderID + ".contextmenu";
       ok(day.has(field), "Have search recorded for context menu.");
 
       // If any other mochitests perform a context menu search, this will fail.
@@ -65,4 +68,3 @@ function test() {
     });
   });
 }
-

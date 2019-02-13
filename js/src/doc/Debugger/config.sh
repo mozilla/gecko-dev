@@ -11,6 +11,7 @@ markdown Conventions.md Debugger-API/Conventions
   label 'dbg code'      '#debuggee-code'        "Debugger API: General Conventions: Debuggee Code"
   label 'cv'            '#completion-values'    "Debugger API: General Conventions: Completion Values"
   label 'rv'            '#resumption-values'    "Debugger API: General Conventions: Resumption Values"
+  label 'timestamps'    '#timestamps'           "Debugger API: General Conventions: Timestamps"
   label 'wouldrun'      '#the-debugger.debuggeewouldrun-exception' "Debugger API: DebuggeeWouldRun"
 
 markdown Debugger.md Debugger-API/Debugger
@@ -29,6 +30,7 @@ markdown Debugger.Frame.md Debugger-API/Debugger.Frame
 
 markdown Debugger.Object.md Debugger-API/Debugger.Object
   label 'object'                                "Debugger.Object"
+  label 'allocation-site' '#allocationsite'     "Debugger.Object: allocationSite"
 
 markdown Debugger.Script.md Debugger-API/Debugger.Script
   label 'script'                                "Debugger.Script"
@@ -36,12 +38,31 @@ markdown Debugger.Script.md Debugger-API/Debugger.Script
 markdown Debugger.Source.md Debugger-API/Debugger.Source
   label 'source'                                "Debugger.Source"
 
+markdown Debugger.Memory.md Debugger-API/Debugger.Memory
+  label 'memory'                                                   "Debugger.Memory"
+  label 'tracking-allocs'            '#trackingallocationsites'    "Debugger.Memory: trackingAllocationSites"
+  label 'drain-alloc-log'            '#drain-alloc-log'            "Debugger.Memory: drainAllocationsLog"
+  label 'max-alloc-log'              '#max-alloc-log'              "Debugger.Memory: maxAllocationsLogLength"
+  label 'alloc-sampling-probability' '#alloc-sampling-probability' "Debugger.Memory: allocationSamplingProbability"
+  label 'take-census'                '#take-census'                "Debugger.Memory: takeCensus"
+
+markdown Tutorial-Debugger-Statement.md Debugger-API/Tutorial-Debugger-Statement
+  label 'tut debugger'                          "Tutorial: the debugger; statement"
+
+markdown Tutorial-Alloc-Log-Tree.md Debugger-API/Tutorial-Allocation-Log-Tree
+  label 'tut alloc log'                         "Tutorial: the allocation log"
+
 # Images:
 RBASE=https://mdn.mozillademos.org/files
 resource 'img-shadows'            shadows.svg                        $RBASE/7225/shadows.svg
 resource 'img-chrome-pref'        enable-chrome-devtools.png         $RBASE/7233/enable-chrome-devtools.png
 resource 'img-scratchpad-browser' scratchpad-browser-environment.png $RBASE/7229/scratchpad-browser-environment.png
 resource 'img-example-alert'      debugger-alert.png                 $RBASE/7231/debugger-alert.png
+resource 'img-alloc-plot'         alloc-plot-console.png             $RBASE/8461/alloc-plot-console.png
 
 # External links:
 absolute-label 'protocol' https://wiki.mozilla.org/Remote_Debugging_Protocol "Remote Debugging Protocol"
+absolute-label 'saved-frame' https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/SavedFrame "SavedFrame"
+absolute-label 'bernoulli-trial' https://en.wikipedia.org/wiki/Bernoulli_trial "Bernoulli Trial"
+absolute-label 'ssa-form' https://en.wikipedia.org/wiki/Static_single_assignment_form "SSA form"
+absolute-label 'promise-debugging' https://mxr.mozilla.org/mozilla-central/source/dom/webidl/PromiseDebugging.webidl?rev=331d71cabe1e "PromiseDebugging.webidl"

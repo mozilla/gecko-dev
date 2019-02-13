@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; js-indent-level: 2; -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,27 +27,24 @@
  *     { id, error }
  */
 
+importScripts("resource://gre/modules/devtools/shared/worker-helper.js");
 importScripts("resource://gre/modules/devtools/acorn/acorn.js");
 importScripts("resource://gre/modules/devtools/source-map.js");
 importScripts("resource://gre/modules/devtools/pretty-fast.js");
 
-self.onmessage = (event) => {
-  const { data: { id, url, indent, source } } = event;
+workerHelper.createTask(self, "pretty-print", ({ url, indent, source }) => {
   try {
     const prettified = prettyFast(source, {
       url: url,
       indent: " ".repeat(indent)
     });
 
-    self.postMessage({
-      id: id,
+    return {
       code: prettified.code,
       mappings: prettified.map._mappings
-    });
-  } catch (e) {
-    self.postMessage({
-      id: id,
-      error: e.message + "\n" + e.stack
-    });
+    };
   }
-};
+  catch(e) {
+    return new Error(e.message + "\n" + e.stack);
+  }
+});

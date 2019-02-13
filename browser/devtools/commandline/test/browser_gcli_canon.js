@@ -15,44 +15,29 @@
  */
 
 'use strict';
-// <INJECTED SOURCE:START>
 
 // THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+// PLEASE TALK TO SOMEONE IN DEVELOPER TOOLS BEFORE EDITING IT
 
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testCanon.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_canon.js");
 }
-
-// <INJECTED SOURCE:END>
 
 // var assert = require('../testharness/assert');
 // var helpers = require('./helpers');
-var Canon = require('gcli/commands/commands').Canon;
+var Commands = require('gcli/commands/commands').Commands;
 
 var startCount;
 var events;
 
-var canonChange = function(ev) {
+var commandsChange = function(ev) {
   events++;
 };
 
 exports.setup = function(options) {
-  startCount = options.requisition.canon.getCommands().length;
+  startCount = options.requisition.system.commands.getAll().length;
   events = 0;
 };
 
@@ -62,22 +47,22 @@ exports.shutdown = function(options) {
 };
 
 exports.testAddRemove1 = function(options) {
-  var canon = options.requisition.canon;
+  var commands = options.requisition.system.commands;
 
   return helpers.audit(options, [
     {
       name: 'testadd add',
       setup: function() {
-        canon.onCanonChange.add(canonChange);
+        commands.onCommandsChange.add(commandsChange);
 
-        canon.addCommand({
+        commands.add({
           name: 'testadd',
           exec: function() {
             return 1;
           }
         });
 
-        assert.is(canon.getCommands().length,
+        assert.is(commands.getAll().length,
                   startCount + 1,
                   'add command success');
         assert.is(events, 1, 'add event');
@@ -102,14 +87,14 @@ exports.testAddRemove1 = function(options) {
     {
       name: 'testadd alter',
       setup: function() {
-        canon.addCommand({
+        commands.add({
           name: 'testadd',
           exec: function() {
             return 2;
           }
         });
 
-        assert.is(canon.getCommands().length,
+        assert.is(commands.getAll().length,
                   startCount + 1,
                   'read command success');
         assert.is(events, 2, 'read event');
@@ -128,9 +113,9 @@ exports.testAddRemove1 = function(options) {
     {
       name: 'testadd remove',
       setup: function() {
-        canon.removeCommand('testadd');
+        commands.remove('testadd');
 
-        assert.is(canon.getCommands().length,
+        assert.is(commands.getAll().length,
                   startCount,
                   'remove command success');
         assert.is(events, 3, 'remove event');
@@ -149,16 +134,16 @@ exports.testAddRemove1 = function(options) {
 };
 
 exports.testAddRemove2 = function(options) {
-  var canon = options.requisition.canon;
+  var commands = options.requisition.system.commands;
 
-  canon.addCommand({
+  commands.add({
     name: 'testadd',
     exec: function() {
       return 3;
     }
   });
 
-  assert.is(canon.getCommands().length,
+  assert.is(commands.getAll().length,
             startCount + 1,
             'rereadd command success');
   assert.is(events, 4, 'rereadd event');
@@ -170,11 +155,11 @@ exports.testAddRemove2 = function(options) {
         output: /^3$/
       },
       post: function() {
-        canon.removeCommand({
+        commands.remove({
           name: 'testadd'
         });
 
-        assert.is(canon.getCommands().length,
+        assert.is(commands.getAll().length,
                   startCount,
                   'reremove command success');
         assert.is(events, 5, 'reremove event');
@@ -191,26 +176,26 @@ exports.testAddRemove2 = function(options) {
 };
 
 exports.testAddRemove3 = function(options) {
-  var canon = options.requisition.canon;
+  var commands = options.requisition.system.commands;
 
-  canon.removeCommand({ name: 'nonexistant' });
-  assert.is(canon.getCommands().length,
+  commands.remove({ name: 'nonexistant' });
+  assert.is(commands.getAll().length,
             startCount,
             'nonexistant1 command success');
   assert.is(events, 5, 'nonexistant1 event');
 
-  canon.removeCommand('nonexistant');
-  assert.is(canon.getCommands().length,
+  commands.remove('nonexistant');
+  assert.is(commands.getAll().length,
             startCount,
             'nonexistant2 command success');
   assert.is(events, 5, 'nonexistant2 event');
 
-  canon.onCanonChange.remove(canonChange);
+  commands.onCommandsChange.remove(commandsChange);
 };
 
-exports.testAltCanon = function(options) {
-  var canon = options.requisition.canon;
-  var altCanon = new Canon();
+exports.testAltCommands = function(options) {
+  var commands = options.requisition.system.commands;
+  var altCommands = new Commands(options.requisition.system.types);
 
   var tss = {
     name: 'tss',
@@ -219,14 +204,17 @@ exports.testAltCanon = function(options) {
       { name: 'num', type: 'number' },
       { name: 'opt', type: { name: 'selection', data: [ '1', '2', '3' ] } },
     ],
+    customProp1: 'localValue',
+    customProp2: true,
+    customProp3: 42,
     exec: function(args, context) {
       return context.commandName + ':' +
               args.str + ':' + args.num + ':' + args.opt;
     }
   };
-  altCanon.addCommand(tss);
+  altCommands.add(tss);
 
-  var commandSpecs = altCanon.getCommandSpecs();
+  var commandSpecs = altCommands.getCommandSpecs();
   assert.is(JSON.stringify(commandSpecs),
             '[{"item":"command","name":"tss","params":[' +
               '{"name":"str","type":"string"},' +
@@ -235,19 +223,37 @@ exports.testAltCanon = function(options) {
             '],"isParent":false}]',
             'JSON.stringify(commandSpecs)');
 
+  var customProps = [ 'customProp1', 'customProp2', 'customProp3', ];
+  var commandSpecs2 = altCommands.getCommandSpecs(customProps);
+  assert.is(JSON.stringify(commandSpecs2),
+            '[{' +
+              '"item":"command",' +
+              '"name":"tss",' +
+              '"params":[' +
+                '{"name":"str","type":"string"},' +
+                '{"name":"num","type":"number"},' +
+                '{"name":"opt","type":{"name":"selection","data":["1","2","3"]}}' +
+              '],' +
+              '"isParent":false,' +
+              '"customProp1":"localValue",' +
+              '"customProp2":true,' +
+              '"customProp3":42' +
+            '}]',
+            'JSON.stringify(commandSpecs)');
+
   var remoter = function(args, context) {
     assert.is(context.commandName, 'tss', 'commandName is tss');
 
-    var cmd = altCanon.getCommand(context.commandName);
+    var cmd = altCommands.get(context.commandName);
     return cmd.exec(args, context);
   };
 
-  canon.addProxyCommands(commandSpecs, remoter, 'proxy', 'test');
+  commands.addProxyCommands(commandSpecs, remoter, 'proxy', 'test');
 
-  var parent = canon.getCommand('proxy');
+  var parent = commands.get('proxy');
   assert.is(parent.name, 'proxy', 'Parent command called proxy');
 
-  var child = canon.getCommand('proxy tss');
+  var child = commands.get('proxy tss');
   assert.is(child.name, 'proxy tss', 'child command called proxy tss');
 
   return helpers.audit(options, [
@@ -269,11 +275,11 @@ exports.testAltCanon = function(options) {
         output: 'tss:foo:6:3'
       },
       post: function() {
-        canon.removeCommand('proxy');
-        canon.removeCommand('proxy tss');
+        commands.remove('proxy');
+        commands.remove('proxy tss');
 
-        assert.is(canon.getCommand('proxy'), undefined, 'remove proxy');
-        assert.is(canon.getCommand('proxy tss'), undefined, 'remove proxy tss');
+        assert.is(commands.get('proxy'), undefined, 'remove proxy');
+        assert.is(commands.get('proxy tss'), undefined, 'remove proxy tss');
       }
     }
   ]);

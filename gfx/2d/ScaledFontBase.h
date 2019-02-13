@@ -21,8 +21,6 @@
 #include "cairo.h"
 #endif
 
-class gfxFont;
-
 namespace mozilla {
 namespace gfx {
 
@@ -30,7 +28,7 @@ class ScaledFontBase : public ScaledFont
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(ScaledFontBase)
-  ScaledFontBase(Float aSize);
+  explicit ScaledFontBase(Float aSize);
   virtual ~ScaledFontBase();
 
   virtual TemporaryRef<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);

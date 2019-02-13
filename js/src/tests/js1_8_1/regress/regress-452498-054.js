@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -30,11 +30,6 @@ function test()
 //
   function f() { var x; eval("let x, x;"); }
   f();
-
-// Assertion failure: fp2->fun && fp2->script,
-// at ../jsinterp.cpp:5589
-//
-  eval("let(x) function(){ x = this; }()");
 
   reportCompare(expect, actual, summary);
 

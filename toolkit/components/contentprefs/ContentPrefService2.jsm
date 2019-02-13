@@ -29,8 +29,15 @@ let EXPORTED_SYMBOLS = [
 const { interfaces: Ci, classes: Cc, results: Cr, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/ContentPrefUtils.jsm");
 Cu.import("resource://gre/modules/ContentPrefStore.jsm");
+
+const GROUP_CLAUSE = `
+  SELECT id
+  FROM groups
+  WHERE name = :group OR
+        (:includeSubdomains AND name LIKE :pattern ESCAPE '/')
+`;
 
 function ContentPrefService2(cps) {
   this._cps = cps;
@@ -49,28 +56,28 @@ ContentPrefService2.prototype = {
     // browsing.
     let pbPrefs = new ContentPrefStore();
     if (context && context.usePrivateBrowsing) {
-      for (let [sgroup, sname, val] in this._pbStore) {
+      for (let [sgroup, sname, val] of this._pbStore) {
         if (sname == name) {
           pbPrefs.set(sgroup, sname, val);
         }
       }
     }
 
-    let stmt1 = this._stmt(
-      "SELECT groups.name AS grp, prefs.value AS value",
-      "FROM prefs",
-      "JOIN settings ON settings.id = prefs.settingID",
-      "JOIN groups ON groups.id = prefs.groupID",
-      "WHERE settings.name = :name"
-    );
+    let stmt1 = this._stmt(`
+      SELECT groups.name AS grp, prefs.value AS value
+      FROM prefs
+      JOIN settings ON settings.id = prefs.settingID
+      JOIN groups ON groups.id = prefs.groupID
+      WHERE settings.name = :name
+    `);
     stmt1.params.name = name;
 
-    let stmt2 = this._stmt(
-      "SELECT NULL AS grp, prefs.value AS value",
-      "FROM prefs",
-      "JOIN settings ON settings.id = prefs.settingID",
-      "WHERE settings.name = :name AND prefs.groupID ISNULL"
-    );
+    let stmt2 = this._stmt(`
+      SELECT NULL AS grp, prefs.value AS value
+      FROM prefs
+      JOIN settings ON settings.id = prefs.settingID
+      WHERE settings.name = :name AND prefs.groupID ISNULL
+    `);
     stmt2.params.name = name;
 
     this._execStmts([stmt1, stmt2], {
@@ -83,7 +90,7 @@ ContentPrefService2.prototype = {
       },
       onDone: function onDone(reason, ok, gotRow) {
         if (ok) {
-          for (let [pbGroup, pbName, pbVal] in pbPrefs) {
+          for (let [pbGroup, pbName, pbVal] of pbPrefs) {
             cbHandleResult(callback, new ContentPref(pbGroup, pbName, pbVal));
           }
         }
@@ -122,7 +129,7 @@ ContentPrefService2.prototype = {
     // browsing.
     let pbPrefs = new ContentPrefStore();
     if (context && context.usePrivateBrowsing) {
-      for (let [sgroup, val] in
+      for (let [sgroup, val] of
              this._pbStore.match(group, name, includeSubdomains)) {
         pbPrefs.set(sgroup, name, val);
       }
@@ -140,7 +147,7 @@ ContentPrefService2.prototype = {
         if (ok) {
           if (!gotRow)
             this._cache.set(group, name, undefined);
-          for (let [pbGroup, pbName, pbVal] in pbPrefs) {
+          for (let [pbGroup, pbName, pbVal] of pbPrefs) {
             cbHandleResult(callback, new ContentPref(pbGroup, pbName, pbVal));
           }
         }
@@ -154,31 +161,27 @@ ContentPrefService2.prototype = {
 
   _commonGetStmt: function CPS2__commonGetStmt(group, name, includeSubdomains) {
     let stmt = group ?
-      this._stmtWithGroupClause(group, includeSubdomains,
-        "SELECT groups.name AS grp, prefs.value AS value",
-        "FROM prefs",
-        "JOIN settings ON settings.id = prefs.settingID",
-        "JOIN groups ON groups.id = prefs.groupID",
-        "WHERE settings.name = :name AND prefs.groupID IN ($)"
-      ) :
-      this._stmt(
-        "SELECT NULL AS grp, prefs.value AS value",
-        "FROM prefs",
-        "JOIN settings ON settings.id = prefs.settingID",
-        "WHERE settings.name = :name AND prefs.groupID ISNULL"
-      );
+      this._stmtWithGroupClause(group, includeSubdomains, `
+        SELECT groups.name AS grp, prefs.value AS value
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        JOIN groups ON groups.id = prefs.groupID
+        WHERE settings.name = :name AND prefs.groupID IN (${GROUP_CLAUSE})
+      `) :
+      this._stmt(`
+        SELECT NULL AS grp, prefs.value AS value
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        WHERE settings.name = :name AND prefs.groupID ISNULL
+      `);
     stmt.params.name = name;
     return stmt;
   },
 
   _stmtWithGroupClause: function CPS2__stmtWithGroupClause(group,
-                                                           includeSubdomains) {
-    let stmt = this._stmt(joinArgs(Array.slice(arguments, 2)).replace("$",
-      "SELECT id " +
-      "FROM groups " +
-      "WHERE name = :group OR " +
-            "(:includeSubdomains AND name LIKE :pattern ESCAPE '/')"
-    ));
+                                                           includeSubdomains,
+                                                           sql) {
+    let stmt = this._stmt(sql);
     stmt.params.group = group;
     stmt.params.includeSubdomains = includeSubdomains || false;
     stmt.params.pattern = "%." + stmt.escapeStringForLIKE(group, "/");
@@ -220,13 +223,13 @@ ContentPrefService2.prototype = {
 
     let outStore = new ContentPrefStore();
     storesToCheck.forEach(function (store) {
-      for (let [sgroup, val] in store.match(group, name, includeSubdomains)) {
+      for (let [sgroup, val] of store.match(group, name, includeSubdomains)) {
         outStore.set(sgroup, name, val);
       }
     });
 
     let prefs = [];
-    for (let [sgroup, sname, val] in outStore) {
+    for (let [sgroup, sname, val] of outStore) {
       prefs.push(new ContentPref(sgroup, sname, val));
     }
     return prefs;
@@ -263,56 +266,59 @@ ContentPrefService2.prototype = {
     let stmts = [];
 
     // Create the setting if it doesn't exist.
-    let stmt = this._stmt(
-      "INSERT OR IGNORE INTO settings (id, name)",
-      "VALUES((SELECT id FROM settings WHERE name = :name), :name)"
-    );
+    let stmt = this._stmt(`
+      INSERT OR IGNORE INTO settings (id, name)
+      VALUES((SELECT id FROM settings WHERE name = :name), :name)
+    `);
     stmt.params.name = name;
     stmts.push(stmt);
 
     // Create the group if it doesn't exist.
     if (group) {
-      stmt = this._stmt(
-        "INSERT OR IGNORE INTO groups (id, name)",
-        "VALUES((SELECT id FROM groups WHERE name = :group), :group)"
-      );
+      stmt = this._stmt(`
+        INSERT OR IGNORE INTO groups (id, name)
+        VALUES((SELECT id FROM groups WHERE name = :group), :group)
+      `);
       stmt.params.group = group;
       stmts.push(stmt);
     }
 
     // Finally create or update the pref.
     if (group) {
-      stmt = this._stmt(
-        "INSERT OR REPLACE INTO prefs (id, groupID, settingID, value)",
-        "VALUES(",
-          "(SELECT prefs.id",
-           "FROM prefs",
-           "JOIN groups ON groups.id = prefs.groupID",
-           "JOIN settings ON settings.id = prefs.settingID",
-           "WHERE groups.name = :group AND settings.name = :name),",
-          "(SELECT id FROM groups WHERE name = :group),",
-          "(SELECT id FROM settings WHERE name = :name),",
-          ":value",
-        ")"
-      );
+      stmt = this._stmt(`
+        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value, timestamp)
+        VALUES(
+          (SELECT prefs.id
+           FROM prefs
+           JOIN groups ON groups.id = prefs.groupID
+           JOIN settings ON settings.id = prefs.settingID
+           WHERE groups.name = :group AND settings.name = :name),
+          (SELECT id FROM groups WHERE name = :group),
+          (SELECT id FROM settings WHERE name = :name),
+          :value,
+          :now
+        )
+      `);
       stmt.params.group = group;
     }
     else {
-      stmt = this._stmt(
-        "INSERT OR REPLACE INTO prefs (id, groupID, settingID, value)",
-        "VALUES(",
-          "(SELECT prefs.id",
-           "FROM prefs",
-           "JOIN settings ON settings.id = prefs.settingID",
-           "WHERE prefs.groupID IS NULL AND settings.name = :name),",
-          "NULL,",
-          "(SELECT id FROM settings WHERE name = :name),",
-          ":value",
-        ")"
-      );
+      stmt = this._stmt(`
+        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value, timestamp)
+        VALUES(
+          (SELECT prefs.id
+           FROM prefs
+           JOIN settings ON settings.id = prefs.settingID
+           WHERE prefs.groupID IS NULL AND settings.name = :name),
+          NULL,
+          (SELECT id FROM settings WHERE name = :name),
+          :value,
+          :now
+        )
+      `);
     }
     stmt.params.name = name;
     stmt.params.value = value;
+    stmt.params.now = Date.now() / 1000;
     stmts.push(stmt);
 
     this._execStmts(stmts, {
@@ -355,7 +361,7 @@ ContentPrefService2.prototype = {
 
     // Invalidate the cached values so consumers accessing the cache between now
     // and when the operation finishes don't get old data.
-    for (let sgroup in this._cache.matchGroups(group, includeSubdomains)) {
+    for (let sgroup of this._cache.matchGroups(group, includeSubdomains)) {
       this._cache.remove(sgroup, name);
     }
 
@@ -365,29 +371,18 @@ ContentPrefService2.prototype = {
     stmts.push(this._commonGetStmt(group, name, includeSubdomains));
 
     // Delete the matching prefs.
-    let stmt = this._stmtWithGroupClause(group, includeSubdomains,
-      "DELETE FROM prefs",
-      "WHERE settingID = (SELECT id FROM settings WHERE name = :name) AND",
-            "CASE typeof(:group)",
-            "WHEN 'null' THEN prefs.groupID IS NULL",
-            "ELSE prefs.groupID IN ($)",
-            "END"
-    );
+    let stmt = this._stmtWithGroupClause(group, includeSubdomains, `
+      DELETE FROM prefs
+      WHERE settingID = (SELECT id FROM settings WHERE name = :name) AND
+            CASE typeof(:group)
+            WHEN 'null' THEN prefs.groupID IS NULL
+            ELSE prefs.groupID IN (${GROUP_CLAUSE})
+            END
+    `);
     stmt.params.name = name;
     stmts.push(stmt);
 
-    // Delete settings and groups that are no longer used.  The NOTNULL term in
-    // the subquery of the second statment is needed because of SQLite's weird
-    // IN behavior vis-a-vis NULLs.  See http://sqlite.org/lang_expr.html.
-    stmts.push(this._stmt(
-      "DELETE FROM settings",
-      "WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)"
-    ));
-    stmts.push(this._stmt(
-      "DELETE FROM groups WHERE id NOT IN (",
-        "SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL",
-      ")"
-    ));
+    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
 
     let prefs = new ContentPrefStore();
 
@@ -401,7 +396,7 @@ ContentPrefService2.prototype = {
         if (ok) {
           this._cache.set(group, name, undefined);
           if (context && context.usePrivateBrowsing) {
-            for (let [sgroup, ] in
+            for (let [sgroup, ] of
                    this._pbStore.match(group, name, includeSubdomains)) {
               prefs.set(sgroup, name, undefined);
               this._pbStore.remove(sgroup, name);
@@ -410,7 +405,7 @@ ContentPrefService2.prototype = {
         }
         cbHandleCompletion(callback, reason);
         if (ok) {
-          for (let [sgroup, , ] in prefs) {
+          for (let [sgroup, , ] of prefs) {
             this._cps._notifyPrefRemoved(sgroup, name);
           }
         }
@@ -419,6 +414,23 @@ ContentPrefService2.prototype = {
         cbHandleError(callback, nsresult);
       }
     });
+  },
+
+  // Deletes settings and groups that are no longer used.
+  _settingsAndGroupsCleanupStmts: function() {
+    // The NOTNULL term in the subquery of the second statment is needed because of
+    // SQLite's weird IN behavior vis-a-vis NULLs.  See http://sqlite.org/lang_expr.html.
+    return [
+      this._stmt(`
+        DELETE FROM settings
+        WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
+      `),
+      this._stmt(`
+        DELETE FROM groups WHERE id NOT IN (
+          SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
+        )
+      `)
+    ];
   },
 
   removeByDomain: function CPS2_removeByDomain(group, context, callback) {
@@ -442,7 +454,7 @@ ContentPrefService2.prototype = {
 
     // Invalidate the cached values so consumers accessing the cache between now
     // and when the operation finishes don't get old data.
-    for (let sgroup in this._cache.matchGroups(group, includeSubdomains)) {
+    for (let sgroup of this._cache.matchGroups(group, includeSubdomains)) {
       this._cache.removeGroup(sgroup);
     }
 
@@ -451,38 +463,38 @@ ContentPrefService2.prototype = {
     // First get the matching prefs, then delete groups and prefs that reference
     // deleted groups.
     if (group) {
+      stmts.push(this._stmtWithGroupClause(group, includeSubdomains, `
+        SELECT groups.name AS grp, settings.name AS name
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        JOIN groups ON groups.id = prefs.groupID
+        WHERE prefs.groupID IN (${GROUP_CLAUSE})
+      `));
       stmts.push(this._stmtWithGroupClause(group, includeSubdomains,
-        "SELECT groups.name AS grp, settings.name AS name",
-        "FROM prefs",
-        "JOIN settings ON settings.id = prefs.settingID",
-        "JOIN groups ON groups.id = prefs.groupID",
-        "WHERE prefs.groupID IN ($)"
+        `DELETE FROM groups WHERE id IN (${GROUP_CLAUSE})`
       ));
-      stmts.push(this._stmtWithGroupClause(group, includeSubdomains,
-        "DELETE FROM groups WHERE id IN ($)"
-      ));
-      stmts.push(this._stmt(
-        "DELETE FROM prefs",
-        "WHERE groupID NOTNULL AND groupID NOT IN (SELECT id FROM groups)"
-      ));
+      stmts.push(this._stmt(`
+        DELETE FROM prefs
+        WHERE groupID NOTNULL AND groupID NOT IN (SELECT id FROM groups)
+      `));
     }
     else {
-      stmts.push(this._stmt(
-        "SELECT NULL AS grp, settings.name AS name",
-        "FROM prefs",
-        "JOIN settings ON settings.id = prefs.settingID",
-        "WHERE prefs.groupID IS NULL"
-      ));
+      stmts.push(this._stmt(`
+        SELECT NULL AS grp, settings.name AS name
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        WHERE prefs.groupID IS NULL
+      `));
       stmts.push(this._stmt(
         "DELETE FROM prefs WHERE groupID IS NULL"
       ));
     }
 
     // Finally delete settings that are no longer referenced.
-    stmts.push(this._stmt(
-      "DELETE FROM settings",
-      "WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)"
-    ));
+    stmts.push(this._stmt(`
+      DELETE FROM settings
+      WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
+    `));
 
     let prefs = new ContentPrefStore();
 
@@ -495,14 +507,14 @@ ContentPrefService2.prototype = {
       },
       onDone: function onDone(reason, ok) {
         if (ok && context && context.usePrivateBrowsing) {
-          for (let [sgroup, sname, ] in this._pbStore) {
+          for (let [sgroup, sname, ] of this._pbStore) {
             prefs.set(sgroup, sname, undefined);
             this._pbStore.remove(sgroup, sname);
           }
         }
         cbHandleCompletion(callback, reason);
         if (ok) {
-          for (let [sgroup, sname, ] in prefs) {
+          for (let [sgroup, sname, ] of prefs) {
             this._cps._notifyPrefRemoved(sgroup, sname);
           }
         }
@@ -513,36 +525,40 @@ ContentPrefService2.prototype = {
     });
   },
 
-  removeAllDomains: function CPS2_removeAllDomains(context, callback) {
+  _removeAllDomainsSince: function CPS2__removeAllDomainsSince(since, context, callback) {
     checkCallbackArg(callback, false);
+
+    since /= 1000;
 
     // Invalidate the cached values so consumers accessing the cache between now
     // and when the operation finishes don't get old data.
+    // Invalidate all the group cache because we don't know which groups will be removed.
     this._cache.removeAllGroups();
 
     let stmts = [];
 
-    // First get the matching prefs.
-    stmts.push(this._stmt(
-      "SELECT groups.name AS grp, settings.name AS name",
-      "FROM prefs",
-      "JOIN settings ON settings.id = prefs.settingID",
-      "JOIN groups ON groups.id = prefs.groupID"
-    ));
+    // Get prefs that are about to be removed to notify about their removal.
+    let stmt = this._stmt(`
+      SELECT groups.name AS grp, settings.name AS name
+      FROM prefs
+      JOIN settings ON settings.id = prefs.settingID
+      JOIN groups ON groups.id = prefs.groupID
+      WHERE timestamp >= :since
+    `);
+    stmt.params.since = since;
+    stmts.push(stmt);
 
-    stmts.push(this._stmt(
-      "DELETE FROM prefs WHERE groupID NOTNULL"
-    ));
-    stmts.push(this._stmt(
-      "DELETE FROM groups"
-    ));
-    stmts.push(this._stmt(
-      "DELETE FROM settings",
-      "WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)"
-    ));
+    // Do the actual remove.
+    stmt = this._stmt(`
+      DELETE FROM prefs WHERE groupID NOTNULL AND timestamp >= :since
+    `);
+    stmt.params.since = since;
+    stmts.push(stmt);
+
+    // Cleanup no longer used values.
+    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
 
     let prefs = new ContentPrefStore();
-
     this._execStmts(stmts, {
       onRow: function onRow(row) {
         let grp = row.getResultByName("grp");
@@ -551,15 +567,17 @@ ContentPrefService2.prototype = {
         this._cache.set(grp, name, undefined);
       },
       onDone: function onDone(reason, ok) {
+        // This nukes all the groups in _pbStore since we don't have their timestamp
+        // information.
         if (ok && context && context.usePrivateBrowsing) {
-          for (let [sgroup, sname, ] in this._pbStore) {
+          for (let [sgroup, sname, ] of this._pbStore) {
             prefs.set(sgroup, sname, undefined);
           }
           this._pbStore.removeAllGroups();
         }
         cbHandleCompletion(callback, reason);
         if (ok) {
-          for (let [sgroup, sname, ] in prefs) {
+          for (let [sgroup, sname, ] of prefs) {
             this._cps._notifyPrefRemoved(sgroup, sname);
           }
         }
@@ -568,6 +586,14 @@ ContentPrefService2.prototype = {
         cbHandleError(callback, nsresult);
       }
     });
+  },
+
+  removeAllDomainsSince: function CPS2_removeAllDomainsSince(since, context, callback) {
+    this._removeAllDomainsSince(since, context, callback);
+  },
+
+  removeAllDomains: function CPS2_removeAllDomains(context, callback) {
+    this._removeAllDomainsSince(0, context, callback);
   },
 
   removeByName: function CPS2_removeByName(name, context, callback) {
@@ -576,7 +602,7 @@ ContentPrefService2.prototype = {
 
     // Invalidate the cached values so consumers accessing the cache between now
     // and when the operation finishes don't get old data.
-    for (let [group, sname, ] in this._cache) {
+    for (let [group, sname, ] of this._cache) {
       if (sname == name)
         this._cache.remove(group, name);
     }
@@ -585,21 +611,21 @@ ContentPrefService2.prototype = {
 
     // First get the matching prefs.  Include null if any of those prefs are
     // global.
-    let stmt = this._stmt(
-      "SELECT groups.name AS grp",
-      "FROM prefs",
-      "JOIN settings ON settings.id = prefs.settingID",
-      "JOIN groups ON groups.id = prefs.groupID",
-      "WHERE settings.name = :name",
-      "UNION",
-      "SELECT NULL AS grp",
-      "WHERE EXISTS (",
-        "SELECT prefs.id",
-        "FROM prefs",
-        "JOIN settings ON settings.id = prefs.settingID",
-        "WHERE settings.name = :name AND prefs.groupID IS NULL",
-      ")"
-    );
+    let stmt = this._stmt(`
+      SELECT groups.name AS grp
+      FROM prefs
+      JOIN settings ON settings.id = prefs.settingID
+      JOIN groups ON groups.id = prefs.groupID
+      WHERE settings.name = :name
+      UNION
+      SELECT NULL AS grp
+      WHERE EXISTS (
+        SELECT prefs.id
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        WHERE settings.name = :name AND prefs.groupID IS NULL
+      )
+    `);
     stmt.params.name = name;
     stmts.push(stmt);
 
@@ -614,11 +640,11 @@ ContentPrefService2.prototype = {
     stmts.push(this._stmt(
       "DELETE FROM prefs WHERE settingID NOT IN (SELECT id FROM settings)"
     ));
-    stmts.push(this._stmt(
-      "DELETE FROM groups WHERE id NOT IN (",
-        "SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL",
-      ")"
-    ));
+    stmts.push(this._stmt(`
+      DELETE FROM groups WHERE id NOT IN (
+        SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
+      )
+    `));
 
     let prefs = new ContentPrefStore();
 
@@ -630,7 +656,7 @@ ContentPrefService2.prototype = {
       },
       onDone: function onDone(reason, ok) {
         if (ok && context && context.usePrivateBrowsing) {
-          for (let [sgroup, sname, ] in this._pbStore) {
+          for (let [sgroup, sname, ] of this._pbStore) {
             if (sname === name) {
               prefs.set(sgroup, name, undefined);
               this._pbStore.remove(sgroup, name);
@@ -639,7 +665,7 @@ ContentPrefService2.prototype = {
         }
         cbHandleCompletion(callback, reason);
         if (ok) {
-          for (let [sgroup, , ] in prefs) {
+          for (let [sgroup, , ] of prefs) {
             this._cps._notifyPrefRemoved(sgroup, name);
           }
         }
@@ -651,8 +677,10 @@ ContentPrefService2.prototype = {
   },
 
   destroy: function CPS2_destroy() {
-    for each (let stmt in this._statements) {
-      stmt.finalize();
+    if (this._statements) {
+      for each (let stmt in this._statements) {
+        stmt.finalize();
+      }
     }
   },
 
@@ -660,14 +688,10 @@ ContentPrefService2.prototype = {
    * Returns the cached mozIStorageAsyncStatement for the given SQL.  If no such
    * statement is cached, one is created and cached.
    *
-   * @param sql  The SQL query string.  If more than one string is given, then
-   *             all are concatenated.  The concatenation process inserts
-   *             spaces where appropriate and removes unnecessary contiguous
-   *             spaces.  Call like _stmt("SELECT *", "FROM foo").
+   * @param sql  The SQL query string.
    * @return     The cached, possibly new, statement.
    */
-  _stmt: function CPS2__stmt(sql /*, sql2, sql3, ... */) {
-    let sql = joinArgs(arguments);
+  _stmt: function CPS2__stmt(sql) {
     if (!this._statements)
       this._statements = {};
     if (!this._statements[sql])
@@ -805,7 +829,7 @@ ContentPrefService2.prototype = {
     cps._genericObservers = [];
 
     let tables = ["prefs", "groups", "settings"];
-    let stmts = tables.map(function (t) this._stmt("DELETE FROM", t), this);
+    let stmts = tables.map(function (t) this._stmt(`DELETE FROM ${t}`), this);
     this._execStmts(stmts, { onDone: function () callback() });
   },
 
@@ -822,39 +846,6 @@ ContentPrefService2.prototype = {
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
 };
-
-function ContentPref(domain, name, value) {
-  this.domain = domain;
-  this.name = name;
-  this.value = value;
-}
-
-ContentPref.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPref]),
-};
-
-function cbHandleResult(callback, pref) {
-  safeCallback(callback, "handleResult", [pref]);
-}
-
-function cbHandleCompletion(callback, reason) {
-  safeCallback(callback, "handleCompletion", [reason]);
-}
-
-function cbHandleError(callback, nsresult) {
-  safeCallback(callback, "handleError", [nsresult]);
-}
-
-function safeCallback(callbackObj, methodName, args) {
-  if (!callbackObj || typeof(callbackObj[methodName]) != "function")
-    return;
-  try {
-    callbackObj[methodName].apply(callbackObj, args);
-  }
-  catch (err) {
-    Cu.reportError(err);
-  }
-}
 
 function checkGroupArg(group) {
   if (!group || typeof(group) != "string")
@@ -880,8 +871,4 @@ function checkCallbackArg(callback, required) {
 
 function invalidArg(msg) {
   return Components.Exception(msg, Cr.NS_ERROR_INVALID_ARG);
-}
-
-function joinArgs(args) {
-  return Array.join(args, " ").trim().replace(/\s{2,}/g, " ");
 }

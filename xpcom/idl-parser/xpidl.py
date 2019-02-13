@@ -516,7 +516,7 @@ class Interface(object):
             member.resolve(self)
 
         # The number 250 is NOT arbitrary; this number is the maximum number of
-        # stub entries defined in xpcom/reflect/xptcall/public/genstubs.pl
+        # stub entries defined in xpcom/reflect/xptcall/genstubs.pl
         # Do not increase this value without increasing the number in that
         # location, or you WILL cause otherwise unknown problems!
         if self.countEntries() > 250 and not self.attributes.builtinclass:
@@ -582,6 +582,7 @@ class InterfaceAttributes(object):
     function = False
     deprecated = False
     noscript = False
+    main_process_scriptable_only = False
 
     def setuuid(self, value):
         self.uuid = value.lower()
@@ -601,6 +602,9 @@ class InterfaceAttributes(object):
     def setdeprecated(self):
         self.deprecated = True
 
+    def setmain_process_scriptable_only(self):
+        self.main_process_scriptable_only = True
+
     actions = {
         'uuid':       (True, setuuid),
         'scriptable': (False, setscriptable),
@@ -609,6 +613,7 @@ class InterfaceAttributes(object):
         'noscript':   (False, setnoscript),
         'deprecated': (False, setdeprecated),
         'object':     (False, lambda self: True),
+        'main_process_scriptable_only': (False, setmain_process_scriptable_only),
         }
 
     def __init__(self, attlist, location):
@@ -643,6 +648,8 @@ class InterfaceAttributes(object):
             l.append("\tbuiltinclass\n")
         if self.function:
             l.append("\tfunction\n")
+        if self.main_process_scriptable_only:
+            l.append("\tmain_process_scriptable_only\n")
         return "".join(l)
 
 class ConstMember(object):
@@ -994,7 +1001,6 @@ class IDLParser(object):
         'readonly': 'READONLY',
         'native': 'NATIVE',
         'typedef': 'TYPEDEF',
-        'Infinity': 'INFINITY'
         }
 
     tokens = [

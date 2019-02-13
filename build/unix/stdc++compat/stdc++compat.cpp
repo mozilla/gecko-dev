@@ -5,6 +5,9 @@
 #include <ostream>
 #include <istream>
 #include <string>
+#include <stdarg.h>
+#include <stdio.h>
+#include <mozilla/Assertions.h>
 
 /* GLIBCXX_3.4.8  is from gcc 4.1.1 (111691)
    GLIBCXX_3.4.9  is from gcc 4.2.0 (111690)
@@ -14,28 +17,22 @@
    GLIBCXX_3.4.13 is from gcc 4.4.2 (151127)
    GLIBCXX_3.4.14 is from gcc 4.5.0 (151126)
    GLIBCXX_3.4.15 is from gcc 4.6.0 (160071)
-   GLIBCXX_3.4.16 is form gcc 4.6.1 (172240) */
+   GLIBCXX_3.4.16 is from gcc 4.6.1 (172240)
+   GLIBCXX_3.4.17 is from gcc 4.7.0 (174383)
+   GLIBCXX_3.4.18 is from gcc 4.8.0 (190787)
+   GLIBCXX_3.4.19 is from gcc 4.8.1 (199309)
+   GLIBCXX_3.4.20 is from gcc 4.9.0 (199307)
+   GLIBCXX_3.4.21 is from gcc 5.0 (210290)
+
+This file adds the necessary compatibility tricks to avoid symbols with
+version GLIBCXX_3.4.11 and bigger, keeping binary compatibility with
+libstdc++ 4.3.
+
+*/
 
 #define GLIBCXX_VERSION(a, b, c) (((a) << 16) | ((b) << 8) | (c))
 
 namespace std {
-#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 9)
-    /* Instantiate these templates to avoid GLIBCXX_3.4.9 symbol versions */
-    template ostream& ostream::_M_insert(double);
-    template ostream& ostream::_M_insert(long);
-    template ostream& ostream::_M_insert(unsigned long);
-    template ostream& ostream::_M_insert(long long);
-    template ostream& ostream::_M_insert(unsigned long long);
-    template ostream& ostream::_M_insert(bool);
-    template ostream& ostream::_M_insert(const void*);
-    template ostream& __ostream_insert(ostream&, const char*, streamsize);
-    template istream& istream::_M_extract(double&);
-    template istream& istream::_M_extract(float&);
-    template istream& istream::_M_extract(unsigned int&);
-    template istream& istream::_M_extract(unsigned long&);
-    template istream& istream::_M_extract(unsigned short&);
-    template istream& istream::_M_extract(unsigned long long&);
-#endif
 #if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     /* Instantiate these templates to avoid GLIBCXX_3.4.14 symbol versions
      * depending on optimization level */
@@ -52,9 +49,14 @@ namespace std {
     template wstring& wstring::assign(wstring&&);
 #endif /* __GXX_EXPERIMENTAL_CXX0X__ */
 #endif /* (__GNUC__ == 4) && (__GNUC_MINOR__ >= 5) */
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 16)
+    /* Instantiate these templates to avoid GLIBCXX_3.4.16 symbol versions
+     * depending on compiler optimizations */
+    template int string::_S_compare(size_type, size_type);
+#endif
 }
 
-namespace std __attribute__((visibility("default"))) {
+namespace std MOZ_EXPORT {
 #if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     /* Hack to avoid GLIBCXX_3.4.14 symbol versions */
     struct _List_node_base
@@ -140,4 +142,45 @@ namespace std __attribute__((visibility("default"))) {
     void ctype<char>::_M_widen_init() const {}
 #endif
 
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 20)
+    /* We shouldn't be throwing exceptions at all, but it sadly turns out
+       we call STL (inline) functions that do. */
+    void __throw_out_of_range_fmt(char const* fmt, ...)
+    {
+        va_list ap;
+        char buf[1024]; // That should be big enough.
+
+        va_start(ap, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, ap);
+        buf[sizeof(buf) - 1] = 0;
+        va_end(ap);
+
+        __throw_range_error(buf);
+    }
+#endif
+
 }
+
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 20)
+/* Technically, this symbol is not in GLIBCXX_3.4.20, but in CXXABI_1.3.8,
+   but that's equivalent, version-wise. Those calls are added by the compiler
+   itself on `new Class[n]` calls. */
+extern "C" void
+__cxa_throw_bad_array_new_length()
+{
+    MOZ_CRASH();
+}
+#endif
+
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 21)
+/* While we generally don't build with exceptions, we have some host tools
+ * that do use them. libstdc++ from GCC 5.0 added exception constructors with
+ * char const* argument. Older versions only have a constructor with
+ * std::string. */
+namespace std {
+    runtime_error::runtime_error(char const* s)
+    : runtime_error(std::string(s))
+    {
+    }
+}
+#endif

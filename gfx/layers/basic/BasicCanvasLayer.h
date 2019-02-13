@@ -13,8 +13,6 @@
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsRegion.h"                   // for nsIntRegion
 
-class gfxContext;
-
 namespace mozilla {
 namespace layers {
 
@@ -22,22 +20,21 @@ class BasicCanvasLayer : public CopyableCanvasLayer,
                          public BasicImplData
 {
 public:
-  BasicCanvasLayer(BasicLayerManager* aLayerManager) :
-    CopyableCanvasLayer(aLayerManager,
-                        static_cast<BasicImplData*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+  explicit BasicCanvasLayer(BasicLayerManager* aLayerManager) :
+    CopyableCanvasLayer(aLayerManager, static_cast<BasicImplData*>(this))
   { }
-  
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+
+  virtual void SetVisibleRegion(const nsIntRegion& aRegion) override
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
     CanvasLayer::SetVisibleRegion(aRegion);
   }
-  
+
   virtual void Paint(gfx::DrawTarget* aDT,
                      const gfx::Point& aDeviceOffset,
-                     Layer* aMaskLayer) MOZ_OVERRIDE;
- 
+                     Layer* aMaskLayer) override;
+
 protected:
   BasicLayerManager* BasicManager()
   {

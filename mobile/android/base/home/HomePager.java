@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
@@ -20,7 +21,6 @@ import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.LoaderManager;
@@ -45,7 +45,7 @@ public class HomePager extends ViewPager {
     private final OnAddPanelListener mAddPanelListener;
 
     private final HomeConfig mConfig;
-    private ConfigLoaderCallbacks mConfigLoaderCallbacks;
+    private final ConfigLoaderCallbacks mConfigLoaderCallbacks;
 
     private String mInitialPanelId;
 
@@ -64,13 +64,13 @@ public class HomePager extends ViewPager {
 
     // This is mostly used by UI tests to easily fetch
     // specific list views at runtime.
-    static final String LIST_TAG_HISTORY = "history";
-    static final String LIST_TAG_BOOKMARKS = "bookmarks";
-    static final String LIST_TAG_READING_LIST = "reading_list";
-    static final String LIST_TAG_TOP_SITES = "top_sites";
-    static final String LIST_TAG_MOST_RECENT = "most_recent";
-    static final String LIST_TAG_LAST_TABS = "last_tabs";
-    static final String LIST_TAG_BROWSER_SEARCH = "browser_search";
+    public static final String LIST_TAG_HISTORY = "history";
+    public static final String LIST_TAG_BOOKMARKS = "bookmarks";
+    public static final String LIST_TAG_READING_LIST = "reading_list";
+    public static final String LIST_TAG_TOP_SITES = "top_sites";
+    public static final String LIST_TAG_RECENT_TABS = "recent_tabs";
+    public static final String LIST_TAG_BROWSER_SEARCH = "browser_search";
+    public static final String LIST_TAG_REMOTE_TABS = "remote_tabs";
 
     public interface OnUrlOpenListener {
         public enum Flags {
@@ -81,8 +81,25 @@ public class HomePager extends ViewPager {
         public void onUrlOpen(String url, EnumSet<Flags> flags);
     }
 
-    public interface OnNewTabsListener {
-        public void onNewTabs(String[] urls);
+    /**
+     * Interface for requesting a new tab be opened in the background.
+     * <p>
+     * This is the <code>HomeFragment</code> equivalent of opening a new tab by
+     * long clicking a link and selecting the "Open new [private] tab" context
+     * menu option.
+     */
+    public interface OnUrlOpenInBackgroundListener {
+        public enum Flags {
+            PRIVATE,
+        }
+
+        /**
+         * Open a new tab with the given URL
+         *
+         * @param url to open.
+         * @param flags to open new tab with.
+         */
+        public void onUrlOpenInBackground(String url, EnumSet<Flags> flags);
     }
 
     /**
@@ -121,8 +138,8 @@ public class HomePager extends ViewPager {
         LOADED
     }
 
-    static final String CAN_LOAD_ARG = "canLoad";
-    static final String PANEL_CONFIG_ARG = "panelConfig";
+    public static final String CAN_LOAD_ARG = "canLoad";
+    public static final String PANEL_CONFIG_ARG = "panelConfig";
 
     public HomePager(Context context) {
         this(context, null);
@@ -198,11 +215,11 @@ public class HomePager extends ViewPager {
         }
 
         // Only animate on post-HC devices, when a non-null animator is given
-        final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
+        final boolean shouldAnimate = Versions.feature11Plus && animator != null;
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
         adapter.setOnAddPanelListener(mAddPanelListener);
-        adapter.setCanLoadHint(!shouldAnimate);
+        adapter.setCanLoadHint(true);
         setAdapter(adapter);
 
         // Don't show the tabs strip until we have the
@@ -222,7 +239,6 @@ public class HomePager extends ViewPager {
                 @Override
                 public void onPropertyAnimationEnd() {
                     setLayerType(View.LAYER_TYPE_NONE, null);
-                    adapter.setCanLoadHint(true);
                 }
             });
 
@@ -232,7 +248,6 @@ public class HomePager extends ViewPager {
                             PropertyAnimator.Property.ALPHA,
                             1.0f);
         }
-        Telemetry.startUISession(TelemetryContract.Session.HOME);
     }
 
     /**
@@ -245,7 +260,6 @@ public class HomePager extends ViewPager {
 
         // Stop UI Telemetry sessions.
         stopCurrentPanelTelemetrySession();
-        Telemetry.stopUISession(TelemetryContract.Session.HOME);
     }
 
     /**
@@ -354,9 +368,7 @@ public class HomePager extends ViewPager {
         final HomeAdapter adapter = (HomeAdapter) getAdapter();
 
         // Disable any fragment loading until we have the initial
-        // panel selection done. Store previous value to restore
-        // it if necessary once the UI is fully updated.
-        final boolean canLoadHint = adapter.getCanLoadHint();
+        // panel selection done.
         adapter.setCanLoadHint(false);
 
         // Destroy any existing panels currently loaded
@@ -417,19 +429,15 @@ public class HomePager extends ViewPager {
             }
         }
 
-        // If the load hint was originally true, this means the pager
-        // is not animating and it's fine to restore the load hint back.
-        if (canLoadHint) {
-            // The selection is updated asynchronously so we need to post to
-            // UI thread to give the pager time to commit the new page selection
-            // internally and load the right initial panel.
-            ThreadUtils.getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    adapter.setCanLoadHint(true);
-                }
-            });
-        }
+        // The selection is updated asynchronously so we need to post to
+        // UI thread to give the pager time to commit the new page selection
+        // internally and load the right initial panel.
+        ThreadUtils.getUiHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                adapter.setCanLoadHint(true);
+            }
+        });
     }
 
     public void setOnPanelChangeListener(OnPanelChangeListener listener) {

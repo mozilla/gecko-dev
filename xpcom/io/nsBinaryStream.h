@@ -25,14 +25,10 @@
 
 // Derive from nsIObjectOutputStream so this class can be used as a superclass
 // by nsObjectOutputStream.
-class nsBinaryOutputStream : public nsIObjectOutputStream
+class nsBinaryOutputStream final : public nsIObjectOutputStream
 {
 public:
   nsBinaryOutputStream()
-  {
-  }
-  // virtual dtor since subclasses call our Release()
-  virtual ~nsBinaryOutputStream()
   {
   }
 
@@ -54,6 +50,12 @@ protected:
 
   nsCOMPtr<nsIOutputStream>       mOutputStream;
   nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+
+private:
+  // virtual dtor since subclasses call our Release()
+  virtual ~nsBinaryOutputStream()
+  {
+  }
 };
 
 #define NS_BINARYINPUTSTREAM_CID        \
@@ -66,16 +68,10 @@ protected:
 
 #define NS_BINARYINPUTSTREAM_CONTRACTID "@mozilla.org/binaryinputstream;1"
 
-// Derive from nsIObjectInputStream so this class can be used as a superclass
-// by nsObjectInputStream.
-class nsBinaryInputStream : public nsIObjectInputStream
+class nsBinaryInputStream final : public nsIObjectInputStream
 {
 public:
   nsBinaryInputStream()
-  {
-  }
-  // virtual dtor since subclasses call our Release()
-  virtual ~nsBinaryInputStream()
   {
   }
 
@@ -94,6 +90,12 @@ protected:
 
   nsCOMPtr<nsIInputStream>        mInputStream;
   nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+
+private:
+  // virtual dtor since subclasses call our Release()
+  virtual ~nsBinaryInputStream()
+  {
+  }
 };
 
 #endif // nsBinaryStream_h___

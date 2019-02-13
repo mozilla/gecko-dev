@@ -9,20 +9,20 @@ const TAB_URL = EXAMPLE_URL + "doc_random-javascript.html";
 const JS_URL = EXAMPLE_URL + "sjs_random-javascript.sjs";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     let gDebugger = aPanel.panelWin;
     let gEditor = gDebugger.DebuggerView.editor;
     let gSources = gDebugger.DebuggerView.Sources;
     let gControllerSources = gDebugger.DebuggerController.SourceScripts;
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       yield waitForSourceShown(aPanel, JS_URL);
 
       is(gSources.itemCount, 1,
         "There should be one source displayed in the view.")
-      is(gSources.selectedValue, JS_URL,
+      is(getSelectedSourceURL(gSources), JS_URL,
         "The correct source is currently selected in the view.");
-      ok(gEditor.getText().contains("bacon"),
+      ok(gEditor.getText().includes("bacon"),
         "The currently shown source contains bacon. Mmm, delicious!");
 
       let { source } = gSources.selectedItem.attachment;
@@ -38,12 +38,12 @@ function test() {
 
       is(gSources.itemCount, 1,
         "There should be one source displayed in the view after reloading.")
-      is(gSources.selectedValue, JS_URL,
+      is(getSelectedSourceURL(gSources), JS_URL,
         "The correct source is currently selected in the view after reloading.");
-      ok(gEditor.getText().contains("bacon"),
+      ok(gEditor.getText().includes("bacon"),
         "The newly shown source contains bacon. Mmm, delicious!");
 
-      let { source } = gSources.selectedItem.attachment;
+      ({ source } = gSources.selectedItem.attachment);
       let [, secondText] = yield gControllerSources.getText(source);
       let secondNumber = parseFloat(secondText.match(/\d\.\d+/)[0]);
 

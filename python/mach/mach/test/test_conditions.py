@@ -8,14 +8,20 @@ import os
 
 from mach.base import MachError
 from mach.main import Mach
+from mach.registrar import Registrar
 from mach.test.common import TestBase
 
 from mozunit import main
 
 
-def _populate_context(context):
-    context.foo = True
-    context.bar = False
+def _populate_context(context, key=None):
+    if key is None:
+        return
+    if key == 'foo':
+        return True
+    if key == 'bar':
+        return False
+    raise AttributeError(key)
 
 class TestConditions(TestBase):
     """Tests for conditionally filtering commands."""
@@ -43,14 +49,14 @@ class TestConditions(TestBase):
             result, stdout, stderr = self._run_mach([name])
             self.assertEquals(1, result)
 
-            fail_msg = Mach._condition_failed_message(name, fail_conditions)
+            fail_msg = Registrar._condition_failed_message(name, fail_conditions)
             self.assertEquals(fail_msg.rstrip(), stdout.rstrip())
 
         for name in ('cmd_bar_ctx', 'cmd_foobar_ctx'):
             result, stdout, stderr = self._run_mach([name], _populate_context)
             self.assertEquals(1, result)
 
-            fail_msg = Mach._condition_failed_message(name, fail_conditions)
+            fail_msg = Registrar._condition_failed_message(name, fail_conditions)
             self.assertEquals(fail_msg.rstrip(), stdout.rstrip())
 
     def test_invalid_type(self):

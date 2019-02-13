@@ -14,14 +14,14 @@
 #include "nsCOMArray.h"
 #include "mozilla/Attributes.h"
 
-class nsXREDirProvider MOZ_FINAL : public nsIDirectoryServiceProvider2,
-                                   public nsIProfileStartup
+class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+                               public nsIProfileStartup
 {
 public:
   // we use a custom isupports implementation (no refcount)
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
-  NS_IMETHOD_(MozExternalRefCountType) Release(void);
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) override;
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) override;
 
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
@@ -72,6 +72,7 @@ public:
 
   /* make sure you clone it, if you need to do stuff to it */
   nsIFile* GetGREDir() { return mGREDir; }
+  nsIFile* GetGREBinDir() { return mGREBinDir; }
   nsIFile* GetAppDir() {
     if (mXULAppDir)
       return mXULAppDir;
@@ -126,13 +127,19 @@ protected:
   // Calculate and register extension and theme bundle directories.
   void LoadExtensionBundleDirectories();
 
+#ifdef MOZ_B2G
   // Calculate and register app-bundled extension directories.
   void LoadAppBundleDirs();
+#endif
 
   void Append(nsIFile* aDirectory);
 
   nsCOMPtr<nsIDirectoryServiceProvider> mAppProvider;
+  // On OSX, mGREDir points to .app/Contents/Resources
   nsCOMPtr<nsIFile>      mGREDir;
+  // On OSX, mGREBinDir points to .app/Contents/MacOS
+  nsCOMPtr<nsIFile>      mGREBinDir;
+  // On OSX, mXULAppDir points to .app/Contents/Resources/browser
   nsCOMPtr<nsIFile>      mXULAppDir;
   nsCOMPtr<nsIFile>      mProfileDir;
   nsCOMPtr<nsIFile>      mProfileLocalDir;

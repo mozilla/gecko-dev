@@ -26,9 +26,43 @@ DOMCameraDetectedFace::HasSupport(JSContext* aCx, JSObject* aGlobal)
 }
 
 JSObject*
-DOMCameraDetectedFace::WrapObject(JSContext* aCx)
+DOMCameraDetectedFace::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return CameraDetectedFaceBinding::Wrap(aCx, this);
+  return CameraDetectedFaceBinding::Wrap(aCx, this, aGivenProto);
+}
+
+/* static */
+already_AddRefed<DOMCameraDetectedFace>
+DOMCameraDetectedFace::Constructor(const GlobalObject& aGlobal,
+                                   const dom::CameraDetectedFaceInit& aFace,
+                                   ErrorResult& aRv)
+{
+  nsRefPtr<DOMCameraDetectedFace> face =
+    new DOMCameraDetectedFace(aGlobal.GetAsSupports(), aFace);
+  return face.forget();
+}
+
+DOMCameraDetectedFace::DOMCameraDetectedFace(nsISupports* aParent,
+                                             const dom::CameraDetectedFaceInit& aFace)
+  : mParent(aParent)
+  , mId(aFace.mId)
+  , mScore(aFace.mScore)
+  , mBounds(new DOMRect(this))
+{
+  mBounds->SetRect(aFace.mBounds.mLeft,
+                   aFace.mBounds.mTop,
+                   aFace.mBounds.mRight - aFace.mBounds.mLeft,
+                   aFace.mBounds.mBottom - aFace.mBounds.mTop);
+
+  if (aFace.mHasLeftEye) {
+    mLeftEye = new DOMPoint(this, aFace.mLeftEye.mX, aFace.mLeftEye.mY);
+  }
+  if (aFace.mHasRightEye) {
+    mRightEye = new DOMPoint(this, aFace.mRightEye.mX, aFace.mRightEye.mY);
+  }
+  if (aFace.mHasMouth) {
+    mMouth = new DOMPoint(this, aFace.mMouth.mX, aFace.mMouth.mY);
+  }
 }
 
 DOMCameraDetectedFace::DOMCameraDetectedFace(nsISupports* aParent,
@@ -36,7 +70,7 @@ DOMCameraDetectedFace::DOMCameraDetectedFace(nsISupports* aParent,
   : mParent(aParent)
   , mId(aFace.id)
   , mScore(aFace.score)
-  , mBounds(new DOMRect(MOZ_THIS_IN_INITIALIZER_LIST()))
+  , mBounds(new DOMRect(this))
 {
   mBounds->SetRect(aFace.bound.left,
                    aFace.bound.top,
@@ -52,6 +86,4 @@ DOMCameraDetectedFace::DOMCameraDetectedFace(nsISupports* aParent,
   if (aFace.hasMouth) {
     mMouth = new DOMPoint(this, aFace.mouth.x, aFace.mouth.y);
   }
-
-  SetIsDOMBinding();
 }

@@ -20,7 +20,7 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsHashKeys.h"
 #ifdef MOZ_CRASHREPORTER
 #  include "nsExceptionHandler.h"
@@ -54,16 +54,6 @@ UnmungePluginDsoPath(const std::string& munged);
 
 extern PRLogModuleInfo* GetPluginLog();
 
-const uint32_t kAllowAsyncDrawing = 0x1;
-
-inline bool IsDrawingModelAsync(int16_t aModel) {
-  return aModel == NPDrawingModelAsyncBitmapSurface
-#ifdef XP_WIN
-         || aModel == NPDrawingModelAsyncWindowsDXGISurface
-#endif
-         ;
-}
-
 #if defined(_MSC_VER)
 #define FULLFUNCTION __FUNCSIG__
 #elif defined(__GNUC__)
@@ -72,9 +62,9 @@ inline bool IsDrawingModelAsync(int16_t aModel) {
 #define FULLFUNCTION __FUNCTION__
 #endif
 
-#define PLUGIN_LOG_DEBUG(args) PR_LOG(GetPluginLog(), PR_LOG_DEBUG, args)
-#define PLUGIN_LOG_DEBUG_FUNCTION PR_LOG(GetPluginLog(), PR_LOG_DEBUG, ("%s", FULLFUNCTION))
-#define PLUGIN_LOG_DEBUG_METHOD PR_LOG(GetPluginLog(), PR_LOG_DEBUG, ("%s [%p]", FULLFUNCTION, (void*) this))
+#define PLUGIN_LOG_DEBUG(args) MOZ_LOG(GetPluginLog(), mozilla::LogLevel::Debug, args)
+#define PLUGIN_LOG_DEBUG_FUNCTION MOZ_LOG(GetPluginLog(), mozilla::LogLevel::Debug, ("%s", FULLFUNCTION))
+#define PLUGIN_LOG_DEBUG_METHOD MOZ_LOG(GetPluginLog(), mozilla::LogLevel::Debug, ("%s [%p]", FULLFUNCTION, (void*) this))
 
 /**
  * This is NPByteRange without the linked list.
@@ -85,7 +75,7 @@ struct IPCByteRange
   uint32_t length;
 };  
 
-typedef std::vector<IPCByteRange> IPCByteRanges;
+typedef nsTArray<IPCByteRange> IPCByteRanges;
 
 typedef nsCString Buffer;
 
@@ -115,7 +105,7 @@ struct NPRemoteWindow
 typedef HWND NativeWindowHandle;
 #elif defined(MOZ_X11)
 typedef XID NativeWindowHandle;
-#elif defined(XP_MACOSX) || defined(ANDROID) || defined(MOZ_WIDGET_QT)
+#elif defined(XP_DARWIN) || defined(ANDROID) || defined(MOZ_WIDGET_QT)
 typedef intptr_t NativeWindowHandle; // never actually used, will always be 0
 #else
 #error Need NativeWindowHandle for this platform
@@ -210,7 +200,7 @@ inline bool IsPluginThread()
 
 inline void AssertPluginThread()
 {
-  NS_ASSERTION(IsPluginThread(), "Should be on the plugin's main thread!");
+  MOZ_RELEASE_ASSERT(IsPluginThread(), "Should be on the plugin's main thread!");
 }
 
 #define ENSURE_PLUGIN_THREAD(retval) \
@@ -256,7 +246,7 @@ NullableStringGet(const nsCString& str)
 
 struct DeletingObjectEntry : public nsPtrHashKey<NPObject>
 {
-  DeletingObjectEntry(const NPObject* key)
+  explicit DeletingObjectEntry(const NPObject* key)
     : nsPtrHashKey<NPObject>(key)
     , mDeleted(false)
   { }
@@ -315,32 +305,6 @@ template <>
 struct ParamTraits<NPWindowType>
 {
   typedef NPWindowType paramType;
-
-  static void Write(Message* aMsg, const paramType& aParam)
-  {
-    aMsg->WriteInt16(int16_t(aParam));
-  }
-
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
-  {
-    int16_t result;
-    if (aMsg->ReadInt16(aIter, &result)) {
-      *aResult = paramType(result);
-      return true;
-    }
-    return false;
-  }
-
-  static void Log(const paramType& aParam, std::wstring* aLog)
-  {
-    aLog->append(StringPrintf(L"%d", int16_t(aParam)));
-  }
-};
-
-template <>
-struct ParamTraits<NPImageFormat>
-{
-  typedef NPImageFormat paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {

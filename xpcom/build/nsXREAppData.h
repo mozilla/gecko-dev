@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +8,7 @@
 #define nsXREAppData_h
 
 #include <stdint.h>
+#include "mozilla/Attributes.h"
 
 class nsIFile;
 
@@ -14,7 +16,7 @@ class nsIFile;
  * Application-specific data needed to start the apprunner.
  *
  * @note When this structure is allocated and manipulated by XRE_CreateAppData,
- *       string fields will be allocated with NS_Alloc, and interface pointers
+ *       string fields will be allocated with moz_xmalloc, and interface pointers
  *       are strong references.
  */
 struct nsXREAppData
@@ -30,33 +32,40 @@ struct nsXREAppData
    * The directory of the application to be run. May be null if the
    * xulrunner and the app are installed into the same directory.
    */
-  nsIFile* directory;
+  nsIFile* MOZ_NON_OWNING_REF directory;
 
   /**
    * The name of the application vendor. This must be ASCII, and is normally
    * mixed-case, e.g. "Mozilla". Optional (may be null), but highly
    * recommended. Must not be the empty string.
    */
-  const char *vendor;
+  const char* vendor;
 
   /**
    * The name of the application. This must be ASCII, and is normally
    * mixed-case, e.g. "Firefox". Required (must not be null or an empty
    * string).
    */
-  const char *name;
+  const char* name;
+
+  /**
+   * The internal name of the application for remoting purposes. When left
+   * unspecified, "name" is used instead. This must be ASCII, and is normally
+   * lowercase, e.g. "firefox". Optional (may be null but not an empty string).
+   */
+  const char* remotingName;
 
   /**
    * The major version, e.g. "0.8.0+". Optional (may be null), but
    * required for advanced application features such as the extension
    * manager and update service. Must not be the empty string.
    */
-  const char *version;
+  const char* version;
 
   /**
    * The application's build identifier, e.g. "2004051604"
    */
-  const char *buildID;
+  const char* buildID;
 
   /**
    * The application's UUID. Used by the extension manager to determine
@@ -68,13 +77,13 @@ struct nsXREAppData
    * a more readable form is encouraged: "appname@vendor.tld". Only
    * the following characters are allowed: a-z A-Z 0-9 - . @ _ { } *
    */
-  const char *ID;
+  const char* ID;
 
   /**
    * The copyright information to print for the -h commandline flag,
    * e.g. "Copyright (c) 2003 mozilla.org".
    */
-  const char *copyright;
+  const char* copyright;
 
   /**
    * Combination of NS_XRE_ prefixed flags (defined below).
@@ -85,18 +94,18 @@ struct nsXREAppData
    * The location of the XRE. XRE_main may not be able to figure this out
    * programatically.
    */
-  nsIFile* xreDirectory;
+  nsIFile* MOZ_NON_OWNING_REF xreDirectory;
 
   /**
    * The minimum/maximum compatible XRE version.
    */
-  const char *minVersion;
-  const char *maxVersion;
+  const char* minVersion;
+  const char* maxVersion;
 
   /**
    * The server URL to send crash reports to.
    */
-  const char *crashReporterURL;
+  const char* crashReporterURL;
 
   /**
    * The profile directory that will be used. Optional (may be null). Must not
@@ -113,12 +122,12 @@ struct nsXREAppData
    *
    *   UAppData = $HOME/$profile
    */
-  const char *profile;
+  const char* profile;
 
   /**
    * The application name to use in the User Agent string.
    */
-  const char *UAName;
+  const char* UAName;
 };
 
 /**
@@ -126,12 +135,6 @@ struct nsXREAppData
  * invoked at startup when creating a profile.
  */
 #define NS_XRE_ENABLE_PROFILE_MIGRATOR (1 << 1)
-
-/**
- * Indicates whether or not the extension manager service should be
- * initialized at startup.
- */
-#define NS_XRE_ENABLE_EXTENSION_MANAGER (1 << 2)
 
 /**
  * Indicates whether or not to use Breakpad crash reporting.

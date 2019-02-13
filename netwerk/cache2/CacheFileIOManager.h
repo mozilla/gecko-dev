@@ -23,7 +23,6 @@ class nsIFile;
 class nsITimer;
 class nsIDirectoryEnumerator;
 class nsILoadContextInfo;
-class nsICacheStorageVisitor;
 
 namespace mozilla {
 namespace net {
@@ -33,9 +32,9 @@ class CacheFile;
 class CacheFileHandlesEntry;
 #endif
 
-const char kEntriesDir[] = "entries";
-const char kDoomedDir[]  = "doomed";
-const char kTrashDir[]   = "trash";
+#define ENTRIES_DIR "entries"
+#define DOOMED_DIR  "doomed"
+#define TRASH_DIR   "trash"
 
 
 class CacheFileHandle : public nsISupports
@@ -90,7 +89,7 @@ public:
   CacheFileHandles();
   ~CacheFileHandles();
 
-  nsresult GetHandle(const SHA1Sum::Hash *aHash, bool aReturnDoomed, CacheFileHandle **_retval);
+  nsresult GetHandle(const SHA1Sum::Hash *aHash, CacheFileHandle **_retval);
   nsresult NewHandle(const SHA1Sum::Hash *aHash, bool aPriority, CacheFileHandle **_retval);
   void     RemoveHandle(CacheFileHandle *aHandlle);
   void     GetAllHandles(nsTArray<nsRefPtr<CacheFileHandle> > *_retval);
@@ -112,10 +111,10 @@ public:
     typedef const SHA1Sum::Hash& KeyType;
     typedef const SHA1Sum::Hash* KeyTypePointer;
 
-    HandleHashKey(KeyTypePointer aKey)
+    explicit HandleHashKey(KeyTypePointer aKey)
     {
       MOZ_COUNT_CTOR(HandleHashKey);
-      mHash = (SHA1Sum::Hash*)new uint8_t[SHA1Sum::HashSize];
+      mHash = (SHA1Sum::Hash*)new uint8_t[SHA1Sum::kHashSize];
       memcpy(mHash, aKey, sizeof(SHA1Sum::Hash));
     }
     HandleHashKey(const HandleHashKey& aOther)
@@ -174,7 +173,6 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 class OpenFileEvent;
-class CloseFileEvent;
 class ReadEvent;
 class WriteEvent;
 class MetadataWriteScheduleEvent;
@@ -241,14 +239,13 @@ public:
   static nsresult ShutdownMetadataWriteScheduling();
 
   static nsresult OpenFile(const nsACString &aKey,
-                           uint32_t aFlags, bool aResultOnAnyThread,
-                           CacheFileIOListener *aCallback);
+                           uint32_t aFlags, CacheFileIOListener *aCallback);
   static nsresult Read(CacheFileHandle *aHandle, int64_t aOffset,
-                       char *aBuf, int32_t aCount, bool aResultOnAnyThread,
+                       char *aBuf, int32_t aCount,
                        CacheFileIOListener *aCallback);
   static nsresult Write(CacheFileHandle *aHandle, int64_t aOffset,
                         const char *aBuf, int32_t aCount, bool aValidate,
-                        CacheFileIOListener *aCallback);
+                        bool aTruncate, CacheFileIOListener *aCallback);
   static nsresult DoomFile(CacheFileHandle *aHandle,
                            CacheFileIOListener *aCallback);
   static nsresult DoomFileByKey(const nsACString &aKey,
@@ -329,7 +326,8 @@ private:
   nsresult ReadInternal(CacheFileHandle *aHandle, int64_t aOffset,
                         char *aBuf, int32_t aCount);
   nsresult WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
-                         const char *aBuf, int32_t aCount, bool aValidate);
+                         const char *aBuf, int32_t aCount, bool aValidate,
+                         bool aTruncate);
   nsresult DoomFileInternal(CacheFileHandle *aHandle);
   nsresult DoomFileByKeyInternal(const SHA1Sum::Hash *aHash);
   nsresult ReleaseNSPRHandleInternal(CacheFileHandle *aHandle);
@@ -376,7 +374,7 @@ private:
   // It is called in EvictIfOverLimitInternal() just before we decide whether to
   // start overlimit eviction or not and also in OverLimitEvictionInternal()
   // before we start an eviction loop.
-  nsresult UpdateSmartCacheSize();
+  nsresult UpdateSmartCacheSize(int64_t aFreeSpace);
 
   // Memory reporting (private part)
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;

@@ -4,13 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+JAR_MANIFESTS += ['jar.mn']
+
 interfaces = [
     'base',
     'canvas',
     'core',
     'html',
     'events',
-    'devicestorage',
     'settings',
     'stylesheets',
     'sidebar',
@@ -20,9 +21,11 @@ interfaces = [
     'xbl',
     'xpath',
     'xul',
+    'security',
     'storage',
     'json',
     'offline',
+    'push',
     'geolocation',
     'notification',
     'permission',
@@ -32,17 +35,22 @@ interfaces = [
     'gamepad',
 ]
 
-PARALLEL_DIRS += ['interfaces/' + i for i in interfaces]
+DIRS += ['interfaces/' + i for i in interfaces]
 
-PARALLEL_DIRS += [
+DIRS += [
     'animation',
     'apps',
     'base',
+    'bluetooth',
     'activities',
     'archivereader',
+    'requestsync',
     'bindings',
     'battery',
     'browser-element',
+    'cache',
+    'canvas',
+    'cellbroadcast',
     'contacts',
     'crypto',
     'phonenumberutils',
@@ -51,18 +59,30 @@ PARALLEL_DIRS += [
     'devicestorage',
     'encoding',
     'events',
+    'fetch',
     'filehandle',
     'filesystem',
     'fmradio',
+    'geolocation',
+    'html',
+    'icc',
+    'inputport',
+    'json',
+    'jsurl',
     'asmjscache',
+    'mathml',
     'media',
     'messages',
+    'mobileconnection',
+    'notification',
+    'offline',
     'power',
-    'push',
     'quota',
+    'security',
     'settings',
+    'storage',
+    'svg',
     'mobilemessage',
-    'src',
     'time',
     'locales',
     'network',
@@ -72,62 +92,74 @@ PARALLEL_DIRS += [
     'indexedDB',
     'system',
     'ipc',
-    'identity',
     'workers',
     'camera',
     'audiochannel',
+    'broadcastchannel',
+    'messagechannel',
     'promise',
     'smil',
     'telephony',
+    'tv',
+    'voicemail',
     'inputmethod',
     'webidl',
     'xbl',
+    'xml',
     'xslt',
+    'xul',
+    'resourcestats',
+    'manifest',
+    'vr',
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
-    PARALLEL_DIRS += ['plugins/ipc/hangui']
+    DIRS += ['plugins/ipc/hangui']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    PARALLEL_DIRS += [
+    DIRS += [
         'speakermanager',
+        'tethering',
         'wifi',
     ]
 
 if CONFIG['MOZ_B2G_RIL']:
-    PARALLEL_DIRS += [
-        'icc',
-        'cellbroadcast',
-        'mobileconnection',
-        'voicemail',
+    DIRS += [
         'wappush',
     ]
 
 if CONFIG['MOZ_PAY']:
-    PARALLEL_DIRS += ['payment']
+    DIRS += ['payment']
 
 if CONFIG['MOZ_GAMEPAD']:
-    PARALLEL_DIRS += ['gamepad']
+    DIRS += ['gamepad']
 
 if CONFIG['MOZ_NFC']:
-    PARALLEL_DIRS += ['nfc']
+    DIRS += ['nfc']
+
+if CONFIG['MOZ_SIMPLEPUSH']:
+    DIRS += ['simplepush']
+else:
+    DIRS += ['push']
+
+if CONFIG['MOZ_SECUREELEMENT']:
+    DIRS += ['secureelement']
 
 if CONFIG['MOZ_B2G']:
-    PARALLEL_DIRS += [
+    DIRS += [
         'downloads',
-        'mobileid'
+        'identity',
+        'mobileid',
+        'engineeringmode'
     ]
 
-if CONFIG['MOZ_B2G_BT_API_V2']:
-    PARALLEL_DIRS += ['bluetooth2']
-else:
-    PARALLEL_DIRS += ['bluetooth']
+DIRS += ['presentation']
 
 TEST_DIRS += [
     'tests',
     'imptests',
 ]
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('gtk2', 'cocoa', 'windows', 'android', 'qt'):
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('gtk2', 'gtk3', 'cocoa', 'windows', 'android', 'qt'):
     TEST_DIRS += ['plugins/test']
 

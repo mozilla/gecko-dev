@@ -1,4 +1,4 @@
-# -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+# -*- indent-tabs-mode: nil; js-indent-level: 4 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,11 +26,8 @@ var gTabsPane = {
    * - true if tabs are to be shown in the Windows 7 taskbar
    */
 
-#ifdef XP_WIN
-  /**
-   * Initialize any platform-specific UI.
-   */
   init: function () {
+#ifdef XP_WIN
     const Cc = Components.classes;
     const Ci = Components.interfaces;
     try {
@@ -40,8 +37,20 @@ var gTabsPane = {
       let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
       showTabsInTaskbar.hidden = ver < 6.1;
     } catch (ex) {}
-  },
 #endif
+
+    // The "closing multiple tabs" and "opening multiple tabs might slow down
+    // &brandShortName;" warnings provide options for not showing these
+    // warnings again. When the user disabled them, we provide checkboxes to
+    // re-enable the warnings.
+    let TransientPrefs =
+      Components.utils.import("resource:///modules/TransientPrefs.jsm", {})
+                .TransientPrefs;
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnClose"))
+      document.getElementById("warnCloseMultiple").hidden = true;
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnOpen"))
+      document.getElementById("warnOpenMany").hidden = true;
+  },
 
   /**
    * Determines where a link which opens a new window will open.

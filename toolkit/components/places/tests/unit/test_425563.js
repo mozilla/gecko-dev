@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ add_task(function test_execute()
                                "http://www.test-framed.com/"];
 
   // add visits, one for each transition type
-  yield promiseAddVisits([
+  yield PlacesTestUtils.addVisits([
     { uri: uri("http://www.test-link.com/"),
       transition: TRANSITION_LINK },
     { uri: uri("http://www.test-typed.com/"),

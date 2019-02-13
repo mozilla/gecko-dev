@@ -62,14 +62,18 @@ function initExceptionDialog() {
       document.getElementById("locationTextBox").value = args[0].location;
       document.getElementById('checkCertButton').disabled = false;
       
-      // We can optionally pre-fetch the certificate too.  Don't do this
-      // synchronously, since it would prevent the window from appearing
-      // until the fetch is completed, which could be multiple seconds.
-      // Instead, let's use a timer to spawn the actual fetch, but update
-      // the dialog to "checking..." state right away, so that the UI
-      // is appropriately responsive.  Bug 453855
-      if (args[0].prefetchCert) {
-
+      if (args[0].sslStatus) {
+        gSSLStatus = args[0].sslStatus;
+        gCert = gSSLStatus.serverCert;
+        gBroken = true;
+        updateCertStatus();
+      } else if (args[0].prefetchCert) {
+        // We can optionally pre-fetch the certificate too.  Don't do this
+        // synchronously, since it would prevent the window from appearing
+        // until the fetch is completed, which could be multiple seconds.
+        // Instead, let's use a timer to spawn the actual fetch, but update
+        // the dialog to "checking..." state right away, so that the UI
+        // is appropriately responsive.  Bug 453855
         document.getElementById("checkCertButton").disabled = true;
         gChecking = true;
         updateCertStatus();
@@ -81,35 +85,6 @@ function initExceptionDialog() {
     // Set out parameter to false by default
     args[0].exceptionAdded = false; 
   }
-}
-
-// returns true if found and global status could be set
-function findRecentBadCert(uri) {
-  try {
-    var certDB = Components.classes["@mozilla.org/security/x509certdb;1"]
-                           .getService(Components.interfaces.nsIX509CertDB);
-    if (!certDB)
-      return false;
-    var recentCertsSvc = certDB.getRecentBadCerts(inPrivateBrowsingMode());
-    if (!recentCertsSvc)
-      return false;
-
-    var hostWithPort = uri.host + ":" + uri.port;
-    gSSLStatus = recentCertsSvc.getRecentBadCert(hostWithPort);
-    if (!gSSLStatus)
-      return false;
-
-    gCert = gSSLStatus.QueryInterface(Components.interfaces.nsISSLStatus).serverCert;
-    if (!gCert)
-      return false;
-
-    gBroken = true;
-  }
-  catch (e) {
-    return false;
-  }
-  updateCertStatus();  
-  return true;
 }
 
 /**
@@ -125,10 +100,6 @@ function checkCert() {
   updateCertStatus();
 
   var uri = getURI();
-
-  // Is the cert already known in the list of recently seen bad certs?
-  if (findRecentBadCert(uri) == true)
-    return;
 
   var req = new XMLHttpRequest();
   try {
@@ -216,11 +187,11 @@ function updateCertStatus() {
   if(gCert) {
     if(gBroken) { 
       var mms = "addExceptionDomainMismatchShort";
-      var mml = "addExceptionDomainMismatchLong";
+      var mml = "addExceptionDomainMismatchLong2";
       var exs = "addExceptionExpiredShort";
-      var exl = "addExceptionExpiredLong";
+      var exl = "addExceptionExpiredLong2";
       var uts = "addExceptionUnverifiedOrBadSignatureShort";
-      var utl = "addExceptionUnverifiedOrBadSignatureLong";
+      var utl = "addExceptionUnverifiedOrBadSignatureLong2";
       var use1 = false;
       if (gSSLStatus.isDomainMismatch) {
         bucketId += gNsISecTel.WARNING_BAD_CERT_TOP_ADD_EXCEPTION_FLAG_DOMAIN;
@@ -292,7 +263,7 @@ function updateCertStatus() {
   }
   else if (gChecking) {
     shortDesc = "addExceptionCheckingShort";
-    longDesc  = "addExceptionCheckingLong";
+    longDesc  = "addExceptionCheckingLong2";
     // We're checking the certificate, so we disable the Get Certificate
     // button to make sure that the user can't interrupt the process and
     // trigger another certificate fetch.
@@ -303,7 +274,7 @@ function updateCertStatus() {
   }
   else {
     shortDesc = "addExceptionNoCertShort";
-    longDesc  = "addExceptionNoCertLong";
+    longDesc  = "addExceptionNoCertLong2";
     // We're done checking the certificate, so allow the user to check it again.
     document.getElementById("checkCertButton").disabled = false;
     document.getElementById("viewCertButton").disabled = true;

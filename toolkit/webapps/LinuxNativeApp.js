@@ -47,17 +47,17 @@ NativeApp.prototype = {
    * @param aZipPath {String} path to the zip file for packaged apps (undefined
    *                          for hosted apps)
    */
-  install: Task.async(function*(aManifest, aZipPath) {
+  install: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
     // If the application is already installed, this is a reinstallation.
-    if (WebappOSUtils.getInstallPath(this.app)) {
-      return yield this.prepareUpdate(aManifest, aZipPath);
+    if (WebappOSUtils.getInstallPath(aApp)) {
+      return yield this.prepareUpdate(aApp, aManifest, aZipPath);
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
     // The installation directory name is: sanitized app name +
     // "-" + manifest url hash.
@@ -101,14 +101,14 @@ NativeApp.prototype = {
    * @param aZipPath {String} path to the zip file for packaged apps (undefined
    *                          for hosted apps)
    */
-  prepareUpdate: Task.async(function*(aManifest, aZipPath) {
+  prepareUpdate: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
-    let installDir = WebappOSUtils.getInstallPath(this.app);
+    let installDir = WebappOSUtils.getInstallPath(aApp);
     if (!installDir) {
       throw ERR_NOT_INSTALLED;
     }
@@ -142,12 +142,12 @@ NativeApp.prototype = {
   /**
    * Applies an update.
    */
-  applyUpdate: Task.async(function*() {
+  applyUpdate: Task.async(function*(aApp) {
     if (this._dryRun) {
       return;
     }
 
-    let installDir = WebappOSUtils.getInstallPath(this.app);
+    let installDir = WebappOSUtils.getInstallPath(aApp);
     let updateDir = OS.Path.join(installDir, "update");
 
     let backupDir = yield this._backupInstallation(installDir);
@@ -166,7 +166,7 @@ NativeApp.prototype = {
   _applyTempInstallation: Task.async(function*(aTmpDir, aInstallDir) {
     yield moveDirectory(aTmpDir, aInstallDir);
 
-    this._createSystemFiles(aInstallDir);
+    yield this._createSystemFiles(aInstallDir);
   }),
 
   _removeInstallation: function(keepProfile, aInstallDir) {
@@ -263,14 +263,17 @@ NativeApp.prototype = {
                  getService(Ci.nsIINIParserFactory).
                  createINIParser(webappINIfile).
                  QueryInterface(Ci.nsIINIParserWriter);
-    writer.setString("Webapp", "Name", this.appName);
+    writer.setString("Webapp", "Name", this.appLocalizedName);
     writer.setString("Webapp", "Profile", this.uniqueName);
-    writer.setString("Webapp", "UninstallMsg", webappsBundle.formatStringFromName("uninstall.notification", [this.appName], 1));
+    writer.setString("Webapp", "UninstallMsg",
+                     webappsBundle.formatStringFromName("uninstall.notification",
+                                                        [this.appLocalizedName],
+                                                        1));
     writer.setString("WebappRT", "InstallDir", this.runtimeFolder);
     writer.writeFile();
   },
 
-  _createSystemFiles: function(aInstallDir) {
+  _createSystemFiles: Task.async(function*(aInstallDir) {
     let webappsBundle = Services.strings.createBundle("chrome://global/locale/webapps.properties");
 
     let webapprtPath = OS.Path.join(aInstallDir, this.webapprt);
@@ -285,7 +288,7 @@ NativeApp.prototype = {
                  getService(Ci.nsIINIParserFactory).
                  createINIParser(desktopINIfile).
                  QueryInterface(Ci.nsIINIParserWriter);
-    writer.setString("Desktop Entry", "Name", this.appName);
+    writer.setString("Desktop Entry", "Name", this.appLocalizedName);
     writer.setString("Desktop Entry", "Comment", this.shortDescription);
     writer.setString("Desktop Entry", "Exec", '"' + webapprtPath + '"');
     writer.setString("Desktop Entry", "Icon", OS.Path.join(aInstallDir,
@@ -303,8 +306,8 @@ NativeApp.prototype = {
 
     writer.writeFile();
 
-    desktopINIfile.permissions = PERMS_FILE | OS.Constants.libc.S_IXUSR;
-  },
+    yield OS.File.setPermissions(desktopINIfile.path, { unixMode: PERMS_FILE | OS.Constants.libc.S_IXUSR });
+  }),
 
   /**
    * Process the icon from the imageStream as retrieved from

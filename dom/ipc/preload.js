@@ -19,7 +19,6 @@ const BrowserElementIsPreloaded = true;
   Cu.import("resource://gre/modules/AppsServiceChild.jsm");
   Cu.import("resource://gre/modules/AppsUtils.jsm");
   Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
-  Cu.import("resource://gre/modules/CSPUtils.jsm");
   Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
   Cu.import("resource://gre/modules/FileUtils.jsm");
   Cu.import("resource://gre/modules/Geometry.jsm");
@@ -27,8 +26,12 @@ const BrowserElementIsPreloaded = true;
   Cu.import("resource://gre/modules/NetUtil.jsm");
   Cu.import("resource://gre/modules/Services.jsm");
   Cu.import("resource://gre/modules/SettingsDB.jsm");
-  Cu.import("resource://gre/modules/SettingsQueue.jsm");
   Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+  try {
+    if (Services.prefs.getBoolPref("dom.apps.customization.enabled")) {
+      Cu.import("resource://gre/modules/UserCustomizations.jsm");
+    }
+  } catch(e) {}
 
   Cc["@mozilla.org/appshell/appShellService;1"].getService(Ci["nsIAppShellService"]);
   Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci["nsIWindowMediator"]);
@@ -70,15 +73,11 @@ const BrowserElementIsPreloaded = true;
   Cc["@mozilla.org/thread-manager;1"].getService(Ci["nsIThreadManager"]);
   Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci["nsIAppStartup"]);
   Cc["@mozilla.org/uriloader;1"].getService(Ci["nsIURILoader"]);
-  Cc["@mozilla.org/contentsecuritypolicy;1"].createInstance(Ci["nsIContentSecurityPolicy"]);
+  Cc["@mozilla.org/cspcontext;1"].createInstance(Ci["nsIContentSecurityPolicy"]);
+  Cc["@mozilla.org/settingsManager;1"].createInstance(Ci["nsISupports"]);
+  Cc["@mozilla.org/webapps;1"].createInstance(Ci["nsISupports"]);
 
   /* Applications Specific Helper */
-  try {
-    // May throw if we don't have the settings permission
-    navigator.mozSettings;
-  } catch(e) {
-  }
-
   try {
     if (Services.prefs.getBoolPref("dom.sysmsg.enabled")) {
       Cc["@mozilla.org/system-message-manager;1"].getService(Ci["nsIDOMNavigatorSystemMessages"]);
@@ -93,7 +92,18 @@ const BrowserElementIsPreloaded = true;
   } catch (e) {
   }
 
-  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js", global);
+  if (Services.prefs.getIntPref("dom.w3c_touch_events.enabled") == 1) {
+    try {
+      if (Services.prefs.getBoolPref("layers.async-pan-zoom.enabled") === false) {
+        Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanningAPZDisabled.js", global);
+      }
+    } catch (e) {
+    }
+
+    Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js", global);
+  }
+
+  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementCopyPaste.js", global);
   Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementChildPreload.js", global);
 
   Services.io.getProtocolHandler("app");

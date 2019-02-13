@@ -5,14 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TelephonyCallGroup.h"
-#include "mozilla/dom/TelephonyCallGroupBinding.h"
 
 #include "CallsList.h"
+#include "Telephony.h"
 #include "mozilla/dom/CallEvent.h"
 #include "mozilla/dom/CallGroupErrorEvent.h"
-#include "Telephony.h"
+#include "mozilla/dom/TelephonyCallGroupBinding.h"
+#include "mozilla/dom/telephony/TelephonyCallback.h"
 
 using namespace mozilla::dom;
+using namespace mozilla::dom::telephony;
 using mozilla::ErrorResult;
 
 TelephonyCallGroup::TelephonyCallGroup(nsPIDOMWindow* aOwner)
@@ -41,9 +43,9 @@ TelephonyCallGroup::Create(Telephony* aTelephony)
 }
 
 JSObject*
-TelephonyCallGroup::WrapObject(JSContext* aCx)
+TelephonyCallGroup::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return TelephonyCallGroupBinding::Wrap(aCx, this);
+  return TelephonyCallGroupBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
@@ -86,38 +88,30 @@ TelephonyCallGroup::ChangeState(uint16_t aCallState)
     return;
   }
 
-  nsString stateString;
+  mCallState = aCallState;
   switch (aCallState) {
     case nsITelephonyService::CALL_STATE_UNKNOWN:
+      mState.AssignLiteral("");
       break;
     case nsITelephonyService::CALL_STATE_CONNECTED:
-      stateString.AssignLiteral("connected");
-      break;
-    case nsITelephonyService::CALL_STATE_HOLDING:
-      stateString.AssignLiteral("holding");
+      mState.AssignLiteral("connected");
       break;
     case nsITelephonyService::CALL_STATE_HELD:
-      stateString.AssignLiteral("held");
-      break;
-    case nsITelephonyService::CALL_STATE_RESUMING:
-      stateString.AssignLiteral("resuming");
+      mState.AssignLiteral("held");
       break;
     default:
       NS_NOTREACHED("Unknown state!");
   }
 
-  mState = stateString;
-  mCallState = aCallState;
-
   nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("statechange"), nullptr);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to dispatch specific event!");
   }
-  if (!stateString.IsEmpty()) {
+  if (!mState.IsEmpty()) {
     // This can change if the statechange handler called back here... Need to
     // figure out something smarter.
     if (mCallState == aCallState) {
-      rv = DispatchCallEvent(stateString, nullptr);
+      rv = DispatchCallEvent(mState, nullptr);
       if (NS_FAILED(rv)) {
         NS_WARNING("Failed to dispatch specific event!");
       }
@@ -151,9 +145,26 @@ TelephonyCallGroup::DispatchCallEvent(const nsAString& aType,
   return DispatchTrustedEvent(event);
 }
 
+already_AddRefed<Promise>
+TelephonyCallGroup::CreatePromise(ErrorResult& aRv)
+{
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
+  if (!global) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsRefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  return promise.forget();
+}
+
 bool
 TelephonyCallGroup::CanConference(const TelephonyCall& aCall,
-                                  TelephonyCall* aSecondCall)
+                                  const TelephonyCall* aSecondCall)
 {
   if (!aCall.Mergeable()) {
     return false;
@@ -231,86 +242,143 @@ TelephonyCallGroup::Calls() const
   return list.forget();
 }
 
-void
+already_AddRefed<Promise>
 TelephonyCallGroup::Add(TelephonyCall& aCall,
                         ErrorResult& aRv)
 {
-  if (!CanConference(aCall, nullptr)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return;
+  MOZ_ASSERT(!mCalls.IsEmpty());
+
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
   }
 
-  aRv = mTelephony->Service()->ConferenceCall(aCall.ServiceId());
+  if (!CanConference(aCall, nullptr)) {
+    promise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->ConferenceCall(aCall.ServiceId(), callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+
+  return promise.forget();
 }
 
-void
+already_AddRefed<Promise>
 TelephonyCallGroup::Add(TelephonyCall& aCall,
                         TelephonyCall& aSecondCall,
                         ErrorResult& aRv)
 {
-  if (!CanConference(aCall, &aSecondCall)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return;
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
   }
 
-  aRv = mTelephony->Service()->ConferenceCall(aCall.ServiceId());
+  if (!CanConference(aCall, &aSecondCall)) {
+    promise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->ConferenceCall(aCall.ServiceId(), callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+
+  return promise.forget();
 }
 
-void
+already_AddRefed<Promise>
 TelephonyCallGroup::Remove(TelephonyCall& aCall, ErrorResult& aRv)
 {
+  MOZ_ASSERT(!mCalls.IsEmpty());
+
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
+  }
+
   if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED) {
     NS_WARNING("Remove call from a non-connected call group. Ignore!");
-    return;
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
   }
 
   uint32_t serviceId = aCall.ServiceId();
   uint32_t callIndex = aCall.CallIndex();
 
-  nsRefPtr<TelephonyCall> call;
-
-  call = GetCall(serviceId, callIndex);
-  if (call) {
-    aRv = mTelephony->Service()->SeparateCall(serviceId, callIndex);
-  } else {
+  nsRefPtr<TelephonyCall> call = GetCall(serviceId, callIndex);
+  if (!call) {
     NS_WARNING("Didn't have this call. Ignore!");
+    promise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+    return promise.forget();
   }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->SeparateCall(serviceId, callIndex, callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+
+  return promise.forget();
 }
 
-void
+already_AddRefed<Promise>
+TelephonyCallGroup::HangUp(ErrorResult& aRv)
+{
+  MOZ_ASSERT(!mCalls.IsEmpty());
+
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->HangUpConference(mCalls[0]->ServiceId(),
+                                                callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+  return promise.forget();
+}
+
+already_AddRefed<Promise>
 TelephonyCallGroup::Hold(ErrorResult& aRv)
 {
-  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED) {
-    NS_WARNING("Hold non-connected call ignored!");
-    return;
-  }
-
   MOZ_ASSERT(!mCalls.IsEmpty());
 
-  nsresult rv = mTelephony->Service()->HoldConference(mCalls[0]->ServiceId());
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-    return;
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
   }
 
-  ChangeState(nsITelephonyService::CALL_STATE_HOLDING);
+  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED) {
+    NS_WARNING("Holding a non-connected call is rejected!");
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->HoldConference(mCalls[0]->ServiceId(),
+                                              callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+  return promise.forget();
 }
 
-void
+already_AddRefed<Promise>
 TelephonyCallGroup::Resume(ErrorResult& aRv)
 {
-  if (mCallState != nsITelephonyService::CALL_STATE_HELD) {
-    NS_WARNING("Resume non-held call ignored!");
-    return;
-  }
-
   MOZ_ASSERT(!mCalls.IsEmpty());
 
-  nsresult rv = mTelephony->Service()->ResumeConference(mCalls[0]->ServiceId());
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-    return;
+  nsRefPtr<Promise> promise = CreatePromise(aRv);
+  if (!promise) {
+    return nullptr;
   }
 
-  ChangeState(nsITelephonyService::CALL_STATE_RESUMING);
+  if (mCallState != nsITelephonyService::CALL_STATE_HELD) {
+    NS_WARNING("Resuming a non-held call is rejected!");
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  aRv = mTelephony->Service()->ResumeConference(mCalls[0]->ServiceId(),
+                                                callback);
+  NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
+  return promise.forget();
 }

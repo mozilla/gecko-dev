@@ -11,8 +11,6 @@
 #include "nsAutoPtr.h"
 #include "nsSize.h"
 
-class gfxASurface;
-
 namespace mozilla {
 namespace gl {
 
@@ -21,7 +19,7 @@ class TextureImageCGL : public BasicTextureImage
 public:
 
     TextureImageCGL(GLuint aTexture,
-                    const nsIntSize& aSize,
+                    const gfx::IntSize& aSize,
                     GLenum aWrapMode,
                     ContentType aContentType,
                     GLContext* aContext,
@@ -51,7 +49,7 @@ CreateTextureImageCGL(GLContext *gl,
 
 already_AddRefed<TextureImage>
 TileGenFuncCGL(GLContext *gl,
-               const nsIntSize& aSize,
+               const gfx::IntSize& aSize,
                TextureImage::ContentType aContentType,
                TextureImage::Flags aFlags,
                TextureImage::ImageFormat aImageFormat);

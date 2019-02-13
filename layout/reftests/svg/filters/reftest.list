@@ -2,11 +2,23 @@
 # subregion. The fe*-2 tests test with no clipping (which stresses
 # the automatic optimal surface-size computation a bit more).
 
-skip-if(B2G) == dynamic-filtered-foreignObject-01.svg pass.svg # bug 773482
-random-if(B2G&&browserIsRemote) == dynamic-filter-invalidation-01.svg pass.svg
+# CSS filter tests
+include css-filters/reftest.list
+
+# CSS filter chain tests
+include css-filter-chains/reftest.list
+
+# Combined CSS and SVG filter chain tests
+include css-svg-filter-chains/reftest.list
+
+# SVG filter chain tests
+include svg-filter-chains/reftest.list
+
+== dynamic-filtered-foreignObject-01.svg pass.svg
+== dynamic-filter-invalidation-01.svg pass.svg
 == dynamic-filter-invalidation-02.svg pass.svg
 
-== feBlend-1.svg feBlend-1-ref.svg
+fuzzy(1,40000) == feBlend-1.svg feBlend-1-ref.svg
 == feBlend-2.svg feBlend-2-ref.svg
 
 fuzzy-if(d2d,1,6400) == feColorMatrix-1.svg feColorMatrix-1-ref.svg
@@ -33,8 +45,10 @@ fuzzy(1,6400) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
 == feGaussianBlur-4.svg feGaussianBlur-4-ref.svg
 == feGaussianBlur-5.svg feGaussianBlur-5-ref.svg
 == feGaussianBlur-6.svg feGaussianBlur-6-ref.svg
+skip-if(d2d) pref(layers.acceleration.disabled,true) == feGaussianBlur-cap-large-directional-radius-on-software.html feGaussianBlur-cap-large-directional-radius-on-software-ref.html
 
 == feImage-1.svg feImage-1-ref.svg
+== feImage-scale-to-primitive-subregion.html feImage-scale-to-primitive-subregion-ref.html
 
 == feMerge-1.svg feMerge-1-ref.svg
 == feMerge-2.svg feMerge-2-ref.svg
@@ -74,13 +88,13 @@ fails == filter-marked-line-01.svg pass.svg # bug 477704
 == feComponentTransfer-03.svg pass.svg
 == feComponentTransfer-04.svg pass.svg
 == feComposite-arguments-01.svg pass.svg
-skip-if(B2G) fuzzy(1,26732) == feComposite-paint-01.svg feComposite-paint-01-ref.svg
+fuzzy(1,26732) == feComposite-paint-01.svg feComposite-paint-01-ref.svg
 fuzzy(1,10000) == feConvolveMatrix-bias-01.svg feConvolveMatrix-bias-01-ref.svg
 == feConvolveMatrix-order-01.svg feConvolveMatrix-order-01-ref.svg
 
 == feDisplacementMap-alpha-01.svg pass.svg
 fuzzy(2,500) == feDisplacementMap-colour-01.svg feDisplacementMap-colour-01-ref.svg
-skip-if(B2G) == feDisplacementMap-scale-01.svg pass.svg
+== feDisplacementMap-scale-01.svg pass.svg
 
 == feDropShadow-01.svg feDropShadow-01-ref.svg
 
@@ -103,7 +117,6 @@ fuzzy(2,2659) skip-if(d2d) == feSpecularLighting-1.svg feSpecularLighting-1-ref.
 
 == feTurbulence-offset.svg feTurbulence-offset-ref.svg
 
-pref(layout.css.filters.enabled,true) == multiple-svg-filters.svg multiple-svg-filters-ref.svg
-pref(layout.css.filters.enabled,true) == multiple-svg-filters-long-chain.svg multiple-svg-filters-ref.svg
-pref(layout.css.filters.enabled,true) == multiple-svg-filters-second-uses-SourceGraphic.svg multiple-svg-filters-ref.svg
-pref(layout.css.filters.enabled,true) == multiple-svg-filters-with-multiple-primitives.svg multiple-svg-filters-ref.svg
+== outside-sourcegraphic-1.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-2.svg outside-sourcegraphic-ref.svg
+== outside-sourcegraphic-3.svg outside-sourcegraphic-ref.svg

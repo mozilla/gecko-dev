@@ -6,7 +6,10 @@ STANDALONE_MAKEFILE := 1
 
 # overwrite mobile-l10n.js with a matchOS=true one for multi-locale builds
 ifeq ($(AB_CD),multi)
-PREF_JS_EXPORTS = $(srcdir)/mobile-l10n.js
+L10N_PREF_JS_EXPORTS = $(srcdir)/mobile-l10n.js
+L10N_PREF_JS_EXPORTS_PATH = $(FINAL_TARGET)/$(PREF_DIR)
+L10N_PREF_JS_EXPORTS_FLAGS = $(PREF_PPFLAGS) --silence-missing-directive-warnings
+PP_TARGETS += L10N_PREF_JS_EXPORTS
 endif
 
 include $(topsrcdir)/config/rules.mk
@@ -16,13 +19,17 @@ MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 MOZ_PKG_MANIFEST_P = $(srcdir)/package-manifest.in
 
 DEFINES += \
-	-DAB_CD=$(AB_CD) \
-	-DMOZ_APP_NAME=$(MOZ_APP_NAME) \
-	-DPREF_DIR=$(PREF_DIR) \
-	$(NULL)
+  -DMOZ_APP_NAME=$(MOZ_APP_NAME) \
+  -DPREF_DIR=$(PREF_DIR) \
+  -DJAREXT= \
+  -DMOZ_CHILD_PROCESS_NAME=$(MOZ_CHILD_PROCESS_NAME) \
+  -DMOZ_CHILD_PROCESS_NAME_PIE=$(MOZ_CHILD_PROCESS_NAME_PIE) \
+  -DANDROID_CPU_ARCH=$(ANDROID_CPU_ARCH) \
+  $(NULL)
 
-DEFINES += -DJAREXT=
-DEFINES += -DMOZ_CHILD_PROCESS_NAME=$(MOZ_CHILD_PROCESS_NAME)
+ifdef MOZ_DEBUG
+DEFINES += -DMOZ_DEBUG=1
+endif
 
 ifdef MOZ_PKG_MANIFEST_P
 MOZ_PKG_MANIFEST = package-manifest
@@ -31,6 +38,17 @@ endif
 MOZ_PACKAGER_MINIFY=1
 
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
+
+# Note that JS_BINARY can be defined in packager.mk, so this test must come
+# after including that file. MOZ_PACKAGER_MINIFY_JS is used in packager.mk, but
+# since recipe evaluation is deferred, we can set it here after the inclusion.
+ifneq (,$(JS_BINARY))
+ifndef MOZ_DEBUG
+ifndef NIGHTLY_BUILD
+MOZ_PACKAGER_MINIFY_JS=1
+endif
+endif
+endif
 
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)

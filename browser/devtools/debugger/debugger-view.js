@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,10 +53,9 @@ let DebuggerView = {
     this.Toolbar.initialize();
     this.Options.initialize();
     this.Filtering.initialize();
-    this.FilteredSources.initialize();
-    this.FilteredFunctions.initialize();
     this.StackFrames.initialize();
     this.StackFramesClassicList.initialize();
+    this.Workers.initialize();
     this.Sources.initialize();
     this.VariableBubble.initialize();
     this.Tracer.initialize();
@@ -88,8 +87,6 @@ let DebuggerView = {
     this.Toolbar.destroy();
     this.Options.destroy();
     this.Filtering.destroy();
-    this.FilteredSources.destroy();
-    this.FilteredFunctions.destroy();
     this.StackFrames.destroy();
     this.StackFramesClassicList.destroy();
     this.Sources.destroy();
@@ -112,7 +109,7 @@ let DebuggerView = {
 
     this._body = document.getElementById("body");
     this._editorDeck = document.getElementById("editor-deck");
-    this._sourcesPane = document.getElementById("sources-pane");
+    this._workersAndSourcesPane = document.getElementById("workers-and-sources-pane");
     this._instrumentsPane = document.getElementById("instruments-pane");
     this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
 
@@ -127,7 +124,7 @@ let DebuggerView = {
     this._collapsePaneString = L10N.getStr("collapsePanes");
     this._expandPaneString = L10N.getStr("expandPanes");
 
-    this._sourcesPane.setAttribute("width", Prefs.sourcesWidth);
+    this._workersAndSourcesPane.setAttribute("width", Prefs.workersAndSourcesWidth);
     this._instrumentsPane.setAttribute("width", Prefs.instrumentsWidth);
     this.toggleInstrumentsPane({ visible: Prefs.panesVisibleOnStartup });
 
@@ -144,11 +141,11 @@ let DebuggerView = {
     dumpn("Destroying the DebuggerView panes");
 
     if (gHostType != "side") {
-      Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
+      Prefs.workersAndSourcesWidth = this._workersAndSourcesPane.getAttribute("width");
       Prefs.instrumentsWidth = this._instrumentsPane.getAttribute("width");
     }
 
-    this._sourcesPane = null;
+    this._workersAndSourcesPane = null;
     this._instrumentsPane = null;
     this._instrumentsPaneToggleButton = null;
   },
@@ -213,11 +210,17 @@ let DebuggerView = {
     bindKey("_doGlobalSearch", "globalSearchKey", { alt: true });
     bindKey("_doFunctionSearch", "functionSearchKey");
     extraKeys[Editor.keyFor("jumpToLine")] = false;
+    extraKeys["Esc"] = false;
 
     function bindKey(func, key, modifiers = {}) {
-      let key = document.getElementById(key).getAttribute("key");
+      key = document.getElementById(key).getAttribute("key");
       let shortcut = Editor.accel(key, modifiers);
       extraKeys[shortcut] = () => DebuggerView.Filtering[func]();
+    }
+
+    let gutters = ["breakpoints"];
+    if (Services.prefs.getBoolPref("devtools.debugger.tracer")) {
+      gutters.unshift("hit-counts");
     }
 
     this.editor = new Editor({
@@ -225,9 +228,10 @@ let DebuggerView = {
       readOnly: true,
       lineNumbers: true,
       showAnnotationRuler: true,
-      gutters: [ "breakpoints" ],
+      gutters: gutters,
       extraKeys: extraKeys,
-      contextMenu: "sourceEditorContextMenu"
+      contextMenu: "sourceEditorContextMenu",
+      enableCodeFolding: false
     });
 
     this.editor.appendTo(document.getElementById("editor")).then(() => {
@@ -239,7 +243,7 @@ let DebuggerView = {
     this.editor.on("gutterClick", (ev, line, button) => {
       // A right-click shouldn't do anything but keep track of where
       // it was clicked.
-      if(button == 2) {
+      if (button == 2) {
         this.clickedLine = line;
       }
       else {
@@ -383,7 +387,7 @@ let DebuggerView = {
    */
   _setEditorSource: function(aSource, aFlags={}) {
     // Avoid setting the same source text in the editor again.
-    if (this._editorSource.url == aSource.url && !aFlags.force) {
+    if (this._editorSource.actor == aSource.actor && !aFlags.force) {
       return this._editorSource.promise;
     }
     let transportType = gClient.localTransport ? "_LOCAL" : "_REMOTE";
@@ -394,21 +398,23 @@ let DebuggerView = {
     let deferred = promise.defer();
 
     this._setEditorText(L10N.getStr("loadingText"));
-    this._editorSource = { url: aSource.url, promise: deferred.promise };
+    this._editorSource = { actor: aSource.actor, promise: deferred.promise };
 
     DebuggerController.SourceScripts.getText(aSource).then(([, aText, aContentType]) => {
       // Avoid setting an unexpected source. This may happen when switching
       // very fast between sources that haven't been fetched yet.
-      if (this._editorSource.url != aSource.url) {
+      if (this._editorSource.actor != aSource.actor) {
         return;
       }
 
       this._setEditorText(aText);
       this._setEditorMode(aSource.url, aContentType, aText);
 
-      // Synchronize any other components with the currently displayed source.
-      DebuggerView.Sources.selectedValue = aSource.url;
+      // Synchronize any other components with the currently displayed
+      // source.
+      DebuggerView.Sources.selectedValue = aSource.actor;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
+      DebuggerController.HitCounts.updateEditorHitCounts();
 
       histogram.add(Date.now() - startTime);
 
@@ -417,7 +423,8 @@ let DebuggerView = {
       deferred.resolve([aSource, aText, aContentType]);
     },
     ([, aError]) => {
-      let msg = L10N.getStr("errorLoadingText") + DevToolsUtils.safeErrorString(aError);
+      let url = aError;
+      let msg = L10N.getFormatStr("errorLoadingText2", url);
       this._setEditorText(msg);
       Cu.reportError(msg);
       dumpn(msg);
@@ -434,8 +441,8 @@ let DebuggerView = {
    * Update the source editor's current caret and debug location based on
    * a requested url and line.
    *
-   * @param string aUrl
-   *        The target source url.
+   * @param string aActor
+   *        The target actor id.
    * @param number aLine [optional]
    *        The target line in the source.
    * @param object aFlags [optional]
@@ -451,9 +458,9 @@ let DebuggerView = {
    * @return object
    *         A promise that is resolved after the source text has been set.
    */
-  setEditorLocation: function(aUrl, aLine = 0, aFlags = {}) {
+  setEditorLocation: function(aActor, aLine = 0, aFlags = {}) {
     // Avoid trying to set a source for a url that isn't known yet.
-    if (!this.Sources.containsValue(aUrl)) {
+    if (!this.Sources.containsValue(aActor)) {
       return promise.reject(new Error("Unknown source for the specified URL."));
     }
 
@@ -463,17 +470,23 @@ let DebuggerView = {
       let cachedFrames = DebuggerController.activeThread.cachedFrames;
       let currentDepth = DebuggerController.StackFrames.currentFrameDepth;
       let frame = cachedFrames[currentDepth];
-      if (frame && frame.where.url == aUrl) {
+      if (frame && frame.source.actor == aActor) {
         aLine = frame.where.line;
       }
     }
 
-    let sourceItem = this.Sources.getItemByValue(aUrl);
+    let sourceItem = this.Sources.getItemByValue(aActor);
     let sourceForm = sourceItem.attachment.source;
+
+    this._editorLoc = { actor: sourceForm.actor };
 
     // Make sure the requested source client is shown in the editor, then
     // update the source editor's caret position and debug location.
     return this._setEditorSource(sourceForm, aFlags).then(([,, aContentType]) => {
+      if (this._editorLoc.actor !== sourceForm.actor) {
+        return;
+      }
+
       // Record the contentType learned from fetching
       sourceForm.contentType = aContentType;
       // Line numbers in the source editor should start from 1. If invalid
@@ -503,15 +516,17 @@ let DebuggerView = {
    * Gets the visibility state of the instruments pane.
    * @return boolean
    */
-  get instrumentsPaneHidden()
-    this._instrumentsPane.hasAttribute("pane-collapsed"),
+  get instrumentsPaneHidden() {
+    return this._instrumentsPane.hasAttribute("pane-collapsed");
+  },
 
   /**
    * Gets the currently selected tab in the instruments pane.
    * @return string
    */
-  get instrumentsPaneTab()
-    this._instrumentsPane.selectedTab.id,
+  get instrumentsPaneTab() {
+    return this._instrumentsPane.selectedTab.id;
+  },
 
   /**
    * Sets the instruments pane hidden or visible.
@@ -599,7 +614,7 @@ let DebuggerView = {
 
     // Move the soruces and instruments panes in a different container.
     let splitter = document.getElementById("sources-and-instruments-splitter");
-    vertContainer.insertBefore(this._sourcesPane, splitter);
+    vertContainer.insertBefore(this._workersAndSourcesPane, splitter);
     vertContainer.appendChild(this._instrumentsPane);
 
     // Make sure the vertical layout container's height doesn't repeatedly
@@ -618,12 +633,12 @@ let DebuggerView = {
     // The sources and instruments pane need to be inserted at their
     // previous locations in their normal container.
     let splitter = document.getElementById("sources-and-editor-splitter");
-    normContainer.insertBefore(this._sourcesPane, splitter);
+    normContainer.insertBefore(this._workersAndSourcesPane, splitter);
     normContainer.appendChild(this._instrumentsPane);
 
     // Revert to the preferred sources and instruments widths, because
     // they flexed in the vertical layout.
-    this._sourcesPane.setAttribute("width", Prefs.sourcesWidth);
+    this._workersAndSourcesPane.setAttribute("width", Prefs.workersAndSourcesWidth);
     this._instrumentsPane.setAttribute("width", Prefs.instrumentsWidth);
   },
 
@@ -634,8 +649,6 @@ let DebuggerView = {
     dumpn("Handling tab navigation in the DebuggerView");
 
     this.Filtering.clearSearch();
-    this.FilteredSources.clearView();
-    this.FilteredFunctions.clearView();
     this.GlobalSearch.clearView();
     this.StackFrames.empty();
     this.Sources.empty();
@@ -657,8 +670,6 @@ let DebuggerView = {
   Toolbar: null,
   Options: null,
   Filtering: null,
-  FilteredSources: null,
-  FilteredFunctions: null,
   GlobalSearch: null,
   StackFrames: null,
   Sources: null,
@@ -672,7 +683,7 @@ let DebuggerView = {
   _loadingText: "",
   _body: null,
   _editorDeck: null,
-  _sourcesPane: null,
+  _workersAndSourcesPane: null,
   _instrumentsPane: null,
   _instrumentsPaneToggleButton: null,
   _collapsePaneString: "",
@@ -746,9 +757,10 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
    * Gets this container's visibility state.
    * @return boolean
    */
-  get hidden()
-    this._panel.state == "closed" ||
-    this._panel.state == "hiding",
+  get hidden() {
+    return this._panel.state == "closed" ||
+           this._panel.state == "hiding";
+  },
 
   /**
    * Removes all items from this container and hides it.

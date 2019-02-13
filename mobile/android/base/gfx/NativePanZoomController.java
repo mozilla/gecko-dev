@@ -21,12 +21,10 @@ import android.view.View;
 class NativePanZoomController implements PanZoomController, GeckoEventListener {
     private final PanZoomTarget mTarget;
     private final EventDispatcher mDispatcher;
-    private final CallbackRunnable mCallbackRunnable;
 
     NativePanZoomController(PanZoomTarget target, View view, EventDispatcher dispatcher) {
         mTarget = target;
         mDispatcher = dispatcher;
-        mCallbackRunnable = new CallbackRunnable();
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             init();
         } else {
@@ -34,6 +32,7 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
         }
     }
 
+    @Override
     public void handleMessage(String event, JSONObject message) {
         if ("Gecko:Ready".equals(event)) {
             mDispatcher.unregisterGeckoThreadListener(this, "Gecko:Ready");
@@ -41,46 +40,61 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
         }
     }
 
+    @Override
     public boolean onTouchEvent(MotionEvent event) {
         GeckoEvent wrapped = GeckoEvent.createMotionEvent(event, true);
-        handleTouchEvent(wrapped);
-        return false;
+        return handleTouchEvent(wrapped);
     }
 
+    @Override
     public boolean onMotionEvent(MotionEvent event) {
         // FIXME implement this
         return false;
     }
 
+    @Override
     public boolean onKeyEvent(KeyEvent event) {
         // FIXME implement this
         return false;
     }
 
+    @Override
     public PointF getVelocityVector() {
         // FIXME implement this
         return new PointF(0, 0);
     }
 
+    @Override
     public void pageRectUpdated() {
         // no-op in APZC, I think
     }
 
+    @Override
     public void abortPanning() {
         // no-op in APZC, I think
     }
 
+    @Override
+    public void notifyDefaultActionPrevented(boolean prevented) {
+        // This should never get called; there is a different
+        // codepath that notifies the APZ code of this.
+        throw new IllegalStateException("APZCCallbackHandler::NotifyDefaultPrevented should be getting called, not this!");
+    }
+
+    @Override
     public native void abortAnimation();
 
     private native void init();
-    private native void handleTouchEvent(GeckoEvent event);
+    private native boolean handleTouchEvent(GeckoEvent event);
     private native void handleMotionEvent(GeckoEvent event);
-    private native long runDelayedCallback();
 
+    @Override
     public native void destroy();
-    public native void notifyDefaultActionPrevented(boolean prevented);
+    @Override
     public native boolean getRedrawHint();
+    @Override
     public native void setOverScrollMode(int overscrollMode);
+    @Override
     public native int getOverScrollMode();
 
     @WrapElementForJNI(allowMultithread = true, stubName = "RequestContentRepaintWrapper")
@@ -88,21 +102,7 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
         mTarget.forceRedraw(new DisplayPortMetrics(x, y, x + width, y + height, resolution));
     }
 
-    @WrapElementForJNI(allowMultithread = true, stubName = "PostDelayedCallbackWrapper")
-    private void postDelayedCallback(long delay) {
-        mTarget.postDelayed(mCallbackRunnable, delay);
-    }
-
-    class CallbackRunnable implements Runnable {
-        @Override
-        public void run() {
-            long nextDelay = runDelayedCallback();
-            if (nextDelay >= 0) {
-                mTarget.postDelayed(this, nextDelay);
-            }
-        }
-    }
-
+    @Override
     public void setOverscrollHandler(final Overscroll listener) {
     }
 }

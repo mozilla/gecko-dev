@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +22,8 @@
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/indexedDB/IDBCursor.h"
 #include "mozilla/dom/indexedDB/IDBObjectStore.h"
+#include "mozilla/dom/indexedDB/IDBRequest.h"
+#include "mozilla/dom/indexedDB/IDBTransaction.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/unused.h"
@@ -33,9 +35,11 @@
 #include "nsIDocument.h"
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsIIOService.h"
+#include "nsIMutableArray.h"
 #include "nsIObserverService.h"
 #include "nsIPermissionManager.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsISupportsPrimitives.h"
 #include "nsIUUIDGenerator.h"
 #include "nsPIDOMWindow.h"
 #include "nsIURI.h"
@@ -199,9 +203,9 @@ GeneratePermissionName(nsAString& aPermission,
                        const nsAString& aName,
                        const nsAString& aManifestURL)
 {
-  aPermission.AssignASCII("indexedDB-chrome-");
+  aPermission.AssignLiteral("indexedDB-chrome-");
   aPermission.Append(aName);
-  aPermission.AppendASCII("|");
+  aPermission.Append('|');
   aPermission.Append(aManifestURL);
 }
 
@@ -252,7 +256,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
   {
     nsCString permission;
     permission.Append(basePermission);
-    permission.AppendASCII("-write");
+    permission.AppendLiteral("-write");
 
     uint32_t perm = nsIPermissionManager::UNKNOWN_ACTION;
     rv = pm->TestExactPermissionFromPrincipal(principal, permission.get(),
@@ -279,7 +283,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
   {
     nsCString permission;
     permission.Append(basePermission);
-    permission.AppendASCII("-read");
+    permission.AppendLiteral("-read");
 
     uint32_t perm = nsIPermissionManager::UNKNOWN_ACTION;
     rv = pm->TestExactPermissionFromPrincipal(principal, permission.get(),
@@ -322,16 +326,18 @@ class MOZ_STACK_CLASS GetDataStoreInfosData
 {
 public:
   GetDataStoreInfosData(nsClassHashtable<nsStringHashKey, HashApp>& aAccessStores,
-                        const nsAString& aName, uint32_t aAppId,
-                        nsTArray<DataStoreInfo>& aStores)
+                        const nsAString& aName, const nsAString& aManifestURL,
+                        uint32_t aAppId, nsTArray<DataStoreInfo>& aStores)
     : mAccessStores(aAccessStores)
     , mName(aName)
+    , mManifestURL(aManifestURL)
     , mAppId(aAppId)
     , mStores(aStores)
   {}
 
   nsClassHashtable<nsStringHashKey, HashApp>& mAccessStores;
   nsString mName;
+  nsString mManifestURL;
   uint32_t mAppId;
   nsTArray<DataStoreInfo>& mStores;
 };
@@ -354,6 +360,11 @@ GetDataStoreInfosEnumerator(const uint32_t& aAppId,
     return PL_DHASH_NEXT;
   }
 
+  if (!data->mManifestURL.IsEmpty() &&
+      !data->mManifestURL.Equals(aInfo->mManifestURL)) {
+    return PL_DHASH_NEXT;
+  }
+
   DataStoreInfo* accessInfo = nullptr;
   if (!apps->Get(data->mAppId, &accessInfo)) {
     return PL_DHASH_NEXT;
@@ -364,6 +375,24 @@ GetDataStoreInfosEnumerator(const uint32_t& aAppId,
   accessStore->Init(aInfo->mName, aInfo->mOriginURL,
                     aInfo->mManifestURL, readOnly,
                     aInfo->mEnabled);
+
+  return PL_DHASH_NEXT;
+}
+
+PLDHashOperator
+GetAppManifestURLsEnumerator(const uint32_t& aAppId,
+                             DataStoreInfo* aInfo,
+                             void* aUserData)
+{
+  AssertIsInMainProcess();
+  MOZ_ASSERT(NS_IsMainThread());
+
+  auto* manifestURLs = static_cast<nsIMutableArray*>(aUserData);
+  nsCOMPtr<nsISupportsString> manifestURL(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
+  if (manifestURL) {
+    manifestURL->SetData(aInfo->mManifestURL);
+    manifestURLs->AppendElement(manifestURL, false);
+  }
 
   return PL_DHASH_NEXT;
 }
@@ -473,9 +502,11 @@ public:
 
 // This callback is used to enable a DataStore when its first revisionID is
 // created.
-class RevisionAddedEnableStoreCallback MOZ_FINAL :
+class RevisionAddedEnableStoreCallback final :
   public DataStoreRevisionCallback
 {
+private:
+  ~RevisionAddedEnableStoreCallback() {}
 public:
   NS_INLINE_DECL_REFCOUNTING(RevisionAddedEnableStoreCallback);
 
@@ -509,9 +540,9 @@ private:
 };
 
 // This DataStoreDBCallback is called when DataStoreDB opens the DataStore DB.
-// Then the first revision will be created if it doesn't exist yet.
-class FirstRevisionIdCallback MOZ_FINAL : public DataStoreDBCallback
-                                        , public nsIDOMEventListener
+// Then the first revision will be created if it's needed.
+class FirstRevisionIdCallback final : public DataStoreDBCallback
+                                    , public nsIDOMEventListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -527,48 +558,100 @@ public:
   }
 
   void
-  Run(DataStoreDB* aDb, bool aSuccess)
+  Run(DataStoreDB* aDb, RunStatus aStatus) override
   {
     AssertIsInMainProcess();
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aDb);
 
-    if (!aSuccess) {
+    if (aStatus == Error) {
       NS_WARNING("Failed to create the first revision.");
       return;
     }
 
-    mTxn = aDb->Transaction();
+    ErrorResult error;
 
-    ErrorResult rv;
+    if (aStatus == Success) {
+      mTxn = aDb->Transaction();
+
+      nsRefPtr<IDBObjectStore> store =
+      mTxn->ObjectStore(NS_LITERAL_STRING(DATASTOREDB_REVISION), error);
+      if (NS_WARN_IF(error.Failed())) {
+        return;
+      }
+
+      AutoSafeJSContext cx;
+      mRequest = store->OpenCursor(cx, JS::UndefinedHandleValue,
+                                   IDBCursorDirection::Prev, error);
+      if (NS_WARN_IF(error.Failed())) {
+        return;
+      }
+
+      nsresult rv;
+      rv = mRequest->EventTarget::AddEventListener(NS_LITERAL_STRING("success"),
+                                                   this, false);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Failed to add an EventListener.");
+        return;
+      }
+
+      return;
+    }
+
+    // The DB has just been created.
+
+    error = CreateFirstRevision(aDb->Transaction());
+    if (error.Failed()) {
+      NS_WARNING("Failed to add a revision to a DataStore.");
+    }
+  }
+
+  nsresult
+  CreateFirstRevision(IDBTransaction* aTxn)
+  {
+    MOZ_ASSERT(aTxn);
+
+    ErrorResult error;
     nsRefPtr<IDBObjectStore> store =
-      mTxn->ObjectStore(NS_LITERAL_STRING(DATASTOREDB_REVISION), rv);
-    if (NS_WARN_IF(rv.Failed())) {
-      return;
+      aTxn->ObjectStore(NS_LITERAL_STRING(DATASTOREDB_REVISION), error);
+    if (NS_WARN_IF(error.Failed())) {
+      return error.StealNSResult();
+    }
+    MOZ_ASSERT(store);
+
+    nsRefPtr<RevisionAddedEnableStoreCallback> callback =
+      new RevisionAddedEnableStoreCallback(mAppId, mName, mManifestURL);
+
+    // Note: this cx is only used for rooting and AddRevision, neither of which
+    // actually care which compartment we're in.
+    AutoSafeJSContext cx;
+
+    // If the revision doesn't exist, let's create it.
+    nsRefPtr<DataStoreRevision> revision = new DataStoreRevision();
+    nsresult rv = revision->AddRevision(cx, store, 0,
+                                        DataStoreRevision::RevisionVoid,
+                                        callback);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
 
-    // a Null JSContext is ok because OpenCursor ignores it if the range is
-    // undefined.
-    mRequest = store->OpenCursor(nullptr, JS::UndefinedHandleValue,
-                                 IDBCursorDirection::Prev, rv);
-    if (NS_WARN_IF(rv.Failed())) {
-      return;
-    }
-
-    nsresult res;
-    res = mRequest->EventTarget::AddEventListener(NS_LITERAL_STRING("success"),
-                                                  this, false);
-    if (NS_WARN_IF(NS_FAILED(res))) {
-      return;
-    }
+    return NS_OK;
   }
 
   // nsIDOMEventListener
   NS_IMETHOD
-  HandleEvent(nsIDOMEvent* aEvent)
+  HandleEvent(nsIDOMEvent* aEvent) override
   {
     AssertIsInMainProcess();
     MOZ_ASSERT(NS_IsMainThread());
+
+    nsRefPtr<IDBRequest> request;
+    request.swap(mRequest);
+
+    nsRefPtr<IDBTransaction> txn;
+    txn.swap(mTxn);
+
+    request->RemoveEventListener(NS_LITERAL_STRING("success"), this, false);
 
     nsString type;
     nsresult rv = aEvent->GetType(type);
@@ -576,54 +659,47 @@ public:
       return rv;
     }
 
-    if (!type.EqualsASCII("success")) {
-      return NS_ERROR_FAILURE;
-    }
+#ifdef DEBUG
+    MOZ_ASSERT(type.EqualsASCII("success"));
+#endif
 
-    mRequest->RemoveEventListener(NS_LITERAL_STRING("success"), this, false);
-
-    // Note: this cx is only used for rooting and AddRevision, neither of which
-    // actually care which compartment we're in.
     AutoSafeJSContext cx;
 
     ErrorResult error;
     JS::Rooted<JS::Value> result(cx);
-    mRequest->GetResult(cx, &result, error);
+    request->GetResult(cx, &result, error);
     if (NS_WARN_IF(error.Failed())) {
-      return error.ErrorCode();
+      return error.StealNSResult();
     }
 
     // This means that the content is a IDBCursor, so the first revision already
     // exists.
     if (result.isObject()) {
+#ifdef DEBUG
+      IDBCursor* cursor = nullptr;
+      error = UNWRAP_OBJECT(IDBCursor, &result.toObject(), cursor);
+      MOZ_ASSERT(!error.Failed());
+#endif
+
       nsRefPtr<DataStoreService> service = DataStoreService::Get();
       MOZ_ASSERT(service);
 
       return service->EnableDataStore(mAppId, mName, mManifestURL);
     }
 
-    MOZ_ASSERT(mTxn);
-    nsRefPtr<IDBObjectStore> store =
-      mTxn->ObjectStore(NS_LITERAL_STRING(DATASTOREDB_REVISION), error);
-    if (NS_WARN_IF(error.Failed())) {
-      return error.ErrorCode();
+    rv = CreateFirstRevision(txn);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
-    MOZ_ASSERT(store);
 
-    nsRefPtr<RevisionAddedEnableStoreCallback> callback =
-      new RevisionAddedEnableStoreCallback(mAppId, mName, mManifestURL);
-
-    // If the revision doesn't exist, let's create it.
-    nsRefPtr<DataStoreRevision> mRevision = new DataStoreRevision();
-    return mRevision->AddRevision(cx, store, 0, DataStoreRevision::RevisionVoid,
-                                  callback);
+    return NS_OK;
   }
 
 private:
-  nsRefPtr<IDBRequest> mRequest;
+  ~FirstRevisionIdCallback() {}
 
+  nsRefPtr<IDBRequest> mRequest;
   nsRefPtr<IDBTransaction> mTxn;
-  nsRefPtr<DataStoreRevision> mRevision;
 
   uint32_t mAppId;
   nsString mName;
@@ -640,6 +716,8 @@ NS_IMPL_ISUPPORTS(FirstRevisionIdCallback, nsIDOMEventListener)
 // created, but they don't know its value yet.
 class RetrieveRevisionsCounter
 {
+private:
+  ~RetrieveRevisionsCounter() {}
 public:
   NS_INLINE_DECL_REFCOUNTING(RetrieveRevisionsCounter);
 
@@ -662,7 +740,7 @@ public:
     // DataStore will run this callback when the revisionID is retrieved.
     JSFunction* func = js::NewFunctionWithReserved(aCx, JSCallback,
                                                    0 /* nargs */, 0 /* flags */,
-                                                   nullptr, nullptr);
+                                                   nullptr);
     if (!func) {
       return;
     }
@@ -867,6 +945,7 @@ DataStoreService::InstallAccessDataStore(uint32_t aAppId,
 NS_IMETHODIMP
 DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
                                 const nsAString& aName,
+                                const nsAString& aOwner,
                                 nsISupports** aDataStores)
 {
   // FIXME This will be a thread-safe method.
@@ -878,7 +957,11 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
   }
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(window);
-  nsRefPtr<Promise> promise = new Promise(global);
+  ErrorResult rv;
+  nsRefPtr<Promise> promise = Promise::Create(global, rv);
+  if (rv.Failed()) {
+    return rv.StealNSResult();
+  }
 
   nsCOMPtr<nsIDocument> document = window->GetDoc();
   MOZ_ASSERT(document);
@@ -899,7 +982,7 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
       return NS_OK;
     }
 
-    rv = GetDataStoreInfos(aName, appId, stores);
+    rv = GetDataStoreInfos(aName, aOwner, appId, principal, stores);
     if (NS_FAILED(rv)) {
       RejectPromise(window, promise, rv);
       promise.forget(aDataStores);
@@ -914,6 +997,7 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
 
     nsTArray<DataStoreSetting> array;
     if (!contentChild->SendDataStoreGetStores(nsAutoString(aName),
+                                              nsAutoString(aOwner),
                                               IPC::Principal(principal),
                                               &array)) {
       RejectPromise(window, promise, NS_ERROR_FAILURE);
@@ -1012,9 +1096,12 @@ DataStoreService::GetDataStoresResolve(nsPIDOMWindow* aWindow,
       return;
     }
 
+    nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aWindow);
+    MOZ_ASSERT(global);
+
     JSAutoCompartment ac(cx, dataStoreJS);
     nsRefPtr<DataStoreImpl> dataStoreObj = new DataStoreImpl(dataStoreJS,
-                                                             aWindow);
+                                                             global);
 
     nsRefPtr<DataStore> exposedStore = new DataStore(aWindow);
 
@@ -1024,10 +1111,12 @@ DataStoreService::GetDataStoresResolve(nsPIDOMWindow* aWindow,
       return;
     }
 
-    JS::Rooted<JSObject*> obj(cx, exposedStore->WrapObject(cx));
-    MOZ_ASSERT(obj);
+    JS::Rooted<JS::Value> exposedObject(cx);
+    if (!GetOrCreateDOMReflector(cx, exposedStore, &exposedObject)) {
+      JS_ClearPendingException(cx);
+      return;
+    }
 
-    JS::Rooted<JS::Value> exposedObject(cx, JS::ObjectValue(*obj));
     dataStore->SetExposedObject(exposedObject);
 
     counter->AppendDataStore(cx, exposedStore, dataStore);
@@ -1038,7 +1127,9 @@ DataStoreService::GetDataStoresResolve(nsPIDOMWindow* aWindow,
 // name and available for this 'aAppId'.
 nsresult
 DataStoreService::GetDataStoreInfos(const nsAString& aName,
+                                    const nsAString& aOwner,
                                     uint32_t aAppId,
+                                    nsIPrincipal* aPrincipal,
                                     nsTArray<DataStoreInfo>& aStores)
 {
   AssertIsInMainProcess();
@@ -1060,15 +1151,7 @@ DataStoreService::GetDataStoreInfos(const nsAString& aName,
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  uint16_t status;
-  rv = app->GetAppStatus(&status);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  if (status != nsIPrincipal::APP_STATUS_CERTIFIED &&
-      !Preferences::GetBool("dom.testing.datastore_enabled_for_hosted_apps",
-                            false)) {
+  if (!DataStoreService::CheckPermission(aPrincipal)) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -1080,14 +1163,78 @@ DataStoreService::GetDataStoreInfos(const nsAString& aName,
   }
 
   DataStoreInfo* info = nullptr;
-  if (apps->Get(aAppId, &info)) {
+  if (apps->Get(aAppId, &info) &&
+      (aOwner.IsEmpty() || aOwner.Equals(info->mManifestURL))) {
     DataStoreInfo* owned = aStores.AppendElement();
     owned->Init(info->mName, info->mOriginURL, info->mManifestURL, false,
                 info->mEnabled);
   }
 
-  GetDataStoreInfosData data(mAccessStores, aName, aAppId, aStores);
+  GetDataStoreInfosData data(mAccessStores, aName, aOwner, aAppId, aStores);
   apps->EnumerateRead(GetDataStoreInfosEnumerator, &data);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DataStoreService::GetAppManifestURLsForDataStore(const nsAString& aName,
+                                                 nsIArray** aManifestURLs)
+{
+  ASSERT_PARENT_PROCESS()
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIMutableArray> manifestURLs = do_CreateInstance(NS_ARRAY_CONTRACTID);
+  if (!manifestURLs) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  HashApp* apps = nullptr;
+  if (mStores.Get(aName, &apps)) {
+    apps->EnumerateRead(GetAppManifestURLsEnumerator, manifestURLs.get());
+  }
+  if (mAccessStores.Get(aName, &apps)) {
+    apps->EnumerateRead(GetAppManifestURLsEnumerator, manifestURLs.get());
+  }
+
+  manifestURLs.forget(aManifestURLs);
+  return NS_OK;
+}
+
+bool
+DataStoreService::CheckPermission(nsIPrincipal* aPrincipal)
+{
+  // First of all, the general pref has to be turned on.
+  bool enabled = false;
+  Preferences::GetBool("dom.datastore.enabled", &enabled);
+  if (!enabled) {
+    return false;
+  }
+
+  // Just for testing, we can enable DataStore for any kind of app.
+  if (Preferences::GetBool("dom.testing.datastore_enabled_for_hosted_apps", false)) {
+    return true;
+  }
+
+  if (!aPrincipal) {
+    return false;
+  }
+
+  uint16_t status;
+  if (NS_FAILED(aPrincipal->GetAppStatus(&status))) {
+    return false;
+  }
+
+  // Only support DataStore API for certified apps for now.
+  return status == nsIPrincipal::APP_STATUS_CERTIFIED;
+}
+
+NS_IMETHODIMP
+DataStoreService::CheckPermission(nsIPrincipal* aPrincipal,
+                                  bool* aResult)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  *aResult = DataStoreService::CheckPermission(aPrincipal);
+
   return NS_OK;
 }
 
@@ -1211,7 +1358,9 @@ DataStoreService::CreateFirstRevisionId(uint32_t aAppId,
     new FirstRevisionIdCallback(aAppId, aName, aManifestURL);
 
   Sequence<nsString> dbs;
-  dbs.AppendElement(NS_LITERAL_STRING(DATASTOREDB_REVISION));
+  if (!dbs.AppendElement(NS_LITERAL_STRING(DATASTOREDB_REVISION), fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   return db->Open(IDBTransactionMode::Readwrite, dbs, callback);
 }
@@ -1294,6 +1443,7 @@ DataStoreService::RemoveCounter(uint32_t aId)
 
 nsresult
 DataStoreService::GetDataStoresFromIPC(const nsAString& aName,
+                                       const nsAString& aOwner,
                                        nsIPrincipal* aPrincipal,
                                        nsTArray<DataStoreSetting>* aValue)
 {
@@ -1307,7 +1457,7 @@ DataStoreService::GetDataStoresFromIPC(const nsAString& aName,
   }
 
   nsTArray<DataStoreInfo> stores;
-  rv = GetDataStoreInfos(aName, appId, stores);
+  rv = GetDataStoreInfos(aName, aOwner, appId, aPrincipal, stores);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

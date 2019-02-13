@@ -36,7 +36,7 @@ public:
   typedef const char* KeyType;
   typedef const char* KeyTypePointer;
 
-  nsDomainEntry(KeyTypePointer aEntry)
+  explicit nsDomainEntry(KeyTypePointer aEntry)
   {
   }
 
@@ -105,7 +105,7 @@ private:
 #undef ETLD_STR_NUM1
 };
 
-class nsEffectiveTLDService MOZ_FINAL
+class nsEffectiveTLDService final
   : public nsIEffectiveTLDService
   , public nsIMemoryReporter
 {

@@ -10,6 +10,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsColor.h"
+#include "nsITextInputProcessor.h"
 #include "nsStyleConsts.h"
 #include "nsTArray.h"
 
@@ -83,7 +84,7 @@ struct TextRangeStyle
            IsLineStyleDefined() && mLineStyle == LINESTYLE_NONE;
   }
 
-  bool Equals(const TextRangeStyle& aOther)
+  bool Equals(const TextRangeStyle& aOther) const
   {
     if (mDefinedStyles != aOther.mDefinedStyles)
       return false;
@@ -102,12 +103,12 @@ struct TextRangeStyle
     return true;
   }
 
-  bool operator !=(const TextRangeStyle &aOther)
+  bool operator !=(const TextRangeStyle &aOther) const
   {
     return !Equals(aOther);
   }
 
-  bool operator ==(const TextRangeStyle &aOther)
+  bool operator ==(const TextRangeStyle &aOther) const
   {
     return Equals(aOther);
   }
@@ -126,16 +127,25 @@ struct TextRangeStyle
  * mozilla::TextRange
  ******************************************************************************/
 
-#define NS_TEXTRANGE_CARETPOSITION         0x01
-#define NS_TEXTRANGE_RAWINPUT              0x02
-#define NS_TEXTRANGE_SELECTEDRAWTEXT       0x03
-#define NS_TEXTRANGE_CONVERTEDTEXT         0x04
-#define NS_TEXTRANGE_SELECTEDCONVERTEDTEXT 0x05
+// XXX NS_TEXTRANGE_* should be moved into TextRange as an typed enum.
+enum
+{
+  NS_TEXTRANGE_UNDEFINED = 0x00,
+  NS_TEXTRANGE_CARETPOSITION = 0x01,
+  NS_TEXTRANGE_RAWINPUT =
+    nsITextInputProcessor::ATTR_RAW_CLAUSE,
+  NS_TEXTRANGE_SELECTEDRAWTEXT =
+    nsITextInputProcessor::ATTR_SELECTED_RAW_CLAUSE,
+  NS_TEXTRANGE_CONVERTEDTEXT =
+    nsITextInputProcessor::ATTR_CONVERTED_CLAUSE,
+  NS_TEXTRANGE_SELECTEDCONVERTEDTEXT =
+    nsITextInputProcessor::ATTR_SELECTED_CLAUSE
+};
 
 struct TextRange
 {
   TextRange() :
-    mStartOffset(0), mEndOffset(0), mRangeType(0)
+    mStartOffset(0), mEndOffset(0), mRangeType(NS_TEXTRANGE_UNDEFINED)
   {
   }
 
@@ -156,14 +166,64 @@ struct TextRange
                "Invalid range type");
     return mRangeType != NS_TEXTRANGE_CARETPOSITION;
   }
+
+  bool Equals(const TextRange& aOther) const
+  {
+    return mStartOffset == aOther.mStartOffset &&
+           mEndOffset == aOther.mEndOffset &&
+           mRangeType == aOther.mRangeType &&
+           mRangeStyle == aOther.mRangeStyle;
+  }
+
+  void RemoveCharacter(uint32_t aOffset)
+  {
+    if (mStartOffset > aOffset) {
+      --mStartOffset;
+      --mEndOffset;
+    } else if (mEndOffset > aOffset) {
+      --mEndOffset;
+    }
+  }
 };
 
 /******************************************************************************
  * mozilla::TextRangeArray
  ******************************************************************************/
-class TextRangeArray MOZ_FINAL : public nsAutoTArray<TextRange, 10>
+class TextRangeArray final : public nsAutoTArray<TextRange, 10>
 {
+  friend class WidgetCompositionEvent;
+
+  ~TextRangeArray() {}
+
   NS_INLINE_DECL_REFCOUNTING(TextRangeArray)
+
+  const TextRange* GetTargetClause() const
+  {
+    for (uint32_t i = 0; i < Length(); ++i) {
+      const TextRange& range = ElementAt(i);
+      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
+          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
+        return &range;
+      }
+    }
+    return nullptr;
+  }
+
+  // Returns target clause offset.  If there are selected clauses, this returns
+  // the first selected clause offset.  Otherwise, 0.
+  uint32_t TargetClauseOffset() const
+  {
+    const TextRange* range = GetTargetClause();
+    return range ? range->mStartOffset : 0;
+  }
+
+  // Returns target clause length.  If there are selected clauses, this returns
+  // the first selected clause length.  Otherwise, UINT32_MAX.
+  uint32_t TargetClauseLength() const
+  {
+    const TextRange* range = GetTargetClause();
+    return range ? range->Length() : UINT32_MAX;
+  }
 
 public:
   bool IsComposing() const
@@ -176,18 +236,25 @@ public:
     return false;
   }
 
-  // Returns target clase offset.  If there are selected clauses, this returns
-  // the first selected clause offset.  Otherwise, 0.
-  uint32_t TargetClauseOffset() const
+  bool Equals(const TextRangeArray& aOther) const
   {
-    for (uint32_t i = 0; i < Length(); ++i) {
-      const TextRange& range = ElementAt(i);
-      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
-          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
-        return range.mStartOffset;
+    size_t len = Length();
+    if (len != aOther.Length()) {
+      return false;
+    }
+    for (size_t i = 0; i < len; i++) {
+      if (!ElementAt(i).Equals(aOther.ElementAt(i))) {
+        return false;
       }
     }
-    return 0;
+    return true;
+  }
+
+  void RemoveCharacter(uint32_t aOffset)
+  {
+    for (size_t i = 0, len = Length(); i < len; i++) {
+      ElementAt(i).RemoveCharacter(aOffset);
+    }
   }
 };
 

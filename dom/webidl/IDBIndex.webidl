@@ -12,6 +12,7 @@ dictionary IDBIndexParameters {
     boolean multiEntry = false;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBIndex {
     readonly    attribute DOMString      name;
     readonly    attribute IDBObjectStore objectStore;
@@ -39,11 +40,17 @@ interface IDBIndex {
 };
 
 partial interface IDBIndex {
-    readonly attribute DOMString storeName;
-
     [Throws]
     IDBRequest mozGetAll (optional any key, optional unsigned long limit);
 
     [Throws]
     IDBRequest mozGetAllKeys (optional any key, optional unsigned long limit);
+
+    [Throws,
+     Func="mozilla::dom::indexedDB::IndexedDatabaseManager::ExperimentalFeaturesEnabled"]
+    IDBRequest getAll (optional any key, optional unsigned long limit);
+
+    [Throws,
+     Func="mozilla::dom::indexedDB::IndexedDatabaseManager::ExperimentalFeaturesEnabled"]
+    IDBRequest getAllKeys (optional any key, optional unsigned long limit);
 };

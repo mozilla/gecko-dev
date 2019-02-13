@@ -7,11 +7,13 @@
 
 #include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Atomics.h"
 
 #include "MediaConduitInterface.h"
 #include "MediaEngineWrapper.h"
 #include "CodecStatistics.h"
 #include "LoadManagerFactory.h"
+#include "LoadManager.h"
 
 // conflicts with #include of scoped_ptr.h
 #undef FF
@@ -78,20 +80,30 @@ public:
    * Note: Multiple invocations of this API shall remove an existing renderer
    * and attaches the new to the Conduit.
    */
-  virtual MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer);
-  virtual void DetachRenderer();
+  virtual MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer) override;
+  virtual void DetachRenderer() override;
 
   /**
    * APIs used by the registered external transport to this Conduit to
    * feed in received RTP Frames to the VideoEngine for decoding
    */
-  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len);
+  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len) override;
 
   /**
    * APIs used by the registered external transport to this Conduit to
    * feed in received RTP Frames to the VideoEngine for decoding
    */
-  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len);
+  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) override;
+
+  virtual MediaConduitErrorCode StopTransmitting() override;
+  virtual MediaConduitErrorCode StartTransmitting() override;
+  virtual MediaConduitErrorCode StopReceiving() override;
+  virtual MediaConduitErrorCode StartReceiving() override;
+
+  /**
+   * Function to configure sending codec mode for different content
+   */
+  virtual MediaConduitErrorCode ConfigureCodecMode(webrtc::VideoCodecMode) override;
 
    /**
    * Function to configure send codec for the video session
@@ -101,7 +113,7 @@ public:
    * NOTE: This API can be invoked multiple time. Invoking this API may involve restarting
    *        transmission sub-system on the engine.
    */
-  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const VideoCodecConfig* codecInfo);
+  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const VideoCodecConfig* codecInfo) override;
 
   /**
    * Function to configure list of receive codecs for the video session
@@ -113,21 +125,35 @@ public:
    *        transmission sub-system on the engine.
    */
    virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
-                               const std::vector<VideoCodecConfig* >& codecConfigList);
+                               const std::vector<VideoCodecConfig* >& codecConfigList) override;
 
   /**
    * Register Transport for this Conduit. RTP and RTCP frames from the VideoEngine
    * shall be passed to the registered transport for transporting externally.
    */
-  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport);
+  virtual MediaConduitErrorCode SetTransmitterTransport(mozilla::RefPtr<TransportInterface> aTransport) override;
 
+  virtual MediaConduitErrorCode SetReceiverTransport(mozilla::RefPtr<TransportInterface> aTransport) override;
+
+  void SelectBandwidth(webrtc::VideoCodec& vie_codec,
+                       unsigned short width,
+                       unsigned short height);
   /**
    * Function to select and change the encoding resolution based on incoming frame size
    * and current available bandwidth.
    * @param width, height: dimensions of the frame
+   * @param force: force setting the codec config if framerate may require a bandwidth change
    */
-  virtual bool SelectSendResolution(unsigned short width,
-                                    unsigned short height);
+  bool SelectSendResolution(unsigned short width,
+                            unsigned short height);
+
+  /**
+   * Function to select and change the encoding frame rate based on incoming frame rate
+   * and max-mbps setting.
+   * @param current framerate
+   * @result new framerate
+   */
+  unsigned int SelectSendFrameRate(unsigned int framerate) const;
 
   /**
    * Function to deliver a capture video frame for encoding and transport
@@ -145,44 +171,44 @@ public:
                                                 unsigned short width,
                                                 unsigned short height,
                                                 VideoType video_type,
-                                                uint64_t capture_time);
+                                                uint64_t capture_time) override;
 
   /**
    * Set an external encoder object |encoder| to the payload type |pltype|
    * for sender side codec.
    */
   virtual MediaConduitErrorCode SetExternalSendCodec(VideoCodecConfig* config,
-                                                     VideoEncoder* encoder);
+                                                     VideoEncoder* encoder) override;
 
   /**
    * Set an external decoder object |decoder| to the payload type |pltype|
    * for receiver side codec.
    */
   virtual MediaConduitErrorCode SetExternalRecvCodec(VideoCodecConfig* config,
-                                                     VideoDecoder* decoder);
+                                                     VideoDecoder* decoder) override;
 
 
   /**
    * Webrtc transport implementation to send and receive RTP packet.
    * VideoConduit registers itself as ExternalTransport to the VideoEngine
    */
-  virtual int SendPacket(int channel, const void *data, int len) ;
+  virtual int SendPacket(int channel, const void *data, int len) override;
 
   /**
    * Webrtc transport implementation to send and receive RTCP packet.
    * VideoConduit registers itself as ExternalTransport to the VideoEngine
    */
-  virtual int SendRTCPPacket(int channel, const void *data, int len) ;
+  virtual int SendRTCPPacket(int channel, const void *data, int len) override;
 
 
   /**
    * Webrtc External Renderer Implementation APIs.
    * Raw I420 Frames are delivred to the VideoConduit by the VideoEngine
    */
-  virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int);
+  virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int) override;
 
-  virtual int DeliverFrame(unsigned char*,int, uint32_t , int64_t,
-                           void *handle);
+  virtual int DeliverFrame(unsigned char*, int, uint32_t , int64_t,
+                           int64_t, void *handle) override;
 
   /**
    * Does DeliverFrame() support a null buffer and non-null handle
@@ -190,7 +216,7 @@ public:
    * B2G support it (when using HW video decoder with graphic buffer output).
    * XXX Investigate!  Especially for Android
    */
-  virtual bool IsTextureSupported() {
+  virtual bool IsTextureSupported() override {
 #ifdef WEBRTC_GONK
     return true;
 #else
@@ -198,89 +224,70 @@ public:
 #endif
   }
 
-  unsigned short SendingWidth() {
+  virtual uint64_t CodecPluginID() override;
+
+  unsigned short SendingWidth() override {
     return mSendingWidth;
   }
 
-  unsigned short SendingHeight() {
+  unsigned short SendingHeight() override {
     return mSendingHeight;
   }
 
-  unsigned int SendingMaxFs() {
+  unsigned int SendingMaxFs() override {
     if(mCurSendCodecConfig) {
       return mCurSendCodecConfig->mMaxFrameSize;
     }
     return 0;
   }
 
-  unsigned int SendingMaxFr() {
+  unsigned int SendingMaxFr() override {
     if(mCurSendCodecConfig) {
       return mCurSendCodecConfig->mMaxFrameRate;
     }
     return 0;
   }
 
-  WebrtcVideoConduit():
-                      mOtherDirection(nullptr),
-                      mShutDown(false),
-                      mVideoEngine(nullptr),
-                      mTransport(nullptr),
-                      mRenderer(nullptr),
-                      mPtrExtCapture(nullptr),
-                      mEngineTransmitting(false),
-                      mEngineReceiving(false),
-                      mChannel(-1),
-                      mCapId(-1),
-                      mCurSendCodecConfig(nullptr),
-                      mSendingWidth(0),
-                      mSendingHeight(0),
-                      mReceivingWidth(640),
-                      mReceivingHeight(480),
-                      mVideoLatencyTestEnable(false),
-                      mVideoLatencyAvg(0),
-                      mMinBitrate(200),
-                      mStartBitrate(300),
-                      mMaxBitrate(2000)
-  {
-  }
+  WebrtcVideoConduit();
+  virtual ~WebrtcVideoConduit();
 
-  virtual ~WebrtcVideoConduit() ;
-
-  MediaConduitErrorCode Init(WebrtcVideoConduit *other);
+  MediaConduitErrorCode Init();
 
   int GetChannel() { return mChannel; }
   webrtc::VideoEngine* GetVideoEngine() { return mVideoEngine; }
-  bool GetLocalSSRC(unsigned int* ssrc);
-  bool GetRemoteSSRC(unsigned int* ssrc);
+  bool GetLocalSSRC(unsigned int* ssrc) override;
+  bool SetLocalSSRC(unsigned int ssrc) override;
+  bool GetRemoteSSRC(unsigned int* ssrc) override;
+  bool SetLocalCNAME(const char* cname) override;
   bool GetVideoEncoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* droppedFrames);
+                            uint32_t* droppedFrames) override;
   bool GetVideoDecoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* discardedPackets);
+                            uint32_t* discardedPackets) override;
   bool GetAVStats(int32_t* jitterBufferDelayMs,
                   int32_t* playoutBufferDelayMs,
-                  int32_t* avSyncOffsetMs);
-  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost);
+                  int32_t* avSyncOffsetMs) override;
+  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost) override;
   bool GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
                              uint32_t* jitterMs,
                              uint32_t* packetsReceived,
                              uint64_t* bytesReceived,
                              uint32_t* cumulativeLost,
-                             int32_t* rttMs);
+                             int32_t* rttMs) override;
   bool GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
                            unsigned int* packetsSent,
-                           uint64_t* bytesSent);
+                           uint64_t* bytesSent) override;
   uint64_t MozVideoLatencyAvg();
 
 private:
 
-  WebrtcVideoConduit(const WebrtcVideoConduit& other) MOZ_DELETE;
-  void operator=(const WebrtcVideoConduit& other) MOZ_DELETE;
+  WebrtcVideoConduit(const WebrtcVideoConduit& other) = delete;
+  void operator=(const WebrtcVideoConduit& other) = delete;
 
   //Local database of currently applied receive codecs
   typedef std::vector<VideoCodecConfig* > RecvCodecList;
@@ -299,7 +306,7 @@ private:
                            const VideoCodecConfig* codecInfo) const;
 
   //Checks the codec to be applied
-  MediaConduitErrorCode ValidateCodecConfig(const VideoCodecConfig* codecInfo, bool send) const;
+  MediaConduitErrorCode ValidateCodecConfig(const VideoCodecConfig* codecInfo, bool send);
 
   //Utility function to dump recv codec database
   void DumpCodecDB() const;
@@ -307,17 +314,10 @@ private:
   // Video Latency Test averaging filter
   void VideoLatencyUpdate(uint64_t new_sample);
 
-  // The two sides of a send/receive pair of conduits each keep a pointer to the other.
-  // They also share a single VideoEngine and mChannel.  Shutdown must be coordinated
-  // carefully to avoid double-freeing or accessing after one frees.
-  WebrtcVideoConduit*  mOtherDirection;
-  // The other side has shut down our mChannel and related items already
-  bool mShutDown;
-
-  // A few of these are shared by both directions.  They're released by the last
-  // conduit to die.
-  webrtc::VideoEngine* mVideoEngine;          // shared
-  mozilla::RefPtr<TransportInterface> mTransport;
+  webrtc::VideoEngine* mVideoEngine;
+  mozilla::ReentrantMonitor mTransportMonitor;
+  mozilla::RefPtr<TransportInterface> mTransmitterTransport;
+  mozilla::RefPtr<TransportInterface> mReceiverTransport;
   mozilla::RefPtr<VideoRenderer> mRenderer;
 
   ScopedCustomReleasePtr<webrtc::ViEBase> mPtrViEBase;
@@ -328,20 +328,27 @@ private:
   ScopedCustomReleasePtr<webrtc::ViERTP_RTCP> mPtrRTP;
   ScopedCustomReleasePtr<webrtc::ViEExternalCodec> mPtrExtCodec;
 
-  webrtc::ViEExternalCapture* mPtrExtCapture; // shared
+  webrtc::ViEExternalCapture* mPtrExtCapture;
 
   // Engine state we are concerned with.
-  bool mEngineTransmitting; //If true ==> Transmit Sub-system is up and running
-  bool mEngineReceiving;    // if true ==> Receive Sus-sysmtem up and running
+  mozilla::Atomic<bool> mEngineTransmitting; //If true ==> Transmit Sub-system is up and running
+  mozilla::Atomic<bool> mEngineReceiving;    // if true ==> Receive Sus-sysmtem up and running
 
   int mChannel; // Video Channel for this conduit
   int mCapId;   // Capturer for this conduit
   RecvCodecList    mRecvCodecList;
-  VideoCodecConfig* mCurSendCodecConfig;
+
+  Mutex mCodecMutex; // protects mCurrSendCodecConfig
+  nsAutoPtr<VideoCodecConfig> mCurSendCodecConfig;
+
   unsigned short mSendingWidth;
   unsigned short mSendingHeight;
   unsigned short mReceivingWidth;
   unsigned short mReceivingHeight;
+  unsigned int   mSendingFramerate;
+  // scaled by *10 because Atomic<double/float> isn't supported
+  mozilla::Atomic<int32_t, mozilla::Relaxed> mLastFramerateTenths;
+  unsigned short mNumReceivingStreams;
   bool mVideoLatencyTestEnable;
   uint64_t mVideoLatencyAvg;
   uint32_t mMinBitrate;
@@ -356,11 +363,14 @@ private:
 
   nsAutoPtr<VideoCodecConfig> mExternalSendCodec;
   nsAutoPtr<VideoCodecConfig> mExternalRecvCodec;
+  nsAutoPtr<VideoEncoder> mExternalSendCodecHandle;
+  nsAutoPtr<VideoDecoder> mExternalRecvCodecHandle;
 
   // statistics object for video codec;
   nsAutoPtr<VideoCodecStatistics> mVideoCodecStat;
 
   nsAutoPtr<LoadManager> mLoadManager;
+  webrtc::VideoCodecMode mCodecMode;
 };
 
 } // end namespace

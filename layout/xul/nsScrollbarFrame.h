@@ -20,13 +20,13 @@ nsIFrame* NS_NewScrollbarFrame(nsIPresShell* aPresShell, nsStyleContext* aContex
 class nsScrollbarFrame : public nsBoxFrame
 {
 public:
-    nsScrollbarFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-      nsBoxFrame(aShell, aContext), mScrollbarMediator(nullptr) {}
+    explicit nsScrollbarFrame(nsStyleContext* aContext):
+      nsBoxFrame(aContext), mScrollbarMediator(nullptr) {}
 
   NS_DECL_QUERYFRAME_TARGET(nsScrollbarFrame)
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("ScrollbarFrame"), aResult);
   }
 #endif
@@ -34,38 +34,38 @@ public:
   // nsIFrame overrides
   virtual nsresult AttributeChanged(int32_t aNameSpaceID,
                                     nsIAtom* aAttribute,
-                                    int32_t aModType) MOZ_OVERRIDE;
+                                    int32_t aModType) override;
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
                          mozilla::WidgetGUIEvent* aEvent,
-                         nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                         nsEventStatus* aEventStatus) override;
 
   NS_IMETHOD HandleMultiplePress(nsPresContext* aPresContext,
                                  mozilla::WidgetGUIEvent* aEvent,
                                  nsEventStatus* aEventStatus,
-                                 bool aControlHeld) MOZ_OVERRIDE;
+                                 bool aControlHeld) override;
 
   NS_IMETHOD HandleDrag(nsPresContext* aPresContext,
                         mozilla::WidgetGUIEvent* aEvent,
-                        nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                        nsEventStatus* aEventStatus) override;
 
   NS_IMETHOD HandleRelease(nsPresContext* aPresContext,
                            mozilla::WidgetGUIEvent* aEvent,
-                           nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                           nsEventStatus* aEventStatus) override;
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;  
+  virtual nsIAtom* GetType() const override;  
 
   void SetScrollbarMediatorContent(nsIContent* aMediator);
   nsIScrollbarMediator* GetScrollbarMediator();
@@ -79,9 +79,29 @@ public:
    * scrollframe by setting its height or width to zero, that will
    * hide the children too.
    */
-  virtual bool DoesClipChildren() MOZ_OVERRIDE { return true; }
+  virtual bool DoesClipChildren() override { return true; }
 
-  virtual nsresult GetMargin(nsMargin& aMargin) MOZ_OVERRIDE;
+  virtual nsresult GetMargin(nsMargin& aMargin) override;
+
+  /**
+   * The following three methods set the value of mIncrement when a
+   * scrollbar button is pressed.
+   */
+  void SetIncrementToLine(int32_t aDirection);
+  void SetIncrementToPage(int32_t aDirection);
+  void SetIncrementToWhole(int32_t aDirection);
+  /**
+   * MoveToNewPosition() adds mIncrement to the current position and
+   * updates the curpos attribute.
+   * @returns The new position after clamping, in CSS Pixels
+   * @note This method might destroy the frame, pres shell, and other objects.
+   */
+  int32_t MoveToNewPosition();
+  int32_t GetIncrement() { return mIncrement; }
+
+protected:
+  int32_t mIncrement; // Amount to scroll, in CSSPixels
+  bool mSmoothScroll;
 
 private:
   nsCOMPtr<nsIContent> mScrollbarMediator;

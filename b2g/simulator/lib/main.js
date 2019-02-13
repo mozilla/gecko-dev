@@ -5,22 +5,58 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 
-const { SimulatorProcess } = require("./simulator-process");
+const { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-const Self = require("sdk/self");
-const System = require("sdk/system");
+const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const { Simulator } = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
+const { SimulatorProcess } = require("./simulator-process");
+const Runtime = require("sdk/system/runtime");
+const URL = require("sdk/url");
+
+const ROOT_URI = require("addon").uri;
+const PROFILE_URL = ROOT_URI + "profile/";
+const BIN_URL = ROOT_URI + "b2g/";
 
 let process;
 
-function launch({ port }) {
-  // Close already opened simulation
+function launch(options) {
+  // Close already opened simulation.
   if (process) {
-    return close().then(launch.bind(null, { port: port }));
+    return close().then(launch.bind(null, options));
   }
 
-  process = SimulatorProcess();
-  process.remoteDebuggerPort = port;
+  // Compute B2G runtime path.
+  let path;
+  try {
+    let pref = "extensions." + require("addon").id + ".customRuntime";
+    path = Services.prefs.getComplexValue(pref, Ci.nsIFile);
+  } catch(e) {}
+
+  if (!path) {
+    let executables = {
+      WINNT: "b2g-bin.exe",
+      Darwin: "B2G.app/Contents/MacOS/b2g-bin",
+      Linux: "b2g-bin",
+    };
+    path = URL.toFilename(BIN_URL);
+    path += Runtime.OS == "WINNT" ? "\\" : "/";
+    path += executables[Runtime.OS];
+  }
+  options.runtimePath = path;
+  console.log("simulator path:", options.runtimePath);
+
+  // Compute Gaia profile path.
+  if (!options.profilePath) {
+    let gaiaProfile;
+    try {
+      let pref = "extensions." + require("addon").id + ".gaiaProfile";
+      gaiaProfile = Services.prefs.getComplexValue(pref, Ci.nsIFile).path;
+    } catch(e) {}
+
+    options.profilePath = gaiaProfile || URL.toFilename(PROFILE_URL);
+  }
+
+  process = new SimulatorProcess(options);
   process.run();
 
   return promise.resolve();
@@ -35,18 +71,22 @@ function close() {
   return p.kill();
 }
 
+let name;
 
-// Load data generated at build time that
-// expose various information about the runtime we ship
-let appinfo = System.staticArgs;
+AddonManager.getAddonByID(require("addon").id, function (addon) {
+  name = addon.name.replace(" Simulator", "");
 
-Simulator.register(appinfo.label, {
-  appinfo: appinfo,
-  launch: launch,
-  close: close
+  Simulator.register(name, {
+    // We keep the deprecated `appinfo` object so that recent simulator addons
+    // remain forward-compatible with older Firefox.
+    appinfo: { label: name },
+    launch: launch,
+    close: close
+  });
 });
 
-require("sdk/system/unload").when(function () {
-  Simulator.unregister(appinfo.label);
+exports.shutdown = function () {
+  Simulator.unregister(name);
   close();
-});
+}
+

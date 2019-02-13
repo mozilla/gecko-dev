@@ -22,8 +22,7 @@
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for Image::Release, etc
-#include "nsRect.h"                     // for nsIntRect
-#include "nsSize.h"                     // for nsIntSize
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsTArray.h"                   // for nsTArray
 #include "mozilla/Atomics.h"
 #include "mozilla/WeakPtr.h"
@@ -57,7 +56,7 @@ public:
    */
   class SurfaceReleaser : public nsRunnable {
   public:
-    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    explicit SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
     NS_IMETHOD Run() {
       mRef->Release();
       return NS_OK;
@@ -95,7 +94,6 @@ typedef void* HANDLE;
 
 namespace mozilla {
 
-class CrossProcessMutex;
 
 namespace layers {
 
@@ -103,8 +101,7 @@ class ImageClient;
 class SharedPlanarYCbCrImage;
 class TextureClient;
 class CompositableClient;
-class CompositableForwarder;
-class SurfaceDescriptor;
+class GrallocImage;
 
 struct ImageBackendData
 {
@@ -112,18 +109,6 @@ struct ImageBackendData
 
 protected:
   ImageBackendData() {}
-};
-
-// sadly we'll need this until we get rid of Deprected image classes
-class ISharedImage {
-public:
-    virtual uint8_t* GetBuffer() = 0;
-
-    /**
-     * For use with the CompositableClient only (so that the later can
-     * synchronize the TextureClient with the TextureHost).
-     */
-    virtual TextureClient* GetTextureClient(CompositableClient* aClient) = 0;
 };
 
 /**
@@ -144,15 +129,13 @@ class Image {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
 
 public:
-  virtual ISharedImage* AsSharedImage() { return nullptr; }
-
   ImageFormat GetFormat() { return mFormat; }
   void* GetImplData() { return mImplData; }
 
   virtual gfx::IntSize GetSize() = 0;
-  virtual nsIntRect GetPictureRect()
+  virtual gfx::IntRect GetPictureRect()
   {
-    return nsIntRect(0, 0, GetSize().width, GetSize().height);
+    return gfx::IntRect(0, 0, GetSize().width, GetSize().height);
   }
 
   ImageBackendData* GetBackendData(LayersBackend aBackend)
@@ -166,6 +149,21 @@ public:
   bool IsSentToCompositor() { return mSent; }
 
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() = 0;
+
+  virtual GrallocImage* AsGrallocImage()
+  {
+    return nullptr;
+  }
+
+  virtual bool IsValid() { return true; }
+
+  virtual uint8_t* GetBuffer() { return nullptr; }
+
+  /**
+  * For use with the CompositableClient only (so that the later can
+  * synchronize the TextureClient with the TextureHost).
+  */
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) { return nullptr; }
 
 protected:
   Image(void* aImplData, ImageFormat aFormat) :
@@ -197,8 +195,8 @@ protected:
  * and we must avoid creating a reference loop between an ImageContainer and
  * its active image.
  */
-class BufferRecycleBin MOZ_FINAL {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RecycleBin)
+class BufferRecycleBin final {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BufferRecycleBin)
 
   //typedef mozilla::gl::GLContext GLContext;
 
@@ -267,66 +265,13 @@ protected:
 };
  
 /**
- * This struct is used to store RemoteImages, it is meant to be able to live in
- * shared memory. Therefor it should not contain a vtable pointer. Remote
- * users can manipulate the data in this structure to specify what image is to
- * be drawn by the container. When accessing this data users should make sure
- * the mutex synchronizing access to the structure is held!
- */
-struct RemoteImageData {
-  enum Type {
-    /**
-     * This is a format that uses raw bitmap data.
-     */
-    RAW_BITMAP,
-
-    /**
-     * This is a format that uses a pointer to a texture do draw directly
-     * from a shared texture. Any process may have created this texture handle,
-     * the process creating the texture handle is responsible for managing it's
-     * lifetime by managing the lifetime of the first D3D texture object this
-     * handle was created for. It must also ensure the handle is not set
-     * current anywhere when the last reference to this object is released.
-     */
-    DXGI_TEXTURE_HANDLE
-  };
-  /* These formats describe the format in the memory byte-order */
-  enum Format {
-    /* 8 bits per channel */
-    BGRA32,
-    /* 8 bits per channel, alpha channel is ignored */
-    BGRX32
-  };
-
-  // This should be set to true if a change was made so that the ImageContainer
-  // knows to throw out any cached RemoteImage objects.
-  bool mWasUpdated;
-  Type mType;
-  Format mFormat;
-  gfx::IntSize mSize;
-  union {
-    struct {
-      /* This pointer is set by a remote process, however it will be set to
-       * the container process' address the memory of the raw bitmap resides
-       * at.
-       */
-      unsigned char *mData;
-      int mStride;
-    } mBitmap;
-#ifdef XP_WIN
-    HANDLE mTextureHandle;
-#endif
-  };
-};
-
-/**
  * A class that manages Images for an ImageLayer. The only reason
  * we need a separate class here is that ImageLayers aren't threadsafe
  * (because layers can only be used on the main thread) and we want to
  * be able to set the current Image from any thread, to facilitate
  * video playback without involving the main thread, for example.
  *
- * An ImageContainer can operate in one of three modes:
+ * An ImageContainer can operate in one of these modes:
  * 1) Normal. Triggered by constructing the ImageContainer with
  * DISABLE_ASYNC or when compositing is happening on the main thread.
  * SetCurrentImage changes ImageContainer state but nothing is sent to the
@@ -336,21 +281,19 @@ struct RemoteImageData {
  * SetCurrentImage sends a message through the ImageBridge to the compositor
  * thread to update the image, without going through the main thread or
  * a layer transaction.
- * 3) Remote. Initiated by calling SetRemoteImageData on the ImageContainer
- * before any other activity.
  * The ImageContainer uses a shared memory block containing a cross-process mutex
  * to communicate with the compositor thread. SetCurrentImage synchronously
  * updates the shared state to point to the new image and the old image
  * is immediately released (not true in Normal or Asynchronous modes).
  */
-class ImageContainer MOZ_FINAL : public SupportsWeakPtr<ImageContainer> {
+class ImageContainer final : public SupportsWeakPtr<ImageContainer> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(ImageContainer)
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(ImageContainer)
 
-  enum { DISABLE_ASYNC = 0x0, ENABLE_ASYNC = 0x01 };
+  enum Mode { SYNCHRONOUS = 0x0, ASYNCHRONOUS = 0x01, ASYNCHRONOUS_OVERLAY = 0x02 };
 
-  ImageContainer(int flag = 0);
+  explicit ImageContainer(ImageContainer::Mode flag = SYNCHRONOUS);
 
   /**
    * Create an Image in one of the given formats.
@@ -511,6 +454,11 @@ public:
     mImageFactory = aFactory ? aFactory : new ImageFactory();
   }
 
+  ImageFactory* GetImageFactory() const
+  {
+    return mImageFactory;
+  }
+
   /**
    * Returns the time at which the currently contained image was first
    * painted.  This is reset every time a new image is set as the current
@@ -571,21 +519,6 @@ public:
     mCompositionNotifySink = aSink;
   }
 
-  /**
-   * This function is called to tell the ImageContainer where the
-   * (cross-process) segment lives where the shared data about possible
-   * remote images are stored. In addition to this a CrossProcessMutex object
-   * is passed telling the container how to synchronize access to this data.
-   * NOTE: This should be called during setup of the container and not after
-   * usage has started.
-   */
-  void SetRemoteImageData(RemoteImageData *aRemoteData,
-                          CrossProcessMutex *aRemoteDataMutex);
-  /**
-   * This can be used to check if the container has RemoteData set.
-   */
-  RemoteImageData *GetRemoteImageData() { return mRemoteData; }
-
 private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
@@ -636,16 +569,6 @@ private:
 
   nsRefPtr<BufferRecycleBin> mRecycleBin;
 
-  // This contains the remote image data for this container, if this is nullptr
-  // that means the container has no other process that may control its active
-  // image.
-  RemoteImageData *mRemoteData;
-
-  // This cross-process mutex is used to synchronise access to mRemoteData.
-  // When this mutex is held, we will always be inside the mReentrantMonitor
-  // however the same is not true vice versa.
-  CrossProcessMutex *mRemoteDataMutex;
-
   CompositionNotifySink *mCompositionNotifySink;
 
   // This member points to an ImageClient if this ImageContainer was
@@ -661,7 +584,7 @@ private:
 class AutoLockImage
 {
 public:
-  AutoLockImage(ImageContainer *aContainer) : mContainer(aContainer) { mImage = mContainer->LockCurrentImage(); }
+  explicit AutoLockImage(ImageContainer *aContainer) : mContainer(aContainer) { mImage = mContainer->LockCurrentImage(); }
   AutoLockImage(ImageContainer *aContainer, RefPtr<gfx::SourceSurface> *aSurface) : mContainer(aContainer) {
     *aSurface = mContainer->LockCurrentAsSourceSurface(&mSize, getter_AddRefs(mImage));
   }
@@ -715,8 +638,8 @@ struct PlanarYCbCrData {
   gfx::IntSize mPicSize;
   StereoMode mStereoMode;
 
-  nsIntRect GetPictureRect() const {
-    return nsIntRect(mPicX, mPicY,
+  gfx::IntRect GetPictureRect() const {
+    return gfx::IntRect(mPicX, mPicY,
                      mPicSize.width,
                      mPicSize.height);
   }
@@ -816,7 +739,7 @@ public:
 
   virtual gfx::IntSize GetSize() { return mSize; }
 
-  PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
+  explicit PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
 
   virtual SharedPlanarYCbCrImage *AsSharedPlanarYCbCrImage() { return nullptr; }
 
@@ -860,8 +783,7 @@ protected:
  * device output color space. This class is very simple as all backends
  * have to know about how to deal with drawing a cairo image.
  */
-class CairoImage : public Image,
-                   public ISharedImage {
+class CairoImage final : public Image {
 public:
   struct Data {
     gfx::IntSize mSize;
@@ -879,16 +801,15 @@ public:
     mSourceSurface = aData.mSourceSurface;
   }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface()
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() override
   {
-    return mSourceSurface.get();
+    RefPtr<gfx::SourceSurface> surface(mSourceSurface);
+    return surface.forget();
   }
 
-  virtual ISharedImage* AsSharedImage() { return this; }
-  virtual uint8_t* GetBuffer() { return nullptr; }
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient);
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) override;
 
-  gfx::IntSize GetSize() { return mSize; }
+  virtual gfx::IntSize GetSize() override { return mSize; }
 
   CairoImage();
   ~CairoImage();
@@ -899,21 +820,40 @@ public:
   nsDataHashtable<nsUint32HashKey, RefPtr<TextureClient> >  mTextureClients;
 };
 
-class RemoteBitmapImage : public Image {
+#ifdef MOZ_WIDGET_GONK
+class OverlayImage : public Image {
+  /**
+   * OverlayImage is a special Image type that does not hold any buffer.
+   * It only hold an Id as identifier to the real content of the Image.
+   * Therefore, OverlayImage must be handled by some specialized hardware(e.g. HWC) 
+   * to show its content.
+   */
 public:
-  RemoteBitmapImage() : Image(nullptr, ImageFormat::REMOTE_IMAGE_BITMAP) {}
+  struct Data {
+    int32_t mOverlayId;
+    gfx::IntSize mSize;
+  };
 
-  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
+  OverlayImage() : Image(nullptr, ImageFormat::OVERLAY_IMAGE) { mOverlayId = INVALID_OVERLAY; }
+
+  void SetData(const Data& aData)
+  {
+    mOverlayId = aData.mOverlayId;
+    mSize = aData.mSize;
+  }
+
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; } ;
+  int32_t GetOverlayId() { return mOverlayId; }
 
   gfx::IntSize GetSize() { return mSize; }
 
-  unsigned char *mData;
-  int mStride;
+private:
+  int32_t mOverlayId;
   gfx::IntSize mSize;
-  RemoteImageData::Format mFormat;
 };
+#endif
 
-} //namespace
-} //namespace
+} // namespace layers
+} // namespace mozilla
 
 #endif

@@ -1,49 +1,49 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
-const TESTCASE_URI = TEST_BASE + "minified.html";
+// Test that minified sheets are automatically prettified but other are left
+// untouched.
 
-let gUI;
+const TESTCASE_URI = TEST_BASE_HTTP + "minified.html";
 
-function test()
-{
-  waitForExplicitFinish();
+const PRETTIFIED_SOURCE = "" +
+"body \{\r?\n" +                   // body{
+  "\tbackground\:white;\r?\n" +   //   background:white;
+"\}\r?\n" +                       // }
+"div \{\r?\n" +                    // div{
+  "\tfont\-size\:4em;\r?\n" +     //   font-size:4em;
+  "\tcolor\:red\r?\n" +           //   color:red
+"\}\r?\n" +                       // }
+"span \{\r?\n" +                   // span{
+  "\tcolor\:green;\r?\n"          //   color:green;
+"\}\r?\n";                        // }
 
-  addTabAndCheckOnStyleEditorAdded(panel => gUI = panel.UI, editor => {
-    editor.getSourceEditor().then(function() {
-      testEditor(editor);
-    });
-  });
+const ORIGINAL_SOURCE = "" +
+"body \{ background\: red; \}\r?\n" + // body { background: red; }
+"div \{\r?\n" +                       // div {
+  "font\-size\: 5em;\r?\n" +          // font-size: 5em;
+  "color\: red\r?\n" +                // color: red
+"\}";                                 // }
 
-  content.location = TESTCASE_URI;
-}
+add_task(function* () {
+  let { ui } = yield openStyleEditorForURL(TESTCASE_URI);
+  is(ui.editors.length, 2, "Two sheets present.");
 
-let editorTestedCount = 0;
-function testEditor(aEditor)
-{
-  if (aEditor.styleSheet.styleSheetIndex == 0) {
-    let prettifiedSource = "body\{\r?\n\tbackground\:white;\r?\n\}\r?\n\r?\ndiv\{\r?\n\tfont\-size\:4em;\r?\n\tcolor\:red\r?\n\}\r?\n";
-    let prettifiedSourceRE = new RegExp(prettifiedSource);
+  info("Testing minified style sheet.");
+  let editor = yield ui.editors[0].getSourceEditor();
 
-    ok(prettifiedSourceRE.test(aEditor.sourceEditor.getText()),
-       "minified source has been prettified automatically");
-    editorTestedCount++;
-    let summary = gUI.editors[1].summary;
-    EventUtils.synthesizeMouseAtCenter(summary, {}, gPanelWindow);
-  }
+  let prettifiedSourceRE = new RegExp(PRETTIFIED_SOURCE);
+  ok(prettifiedSourceRE.test(editor.sourceEditor.getText()),
+     "minified source has been prettified automatically");
 
-  if (aEditor.styleSheet.styleSheetIndex == 1) {
-    let originalSource = "body \{ background\: red; \}\r?\ndiv \{\r?\nfont\-size\: 5em;\r?\ncolor\: red\r?\n\}";
-    let originalSourceRE = new RegExp(originalSource);
+  info("Selecting second, non-minified style sheet.");
+  yield ui.selectStyleSheet(ui.editors[1].styleSheet);
 
-    ok(originalSourceRE.test(aEditor.sourceEditor.getText()),
-       "non-minified source has been left untouched");
-    editorTestedCount++;
-  }
+  editor = ui.editors[1];
 
-  if (editorTestedCount == 2) {
-    gUI = null;
-    finish();
-  }
-}
+  let originalSourceRE = new RegExp(ORIGINAL_SOURCE);
+  ok(originalSourceRE.test(editor.sourceEditor.getText()),
+     "non-minified source has been left untouched");
+});

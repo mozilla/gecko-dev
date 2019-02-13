@@ -6,8 +6,12 @@
 #include "GeckoProfiler.h"
 #include "ProfilerBacktrace.h"
 #include "ProfilerMarkers.h"
-#include "gfxASurface.h"
 #include "SyncProfile.h"
+#ifndef SPS_STANDALONE
+#include "gfxASurface.h"
+#include "Layers.h"
+#include "prprf.h"
+#endif
 
 ProfilerMarkerPayload::ProfilerMarkerPayload(ProfilerBacktrace* aStack)
   : mStack(aStack)
@@ -28,19 +32,23 @@ ProfilerMarkerPayload::~ProfilerMarkerPayload()
 
 void
 ProfilerMarkerPayload::streamCommonProps(const char* aMarkerType,
-                                          JSStreamWriter& b)
+                                         SpliceableJSONWriter& aWriter,
+                                         UniqueStacks& aUniqueStacks)
 {
   MOZ_ASSERT(aMarkerType);
-  b.NameValue("type", aMarkerType);
+  aWriter.StringProperty("type", aMarkerType);
   if (!mStartTime.IsNull()) {
-    b.NameValue("startTime", profiler_time(mStartTime));
+    aWriter.DoubleProperty("startTime", profiler_time(mStartTime));
   }
   if (!mEndTime.IsNull()) {
-    b.NameValue("endTime", profiler_time(mEndTime));
+    aWriter.DoubleProperty("endTime", profiler_time(mEndTime));
   }
   if (mStack) {
-    b.Name("stack");
-    mStack->StreamJSObject(b);
+    aWriter.StartObjectProperty("stack");
+    {
+      mStack->StreamJSON(aWriter, aUniqueStacks);
+    }
+    aWriter.EndObject();
   }
 }
 
@@ -64,36 +72,60 @@ ProfilerMarkerTracing::ProfilerMarkerTracing(const char* aCategory, TracingMetad
 }
 
 void
-ProfilerMarkerTracing::streamPayloadImp(JSStreamWriter& b)
+ProfilerMarkerTracing::StreamPayload(SpliceableJSONWriter& aWriter,
+                                     UniqueStacks& aUniqueStacks)
 {
-  b.BeginObject();
-    streamCommonProps("tracing", b);
+  streamCommonProps("tracing", aWriter, aUniqueStacks);
 
-    if (GetCategory()) {
-      b.NameValue("category", GetCategory());
+  if (GetCategory()) {
+    aWriter.StringProperty("category", GetCategory());
+  }
+  if (GetMetaData() != TRACING_DEFAULT) {
+    if (GetMetaData() == TRACING_INTERVAL_START) {
+      aWriter.StringProperty("interval", "start");
+    } else if (GetMetaData() == TRACING_INTERVAL_END) {
+      aWriter.StringProperty("interval", "end");
     }
-    if (GetMetaData() != TRACING_DEFAULT) {
-      if (GetMetaData() == TRACING_INTERVAL_START) {
-        b.NameValue("interval", "start");
-      } else if (GetMetaData() == TRACING_INTERVAL_END) {
-        b.NameValue("interval", "end");
-      }
-    }
-  b.EndObject();
+  }
+}
+
+#ifndef SPS_STANDALONE
+GPUMarkerPayload::GPUMarkerPayload(
+  const mozilla::TimeStamp& aCpuTimeStart,
+  const mozilla::TimeStamp& aCpuTimeEnd,
+  uint64_t aGpuTimeStart,
+  uint64_t aGpuTimeEnd)
+
+  : ProfilerMarkerPayload(aCpuTimeStart, aCpuTimeEnd)
+  , mCpuTimeStart(aCpuTimeStart)
+  , mCpuTimeEnd(aCpuTimeEnd)
+  , mGpuTimeStart(aGpuTimeStart)
+  , mGpuTimeEnd(aGpuTimeEnd)
+{ }
+
+void
+GPUMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                UniqueStacks& aUniqueStacks)
+{
+  streamCommonProps("gpu_timer_query", aWriter, aUniqueStacks);
+
+  aWriter.DoubleProperty("cpustart", profiler_time(mCpuTimeStart));
+  aWriter.DoubleProperty("cpuend", profiler_time(mCpuTimeEnd));
+  aWriter.IntProperty("gpustart", (int)mGpuTimeStart);
+  aWriter.IntProperty("gpuend", (int)mGpuTimeEnd);
 }
 
 ProfilerMarkerImagePayload::ProfilerMarkerImagePayload(gfxASurface *aImg)
   : mImg(aImg)
-{}
+{ }
 
 void
-ProfilerMarkerImagePayload::streamPayloadImp(JSStreamWriter& b)
+ProfilerMarkerImagePayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                          UniqueStacks& aUniqueStacks)
 {
-  b.BeginObject();
-    streamCommonProps("innerHTML", b);
-    // TODO: Finish me
-    //b.NameValue("innerHTML", "<img src=''/>");
-  b.EndObject();
+  streamCommonProps("innerHTML", aWriter, aUniqueStacks);
+  // TODO: Finish me
+  //aWriter.NameValue("innerHTML", "<img src=''/>");
 }
 
 IOMarkerPayload::IOMarkerPayload(const char* aSource,
@@ -113,20 +145,66 @@ IOMarkerPayload::~IOMarkerPayload(){
 }
 
 void
-IOMarkerPayload::streamPayloadImp(JSStreamWriter& b)
+IOMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter, UniqueStacks& aUniqueStacks)
 {
-  b.BeginObject();
-    streamCommonProps("io", b);
-    b.NameValue("source", mSource);
-    if (mFilename != nullptr) {
-      b.NameValue("filename", mFilename);
-    }
-  b.EndObject();
+  streamCommonProps("io", aWriter, aUniqueStacks);
+  aWriter.StringProperty("source", mSource);
+  if (mFilename != nullptr) {
+    aWriter.StringProperty("filename", mFilename);
+  }
 }
-
 
 void
 ProfilerJSEventMarker(const char *event)
 {
     PROFILER_MARKER(event);
 }
+
+LayerTranslationPayload::LayerTranslationPayload(mozilla::layers::Layer* aLayer,
+                                                 mozilla::gfx::Point aPoint)
+  : ProfilerMarkerPayload(mozilla::TimeStamp::Now(), mozilla::TimeStamp::Now(), nullptr)
+  , mLayer(aLayer)
+  , mPoint(aPoint)
+{
+}
+
+void
+LayerTranslationPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                       UniqueStacks& aUniqueStacks)
+{
+  const size_t bufferSize = 32;
+  char buffer[bufferSize];
+  PR_snprintf(buffer, bufferSize, "%p", mLayer);
+
+  aWriter.StringProperty("layer", buffer);
+  aWriter.IntProperty("x", mPoint.x);
+  aWriter.IntProperty("y", mPoint.y);
+  aWriter.StringProperty("category", "LayerTranslation");
+}
+
+TouchDataPayload::TouchDataPayload(const mozilla::ScreenIntPoint& aPoint)
+  : ProfilerMarkerPayload(mozilla::TimeStamp::Now(), mozilla::TimeStamp::Now(), nullptr)
+{
+  mPoint = aPoint;
+}
+
+void
+TouchDataPayload::StreamPayload(SpliceableJSONWriter& aWriter, UniqueStacks& aUniqueStacks)
+{
+  aWriter.IntProperty("x", mPoint.x);
+  aWriter.IntProperty("y", mPoint.y);
+}
+
+VsyncPayload::VsyncPayload(mozilla::TimeStamp aVsyncTimestamp)
+  : ProfilerMarkerPayload(aVsyncTimestamp, aVsyncTimestamp, nullptr)
+  , mVsyncTimestamp(aVsyncTimestamp)
+{
+}
+
+void
+VsyncPayload::StreamPayload(SpliceableJSONWriter& aWriter, UniqueStacks& aUniqueStacks)
+{
+  aWriter.DoubleProperty("vsync", profiler_time(mVsyncTimestamp));
+  aWriter.StringProperty("category", "VsyncTimestamp");
+}
+#endif

@@ -205,20 +205,14 @@ public:
             bit = CHINESEBIG5_CHARSET;
         } else if (aLangGroup == nsGkAtoms::el_) {
             bit = GREEK_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::tr) {
-            bit = TURKISH_CHARSET;
         } else if (aLangGroup == nsGkAtoms::he) {
             bit = HEBREW_CHARSET;
         } else if (aLangGroup == nsGkAtoms::ar) {
             bit = ARABIC_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_baltic) {
-            bit = BALTIC_CHARSET;
         } else if (aLangGroup == nsGkAtoms::x_cyrillic) {
             bit = RUSSIAN_CHARSET;
         } else if (aLangGroup == nsGkAtoms::th) {
             bit = THAI_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_central_euro) {
-            bit = EASTEUROPE_CHARSET;
         } else if (aLangGroup == nsGkAtoms::x_symbol) {
             bit = SYMBOL_CHARSET;
         }
@@ -252,8 +246,10 @@ public:
                                          bool aFamilyHasItalicFace);
 
     // create a font entry for a font referenced by its fullname
-    static GDIFontEntry* LoadLocalFont(const gfxProxyFontEntry &aProxyEntry,
-                                       const nsAString& aFullname);
+    static GDIFontEntry* LoadLocalFont(const nsAString& aFontName,
+                                       uint16_t aWeight,
+                                       int16_t aStretch,
+                                       bool aItalic);
 
     uint8_t mWindowsFamily;
     uint8_t mWindowsPitch;
@@ -282,7 +278,7 @@ protected:
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
 
     virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                   FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
+                                   FallibleTArray<uint8_t>& aBuffer) override;
 
     LOGFONTW mLogFont;
 };
@@ -313,13 +309,21 @@ public:
 
     virtual gfxFontFamily* GetDefaultFont(const gfxFontStyle* aStyle);
 
-    virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
+    virtual gfxFontFamily* FindFamily(const nsAString& aFamily,
+                                      nsIAtom* aLanguage = nullptr,
+                                      bool aUseSystemFonts = false);
 
-    virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
-                                          const nsAString& aFontName);
+    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
+                                          uint16_t aWeight,
+                                          int16_t aStretch,
+                                          bool aItalic);
 
-    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData, uint32_t aLength);
+    virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
+                                           uint16_t aWeight,
+                                           int16_t aStretch,
+                                           bool aItalic,
+                                           const uint8_t* aFontData,
+                                           uint32_t aLength);
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontListSizes* aSizes) const;

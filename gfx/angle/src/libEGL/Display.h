@@ -11,8 +11,6 @@
 #ifndef LIBEGL_DISPLAY_H_
 #define LIBEGL_DISPLAY_H_
 
-#include "common/system.h"
-
 #include <set>
 #include <vector>
 
@@ -35,14 +33,19 @@ class Display
     bool initialize();
     void terminate();
 
-    static egl::Display *getDisplay(EGLNativeDisplayType displayId);
+    static egl::Display *getDisplay(EGLNativeDisplayType displayId, EGLint displayType);
+
+    static const char *getExtensionString(egl::Display *display);
+
+    static bool supportsPlatformD3D();
+    static bool supportsPlatformOpenGL();
 
     bool getConfigs(EGLConfig *configs, const EGLint *attribList, EGLint configSize, EGLint *numConfig);
     bool getConfigAttrib(EGLConfig config, EGLint attribute, EGLint *value);
 
-    EGLSurface createWindowSurface(HWND window, EGLConfig config, const EGLint *attribList);
+    EGLSurface createWindowSurface(EGLNativeWindowType window, EGLConfig config, const EGLint *attribList);
     EGLSurface createOffscreenSurface(EGLConfig config, HANDLE shareHandle, const EGLint *attribList);
-    EGLContext createContext(EGLConfig configHandle, const gl::Context *shareContext, bool notifyResets, bool robustAccess);
+    EGLContext createContext(EGLConfig configHandle, EGLint clientVersion, const gl::Context *shareContext, bool notifyResets, bool robustAccess);
 
     void destroySurface(egl::Surface *surface);
     void destroyContext(gl::Context *context);
@@ -51,7 +54,7 @@ class Display
     bool isValidConfig(EGLConfig config);
     bool isValidContext(gl::Context *context);
     bool isValidSurface(egl::Surface *surface);
-    bool hasExistingWindowSurface(HWND window);
+    bool hasExistingWindowSurface(EGLNativeWindowType window);
 
     rx::Renderer *getRenderer() { return mRenderer; };
 
@@ -65,15 +68,13 @@ class Display
   private:
     DISALLOW_COPY_AND_ASSIGN(Display);
 
-    Display(EGLNativeDisplayType displayId, HDC deviceContext);
+    Display(EGLNativeDisplayType displayId, EGLint displayType);
 
     bool restoreLostDevice();
 
     EGLNativeDisplayType mDisplayId;
-    const HDC mDc;
+    EGLint mRequestedDisplayType;
 
-    bool mSoftwareDevice;
-    
     typedef std::set<Surface*> SurfaceSet;
     SurfaceSet mSurfaceSet;
 
@@ -84,9 +85,12 @@ class Display
 
     rx::Renderer *mRenderer;
 
-    void initExtensionString();
+    static std::string generateClientExtensionString();
+
+    void initDisplayExtensionString();
+    std::string mDisplayExtensionString;
+
     void initVendorString();
-    std::string mExtensionString;
     std::string mVendorString;
 };
 }

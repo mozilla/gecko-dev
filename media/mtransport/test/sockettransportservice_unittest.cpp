@@ -78,7 +78,7 @@ class SocketTransportServiceTest : public ::testing::Test {
 // Received an event.
 class EventReceived : public nsRunnable {
 public:
-  EventReceived(SocketTransportServiceTest *test) :
+  explicit EventReceived(SocketTransportServiceTest *test) :
       test_(test) {}
 
   NS_IMETHOD Run() {
@@ -93,7 +93,7 @@ public:
 // Register our listener on the socket
 class RegisterEvent : public nsRunnable {
 public:
-  RegisterEvent(SocketTransportServiceTest *test) :
+  explicit RegisterEvent(SocketTransportServiceTest *test) :
       test_(test) {}
 
   NS_IMETHOD Run() {
@@ -107,11 +107,10 @@ public:
 
 class SocketHandler : public nsASocketHandler {
  public:
-  SocketHandler(SocketTransportServiceTest *test) : test_(test) {
+  explicit SocketHandler(SocketTransportServiceTest *test) : test_(test) {
   }
-  virtual ~SocketHandler() {}
 
-  void OnSocketReady(PRFileDesc *fd, int16_t outflags) {
+  void OnSocketReady(PRFileDesc *fd, int16_t outflags) override {
     unsigned char buf[1600];
 
     int32_t rv;
@@ -122,17 +121,20 @@ class SocketHandler : public nsASocketHandler {
     }
   }
 
-  void OnSocketDetached(PRFileDesc *fd) {}
+  void OnSocketDetached(PRFileDesc *fd) override {}
 
-  void IsLocal(bool *aIsLocal) {
+  void IsLocal(bool *aIsLocal) override {
     // TODO(jesup): better check? Does it matter? (likely no)
     *aIsLocal = false;
   }
 
-  virtual uint64_t ByteCountSent() { return 0; }
-  virtual uint64_t ByteCountReceived() { return 0; }
+  virtual uint64_t ByteCountSent() override { return 0; }
+  virtual uint64_t ByteCountReceived() override { return 0; }
 
   NS_DECL_ISUPPORTS
+
+ protected:
+  virtual ~SocketHandler() {}
 
  private:
   SocketTransportServiceTest *test_;

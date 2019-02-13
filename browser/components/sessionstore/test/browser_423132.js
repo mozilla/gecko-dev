@@ -25,47 +25,62 @@ function test() {
   newWin.addEventListener("load", function (aEvent) {
     newWin.removeEventListener("load", arguments.callee, false);
 
-    newWin.gBrowser.loadURI(testURL, null, null);
+    // Wait for sessionstore to be ready to restore this window
+    executeSoon(function() {
+      newWin.gBrowser.loadURI(testURL, null, null);
 
-    whenBrowserLoaded(newWin.gBrowser.selectedBrowser, function() {
-      // get the sessionstore state for the window
-      SyncHandlers.get(newWin.gBrowser.selectedBrowser).flush();
-      let state = ss.getWindowState(newWin);
+      promiseBrowserLoaded(newWin.gBrowser.selectedBrowser).then(() => {
+        let ready = () => {
+          // get the sessionstore state for the window
+          let state = ss.getWindowState(newWin);
 
-      // verify our cookie got set during pageload
-      let e = cs.enumerator;
-      let cookie;
-      let i = 0;
-      while (e.hasMoreElements()) {
-        cookie = e.getNext().QueryInterface(Ci.nsICookie);
-        i++;
-      }
-      is(i, 1, "expected one cookie");
+          // verify our cookie got set during pageload
+          let e = cs.enumerator;
+          let cookie;
+          let i = 0;
+          while (e.hasMoreElements()) {
+            cookie = e.getNext().QueryInterface(Ci.nsICookie);
+            i++;
+          }
+          is(i, 1, "expected one cookie");
 
-      // remove the cookie
-      cs.removeAll();
+          // remove the cookie
+          cs.removeAll();
 
-      // restore the window state
-      ss.setWindowState(newWin, state, true);
+          // restore the window state
+          ss.setWindowState(newWin, state, true);
 
-      // at this point, the cookie should be restored...
-      e = cs.enumerator;
-      let cookie2;
-      while (e.hasMoreElements()) {
-        cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
-        if (cookie.name == cookie2.name)
-          break;
-      }
-      is(cookie.name, cookie2.name, "cookie name successfully restored");
-      is(cookie.value, cookie2.value, "cookie value successfully restored");
-      is(cookie.path, cookie2.path, "cookie path successfully restored");
+          // at this point, the cookie should be restored...
+          e = cs.enumerator;
+          let cookie2;
+          while (e.hasMoreElements()) {
+            cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
+            if (cookie.name == cookie2.name)
+              break;
+          }
+          is(cookie.name, cookie2.name, "cookie name successfully restored");
+          is(cookie.value, cookie2.value, "cookie value successfully restored");
+          is(cookie.path, cookie2.path, "cookie path successfully restored");
 
-      // clean up
-      if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-        gPrefService.clearUserPref("browser.sessionstore.interval");
-      cs.removeAll();
-      newWin.close();
-      finish();
+          // clean up
+          if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+            gPrefService.clearUserPref("browser.sessionstore.interval");
+          cs.removeAll();
+          newWin.close();
+          finish();
+        };
+
+        function flushAndReady() {
+          TabStateFlusher.flush(newWin.gBrowser.selectedBrowser).then(ready);
+        }
+
+        if (newWin.gMultiProcessBrowser) {
+          let tab = newWin.gBrowser.selectedTab;
+          promiseTabRestored(tab).then(flushAndReady);
+        } else {
+          flushAndReady();
+        }
+      }, true, testURL);
     });
   }, false);
 }

@@ -30,26 +30,30 @@ function test() {
   });
 
   function getIconFile(aCallback) {
-    NetUtil.asyncFetch(favIconLocation, function(inputStream, status) {
-      if (!Components.isSuccessCode(status)) {
-        ok(false, "Could not get the icon file");
-        // Handle error.
-        return;
-      }
+    NetUtil.asyncFetch({
+      uri: favIconLocation,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_IMAGE
+    }, function(inputStream, status) {
+        if (!Components.isSuccessCode(status)) {
+          ok(false, "Could not get the icon file");
+          // Handle error.
+          return;
+        }
 
-      // Check the returned size versus the expected size.
-      let size = inputStream.available();
-      favIconData = NetUtil.readInputStreamToString(inputStream, size);
-      is(size, favIconData.length, "Check correct icon size");
-      // Check that the favicon loaded correctly before starting the actual tests.
-      is(favIconData.length, 344, "Check correct icon length (344)");
+        // Check the returned size versus the expected size.
+        let size = inputStream.available();
+        favIconData = NetUtil.readInputStreamToString(inputStream, size);
+        is(size, favIconData.length, "Check correct icon size");
+        // Check that the favicon loaded correctly before starting the actual tests.
+        is(favIconData.length, 344, "Check correct icon length (344)");
 
-      if (aCallback) {
-        aCallback();
-      } else {
-        finish();
-      }
-    });
+        if (aCallback) {
+          aCallback();
+        } else {
+          finish();
+        }
+      });
   }
 
   function testNormal(aWindow, aCallback) {

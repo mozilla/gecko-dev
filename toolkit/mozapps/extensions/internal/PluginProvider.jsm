@@ -16,6 +16,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 const URI_EXTENSION_STRINGS  = "chrome://mozapps/locale/extensions/extensions.properties";
 const STRING_TYPE_NAME       = "type.%ID%.name";
 const LIST_UPDATED_TOPIC     = "plugins-list-updated";
+const FLASH_MIME_TYPE        = "application/x-shockwave-flash";
 
 Cu.import("resource://gre/modules/Log.jsm");
 const LOGGER_ID = "addons.plugins";
@@ -48,6 +49,8 @@ function getIDHashForString(aStr) {
 }
 
 var PluginProvider = {
+  get name() "PluginProvider",
+
   // A dictionary mapping IDs to names and descriptions
   plugins: null,
 
@@ -83,6 +86,9 @@ var PluginProvider = {
           types.push(type.type + (extras ? " (" + extras + ")" : ""));
         }
         typeLabel.textContent = types.join(",\n");
+        let showProtectedModePref = canDisableFlashProtectedMode(plugin);
+        aSubject.getElementById("pluginEnableProtectedMode")
+          .setAttribute("collapsed", showProtectedModePref ? "" : "true");
       });
       break;
     case LIST_UPDATED_TOPIC:
@@ -274,6 +280,19 @@ var PluginProvider = {
   }
 };
 
+function isFlashPlugin(aPlugin) {
+  for (let type of aPlugin.pluginMimeTypes) {
+    if (type.type == FLASH_MIME_TYPE) {
+      return true;
+    }
+  }
+  return false;
+}
+// Protected mode is win32-only, not win64
+function canDisableFlashProtectedMode(aPlugin) {
+  return isFlashPlugin(aPlugin) && Services.appinfo.XPCOMABI == "x86-msvc";
+}
+
 /**
  * The PluginWrapper wraps a set of nsIPluginTags to provide the data visible to
  * public callers through the API.
@@ -461,6 +480,9 @@ function PluginWrapper(aId, aName, aDescription, aTags) {
 
   this.__defineGetter__("permissions", function() {
     let permissions = 0;
+    if (aTags[0].isEnabledStateLocked) {
+      return permissions;
+    }
     if (!this.appDisabled) {
 
       if (this.userDisabled !== true)
@@ -483,10 +505,16 @@ function PluginWrapper(aId, aName, aDescription, aTags) {
     }
     return permissions;
   });
+
+  this.__defineGetter__("optionsType", function() {
+    if (canDisableFlashProtectedMode(this)) {
+      return AddonManager.OPTIONS_TYPE_INLINE;
+    }
+    return AddonManager.OPTIONS_TYPE_INLINE_INFO;
+  });
 }
 
 PluginWrapper.prototype = {
-  optionsType: AddonManager.OPTIONS_TYPE_INLINE_INFO,
   optionsURL: "chrome://mozapps/content/extensions/pluginPrefs.xul",
 
   get updateDate() {

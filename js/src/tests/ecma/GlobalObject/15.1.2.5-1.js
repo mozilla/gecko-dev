@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -58,8 +58,6 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 new TestCase( SECTION, "unescape.length",       1,               unescape.length );
 new TestCase( SECTION, "unescape.length = null; unescape.length",   1,      eval("unescape.length=null; unescape.length") );
-new TestCase( SECTION, "delete unescape.length",                    false,  delete unescape.length );
-new TestCase( SECTION, "delete unescape.length; unescape.length",   1,      eval("delete unescape.length; unescape.length") );
 new TestCase( SECTION, "var MYPROPS=''; for ( var p in unescape ) { MYPROPS+= p }; MYPROPS",    "", eval("var MYPROPS=''; for ( var p in unescape ) { MYPROPS+= p }; MYPROPS") );
 
 new TestCase( SECTION, "unescape()",              "undefined",    unescape() );

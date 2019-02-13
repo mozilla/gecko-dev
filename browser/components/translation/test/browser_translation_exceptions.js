@@ -6,7 +6,8 @@
 
 let tmp = {};
 Cu.import("resource:///modules/translation/Translation.jsm", tmp);
-let {Translation} = tmp;
+Cu.import("resource://gre/modules/Promise.jsm", tmp);
+let {Translation, Promise} = tmp;
 
 const kLanguagesPref = "browser.translation.neverForLanguages";
 const kShowUIPref = "browser.translation.ui.show";
@@ -71,7 +72,7 @@ function openPopup(aPopup) {
   aPopup.focus();
   // One down event to open the popup.
   EventUtils.synthesizeKey("VK_DOWN",
-                           { altKey: !navigator.platform.contains("Mac") });
+                           { altKey: !navigator.platform.includes("Mac") });
 
   return deferred.promise;
 }

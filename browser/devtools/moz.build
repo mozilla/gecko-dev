@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += [
+    'animationinspector',
     'app-manager',
     'canvasdebugger',
     'commandline',
@@ -13,16 +14,17 @@ DIRS += [
     'fontinspector',
     'framework',
     'inspector',
-    'projecteditor',
     'layoutview',
     'markupview',
     'netmonitor',
-    'profiler',
+    'performance',
+    'projecteditor',
     'responsivedesign',
     'scratchpad',
     'shadereditor',
     'shared',
     'sourceeditor',
+    'storage',
     'styleeditor',
     'styleinspector',
     'tilt',
@@ -37,3 +39,8 @@ EXTRA_COMPONENTS += [
 ]
 
 JAR_MANIFESTS += ['jar.mn']
+
+EXTRA_JS_MODULES.devtools += [
+    'definitions.js',
+    'main.js',
+]

@@ -118,7 +118,7 @@ union NetAddr {
 // which is converted to a mozilla::dns::NetAddr.
 class NetAddrElement : public LinkedListElement<NetAddrElement> {
 public:
-  NetAddrElement(const PRNetAddr *prNetAddr);
+  explicit NetAddrElement(const PRNetAddr *prNetAddr);
   NetAddrElement(const NetAddrElement& netAddr);
   ~NetAddrElement();
 
@@ -130,7 +130,7 @@ public:
   // Creates an AddrInfo object. It calls the AddrInfo(const char*, const char*)
   // to initialize the host and the cname.
   AddrInfo(const char *host, const PRAddrInfo *prAddrInfo, bool disableIPv4,
-           const char *cname);
+           bool filterNameCollision, const char *cname);
 
   // Creates a basic AddrInfo object (initialize only the host and the cname).
   AddrInfo(const char *host, const char *cname);
@@ -142,6 +142,9 @@ public:
 
   char *mHostName;
   char *mCanonicalName;
+  uint16_t ttl;
+  static const uint16_t NO_TTL_DATA = (uint16_t) -1;
+
   LinkedList<NetAddrElement> mAddresses;
 
 private:
@@ -165,6 +168,8 @@ bool IsIPAddrAny(const NetAddr *addr);
 bool IsIPAddrV4Mapped(const NetAddr *addr);
 
 bool IsIPAddrLocal(const NetAddr *addr);
+
+nsresult GetPort(const NetAddr *aAddr, uint16_t *aResult);
 
 } // namespace net
 } // namespace mozilla

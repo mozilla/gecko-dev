@@ -4,17 +4,8 @@
 "use strict";
 
 module.metadata = {
-  "stability": "unstable",
-  "engines": {
-    "Firefox": "*",
-    "Fennec": "*"
-  }
+  "stability": "unstable"
 };
-
-const { modelFor } = require("./model/core");
-const { viewFor } = require("./view/core");
-const { isTab } = require("./tabs/utils");
-
 
 if (require("./system/xul-app").is("Fennec")) {
   module.exports = require("./windows/tabs-fennec").tabs;
@@ -24,14 +15,3 @@ else {
 }
 
 const tabs = module.exports;
-
-// Implement `modelFor` function for the Tab instances.
-// Finds a right model by iterating over all tab models
-// and finding one that wraps given `view`.
-modelFor.when(isTab, view => {
-  for (let model of tabs) {
-    if (viewFor(model) === view)
-      return model;
-  }
-  return null;
-});

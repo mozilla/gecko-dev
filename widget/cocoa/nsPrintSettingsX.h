@@ -20,7 +20,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   nsPrintSettingsX();
-  virtual ~nsPrintSettingsX();
   nsresult Init();
   NSPrintInfo* GetCocoaPrintInfo() { return mPrintInfo; }
   void SetCocoaPrintInfo(NSPrintInfo* aPrintInfo);
@@ -33,11 +32,13 @@ public:
   void SetPMPageFormat(PMPageFormat aPageFormat);
 
 protected:
+  virtual ~nsPrintSettingsX();
+
   nsPrintSettingsX(const nsPrintSettingsX& src);
   nsPrintSettingsX& operator=(const nsPrintSettingsX& rhs);
 
-  nsresult _Clone(nsIPrintSettings **_retval);
-  nsresult _Assign(nsIPrintSettings *aPS);
+  nsresult _Clone(nsIPrintSettings **_retval) override;
+  nsresult _Assign(nsIPrintSettings *aPS) override;
 
   // Re-initialize mUnwriteableMargin with values from mPageFormat.
   // Should be called whenever mPageFormat is initialized or overwritten.

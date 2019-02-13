@@ -12,6 +12,7 @@
 #include "SourceSurfaceD2DTarget.h"
 #include "DrawTargetD2D.h"
 #include "DrawTargetD2D1.h"
+#include "ExtendInputEffectD2D1.h"
 
 namespace mozilla {
 namespace gfx {
@@ -57,6 +58,29 @@ D2D1_BLEND_MODE D2DBlendMode(uint32_t aMode)
     return D2D1_BLEND_MODE_MULTIPLY;
   case BLEND_MODE_SCREEN:
     return D2D1_BLEND_MODE_SCREEN;
+  case BLEND_MODE_OVERLAY:
+    return D2D1_BLEND_MODE_OVERLAY;
+  case BLEND_MODE_COLOR_DODGE:
+    return D2D1_BLEND_MODE_COLOR_DODGE;
+  case BLEND_MODE_COLOR_BURN:
+    return D2D1_BLEND_MODE_COLOR_BURN;
+  case BLEND_MODE_HARD_LIGHT:
+    return D2D1_BLEND_MODE_HARD_LIGHT;
+  case BLEND_MODE_SOFT_LIGHT:
+    return D2D1_BLEND_MODE_SOFT_LIGHT;
+  case BLEND_MODE_DIFFERENCE:
+    return D2D1_BLEND_MODE_DIFFERENCE;
+  case BLEND_MODE_EXCLUSION:
+    return D2D1_BLEND_MODE_EXCLUSION;
+  case BLEND_MODE_HUE:
+    return D2D1_BLEND_MODE_HUE;
+  case BLEND_MODE_SATURATION:
+    return D2D1_BLEND_MODE_SATURATION;
+  case BLEND_MODE_COLOR:
+    return D2D1_BLEND_MODE_COLOR;
+  case BLEND_MODE_LUMINOSITY:
+    return D2D1_BLEND_MODE_LUMINOSITY;
+
   default:
     MOZ_CRASH("Unknown enum value!");
   }
@@ -128,7 +152,11 @@ D2D1_CHANNEL_SELECTOR D2DChannelSelector(uint32_t aMode)
 
 TemporaryRef<ID2D1Image> GetImageForSourceSurface(DrawTarget *aDT, SourceSurface *aSurface)
 {
-  switch (aDT->GetType()) {
+  if (aDT->IsTiledDrawTarget() || aDT->IsDualDrawTarget()) {
+      MOZ_CRASH("Incompatible draw target type!");
+      return nullptr;
+  }
+  switch (aDT->GetBackendType()) {
     case BackendType::DIRECT2D1_1:
       return static_cast<DrawTargetD2D1*>(aDT)->GetImageForSurface(aSurface, ExtendMode::CLAMP);
     case BackendType::DIRECT2D:
@@ -494,12 +522,26 @@ static inline REFCLSID GetCLDIDForFilterType(FilterType aType)
   return GUID_NULL;
 }
 
+static bool
+IsTransferFilterType(FilterType aType)
+{
+  switch (aType) {
+    case FilterType::LINEAR_TRANSFER:
+    case FilterType::GAMMA_TRANSFER:
+    case FilterType::TABLE_TRANSFER:
+    case FilterType::DISCRETE_TRANSFER:
+      return true;
+    default:
+      return false;
+  }
+}
+
 /* static */
 TemporaryRef<FilterNode>
-FilterNodeD2D1::Create(DrawTarget* aDT, ID2D1DeviceContext *aDC, FilterType aType)
+FilterNodeD2D1::Create(ID2D1DeviceContext *aDC, FilterType aType)
 {
   if (aType == FilterType::CONVOLVE_MATRIX) {
-    return new FilterNodeConvolveD2D1(aDT, aDC);
+    return MakeAndAddRef<FilterNodeConvolveD2D1>(aDC);
   }
 
   RefPtr<ID2D1Effect> effect;
@@ -507,20 +549,26 @@ FilterNodeD2D1::Create(DrawTarget* aDT, ID2D1DeviceContext *aDC, FilterType aTyp
 
   hr = aDC->CreateEffect(GetCLDIDForFilterType(aType), byRef(effect));
 
-  if (FAILED(hr)) {
-    gfxWarning() << "Failed to create effect for FilterType: " << hr;
+  if (FAILED(hr) || !effect) {
+    gfxCriticalErrorOnce() << "Failed to create effect for FilterType: " << hexa(hr);
     return nullptr;
   }
 
-  switch (aType) {
-    case FilterType::LINEAR_TRANSFER:
-    case FilterType::GAMMA_TRANSFER:
-    case FilterType::TABLE_TRANSFER:
-    case FilterType::DISCRETE_TRANSFER:
-      return new FilterNodeComponentTransferD2D1(aDT, aDC, effect, aType);
-    default:
-      return new FilterNodeD2D1(aDT, effect, aType);
+  RefPtr<FilterNodeD2D1> filter = new FilterNodeD2D1(effect, aType);
+
+  if (IsTransferFilterType(aType) || aType == FilterType::COLOR_MATRIX) {
+    // These filters can produce non-transparent output from transparent
+    // input pixels, and we want them to have an unbounded output region.
+    filter = new FilterNodeExtendInputAdapterD2D1(aDC, filter, aType);
   }
+
+  if (IsTransferFilterType(aType)) {
+    // Component transfer filters should appear to apply on unpremultiplied
+    // colors, but the D2D1 effects apply on premultiplied colors.
+    filter = new FilterNodePremultiplyAdapterD2D1(aDC, filter, aType);
+  }
+
+  return filter.forget();
 }
 
 void
@@ -552,8 +600,23 @@ FilterNodeD2D1::SetInput(uint32_t aIndex, SourceSurface *aSurface)
     }
   }
 
-  RefPtr<ID2D1Image> image = GetImageForSourceSurface(mDT, aSurface);
-  effect->SetInput(input, image);
+  MOZ_ASSERT(input < effect->GetInputCount());
+
+  mInputSurfaces.resize(effect->GetInputCount());
+  mInputFilters.resize(effect->GetInputCount());
+
+  // In order to convert aSurface into an ID2D1Image, we need to know what
+  // DrawTarget we paint into. However, the same FilterNode object can be
+  // used on different DrawTargets, so we need to hold on to the SourceSurface
+  // objects and delay the conversion until we're actually painted and know
+  // our target DrawTarget.
+  // The conversion happens in WillDraw().
+
+  mInputSurfaces[input] = aSurface;
+  mInputFilters[input] = nullptr;
+
+  // Clear the existing image from the effect.
+  effect->SetInput(input, nullptr);
 }
 
 void
@@ -572,15 +635,47 @@ FilterNodeD2D1::SetInput(uint32_t aIndex, FilterNode *aFilter)
     }
   }
 
-   MOZ_ASSERT(input < effect->GetInputCount());
+  MOZ_ASSERT(input < effect->GetInputCount());
 
-  if (aFilter->GetBackendType() != FILTER_BACKEND_DIRECT2D1_1) {
-    gfxWarning() << "Unknown input SourceSurface set on effect.";
+  if (aFilter && aFilter->GetBackendType() != FILTER_BACKEND_DIRECT2D1_1) {
+    gfxWarning() << "Unknown input FilterNode set on effect.";
     MOZ_ASSERT(0);
     return;
   }
 
-  effect->SetInputEffect(input, static_cast<FilterNodeD2D1*>(aFilter)->OutputEffect());
+  FilterNodeD2D1* filter = static_cast<FilterNodeD2D1*>(aFilter);
+
+  mInputSurfaces.resize(effect->GetInputCount());
+  mInputFilters.resize(effect->GetInputCount());
+
+  // We hold on to the FilterNode object so that we can call WillDraw() on it.
+  mInputSurfaces[input] = nullptr;
+  mInputFilters[input] = filter;
+
+  if (filter) {
+    effect->SetInputEffect(input, filter->OutputEffect());
+  }
+}
+
+void
+FilterNodeD2D1::WillDraw(DrawTarget *aDT)
+{
+  // Convert input SourceSurfaces into ID2D1Images and set them on the effect.
+  for (size_t inputIndex = 0; inputIndex < mInputSurfaces.size(); inputIndex++) {
+    if (mInputSurfaces[inputIndex]) {
+      ID2D1Effect* effect = InputEffect();
+      RefPtr<ID2D1Image> image = GetImageForSourceSurface(aDT, mInputSurfaces[inputIndex]);
+      effect->SetInput(inputIndex, image);
+    }
+  }
+
+  // Call WillDraw() on our input filters.
+  for (std::vector<RefPtr<FilterNodeD2D1>>::iterator it = mInputFilters.begin();
+       it != mInputFilters.end(); it++) {
+    if (*it) {
+      (*it)->WillDraw(aDT);
+    }
+  }
 }
 
 void
@@ -744,8 +839,8 @@ FilterNodeD2D1::SetAttribute(uint32_t aIndex, const Matrix &aMatrix)
   mEffect->SetValue(input, D2DMatrix(aMatrix));
 }
 
-FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(DrawTarget *aDT, ID2D1DeviceContext *aDC)
-  : FilterNodeD2D1(aDT, nullptr, FilterType::CONVOLVE_MATRIX)
+FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext *aDC)
+  : FilterNodeD2D1(nullptr, FilterType::CONVOLVE_MATRIX)
   , mEdgeMode(EDGE_MODE_DUPLICATE)
 {
   // Correctly handling the interaction of edge mode and source rect is a bit
@@ -754,16 +849,9 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(DrawTarget *aDT, ID2D1DeviceConte
   // attribute). So if our input surface or filter is smaller than the source
   // rect, we need to add transparency around it until we reach the edges of
   // the source rect, and only then do any repeating or edge duplicating.
-  // Unfortunately, D2D1 does not have any "extend with transparency" effect.
-  // (The crop effect can only cut off parts, it can't make the output rect
-  // bigger.) And the border effect does not have a source rect attribute -
-  // it only looks at the output rect of its input filter or surface.
-  // So we use the following trick to extend the input size to the source rect:
-  // Instead of feeding the input directly into the border effect, we first
-  // composite it with a transparent flood effect (which is infinite-sized) and
-  // use a crop effect on the result in order to get the right size. Then we
-  // feed the cropped composition into the border effect, which then finally
-  // feeds into the convolve matrix effect.
+  // Unfortunately, the border effect does not have a source rect attribute -
+  // it only looks at the output rect of its input filter or surface. So we use
+  // our custom ExtendInput effect to adjust the output rect of our input.
   // All of this is only necessary when our edge mode is not EDGE_MODE_NONE, so
   // we update the filter chain dynamically in UpdateChain().
 
@@ -771,78 +859,37 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(DrawTarget *aDT, ID2D1DeviceConte
   
   hr = aDC->CreateEffect(CLSID_D2D1ConvolveMatrix, byRef(mEffect));
 
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !mEffect) {
     gfxWarning() << "Failed to create ConvolveMatrix filter!";
     return;
   }
 
   mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE, D2D1_BORDER_MODE_SOFT);
 
-  hr = aDC->CreateEffect(CLSID_D2D1Flood, byRef(mFloodEffect));
+  hr = aDC->CreateEffect(CLSID_ExtendInputEffect, byRef(mExtendInputEffect));
 
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !mExtendInputEffect) {
     gfxWarning() << "Failed to create ConvolveMatrix filter!";
     return;
   }
-
-  mFloodEffect->SetValue(D2D1_FLOOD_PROP_COLOR, D2D1::Vector4F(0.0f, 0.0f, 0.0f, 0.0f));
-
-  hr = aDC->CreateEffect(CLSID_D2D1Composite, byRef(mCompositeEffect));
-
-  if (FAILED(hr)) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
-    return;
-  }
-
-  mCompositeEffect->SetInputEffect(1, mFloodEffect.get());
-
-  hr = aDC->CreateEffect(CLSID_D2D1Crop, byRef(mCropEffect));
-
-  if (FAILED(hr)) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
-    return;
-  }
-
-  mCropEffect->SetInputEffect(0, mCompositeEffect.get());
 
   hr = aDC->CreateEffect(CLSID_D2D1Border, byRef(mBorderEffect));
 
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !mBorderEffect) {
     gfxWarning() << "Failed to create ConvolveMatrix filter!";
     return;
   }
 
-  mBorderEffect->SetInputEffect(0, mCropEffect.get());
+  mBorderEffect->SetInputEffect(0, mExtendInputEffect.get());
 
   UpdateChain();
   UpdateSourceRect();
 }
 
 void
-FilterNodeConvolveD2D1::SetInput(uint32_t aIndex, SourceSurface *aSurface)
-{
-  MOZ_ASSERT(aIndex == 0);
-
-  mInput = GetImageForSourceSurface(mDT, aSurface);
-
-  mInputEffect = nullptr;
-
-  UpdateChain();
-}
-
-void
 FilterNodeConvolveD2D1::SetInput(uint32_t aIndex, FilterNode *aFilter)
 {
-  MOZ_ASSERT(aIndex == 0);
-
-  if (aFilter->GetBackendType() != FILTER_BACKEND_DIRECT2D1_1) {
-    gfxWarning() << "Unknown input SourceSurface set on effect.";
-    MOZ_ASSERT(0);
-    return;
-  }
-
-  mInput = nullptr;
-  mInputEffect = static_cast<FilterNodeD2D1*>(aFilter)->mEffect;
+  FilterNodeD2D1::SetInput(aIndex, aFilter);
 
   UpdateChain();
 }
@@ -859,6 +906,12 @@ FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex, uint32_t aValue)
   UpdateChain();
 }
 
+ID2D1Effect*
+FilterNodeConvolveD2D1::InputEffect()
+{
+  return mEdgeMode == EDGE_MODE_NONE ? mEffect.get() : mExtendInputEffect.get();
+}
+
 void
 FilterNodeConvolveD2D1::UpdateChain()
 {
@@ -868,21 +921,19 @@ FilterNodeConvolveD2D1::UpdateChain()
   // input --> convolvematrix
   //
   // EDGE_MODE_DUPLICATE or EDGE_MODE_WRAP:
-  // input -------v
-  // flood --> composite --> crop --> border --> convolvematrix
+  // input --> extendinput --> border --> convolvematrix
+  //
+  // mEffect is convolvematrix.
 
-  ID2D1Effect *firstEffect = mCompositeEffect;
-  if (mEdgeMode == EDGE_MODE_NONE) {
-    firstEffect = mEffect;
-  } else {
+  if (mEdgeMode != EDGE_MODE_NONE) {
     mEffect->SetInputEffect(0, mBorderEffect.get());
   }
 
-  if (mInputEffect) {
-    firstEffect->SetInputEffect(0, mInputEffect);
-  } else {
-    firstEffect->SetInput(0, mInput);
+  RefPtr<ID2D1Effect> inputEffect;
+  if (mInputFilters.size() > 0 && mInputFilters[0]) {
+    inputEffect = mInputFilters[0]->OutputEffect();
   }
+  InputEffect()->SetInputEffect(0, inputEffect);
 
   if (mEdgeMode == EDGE_MODE_DUPLICATE) {
     mBorderEffect->SetValue(D2D1_BORDER_PROP_EDGE_MODE_X, D2D1_BORDER_EDGE_MODE_CLAMP);
@@ -948,14 +999,36 @@ FilterNodeConvolveD2D1::UpdateOffset()
 void
 FilterNodeConvolveD2D1::UpdateSourceRect()
 {
-  mCropEffect->SetValue(D2D1_CROP_PROP_RECT,
-    D2D1::RectF(Float(mSourceRect.x), Float(mSourceRect.y),
-                Float(mSourceRect.XMost()), Float(mSourceRect.YMost())));
+  mExtendInputEffect->SetValue(EXTENDINPUT_PROP_OUTPUT_RECT,
+    D2D1::Vector4F(Float(mSourceRect.x), Float(mSourceRect.y),
+                   Float(mSourceRect.XMost()), Float(mSourceRect.YMost())));
 }
 
-FilterNodeComponentTransferD2D1::FilterNodeComponentTransferD2D1(DrawTarget *aDT, ID2D1DeviceContext *aDC,
-                                                                 ID2D1Effect *aEffect, FilterType aType)
- : FilterNodeD2D1(aDT, aEffect, aType)
+FilterNodeExtendInputAdapterD2D1::FilterNodeExtendInputAdapterD2D1(ID2D1DeviceContext *aDC,
+                                                                   FilterNodeD2D1 *aFilterNode, FilterType aType)
+ : FilterNodeD2D1(aFilterNode->MainEffect(), aType)
+ , mWrappedFilterNode(aFilterNode)
+{
+  // We have an mEffect that looks at the bounds of the input effect, and we
+  // want mEffect to regard its input as unbounded. So we take the input,
+  // pipe it through an ExtendInput effect (which has an infinite output rect
+  // by default), and feed the resulting unbounded composition into mEffect.
+
+  HRESULT hr;
+
+  hr = aDC->CreateEffect(CLSID_ExtendInputEffect, byRef(mExtendInputEffect));
+
+  if (FAILED(hr) || !mExtendInputEffect) {
+    gfxWarning() << "Failed to create extend input effect for filter: " << hexa(hr);
+    return;
+  }
+
+  aFilterNode->InputEffect()->SetInputEffect(0, mExtendInputEffect.get());
+}
+
+FilterNodePremultiplyAdapterD2D1::FilterNodePremultiplyAdapterD2D1(ID2D1DeviceContext *aDC,
+                                                                   FilterNodeD2D1 *aFilterNode, FilterType aType)
+ : FilterNodeD2D1(aFilterNode->MainEffect(), aType)
 {
   // D2D1 component transfer effects do strange things when it comes to
   // premultiplication.
@@ -989,20 +1062,20 @@ FilterNodeComponentTransferD2D1::FilterNodeComponentTransferD2D1(DrawTarget *aDT
 
   hr = aDC->CreateEffect(CLSID_D2D1Premultiply, byRef(mPrePremultiplyEffect));
 
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !mPrePremultiplyEffect) {
     gfxWarning() << "Failed to create ComponentTransfer filter!";
     return;
   }
 
   hr = aDC->CreateEffect(CLSID_D2D1UnPremultiply, byRef(mPostUnpremultiplyEffect));
 
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !mPostUnpremultiplyEffect) {
     gfxWarning() << "Failed to create ComponentTransfer filter!";
     return;
   }
 
-  mEffect->SetInputEffect(0, mPrePremultiplyEffect.get());
-  mPostUnpremultiplyEffect->SetInputEffect(0, mEffect.get());
+  aFilterNode->InputEffect()->SetInputEffect(0, mPrePremultiplyEffect.get());
+  mPostUnpremultiplyEffect->SetInputEffect(0, aFilterNode->OutputEffect());
 }
 
 }

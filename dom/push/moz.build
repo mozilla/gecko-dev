@@ -3,4 +3,26 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['src']
+EXTRA_COMPONENTS += [
+    'Push.js',
+    'Push.manifest',
+    'PushNotificationService.js',
+]
+
+EXTRA_PP_JS_MODULES += [
+    'PushServiceWebSocket.jsm',
+]
+
+EXTRA_JS_MODULES += [
+    'PushDB.jsm',
+    'PushService.jsm',
+    'PushServiceHttp2.jsm',
+]
+
+MOCHITEST_MANIFESTS += [
+    'test/mochitest.ini',
+]
+
+XPCSHELL_TESTS_MANIFESTS += [
+    'test/xpcshell/xpcshell.ini',
+]

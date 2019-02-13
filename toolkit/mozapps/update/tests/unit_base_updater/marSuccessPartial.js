@@ -15,33 +15,33 @@ function run_test() {
   gTestFiles[gTestFiles.length - 2].compareContents = "FromPartial\n";
   gTestFiles[gTestFiles.length - 2].comparePerms = 0o644;
   gTestDirs = gTestDirsPartialSuccess;
-  setupUpdaterTest(FILE_PARTIAL_MAR, false, false);
-
-  createUpdaterINI(true);
-
-  // For Mac OS X set the last modified time for the root directory to a date in
-  // the past to test that the last modified time is updated on all updates since
-  // the precomplete file in the root of the bundle is renamed, etc. (bug 600098).
+  setupUpdaterTest(FILE_PARTIAL_MAR);
   if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile();
-    applyToDir.lastModifiedTime = yesterday;
+    // Create files in the old distribution directory location to verify that
+    // the directory and its contents are removed when there is a distribution
+    // directory in the new location.
+    let testFile = getApplyDirFile(DIR_MACOS + "distribution/testFile", true);
+    writeFile(testFile, "test\n");
+    testFile = getApplyDirFile(DIR_MACOS + "distribution/test/testFile", true);
+    writeFile(testFile, "test\n");
   }
 
-  runUpdate(0, STATE_SUCCEEDED);
+  createUpdaterINI(true);
+  setAppBundleModTime();
+
+  runUpdate(0, STATE_SUCCEEDED, checkUpdateFinished);
 }
 
 /**
  * Checks if the post update binary was properly launched for the platforms that
  * support launching post update process.
  */
-function checkUpdateApplied() {
-  if (IS_MACOSX || IS_WIN) {
-    gCheckFunc = finishCheckUpdateApplied;
+function checkUpdateFinished() {
+  if (IS_WIN || IS_MACOSX) {
+    gCheckFunc = finishCheckUpdateFinished;
     checkPostUpdateAppLog();
   } else {
-    finishCheckUpdateApplied();
+    finishCheckUpdateFinished();
   }
 }
 
@@ -49,21 +49,16 @@ function checkUpdateApplied() {
  * Checks if the update has finished and if it has finished performs checks for
  * the test.
  */
-function finishCheckUpdateApplied() {
+function finishCheckUpdateFinished() {
   if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+    let distributionDir = getApplyDirFile(DIR_MACOS + "distribution", true);
+    Assert.ok(!distributionDir.exists(), MSG_SHOULD_NOT_EXIST);
+    checkUpdateLogContains("removing old distribution directory");
   }
 
-  checkFilesAfterUpdateSuccess();
-  // Sorting on Linux is different so skip this check for now.
-  if (!IS_UNIX) {
-    checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
-  }
-
+  checkAppBundleModTime();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
+  standardInit();
   checkCallbackAppLog();
 }

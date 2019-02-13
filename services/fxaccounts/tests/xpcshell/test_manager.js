@@ -9,6 +9,7 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/FxAccountsManager.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 // === Mocks ===
 
@@ -16,20 +17,20 @@ Cu.import("resource://gre/modules/Promise.jsm");
 let passwordResetOnServer = false;
 let deletedOnServer = false;
 
-// Override FxAccountsUIGlue.
-const kFxAccountsUIGlueUUID = "{8f6d5d87-41ed-4bb5-aa28-625de57564c5}";
-const kFxAccountsUIGlueContractID =
-  "@mozilla.org/fxaccounts/fxaccounts-ui-glue;1";
+// Global representing FxAccounts state
+let certExpired = false;
 
-// Save original FxAccountsUIGlue factory.
-const kFxAccountsUIGlueFactory =
-  Cm.getClassObject(Cc[kFxAccountsUIGlueContractID], Ci.nsIFactory);
+// Mock RP
+function makePrincipal(origin, appId) {
+  let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
+                 .getService(Ci.nsIScriptSecurityManager);
+  let uri = Services.io.newURI(origin, null, null);
+  return secMan.getAppCodebasePrincipal(uri, appId, false);
+}
+let principal = makePrincipal('app://settings.gaiamobile.org', 27, false);
 
-let fakeFxAccountsUIGlueFactory = {
-  createInstance: function(aOuter, aIid) {
-    return FxAccountsUIGlue.QueryInterface(aIid);
-  }
-};
+// For override FxAccountsUIGlue.
+let fakeFxAccountsUIGlueCID;
 
 // FxAccountsUIGlue fake component.
 let FxAccountsUIGlue = {
@@ -85,11 +86,9 @@ let FxAccountsUIGlue = {
 };
 
 (function registerFakeFxAccountsUIGlue() {
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .registerFactory(Components.ID(kFxAccountsUIGlueUUID),
-                     "FxAccountsUIGlue",
-                     kFxAccountsUIGlueContractID,
-                     fakeFxAccountsUIGlueFactory);
+  fakeFxAccountsUIGlueCID =
+    MockRegistrar.register("@mozilla.org/fxaccounts/fxaccounts-ui-glue;1",
+                           FxAccountsUIGlue);
 })();
 
 // Save original fxAccounts instance
@@ -124,6 +123,8 @@ FxAccountsManager._fxAccounts = {
     let deferred = Promise.defer();
     if (passwordResetOnServer || deletedOnServer) {
       deferred.reject({errno: ERRNO_INVALID_AUTH_TOKEN});
+    } else if (Services.io.offline && certExpired) {
+      deferred.reject(new Error(ERROR_OFFLINE));
     } else {
       deferred.resolve(this._assertion);
     }
@@ -238,16 +239,7 @@ FxAccountsManager._getFxAccountsClient = function() {
 // Unregister mocks and restore original code.
 do_register_cleanup(function() {
   // Unregister the factory so we do not leak
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .unregisterFactory(Components.ID(kFxAccountsUIGlueUUID),
-                       fakeFxAccountsUIGlueFactory);
-
-  // Restore the original factory.
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .registerFactory(Components.ID(kFxAccountsUIGlueUUID),
-                     "FxAccountsUIGlue",
-                     kFxAccountsUIGlueContractID,
-                     kFxAccountsUIGlueFactory);
+  MockRegistrar.unregister(fakeFxAccountsUIGlueCID);
 
   // Restore the original FxAccounts instance from FxAccountsManager.
   FxAccountsManager._fxAccounts = kFxAccounts;
@@ -304,7 +296,7 @@ add_test(function(test_getAssertion_no_audience) {
 add_test(function(test_getAssertion_no_session_ui_error) {
   do_print("= getAssertion no session, UI error =");
   FxAccountsUIGlue._reject = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     () => {
       do_throw("Unexpected success");
     },
@@ -319,7 +311,7 @@ add_test(function(test_getAssertion_no_session_ui_error) {
 
 add_test(function(test_getAssertion_no_session_ui_success) {
   do_print("= getAssertion no session, UI success =");
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     () => {
       do_throw("Unexpected success");
     },
@@ -334,7 +326,7 @@ add_test(function(test_getAssertion_no_session_ui_success) {
 
 add_test(function(test_getAssertion_active_session_unverified_account) {
   do_print("= getAssertion active session, unverified account =");
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     result => {
       do_throw("Unexpected success");
     },
@@ -350,7 +342,7 @@ add_test(function(test_getAssertion_active_session_verified_account) {
   do_print("= getAssertion active session, verified account =");
   FxAccountsManager._fxAccounts._signedInUser.verified = true;
   FxAccountsManager._activeSession.verified = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     result => {
       do_check_false(FxAccountsUIGlue._signInFlowCalled);
       do_check_eq(result, "assertion");
@@ -359,6 +351,68 @@ add_test(function(test_getAssertion_active_session_verified_account) {
     },
     error => {
       do_throw("Unexpected error: " + error);
+    }
+  );
+});
+
+add_test(function() {
+  // getAssertion() succeeds if offline with valid cert
+  do_print("= getAssertion active session, valid cert, offline");
+  FxAccountsManager._fxAccounts._signedInUser.verified = true;
+  FxAccountsManager._activeSession.verified = true;
+  Services.io.offline = true;
+  FxAccountsManager.getAssertion("audience", principal).then(
+    result => {
+      FxAccountsManager._fxAccounts._reset();
+      Services.io.offline = false;
+      run_next_test();
+    },
+    error => {
+      Services.io.offline = false;
+      do_throw("Unexpected error: " + error);
+    }
+  );
+});
+
+add_test(function() {
+  // getAssertion() rejects if offline and cert expired.
+  do_print("= getAssertion active session, expired cert, offline");
+  FxAccountsManager._fxAccounts._signedInUser.verified = true;
+  FxAccountsManager._activeSession.verified = true;
+  Services.io.offline = true;
+  certExpired = true;
+  FxAccountsManager.getAssertion("audience", principal).then(
+    result => {
+      Services.io.offline = false;
+      certExpired = false;
+      do_throw("Unexpected success");
+    },
+    error => {
+      FxAccountsManager._fxAccounts._reset();
+      Services.io.offline = false;
+      certExpired = false;
+      run_next_test();
+    }
+  );
+});
+
+add_test(function() {
+  // getAssertion() rejects if offline and UI needed.
+  do_print("= getAssertion active session, trigger UI, offline");
+  let user = FxAccountsManager._fxAccounts._signedInUser;
+  FxAccountsManager._fxAccounts._signedInUser = null;
+  Services.io.offline = true;
+  FxAccountsManager.getAssertion("audience", principal).then(
+    result => {
+      Services.io.offline = false;
+      do_throw("Unexpected success");
+    },
+    error => {
+      do_check_false(FxAccountsUIGlue._signInFlowCalled);
+      FxAccountsManager._fxAccounts._reset();
+      FxAccountsManager._fxAccounts._signedInUser = user;
+      Services.io.offline = false;
+      run_next_test();
     }
   );
 });
@@ -375,7 +429,7 @@ add_test(function(test_getAssertion_refreshAuth) {
   FxAccountsManager._activeSession.verified = true;
   FxAccountsManager._activeSession.authAt =
     (Date.now() / 1000) - gracePeriod;
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": gracePeriod
   }).then(
     result => {
@@ -392,11 +446,117 @@ add_test(function(test_getAssertion_refreshAuth) {
   );
 });
 
+add_test(function(test_getAssertion_no_permissions) {
+  do_print("= getAssertion no permissions =");
+
+  let noPermissionsPrincipal = makePrincipal('app://dummy', 28);
+  let permMan = Cc["@mozilla.org/permissionmanager;1"]
+                  .getService(Ci.nsIPermissionManager);
+  permMan.addFromPrincipal(noPermissionsPrincipal, FXACCOUNTS_PERMISSION,
+                           Ci.nsIPermissionManager.DENY_ACTION);
+
+  FxAccountsUIGlue._activeSession = {
+    email: "user@domain.org",
+    verified: true,
+    sessionToken: "1234"
+  };
+
+  FxAccountsManager.getAssertion("audience", noPermissionsPrincipal).then(
+    result => {
+      do_throw("Unexpected success");
+    },
+    error => {
+      do_check_false(FxAccountsUIGlue._signInFlowCalled);
+      do_check_false(FxAccountsUIGlue._refreshAuthCalled);
+      FxAccountsManager._fxAccounts._reset();
+      FxAccountsUIGlue._reset();
+      run_next_test();
+    }
+  );
+});
+
+add_test(function(test_getAssertion_permission_prompt_action) {
+  do_print("= getAssertion PROMPT_ACTION permission =");
+
+  let promptPermissionsPrincipal = makePrincipal('app://dummy-prompt', 29);
+  let permMan = Cc["@mozilla.org/permissionmanager;1"]
+                  .getService(Ci.nsIPermissionManager);
+  permMan.addFromPrincipal(promptPermissionsPrincipal, FXACCOUNTS_PERMISSION,
+                           Ci.nsIPermissionManager.PROMPT_ACTION);
+
+  FxAccountsUIGlue._activeSession = {
+    email: "user@domain.org",
+    verified: true,
+    sessionToken: "1234"
+  };
+
+  FxAccountsManager.getAssertion("audience", promptPermissionsPrincipal).then(
+    result => {
+      do_check_false(FxAccountsUIGlue._signInFlowCalled);
+      do_check_true(FxAccountsUIGlue._refreshAuthCalled);
+      do_check_eq(result, "assertion");
+
+      let permission = permMan.testPermissionFromPrincipal(
+        promptPermissionsPrincipal,
+        FXACCOUNTS_PERMISSION
+      );
+      do_check_eq(permission, Ci.nsIPermissionManager.ALLOW_ACTION);
+      FxAccountsManager._fxAccounts._reset();
+      FxAccountsUIGlue._reset();
+      run_next_test();
+    },
+    error => {
+      do_throw("Unexpected error: " + error);
+    }
+  );
+});
+
+add_test(function(test_getAssertion_permission_prompt_action_refreshing) {
+  do_print("= getAssertion PROMPT_ACTION permission already refreshing =");
+
+  let promptPermissionsPrincipal = makePrincipal('app://dummy-prompt-2', 30);
+  let permMan = Cc["@mozilla.org/permissionmanager;1"]
+                  .getService(Ci.nsIPermissionManager);
+  permMan.addFromPrincipal(promptPermissionsPrincipal, FXACCOUNTS_PERMISSION,
+                           Ci.nsIPermissionManager.PROMPT_ACTION);
+
+  FxAccountsUIGlue._activeSession = {
+    email: "user@domain.org",
+    verified: true,
+    sessionToken: "1234"
+  };
+
+  FxAccountsManager._refreshing = true;
+
+  FxAccountsManager.getAssertion("audience", promptPermissionsPrincipal).then(
+    result => {
+      do_check_false(FxAccountsUIGlue._signInFlowCalled);
+      do_check_false(FxAccountsUIGlue._refreshAuthCalled);
+      do_check_null(result);
+
+      let permission = permMan.testPermissionFromPrincipal(
+        promptPermissionsPrincipal,
+        FXACCOUNTS_PERMISSION
+      );
+      do_check_eq(permission, Ci.nsIPermissionManager.PROMPT_ACTION);
+
+      FxAccountsManager._refreshing = false;
+
+      FxAccountsManager._fxAccounts._reset();
+      FxAccountsUIGlue._reset();
+      run_next_test();
+    },
+    error => {
+      do_throw("Unexpected error: " + error);
+    }
+  );
+});
+
 add_test(function(test_getAssertion_server_state_change) {
   FxAccountsManager._fxAccounts._signedInUser.verified = true;
   FxAccountsManager._activeSession.verified = true;
   passwordResetOnServer = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     (result) => {
       // For password reset, the UIGlue mock simulates sucessful
       // refreshAuth which supplies new password, not signin/signup.
@@ -408,7 +568,7 @@ add_test(function(test_getAssertion_server_state_change) {
   ).then(
     () => {
       deletedOnServer = true;
-      FxAccountsManager.getAssertion("audience").then(
+      FxAccountsManager.getAssertion("audience", principal).then(
         (result) => {
           // For account deletion, the UIGlue's signin/signup is called.
           do_check_true(FxAccountsUIGlue._signInFlowCalled)
@@ -427,7 +587,7 @@ add_test(function(test_getAssertion_server_state_change) {
 add_test(function(test_getAssertion_refreshAuth_NaN) {
   do_print("= getAssertion refreshAuth NaN=");
   let gracePeriod = "NaN";
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": gracePeriod
   }).then(
     result => {
@@ -449,7 +609,7 @@ add_test(function(test_getAssertion_refresh_auth_no_refresh) {
   FxAccountsManager._activeSession.verified = true;
   FxAccountsManager._activeSession.authAt =
     (Date.now() / 1000) + 10000;
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": 1
   }).then(
     result => {

@@ -23,7 +23,7 @@ namespace mozilla {
 class EnumerateVariableReferencesData
 {
 public:
-  EnumerateVariableReferencesData(CSSVariableResolver& aResolver)
+  explicit EnumerateVariableReferencesData(CSSVariableResolver& aResolver)
     : mResolver(aResolver)
     , mReferences(new bool[aResolver.mVariables.Length()])
   {
@@ -231,7 +231,9 @@ CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
     }
   }
 
+#ifdef DEBUG
   mResolved = true;
+#endif
 }
 
 void

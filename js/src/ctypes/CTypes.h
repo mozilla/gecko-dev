@@ -6,10 +6,14 @@
 #ifndef ctypes_CTypes_h
 #define ctypes_CTypes_h
 
+#include "mozilla/UniquePtr.h"
+
 #include "ffi.h"
 #include "jsalloc.h"
+#include "jsprf.h"
 #include "prlink.h"
 
+#include "ctypes/typedefs.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
 #include "vm/String.h"
@@ -21,39 +25,6 @@ namespace ctypes {
 ** Utility classes
 *******************************************************************************/
 
-// Class that takes ownership of a pointer T*, and calls cx->delete_() or
-// cx->array_delete() upon destruction.
-template<class T>
-class AutoPtr {
-private:
-  typedef AutoPtr<T> self_type;
-
-public:
-  AutoPtr() : mPtr(nullptr) { }
-  explicit AutoPtr(T* ptr) : mPtr(ptr) { }
-  ~AutoPtr() { js_delete(mPtr); }
-
-  T*   operator->()         { return mPtr; }
-  bool operator!()          { return mPtr == nullptr; }
-  T&   operator[](size_t i) { return *(mPtr + i); }
-  // Note: we cannot safely provide an 'operator T*()', since this would allow
-  // the compiler to perform implicit conversion from one AutoPtr to another
-  // via the constructor AutoPtr(T*).
-
-  T*   get()         { return mPtr; }
-  void set(T* other) { JS_ASSERT(mPtr == nullptr); mPtr = other; }
-  T*   forget()      { T* result = mPtr; mPtr = nullptr; return result; }
-
-  self_type& operator=(T* rhs) { mPtr = rhs; return *this; }
-
-private:
-  // Do not allow copy construction or assignment from another AutoPtr.
-  AutoPtr(AutoPtr<T>&);
-  self_type& operator=(AutoPtr<T>& rhs);
-
-  T* mPtr;
-};
-
 // Container class for Vector, using SystemAllocPolicy.
 template<class T, size_t N = 0>
 class Array : public Vector<T, N, SystemAllocPolicy>
@@ -63,15 +34,15 @@ class Array : public Vector<T, N, SystemAllocPolicy>
 };
 
 // String and AutoString classes, based on Vector.
-typedef Vector<jschar,  0, SystemAllocPolicy> String;
-typedef Vector<jschar, 64, SystemAllocPolicy> AutoString;
-typedef Vector<char,    0, SystemAllocPolicy> CString;
-typedef Vector<char,   64, SystemAllocPolicy> AutoCString;
+typedef Vector<char16_t,  0, SystemAllocPolicy> String;
+typedef Vector<char16_t, 64, SystemAllocPolicy> AutoString;
+typedef Vector<char,      0, SystemAllocPolicy> CString;
+typedef Vector<char,     64, SystemAllocPolicy> AutoCString;
 
 // Convenience functions to append, insert, and compare Strings.
 template <class T, size_t N, class AP, size_t ArrayLength>
 void
-AppendString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+AppendString(Vector<T, N, AP>& v, const char (&array)[ArrayLength])
 {
   // Don't include the trailing '\0'.
   size_t alen = ArrayLength - 1;
@@ -83,45 +54,83 @@ AppendString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
     v[i + vlen] = array[i];
 }
 
+template <class T, size_t N, class AP>
+void
+AppendChars(Vector<T, N, AP>& v, const char c, size_t count)
+{
+  size_t vlen = v.length();
+  if (!v.resize(vlen + count))
+    return;
+
+  for (size_t i = 0; i < count; ++i)
+    v[i + vlen] = c;
+}
+
+template <class T, size_t N, class AP>
+void
+AppendUInt(Vector<T, N, AP>& v, unsigned n)
+{
+  char array[16];
+  size_t alen = JS_snprintf(array, 16, "%u", n);
+  size_t vlen = v.length();
+  if (!v.resize(vlen + alen))
+    return;
+
+  for (size_t i = 0; i < alen; ++i)
+    v[i + vlen] = array[i];
+}
+
 template <class T, size_t N, size_t M, class AP>
 void
-AppendString(Vector<T, N, AP> &v, Vector<T, M, AP> &w)
+AppendString(Vector<T, N, AP>& v, Vector<T, M, AP>& w)
 {
   v.append(w.begin(), w.length());
 }
 
 template <size_t N, class AP>
 void
-AppendString(Vector<jschar, N, AP> &v, JSString* str)
+AppendString(Vector<char16_t, N, AP>& v, JSString* str)
 {
-  JS_ASSERT(str);
-  const jschar *chars = str->getChars(nullptr);
-  if (!chars)
+  MOZ_ASSERT(str);
+  JSLinearString* linear = str->ensureLinear(nullptr);
+  if (!linear)
     return;
-  v.append(chars, str->length());
+  JS::AutoCheckCannotGC nogc;
+  if (linear->hasLatin1Chars())
+    v.append(linear->latin1Chars(nogc), linear->length());
+  else
+    v.append(linear->twoByteChars(nogc), linear->length());
 }
 
 template <size_t N, class AP>
 void
-AppendString(Vector<char, N, AP> &v, JSString* str)
+AppendString(Vector<char, N, AP>& v, JSString* str)
 {
-  JS_ASSERT(str);
+  MOZ_ASSERT(str);
   size_t vlen = v.length();
   size_t alen = str->length();
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(nullptr);
-  if (!chars)
+  JSLinearString* linear = str->ensureLinear(nullptr);
+  if (!linear)
     return;
 
-  for (size_t i = 0; i < alen; ++i)
-    v[i + vlen] = char(chars[i]);
+  JS::AutoCheckCannotGC nogc;
+  if (linear->hasLatin1Chars()) {
+    const Latin1Char* chars = linear->latin1Chars(nogc);
+    for (size_t i = 0; i < alen; ++i)
+      v[i + vlen] = char(chars[i]);
+  } else {
+    const char16_t* chars = linear->twoByteChars(nogc);
+    for (size_t i = 0; i < alen; ++i)
+      v[i + vlen] = char(chars[i]);
+  }
 }
 
 template <class T, size_t N, class AP, size_t ArrayLength>
 void
-PrependString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+PrependString(Vector<T, N, AP>& v, const char (&array)[ArrayLength])
 {
   // Don't include the trailing '\0'.
   size_t alen = ArrayLength - 1;
@@ -139,32 +148,41 @@ PrependString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
 
 template <size_t N, class AP>
 void
-PrependString(Vector<jschar, N, AP> &v, JSString* str)
+PrependString(Vector<char16_t, N, AP>& v, JSString* str)
 {
-  JS_ASSERT(str);
+  MOZ_ASSERT(str);
   size_t vlen = v.length();
   size_t alen = str->length();
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(nullptr);
-  if (!chars)
+  JSLinearString* linear = str->ensureLinear(nullptr);
+  if (!linear)
     return;
 
   // Move vector data forward. This is safe since we've already resized.
-  memmove(v.begin() + alen, v.begin(), vlen * sizeof(jschar));
+  memmove(v.begin() + alen, v.begin(), vlen * sizeof(char16_t));
 
   // Copy data to insert.
-  memcpy(v.begin(), chars, alen * sizeof(jschar));
+  JS::AutoCheckCannotGC nogc;
+  if (linear->hasLatin1Chars()) {
+    const Latin1Char* chars = linear->latin1Chars(nogc);
+    for (size_t i = 0; i < alen; i++)
+      v[i] = chars[i];
+  } else {
+    memcpy(v.begin(), linear->twoByteChars(nogc), alen * sizeof(char16_t));
+  }
 }
 
+template <typename CharT>
 extern size_t
-GetDeflatedUTF8StringLength(JSContext *maybecx, const jschar *chars,
+GetDeflatedUTF8StringLength(JSContext* maybecx, const CharT* chars,
                             size_t charsLength);
 
+template <typename CharT>
 bool
-DeflateStringToUTF8Buffer(JSContext *maybecx, const jschar *src, size_t srclen,
-                          char *dst, size_t *dstlenp);
+DeflateStringToUTF8Buffer(JSContext* maybecx, const CharT* src, size_t srclen,
+                          char* dst, size_t* dstlenp);
 
 
 /*******************************************************************************
@@ -174,13 +192,13 @@ DeflateStringToUTF8Buffer(JSContext *maybecx, const jschar *src, size_t srclen,
 MOZ_ALWAYS_INLINE void
 ASSERT_OK(bool ok)
 {
-  JS_ASSERT(ok);
+  MOZ_ASSERT(ok);
 }
 
 // for JS error reporting
 enum ErrorNum {
-#define MSG_DEF(name, number, count, exception, format) \
-  name = number,
+#define MSG_DEF(name, count, exception, format) \
+  name,
 #include "ctypes/ctypes.msg"
 #undef MSG_DEF
   CTYPESERR_LIMIT
@@ -203,7 +221,8 @@ enum ABICode {
 enum TypeCode {
   TYPE_void_t,
 #define DEFINE_TYPE(name, type, ffiType) TYPE_##name,
-#include "ctypes/typedefs.h"
+  CTYPES_FOR_EACH_TYPE(DEFINE_TYPE)
+#undef DEFINE_TYPE
   TYPE_pointer,
   TYPE_function,
   TYPE_array,
@@ -234,27 +253,36 @@ struct FieldHashPolicy : DefaultHasher<JSFlatString*>
   typedef JSFlatString* Key;
   typedef Key Lookup;
 
-  static uint32_t hash(const Lookup &l) {
-    const jschar* s = l->chars();
-    size_t n = l->length();
+  template <typename CharT>
+  static uint32_t hash(const CharT* s, size_t n) {
     uint32_t hash = 0;
     for (; n > 0; s++, n--)
       hash = hash * 33 + *s;
     return hash;
   }
 
-  static bool match(const Key &k, const Lookup &l) {
+  static uint32_t hash(const Lookup& l) {
+    JS::AutoCheckCannotGC nogc;
+    return l->hasLatin1Chars()
+           ? hash(l->latin1Chars(nogc), l->length())
+           : hash(l->twoByteChars(nogc), l->length());
+  }
+
+  static bool match(const Key& k, const Lookup& l) {
     if (k == l)
       return true;
 
     if (k->length() != l->length())
       return false;
 
-    return memcmp(k->chars(), l->chars(), k->length() * sizeof(jschar)) == 0;
+    return EqualChars(k, l);
   }
 };
 
 typedef HashMap<JSFlatString*, FieldInfo, FieldHashPolicy, SystemAllocPolicy> FieldInfoHash;
+
+void
+TraceFieldInfoHash(JSTracer* trc, FieldInfoHash* fields);
 
 // Descriptor of ABI, return type, argument types, and variadicity for a
 // FunctionType.
@@ -289,9 +317,7 @@ struct FunctionInfo
 // Parameters necessary for invoking a JS function from a C closure.
 struct ClosureInfo
 {
-  JSContext* cx;                   // JSContext to use
-  JSRuntime* rt;                   // Used in the destructor, where cx might have already
-                                   // been GCed.
+  JSRuntime* rt;
   JS::Heap<JSObject*> closureObj;  // CClosure object
   JS::Heap<JSObject*> typeObj;     // FunctionType describing the C function
   JS::Heap<JSObject*> thisObj;     // 'this' object to use for the JS function call
@@ -317,7 +343,7 @@ struct ClosureInfo
 bool IsCTypesGlobal(HandleValue v);
 bool IsCTypesGlobal(JSObject* obj);
 
-JSCTypesCallbacks* GetCallbacks(JSObject* obj);
+const JSCTypesCallbacks* GetCallbacks(JSObject* obj);
 
 /*******************************************************************************
 ** JSClass reserved slot definitions
@@ -377,6 +403,7 @@ enum CDataSlot {
   SLOT_REFERENT = 1, // JSObject this object must keep alive, if any
   SLOT_DATA     = 2, // pointer to a buffer containing the binary data
   SLOT_OWNS     = 3, // JSVAL_TRUE if this CData owns its own buffer
+  SLOT_FUNNAME  = 4, // JSString representing the function name
   CDATA_SLOTS
 };
 
@@ -418,7 +445,7 @@ namespace CType {
   JSObject* Create(JSContext* cx, HandleObject typeProto, HandleObject dataProto,
     TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType);
 
-  JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName,
+  JSObject* DefineBuiltin(JSContext* cx, HandleObject ctypesObj, const char* propName,
     JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type,
     jsval size, jsval align, ffi_type* ffiType);
 
@@ -434,7 +461,7 @@ namespace CType {
   JSString* GetName(JSContext* cx, HandleObject obj);
   JSObject* GetProtoFromCtor(JSObject* obj, CTypeProtoSlot slot);
   JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
-  JSCTypesCallbacks* GetCallbacksFromType(JSObject* obj);
+  const JSCTypesCallbacks* GetCallbacksFromType(JSObject* obj);
 }
 
 namespace PointerType {
@@ -443,6 +470,8 @@ namespace PointerType {
   JSObject* GetBaseType(JSObject* obj);
 }
 
+typedef mozilla::UniquePtr<ffi_type, JS::DeletePolicy<ffi_type>> UniquePtrFFIType;
+
 namespace ArrayType {
   JSObject* CreateInternal(JSContext* cx, HandleObject baseType, size_t length,
     bool lengthDefined);
@@ -450,21 +479,21 @@ namespace ArrayType {
   JSObject* GetBaseType(JSObject* obj);
   size_t GetLength(JSObject* obj);
   bool GetSafeLength(JSObject* obj, size_t* result);
-  ffi_type* BuildFFIType(JSContext* cx, JSObject* obj);
+  UniquePtrFFIType BuildFFIType(JSContext* cx, JSObject* obj);
 }
 
 namespace StructType {
   bool DefineInternal(JSContext* cx, JSObject* typeObj, JSObject* fieldsObj);
 
   const FieldInfoHash* GetFieldInfo(JSObject* obj);
-  const FieldInfo* LookupField(JSContext* cx, JSObject* obj, JSFlatString *name);
+  const FieldInfo* LookupField(JSContext* cx, JSObject* obj, JSFlatString* name);
   JSObject* BuildFieldsArray(JSContext* cx, JSObject* obj);
-  ffi_type* BuildFFIType(JSContext* cx, JSObject* obj);
+  UniquePtrFFIType BuildFFIType(JSContext* cx, JSObject* obj);
 }
 
 namespace FunctionType {
-  JSObject* CreateInternal(JSContext* cx, jsval abi, jsval rtype,
-    jsval* argtypes, unsigned arglen);
+  JSObject* CreateInternal(JSContext* cx, HandleValue abi, HandleValue rtype,
+    const HandleValueArray& args);
 
   JSObject* ConstructWithObject(JSContext* cx, JSObject* typeObj,
     JSObject* refObj, PRFuncPtr fnptr, JSObject* result);

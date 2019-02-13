@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@ const promise = require("projecteditor/helpers/promise");
 const { on, forget } = require("projecteditor/helpers/event");
 const { FileResource } = require("projecteditor/stores/resource");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
+const {setTimeout, clearTimeout} = Cu.import("resource://gre/modules/Timer.jsm", {});
 
 const CHECK_LINKED_DIRECTORY_DELAY = 5000;
 const SHOULD_LIVE_REFRESH = true;
@@ -35,7 +36,6 @@ var LocalStore = Class({
 
   initialize: function(path) {
     this.initStore();
-    this.window = Services.appShell.hiddenDOMWindow;
     this.path = OS.Path.normalize(path);
     this.rootPath = this.path;
     this.displayName = this.path;
@@ -46,9 +46,8 @@ var LocalStore = Class({
   },
 
   destroy: function() {
-    if (this.window) {
-      this.window.clearTimeout(this._refreshTimeout);
-    }
+    clearTimeout(this._refreshTimeout);
+
     if (this._refreshDeferred) {
       this._refreshDeferred.reject("destroy");
     }
@@ -58,7 +57,6 @@ var LocalStore = Class({
 
     this._refreshTimeout = null;
     this._refreshDeferred = null;
-    this.window = null;
     this.worker = null;
 
     if (this.root) {
@@ -110,7 +108,7 @@ var LocalStore = Class({
       return promise.reject(new Error(path + " does not belong to " + this.path));
     }
 
-    return Task.spawn(function() {
+    return Task.spawn(function*() {
       let parent = yield this.resourceFor(OS.Path.dirname(path));
 
       let info;
@@ -124,7 +122,7 @@ var LocalStore = Class({
 
       let resource = this._forPath(path, info);
       parent.addChild(resource);
-      throw new Task.Result(resource);
+      return resource;
     }.bind(this));
   },
 
@@ -132,7 +130,7 @@ var LocalStore = Class({
     // XXX: Once Bug 958280 adds a watch function, will not need to forever loop here.
     this.refresh().then(() => {
       if (SHOULD_LIVE_REFRESH) {
-        this._refreshTimeout = this.window.setTimeout(this.refreshLoop,
+        this._refreshTimeout = setTimeout(this.refreshLoop,
           CHECK_LINKED_DIRECTORY_DELAY);
       }
     });

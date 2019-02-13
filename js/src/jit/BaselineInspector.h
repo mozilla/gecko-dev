@@ -7,8 +7,6 @@
 #ifndef jit_BaselineInspector_h
 #define jit_BaselineInspector_h
 
-#ifdef JS_ION
-
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/MIR.h"
@@ -21,11 +19,11 @@ class BaselineInspector;
 class ICInspector
 {
   protected:
-    BaselineInspector *inspector_;
-    jsbytecode *pc_;
-    ICEntry *icEntry_;
+    BaselineInspector* inspector_;
+    jsbytecode* pc_;
+    ICEntry* icEntry_;
 
-    ICInspector(BaselineInspector *inspector, jsbytecode *pc, ICEntry *icEntry)
+    ICInspector(BaselineInspector* inspector, jsbytecode* pc, ICEntry* icEntry)
       : inspector_(inspector), pc_(pc), icEntry_(icEntry)
     { }
 };
@@ -33,7 +31,7 @@ class ICInspector
 class SetElemICInspector : public ICInspector
 {
   public:
-    SetElemICInspector(BaselineInspector *inspector, jsbytecode *pc, ICEntry *icEntry)
+    SetElemICInspector(BaselineInspector* inspector, jsbytecode* pc, ICEntry* icEntry)
       : ICInspector(inspector, pc, icEntry)
     { }
 
@@ -46,84 +44,100 @@ class SetElemICInspector : public ICInspector
 class BaselineInspector
 {
   private:
-    JSScript *script;
-    ICEntry *prevLookedUpEntry;
+    JSScript* script;
+    ICEntry* prevLookedUpEntry;
 
   public:
-    explicit BaselineInspector(JSScript *script)
+    explicit BaselineInspector(JSScript* script)
       : script(script), prevLookedUpEntry(nullptr)
     {
-        JS_ASSERT(script);
+        MOZ_ASSERT(script);
     }
 
     bool hasBaselineScript() const {
         return script->hasBaselineScript();
     }
 
-    BaselineScript *baselineScript() const {
+    BaselineScript* baselineScript() const {
         return script->baselineScript();
     }
 
   private:
 #ifdef DEBUG
-    bool isValidPC(jsbytecode *pc) {
+    bool isValidPC(jsbytecode* pc) {
         return script->containsPC(pc);
     }
 #endif
 
-    ICEntry &icEntryFromPC(jsbytecode *pc) {
-        JS_ASSERT(hasBaselineScript());
-        JS_ASSERT(isValidPC(pc));
-        ICEntry &ent = baselineScript()->icEntryFromPCOffset(script->pcToOffset(pc), prevLookedUpEntry);
-        JS_ASSERT(ent.isForOp());
+    ICEntry& icEntryFromPC(jsbytecode* pc) {
+        MOZ_ASSERT(hasBaselineScript());
+        MOZ_ASSERT(isValidPC(pc));
+        ICEntry& ent = baselineScript()->icEntryFromPCOffset(script->pcToOffset(pc), prevLookedUpEntry);
+        MOZ_ASSERT(ent.isForOp());
         prevLookedUpEntry = &ent;
         return ent;
     }
 
     template <typename ICInspectorType>
-    ICInspectorType makeICInspector(jsbytecode *pc, ICStub::Kind expectedFallbackKind) {
-        ICEntry *ent = nullptr;
+    ICInspectorType makeICInspector(jsbytecode* pc, ICStub::Kind expectedFallbackKind) {
+        ICEntry* ent = nullptr;
         if (hasBaselineScript()) {
             ent = &icEntryFromPC(pc);
-            JS_ASSERT(ent->fallbackStub()->kind() == expectedFallbackKind);
+            MOZ_ASSERT(ent->fallbackStub()->kind() == expectedFallbackKind);
         }
         return ICInspectorType(this, pc, ent);
     }
 
-    ICStub *monomorphicStub(jsbytecode *pc);
-    bool dimorphicStub(jsbytecode *pc, ICStub **pfirst, ICStub **psecond);
+    ICStub* monomorphicStub(jsbytecode* pc);
+    bool dimorphicStub(jsbytecode* pc, ICStub** pfirst, ICStub** psecond);
 
   public:
-    typedef Vector<Shape *, 4, IonAllocPolicy> ShapeVector;
-    bool maybeShapesForPropertyOp(jsbytecode *pc, ShapeVector &shapes);
+    typedef Vector<ReceiverGuard, 4, JitAllocPolicy> ReceiverVector;
+    typedef Vector<ObjectGroup*, 4, JitAllocPolicy> ObjectGroupVector;
+    bool maybeInfoForPropertyOp(jsbytecode* pc, ReceiverVector& receivers,
+                                ObjectGroupVector& convertUnboxedGroups);
 
-    SetElemICInspector setElemICInspector(jsbytecode *pc) {
+    SetElemICInspector setElemICInspector(jsbytecode* pc) {
         return makeICInspector<SetElemICInspector>(pc, ICStub::SetElem_Fallback);
     }
 
-    MIRType expectedResultType(jsbytecode *pc);
-    MCompare::CompareType expectedCompareType(jsbytecode *pc);
-    MIRType expectedBinaryArithSpecialization(jsbytecode *pc);
+    MIRType expectedResultType(jsbytecode* pc);
+    MCompare::CompareType expectedCompareType(jsbytecode* pc);
+    MIRType expectedBinaryArithSpecialization(jsbytecode* pc);
+    MIRType expectedPropertyAccessInputType(jsbytecode* pc);
 
-    bool hasSeenNonNativeGetElement(jsbytecode *pc);
-    bool hasSeenNegativeIndexGetElement(jsbytecode *pc);
-    bool hasSeenAccessedGetter(jsbytecode *pc);
-    bool hasSeenDoubleResult(jsbytecode *pc);
-    bool hasSeenNonStringIterNext(jsbytecode *pc);
+    bool hasSeenNonNativeGetElement(jsbytecode* pc);
+    bool hasSeenNegativeIndexGetElement(jsbytecode* pc);
+    bool hasSeenAccessedGetter(jsbytecode* pc);
+    bool hasSeenDoubleResult(jsbytecode* pc);
+    bool hasSeenNonStringIterMore(jsbytecode* pc);
 
-    JSObject *getTemplateObject(jsbytecode *pc);
-    JSObject *getTemplateObjectForNative(jsbytecode *pc, Native native);
+    bool isOptimizableCallStringSplit(jsbytecode* pc, JSString** stringOut, JSString** stringArg,
+                                      JSObject** objOut);
+    JSObject* getTemplateObject(jsbytecode* pc);
+    JSObject* getTemplateObjectForNative(jsbytecode* pc, Native native);
+    JSObject* getTemplateObjectForClassHook(jsbytecode* pc, const Class* clasp);
 
-    DeclEnvObject *templateDeclEnvObject();
-    CallObject *templateCallObject();
+    // Sometimes the group a template object will have is known, even if the
+    // object itself isn't.
+    ObjectGroup* getTemplateObjectGroup(jsbytecode* pc);
 
-    JSObject *commonGetPropFunction(jsbytecode *pc, Shape **lastProperty, JSFunction **commonGetter);
-    JSObject *commonSetPropFunction(jsbytecode *pc, Shape **lastProperty, JSFunction **commonSetter);
+    JSFunction* getSingleCallee(jsbytecode* pc);
+
+    DeclEnvObject* templateDeclEnvObject();
+    CallObject* templateCallObject();
+
+    bool commonGetPropFunction(jsbytecode* pc, JSObject** holder, Shape** holderShape,
+                               JSFunction** commonGetter, Shape** globalShape, bool* isOwnProperty,
+                               ReceiverVector& receivers, ObjectGroupVector& convertUnboxedGroups);
+    bool commonSetPropFunction(jsbytecode* pc, JSObject** holder, Shape** holderShape,
+                               JSFunction** commonSetter, bool* isOwnProperty,
+                               ReceiverVector& receivers, ObjectGroupVector& convertUnboxedGroups);
+
+    bool instanceOfData(jsbytecode* pc, Shape** shape, uint32_t* slot, JSObject** prototypeObject);
 };
 
 } // namespace jit
 } // namespace js
-
-#endif // JS_ION
 
 #endif /* jit_BaselineInspector_h */

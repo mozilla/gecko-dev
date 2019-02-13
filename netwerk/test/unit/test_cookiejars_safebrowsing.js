@@ -69,7 +69,14 @@ function safebrowsingUpdateHandler(metadata, response) {
 
 function setupChannel(path, loadContext) {
   var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var channel = ios.newChannel(URL + path, "", null);
+  var channel = ios.newChannel2(URL + path,
+                                "",
+                                null,
+                                null,      // aLoadingNode
+                                Services.scriptSecurityManager.getSystemPrincipal(),
+                                null,      // aTriggeringPrincipal
+                                Ci.nsILoadInfo.SEC_NORMAL,
+                                Ci.nsIContentPolicy.TYPE_OTHER);
   channel.notificationCallbacks = loadContext;
   channel.QueryInterface(Ci.nsIHttpChannel);
   return channel;
@@ -102,8 +109,6 @@ add_test(function test_safebrowsing_update() {
   var streamUpdater = Cc["@mozilla.org/url-classifier/streamupdater;1"]
                      .getService(Ci.nsIUrlClassifierStreamUpdater);
 
-  streamUpdater.updateUrl = URL + safebrowsingUpdatePath;
-
   function onSuccess() {
     run_next_test();
   }
@@ -115,7 +120,7 @@ add_test(function test_safebrowsing_update() {
   }
 
   streamUpdater.downloadUpdates("test-phish-simple,test-malware-simple", "",
-    onSuccess, onUpdateError, onDownloadError);
+    URL + safebrowsingUpdatePath, onSuccess, onUpdateError, onDownloadError);
 });
 
 add_test(function test_non_safebrowsing_cookie() {

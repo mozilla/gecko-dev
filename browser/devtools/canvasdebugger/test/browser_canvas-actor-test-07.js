@@ -6,8 +6,8 @@
  * by deferring the the most recent previous draw-call.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, front] = yield initCanavsDebuggerBackend(SIMPLE_CANVAS_URL);
+function* ifTestingSupported() {
+  let { target, front } = yield initCanvasDebuggerBackend(SIMPLE_CANVAS_URL);
 
   let navigated = once(target, "navigate");
 

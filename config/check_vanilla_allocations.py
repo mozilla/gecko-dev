@@ -91,11 +91,10 @@ def main():
         r'operator new\[\]\(unsigned',
 
         r'memalign',
-        # These two aren't available on all Linux configurations.
+        # These three aren't available on all Linux configurations.
         #r'posix_memalign',
         #r'aligned_alloc',
-        r'valloc',
-        r'strdup'
+        #r'valloc',
     ]
 
     if args.aggressive:
@@ -103,7 +102,8 @@ def main():
             r'malloc',
             r'calloc',
             r'realloc',
-            r'free'
+            r'free',
+            r'strdup'
         ]
 
     # This is like alloc_fns, but regexp chars are not escaped.

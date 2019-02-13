@@ -9,6 +9,8 @@
   <script type="application/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js" />
   <script type="application/javascript"
+          src="utils.js" />
+  <script type="application/javascript"
           src="http://mochi.test:8888/chrome/dom/plugins/test/mochitest/hang_test.js" />
   <script type="application/javascript"
           src="http://mochi.test:8888/chrome/dom/plugins/test/mochitest/hangui_common.js" />
@@ -19,6 +21,7 @@
 <script class="testbody" type="application/javascript">
 <![CDATA[
 SimpleTest.waitForExplicitFinish();
+setTestPluginEnabledState(SpecialPowers.Ci.nsIPluginTag.STATE_ENABLED);
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -100,7 +103,8 @@ function runTests() {
 
   resetVars();
 
-  hanguiExpect("Prime ChromeWorker", false, false, "test1");
+  hanguiOperation("Prime ChromeWorker", 0, false, false, HANGUIOP_NOTHING, 0,
+                  false, "test1");
 }
 
 window.frameLoaded = runTests;
@@ -113,20 +117,20 @@ function onPluginCrashedHangUI(aEvent) {
 
   is(p, aEvent.target, "Plugin crashed event target is plugin element");
 
-  ok(aEvent instanceof Components.interfaces.nsIDOMCustomEvent,
+  ok(aEvent instanceof PluginCrashedEvent,
      "plugin crashed event has the right interface");
 
-  var propBag = aEvent.detail.QueryInterface(Components.interfaces.nsIPropertyBag2);
-  var pluginDumpID = propBag.getPropertyAsAString("pluginDumpID");
-  isnot(pluginDumpID, "", "got a non-empty dump ID");
-  var pluginName = propBag.getPropertyAsAString("pluginName");
-  is(pluginName, "Test Plug-in", "got correct plugin name");
-  var pluginFilename = propBag.getPropertyAsAString("pluginFilename");
-  isnot(pluginFilename, "", "got a non-empty filename");
-  var didReport = propBag.getPropertyAsBool("submittedCrashReport");
+  is(typeof aEvent.pluginDumpID, "string", "pluginDumpID is correct type");
+  isnot(aEvent.pluginDumpID, "", "got a non-empty dump ID");
+  is(typeof aEvent.pluginName, "string", "pluginName is correct type");
+  is(aEvent.pluginName, "Test Plug-in", "got correct plugin name");
+  is(typeof aEvent.pluginFilename, "string", "pluginFilename is correct type");
+  isnot(aEvent.pluginFilename, "", "got a non-empty filename");
   // The app itself may or may not have decided to submit the report, so
   // allow either true or false here.
-  ok((didReport == true || didReport == false), "event said crash report was submitted");
+  ok("submittedCrashReport" in aEvent, "submittedCrashReport is a property of event");
+  is(typeof aEvent.submittedCrashReport, "boolean", "submittedCrashReport is correct type");
+
   os.removeObserver(testObserver, "plugin-crashed");
   --obsCount;
 }
@@ -244,7 +248,7 @@ function test3() {
 }
 
 function test2() {
-  // This test is identical to test1 because there were some bugs where the 
+  // This test is identical to test1 because there were some bugs where the
   // Hang UI would show on the first hang but not on subsequent hangs
   hanguiExpect("test2: Plugin Hang UI is showing", true, true, "test3");
   p.stall(STALL_DURATION);

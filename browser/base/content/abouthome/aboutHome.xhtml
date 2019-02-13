@@ -24,10 +24,14 @@
     <link rel="icon" type="image/png" id="favicon"
           href="chrome://branding/content/icon32.png"/>
     <link rel="stylesheet" type="text/css" media="all"
+          href="chrome://browser/content/searchSuggestionUI.css"/>
+    <link rel="stylesheet" type="text/css" media="all" defer="defer"
           href="chrome://browser/content/abouthome/aboutHome.css"/>
 
     <script type="text/javascript;version=1.8"
             src="chrome://browser/content/abouthome/aboutHome.js"/>
+    <script type="text/javascript;version=1.8"
+            src="chrome://browser/content/searchSuggestionUI.js"/>
   </head>
 
   <body dir="&locale.dir;">
@@ -37,7 +41,8 @@
 
       <div id="searchContainer">
         <form name="searchForm" id="searchForm" onsubmit="onSearchSubmit(event)">
-          <div id="searchLogoContainer"><img id="searchEngineLogo"/></div>
+          <div id="searchLogoContainer" hidden="true"><img id="searchEngineLogo"/></div>
+          <button id="searchIcon" type="button" />
           <input type="text" name="q" value="" id="searchText" maxlength="256"
                  autofocus="autofocus" dir="auto"/>
           <input id="searchSubmit" type="submit" value="&abouthome.searchEngineButton.label;"/>
@@ -59,7 +64,7 @@
       <button class="launchButton" id="downloads">&abouthome.downloadsButton.label;</button>
       <button class="launchButton" id="bookmarks">&abouthome.bookmarksButton.label;</button>
       <button class="launchButton" id="history">&abouthome.historyButton.label;</button>
-      <button class="launchButton" id="apps" hidden="true">&abouthome.appsButton.label;</button>
+      <button class="launchButton" id="apps">&abouthome.appsButton2.label;</button>
       <button class="launchButton" id="addons">&abouthome.addonsButton.label;</button>
       <button class="launchButton" id="sync">&abouthome.syncButton.label;</button>
 #ifdef XP_WIN

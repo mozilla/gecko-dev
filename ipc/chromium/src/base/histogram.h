@@ -278,6 +278,7 @@ class Histogram {
     LINEAR_HISTOGRAM,
     BOOLEAN_HISTOGRAM,
     FLAG_HISTOGRAM,
+    COUNT_HISTOGRAM,
     CUSTOM_HISTOGRAM,
     NOT_VALID_IN_RENDERER
   };
@@ -414,7 +415,7 @@ class Histogram {
 
   virtual void AddSampleSet(const SampleSet& sample);
 
-  void Clear();
+  virtual void Clear();
 
   // This method is an interface, used only by LinearHistogram.
   virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
@@ -683,11 +684,31 @@ public:
 
   virtual void AddSampleSet(const SampleSet& sample);
 
+  virtual void Clear();
+
 private:
   explicit FlagHistogram(const std::string &name);
   bool mSwitched;
 
   DISALLOW_COPY_AND_ASSIGN(FlagHistogram);
+};
+
+// CountHistogram only allows a single monotic counter value.
+class CountHistogram : public LinearHistogram
+{
+public:
+  static Histogram *FactoryGet(const std::string &name, Flags flags);
+
+  virtual ClassType histogram_type() const;
+
+  virtual void Accumulate(Sample value, Count count, size_t index);
+
+  virtual void AddSampleSet(const SampleSet& sample);
+
+private:
+  explicit CountHistogram(const std::string &name);
+
+  DISALLOW_COPY_AND_ASSIGN(CountHistogram);
 };
 
 //------------------------------------------------------------------------------

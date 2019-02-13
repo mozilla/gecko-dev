@@ -4,13 +4,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+FAIL_ON_WARNINGS = True
+
 EXPORTS += [
     'DMD.h',
 ]
 
 SOURCES += [
     '../../../mfbt/HashFunctions.cpp',
-    '../../../xpcom/base/nsStackWalk.cpp',
+    '../../../mfbt/JSONWriter.cpp',
+    '../../../mozglue/misc/StackWalk.cpp',
     'DMD.cpp',
 ]
 
@@ -18,13 +21,21 @@ SOURCES += [
     '../../../nsprpub/lib/libc/src/strcpy.c',
 ]
 
-LIBRARY_NAME = 'dmd'
-
-FORCE_SHARED_LIB = True
+SharedLibrary('dmd')
 
 DEFINES['MOZ_NO_MOZALLOC'] = True
+DEFINES['IMPL_MFBT'] = True
+DEFINES['XPCOM_GLUE'] = True
 
 if CONFIG['MOZ_OPTIMIZE']:
     DEFINES['MOZ_OPTIMIZE'] = True
 
 DISABLE_STL_WRAPPING = True
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    OS_LIBS += [
+        'dbghelp',
+    ]
+
+TEST_DIRS += ['test']
+

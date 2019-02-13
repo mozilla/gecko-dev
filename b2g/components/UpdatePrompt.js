@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=8 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -312,6 +312,9 @@ UpdatePrompt.prototype = {
     }
 
     switch (aDetail.result) {
+      // Battery not okay, do not wait for idle to re-prompt
+      case "low-battery":
+        break;
       case "wait":
         // Wait until the user is idle before prompting to apply the update
         this.waitForIdle();

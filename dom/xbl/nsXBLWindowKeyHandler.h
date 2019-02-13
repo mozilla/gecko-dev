@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,48 +20,58 @@ namespace mozilla {
 namespace dom {
 class Element;
 class EventTarget;
+struct IgnoreModifierState;
 }
 }
 
 class nsXBLWindowKeyHandler : public nsIDOMEventListener
 {
+  typedef mozilla::dom::IgnoreModifierState IgnoreModifierState;
+
 public:
   nsXBLWindowKeyHandler(nsIDOMElement* aElement, mozilla::dom::EventTarget* aTarget);
-  virtual ~nsXBLWindowKeyHandler();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
 protected:
+  virtual ~nsXBLWindowKeyHandler();
+
   nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType);
 
   // walk the handlers, looking for one to handle the event
   bool WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                             nsIAtom* aEventType,
                             nsXBLPrototypeHandler* aHandler,
-                            bool aExecute);
+                            bool aExecute,
+                            bool* aOutReservedForChrome = nullptr);
 
-  // walk the handlers for aEvent, aCharCode and aIgnoreShiftKey. Execute it
-  // if aExecute = true.
+  // walk the handlers for aEvent, aCharCode and aIgnoreModifierState. Execute
+  // it if aExecute = true.
   bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                               nsXBLPrototypeHandler* aHandler,
-                              uint32_t aCharCode, bool aIgnoreShiftKey,
-                              bool aExecute);
+                              uint32_t aCharCode,
+                              const IgnoreModifierState& aIgnoreModifierState,
+                              bool aExecute,
+                              bool* aOutReservedForChrome = nullptr);
 
   // HandleEvent function for the capturing phase.
   void HandleEventOnCapture(nsIDOMKeyEvent* aEvent);
 
-  // Check if any handler would handle the given event.
-  bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent);
+  // Check if any handler would handle the given event. Optionally returns
+  // whether the command handler for the event is marked with the "reserved"
+  // attribute.
+  bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent,
+                          bool* aOutReservedForChrome = nullptr);
 
   // lazily load the handlers. Overridden to handle being attached
   // to a particular element rather than the document
   nsresult EnsureHandlers();
 
   // check if the given handler cares about the given key event
-  bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMKeyEvent* inEvent, uint32_t aCharCode,
-                      bool aIgnoreShiftKey);
+  bool EventMatched(nsXBLPrototypeHandler* aHandler, nsIAtom* aEventType,
+                    nsIDOMKeyEvent* aEvent, uint32_t aCharCode,
+                    const IgnoreModifierState& aIgnoreModifierState);
 
   // Is an HTML editable element focused
   bool IsHTMLEditableFieldFocused();

@@ -28,12 +28,8 @@
                           command="Tools:PrivateBrowsing"
                           key="key_privatebrowsing"/>
 #ifdef E10S_TESTING_ONLY
-                <menuitem id="menu_newRemoteWindow"
-                          label="New e10s Window"
-                          hidden="true"
-                          command="Tools:RemoteWindow"/>
                 <menuitem id="menu_newNonRemoteWindow"
-                          label="New Non-e10s Window"
+                          label="&newNonRemoteWindow.label;"
                           hidden="true"
                           command="Tools:NonRemoteWindow"/>
 #endif
@@ -48,15 +44,6 @@
                           command="Browser:OpenFile"
                           key="openFileKb"
                           accesskey="&openFileCmd.accesskey;"/>
-#ifdef HAVE_SHELL_SERVICE
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-                <menuitem id="menu_switchToMetro"
-                          label="&switchToMetroCmd2.label;"
-                          oncommand="SwitchToMetro()"/>
-#endif
-#endif
-#endif
                 <menuitem id="menu_close"
                           class="show-only-for-keyboard"
                           label="&closeCmd.label;"
@@ -107,11 +94,11 @@
                           oncommand="BrowserOffline.toggleOfflineStatus();"/>
                 <menuitem id="menu_FileQuitItem"
 #ifdef XP_WIN
-                          label="&quitApplicationCmdWin.label;"
-                          accesskey="&quitApplicationCmdWin.accesskey;"
+                          label="&quitApplicationCmdWin2.label;"
+                          accesskey="&quitApplicationCmdWin2.accesskey;"
 #else
 #ifdef XP_MACOSX
-                          label="&quitApplicationCmdMac.label;"
+                          label="&quitApplicationCmdMac2.label;"
 #else
                           label="&quitApplicationCmd.label;"
                           accesskey="&quitApplicationCmd.accesskey;"
@@ -223,6 +210,11 @@
                               key="key_gotoHistory"
                               observes="viewHistorySidebar"
                               label="&historyButton.label;"/>
+                    <menuitem id="menu_readingListSidebar"
+                              key="key_readingListSidebar"
+                              observes="readingListSidebar"
+                              label="&readingList.label;"/>
+
                     <!-- Service providers with sidebars are inserted between these two menuseperators -->
                     <menuseparator hidden="true"/>
                     <menuseparator class="social-provider-menu" hidden="true"/>
@@ -301,6 +293,9 @@
                           type="checkbox"
                           observes="View:FullScreen"/>
 #endif
+                <menuitem id="menu_readerModeItem"
+                          observes="View:ReaderView"
+                          hidden="true"/>
                 <menuitem id="menu_showAllTabs"
                           hidden="true"
                           accesskey="&showAllTabsCmd.accesskey;"
@@ -312,7 +307,9 @@
                           hidden="true"
                           label="&bidiSwitchPageDirectionItem.label;"
                           accesskey="&bidiSwitchPageDirectionItem.accesskey;"
-                          oncommand="SwitchDocumentDirection(window.content)"/>
+                          oncommand="gBrowser.selectedBrowser
+                                             .messageManager
+                                             .sendAsyncMessage('SwitchDocumentDirection');"/>
               </menupopup>
             </menu>
 
@@ -390,6 +387,7 @@
                oncommand="BookmarksEventHandler.onCommand(event, this.parentNode._placesView);"
                onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                onpopupshowing="BookmarkingUI.onMainMenuPopupShowing(event);
+                               BookmarkingUI.updatePocketItemVisibility('menu_');
                                if (!this.parentNode._placesView)
                                  new PlacesMenu(event, 'place:folder=BOOKMARKS_MENU');"
                tooltip="bhTooltip" popupsinherittooltip="true">
@@ -398,6 +396,12 @@
                 command="Browser:ShowAllBookmarks"
                 key="manBookmarkKb"/>
       <menuseparator id="organizeBookmarksSeparator"/>
+      <menuitem id="menu_pocket" label="&pocketMenuitem.label;"
+#ifndef XP_MACOSX
+                class="menuitem-iconic"
+#endif
+                oncommand="openUILink(Pocket.listURL, event);"/>
+      <menuseparator id="menu_pocketSeparator"/>
       <menuitem id="menu_bookmarkThisPage"
                 command="Browser:AddBookmarkAs"
                 observes="bookmarkThisPageBroadcaster"
@@ -439,6 +443,30 @@
                    onpopupshowing="if (!this.parentNode._placesView)
                                      new PlacesMenu(event, 'place:folder=TOOLBAR');"/>
       </menu>
+#ifndef XP_MACOSX
+# Disabled on Mac because we can't fill native menupopups asynchronously
+      <menuseparator id="menu_readingListSeparator">
+        <observes element="readingListSidebar" attribute="hidden"/>
+      </menuseparator>
+      <menu id="menu_readingList"
+            class="menu-iconic bookmark-item"
+            label="&readingList.label;"
+            container="true">
+        <observes element="readingListSidebar" attribute="hidden"/>
+        <menupopup id="readingListPopup"
+#ifndef XP_MACOSX
+                   placespopup="true"
+#endif
+                   onpopupshowing="ReadingListUI.onReadingListPopupShowing(this);">
+          <menuseparator id="viewReadingListSidebarSeparator"/>
+          <menuitem id="viewReadingListSidebar" class="subviewbutton"
+                    oncommand="SidebarUI.toggle('readingListSidebar');"
+                    label="&readingList.showSidebar.label;">
+            <observes element="readingListSidebar" attribute="checked"/>
+          </menuitem>
+        </menupopup>
+      </menu>
+#endif
       <menuseparator id="bookmarksMenuItemsSeparator"/>
       <!-- Bookmarks menu items -->
       <menuseparator builder="end"
@@ -451,7 +479,8 @@
 
             <menu id="tools-menu"
                   label="&toolsMenu.label;"
-                  accesskey="&toolsMenu.accesskey;">
+                  accesskey="&toolsMenu.accesskey;"
+                  onpopupshowing="mirrorShow(this)">
               <menupopup id="menu_ToolsPopup"
 #ifdef MOZ_SERVICES_SYNC
 # We have to use setTimeout() here to avoid a flickering menu bar when opening
@@ -470,13 +499,17 @@
                         accesskey="&addons.accesskey;"
                         key="key_openAddons"
                         command="Tools:Addons"/>
+              <menuitem id="menu_openApps"
+                        label="&webapps.label;"
+                        accesskey="&webapps.accesskey;"
+                        oncommand="BrowserOpenApps();"/>
 #ifdef MOZ_SERVICES_SYNC
               <!-- only one of sync-setup or sync-menu will be showing at once -->
               <menuitem id="sync-setup"
                         label="&syncSetup.label;"
                         accesskey="&syncSetup.accesskey;"
                         observes="sync-setup-state"
-                        oncommand="gSyncUI.openSetup()"/>
+                        oncommand="gSyncUI.openSetup(null, 'menubar')"/>
               <menuitem id="sync-syncnowitem"
                         label="&syncSyncNowItem.label;"
                         accesskey="&syncSyncNowItem.accesskey;"
@@ -486,7 +519,7 @@
                         label="&syncReAuthItem.label;"
                         accesskey="&syncReAuthItem.accesskey;"
                         observes="sync-reauth-state"
-                        oncommand="gSyncUI.openSignInAgainPage();"/>
+                        oncommand="gSyncUI.openSignInAgainPage('menubar');"/>
 #endif
               <menuseparator id="devToolsSeparator"/>
               <menu id="webDeveloperMenu"
@@ -503,9 +536,15 @@
                   <menuitem id="menu_devAppMgr"
                             observes="devtoolsMenuBroadcaster_DevAppMgr"
                             accesskey="&devAppMgrMenu.accesskey;"/>
+                  <menuitem id="menu_webide"
+                            observes="devtoolsMenuBroadcaster_webide"
+                            accesskey="&webide.accesskey;"/>
                   <menuitem id="menu_browserToolbox"
                             observes="devtoolsMenuBroadcaster_BrowserToolbox"
                             accesskey="&browserToolboxMenu.accesskey;"/>
+                  <menuitem id="menu_browserContentToolbox"
+                            observes="devtoolsMenuBroadcaster_BrowserContentToolbox"
+                            accesskey="&browserContentToolboxMenu.accesskey;" />
                   <menuitem id="menu_browserConsole"
                             observes="devtoolsMenuBroadcaster_BrowserConsole"
                             accesskey="&browserConsoleCmd.accesskey;"/>
@@ -539,6 +578,13 @@
                         key="key_viewInfo"
 #endif
                         command="View:PageInfo"/>
+              <menu id="menu_mirrorTabCmd"
+                    hidden="true"
+                    accesskey="&mirrorTabCmd.accesskey;"
+                    label="&mirrorTabCmd.label;">
+                <menupopup id="menu_mirrorTab-popup"
+                           onpopupshowing="populateMirrorTabMenu(this)"/>
+              </menu>
 #ifndef XP_UNIX
               <menuseparator id="prefSep"/>
               <menuitem id="menu_preferences"

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 XPCOMUtils.defineLazyModuleGetter(this, "Chat",
                                   "resource:///modules/Chat.jsm");
-
 let openChatOrig = Chat.open;
 
 add_test(function test_get_do_not_disturb() {
@@ -32,21 +33,25 @@ add_test(function test_set_do_not_disturb() {
 add_test(function test_do_not_disturb_disabled_should_open_chat_window() {
   MozLoopService.doNotDisturb = false;
 
-  MozLoopService.register(mockPushHandler).then(() => {
+  mockPushHandler.registrationPushURL = kEndPointUrl;
+
+  MozLoopService.promiseRegisteredWithServers(LOOP_SESSION_TYPE.FXA).then(() => {
     let opened = false;
     Chat.open = function() {
       opened = true;
     };
 
-    mockPushHandler.notify(1);
+    mockPushHandler.notify(1, MozLoopService.channelIDs.callsFxA);
 
-    do_check_true(opened, "should open a chat window");
-
-    run_next_test();
+    waitForCondition(() => opened).then(() => {
+      run_next_test();
+    }, () => {
+      do_throw("should have opened a chat window");
+    });
   });
 });
 
-add_task(function test_do_not_disturb_enabled_shouldnt_open_chat_window() {
+add_test(function test_do_not_disturb_enabled_shouldnt_open_chat_window() {
   MozLoopService.doNotDisturb = true;
 
   // We registered in the previous test, so no need to do that on this one.
@@ -55,17 +60,27 @@ add_task(function test_do_not_disturb_enabled_shouldnt_open_chat_window() {
     opened = true;
   };
 
-  mockPushHandler.notify(1);
+  mockPushHandler.notify(1, MozLoopService.channelIDs.callsFxA);
 
-  do_check_false(opened, "should not open a chat window");
+  do_timeout(500, function() {
+    do_check_false(opened, "should not open a chat window");
+    run_next_test();
+  });
 });
 
-function run_test()
-{
+function run_test() {
   setupFakeLoopServer();
+
+  setupFakeFxAUserProfile();
 
   loopServer.registerPathHandler("/registration", (request, response) => {
     response.setStatusLine(null, 200, "OK");
+    response.processAsync();
+    response.finish();
+  });
+  loopServer.registerPathHandler("/calls", (request, response) => {
+    response.setStatusLine(null, 200, "OK");
+    response.write(JSON.stringify({calls: [{callId: 4444333221, websocketToken: "0deadbeef0"}]}));
     response.processAsync();
     response.finish();
   });

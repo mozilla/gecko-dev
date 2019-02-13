@@ -102,12 +102,13 @@ public class HealthReportBroadcastService extends BackgroundService {
 
     // Intent can be null. Bug 1025937.
     if (intent == null) {
-        Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      return;
     }
 
     // The same intent can be handled by multiple methods so do not short-circuit evaluate.
     boolean handled = attemptHandleIntentForUpload(intent);
-    handled = attemptHandleIntentForPrune(intent) ? true : handled;
+    handled = attemptHandleIntentForPrune(intent) || handled;
 
     if (!handled) {
       Logger.warn(LOG_TAG, "Unhandled intent with action " + intent.getAction() + ".");

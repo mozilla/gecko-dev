@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -84,7 +84,7 @@ add_task(function test_pref_maxpages() {
     let now = getExpirablePRTime();
     for (let i = 0; i < currentTest.addPages; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
+      yield PlacesTestUtils.addVisits({ uri: uri(page), visitDate: now++ });
     }
 
     // Observe history.
@@ -116,9 +116,9 @@ add_task(function test_pref_maxpages() {
                 currentTest.expectedNotifications);
 
     // Clean up.
-    yield promiseClearHistory();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

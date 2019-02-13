@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -34,9 +35,7 @@ class nsIMemoryReporter;
 class CategoryLeaf : public nsDepCharHashKey
 {
 public:
-  CategoryLeaf(const char* aKey)
-    : nsDepCharHashKey(aKey),
-      value(nullptr) { }
+  explicit CategoryLeaf(const char* aKey) : nsDepCharHashKey(aKey), value(nullptr) {}
   const char* value;
 };
 
@@ -50,40 +49,40 @@ class CategoryNode
 {
 public:
   NS_METHOD GetLeaf(const char* aEntryName,
-                    char** _retval);
+                    char** aResult);
 
   NS_METHOD AddLeaf(const char* aEntryName,
                     const char* aValue,
                     bool aReplace,
-                    char** _retval,
+                    char** aResult,
                     PLArenaPool* aArena);
 
   void DeleteLeaf(const char* aEntryName);
 
-  void Clear() {
+  void Clear()
+  {
     mozilla::MutexAutoLock lock(mLock);
     mTable.Clear();
   }
 
-  uint32_t Count() {
+  uint32_t Count()
+  {
     mozilla::MutexAutoLock lock(mLock);
     uint32_t tCount = mTable.Count();
     return tCount;
   }
 
-  NS_METHOD Enumerate(nsISimpleEnumerator** _retval);
+  NS_METHOD Enumerate(nsISimpleEnumerator** aResult);
 
   // CategoryNode is arena-allocated, with the strings
   static CategoryNode* Create(PLArenaPool* aArena);
   ~CategoryNode();
-  void operator delete(void*) { }
+  void operator delete(void*) {}
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
 private:
-  CategoryNode()
-    : mLock("CategoryLeaf")
-  { }
+  CategoryNode() : mLock("CategoryLeaf") {}
 
   void* operator new(size_t aSize, PLArenaPool* aArena);
 
@@ -97,7 +96,7 @@ private:
  *
  * This implementation is thread-safe.
  */
-class nsCategoryManager MOZ_FINAL
+class nsCategoryManager final
   : public nsICategoryManager
   , public nsIMemoryReporter
 {

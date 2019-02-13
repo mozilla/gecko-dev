@@ -40,7 +40,7 @@ class EventTarget;
  * http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html
  */
 
-[builtinclass, uuid(02d54f52-a1f5-4ad2-b560-36f14012935e)]
+[builtinclass, uuid(63857daf-c084-4ea6-a8b9-6812e3176991)]
 interface nsIDOMEvent : nsISupports
 {
   // PhaseType
@@ -213,6 +213,7 @@ interface nsIDOMEvent : nsISupports
   [notxpcom] boolean Deserialize(in ConstIPCMessagePtr aMsg, out voidPtr aIter);
   [noscript,notxpcom] void SetOwner(in EventTargetPtr aOwner);
   [notxpcom] DOMEventPtr InternalDOMEvent();
+  [noscript] void stopCrossProcessForwarding();
 };
 
 %{C++
@@ -272,6 +273,13 @@ NS_NewDOMKeyboardEvent(nsIDOMEvent** aInstancePtrResult,
                        mozilla::dom::EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        mozilla::WidgetKeyboardEvent* aEvent);
+
+nsresult
+NS_NewDOMBeforeAfterKeyboardEvent(nsIDOMEvent** aInstancePtrResult,
+                                  mozilla::dom::EventTarget* aOwner,
+                                  nsPresContext* aPresContext,
+                                  mozilla::InternalBeforeAfterKeyboardEvent* aEvent);
+
 nsresult
 NS_NewDOMCompositionEvent(nsIDOMEvent** aInstancePtrResult,
                           mozilla::dom::EventTarget* aOwner,
@@ -288,11 +296,6 @@ NS_NewDOMDeviceMotionEvent(nsIDOMEvent** aResult,
                            nsPresContext* aPresContext,
                            mozilla::WidgetEvent* aEvent);
 nsresult
-NS_NewDOMTextEvent(nsIDOMEvent** aResult,
-                   mozilla::dom::EventTarget* aOwner,
-                   nsPresContext* aPresContext,
-                   mozilla::WidgetTextEvent* aEvent);
-nsresult
 NS_NewDOMBeforeUnloadEvent(nsIDOMEvent** aResult,
                            mozilla::dom::EventTarget* aOwner,
                            nsPresContext* aPresContext,
@@ -306,12 +309,12 @@ nsresult
 NS_NewDOMSVGZoomEvent(nsIDOMEvent** aResult,
                       mozilla::dom::EventTarget* aOwner,
                       nsPresContext* aPresContext,
-                      mozilla::WidgetGUIEvent* aEvent);
+                      mozilla::InternalSVGZoomEvent* aEvent);
 nsresult
 NS_NewDOMTimeEvent(nsIDOMEvent** aResult,
                    mozilla::dom::EventTarget* aOwner,
                    nsPresContext* aPresContext,
-                   mozilla::WidgetEvent* aEvent);
+                   mozilla::InternalSMILTimeEvent* aEvent);
 nsresult
 NS_NewDOMXULCommandEvent(nsIDOMEvent** aResult,
                          mozilla::dom::EventTarget* aOwner,
@@ -366,13 +369,8 @@ NS_NewDOMTouchEvent(nsIDOMEvent** aInstancePtrResult,
                     nsPresContext* aPresContext,
                     mozilla::WidgetTouchEvent* aEvent);
 nsresult
-NS_NewDOMMozSettingsEvent(nsIDOMEvent** aInstancePtrResult,
-                          mozilla::dom::EventTarget* aOwner,
-                          nsPresContext* aPresContext,
-                          mozilla::WidgetEvent* aEvent);
-nsresult
-NS_NewDOMMozApplicationEvent(nsIDOMEvent** aInstancePtrResult,
-                             mozilla::dom::EventTarget* aOwner,
-                             nsPresContext* aPresContext,
-                             mozilla::WidgetEvent* aEvent);
+NS_NewDOMCustomEvent(nsIDOMEvent** aInstancePtrResult,
+                     mozilla::dom::EventTarget* aOwner,
+                     nsPresContext* aPresContext,
+                     mozilla::WidgetEvent* aEvent);
 %}

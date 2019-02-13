@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import os
 import unittest
 
+from collections import defaultdict
 from shutil import rmtree
 from tempfile import mkdtemp
 
@@ -15,7 +16,6 @@ from mach.logging import LoggingManager
 from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.frontend.emitter import TreeMetadataEmitter
 from mozbuild.frontend.reader import BuildReader
-from mozbuild.util import DefaultOnReadDict
 
 import mozpack.path as mozpath
 
@@ -28,9 +28,15 @@ test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, 'data')
 
 
-CONFIGS = DefaultOnReadDict({
+CONFIGS = defaultdict(lambda: {
+    'defines': [],
+    'non_global_defines': [],
+    'substs': [('OS_TARGET', 'WINNT')],
+}, {
     'android_eclipse': {
-        'defines': [],
+        'defines': [
+            ('MOZ_ANDROID_MIN_SDK_VERSION', '9'),
+        ],
         'non_global_defines': [],
         'substs': [
             ('ANDROID_TARGET_SDK', '16'),
@@ -75,14 +81,18 @@ CONFIGS = DefaultOnReadDict({
             ('MOZ_APP_NAME', 'my_app'),
         ],
     },
-}, global_default={
-    'defines': [],
-    'non_global_defines': [],
-    'substs': [],
 })
 
 
 class BackendTester(unittest.TestCase):
+    def setUp(self):
+        self._old_env = dict(os.environ)
+        os.environ.pop('MOZ_OBJDIR', None)
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._old_env)
+
     def _get_environment(self, name):
         """Obtain a new instance of a ConfigEnvironment for a known profile.
 

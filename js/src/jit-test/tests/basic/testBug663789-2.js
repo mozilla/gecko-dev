@@ -1,4 +1,4 @@
-// |jit-test| debug
+load(libdir + "evalInFrame.js");
 
 o = { toString:function() { return evalInFrame(1, "x") } }
 var x = 'C';

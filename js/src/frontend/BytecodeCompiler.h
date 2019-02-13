@@ -16,39 +16,38 @@ namespace js {
 class AutoNameVector;
 class LazyScript;
 class LifoAlloc;
+class ScriptSourceObject;
+class ScopeObject;
 struct SourceCompressionTask;
 
 namespace frontend {
 
-JSScript *
-CompileScript(ExclusiveContext *cx, LifoAlloc *alloc,
-              HandleObject scopeChain, HandleScript evalCaller,
-              const ReadOnlyCompileOptions &options, SourceBufferHolder &srcBuf,
-              JSString *source_ = nullptr, unsigned staticLevel = 0,
-              SourceCompressionTask *extraSct = nullptr);
+JSScript*
+CompileScript(ExclusiveContext* cx, LifoAlloc* alloc,
+              HandleObject scopeChain, Handle<ScopeObject*> enclosingStaticScope,
+              HandleScript evalCaller, const ReadOnlyCompileOptions& options,
+              SourceBufferHolder& srcBuf, JSString* source_ = nullptr,
+              unsigned staticLevel = 0, SourceCompressionTask* extraSct = nullptr);
 
 bool
-CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const jschar *chars, size_t length);
-
-bool
-CompileFunctionBody(JSContext *cx, MutableHandleFunction fun,
-                    const ReadOnlyCompileOptions &options,
-                    const AutoNameVector &formals, JS::SourceBufferHolder &srcBuf);
-bool
-CompileStarGeneratorBody(JSContext *cx, MutableHandleFunction fun,
-                         const ReadOnlyCompileOptions &options,
-                         const AutoNameVector &formals, JS::SourceBufferHolder &srcBuf);
-
-ScriptSourceObject *
-CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOptions &options);
+CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy, const char16_t* chars, size_t length);
 
 /*
- * This should be called while still on the main thread if compilation will
- * occur on a worker thread.
+ * enclosingStaticScope is a static enclosing scope (e.g. a StaticWithObject).
+ * Must be null if the enclosing scope is a global.
  */
-void
-MaybeCallSourceHandler(JSContext *cx, const ReadOnlyCompileOptions &options,
-                       JS::SourceBufferHolder &srcBuf);
+bool
+CompileFunctionBody(JSContext* cx, MutableHandleFunction fun,
+                    const ReadOnlyCompileOptions& options,
+                    const AutoNameVector& formals, JS::SourceBufferHolder& srcBuf,
+                    HandleObject enclosingStaticScope);
+bool
+CompileStarGeneratorBody(JSContext* cx, MutableHandleFunction fun,
+                         const ReadOnlyCompileOptions& options,
+                         const AutoNameVector& formals, JS::SourceBufferHolder& srcBuf);
+
+ScriptSourceObject*
+CreateScriptSourceObject(ExclusiveContext* cx, const ReadOnlyCompileOptions& options);
 
 /*
  * True if str consists of an IdentifierStart character, followed by one or
@@ -60,15 +59,21 @@ MaybeCallSourceHandler(JSContext *cx, const ReadOnlyCompileOptions &options,
  * Defined in TokenStream.cpp.
  */
 bool
-IsIdentifier(JSLinearString *str);
+IsIdentifier(JSLinearString* str);
+
+/*
+ * As above, but taking chars + length.
+ */
+bool
+IsIdentifier(const char16_t* chars, size_t length);
 
 /* True if str is a keyword. Defined in TokenStream.cpp. */
 bool
-IsKeyword(JSLinearString *str);
+IsKeyword(JSLinearString* str);
 
 /* GC marking. Defined in Parser.cpp. */
 void
-MarkParser(JSTracer *trc, JS::AutoGCRooter *parser);
+MarkParser(JSTracer* trc, JS::AutoGCRooter* parser);
 
 } /* namespace frontend */
 } /* namespace js */

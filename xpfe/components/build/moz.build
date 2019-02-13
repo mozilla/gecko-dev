@@ -8,10 +8,10 @@ SOURCES += [
     'nsModule.cpp',
 ]
 
-LIBRARY_NAME = 'appcomps'
-
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
     '../directory',
 ]
+
+FAIL_ON_WARNINGS = True

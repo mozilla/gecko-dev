@@ -12,22 +12,24 @@
 #include <gdk/gdk.h>
 #include "nsAppShell.h"
 #include "nsWindow.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prenv.h"
 #include "mozilla/HangMonitor.h"
 #include "mozilla/unused.h"
 #include "GeckoProfiler.h"
+#include "nsIPowerManagerService.h"
+#ifdef MOZ_ENABLE_DBUS
+#include "WakeLockListener.h"
+#endif
 
 using mozilla::unused;
 
 #define NOTIFY_TOKEN 0xFA
 
-#ifdef PR_LOGGING
 PRLogModuleInfo *gWidgetLog = nullptr;
 PRLogModuleInfo *gWidgetFocusLog = nullptr;
 PRLogModuleInfo *gWidgetDragLog = nullptr;
 PRLogModuleInfo *gWidgetDrawLog = nullptr;
-#endif
 
 static GPollFunc sPollFunc;
 
@@ -71,7 +73,12 @@ nsAppShell::~nsAppShell()
 nsresult
 nsAppShell::Init()
 {
-#ifdef PR_LOGGING
+    // For any versions of Glib before 2.36, g_type_init must be explicitly called
+    // to safely use the library. Failure to do so may cause various failures/crashes
+    // in any code that uses Glib, Gdk, or Gtk. In later versions of Glib, this call
+    // is a no-op.
+    g_type_init();
+
     if (!gWidgetLog)
         gWidgetLog = PR_NewLogModule("Widget");
     if (!gWidgetFocusLog)
@@ -80,6 +87,16 @@ nsAppShell::Init()
         gWidgetDragLog = PR_NewLogModule("WidgetDrag");
     if (!gWidgetDrawLog)
         gWidgetDrawLog = PR_NewLogModule("WidgetDraw");
+
+#ifdef MOZ_ENABLE_DBUS
+    nsCOMPtr<nsIPowerManagerService> powerManagerService =
+      do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+
+    if (powerManagerService) {
+        powerManagerService->AddWakeLockListener(WakeLockListener::GetSingleton());
+    } else {
+        NS_WARNING("Failed to retrieve PowerManagerService, wakelocks will be broken!");
+    }
 #endif
 
     if (!sPollFunc) {

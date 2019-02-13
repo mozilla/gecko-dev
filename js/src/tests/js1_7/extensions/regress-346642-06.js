@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -57,18 +57,13 @@ function test()
 
   expect = 3;
   actual = '';
-  "" + function () { [y([a]=b)] = z }; actual = 3;
+  "" + function () { for(;; ([[,]] = p)) { } }; actual = 3;
   reportCompare(expect, actual, summary + ': 5');
 
   expect = 3;
   actual = '';
-  "" + function () { for(;; ([[,]] = p)) { } }; actual = 3;
-  reportCompare(expect, actual, summary + ': 6');
-
-  expect = 3;
-  actual = '';
   actual = 1; try {for(x in (function ([y]) { })() ) { }}catch(ex){} actual = 3;
-  reportCompare(expect, actual, summary + ': 7');
+  reportCompare(expect, actual, summary + ': 6');
 
   exitFunc ('test');
 }

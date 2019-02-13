@@ -5,8 +5,8 @@
  * Tests that the frontend UI is properly configured when opening the tool.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, panel] = yield initCanavsDebuggerFrontend(SIMPLE_CANVAS_URL);
+function* ifTestingSupported() {
+  let { target, panel } = yield initCanvasDebuggerFrontend(SIMPLE_CANVAS_URL);
   let { $ } = panel.panelWin;
 
   is($("#snapshots-pane").hasAttribute("hidden"), false,
@@ -25,8 +25,8 @@ function ifTestingSupported() {
     "The reload notice should initially be visible.");
   is($("#empty-notice").getAttribute("hidden"), "true",
     "The empty notice should initially be hidden.");
-  is($("#import-notice").getAttribute("hidden"), "true",
-    "The import notice should initially be hidden.");
+  is($("#waiting-notice").getAttribute("hidden"), "true",
+    "The waiting notice should initially be hidden.");
 
   is($("#screenshot-container").getAttribute("hidden"), "true",
     "The screenshot container should initially be hidden.");

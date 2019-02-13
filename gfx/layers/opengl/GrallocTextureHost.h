@@ -7,6 +7,7 @@
 #define MOZILLA_GFX_GRALLOCTEXTUREHOST_H
 #ifdef MOZ_WIDGET_GONK
 
+#include "mozilla/layers/CompositorOGL.h"
 #include "mozilla/layers/TextureHostOGL.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>
@@ -14,74 +15,7 @@
 namespace mozilla {
 namespace layers {
 
-class GrallocTextureHostOGL;
-
-class GrallocTextureSourceOGL : public NewTextureSource
-                              , public TextureSourceOGL
-{
-public:
-  friend class GrallocTextureHostOGL;
-
-  GrallocTextureSourceOGL(CompositorOGL* aCompositor,
-                          GrallocTextureHostOGL* aTextureHost,
-                          android::GraphicBuffer* aGraphicBuffer,
-                          gfx::SurfaceFormat aFormat);
-
-  virtual ~GrallocTextureSourceOGL();
-
-  virtual bool IsValid() const MOZ_OVERRIDE;
-
-  virtual void BindTexture(GLenum aTextureUnit, gfx::Filter aFilter) MOZ_OVERRIDE;
-
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
-
-  virtual TextureSourceOGL* AsSourceOGL() MOZ_OVERRIDE { return this; }
-
-  virtual GLenum GetTextureTarget() const MOZ_OVERRIDE;
-
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE { return mFormat; }
-
-  virtual GLenum GetWrapMode() const MOZ_OVERRIDE
-  {
-    return LOCAL_GL_CLAMP_TO_EDGE;
-  }
-
-  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData) MOZ_OVERRIDE;
-
-  void DeallocateDeviceData();
-
-  gl::GLContext* gl() const;
-
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
-
-  void ForgetBuffer()
-  {
-    mGraphicBuffer = nullptr;
-    mTextureHost = nullptr;
-  }
-
-  TemporaryRef<gfx::DataSourceSurface> GetAsSurface();
-
-  GLuint GetGLTexture();
-
-  void BindEGLImage();
-
-  void Lock();
-
-protected:
-  CompositorOGL* mCompositor;
-  GrallocTextureHostOGL* mTextureHost;
-  android::sp<android::GraphicBuffer> mGraphicBuffer;
-  EGLImage mEGLImage;
-  GLuint mTexture;
-  gfx::SurfaceFormat mFormat;
-  bool mNeedsReset;
-};
-
 class GrallocTextureHostOGL : public TextureHost
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-                            , public TextureHostOGL
-#endif
 {
   friend class GrallocBufferActor;
 public:
@@ -90,50 +24,54 @@ public:
 
   virtual ~GrallocTextureHostOGL();
 
-  virtual void Updated(const nsIntRegion* aRegion) MOZ_OVERRIDE {}
+  virtual bool Lock() override;
 
-  virtual bool Lock() MOZ_OVERRIDE;
+  virtual void Unlock() override;
 
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) override;
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual void DeallocateSharedData() override;
 
-  virtual void DeallocateSharedData() MOZ_OVERRIDE;
+  virtual void ForgetSharedData() override;
 
-  virtual void ForgetSharedData() MOZ_OVERRIDE;
-
-  virtual void DeallocateDeviceData() MOZ_OVERRIDE;
+  virtual void DeallocateDeviceData() override;
 
   virtual gfx::SurfaceFormat GetFormat() const;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
+  virtual gfx::IntSize GetSize() const override { return mDescriptorSize; }
 
-  virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
+  virtual LayerRenderState GetRenderState() override;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
-  {
-    return mTextureSource;
-  }
+  virtual void PrepareTextureSource(CompositableTextureSourceRef& aTextureSource) override;
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  virtual TextureHostOGL* AsHostOGL() MOZ_OVERRIDE
-  {
-    return this;
-  }
-#endif
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTextureSource) override;
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
+  virtual void UnbindTextureSource() override;
 
-  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData) MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override;
+
+  virtual void WaitAcquireFenceHandleSyncComplete() override;
 
   bool IsValid() const;
 
-  virtual const char* Name() MOZ_OVERRIDE { return "GrallocTextureHostOGL"; }
+  virtual const char* Name() override { return "GrallocTextureHostOGL"; }
+
+  gl::GLContext* GetGLContext() const { return mCompositor ? mCompositor->gl() : nullptr; }
 
 private:
+  void DestroyEGLImage();
+
   NewSurfaceDescriptorGralloc mGrallocHandle;
-  RefPtr<GrallocTextureSourceOGL> mTextureSource;
-  gfx::IntSize mSize; // See comment in textureClientOGL.h
+  RefPtr<GLTextureSource> mGLTextureSource;
+  RefPtr<CompositorOGL> mCompositor;
+  // Size reported by the GraphicBuffer
+  gfx::IntSize mSize;
+  // Size reported by TextureClient, can be different in some cases (video?),
+  // used by LayerRenderState.
+  gfx::IntSize mDescriptorSize;
+  gfx::SurfaceFormat mFormat;
+  EGLImage mEGLImage;
+  bool mIsOpaque;
 };
 
 } // namespace layers

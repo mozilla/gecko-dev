@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,9 +9,9 @@
 
 #include "ArchiveReader.h"
 
+#include "mozilla/dom/File.h"
 #include "nsISeekableStream.h"
 #include "nsIMIMEService.h"
-#include "nsDOMFile.h"
 
 #include "ArchiveReaderCommon.h"
 
@@ -27,7 +27,6 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   ArchiveItem();
-  virtual ~ArchiveItem();
 
   // Getter/Setter for the type
   nsCString GetType();
@@ -36,10 +35,12 @@ public:
   // Getter for the filename
   virtual nsresult GetFilename(nsString& aFilename) = 0;
 
-  // Generate a DOMFile
-  virtual nsIDOMFile* File(ArchiveReader* aArchiveReader) = 0;
+  // Generate a File
+  virtual already_AddRefed<File> GetFile(ArchiveReader* aArchiveReader) = 0;
 
 protected:
+  virtual ~ArchiveItem();
+
   nsCString mType;
 };
 
@@ -53,10 +54,12 @@ class ArchiveReaderEvent : public nsRunnable
 public:
   NS_DECL_NSIRUNNABLE
 
-  ArchiveReaderEvent(ArchiveReader* aArchiveReader);
+  explicit ArchiveReaderEvent(ArchiveReader* aArchiveReader);
 
+protected:
   virtual ~ArchiveReaderEvent();
 
+public:
   // This must be implemented
   virtual nsresult Exec() = 0;
 

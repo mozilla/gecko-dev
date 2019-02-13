@@ -11,6 +11,9 @@ let Cc = Components.classes;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+// This constant tells how many messages to process in a single timer execution.
+const MESSAGES_IN_INTERVAL = 1500
+
 const STORAGE_MAX_EVENTS = 200;
 
 var _consoleStorage = new Map();
@@ -114,7 +117,7 @@ ConsoleAPIStorageService.prototype = {
    * @param object aEvent
    *        A JavaScript object you want to store.
    */
-  recordEvent: function CS_recordEvent(aId, aEvent)
+  recordEvent: function CS_recordEvent(aId, aOuterId, aEvent)
   {
     if (!_consoleStorage.has(aId)) {
       _consoleStorage.set(aId, []);
@@ -128,6 +131,7 @@ ConsoleAPIStorageService.prototype = {
       storage.shift();
     }
 
+    Services.obs.notifyObservers(aEvent, "console-api-log-event", aOuterId);
     Services.obs.notifyObservers(aEvent, "console-storage-cache-event", aId);
   },
 

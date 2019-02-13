@@ -17,7 +17,6 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla.dom.quota += [
-    'AcquireListener.h',
     'ArrayCluster.h',
     'Client.h',
     'FileStreams.h',
@@ -26,13 +25,11 @@ EXPORTS.mozilla.dom.quota += [
     'QuotaCommon.h',
     'QuotaManager.h',
     'QuotaObject.h',
-    'StoragePrivilege.h',
     'UsageInfo.h',
     'Utilities.h',
 ]
 
 UNIFIED_SOURCES += [
-    'CheckQuotaHelper.cpp',
     'FileStreams.cpp',
     'QuotaManager.cpp',
     'QuotaObject.cpp',
@@ -40,12 +37,10 @@ UNIFIED_SOURCES += [
 
 FAIL_ON_WARNINGS = True
 
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/caps/include',
+    '/caps',
 ]
 

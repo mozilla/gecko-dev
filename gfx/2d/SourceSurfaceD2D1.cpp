@@ -16,6 +16,7 @@ SourceSurfaceD2D1::SourceSurfaceD2D1(ID2D1Image *aImage, ID2D1DeviceContext *aDC
   : mImage(aImage)
   , mDC(aDC)
   , mDrawTarget(aDT)
+  , mDevice(Factory::GetD2D1Device())
 {
   aImage->QueryInterface((ID2D1Bitmap1**)byRef(mRealizedBitmap));
 
@@ -27,9 +28,17 @@ SourceSurfaceD2D1::~SourceSurfaceD2D1()
 {
 }
 
+bool
+SourceSurfaceD2D1::IsValid() const
+{
+  return mDevice == Factory::GetD2D1Device();
+}
+
 TemporaryRef<DataSourceSurface>
 SourceSurfaceD2D1::GetDataSurface()
 {
+  HRESULT hr;
+
   EnsureRealizedBitmap();
 
   RefPtr<ID2D1Bitmap1> softwareBitmap;
@@ -40,12 +49,24 @@ SourceSurfaceD2D1::GetDataSurface()
   props.colorContext = nullptr;
   props.bitmapOptions = D2D1_BITMAP_OPTIONS_CANNOT_DRAW |
                         D2D1_BITMAP_OPTIONS_CPU_READ;
-  mDC->CreateBitmap(D2DIntSize(mSize), nullptr, 0, props, (ID2D1Bitmap1**)byRef(softwareBitmap));
+  hr = mDC->CreateBitmap(D2DIntSize(mSize), nullptr, 0, props, (ID2D1Bitmap1**)byRef(softwareBitmap));
+
+  if (FAILED(hr)) {
+    gfxCriticalError() << "Failed to create software bitmap: " << mSize << " Code: " << hexa(hr);
+    return nullptr;
+  }
 
   D2D1_POINT_2U point = D2D1::Point2U(0, 0);
   D2D1_RECT_U rect = D2D1::RectU(0, 0, mSize.width, mSize.height);
-  softwareBitmap->CopyFromBitmap(&point, mRealizedBitmap, &rect);
-  return new DataSourceSurfaceD2D1(softwareBitmap, mFormat);
+  
+  hr = softwareBitmap->CopyFromBitmap(&point, mRealizedBitmap, &rect);
+
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to readback into software bitmap. Code: " << hexa(hr);
+    return nullptr;
+  }
+
+  return MakeAndAddRef<DataSourceSurfaceD2D1>(softwareBitmap, mFormat);
 }
 
 void
@@ -87,7 +108,13 @@ SourceSurfaceD2D1::DrawTargetWillChange()
   props.pixelFormat = D2DPixelFormat(mFormat);
   props.colorContext = nullptr;
   props.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET;
-  mDC->CreateBitmap(D2DIntSize(mSize), nullptr, 0, props, (ID2D1Bitmap1**)byRef(mRealizedBitmap));
+  HRESULT hr = mDC->CreateBitmap(D2DIntSize(mSize), nullptr, 0, props, (ID2D1Bitmap1**)byRef(mRealizedBitmap));
+
+  if (FAILED(hr)) {
+    gfxCriticalError() << "Failed to create bitmap to make DrawTarget copy. Size: " << mSize << " Code: " << hexa(hr);
+    MarkIndependent();
+    return;
+  }
 
   D2D1_POINT_2U point = D2D1::Point2U(0, 0);
   D2D1_RECT_U rect = D2D1::RectU(0, 0, mSize.width, mSize.height);
@@ -95,7 +122,6 @@ SourceSurfaceD2D1::DrawTargetWillChange()
   mImage = mRealizedBitmap;
 
   DrawTargetD2D1::mVRAMUsageSS += mSize.width * mSize.height * BytesPerPixel(mFormat);
-  mDrawTarget = nullptr;
 
   // We now no longer depend on the source surface content remaining the same.
   MarkIndependent();
@@ -156,12 +182,15 @@ DataSourceSurfaceD2D1::Map(MapType aMapType, MappedSurface *aMappedSurface)
   }
 
   D2D1_MAPPED_RECT map;
-  mBitmap->Map(D2D1_MAP_OPTIONS_READ, &map);
+  if (FAILED(mBitmap->Map(D2D1_MAP_OPTIONS_READ, &map))) {
+    gfxCriticalError() << "Failed to map bitmap.";
+    return false;
+  }
   aMappedSurface->mData = map.bits;
   aMappedSurface->mStride = map.pitch;
 
-  mIsMapped = true;
-  return true;
+  mIsMapped = !!aMappedSurface->mData;
+  return mIsMapped;
 }
 
 void
@@ -189,7 +218,10 @@ DataSourceSurfaceD2D1::EnsureMapped()
   if (mMapped) {
     return;
   }
-  mBitmap->Map(D2D1_MAP_OPTIONS_READ, &mMap);
+  if (FAILED(mBitmap->Map(D2D1_MAP_OPTIONS_READ, &mMap))) {
+    gfxCriticalError() << "Failed to map bitmap.";
+    return;
+  }
   mMapped = true;
 }
 

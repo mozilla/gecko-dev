@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 'use strict';
 
 module.metadata = {
@@ -23,18 +22,19 @@ const URL = "data:text/html;charset=utf-8," + encodeURIComponent(HTML);
 const FRAME_HTML = "<iframe src='" + URL + "'><iframe>";
 const FRAME_URL = "data:text/html;charset=utf-8," + encodeURIComponent(FRAME_HTML);
 
+const { Cu } = require("chrome");
 const { defer } = require("sdk/core/promise");
 const tabs = require("sdk/tabs");
-const { setTabURL } = require("sdk/tabs/utils");
-const { getActiveTab, getTabContentWindow, closeTab } = require("sdk/tabs/utils")
+const { getActiveTab, getTabContentWindow, setTabURL } = require("sdk/tabs/utils")
 const { getMostRecentBrowserWindow } = require("sdk/window/utils");
-const { open: openNewWindow, close: closeWindow } = require("sdk/window/helpers");
+const { open: openNewWindow } = require("sdk/window/helpers");
 const { Loader } = require("sdk/test/loader");
 const { setTimeout } = require("sdk/timers");
-const { Cu } = require("chrome");
 const { merge } = require("sdk/util/object");
 const { isPrivate } = require("sdk/private-browsing");
 const events = require("sdk/system/events");
+const { viewFor } = require("sdk/view/core");
+const { cleanUI } = require("sdk/test/utils");
 // General purpose utility functions
 
 /**
@@ -74,36 +74,14 @@ function open(url, options) {
 
   tabs.open({
     url: url,
-    onReady: function(tab) {
-      // Unfortunately there is no way to get a XUL Tab from SDK Tab on Firefox,
-      // only on Fennec. We should implement `tabNS` also on Firefox in order
-      // to have that.
-
-      // Here we assuming that the most recent browser window is the one we're
-      // doing the test, and the active tab is the one we just opened.
-      let window = getTabContentWindow(getActiveTab(getMostRecentBrowserWindow()));
-
+    onReady: (tab) => {
+      let window = getTabContentWindow(viewFor(tab));
       resolve(window);
     }
   });
 
   return promise;
 };
-
-/**
- * Close the Active Tab
- */
-function close(window) {
-  if (window && window.top && typeof(window.top).close === "function") {
-    window.top.close();
-  } else {
-    // Here we assuming that the most recent browser window is the one we're
-    // doing the test, and the active tab is the one we just opened.
-    let tab = getActiveTab(getMostRecentBrowserWindow());
-
-    closeTab(tab);
-  }
-}
 
 /**
  * Reload the window given and return a promise, that will be resolved with the
@@ -293,436 +271,431 @@ function createEmptySelections(window) {
 
 // Test cases
 
-exports["test No Selection"] = function(assert, done) {
+exports["test No Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
 
-  open(URL).then(function() {
+  assert.equal(selection.isContiguous, false,
+    "selection.isContiguous without selection works.");
 
-    assert.equal(selection.isContiguous, false,
-      "selection.isContiguous without selection works.");
+  assert.strictEqual(selection.text, null,
+    "selection.text without selection works.");
 
-    assert.strictEqual(selection.text, null,
-      "selection.text without selection works.");
+  assert.strictEqual(selection.html, null,
+    "selection.html without selection works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html without selection works.");
+  let selectionCount = 0;
+  for (let sel of selection)
+    selectionCount++;
 
-    let selectionCount = 0;
-    for each (let sel in selection)
-      selectionCount++;
+  assert.equal(selectionCount, 0, "No iterable selections");
 
-    assert.equal(selectionCount, 0,
-      "No iterable selections");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Single DOM Selection"] = function(assert, done) {
+exports["test Single DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
 
-  open(URL).then(selectFirstDiv).then(function() {
+  selectFirstDiv(window)
 
-    assert.equal(selection.isContiguous, true,
-      "selection.isContiguous with single DOM Selection works.");
+  assert.equal(selection.isContiguous, true,
+    "selection.isContiguous with single DOM Selection works.");
 
-    assert.equal(selection.text, "foo",
-      "selection.text with single DOM Selection works.");
+  assert.equal(selection.text, "foo",
+    "selection.text with single DOM Selection works.");
 
-    assert.equal(selection.html, "<div>foo</div>",
-      "selection.html with single DOM Selection works.");
+  assert.equal(selection.html, "<div>foo</div>",
+    "selection.html with single DOM Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      selectionCount++;
+  let selectionCount = 0;
+  for (let sel of selection) {
+    selectionCount++;
 
-      assert.equal(sel.text, "foo",
-        "iterable selection.text with single DOM Selection works.");
+    assert.equal(sel.text, "foo",
+      "iterable selection.text with single DOM Selection works.");
 
-      assert.equal(sel.html, "<div>foo</div>",
-        "iterable selection.html with single DOM Selection works.");
-    }
+    assert.equal(sel.html, "<div>foo</div>",
+      "iterable selection.html with single DOM Selection works.");
+  }
 
-    assert.equal(selectionCount, 1,
-      "One iterable selection");
+  assert.equal(selectionCount, 1, "One iterable selection");
 
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Multiple DOM Selection"] = function(assert, done) {
+exports["test Multiple DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let expectedText = ["foo", "and"];
+  let expectedHTML = ["<div>foo</div>", "<div>and</div>"];
+  let window = yield open(URL);
 
-  open(URL).then(selectAllDivs).then(function() {
-    let expectedText = ["foo", "and"];
-    let expectedHTML = ["<div>foo</div>", "<div>and</div>"];
+  selectAllDivs(window);
 
-    assert.equal(selection.isContiguous, false,
-      "selection.isContiguous with multiple DOM Selection works.");
+  assert.equal(selection.isContiguous, false,
+    "selection.isContiguous with multiple DOM Selection works.");
 
-    assert.equal(selection.text, expectedText[0],
-      "selection.text with multiple DOM Selection works.");
+  assert.equal(selection.text, expectedText[0],
+    "selection.text with multiple DOM Selection works.");
 
-    assert.equal(selection.html, expectedHTML[0],
-      "selection.html with multiple DOM Selection works.");
+  assert.equal(selection.html, expectedHTML[0],
+    "selection.html with multiple DOM Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      assert.equal(sel.text, expectedText[selectionCount],
-        "iterable selection.text with multiple DOM Selection works.");
+  let selectionCount = 0;
+  for (let sel of selection) {
+    assert.equal(sel.text, expectedText[selectionCount],
+      "iterable selection.text with multiple DOM Selection works.");
 
-      assert.equal(sel.html, expectedHTML[selectionCount],
-        "iterable selection.text with multiple DOM Selection works.");
+    assert.equal(sel.html, expectedHTML[selectionCount],
+      "iterable selection.text with multiple DOM Selection works.");
 
-      selectionCount++;
-    }
+    selectionCount++;
+  }
 
-    assert.equal(selectionCount, 2,
-      "Two iterable selections");
+  assert.equal(selectionCount, 2, "Two iterable selections");
 
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Textarea Selection"] = function(assert, done) {
+exports["test Textarea Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
 
-  open(URL).then(selectTextarea).then(function() {
+  selectTextarea(window);
 
-    assert.equal(selection.isContiguous, true,
-      "selection.isContiguous with Textarea Selection works.");
+  assert.equal(selection.isContiguous, true,
+    "selection.isContiguous with Textarea Selection works.");
 
-    assert.equal(selection.text, "noodles",
-      "selection.text with Textarea Selection works.");
+  assert.equal(selection.text, "noodles",
+    "selection.text with Textarea Selection works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html with Textarea Selection works.");
+  assert.strictEqual(selection.html, null,
+    "selection.html with Textarea Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      selectionCount++;
+  let selectionCount = 0;
+  for (let sel of selection) {
+    selectionCount++;
 
-      assert.equal(sel.text, "noodles",
-        "iterable selection.text with Textarea Selection works.");
+    assert.equal(sel.text, "noodles",
+      "iterable selection.text with Textarea Selection works.");
 
-      assert.strictEqual(sel.html, null,
-        "iterable selection.html with Textarea Selection works.");
-    }
+    assert.strictEqual(sel.html, null,
+      "iterable selection.html with Textarea Selection works.");
+  }
 
-    assert.equal(selectionCount, 1,
-      "One iterable selection");
+  assert.equal(selectionCount, 1, "One iterable selection");
 
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Set Text in Multiple DOM Selection"] = function(assert, done) {
+exports["test Set Text in Multiple DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let expectedText = ["bar", "and"];
+  let expectedHTML = ["bar", "<div>and</div>"];
+  let window = yield open(URL);
 
-  open(URL).then(selectAllDivs).then(function() {
-    let expectedText = ["bar", "and"];
-    let expectedHTML = ["bar", "<div>and</div>"];
+  selectAllDivs(window);
 
-    selection.text = "bar";
+  selection.text = "bar";
 
-    assert.equal(selection.text, expectedText[0],
-      "set selection.text with single DOM Selection works.");
+  assert.equal(selection.text, expectedText[0],
+    "set selection.text with single DOM Selection works.");
 
-    assert.equal(selection.html, expectedHTML[0],
-      "selection.html with single DOM Selection works.");
+  assert.equal(selection.html, expectedHTML[0],
+    "selection.html with single DOM Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
+  let selectionCount = 0;
+  for (let sel of selection) {
+    assert.equal(sel.text, expectedText[selectionCount],
+      "iterable selection.text with multiple DOM Selection works.");
 
-      assert.equal(sel.text, expectedText[selectionCount],
-        "iterable selection.text with multiple DOM Selection works.");
+    assert.equal(sel.html, expectedHTML[selectionCount],
+      "iterable selection.html with multiple DOM Selection works.");
 
-      assert.equal(sel.html, expectedHTML[selectionCount],
-        "iterable selection.html with multiple DOM Selection works.");
+    selectionCount++;
+  }
 
-      selectionCount++;
-    }
+  assert.equal(selectionCount, 2, "Two iterable selections");
 
-    assert.equal(selectionCount, 2,
-      "Two iterable selections");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Set HTML in Multiple DOM Selection"] = function(assert, done) {
+exports["test Set HTML in Multiple DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let html = "<span>b<b>a</b>r</span>";
+  let expectedText = ["bar", "and"];
+  let expectedHTML = [html, "<div>and</div>"];
+  let window = yield open(URL);
 
-  open(URL).then(selectAllDivs).then(function() {
-    let html = "<span>b<b>a</b>r</span>";
+  selectAllDivs(window);
 
-    let expectedText = ["bar", "and"];
-    let expectedHTML = [html, "<div>and</div>"];
+  selection.html = html;
 
-    selection.html = html;
+  assert.equal(selection.text, expectedText[0],
+    "set selection.text with DOM Selection works.");
 
-    assert.equal(selection.text, expectedText[0],
-      "set selection.text with DOM Selection works.");
+  assert.equal(selection.html, expectedHTML[0],
+    "selection.html with DOM Selection works.");
 
-    assert.equal(selection.html, expectedHTML[0],
-      "selection.html with DOM Selection works.");
+  let selectionCount = 0;
+  for (let sel of selection) {
+    assert.equal(sel.text, expectedText[selectionCount],
+      "iterable selection.text with multiple DOM Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
+    assert.equal(sel.html, expectedHTML[selectionCount],
+      "iterable selection.html with multiple DOM Selection works.");
 
-      assert.equal(sel.text, expectedText[selectionCount],
-        "iterable selection.text with multiple DOM Selection works.");
+    selectionCount++;
+  }
 
-      assert.equal(sel.html, expectedHTML[selectionCount],
-        "iterable selection.html with multiple DOM Selection works.");
+  assert.equal(selectionCount, 2, "Two iterable selections");
 
-      selectionCount++;
-    }
-
-    assert.equal(selectionCount, 2,
-      "Two iterable selections");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Set HTML as text in Multiple DOM Selection"] = function(assert, done) {
+exports["test Set HTML as text in Multiple DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let text = "<span>b<b>a</b>r</span>";
+  let html = "&lt;span&gt;b&lt;b&gt;a&lt;/b&gt;r&lt;/span&gt;";
+  let expectedText = [text, "and"];
+  let expectedHTML = [html, "<div>and</div>"];
+  let window = yield open(URL);
 
-  open(URL).then(selectAllDivs).then(function() {
-    let text = "<span>b<b>a</b>r</span>";
-    let html = "&lt;span&gt;b&lt;b&gt;a&lt;/b&gt;r&lt;/span&gt;";
+  selectAllDivs(window);
 
-    let expectedText = [text, "and"];
-    let expectedHTML = [html, "<div>and</div>"];
+  selection.text = text;
 
-    selection.text = text;
+  assert.equal(selection.text, expectedText[0],
+    "set selection.text with DOM Selection works.");
 
-    assert.equal(selection.text, expectedText[0],
-      "set selection.text with DOM Selection works.");
+  assert.equal(selection.html, expectedHTML[0],
+    "selection.html with DOM Selection works.");
 
-    assert.equal(selection.html, expectedHTML[0],
-      "selection.html with DOM Selection works.");
+  let selectionCount = 0;
+  for (let sel of selection) {
+    assert.equal(sel.text, expectedText[selectionCount],
+      "iterable selection.text with multiple DOM Selection works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
+    assert.equal(sel.html, expectedHTML[selectionCount],
+      "iterable selection.html with multiple DOM Selection works.");
 
-      assert.equal(sel.text, expectedText[selectionCount],
-        "iterable selection.text with multiple DOM Selection works.");
+    selectionCount++;
+  }
 
-      assert.equal(sel.html, expectedHTML[selectionCount],
-        "iterable selection.html with multiple DOM Selection works.");
+  assert.equal(selectionCount, 2, "Two iterable selections");
 
-      selectionCount++;
-    }
-
-    assert.equal(selectionCount, 2,
-      "Two iterable selections");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Set Text in Textarea Selection"] = function(assert, done) {
+exports["test Set Text in Textarea Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let text = "bar";
+  let window = yield open(URL);
 
-  open(URL).then(selectTextarea).then(function() {
+  selectTextarea(window);
 
-    let text = "bar";
+  selection.text = text;
 
-    selection.text = text;
+  assert.equal(selection.text, text,
+    "set selection.text with Textarea Selection works.");
 
-    assert.equal(selection.text, text,
-      "set selection.text with Textarea Selection works.");
+  assert.strictEqual(selection.html, null,
+    "selection.html with Textarea Selection works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html with Textarea Selection works.");
+  let selectionCount = 0;
+  for (let sel of selection) {
+    selectionCount++;
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      selectionCount++;
+    assert.equal(sel.text, text,
+      "iterable selection.text with Textarea Selection works.");
 
-      assert.equal(sel.text, text,
-        "iterable selection.text with Textarea Selection works.");
+    assert.strictEqual(sel.html, null,
+      "iterable selection.html with Textarea Selection works.");
+  }
 
-      assert.strictEqual(sel.html, null,
-        "iterable selection.html with Textarea Selection works.");
-    }
+  assert.equal(selectionCount, 1, "One iterable selection");
 
-    assert.equal(selectionCount, 1,
-      "One iterable selection");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Set HTML in Textarea Selection"] = function(assert, done) {
+exports["test Set HTML in Textarea Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let html = "<span>b<b>a</b>r</span>";
+  let window = yield open(URL);
 
-  open(URL).then(selectTextarea).then(function() {
+  selectTextarea(window);
 
-    let html = "<span>b<b>a</b>r</span>";
+  // Textarea can't have HTML so set `html` property is equals to set `text`
+  // property
+  selection.html = html;
 
-    // Textarea can't have HTML so set `html` property is equals to set `text`
-    // property
-    selection.html = html;
+  assert.equal(selection.text, html,
+    "set selection.text with Textarea Selection works.");
 
-    assert.equal(selection.text, html,
-      "set selection.text with Textarea Selection works.");
+  assert.strictEqual(selection.html, null,
+    "selection.html with Textarea Selection works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html with Textarea Selection works.");
+  let selectionCount = 0;
+  for (let sel of selection) {
+    selectionCount++;
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      selectionCount++;
+    assert.equal(sel.text, html,
+      "iterable selection.text with Textarea Selection works.");
 
-      assert.equal(sel.text, html,
-        "iterable selection.text with Textarea Selection works.");
+    assert.strictEqual(sel.html, null,
+      "iterable selection.html with Textarea Selection works.");
+  }
 
-      assert.strictEqual(sel.html, null,
-        "iterable selection.html with Textarea Selection works.");
-    }
+  assert.equal(selectionCount, 1, "One iterable selection");
 
-    assert.equal(selectionCount, 1,
-      "One iterable selection");
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Empty Selections"] = function(assert, done) {
+exports["test Empty Selections"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
 
-  open(URL).then(createEmptySelections).then(function(){
-    assert.equal(selection.isContiguous, false,
-      "selection.isContiguous with empty selections works.");
+  createEmptySelections(window);
 
-    assert.strictEqual(selection.text, null,
-      "selection.text with empty selections works.");
+  assert.equal(selection.isContiguous, false,
+    "selection.isContiguous with empty selections works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html with empty selections works.");
+  assert.strictEqual(selection.text, null,
+    "selection.text with empty selections works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection)
-      selectionCount++;
+  assert.strictEqual(selection.html, null,
+    "selection.html with empty selections works.");
 
-    assert.equal(selectionCount, 0,
-      "No iterable selections");
+  let selectionCount = 0;
+  for (let sel of selection)
+    selectionCount++;
 
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  assert.equal(selectionCount, 0, "No iterable selections");
+
+  yield cleanUI();
+  loader.unload();
 }
 
 
-exports["test No Selection Exception"] = function(assert, done) {
+exports["test No Selection Exception"] = function*(assert) {
   const NO_SELECTION = /It isn't possible to change the selection/;
-
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
 
-  open(URL).then(function() {
+  // We're trying to change a selection when there is no selection
+  assert.throws(function() {
+    selection.text = "bar";
+  }, NO_SELECTION);
 
-    // We're trying to change a selection when there is no selection
-    assert.throws(function() {
-      selection.text = "bar";
-    }, NO_SELECTION);
+  assert.throws(function() {
+    selection.html = "bar";
+  }, NO_SELECTION);
 
-    assert.throws(function() {
-      selection.html = "bar";
-    }, NO_SELECTION);
-
-  }).then(close).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test for...of without selections"] = function(assert, done) {
+exports["test for...of without selections"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL);
+  let selectionCount = 0;
 
-  open(URL).then(function() {
-    let selectionCount = 0;
+  for (let sel of selection)
+    selectionCount++;
 
-    for (let sel of selection)
-      selectionCount++;
+  assert.equal(selectionCount, 0, "No iterable selections");
 
-    assert.equal(selectionCount, 0,
-      "No iterable selections");
-
-  }).then(close).then(loader.unload).then(null, function(error) {
-    // iterable are not supported yet in Firefox 16, for example, but
-    // they are in Firefox 17.
-    if (error.message.indexOf("is not iterable") > -1)
-      assert.pass("`iterable` method not supported in this application");
-    else
-      assert.fail(error);
-  }).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 }
 
-exports["test for...of with selections"] = function(assert, done) {
+exports["test for...of with selections"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let expectedText = ["foo", "and"];
+  let expectedHTML = ["<div>foo</div>", "<div>and</div>"];
+  let window = yield open(URL);
 
-  open(URL).then(selectAllDivs).then(function(){
-    let expectedText = ["foo", "and"];
-    let expectedHTML = ["<div>foo</div>", "<div>and</div>"];
+  selectAllDivs(window);
 
-    let selectionCount = 0;
+  let selectionCount = 0;
 
-    for (let sel of selection) {
-      assert.equal(sel.text, expectedText[selectionCount],
-        "iterable selection.text with for...of works.");
+  for (let sel of selection) {
+    assert.equal(sel.text, expectedText[selectionCount],
+      "iterable selection.text with for...of works.");
 
-      assert.equal(sel.html, expectedHTML[selectionCount],
-        "iterable selection.text with for...of works.");
+    assert.equal(sel.html, expectedHTML[selectionCount],
+      "iterable selection.text with for...of works.");
 
-      selectionCount++;
-    }
+    selectionCount++;
+  }
 
-    assert.equal(selectionCount, 2,
-      "Two iterable selections");
+  assert.equal(selectionCount, 2, "Two iterable selections");
 
-  }).then(close).then(loader.unload).then(null, function(error) {
-    // iterable are not supported yet in Firefox 16, for example, but
-    // they are in Firefox 17.
-    if (error.message.indexOf("is not iterable") > -1)
-      assert.pass("`iterable` method not supported in this application");
-    else
-      assert.fail(error);
-  }).then(done, assert.fail)
+  yield cleanUI();
+  loader.unload();
 }
 
-exports["test Selection Listener"] = function(assert, done) {
+exports["test Selection Listener"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let selected = defer();
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "fo");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(URL).then(selectContentFirstDiv).
-    then(dispatchSelectionEvent, assert.fail);
+  yield open(URL).
+    then(selectContentFirstDiv).
+    then(dispatchSelectionEvent);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "fo");
+
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Textarea OnSelect Listener"] = function(assert, done) {
+exports["test Textarea OnSelect Listener"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let selected = defer();
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "noodles");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(URL).then(selectTextarea).
-    then(dispatchOnSelectEvent, assert.fail);
+  yield open(URL).
+    then(selectTextarea).
+    then(dispatchOnSelectEvent);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "noodles", "selection is noodles");
+
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Selection listener removed on unload"] = function(assert, done) {
+exports["test Selection listener removed on unload"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
 
@@ -731,17 +704,15 @@ exports["test Selection listener removed on unload"] = function(assert, done) {
   });
 
   loader.unload();
+  assert.pass("unload was a success");
 
-  assert.pass();
-
-  open(URL).
+  yield open(URL).
     then(selectContentFirstDiv).
     then(dispatchSelectionEvent).
-    then(close).
-    then(done, assert.fail);
+    then(cleanUI);
 };
 
-exports["test Textarea onSelect Listener removed on unload"] = function(assert, done) {
+exports["test Textarea onSelect Listener removed on unload"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
 
@@ -750,128 +721,145 @@ exports["test Textarea onSelect Listener removed on unload"] = function(assert, 
   });
 
   loader.unload();
+  assert.pass("unload was a success");
 
-  assert.pass();
-
-  open(URL).
+  yield open(URL).
     then(selectTextarea).
     then(dispatchOnSelectEvent).
-    then(close).
-    then(done, assert.fail);
+    then(cleanUI);
 };
 
 
-exports["test Selection Listener on existing document"] = function(assert, done) {
+exports["test Selection Listener on existing document"] = function*(assert) {
   let loader = Loader(module);
+  let selected = defer();
 
-  open(URL).then(function(window){
-    let selection = loader.require("sdk/selection");
-
-    selection.once("select", function() {
-      assert.equal(selection.text, "fo");
-      close();
-      loader.unload();
-      done();
-    });
-
-    return window;
-  }).then(selectContentFirstDiv).
-    then(dispatchSelectionEvent, assert.fail);
-};
-
-
-exports["test Textarea OnSelect Listener on existing document"] = function(assert, done) {
-  let loader = Loader(module);
-
-  open(URL).then(function(window){
-    let selection = loader.require("sdk/selection");
-
-    selection.once("select", function() {
-      assert.equal(selection.text, "noodles");
-      close();
-      loader.unload();
-      done();
-    });
-
-    return window;
-  }).then(selectTextarea).
-    then(dispatchOnSelectEvent, assert.fail);
-};
-
-exports["test Selection Listener on document reload"] = function(assert, done) {
-  let loader = Loader(module);
+  let window = yield open(URL);
   let selection = loader.require("sdk/selection");
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "fo");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(URL).
+  selectContentFirstDiv(window);
+  dispatchSelectionEvent(window);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "fo");
+
+  yield cleanUI();
+  loader.unload();
+};
+
+
+exports["test Textarea OnSelect Listener on existing document"] = function*(assert) {
+  let loader = Loader(module);
+  let selected = defer();
+
+  let selection = loader.require("sdk/selection");
+
+  let window = yield open(URL);
+
+  selection.once("select", selected.resolve);
+  selectTextarea(window)
+  dispatchOnSelectEvent(window);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "noodles");
+
+  yield cleanUI();
+  loader.unload();
+};
+
+exports["test Selection Listener on document reload"] = function*(assert) {
+  let loader = Loader(module);
+  let selection = loader.require("sdk/selection");
+  let selected = defer();
+
+  selection.once("select", selected.resolve);
+
+  yield open(URL).
     then(reload).
     then(selectContentFirstDiv).
-    then(dispatchSelectionEvent, assert.fail);
+    then(dispatchSelectionEvent);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "fo");
+
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Textarea OnSelect Listener on document reload"] = function(assert, done) {
+exports["test Textarea OnSelect Listener on document reload"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let selected = defer();
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "noodles");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(URL).
+  yield open(URL).
     then(reload).
     then(selectTextarea).
-    then(dispatchOnSelectEvent, assert.fail);
+    then(dispatchOnSelectEvent);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "noodles");
+
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Selection Listener on frame"] = function(assert, done) {
+exports["test Selection Listener on frame"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let selected = defer();
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "fo");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(FRAME_URL).
-    then(hideAndShowFrame).
-    then(getFrameWindow).
-    then(selectContentFirstDiv).
-    then(dispatchSelectionEvent).
-    then(null, assert.fail);
+  let window = yield open(FRAME_URL);
+  yield hideAndShowFrame(window);
+  let frame = yield getFrameWindow(window);
+  yield selectContentFirstDiv(frame);
+  yield dispatchSelectionEvent(frame);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "fo");
+
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test Textarea onSelect Listener on frame"] = function(assert, done) {
+
+// TODO: re-enable and fix intermittent test below
+// See Bug 970062 https://bugzilla.mozilla.org/show_bug.cgi?id=970062
+/*
+exports["test Textarea onSelect Listener on frame"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let selected = defer();
 
-  selection.once("select", function() {
-    assert.equal(selection.text, "noodles");
-    close();
-    loader.unload();
-    done();
-  });
+  selection.once("select", selected.resolve);
 
-  open(FRAME_URL).
+  yield open(FRAME_URL).
     then(hideAndShowFrame).
     then(getFrameWindow).
     then(selectTextarea).
-    then(dispatchOnSelectEvent).
-    then(null, assert.fail);
+    then(dispatchOnSelectEvent);
+
+  yield selected.promise;
+
+  assert.equal(selection.text, "noodles");
+
+  yield cleanUI();
+  loader.unload();
 };
+*/
 
 
-exports["test PBPW Selection Listener"] = function(assert, done) {
+exports["test PBPW Selection Listener"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
 
@@ -881,90 +869,90 @@ exports["test PBPW Selection Listener"] = function(assert, done) {
 
   assert.pass();
 
-  open(URL, {private: true}).
+  yield open(URL, { private: true }).
     then(selectContentFirstDiv).
     then(dispatchSelectionEvent).
-    then(closeWindow).
-    then(loader.unload).
-    then(done, assert.fail);
+    then(cleanUI);
+
+  loader.unload();
 };
 
-exports["test PBPW Textarea OnSelect Listener"] = function(assert, done) {
+exports["test PBPW Textarea OnSelect Listener"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
 
-  selection.once("select", function() {
+  selection.once("select", () => {
     assert.fail("Shouldn't be never called");
   });
 
-  assert.pass();
+  assert.pass("opening private test content window");
 
-  open(URL, {private: true}).
+  yield open(URL, { private: true }).
     then(selectTextarea).
     then(dispatchOnSelectEvent).
-    then(closeWindow).
-    then(loader.unload).
-    then(done, assert.fail);
+    then(cleanUI);
+
+  loader.unload();
 };
 
 
-exports["test PBPW Single DOM Selection"] = function(assert, done) {
+exports["test PBPW Single DOM Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL, { private: true });
 
-  open(URL, {private: true}).then(selectFirstDiv).then(function(window) {
+  selectFirstDiv(window);
 
-    assert.equal(selection.isContiguous, false,
-      "selection.isContiguous with single DOM Selection in PBPW works.");
+  assert.equal(selection.isContiguous, false,
+    "selection.isContiguous with single DOM Selection in PBPW works.");
 
-    assert.equal(selection.text, null,
-      "selection.text with single DOM Selection in PBPW works.");
+  assert.equal(selection.text, null,
+    "selection.text with single DOM Selection in PBPW works.");
 
-    assert.equal(selection.html, null,
-      "selection.html with single DOM Selection in PBPW works.");
+  assert.equal(selection.html, null,
+    "selection.html with single DOM Selection in PBPW works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection)
-      selectionCount++;
+  let selectionCount = 0;
+  for (let sel of selection)
+    selectionCount++;
 
-    assert.equal(selectionCount, 0,
-      "No iterable selection in PBPW");
+  assert.equal(selectionCount, 0, "No iterable selection in PBPW");
 
-    return window;
-  }).then(closeWindow).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
-exports["test PBPW Textarea Selection"] = function(assert, done) {
+exports["test PBPW Textarea Selection"] = function*(assert) {
   let loader = Loader(module);
   let selection = loader.require("sdk/selection");
+  let window = yield open(URL, { private: true });
 
-  open(URL, {private: true}).then(selectTextarea).then(function(window) {
+  selectTextarea(window);
 
-    assert.equal(selection.isContiguous, false,
-      "selection.isContiguous with Textarea Selection in PBPW works.");
+  assert.equal(selection.isContiguous, false,
+    "selection.isContiguous with Textarea Selection in PBPW works.");
 
-    assert.equal(selection.text, null,
-      "selection.text with Textarea Selection in PBPW works.");
+  assert.equal(selection.text, null,
+    "selection.text with Textarea Selection in PBPW works.");
 
-    assert.strictEqual(selection.html, null,
-      "selection.html with Textarea Selection in PBPW works.");
+  assert.strictEqual(selection.html, null,
+    "selection.html with Textarea Selection in PBPW works.");
 
-    let selectionCount = 0;
-    for each (let sel in selection) {
-      selectionCount++;
+  let selectionCount = 0;
+  for (let sel of selection) {
+    selectionCount++;
 
-      assert.equal(sel.text, null,
-        "iterable selection.text with Textarea Selection in PBPW works.");
+    assert.equal(sel.text, null,
+      "iterable selection.text with Textarea Selection in PBPW works.");
 
-      assert.strictEqual(sel.html, null,
-        "iterable selection.html with Textarea Selection in PBPW works.");
-    }
+    assert.strictEqual(sel.html, null,
+      "iterable selection.html with Textarea Selection in PBPW works.");
+  }
 
-    assert.equal(selectionCount, 0,
-      "No iterable selection in PBPW");
+  assert.equal(selectionCount, 0, "No iterable selection in PBPW");
 
-    return window;
-  }).then(closeWindow).then(loader.unload).then(done, assert.fail);
+  yield cleanUI();
+  loader.unload();
 };
 
 // TODO: test Selection Listener on long-held connection (Bug 661884)
@@ -985,7 +973,7 @@ exports["test Selection Listener on long-held connection"] = function(assert, do
 
 // If the platform doesn't support the PBPW, we're replacing PBPW tests
 if (!require("sdk/private-browsing/utils").isWindowPBSupported) {
-  Object.keys(module.exports).forEach(function(key) {
+  Object.keys(module.exports).forEach((key) => {
     if (key.indexOf("test PBPW") === 0) {
       module.exports[key] = function Unsupported (assert) {
         assert.pass("Private Window Per Browsing is not supported on this platform.");
@@ -994,4 +982,4 @@ if (!require("sdk/private-browsing/utils").isWindowPBSupported) {
   });
 }
 
-require("test").run(exports)
+require("sdk/test").run(exports);

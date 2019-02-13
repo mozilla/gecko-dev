@@ -9,7 +9,7 @@ types like js::Rooted and JS::Handle. For example:
         receiver=(JSObject * const) 0x7ffff150b060 [object global] delegate,
         id=$jsid("x"), defineHow=4, vp=$jsval(1), strict=0)
         at /home/jimb/moz/archer/js/src/jsobj.cpp:4495
-    4495	    JS_ASSERT((defineHow & ~(DNP_CACHE_RESULT | DNP_UNQUALIFIED)) == 0);
+    4495	    MOZ_ASSERT((defineHow & ~(DNP_CACHE_RESULT | DNP_UNQUALIFIED)) == 0);
     (gdb)
 
 Things to note here:
@@ -114,9 +114,9 @@ after importing our other SpiderMonkey support modules. For example:
     import gdb
     from mozilla.prettyprinters import ptr_pretty_printer
 
-    # Simple jschar * printer. Doesn't show address; chases null pointers.
-    @ptr_pretty_printer('jschar')
-    class jscharPtr(object):
+    # Simple char16_t * printer. Doesn't show address; chases null pointers.
+    @ptr_pretty_printer('char16_t')
+    class char16Ptr(object):
         def __init__(self, value, cache): self.value = value
         def display_hint(self): return 'string'
         def to_string(self):
@@ -128,7 +128,7 @@ after importing our other SpiderMonkey support modules. For example:
     $
     ...
     (gdb) whatis sample
-    type = jschar [4]
+    type = char16_t [4]
     (gdb) print &sample[0]
     $1 = "Hi!"
 
@@ -137,11 +137,11 @@ Running the unit tests
 
 These extensions have unit tests, invoked as follows:
 
-$ python run-tests.py [OPTIONS] LIBDIR [TESTS...]
+$ python run-tests.py [OPTIONS] OBJDIR [TESTS...]
 
-where LIBDIR is a directory containing a compiled SpiderMonkey library,
-libmozjs.so; TESTS are names of selected tests to run (if omitted, we run
-them all); and OPTIONS are drawn from the list below.
+where OBJDIR is a directory containing a standalone SpiderMonkey build; TESTS
+are names of selected tests to run (if omitted, we run them all); and OPTIONS
+are drawn from the list below.
 
 --gdb=EXECUTABLE
   Instead of running whatever 'gdb' we find in our search path, use
@@ -184,7 +184,7 @@ C++ code. Running tests works like this:
 
 - Then, for each '.py' test script in js/src/gdb/tests, the harness starts
   GDB on the 'gdb-tests' executable, and then has GDB run
-  js/src/gdb/lib-for-tests/prolog.py, passing it the test script's path as
+  js/src/gdb/lib-for-tests/prologue.py, passing it the test script's path as
   its first command-line argument.
 
 Thanks To:

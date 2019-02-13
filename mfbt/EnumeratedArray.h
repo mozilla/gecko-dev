@@ -10,14 +10,12 @@
 #define mozilla_EnumeratedArray_h
 
 #include "mozilla/Array.h"
-#include "mozilla/TypedEnum.h"
 
 namespace mozilla {
 
 /**
  * EnumeratedArray is a fixed-size array container for use when an
- * array is indexed by a specific enum class, as currently implemented
- * by MOZ_BEGIN_ENUM_CLASS.
+ * array is indexed by a specific enum class.
  *
  * This provides type safety by guarding at compile time against accidentally
  * indexing such arrays with unrelated values. This also removes the need
@@ -27,11 +25,11 @@ namespace mozilla {
  *
  * Example:
  *
- *   MOZ_BEGIN_ENUM_CLASS(AnimalSpecies)
+ *   enum class AnimalSpecies {
  *     Cow,
  *     Sheep,
  *     Count
- *   MOZ_END_ENUM_CLASS(AnimalSpecies)
+ *   };
  *
  *   EnumeratedArray<AnimalSpecies, AnimalSpecies::Count, int> headCount;
  *
@@ -40,34 +38,35 @@ namespace mozilla {
  *
  */
 template<typename IndexType,
-         MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(IndexType) SizeAsEnumValue,
+         IndexType SizeAsEnumValue,
          typename ValueType>
 class EnumeratedArray
 {
-  public:
-    static const size_t Size = size_t(SizeAsEnumValue);
+public:
+  static const size_t kSize = size_t(SizeAsEnumValue);
 
-  private:
-    Array<ValueType, Size> mArray;
+private:
+  Array<ValueType, kSize> mArray;
 
-  public:
-    EnumeratedArray() {}
+public:
+  EnumeratedArray() {}
 
-    explicit EnumeratedArray(const EnumeratedArray& aOther)
-    {
-      for (size_t i = 0; i < Size; i++)
-        mArray[i] = aOther.mArray[i];
+  explicit EnumeratedArray(const EnumeratedArray& aOther)
+  {
+    for (size_t i = 0; i < kSize; i++) {
+      mArray[i] = aOther.mArray[i];
     }
+  }
 
-    ValueType& operator[](IndexType aIndex)
-    {
-      return mArray[size_t(aIndex)];
-    }
+  ValueType& operator[](IndexType aIndex)
+  {
+    return mArray[size_t(aIndex)];
+  }
 
-    const ValueType& operator[](IndexType aIndex) const
-    {
-      return mArray[size_t(aIndex)];
-    }
+  const ValueType& operator[](IndexType aIndex) const
+  {
+    return mArray[size_t(aIndex)];
+  }
 };
 
 } // namespace mozilla

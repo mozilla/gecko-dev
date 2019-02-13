@@ -5,7 +5,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SOURCES += [
+    'nsAlertsIconListener.cpp',
     'nsGnomeModule.cpp',
+    'nsSystemAlertsService.cpp',
 ]
 
 if CONFIG['MOZ_ENABLE_GCONF']:
@@ -13,25 +15,30 @@ if CONFIG['MOZ_ENABLE_GCONF']:
         'nsGConfService.cpp',
     ]
 
-if CONFIG['MOZ_ENABLE_GNOMEVFS']:
-    SOURCES += [
-        'nsGnomeVFSService.cpp',
-    ]
-
 if CONFIG['MOZ_ENABLE_GIO']:
     SOURCES += [
         'nsGIOService.cpp',
         'nsGSettingsService.cpp',
+        'nsPackageKitService.cpp'
     ]
 
-LIBRARY_NAME = 'mozgnome'
+XPCOMBinaryComponent('mozgnome')
 
 FAIL_ON_WARNINGS = True
-IS_COMPONENT = True
-
-FORCE_SHARED_LIB = True
 
 LOCAL_INCLUDES += [
     '/toolkit/components/build/',
 ]
 
+CXXFLAGS += CONFIG['MOZ_GCONF_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_GIO_CFLAGS']
+CXXFLAGS += CONFIG['GLIB_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+
+if CONFIG['MOZ_ENABLE_GTK']:
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+
+OS_LIBS += CONFIG['MOZ_GCONF_LIBS']
+OS_LIBS += CONFIG['GLIB_LIBS']
+OS_LIBS += CONFIG['MOZ_GIO_LIBS']
+OS_LIBS += CONFIG['MOZ_DBUS_GLIB_LIBS']

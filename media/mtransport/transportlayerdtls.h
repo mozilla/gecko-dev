@@ -10,6 +10,7 @@
 #define transportlayerdtls_h__
 
 #include <queue>
+#include <set>
 
 #include "sigslot.h"
 
@@ -30,12 +31,12 @@ struct Packet;
 
 class TransportLayerNSPRAdapter {
  public:
-  TransportLayerNSPRAdapter(TransportLayer *output) :
+  explicit TransportLayerNSPRAdapter(TransportLayer *output) :
   output_(output),
   input_() {}
 
   void PacketReceived(const void *data, int32_t len);
-  int32_t Read(void *data, int32_t len);
+  int32_t Recv(void *buf, int32_t buflen);
   int32_t Write(const void *buf, int32_t length);
 
  private:
@@ -45,10 +46,9 @@ class TransportLayerNSPRAdapter {
   std::queue<Packet *> input_;
 };
 
-class TransportLayerDtls : public TransportLayer {
+class TransportLayerDtls final : public TransportLayer {
  public:
   TransportLayerDtls() :
-      TransportLayer(DGRAM),
       role_(CLIENT),
       verification_mode_(VERIFY_UNSET),
       ssl_fd_(nullptr),
@@ -68,13 +68,19 @@ class TransportLayerDtls : public TransportLayer {
   void SetIdentity(const RefPtr<DtlsIdentity>& identity) {
     identity_ = identity;
   }
+  nsresult SetAlpn(const std::set<std::string>& allowedAlpn,
+                   const std::string& alpnDefault);
+  const std::string& GetNegotiatedAlpn() const { return alpn_; }
+
   nsresult SetVerificationAllowAll();
   nsresult SetVerificationDigest(const std::string digest_algorithm,
                                  const unsigned char *digest_value,
                                  size_t digest_len);
 
+  nsresult GetCipherSuite(uint16_t* cipherSuite) const;
+
   nsresult SetSrtpCiphers(std::vector<uint16_t> ciphers);
-  nsresult GetSrtpCipher(uint16_t *cipher);
+  nsresult GetSrtpCipher(uint16_t *cipher) const;
 
   nsresult ExportKeyingMaterial(const std::string& label,
                                 bool use_context,
@@ -95,6 +101,9 @@ class TransportLayerDtls : public TransportLayer {
   void StateChange(TransportLayer *layer, State state);
   void PacketReceived(TransportLayer* layer, const unsigned char *data,
                       size_t len);
+
+  // For testing use only.  Returns the fd.
+  PRFileDesc* internal_fd() { CheckThread(); return ssl_fd_.rwget(); }
 
   TRANSPORT_LAYER_ID("dtls")
 
@@ -120,12 +129,17 @@ class TransportLayerDtls : public TransportLayer {
     unsigned char value_[kMaxDigestLength];
 
    private:
+    ~VerificationDigest() {}
     DISALLOW_COPY_ASSIGN(VerificationDigest);
   };
 
 
   bool Setup();
+  bool SetupCipherSuites(PRFileDesc* ssl_fd) const;
+  bool SetupAlpn(PRFileDesc* ssl_fd) const;
   void Handshake();
+
+  bool CheckAlpn();
 
   static SECStatus GetClientAuthDataHook(void *arg, PRFileDesc *fd,
                                          CERTDistNames *caNames,
@@ -145,6 +159,13 @@ class TransportLayerDtls : public TransportLayer {
                         CERTCertificate *cert);
 
   RefPtr<DtlsIdentity> identity_;
+  // What ALPN identifiers are permitted.
+  std::set<std::string> alpn_allowed_;
+  // What ALPN identifier is used if ALPN is not supported.
+  // The empty string indicates that ALPN is required.
+  std::string alpn_default_;
+  // What ALPN string was negotiated.
+  std::string alpn_;
   std::vector<uint16_t> srtp_ciphers_;
 
   Role role_;

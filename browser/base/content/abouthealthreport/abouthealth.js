@@ -9,33 +9,24 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-const reporter = Cc["@mozilla.org/datareporting/service;1"]
-                   .getService(Ci.nsISupports)
-                   .wrappedJSObject
-                   .healthReporter;
-
-const policy = Cc["@mozilla.org/datareporting/service;1"]
-                 .getService(Ci.nsISupports)
-                 .wrappedJSObject
-                 .policy;
-
 const prefs = new Preferences("datareporting.healthreport.");
 
+const PREF_UNIFIED = "toolkit.telemetry.unified";
+const PREF_UNIFIED_OPTIN = "toolkit.telemetry.unifiedIsOptIn";
+
+// Whether v4 behavior is enabled, i.e. unified Telemetry features are on by default.
+const IS_V4 = Preferences.get(PREF_UNIFIED, false) &&
+              !Preferences.get(PREF_UNIFIED_OPTIN, false);
 
 let healthReportWrapper = {
   init: function () {
-    if (!reporter) {
-      healthReportWrapper.handleInitFailure();
-      return;
-    }
-
-    reporter.onInit().then(healthReportWrapper.refreshPayload,
-                           healthReportWrapper.handleInitFailure);
-
     let iframe = document.getElementById("remote-report");
     iframe.addEventListener("load", healthReportWrapper.initRemotePage, false);
-    let report = this._getReportURI();
-    iframe.src = report.spec;
+    iframe.src = this._getReportURI().spec;
+    iframe.onload = () => {
+      MozSelfSupport.getHealthReportPayload().then(this.updatePayload,
+                                                   this.handleInitFailure);
+    };
     prefs.observe("uploadEnabled", this.updatePrefState, healthReportWrapper);
   },
 
@@ -44,45 +35,86 @@ let healthReportWrapper = {
   },
 
   _getReportURI: function () {
-    let url = Services.urlFormatter.formatURLPref("datareporting.healthreport.about.reportUrl");
+    const pref = IS_V4 ? "datareporting.healthreport.about.reportUrl"
+                       : "datareporting.healthreport.about.reportUrlUnified";
+    let url = Services.urlFormatter.formatURLPref(pref);
     return Services.io.newURI(url, null, null);
   },
 
-  onOptIn: function () {
-    policy.recordHealthReportUploadEnabled(true,
-                                           "Health report page sent opt-in command.");
-    this.updatePrefState();
-  },
-
-  onOptOut: function () {
-    policy.recordHealthReportUploadEnabled(false,
-                                           "Health report page sent opt-out command.");
+  setDataSubmission: function (enabled) {
+    MozSelfSupport.healthReportDataSubmissionEnabled = enabled;
     this.updatePrefState();
   },
 
   updatePrefState: function () {
     try {
       let prefs = {
-        enabled: policy.healthReportUploadEnabled,
-      }
-      this.injectData("prefs", prefs);
-    } catch (e) {
-      this.reportFailure(this.ERROR_PREFS_FAILED);
+        enabled: MozSelfSupport.healthReportDataSubmissionEnabled,
+      };
+      healthReportWrapper.injectData("prefs", prefs);
+    }
+    catch (ex) {
+      healthReportWrapper.reportFailure(healthReportWrapper.ERROR_PREFS_FAILED);
     }
   },
 
-  refreshPayload: function () {
-    reporter.collectAndObtainJSONPayload().then(healthReportWrapper.updatePayload, 
-                                                healthReportWrapper.handlePayloadFailure);
+  sendTelemetryPingList: function () {
+    console.log("AboutHealthReport: Collecting Telemetry ping list.");
+    MozSelfSupport.getTelemetryPingList().then((list) => {
+      console.log("AboutHealthReport: Sending Telemetry ping list.");
+      this.injectData("telemetry-ping-list", list);
+    }).catch((ex) => {
+      console.log("AboutHealthReport: Collecting ping list failed: " + ex);
+    });
   },
 
-  updatePayload: function (data) {
-    healthReportWrapper.injectData("payload", data);
+  sendTelemetryPingData: function (pingId) {
+    console.log("AboutHealthReport: Collecting Telemetry ping data.");
+    MozSelfSupport.getTelemetryPing(pingId).then((ping) => {
+      console.log("AboutHealthReport: Sending Telemetry ping data.");
+      this.injectData("telemetry-ping-data", {
+        id: pingId,
+        pingData: ping,
+      });
+    }).catch((ex) => {
+      console.log("AboutHealthReport: Loading ping data failed: " + ex);
+      this.injectData("telemetry-ping-data", {
+        id: pingId,
+        error: "error-generic",
+      });
+    });
+  },
+
+  sendCurrentEnvironment: function () {
+    console.log("AboutHealthReport: Sending Telemetry environment data.");
+    MozSelfSupport.getCurrentTelemetryEnvironment().then((environment) => {
+      this.injectData("telemetry-current-environment-data", environment);
+    }).catch((ex) => {
+      console.log("AboutHealthReport: Collecting current environment data failed: " + ex);
+    });
+  },
+
+  sendCurrentPingData: function () {
+    console.log("AboutHealthReport: Sending current Telemetry ping data.");
+    MozSelfSupport.getCurrentTelemetrySubsessionPing().then((ping) => {
+      this.injectData("telemetry-current-ping-data", ping);
+    }).catch((ex) => {
+      console.log("AboutHealthReport: Collecting current ping data failed: " + ex);
+    });
+  },
+
+  refreshPayload: function () {
+    MozSelfSupport.getHealthReportPayload().then(this.updatePayload,
+                                                 this.handlePayloadFailure);
+  },
+
+  updatePayload: function (payload) {
+    healthReportWrapper.injectData("payload", JSON.stringify(payload));
   },
 
   injectData: function (type, content) {
     let report = this._getReportURI();
-    
+
     // file URIs can't be used for targetOrigin, so we use "*" for this special case
     // in all other cases, pass in the URL to the report so we properly restrict the message dispatch
     let reportUrl = report.scheme == "file" ? "*" : report.spec;
@@ -99,16 +131,28 @@ let healthReportWrapper = {
   handleRemoteCommand: function (evt) {
     switch (evt.detail.command) {
       case "DisableDataSubmission":
-        this.onOptOut();
+        this.setDataSubmission(false);
         break;
       case "EnableDataSubmission":
-        this.onOptIn();
+        this.setDataSubmission(true);
         break;
       case "RequestCurrentPrefs":
         this.updatePrefState();
         break;
       case "RequestCurrentPayload":
         this.refreshPayload();
+        break;
+      case "RequestTelemetryPingList":
+        this.sendTelemetryPingList();
+        break;
+      case "RequestTelemetryPingData":
+        this.sendTelemetryPingData(evt.detail.id);
+        break;
+      case "RequestCurrentEnvironment":
+        this.sendCurrentEnvironment();
+        break;
+      case "RequestCurrentPingData":
+        this.sendCurrentPingData();
         break;
       default:
         Cu.reportError("Unexpected remote command received: " + evt.detail.command + ". Ignoring command.");

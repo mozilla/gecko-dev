@@ -9,16 +9,16 @@
 <org.mozilla.gecko.home.HomePager xmlns:android="http://schemas.android.com/apk/res/android"
                                   xmlns:gecko="http://schemas.android.com/apk/res-auto"
                                   android:id="@+id/home_pager"
-                                  android:layout_width="fill_parent"
-                                  android:layout_height="fill_parent"
+                                  android:layout_width="match_parent"
+                                  android:layout_height="match_parent"
                                   android:background="@android:color/white">
 
-    <org.mozilla.gecko.home.HomePagerTabStrip android:layout_width="fill_parent"
-                                              android:layout_height="32dip"
+    <org.mozilla.gecko.home.HomePagerTabStrip android:layout_width="match_parent"
+                                              android:layout_height="@dimen/tabs_strip_height"
                                               android:layout_gravity="top"
-                                              android:gravity="bottom"
-                                              android:background="@color/background_light"
-                                              gecko:tabIndicatorColor="@color/text_color_highlight"
+                                              android:gravity="center_vertical"
+                                              android:background="@color/about_page_header_grey"
+                                              gecko:tabIndicatorColor="@color/fennec_ui_orange"
                                               android:textAppearance="@style/TextAppearance.Widget.HomePagerTabStrip"/>
 
 </org.mozilla.gecko.home.HomePager>

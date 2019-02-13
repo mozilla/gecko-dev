@@ -15,8 +15,11 @@ this.EXPORTED_SYMBOLS = ["ContactService"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/ContactDB.jsm");
-Cu.import("resource://gre/modules/PhoneNumberUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ContactDB",
+                                  "resource://gre/modules/ContactDB.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PhoneNumberUtils",
+                                  "resource://gre/modules/PhoneNumberUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
@@ -99,6 +102,7 @@ let ContactService = this.ContactService = {
     if (DEBUG) debug("receiveMessage " + aMessage.name);
     let mm = aMessage.target;
     let msg = aMessage.data;
+    let cursorList;
 
     switch (aMessage.name) {
       case "Contacts:Find":
@@ -122,7 +126,7 @@ let ContactService = this.ContactService = {
         if (!this.assertPermission(aMessage, "contacts-read")) {
           return null;
         }
-        let cursorList = this._cursors.get(mm);
+        cursorList = this._cursors.get(mm);
         if (!cursorList) {
           cursorList = [];
           this._cursors.set(mm, cursorList);

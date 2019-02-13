@@ -49,7 +49,7 @@ static inline bool SkScalarIsFinite(float x) {
     float prod = x * 0;
     // At this point, prod will either be NaN or 0
     // Therefore we can return (prod == prod) or (0 == prod).
-    return prod == prod;
+    return !SkScalarIsNaN(prod);
 }
 
 /** SkIntToScalar(n) returns its integer argument as an SkScalar
@@ -82,6 +82,26 @@ static inline bool SkScalarIsFinite(float x) {
 #define SkScalarCeilToInt(x)        sk_float_ceil2int(x)
 #define SkScalarRoundToInt(x)       sk_float_round2int(x)
 #define SkScalarTruncToInt(x)       static_cast<int>(x)
+
+/**
+ *  Variant of SkScalarRoundToInt, that performs the rounding step (adding 0.5) explicitly using
+ *  double, to avoid possibly losing the low bit(s) of the answer before calling floor().
+ *
+ *  This routine will likely be slower than SkScalarRoundToInt(), and should only be used when the
+ *  extra precision is known to be valuable.
+ *
+ *  In particular, this catches the following case:
+ *      SkScalar x = 0.49999997;
+ *      int ix = SkScalarRoundToInt(x);
+ *      SkASSERT(0 == ix);    // <--- fails
+ *      ix = SkDScalarRoundToInt(x);
+ *      SkASSERT(0 == ix);    // <--- succeeds
+ */
+static inline int SkDScalarRoundToInt(SkScalar x) {
+    double xx = x;
+    xx += 0.5;
+    return (int)floor(xx);
+}
 
 /** Returns the absolute value of the specified SkScalar
 */

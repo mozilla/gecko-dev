@@ -5,8 +5,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 UNIFIED_SOURCES += [
+    'TestArray.cpp',
     'TestFileUtils.cpp',
     'TestGCPostBarriers.cpp',
+    'TestThreadUtils.cpp',
 ]
 
 LOCAL_INCLUDES = [
@@ -14,9 +16,5 @@ LOCAL_INCLUDES = [
 ]
 
 FAIL_ON_WARNINGS = True
-
-LIBRARY_NAME = 'xpcom_glue_gtest'
-
-EXPORT_LIBRARY = True
 
 FINAL_LIBRARY = 'xul-gtest'

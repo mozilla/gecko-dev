@@ -7,14 +7,15 @@
 // Test outerHTML edition via the markup-view
 
 loadHelperScript("helper_outerhtml_test_runner.js");
+requestLongerTimeout(2);
 
 const TEST_DATA = [
   {
     selector: "#badMarkup1",
     oldHTML: '<div id="badMarkup1">badMarkup1</div>',
     newHTML: '<div id="badMarkup1">badMarkup1</div> hanging</div>',
-    validate: function(pageNode, selectedNode) {
-      is(pageNode, selectedNode, "Original element is selected");
+    validate: function*(pageNode, pageNodeFront, selectedNodeFront, inspector) {
+      is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
       let textNode = pageNode.nextSibling;
 
@@ -26,8 +27,8 @@ const TEST_DATA = [
     selector: "#badMarkup2",
     oldHTML: '<div id="badMarkup2">badMarkup2</div>',
     newHTML: '<div id="badMarkup2">badMarkup2</div> hanging<div></div></div></div></body>',
-    validate: function(pageNode, selectedNode) {
-      is(pageNode, selectedNode, "Original element is selected");
+    validate: function*(pageNode, pageNodeFront, selectedNodeFront, inspector) {
+      is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
       let textNode = pageNode.nextSibling;
 
@@ -39,8 +40,8 @@ const TEST_DATA = [
     selector: "#badMarkup3",
     oldHTML: '<div id="badMarkup3">badMarkup3</div>',
     newHTML: '<div id="badMarkup3">badMarkup3 <em>Emphasized <strong> and strong</div>',
-    validate: function(pageNode, selectedNode) {
-      is(pageNode, selectedNode, "Original element is selected");
+    validate: function*(pageNode, pageNodeFront, selectedNodeFront, inspector) {
+      is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
       let em = getNode("#badMarkup3 em");
       let strong = getNode("#badMarkup3 strong");
@@ -53,8 +54,8 @@ const TEST_DATA = [
     selector: "#badMarkup4",
     oldHTML: '<div id="badMarkup4">badMarkup4</div>',
     newHTML: '<div id="badMarkup4">badMarkup4</p>',
-    validate: function(pageNode, selectedNode) {
-      is(pageNode, selectedNode, "Original element is selected");
+    validate: function*(pageNode, pageNodeFront, selectedNodeFront, inspector) {
+      is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
       let div = getNode("#badMarkup4");
       let p = getNode("#badMarkup4 p");
@@ -69,8 +70,8 @@ const TEST_DATA = [
     selector: "#badMarkup5",
     oldHTML: '<p id="badMarkup5">badMarkup5</p>',
     newHTML: '<p id="badMarkup5">badMarkup5 <div>with a nested div</div></p>',
-    validate: function(pageNode, selectedNode) {
-      is(pageNode, selectedNode, "Original element is selected");
+    validate: function*(pageNode, pageNodeFront, selectedNodeFront, inspector) {
+      is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
       let p = getNode("#badMarkup5");
       let nodiv = getNode("#badMarkup5 div");
@@ -89,11 +90,11 @@ const TEST_URL = "data:text/html," +
   "<!DOCTYPE html>" +
   "<head><meta charset='utf-8' /></head>" +
   "<body>" +
-  [outer.oldHTML for (outer of TEST_DATA)].join("\n") +
+  TEST_DATA.map(outer => outer.oldHTML).join("\n") +
   "</body>" +
   "</html>";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let {inspector} = yield addTab(TEST_URL).then(openInspector);
   inspector.markup._frame.focus();
   yield runEditOuterHTMLTests(TEST_DATA, inspector);

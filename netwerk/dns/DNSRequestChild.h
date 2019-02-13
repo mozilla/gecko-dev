@@ -16,7 +16,7 @@
 namespace mozilla {
 namespace net {
 
-class DNSRequestChild
+class DNSRequestChild final
   : public PDNSRequestChild
   , public nsICancelable
 {
@@ -25,25 +25,25 @@ public:
   NS_DECL_NSICANCELABLE
 
   DNSRequestChild(const nsCString& aHost, const uint32_t& aFlags,
+                  const nsCString& aNetworkInterface,
                   nsIDNSListener *aListener, nsIEventTarget *target);
-  virtual ~DNSRequestChild() {}
 
   void AddIPDLReference() {
     AddRef();
   }
-  void ReleaseIPDLReference() {
-    // we don't need an 'mIPCOpen' variable until/unless we add calls that might
-    // try to send IPDL msgs to parent after ReleaseIPDLReference is called
-    // (when IPDL channel torn down).
-    Release();
-  }
+  void ReleaseIPDLReference();
 
   // Sends IPDL request to parent
   void StartRequest();
   void CallOnLookupComplete();
 
-private:
-  virtual bool Recv__delete__(const DNSRequestResponse& reply) MOZ_OVERRIDE;
+protected:
+  friend class CancelDNSRequestEvent;
+  friend class ChildDNSService;
+  virtual ~DNSRequestChild() {}
+
+  virtual bool RecvLookupCompleted(const DNSRequestResponse& reply) override;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
   nsCOMPtr<nsIDNSListener>  mListener;
   nsCOMPtr<nsIEventTarget>  mTarget;
@@ -51,6 +51,8 @@ private:
   nsresult                  mResultStatus;
   nsCString                 mHost;
   uint16_t                  mFlags;
+  nsCString                 mNetworkInterface;
+  bool                      mIPCOpen;
 };
 
 } // namespace net

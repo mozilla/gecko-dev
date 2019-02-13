@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 load(libdir + "asserts.js");
 
@@ -17,10 +18,15 @@ function dumpStack()
     stack = new Error().stack
 }
 
+setJitCompilerOption("ion.warmup.trigger", 10);
+setJitCompilerOption("baseline.warmup.trigger", 0);
+setJitCompilerOption("offthread-compilation.enable", 0);
+setCachingEnabled(true);
+
 var callFFI = asmCompile('global', 'ffis', USE_ASM + "var ffi=ffis.ffi; function f() { return ffi()|0 } return f");
 
 var f = asmLink(callFFI, null, {ffi:dumpStack});
-for (var i = 0; i < 5000; i++) {
+for (var i = 0; i < 15; i++) {
     stack = null;
     f();
     matchStack(stack, ['dumpStack', 'f']);
@@ -42,7 +48,7 @@ matchStack(stack, ["dumpStack", "f", "middle", "f"]);
 
 function returnStackDumper() { return { valueOf:function() { stack = new Error().stack } } }
 var f = asmLink(callFFI, null, {ffi:returnStackDumper});
-for (var i = 0; i < 5000; i++) {
+for (var i = 0; i < 15; i++) {
     stack = null;
     f();
     matchStack(stack, ['valueOf', 'f']);
@@ -60,7 +66,7 @@ assertEq(caught, true);
 
 var caught = false;
 try {
-    callFFI(null, {ffi:Object.preventExtensions})();
+    callFFI(null, {ffi:Object.defineProperty})();
 } catch (e) {
     caught = true;
 }

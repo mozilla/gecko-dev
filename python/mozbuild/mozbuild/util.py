@@ -5,17 +5,24 @@
 # This file contains miscellaneous utility functions that don't belong anywhere
 # in particular.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
-import copy
+import collections
 import difflib
 import errno
+import functools
 import hashlib
+import itertools
 import os
 import stat
 import sys
 import time
+import types
 
+from collections import (
+    defaultdict,
+    OrderedDict,
+)
 from StringIO import StringIO
 
 
@@ -24,12 +31,12 @@ if sys.version_info[0] == 3:
 else:
     str_type = basestring
 
-def hash_file(path):
+def hash_file(path, hasher=None):
     """Hashes a file specified by the path given and returns the hex digest."""
 
-    # If the hashing function changes, this may invalidate lots of cached data.
-    # Don't change it lightly.
-    h = hashlib.sha1()
+    # If the default hashing function changes, this may invalidate
+    # lots of cached data.  Don't change it lightly.
+    h = hasher or hashlib.sha1()
 
     with open(path, 'rb') as fh:
         while True:
@@ -43,13 +50,30 @@ def hash_file(path):
     return h.hexdigest()
 
 
+class EmptyValue(unicode):
+    """A dummy type that behaves like an empty string and sequence.
+
+    This type exists in order to support
+    :py:class:`mozbuild.frontend.reader.EmptyConfig`. It should likely not be
+    used elsewhere.
+    """
+    def __init__(self):
+        super(EmptyValue, self).__init__()
+
+
 class ReadOnlyDict(dict):
     """A read-only dictionary."""
-    def __init__(self, d):
-        dict.__init__(self, d)
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
 
-    def __setitem__(self, name, value):
+    def __delitem__(self, key):
+        raise Exception('Object does not support deletion.')
+
+    def __setitem__(self, key, value):
         raise Exception('Object does not support assignment.')
+
+    def update(self, *args, **kwargs):
+        raise Exception('Object does not support update.')
 
 
 class undefined_default(object):
@@ -59,43 +83,16 @@ class undefined_default(object):
 undefined = undefined_default()
 
 
-class DefaultOnReadDict(dict):
-    """A dictionary that returns default values for missing keys on read."""
-
-    def __init__(self, d, defaults=None, global_default=undefined):
-        """Create an instance from an iterable with defaults.
-
-        The first argument is fed into the dict constructor.
-
-        defaults is a dict mapping keys to their default values.
-
-        global_default is the default value for *all* missing keys. If it isn't
-        specified, no default value for keys not in defaults will be used and
-        IndexError will be raised on access.
-        """
-        dict.__init__(self, d)
-
-        self._defaults = defaults or {}
-        self._global_default = global_default
-
-    def __getitem__(self, k):
-        try:
-            return dict.__getitem__(self, k)
-        except:
-            pass
-
-        if k in self._defaults:
-            dict.__setitem__(self, k, copy.deepcopy(self._defaults[k]))
-        elif self._global_default != undefined:
-            dict.__setitem__(self, k, copy.deepcopy(self._global_default))
-
-        return dict.__getitem__(self, k)
-
-
-class ReadOnlyDefaultDict(DefaultOnReadDict, ReadOnlyDict):
+class ReadOnlyDefaultDict(ReadOnlyDict):
     """A read-only dictionary that supports default values on retrieval."""
-    def __init__(self, d, defaults=None, global_default=undefined):
-        DefaultOnReadDict.__init__(self, d, defaults, global_default)
+    def __init__(self, default_factory, *args, **kwargs):
+        ReadOnlyDict.__init__(self, *args, **kwargs)
+        self._default_factory = default_factory
+
+    def __missing__(self, key):
+        value = self._default_factory()
+        dict.__setitem__(self, key, value)
+        return value
 
 
 def ensureParentDir(path):
@@ -121,11 +118,12 @@ class FileAvoidWrite(StringIO):
     enabled by default because it a) doesn't make sense for binary files b)
     could add unwanted overhead to calls.
     """
-    def __init__(self, filename, capture_diff=False):
+    def __init__(self, filename, capture_diff=False, mode='rU'):
         StringIO.__init__(self)
         self.name = filename
         self._capture_diff = capture_diff
         self.diff = None
+        self.mode = mode
 
     def close(self):
         """Stop accepting writes, compare file contents, and rewrite if needed.
@@ -144,7 +142,7 @@ class FileAvoidWrite(StringIO):
         old_content = None
 
         try:
-            existing = open(self.name, 'rU')
+            existing = open(self.name, self.mode)
             existed = True
         except IOError:
             pass
@@ -248,6 +246,53 @@ def resolve_target_to_make(topobjdir, target):
         reldir = os.path.dirname(reldir)
 
 
+class ListMixin(object):
+    def __init__(self, iterable=[]):
+        if not isinstance(iterable, list):
+            raise ValueError('List can only be created from other list instances.')
+
+        return super(ListMixin, self).__init__(iterable)
+
+    def extend(self, l):
+        if not isinstance(l, list):
+            raise ValueError('List can only be extended with other list instances.')
+
+        return super(ListMixin, self).extend(l)
+
+    def __setslice__(self, i, j, sequence):
+        if not isinstance(sequence, list):
+            raise ValueError('List can only be sliced with other list instances.')
+
+        return super(ListMixin, self).__setslice__(i, j, sequence)
+
+    def __add__(self, other):
+        # Allow None and EmptyValue is a special case because it makes undefined
+        # variable references in moz.build behave better.
+        other = [] if isinstance(other, (types.NoneType, EmptyValue)) else other
+        if not isinstance(other, list):
+            raise ValueError('Only lists can be appended to lists.')
+
+        new_list = self.__class__(self)
+        new_list.extend(other)
+        return new_list
+
+    def __iadd__(self, other):
+        other = [] if isinstance(other, (types.NoneType, EmptyValue)) else other
+        if not isinstance(other, list):
+            raise ValueError('Only lists can be appended to lists.')
+
+        return super(ListMixin, self).__iadd__(other)
+
+
+class List(ListMixin, list):
+    """A list specialized for moz.build environments.
+
+    We overload the assignment and append operations to require that the
+    appended thing is a list. This avoids bad surprises coming from appending
+    a string to a list, which would just add each letter of the string.
+    """
+
+
 class UnsortedError(Exception):
     def __init__(self, srtd, original):
         assert len(srtd) == len(original)
@@ -274,58 +319,51 @@ class UnsortedError(Exception):
         return s.getvalue()
 
 
-class StrictOrderingOnAppendList(list):
-    """A list specialized for moz.build environments.
-
-    We overload the assignment and append operations to require that incoming
-    elements be ordered. This enforces cleaner style in moz.build files.
-    """
+class StrictOrderingOnAppendListMixin(object):
     @staticmethod
     def ensure_sorted(l):
+        if isinstance(l, StrictOrderingOnAppendList):
+            return
+
         srtd = sorted(l, key=lambda x: x.lower())
 
         if srtd != l:
             raise UnsortedError(srtd, l)
 
     def __init__(self, iterable=[]):
-        StrictOrderingOnAppendList.ensure_sorted(iterable)
+        StrictOrderingOnAppendListMixin.ensure_sorted(iterable)
 
-        list.__init__(self, iterable)
+        super(StrictOrderingOnAppendListMixin, self).__init__(iterable)
 
     def extend(self, l):
-        if not isinstance(l, list):
-            raise ValueError('List can only be extended with other list instances.')
+        StrictOrderingOnAppendListMixin.ensure_sorted(l)
 
-        StrictOrderingOnAppendList.ensure_sorted(l)
-
-        return list.extend(self, l)
+        return super(StrictOrderingOnAppendListMixin, self).extend(l)
 
     def __setslice__(self, i, j, sequence):
-        if not isinstance(sequence, list):
-            raise ValueError('List can only be sliced with other list instances.')
+        StrictOrderingOnAppendListMixin.ensure_sorted(sequence)
 
-        StrictOrderingOnAppendList.ensure_sorted(sequence)
-
-        return list.__setslice__(self, i, j, sequence)
+        return super(StrictOrderingOnAppendListMixin, self).__setslice__(i, j,
+            sequence)
 
     def __add__(self, other):
-        if not isinstance(other, list):
-            raise ValueError('Only lists can be appended to lists.')
+        StrictOrderingOnAppendListMixin.ensure_sorted(other)
 
-        StrictOrderingOnAppendList.ensure_sorted(other)
-
-        # list.__add__ will return a new list. We "cast" it to our type.
-        return StrictOrderingOnAppendList(list.__add__(self, other))
+        return super(StrictOrderingOnAppendListMixin, self).__add__(other)
 
     def __iadd__(self, other):
-        if not isinstance(other, list):
-            raise ValueError('Only lists can be appended to lists.')
+        StrictOrderingOnAppendListMixin.ensure_sorted(other)
 
-        StrictOrderingOnAppendList.ensure_sorted(other)
+        return super(StrictOrderingOnAppendListMixin, self).__iadd__(other)
 
-        list.__iadd__(self, other)
 
-        return self
+class StrictOrderingOnAppendList(ListMixin, StrictOrderingOnAppendListMixin,
+        list):
+    """A list specialized for moz.build environments.
+
+    We overload the assignment and append operations to require that incoming
+    elements be ordered. This enforces cleaner style in moz.build files.
+    """
 
 
 class MozbuildDeletionError(Exception):
@@ -347,6 +385,10 @@ def FlagsFactory(flags):
     class Flags(object):
         __slots__ = flags.keys()
         _flags = flags
+
+        def update(self, **kwargs):
+            for k, v in kwargs.iteritems():
+                setattr(self, k, v)
 
         def __getattr__(self, name):
             if name not in self.__slots__:
@@ -433,11 +475,49 @@ class HierarchicalStringList(object):
         self._strings = StrictOrderingOnAppendList()
         self._children = {}
 
-    def get_children(self):
-        return self._children
+    class StringListAdaptor(collections.Sequence):
+        def __init__(self, hsl):
+            self._hsl = hsl
 
-    def get_strings(self):
-        return self._strings
+        def __getitem__(self, index):
+            return self._hsl._strings[index]
+
+        def __len__(self):
+            return len(self._hsl._strings)
+
+        def flags_for(self, value):
+            try:
+                # Solely for the side-effect of throwing AttributeError
+                object.__getattribute__(self._hsl, '__flag_slots__')
+                # We now know we have a HierarchicalStringListWithFlags.
+                # Get the flags, but use |get| so we don't create the
+                # flags if they're not already there.
+                return self._hsl._flags.get(value, None)
+            except AttributeError:
+                return None
+
+    def walk(self):
+        """Walk over all HierarchicalStringLists in the hierarchy.
+
+        This is a generator of (path, sequence).
+
+        The path is '' for the root level and '/'-delimited strings for
+        any descendants.  The sequence is a read-only sequence of the
+        strings contained at that level.  To support accessing the flags
+        for a given string (e.g. when walking over a
+        HierarchicalStringListWithFlagsFactory), the sequence supports a
+        flags_for() method.  Given a string, the flags_for() method returns
+        the flags for the string, if any, or None if there are no flags set.
+        """
+
+        if self._strings:
+            path_to_here = ''
+            yield path_to_here, self.StringListAdaptor(self)
+
+        for k, l in sorted(self._children.items()):
+            for p, v in l.walk():
+                path_to_there = '%s/%s' % (k, p)
+                yield path_to_there.strip('/'), v
 
     def __setattr__(self, name, value):
         if name in self.__slots__:
@@ -454,10 +534,7 @@ class HierarchicalStringList(object):
         # to try to actually set the attribute. We want to ignore this case,
         # since we don't actually create an attribute called 'foo', but just add
         # it to our list of children (using _get_exportvariable()).
-        exports = self._get_exportvariable(name)
-        if not isinstance(value, HierarchicalStringList):
-            exports._check_list(value)
-            exports._strings = value
+        self._set_exportvariable(name, value)
 
     def __getattr__(self, name):
         if name.startswith('__'):
@@ -472,8 +549,20 @@ class HierarchicalStringList(object):
         self._strings += other
         return self
 
+    def __getitem__(self, name):
+        return self._get_exportvariable(name)
+
+    def __setitem__(self, name, value):
+        self._set_exportvariable(name, value)
+
     def _get_exportvariable(self, name):
         return self._children.setdefault(name, HierarchicalStringList())
+
+    def _set_exportvariable(self, name, value):
+        exports = self._get_exportvariable(name)
+        if not isinstance(value, HierarchicalStringList):
+            exports._check_list(value)
+            exports._strings = value
 
     def _check_list(self, value):
         if not isinstance(value, list):
@@ -667,3 +756,223 @@ def shell_quote(s):
     # be closed, an escaped single quote added, and reopened.
     t = type(s)
     return t("'%s'") % s.replace(t("'"), t("'\\''"))
+
+
+class OrderedDefaultDict(OrderedDict):
+    '''A combination of OrderedDict and defaultdict.'''
+    def __init__(self, default_factory, *args, **kwargs):
+        OrderedDict.__init__(self, *args, **kwargs)
+        self._default_factory = default_factory
+
+    def __missing__(self, key):
+        value = self[key] = self._default_factory()
+        return value
+
+
+class KeyedDefaultDict(dict):
+    '''Like a defaultdict, but the default_factory function takes the key as
+    argument'''
+    def __init__(self, default_factory, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self._default_factory = default_factory
+
+    def __missing__(self, key):
+        value = self._default_factory(key)
+        dict.__setitem__(self, key, value)
+        return value
+
+
+class ReadOnlyKeyedDefaultDict(KeyedDefaultDict, ReadOnlyDict):
+    '''Like KeyedDefaultDict, but read-only.'''
+
+
+class memoize(dict):
+    '''A decorator to memoize the results of function calls depending
+    on its arguments.
+    Both functions and instance methods are handled, although in the
+    instance method case, the results are cache in the instance itself.
+    '''
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+
+    def __call__(self, *args):
+        if args not in self:
+            self[args] = self.func(*args)
+        return self[args]
+
+    def method_call(self, instance, *args):
+        name = '_%s' % self.func.__name__
+        if not hasattr(instance, name):
+            setattr(instance, name, {})
+        cache = getattr(instance, name)
+        if args not in cache:
+            cache[args] = self.func(instance, *args)
+        return cache[args]
+
+    def __get__(self, instance, cls):
+        return functools.update_wrapper(
+            functools.partial(self.method_call, instance), self.func)
+
+
+class memoized_property(object):
+    '''A specialized version of the memoize decorator that works for
+    class instance properties.
+    '''
+    def __init__(self, func):
+        self.func = func
+
+    def __get__(self, instance, cls):
+        name = '_%s' % self.func.__name__
+        if not hasattr(instance, name):
+            setattr(instance, name, self.func(instance))
+        return getattr(instance, name)
+
+
+def TypedNamedTuple(name, fields):
+    """Factory for named tuple types with strong typing.
+
+    Arguments are an iterable of 2-tuples. The first member is the
+    the field name. The second member is a type the field will be validated
+    to be.
+
+    Construction of instances varies from ``collections.namedtuple``.
+
+    First, if a single tuple argument is given to the constructor, this is
+    treated as the equivalent of passing each tuple value as a separate
+    argument into __init__. e.g.::
+
+        t = (1, 2)
+        TypedTuple(t) == TypedTuple(1, 2)
+
+    This behavior is meant for moz.build files, so vanilla tuples are
+    automatically cast to typed tuple instances.
+
+    Second, fields in the tuple are validated to be instances of the specified
+    type. This is done via an ``isinstance()`` check. To allow multiple types,
+    pass a tuple as the allowed types field.
+    """
+    cls = collections.namedtuple(name, (name for name, typ in fields))
+
+    class TypedTuple(cls):
+        __slots__ = ()
+
+        def __new__(klass, *args, **kwargs):
+            if len(args) == 1 and not kwargs and isinstance(args[0], tuple):
+                args = args[0]
+
+            return super(TypedTuple, klass).__new__(klass, *args, **kwargs)
+
+        def __init__(self, *args, **kwargs):
+            for i, (fname, ftype) in enumerate(self._fields):
+                value = self[i]
+
+                if not isinstance(value, ftype):
+                    raise TypeError('field in tuple not of proper type: %s; '
+                                    'got %s, expected %s' % (fname,
+                                    type(value), ftype))
+
+            super(TypedTuple, self).__init__(*args, **kwargs)
+
+    TypedTuple._fields = fields
+
+    return TypedTuple
+
+
+class TypedListMixin(object):
+    '''Mixin for a list with type coercion. See TypedList.'''
+
+    def _ensure_type(self, l):
+        if isinstance(l, self.__class__):
+            return l
+
+        return [self.normalize(e) for e in l]
+
+    def __init__(self, iterable=[]):
+        iterable = self._ensure_type(iterable)
+
+        super(TypedListMixin, self).__init__(iterable)
+
+    def extend(self, l):
+        l = self._ensure_type(l)
+
+        return super(TypedListMixin, self).extend(l)
+
+    def __setslice__(self, i, j, sequence):
+        sequence = self._ensure_type(sequence)
+
+        return super(TypedListMixin, self).__setslice__(i, j,
+            sequence)
+
+    def __add__(self, other):
+        other = self._ensure_type(other)
+
+        return super(TypedListMixin, self).__add__(other)
+
+    def __iadd__(self, other):
+        other = self._ensure_type(other)
+
+        return super(TypedListMixin, self).__iadd__(other)
+
+    def append(self, other):
+        self += [other]
+
+
+@memoize
+def TypedList(type, base_class=List):
+    '''A list with type coercion.
+
+    The given ``type`` is what list elements are being coerced to. It may do
+    strict validation, throwing ValueError exceptions.
+
+    A ``base_class`` type can be given for more specific uses than a List. For
+    example, a Typed StrictOrderingOnAppendList can be created with:
+
+       TypedList(unicode, StrictOrderingOnAppendList)
+    '''
+    class _TypedList(TypedListMixin, base_class):
+        @staticmethod
+        def normalize(e):
+            if not isinstance(e, type):
+                e = type(e)
+            return e
+
+    return _TypedList
+
+def group_unified_files(files, unified_prefix, unified_suffix,
+                        files_per_unified_file):
+    """Return an iterator of (unified_filename, source_filenames) tuples.
+
+    We compile most C and C++ files in "unified mode"; instead of compiling
+    ``a.cpp``, ``b.cpp``, and ``c.cpp`` separately, we compile a single file
+    that looks approximately like::
+
+       #include "a.cpp"
+       #include "b.cpp"
+       #include "c.cpp"
+
+    This function handles the details of generating names for the unified
+    files, and determining which original source files go in which unified
+    file."""
+
+    # Make sure the input list is sorted. If it's not, bad things could happen!
+    files = sorted(files)
+
+    # Our last returned list of source filenames may be short, and we
+    # don't want the fill value inserted by izip_longest to be an
+    # issue.  So we do a little dance to filter it out ourselves.
+    dummy_fill_value = ("dummy",)
+    def filter_out_dummy(iterable):
+        return itertools.ifilter(lambda x: x != dummy_fill_value,
+                                 iterable)
+
+    # From the itertools documentation, slightly modified:
+    def grouper(n, iterable):
+        "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+        args = [iter(iterable)] * n
+        return itertools.izip_longest(fillvalue=dummy_fill_value, *args)
+
+    for i, unified_group in enumerate(grouper(files_per_unified_file,
+                                              files)):
+        just_the_filenames = list(filter_out_dummy(unified_group))
+        yield '%s%d.%s' % (unified_prefix, i, unified_suffix), just_the_filenames

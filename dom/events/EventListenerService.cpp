@@ -1,24 +1,23 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "EventListenerService.h"
-#ifdef MOZ_JSDEBUGGER
-#include "jsdIDebuggerService.h"
-#endif
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/JSEventHandler.h"
 #include "mozilla/Maybe.h"
 #include "nsCOMArray.h"
-#include "nsCxPusher.h"
 #include "nsDOMClassInfoID.h"
 #include "nsIXPConnect.h"
 #include "nsJSUtils.h"
 #include "nsMemory.h"
 #include "nsServiceManagerUtils.h"
+#include "nsArray.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 
@@ -93,7 +92,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
     if (!object) {
       return false;
     }
-    aAc.construct(aCx, object);
+    aAc.emplace(aCx, object);
     aJSVal.setObject(*object);
     return true;
   }
@@ -103,7 +102,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
     JS::Handle<JSObject*> handler =
       jsHandler->GetTypedEventHandler().Ptr()->Callable();
     if (handler) {
-      aAc.construct(aCx, handler);
+      aAc.emplace(aCx, handler);
       aJSVal.setObject(*handler);
       return true;
     }
@@ -122,42 +121,28 @@ EventListenerInfo::ToSource(nsAString& aResult)
   if (GetJSVal(cx, ac, &v)) {
     JSString* str = JS_ValueToSource(cx, v);
     if (str) {
-      nsDependentJSString depStr;
-      if (depStr.init(cx, str)) {
-        aResult.Assign(depStr);
+      nsAutoJSString autoStr;
+      if (autoStr.init(cx, str)) {
+        aResult.Assign(autoStr);
       }
     }
   }
   return NS_OK;
 }
 
-NS_IMETHODIMP
-EventListenerInfo::GetDebugObject(nsISupports** aRetVal)
+EventListenerService*
+EventListenerService::sInstance = nullptr;
+
+EventListenerService::EventListenerService()
 {
-  *aRetVal = nullptr;
+  MOZ_ASSERT(!sInstance);
+  sInstance = this;
+}
 
-#ifdef MOZ_JSDEBUGGER
-  nsresult rv = NS_OK;
-  nsCOMPtr<jsdIDebuggerService> jsd =
-    do_GetService("@mozilla.org/js/jsd/debugger-service;1", &rv);
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-
-  bool isOn = false;
-  jsd->GetIsOn(&isOn);
-  NS_ENSURE_TRUE(isOn, NS_OK);
-
-  AutoSafeJSContext cx;
-  Maybe<JSAutoCompartment> ac;
-  JS::Rooted<JS::Value> v(cx);
-  if (GetJSVal(cx, ac, &v)) {
-    nsCOMPtr<jsdIValue> jsdValue;
-    rv = jsd->WrapValue(v, getter_AddRefs(jsdValue));
-    NS_ENSURE_SUCCESS(rv, rv);
-    jsdValue.forget(aRetVal);
-  }
-#endif
-
-  return NS_OK;
+EventListenerService::~EventListenerService()
+{
+  MOZ_ASSERT(sInstance == this);
+  sInstance = nullptr;
 }
 
 NS_IMETHODIMP
@@ -185,7 +170,7 @@ EventListenerService::GetListenerInfoFor(nsIDOMEventTarget* aEventTarget,
 
   *aOutArray =
     static_cast<nsIEventListenerInfo**>(
-      nsMemory::Alloc(sizeof(nsIEventListenerInfo*) * count));
+      moz_xmalloc(sizeof(nsIEventListenerInfo*) * count));
   NS_ENSURE_TRUE(*aOutArray, NS_ERROR_OUT_OF_MEMORY);
 
   for (int32_t i = 0; i < count; ++i) {
@@ -204,18 +189,18 @@ EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
   *aOutArray = nullptr;
   NS_ENSURE_ARG(aEventTarget);
   WidgetEvent event(true, NS_EVENT_NULL);
-  nsCOMArray<EventTarget> targets;
+  nsTArray<EventTarget*> targets;
   nsresult rv = EventDispatcher::Dispatch(aEventTarget, nullptr, &event,
                                           nullptr, nullptr, nullptr, &targets);
   NS_ENSURE_SUCCESS(rv, rv);
-  int32_t count = targets.Count();
+  int32_t count = targets.Length();
   if (count == 0) {
     return NS_OK;
   }
 
   *aOutArray =
     static_cast<nsIDOMEventTarget**>(
-      nsMemory::Alloc(sizeof(nsIDOMEventTarget*) * count));
+      moz_xmalloc(sizeof(nsIDOMEventTarget*) * count));
   NS_ENSURE_TRUE(*aOutArray, NS_ERROR_OUT_OF_MEMORY);
 
   for (int32_t i = 0; i < count; ++i) {
@@ -319,6 +304,58 @@ EventListenerService::RemoveListenerForAllEvents(nsIDOMEventTarget* aTarget,
     manager->RemoveListenerForAllEvents(aListener, aUseCapture, aSystemEventGroup);
   }
   return NS_OK;
+}
+
+NS_IMETHODIMP
+EventListenerService::AddListenerChangeListener(nsIListenerChangeListener* aListener)
+{
+  if (!mChangeListeners.Contains(aListener)) {
+    mChangeListeners.AppendElement(aListener);
+  }
+  return NS_OK;
+};
+
+NS_IMETHODIMP
+EventListenerService::RemoveListenerChangeListener(nsIListenerChangeListener* aListener)
+{
+  mChangeListeners.RemoveElement(aListener);
+  return NS_OK;
+};
+
+void
+EventListenerService::NotifyAboutMainThreadListenerChangeInternal(dom::EventTarget* aTarget)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mChangeListeners.IsEmpty()) {
+    return;
+  }
+
+  if (!mPendingListenerChanges) {
+    mPendingListenerChanges = nsArrayBase::Create();
+    nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableMethod(this,
+      &EventListenerService::NotifyPendingChanges);
+    NS_DispatchToCurrentThread(runnable);
+  }
+
+  if (!mPendingListenerChangesSet.Get(aTarget)) {
+    mPendingListenerChanges->AppendElement(aTarget, false);
+    mPendingListenerChangesSet.Put(aTarget, true);
+  }
+}
+
+void
+EventListenerService::NotifyPendingChanges()
+{
+  nsCOMPtr<nsIMutableArray> changes;
+  mPendingListenerChanges.swap(changes);
+  mPendingListenerChangesSet.Clear();
+
+  nsTObserverArray<nsCOMPtr<nsIListenerChangeListener>>::EndLimitedIterator
+    iter(mChangeListeners);
+  while (iter.HasMore()) {
+    nsCOMPtr<nsIListenerChangeListener> listener = iter.GetNext();
+    listener->ListenersChanged(changes);
+  }
 }
 
 } // namespace mozilla

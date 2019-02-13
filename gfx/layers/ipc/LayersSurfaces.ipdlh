@@ -3,23 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using struct gfxPoint from "gfxPoint.h";
-using struct nsIntRect from "nsRect.h";
 using nsIntRegion from "nsRegion.h";
-using struct nsIntSize from "nsSize.h";
 using struct mozilla::layers::MagicGrallocBufferHandle from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::layers::GrallocBufferRef from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::layers::SurfaceDescriptorX11 from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::null_t from "ipc/IPCMessageUtils.h";
 using mozilla::WindowsHandle from "ipc/IPCMessageUtils.h";
-using mozilla::gl::SharedTextureHandle from "GLContextTypes.h";
-using mozilla::gl::SharedTextureShareType from "GLContextTypes.h";
-using mozilla::gfx::SurfaceStreamHandle from "SurfaceTypes.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
+using mozilla::gfx::IntRect from "mozilla/gfx/Rect.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
 using gfxImageFormat from "gfxTypes.h";
 
 namespace mozilla {
 namespace layers {
+
+union OverlayHandle {
+  int32_t;
+  null_t;
+};
+
+struct OverlaySource {
+  OverlayHandle handle;
+  IntSize size;
+};
 
 union MaybeMagicGrallocBufferHandle {
   MagicGrallocBufferHandle;
@@ -30,6 +36,12 @@ union MaybeMagicGrallocBufferHandle {
 struct SurfaceDescriptorD3D9 {
   // IDirect3DTexture9*
   uintptr_t texture;
+};
+
+struct SurfaceDescriptorFileMapping {
+  WindowsHandle handle;
+  SurfaceFormat format;
+  IntSize size;
 };
 
 struct SurfaceDescriptorDIB {
@@ -43,17 +55,31 @@ struct SurfaceDescriptorD3D10 {
   IntSize size;
 };
 
-struct SurfaceDescriptorMacIOSurface {
-  uint32_t surface;
-  double scaleFactor;
-  bool hasAlpha;
+struct SurfaceDescriptorDXGIYCbCr {
+  WindowsHandle handleY;
+  WindowsHandle handleCb;
+  WindowsHandle handleCr;
+  IntSize size;
+  IntSize sizeY;
+  IntSize sizeCbCr;
 };
 
-struct SharedTextureDescriptor {
-  SharedTextureShareType shareType;
-  SharedTextureHandle handle;
+struct SurfaceDescriptorMacIOSurface {
+  uint32_t surfaceId;
+  double scaleFactor;
+  bool isOpaque;
+};
+
+struct SurfaceTextureDescriptor {
+  uintptr_t surfTex;
   IntSize size;
-  bool inverted;
+};
+
+struct EGLImageDescriptor {
+  uintptr_t image; // `EGLImage` is a `void*`.
+  uintptr_t fence;
+  IntSize size;
+  bool hasAlpha;
 };
 
 struct NewSurfaceDescriptorGralloc {
@@ -64,11 +90,7 @@ struct NewSurfaceDescriptorGralloc {
    * Extra size member is necessary. See Bug 850566.
    */
   IntSize size;
-};
-
-struct SurfaceStreamDescriptor {
-  SurfaceStreamHandle handle;
-  bool yflip;
+  bool isOpaque;
 };
 
 /**
@@ -82,7 +104,7 @@ struct SurfaceDescriptorShmem {
 /**
  * Used for "raw memory"-backed YCbCr and (flavors of) RGBA textures
  */
- struct SurfaceDescriptorMemory {
+struct SurfaceDescriptorMemory {
   uintptr_t data;
   SurfaceFormat format;
 };
@@ -93,9 +115,11 @@ union SurfaceDescriptor {
   SurfaceDescriptorD3D9;
   SurfaceDescriptorDIB;
   SurfaceDescriptorD3D10;
+  SurfaceDescriptorFileMapping;
+  SurfaceDescriptorDXGIYCbCr;
   SurfaceDescriptorX11;
-  SharedTextureDescriptor;
-  SurfaceStreamDescriptor;
+  SurfaceTextureDescriptor;
+  EGLImageDescriptor;
   SurfaceDescriptorMacIOSurface;
   NewSurfaceDescriptorGralloc;
   null_t;

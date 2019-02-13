@@ -6,8 +6,8 @@
 
 // Tests the computed-view keyboard navigation
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,computed view keyboard nav test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,computed view keyboard nav test");
 
   content.document.body.innerHTML = '<style type="text/css"> ' +
     'span { font-variant: small-caps; color: #000000; } ' +
@@ -50,7 +50,7 @@ let test = asyncTest(function*() {
   ok(secondStyleSelectors.childNodes.length > 0, "Matched selectors expanded");
 
   info("Tab back up and test the same thing, with space");
-  let onExpanded = inspector.once("computed-view-property-expanded");
+  onExpanded = inspector.once("computed-view-property-expanded");
   EventUtils.synthesizeKey("VK_TAB", {shiftKey: true});
   EventUtils.synthesizeKey("VK_SPACE", {});
   yield onExpanded;

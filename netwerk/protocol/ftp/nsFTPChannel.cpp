@@ -10,9 +10,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
-#if defined(PR_LOGGING)
 extern PRLogModuleInfo* gFTPLog;
-#endif /* PR_LOGGING */
 
 // There are two transport connections established for an 
 // ftp connection. One is used for the command channel , and
@@ -29,7 +27,8 @@ NS_IMPL_ISUPPORTS_INHERITED(nsFtpChannel,
                             nsIUploadChannel,
                             nsIResumableChannel,
                             nsIFTPChannel,
-                            nsIProxiedChannel)
+                            nsIProxiedChannel,
+                            nsIForcePendingChannel)
 
 //-----------------------------------------------------------------------------
 
@@ -130,10 +129,12 @@ nsFtpChannel::OnCallbacksChanged()
 
 namespace {
 
-class FTPEventSinkProxy MOZ_FINAL : public nsIFTPEventSink
+class FTPEventSinkProxy final : public nsIFTPEventSink
 {
+    ~FTPEventSinkProxy() {}
+
 public:
-    FTPEventSinkProxy(nsIFTPEventSink* aTarget)
+    explicit FTPEventSinkProxy(nsIFTPEventSink* aTarget)
         : mTarget(aTarget)
         , mTargetThread(do_GetCurrentThread())
     { }
@@ -197,7 +198,7 @@ nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
     aResult = mFTPEventSink;
 }
 
-void
+NS_IMETHODIMP
 nsFtpChannel::ForcePending(bool aForcePending)
 {
     // Set true here so IsPending will return true.
@@ -205,6 +206,8 @@ nsFtpChannel::ForcePending(bool aForcePending)
     // OnStopRequest can be called in the parent before callbacks are diverted
     // back from the child to the listener in the parent.
     mForcePending = aForcePending;
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -3,8 +3,6 @@
  */
 
 #ifdef XP_WIN
-#pragma comment(lib, "wintrust.lib")
-#pragma comment(lib, "crypt32.lib")
 # include <windows.h>
 # include <wintrust.h>
 # include <tlhelp32.h>
@@ -16,7 +14,9 @@
 # define F_OK 00
 # define W_OK 02
 # define R_OK 04
-# define stat _stat
+# if _MSC_VER < 1900
+#  define stat _stat
+# endif
 # define NS_T(str) L ## str
 # define NS_tsnprintf(dest, count, fmt, ...) \
   { \
@@ -34,6 +34,7 @@
 # define LOG_S "%S"
 
 #include "../common/updatehelper.h"
+#include "../common/certificatecheck.h"
 
 #else
 # include <unistd.h>
@@ -52,7 +53,6 @@
 # define LOG_S "%s"
 #endif
 
-#include "mozilla/NullPtr.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,8 +77,9 @@ static void
 WriteMsg(const NS_tchar *path, const char *status)
 {
   FILE* outFP = NS_tfopen(path, NS_T("wb"));
-  if (!outFP)
+  if (!outFP) {
     return;
+  }
 
   fprintf(outFP, "%s\n", status);
   fclose(outFP);
@@ -99,11 +100,15 @@ CheckMsg(const NS_tchar *path, const char *expected)
 
   struct stat ms;
   if (fstat(fileno(inFP), &ms)) {
+    fclose(inFP);
+    inFP = nullptr;
     return false;
   }
 
   char *mbuf = (char *) malloc(ms.st_size + 1);
   if (!mbuf) {
+    fclose(inFP);
+    inFP = nullptr;
     return false;
   }
 
@@ -113,54 +118,20 @@ CheckMsg(const NS_tchar *path, const char *expected)
   r -= c;
   rb += c;
   if (c == 0 && r) {
+    free(mbuf);
+    fclose(inFP);
+    inFP = nullptr;
     return false;
   }
   mbuf[ms.st_size] = '\0';
   rb = mbuf;
 
+  bool isMatch = strcmp(rb, expected) == 0;
+  free(mbuf);
   fclose(inFP);
   inFP = nullptr;
-  return strcmp(rb, expected) == 0;
+  return isMatch;
 }
-
-#ifdef XP_WIN
-/**
- * Verifies the trust of the specified file path.
- *
- * @param  filePath  The file path to check.
- * @return ERROR_SUCCESS if successful, or the last error code otherwise.
- */
-DWORD
-VerifyCertificateTrustForFile(LPCWSTR filePath)
-{
-  // Setup the file to check.
-  WINTRUST_FILE_INFO fileToCheck;
-  ZeroMemory(&fileToCheck, sizeof(fileToCheck));
-  fileToCheck.cbStruct = sizeof(WINTRUST_FILE_INFO);
-  fileToCheck.pcwszFilePath = filePath;
-
-  // Setup what to check, we want to check it is signed and trusted.
-  WINTRUST_DATA trustData;
-  ZeroMemory(&trustData, sizeof(trustData));
-  trustData.cbStruct = sizeof(trustData);
-  trustData.pPolicyCallbackData = nullptr;
-  trustData.pSIPClientData = nullptr;
-  trustData.dwUIChoice = WTD_UI_NONE;
-  trustData.fdwRevocationChecks = WTD_REVOKE_NONE; 
-  trustData.dwUnionChoice = WTD_CHOICE_FILE;
-  trustData.dwStateAction = 0;
-  trustData.hWVTStateData = nullptr;
-  trustData.pwszURLReference = nullptr;
-  // no UI
-  trustData.dwUIContext = 0;
-  trustData.pFile = &fileToCheck;
-
-  GUID policyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
-  // Check if the file is signed by something that is trusted.
-  return WinVerifyTrust(nullptr, &policyGUID, &trustData);
-}
-
-#endif
 
 int NS_main(int argc, NS_tchar **argv)
 {
@@ -178,6 +149,16 @@ int NS_main(int argc, NS_tchar **argv)
       NS_tchar runFilePath[MAXPATHLEN];
       NS_tsnprintf(runFilePath, sizeof(runFilePath)/sizeof(runFilePath[0]),
                    NS_T("%s.running"), exePath);
+#ifdef XP_WIN
+      if (!NS_taccess(runFilePath, F_OK)) {
+        // This makes it possible to check if the post update process was
+        // launched twice which happens when the service performs an update.
+        NS_tchar runFilePathBak[MAXPATHLEN];
+        NS_tsnprintf(runFilePathBak, sizeof(runFilePathBak)/sizeof(runFilePathBak[0]),
+                     NS_T("%s.bak"), runFilePath);
+        MoveFileExW(runFilePath, runFilePathBak, MOVEFILE_REPLACE_EXISTING);
+      }
+#endif
       WriteMsg(runFilePath, "running");
 
       if (!NS_tstrcmp(argv[1], NS_T("post-update-sync"))) {
@@ -236,7 +217,7 @@ int NS_main(int argc, NS_tchar **argv)
     } else {
       return 1;
     }
-#else 
+#else
     // Not implemented on non-Windows platforms
     return 1;
 #endif
@@ -314,7 +295,7 @@ int NS_main(int argc, NS_tchar **argv)
     } else {
       return serviceState;
     }
-#else 
+#else
     // Not implemented on non-Windows platforms
     return 1;
 #endif
@@ -332,7 +313,7 @@ int NS_main(int argc, NS_tchar **argv)
     } else {
       return 2;
     }
-#else 
+#else
     // Not implemented on non-Windows platforms
     return 1;
 #endif
@@ -401,4 +382,4 @@ int NS_main(int argc, NS_tchar **argv)
   }
 
   return 0;
-} 
+}

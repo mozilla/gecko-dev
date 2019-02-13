@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [];
+this.EXPORTED_SYMBOLS = ["MobileIdentityManager"];
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
@@ -52,24 +52,27 @@ XPCOMUtils.defineLazyServiceGetter(this, "appsService",
                                    "nsIAppsService");
 
 #ifdef MOZ_B2G_RIL
-XPCOMUtils.defineLazyServiceGetter(this, "gRil",
+XPCOMUtils.defineLazyServiceGetter(this, "Ril",
                                    "@mozilla.org/ril;1",
                                    "nsIRadioInterfaceLayer");
 
-XPCOMUtils.defineLazyServiceGetter(this, "iccProvider",
-                                   "@mozilla.org/ril/content-helper;1",
-                                   "nsIIccProvider");
+XPCOMUtils.defineLazyServiceGetter(this, "IccService",
+                                   "@mozilla.org/icc/iccservice;1",
+                                   "nsIIccService");
+
+XPCOMUtils.defineLazyServiceGetter(this, "MobileConnectionService",
+                                   "@mozilla.org/mobileconnection/mobileconnectionservice;1",
+                                   "nsIMobileConnectionService");
 #endif
 
 
-let MobileIdentityManager = {
+this.MobileIdentityManager = {
 
   init: function() {
     log.debug("MobileIdentityManager init");
     Services.obs.addObserver(this, "xpcom-shutdown", false);
     ppmm.addMessageListener(GET_ASSERTION_IPC_MSG, this);
     this.messageManagers = {};
-    // TODO: Store keyPairs and certificates in disk. Bug 1021605.
     this.keyPairs = {};
     this.certificates = {};
   },
@@ -88,8 +91,7 @@ let MobileIdentityManager = {
     let promiseId = msg.promiseId;
     this.messageManagers[promiseId] = aMessage.target;
 
-    this.getMobileIdAssertion(aMessage.principal, promiseId,
-                              msg.msisdn, msg.prompt);
+    this.getMobileIdAssertion(aMessage.principal, promiseId, msg.options);
   },
 
   observe: function(subject, topic, data) {
@@ -102,56 +104,159 @@ let MobileIdentityManager = {
     this.messageManagers = null;
   },
 
-
   /*********************************************************
    * Getters
    ********************************************************/
+#ifdef MOZ_B2G_RIL
+  // We have these getters to allow mocking RIL stuff from the tests.
+  get ril() {
+    if (this._ril) {
+      return this._ril;
+    }
+    return Ril;
+  },
+
+  get iccService() {
+    if (this._iccService) {
+      return this._iccService;
+    }
+    return IccService;
+  },
+
+  get mobileConnectionService() {
+    if (this._mobileConnectionService) {
+      return this._mobileConnectionService;
+    }
+    return MobileConnectionService;
+  },
+#endif
 
   get iccInfo() {
-#ifdef MOZ_B2G_RIL
     if (this._iccInfo) {
       return this._iccInfo;
     }
+#ifdef MOZ_B2G_RIL
+    let self = this;
+    let iccListener = {
+      notifyStkCommand: function() {},
 
+      notifyStkSessionEnd: function() {},
+
+      notifyCardStateChanged: function() {},
+
+      notifyIccInfoChanged: function() {
+        // If we receive a notification about an ICC info change, we clear
+        // the ICC related caches so they can be rebuilt with the new changes.
+
+        log.debug("ICC info changed observed. Clearing caches");
+
+        // We don't need to keep listening for changes until we rebuild the
+        // cache again.
+        for (let i = 0; i < self._iccInfo.length; i++) {
+          let icc = self.iccService.getIccByServiceId(i);
+          if (icc) {
+            icc.unregisterListener(iccListener);
+          }
+        }
+
+        self._iccInfo = null;
+        self._iccIds = null;
+      }
+    };
+
+    // _iccInfo is a local cache containing the information about the SIM cards
+    // that is interesting for the Mobile ID flow.
+    // The index of this array does not necesarily need to match the real
+    // identifier of the SIM card ("clientId" or "serviceId" in RIL language).
     this._iccInfo = [];
-    for (let i = 0; i < gRil.numRadioInterfaces; i++) {
-      let rilContext = gRil.getRadioInterface(i).rilContext;
-      if (!rilContext) {
-        log.warn("Tried to get the RIL context for an invalid service ID " + i);
-        continue;
-      }
-      let info = rilContext.iccInfo;
-      if (!info) {
-        log.warn("No ICC info");
+
+    for (let i = 0; i < this.ril.numRadioInterfaces; i++) {
+      let icc = this.iccService.getIccByServiceId(i);
+      if (!icc) {
+        log.warn("Tried to get the Icc instance for an invalid service ID " + i);
         continue;
       }
 
+      let info = icc.iccInfo;
+      if (!info || !info.iccid ||
+          !info.mcc || !info.mcc.length ||
+          !info.mnc || !info.mnc.length) {
+        log.warn("Absent or invalid ICC info");
+        continue;
+      }
+
+      // GSM SIMs may have MSISDN while CDMA SIMs may have MDN
+      let phoneNumber = null;
+      try {
+        if (info.iccType === "sim" || info.iccType === "usim") {
+          let gsmInfo = info.QueryInterface(Ci.nsIGsmIccInfo);
+          phoneNumber = gsmInfo.msisdn;
+        } else if (info.iccType === "ruim" || info.iccType === "csim") {
+          let cdmaInfo = info.QueryInterface(Ci.nsICdmaIccInfo);
+          phoneNumber = cdmaInfo.mdn;
+        }
+      } catch (e) {
+        log.error("Failed to retrieve phoneNumber: " + e);
+      }
+
+      let connection = this.mobileConnectionService.getItemByServiceId(i);
+      let voice = connection && connection.voice;
+      let data = connection && connection.data;
       let operator = null;
-      if (rilContext.voice.network &&
-          rilContext.voice.network.shortName &&
-          rilContext.voice.network.shortName.length) {
-        operator = rilContext.voice.network.shortName;
-      } else if (rilContext.data.network &&
-                 rilContext.data.network.shortName &&
-                 rilContext.data.network.shortName.length) {
-        operator = rilContext.data.network.shortName;
+      if (voice &&
+          voice.network &&
+          voice.network.shortName &&
+          voice.network.shortName.length) {
+        operator = voice.network.shortName;
+      } else if (data &&
+                 data.network &&
+                 data.network.shortName &&
+                 data.network.shortName.length) {
+        operator = data.network.shortName;
       }
 
       this._iccInfo.push({
+        // Because it is possible that the _iccInfo array index doesn't match
+        // the real client ID, we need to store this value for later usage.
+        clientId: i,
         iccId: info.iccid,
         mcc: info.mcc,
         mnc: info.mnc,
-        // GSM SIMs may have MSISDN while CDMA SIMs may have MDN
-        msisdn: info.msisdn || info.mdn || null,
+        msisdn: phoneNumber,
         operator: operator,
-        serviceId: i,
-        roaming: rilContext.voice.roaming
+        roaming: voice && voice.roaming
       });
+
+      // We need to subscribe to ICC change notifications so we can refresh
+      // the cache if any change is observed.
+      icc.registerListener(iccListener);
     }
 
     return this._iccInfo;
-#endif
+#else
     return null;
+#endif
+  },
+
+  get iccIds() {
+#ifdef MOZ_B2G_RIL
+    if (this._iccIds) {
+      return this._iccIds;
+    }
+
+    this._iccIds = [];
+    if (!this.iccInfo) {
+      return this._iccIds;
+    }
+
+    for (let i = 0; i < this.iccInfo.length; i++) {
+      this._iccIds.push(this.iccInfo[i].iccId);
+    }
+
+    return this._iccIds;
+#else
+    return null;
+#endif
   },
 
   get credStore() {
@@ -187,15 +292,14 @@ let MobileIdentityManager = {
     log.debug("getVerificationOptionsForIcc " + aServiceId);
     log.debug("iccInfo ${}", this.iccInfo[aServiceId]);
     // First of all we need to check if we already have existing credentials
-    // for the given SIM information (ICC id or MSISDN). If we have no valid
-    // credentials, we have to check with the server which options to do we
-    // have to verify the associated phone number.
+    // for the given SIM information (ICC ID or MSISDN). If we have no valid
+    // credentials, we have to check with the server which options do we have
+    // to verify the associated phone number.
     return this.credStore.getByIccId(this.iccInfo[aServiceId].iccId)
     .then(
       (creds) => {
         if (creds) {
-          this.iccInfo[aServiceId].credentials = creds;
-          return;
+          return creds;
         }
         return this.credStore.getByMsisdn(this.iccInfo[aServiceId].msisdn);
       }
@@ -220,10 +324,12 @@ let MobileIdentityManager = {
     )
     .then(
       (result) => {
-        log.debug("Discover result ${}", result);
+        // If we already have credentials for this ICC and no discover request
+        // is done, we just bail out.
         if (!result || !result.verificationMethods) {
           return;
         }
+        log.debug("Discover result ${}", result);
         this.iccInfo[aServiceId].verificationMethods = result.verificationMethods;
         this.iccInfo[aServiceId].verificationDetails = result.verificationDetails;
         this.iccInfo[aServiceId].canDoSilentVerification =
@@ -240,7 +346,9 @@ let MobileIdentityManager = {
     // verification mechanisms for these SIM cards.
     // All this information will be stored in iccInfo.
     if (!this.iccInfo || !this.iccInfo.length) {
-      return Promise.resolve();
+      let deferred = Promise.defer();
+      deferred.resolve(null);
+      return deferred.promise;
     }
 
     let promises = [];
@@ -274,6 +382,7 @@ let MobileIdentityManager = {
   },
 
   getCertificate: function(aSessionToken, aPublicKey) {
+    log.debug("getCertificate");
     if (this.certificates[aSessionToken] &&
         this.certificates[aSessionToken].validUntil > this.client.hawk.now()) {
       return Promise.resolve(this.certificates[aSessionToken].cert);
@@ -289,6 +398,7 @@ let MobileIdentityManager = {
                      aPublicKey)
     .then(
       (signedCert) => {
+        log.debug("Got signed certificate");
         this.certificates[aSessionToken] = {
           cert: signedCert.cert,
           validUntil: validUntil
@@ -301,13 +411,32 @@ let MobileIdentityManager = {
   },
 
   /*********************************************************
+   * Setters (for test only purposes)
+   ********************************************************/
+  set ui(aUi) {
+    this._ui = aUi;
+  },
+
+  set credStore(aCredStore) {
+    this._credStore = aCredStore;
+  },
+
+  set client(aClient) {
+    this._client = aClient;
+  },
+
+  set iccInfo(aIccInfo) {
+    this._iccInfo = aIccInfo;
+  },
+
+  /*********************************************************
    * UI callbacks
    ********************************************************/
 
   onUICancel: function() {
     log.debug("UI cancel");
     if (this.activeVerificationFlow) {
-      this.activeVerificationFlow.cleanup(true);
+      this.rejectVerification();
     }
   },
 
@@ -320,14 +449,27 @@ let MobileIdentityManager = {
   },
 
   /*********************************************************
-   * Permissions helpers
-   ********************************************************/
-
-  hasPermission: function(aPrincipal) {
-    let permission = permissionManager.testPermissionFromPrincipal(aPrincipal,
-                                                                   MOBILEID_PERM);
-    return permission == Ci.nsIPermissionManager.ALLOW_ACTION;
+   * Result helpers
+   *********************************************************/
+  success: function(aPromiseId, aResult) {
+    let mm = this.messageManagers[aPromiseId];
+    mm.sendAsyncMessage("MobileId:GetAssertion:Return:OK", {
+      promiseId: aPromiseId,
+      result: aResult
+    });
   },
+
+  error: function(aPromiseId, aError) {
+    let mm = this.messageManagers[aPromiseId];
+    mm.sendAsyncMessage("MobileId:GetAssertion:Return:KO", {
+      promiseId: aPromiseId,
+      error: aError
+    });
+  },
+
+  /*********************************************************
+   * Permissions helper
+   ********************************************************/
 
   addPermission: function(aPrincipal) {
     permissionManager.addFromPrincipal(aPrincipal, MOBILEID_PERM,
@@ -344,7 +486,7 @@ let MobileIdentityManager = {
     }
     this.activeVerificationDeferred.reject(aReason);
     this.activeVerificationDeferred = null;
-    this.cleanupVerification(true);
+    this.cleanupVerification(true /* unregister */);
   },
 
   resolveVerification: function(aResult) {
@@ -356,11 +498,11 @@ let MobileIdentityManager = {
     this.cleanupVerification();
   },
 
-  cleanupVerification: function() {
+  cleanupVerification: function(aUnregister = false) {
     if (!this.activeVerificationFlow) {
       return;
     }
-    this.activeVerificationFlow.cleanup();
+    this.activeVerificationFlow.cleanup(aUnregister);
     this.activeVerificationFlow = null;
   },
 
@@ -397,30 +539,31 @@ let MobileIdentityManager = {
         aToVerify.msisdn &&
         aToVerify.verificationDetails &&
         aToVerify.verificationDetails.mtSender) {
-      this.activeVerificationFlow = new MobileIdentitySmsMtVerificationFlow(
-        aOrigin,
-        aToVerify.msisdn,
-        aToVerify.iccId,
-        aToVerify.serviceId === undefined, // external: the phone number does
-                                           // not seem to belong to any of the
-                                           // device SIM cards.
-        aToVerify.verificationDetails.mtSender,
+      this.activeVerificationFlow = new MobileIdentitySmsMtVerificationFlow({
+          origin: aOrigin,
+          msisdn: aToVerify.msisdn,
+          mcc: aToVerify.mcc,
+          mnc: aToVerify.mnc,
+          iccId: aToVerify.iccId,
+          external: aToVerify.serviceId === undefined,
+          mtSender: aToVerify.verificationDetails.mtSender
+        },
         this.ui,
         this.client
       );
 #ifdef MOZ_B2G_RIL
     } else if (aToVerify.verificationMethod.indexOf(SMS_MO_MT) != -1 &&
-        aToVerify.serviceId &&
-        aToVerify.verificationDetails &&
-        aToVerify.verificationDetails.moVerifier &&
-        aToVerify.verificationDetails.mtSender) {
-
-      this.activeVerificationFlow = new MobileIdentitySmsMoMtVerificationFlow(
-        aOrigin,
-        aToVerify.serviceId,
-        aToVerify.iccId,
-        aToVerify.verificationDetails.mtSender,
-        aToVerify.verificationDetails.moVerifier,
+               aToVerify.serviceId &&
+               aToVerify.verificationDetails &&
+               aToVerify.verificationDetails.moVerifier &&
+               aToVerify.verificationDetails.mtSender) {
+      this.activeVerificationFlow = new MobileIdentitySmsMoMtVerificationFlow({
+          origin: aOrigin,
+          serviceId: aToVerify.serviceId,
+          iccId: aToVerify.iccId,
+          mtSender: aToVerify.verificationDetails.mtSender,
+          moVerifier: aToVerify.verificationDetails.moVerifier
+        },
         this.ui,
         this.client
       );
@@ -464,6 +607,8 @@ let MobileIdentityManager = {
       toVerify.serviceId = serviceId;
       toVerify.iccId = this.iccInfo[serviceId].iccId;
       toVerify.msisdn = this.iccInfo[serviceId].msisdn;
+      toVerify.mcc = this.iccInfo[serviceId].mcc;
+      toVerify.mnc = this.iccInfo[serviceId].mnc;
       toVerify.verificationMethod =
         this.iccInfo[serviceId].verificationMethods[0];
       toVerify.verificationDetails =
@@ -471,6 +616,7 @@ let MobileIdentityManager = {
       return this._verificationFlow(toVerify, aOrigin);
     } else {
       toVerify.msisdn = aUserSelection.msisdn;
+      toVerify.mcc = aUserSelection.mcc;
       return this.client.discover(aUserSelection.msisdn,
                                   aUserSelection.mcc)
       .then(
@@ -500,8 +646,11 @@ let MobileIdentityManager = {
   // This prompt will be considered as the permission prompt and its choice
   // will be remembered per origin by default.
   prompt: function prompt(aPrincipal, aManifestURL, aPhoneInfo) {
-    log.debug("prompt " + aPrincipal + ", " + aManifestURL + ", " +
-              aPhoneInfo);
+    log.debug("prompt ${principal} ${manifest} ${phoneInfo}", {
+      principal: aPrincipal,
+      manifest: aManifestURL,
+      phoneInfo: aPhoneInfo
+    });
 
     let phoneInfoArray = [];
 
@@ -512,19 +661,22 @@ let MobileIdentityManager = {
     if (this.iccInfo) {
       for (let i = 0; i < this.iccInfo.length; i++) {
         // If we don't know the msisdn, there is no previous credentials and
-        // a silent verification is not possible, we don't allow the user to
-        // choose this option.
-        if (!this.iccInfo[i].msisdn && !this.iccInfo[i].credentials &&
-            !this.iccInfo[i].canDoSilentVerification) {
+        // a silent verification is not possible or if the msisdn is the one
+        // that is already chosen, we don't list this SIM as an option.
+        if ((!this.iccInfo[i].msisdn && !this.iccInfo[i].credentials &&
+            !this.iccInfo[i].canDoSilentVerification) ||
+            ((aPhoneInfo) &&
+             (this.iccInfo[i].msisdn == aPhoneInfo.msisdn ||
+              this.iccInfo[i].iccId == aPhoneInfo.iccId))) {
           continue;
         }
 
         let phoneInfo = new MobileIdentityUIGluePhoneInfo(
           this.iccInfo[i].msisdn,
           this.iccInfo[i].operator,
-          i,     // service ID
-          false, // external
-          false  // primary
+          i,                      // service ID
+          this.iccInfo[i].iccId,  // iccId
+          false                   // primary
         );
         phoneInfoArray.push(phoneInfo);
       }
@@ -533,8 +685,9 @@ let MobileIdentityManager = {
     return this.ui.startFlow(aManifestURL, phoneInfoArray)
     .then(
       (result) => {
+        log.debug("startFlow result ${} ", result);
         if (!result ||
-            (!result.phoneNumber && !result.serviceId)) {
+            (!result.phoneNumber && (result.serviceId === undefined))) {
           return Promise.reject(ERROR_INTERNAL_INVALID_PROMPT_RESULT);
         }
 
@@ -542,12 +695,16 @@ let MobileIdentityManager = {
         let mcc;
 
         // If the user selected one of the existing SIM cards we have to check
-        // that we either have the MSISDN for that SIM or we can do a silent
-        // verification that does not require us to have the MSISDN in advance.
-        if (result.serviceId) {
+        // that we either have the MSISDN for that SIM, we have already existing
+        // credentials or we can do a silent verification that does not require
+        // us to have the MSISDN in advance.
+        // result.serviceId can be "0".
+        if (result.serviceId !== undefined &&
+            result.serviceId !== null) {
           let icc = this.iccInfo[result.serviceId];
           log.debug("icc ${}", icc);
-          if (!icc || !icc.msisdn && !icc.canDoSilentVerification) {
+          if (!icc || !icc.msisdn && !icc.canDoSilentVerification &&
+              !icc.credentials) {
             return Promise.reject(ERROR_INTERNAL_CANNOT_VERIFY_SELECTION);
           }
           msisdn = icc.msisdn;
@@ -604,8 +761,8 @@ let MobileIdentityManager = {
           phoneInfo = new MobileIdentityUIGluePhoneInfo(
             aCreds.msisdn,
             null,           // operator
-            null,           // service ID
-            !!aCreds.iccId, // external
+            undefined,      // service ID
+            aCreds.iccId,   // iccId
             true            // primary
           );
         }
@@ -629,8 +786,8 @@ let MobileIdentityManager = {
         if (promptResult.serviceId) {
           let creds = this.iccInfo[promptResult.serviceId].credentials;
           if (creds) {
-            this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
-                               creds.sessionToken);
+            this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.originNoSuffix,
+                               creds.sessionToken, this.iccIds);
             return creds;
           }
         }
@@ -642,17 +799,46 @@ let MobileIdentityManager = {
         .then(
           (creds) => {
             if (creds) {
-              this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
-                                 creds.sessionToken);
+              this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.originNoSuffix,
+                                 creds.sessionToken, this.iccIds);
               return creds;
             }
             // Otherwise, we need to verify the new number selected by the
             // user.
-            return this.verificationFlow(promptResult, aPrincipal.origin);
+            return this.verificationFlow(promptResult, aPrincipal.originNoSuffix);
           }
         );
       }
     );
+  },
+
+  /*********************************************************
+   * Credentials check
+   *********************************************************/
+
+  checkNewCredentials: function(aOldCreds, aNewCreds, aOrigin) {
+    // If there were previous credentials and the user changed her
+    // choice, we need to remove the origin from the old credentials.
+    if (aNewCreds.msisdn != aOldCreds.msisdn) {
+      return this.credStore.removeOrigin(aOldCreds.msisdn,
+                                         aOrigin)
+      .then(
+        () => {
+          return aNewCreds;
+        }
+      );
+    } else {
+      // Otherwise, we update the status of the SIM cards in the device
+      // so we know that the user decided not to take the chance to change
+      // her selection. We won't bother her again until a new SIM card
+      // change is detected.
+      return this.credStore.setDeviceIccIds(aOldCreds.msisdn, this.iccIds)
+      .then(
+        () => {
+          return aOldCreds;
+        }
+      );
+    }
   },
 
   /*********************************************************
@@ -692,7 +878,8 @@ let MobileIdentityManager = {
               this.credStore.add(aCredentials.iccId,
                                  aCredentials.msisdn,
                                  aOrigin,
-                                 aCredentials.sessionToken)
+                                 aCredentials.sessionToken,
+                                 this.iccIds)
               .then(
                 () => {
                   deferred.resolve(assertion);
@@ -707,45 +894,96 @@ let MobileIdentityManager = {
     return deferred.promise;
   },
 
-  getMobileIdAssertion: function(aPrincipal, aPromiseId) {
+  getMobileIdAssertion: function(aPrincipal, aPromiseId, aOptions) {
     log.debug("getMobileIdAssertion ${}", aPrincipal);
 
     let uri = Services.io.newURI(aPrincipal.origin, null, null);
     let principal = securityManager.getAppCodebasePrincipal(
-      uri, aPrincipal.appid, aPrincipal.isInBrowserElement);
+      uri, aPrincipal.appId, aPrincipal.isInBrowserElement);
     let manifestURL = appsService.getManifestURLByLocalId(aPrincipal.appId);
+
+    let permission = permissionManager.testPermissionFromPrincipal(
+      principal,
+      MOBILEID_PERM
+    );
+
+    if (permission == Ci.nsIPermissionManager.DENY_ACTION ||
+        permission == Ci.nsIPermissionManager.UNKNOWN_ACTION) {
+      this.error(aPromiseId, ERROR_PERMISSION_DENIED);
+      return;
+    }
+
+    let _creds;
 
     // First of all we look if we already have credentials for this origin.
     // If we don't have credentials it means that it is the first time that
     // the caller requested an assertion.
-    return this.credStore.getByOrigin(aPrincipal.origin)
+    this.credStore.getByOrigin(aPrincipal.originNoSuffix)
     .then(
       (creds) => {
         log.debug("creds ${creds} - ${origin}", { creds: creds,
-                                                  origin: aPrincipal.origin});
+                                                  origin: aPrincipal.originNoSuffix });
         if (!creds || !creds.sessionToken) {
           log.debug("No credentials");
           return;
         }
 
-        // It is possible that the ICC associated with the stored
-        // credentials is not present in the device anymore, so we ask the
-        // user if she still wants to use it anyway or if she prefers to use
-        // another phone number.
-        // If the credentials are associated with an external SIM or there is
-        // no SIM in the device, we just return the credentials.
-        if (this.iccInfo && creds.iccId) {
-          for (let i = 0; i < this.iccInfo.length; i++) {
-            if (this.iccInfo[i].iccId == creds.iccId) {
-              return creds;
+        _creds = creds;
+
+        // Even if we already have credentials for this origin, the consumer
+        // of the API might want to force the identity selection dialog.
+        if (aOptions.forceSelection || aOptions.refreshCredentials) {
+          return this.promptAndVerify(principal, manifestURL, creds)
+          .then(
+            (newCreds) => {
+              return this.checkNewCredentials(creds, newCreds,
+                                              principal.originNoSuffix);
             }
-          }
-          // At this point we know that the SIM associated with the credentials
-          // is not present in the device any more, so we need to ask the user
-          // what to do.
-          return this.promptAndVerify(principal, manifestURL, creds);
+          );
         }
-        return creds;
+
+        // SIM change scenario.
+
+        // It is possible that the SIM cards inserted in the device at the
+        // moment of the previous verification where we obtained the credentials
+        // has changed. In that case, we need to let the user knowabout this
+        // situation. Otherwise, we just return the credentials.
+        log.debug("Looking for SIM changes. Credentials ICCS ${creds} " +
+                  "Device ICCS ${device}", { creds: creds.deviceIccIds,
+                                             device: this.iccIds });
+        let simChanged = (creds.deviceIccIds == null && this.iccIds != null) ||
+                         (creds.deviceIccIds != null && this.iccIds == null);
+
+        if (!simChanged &&
+            creds.deviceIccIds != null &&
+            this.iccIds != null) {
+          simChanged = creds.deviceIccIds.length != this.iccIds.length;
+        }
+
+        if (!simChanged &&
+            creds.deviceIccIds != null &&
+            this.iccIds != null) {
+          let intersection = creds.deviceIccIds.filter((n) => {
+            return this.iccIds.indexOf(n) != -1;
+          });
+          simChanged = intersection.length != creds.deviceIccIds.length ||
+                       intersection.length != this.iccIds.length;
+        }
+
+        if (!simChanged) {
+          return creds;
+        }
+
+        // At this point we know that the SIM associated with the credentials
+        // is not present in the device any more or a new SIM has been detected,
+        // so we need to ask the user what to do.
+        return this.promptAndVerify(principal, manifestURL, creds)
+        .then(
+          (newCreds) => {
+            return this.checkNewCredentials(creds, newCreds,
+                                            principal.originNoSuffix);
+          }
+        );
       }
     )
     .then(
@@ -756,8 +994,13 @@ let MobileIdentityManager = {
         // before generating and sharing the assertion.
         // If we've just prompted the user in the previous step, the permission
         // is already granted and stored so we just progress the credentials.
+        // But we have to refresh the cached permission before checking.
         if (creds) {
-          if (this.hasPermission(principal)) {
+          permission = permissionManager.testPermissionFromPrincipal(
+            principal,
+            MOBILEID_PERM
+          );
+          if (permission == Ci.nsIPermissionManager.ALLOW_ACTION) {
             return creds;
           }
           return this.promptAndVerify(principal, manifestURL, creds);
@@ -768,7 +1011,7 @@ let MobileIdentityManager = {
     .then(
       (creds) => {
         if (creds) {
-          return this.generateAssertion(creds, principal.origin);
+          return this.generateAssertion(creds, principal.originNoSuffix);
         }
         return Promise.reject(ERROR_INTERNAL_CANNOT_GENERATE_ASSERTION);
       }
@@ -796,25 +1039,31 @@ let MobileIdentityManager = {
 
         this.ui.verified(decodedPayload.verifiedMSISDN);
 
-        let mm = this.messageManagers[aPromiseId];
-        mm.sendAsyncMessage("MobileId:GetAssertion:Return:OK", {
-          promiseId: aPromiseId,
-          result: assertion
-        });
+        this.success(aPromiseId, assertion);
       }
     )
     .then(
       null,
       (error) => {
-        log.error("getMobileIdAssertion rejected with " + error);
+        log.error("getMobileIdAssertion rejected with ${}", error);
+
+        // If we got an invalid token error means that the credentials that
+        // we have are not valid anymore and so we need to refresh them. We
+        // do that removing the stored credentials and starting over. We also
+        // make sure that we do this only once.
+        if (error === ERROR_INVALID_AUTH_TOKEN &&
+            !aOptions.refreshCredentials) {
+          log.debug("Need to get new credentials");
+          aOptions.refreshCredentials = true;
+          _creds && this.credStore.delete(_creds.msisdn);
+          this.getMobileIdAssertion(aPrincipal, aPromiseId, aOptions);
+          return;
+        }
+
         // Notify the error to the UI.
         this.ui.error(error);
 
-        let mm = this.messageManagers[aPromiseId];
-        mm.sendAsyncMessage("MobileId:GetAssertion:Return:KO", {
-          promiseId: aPromiseId,
-          error: error
-        });
+        this.error(aPromiseId, error);
       }
     );
   },

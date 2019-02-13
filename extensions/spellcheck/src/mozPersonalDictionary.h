@@ -26,9 +26,9 @@
 
 class mozPersonalDictionaryLoader;
 
-class mozPersonalDictionary : public mozIPersonalDictionary,
-                              public nsIObserver,
-                              public nsSupportsWeakReference
+class mozPersonalDictionary final : public mozIPersonalDictionary,
+                                    public nsIObserver,
+                                    public nsSupportsWeakReference
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -37,11 +37,12 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(mozPersonalDictionary, mozIPersonalDictionary)
 
   mozPersonalDictionary();
-  virtual ~mozPersonalDictionary();
 
   nsresult Init();
 
 protected:
+  virtual ~mozPersonalDictionary();
+
   /* has the dictionary been modified */
   bool mDirty;
 

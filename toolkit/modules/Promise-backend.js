@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,25 +22,52 @@
 ////////////////////////////////////////////////////////////////////////////////
 //// Globals
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+// Obtain an instance of Cu. How this instance is obtained depends on how this
+// file is loaded.
+//
+// This file can be loaded in three different ways:
+// 1. As a CommonJS module, by Loader.jsm, on the main thread.
+// 2. As a CommonJS module, by worker-loader.js, on a worker thread.
+// 3. As a subscript, by Promise.jsm, on the main thread.
+//
+// If require is defined, the file is loaded as a CommonJS module. Components
+// will not be defined in that case, but we can obtain an instance of Cu from
+// the chrome module. Otherwise, this file is loaded as a subscript, and we can
+// obtain an instance of Cu from Components directly.
+//
+// If the file is loaded as a CommonJS module on a worker thread, the instance
+// of Cu obtained from the chrome module will be null. The reason for this is
+// that Components is not defined in worker threads, so no instance of Cu can
+// be obtained.
+
+let Cu = this.require ? require("chrome").Cu : Components.utils;
+let Cc = this.require ? require("chrome").Cc : Components.classes;
+let Ci = this.require ? require("chrome").Ci : Components.interfaces;
+
+// If Cu is defined, use it to lazily define the FinalizationWitnessService.
+if (Cu) {
+  Cu.import("resource://gre/modules/Services.jsm");
+  Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+  XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
+                                     "@mozilla.org/toolkit/finalizationwitness;1",
+                                     "nsIFinalizationWitnessService");
+}
 
 const STATUS_PENDING = 0;
 const STATUS_RESOLVED = 1;
 const STATUS_REJECTED = 2;
 
-// These "private names" allow some properties of the Promise object to be
+// This N_INTERNALS name allow internal properties of the Promise to be
 // accessed only by this module, while still being visible on the object
-// manually when using a debugger.  They don't strictly guarantee that the
+// manually when using a debugger.  This doesn't strictly guarantee that the
 // properties are inaccessible by other code, but provide enough protection to
 // avoid using them by mistake.
 const salt = Math.floor(Math.random() * 100);
-const Name = (n) => "{private:" + n + ":" + salt + "}";
-const N_STATUS = Name("status");
-const N_VALUE = Name("value");
-const N_HANDLERS = Name("handlers");
-const N_WITNESS = Name("witness");
+const N_INTERNALS = "{private:internals:" + salt + "}";
 
+// We use DOM Promise for scheduling the walker loop.
+const DOMPromise = Cu ? Promise : null;
 
 /////// Warn-upon-finalization mechanism
 //
@@ -72,10 +99,6 @@ const N_WITNESS = Name("witness");
 //
 // In this snippet, the error is reported both by p1 and by p2.
 //
-
-XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
-                                   "@mozilla.org/toolkit/finalizationwitness;1",
-                                   "nsIFinalizationWitnessService");
 
 let PendingErrors = {
   // An internal counter, used to generate unique id.
@@ -249,18 +272,26 @@ let PendingErrors = {
     this._observers.clear();
   }
 };
-PendingErrors.init();
+
+// Initialize the warn-upon-finalization mechanism if and only if Cu is defined.
+// Otherwise, FinalizationWitnessService won't be defined (see above).
+if (Cu) {
+  PendingErrors.init();
+}
 
 // Default mechanism for displaying errors
 PendingErrors.addObserver(function(details) {
+  const generalDescription = "A promise chain failed to handle a rejection." +
+    " Did you forget to '.catch', or did you forget to 'return'?\nSee" +
+    " https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n\n";
+
   let error = Cc['@mozilla.org/scripterror;1'].createInstance(Ci.nsIScriptError);
   if (!error || !Services.console) {
     // Too late during shutdown to use the nsIConsole
     dump("*************************\n");
-    dump("A promise chain failed to handle a rejection\n\n");
+    dump(generalDescription);
     dump("On: " + details.date + "\n");
     dump("Full message: " + details.message + "\n");
-    dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
     dump("Full stack: " + (details.stack||"not available") + "\n");
     dump("*************************\n");
     return;
@@ -270,8 +301,8 @@ PendingErrors.addObserver(function(details) {
     message += "\nFull Stack: " + details.stack;
   }
   error.init(
-             /*message*/"A promise chain failed to handle a rejection.\n\n" +
-             "Date: " + details.date + "\nFull Message: " + details.message,
+             /*message*/ generalDescription +
+             "Date: " + details.date + "\nFull Message: " + message,
              /*sourceName*/ details.fileName,
              /*sourceLine*/ details.lineNumber?("" + details.lineNumber):0,
              /*lineNumber*/ details.lineNumber || 0,
@@ -305,35 +336,39 @@ this.Promise = function Promise(aExecutor)
   }
 
   /*
-   * Internal status of the promise.  This can be equal to STATUS_PENDING,
-   * STATUS_RESOLVED, or STATUS_REJECTED.
+   * Object holding all of our internal values we associate with the promise.
    */
-  Object.defineProperty(this, N_STATUS, { value: STATUS_PENDING,
-                                          writable: true });
+  Object.defineProperty(this, N_INTERNALS, { value: {
+    /*
+     * Internal status of the promise.  This can be equal to STATUS_PENDING,
+     * STATUS_RESOLVED, or STATUS_REJECTED.
+     */
+    status: STATUS_PENDING,
 
-  /*
-   * When the N_STATUS property is STATUS_RESOLVED, this contains the final
-   * resolution value, that cannot be a promise, because resolving with a
-   * promise will cause its state to be eventually propagated instead.  When the
-   * N_STATUS property is STATUS_REJECTED, this contains the final rejection
-   * reason, that could be a promise, even if this is uncommon.
-   */
-  Object.defineProperty(this, N_VALUE, { writable: true });
+    /*
+     * When the status property is STATUS_RESOLVED, this contains the final
+     * resolution value, that cannot be a promise, because resolving with a
+     * promise will cause its state to be eventually propagated instead.  When the
+     * status property is STATUS_REJECTED, this contains the final rejection
+     * reason, that could be a promise, even if this is uncommon.
+     */
+    value: undefined,
 
-  /*
-   * Array of Handler objects registered by the "then" method, and not processed
-   * yet.  Handlers are removed when the promise is resolved or rejected.
-   */
-  Object.defineProperty(this, N_HANDLERS, { value: [] });
+    /*
+     * Array of Handler objects registered by the "then" method, and not processed
+     * yet.  Handlers are removed when the promise is resolved or rejected.
+     */
+    handlers: [],
 
-  /**
-   * When the N_STATUS property is STATUS_REJECTED and until there is
-   * a rejection callback, this contains an array
-   * - {string} id An id for use with |PendingErrors|;
-   * - {FinalizationWitness} witness A witness broadcasting |id| on
-   *   notification "promise-finalization-witness".
-   */
-  Object.defineProperty(this, N_WITNESS, { writable: true });
+    /**
+     * When the status property is STATUS_REJECTED and until there is
+     * a rejection callback, this contains an array
+     * - {string} id An id for use with |PendingErrors|;
+     * - {FinalizationWitness} witness A witness broadcasting |id| on
+     *   notification "promise-finalization-witness".
+     */
+    witness: undefined
+  }});
 
   Object.seal(this);
 
@@ -395,16 +430,16 @@ this.Promise = function Promise(aExecutor)
 Promise.prototype.then = function (aOnResolve, aOnReject)
 {
   let handler = new Handler(this, aOnResolve, aOnReject);
-  this[N_HANDLERS].push(handler);
+  this[N_INTERNALS].handlers.push(handler);
 
   // Ensure the handler is scheduled for processing if this promise is already
   // resolved or rejected.
-  if (this[N_STATUS] != STATUS_PENDING) {
+  if (this[N_INTERNALS].status != STATUS_PENDING) {
 
     // This promise is not the last in the chain anymore. Remove any watchdog.
-    if (this[N_WITNESS] != null) {
-      let [id, witness] = this[N_WITNESS];
-      this[N_WITNESS] = null;
+    if (this[N_INTERNALS].witness != null) {
+      let [id, witness] = this[N_INTERNALS].witness;
+      this[N_INTERNALS].witness = null;
       witness.forget();
       PendingErrors.unregister(id);
     }
@@ -509,7 +544,7 @@ Promise.reject = function (aReason)
  */
 Promise.all = function (aValues)
 {
-  if (aValues == null || typeof(aValues["@@iterator"]) != "function") {
+  if (aValues == null || typeof(aValues[Symbol.iterator]) != "function") {
     throw new Error("Promise.all() expects an iterable.");
   }
 
@@ -560,7 +595,7 @@ Promise.all = function (aValues)
  */
 Promise.race = function (aValues)
 {
-  if (aValues == null || typeof(aValues["@@iterator"]) != "function") {
+  if (aValues == null || typeof(aValues[Symbol.iterator]) != "function") {
     throw new Error("Promise.race() expects an iterable.");
   }
 
@@ -613,6 +648,12 @@ Object.freeze(Promise.Debugging);
 
 Object.freeze(Promise);
 
+// If module is defined, this file is loaded as a CommonJS module. Make sure
+// Promise is exported in that case.
+if (this.module) {
+  module.exports = Promise;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //// PromiseWalker
 
@@ -646,7 +687,7 @@ this.PromiseWalker = {
   completePromise: function (aPromise, aStatus, aValue)
   {
     // Do nothing if the promise is already resolved or rejected.
-    if (aPromise[N_STATUS] != STATUS_PENDING) {
+    if (aPromise[N_INTERNALS].status != STATUS_PENDING) {
       return;
     }
 
@@ -660,17 +701,17 @@ this.PromiseWalker = {
     }
 
     // Change the promise status and schedule our handlers for processing.
-    aPromise[N_STATUS] = aStatus;
-    aPromise[N_VALUE] = aValue;
-    if (aPromise[N_HANDLERS].length > 0) {
+    aPromise[N_INTERNALS].status = aStatus;
+    aPromise[N_INTERNALS].value = aValue;
+    if (aPromise[N_INTERNALS].handlers.length > 0) {
       this.schedulePromise(aPromise);
-    } else if (aStatus == STATUS_REJECTED) {
+    } else if (Cu && aStatus == STATUS_REJECTED) {
       // This is a rejection and the promise is the last in the chain.
       // For the time being we therefore have an uncaught error.
       let id = PendingErrors.register(aValue);
       let witness =
           FinalizationWitnessService.make("promise-finalization-witness", id);
-      aPromise[N_WITNESS] = [id, witness];
+      aPromise[N_INTERNALS].witness = [id, witness];
     }
   },
 
@@ -680,8 +721,26 @@ this.PromiseWalker = {
   scheduleWalkerLoop: function()
   {
     this.walkerLoopScheduled = true;
-    Services.tm.currentThread.dispatch(this.walkerLoop,
-                                       Ci.nsIThread.DISPATCH_NORMAL);
+
+    // If this file is loaded on a worker thread, DOMPromise will not behave as
+    // expected: because native promises are not aware of nested event loops
+    // created by the debugger, their respective handlers will not be called
+    // until after leaving the nested event loop. The debugger server relies
+    // heavily on the use promises, so this could cause the debugger to hang.
+    //
+    // To work around this problem, any use of native promises in the debugger
+    // server should be avoided when it is running on a worker thread. Because
+    // it is still necessary to be able to schedule runnables on the event
+    // queue, the worker loader defines the function setImmediate as a
+    // per-module global for this purpose.
+    //
+    // If Cu is defined, this file is loaded on the main thread. Otherwise, it
+    // is loaded on the worker thread.
+    if (Cu) {
+      DOMPromise.resolve().then(() => this.walkerLoop());
+    } else {
+      setImmediate(this.walkerLoop);
+    }
   },
 
   /**
@@ -695,10 +754,10 @@ this.PromiseWalker = {
   schedulePromise: function (aPromise)
   {
     // Migrate the handlers from the provided promise to the global list.
-    for (let handler of aPromise[N_HANDLERS]) {
+    for (let handler of aPromise[N_INTERNALS].handlers) {
       this.handlers.push(handler);
     }
-    aPromise[N_HANDLERS].length = 0;
+    aPromise[N_INTERNALS].handlers.length = 0;
 
     // Schedule the walker loop on the next tick of the event loop.
     if (!this.walkerLoopScheduled) {
@@ -851,8 +910,8 @@ Handler.prototype = {
   process: function()
   {
     // The state of this promise is propagated unless a handler is defined.
-    let nextStatus = this.thisPromise[N_STATUS];
-    let nextValue = this.thisPromise[N_VALUE];
+    let nextStatus = this.thisPromise[N_INTERNALS].status;
+    let nextValue = this.thisPromise[N_INTERNALS].value;
 
     try {
       // If a handler is defined for either resolution or rejection, invoke it
@@ -882,9 +941,9 @@ Handler.prototype = {
         dump("*************************\n");
         dump("A coding exception was thrown in a Promise " +
              ((nextStatus == STATUS_RESOLVED) ? "resolution":"rejection") +
-             " callback.\n\n");
+             " callback.\n");
+        dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n\n");
         dump("Full message: " + ex + "\n");
-        dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
         dump("Full stack: " + (("stack" in ex)?ex.stack:"not available") + "\n");
         dump("*************************\n");
 

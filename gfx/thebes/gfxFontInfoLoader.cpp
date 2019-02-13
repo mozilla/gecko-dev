@@ -10,7 +10,13 @@
 #include "gfxPlatformFontList.h"
 
 using namespace mozilla;
-using mozilla::services::GetObserverService;
+using services::GetObserverService;
+
+#define LOG_FONTINIT(args) MOZ_LOG(gfxPlatform::GetLog(eGfxLog_fontinit), \
+                               LogLevel::Debug, args)
+#define LOG_FONTINIT_ENABLED() MOZ_LOG_TEST( \
+                                   gfxPlatform::GetLog(eGfxLog_fontinit), \
+                                   LogLevel::Debug)
 
 void
 FontInfoData::Load()
@@ -27,33 +33,50 @@ FontInfoData::Load()
 }
 
 class FontInfoLoadCompleteEvent : public nsRunnable {
-    NS_DECL_THREADSAFE_ISUPPORTS
-
-    FontInfoLoadCompleteEvent(FontInfoData *aFontInfo) :
-        mFontInfo(aFontInfo)
-    {}
     virtual ~FontInfoLoadCompleteEvent() {}
 
-    NS_IMETHOD Run();
+    NS_DECL_ISUPPORTS_INHERITED
+
+    explicit FontInfoLoadCompleteEvent(FontInfoData *aFontInfo) :
+        mFontInfo(aFontInfo)
+    {}
+
+    NS_IMETHOD Run() override;
 
     nsRefPtr<FontInfoData> mFontInfo;
 };
 
 class AsyncFontInfoLoader : public nsRunnable {
-    NS_DECL_THREADSAFE_ISUPPORTS
+    virtual ~AsyncFontInfoLoader() {}
 
-    AsyncFontInfoLoader(FontInfoData *aFontInfo) :
+    NS_DECL_ISUPPORTS_INHERITED
+
+    explicit AsyncFontInfoLoader(FontInfoData *aFontInfo) :
         mFontInfo(aFontInfo)
     {
         mCompleteEvent = new FontInfoLoadCompleteEvent(aFontInfo);
     }
-    virtual ~AsyncFontInfoLoader() {}
 
-    NS_IMETHOD Run();
+    NS_IMETHOD Run() override;
 
     nsRefPtr<FontInfoData> mFontInfo;
     nsRefPtr<FontInfoLoadCompleteEvent> mCompleteEvent;
 };
+
+class ShutdownThreadEvent : public nsRunnable {
+    virtual ~ShutdownThreadEvent() {}
+
+    NS_DECL_ISUPPORTS_INHERITED
+
+    explicit ShutdownThreadEvent(nsIThread* aThread) : mThread(aThread) {}
+    NS_IMETHOD Run() override {
+        mThread->Shutdown();
+        return NS_OK;
+    }
+    nsCOMPtr<nsIThread> mThread;
+};
+
+NS_IMPL_ISUPPORTS_INHERITED0(ShutdownThreadEvent, nsRunnable);
 
 // runs on main thread after async font info loading is done
 nsresult
@@ -68,7 +91,7 @@ FontInfoLoadCompleteEvent::Run()
     return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(FontInfoLoadCompleteEvent, nsIRunnable);
+NS_IMPL_ISUPPORTS_INHERITED0(FontInfoLoadCompleteEvent, nsRunnable);
 
 // runs on separate thread
 nsresult
@@ -84,7 +107,7 @@ AsyncFontInfoLoader::Run()
     return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(AsyncFontInfoLoader, nsIRunnable);
+NS_IMPL_ISUPPORTS_INHERITED0(AsyncFontInfoLoader, nsRunnable);
 
 NS_IMPL_ISUPPORTS(gfxFontInfoLoader::ShutdownObserver, nsIObserver)
 
@@ -105,6 +128,9 @@ void
 gfxFontInfoLoader::StartLoader(uint32_t aDelay, uint32_t aInterval)
 {
     mInterval = aInterval;
+
+    NS_ASSERTION(!mFontInfo,
+                 "fontinfo should be null when starting font loader");
 
     // sanity check
     if (mState != stateInitial &&
@@ -149,13 +175,18 @@ gfxFontInfoLoader::StartLoader(uint32_t aDelay, uint32_t aInterval)
     nsCOMPtr<nsIRunnable> loadEvent = new AsyncFontInfoLoader(mFontInfo);
 
     mFontLoaderThread->Dispatch(loadEvent, NS_DISPATCH_NORMAL);
+
+    if (LOG_FONTINIT_ENABLED()) {
+        LOG_FONTINIT(("(fontinit) fontloader started (fontinfo: %p)\n",
+                      mFontInfo.get()));
+    }
 }
 
 void
 gfxFontInfoLoader::FinalizeLoader(FontInfoData *aFontInfo)
 {
     // avoid loading data if loader has already been canceled
-    if (mState != stateAsyncLoad) {
+    if (mState != stateAsyncLoad || mFontInfo != aFontInfo) {
         return;
     }
 
@@ -185,7 +216,7 @@ gfxFontInfoLoader::CancelLoader()
         mTimer = nullptr;
     }
     if (mFontLoaderThread) {
-        mFontLoaderThread->Shutdown();
+        NS_DispatchToMainThread(new ShutdownThreadEvent(mFontLoaderThread));
         mFontLoaderThread = nullptr;
     }
     RemoveShutdownObserver();
@@ -209,6 +240,7 @@ gfxFontInfoLoader::LoadFontInfoTimerFire()
 gfxFontInfoLoader::~gfxFontInfoLoader()
 {
     RemoveShutdownObserver();
+    MOZ_COUNT_DTOR(gfxFontInfoLoader);
 }
 
 void

@@ -10,14 +10,21 @@
  * W3C liability, trademark and document use rules apply.
  */
 
-[Pref="media.eme.enabled", Constructor(DOMString type, optional MediaKeyMessageEventInit eventInitDict)]
+enum MediaKeyMessageType {
+  "license-request",
+  "license-renewal",
+  "license-release",
+  "individualization-request"
+};
+
+[Pref="media.eme.apiVisible", Constructor(DOMString type, optional MediaKeyMessageEventInit eventInitDict)]
 interface MediaKeyMessageEvent : Event {
+  readonly attribute MediaKeyMessageType messageType;
   [Throws]
-  readonly attribute Uint8Array message;
-  readonly attribute DOMString? destinationURL;
+  readonly attribute ArrayBuffer message;
 };
 
 dictionary MediaKeyMessageEventInit : EventInit {
-  Uint8Array message;
-  DOMString? destinationURL = "";
+  MediaKeyMessageType messageType = "license-request";
+  ArrayBuffer message;
 };

@@ -40,8 +40,6 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   [Pure]
   readonly attribute FileList? files;
-  [Throws, Pref="dom.input.dirpicker"]
-  void openDirectoryPicker();
   [Pure, SetterThrows]
            attribute DOMString formAction;
   [Pure, SetterThrows]
@@ -148,11 +146,14 @@ partial interface HTMLInputElement {
   [GetterThrows]
   readonly attribute long                  textLength;
 
-  [ChromeOnly]
+  [Throws, ChromeOnly]
   sequence<DOMString> mozGetFileNameArray();
 
-  [ChromeOnly]
+  [ChromeOnly, Throws]
   void mozSetFileNameArray(sequence<DOMString> fileNames);
+
+  [ChromeOnly]
+  void mozSetFileArray(sequence<File> files);
 
   // Number controls (<input type=number>) have an anonymous text control
   // (<input type=text>) in the anonymous shadow tree that they contain. On
@@ -167,6 +168,11 @@ partial interface HTMLInputElement {
   readonly attribute HTMLInputElement? ownerNumberControl;
 
   boolean mozIsTextField(boolean aExcludePassword);
+
+  [ChromeOnly]
+  // This function will return null if @autocomplete is not defined for the
+  // current @type
+  AutocompleteInfo? getAutocompleteInfo();
 };
 
 partial interface HTMLInputElement {

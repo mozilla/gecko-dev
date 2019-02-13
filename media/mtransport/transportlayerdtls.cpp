@@ -8,6 +8,9 @@
 
 #include <queue>
 #include <algorithm>
+#include <sstream>
+
+#include "mozilla/UniquePtr.h"
 
 #include "logging.h"
 #include "ssl.h"
@@ -42,6 +45,7 @@ static PRDescIdentity transport_layer_identity = PR_INVALID_IO_LAYER;
   MOZ_ASSERT(false);                                            \
   PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0)
 
+#define MAX_ALPN_LENGTH 255
 
 // We need to adapt the NSPR/libssl model to the TransportFlow model.
 // The former wants pull semantics and TransportFlow wants push.
@@ -58,17 +62,16 @@ static PRDescIdentity transport_layer_identity = PR_INVALID_IO_LAYER;
 // All of this stuff is assumed to happen solely in a single thread
 // (generally the SocketTransportService thread)
 struct Packet {
-  Packet() : data_(nullptr), len_(0), offset_(0) {}
+  Packet() : data_(nullptr), len_(0) {}
 
   void Assign(const void *data, int32_t len) {
-    data_ = new uint8_t[len];
-    memcpy(data_, data, len);
+    data_.reset(new uint8_t[len]);
+    memcpy(data_.get(), data, len);
     len_ = len;
   }
 
-  ScopedDeleteArray<uint8_t> data_;
+  UniquePtr<uint8_t[]> data_;
   int32_t len_;
-  int32_t offset_;
 };
 
 void TransportLayerNSPRAdapter::PacketReceived(const void *data, int32_t len) {
@@ -76,23 +79,26 @@ void TransportLayerNSPRAdapter::PacketReceived(const void *data, int32_t len) {
   input_.back()->Assign(data, len);
 }
 
-int32_t TransportLayerNSPRAdapter::Read(void *data, int32_t len) {
+int32_t TransportLayerNSPRAdapter::Recv(void *buf, int32_t buflen) {
   if (input_.empty()) {
     PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
-    return TE_WOULDBLOCK;
+    return -1;
   }
 
   Packet* front = input_.front();
-  int32_t to_read = std::min(len, front->len_ - front->offset_);
-  memcpy(data, front->data_, to_read);
-  front->offset_ += to_read;
-
-  if (front->offset_ == front->len_) {
-    input_.pop();
-    delete front;
+  if (buflen < front->len_) {
+    MOZ_ASSERT(false, "Not enough buffer space to receive into");
+    PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
+    return -1;
   }
 
-  return to_read;
+  int32_t count = front->len_;
+  memcpy(buf, front->data_.get(), count);
+
+  input_.pop();
+  delete front;
+
+  return count;
 }
 
 int32_t TransportLayerNSPRAdapter::Write(const void *buf, int32_t length) {
@@ -114,13 +120,13 @@ int32_t TransportLayerNSPRAdapter::Write(const void *buf, int32_t length) {
 
 // Implementation of NSPR methods
 static PRStatus TransportLayerClose(PRFileDesc *f) {
-  f->secret = nullptr;
+  f->dtor(f);
   return PR_SUCCESS;
 }
 
 static int32_t TransportLayerRead(PRFileDesc *f, void *buf, int32_t length) {
-  TransportLayerNSPRAdapter *io = reinterpret_cast<TransportLayerNSPRAdapter *>(f->secret);
-  return io->Read(buf, length);
+  UNIMPLEMENTED;
+  return -1;
 }
 
 static int32_t TransportLayerWrite(PRFileDesc *f, const void *buf, int32_t length) {
@@ -198,8 +204,8 @@ static PRStatus TransportLayerShutdown(PRFileDesc *f, int32_t how) {
   return PR_FAILURE;
 }
 
-// This function does not support peek.
-static int32_t TransportLayerRecv(PRFileDesc *f, void *buf, int32_t amount,
+// This function does not support peek, or waiting until `to`
+static int32_t TransportLayerRecv(PRFileDesc *f, void *buf, int32_t buflen,
                                   int32_t flags, PRIntervalTime to) {
   MOZ_ASSERT(flags == 0);
   if (flags != 0) {
@@ -207,7 +213,8 @@ static int32_t TransportLayerRecv(PRFileDesc *f, void *buf, int32_t amount,
     return -1;
   }
 
-  return TransportLayerRead(f, buf, amount);
+  TransportLayerNSPRAdapter *io = reinterpret_cast<TransportLayerNSPRAdapter *>(f->secret);
+  return io->Recv(buf, buflen);
 }
 
 // Note: this is always nonblocking and assumes a zero timeout.
@@ -383,6 +390,24 @@ void TransportLayerDtls::WasInserted() {
 }
 
 
+// Set the permitted and default ALPN identifiers.
+// The default is here to allow for peers that don't want to negotiate ALPN
+// in that case, the default string will be reported from GetNegotiatedAlpn().
+// Setting the default to the empty string causes the transport layer to fail
+// if ALPN is not negotiated.
+// Note: we only support Unicode strings here, which are encoded into UTF-8,
+// even though ALPN ostensibly allows arbitrary octet sequences.
+nsresult TransportLayerDtls::SetAlpn(
+  const std::set<std::string>& alpn_allowed,
+  const std::string& alpn_default) {
+
+  alpn_allowed_ = alpn_allowed;
+  alpn_default_ = alpn_default;
+
+  return NS_OK;
+}
+
+
 nsresult TransportLayerDtls::SetVerificationAllowAll() {
   // Defensive programming
   if (verification_mode_ != VERIFY_UNSET)
@@ -451,13 +476,7 @@ bool TransportLayerDtls::Setup() {
     return false;
   pr_fd->secret = reinterpret_cast<PRFilePrivate *>(nspr_io_adapter_.get());
 
-  ScopedPRFileDesc ssl_fd;
-  if (mode_ == DGRAM) {
-    ssl_fd = DTLS_ImportFD(nullptr, pr_fd);
-  } else {
-    ssl_fd = SSL_ImportFD(nullptr, pr_fd);
-  }
-
+  ScopedPRFileDesc ssl_fd(DTLS_ImportFD(nullptr, pr_fd));
   MOZ_ASSERT(ssl_fd != nullptr);  // This should never happen
   if (!ssl_fd) {
     return false;
@@ -498,11 +517,11 @@ bool TransportLayerDtls::Setup() {
     }
   }
 
-  // Require TLS 1.1. Perhaps some day in the future we will allow
-  // TLS 1.0 for stream modes.
+  // Require TLS 1.1 or 1.2. Perhaps some day in the future we will allow TLS
+  // 1.0 for stream modes.
   SSLVersionRange version_range = {
     SSL_LIBRARY_VERSION_TLS_1_1,
-    SSL_LIBRARY_VERSION_TLS_1_1
+    SSL_LIBRARY_VERSION_TLS_1_2
   };
 
   rv = SSL_VersionRangeSet(ssl_fd, &version_range);
@@ -547,16 +566,14 @@ bool TransportLayerDtls::Setup() {
     return false;
   }
 
-  // Set the SRTP ciphers
-  if (srtp_ciphers_.size()) {
-    // Note: std::vector is guaranteed to contiguous
-    rv = SSL_SetSRTPCiphers(ssl_fd, &srtp_ciphers_[0],
-                            srtp_ciphers_.size());
+  rv = SSL_OptionSet(ssl_fd, SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't disable ECDHE key reuse");
+    return false;
+  }
 
-    if (rv != SECSuccess) {
-      MOZ_MTLOG(ML_ERROR, "Couldn't set SRTP cipher suite");
-      return false;
-    }
+  if (!SetupCipherSuites(ssl_fd)) {
+    return false;
   }
 
   // Certificate validation
@@ -564,6 +581,10 @@ bool TransportLayerDtls::Setup() {
                                reinterpret_cast<void *>(this));
   if (rv != SECSuccess) {
     MOZ_MTLOG(ML_ERROR, "Couldn't set certificate validation hook");
+    return false;
+  }
+
+  if (!SetupAlpn(ssl_fd)) {
     return false;
   }
 
@@ -580,12 +601,180 @@ bool TransportLayerDtls::Setup() {
   downward_->SignalPacketReceived.connect(this, &TransportLayerDtls::PacketReceived);
 
   if (downward_->state() == TS_OPEN) {
+    TL_SET_STATE(TS_CONNECTING);
     Handshake();
   }
 
   return true;
 }
 
+bool TransportLayerDtls::SetupAlpn(PRFileDesc* ssl_fd) const {
+  if (alpn_allowed_.empty()) {
+    return true;
+  }
+
+  SECStatus rv = SSL_OptionSet(ssl_fd, SSL_ENABLE_NPN, PR_FALSE);
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't disable NPN");
+    return false;
+  }
+
+  rv = SSL_OptionSet(ssl_fd, SSL_ENABLE_ALPN, PR_TRUE);
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't enable ALPN");
+    return false;
+  }
+
+  unsigned char buf[MAX_ALPN_LENGTH];
+  size_t offset = 0;
+  for (auto tag = alpn_allowed_.begin();
+       tag != alpn_allowed_.end(); ++tag) {
+    if ((offset + 1 + tag->length()) >= sizeof(buf)) {
+      MOZ_MTLOG(ML_ERROR, "ALPN too long");
+      return false;
+    }
+    buf[offset++] = tag->length();
+    memcpy(buf + offset, tag->c_str(), tag->length());
+    offset += tag->length();
+  }
+  rv = SSL_SetNextProtoNego(ssl_fd, buf, offset);
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't set ALPN string");
+    return false;
+  }
+  return true;
+}
+
+// Ciphers we need to enable.  These are on by default in standard firefox
+// builds, but can be disabled with prefs and they aren't on in our unit tests
+// since that uses NSS default configuration.
+// Only override prefs to comply with MUST statements in the security-arch.
+static const uint32_t EnabledCiphers[] = {
+  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+};
+
+// Disable all NSS suites modes without PFS or with old and rusty ciphersuites.
+// Anything outside this list is governed by the usual combination of policy
+// and user preferences.
+static const uint32_t DisabledCiphers[] = {
+  TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+  TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+
+  TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+  TLS_DHE_DSS_WITH_RC4_128_SHA,
+
+  TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+  TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
+  TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
+  TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
+  TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
+  TLS_ECDH_RSA_WITH_RC4_128_SHA,
+
+  TLS_RSA_WITH_AES_128_GCM_SHA256,
+  TLS_RSA_WITH_AES_128_CBC_SHA,
+  TLS_RSA_WITH_AES_128_CBC_SHA256,
+  TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
+  TLS_RSA_WITH_AES_256_CBC_SHA,
+  TLS_RSA_WITH_AES_256_CBC_SHA256,
+  TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,
+  TLS_RSA_WITH_SEED_CBC_SHA,
+  SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,
+  TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+  TLS_RSA_WITH_RC4_128_SHA,
+  TLS_RSA_WITH_RC4_128_MD5,
+
+  TLS_DHE_RSA_WITH_DES_CBC_SHA,
+  TLS_DHE_DSS_WITH_DES_CBC_SHA,
+  SSL_RSA_FIPS_WITH_DES_CBC_SHA,
+  TLS_RSA_WITH_DES_CBC_SHA,
+
+  TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,
+  TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,
+
+  TLS_RSA_EXPORT_WITH_RC4_40_MD5,
+  TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
+
+  TLS_ECDHE_ECDSA_WITH_NULL_SHA,
+  TLS_ECDHE_RSA_WITH_NULL_SHA,
+  TLS_ECDH_ECDSA_WITH_NULL_SHA,
+  TLS_ECDH_RSA_WITH_NULL_SHA,
+
+  TLS_RSA_WITH_NULL_SHA,
+  TLS_RSA_WITH_NULL_SHA256,
+  TLS_RSA_WITH_NULL_MD5,
+};
+
+bool TransportLayerDtls::SetupCipherSuites(PRFileDesc* ssl_fd) const {
+  SECStatus rv;
+
+  // Set the SRTP ciphers
+  if (!srtp_ciphers_.empty()) {
+    // Note: std::vector is guaranteed to contiguous
+    rv = SSL_SetSRTPCiphers(ssl_fd, &srtp_ciphers_[0], srtp_ciphers_.size());
+
+    if (rv != SECSuccess) {
+      MOZ_MTLOG(ML_ERROR, "Couldn't set SRTP cipher suite");
+      return false;
+    }
+  }
+
+  for (size_t i = 0; i < PR_ARRAY_SIZE(EnabledCiphers); ++i) {
+    MOZ_MTLOG(ML_INFO, LAYER_INFO << "Enabling: " << EnabledCiphers[i]);
+    rv = SSL_CipherPrefSet(ssl_fd, EnabledCiphers[i], PR_TRUE);
+    if (rv != SECSuccess) {
+      MOZ_MTLOG(ML_ERROR, LAYER_INFO <<
+                "Unable to enable suite: " << EnabledCiphers[i]);
+      return false;
+    }
+  }
+
+  for (size_t i = 0; i < PR_ARRAY_SIZE(DisabledCiphers); ++i) {
+    MOZ_MTLOG(ML_INFO, LAYER_INFO << "Disabling: " << DisabledCiphers[i]);
+
+    PRBool enabled = false;
+    rv = SSL_CipherPrefGet(ssl_fd, DisabledCiphers[i], &enabled);
+    if (rv != SECSuccess) {
+      MOZ_MTLOG(ML_NOTICE, LAYER_INFO <<
+                "Unable to check if suite is enabled: " << DisabledCiphers[i]);
+      return false;
+    }
+    if (enabled) {
+      rv = SSL_CipherPrefSet(ssl_fd, DisabledCiphers[i], PR_FALSE);
+      if (rv != SECSuccess) {
+        MOZ_MTLOG(ML_NOTICE, LAYER_INFO <<
+                  "Unable to disable suite: " << DisabledCiphers[i]);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+nsresult TransportLayerDtls::GetCipherSuite(uint16_t* cipherSuite) const {
+  CheckThread();
+  if (!cipherSuite) {
+    MOZ_MTLOG(ML_ERROR, LAYER_INFO << "GetCipherSuite passed a nullptr");
+    return NS_ERROR_NULL_POINTER;
+  }
+  if (state_ != TS_OPEN) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  SSLChannelInfo info;
+  SECStatus rv = SSL_GetChannelInfo(ssl_fd_, &info, sizeof(info));
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_NOTICE, LAYER_INFO << "GetCipherSuite can't get channel info");
+    return NS_ERROR_FAILURE;
+  }
+  *cipherSuite = info.cipherSuite;
+  return NS_OK;
+}
 
 void TransportLayerDtls::StateChange(TransportLayer *layer, State state) {
   if (state <= state_) {
@@ -606,30 +795,36 @@ void TransportLayerDtls::StateChange(TransportLayer *layer, State state) {
       break;
 
     case TS_CONNECTING:
-      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower lower is connecting.");
+      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower layer is connecting.");
       break;
 
     case TS_OPEN:
       MOZ_MTLOG(ML_ERROR,
-                LAYER_INFO << "Lower lower is now open; starting TLS");
-      Handshake();
+                LAYER_INFO << "Lower layer is now open; starting TLS");
+      // Async, since the ICE layer might need to send a STUN response, and we
+      // don't want the handshake to start until that is sent.
+      TL_SET_STATE(TS_CONNECTING);
+      timer_->Cancel();
+      timer_->SetTarget(target_);
+      timer_->InitWithFuncCallback(TimerCallback,
+                                   this,
+                                   0,
+                                   nsITimer::TYPE_ONE_SHOT);
       break;
 
     case TS_CLOSED:
-      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower lower is now closed");
+      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower layer is now closed");
       TL_SET_STATE(TS_CLOSED);
       break;
 
     case TS_ERROR:
-      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower lower experienced an error");
+      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Lower layer experienced an error");
       TL_SET_STATE(TS_ERROR);
       break;
   }
 }
 
 void TransportLayerDtls::Handshake() {
-  TL_SET_STATE(TS_CONNECTING);
-
   // Clear the retransmit timer
   timer_->Cancel();
 
@@ -643,33 +838,36 @@ void TransportLayerDtls::Handshake() {
       TL_SET_STATE(TS_ERROR);
       return;
     }
+    if (!CheckAlpn()) {
+      // Despite connecting, the connection doesn't have a valid ALPN label.
+      // Forcibly close the connection so that the peer isn't left hanging
+      // (assuming the close_notify isn't dropped).
+      ssl_fd_ = nullptr;
+      TL_SET_STATE(TS_ERROR);
+      return;
+    }
+
     TL_SET_STATE(TS_OPEN);
   } else {
     int32_t err = PR_GetError();
     switch(err) {
       case SSL_ERROR_RX_MALFORMED_HANDSHAKE:
-        if (mode_ != DGRAM) {
-          MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Malformed TLS message");
-          TL_SET_STATE(TS_ERROR);
-        } else {
-          MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Malformed DTLS message; ignoring");
-        }
-        // Fall through
+        MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Malformed DTLS message; ignoring");
+        // If this were TLS (and not DTLS), this would be fatal, but
+        // here we're required to ignore bad messages, so fall through
       case PR_WOULD_BLOCK_ERROR:
         MOZ_MTLOG(ML_NOTICE, LAYER_INFO << "Handshake would have blocked");
-        if (mode_ == DGRAM) {
-          PRIntervalTime timeout;
-          rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
-          if (rv == SECSuccess) {
-            uint32_t timeout_ms = PR_IntervalToMilliseconds(timeout);
+        PRIntervalTime timeout;
+        rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
+        if (rv == SECSuccess) {
+          uint32_t timeout_ms = PR_IntervalToMilliseconds(timeout);
 
-            MOZ_MTLOG(ML_DEBUG, LAYER_INFO << "Setting DTLS timeout to " <<
-                 timeout_ms);
-            timer_->SetTarget(target_);
-            timer_->InitWithFuncCallback(TimerCallback,
-                                         this, timeout_ms,
-                                         nsITimer::TYPE_ONE_SHOT);
-          }
+          MOZ_MTLOG(ML_DEBUG,
+                    LAYER_INFO << "Setting DTLS timeout to " << timeout_ms);
+          timer_->SetTarget(target_);
+          timer_->InitWithFuncCallback(TimerCallback,
+                                       this, timeout_ms,
+                                       nsITimer::TYPE_ONE_SHOT);
         }
         break;
       default:
@@ -679,6 +877,61 @@ void TransportLayerDtls::Handshake() {
     }
   }
 }
+
+// Checks if ALPN was negotiated correctly and returns false if it wasn't.
+// After this returns successfully, alpn_ will be set to the negotiated
+// protocol.
+bool TransportLayerDtls::CheckAlpn() {
+  if (alpn_allowed_.empty()) {
+    return true;
+  }
+
+  SSLNextProtoState alpnState;
+  char chosenAlpn[MAX_ALPN_LENGTH];
+  unsigned int chosenAlpnLen;
+  SECStatus rv = SSL_GetNextProto(ssl_fd_, &alpnState,
+                                  reinterpret_cast<unsigned char*>(chosenAlpn),
+                                  &chosenAlpnLen, sizeof(chosenAlpn));
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, LAYER_INFO << "ALPN error");
+    return false;
+  }
+  switch (alpnState) {
+    case SSL_NEXT_PROTO_SELECTED:
+    case SSL_NEXT_PROTO_NEGOTIATED:
+      break; // OK
+
+    case SSL_NEXT_PROTO_NO_SUPPORT:
+      MOZ_MTLOG(ML_NOTICE, LAYER_INFO << "ALPN not negotiated, "
+                << (alpn_default_.empty() ? "failing" : "selecting default"));
+      alpn_ = alpn_default_;
+      return !alpn_.empty();
+
+    case SSL_NEXT_PROTO_NO_OVERLAP:
+      // This only happens if there is a custom NPN/ALPN callback installed and
+      // that callback doesn't properly handle ALPN.
+      MOZ_MTLOG(ML_ERROR, LAYER_INFO << "error in ALPN selection callback");
+      return false;
+  }
+
+  // Warning: NSS won't null terminate the ALPN string for us.
+  std::string chosen(chosenAlpn, chosenAlpnLen);
+  MOZ_MTLOG(ML_NOTICE, LAYER_INFO << "Selected ALPN string: " << chosen);
+  if (alpn_allowed_.find(chosen) == alpn_allowed_.end()) {
+    // Maybe our peer chose a protocol we didn't offer (when we are client), or
+    // something is seriously wrong.
+    std::ostringstream ss;
+    for (auto i = alpn_allowed_.begin(); i != alpn_allowed_.end(); ++i) {
+      ss << (i == alpn_allowed_.begin() ? " '" : ", '") << *i << "'";
+    }
+    MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Bad ALPN string: '" << chosen
+              << "'; permitted:" << ss.str());
+    return false;
+  }
+  alpn_ = chosen;
+  return true;
+}
+
 
 void TransportLayerDtls::PacketReceived(TransportLayer* layer,
                                         const unsigned char *data,
@@ -798,8 +1051,11 @@ nsresult TransportLayerDtls::SetSrtpCiphers(std::vector<uint16_t> ciphers) {
   return NS_OK;
 }
 
-nsresult TransportLayerDtls::GetSrtpCipher(uint16_t *cipher) {
+nsresult TransportLayerDtls::GetSrtpCipher(uint16_t *cipher) const {
   CheckThread();
+  if (state_ != TS_OPEN) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   SECStatus rv = SSL_GetSRTPCipher(ssl_fd_, cipher);
   if (rv != SECSuccess) {
     MOZ_MTLOG(ML_DEBUG, "No SRTP cipher negotiated");
@@ -815,6 +1071,10 @@ nsresult TransportLayerDtls::ExportKeyingMaterial(const std::string& label,
                                                   unsigned char *out,
                                                   unsigned int outlen) {
   CheckThread();
+  if (state_ != TS_OPEN) {
+    MOZ_ASSERT(false, "Transport must be open for ExportKeyingMaterial");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   SECStatus rv = SSL_ExportKeyingMaterial(ssl_fd_,
                                           label.c_str(),
                                           label.size(),
@@ -924,15 +1184,12 @@ SECStatus TransportLayerDtls::AuthCertificateHook(PRFileDesc *fd,
           RefPtr<VerificationDigest> digest = digests_[i];
           rv = CheckDigest(digest, peer_cert);
 
-          if (rv != SECSuccess)
-            break;
-        }
-
-        if (rv == SECSuccess) {
-          // Matches all digests, we are good to go
-          cert_ok_ = true;
-          peer_cert = peer_cert.forget();
-          return SECSuccess;
+          // Matches a digest, we are good to go
+          if (rv == SECSuccess) {
+            cert_ok_ = true;
+            peer_cert = peer_cert.forget();
+            return SECSuccess;
+          }
         }
       }
       break;

@@ -41,8 +41,9 @@ public:
     return mVendor;
   }
 
+  // This spoofed value wins, even if the environment variable
+  // MOZ_GFX_SPOOF_GL_VENDOR was set.
   void SpoofVendor(const nsCString& s) {
-    EnsureInitialized();
     mVendor = s;
   }
 
@@ -51,8 +52,9 @@ public:
     return mRenderer;
   }
 
+  // This spoofed value wins, even if the environment variable
+  // MOZ_GFX_SPOOF_GL_RENDERER was set.
   void SpoofRenderer(const nsCString& s) {
-    EnsureInitialized();
     mRenderer = s;
   }
 
@@ -61,8 +63,9 @@ public:
     return mVersion;
   }
 
+  // This spoofed value wins, even if the environment variable
+  // MOZ_GFX_SPOOF_GL_VERSION was set.
   void SpoofVersion(const nsCString& s) {
-    EnsureInitialized();
     mVersion = s;
   }
 
@@ -71,9 +74,9 @@ public:
       return;
     }
 
-    nsRefPtr<gl::GLContext> gl = gl::GLContextProvider::CreateOffscreen(
-      gfxIntSize(16, 16),
-      gfx::SurfaceCaps::ForRGB());
+    nsRefPtr<gl::GLContext> gl;
+    bool requireCompatProfile = true;
+    gl = gl::GLContextProvider::CreateHeadless(requireCompatProfile);
 
     if (!gl) {
       // Setting mReady to true here means that we won't retry. Everything will
@@ -85,21 +88,32 @@ public:
 
     gl->MakeCurrent();
 
-    const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_GL_VENDOR");
-    if (spoofedVendor)
+    if (mVendor.IsEmpty()) {
+      const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_GL_VENDOR");
+      if (spoofedVendor) {
         mVendor.Assign(spoofedVendor);
-    else
+      } else {
         mVendor.Assign((const char*)gl->fGetString(LOCAL_GL_VENDOR));
-    const char *spoofedRenderer = PR_GetEnv("MOZ_GFX_SPOOF_GL_RENDERER");
-    if (spoofedRenderer)
+      }
+    }
+
+    if (mRenderer.IsEmpty()) {
+      const char *spoofedRenderer = PR_GetEnv("MOZ_GFX_SPOOF_GL_RENDERER");
+      if (spoofedRenderer) {
         mRenderer.Assign(spoofedRenderer);
-    else
+      } else {
         mRenderer.Assign((const char*)gl->fGetString(LOCAL_GL_RENDERER));
-    const char *spoofedVersion = PR_GetEnv("MOZ_GFX_SPOOF_GL_VERSION");
-    if (spoofedVersion)
+      }
+    }
+
+    if (mVersion.IsEmpty()) {
+      const char *spoofedVersion = PR_GetEnv("MOZ_GFX_SPOOF_GL_VERSION");
+      if (spoofedVersion) {
         mVersion.Assign(spoofedVersion);
-    else
+      } else {
         mVersion.Assign((const char*)gl->fGetString(LOCAL_GL_VERSION));
+      }
+    }
 
     mReady = true;
   }
@@ -112,6 +126,10 @@ NS_IMPL_ISUPPORTS_INHERITED(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 GfxInfo::GfxInfo()
   : mInitialized(false)
   , mGLStrings(new GLStrings)
+{
+}
+
+GfxInfo::~GfxInfo()
 {
 }
 
@@ -149,9 +167,10 @@ GfxInfo::EnsureInitialized()
   if (mInitialized)
     return;
 
-  mGLStrings->EnsureInitialized();
-
-  MOZ_ASSERT(mozilla::AndroidBridge::Bridge());
+  if (!mozilla::AndroidBridge::Bridge()) {
+    gfxWarning() << "AndroidBridge missing during initialization";
+    return;
+  }
 
   if (mozilla::AndroidBridge::Bridge()->GetStaticStringField("android/os/Build", "MODEL", mModel)) {
     mAdapterDescription.AppendPrintf("Model: %s",  NS_LossyConvertUTF16toASCII(mModel).get());
@@ -320,6 +339,22 @@ GfxInfo::GetAdapterDeviceID2(nsAString & aAdapterDeviceID)
   return NS_ERROR_FAILURE;
 }
 
+/* readonly attribute DOMString adapterSubsysID; */
+NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID(nsAString & aAdapterSubsysID)
+{
+  EnsureInitialized();
+  return NS_ERROR_FAILURE;
+}
+
+/* readonly attribute DOMString adapterSubsysID2; */
+NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID2(nsAString & aAdapterSubsysID)
+{
+  EnsureInitialized();
+  return NS_ERROR_FAILURE;
+}
+
 /* readonly attribute boolean isGPU2Active; */
 NS_IMETHODIMP
 GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
@@ -336,6 +371,8 @@ GfxInfo::AddCrashReportAnnotations()
                                      mGLStrings->Vendor());
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDeviceID"),
                                      mGLStrings->Renderer());
+  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDriverVersion"),
+                                     mGLStrings->Version());
 
   /* Add an App Note for now so that we get the data immediately. These
    * can go away after we store the above in the socorro db */
@@ -352,7 +389,7 @@ GfxInfo::GetGfxDriverInfo()
   if (mDriverInfo->IsEmpty()) {
     APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
       (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_NO_INFO,
+      nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_STATUS_OK,
       DRIVER_COMPARISON_IGNORED, GfxDriverInfo::allDriverVersions );
   }
 
@@ -377,7 +414,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
   // This early return is so we avoid potentially slow
   // GLStrings initialization on startup when we initialize GL layers.
   if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS) {
-    *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+    *aStatus = nsIGfxInfo::FEATURE_STATUS_OK;
     return NS_OK;
   }
 
@@ -559,7 +596,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           CompareVersions(mOSVersion.get(), "4.4.2") >= 0 &&
           cManufacturer.Equals("lge", nsCaseInsensitiveCStringComparator()) &&
           cModel.Equals("nexus 5", nsCaseInsensitiveCStringComparator())) {
-        *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+        *aStatus = nsIGfxInfo::FEATURE_STATUS_OK;
         return NS_OK;
       } else {
         // Blocklist all other devices except Nexus 5 which VP8 hardware acceleration is supported
@@ -579,7 +616,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
 /* void spoofVendorID (in DOMString aVendorID); */
 NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
 {
-  EnsureInitialized();
   mGLStrings->SpoofVendor(NS_LossyConvertUTF16toASCII(aVendorID));
   return NS_OK;
 }
@@ -587,7 +623,6 @@ NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
 /* void spoofDeviceID (in unsigned long aDeviceID); */
 NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
 {
-  EnsureInitialized();
   mGLStrings->SpoofRenderer(NS_LossyConvertUTF16toASCII(aDeviceID));
   return NS_OK;
 }
@@ -595,7 +630,6 @@ NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
 /* void spoofDriverVersion (in DOMString aDriverVersion); */
 NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
 {
-  EnsureInitialized();
   mGLStrings->SpoofVersion(NS_LossyConvertUTF16toASCII(aDriverVersion));
   return NS_OK;
 }

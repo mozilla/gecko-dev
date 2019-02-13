@@ -116,7 +116,7 @@ RadialGradientEffectD2D1::PrepareForRender(D2D1_CHANGE_TYPE changeType)
     return S_OK;
   }
 
-  D2D1_POINT_2F dc = D2D1::Point2F(mCenter2.x - mCenter1.x, mCenter2.y - mCenter2.y);
+  D2D1_POINT_2F dc = D2D1::Point2F(mCenter2.x - mCenter1.x, mCenter2.y - mCenter1.y);
   float dr = mRadius2 - mRadius1;
   float A = dc.x * dc.x + dc.y * dc.y - dr * dr;
  
@@ -147,14 +147,18 @@ RadialGradientEffectD2D1::PrepareForRender(D2D1_CHANGE_TYPE changeType)
     float A;
     float radius1;
     float sq_radius1;
-    float padding2[3];
+    float repeat_correct;
+    float allow_odd;
+    float padding2[1];
     float transform[8];
   };
 
   PSConstantBuffer buffer = { { dc.x, dc.y, dr }, 0,
                               { mCenter1.x, mCenter1.y },
                               A, mRadius1, mRadius1 * mRadius1,
-                              { 0, 0, 0 }, { mat._11, mat._21, mat._31, 0,
+                              mStopCollection->GetExtendMode() != D2D1_EXTEND_MODE_CLAMP ? 1 : 0,
+                              mStopCollection->GetExtendMode() == D2D1_EXTEND_MODE_MIRROR ? 1 : 0,
+                              { 0 }, { mat._11, mat._21, mat._31, 0,
                                              mat._12, mat._22, mat._32, 0 } };
 
   hr = mDrawInfo->SetPixelShaderConstantBuffer((BYTE*)&buffer, sizeof(buffer));
@@ -247,7 +251,7 @@ RadialGradientEffectD2D1::MapInvalidRect(UINT32 inputIndex,
                                          D2D1_RECT_L invalidInputRect,
                                          D2D1_RECT_L* pInvalidOutputRect) const
 {
-  MOZ_ASSERT(inputIndex = 0);
+  MOZ_ASSERT(inputIndex == 0);
 
   *pInvalidOutputRect = invalidInputRect;
   return S_OK;
@@ -278,6 +282,12 @@ RadialGradientEffectD2D1::Register(ID2D1Factory1 *aFactory)
     gfxWarning() << "Failed to register radial gradient effect.";
   }
   return hr;
+}
+
+void
+RadialGradientEffectD2D1::Unregister(ID2D1Factory1 *aFactory)
+{
+  aFactory->UnregisterEffect(CLSID_RadialGradientEffect);
 }
 
 HRESULT __stdcall
@@ -365,18 +375,20 @@ RadialGradientEffectD2D1::CreateGradientTexture()
   UINT32 width = 4096;
   UINT32 stride = 4096 * 4;
   D2D1_RESOURCE_TEXTURE_PROPERTIES props;
-  props.dimensions = 1;
-  props.extents = &width;
+  // Older shader models do not support 1D textures. So just use a width x 1 texture.
+  props.dimensions = 2;
+  UINT32 dims[] = { width, 1 };
+  props.extents = dims;
   props.channelDepth = D2D1_CHANNEL_DEPTH_4;
   props.bufferPrecision = D2D1_BUFFER_PRECISION_8BPC_UNORM;
   props.filter = D2D1_FILTER_MIN_MAG_MIP_LINEAR;
-  D2D1_EXTEND_MODE extendMode = mStopCollection->GetExtendMode();
-  props.extendModes = &extendMode;
+  D2D1_EXTEND_MODE extendMode[] = { mStopCollection->GetExtendMode(), mStopCollection->GetExtendMode() };
+  props.extendModes = extendMode;
 
   HRESULT hr = mEffectContext->CreateResourceTexture(nullptr, &props, &textureData.front(), &stride, 4096 * 4, byRef(tex));
 
   if (FAILED(hr)) {
-    gfxWarning() << "Failed to create resource texture: " << hr;
+    gfxWarning() << "Failed to create resource texture: " << hexa(hr);
   }
 
   return tex.forget();

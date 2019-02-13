@@ -6,6 +6,7 @@ const {utils: Cu} = Components;
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 
+Cu.import("resource://gre/modules/Promise.jsm")
 Cu.import("resource://gre/modules/Log.jsm");
 
 let testFormatter = {
@@ -169,7 +170,7 @@ add_task(function test_StructuredLogCommands() {
     do_check_true(errored);
   }
 
-  let errored = false;
+  errored = false;
   try {
     logger.logStructured("message_action", "invalid params");
   } catch (e) {
@@ -181,8 +182,8 @@ add_task(function test_StructuredLogCommands() {
 
   // Logging with unstructured interface should produce the same messages
   // as the structured interface for these cases.
-  let appender = new MockAppender(new Log.StructuredFormatter());
-  let logger = Log.repository.getLogger("test.StructuredOutput1");
+  appender = new MockAppender(new Log.StructuredFormatter());
+  logger = Log.repository.getLogger("test.StructuredOutput1");
   messageOne._namespace = "test.StructuredOutput1";
   messageTwo._namespace = "test.StructuredOutput1";
   logger.addAppender(appender);
@@ -377,7 +378,7 @@ add_task(function log_message_with_params() {
               'JSON is {"sneaky":"value"}');
 
   // Fall back to .toSource() if JSON.stringify() fails on an object.
-  let ob = function() {};
+  ob = function() {};
   ob.toJSON = function() {throw "oh noes JSON"};
   do_check_eq(formatMessage("Fail is ${sub}", {sub: ob}),
               'Fail is (function () {})');
@@ -428,21 +429,21 @@ add_task(function log_message_with_params() {
    */
   let err = Components.Exception("test exception", Components.results.NS_ERROR_FAILURE);
   let str = formatMessage("Exception is ${}", err);
-  do_check_true(str.contains('Exception is [Exception... "test exception"'));
-  do_check_true(str.contains("(NS_ERROR_FAILURE)"));
-  let str = formatMessage("Exception is", err);
-  do_check_true(str.contains('Exception is: [Exception... "test exception"'));
-  let str = formatMessage("Exception is ${error}", {error: err});
-  do_check_true(str.contains('Exception is [Exception... "test exception"'));
-  let str = formatMessage("Exception is", {_error: err});
+  do_check_true(str.includes('Exception is [Exception... "test exception"'));
+  do_check_true(str.includes("(NS_ERROR_FAILURE)"));
+  str = formatMessage("Exception is", err);
+  do_check_true(str.includes('Exception is: [Exception... "test exception"'));
+  str = formatMessage("Exception is ${error}", {error: err});
+  do_check_true(str.includes('Exception is [Exception... "test exception"'));
+  str = formatMessage("Exception is", {_error: err});
   do_print(str);
   // Exceptions buried inside objects are formatted badly.
-  do_check_true(str.contains('Exception is: {"_error":{}'));
+  do_check_true(str.includes('Exception is: {"_error":{}'));
   // If the message text is null, the message contains only the formatted params object.
-  let str = formatMessage(null, err);
+  str = formatMessage(null, err);
   do_check_true(str.startsWith('[Exception... "test exception"'));
   // If the text is null and 'params' is a String object, the message is exactly that string.
-  let str = formatMessage(null, new String("String in place of params"));
+  str = formatMessage(null, new String("String in place of params"));
   do_check_eq(str, "String in place of params");
 
   // We use object.valueOf() internally; make sure a broken valueOf() method
@@ -457,6 +458,14 @@ add_task(function log_message_with_params() {
               'non-object no subst: 1');
   do_check_eq(formatMessage("non-object all subst ${}", 2),
               'non-object all subst 2');
+  do_check_eq(formatMessage("false no subst", false),
+              'false no subst: false');
+  do_check_eq(formatMessage("null no subst", null),
+              'null no subst: null');
+  // If 'params' is undefined and there are no substitutions expected,
+  // the message should still be output.
+  do_check_eq(formatMessage("undefined no subst", undefined),
+              'undefined no subst');
   // If 'params' is not an object, no named substitutions can succeed;
   // therefore we leave the placeholder and append the formatted params.
   do_check_eq(formatMessage("non-object named subst ${junk} space", 3),
@@ -516,14 +525,14 @@ add_task(function test_structured_basic() {
   // except the 'action' field is added to the object.
   log.logStructured("action", {data: "structure"});
   do_check_eq(appender.messages.length, 1);
-  do_check_true(appender.messages[0].contains('{"data":"structure","action":"action"}'));
+  do_check_true(appender.messages[0].includes('{"data":"structure","action":"action"}'));
 
   // A structured entry with _message and substitution is treated the same as
   // log./level/(null, params).
   log.logStructured("action", {_message: "Structured sub ${data}", data: "structure"});
   do_check_eq(appender.messages.length, 2);
   do_print(appender.messages[1]);
-  do_check_true(appender.messages[1].contains('Structured sub structure'));
+  do_check_true(appender.messages[1].includes('Structured sub structure'));
 });
 
 /*
@@ -559,19 +568,25 @@ add_task(function format_errors() {
   // Test that subclasses of Error are recognized as errors.
   err = new ReferenceError("Ref Error", "ERROR_FILE", 28);
   str = pFormat.format(err);
-  do_check_true(str.contains("ReferenceError"));
-  do_check_true(str.contains("ERROR_FILE:28"));
-  do_check_true(str.contains("Ref Error"));
+  do_check_true(str.includes("ReferenceError"));
+  do_check_true(str.includes("ERROR_FILE:28"));
+  do_check_true(str.includes("Ref Error"));
 
   // Test that JS-generated Errors are recognized and formatted.
   try {
+    yield Promise.resolve();  // Scrambles the stack
     eval("javascript syntax error");
   }
   catch (e) {
     str = pFormat.format(e);
-    do_check_true(str.contains("SyntaxError: missing ;"));
+    do_check_true(str.includes("SyntaxError: missing ;"));
     // Make sure we identified it as an Error and formatted the error location as
     // lineNumber:columnNumber.
-    do_check_true(str.contains(":1:11)"));
+    do_check_true(str.includes(":1:11)"));
+    // Make sure that we use human-readable stack traces
+    // Check that the error doesn't contain any reference to "Promise.jsm" or "Task.jsm"
+    do_check_false(str.includes("Promise.jsm"));
+    do_check_false(str.includes("Task.jsm"));
+    do_check_true(str.includes("format_errors"));
   }
 });

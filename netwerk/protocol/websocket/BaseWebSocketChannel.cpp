@@ -10,27 +10,25 @@
 #include "nsILoadGroup.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsAutoPtr.h"
+#include "nsProxyRelease.h"
 #include "nsStandardURL.h"
 
-#if defined(PR_LOGGING)
 PRLogModuleInfo *webSocketLog = nullptr;
-#endif
 
 namespace mozilla {
 namespace net {
 
 BaseWebSocketChannel::BaseWebSocketChannel()
-  : mEncrypted(0)
-  , mWasOpened(0)
+  : mWasOpened(0)
   , mClientSetPingInterval(0)
   , mClientSetPingTimeout(0)
+  , mEncrypted(0)
+  , mPingForced(0)
   , mPingInterval(0)
   , mPingResponseTimeout(10000)
 {
-#if defined(PR_LOGGING)
   if (!webSocketLog)
     webSocketLog = PR_NewLogModule("nsWebSocket");
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -97,6 +95,20 @@ BaseWebSocketChannel::SetLoadGroup(nsILoadGroup *aLoadGroup)
 }
 
 NS_IMETHODIMP
+BaseWebSocketChannel::SetLoadInfo(nsILoadInfo* aLoadInfo)
+{
+  mLoadInfo = aLoadInfo;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BaseWebSocketChannel::GetLoadInfo(nsILoadInfo** aLoadInfo)
+{
+  NS_IF_ADDREF(*aLoadInfo = mLoadInfo);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BaseWebSocketChannel::GetExtensions(nsACString &aExtensions)
 {
   LOG(("BaseWebSocketChannel::GetExtensions() %p\n", this));
@@ -133,6 +145,8 @@ BaseWebSocketChannel::GetPingInterval(uint32_t *aSeconds)
 NS_IMETHODIMP
 BaseWebSocketChannel::SetPingInterval(uint32_t aSeconds)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mWasOpened) {
     return NS_ERROR_IN_PROGRESS;
   }
@@ -156,6 +170,8 @@ BaseWebSocketChannel::GetPingTimeout(uint32_t *aSeconds)
 NS_IMETHODIMP
 BaseWebSocketChannel::SetPingTimeout(uint32_t aSeconds)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mWasOpened) {
     return NS_ERROR_IN_PROGRESS;
   }
@@ -163,6 +179,19 @@ BaseWebSocketChannel::SetPingTimeout(uint32_t aSeconds)
   mPingResponseTimeout = aSeconds * 1000;
   mClientSetPingTimeout = 1;
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BaseWebSocketChannel::InitLoadInfo(nsIDOMNode* aLoadingNode,
+                                   nsIPrincipal* aLoadingPrincipal,
+                                   nsIPrincipal* aTriggeringPrincipal,
+                                   uint32_t aSecurityFlags,
+                                   uint32_t aContentPolicyType)
+{
+  nsCOMPtr<nsINode> node = do_QueryInterface(aLoadingNode);
+  mLoadInfo = new LoadInfo(aLoadingPrincipal, aTriggeringPrincipal,
+                           node, aSecurityFlags, aContentPolicyType);
   return NS_OK;
 }
 
@@ -221,8 +250,17 @@ BaseWebSocketChannel::NewURI(const nsACString & aSpec, const char *aOriginCharse
                 aOriginCharset, aBaseURI);
   if (NS_FAILED(rv))
     return rv;
-  NS_ADDREF(*_retval = url);
+  url.forget(_retval);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+BaseWebSocketChannel::NewChannel2(nsIURI* aURI,
+                                  nsILoadInfo* aLoadInfo,
+                                  nsIChannel** outChannel)
+{
+  LOG(("BaseWebSocketChannel::NewChannel2() %p\n", this));
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -258,6 +296,27 @@ BaseWebSocketChannel::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
   mTargetThread = do_QueryInterface(aTargetThread);
   MOZ_ASSERT(mTargetThread);
   return NS_OK;
+}
+
+BaseWebSocketChannel::ListenerAndContextContainer::ListenerAndContextContainer(
+                                               nsIWebSocketListener* aListener,
+                                               nsISupports* aContext)
+  : mListener(aListener)
+  , mContext(aContext)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mListener);
+}
+
+BaseWebSocketChannel::ListenerAndContextContainer::~ListenerAndContextContainer()
+{
+  MOZ_ASSERT(mListener);
+
+  nsCOMPtr<nsIThread> mainThread;
+  NS_GetMainThread(getter_AddRefs(mainThread));
+
+  NS_ProxyRelease(mainThread, mListener, false);
+  NS_ProxyRelease(mainThread, mContext, false);
 }
 
 } // namespace net

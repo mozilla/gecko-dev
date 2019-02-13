@@ -14,7 +14,7 @@ function run_test() {
   initTestDebuggerServer();
   add_test_bulk_actor();
 
-  add_task(function() {
+  add_task(function*() {
     yield test_string_error(socket_transport, json_reply);
     yield test_string_error(local_transport, json_reply);
     DebuggerServer.destroy();
@@ -51,9 +51,9 @@ function add_test_bulk_actor() {
 
 /*** Tests ***/
 
-function test_string_error(transportFactory, onReady) {
+let test_string_error = Task.async(function*(transportFactory, onReady) {
   let deferred = promise.defer();
-  let transport = transportFactory();
+  let transport = yield transportFactory();
 
   let client = new DebuggerClient(transport);
   client.connect((app, traits) => {
@@ -67,7 +67,7 @@ function test_string_error(transportFactory, onReady) {
   });
 
   return deferred.promise;
-}
+});
 
 /*** Reply Types ***/
 

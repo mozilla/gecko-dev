@@ -8,10 +8,11 @@
 const TAB_URL = EXAMPLE_URL + "doc_inline-debugger-statement.html";
 
 let gClient;
+let gTab;
 
 function test() {
   if (!DebuggerServer.initialized) {
-    DebuggerServer.init(() => true);
+    DebuggerServer.init();
     DebuggerServer.addBrowserActors();
   }
 
@@ -22,7 +23,10 @@ function test() {
       "Root actor should identify itself as a browser.");
 
     addTab(TAB_URL)
-      .then(() => attachTabActorForUrl(gClient, TAB_URL))
+      .then((aTab) => {
+        gTab = aTab;
+        return attachTabActorForUrl(gClient, TAB_URL)
+      })
       .then(testEarlyDebuggerStatement)
       .then(testDebuggerStatement)
       .then(closeConnection)
@@ -45,8 +49,7 @@ function testEarlyDebuggerStatement([aGrip, aResponse]) {
 
   // This should continue without nesting an event loop and calling
   // the onPaused hook, because we haven't attached yet.
-  let debuggee = gBrowser.selectedTab.linkedBrowser.contentWindow.wrappedJSObject;
-  debuggee.runDebuggerStatement();
+  callInTab(gTab, "runDebuggerStatement");
 
   gClient.removeListener("paused", onPaused);
 
@@ -72,8 +75,7 @@ function testDebuggerStatement([aGrip, aResponse]) {
   });
 
   // Reach around the debugging protocol and execute the debugger statement.
-  let debuggee = gBrowser.selectedTab.linkedBrowser.contentWindow.wrappedJSObject;
-  debuggee.runDebuggerStatement();
+  callInTab(gTab, "runDebuggerStatement");
 }
 
 function closeConnection() {
@@ -83,7 +85,5 @@ function closeConnection() {
 }
 
 registerCleanupFunction(function() {
-  removeTab(gBrowser.selectedTab);
   gClient = null;
 });
-

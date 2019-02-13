@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsPNGDecoder_h__
-#define nsPNGDecoder_h__
+#ifndef mozilla_image_decoders_nsPNGDecoder_h
+#define mozilla_image_decoders_nsPNGDecoder_h
 
 #include "Decoder.h"
 
@@ -24,12 +24,12 @@ class RasterImage;
 class nsPNGDecoder : public Decoder
 {
 public:
-  nsPNGDecoder(RasterImage &aImage);
+  explicit nsPNGDecoder(RasterImage* aImage);
   virtual ~nsPNGDecoder();
 
-  virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
-  virtual Telemetry::ID SpeedHistogram();
+  virtual void InitInternal() override;
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount) override;
+  virtual Telemetry::ID SpeedHistogram() override;
 
   void CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
                    int32_t width, int32_t height,
@@ -71,10 +71,10 @@ public:
   png_structp mPNG;
   png_infop mInfo;
   nsIntRect mFrameRect;
-  uint8_t *mCMSLine;
-  uint8_t *interlacebuf;
-  qcms_profile *mInProfile;
-  qcms_transform *mTransform;
+  uint8_t* mCMSLine;
+  uint8_t* interlacebuf;
+  qcms_profile* mInProfile;
+  qcms_transform* mTransform;
 
   gfx::SurfaceFormat format;
 
@@ -86,7 +86,6 @@ public:
   uint32_t mCMSMode;
 
   uint8_t mChannels;
-  bool mFrameHasNoAlpha;
   bool mFrameIsHidden;
   bool mDisablePremultipliedAlpha;
 
@@ -97,8 +96,8 @@ public:
     AnimFrameInfo(png_structp aPNG, png_infop aInfo);
 #endif
 
-    FrameBlender::FrameDisposalMethod mDispose;
-    FrameBlender::FrameBlendMethod mBlend;
+    DisposalMethod mDispose;
+    BlendMethod mBlend;
     int32_t mTimeout;
   };
 
@@ -106,12 +105,9 @@ public:
 
   // The number of frames we've finished.
   uint32_t mNumFrames;
-  
-  /*
-   * libpng callbacks
-   *
-   * We put these in the class so that they can access protected members.
-   */
+
+  // libpng callbacks
+  // We put these in the class so that they can access protected members.
   static void PNGAPI info_callback(png_structp png_ptr, png_infop info_ptr);
   static void PNGAPI row_callback(png_structp png_ptr, png_bytep new_row,
                                   png_uint_32 row_num, int pass);
@@ -133,4 +129,4 @@ public:
 } // namespace image
 } // namespace mozilla
 
-#endif // nsPNGDecoder_h__
+#endif // mozilla_image_decoders_nsPNGDecoder_h

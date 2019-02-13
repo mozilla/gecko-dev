@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,46 +36,42 @@ this.StyleEditorPanel = function StyleEditorPanel(panelWin, toolbox) {
 exports.StyleEditorPanel = StyleEditorPanel;
 
 StyleEditorPanel.prototype = {
-  get target() this._toolbox.target,
+  get target() {
+    return this._toolbox.target;
+  },
 
-  get panelWindow() this._panelWin,
+  get panelWindow() {
+    return this._panelWin;
+  },
 
   /**
    * open is effectively an asynchronous constructor
    */
-  open: function() {
-    let deferred = promise.defer();
-
-    let targetPromise;
+  open: Task.async(function* () {
     // We always interact with the target as if it were remote
     if (!this.target.isRemote) {
-      targetPromise = this.target.makeRemote();
-    } else {
-      targetPromise = promise.resolve(this.target);
+      yield this.target.makeRemote();
     }
 
-    targetPromise.then(() => {
-      this.target.on("close", this.destroy);
+    this.target.on("close", this.destroy);
 
-      if (this.target.form.styleSheetsActor) {
-        this._debuggee = StyleSheetsFront(this.target.client, this.target.form);
-      }
-      else {
-        /* We're talking to a pre-Firefox 29 server-side */
-        this._debuggee = StyleEditorFront(this.target.client, this.target.form);
-      }
-      this.UI = new StyleEditorUI(this._debuggee, this.target, this._panelDoc);
-      this.UI.initialize().then(() => {
-        this.UI.on("error", this._showError);
+    if (this.target.form.styleSheetsActor) {
+      this._debuggee = StyleSheetsFront(this.target.client, this.target.form);
+    }
+    else {
+      /* We're talking to a pre-Firefox 29 server-side */
+      this._debuggee = StyleEditorFront(this.target.client, this.target.form);
+    }
 
-        this.isReady = true;
+    // Initialize the UI
+    this.UI = new StyleEditorUI(this._debuggee, this.target, this._panelDoc);
+    this.UI.on("error", this._showError);
+    yield this.UI.initialize();
 
-        deferred.resolve(this);
-      });
-    }, console.error);
+    this.isReady = true;
 
-    return deferred.promise;
-  },
+    return this;
+  }),
 
   /**
    * Show an error message from the style editor in the toolbox
@@ -118,12 +114,15 @@ StyleEditorPanel.prototype = {
    *        Line number to jump to after selecting. One-indexed
    * @param {number} col
    *        Column number to jump to after selecting. One-indexed
+   * @return {Promise}
+   *         Promise that will resolve when the editor is selected and ready
+   *         to be used.
    */
   selectStyleSheet: function(href, line, col) {
     if (!this._debuggee || !this.UI) {
       return;
     }
-    this.UI.selectStyleSheet(href, line - 1, col ? col - 1 : 0);
+    return this.UI.selectStyleSheet(href, line - 1, col ? col - 1 : 0);
   },
 
   /**
@@ -136,11 +135,13 @@ StyleEditorPanel.prototype = {
       this._target.off("close", this.destroy);
       this._target = null;
       this._toolbox = null;
+      this._panelWin = null;
       this._panelDoc = null;
       this._debuggee.destroy();
       this._debuggee = null;
 
       this.UI.destroy();
+      this.UI = null;
     }
 
     return promise.resolve(null);

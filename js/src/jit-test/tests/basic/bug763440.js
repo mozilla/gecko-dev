@@ -7,9 +7,10 @@ function TestCase(n, d, e, a) {
 function reportCompare (expected, actual, description) {
   new TestCase
 }
-reportCompare(true, eval++, "Function.prototype.isGenerator present");
+reportCompare(true, eval++, "Dummy description.");
 var p = Proxy.create({
-    has : function(id) {}
+    has : function(id) {},
+    set : function() {}
 });
 Object.prototype.__proto__ = p;
 new TestCase;

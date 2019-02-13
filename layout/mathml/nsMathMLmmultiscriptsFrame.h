@@ -23,12 +23,12 @@ public:
   friend nsIFrame* NS_NewMathMLmmultiscriptsFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   NS_IMETHOD
-  TransmitAutomaticData() MOZ_OVERRIDE;
+  TransmitAutomaticData() override;
 
   virtual nsresult
   Place(nsRenderingContext& aRenderingContext,
         bool                 aPlaceOrigin,
-        nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+        nsHTMLReflowMetrics& aDesiredSize) override;
 
   static nsresult
   PlaceMultiScript(nsPresContext*      aPresContext,
@@ -38,13 +38,13 @@ public:
                     nsMathMLContainerFrame* aForFrame,
                     nscoord              aUserSubScriptShift,
                     nscoord              aUserSupScriptShift,
-                    nscoord              aScriptSpace);
+                    float                aFontSizeInflation);
 
   uint8_t
-  ScriptIncrement(nsIFrame* aFrame) MOZ_OVERRIDE;
+  ScriptIncrement(nsIFrame* aFrame) override;
 
 protected:
-  nsMathMLmmultiscriptsFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
+  explicit nsMathMLmmultiscriptsFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmmultiscriptsFrame();
   
 

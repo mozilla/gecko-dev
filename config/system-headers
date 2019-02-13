@@ -200,6 +200,8 @@ atlwin.cpp
 ATSTypes.h
 ATSUnicode.h
 #ifdef ANDROID
+audio_effects/effect_aec.h
+audio_effects/effect_ns.h
 AudioParameter.h
 AudioSystem.h
 AudioTrack.h
@@ -236,10 +238,6 @@ bstring.h
 builtin.h
 Button.h
 byteswap.h
-#if MOZ_TREE_CAIRO!=1
-#define WRAP_CAIRO_HEADERS
-#endif
-#ifdef WRAP_CAIRO_HEADERS
 pixman.h
 cairo.h
 cairo-atsui.h
@@ -256,7 +254,6 @@ cairo-xlib-xrender.h
 cairo-directfb.h
 cairo-qpainter.h
 cairo-qt.h
-#endif
 dfiff.h
 exception
 ffi.h
@@ -398,6 +395,9 @@ DiskInit.h
 dlfcn.h
 dlgs.h
 dl.h
+#ifdef MOZ_WIDGET_GONK
+dns_sd.h
+#endif
 docobj.h
 dos/dosextens.h
 dos.h
@@ -468,6 +468,7 @@ freetype/ftbitmap.h
 freetype/ftxf86.h
 freetype.h
 ftcache.h
+ftfntfmt.h
 ftglyph.h
 ftsynth.h
 ftoutln.h
@@ -508,9 +509,7 @@ gssapi/gssapi.h
 gssapi.h
 gtk/gtk.h
 gtk/gtkx.h
-gtk/gtkprinter.h
-gtk/gtkprintjob.h
-gtk/gtkprintunixdialog.h
+gtk/gtkunixprint.h
 #ifdef ANDROID
 gui/BufferQueue.h
 gui/ConsumerBase.h
@@ -627,14 +626,6 @@ libgnome/libgnome.h
 libgnomeui/gnome-icon-lookup.h
 libgnomeui/gnome-icon-theme.h
 libgnomeui/gnome-ui-init.h
-libgnomevfs/gnome-vfs-file-info.h
-libgnomevfs/gnome-vfs.h
-libgnomevfs/gnome-vfs-init.h
-libgnomevfs/gnome-vfs-mime.h
-libgnomevfs/gnome-vfs-mime-handlers.h
-libgnomevfs/gnome-vfs-mime-utils.h
-libgnomevfs/gnome-vfs-ops.h
-libgnomevfs/gnome-vfs-standard-callbacks.h
 lib$routines.h
 limits
 limits.h
@@ -731,6 +722,8 @@ Math64.h
 math.h
 mbstring.h
 #ifdef ANDROID
+media/AudioEffect.h
+media/AudioSystem.h
 media/ICrypto.h
 media/IOMX.h
 media/MediaProfiles.h
@@ -1244,6 +1237,7 @@ X11/extensions/shape.h
 X11/extensions/scrnsaver.h
 X11/extensions/XShm.h
 X11/extensions/Xrender.h
+X11/extensions/Xfixes.h
 X11/extensions/Xdamage.h
 X11/extensions/Xcomposite.h
 X11/Intrinsic.h
@@ -1262,7 +1256,6 @@ X11/Xlocale.h
 X11/Xos.h
 X11/Xutil.h
 zmouse.h
-speex/speex_resampler.h
 soundtouch/SoundTouch.h
 #if MOZ_NATIVE_PNG==1
 png.h
@@ -1324,6 +1317,7 @@ vpx_mem/vpx_mem.h
 vorbis/codec.h
 theora/theoradec.h
 tremor/ivorbiscodec.h
+speex/speex_resampler.h
 ogg/ogg.h
 ogg/os_types.h
 nestegg/nestegg.h
@@ -1350,6 +1344,7 @@ unicode/ucol.h
 unicode/udat.h
 unicode/udatpg.h
 unicode/uenum.h
+unicode/unorm.h
 unicode/unum.h
 unicode/ustring.h
 unicode/utypes.h

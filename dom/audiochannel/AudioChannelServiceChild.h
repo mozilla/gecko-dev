@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,12 +21,17 @@ class AudioChannelServiceChild : public AudioChannelService
 public:
 
   /**
-   * Returns the AudioChannelServce singleton. Only to be called from main
-   * thread.
-   *
-   * @return NS_OK on proper assignment, NS_ERROR_FAILURE otherwise.
+   * Returns the AudioChannelServce singleton or null if the process havn't create it before.
+   * Only to be called from main thread.
    */
   static AudioChannelService* GetAudioChannelService();
+
+  /**
+   * Returns the AudioChannelServce singleton.
+   * If AudioChannelServce is not exist, create and return new one.
+   * Only to be called from main thread.
+   */
+  static AudioChannelService* GetOrCreateAudioChannelService();
 
   static void Shutdown();
 

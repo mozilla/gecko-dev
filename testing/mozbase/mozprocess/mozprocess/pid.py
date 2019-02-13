@@ -4,19 +4,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import os
+from __future__ import absolute_import
+
 import mozinfo
 import shlex
 import subprocess
 import sys
 
 # determine the platform-specific invocation of `ps`
-if mozinfo.isMac:
-    psarg = '-Acj'
-elif mozinfo.isLinux:
-    psarg = 'axwww'
+if mozinfo.isWin:
+    psarg='ax'
 else:
-    psarg = 'ax'
+    psarg = 'axwww'
 
 def ps(arg=psarg):
     """
@@ -64,9 +63,8 @@ def running_processes(name, psarg=psarg, defunct=True):
         if 'STAT' in process and not defunct:
             if process['STAT'] == 'Z+':
                 continue
-        prog = command[0]
-        basename = os.path.basename(prog)
-        if basename == name:
+        command = subprocess.list2cmdline(command)
+        if name in command:
             retval.append((int(process['PID']), command))
     return retval
 
@@ -75,7 +73,7 @@ def get_pids(name):
 
     if mozinfo.isWin:
         # use the windows-specific implementation
-        import wpk
+        from . import wpk
         return wpk.get_pids(name)
     else:
         return [pid for pid,_ in running_processes(name)]

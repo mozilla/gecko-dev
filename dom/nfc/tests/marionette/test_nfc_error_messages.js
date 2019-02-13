@@ -4,19 +4,17 @@
 'use strict';
 
 /* globals log, is, ok, runTests, toggleNFC, runNextTest,
-   SpecialPowers, nfc, enableRE0, MozNDEFRecord */
+   SpecialPowers, nfc, MozNDEFRecord, emulator */
 
 const MARIONETTE_TIMEOUT = 60000;
 const MARIONETTE_HEAD_JS = 'head.js';
 
 const MANIFEST_URL = 'app://system.gaiamobile.org/manifest.webapp';
-const NDEF_MESSAGE = [new MozNDEFRecord(0x01,
-                                        new Uint8Array(0x84),
-                                        new Uint8Array(0),
-                                        new Uint8Array(0x20))];
+const NDEF_MESSAGE = [new MozNDEFRecord({tnf: "well-known",
+                                         type: new Uint8Array(0x84),
+                                         payload: new Uint8Array(0x20)})];
 
 let nfcPeers = [];
-let sessionTokens = [];
 
 /**
  * Enables nfc and RE0 then registers onpeerready callback and once
@@ -27,10 +25,11 @@ let sessionTokens = [];
 function testNfcNotEnabledError() {
   log('testNfcNotEnabledError');
   toggleNFC(true)
-  .then(enableRE0)
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
   .then(registerAndFireOnpeerready)
+  .then(() => deactivateAndWaitForPeerLost())
   .then(() => toggleNFC(false))
-  .then(() => sendNDEFExpectError(nfcPeers[0], 'NfcNotEnabledError'))
+  .then(() => sendNDEFExpectError(nfcPeers[0]))
   .then(endTest)
   .catch(handleRejectedPromise);
 }
@@ -45,32 +44,14 @@ function testNfcNotEnabledError() {
 function testNfcBadSessionIdError() {
   log('testNfcBadSessionIdError');
   toggleNFC(true)
-  .then(enableRE0)
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
   .then(registerAndFireOnpeerready)
-  .then(() => toggleNFC(false))
-  .then(() => toggleNFC(true))
-  .then(enableRE0)
+  .then(() => NCI.deactivate())
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
   .then(registerAndFireOnpeerready)
   // we have 2 peers in nfcPeers array, peer0 has old/invalid session token
-  .then(() => sendNDEFExpectError(nfcPeers[0], 'NfcBadSessionIdError'))
-  .then(() => toggleNFC(false))
-  .then(endTest)
-  .catch(handleRejectedPromise);
-}
-
-/**
- * Eables nfc and RE0, register onpeerready callback, once it's fired
- * it stores sessionToken. Using sessionToken cretes mozNFCTag and fires
- * mozNFCTag.connect('NDEF') which should result in NfcConnectError.
- */
-function testNfcConnectError() {
-  log('testNfcConnectError');
-  toggleNFC(true)
-  .then(enableRE0)
-  .then(registerAndFireOnpeerready)
-  .then(() => connectToNFCTagExpectError(sessionTokens[0],
-                                         'NDEF',
-                                         'NfcConnectError'))
+  .then(() => sendNDEFExpectError(nfcPeers[0]))
+  .then(() => deactivateAndWaitForPeerLost())
   .then(() => toggleNFC(false))
   .then(endTest)
   .catch(handleRejectedPromise);
@@ -83,17 +64,27 @@ function testNfcConnectError() {
  */
 function testNoErrorInTechMsg() {
   log('testNoErrorInTechMsg');
+
+  let techDiscoveredHandler = function(msg) {
+    ok('Message handler for nfc-manager-tech-discovered');
+    ok(msg.peer, 'check for correct tech type');
+    is(msg.errorMsg, undefined, 'Should not get error msg in tech discovered');
+
+    setAndFireTechLostHandler()
+    .then(() => toggleNFC(false))
+    .then(endTest)
+    .catch(handleRejectedPromise);
+  };
+
+  sysMsgHelper.waitForTechDiscovered(techDiscoveredHandler);
+
   toggleNFC(true)
-  .then(enableRE0)
-  .then(setTechDiscoveredHandler)
-  .then(setAndFireTechLostHandler)
-  .then(endTest)
+  .then(() => NCI.activateRE(emulator.P2P_RE_INDEX_0))
   .catch(handleRejectedPromise);
 }
 
 function endTest() {
   nfcPeers = [];
-  sessionTokens = [];
   runNextTest();
 }
 
@@ -106,84 +97,27 @@ function registerAndFireOnpeerready() {
   let deferred = Promise.defer();
 
   nfc.onpeerready = function(event) {
-    sessionTokens.push(event.detail);
-    nfcPeers.push(nfc.getNFCPeer(event.detail));
+    log("onpeerready called");
+    nfcPeers.push(event.peer);
     nfc.onpeerready = null;
     deferred.resolve();
   };
 
-  let req = nfc.checkP2PRegistration(MANIFEST_URL);
-  req.onsuccess = function() {
-    is(req.result, true, 'P2P registration result');
-    if(req.result) {
-      nfc.notifyUserAcceptedP2P(MANIFEST_URL);
-    } else {
-      ok(false, 'this should not happen');
-      nfc.onpeerready = null;
-      deferred.reject();
-    }
-  };
-
-  req.onerror = function() {
-    ok(false, 'not possible');
-    nfc.onpeerready = null;
-    deferred.reject();
-  };
-
+  nfc.notifyUserAcceptedP2P(MANIFEST_URL);
   return deferred.promise;
 }
 
-function sendNDEFExpectError(peer, errorMsg) {
+function sendNDEFExpectError(peer) {
   let deferred = Promise.defer();
 
-  let req = peer.sendNDEF(NDEF_MESSAGE);
-  req.onsuccess = function() {
-    ok(false, 'success on sending ndef not possible shoudl get: ' + errorMsg);
+  peer.sendNDEF(NDEF_MESSAGE)
+  .then(() => {
     deferred.reject();
-  };
-
-  req.onerror = function() {
-    ok(true, 'this should happen');
-    is(req.error.name, errorMsg, 'Should have proper error name');
+  }).catch((e) => {
+    ok(true, 'this should happen ' + e);
     deferred.resolve();
-  };
+  });
 
-  return deferred.promise;
-}
-
-function connectToNFCTagExpectError(sessionToken, tech, errorMsg) {
-  let deferred = Promise.defer();
-
-  let nfcTag = nfc.getNFCTag(sessionTokens[0]);
-  let req = nfcTag.connect(tech);
-  req.onsuccess = function() {
-    ok(false, 'we should not be able to connect to the tag');
-    deferred.reject();
-  };
-
-  req.onerror = function() {
-    ok(true, 'we should get an error');
-    is(req.error.name, errorMsg, 'Should have proper error name');
-    deferred.resolve();
-  };
-
-  return deferred.promise;
-}
-
-function setTechDiscoveredHandler() {
-  let deferred = Promise.defer();
-
-  let techDiscoveredHandler = function(msg) {
-    ok('Message handler for nfc-manager-tech-discovered');
-    is(msg.type, 'techDiscovered');
-    is(msg.errorMsg, undefined, 'Should not get error msg in tech discovered');
-
-    window.navigator.mozSetMessageHandler('nfc-manager-tech-discovered', null);
-    deferred.resolve();
-  };
-
-  window.navigator.mozSetMessageHandler('nfc-manager-tech-discovered',
-                                        techDiscoveredHandler);
   return deferred.promise;
 }
 
@@ -192,35 +126,33 @@ function setAndFireTechLostHandler() {
 
   let techLostHandler = function(msg) {
     ok('Message handler for nfc-manager-tech-lost');
-    is(msg.type, 'techLost');
     is(msg.errorMsg, undefined, 'Should not get error msg in tech lost');
 
-    window.navigator.mozSetMessageHandler('nfc-manager-tech-lost', null);
     deferred.resolve();
   };
 
-  window.navigator.mozSetMessageHandler('nfc-manager-tech-lost',
-                                        techLostHandler);
-  // TODO should be refactored once Bug 1023079 lands
-  toggleNFC(false);
+  sysMsgHelper.waitForTechLost(techLostHandler);
+
+  // triggers tech-lost
+  NCI.deactivate();
   return deferred.promise;
 }
 
 let tests = [
   testNfcNotEnabledError,
-  testNfcBadSessionIdError,
-  testNfcConnectError,
+// This testcase is temporarily removed due to Bug 1055959, will reopen when it is fixed
+//  testNfcBadSessionIdError
   testNoErrorInTechMsg
 ];
 
 /**
  * nfc-manager for mozNfc.checkP2PRegistration(manifestUrl)
  *  -> "NFC:CheckP2PRegistration" IPC
- * nfc-write to set/unset onpeerready
+ * nfc-share to set/unset onpeerready
  *  -> "NFC:RegisterPeerTarget", "NFC:UnregisterPeerTarget" IPC
  */
 SpecialPowers.pushPermissions(
   [
     {'type': 'nfc-manager', 'allow': true, context: document},
-    {'type': 'nfc-write', 'allow': true, context: document}
+    {'type': 'nfc-share', 'allow': true, context: document}
   ], runTests);

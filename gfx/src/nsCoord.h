@@ -57,6 +57,14 @@ inline void VERIFY_COORD(nscoord aCoord) {
 #endif
 }
 
+inline nscoord NSCoordMulDiv(nscoord aMult1, nscoord aMult2, nscoord aDiv) {
+#ifdef NS_COORD_IS_FLOAT
+  return (aMult1 * aMult2 / aDiv);
+#else
+  return (int64_t(aMult1) * int64_t(aMult2) / int64_t(aDiv));
+#endif
+}
+
 inline nscoord NSToCoordRound(float aValue)
 {
 #if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__) && !defined(__clang__)
@@ -99,8 +107,8 @@ inline nscoord _nscoordSaturatingMultiply(nscoord aCoord, float aScale,
                                           bool requireNotNegative) {
   VERIFY_COORD(aCoord);
   if (requireNotNegative) {
-    NS_ABORT_IF_FALSE(aScale >= 0.0f,
-                      "negative scaling factors must be handled manually");
+    MOZ_ASSERT(aScale >= 0.0f,
+               "negative scaling factors must be handled manually");
   }
 #ifdef NS_COORD_IS_FLOAT
   return floorf(aCoord * aScale);
@@ -205,8 +213,8 @@ NSCoordSaturatingSubtract(nscoord a, nscoord b,
       // Cap the result, in case we're dealing with numbers near nscoord_MAX
       return std::min(nscoord_MAX, a - b);
     }
-  }
 #endif
+  }
 }
 
 inline float NSCoordToFloat(nscoord aCoord) {

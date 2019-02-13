@@ -4,10 +4,7 @@
 
 "use strict";
 
-let Cu = Components.utils;
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let CC = Components.Constructor;
+let {Cu, Cc, Ci} = require("chrome");
 
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -15,6 +12,31 @@ Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+let { ActorPool } = require("devtools/server/actors/common");
+let { DebuggerServer } = require("devtools/server/main");
+let Services = require("Services");
+
+// Comma separated list of permissions that a sideloaded app can't ask for
+const UNSAFE_PERMISSIONS = Services.prefs.getCharPref("devtools.apps.forbidden-permissions");
+
+let FramesMock = null;
+
+exports.setFramesMock = function (mock) {
+  FramesMock = mock;
+};
+
+DevToolsUtils.defineLazyGetter(this, "Frames", () => {
+  // Offer a way for unit test to provide a mock
+  if (FramesMock) {
+    return FramesMock;
+  }
+  try {
+    return Cu.import("resource://gre/modules/Frames.jsm", {}).Frames;
+  } catch(e) {}
+  return null;
+});
 
 function debug(aMsg) {
   /*
@@ -191,9 +213,9 @@ function WebappsActor(aConnection) {
   Cu.import("resource://gre/modules/AppsUtils.jsm");
   Cu.import("resource://gre/modules/FileUtils.jsm");
 
-  // Keep reference of already created app actors.
-  // key: app frame message manager, value: ContentActor's grip() value
-  this._appActorsMap = new Map();
+  // Keep reference of already connected app processes.
+  // values: app frame message manager
+  this._connectedApps = new Set();
 
   this.conn = aConnection;
   this._uploads = [];
@@ -225,6 +247,11 @@ WebappsActor.prototype = {
     let reg = DOMApplicationRegistry;
     let self = this;
 
+    if (aId in reg.webapps && !reg.webapps[aId].sideloaded &&
+        !this._isUnrestrictedAccessAllowed()) {
+      throw new Error("Replacing non-sideloaded apps is not permitted.");
+    }
+
     // Clean up the deprecated manifest cache if needed.
     if (aId in reg._manifestCache) {
       delete reg._manifestCache[aId];
@@ -237,6 +264,7 @@ WebappsActor.prototype = {
     aApp.basePath = reg.getWebAppsBasePath();
     aApp.localId = (aId in reg.webapps) ? reg.webapps[aId].localId
                                         : reg._nextLocalId();
+    aApp.sideloaded = true;
 
     reg.webapps[aId] = aApp;
     reg.updatePermissionsForApp(aId);
@@ -244,10 +272,19 @@ WebappsActor.prototype = {
     reg._readManifests([{ id: aId }]).then((aResult) => {
       let manifest = aResult[0].manifest;
       aApp.name = manifest.name;
+      aApp.csp = manifest.csp || "";
+      aApp.role = manifest.role || "";
       reg.updateAppHandlers(null, manifest, aApp);
 
       reg._saveApps().then(() => {
         aApp.manifest = manifest;
+
+        // We need the manifest to set the app kind for hosted apps,
+        // because of appcache.
+        if (aApp.kind == undefined) {
+          aApp.kind = manifest.appcache_path ? reg.kHostedAppcache
+                                             : reg.kHosted;
+        }
 
         // Needed to evict manifest cache on content side
         // (has to be dispatched first, otherwise other messages like
@@ -255,7 +292,7 @@ WebappsActor.prototype = {
         reg.broadcastMessage("Webapps:UpdateState", {
           app: aApp,
           manifest: manifest,
-          manifestURL: aApp.manifestURL
+          id: aApp.id
         });
         reg.broadcastMessage("Webapps:FireEvent", {
           eventType: ["downloadsuccess", "downloadapplied"],
@@ -276,7 +313,8 @@ WebappsActor.prototype = {
 
         // We can't have appcache for packaged apps.
         if (!aApp.origin.startsWith("app://")) {
-          reg.startOfflineCacheDownload(new ManifestHelper(manifest, aApp.origin));
+          reg.startOfflineCacheDownload(
+            new ManifestHelper(manifest, aApp.origin, aApp.manifestURL), aApp);
         }
       });
       // Cleanup by removing the temporary directory.
@@ -354,24 +392,21 @@ WebappsActor.prototype = {
         return AppsUtils.loadJSONAsync(manFile);
       }
     }
-    function checkSideloading(aManifest) {
-      return self._getAppType(aManifest.type);
-    }
-    function writeManifest(aAppType) {
+    function writeManifest(resolution) {
       // Move manifest.webapp to the destination directory.
       // The destination directory for this app.
       let installDir = DOMApplicationRegistry._getAppDir(aId);
       if (aManifest) {
         let manFile = OS.Path.join(installDir.path, "manifest.webapp");
         return DOMApplicationRegistry._writeFile(manFile, JSON.stringify(aManifest)).then(() => {
-          return aAppType;
+          return resolution;
         });
       } else {
         let manFile = aDir.clone();
         manFile.append("manifest.webapp");
         manFile.moveTo(installDir, "manifest.webapp");
       }
-      return null;
+      return promise.resolve(resolution);
     }
     function readMetadata(aAppType) {
       if (aMetadata) {
@@ -384,7 +419,7 @@ WebappsActor.prototype = {
           throw("Error parsing metadata.json.");
         }
         if (!aMetadata.origin) {
-          throw("Missing 'origin' property in metadata.json");
+          throw("Missing 'origin' property in metadata.json.");
         }
         return { metadata: aMetadata, appType: aAppType };
       });
@@ -392,9 +427,8 @@ WebappsActor.prototype = {
     let runnable = {
       run: function run() {
         try {
+          let metadata, appType;
           readManifest().
-            then(writeManifest).
-            then(checkSideloading).
             then(readMetadata).
             then(function ({ metadata, appType }) {
               let origin = metadata.origin;
@@ -409,6 +443,8 @@ WebappsActor.prototype = {
                 receipts: aReceipts,
               };
 
+              return writeManifest(app);
+            }).then(function (app) {
               self._registerApp(deferred, app, aId, aDir);
             }, function (error) {
               self._sendError(deferred, error, aId);
@@ -454,6 +490,19 @@ WebappsActor.prototype = {
             manifest = JSON.parse(jsonString);
           } catch(e) {
             self._sendError(deferred, "Error Parsing manifest.webapp: " + e, aId);
+            return;
+          }
+
+          // Completely forbid pushing apps asking for unsafe permissions
+          if ("permissions" in manifest) {
+            let list = UNSAFE_PERMISSIONS.split(",");
+            let hasOne = list.some(p => p.trim() in manifest.permissions);
+            if (hasOne) {
+              self._sendError(deferred, "Installing apps with any of these " +
+                                        "permissions is forbidden: " +
+                                        UNSAFE_PERMISSIONS, aId);
+              return;
+            }
           }
 
           let appType = self._getAppType(manifest.type);
@@ -474,6 +523,14 @@ WebappsActor.prototype = {
               self._sendError(deferred, "Invalid origin in webapp's manifest", aId);
             }
             id = uri.prePath.substring(6);
+          }
+
+          // Prevent overriding preinstalled apps
+          if (id in DOMApplicationRegistry.webapps &&
+              DOMApplicationRegistry.webapps[id].removable === false &&
+              !self._isUnrestrictedAccessAllowed()) {
+            self._sendError(deferred, "The application " + id + " can't be overridden.");
+            return;
           }
 
           // Only after security checks are made and after final app id is computed
@@ -501,14 +558,14 @@ WebappsActor.prototype = {
           // frame script. That will flush the jar cache for this app and allow
           // loading fresh updated resources if we reload its document.
           let FlushFrameScript = function (path) {
-            let jar = Components.classes["@mozilla.org/file/local;1"]
-                                .createInstance(Components.interfaces.nsILocalFile);
+            let jar = Cc["@mozilla.org/file/local;1"]
+                        .createInstance(Ci.nsILocalFile);
             jar.initWithPath(path);
-            let obs = Components.classes["@mozilla.org/observer-service;1"]
-                                .getService(Components.interfaces.nsIObserverService);
+            let obs = Cc["@mozilla.org/observer-service;1"]
+                        .getService(Ci.nsIObserverService);
             obs.notifyObservers(jar, "flush-cache-entry", null);
           };
-          for each (let frame in self._appFrames()) {
+          for (let frame of self._appFrames()) {
             if (frame.getAttribute("mozapp") == manifestURL) {
               let mm = frame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
               mm.loadFrameScript("data:," +
@@ -524,6 +581,7 @@ WebappsActor.prototype = {
             manifestURL: manifestURL,
             appStatus: appType,
             receipts: aReceipts,
+            kind: DOMApplicationRegistry.kPackaged,
           }
 
           self._registerApp(deferred, app, id, aDir);
@@ -555,10 +613,12 @@ WebappsActor.prototype = {
     }
 
     // Check that we are not overriding a preinstalled application.
-    if (appId in reg.webapps && reg.webapps[appId].removable === false) {
-      return { error: "badParameterType",
-               message: "The application " + appId + " can't be overriden."
-             }
+    if (appId in reg.webapps &&
+        reg.webapps[appId].removable === false &&
+        !this._isUnrestrictedAccessAllowed()) {
+      return { error: "installationFailed",
+               message: "The application " + appId + " can't be overridden."
+             };
     }
 
     let appDir = FileUtils.getDir("TmpD", ["b2g", appId], false, false);
@@ -650,38 +710,36 @@ WebappsActor.prototype = {
       return { error: "appNotFound" };
     }
 
-    return this._isAppAllowedForURL(app.manifestURL).then(allowed => {
-      if (!allowed) {
-        return { error: "forbidden" };
-      }
-      return reg.getManifestFor(manifestURL).then(function (manifest) {
-        app.manifest = manifest;
-        return { app: app };
-      });
+    if (!this._isAppAllowedForURL(app.manifestURL)) {
+      return { error: "forbidden" };
+    }
+
+    return reg.getManifestFor(manifestURL).then(function (manifest) {
+      app.manifest = manifest;
+      return { app: app };
     });
   },
 
-  _areCertifiedAppsAllowed: function wa__areCertifiedAppsAllowed() {
+  _isUnrestrictedAccessAllowed: function() {
     let pref = "devtools.debugger.forbid-certified-apps";
     return !Services.prefs.getBoolPref(pref);
   },
 
-  _isAppAllowedForManifest: function wa__isAppAllowedForManifest(aManifest) {
-    if (this._areCertifiedAppsAllowed()) {
+  _isAppAllowed: function(aApp) {
+    if (this._isUnrestrictedAccessAllowed()) {
       return true;
     }
-    let type = this._getAppType(aManifest.type);
-    return type !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+    return aApp.sideloaded;
   },
 
   _filterAllowedApps: function wa__filterAllowedApps(aApps) {
-    return aApps.filter(app => this._isAppAllowedForManifest(app.manifest));
+    return aApps.filter(app => this._isAppAllowed(app));
   },
 
   _isAppAllowedForURL: function wa__isAppAllowedForURL(aManifestURL) {
-    return this._findManifestByURL(aManifestURL).then(manifest => {
-      return this._isAppAllowedForManifest(manifest);
-    });
+    let reg = DOMApplicationRegistry;
+    let app = reg.getAppByManifestURL(aManifestURL);
+    return this._isAppAllowed(app);
   },
 
   uninstall: function wa_actorUninstall(aRequest) {
@@ -693,19 +751,11 @@ WebappsActor.prototype = {
                message: "missing parameter manifestURL" };
     }
 
-    let deferred = promise.defer();
-    let reg = DOMApplicationRegistry;
-    reg.uninstall(
-      manifestURL,
-      function onsuccess() {
-        deferred.resolve({});
-      },
-      function onfailure(reason) {
-        deferred.resolve({ error: reason });
-      }
-    );
+    if (!this._isAppAllowedForURL(manifestURL)) {
+      return { error: "forbidden" };
+    }
 
-    return deferred.promise;
+    return DOMApplicationRegistry.uninstall(manifestURL);
   },
 
   _findManifestByURL: function wa__findManifestByURL(aManifestURL) {
@@ -740,7 +790,7 @@ WebappsActor.prototype = {
     let deferred = promise.defer();
 
     this._findManifestByURL(manifestURL).then(jsonManifest => {
-      let manifest = new ManifestHelper(jsonManifest, app.origin);
+      let manifest = new ManifestHelper(jsonManifest, app.origin, manifestURL);
       let iconURL = manifest.iconURLForSize(aRequest.size || 128);
       if (!iconURL) {
         deferred.resolve({
@@ -841,22 +891,13 @@ WebappsActor.prototype = {
   },
 
   _appFrames: function () {
-    // For now, we only support app frames on b2g
-    if (Services.appinfo.ID != "{3c2e2abc-06d4-11e1-ac3b-374f68613e61}") {
-      return;
-    }
-    // Register the system app
-    let chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');
-    let systemAppFrame = chromeWindow.shell.contentBrowser;
-    yield systemAppFrame;
-
-    // Register apps hosted in the system app. i.e. the homescreen, all regular
-    // apps and the keyboard.
-    // Bookmark apps and other system app internal frames like captive portal
-    // are also hosted in system app, but they are not using mozapp attribute.
-    let frames = systemAppFrame.contentDocument.querySelectorAll("iframe[mozapp]");
-    for (let i = 0; i < frames.length; i++) {
-      yield frames[i];
+    // Try to filter on b2g and mulet
+    if (Frames) {
+      return Frames.list().filter(frame => {
+        return frame.getAttribute('mozapp');
+      });
+    } else {
+      return [];
     }
   },
 
@@ -866,30 +907,41 @@ WebappsActor.prototype = {
     let appPromises = [];
     let apps = [];
 
-    for each (let frame in this._appFrames()) {
+    for (let frame of this._appFrames()) {
       let manifestURL = frame.getAttribute("mozapp");
 
-      appPromises.push(this._isAppAllowedForURL(manifestURL).then(allowed => {
-        if (allowed) {
-          apps.push(manifestURL);
-        }
-      }));
+      // _appFrames can return more than one frame with the same manifest url
+      if (apps.indexOf(manifestURL) != -1) {
+        continue;
+      }
+      if (this._isAppAllowedForURL(manifestURL)) {
+        apps.push(manifestURL);
+      }
     }
 
-    return promise.all(appPromises).then(() => {
-      return { apps: apps };
-    });
+    return { apps: apps };
   },
 
   getAppActor: function ({ manifestURL }) {
     debug("getAppActor\n");
 
+    // Connects to the main app frame, whose `name` attribute
+    // is set to 'main' by gaia. If for any reason, gaia doesn't set any
+    // frame as main, no frame matches, then we connect arbitrary
+    // to the first app frame...
     let appFrame = null;
-    for each (let frame in this._appFrames()) {
+    let frames = [];
+    for (let frame of this._appFrames()) {
       if (frame.getAttribute("mozapp") == manifestURL) {
-        appFrame = frame;
-        break;
+        if (frame.name == "main") {
+          appFrame = frame;
+          break;
+        }
+        frames.push(frame);
       }
+    }
+    if (!appFrame && frames.length > 0) {
+      appFrame = frames[0];
     }
 
     let notFoundError = {
@@ -902,42 +954,45 @@ WebappsActor.prototype = {
       return notFoundError;
     }
 
-    return this._isAppAllowedForURL(manifestURL).then(allowed => {
-      if (!allowed) {
-        return notFoundError;
-      }
+    if (!this._isAppAllowedForURL(manifestURL)) {
+      return notFoundError;
+    }
 
-      // Only create a new actor, if we haven't already
-      // instanciated one for this connection.
-      let map = this._appActorsMap;
-      let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
-                       .frameLoader
-                       .messageManager;
-      let actor = map.get(mm);
-      if (!actor) {
-        let onConnect = actor => {
-          map.set(mm, actor);
-          return { actor: actor };
-        };
-        let onDisconnect = mm => {
-          map.delete(mm);
-        };
-        return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
-                             .then(onConnect);
-      }
+    // Only create a new actor, if we haven't already
+    // instanciated one for this connection.
+    let set = this._connectedApps;
+    let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
+                     .frameLoader
+                     .messageManager;
+    if (!set.has(mm)) {
+      let onConnect = actor => {
+        set.add(mm);
+        return { actor: actor };
+      };
+      let onDisconnect = mm => {
+        set.delete(mm);
+      };
+      return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
+                           .then(onConnect);
+    }
 
-      return { actor: actor };
-    });
+    // We have to update the form as it may have changed
+    // if we detached the TabActor
+    let deferred = promise.defer();
+    let onFormUpdate = msg => {
+      mm.removeMessageListener("debug:form", onFormUpdate);
+      deferred.resolve({ actor: msg.json });
+    };
+    mm.addMessageListener("debug:form", onFormUpdate);
+    mm.sendAsyncMessage("debug:form");
+
+    return deferred.promise;
   },
 
   watchApps: function () {
-    this._openedApps = new Set();
     // For now, app open/close events are only implement on b2g
-    if (Services.appinfo.ID == "{3c2e2abc-06d4-11e1-ac3b-374f68613e61}") {
-      let chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');
-      let systemAppFrame = chromeWindow.getContentWindow();
-      systemAppFrame.addEventListener("appwillopen", this);
-      systemAppFrame.addEventListener("appterminated", this);
+    if (Frames) {
+      Frames.addObserver(this);
     }
     Services.obs.addObserver(this, "webapps-installed", false);
     Services.obs.addObserver(this, "webapps-uninstall", false);
@@ -946,12 +1001,8 @@ WebappsActor.prototype = {
   },
 
   unwatchApps: function () {
-    this._openedApps = null;
-    if (Services.appinfo.ID == "{3c2e2abc-06d4-11e1-ac3b-374f68613e61}") {
-      let chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');
-      let systemAppFrame = chromeWindow.getContentWindow();
-      systemAppFrame.removeEventListener("appwillopen", this);
-      systemAppFrame.removeEventListener("appterminated", this);
+    if (Frames) {
+      Frames.removeObserver(this);
     }
     Services.obs.removeObserver(this, "webapps-installed", false);
     Services.obs.removeObserver(this, "webapps-uninstall", false);
@@ -959,45 +1010,43 @@ WebappsActor.prototype = {
     return {};
   },
 
-  handleEvent: function (event) {
-    let manifestURL;
-    switch(event.type) {
-      case "appwillopen":
-        manifestURL = event.detail.manifestURL;
+  onFrameCreated: function (frame, isFirstAppFrame) {
+    let mozapp = frame.getAttribute('mozapp');
+    if (!mozapp || !isFirstAppFrame) {
+      return;
+    }
 
-        // Ignore the event if we already received an appwillopen for this app
-        // (appwillopen is also fired when the app has been moved to background
-        // and get back to foreground)
-        if (this._openedApps.has(manifestURL)) {
-          return;
-        }
-        this._openedApps.add(manifestURL);
+    let manifestURL = frame.appManifestURL;
+    // Only track app frames
+    if (!manifestURL) {
+      return;
+    }
 
-        this._isAppAllowedForURL(manifestURL).then(allowed => {
-          if (allowed) {
-            this.conn.send({ from: this.actorID,
-                             type: "appOpen",
-                             manifestURL: manifestURL
-                           });
-          }
-        });
+    if (this._isAppAllowedForURL(manifestURL)) {
+      this.conn.send({ from: this.actorID,
+                       type: "appOpen",
+                       manifestURL: manifestURL
+                     });
+    }
+  },
 
-        break;
+  onFrameDestroyed: function (frame, isLastAppFrame) {
+    let mozapp = frame.getAttribute('mozapp');
+    if (!mozapp || !isLastAppFrame) {
+      return;
+    }
 
-      case "appterminated":
-        manifestURL = event.detail.manifestURL;
-        this._openedApps.delete(manifestURL);
+    let manifestURL = frame.appManifestURL;
+    // Only track app frames
+    if (!manifestURL) {
+      return;
+    }
 
-        this._isAppAllowedForURL(manifestURL).then(allowed => {
-          if (allowed) {
-            this.conn.send({ from: this.actorID,
-                             type: "appClose",
-                             manifestURL: manifestURL
-                           });
-          }
-        });
-
-        break;
+    if (this._isAppAllowedForURL(manifestURL)) {
+      this.conn.send({ from: this.actorID,
+                       type: "appClose",
+                       manifestURL: manifestURL
+                     });
     }
   },
 
@@ -1035,4 +1084,4 @@ WebappsActor.prototype.requestTypes = {
   "getIconAsDataURL": WebappsActor.prototype.getIconAsDataURL
 };
 
-DebuggerServer.addGlobalActor(WebappsActor, "webappsActor");
+exports.WebappsActor = WebappsActor;

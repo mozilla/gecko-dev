@@ -14,7 +14,7 @@ const SHEET_B = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetB.css";
 const SHEET_C = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetC.css";
 const SHEET_D = TEST_BASE_HTTPS + "browser_cmd_csscoverage_sheetD.css";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let options = yield helpers.openTab("about:blank");
   yield helpers.openToolbar(options);
 
@@ -33,32 +33,33 @@ let test = asyncTest(function*() {
  * Visit all the pages in the test
  */
 function* navigate(usage, options) {
-  yield usage.start();
+  yield usage.start(options.chromeWindow, options.target);
 
-  let running = yield usage._testOnly_isRunning();
-  ok(running, "csscoverage is running");
+  ok(usage.isRunning(), "csscoverage is running");
+
+  let load1Promise = helpers.listenOnce(options.browser, "load", true);
 
   yield helpers.navigate(PAGE_1, options);
 
   // Wait for the test pages to auto-cycle
-  let ev = yield helpers.listenOnce(options.browser, "load", true);
-  is(ev.target.location.href, PAGE_1, "page 1 loaded");
+  yield load1Promise;
+  is(options.window.location.href, PAGE_1, "page 1 loaded");
 
-  ev = yield helpers.listenOnce(options.browser, "load", true);
-  is(ev.target.location.href, PAGE_3, "page 3 loaded");
+  // Page 2 is a frame in page 1. JS in the page navigates to page 3.
+  yield helpers.listenOnce(options.browser, "load", true);
+  is(options.window.location.href, PAGE_3, "page 3 loaded");
 
   yield usage.stop();
 
-  running = yield usage._testOnly_isRunning();
-  ok(!running, "csscoverage not is running");
+  ok(!usage.isRunning(), "csscoverage not is running");
 }
 
 /**
  * Check the expected pages have been visited
  */
 function* checkPages(usage) {
-  // 'load' event order. '' is for the initial location
-  let expectedVisited = [ '', PAGE_2, PAGE_1, PAGE_3 ];
+  // 'load' event order. 'null' is for the initial location
+  let expectedVisited = [ 'null', PAGE_2, PAGE_1, PAGE_3 ];
   let actualVisited = yield usage._testOnly_visitedPages();
   isEqualJson(actualVisited, expectedVisited, 'Visited');
 }

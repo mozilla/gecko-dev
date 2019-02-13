@@ -8,7 +8,10 @@
 const TEST_COLOR = "#123ABC";
 const COLOR_SELECTOR = "span[data-color]";
 
-let test = asyncTest(function* () {
+add_task(function* () {
+  // Test is slow on Linux EC2 instances - Bug 1137765
+  requestLongerTimeout(2);
+
   const TEST_DOC = '<html>                                              \
                       <body>                                            \
                         <div style="color: ' + TEST_COLOR + ';          \

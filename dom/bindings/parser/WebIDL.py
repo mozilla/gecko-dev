@@ -9,6 +9,7 @@ import re
 import os
 import traceback
 import math
+from collections import defaultdict
 
 # Machinery
 
@@ -163,6 +164,9 @@ class IDLObject(object):
     def isUnion(self):
         return False
 
+    def isTypedef(self):
+        return False
+
     def getUserData(self, key, default):
         return self.userData.get(key, default)
 
@@ -203,7 +207,7 @@ class IDLObject(object):
             deps.add(self.filename())
 
         for d in self._getDependentObjects():
-            deps = deps.union(d.getDeps(visited))
+            deps.update(d.getDeps(visited))
 
         return deps
 
@@ -219,6 +223,12 @@ class IDLScope(IDLObject):
             self._name = None
 
         self._dict = {}
+        self.globalNames = set()
+        # A mapping from global name to the set of global interfaces
+        # that have that global name.
+        self.globalNameMapping = defaultdict(set)
+        self.primaryGlobalAttr = None
+        self.primaryGlobalName = None
 
     def __str__(self):
         return self.QName()
@@ -331,7 +341,10 @@ class IDLUnresolvedIdentifier(IDLObject):
 
         assert len(name) > 0
 
-        if name[:2] == "__" and name != "__content" and name != "___noSuchMethod__"  and not allowDoubleUnderscore:
+        if name == "__noSuchMethod__":
+            raise WebIDLError("__noSuchMethod__ is deprecated", [location])
+
+        if name[:2] == "__" and name != "__content" and not allowDoubleUnderscore:
             raise WebIDLError("Identifiers beginning with __ are reserved",
                               [location])
         if name[0] == '_' and not allowDoubleUnderscore:
@@ -441,15 +454,69 @@ class IDLIdentifierPlaceholder(IDLObjectWithIdentifier):
         obj = self.identifier.resolve(scope, None)
         return scope.lookupIdentifier(obj)
 
-class IDLExternalInterface(IDLObjectWithIdentifier):
+class IDLExposureMixins():
+    def __init__(self, location):
+        # _exposureGlobalNames are the global names listed in our [Exposed]
+        # extended attribute.  exposureSet is the exposure set as defined in the
+        # Web IDL spec: it contains interface names.
+        self._exposureGlobalNames = set()
+        self.exposureSet = set()
+        self._location = location
+        self._globalScope = None
+
+    def finish(self, scope):
+        assert scope.parentScope is None
+        self._globalScope = scope
+
+        # Verify that our [Exposed] value, if any, makes sense.
+        for globalName in self._exposureGlobalNames:
+            if globalName not in scope.globalNames:
+                raise WebIDLError("Unknown [Exposed] value %s" % globalName,
+                                  [self._location])
+
+        if len(self._exposureGlobalNames) == 0:
+            self._exposureGlobalNames.add(scope.primaryGlobalName)
+
+        globalNameSetToExposureSet(scope, self._exposureGlobalNames,
+                                   self.exposureSet)
+
+    def isExposedInWindow(self):
+        return 'Window' in self.exposureSet
+
+    def isExposedInAnyWorker(self):
+        return len(self.getWorkerExposureSet()) > 0
+
+    def isExposedInSystemGlobals(self):
+        return 'BackstagePass' in self.exposureSet
+
+    def isExposedInSomeButNotAllWorkers(self):
+        """
+        Returns true if the Exposed extended attribute for this interface
+        exposes it in some worker globals but not others.  The return value does
+        not depend on whether the interface is exposed in Window or System
+        globals.
+        """
+        if not self.isExposedInAnyWorker():
+            return False
+        workerScopes = self.parentScope.globalNameMapping["Worker"]
+        return len(workerScopes.difference(self.exposureSet)) > 0
+
+    def getWorkerExposureSet(self):
+        workerScopes = self._globalScope.globalNameMapping["Worker"]
+        return workerScopes.intersection(self.exposureSet)
+
+
+class IDLExternalInterface(IDLObjectWithIdentifier, IDLExposureMixins):
     def __init__(self, location, parentScope, identifier):
         assert isinstance(identifier, IDLUnresolvedIdentifier)
         assert isinstance(parentScope, IDLScope)
         self.parent = None
         IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
+        IDLExposureMixins.__init__(self, location)
         IDLObjectWithIdentifier.resolve(self, parentScope)
 
     def finish(self, scope):
+        IDLExposureMixins.finish(self, scope)
         pass
 
     def validate(self):
@@ -482,24 +549,85 @@ class IDLExternalInterface(IDLObjectWithIdentifier):
     def _getDependentObjects(self):
         return set()
 
-class IDLInterface(IDLObjectWithScope):
+class IDLPartialInterface(IDLObject):
+    def __init__(self, location, name, members, nonPartialInterface):
+        assert isinstance(name, IDLUnresolvedIdentifier)
+
+        IDLObject.__init__(self, location)
+        self.identifier = name
+        self.members = members
+        # propagatedExtendedAttrs are the ones that should get
+        # propagated to our non-partial interface.
+        self.propagatedExtendedAttrs = []
+        self._nonPartialInterface = nonPartialInterface
+        self._finished = False
+        nonPartialInterface.addPartialInterface(self)
+
+    def addExtendedAttributes(self, attrs):
+        for attr in attrs:
+            identifier = attr.identifier()
+
+            if identifier in ["Constructor", "NamedConstructor"]:
+                self.propagatedExtendedAttrs.append(attr)
+            elif identifier == "Exposed":
+                # This just gets propagated to all our members.
+                for member in self.members:
+                    if len(member._exposureGlobalNames) != 0:
+                        raise WebIDLError("[Exposed] specified on both a "
+                                          "partial interface member and on the "
+                                          "partial interface itself",
+                                          [member.location, attr.location])
+                    member.addExtendedAttributes([attr])
+            else:
+                raise WebIDLError("Unknown extended attribute %s on partial "
+                                  "interface" % identifier,
+                                  [attr.location])
+
+    def finish(self, scope):
+        if self._finished:
+            return
+        self._finished = True
+        # Need to make sure our non-partial interface gets finished so it can
+        # report cases when we only have partial interfaces.
+        self._nonPartialInterface.finish(scope)
+
+    def validate(self):
+        pass
+
+
+def convertExposedAttrToGlobalNameSet(exposedAttr, targetSet):
+    assert len(targetSet) == 0
+    if exposedAttr.hasValue():
+        targetSet.add(exposedAttr.value())
+    else:
+        assert exposedAttr.hasArgs()
+        targetSet.update(exposedAttr.args())
+
+def globalNameSetToExposureSet(globalScope, nameSet, exposureSet):
+    for name in nameSet:
+        exposureSet.update(globalScope.globalNameMapping[name])
+
+class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
     def __init__(self, location, parentScope, name, parent, members,
-                 isPartial):
+                 isKnownNonPartial):
         assert isinstance(parentScope, IDLScope)
         assert isinstance(name, IDLUnresolvedIdentifier)
-        assert not isPartial or not parent
+        assert isKnownNonPartial or not parent
+        assert isKnownNonPartial or len(members) == 0
 
         self.parent = None
         self._callback = False
         self._finished = False
         self.members = []
+        self._partialInterfaces = []
+        self._extendedAttrDict = {}
         # namedConstructors needs deterministic ordering because bindings code
         # outputs the constructs in the order that namedConstructors enumerates
         # them.
         self.namedConstructors = list()
         self.implementedInterfaces = set()
         self._consequential = False
-        self._isPartial = True
+        self._isKnownNonPartial = False
         # self.interfacesBasedOnSelf is the set of interfaces that inherit from
         # self or have self as a consequential interface, including self itself.
         # Used for distinguishability checking.
@@ -516,12 +644,10 @@ class IDLInterface(IDLObjectWithScope):
         self._ownMembersInSlots = 0
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
+        IDLExposureMixins.__init__(self, location)
 
-        if not isPartial:
+        if isKnownNonPartial:
             self.setNonPartial(location, parent, members)
-        else:
-            # Just remember our members for now
-            self.members = members
 
     def __str__(self):
         return "Interface '%s'" % self.identifier.name
@@ -553,10 +679,31 @@ class IDLInterface(IDLObjectWithScope):
 
         self._finished = True
 
-        if self._isPartial:
+        if not self._isKnownNonPartial:
             raise WebIDLError("Interface %s does not have a non-partial "
                               "declaration" % self.identifier.name,
                               [self.location])
+
+        IDLExposureMixins.finish(self, scope)
+
+        # Now go ahead and merge in our partial interfaces.
+        for partial in self._partialInterfaces:
+            partial.finish(scope)
+            self.addExtendedAttributes(partial.propagatedExtendedAttrs)
+            self.members.extend(partial.members)
+
+        # Now that we've merged in our partial interfaces, set the
+        # _exposureGlobalNames on any members that don't have it set yet.  Note
+        # that any partial interfaces that had [Exposed] set have already set up
+        # _exposureGlobalNames on all the members coming from them, so this is
+        # just implementing the "members default to interface that defined them"
+        # and "partial interfaces default to interface they're a partial for"
+        # rules from the spec.
+        for m in self.members:
+            # If m, or the partial interface m came from, had [Exposed]
+            # specified, it already has a nonempty exposure global names set.
+            if len(m._exposureGlobalNames) == 0:
+                m._exposureGlobalNames.update(self._exposureGlobalNames)
 
         assert not self.parent or isinstance(self.parent, IDLIdentifierPlaceholder)
         parent = self.parent.finish(scope) if self.parent else None
@@ -579,13 +726,23 @@ class IDLInterface(IDLObjectWithScope):
 
             self.totalMembersInSlots = self.parent.totalMembersInSlots
 
-            # Interfaces with [Global] must not have anything inherit from them
-            if self.parent.getExtendedAttribute("Global"):
+            # Interfaces with [Global] or [PrimaryGlobal] must not
+            # have anything inherit from them
+            if (self.parent.getExtendedAttribute("Global") or
+                self.parent.getExtendedAttribute("PrimaryGlobal")):
                 # Note: This is not a self.parent.isOnGlobalProtoChain() check
                 # because ancestors of a [Global] interface can have other
                 # descendants.
                 raise WebIDLError("[Global] interface has another interface "
                                   "inheriting from it",
+                                  [self.location, self.parent.location])
+
+            # Make sure that we're not exposed in places where our parent is not
+            if not self.exposureSet.issubset(self.parent.exposureSet):
+                raise WebIDLError("Interface %s is exposed in globals where its "
+                                  "parent interface %s is not exposed." %
+                                  (self.identifier.name,
+                                   self.parent.identifier.name),
                                   [self.location, self.parent.location])
 
             # Callbacks must not inherit from non-callbacks or inherit from
@@ -602,6 +759,17 @@ class IDLInterface(IDLObjectWithScope):
             elif self.parent.isCallback():
                 raise WebIDLError("Non-callback interface %s inheriting from "
                                   "callback interface %s" %
+                                  (self.identifier.name,
+                                   self.parent.identifier.name),
+                                  [self.location, self.parent.location])
+
+            # Interfaces which have interface objects can't inherit
+            # from [NoInterfaceObject] interfaces.
+            if (self.parent.getExtendedAttribute("NoInterfaceObject") and
+                not self.getExtendedAttribute("NoInterfaceObject")):
+                raise WebIDLError("Interface %s does not have "
+                                  "[NoInterfaceObject] but inherits from "
+                                  "interface %s which does" %
                                   (self.identifier.name,
                                    self.parent.identifier.name),
                                   [self.location, self.parent.location])
@@ -633,11 +801,23 @@ class IDLInterface(IDLObjectWithScope):
         for member in self.members:
             member.finish(scope)
 
+        # Now that we've finished our members, which has updated their exposure
+        # sets, make sure they aren't exposed in places where we are not.
+        for member in self.members:
+            if not member.exposureSet.issubset(self.exposureSet):
+                raise WebIDLError("Interface member has larger exposure set "
+                                  "than the interface itself",
+                                  [member.location, self.location])
+
         ctor = self.ctor()
         if ctor is not None:
+            assert len(ctor._exposureGlobalNames) == 0
+            ctor._exposureGlobalNames.update(self._exposureGlobalNames)
             ctor.finish(scope)
 
         for ctor in self.namedConstructors:
+            assert len(ctor._exposureGlobalNames) == 0
+            ctor._exposureGlobalNames.update(self._exposureGlobalNames)
             ctor.finish(scope)
 
         # Make a copy of our member list, so things that implement us
@@ -653,6 +833,12 @@ class IDLInterface(IDLObjectWithScope):
                             key=lambda x: x.identifier.name):
             # Flag the interface as being someone's consequential interface
             iface.setIsConsequentialInterfaceOf(self)
+            # Verify that we're not exposed somewhere where iface is not exposed
+            if not self.exposureSet.issubset(iface.exposureSet):
+                raise WebIDLError("Interface %s is exposed in globals where its "
+                                  "consequential interface %s is not exposed." %
+                                  (self.identifier.name, iface.identifier.name),
+                                  [self.location, iface.location])
             additionalMembers = iface.originalMembers;
             for additionalMember in additionalMembers:
                 for member in self.members:
@@ -669,8 +855,36 @@ class IDLInterface(IDLObjectWithScope):
             for ancestorConsequential in ancestor.getConsequentialInterfaces():
                 ancestorConsequential.interfacesBasedOnSelf.add(self)
 
+        # Deal with interfaces marked [Unforgeable], now that we have our full
+        # member list, except unforgeables pulled in from parents.  We want to
+        # do this before we set "originatingInterface" on our unforgeable
+        # members.
+        if self.getExtendedAttribute("Unforgeable"):
+            # Check that the interface already has all the things the
+            # spec would otherwise require us to synthesize and is
+            # missing the ones we plan to synthesize.
+            if not any(m.isMethod() and m.isStringifier() for m in self.members):
+                raise WebIDLError("Unforgeable interface %s does not have a "
+                                  "stringifier" % self.identifier.name,
+                                  [self.location])
+
+            for m in self.members:
+                if ((m.isMethod() and m.isJsonifier()) or
+                    m.identifier.name == "toJSON"):
+                    raise WebIDLError("Unforgeable interface %s has a "
+                                      "jsonifier so we won't be able to add "
+                                      "one ourselves" % self.identifier.name,
+                                      [self.location, m.location])
+
+                if m.identifier.name == "valueOf" and not m.isStatic():
+                    raise WebIDLError("Unforgeable interface %s has a valueOf "
+                                      "member so we won't be able to add one "
+                                      "ourselves" % self.identifier.name,
+                                      [self.location, m.location])
+
         for member in self.members:
-            if (member.isAttr() and member.isUnforgeable() and
+            if ((member.isAttr() or member.isMethod()) and
+                member.isUnforgeable() and
                 not hasattr(member, "originatingInterface")):
                 member.originatingInterface = self
 
@@ -693,16 +907,16 @@ class IDLInterface(IDLObjectWithScope):
             # worry about anything other than our parent, because it has already
             # imported its ancestors unforgeable attributes into its member
             # list.
-            for unforgeableAttr in (attr for attr in self.parent.members if
-                                    attr.isAttr() and not attr.isStatic() and
-                                    attr.isUnforgeable()):
+            for unforgeableMember in (member for member in self.parent.members if
+                                      (member.isAttr() or member.isMethod()) and
+                                      member.isUnforgeable()):
                 shadows = [ m for m in self.members if
                             (m.isAttr() or m.isMethod()) and
                             not m.isStatic() and
-                            m.identifier.name == unforgeableAttr.identifier.name ]
+                            m.identifier.name == unforgeableMember.identifier.name ]
                 if len(shadows) != 0:
-                    locs = [unforgeableAttr.location] + [ s.location for s
-                                                          in shadows ]
+                    locs = [unforgeableMember.location] + [ s.location for s
+                                                            in shadows ]
                     raise WebIDLError("Interface %s shadows [Unforgeable] "
                                       "members of %s" %
                                       (self.identifier.name,
@@ -711,10 +925,10 @@ class IDLInterface(IDLObjectWithScope):
                 # And now just stick it in our members, since we won't be
                 # inheriting this down the proto chain.  If we really cared we
                 # could try to do something where we set up the unforgeable
-                # attributes of ancestor interfaces, with their corresponding
-                # getters, on our interface, but that gets pretty complicated
-                # and seems unnecessary.
-                self.members.append(unforgeableAttr)
+                # attributes/methods of ancestor interfaces, with their
+                # corresponding getters, on our interface, but that gets pretty
+                # complicated and seems unnecessary.
+                self.members.append(unforgeableMember)
 
         # Ensure that there's at most one of each {named,indexed}
         # {getter,setter,creator,deleter}, at most one stringifier,
@@ -785,8 +999,33 @@ class IDLInterface(IDLObjectWithScope):
                 parent = parent.parent
 
     def validate(self):
+        # We don't support consequential unforgeable interfaces.  Need to check
+        # this here, becaue in finish() an interface might not know yet that
+        # it's consequential.
+        if self.getExtendedAttribute("Unforgeable") and self.isConsequential():
+            raise WebIDLError(
+                "%s is an unforgeable consequential interface" %
+                self.identifier.name,
+                [self.location] +
+                list(i.location for i in
+                     (self.interfacesBasedOnSelf - { self }) ))
+
+        # We also don't support inheriting from unforgeable interfaces.
+        if self.getExtendedAttribute("Unforgeable") and self.hasChildInterfaces():
+            raise WebIDLError("%s is an unforgeable ancestor interface" %
+                self.identifier.name,
+                [self.location] +
+                list(i.location for i in
+                     self.interfacesBasedOnSelf if i.parent == self))
+
         for member in self.members:
             member.validate()
+
+            if self.isCallback() and member.getExtendedAttribute("Replaceable"):
+                raise WebIDLError("[Replaceable] used on an attribute on "
+                                  "interface %s which is a callback interface" %
+                                  self.identifier.name,
+                                  [self.location, member.location])
 
             # Check that PutForwards refers to another attribute and that no
             # cycles exist in forwarded assignments.
@@ -827,6 +1066,66 @@ class IDLInterface(IDLObjectWithScope):
                     attr = fowardAttr
                     putForwards = attr.getExtendedAttribute("PutForwards")
 
+            # Check that the name of an [Alias] doesn't conflict with an
+            # interface member.
+            if member.isMethod():
+                for alias in member.aliases:
+                    if self.isOnGlobalProtoChain():
+                        raise WebIDLError("[Alias] must not be used on a "
+                                          "[Global] interface operation",
+                                          [member.location])
+                    if (member.getExtendedAttribute("Exposed") or
+                        member.getExtendedAttribute("ChromeOnly") or
+                        member.getExtendedAttribute("Pref") or
+                        member.getExtendedAttribute("Func") or
+                        member.getExtendedAttribute("AvailableIn") or
+                        member.getExtendedAttribute("CheckPermissions")):
+                        raise WebIDLError("[Alias] must not be used on a "
+                                          "conditionally exposed operation",
+                                          [member.location])
+                    if member.isStatic():
+                        raise WebIDLError("[Alias] must not be used on a "
+                                          "static operation",
+                                          [member.location])
+                    if member.isIdentifierLess():
+                        raise WebIDLError("[Alias] must not be used on an "
+                                          "identifierless operation",
+                                          [member.location])
+                    if member.isUnforgeable():
+                        raise WebIDLError("[Alias] must not be used on an "
+                                          "[Unforgeable] operation",
+                                          [member.location])
+                    for m in self.members:
+                        if m.identifier.name == alias:
+                            raise WebIDLError("[Alias=%s] has same name as "
+                                              "interface member" % alias,
+                                              [member.location, m.location])
+                        if m.isMethod() and m != member and alias in m.aliases:
+                            raise WebIDLError("duplicate [Alias=%s] definitions" %
+                                              alias,
+                                              [member.location, m.location])
+
+        if (self.getExtendedAttribute("Pref") and
+            self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
+            raise WebIDLError("[Pref] used on an interface that is not %s-only" %
+                              self.parentScope.primaryGlobalName,
+                              [self.location])
+
+        if (self.getExtendedAttribute("CheckPermissions") and
+            self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
+            raise WebIDLError("[CheckPermissions] used on an interface that is "
+                              "not %s-only" %
+                              self.parentScope.primaryGlobalName,
+                              [self.location])
+
+        # Conditional exposure makes no sense for interfaces with no
+        # interface object, unless they're navigator properties.
+        if (self.isExposedConditionally() and
+            not self.hasInterfaceObject() and
+            not self.getNavigatorProperty()):
+            raise WebIDLError("Interface with no interface object is "
+                              "exposed conditionally",
+                              [self.location])
 
     def isInterface(self):
         return True
@@ -884,7 +1183,6 @@ class IDLInterface(IDLObjectWithScope):
         return not self.isCallback() and self.getUserData('hasConcreteDescendant', False)
 
     def addExtendedAttributes(self, attrs):
-        self._extendedAttrDict = {}
         for attr in attrs:
             identifier = attr.identifier()
 
@@ -985,17 +1283,43 @@ class IDLInterface(IDLObjectWithScope):
                                       "an interface with inherited interfaces",
                                       [attr.location, self.location])
             elif identifier == "Global":
-                if not attr.noArguments():
-                    raise WebIDLError("[Global] must take no arguments",
-                                      [attr.location])
+                if attr.hasValue():
+                    self.globalNames = [ attr.value() ]
+                elif attr.hasArgs():
+                    self.globalNames = attr.args()
+                else:
+                    self.globalNames = [ self.identifier.name ]
+                self.parentScope.globalNames.update(self.globalNames)
+                for globalName in self.globalNames:
+                    self.parentScope.globalNameMapping[globalName].add(self.identifier.name)
                 self._isOnGlobalProtoChain = True
-            elif (identifier == "NeedNewResolve" or
+            elif identifier == "PrimaryGlobal":
+                if not attr.noArguments():
+                    raise WebIDLError("[PrimaryGlobal] must take no arguments",
+                                      [attr.location])
+                if self.parentScope.primaryGlobalAttr is not None:
+                    raise WebIDLError(
+                        "[PrimaryGlobal] specified twice",
+                        [attr.location,
+                         self.parentScope.primaryGlobalAttr.location])
+                self.parentScope.primaryGlobalAttr = attr
+                self.parentScope.primaryGlobalName = self.identifier.name
+                self.parentScope.globalNames.add(self.identifier.name)
+                self.parentScope.globalNameMapping[self.identifier.name].add(self.identifier.name)
+                self._isOnGlobalProtoChain = True
+            elif (identifier == "NeedResolve" or
                   identifier == "OverrideBuiltins" or
-                  identifier == "ChromeOnly"):
+                  identifier == "ChromeOnly" or
+                  identifier == "Unforgeable" or
+                  identifier == "UnsafeInPrerendering" or
+                  identifier == "LegacyEventInit"):
                 # Known extended attributes that do not take values
                 if not attr.noArguments():
                     raise WebIDLError("[%s] must take no arguments" % identifier,
                                       [attr.location])
+            elif identifier == "Exposed":
+                convertExposedAttrToGlobalNameSet(attr,
+                                                  self._exposureGlobalNames)
             elif (identifier == "Pref" or
                   identifier == "JSImplementation" or
                   identifier == "HeaderFile" or
@@ -1072,11 +1396,11 @@ class IDLInterface(IDLObjectWithScope):
 
     def setNonPartial(self, location, parent, members):
         assert not parent or isinstance(parent, IDLIdentifierPlaceholder)
-        if not self._isPartial:
+        if self._isKnownNonPartial:
             raise WebIDLError("Two non-partial definitions for the "
                               "same interface",
                               [location, self.location])
-        self._isPartial = False
+        self._isKnownNonPartial = True
         # Now make it look like we were parsed at this new location, since
         # that's the place where the interface is "really" defined
         self.location = location
@@ -1084,6 +1408,10 @@ class IDLInterface(IDLObjectWithScope):
         self.parent = parent
         # Put the new members at the beginning
         self.members = members + self.members
+
+    def addPartialInterface(self, partial):
+        assert self.identifier.name == partial.identifier.name
+        self._partialInterfaces.append(partial)
 
     def getJSImplementation(self):
         classId = self.getExtendedAttribute("JSImplementation")
@@ -1113,13 +1441,20 @@ class IDLInterface(IDLObjectWithScope):
 
     def _getDependentObjects(self):
         deps = set(self.members)
-        deps.union(self.implementedInterfaces)
+        deps.update(self.implementedInterfaces)
         if self.parent:
             deps.add(self.parent)
         return deps
 
     def hasMembersInSlots(self):
         return self._ownMembersInSlots != 0
+
+    def isExposedConditionally(self):
+        return (self.getExtendedAttribute("Pref") or
+                self.getExtendedAttribute("ChromeOnly") or
+                self.getExtendedAttribute("Func") or
+                self.getExtendedAttribute("AvailableIn") or
+                self.getExtendedAttribute("CheckPermissions"))
 
 class IDLDictionary(IDLObjectWithScope):
     def __init__(self, location, parentScope, name, parent, members):
@@ -1138,6 +1473,14 @@ class IDLDictionary(IDLObjectWithScope):
 
     def isDictionary(self):
         return True;
+
+    def canBeEmpty(self):
+        """
+        Returns true if this dictionary can be empty (that is, it has no
+        required members and neither do any of its ancestors).
+        """
+        return (all(member.optional for member in self.members) and
+                (not self.parent or self.parent.canBeEmpty()))
 
     def finish(self, scope):
         if self._finished:
@@ -1312,6 +1655,7 @@ class IDLType(IDLObject):
         'any',
         'domstring',
         'bytestring',
+        'usvstring',
         'object',
         'date',
         'void',
@@ -1364,6 +1708,9 @@ class IDLType(IDLObject):
     def isDOMString(self):
         return False
 
+    def isUSVString(self):
+        return False
+
     def isVoid(self):
         return self.name == "Void"
 
@@ -1382,7 +1729,16 @@ class IDLType(IDLObject):
     def isArrayBufferView(self):
         return False
 
+    def isSharedArrayBuffer(self):
+        return False
+
+    def isSharedArrayBufferView(self):
+        return False
+
     def isTypedArray(self):
+        return False
+
+    def isSharedTypedArray(self):
         return False
 
     def isCallbackInterface(self):
@@ -1404,7 +1760,10 @@ class IDLType(IDLObject):
             only returns true for the types from the TypedArray spec. """
         return self.isInterface() and (self.isArrayBuffer() or \
                                        self.isArrayBufferView() or \
-                                       self.isTypedArray())
+                                       self.isSharedArrayBuffer() or \
+                                       self.isSharedArrayBufferView() or \
+                                       self.isTypedArray() or \
+                                       self.isSharedTypedArray())
 
     def isDictionary(self):
         return False
@@ -1445,11 +1804,11 @@ class IDLType(IDLObject):
 
     def treatNonCallableAsNull(self):
         assert self.tag() == IDLType.Tags.callback
-        return self.nullable() and self.inner._treatNonCallableAsNull
+        return self.nullable() and self.inner.callback._treatNonCallableAsNull
 
     def treatNonObjectAsNull(self):
         assert self.tag() == IDLType.Tags.callback
-        return self.nullable() and self.inner._treatNonObjectAsNull
+        return self.nullable() and self.inner.callback._treatNonObjectAsNull
 
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
@@ -1464,13 +1823,17 @@ class IDLType(IDLObject):
         raise TypeError("Can't tell whether a generic type is or is not "
                         "distinguishable from other things")
 
+    def isExposedInAllOf(self, exposureSet):
+        return True
+
 class IDLUnresolvedType(IDLType):
     """
         Unresolved types are interface types
     """
 
-    def __init__(self, location, name):
+    def __init__(self, location, name, promiseInnerType=None):
         IDLType.__init__(self, location, name)
+        self._promiseInnerType = promiseInnerType
 
     def isComplete(self):
         return False
@@ -1485,14 +1848,23 @@ class IDLUnresolvedType(IDLType):
 
         assert obj
         if obj.isType():
-            # obj itself might not be complete; deal with that.
-            assert obj != self
-            if not obj.isComplete():
-                obj = obj.complete(scope)
-            return obj
+            print obj
+        assert not obj.isType()
+        if obj.isTypedef():
+            assert self.name.name == obj.identifier.name
+            typedefType = IDLTypedefType(self.location, obj.innerType,
+                                         obj.identifier)
+            assert not typedefType.isComplete()
+            return typedefType.complete(scope)
+        elif obj.isCallback() and not obj.isInterface():
+            assert self.name.name == obj.identifier.name
+            return IDLCallbackType(self.location, obj)
+
+        if self._promiseInnerType and not self._promiseInnerType.isComplete():
+            self._promiseInnerType = self._promiseInnerType.complete(scope)
 
         name = self.name.resolve(scope, None)
-        return IDLWrapperType(self.location, obj)
+        return IDLWrapperType(self.location, obj, self._promiseInnerType)
 
     def isDistinguishableFrom(self, other):
         raise TypeError("Can't tell whether an unresolved type is or is not "
@@ -1503,7 +1875,10 @@ class IDLNullableType(IDLType):
         assert not innerType.isVoid()
         assert not innerType == BuiltinTypes[IDLBuiltinType.Types.any]
 
-        IDLType.__init__(self, location, innerType.name)
+        name = innerType.name
+        if innerType.isComplete():
+            name += "OrNull"
+        IDLType.__init__(self, location, name)
         self.inner = innerType
         self.builtin = False
 
@@ -1537,6 +1912,9 @@ class IDLNullableType(IDLType):
     def isDOMString(self):
         return self.inner.isDOMString()
 
+    def isUSVString(self):
+        return self.inner.isUSVString()
+
     def isFloat(self):
         return self.inner.isFloat()
 
@@ -1567,8 +1945,17 @@ class IDLNullableType(IDLType):
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
 
+    def isSharedArrayBuffer(self):
+        return self.inner.isSharedArrayBuffer()
+
+    def isSharedArrayBufferView(self):
+        return self.inner.isSharedArrayBufferView()
+
     def isTypedArray(self):
         return self.inner.isTypedArray()
+
+    def isSharedTypedArray(self):
+        return self.inner.isSharedTypedArray()
 
     def isDictionary(self):
         return self.inner.isDictionary()
@@ -1613,7 +2000,7 @@ class IDLNullableType(IDLType):
                                   "be a union type that itself has a nullable "
                                   "type as a member type", [self.location])
 
-        self.name = self.inner.name
+        self.name = self.inner.name + "OrNull"
         return self
 
     def unroll(self):
@@ -1636,6 +2023,10 @@ class IDLSequenceType(IDLType):
         IDLType.__init__(self, location, parameterType.name)
         self.inner = parameterType
         self.builtin = False
+        # Need to set self.name up front if our inner type is already complete,
+        # since in that case our .complete() won't be called.
+        if self.inner.isComplete():
+            self.name = self.inner.name + "Sequence"
 
     def __eq__(self, other):
         return isinstance(other, IDLSequenceType) and self.inner == other.inner
@@ -1656,6 +2047,9 @@ class IDLSequenceType(IDLType):
         return False
 
     def isDOMString(self):
+        return False
+
+    def isUSVString(self):
         return False
 
     def isVoid(self):
@@ -1694,7 +2088,7 @@ class IDLSequenceType(IDLType):
 
     def complete(self, scope):
         self.inner = self.inner.complete(scope)
-        self.name = self.inner.name
+        self.name = self.inner.name + "Sequence"
         return self
 
     def unroll(self):
@@ -1705,7 +2099,8 @@ class IDLSequenceType(IDLType):
             # Just forward to the union; it'll deal
             return other.isDistinguishableFrom(self)
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isDate() or other.isNonCallbackInterface())
+                other.isDate() or other.isInterface() or other.isDictionary() or
+                other.isCallback() or other.isMozMap())
 
     def _getDependentObjects(self):
         return self.inner._getDependentObjects()
@@ -1720,6 +2115,10 @@ class IDLMozMapType(IDLType):
         IDLType.__init__(self, location, parameterType.name)
         self.inner = parameterType
         self.builtin = False
+        # Need to set self.name up front if our inner type is already complete,
+        # since in that case our .complete() won't be called.
+        if self.inner.isComplete():
+            self.name = self.inner.name + "MozMap"
 
     def __eq__(self, other):
         return isinstance(other, IDLMozMapType) and self.inner == other.inner
@@ -1745,7 +2144,7 @@ class IDLMozMapType(IDLType):
 
     def complete(self, scope):
         self.inner = self.inner.complete(scope)
-        self.name = self.inner.name
+        self.name = self.inner.name + "MozMap"
         return self
 
     def unroll(self):
@@ -1759,7 +2158,10 @@ class IDLMozMapType(IDLType):
             # Just forward to the union; it'll deal
             return other.isDistinguishableFrom(self)
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isDate() or other.isNonCallbackInterface())
+                other.isDate() or other.isNonCallbackInterface() or other.isSequence())
+
+    def isExposedInAllOf(self, exposureSet):
+        return self.inner.unroll().isExposedInAllOf(exposureSet)
 
     def _getDependentObjects(self):
         return self.inner._getDependentObjects()
@@ -1769,12 +2171,16 @@ class IDLUnionType(IDLType):
         IDLType.__init__(self, location, "")
         self.memberTypes = memberTypes
         self.hasNullableType = False
-        self.hasDictionaryType = False
+        self._dictionaryType = None
         self.flatMemberTypes = None
         self.builtin = False
 
     def __eq__(self, other):
         return isinstance(other, IDLUnionType) and self.memberTypes == other.memberTypes
+
+    def __hash__(self):
+        assert self.isComplete()
+        return self.name.__hash__()
 
     def isVoid(self):
         return False
@@ -1807,9 +2213,6 @@ class IDLUnionType(IDLType):
                 return typeName(type._identifier.object())
             if isinstance(type, IDLObjectWithIdentifier):
                 return typeName(type.identifier)
-            if (isinstance(type, IDLType) and
-                (type.isArray() or type.isSequence() or type.isMozMap)):
-                return str(type)
             return type.name
 
         for (i, type) in enumerate(self.memberTypes):
@@ -1824,10 +2227,10 @@ class IDLUnionType(IDLType):
                 if self.hasNullableType:
                     raise WebIDLError("Can't have more than one nullable types in a union",
                                       [nullableType.location, self.flatMemberTypes[i].location])
-                if self.hasDictionaryType:
+                if self.hasDictionaryType():
                     raise WebIDLError("Can't have a nullable type and a "
                                       "dictionary type in a union",
-                                      [dictionaryType.location,
+                                      [self._dictionaryType.location,
                                        self.flatMemberTypes[i].location])
                 self.hasNullableType = True
                 nullableType = self.flatMemberTypes[i]
@@ -1839,8 +2242,7 @@ class IDLUnionType(IDLType):
                                       "dictionary type in a union",
                                       [nullableType.location,
                                        self.flatMemberTypes[i].location])
-                self.hasDictionaryType = True
-                dictionaryType = self.flatMemberTypes[i]
+                self._dictionaryType = self.flatMemberTypes[i]
             elif self.flatMemberTypes[i].isUnion():
                 self.flatMemberTypes[i:i + 1] = self.flatMemberTypes[i].memberTypes
                 continue
@@ -1870,6 +2272,21 @@ class IDLUnionType(IDLType):
             if any(not t.isDistinguishableFrom(u) for t in self.memberTypes):
                 return False
         return True
+
+    def isExposedInAllOf(self, exposureSet):
+        # We could have different member types in different globals.  Just make sure that each thing in exposureSet has one of our member types exposed in it.
+        for globalName in exposureSet:
+            if not any(t.unroll().isExposedInAllOf(set([globalName])) for t
+                       in self.flatMemberTypes):
+                return False
+        return True
+
+    def hasDictionaryType(self):
+        return self._dictionaryType is not None
+
+    def hasPossiblyEmptyDictionaryType(self):
+        return (self._dictionaryType is not None and
+                self._dictionaryType.inner.canBeEmpty())
 
     def _getDependentObjects(self):
         return set(self.memberTypes)
@@ -1910,6 +2327,9 @@ class IDLArrayType(IDLType):
         return False
 
     def isDOMString(self):
+        return False
+
+    def isUSVString(self):
         return False
 
     def isVoid(self):
@@ -1968,23 +2388,17 @@ class IDLArrayType(IDLType):
     def _getDependentObjects(self):
         return self.inner._getDependentObjects()
 
-class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
+class IDLTypedefType(IDLType):
     def __init__(self, location, innerType, name):
-        IDLType.__init__(self, location, innerType.name)
-
-        identifier = IDLUnresolvedIdentifier(location, name)
-
-        IDLObjectWithIdentifier.__init__(self, location, None, identifier)
-
+        IDLType.__init__(self, location, name)
         self.inner = innerType
-        self.name = name
         self.builtin = False
 
     def __eq__(self, other):
         return isinstance(other, IDLTypedefType) and self.inner == other.inner
 
     def __str__(self):
-        return self.identifier.name
+        return self.name
 
     def nullable(self):
         return self.inner.nullable()
@@ -2007,6 +2421,9 @@ class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
     def isDOMString(self):
         return self.inner.isDOMString()
 
+    def isUSVString(self):
+        return self.inner.isUSVString()
+
     def isVoid(self):
         return self.inner.isVoid()
 
@@ -2028,8 +2445,17 @@ class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
 
+    def isSharedArrayBuffer(self):
+        return self.inner.isSharedArrayBuffer()
+
+    def isSharedArrayBufferView(self):
+        return self.inner.isSharedArrayBufferView()
+
     def isTypedArray(self):
         return self.inner.isTypedArray()
+
+    def isSharedTypedArray(self):
+        return self.inner.isSharedTypedArray()
 
     def isInterface(self):
         return self.inner.isInterface()
@@ -2049,16 +2475,6 @@ class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
         assert self.inner.isComplete()
         return self.inner
 
-    def finish(self, parentScope):
-        # Maybe the IDLObjectWithIdentifier for the typedef should be
-        # a separate thing from the type?  If that happens, we can
-        # remove some hackery around avoiding isInterface() in
-        # Configuration.py.
-        self.complete(parentScope)
-
-    def validate(self):
-        pass
-
     # Do we need a resolveType impl?  I don't think it's particularly useful....
 
     def tag(self):
@@ -2073,12 +2489,39 @@ class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
     def _getDependentObjects(self):
         return self.inner._getDependentObjects()
 
+class IDLTypedef(IDLObjectWithIdentifier):
+    def __init__(self, location, parentScope, innerType, name):
+        identifier = IDLUnresolvedIdentifier(location, name)
+        IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
+        self.innerType = innerType
+
+    def __str__(self):
+        return "Typedef %s %s" % (self.identifier.name, self.innerType)
+
+    def finish(self, parentScope):
+        if not self.innerType.isComplete():
+            self.innerType = self.innerType.complete(parentScope)
+
+    def validate(self):
+        pass
+
+    def isTypedef(self):
+        return True
+
+    def addExtendedAttributes(self, attrs):
+        assert len(attrs) == 0
+
+    def _getDependentObjects(self):
+        return self.innerType._getDependentObjects()
+
 class IDLWrapperType(IDLType):
-    def __init__(self, location, inner):
+    def __init__(self, location, inner, promiseInnerType=None):
         IDLType.__init__(self, location, inner.identifier.name)
         self.inner = inner
         self._identifier = inner.identifier
         self.builtin = False
+        assert not promiseInnerType or inner.identifier.name == "Promise"
+        self._promiseInnerType = promiseInnerType
 
     def __eq__(self, other):
         return isinstance(other, IDLWrapperType) and \
@@ -2101,6 +2544,9 @@ class IDLWrapperType(IDLType):
         return False
 
     def isDOMString(self):
+        return False
+
+    def isUSVString(self):
         return False
 
     def isVoid(self):
@@ -2174,7 +2620,8 @@ class IDLWrapperType(IDLType):
                     other.isDate())
         if self.isDictionary() and other.nullable():
             return False
-        if other.isPrimitive() or other.isString() or other.isEnum() or other.isDate():
+        if (other.isPrimitive() or other.isString() or other.isEnum() or
+            other.isDate() or other.isSequence()):
             return True
         if self.isDictionary():
             return other.isNonCallbackInterface()
@@ -2192,12 +2639,26 @@ class IDLWrapperType(IDLType):
                     (self.isNonCallbackInterface() or
                      other.isNonCallbackInterface()))
         if (other.isDictionary() or other.isCallback() or
-            other.isSequence() or other.isMozMap() or other.isArray()):
+            other.isMozMap() or other.isArray()):
             return self.isNonCallbackInterface()
 
         # Not much else |other| can be
         assert other.isObject()
         return False
+
+    def isExposedInAllOf(self, exposureSet):
+        if not self.isInterface():
+            return True
+        iface = self.inner
+        if iface.isExternal():
+            # Let's say true, though ideally we'd only do this when
+            # exposureSet contains the primary global's name.
+            return True
+        if (iface.identifier.name == "Promise" and
+            # Check the internal type
+            not self._promiseInnerType.unroll().isExposedInAllOf(exposureSet)):
+            return False
+        return iface.exposureSet.issuperset(exposureSet)
 
     def _getDependentObjects(self):
         # NB: The codegen for an interface type depends on
@@ -2214,6 +2675,13 @@ class IDLWrapperType(IDLType):
         #     Bindings.conf, which is still a global dependency.
         #  2) Changing an interface to a dictionary (or vice versa) with the
         #     same identifier should be incredibly rare.
+        #
+        # On the other hand, if our type is a dictionary, we should
+        # depend on it, because the member types of a dictionary
+        # affect whether a method taking the dictionary as an argument
+        # takes a JSContext* argument or not.
+        if self.isDictionary():
+            return set([self.inner])
         return set()
 
 class IDLBuiltinType(IDLType):
@@ -2239,12 +2707,15 @@ class IDLBuiltinType(IDLType):
         'any',
         'domstring',
         'bytestring',
+        'usvstring',
         'object',
         'date',
         'void',
         # Funny stuff
         'ArrayBuffer',
         'ArrayBufferView',
+        'SharedArrayBuffer',
+        'SharedArrayBufferView',
         'Int8Array',
         'Uint8Array',
         'Uint8ClampedArray',
@@ -2253,7 +2724,16 @@ class IDLBuiltinType(IDLType):
         'Int32Array',
         'Uint32Array',
         'Float32Array',
-        'Float64Array'
+        'Float64Array',
+        'SharedInt8Array',
+        'SharedUint8Array',
+        'SharedUint8ClampedArray',
+        'SharedInt16Array',
+        'SharedUint16Array',
+        'SharedInt32Array',
+        'SharedUint32Array',
+        'SharedFloat32Array',
+        'SharedFloat64Array'
         )
 
     TagLookup = {
@@ -2273,11 +2753,14 @@ class IDLBuiltinType(IDLType):
             Types.any: IDLType.Tags.any,
             Types.domstring: IDLType.Tags.domstring,
             Types.bytestring: IDLType.Tags.bytestring,
+            Types.usvstring: IDLType.Tags.usvstring,
             Types.object: IDLType.Tags.object,
             Types.date: IDLType.Tags.date,
             Types.void: IDLType.Tags.void,
             Types.ArrayBuffer: IDLType.Tags.interface,
             Types.ArrayBufferView: IDLType.Tags.interface,
+            Types.SharedArrayBuffer: IDLType.Tags.interface,
+            Types.SharedArrayBufferView: IDLType.Tags.interface,
             Types.Int8Array: IDLType.Tags.interface,
             Types.Uint8Array: IDLType.Tags.interface,
             Types.Uint8ClampedArray: IDLType.Tags.interface,
@@ -2286,7 +2769,16 @@ class IDLBuiltinType(IDLType):
             Types.Int32Array: IDLType.Tags.interface,
             Types.Uint32Array: IDLType.Tags.interface,
             Types.Float32Array: IDLType.Tags.interface,
-            Types.Float64Array: IDLType.Tags.interface
+            Types.Float64Array: IDLType.Tags.interface,
+            Types.SharedInt8Array: IDLType.Tags.interface,
+            Types.SharedUint8Array: IDLType.Tags.interface,
+            Types.SharedUint8ClampedArray: IDLType.Tags.interface,
+            Types.SharedInt16Array: IDLType.Tags.interface,
+            Types.SharedUint16Array: IDLType.Tags.interface,
+            Types.SharedInt32Array: IDLType.Tags.interface,
+            Types.SharedUint32Array: IDLType.Tags.interface,
+            Types.SharedFloat32Array: IDLType.Tags.interface,
+            Types.SharedFloat64Array: IDLType.Tags.interface
         }
 
     def __init__(self, location, name, type):
@@ -2305,13 +2797,17 @@ class IDLBuiltinType(IDLType):
 
     def isString(self):
         return self._typeTag == IDLBuiltinType.Types.domstring or \
-               self._typeTag == IDLBuiltinType.Types.bytestring
+               self._typeTag == IDLBuiltinType.Types.bytestring or \
+               self._typeTag == IDLBuiltinType.Types.usvstring
 
     def isByteString(self):
         return self._typeTag == IDLBuiltinType.Types.bytestring
 
     def isDOMString(self):
         return self._typeTag == IDLBuiltinType.Types.domstring
+
+    def isUSVString(self):
+        return self._typeTag == IDLBuiltinType.Types.usvstring
 
     def isInteger(self):
         return self._typeTag <= IDLBuiltinType.Types.unsigned_long_long
@@ -2322,9 +2818,19 @@ class IDLBuiltinType(IDLType):
     def isArrayBufferView(self):
         return self._typeTag == IDLBuiltinType.Types.ArrayBufferView
 
+    def isSharedArrayBuffer(self):
+        return self._typeTag == IDLBuiltinType.Types.SharedArrayBuffer
+
+    def isSharedArrayBufferView(self):
+        return self._typeTag == IDLBuiltinType.Types.SharedArrayBufferView
+
     def isTypedArray(self):
         return self._typeTag >= IDLBuiltinType.Types.Int8Array and \
                self._typeTag <= IDLBuiltinType.Types.Float64Array
+
+    def isSharedTypedArray(self):
+        return self._typeTag >= IDLBuiltinType.Types.SharedInt8Array and \
+               self._typeTag <= IDLBuiltinType.Types.SharedFloat64Array
 
     def isInterface(self):
         # TypedArray things are interface types per the TypedArray spec,
@@ -2332,7 +2838,10 @@ class IDLBuiltinType(IDLType):
         # all of it internally.
         return self.isArrayBuffer() or \
                self.isArrayBufferView() or \
-               self.isTypedArray()
+               self.isSharedArrayBuffer() or \
+               self.isSharedArrayBufferView() or \
+               self.isTypedArray() or \
+               self.isSharedTypedArray()
 
     def isNonCallbackInterface(self):
         # All the interfaces we can be are non-callback
@@ -2350,7 +2859,7 @@ class IDLBuiltinType(IDLType):
                self._typeTag == IDLBuiltinType.Types.unrestricted_double
 
     def isSerializable(self):
-        return self.isPrimitive() or self.isDOMString() or self.isDate()
+        return self.isPrimitive() or self.isString() or self.isDate()
 
     def includesRestrictedFloat(self):
         return self.isFloat() and not self.isUnrestricted()
@@ -2403,15 +2912,20 @@ class IDLBuiltinType(IDLType):
                  # ArrayBuffer is distinguishable from everything
                  # that's not an ArrayBuffer or a callback interface
                  (self.isArrayBuffer() and not other.isArrayBuffer()) or
+                 (self.isSharedArrayBuffer() and not other.isSharedArrayBuffer()) or
                  # ArrayBufferView is distinguishable from everything
                  # that's not an ArrayBufferView or typed array.
                  (self.isArrayBufferView() and not other.isArrayBufferView() and
                   not other.isTypedArray()) or
+                 (self.isSharedArrayBufferView() and not other.isSharedArrayBufferView() and
+                  not other.isSharedTypedArray()) or
                  # Typed arrays are distinguishable from everything
                  # except ArrayBufferView and the same type of typed
                  # array
                  (self.isTypedArray() and not other.isArrayBufferView() and not
-                  (other.isTypedArray() and other.name == self.name)))))
+                  (other.isTypedArray() and other.name == self.name)) or
+                 (self.isSharedTypedArray() and not other.isSharedArrayBufferView() and not
+                  (other.isSharedTypedArray() and other.name == self.name)))))
 
     def _getDependentObjects(self):
         return set()
@@ -2465,6 +2979,9 @@ BuiltinTypes = {
       IDLBuiltinType.Types.bytestring:
           IDLBuiltinType(BuiltinLocation("<builtin type>"), "ByteString",
                          IDLBuiltinType.Types.bytestring),
+      IDLBuiltinType.Types.usvstring:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "USVString",
+                         IDLBuiltinType.Types.usvstring),
       IDLBuiltinType.Types.object:
           IDLBuiltinType(BuiltinLocation("<builtin type>"), "Object",
                          IDLBuiltinType.Types.object),
@@ -2480,6 +2997,12 @@ BuiltinTypes = {
       IDLBuiltinType.Types.ArrayBufferView:
           IDLBuiltinType(BuiltinLocation("<builtin type>"), "ArrayBufferView",
                          IDLBuiltinType.Types.ArrayBufferView),
+      IDLBuiltinType.Types.SharedArrayBuffer:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedArrayBuffer",
+                         IDLBuiltinType.Types.SharedArrayBuffer),
+      IDLBuiltinType.Types.SharedArrayBufferView:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedArrayBufferView",
+                         IDLBuiltinType.Types.SharedArrayBufferView),
       IDLBuiltinType.Types.Int8Array:
           IDLBuiltinType(BuiltinLocation("<builtin type>"), "Int8Array",
                          IDLBuiltinType.Types.Int8Array),
@@ -2506,7 +3029,34 @@ BuiltinTypes = {
                          IDLBuiltinType.Types.Float32Array),
       IDLBuiltinType.Types.Float64Array:
           IDLBuiltinType(BuiltinLocation("<builtin type>"), "Float64Array",
-                         IDLBuiltinType.Types.Float64Array)
+                         IDLBuiltinType.Types.Float64Array),
+      IDLBuiltinType.Types.SharedInt8Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedInt8Array",
+                         IDLBuiltinType.Types.SharedInt8Array),
+      IDLBuiltinType.Types.SharedUint8Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedUint8Array",
+                         IDLBuiltinType.Types.SharedUint8Array),
+      IDLBuiltinType.Types.SharedUint8ClampedArray:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedUint8ClampedArray",
+                         IDLBuiltinType.Types.SharedUint8ClampedArray),
+      IDLBuiltinType.Types.SharedInt16Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedInt16Array",
+                         IDLBuiltinType.Types.SharedInt16Array),
+      IDLBuiltinType.Types.SharedUint16Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedUint16Array",
+                         IDLBuiltinType.Types.SharedUint16Array),
+      IDLBuiltinType.Types.SharedInt32Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedInt32Array",
+                         IDLBuiltinType.Types.SharedInt32Array),
+      IDLBuiltinType.Types.SharedUint32Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedUint32Array",
+                         IDLBuiltinType.Types.SharedUint32Array),
+      IDLBuiltinType.Types.SharedFloat32Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedFloat32Array",
+                         IDLBuiltinType.Types.SharedFloat32Array),
+      IDLBuiltinType.Types.SharedFloat64Array:
+          IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedFloat64Array",
+                         IDLBuiltinType.Types.SharedFloat64Array)
     }
 
 
@@ -2599,6 +3149,13 @@ class IDLValue(IDLObject):
                 raise WebIDLError("Trying to convert unrestricted value %s to non-unrestricted"
                                   % self.value, [location]);
             return self
+        elif self.type.isString() and type.isUSVString():
+            # Allow USVStrings to use default value just like
+            # DOMString.  No coercion is required in this case as Codegen.py
+            # treats USVString just like DOMString, but with an
+            # extra normalization step.
+            assert self.type.isDOMString()
+            return self
         raise WebIDLError("Cannot coerce type %s to type %s." %
                           (self.type, type), [location])
 
@@ -2614,14 +3171,14 @@ class IDLNullValue(IDLObject):
     def coerceToType(self, type, location):
         if (not isinstance(type, IDLNullableType) and
             not (type.isUnion() and type.hasNullableType) and
-            not (type.isUnion() and type.hasDictionaryType) and
+            not (type.isUnion() and type.hasDictionaryType()) and
             not type.isDictionary() and
             not type.isAny()):
             raise WebIDLError("Cannot coerce null value to type %s." % type,
                               [location])
 
         nullValue = IDLNullValue(self.location)
-        if type.isUnion() and not type.nullable() and type.hasDictionaryType:
+        if type.isUnion() and not type.nullable() and type.hasDictionaryType():
             # We're actually a default value for the union's dictionary member.
             # Use its type.
             for t in type.flatMemberTypes:
@@ -2630,6 +3187,34 @@ class IDLNullValue(IDLObject):
                     return nullValue
         nullValue.type = type
         return nullValue
+
+    def _getDependentObjects(self):
+        return set()
+
+class IDLEmptySequenceValue(IDLObject):
+    def __init__(self, location):
+        IDLObject.__init__(self, location)
+        self.type = None
+        self.value = None
+
+    def coerceToType(self, type, location):
+        if type.isUnion():
+            # We use the flat member types here, because if we have a nullable
+            # member type, or a nested union, we want the type the value
+            # actually coerces to, not the nullable or nested union type.
+            for subtype in type.unroll().flatMemberTypes:
+                try:
+                    return self.coerceToType(subtype, location)
+                except:
+                    pass
+
+        if not type.isSequence():
+            raise WebIDLError("Cannot coerce empty sequence value to type %s." % type,
+                              [location])
+
+        emptySequenceValue = IDLEmptySequenceValue(self.location)
+        emptySequenceValue.type = type
+        return emptySequenceValue
 
     def _getDependentObjects(self):
         return set()
@@ -2652,7 +3237,7 @@ class IDLUndefinedValue(IDLObject):
     def _getDependentObjects(self):
         return set()
 
-class IDLInterfaceMember(IDLObjectWithIdentifier):
+class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
 
     Tags = enum(
         'Const',
@@ -2665,8 +3250,12 @@ class IDLInterfaceMember(IDLObjectWithIdentifier):
         'Stringifier'
     )
 
+    AffectsValues = ("Nothing", "Everything")
+    DependsOnValues = ("Nothing", "DOMState", "DeviceState", "Everything")
+
     def __init__(self, location, identifier, tag):
         IDLObjectWithIdentifier.__init__(self, location, None, identifier)
+        IDLExposureMixins.__init__(self, location)
         self.tag = tag
         self._extendedAttrDict = {}
 
@@ -2691,6 +3280,66 @@ class IDLInterfaceMember(IDLObjectWithIdentifier):
     def getExtendedAttribute(self, name):
         return self._extendedAttrDict.get(name, None)
 
+    def finish(self, scope):
+        # We better be exposed _somewhere_.
+        if (len(self._exposureGlobalNames) == 0):
+            print self.identifier.name
+        assert len(self._exposureGlobalNames) != 0
+        IDLExposureMixins.finish(self, scope)
+
+    def validate(self):
+        if (self.getExtendedAttribute("Pref") and
+            self.exposureSet != set([self._globalScope.primaryGlobalName])):
+            raise WebIDLError("[Pref] used on an interface member that is not "
+                              "%s-only" % self._globalScope.primaryGlobalName,
+                              [self.location])
+
+        if (self.getExtendedAttribute("CheckPermissions") and
+            self.exposureSet != set([self._globalScope.primaryGlobalName])):
+            raise WebIDLError("[CheckPermissions] used on an interface member "
+                              "that is not %s-only" %
+                              self._globalScope.primaryGlobalName,
+                              [self.location])
+
+        if self.isAttr() or self.isMethod():
+            if self.affects == "Everything" and self.dependsOn != "Everything":
+                raise WebIDLError("Interface member is flagged as affecting "
+                                  "everything but not depending on everything. "
+                                  "That seems rather unlikely.",
+                                  [self.location])
+
+        if self.getExtendedAttribute("NewObject"):
+            if self.dependsOn == "Nothing" or self.dependsOn == "DOMState":
+                raise WebIDLError("A [NewObject] method is not idempotent, " 
+                                  "so it has to depend on something other than DOM state.",
+                                  [self.location])
+
+    def _setDependsOn(self, dependsOn):
+        if self.dependsOn != "Everything":
+            raise WebIDLError("Trying to specify multiple different DependsOn, "
+                              "Pure, or Constant extended attributes for "
+                              "attribute", [self.location])
+        if dependsOn not in IDLInterfaceMember.DependsOnValues:
+            raise WebIDLError("Invalid [DependsOn=%s] on attribute" % dependsOn,
+                              [self.location])
+        self.dependsOn = dependsOn
+
+    def _setAffects(self, affects):
+        if self.affects != "Everything":
+            raise WebIDLError("Trying to specify multiple different Affects, "
+                              "Pure, or Constant extended attributes for "
+                              "attribute", [self.location])
+        if affects not in IDLInterfaceMember.AffectsValues:
+            raise WebIDLError("Invalid [Affects=%s] on attribute" % dependsOn,
+                              [self.location])
+        self.affects = affects
+
+    def _addAlias(self, alias):
+        if alias in self.aliases:
+            raise WebIDLError("Duplicate [Alias=%s] on attribute" % alias,
+                              [self.location])
+        self.aliases.append(alias)
+
 class IDLConst(IDLInterfaceMember):
     def __init__(self, location, identifier, type, value):
         IDLInterfaceMember.__init__(self, location, identifier,
@@ -2711,6 +3360,8 @@ class IDLConst(IDLInterfaceMember):
         return "'%s' const '%s'" % (self.type, self.identifier)
 
     def finish(self, scope):
+        IDLInterfaceMember.finish(self, scope)
+
         if not self.type.isComplete():
             type = self.type.complete(scope)
             if not type.isPrimitive() and not type.isString():
@@ -2729,7 +3380,23 @@ class IDLConst(IDLInterfaceMember):
         self.value = coercedValue
 
     def validate(self):
-        pass
+        IDLInterfaceMember.validate(self)
+
+    def handleExtendedAttribute(self, attr):
+        identifier = attr.identifier()
+        if identifier == "Exposed":
+            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
+        elif (identifier == "Pref" or
+              identifier == "ChromeOnly" or
+              identifier == "Func" or
+              identifier == "AvailableIn" or
+              identifier == "CheckPermissions"):
+            # Known attributes that we don't need to do anything with here
+            pass
+        else:
+            raise WebIDLError("Unknown extended attribute %s on constant" % identifier,
+                              [attr.location])
+        IDLInterfaceMember.handleExtendedAttribute(self, attr)
 
     def _getDependentObjects(self):
         return set([self.type, self.value])
@@ -2751,6 +3418,8 @@ class IDLAttribute(IDLInterfaceMember):
         self.enforceRange = False
         self.clamp = False
         self.slotIndex = None
+        self.dependsOn = "Everything"
+        self.affects = "Everything"
 
         if static and identifier.name == "prototype":
             raise WebIDLError("The identifier of a static attribute must not be 'prototype'",
@@ -2767,6 +3436,8 @@ class IDLAttribute(IDLInterfaceMember):
         return "'%s' attribute '%s'" % (self.type, self.identifier)
 
     def finish(self, scope):
+        IDLInterfaceMember.finish(self, scope)
+
         if not self.type.isComplete():
             t = self.type.complete(scope)
 
@@ -2813,13 +3484,15 @@ class IDLAttribute(IDLInterfaceMember):
                               "interface type as its type", [self.location])
 
     def validate(self):
+        IDLInterfaceMember.validate(self)
+
         if ((self.getExtendedAttribute("Cached") or
              self.getExtendedAttribute("StoreInSlot")) and
-            not self.getExtendedAttribute("Constant") and
-            not self.getExtendedAttribute("Pure")):
+            not self.affects == "Nothing"):
             raise WebIDLError("Cached attributes and attributes stored in "
-                              "slots must be constant or pure, since the "
-                              "getter won't always be called.",
+                              "slots must be Constant or Pure or "
+                              "Affects=Nothing, since the getter won't always "
+                              "be called.",
                               [self.location])
         if self.getExtendedAttribute("Frozen"):
             if (not self.type.isSequence() and not self.type.isDictionary() and
@@ -2828,6 +3501,10 @@ class IDLAttribute(IDLInterfaceMember):
                                   "sequence-valued, dictionary-valued, and "
                                   "MozMap-valued attributes",
                                   [self.location])
+        if not self.type.unroll().isExposedInAllOf(self.exposureSet):
+            raise WebIDLError("Attribute returns a type that is not exposed "
+                              "everywhere where the attribute is exposed",
+                              [self.location])
 
     def handleExtendedAttribute(self, attr):
         identifier = attr.identifier()
@@ -2840,8 +3517,7 @@ class IDLAttribute(IDLInterfaceMember):
               (identifier == "StoreInSlot" and
                (self.getExtendedAttribute("Throws") or
                 self.getExtendedAttribute("GetterThrows")))):
-            raise WebIDLError("Throwing things can't be [Pure] or [Constant] "
-                              "or [SameObject] or [StoreInSlot]",
+            raise WebIDLError("Throwing things can't be [StoreInSlot]",
                               [attr.location])
         elif identifier == "LenientThis":
             if not attr.noArguments():
@@ -2860,9 +3536,6 @@ class IDLAttribute(IDLInterfaceMember):
                                   [attr.location, self.location])
             self.lenientThis = True
         elif identifier == "Unforgeable":
-            if not self.readonly:
-                raise WebIDLError("[Unforgeable] is only allowed on readonly "
-                                  "attributes", [attr.location, self.location])
             if self.isStatic():
                 raise WebIDLError("[Unforgeable] is only allowed on non-static "
                                   "attributes", [attr.location, self.location])
@@ -2888,6 +3561,15 @@ class IDLAttribute(IDLInterfaceMember):
                 raise WebIDLError("[PutForwards] takes an identifier",
                                   [attr.location, self.location])
         elif identifier == "Replaceable":
+            if not attr.noArguments():
+                raise WebIDLError("[Replaceable] must take no arguments",
+                                  [attr.location])
+            if not self.readonly:
+                raise WebIDLError("[Replaceable] is only allowed on readonly "
+                                  "attributes", [attr.location, self.location])
+            if self.isStatic():
+                raise WebIDLError("[Replaceable] is only allowed on non-static "
+                                  "attributes", [attr.location, self.location])
             if self.getExtendedAttribute("PutForwards") is not None:
                 raise WebIDLError("[PutForwards] and [Replaceable] can't both "
                                   "appear on the same attribute",
@@ -2922,7 +3604,7 @@ class IDLAttribute(IDLInterfaceMember):
                                   [attr.location, self.location])
         elif (identifier == "CrossOriginReadable" or
               identifier == "CrossOriginWritable"):
-            if not attr.noArguments():
+            if not attr.noArguments() and identifier == "CrossOriginReadable":
                 raise WebIDLError("[%s] must take no arguments" % identifier,
                                   [attr.location])
             if self.isStatic():
@@ -2933,19 +3615,48 @@ class IDLAttribute(IDLInterfaceMember):
                 raise WebIDLError("[LenientThis] is not allowed in combination "
                                   "with [%s]" % identifier,
                                   [attr.location, self.location])
+        elif identifier == "Exposed":
+            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
+        elif identifier == "Pure":
+            if not attr.noArguments():
+                raise WebIDLError("[Pure] must take no arguments",
+                                  [attr.location])
+            self._setDependsOn("DOMState")
+            self._setAffects("Nothing")
+        elif identifier == "Constant" or identifier == "SameObject":
+            if not attr.noArguments():
+                raise WebIDLError("[%s] must take no arguments" % identifier,
+                                  [attr.location])
+            self._setDependsOn("Nothing")
+            self._setAffects("Nothing")
+        elif identifier == "Affects":
+            if not attr.hasValue():
+                raise WebIDLError("[Affects] takes an identifier",
+                                  [attr.location])
+            self._setAffects(attr.value())
+        elif identifier == "DependsOn":
+            if not attr.hasValue():
+                raise WebIDLError("[DependsOn] takes an identifier",
+                                  [attr.location])
+            if (attr.value() != "Everything" and attr.value() != "DOMState" and
+                not self.readonly):
+                raise WebIDLError("[DependsOn=%s] only allowed on "
+                                  "readonly attributes" % attr.value(),
+                                  [attr.location, self.location])
+            self._setDependsOn(attr.value())
         elif (identifier == "Pref" or
+              identifier == "Deprecated" or
               identifier == "SetterThrows" or
-              identifier == "Pure" or
               identifier == "Throws" or
               identifier == "GetterThrows" or
               identifier == "ChromeOnly" or
-              identifier == "SameObject" or
-              identifier == "Constant" or
               identifier == "Func" or
               identifier == "Frozen" or
               identifier == "AvailableIn" or
               identifier == "NewObject" or
-              identifier == "CheckPermissions"):
+              identifier == "UnsafeInPrerendering" or
+              identifier == "CheckPermissions" or
+              identifier == "BinaryName"):
             # Known attributes that we don't need to do anything with here
             pass
         else:
@@ -2988,6 +3699,7 @@ class IDLArgument(IDLObjectWithIdentifier):
         self._allowTreatNonCallableAsNull = False
 
         assert not variadic or optional
+        assert not variadic or not defaultValue
 
     def addExtendedAttributes(self, attrs):
         attrs = self.checkForStringHandlingExtendedAttributes(
@@ -3015,7 +3727,9 @@ class IDLArgument(IDLObjectWithIdentifier):
             elif identifier == "TreatNonCallableAsNull":
                 self._allowTreatNonCallableAsNull = True
             else:
-                raise WebIDLError("Unhandled extended attribute on an argument",
+                raise WebIDLError("Unhandled extended attribute on %s" %
+                                  ("a dictionary member" if self.dictionaryMember else
+                                   "an argument"),
                                   [attribute.location])
 
     def isComplete(self):
@@ -3035,10 +3749,10 @@ class IDLArgument(IDLObjectWithIdentifier):
             self.type = type
 
         if ((self.type.isDictionary() or
-             self.type.isUnion() and self.type.unroll().hasDictionaryType) and
-            self.optional and not self.defaultValue):
-            # Default optional dictionaries to null, for simplicity,
-            # so the codegen doesn't have to special-case this.
+             self.type.isUnion() and self.type.unroll().hasDictionaryType()) and
+            self.optional and not self.defaultValue and not self.variadic):
+            # Default optional non-variadic dictionaries to null,
+            # for simplicity, so the codegen doesn't have to special-case this.
             self.defaultValue = IDLNullValue(self.location)
         elif self.type.isAny():
             assert (self.defaultValue is None or
@@ -3065,11 +3779,12 @@ class IDLArgument(IDLObjectWithIdentifier):
             deps.add(self.defaultValue)
         return deps
 
-class IDLCallbackType(IDLType, IDLObjectWithScope):
+    def canHaveMissingValue(self):
+        return self.optional and not self.defaultValue
+
+class IDLCallback(IDLObjectWithScope):
     def __init__(self, location, parentScope, identifier, returnType, arguments):
         assert isinstance(returnType, IDLType)
-
-        IDLType.__init__(self, location, identifier.name)
 
         self._returnType = returnType
         # Clone the list
@@ -3089,9 +3804,6 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
 
     def signatures(self):
         return [(self._returnType, self._arguments)]
-
-    def tag(self):
-        return IDLType.Tags.callback
 
     def finish(self, scope):
         if not self._returnType.isComplete():
@@ -3116,13 +3828,6 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
     def validate(self):
         pass
 
-    def isDistinguishableFrom(self, other):
-        if other.isUnion():
-            # Just forward to the union; it'll deal
-            return other.isDistinguishableFrom(self)
-        return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isNonCallbackInterface() or other.isDate())
-
     def addExtendedAttributes(self, attrs):
         unhandledAttrs = []
         for attr in attrs:
@@ -3140,6 +3845,28 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
 
     def _getDependentObjects(self):
         return set([self._returnType] + self._arguments)
+
+class IDLCallbackType(IDLType):
+    def __init__(self, location, callback):
+        IDLType.__init__(self, location, callback.identifier.name)
+        self.callback = callback
+
+    def isCallback(self):
+        return True
+
+    def tag(self):
+        return IDLType.Tags.callback
+
+    def isDistinguishableFrom(self, other):
+        if other.isUnion():
+            # Just forward to the union; it'll deal
+            return other.isDistinguishableFrom(self)
+        return (other.isPrimitive() or other.isString() or other.isEnum() or
+                other.isNonCallbackInterface() or other.isDate() or
+                other.isSequence())
+
+    def _getDependentObjects(self):
+        return self.callback._getDependentObjects()
 
 class IDLMethodOverload:
     """
@@ -3216,6 +3943,10 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         assert isinstance(jsonifier, bool)
         self._jsonifier = jsonifier
         self._specialType = specialType
+        self._unforgeable = False
+        self.dependsOn = "Everything"
+        self.affects = "Everything"
+        self.aliases = []
 
         if static and identifier.name == "prototype":
             raise WebIDLError("The identifier of a static operation must not be 'prototype'",
@@ -3296,7 +4027,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         return self._hasOverloads
 
     def isIdentifierLess(self):
-        return self.identifier.name[:2] == "__" and self.identifier.name != "__noSuchMethod__"
+        return self.identifier.name[:2] == "__"
 
     def resolve(self, parentScope):
         assert isinstance(parentScope, IDLScope)
@@ -3347,23 +4078,72 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                 self._overloads]
 
     def finish(self, scope):
-        overloadWithPromiseReturnType = None
-        overloadWithoutPromiseReturnType = None
-        for overload in self._overloads:
-            variadicArgument = None
+        IDLInterfaceMember.finish(self, scope)
 
-            arguments = overload.arguments
-            for (idx, argument) in enumerate(arguments):
+        for overload in self._overloads:
+            returnType = overload.returnType
+            if not returnType.isComplete():
+                returnType = returnType.complete(scope)
+                assert not isinstance(returnType, IDLUnresolvedType)
+                assert not isinstance(returnType, IDLTypedefType)
+                assert not isinstance(returnType.name, IDLUnresolvedIdentifier)
+                overload.returnType = returnType
+
+            for argument in overload.arguments:
                 if not argument.isComplete():
                     argument.complete(scope)
                 assert argument.type.isComplete()
 
-                if (argument.type.isDictionary() or
+        # Now compute various information that will be used by the
+        # WebIDL overload resolution algorithm.
+        self.maxArgCount = max(len(s[1]) for s in self.signatures())
+        self.allowedArgCounts = [ i for i in range(self.maxArgCount+1)
+                                  if len(self.signaturesForArgCount(i)) != 0 ]
+
+    def validate(self):
+        IDLInterfaceMember.validate(self)
+
+        # Make sure our overloads are properly distinguishable and don't have
+        # different argument types before the distinguishing args.
+        for argCount in self.allowedArgCounts:
+            possibleOverloads = self.overloadsForArgCount(argCount)
+            if len(possibleOverloads) == 1:
+                continue
+            distinguishingIndex = self.distinguishingIndexForArgCount(argCount)
+            for idx in range(distinguishingIndex):
+                firstSigType = possibleOverloads[0].arguments[idx].type
+                for overload in possibleOverloads[1:]:
+                    if overload.arguments[idx].type != firstSigType:
+                        raise WebIDLError(
+                            "Signatures for method '%s' with %d arguments have "
+                            "different types of arguments at index %d, which "
+                            "is before distinguishing index %d" %
+                            (self.identifier.name, argCount, idx,
+                             distinguishingIndex),
+                            [self.location, overload.location])
+
+        overloadWithPromiseReturnType = None
+        overloadWithoutPromiseReturnType = None
+        for overload in self._overloads:
+            returnType = overload.returnType
+            if not returnType.unroll().isExposedInAllOf(self.exposureSet):
+                raise WebIDLError("Overload returns a type that is not exposed "
+                                  "everywhere where the method is exposed",
+                                  [overload.location])
+
+            variadicArgument = None
+
+            arguments = overload.arguments
+            for (idx, argument) in enumerate(arguments):
+                assert argument.type.isComplete()
+
+                if ((argument.type.isDictionary() and
+                     argument.type.inner.canBeEmpty())or
                     (argument.type.isUnion() and
-                     argument.type.unroll().hasDictionaryType)):
-                    # Dictionaries and unions containing dictionaries at the
-                    # end of the list or followed by optional arguments must be
-                    # optional.
+                     argument.type.unroll().hasPossiblyEmptyDictionaryType())):
+                    # Optional dictionaries and unions containing optional
+                    # dictionaries at the end of the list or followed by
+                    # optional arguments must be optional.
                     if (not argument.optional and
                         all(arg.optional for arg in arguments[idx+1:])):
                         raise WebIDLError("Dictionary argument or union "
@@ -3386,14 +4166,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                 if argument.variadic:
                     variadicArgument = argument
 
-            returnType = overload.returnType
-            if not returnType.isComplete():
-                returnType = returnType.complete(scope)
-                assert not isinstance(returnType, IDLUnresolvedType)
-                assert not isinstance(returnType, IDLTypedefType)
-                assert not isinstance(returnType.name, IDLUnresolvedIdentifier)
-                overload.returnType = returnType
-
             if returnType.isPromise():
                 overloadWithPromiseReturnType = overload
             else:
@@ -3410,32 +4182,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             raise WebIDLError("May not have a Promise return type for a "
                               "legacycaller.",
                               [overloadWithPromiseReturnType.location])
-
-        # Now compute various information that will be used by the
-        # WebIDL overload resolution algorithm.
-        self.maxArgCount = max(len(s[1]) for s in self.signatures())
-        self.allowedArgCounts = [ i for i in range(self.maxArgCount+1)
-                                  if len(self.signaturesForArgCount(i)) != 0 ]
-
-    def validate(self):
-        # Make sure our overloads are properly distinguishable and don't have
-        # different argument types before the distinguishing args.
-        for argCount in self.allowedArgCounts:
-            possibleOverloads = self.overloadsForArgCount(argCount)
-            if len(possibleOverloads) == 1:
-                continue
-            distinguishingIndex = self.distinguishingIndexForArgCount(argCount)
-            for idx in range(distinguishingIndex):
-                firstSigType = possibleOverloads[0].arguments[idx].type
-                for overload in possibleOverloads[1:]:
-                    if overload.arguments[idx].type != firstSigType:
-                        raise WebIDLError(
-                            "Signatures for method '%s' with %d arguments have "
-                            "different types of arguments at index %d, which "
-                            "is before distinguishing index %d" %
-                            (self.identifier.name, argCount, idx,
-                             distinguishingIndex),
-                            [self.location, overload.location])
 
     def overloadsForArgCount(self, argc):
         return [overload for overload in self._overloads if
@@ -3491,9 +4237,10 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                               "[SetterThrows]",
                               [attr.location, self.location])
         elif identifier == "Unforgeable":
-            raise WebIDLError("Methods must not be flagged as "
-                              "[Unforgeable]",
-                              [attr.location, self.location])
+            if self.isStatic():
+                raise WebIDLError("[Unforgeable] is only allowed on non-static "
+                                  "methods", [attr.location, self.location])
+            self._unforgeable = True
         elif identifier == "SameObject":
             raise WebIDLError("Methods must not be flagged as [SameObject]",
                               [attr.location, self.location]);
@@ -3514,16 +4261,46 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                 raise WebIDLError("[LenientFloat] used on an operation with no "
                                   "restricted float type arguments",
                                   [attr.location, self.location])
+        elif identifier == "Exposed":
+            convertExposedAttrToGlobalNameSet(attr, self._exposureGlobalNames)
+        elif (identifier == "CrossOriginCallable" or
+              identifier == "WebGLHandlesContextLoss"):
+            # Known no-argument attributes.
+            if not attr.noArguments():
+                raise WebIDLError("[%s] must take no arguments" % identifier,
+                                  [attr.location])
+        elif identifier == "Pure":
+            if not attr.noArguments():
+                raise WebIDLError("[Pure] must take no arguments",
+                                  [attr.location])
+            self._setDependsOn("DOMState")
+            self._setAffects("Nothing")
+        elif identifier == "Affects":
+            if not attr.hasValue():
+                raise WebIDLError("[Affects] takes an identifier",
+                                  [attr.location])
+            self._setAffects(attr.value())
+        elif identifier == "DependsOn":
+            if not attr.hasValue():
+                raise WebIDLError("[DependsOn] takes an identifier",
+                                  [attr.location])
+            self._setDependsOn(attr.value())
+        elif identifier == "Alias":
+            if not attr.hasValue():
+                raise WebIDLError("[Alias] takes an identifier or string",
+                                  [attr.location])
+            self._addAlias(attr.value())
         elif (identifier == "Throws" or
               identifier == "NewObject" or
               identifier == "ChromeOnly" or
+              identifier == "UnsafeInPrerendering" or
               identifier == "Pref" or
+              identifier == "Deprecated" or
               identifier == "Func" or
               identifier == "AvailableIn" or
-              identifier == "Pure" or
-              identifier == "CrossOriginCallable" or
-              identifier == "WebGLHandlesContextLoss" or
-              identifier == "CheckPermissions"):
+              identifier == "CheckPermissions" or
+              identifier == "BinaryName" or
+              identifier == "MethodIdentityTestable"):
             # Known attributes that we don't need to do anything with here
             pass
         else:
@@ -3534,10 +4311,13 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
     def returnsPromise(self):
         return self._overloads[0].returnType.isPromise()
 
+    def isUnforgeable(self):
+        return self._unforgeable
+
     def _getDependentObjects(self):
         deps = set()
         for overload in self._overloads:
-            deps.union(overload._getDependentObjects())
+            deps.update(overload._getDependentObjects())
         return deps
 
 class IDLImplementsStatement(IDLObject):
@@ -3545,8 +4325,11 @@ class IDLImplementsStatement(IDLObject):
         IDLObject.__init__(self, location)
         self.implementor = implementor;
         self.implementee = implementee
+        self._finished = False
 
     def finish(self, scope):
+        if self._finished:
+            return
         assert(isinstance(self.implementor, IDLIdentifierPlaceholder))
         assert(isinstance(self.implementee, IDLIdentifierPlaceholder))
         implementor = self.implementor.finish(scope)
@@ -3571,6 +4354,8 @@ class IDLImplementsStatement(IDLObject):
                               "interface",
                               [self.implementee.location])
         implementor.addImplementedInterface(implementee)
+        self.implementor = implementor
+        self.implementee = implementee
 
     def validate(self):
         pass
@@ -3645,7 +4430,7 @@ class Tokenizer(object):
         return t
 
     def t_IDENTIFIER(self, t):
-        r'[A-Z_a-z][0-9A-Z_a-z]*'
+        r'[A-Z_a-z][0-9A-Z_a-z-]*'
         t.type = self.keywords.get(t.value, 'IDENTIFIER')
         return t
 
@@ -3701,6 +4486,7 @@ class Tokenizer(object):
         "Date": "DATE",
         "DOMString": "DOMSTRING",
         "ByteString": "BYTESTRING",
+        "USVString": "USVSTRING",
         "any": "ANY",
         "boolean": "BOOLEAN",
         "byte": "BYTE",
@@ -3709,7 +4495,8 @@ class Tokenizer(object):
         "long": "LONG",
         "object": "OBJECT",
         "octet": "OCTET",
-        "optional": "OPTIONAL",
+        "Promise": "PROMISE",
+        "required": "REQUIRED",
         "sequence": "SEQUENCE",
         "MozMap": "MOZMAP",
         "short": "SHORT",
@@ -3729,6 +4516,7 @@ class Tokenizer(object):
         "<": "LT",
         ">": "GT",
         "ArrayBuffer": "ARRAYBUFFER",
+        "SharedArrayBuffer": "SHAREDARRAYBUFFER",
         "or": "OR"
         }
 
@@ -3749,6 +4537,45 @@ class Tokenizer(object):
                                  outputdir=outputdir,
                                  lextab='webidllex',
                                  reflags=re.DOTALL)
+
+class SqueakyCleanLogger(object):
+    errorWhitelist = [
+        # Web IDL defines the WHITESPACE token, but doesn't actually
+        # use it ... so far.
+        "Token 'WHITESPACE' defined, but not used",
+        # And that means we have an unused token
+        "There is 1 unused token",
+        # Web IDL defines a OtherOrComma rule that's only used in
+        # ExtendedAttributeInner, which we don't use yet.
+        "Rule 'OtherOrComma' defined, but not used",
+        # And an unused rule
+        "There is 1 unused rule",
+        # And the OtherOrComma grammar symbol is unreachable.
+        "Symbol 'OtherOrComma' is unreachable",
+        # Which means the Other symbol is unreachable.
+        "Symbol 'Other' is unreachable",
+        ]
+    def __init__(self):
+        self.errors = []
+    def debug(self, msg, *args, **kwargs):
+        pass
+    info = debug
+    def warning(self, msg, *args, **kwargs):
+        if msg == "%s:%d: Rule '%s' defined, but not used":
+            # Munge things so we don't have to hardcode filenames and
+            # line numbers in our whitelist.
+            whitelistmsg = "Rule '%s' defined, but not used"
+            whitelistargs = args[2:]
+        else:
+            whitelistmsg = msg
+            whitelistargs = args
+        if (whitelistmsg % whitelistargs) not in SqueakyCleanLogger.errorWhitelist:
+            self.errors.append(msg % args)
+    error = warning
+
+    def reportGrammarErrors(self):
+        if self.errors:
+            raise WebIDLError("\n".join(self.errors), [])
 
 class Parser(Tokenizer):
     def getLocation(self, p, i):
@@ -3825,10 +4652,11 @@ class Parser(Tokenizer):
         parent = p[3]
 
         try:
-            if self.globalScope()._lookupIdentifier(identifier):
-                p[0] = self.globalScope()._lookupIdentifier(identifier)
+            existingObj = self.globalScope()._lookupIdentifier(identifier)
+            if existingObj:
+                p[0] = existingObj
                 if not isinstance(p[0], IDLInterface):
-                    raise WebIDLError("Partial interface has the same name as "
+                    raise WebIDLError("Interface has the same name as "
                                       "non-interface object",
                                       [location, p[0].location])
                 p[0].setNonPartial(location, parent, members)
@@ -3839,7 +4667,7 @@ class Parser(Tokenizer):
             pass
 
         p[0] = IDLInterface(location, self.globalScope(), identifier, parent,
-                            members, isPartial=False)
+                            members, isKnownNonPartial=True)
 
     def p_InterfaceForwardDecl(self, p):
         """
@@ -3872,26 +4700,26 @@ class Parser(Tokenizer):
         identifier = IDLUnresolvedIdentifier(self.getLocation(p, 3), p[3])
         members = p[5]
 
+        nonPartialInterface = None
         try:
-            if self.globalScope()._lookupIdentifier(identifier):
-                p[0] = self.globalScope()._lookupIdentifier(identifier)
-                if not isinstance(p[0], IDLInterface):
+            nonPartialInterface = self.globalScope()._lookupIdentifier(identifier)
+            if nonPartialInterface:
+                if not isinstance(nonPartialInterface, IDLInterface):
                     raise WebIDLError("Partial interface has the same name as "
                                       "non-interface object",
-                                      [location, p[0].location])
-                # Just throw our members into the existing IDLInterface.  If we
-                # have extended attributes, those will get added to it
-                # automatically.
-                p[0].members.extend(members)
-                return
+                                      [location, nonPartialInterface.location])
         except Exception, ex:
             if isinstance(ex, WebIDLError):
                 raise ex
             pass
 
-        p[0] = IDLInterface(location, self.globalScope(), identifier, None,
-                            members, isPartial=True)
-        pass
+        if not nonPartialInterface:
+            nonPartialInterface = IDLInterface(location, self.globalScope(),
+                                               identifier, None,
+                                               [], isKnownNonPartial=False)
+        partialInterface = IDLPartialInterface(location, identifier, members,
+                                               nonPartialInterface)
+        p[0] = partialInterface
 
     def p_Inheritance(self, p):
         """
@@ -3954,27 +4782,44 @@ class Parser(Tokenizer):
 
     def p_DictionaryMember(self, p):
         """
-            DictionaryMember : Type IDENTIFIER DefaultValue SEMICOLON
+            DictionaryMember : Required Type IDENTIFIER Default SEMICOLON
         """
         # These quack a lot like optional arguments, so just treat them that way.
-        t = p[1]
+        t = p[2]
         assert isinstance(t, IDLType)
-        identifier = IDLUnresolvedIdentifier(self.getLocation(p, 2), p[2])
-        defaultValue = p[3]
+        identifier = IDLUnresolvedIdentifier(self.getLocation(p, 3), p[3])
+        defaultValue = p[4]
+        optional = not p[1]
 
-        p[0] = IDLArgument(self.getLocation(p, 2), identifier, t, optional=True,
+        if not optional and defaultValue:
+            raise WebIDLError("Required dictionary members can't have a default value.",
+                              [self.getLocation(p, 4)])
+
+        p[0] = IDLArgument(self.getLocation(p, 3), identifier, t,
+                           optional=optional,
                            defaultValue=defaultValue, variadic=False,
                            dictionaryMember=True)
 
-    def p_DefaultValue(self, p):
+    def p_Default(self, p):
         """
-            DefaultValue : EQUALS ConstValue
-                         |
+            Default : EQUALS DefaultValue
+                    |
         """
         if len(p) > 1:
             p[0] = p[2]
         else:
             p[0] = None
+
+    def p_DefaultValue(self, p):
+        """
+            DefaultValue : ConstValue
+                         | LBRACKET RBRACKET
+        """
+        if len(p) == 2:
+            p[0] = p[1]
+        else:
+            assert len(p) == 3 # Must be []
+            p[0] = IDLEmptySequenceValue(self.getLocation(p, 1))
 
     def p_Exception(self, p):
         """
@@ -4030,8 +4875,8 @@ class Parser(Tokenizer):
             CallbackRest : IDENTIFIER EQUALS ReturnType LPAREN ArgumentList RPAREN SEMICOLON
         """
         identifier = IDLUnresolvedIdentifier(self.getLocation(p, 1), p[1])
-        p[0] = IDLCallbackType(self.getLocation(p, 1), self.globalScope(),
-                               identifier, p[3], p[5])
+        p[0] = IDLCallback(self.getLocation(p, 1), self.globalScope(),
+                           identifier, p[3], p[5])
 
     def p_ExceptionMembers(self, p):
         """
@@ -4044,8 +4889,8 @@ class Parser(Tokenizer):
         """
             Typedef : TYPEDEF Type IDENTIFIER SEMICOLON
         """
-        typedef = IDLTypedefType(self.getLocation(p, 1), p[2], p[3])
-        typedef.resolve(self.globalScope())
+        typedef = IDLTypedef(self.getLocation(p, 1), self.globalScope(),
+                             p[2], p[3])
         p[0] = typedef
 
     def p_ImplementsStatement(self, p):
@@ -4149,7 +4994,7 @@ class Parser(Tokenizer):
 
     def p_AttributeRest(self, p):
         """
-            AttributeRest : ReadOnly ATTRIBUTE Type IDENTIFIER SEMICOLON
+            AttributeRest : ReadOnly ATTRIBUTE Type AttributeName SEMICOLON
         """
         location = self.getLocation(p, 2)
         readonly = p[1]
@@ -4434,7 +5279,7 @@ class Parser(Tokenizer):
 
     def p_Argument(self, p):
         """
-            Argument : ExtendedAttributeList Optional Type Ellipsis ArgumentName DefaultValue
+            Argument : ExtendedAttributeList Optional Type Ellipsis ArgumentName Default
         """
         t = p[3]
         assert isinstance(t, IDLType)
@@ -4478,6 +5323,7 @@ class Parser(Tokenizer):
                          | INTERFACE
                          | LEGACYCALLER
                          | PARTIAL
+                         | REQUIRED
                          | SERIALIZER
                          | SETTER
                          | STATIC
@@ -4485,6 +5331,13 @@ class Parser(Tokenizer):
                          | JSONIFIER
                          | TYPEDEF
                          | UNRESTRICTED
+        """
+        p[0] = p[1]
+
+    def p_AttributeName(self, p):
+        """
+            AttributeName : IDENTIFIER
+                          | REQUIRED
         """
         p[0] = p[1]
 
@@ -4497,6 +5350,18 @@ class Parser(Tokenizer):
     def p_OptionalEmpty(self, p):
         """
             Optional :
+        """
+        p[0] = False
+
+    def p_Required(self, p):
+        """
+            Required : REQUIRED
+        """
+        p[0] = True
+
+    def p_RequiredEmpty(self, p):
+        """
+            Required :
         """
         p[0] = False
 
@@ -4545,6 +5410,7 @@ class Parser(Tokenizer):
                               | ExtendedAttributeArgList
                               | ExtendedAttributeIdent
                               | ExtendedAttributeNamedArgList
+                              | ExtendedAttributeIdentList
         """
         p[0] = IDLExtendedAttribute(self.getLocation(p, 1), p[1])
 
@@ -4585,6 +5451,7 @@ class Parser(Tokenizer):
                   | DATE
                   | DOMSTRING
                   | BYTESTRING
+                  | USVSTRING
                   | ANY
                   | ATTRIBUTE
                   | BOOLEAN
@@ -4697,12 +5564,15 @@ class Parser(Tokenizer):
         """
             NonAnyType : PrimitiveOrStringType TypeSuffix
                        | ARRAYBUFFER TypeSuffix
+                       | SHAREDARRAYBUFFER TypeSuffix
                        | OBJECT TypeSuffix
         """
         if p[1] == "object":
             type = BuiltinTypes[IDLBuiltinType.Types.object]
         elif p[1] == "ArrayBuffer":
             type = BuiltinTypes[IDLBuiltinType.Types.ArrayBuffer]
+        elif p[1] == "SharedArrayBuffer":
+            type = BuiltinTypes[IDLBuiltinType.Types.SharedArrayBuffer]
         else:
             type = BuiltinTypes[p[1]]
 
@@ -4714,6 +5584,20 @@ class Parser(Tokenizer):
         """
         innerType = p[3]
         type = IDLSequenceType(self.getLocation(p, 1), innerType)
+        if p[5]:
+            type = IDLNullableType(self.getLocation(p, 5), type)
+        p[0] = type
+
+    # Note: Promise<void> is allowed, so we want to parametrize on
+    # ReturnType, not Type.  Also, we want this to end up picking up
+    # the Promise interface for now, hence the games with IDLUnresolvedType.
+    def p_NonAnyTypePromiseType(self, p):
+        """
+            NonAnyType : PROMISE LT ReturnType GT Null
+        """
+        innerType = p[3]
+        promiseIdent = IDLUnresolvedIdentifier(self.getLocation(p, 1), "Promise")
+        type = IDLUnresolvedType(self.getLocation(p, 1), promiseIdent, p[3])
         if p[5]:
             type = IDLNullableType(self.getLocation(p, 5), type)
         p[0] = type
@@ -4734,13 +5618,22 @@ class Parser(Tokenizer):
         """
         assert isinstance(p[1], IDLUnresolvedIdentifier)
 
+        if p[1].name == "Promise":
+            raise WebIDLError("Promise used without saying what it's "
+                              "parametrized over",
+                              [self.getLocation(p, 1)])
+
         type = None
 
         try:
             if self.globalScope()._lookupIdentifier(p[1]):
                 obj = self.globalScope()._lookupIdentifier(p[1])
-                if obj.isType():
-                    type = obj
+                assert not obj.isType()
+                if obj.isTypedef():
+                    type = IDLTypedefType(self.getLocation(p, 1), obj.innerType,
+                                          obj.identifier.name)
+                elif obj.isCallback() and not obj.isInterface():
+                    type = IDLCallbackType(self.getLocation(p, 1), obj)
                 else:
                     type = IDLWrapperType(self.getLocation(p, 1), p[1])
                 p[0] = self.handleModifiers(type, p[2])
@@ -4837,6 +5730,12 @@ class Parser(Tokenizer):
             PrimitiveOrStringType : BYTESTRING
         """
         p[0] = IDLBuiltinType.Types.bytestring
+
+    def p_PrimitiveOrStringTypeUSVString(self, p):
+        """
+            PrimitiveOrStringType : USVSTRING
+        """
+        p[0] = IDLBuiltinType.Types.usvstring
 
     def p_UnsignedIntegerTypeUnsigned(self, p):
         """
@@ -4993,6 +5892,34 @@ class Parser(Tokenizer):
         """
         p[0] = (p[1], p[3], p[5])
 
+    def p_ExtendedAttributeIdentList(self, p):
+        """
+            ExtendedAttributeIdentList : IDENTIFIER EQUALS LPAREN IdentifierList RPAREN
+        """
+        p[0] = (p[1], p[4])
+
+    def p_IdentifierList(self, p):
+        """
+            IdentifierList : IDENTIFIER Identifiers
+        """
+        idents = list(p[2])
+        idents.insert(0, p[1])
+        p[0] = idents
+
+    def p_IdentifiersList(self, p):
+        """
+            Identifiers : COMMA IDENTIFIER Identifiers
+        """
+        idents = list(p[3])
+        idents.insert(0, p[2])
+        p[0] = idents
+
+    def p_IdentifiersEmpty(self, p):
+        """
+            Identifiers :
+        """
+        p[0] = []
+
     def p_error(self, p):
         if not p:
             raise WebIDLError("Syntax Error at end of file. Possibly due to missing semicolon(;), braces(}) or both",
@@ -5002,12 +5929,30 @@ class Parser(Tokenizer):
 
     def __init__(self, outputdir='', lexer=None):
         Tokenizer.__init__(self, outputdir, lexer)
+
+        logger = SqueakyCleanLogger()
         self.parser = yacc.yacc(module=self,
                                 outputdir=outputdir,
                                 tabmodule='webidlyacc',
-                                errorlog=yacc.NullLogger(),
-                                picklefile='WebIDLGrammar.pkl')
+                                errorlog=logger
+                                # Pickling the grammar is a speedup in
+                                # some cases (older Python?) but a
+                                # significant slowdown in others.
+                                # We're not pickling for now, until it
+                                # becomes a speedup again.
+                                # , picklefile='WebIDLGrammar.pkl'
+                            )
+        logger.reportGrammarErrors()
+
         self._globalScope = IDLScope(BuiltinLocation("<Global Scope>"), None, None)
+        # To make our test harness work, pretend like we have a primary global already.  Note that we _don't_ set _globalScope.primaryGlobalAttr, so we'll still be able to detect multiple PrimaryGlobal extended attributes.
+        self._globalScope.primaryGlobalName = "FakeTestPrimaryGlobal"
+        self._globalScope.globalNames.add("FakeTestPrimaryGlobal")
+        self._globalScope.globalNameMapping["FakeTestPrimaryGlobal"].add("FakeTestPrimaryGlobal")
+        # And we add the special-cased "System" global name, which
+        # doesn't have any corresponding interfaces.
+        self._globalScope.globalNames.add("System")
+        self._globalScope.globalNameMapping["System"].add("BackstagePass")
         self._installBuiltins(self._globalScope)
         self._productions = []
 
@@ -5021,12 +5966,10 @@ class Parser(Tokenizer):
         assert isinstance(scope, IDLScope)
 
         # xrange omits the last value.
-        for x in xrange(IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.Float64Array + 1):
+        for x in xrange(IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.SharedFloat64Array + 1):
             builtin = BuiltinTypes[x]
             name = builtin.name
-
-            typedef = IDLTypedefType(BuiltinLocation("<builtin type>"), builtin, name)
-            typedef.resolve(scope)
+            typedef = IDLTypedef(BuiltinLocation("<builtin type>"), scope, builtin, name)
 
     @ staticmethod
     def handleModifiers(type, modifiers):
@@ -5083,6 +6026,8 @@ class Parser(Tokenizer):
     # Builtin IDL defined by WebIDL
     _builtins = """
         typedef unsigned long long DOMTimeStamp;
+        typedef (ArrayBufferView or ArrayBuffer) BufferSource;
+        typedef (SharedArrayBufferView or SharedArrayBuffer) SharedBufferSource;
     """
 
 def main():

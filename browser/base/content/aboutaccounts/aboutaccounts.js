@@ -12,8 +12,13 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 let fxAccountsCommon = {};
 Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
 
+// for master-password utilities
+Cu.import("resource://services-sync/util.js");
+
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
-const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
+const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync-setup.ui.showCustomizationDialog";
+
+const ACTION_URL_PARAM = "action";
 
 const OBSERVER_TOPICS = [
   fxAccountsCommon.ONVERIFIED_NOTIFICATION,
@@ -93,26 +98,24 @@ function shouldAllowRelink(acctName) {
 let wrapper = {
   iframe: null,
 
-  init: function (url=null) {
-    let weave = Cc["@mozilla.org/weave/service;1"]
-                  .getService(Ci.nsISupports)
-                  .wrappedJSObject;
-
-    // Don't show about:accounts with FxA disabled.
-    if (!weave.fxAccountsEnabled) {
-      document.body.remove();
-      return;
-    }
+  init: function (url, urlParams) {
+    // If a master-password is enabled, we want to encourage the user to
+    // unlock it.  Things still work if not, but the user will probably need
+    // to re-auth next startup (in which case we will get here again and
+    // re-prompt)
+    Utils.ensureMPUnlocked();
 
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
     iframe.addEventListener("load", this);
 
-    try {
-      iframe.src = url || fxAccounts.getAccountsSignUpURI();
-    } catch (e) {
-      error("Couldn't init Firefox Account wrapper: " + e.message);
+    // Ideally we'd just merge urlParams with new URL(url).searchParams, but our
+    // URLSearchParams implementation doesn't support iteration (bug 1085284).
+    let urlParamStr = urlParams.toString();
+    if (urlParamStr) {
+      url += (url.includes("?") ? "&" : "?") + urlParamStr;
     }
+    iframe.src = url;
   },
 
   handleEvent: function (evt) {
@@ -284,43 +287,63 @@ function init() {
     if (window.closed) {
       return;
     }
-    if (window.location.href.contains("action=signin")) {
+
+    // Ideally we'd use new URL(document.URL).searchParams, but for about: URIs,
+    // searchParams is empty.
+    let urlParams = new URLSearchParams(document.URL.split("?")[1] || "");
+    let action = urlParams.get(ACTION_URL_PARAM);
+    urlParams.delete(ACTION_URL_PARAM);
+
+    switch (action) {
+    case "signin":
       if (user) {
         // asking to sign-in when already signed in just shows manage.
         show("stage", "manage");
       } else {
         show("remote");
-        wrapper.init(fxAccounts.getAccountsSignInURI());
+        wrapper.init(fxAccounts.getAccountsSignInURI(), urlParams);
       }
-    } else if (window.location.href.contains("action=signup")) {
+      break;
+    case "signup":
       if (user) {
         // asking to sign-up when already signed in just shows manage.
         show("stage", "manage");
       } else {
         show("remote");
-        wrapper.init();
+        wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
       }
-    } else if (window.location.href.contains("action=reauth")) {
+      break;
+    case "reauth":
       // ideally we would only show this when we know the user is in a
       // "must reauthenticate" state - but we don't.
       // As the email address will be included in the URL returned from
       // promiseAccountsForceSigninURI, just always show it.
       fxAccounts.promiseAccountsForceSigninURI().then(url => {
         show("remote");
-        wrapper.init(url);
+        wrapper.init(url, urlParams);
       });
-    } else {
-      // No action specified
+      break;
+    default:
+      // No action specified.
       if (user) {
         show("stage", "manage");
         let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
         document.title = sb.GetStringFromName("manage.pageTitle");
       } else {
-        show("stage", "intro");
-        // load the remote frame in the background
-        wrapper.init();
+        // Attempt a migration if enabled or show the introductory page
+        // otherwise.
+        migrateToDevEdition(urlParams).then(migrated => {
+          if (!migrated) {
+            show("stage", "intro");
+            // load the remote frame in the background
+            wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
+          }
+        });
       }
+      break;
     }
+  }).catch(err => {
+    error("Failed to get the signed in user: " + err);
   });
 }
 
@@ -348,6 +371,59 @@ function show(id, childId) {
       }
     }
   }
+}
+
+// Migrate sync data from the default profile to the dev-edition profile.
+// Returns a promise of a true value if migration succeeded, or false if it
+// failed.
+function migrateToDevEdition(urlParams) {
+  let defaultProfilePath;
+  try {
+    defaultProfilePath = window.getDefaultProfilePath();
+  } catch (e) {} // no default profile.
+  let migrateSyncCreds = false;
+  if (defaultProfilePath) {
+    try {
+      migrateSyncCreds = Services.prefs.getBoolPref("identity.fxaccounts.migrateToDevEdition");
+    } catch (e) {}
+  }
+
+  if (!migrateSyncCreds) {
+    return Promise.resolve(false);
+  }
+
+  Cu.import("resource://gre/modules/osfile.jsm");
+  let fxAccountsStorage = OS.Path.join(defaultProfilePath, fxAccountsCommon.DEFAULT_STORAGE_FILENAME);
+  return OS.File.read(fxAccountsStorage, { encoding: "utf-8" }).then(text => {
+    let accountData = JSON.parse(text).accountData;
+    return fxAccounts.setSignedInUser(accountData);
+  }).then(() => {
+    return fxAccounts.promiseAccountsForceSigninURI().then(url => {
+      show("remote");
+      wrapper.init(url, urlParams);
+    });
+  }).then(null, error => {
+    log("Failed to migrate FX Account: " + error);
+    show("stage", "intro");
+    // load the remote frame in the background
+    wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
+  }).then(() => {
+    // Reset the pref after migration.
+    Services.prefs.setBoolPref("identity.fxaccounts.migrateToDevEdition", false);
+    return true;
+  }).then(null, err => {
+    Cu.reportError("Failed to reset the migrateToDevEdition pref: " + err);
+    return false;
+  });
+}
+
+// Helper function that returns the path of the default profile on disk. Will be
+// overridden in tests.
+function getDefaultProfilePath() {
+  let defaultProfile = Cc["@mozilla.org/toolkit/profile-service;1"]
+                        .getService(Ci.nsIToolkitProfileService)
+                        .defaultProfile;
+  return defaultProfile.rootDir.path;
 }
 
 document.addEventListener("DOMContentLoaded", function onload() {

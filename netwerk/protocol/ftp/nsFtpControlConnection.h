@@ -38,14 +38,15 @@ public:
     virtual void OnControlError(nsresult status) = 0;
 };
 
-class nsFtpControlConnection MOZ_FINAL : public nsIInputStreamCallback
+class nsFtpControlConnection final : public nsIInputStreamCallback
 {
+    ~nsFtpControlConnection();
+
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIINPUTSTREAMCALLBACK
 
     nsFtpControlConnection(const nsCSubstring& host, uint32_t port);
-    ~nsFtpControlConnection();
 
     nsresult Connect(nsIProxyInfo* proxyInfo, nsITransportEventSink* eventSink);
     nsresult Disconnect(nsresult status);

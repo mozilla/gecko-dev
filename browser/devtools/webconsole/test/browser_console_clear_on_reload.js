@@ -4,70 +4,83 @@
  */
 
 // Check that clear output on page reload works - bug 705921.
+// Check that clear output and page reload remove the sidebar - bug 971967.
 
-function test()
-{
+"use strict";
+
+let test = asyncTest(function*() {
   const PREF = "devtools.webconsole.persistlog";
-  const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html";
-  let hud = null;
+  const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                   "test/test-console.html";
 
   Services.prefs.setBoolPref(PREF, false);
   registerCleanupFunction(() => Services.prefs.clearUserPref(PREF));
 
-  addTab(TEST_URI);
+  yield loadTab(TEST_URI);
 
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, consoleOpened);
-  }, true);
+  let hud = yield openConsole();
+  ok(hud, "Web Console opened");
 
-  function consoleOpened(aHud)
-  {
-    hud = aHud;
-    ok(hud, "Web Console opened");
+  yield openSidebar("fooObj", { name: "testProp", value: "testValue" });
 
-    hud.jsterm.clearOutput();
-    content.console.log("foobarz1");
-    waitForMessages({
-      webconsole: hud,
-      messages: [{
-        text: "foobarz1",
-        category: CATEGORY_WEBDEV,
-        severity: SEVERITY_LOG,
-      }],
-    }).then(onConsoleMessage);
+  let sidebarClosed = hud.jsterm.once("sidebar-closed");
+  hud.jsterm.clearOutput();
+  yield sidebarClosed;
+
+  hud.jsterm.execute("console.log('foobarz1')");
+
+  yield waitForMessages({
+    webconsole: hud,
+    messages: [{
+      text: "foobarz1",
+      category: CATEGORY_WEBDEV,
+      severity: SEVERITY_LOG,
+    }],
+  });
+
+  yield openSidebar("fooObj", { name: "testProp", value: "testValue" });
+
+  BrowserReload();
+
+  sidebarClosed = hud.jsterm.once("sidebar-closed");
+  loadBrowser(gBrowser.selectedBrowser);
+  yield sidebarClosed;
+
+  hud.jsterm.execute("console.log('foobarz2')");
+
+  yield waitForMessages({
+    webconsole: hud,
+    messages: [{
+      text: "test-console.html",
+      category: CATEGORY_NETWORK,
+    },
+    {
+      text: "foobarz2",
+      category: CATEGORY_WEBDEV,
+      severity: SEVERITY_LOG,
+    }],
+  });
+
+  is(hud.outputNode.textContent.indexOf("foobarz1"), -1,
+     "foobarz1 has been removed from output");
+
+  function* openSidebar(objName, expectedObj) {
+    let msg = yield hud.jsterm.execute(objName);
+    ok(msg, "output message found");
+
+    let anchor = msg.querySelector("a");
+    let body = msg.querySelector(".message-body");
+    ok(anchor, "object anchor");
+    ok(body, "message body");
+
+    yield EventUtils.synthesizeMouse(anchor, 2, 2, {}, hud.iframeWindow);
+
+    let vviewVar = yield hud.jsterm.once("variablesview-fetched");
+    let vview = vviewVar._variablesView;
+    ok(vview, "variables view object exists");
+
+    yield findVariableViewProperties(vviewVar, [
+      expectedObj,
+    ], { webconsole: hud });
   }
-
-  function onConsoleMessage()
-  {
-    browser.addEventListener("load", onReload, true);
-    content.location.reload();
-  }
-
-  function onReload()
-  {
-    browser.removeEventListener("load", onReload, true);
-
-    content.console.log("foobarz2");
-
-    waitForMessages({
-      webconsole: hud,
-      messages: [{
-        text: "test-console.html",
-        category: CATEGORY_NETWORK,
-      },
-      {
-        text: "foobarz2",
-        category: CATEGORY_WEBDEV,
-        severity: SEVERITY_LOG,
-      }],
-    }).then(onConsoleMessageAfterReload);
-  }
-
-  function onConsoleMessageAfterReload()
-  {
-    is(hud.outputNode.textContent.indexOf("foobarz1"), -1,
-       "foobarz1 has been removed from output");
-    finishTest();
-  }
-}
+});

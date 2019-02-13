@@ -21,7 +21,7 @@ gfxD2DSurface::gfxD2DSurface(HANDLE handle, gfxContentType aContent)
     Init(cairo_d2d_surface_create_for_handle(
         gfxWindowsPlatform::GetPlatform()->GetD2DDevice(),
         handle,
-	(cairo_content_t)(int)aContent));
+        (cairo_content_t)(int)aContent));
 }
 
 gfxD2DSurface::gfxD2DSurface(ID3D10Texture2D *texture, gfxContentType aContent)
@@ -29,7 +29,7 @@ gfxD2DSurface::gfxD2DSurface(ID3D10Texture2D *texture, gfxContentType aContent)
     Init(cairo_d2d_surface_create_for_texture(
         gfxWindowsPlatform::GetPlatform()->GetD2DDevice(),
         texture,
-	(cairo_content_t)(int)aContent));
+        (cairo_content_t)(int)aContent));
 }
 
 gfxD2DSurface::gfxD2DSurface(cairo_surface_t *csurf)
@@ -37,7 +37,7 @@ gfxD2DSurface::gfxD2DSurface(cairo_surface_t *csurf)
     Init(csurf, true);
 }
 
-gfxD2DSurface::gfxD2DSurface(const gfxIntSize& size,
+gfxD2DSurface::gfxD2DSurface(const mozilla::gfx::IntSize& size,
                              gfxImageFormat imageFormat)
 {
     Init(cairo_d2d_surface_create(
@@ -57,7 +57,7 @@ gfxD2DSurface::Present()
 }
 
 void
-gfxD2DSurface::Scroll(const nsIntPoint &aDelta, const nsIntRect &aClip)
+gfxD2DSurface::Scroll(const nsIntPoint &aDelta, const mozilla::gfx::IntRect &aClip)
 {
     cairo_rectangle_t rect;
     rect.x = aClip.x;
@@ -80,7 +80,7 @@ gfxD2DSurface::GetDC(bool aRetainContents)
 }
 
 void
-gfxD2DSurface::ReleaseDC(const nsIntRect *aUpdatedRect)
+gfxD2DSurface::ReleaseDC(const mozilla::gfx::IntRect *aUpdatedRect)
 {
     if (!aUpdatedRect) {
         return cairo_d2d_release_dc(CairoSurface(), nullptr);
@@ -94,8 +94,8 @@ gfxD2DSurface::ReleaseDC(const nsIntRect *aUpdatedRect)
     cairo_d2d_release_dc(CairoSurface(), &rect);
 }
 
-const gfxIntSize gfxD2DSurface::GetSize() const
+const mozilla::gfx::IntSize gfxD2DSurface::GetSize() const
 { 
-    return gfxIntSize(cairo_d2d_surface_get_width(mSurface),
+    return mozilla::gfx::IntSize(cairo_d2d_surface_get_width(mSurface),
                       cairo_d2d_surface_get_height(mSurface));
 }

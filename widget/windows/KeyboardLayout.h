@@ -37,7 +37,6 @@
 #define VK_OEM_CLEAR            0xFE
 
 class nsIIdleServiceInternal;
-struct nsModifierKeyState;
 
 namespace mozilla {
 namespace widget {
@@ -62,24 +61,27 @@ public:
   ModifierKeyState(bool aIsShiftDown, bool aIsControlDown, bool aIsAltDown);
   ModifierKeyState(Modifiers aModifiers);
 
-  MOZ_ALWAYS_INLINE void Update();
+  void Update();
 
-  MOZ_ALWAYS_INLINE void Unset(Modifiers aRemovingModifiers);
+  void Unset(Modifiers aRemovingModifiers);
   void Set(Modifiers aAddingModifiers);
 
   void InitInputEvent(WidgetInputEvent& aInputEvent) const;
 
   bool IsShift() const;
   bool IsControl() const;
-  MOZ_ALWAYS_INLINE bool IsAlt() const;
-  MOZ_ALWAYS_INLINE bool IsAltGr() const;
-  MOZ_ALWAYS_INLINE bool IsWin() const;
+  bool IsAlt() const;
+  bool IsAltGr() const;
+  bool IsWin() const;
 
-  MOZ_ALWAYS_INLINE bool IsCapsLocked() const;
-  MOZ_ALWAYS_INLINE bool IsNumLocked() const;
-  MOZ_ALWAYS_INLINE bool IsScrollLocked() const;
+  bool IsCapsLocked() const;
+  bool IsNumLocked() const;
+  bool IsScrollLocked() const;
 
-  MOZ_ALWAYS_INLINE Modifiers GetModifiers() const;
+  MOZ_ALWAYS_INLINE Modifiers GetModifiers() const
+  {
+    return mModifiers;
+  }
 
 private:
   Modifiers mModifiers;
@@ -234,7 +236,7 @@ public:
   };
 
   NativeKey(nsWindowBase* aWidget,
-            const MSG& aKeyOrCharMessage,
+            const MSG& aMessage,
             const ModifierKeyState& aModKeyState,
             nsTArray<FakeCharMsg>* aFakeCharMsgs = nullptr);
 
@@ -259,6 +261,12 @@ public:
    * Otherwise, false.
    */
   bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
+
+  /**
+   * Handles WM_APPCOMMAND message.  Returns true if the event is consumed.
+   * Otherwise, false.
+   */
+  bool HandleAppCommandMessage() const;
 
 private:
   nsRefPtr<nsWindowBase> mWidget;
@@ -294,10 +302,18 @@ private:
 
   nsTArray<FakeCharMsg>* mFakeCharMsgs;
 
+  // When a keydown event is dispatched at handling WM_APPCOMMAND, the computed
+  // virtual keycode is set to this.  Even if we consume WM_APPCOMMAND message,
+  // Windows may send WM_KEYDOWN and WM_KEYUP message for them.
+  // At that time, we should not dispatch key events for them.
+  static uint8_t sDispatchedKeyOfAppCommand;
+
   NativeKey()
   {
     MOZ_CRASH("The default constructor of NativeKey isn't available");
   }
+
+  void InitWithAppCommand();
 
   /**
    * Returns true if the key event is caused by auto repeat.
@@ -312,6 +328,21 @@ private:
       case WM_DEADCHAR:
       case WM_SYSDEADCHAR:
         return ((mMsg.lParam & (1 << 30)) != 0);
+      case WM_APPCOMMAND:
+        if (mVirtualKeyCode) {
+          // If we can map the WM_APPCOMMAND to a virtual keycode, we can trust
+          // the result of GetKeyboardState().
+          BYTE kbdState[256];
+          memset(kbdState, 0, sizeof(kbdState));
+          ::GetKeyboardState(kbdState);
+          return !!kbdState[mVirtualKeyCode];
+        }
+        // If there is no virtual keycode for the command, we dispatch both
+        // keydown and keyup events from WM_APPCOMMAND handler.  Therefore,
+        // even if WM_APPCOMMAND is caused by auto key repeat, web apps receive
+        // a pair of DOM keydown and keyup events.  I.e., KeyboardEvent.repeat
+        // should be never true of such keys.
+        return false;
       default:
         return false;
     }
@@ -413,6 +444,12 @@ private:
   void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
                     const ModifierKeyState& aModKeyState) const;
   void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent) const;
+
+  /**
+   * Dispatches a command event for aEventCommand.
+   * Returns true if the event is consumed.  Otherwise, false.
+   */
+  bool DispatchCommandEvent(uint32_t aEventCommand) const;
 
   /**
    * Dispatches the key event.  Returns true if the event is consumed.
@@ -613,7 +650,7 @@ public:
    * message for the redirected keydown message.  AutoFlusher class is a helper
    * class for doing it.  This must be created in the stack.
    */
-  class MOZ_STACK_CLASS AutoFlusher MOZ_FINAL
+  class MOZ_STACK_CLASS AutoFlusher final
   {
   public:
     AutoFlusher(nsWindowBase* aWidget, const MSG &aMsg) :

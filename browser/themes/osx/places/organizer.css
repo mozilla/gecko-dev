@@ -67,8 +67,10 @@
   -moz-border-start: none !important;
   -moz-border-end: 1px solid #bdbdbd;
   min-width: 1px;
-  width: 1px;
-  background-image: none !important;       
+  width: 3px;
+  -moz-margin-start: -3px;
+  position: relative;
+  background-image: none !important;
 }
 
 #placesToolbar > toolbarbutton {
@@ -172,6 +174,7 @@
 
 /* Place List, Place Content */
 #placesList {
+  -moz-appearance: -moz-mac-vibrancy-light;
   background-color: #e2e7ed;
   width: 160px;
 }
@@ -225,48 +228,28 @@
 
 .expander-up,
 .expander-down {
-  -moz-appearance: none;
-  margin-left: 8px;
+  margin: 0 4px 1px 8px;
   padding: 0;
-  min-width: 0;
 }
 
 .expander-up {
-  list-style-image: url("chrome://browser/skin/places/expander-open.png") !important;
+  -moz-appearance: -moz-mac-disclosure-button-open;
 }
 
 .expander-down {
-  list-style-image: url("chrome://browser/skin/places/expander-closed.png") !important;
-}
-
-.expander-down:hover:active {
-  list-style-image: url("chrome://browser/skin/places/expander-closed-active.png") !important;
-}
-
-.expander-up:hover:active {
-  list-style-image: url("chrome://browser/skin/places/expander-open-active.png") !important;
+  -moz-appearance: -moz-mac-disclosure-button-closed;
 }
 
 /**
  * info pane
  */
 
-/* More/Less button */
-
 #infoBoxExpander {
-  list-style-image: url("chrome://browser/skin/places/twisty-open.gif");
-  -moz-appearance: none;
-  margin: 0;
-  padding: 0;
-  max-width: 0;
+  margin: 2px;
 }
 
 #infoBoxExpanderLabel {
   display: none;
-}
-
-#infoBox[minimal="true"] #infoBoxExpander {
-  list-style-image: url("chrome://browser/skin/places/twisty-closed.gif");
 }
 
 #itemsCountText,

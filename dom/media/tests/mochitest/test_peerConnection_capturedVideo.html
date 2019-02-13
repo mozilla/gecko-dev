@@ -1,0 +1,45 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="pc.js"></script>
+</head>
+<body>
+<video id="v1" src="../../test/vp9cake.webm" height="120" width="160" autoplay muted></video>
+<pre id="test">
+<script type="application/javascript;version=1.8">
+  createHTML({
+    bug: "1081409",
+    title: "Captured video-only over peer connection",
+    visible: true
+  });
+
+var metadataLoaded = new Promise(resolve => {
+  if (v1.readyState < v1.HAVE_METADATA) {
+    v1.onloadedmetadata = resolve;
+  } else {
+    resolve();
+  }
+});
+
+runNetworkTest(function() {
+  var test = new PeerConnectionTest();
+  test.setOfferOptions({ offerToReceiveVideo: false,
+                         offerToReceiveAudio: false });
+  test.setMediaConstraints([{video: true, audio: true}], []);
+  test.chain.replace("PC_LOCAL_GUM", [
+    function PC_LOCAL_CAPTUREVIDEO(test) {
+      return metadataLoaded
+        .then(() => {
+          var stream = v1.mozCaptureStreamUntilEnded();
+          is(stream.getTracks().length, 2, "Captured stream has 2 tracks");
+          test.pcLocal.attachMedia(stream, "audiovideo", "local");
+        });
+    }
+  ]);
+  test.chain.removeAfter("PC_REMOTE_CHECK_MEDIA_FLOW_PRESENT");
+  test.run();
+});
+</script>
+</pre>
+</body>
+</html>

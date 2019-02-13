@@ -7,24 +7,20 @@
 #include "vm/ProxyObject.h"
 
 #include "jscompartment.h"
-#include "jsgcinlines.h"
-#include "jsinferinlines.h"
 #include "jsobjinlines.h"
 
 using namespace js;
 
-/* static */ ProxyObject *
-ProxyObject::New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv, TaggedProto proto_,
-                 JSObject *parent_, const ProxyOptions &options)
+/* static */ ProxyObject*
+ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv, TaggedProto proto_,
+                 const ProxyOptions& options)
 {
     Rooted<TaggedProto> proto(cx, proto_);
-    RootedObject parent(cx, parent_);
 
-    const Class *clasp = options.clasp();
+    const Class* clasp = options.clasp();
 
-    JS_ASSERT(isValidProxyClass(clasp));
-    JS_ASSERT_IF(proto.isObject(), cx->compartment() == proto.toObject()->compartment());
-    JS_ASSERT_IF(parent, cx->compartment() == parent->compartment());
+    MOZ_ASSERT(isValidProxyClass(clasp));
+    MOZ_ASSERT_IF(proto.isObject(), cx->compartment() == proto.toObject()->compartment());
 
     /*
      * Eagerly mark properties unknown for proxies, so we don't try to track
@@ -35,65 +31,71 @@ ProxyObject::New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv, Tag
      */
     if (proto.isObject() && !options.singleton() && !clasp->isDOMClass()) {
         RootedObject protoObj(cx, proto.toObject());
-        if (!JSObject::setNewTypeUnknown(cx, clasp, protoObj))
+        if (!JSObject::setNewGroupUnknown(cx, clasp, protoObj))
             return nullptr;
     }
 
     NewObjectKind newKind = options.singleton() ? SingletonObject : GenericObject;
     gc::AllocKind allocKind = gc::GetGCObjectKind(clasp);
 
-#if 0
-    // Background finalization of proxies temporarily disabled. See bug 1008791
     if (handler->finalizeInBackground(priv))
         allocKind = GetBackgroundAllocKind(allocKind);
-#endif
-    RootedObject obj(cx, NewObjectWithGivenProto(cx, clasp, proto, parent, allocKind, newKind));
-    if (!obj)
+
+    ProxyValueArray* values = cx->zone()->new_<ProxyValueArray>();
+    if (!values)
         return nullptr;
 
+    // Note: this will initialize the object's |data| to strange values, but we
+    // will immediately overwrite those below.
+    RootedObject obj(cx, NewObjectWithGivenTaggedProto(cx, clasp, proto, allocKind,
+                                                       newKind));
+    if (!obj) {
+        js_free(values);
+        return nullptr;
+    }
+
     Rooted<ProxyObject*> proxy(cx, &obj->as<ProxyObject>());
-    proxy->initHandler(handler);
-    proxy->initCrossCompartmentPrivate(priv);
+
+    proxy->data.values = values;
+    proxy->data.handler = handler;
+
+    proxy->setCrossCompartmentPrivate(priv);
 
     /* Don't track types of properties of non-DOM and non-singleton proxies. */
     if (newKind != SingletonObject && !clasp->isDOMClass())
-        MarkTypeObjectUnknownProperties(cx, proxy->type());
+        MarkObjectGroupUnknownProperties(cx, proxy->group());
 
     return proxy;
 }
 
 void
-ProxyObject::initCrossCompartmentPrivate(HandleValue priv)
+ProxyObject::setCrossCompartmentPrivate(const Value& priv)
 {
-    initCrossCompartmentSlot(PRIVATE_SLOT, priv);
+    *slotOfPrivate() = priv;
 }
 
 void
-ProxyObject::initHandler(BaseProxyHandler *handler)
+ProxyObject::setSameCompartmentPrivate(const Value& priv)
 {
-    initSlot(HANDLER_SLOT, PrivateValue(handler));
-}
-
-static void
-NukeSlot(ProxyObject *proxy, uint32_t slot)
-{
-    Value old = proxy->getSlot(slot);
-    if (old.isMarkable()) {
-        Zone *zone = ZoneOfValue(old);
-        AutoMarkInDeadZone amd(zone);
-        proxy->setReservedSlot(slot, NullValue());
-    } else {
-        proxy->setReservedSlot(slot, NullValue());
-    }
+    MOZ_ASSERT(IsObjectValueInCompartment(priv, compartment()));
+    *slotOfPrivate() = priv;
 }
 
 void
-ProxyObject::nuke(BaseProxyHandler *handler)
+ProxyObject::nuke(const BaseProxyHandler* handler)
 {
-    /* Allow people to add their own number of reserved slots beyond the expected 4 */
-    unsigned numSlots = JSCLASS_RESERVED_SLOTS(getClass());
-    for (unsigned i = 0; i < numSlots; i++)
-        NukeSlot(this, i);
+    setSameCompartmentPrivate(NullValue());
+    for (size_t i = 0; i < PROXY_EXTRA_SLOTS; i++)
+        SetProxyExtra(this, i, NullValue());
+
     /* Restore the handler as requested after nuking. */
     setHandler(handler);
+}
+
+JS_FRIEND_API(void)
+js::SetValueInProxy(Value* slot, const Value& value)
+{
+    // Slots in proxies are not HeapValues, so do a cast whenever assigning
+    // values to them which might trigger a barrier.
+    *reinterpret_cast<HeapValue*>(slot) = value;
 }

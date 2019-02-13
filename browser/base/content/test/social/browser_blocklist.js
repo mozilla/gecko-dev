@@ -60,12 +60,12 @@ var tests = {
       try {
         SocialService.addProvider(manifest, function(provider) {
           try {
-            SocialService.removeProvider(provider.origin, function() {
+            SocialService.disableProvider(provider.origin, function() {
               ok(true, "added and removed provider");
               finishTest(true);
             });
           } catch(e) {
-            ok(false, "SocialService.removeProvider threw exception: " + e);
+            ok(false, "SocialService.disableProvider threw exception: " + e);
             finishTest(false);
           }
         });
@@ -85,7 +85,7 @@ var tests = {
     setAndUpdateBlocklist(blocklistURL, function() {
       try {
         SocialService.addProvider(manifest_bad, function(provider) {
-          SocialService.removeProvider(provider.origin, function() {
+          SocialService.disableProvider(provider.origin, function() {
             ok(false, "SocialService.addProvider should throw blocklist exception");
             finishTest(false);
           });
@@ -113,7 +113,13 @@ var tests = {
         try {
           // expecting an exception when attempting to install a hard blocked
           // provider
-          Social.installProvider(doc, manifest_bad, function(addonManifest) {
+          let data = {
+            origin: doc.nodePrincipal.origin,
+            url: doc.location.href,
+            manifest: manifest_bad,
+            window: window
+          }
+          Social.installProvider(data, function(addonManifest) {
             gBrowser.removeTab(tab);
             finishTest(false);
           });

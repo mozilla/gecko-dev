@@ -53,7 +53,7 @@
   display: table-row !important;
 }
 
-/* The ::-moz-table-column pseudo-element is for extra columns at the end 
+/* The ::-moz-table-column pseudo-element is for extra columns at the end
    of a table. */
 *|*::-moz-table-column {
   display: table-column !important;
@@ -62,7 +62,7 @@
 *|*::-moz-table-column-group {
   display: table-column-group !important;
 }
- 
+
 *|*::-moz-table-row-group {
   display: table-row-group !important;
 }
@@ -72,16 +72,42 @@
   white-space: inherit;
 }
 
+/* Ruby */
+@supports (display:ruby) {
+  *|*::-moz-ruby {
+    display: ruby;
+    unicode-bidi: -moz-isolate;
+  }
+  *|*::-moz-ruby-base {
+    display: ruby-base;
+    unicode-bidi: -moz-isolate;
+  }
+  *|*::-moz-ruby-text {
+    display: ruby-text;
+    unicode-bidi: -moz-isolate;
+  }
+  *|*::-moz-ruby-base-container {
+    display: ruby-base-container;
+    unicode-bidi: -moz-isolate;
+  }
+  *|*::-moz-ruby-text-container {
+    display: ruby-text-container;
+    unicode-bidi: -moz-isolate;
+  }
+}
+
 /* Lists */
 
 *|*::-moz-list-bullet, *|*::-moz-list-number {
   display: inline;
   vertical-align: baseline;
-  /* TODO: Replace this with font-variant-numeric:tabular-nums once the
-     font-variant-* properties are enabled for all channels (bug 975744). */
-  -moz-font-feature-settings: "tnum";
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }
+
+/* SVG documents don't always load this file but they do have links.
+ * If you change the link rules, consider carefully whether to make
+ * the same changes to svg.css.
+ */
 
 /* Links */
 
@@ -167,7 +193,7 @@
 %endif
 }
 
-*|*::-moz-column-content { 
+*|*::-moz-column-content {
   /* the column boxes inside a column-flowed block */
   /* make unicode-bidi inherit, otherwise it has no effect on column boxes */
   unicode-bidi: inherit;
@@ -288,107 +314,213 @@ parsererror|sourcetext {
   font-size: 12pt;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret {
-  background-image: url("resource://gre/res/text_selection_handle.png");
+div:-moz-native-anonymous.moz-accessiblecaret,
+div:-moz-native-anonymous.moz-accessiblecaret > div.image,
+div:-moz-native-anonymous.moz-accessiblecaret > div.bar {
   position: absolute;
-  width: 19px;
-  height: 24px;
-  margin-left: -10px;
-  background-position: center center;
   z-index: 2147483647;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+div:-moz-native-anonymous.moz-accessiblecaret > div.image {
+  background-position: center bottom;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+
+  /* Override this property in moz-custom-content-container to make dummy touch
+   * listener work. */
+  pointer-events: auto;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret > div.bar {
+  margin-left: 49%;
+  background-color: #008aa0;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.no-bar > div.bar {
+  display: none;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
   background-image: url("resource://gre/res/text_caret.png");
-  position: absolute;
-  width: 21px;
-  height: 26px;
-  margin-left: -11px;
-  background-position: center center;
-  background-size: 100% 100%;
-  z-index: 2147483647;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
   background-image: url("resource://gre/res/text_caret_tilt_left.png");
-  margin-left: -22px;
-  width: 22px;
+  margin-left: -39%;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
   background-image: url("resource://gre/res/text_caret_tilt_right.png");
-  margin-left: 0px;
-  width: 22px;
+  margin-left: 41%;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.none {
+  display: none;
 }
 
 @media (min-resolution: 1.5dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret {
-    background-image: url("resource://gre/res/text_selection_handle@1.5.png");
-    position: absolute;
-    width: 29px;
-    height: 36px;
-    margin-left: -15px;
-    background-position: center center;
-    z-index: 2147483647;
-  }
-
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
     background-image: url("resource://gre/res/text_caret@1.5x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_left@1.5x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_right@1.5x.png");
   }
 }
 
 @media (min-resolution: 2dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret {
-    background-image: url("resource://gre/res/text_selection_handle@2.png");
-    position: absolute;
-    width: 38px;
-    height: 48px;
-    margin-left: -19px;
-    background-position: center center;
-    z-index: 2147483647;
-  }
-
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
     background-image: url("resource://gre/res/text_caret@2x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_left@2x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_right@2x.png");
   }
 }
 
 @media (min-resolution: 2.25dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
     background-image: url("resource://gre/res/text_caret@2.25x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_left@2.25x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
     background-image: url("resource://gre/res/text_caret_tilt_right@2.25x.png");
   }
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret.hidden,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.hidden,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.hidden {
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right {
+  position: fixed;
+  width: 44px;
+  height: 47px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: 0;
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right,
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  background-position: center bottom;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  z-index: 2147483647;
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  background-image: url("resource://gre/res/text_caret.png");
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right {
+  margin-left: -23px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
+  background-image: url("resource://gre/res/text_caret_tilt_left.png");
+  margin-left: -17px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
+  background-image: url("resource://gre/res/text_caret_tilt_right.png");
+  margin-left: 18px;
+}
+
+@media (min-resolution: 1.5dppx) {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
+    background-image: url("resource://gre/res/text_caret@1.5x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_left@1.5x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_right@1.5x.png");
+  }
+}
+
+@media (min-resolution: 2dppx) {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
+    background-image: url("resource://gre/res/text_caret@2x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_left@2x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_right@2x.png");
+  }
+}
+
+@media (min-resolution: 2.25dppx) {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
+    background-image: url("resource://gre/res/text_caret@2.25x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_left@2.25x.png");
+  }
+
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
+    background-image: url("resource://gre/res/text_caret_tilt_right@2.25x.png");
+  }
+}
+
+div:-moz-native-anonymous.moz-touchcaret.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-left.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-right.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-left.hidden > div,
+div:-moz-native-anonymous.moz-selectioncaret-right.hidden > div {
+  width: 0px;
+  height: 0px;
+  margin: 0px;
   visibility: hidden;
+}
+
+/* Custom content container in the CanvasFrame, fixed positioned on top of
+   everything else, not reacting to pointer events. */
+div:-moz-native-anonymous.moz-custom-content-container {
+  pointer-events: none;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  z-index: 2147483648;
 }

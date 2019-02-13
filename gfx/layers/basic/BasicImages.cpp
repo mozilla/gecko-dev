@@ -48,17 +48,17 @@ public:
     }
   }
 
-  virtual void SetData(const Data& aData);
-  virtual void SetDelayedConversion(bool aDelayed) { mDelayedConversion = aDelayed; }
+  virtual void SetData(const Data& aData) override;
+  virtual void SetDelayedConversion(bool aDelayed) override { mDelayedConversion = aDelayed; }
 
-  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() override;
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     size_t size = PlanarYCbCrImage::SizeOfExcludingThis(aMallocSizeOf);
     size += mDecodedBuffer.SizeOfExcludingThis(aMallocSizeOf);
@@ -136,7 +136,8 @@ BasicPlanarYCbCrImage::GetAsSourceSurface()
   NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
 
   if (mSourceSurface) {
-    return mSourceSurface.get();
+    RefPtr<gfx::SourceSurface> surface(mSourceSurface);
+    return surface.forget();
   }
 
   if (!mDecodedBuffer) {
@@ -165,7 +166,7 @@ BasicPlanarYCbCrImage::GetAsSourceSurface()
   mRecycleBin->RecycleBuffer(mDecodedBuffer.forget(), mSize.height * mStride);
 
   mSourceSurface = surface;
-  return mSourceSurface.get();
+  return surface.forget();
 }
 
 

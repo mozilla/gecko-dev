@@ -24,43 +24,56 @@ public:
     CGFontRef GetCGFontRef() const { return mCGFont; }
 
     /* overrides for the pure virtual methods in gfxFont */
-    virtual const gfxFont::Metrics& GetMetrics() {
-        return mMetrics;
-    }
-
-    virtual uint32_t GetSpaceGlyph() {
+    virtual uint32_t GetSpaceGlyph() override {
         return mSpaceGlyph;
     }
 
-    virtual bool SetupCairoFont(gfxContext *aContext);
+    virtual bool SetupCairoFont(gfxContext *aContext) override;
 
     /* override Measure to add padding for antialiasing */
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
                                uint32_t aStart, uint32_t aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
-                               Spacing *aSpacing);
+                               Spacing *aSpacing,
+                               uint16_t aOrientation) override;
 
-    virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont> GetScaledFont(mozilla::gfx::DrawTarget *aTarget);
+    // We need to provide hinted (non-linear) glyph widths if using a font
+    // with embedded color bitmaps (Apple Color Emoji), as Core Text renders
+    // the glyphs with non-linear scaling at small pixel sizes.
+    virtual bool ProvidesGlyphWidths() const override {
+        return mFontEntry->HasFontTable(TRUETYPE_TAG('s','b','i','x'));
+    }
+
+    virtual int32_t GetGlyphWidth(DrawTarget& aDrawTarget,
+                                  uint16_t aGID) override;
+
+    virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont>
+    GetScaledFont(mozilla::gfx::DrawTarget *aTarget) override;
+
+    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
+      GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams = nullptr) override;
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
+                                        FontCacheSizes* aSizes) const override;
     virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
+                                        FontCacheSizes* aSizes) const override;
 
-    virtual FontType GetType() const { return FONT_TYPE_MAC; }
+    virtual FontType GetType() const override { return FONT_TYPE_MAC; }
 
 protected:
-    virtual void CreatePlatformShaper();
+    virtual const Metrics& GetHorizontalMetrics() override {
+        return mMetrics;
+    }
 
     // override to prefer CoreText shaping with fonts that depend on AAT
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(gfxContext     *aContext,
                            const char16_t *aText,
-                           uint32_t         aOffset,
-                           uint32_t         aLength,
-                           int32_t          aScript,
-                           gfxShapedText   *aShapedText,
-                           bool             aPreferPlatformShaping = false);
+                           uint32_t        aOffset,
+                           uint32_t        aLength,
+                           int32_t         aScript,
+                           bool            aVertical,
+                           gfxShapedText  *aShapedText) override;
 
     void InitMetrics();
     void InitMetricsFromPlatform();
@@ -74,7 +87,13 @@ protected:
     // MacOSFontEntry, it is not retained or released by gfxMacFont
     CGFontRef             mCGFont;
 
+    // a Core Text font reference, created only if we're using CT to measure
+    // glyph widths; otherwise null.
+    CTFontRef             mCTFont;
+
     cairo_font_face_t    *mFontFace;
+
+    nsAutoPtr<gfxFontShaper> mCoreTextShaper;
 
     Metrics               mMetrics;
     uint32_t              mSpaceGlyph;

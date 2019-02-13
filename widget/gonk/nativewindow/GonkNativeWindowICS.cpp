@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * Copyright (C) 2010 The Android Open Source Project
  * Copyright (C) 2012-2013 Mozilla Foundation
@@ -37,24 +38,6 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 
-class nsProxyReleaseTask : public CancelableTask
-{
-public:
-    nsProxyReleaseTask(TextureClient* aClient)
-        : mTextureClient(aClient) {
-    }
-
-    virtual void Run() MOZ_OVERRIDE
-    {
-        mTextureClient = nullptr;
-    }
-
-    virtual void Cancel() MOZ_OVERRIDE {}
-
-private:
-    mozilla::RefPtr<TextureClient> mTextureClient;
-};
-
 GonkNativeWindow::GonkNativeWindow() :
     mAbandoned(false),
     mDefaultWidth(1),
@@ -89,7 +72,7 @@ void GonkNativeWindow::freeAllBuffersLocked()
             if (mSlots[i].mTextureClient) {
               mSlots[i].mTextureClient->ClearRecycleCallback();
               // release TextureClient in ImageBridge thread
-              nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[i].mTextureClient);
+              TextureClientReleaseTask* task = new TextureClientReleaseTask(mSlots[i].mTextureClient);
               mSlots[i].mTextureClient = NULL;
               ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
             }
@@ -111,7 +94,7 @@ void GonkNativeWindow::clearRenderingStateBuffersLocked()
                 if (mSlots[i].mTextureClient) {
                   mSlots[i].mTextureClient->ClearRecycleCallback();
                   // release TextureClient in ImageBridge thread
-                  nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[i].mTextureClient);
+                  TextureClientReleaseTask* task = new TextureClientReleaseTask(mSlots[i].mTextureClient);
                   mSlots[i].mTextureClient = NULL;
                   ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
                 }
@@ -327,7 +310,7 @@ status_t GonkNativeWindow::dequeueBuffer(int *outBuf, uint32_t w, uint32_t h,
             if (mSlots[buf].mTextureClient) {
                 mSlots[buf].mTextureClient->ClearRecycleCallback();
                 // release TextureClient in ImageBridge thread
-                nsProxyReleaseTask* task = new nsProxyReleaseTask(mSlots[buf].mTextureClient);
+                TextureClientReleaseTask* task = new TextureClientReleaseTask(mSlots[buf].mTextureClient);
                 mSlots[buf].mTextureClient = NULL;
                 ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(FROM_HERE, task);
             }
@@ -342,6 +325,7 @@ status_t GonkNativeWindow::dequeueBuffer(int *outBuf, uint32_t w, uint32_t h,
                                         gfx::SurfaceFormat::UNKNOWN,
                                         gfx::BackendType::NONE,
                                         TextureFlags::DEALLOCATE_CLIENT);
+        textureClient->SetIsOpaque(true);
         usage |= GraphicBuffer::USAGE_HW_TEXTURE;
         bool result = textureClient->AllocateGralloc(IntSize(w, h), format, usage);
         sp<GraphicBuffer> graphicBuffer = textureClient->GetGraphicBuffer();
@@ -426,7 +410,8 @@ GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
     return nullptr;
   }
 
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
@@ -504,7 +489,8 @@ GonkNativeWindow::getCurrentBuffer() {
   mDequeueCondition.signal();
 
   mSlots[buf].mTextureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 
@@ -513,6 +499,7 @@ GonkNativeWindow::RecycleCallback(TextureClient* client, void* closure) {
   GonkNativeWindow* nativeWindow =
     static_cast<GonkNativeWindow*>(closure);
 
+  MOZ_ASSERT(client && !client->IsDead());
   client->ClearRecycleCallback();
   nativeWindow->returnBuffer(client);
 }

@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,11 +7,14 @@
 #include "BluetoothRilListener.h"
 
 #include "BluetoothHfpManager.h"
+#include "nsIIccService.h"
 #include "nsIMobileConnectionInfo.h"
-#include "nsIRadioInterfaceLayer.h"
-#include "nsRadioInterfaceLayer.h"
+#include "nsIMobileConnectionService.h"
+#include "nsITelephonyCallInfo.h"
+#include "nsITelephonyService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
+#include "nsQueryObject.h"
 
 USING_BLUETOOTH_NAMESPACE
 
@@ -35,7 +38,7 @@ IccListener::NotifyIccInfoChanged()
 }
 
 NS_IMETHODIMP
-IccListener::NotifyStkCommand(const nsAString & aMessage)
+IccListener::NotifyStkCommand(nsIStkProactiveCmd *aStkProactiveCmd)
 {
   return NS_OK;
 }
@@ -57,15 +60,19 @@ IccListener::Listen(bool aStart)
 {
   NS_ENSURE_TRUE(mOwner, false);
 
-  nsCOMPtr<nsIIccProvider> provider =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE(provider, false);
+  nsCOMPtr<nsIIccService> service =
+    do_GetService(ICC_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(service, false);
+
+  nsCOMPtr<nsIIcc> icc;
+  service->GetIccByServiceId(mOwner->mClientId, getter_AddRefs(icc));
+  NS_ENSURE_TRUE(icc, false);
 
   nsresult rv;
   if (aStart) {
-    rv = provider->RegisterIccMsg(mOwner->mClientId, this);
+    rv = icc->RegisterListener(this);
   } else {
-    rv = provider->UnregisterIccMsg(mOwner->mClientId, this);
+    rv = icc->UnregisterListener(this);
   }
 
   return NS_SUCCEEDED(rv);
@@ -100,25 +107,17 @@ MobileConnectionListener::NotifyDataChanged()
 }
 
 NS_IMETHODIMP
-MobileConnectionListener::NotifyUssdReceived(const nsAString & message,
-                                             bool sessionEnded)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 MobileConnectionListener::NotifyDataError(const nsAString & message)
 {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-MobileConnectionListener::NotifyCFStateChange(bool success,
-                                              uint16_t action,
-                                              uint16_t reason,
-                                              const nsAString& number,
-                                              uint16_t timeSeconds,
-                                              uint16_t serviceClass)
+MobileConnectionListener::NotifyCFStateChanged(uint16_t action,
+                                               uint16_t reason,
+                                               const nsAString& number,
+                                               uint16_t timeSeconds,
+                                               uint16_t serviceClass)
 {
   return NS_OK;
 }
@@ -137,12 +136,6 @@ MobileConnectionListener::NotifyOtaStatusChanged(const nsAString & status)
 }
 
 NS_IMETHODIMP
-MobileConnectionListener::NotifyIccChanged()
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 MobileConnectionListener::NotifyRadioStateChanged()
 {
   return NS_OK;
@@ -154,18 +147,40 @@ MobileConnectionListener::NotifyClirModeChanged(uint32_t aMode)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+MobileConnectionListener::NotifyLastKnownNetworkChanged()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MobileConnectionListener::NotifyLastKnownHomeNetworkChanged()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MobileConnectionListener::NotifyNetworkSelectionModeChanged()
+{
+  return NS_OK;
+}
+
 bool
 MobileConnectionListener::Listen(bool aStart)
 {
-  nsCOMPtr<nsIMobileConnectionProvider> provider =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE(provider, false);
+  nsCOMPtr<nsIMobileConnectionService> service =
+    do_GetService(NS_MOBILE_CONNECTION_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(service, false);
+
+  nsCOMPtr<nsIMobileConnection> connection;
+  service->GetItemByServiceId(mClientId, getter_AddRefs(connection));
+  NS_ENSURE_TRUE(connection, false);
 
   nsresult rv;
   if (aStart) {
-    rv = provider->RegisterMobileConnectionMsg(mClientId, this);
+    rv = connection->RegisterListener(this);
   } else {
-    rv = provider->UnregisterMobileConnectionMsg(mClientId, this);
+    rv = connection->UnregisterListener(this);
   }
 
   return NS_SUCCEEDED(rv);
@@ -176,66 +191,53 @@ MobileConnectionListener::Listen(bool aStart)
  */
 NS_IMPL_ISUPPORTS(TelephonyListener, nsITelephonyListener)
 
-NS_IMETHODIMP
-TelephonyListener::CallStateChanged(uint32_t aServiceId,
-                                    uint32_t aCallIndex,
-                                    uint16_t aCallState,
-                                    const nsAString& aNumber,
-                                    bool aIsOutgoing,
-                                    bool aIsEmergency,
-                                    bool aIsConference,
-                                    bool aIsSwitchable,
-                                    bool aIsMergeable)
+/**
+ * @param aSend A boolean indicates whether we need to notify headset or not
+ */
+nsresult
+TelephonyListener::HandleCallInfo(nsITelephonyCallInfo* aInfo, bool aSend)
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
   NS_ENSURE_TRUE(hfp, NS_ERROR_FAILURE);
 
-  hfp->HandleCallStateChanged(aCallIndex, aCallState, EmptyString(), aNumber,
-                              aIsOutgoing, aIsConference, true);
+  uint32_t callIndex;
+  uint16_t callState;
+  nsAutoString number;
+  nsAutoString disconnectedReason;
+  bool isOutgoing;
+  bool isConference;
+
+  aInfo->GetCallIndex(&callIndex);
+  aInfo->GetCallState(&callState);
+  aInfo->GetNumber(number);
+  aInfo->GetDisconnectedReason(disconnectedReason);
+  aInfo->GetIsOutgoing(&isOutgoing);
+  aInfo->GetIsConference(&isConference);
+
+  // The disconnectedReason of a disconnected call must be nonempty no matter
+  // the call is disconnected for a normal reason or an error.
+  MOZ_ASSERT((callState != nsITelephonyService::CALL_STATE_DISCONNECTED ||
+              !disconnectedReason.IsEmpty()),
+             "disconnectedReason of an disconnected call must be nonempty.");
+  hfp->HandleCallStateChanged(callIndex, callState, disconnectedReason, number,
+                              isOutgoing, isConference, aSend);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TelephonyListener::EnumerateCallState(uint32_t aServiceId,
-                                      uint32_t aCallIndex,
-                                      uint16_t aCallState,
-                                      const nsAString_internal& aNumber,
-                                      bool aIsOutgoing,
-                                      bool aIsEmergency,
-                                      bool aIsConference,
-                                      bool aIsSwitchable,
-                                      bool aIsMergeable)
+TelephonyListener::CallStateChanged(uint32_t aLength,
+                                    nsITelephonyCallInfo** aAllInfo)
 {
-  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE(hfp, NS_ERROR_FAILURE);
-
-  hfp->HandleCallStateChanged(aCallIndex, aCallState, EmptyString(), aNumber,
-                              aIsOutgoing, aIsConference, false);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TelephonyListener::NotifyError(uint32_t aServiceId,
-                               int32_t aCallIndex,
-                               const nsAString& aError)
-{
-  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE(hfp, NS_ERROR_FAILURE);
-
-  if (aCallIndex > 0) {
-    // In order to not miss any related call state transition.
-    // It's possible that 3G network signal lost for unknown reason.
-    // If a call is released abnormally, NotifyError() will be called,
-    // instead of CallStateChanged(). We need to reset the call array state
-    // via setting CALL_STATE_DISCONNECTED
-    hfp->HandleCallStateChanged(aCallIndex,
-                                nsITelephonyService::CALL_STATE_DISCONNECTED,
-                                aError, EmptyString(), false, false, true);
-    BT_WARNING("Reset the call state due to call transition ends abnormally");
+  for (uint32_t i = 0; i < aLength; ++i) {
+    HandleCallInfo(aAllInfo[i], true);
   }
-
-  BT_WARNING(NS_ConvertUTF16toUTF8(aError).get());
   return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyListener::EnumerateCallState(nsITelephonyCallInfo* aInfo)
+{
+  return HandleCallInfo(aInfo, false);
 }
 
 NS_IMETHODIMP
@@ -270,7 +272,10 @@ TelephonyListener::NotifyConferenceError(const nsAString& aName,
 
 NS_IMETHODIMP
 TelephonyListener::NotifyCdmaCallWaiting(uint32_t aServiceId,
-                                         const nsAString& aNumber)
+                                         const nsAString& aNumber,
+                                         uint16_t aNumberPresentation,
+                                         const nsAString& aName,
+                                         uint16_t aNamePresentation)
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
   NS_ENSURE_TRUE(hfp, NS_ERROR_FAILURE);
@@ -302,17 +307,17 @@ TelephonyListener::Listen(bool aStart)
  */
 BluetoothRilListener::BluetoothRilListener()
 {
+  nsCOMPtr<nsIMobileConnectionService> service =
+    do_GetService(NS_MOBILE_CONNECTION_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE_VOID(service);
+
   // Query number of total clients (sim slots)
-  uint32_t numOfClients;
-  nsCOMPtr<nsIRadioInterfaceLayer> radioInterfaceLayer =
-    do_GetService(NS_RADIOINTERFACELAYER_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(radioInterfaceLayer);
-
-  radioInterfaceLayer->GetNumRadioInterfaces(&numOfClients);
-
-  // Init MobileConnectionListener array and IccInfoListener
-  for (uint32_t i = 0; i < numOfClients; i++) {
-    mMobileConnListeners.AppendElement(new MobileConnectionListener(i));
+  uint32_t numItems = 0;
+  if (NS_SUCCEEDED(service->GetNumItems(&numItems))) {
+    // Init MobileConnectionListener array and IccInfoListener
+    for (uint32_t i = 0; i < numItems; i++) {
+      mMobileConnListeners.AppendElement(new MobileConnectionListener(i));
+    }
   }
 
   mTelephonyListener = new TelephonyListener();
@@ -343,13 +348,20 @@ BluetoothRilListener::SelectClient()
   // Reset mClientId
   mClientId = mMobileConnListeners.Length();
 
-  nsCOMPtr<nsIMobileConnectionProvider> connection =
-    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(connection);
+  nsCOMPtr<nsIMobileConnectionService> service =
+    do_GetService(NS_MOBILE_CONNECTION_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE_VOID(service);
 
   for (uint32_t i = 0; i < mMobileConnListeners.Length(); i++) {
+    nsCOMPtr<nsIMobileConnection> connection;
+    service->GetItemByServiceId(i, getter_AddRefs(connection));
+    if (!connection) {
+      BT_WARNING("%s: Failed to get mobile connection", __FUNCTION__);
+      continue;
+    }
+
     nsCOMPtr<nsIMobileConnectionInfo> voiceInfo;
-    connection->GetVoiceConnectionInfo(i, getter_AddRefs(voiceInfo));
+    connection->GetVoice(getter_AddRefs(voiceInfo));
     if (!voiceInfo) {
       BT_WARNING("%s: Failed to get voice connection info", __FUNCTION__);
       continue;

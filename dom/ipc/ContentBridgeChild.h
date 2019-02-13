@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,63 +9,69 @@
 
 #include "mozilla/dom/PContentBridgeChild.h"
 #include "mozilla/dom/nsIContentChild.h"
+#include "nsIObserver.h"
 
 namespace mozilla {
 namespace dom {
 
-class ContentBridgeChild MOZ_FINAL : public PContentBridgeChild
-                                   , public nsIContentChild
+class ContentBridgeChild final : public PContentBridgeChild
+                               , public nsIContentChild
+                               , public nsIObserver
 {
 public:
-  ContentBridgeChild(Transport* aTransport);
+  explicit ContentBridgeChild(Transport* aTransport);
 
   NS_DECL_ISUPPORTS
-
-  virtual ~ContentBridgeChild();
+  NS_DECL_NSIOBSERVER
 
   static ContentBridgeChild*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
   void DeferredDestroy();
 
   virtual bool RecvAsyncMessage(const nsString& aMsg,
                                 const ClonedMessageData& aData,
-                                const InfallibleTArray<jsipc::CpowEntry>& aCpows,
-                                const IPC::Principal& aPrincipal) MOZ_OVERRIDE;
+                                InfallibleTArray<jsipc::CpowEntry>&& aCpows,
+                                const IPC::Principal& aPrincipal) override;
 
   virtual PBlobChild*
   SendPBlobConstructor(PBlobChild* actor,
-                       const BlobConstructorParams& params);
+                       const BlobConstructorParams& aParams) override;
 
-  jsipc::JavaScriptChild* GetCPOWManager();
+  jsipc::CPOWManager* GetCPOWManager() override;
 
   virtual bool SendPBrowserConstructor(PBrowserChild* aActor,
+                                       const TabId& aTabId,
                                        const IPCTabContext& aContext,
                                        const uint32_t& aChromeFlags,
-                                       const uint64_t& aID,
+                                       const ContentParentId& aCpID,
                                        const bool& aIsForApp,
-                                       const bool& aIsForBrowser) MOZ_OVERRIDE;
+                                       const bool& aIsForBrowser) override;
 
 protected:
-  virtual PBrowserChild* AllocPBrowserChild(const IPCTabContext& aContext,
+  virtual ~ContentBridgeChild();
+
+  virtual PBrowserChild* AllocPBrowserChild(const TabId& aTabId,
+                                            const IPCTabContext& aContext,
                                             const uint32_t& aChromeFlags,
-                                            const uint64_t& aID,
+                                            const ContentParentId& aCpID,
                                             const bool& aIsForApp,
-                                            const bool& aIsForBrowser) MOZ_OVERRIDE;
-  virtual bool DeallocPBrowserChild(PBrowserChild*) MOZ_OVERRIDE;
+                                            const bool& aIsForBrowser) override;
+  virtual bool DeallocPBrowserChild(PBrowserChild*) override;
   virtual bool RecvPBrowserConstructor(PBrowserChild* aCctor,
+                                       const TabId& aTabId,
                                        const IPCTabContext& aContext,
                                        const uint32_t& aChromeFlags,
-                                       const uint64_t& aID,
+                                       const ContentParentId& aCpID,
                                        const bool& aIsForApp,
-                                       const bool& aIsForBrowser) MOZ_OVERRIDE;
+                                       const bool& aIsForBrowser) override;
 
-  virtual mozilla::jsipc::PJavaScriptChild* AllocPJavaScriptChild() MOZ_OVERRIDE;
-  virtual bool DeallocPJavaScriptChild(mozilla::jsipc::PJavaScriptChild*) MOZ_OVERRIDE;
+  virtual mozilla::jsipc::PJavaScriptChild* AllocPJavaScriptChild() override;
+  virtual bool DeallocPJavaScriptChild(mozilla::jsipc::PJavaScriptChild*) override;
 
-  virtual PBlobChild* AllocPBlobChild(const BlobConstructorParams& aParams) MOZ_OVERRIDE;
-  virtual bool DeallocPBlobChild(PBlobChild*) MOZ_OVERRIDE;
+  virtual PBlobChild* AllocPBlobChild(const BlobConstructorParams& aParams) override;
+  virtual bool DeallocPBlobChild(PBlobChild*) override;
 
   DISALLOW_EVIL_CONSTRUCTORS(ContentBridgeChild);
 

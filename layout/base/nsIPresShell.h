@@ -22,16 +22,19 @@
 
 #include "mozilla/EventForwards.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
 #include "gfxPoint.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsISupports.h"
+#include "nsIContent.h"
 #include "nsQueryFrame.h"
 #include "nsCoord.h"
 #include "nsColor.h"
 #include "nsCompatibility.h"
 #include "nsFrameManagerBase.h"
+#include "nsRect.h"
 #include "mozFlushType.h"
 #include "nsWeakReference.h"
 #include <stdio.h> // for FILE definition
@@ -43,7 +46,6 @@
 #include "nsMargin.h"
 #include "nsFrameState.h"
 
-class nsIContent;
 class nsDocShell;
 class nsIDocument;
 class nsIFrame;
@@ -57,6 +59,7 @@ class nsCanvasFrame;
 class nsAString;
 class nsCaret;
 namespace mozilla {
+class AccessibleCaretEventHub;
 class TouchCaret;
 class SelectionCarets;
 } // namespace mozilla
@@ -78,8 +81,7 @@ class nsDisplayList;
 class nsDisplayListBuilder;
 class nsPIDOMWindow;
 struct nsPoint;
-struct nsIntPoint;
-struct nsIntRect;
+class nsINode;
 struct nsRect;
 class nsRegion;
 class nsRefreshDriver;
@@ -93,8 +95,8 @@ class DocAccessible;
 } // namespace a11y
 } // namespace mozilla
 #endif
-class nsIWidget;
 struct nsArenaMemoryStats;
+class nsITimer;
 
 typedef short SelectionType;
 
@@ -134,13 +136,13 @@ typedef struct CapturingContentInfo {
   bool mPointerLock;
   bool mRetargetToElement;
   bool mPreventDrag;
-  nsIContent* mContent;
+  mozilla::StaticRefPtr<nsIContent> mContent;
 } CapturingContentInfo;
 
-//a4e5ff3a-dc5c-4b3a-a625-d164a9e50619
+// 7f0ae6b1-5fa1-4ba7-885e-a93e17d72cd2
 #define NS_IPRESSHELL_IID \
-{ 0xa4e5ff3a, 0xdc5c, 0x4b3a, \
-  {0xa6, 0x25, 0xd1, 0x64, 0xa9, 0xe5, 0x06, 0x19}}
+{ 0x7f0ae6b1, 0x5fa1, 0x4ba7, \
+  { 0x88, 0x5e, 0xa9, 0x3e, 0x17, 0xd7, 0x2c, 0xd2 } }
 
 // debug VerifyReflow flags
 #define VERIFY_REFLOW_ON                    0x01
@@ -353,15 +355,11 @@ public:
   void ReconstructStyleData() { ReconstructStyleDataExternal(); }
 #endif
 
-  /** Setup all style rules required to implement preferences
-   * - used for background/text/link colors and link underlining
-   *    may be extended for any prefs that are implemented via style rules
-   * - aForceReflow argument is used to force a full reframe to make the rules show
-   *   (only used when the current page needs to reflect changed pref rules)
-   *
-   * - initially created for bugs 31816, 20760, 22963
+  /**
+   * Update the style set somehow to take into account changed prefs which
+   * affect document styling.
    */
-  virtual nsresult SetPreferenceStyleRules(bool aForceReflow) = 0;
+  virtual void UpdatePreferenceStyles() = 0;
 
   /**
    * FrameSelection will return the Frame based selection API.
@@ -496,9 +494,13 @@ public:
   /**
    * Tell the pres shell that a frame needs to be marked dirty and needs
    * Reflow.  It's OK if this is an ancestor of the frame needing reflow as
-   * long as the ancestor chain between them doesn't cross a reflow root.  The
-   * bit to add should be either NS_FRAME_IS_DIRTY or
-   * NS_FRAME_HAS_DIRTY_CHILDREN (but not both!).
+   * long as the ancestor chain between them doesn't cross a reflow root.
+   *
+   * The bit to add should be NS_FRAME_IS_DIRTY, NS_FRAME_HAS_DIRTY_CHILDREN
+   * or nsFrameState(0); passing 0 means that dirty bits won't be set on the
+   * frame or its ancestors/descendants, but that intrinsic widths will still
+   * be marked dirty.  Passing aIntrinsicDirty = eResize and aBitToAdd = 0
+   * would result in no work being done, so don't do that.
    */
   enum IntrinsicDirty {
     // XXXldb eResize should be renamed
@@ -506,9 +508,19 @@ public:
     eTreeChange, // mark intrinsic widths dirty on aFrame and its ancestors
     eStyleChange // Do eTreeChange, plus all of aFrame's descendants
   };
+  enum ReflowRootHandling {
+    ePositionOrSizeChange, // aFrame is changing position or size
+    eNoPositionOrSizeChange, // ... NOT changing ...
+    eInferFromBitToAdd // is changing iff (aBitToAdd == NS_FRAME_IS_DIRTY)
+
+    // Note:  With eStyleChange, these can also apply to out-of-flows
+    // in addition to aFrame.
+  };
   virtual void FrameNeedsReflow(nsIFrame *aFrame,
-                                            IntrinsicDirty aIntrinsicDirty,
-                                            nsFrameState aBitToAdd) = 0;
+                                IntrinsicDirty aIntrinsicDirty,
+                                nsFrameState aBitToAdd,
+                                ReflowRootHandling aRootHandling =
+                                  eInferFromBitToAdd) = 0;
 
   /**
    * Calls FrameNeedsReflow on all fixed position children of the root frame.
@@ -531,6 +543,22 @@ public:
   virtual void CancelAllPendingReflows() = 0;
 
   virtual void NotifyCounterStylesAreDirty() = 0;
+
+  /**
+   * Destroy the frames for aContent.  Note that this may destroy frames
+   * for an ancestor instead - aDestroyedFramesFor contains the content node
+   * where frames were actually destroyed (which should be used in the
+   * CreateFramesFor call).  The frame tree state will be captured before
+   * the frames are destroyed in the frame constructor.
+   */
+  virtual void DestroyFramesFor(nsIContent*  aContent,
+                                nsIContent** aDestroyedFramesFor) = 0;
+  /**
+   * Create new frames for aContent.  It will use the last captured layout
+   * history state captured in the frame constructor to restore the state
+   * in the new frame tree.
+   */
+  virtual void CreateFramesFor(nsIContent* aContent) = 0;
 
   /**
    * Recreates the frames for a node
@@ -579,7 +607,7 @@ public:
    * be rendered to, but is suitable for measuring text and performing
    * other non-rendering operations. Guaranteed to return non-null.
    */
-  virtual already_AddRefed<nsRenderingContext> CreateReferenceRenderingContext() = 0;
+  virtual already_AddRefed<gfxContext> CreateReferenceRenderingContext() = 0;
 
   /**
    * Informs the pres shell that the document is now at the anchor with
@@ -587,9 +615,11 @@ public:
    * document so that the anchor with the specified name is displayed at
    * the top of the window.  If |aAnchorName| is empty, then this informs
    * the pres shell that there is no current target, and |aScroll| must
-   * be false.
+   * be false.  If |aAdditionalScrollFlags| is nsIPresShell::SCROLL_SMOOTH_AUTO
+   * and |aScroll| is true, the scrolling may be performed with an animation.
    */
-  virtual nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll) = 0;
+  virtual nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll,
+                              uint32_t aAdditionalScrollFlags = 0) = 0;
 
   /**
    * Tells the presshell to scroll again to the last anchor scrolled to by
@@ -654,9 +684,9 @@ public:
    *                no scrollbar showing and less than one device pixel of
    *                scrollable distance), don't scroll. Defaults to false.
    */
-    ScrollAxis(int16_t aWhere = SCROLL_MINIMUM,
-               WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE,
-               bool aOnlyIfPerceivedScrollableDirection = false) :
+    explicit ScrollAxis(int16_t aWhere = SCROLL_MINIMUM,
+                        WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE,
+                        bool aOnlyIfPerceivedScrollableDirection = false) :
       mWhereToScroll(aWhere), mWhenToScroll(aWhen),
       mOnlyIfPerceivedScrollableDirection(aOnlyIfPerceivedScrollableDirection)
     {}
@@ -681,6 +711,16 @@ public:
    *                  If SCROLL_NO_PARENT_FRAMES is set then we only scroll
    *                  nodes in this document, not in any parent documents which
    *                  contain this document in a iframe or the like.
+   *                  If SCROLL_SMOOTH is set and CSSOM-VIEW scroll-behavior
+   *                  is enabled, we will scroll smoothly using
+   *                  nsIScrollableFrame::ScrollMode::SMOOTH_MSD; otherwise,
+   *                  nsIScrollableFrame::ScrollMode::INSTANT will be used.
+   *                  If SCROLL_SMOOTH_AUTO is set, the CSSOM-View
+   *                  scroll-behavior attribute is set to 'smooth' on the
+   *                  scroll frame, and CSSOM-VIEW scroll-behavior is enabled,
+   *                  we will scroll smoothly using
+   *                  nsIScrollableFrame::ScrollMode::SMOOTH_MSD; otherwise,
+   *                  nsIScrollableFrame::ScrollMode::INSTANT will be used.
    */
   virtual nsresult ScrollContentIntoView(nsIContent* aContent,
                                                      ScrollAxis  aVertical,
@@ -690,7 +730,9 @@ public:
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
     SCROLL_OVERFLOW_HIDDEN = 0x02,
-    SCROLL_NO_PARENT_FRAMES = 0x04
+    SCROLL_NO_PARENT_FRAMES = 0x04,
+    SCROLL_SMOOTH = 0x08,
+    SCROLL_SMOOTH_AUTO = 0x10
   };
   /**
    * Scrolls the view of the document so that the given area of a frame
@@ -759,42 +801,29 @@ public:
   virtual mozilla::dom::Element* GetTouchCaretElement() const = 0;
 
   /**
-   * Will be called when touch caret visibility has changed.
-   * Set the mMayHaveTouchCaret flag to aSet.
-   */
-  virtual void SetMayHaveTouchCaret(bool aSet) = 0;
-
-  /**
-   * Get the mMayHaveTouchCaret flag.
-   */
-  virtual bool MayHaveTouchCaret() = 0;
-
-  /**
    * Get the selection caret, if it exists. AddRefs it.
    */
-  virtual NS_HIDDEN_(already_AddRefed<mozilla::SelectionCarets>) GetSelectionCarets() const = 0;
+  virtual already_AddRefed<mozilla::SelectionCarets> GetSelectionCarets() const = 0;
 
   /**
    * Returns the start part of selection caret element of the presshell.
    */
-  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsStartElement() const = 0;
+  virtual mozilla::dom::Element* GetSelectionCaretsStartElement() const = 0;
 
   /**
    * Returns the end part of selection caret element of the presshell.
    */
-  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsEndElement() const = 0;
+  virtual mozilla::dom::Element* GetSelectionCaretsEndElement() const = 0;
+
+  /**
+   * Get the AccessibleCaretEventHub, if it exists. AddRefs it.
+   */
+  virtual already_AddRefed<mozilla::AccessibleCaretEventHub> GetAccessibleCaretEventHub() const = 0;
 
   /**
    * Get the caret, if it exists. AddRefs it.
    */
   virtual already_AddRefed<nsCaret> GetCaret() const = 0;
-
-  /**
-   * Invalidate the caret's current position if it's outside of its frame's
-   * boundaries. This function is useful if you're batching selection
-   * notifications and might remove the caret's frame out from under it.
-   */
-  virtual void MaybeInvalidateCaretPosition() = 0;
 
   /**
    * Set the current caret to a new caret. To undo this, call RestoreCaret.
@@ -852,6 +881,13 @@ public:
   virtual nsresult HandleDOMEventWithTarget(nsIContent* aTargetContent,
                                                         nsIDOMEvent* aEvent,
                                                         nsEventStatus* aStatus) = 0;
+
+  /**
+   * Dispatch AfterKeyboardEvent with specific target.
+   */
+  virtual void DispatchAfterKeyboardEvent(nsINode* aTarget,
+                                          const mozilla::WidgetKeyboardEvent& aEvent,
+                                          bool aEmbeddedCancelled) = 0;
 
   /**
     * Gets the current target event frame from the PresShell
@@ -1066,8 +1102,8 @@ public:
     RENDER_DRAWWINDOW_NOT_FLUSHING = 0x40
   };
   virtual nsresult RenderDocument(const nsRect& aRect, uint32_t aFlags,
-                                              nscolor aBackgroundColor,
-                                              gfxContext* aRenderedContext) = 0;
+                                  nscolor aBackgroundColor,
+                                  gfxContext* aRenderedContext) = 0;
 
   /**
    * Renders a node aNode to a surface and returns it. The aRegion may be used
@@ -1206,37 +1242,70 @@ public:
   }
 
   // mouse capturing
-
   static CapturingContentInfo gCaptureInfo;
 
-  static nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Touch>* gCaptureTouchList;
-  static bool gPreventMouseEvents;
+  struct PointerCaptureInfo
+  {
+    nsCOMPtr<nsIContent> mPendingContent;
+    nsCOMPtr<nsIContent> mOverrideContent;
+    bool                 mReleaseContent;
+    bool                 mPrimaryState;
+    
+    explicit PointerCaptureInfo(nsIContent* aPendingContent, bool aPrimaryState) :
+      mPendingContent(aPendingContent), mReleaseContent(false), mPrimaryState(aPrimaryState)
+    {
+      MOZ_COUNT_CTOR(PointerCaptureInfo);
+    }
+    ~PointerCaptureInfo()
+    {
+      MOZ_COUNT_DTOR(PointerCaptureInfo);
+    }
+
+    bool Empty()
+    {
+      return !(mPendingContent || mOverrideContent);
+    }
+  };
 
   // Keeps a map between pointerId and element that currently capturing pointer
   // with such pointerId. If pointerId is absent in this map then nobody is
-  // capturing it.
-  static nsRefPtrHashtable<nsUint32HashKey, nsIContent>* gPointerCaptureList;
+  // capturing it. Additionally keep information about pending capturing content.
+  // Additionally keep information about primaryState of pointer event.
+  static nsClassHashtable<nsUint32HashKey, PointerCaptureInfo>* gPointerCaptureList;
 
   struct PointerInfo
   {
     bool      mActiveState;
     uint16_t  mPointerType;
-    PointerInfo(bool aActiveState, uint16_t aPointerType) :
-      mActiveState(aActiveState), mPointerType(aPointerType) {}
+    bool      mPrimaryState;
+    PointerInfo(bool aActiveState, uint16_t aPointerType, bool aPrimaryState) :
+      mActiveState(aActiveState), mPointerType(aPointerType), mPrimaryState(aPrimaryState) {}
   };
-  // Keeps information about pointers such as pointerId, activeState, pointerType
+  // Keeps information about pointers such as pointerId, activeState, pointerType, primaryState
   static nsClassHashtable<nsUint32HashKey, PointerInfo>* gActivePointersIds;
 
   static void DispatchGotOrLostPointerCaptureEvent(bool aIsGotCapture,
-                                                    uint32_t aPointerId,
-                                                    nsIContent* aCaptureTarget);
+                                                   uint32_t aPointerId,
+                                                   uint16_t aPointerType,
+                                                   bool aIsPrimary,
+                                                   nsIContent* aCaptureTarget);
   static void SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static void ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
 
+  // CheckPointerCaptureState checks cases, when got/lostpointercapture events should be fired.
+  // Function returns true, if any of events was fired; false, if no one event was fired.
+  static bool CheckPointerCaptureState(uint32_t aPointerId);
+
   // GetPointerInfo returns true if pointer with aPointerId is situated in device, false otherwise.
   // aActiveState is additional information, which shows state of pointer like button state for mouse.
   static bool GetPointerInfo(uint32_t aPointerId, bool& aActiveState);
+
+  // GetPointerType returns pointer type like mouse, pen or touch for pointer event with pointerId
+  static uint16_t GetPointerType(uint32_t aPointerId);
+
+  // GetPointerPrimaryState returns state of attribute isPrimary for pointer event with pointerId
+  static bool GetPointerPrimaryState(uint32_t aPointerId);
 
   /**
    * When capturing content is set, it traps all mouse events and retargets
@@ -1306,6 +1375,12 @@ public:
   virtual LayerManager* GetLayerManager() = 0;
 
   /**
+   * Return true iff there is a widget rendering this presShell and that
+   * widget is APZ-enabled.
+   */
+  virtual bool AsyncPanZoomEnabled() = 0;
+
+  /**
    * Track whether we're ignoring viewport scrolling for the purposes
    * of painting.  If we are ignoring, then layers aren't clipped to
    * the CSS viewport and scrollbars aren't drawn.
@@ -1323,11 +1398,22 @@ public:
    *
    * The resolution defaults to 1.0.
    */
-  virtual nsresult SetResolution(float aXResolution, float aYResolution) = 0;
-  gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
-  float GetXResolution() { return mXResolution; }
-  float GetYResolution() { return mYResolution; }
-  virtual gfxSize GetCumulativeResolution() = 0;
+  virtual nsresult SetResolution(float aResolution) = 0;
+  float GetResolution() { return mResolution; }
+  virtual float GetCumulativeResolution() = 0;
+
+  /**
+   * Similar to SetResolution() but also increases the scale of the content
+   * by the same amount.
+   */
+  virtual nsresult SetResolutionAndScaleTo(float aResolution) = 0;
+
+  /**
+   * Return whether we are scaling to the set resolution.
+   * This is initially false; it's set to true by a call to
+   * SetResolutionAndScaleTo(), and set to false by a call to SetResolution().
+   */
+  virtual bool ScaleToResolution() const = 0;
 
   /**
    * Returns whether we are in a DrawWindow() call that used the
@@ -1356,19 +1442,22 @@ public:
   virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
 
   enum PaintFlags {
-    /* Update the layer tree and paint ThebesLayers. If this is not specified,
-     * we may still have to do it if the layer tree lost ThebesLayer contents
+    /* Update the layer tree and paint PaintedLayers. If this is not specified,
+     * we may still have to do it if the layer tree lost PaintedLayer contents
      * we need for compositing. */
     PAINT_LAYERS = 0x01,
     /* Composite layers to the window. */
     PAINT_COMPOSITE = 0x02,
+    /* Sync-decode images. */
+    PAINT_SYNC_DECODE_IMAGES = 0x04
   };
   virtual void Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
                      uint32_t aFlags) = 0;
   virtual nsresult HandleEvent(nsIFrame* aFrame,
                                mozilla::WidgetGUIEvent* aEvent,
                                bool aDontRetargetEvents,
-                               nsEventStatus* aEventStatus) = 0;
+                               nsEventStatus* aEventStatus,
+                               nsIContent** aTargetContent = nullptr) = 0;
   virtual bool ShouldIgnoreInvalidation() = 0;
   /**
    * Notify that we're going to call Paint with PAINT_LAYERS
@@ -1587,6 +1676,11 @@ public:
     mIsNeverPainting = aNeverPainting;
   }
 
+  bool HasPendingReflow() const
+    { return mReflowScheduled || mReflowContinueTimer; }
+
+  void SyncWindowProperties(nsView* aView);
+
 protected:
   friend class nsRefreshDriver;
 
@@ -1596,21 +1690,30 @@ protected:
 
   // These are the same Document and PresContext owned by the DocViewer.
   // we must share ownership.
-  nsIDocument*              mDocument;      // [STRONG]
-  nsPresContext*            mPresContext;   // [STRONG]
+  nsCOMPtr<nsIDocument>     mDocument;
+  nsRefPtr<nsPresContext>   mPresContext;
   nsStyleSet*               mStyleSet;      // [OWNS]
   nsCSSFrameConstructor*    mFrameConstructor; // [OWNS]
   nsViewManager*           mViewManager;   // [WEAK] docViewer owns it so I don't have to
   nsPresArena               mFrameArena;
-  nsFrameSelection*         mSelection;
+  nsRefPtr<nsFrameSelection> mSelection;
   // Pointer into mFrameConstructor - this is purely so that FrameManager() and
   // GetRootFrame() can be inlined:
   nsFrameManagerBase*       mFrameManager;
   mozilla::WeakPtr<nsDocShell>                 mForwardingContainer;
-  nsRefreshDriver*          mHiddenInvalidationObserverRefreshDriver;
+  nsRefreshDriver* MOZ_UNSAFE_REF("These two objects hold weak references "
+                                  "to each other, and the validity of this "
+                                  "member is ensured by the logic in nsIPresShell.")
+                            mHiddenInvalidationObserverRefreshDriver;
 #ifdef ACCESSIBILITY
   mozilla::a11y::DocAccessible* mDocAccessible;
 #endif
+
+  // At least on Win32 and Mac after interupting a reflow we need to post
+  // the resume reflow event off a timer to avoid event starvation because
+  // posted messages are processed before other messages when the modal
+  // moving/sizing loop is running, see bug 491700 for details.
+  nsCOMPtr<nsITimer>        mReflowContinueTimer;
 
 #ifdef DEBUG
   nsIFrame*                 mDrawEventTargetFrame;
@@ -1636,9 +1739,8 @@ protected:
   nscolor                   mCanvasBackgroundColor;
 
   // Used to force allocation and rendering of proportionally more or
-  // less pixels in the given dimension.
-  float                     mXResolution;
-  float                     mYResolution;
+  // less pixels in both dimensions.
+  float                     mResolution;
 
   int16_t                   mSelectionFlags;
 

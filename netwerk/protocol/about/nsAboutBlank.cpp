@@ -5,12 +5,16 @@
 
 #include "nsAboutBlank.h"
 #include "nsStringStream.h"
+#include "nsDOMString.h"
 #include "nsNetUtil.h"
+#include "nsContentUtils.h"
 
 NS_IMPL_ISUPPORTS(nsAboutBlank, nsIAboutModule)
 
 NS_IMETHODIMP
-nsAboutBlank::NewChannel(nsIURI *aURI, nsIChannel **result)
+nsAboutBlank::NewChannel(nsIURI* aURI,
+                         nsILoadInfo* aLoadInfo,
+                         nsIChannel** result)
 {
     NS_ENSURE_ARG_POINTER(aURI);
 
@@ -19,9 +23,12 @@ nsAboutBlank::NewChannel(nsIURI *aURI, nsIChannel **result)
     if (NS_FAILED(rv)) return rv;
 
     nsCOMPtr<nsIChannel> channel;
-    rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, in,
-                                  NS_LITERAL_CSTRING("text/html"),
-                                  NS_LITERAL_CSTRING("utf-8"));
+    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                          aURI,
+                                          in,
+                                          NS_LITERAL_CSTRING("text/html"),
+                                          NS_LITERAL_CSTRING("utf-8"),
+                                          aLoadInfo);
     if (NS_FAILED(rv)) return rv;
 
     channel.forget(result);
@@ -32,8 +39,16 @@ NS_IMETHODIMP
 nsAboutBlank::GetURIFlags(nsIURI *aURI, uint32_t *result)
 {
     *result = nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+              nsIAboutModule::URI_CAN_LOAD_IN_CHILD |
               nsIAboutModule::HIDE_FROM_ABOUTABOUT;
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAboutBlank::GetIndexedDBOriginPostfix(nsIURI *aURI, nsAString &result)
+{
+    SetDOMStringToNull(result);
+    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 nsresult

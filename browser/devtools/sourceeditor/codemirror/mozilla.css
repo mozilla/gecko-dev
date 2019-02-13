@@ -7,6 +7,10 @@
   width: 16px;
 }
 
+.hit-counts {
+  width: 6px;
+}
+
 .error, .breakpoint, .debugLocation, .breakpoint-debugLocation {
   display: inline-block;
   margin-left: 5px;
@@ -15,6 +19,17 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+}
+
+.hit-count {
+  display: inline-block;
+  height: 12px;
+  border: solid rgba(0,0,0,0.2);
+  border-width: 1px 1px 1px 0;
+  border-radius: 0 3px 3px 0;
+  padding: 0 3px;
+  font-size: 10px;
+  pointer-events: none;
 }
 
 .error {
@@ -27,7 +42,7 @@
   position: relative;
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.25dppx) {
   .breakpoint {
     background-image: url("chrome://browser/skin/devtools/editor-breakpoint@2x.png");
   }
@@ -41,7 +56,7 @@
   background-image: url("chrome://browser/skin/devtools/editor-debug-location.png");
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.25dppx) {
   .debugLocation {
     background-image: url("chrome://browser/skin/devtools/editor-debug-location@2x.png");
   }
@@ -53,7 +68,7 @@
     url("chrome://browser/skin/devtools/editor-breakpoint.png");
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.25dppx) {
   .breakpoint.debugLocation {
     background-image:
       url("chrome://browser/skin/devtools/editor-debug-location@2x.png"),

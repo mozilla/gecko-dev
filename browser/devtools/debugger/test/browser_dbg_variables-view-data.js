@@ -6,13 +6,12 @@
  * when given some raw data.
  */
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gVariablesView, gScope, gVariable;
 
 function test() {
-  initDebugger("about:blank").then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger("about:blank").then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gVariablesView = gDebugger.DebuggerView.Variables;
@@ -303,7 +302,7 @@ function testSecondLevelContents() {
   let objectItem6 = someProp6.get("p6");
   let objectItem7 = someProp6.get("p7");
   let objectItem8 = someProp6.get("p8");
-  let __proto__ = someProp6.get("__proto__");
+  __proto__ = someProp6.get("__proto__");
 
   is(objectItem0.visible, true, "The first object item visible state is correct.");
   is(objectItem1.visible, true, "The second object item visible state is correct.");
@@ -602,7 +601,6 @@ function testClearHierarchy() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gVariablesView = null;

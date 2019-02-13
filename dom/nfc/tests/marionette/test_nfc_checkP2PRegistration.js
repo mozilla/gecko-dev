@@ -4,9 +4,9 @@
 'use strict';
 
 /* globals log, is, ok, runTests, toggleNFC, runNextTest,
-   SpecialPowers, nfc, enableRE0 */
+   SpecialPowers, nfc */
 
-const MARIONETTE_TIMEOUT = 30000;
+const MARIONETTE_TIMEOUT = 60000;
 const MARIONETTE_HEAD_JS = 'head.js';
 
 const MANIFEST_URL = 'app://system.gaiamobile.org/manifest.webapp';
@@ -18,7 +18,7 @@ const FAKE_MANIFEST_URL = 'app://fake.gaiamobile.org/manifest.webapp';
  */
 function testNoTargetNoSessionToken() {
   log('testNoTargetNoSessionToken');
-  fireCheckP2PReg(MANIFEST_URL)
+  nfc.checkP2PRegistration(MANIFEST_URL)
   .then((result) => {
     is(result, false, 'No target, no sesionToken, result should be false');
     runNextTest();
@@ -33,7 +33,7 @@ function testNoTargetNoSessionToken() {
 function testWithTargetNoSessionToken() {
   log('testWithTargetNoSessionToken');
   registerOnpeerready()
-  .then(() => fireCheckP2PReg(MANIFEST_URL))
+  .then(() => nfc.checkP2PRegistration(MANIFEST_URL))
   .then((result) => {
     is(result, false,
       'session token is available and it shouldnt be');
@@ -50,13 +50,13 @@ function testWithTargetNoSessionToken() {
 function testWithSessionTokenWithTarget() {
   log('testWithSessionTokenWithTarget');
   toggleNFC(true)
-  .then(enableRE0)
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
   .then(registerOnpeerready)
-  .then(() => fireCheckP2PReg(MANIFEST_URL))
+  .then(() => nfc.checkP2PRegistration(MANIFEST_URL))
   .then((result) => {
     is(result, true, 'should be true, onpeerready reg, sessionToken set');
     nfc.onpeerready = null;
-    return toggleNFC(false);
+    return deactivateAndWaitForTechLost().then(() => toggleNFC(false));
   })
   .then(runNextTest)
   .catch(handleRejectedPromiseWithNfcOn);
@@ -69,12 +69,12 @@ function testWithSessionTokenWithTarget() {
 function testWithSessionTokenNoTarget() {
   log('testWithSessionTokenNoTarget');
   toggleNFC(true)
-  .then(enableRE0)
-  .then(() => fireCheckP2PReg(MANIFEST_URL))
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
+  .then(() => nfc.checkP2PRegistration(MANIFEST_URL))
   .then((result) => {
     is(result, false,
       'session token  avilable but onpeerready not registered');
-    return toggleNFC(false);
+    return deactivateAndWaitForTechLost().then(() => toggleNFC(false));
   })
   .then(runNextTest)
   .catch(handleRejectedPromiseWithNfcOn);
@@ -87,13 +87,13 @@ function testWithSessionTokenNoTarget() {
 function testWithSessionTokenWrongTarget() {
   log('testWithSessionTokenWrongTarget');
   toggleNFC(true)
-  .then(enableRE0)
+  .then(() => activateAndwaitForTechDiscovered(emulator.P2P_RE_INDEX_0))
   .then(registerOnpeerready)
-  .then(() => fireCheckP2PReg(FAKE_MANIFEST_URL))
+  .then(() => nfc.checkP2PRegistration(FAKE_MANIFEST_URL))
   .then((result) => {
     is(result, false, 'should be false, fake manifest, sessionToken set');
     nfc.onpeerready = null;
-    return toggleNFC(false);
+    return deactivateAndWaitForTechLost().then(() => toggleNFC(false));
   })
   .then(runNextTest)
   .catch(handleRejectedPromiseWithNfcOn);
@@ -106,23 +106,6 @@ function registerOnpeerready() {
   let d = Promise.defer();
   d.resolve();
   return d.promise;
-}
-
-function fireCheckP2PReg(manifestUrl) {
-  let deferred = Promise.defer();
-
-  let request = nfc.checkP2PRegistration(manifestUrl);
-  request.onsuccess = function() {
-    ok(true, 'checkP2PRegistration allways results in success');
-    deferred.resolve(request.result);
-  };
-
-  request.onerror = function() {
-    ok(false, 'see NfcContentHelper.handleCheckP2PRegistrationResponse');
-    deferred.reject();
-  };
-
-  return deferred.promise;
 }
 
 function handleRejectedPromise() {
@@ -148,11 +131,11 @@ let tests = [
 /**
  * nfc-manager for mozNfc.checkP2PRegistration(manifestUrl)
  *  -> "NFC:CheckP2PRegistration" IPC
- * nfc-write to set/unset onpeerready
+ * nfc-share to set/unset onpeerready
  *  -> "NFC:RegisterPeerTarget", "NFC:UnregisterPeerTarget" IPC
  */
 SpecialPowers.pushPermissions(
   [
     {'type': 'nfc-manager', 'allow': true, context: document},
-    {'type': 'nfc-write', 'allow': true, context: document}
+    {'type': 'nfc-share', 'allow': true, context: document}
   ], runTests);

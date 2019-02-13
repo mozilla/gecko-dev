@@ -56,6 +56,10 @@
 
 const {components, Cc, Ci, Cu} = require("chrome");
 loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
+loader.lazyImporter(this, "DevToolsUtils", "resource://gre/modules/devtools/DevToolsUtils.jsm");
+
+// The cache used in the `nsIURL` function.
+const gNSURLStore = new Map();
 
 /**
  * Helper object for networking stuff.
@@ -206,11 +210,13 @@ let NetworkHelper = {
   },
 
   /**
-   * Gets the topFrameElement that is associated with aRequest.
+   * Gets the topFrameElement that is associated with aRequest. This
+   * works in single-process and multiprocess contexts. It may cross
+   * the content/chrome boundary.
    *
    * @param nsIHttpChannel aRequest
    * @returns nsIDOMElement|null
-   *          The top frame element for the given request, if available.
+   *          The top frame element for the given request.
    */
   getTopFrameForRequest: function NH_getTopFrameForRequest(aRequest)
   {
@@ -272,27 +278,29 @@ let NetworkHelper = {
    */
   loadFromCache: function NH_loadFromCache(aUrl, aCharset, aCallback)
   {
-    let channel = NetUtil.newChannel(aUrl);
+    let channel = NetUtil.newChannel({uri: aUrl, loadUsingSystemPrincipal: true});
 
     // Ensure that we only read from the cache and not the server.
     channel.loadFlags = Ci.nsIRequest.LOAD_FROM_CACHE |
       Ci.nsICachingChannel.LOAD_ONLY_FROM_CACHE |
       Ci.nsICachingChannel.LOAD_BYPASS_LOCAL_CACHE_IF_BUSY;
 
-    NetUtil.asyncFetch(channel, (aInputStream, aStatusCode, aRequest) => {
-      if (!components.isSuccessCode(aStatusCode)) {
-        aCallback(null);
-        return;
-      }
+    NetUtil.asyncFetch(
+      channel,
+      (aInputStream, aStatusCode, aRequest) => {
+        if (!components.isSuccessCode(aStatusCode)) {
+          aCallback(null);
+          return;
+        }
 
-      // Try to get the encoding from the channel. If there is none, then use
-      // the passed assumed aCharset.
-      let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
-      let contentCharset = aChannel.contentCharset || aCharset;
+        // Try to get the encoding from the channel. If there is none, then use
+        // the passed assumed aCharset.
+        let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
+        let contentCharset = aChannel.contentCharset || aCharset;
 
-      // Read the content of the stream using contentCharset as encoding.
-      aCallback(this.readAndConvertFromStream(aInputStream, contentCharset));
-    });
+        // Read the content of the stream using contentCharset as encoding.
+        aCallback(this.readAndConvertFromStream(aInputStream, contentCharset));
+      });
   },
 
   /**
@@ -442,6 +450,7 @@ let NetworkHelper = {
     "application/x-json": "json",
     "application/json-rpc": "json",
     "application/x-web-app-manifest+json": "json",
+    "application/manifest+json": "json"
   },
 
   /**
@@ -479,6 +488,304 @@ let NetworkHelper = {
         return false;
     }
   },
+
+  /**
+   * Takes a securityInfo object of nsIRequest, the nsIRequest itself and
+   * extracts security information from them.
+   *
+   * @param object securityInfo
+   *        The securityInfo object of a request. If null channel is assumed
+   *        to be insecure.
+   * @param object httpActivity
+   *        The httpActivity object for the request with at least members
+   *        { private, hostname }.
+   *
+   * @return object
+   *         Returns an object containing following members:
+   *          - state: The security of the connection used to fetch this
+   *                   request. Has one of following string values:
+   *                    * "insecure": the connection was not secure (only http)
+   *                    * "weak": the connection has minor security issues
+   *                    * "broken": secure connection failed (e.g. expired cert)
+   *                    * "secure": the connection was properly secured.
+   *          If state == broken:
+   *            - errorMessage: full error message from nsITransportSecurityInfo.
+   *          If state == secure:
+   *            - protocolVersion: one of TLSv1, TLSv1.1, TLSv1.2.
+   *            - cipherSuite: the cipher suite used in this connection.
+   *            - cert: information about certificate used in this connection.
+   *                    See parseCertificateInfo for the contents.
+   *            - hsts: true if host uses Strict Transport Security, false otherwise
+   *            - hpkp: true if host uses Public Key Pinning, false otherwise
+   *          If state == weak: Same as state == secure and
+   *            - weaknessReasons: list of reasons that cause the request to be
+   *                               considered weak. See getReasonsForWeakness.
+   */
+  parseSecurityInfo: function NH_parseSecurityInfo(securityInfo, httpActivity) {
+    const info = {
+      state: "insecure",
+    };
+
+    // The request did not contain any security info.
+    if (!securityInfo) {
+      return info;
+    }
+
+    /**
+     * Different scenarios to consider here and how they are handled:
+     * - request is HTTP, the connection is not secure
+     *   => securityInfo is null
+     *      => state === "insecure"
+     *
+     * - request is HTTPS, the connection is secure
+     *   => .securityState has STATE_IS_SECURE flag
+     *      => state === "secure"
+     *
+     * - request is HTTPS, the connection has security issues
+     *   => .securityState has STATE_IS_INSECURE flag
+     *   => .errorCode is an NSS error code.
+     *      => state === "broken"
+     *
+     * - request is HTTPS, the connection was terminated before the security
+     *   could be validated
+     *   => .securityState has STATE_IS_INSECURE flag
+     *   => .errorCode is NOT an NSS error code.
+     *   => .errorMessage is not available.
+     *      => state === "insecure"
+     *
+     * - request is HTTPS but it uses a weak cipher or old protocol, see
+     *   http://hg.mozilla.org/mozilla-central/annotate/def6ed9d1c1a/
+     *   security/manager/ssl/nsNSSCallbacks.cpp#l1233
+     * - request is mixed content (which makes no sense whatsoever)
+     *   => .securityState has STATE_IS_BROKEN flag
+     *   => .errorCode is NOT an NSS error code
+     *   => .errorMessage is not available
+     *      => state === "weak"
+     */
+
+    securityInfo.QueryInterface(Ci.nsITransportSecurityInfo);
+    securityInfo.QueryInterface(Ci.nsISSLStatusProvider);
+
+    const wpl = Ci.nsIWebProgressListener;
+    const NSSErrorsService = Cc['@mozilla.org/nss_errors_service;1']
+                               .getService(Ci.nsINSSErrorsService);
+    const SSLStatus = securityInfo.SSLStatus;
+    if (!NSSErrorsService.isNSSErrorCode(securityInfo.errorCode)) {
+      const state = securityInfo.securityState;
+
+      let uri = null;
+      if (httpActivity.channel && httpActivity.channel.URI) {
+        uri = httpActivity.channel.URI;
+      }
+      if (uri && !uri.schemeIs("https") && !uri.schemeIs("wss")) {
+        // it is not enough to look at the transport security info - schemes other than
+        // https and wss are subject to downgrade/etc at the scheme level and should
+        // always be considered insecure
+        info.state = "insecure";
+      } else if (state & wpl.STATE_IS_SECURE) {
+        // The connection is secure if the scheme is sufficient
+        info.state = "secure";
+      } else if (state & wpl.STATE_IS_BROKEN) {
+        // The connection is not secure, there was no error but there's some
+        // minor security issues.
+        info.state = "weak";
+        info.weaknessReasons = this.getReasonsForWeakness(state);
+      } else if (state & wpl.STATE_IS_INSECURE) {
+        // This was most likely an https request that was aborted before
+        // validation. Return info as info.state = insecure.
+        return info;
+      } else {
+        DevToolsUtils.reportException("NetworkHelper.parseSecurityInfo",
+          "Security state " + state + " has no known STATE_IS_* flags.");
+        return info;
+      }
+
+      // Cipher suite.
+      info.cipherSuite = SSLStatus.cipherName;
+
+      // Protocol version.
+      info.protocolVersion = this.formatSecurityProtocol(SSLStatus.protocolVersion);
+
+      // Certificate.
+      info.cert = this.parseCertificateInfo(SSLStatus.serverCert);
+
+      // HSTS and HPKP if available.
+      if (httpActivity.hostname) {
+        const sss = Cc["@mozilla.org/ssservice;1"]
+                      .getService(Ci.nsISiteSecurityService);
+
+
+        // SiteSecurityService uses different storage if the channel is
+        // private. Thus we must give isSecureHost correct flags or we
+        // might get incorrect results.
+        let flags = (httpActivity.private) ?
+                      Ci.nsISocketProvider.NO_PERMANENT_STORAGE : 0;
+
+        let host = httpActivity.hostname;
+
+        info.hsts = sss.isSecureHost(sss.HEADER_HSTS, host, flags);
+        info.hpkp = sss.isSecureHost(sss.HEADER_HPKP, host, flags);
+      } else {
+        DevToolsUtils.reportException("NetworkHelper.parseSecurityInfo",
+          "Could not get HSTS/HPKP status as hostname is not available.");
+        info.hsts = false;
+        info.hpkp = false;
+      }
+
+    } else {
+      // The connection failed.
+      info.state = "broken";
+      info.errorMessage = securityInfo.errorMessage;
+    }
+
+    return info;
+  },
+
+  /**
+   * Takes an nsIX509Cert and returns an object with certificate information.
+   *
+   * @param nsIX509Cert cert
+   *        The certificate to extract the information from.
+   * @return object
+   *         An object with following format:
+   *           {
+   *             subject: { commonName, organization, organizationalUnit },
+   *             issuer: { commonName, organization, organizationUnit },
+   *             validity: { start, end },
+   *             fingerprint: { sha1, sha256 }
+   *           }
+   */
+  parseCertificateInfo: function NH_parseCertifificateInfo(cert) {
+    let info = {};
+    if (cert) {
+      info.subject = {
+        commonName: cert.commonName,
+        organization: cert.organization,
+        organizationalUnit: cert.organizationalUnit,
+      };
+
+      info.issuer = {
+        commonName: cert.issuerCommonName,
+        organization: cert.issuerOrganization,
+        organizationUnit: cert.issuerOrganizationUnit,
+      };
+
+      info.validity = {
+        start: cert.validity.notBeforeLocalDay,
+        end: cert.validity.notAfterLocalDay,
+      };
+
+      info.fingerprint = {
+        sha1: cert.sha1Fingerprint,
+        sha256: cert.sha256Fingerprint,
+      };
+    } else {
+      DevToolsUtils.reportException("NetworkHelper.parseCertificateInfo",
+        "Secure connection established without certificate.");
+    }
+
+    return info;
+  },
+
+  /**
+   * Takes protocolVersion of SSLStatus object and returns human readable
+   * description.
+   *
+   * @param Number version
+   *        One of nsISSLStatus version constants.
+   * @return string
+   *         One of TLSv1, TLSv1.1, TLSv1.2 if @param version is valid,
+   *         Unknown otherwise.
+   */
+  formatSecurityProtocol: function NH_formatSecurityProtocol(version) {
+    switch (version) {
+      case Ci.nsISSLStatus.TLS_VERSION_1:
+        return "TLSv1";
+      case Ci.nsISSLStatus.TLS_VERSION_1_1:
+        return "TLSv1.1";
+      case Ci.nsISSLStatus.TLS_VERSION_1_2:
+        return "TLSv1.2";
+      default:
+        DevToolsUtils.reportException("NetworkHelper.formatSecurityProtocol",
+          "protocolVersion " + version + " is unknown.");
+        return "Unknown";
+    }
+  },
+
+  /**
+   * Takes the securityState bitfield and returns reasons for weak connection
+   * as an array of strings.
+   *
+   * @param Number state
+   *        nsITransportSecurityInfo.securityState.
+   *
+   * @return Array[String]
+   *         List of weakness reasons. A subset of { cipher } where
+   *         * cipher: The cipher suite is consireded to be weak (RC4).
+   */
+  getReasonsForWeakness: function NH_getReasonsForWeakness(state) {
+    const wpl = Ci.nsIWebProgressListener;
+
+    // If there's non-fatal security issues the request has STATE_IS_BROKEN
+    // flag set. See http://hg.mozilla.org/mozilla-central/file/44344099d119
+    // /security/manager/ssl/nsNSSCallbacks.cpp#l1233
+    let reasons = [];
+
+    if (state & wpl.STATE_IS_BROKEN) {
+      let isCipher = state & wpl.STATE_USES_WEAK_CRYPTO;
+
+      if (isCipher) {
+        reasons.push("cipher");
+      }
+
+      if (!isCipher) {
+        DevToolsUtils.reportException("NetworkHelper.getReasonsForWeakness",
+          "STATE_IS_BROKEN without a known reason. Full state was: " + state);
+      }
+    }
+
+    return reasons;
+  },
+
+  /**
+   * Parse a url's query string into its components
+   *
+   * @param string aQueryString
+   *        The query part of a url
+   * @return array
+   *         Array of query params {name, value}
+   */
+  parseQueryString: function(aQueryString) {
+    // Make sure there's at least one param available.
+    // Be careful here, params don't necessarily need to have values, so
+    // no need to verify the existence of a "=".
+    if (!aQueryString) {
+      return;
+    }
+
+    // Turn the params string into an array containing { name: value } tuples.
+    let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map(e => {
+      let param = e.split("=");
+      return {
+        name: param[0] ? NetworkHelper.convertToUnicode(unescape(param[0])) : "",
+        value: param[1] ? NetworkHelper.convertToUnicode(unescape(param[1])) : ""
+      }});
+
+    return paramsArray;
+  },
+
+  /**
+   * Helper for getting an nsIURL instance out of a string.
+   */
+  nsIURL: function(aUrl, aStore = gNSURLStore) {
+    if (aStore.has(aUrl)) {
+      return aStore.get(aUrl);
+    }
+
+    let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+    aStore.set(aUrl, uri);
+    return uri;
+  }
 };
 
 for (let prop of Object.getOwnPropertyNames(NetworkHelper)) {

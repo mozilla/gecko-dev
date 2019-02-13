@@ -12,7 +12,6 @@
 
 interface Principal;
 interface URI;
-interface UserDataHandler;
 
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
@@ -56,7 +55,7 @@ interface Node : EventTarget {
 
   [SetterThrows, Pure]
            attribute DOMString? nodeValue;
-  [SetterThrows, Pure]
+  [Throws, Pure]
            attribute DOMString? textContent;
   [Throws]
   Node insertBefore(Node node, Node? child);
@@ -102,10 +101,8 @@ interface Node : EventTarget {
   [Constant]
   readonly attribute DOMString? localName;
 
-  [Pure]
-  boolean hasAttributes();
   [Throws, Func="IsChromeOrXBL"]
-  any setUserData(DOMString key, any data, UserDataHandler? handler);
+  any setUserData(DOMString key, any data);
   [Throws, Func="IsChromeOrXBL"]
   any getUserData(DOMString key);
   [ChromeOnly]

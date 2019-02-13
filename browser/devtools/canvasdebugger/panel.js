@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -57,7 +57,9 @@ CanvasDebuggerPanel.prototype = {
 
   // DevToolPanel API
 
-  get target() this._toolbox.target,
+  get target() {
+    return this._toolbox.target;
+  },
 
   destroy: function() {
     // Make sure this panel is not already destroyed.
@@ -66,6 +68,8 @@ CanvasDebuggerPanel.prototype = {
     }
 
     return this._destroyer = this.panelWin.shutdownCanvasDebugger().then(() => {
+      // Destroy front to ensure packet handler is removed from client
+      this.panelWin.gFront.destroy();
       this.emit("destroyed");
     });
   }

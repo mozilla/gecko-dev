@@ -38,11 +38,11 @@ function checkPreferences(prefsWin) {
 }
 // Same as the other one, but for in-content preferences
 function checkInContentPreferences(win) {
-  let sel = win.history.state;
   let doc = win.document;
+  let sel = doc.getElementById("categories").selectedItems[0].id;
   let tab = doc.getElementById("advancedPrefs").selectedTab.id;
-  is(gBrowser.currentURI.spec, "about:preferences", "about:preferences loaded");
-  is(sel, "paneAdvanced", "Advanced pane was selected");
+  is(gBrowser.currentURI.spec, "about:preferences#advanced", "about:preferences loaded");
+  is(sel, "category-advanced", "Advanced pane was selected");
   is(tab, "networkTab", "Network tab is selected");
   // all good, we are done.
   win.close();
@@ -51,8 +51,20 @@ function checkInContentPreferences(win) {
 
 function test() {
   waitForExplicitFinish();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+
+  Services.prefs.setBoolPref("offline-apps.allow_by_default", false);
+
+  // Open a new tab.
+  gBrowser.selectedTab = gBrowser.addTab(URL);
+  registerCleanupFunction(() => gBrowser.removeCurrentTab());
+
+
+  Promise.all([
+    // Wait for a notification that asks whether to allow offline storage.
+    promiseNotification(),
+    // Wait for the tab to load.
+    BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser)
+  ]).then(() => {
     gBrowser.selectedBrowser.contentWindow.applicationCache.oncached = function() {
       executeSoon(function() {
         // We got cached - now we should have provoked the quota warning.
@@ -75,7 +87,9 @@ function test() {
           let newTabBrowser = gBrowser.getBrowserForTab(gBrowser.selectedTab);
           newTabBrowser.addEventListener("Initialized", function PrefInit() {
             newTabBrowser.removeEventListener("Initialized", PrefInit, true);
-            checkInContentPreferences(newTabBrowser.contentWindow);
+            executeSoon(function() {
+              checkInContentPreferences(newTabBrowser.contentWindow);
+            })
           }, true);
         }
       });
@@ -85,8 +99,14 @@ function test() {
     // Click the notification panel's "Allow" button.  This should kick
     // off updates which will call our oncached handler above.
     PopupNotifications.panel.firstElementChild.button.click();
-  }, true);
+  });
+}
 
-  Services.prefs.setBoolPref("offline-apps.allow_by_default", false);
-  gBrowser.contentWindow.location = URL;
+function promiseNotification() {
+  return new Promise(resolve => {
+    PopupNotifications.panel.addEventListener("popupshown", function onShown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onShown);
+      resolve();
+    });
+  });
 }

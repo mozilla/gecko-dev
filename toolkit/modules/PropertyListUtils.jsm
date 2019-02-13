@@ -24,7 +24,7 @@
  * <data/>             NSData         TYPE_UINT8_ARRAY  Uint8Array
  * <array/>            NSArray        TYPE_ARRAY        Array
  * Not Available       NSSet          TYPE_ARRAY        Array  [2][4]
- * <dict/>             NSDictionary   TYPE_DICTIONARY   Dict (from Dict.jsm)
+ * <dict/>             NSDictionary   TYPE_DICTIONARY   Map
  *
  * Use PropertyListUtils.getObjectType to detect the type of a Property list
  * object.
@@ -39,7 +39,7 @@
  *    states that it supports storing both types.  However, the Cocoa APIs for
  *    serializing property lists do not seem to support either types (test with
  *    NSPropertyListSerialization::propertyList:isValidForFormat). Furthermore,
- *    if an array or a dictioanry contains a NSNull or a NSSet value, they cannot
+ *    if an array or a dictionary (Map) contains a NSNull or a NSSet value, they cannot
  *    be serialized to a property list.
  *    As for usage within OS X, not surprisingly there's no known usage of
  *    storing either of these types in a property list.  It seems that, for now,
@@ -61,10 +61,9 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.importGlobalProperties(['File']);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Dict",
-                                  "resource://gre/modules/Dict.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
@@ -84,7 +83,7 @@ this.PropertyListUtils = Object.freeze({
    *        The reaon for failure is reported to the Error Console.
    */
   read: function PLU_read(aFile, aCallback) {
-    if (!(aFile instanceof Ci.nsILocalFile || aFile instanceof Ci.nsIDOMFile))
+    if (!(aFile instanceof Ci.nsILocalFile || aFile instanceof File))
       throw new Error("aFile is not a file object");
     if (typeof(aCallback) != "function")
       throw new Error("Invalid value for aCallback");
@@ -176,7 +175,7 @@ this.PropertyListUtils = Object.freeze({
     // would most likely be created in the caller's scope.
     let global = Cu.getGlobalForObject(aObject);
 
-    if (global.Dict && aObject instanceof global.Dict)
+    if (aObject instanceof global.Map)
       return this.TYPE_DICTIONARY;
     if (Array.isArray(aObject))
       return this.TYPE_ARRAY;
@@ -238,7 +237,7 @@ this.PropertyListUtils = Object.freeze({
  *        ArrayBuffer object from which the binary plist should be read.
  */
 function BinaryPropertyListReader(aBuffer) {
-  this._buffer = aBuffer;
+  this._dataView = new DataView(aBuffer);
 
   const JS_MAX_INT = Math.pow(2,53);
   this._JS_MAX_INT_SIGNED = ctypes.Int64(JS_MAX_INT);
@@ -268,7 +267,7 @@ BinaryPropertyListReader.prototype = {
 
   _readTrailerInfo: function BPLR__readTrailer() {
     // The first 6 bytes of the 32-bytes trailer are unused
-    let trailerOffset = this._buffer.byteLength - 26;
+    let trailerOffset = this._dataView.byteLength - 26;
     [this._offsetTableIntegerSize, this._objectRefSize] =
       this._readUnsignedInts(trailerOffset, 1, 2);
 
@@ -282,24 +281,9 @@ BinaryPropertyListReader.prototype = {
                                                this._numberOfObjects);
   },
 
-  // TODO: This should be removed once DataView is implemented (Bug 575688).
-  _swapForBigEndian:
-  function BPLR__swapForBigEndian(aByteOffset, aIntSize, aNumberOfInts) {
-    let bytesCount = aIntSize * aNumberOfInts;
-    let bytes = new Uint8Array(this._buffer, aByteOffset, bytesCount);
-    let swapped = new Uint8Array(bytesCount);
-    for (let i = 0; i < aNumberOfInts; i++) {
-      for (let j = 0; j < aIntSize; j++) {
-        swapped[(i * aIntSize) + j] = bytes[(i * aIntSize) + (aIntSize - 1 - j)];
-      }
-    }
-    return swapped;
-  },
-
   _readSignedInt64: function BPLR__readSignedInt64(aByteOffset) {
-    let swapped = this._swapForBigEndian(aByteOffset, 8, 1);
-    let lo = new Uint32Array(swapped.buffer, 0, 1)[0];
-    let hi = new Int32Array(swapped.buffer, 4, 1)[0];
+    let lo = this._dataView.getUint32(aByteOffset + 4);
+    let hi = this._dataView.getInt32(aByteOffset);
     let int64 = ctypes.Int64.join(hi, lo);
     if (ctypes.Int64.compare(int64, this._JS_MAX_INT_SIGNED) == 1 ||
         ctypes.Int64.compare(int64, this._JS_MIN_INT) == -1)
@@ -309,11 +293,10 @@ BinaryPropertyListReader.prototype = {
   },
 
   _readReal: function BPLR__readReal(aByteOffset, aRealSize) {
-    let swapped = this._swapForBigEndian(aByteOffset, aRealSize, 1);
     if (aRealSize == 4)
-      return new Float32Array(swapped.buffer, 0, 1)[0];
+      return this._dataView.getFloat32(aByteOffset);
     if (aRealSize == 8)
-      return new Float64Array(swapped.buffer, 0, 1)[0];
+      return this._dataView.getFloat64(aByteOffset);
 
     throw new Error("Unsupported real size: " + aRealSize);
   },
@@ -414,38 +397,47 @@ BinaryPropertyListReader.prototype = {
    */
   _readUnsignedInts:
   function BPLR__readUnsignedInts(aByteOffset, aIntSize, aLength, aBigIntAllowed) {
-    if (aIntSize == 1)
-      return new Uint8Array(this._buffer, aByteOffset, aLength);
-
-    // There are two reasons for the complexity you see here:
-    // (1) 64-bit integers - For which we use ctypes. When possible, the
-    //     number is converted back to js's default float-64 type.
-    // (2) The DataView object for ArrayBuffer, which takes care of swaping
-    //     bytes, is not yet implemented (bug 575688).
-    let swapped = this._swapForBigEndian(aByteOffset, aIntSize, aLength);
-    if (aIntSize == 2)
-      return new Uint16Array(swapped.buffer);
-    if (aIntSize == 4)
-      return new Uint32Array(swapped.buffer);
-    if (aIntSize == 8) {
-      let intsArray = [];
-      let lo_hi_view = new Uint32Array(swapped.buffer);
-      for (let i = 0; i < lo_hi_view.length; i += 2) {
-        let [lo, hi] = [lo_hi_view[i], lo_hi_view[i+1]];
+    let uints = [];
+    for (let offset = aByteOffset;
+         offset < aByteOffset + aIntSize * aLength;
+         offset += aIntSize) {
+      if (aIntSize == 1) {
+        uints.push(this._dataView.getUint8(offset));
+      }
+      else if (aIntSize == 2) {
+        uints.push(this._dataView.getUint16(offset));
+      }
+      else if (aIntSize == 3) {
+        let int24 = Uint8Array(4);
+        int24[3] = 0;
+        int24[2] = this._dataView.getUint8(offset);
+        int24[1] = this._dataView.getUint8(offset + 1);
+        int24[0] = this._dataView.getUint8(offset + 2);
+        uints.push(Uint32Array(int24.buffer)[0]);
+      }
+      else if (aIntSize == 4) {
+        uints.push(this._dataView.getUint32(offset));
+      }
+      else if (aIntSize == 8) {
+        let lo = this._dataView.getUint32(offset + 4);
+        let hi = this._dataView.getUint32(offset);
         let uint64 = ctypes.UInt64.join(hi, lo);
         if (ctypes.UInt64.compare(uint64, this._JS_MAX_INT_UNSIGNED) == 1) {
           if (aBigIntAllowed === true)
-            intsArray.push(PropertyListUtils.wrapInt64(uint64.toString()));
+            uints.push(PropertyListUtils.wrapInt64(uint64.toString()));
           else
             throw new Error("Integer too big to be read as float 64");
         }
         else {
-          intsArray.push(parseInt(uint64.toString(), 10));
+          uints.push(parseInt(uint64, 10));
         }
       }
-      return intsArray;
+      else {
+        throw new Error("Unsupported size: " + aIntSize);
+      }
     }
-    throw new Error("Unsupported size: " + aIntSize);
+
+    return uints;
   },
 
   /**
@@ -508,19 +500,18 @@ BinaryPropertyListReader.prototype = {
   },
 
   /**
-   * Reads dictionary from the buffer and wraps it as a Dict object (as defined
-   * in Dict.jsm).
+   * Reads dictionary from the buffer and wraps it as a Map object.
    * @param aObjectOffset
    *        the offset in the buffer at which the dictionary starts
    * @param aNumberOfObjects
    *        the number of keys in the dictionary
-   * @return Dict.jsm-style dictionary.
+   * @return Map-style dictionary.
    */
   _wrapDictionary: function(aObjectOffset, aNumberOfObjects) {
     // A dictionary in the binary format is stored as a list of references to
     // key-objects, followed by a list of references to the value-objects for
     // those keys. The size of each list is aNumberOfObjects * this._objectRefSize.
-    let dict = new Dict();
+    let dict = new Proxy(new Map(), LazyMapProxyHandler());
     if (aNumberOfObjects == 0)
       return dict;
 
@@ -532,6 +523,7 @@ BinaryPropertyListReader.prototype = {
     for (let i = 0; i < aNumberOfObjects; i++) {
       let key = this._readObject(keyObjsRefs[i]);
       let readBound = this._readObject.bind(this, valObjsRefs[i]);
+
       dict.setAsLazyGetter(key, readBound);
     }
     return dict;
@@ -601,7 +593,7 @@ BinaryPropertyListReader.prototype = {
 
       case this.OBJECT_TYPE_BITS.DATA: {
         let [offset, bytesCount] = this._readDataOffsetAndCount(objOffset);
-        value = this._readUnsignedInts(offset, 1, bytesCount);
+        value = new Uint8Array(this._readUnsignedInts(offset, 1, bytesCount));
         break;
       }
 
@@ -729,7 +721,7 @@ XMLPropertyListReader.prototype = {
     // </dict>
     if (aDOMElt.children.length % 2 != 0)
       throw new Error("Invalid dictionary");
-    let dict = new Dict();
+    let dict = new Proxy(new Map(), LazyMapProxyHandler());
     for (let i = 0; i < aDOMElt.children.length; i += 2) {
       let keyElem = aDOMElt.children[i];
       let valElem = aDOMElt.children[i + 1];
@@ -739,6 +731,7 @@ XMLPropertyListReader.prototype = {
 
       let keyName = this._readObject(keyElem);
       let readBound = this._readObject.bind(this, valElem);
+
       dict.setAsLazyGetter(keyName, readBound);
     }
     return dict;
@@ -769,3 +762,56 @@ XMLPropertyListReader.prototype = {
     return array;
   }
 };
+
+/**
+   * Simple handler method to proxy calls to dict/Map objects to implement the
+   * setAsLazyGetter API. With this, a value can be set as a function that will
+   * evaluate its value and only be called when it's first retrieved.
+   * @member _lazyGetters
+   *         Set() object to hold keys invoking LazyGetter.
+   * @method get
+   *         Trap for getting property values. Ensures that if a lazyGetter is present
+   *         as value for key, then the function is evaluated, the value is cached,
+   *         and its value will be returned.
+   * @param  target
+   *         Target object. (dict/Map)
+   * @param  name
+   *         Name of operation to be invoked on target.
+   * @param  key
+   *         Key to be set, retrieved or deleted. Keys are checked for laziness.
+   * @return Returns value of "name" property of target by default. Otherwise returns
+   *         updated target.
+   */
+function LazyMapProxyHandler () {
+  return {
+    _lazyGetters: new Set(),
+    get: function(target, name) {
+      switch (name) {
+        case "setAsLazyGetter":
+          return (key, value) => {
+            this._lazyGetters.add(key);
+            target.set(key, value);
+          };
+        case "get":
+          return key => {
+            if (this._lazyGetters.has(key)) {
+              target.set(key, target.get(key)());
+              this._lazyGetters.delete(key);
+            }
+            return target.get(key);
+          };
+        case "delete":
+          return key => {
+            if (this._lazyGetters.has(key)) {
+              this._lazyGetters.delete(key);
+            }
+            return target.delete(key);
+          };
+        case "has":
+          return key => target.has(key);
+        default:
+          return target[name];
+      }
+    }
+  }
+}

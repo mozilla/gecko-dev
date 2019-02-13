@@ -8,16 +8,17 @@
 
 #include "nsIShellService.h"
 
-class nsShellService : public nsIShellService
+class nsShellService final : public nsIShellService
 {
 public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHELLSERVICE
 
-  nsShellService() {};
-  ~nsShellService() {};
+  nsShellService() {}
 
+private:
+  ~nsShellService() {}
 };
 
 #define nsShellService_CID                          \

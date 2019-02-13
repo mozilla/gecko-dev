@@ -7,18 +7,10 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 const events = require("sdk/event/core");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const protocol = require("devtools/server/protocol");
-const {ContentObserver} = require("devtools/content-observer");
+const {serializeStack, parseStack} = require("toolkit/loader");
 
 const {on, once, off, emit} = events;
 const {method, Arg, Option, RetVal} = protocol;
-
-exports.register = function(handle) {
-  handle.addTabActor(CallWatcherActor, "callWatcherActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeTabActor(CallWatcherActor);
-};
 
 /**
  * Type describing a single function call in a stack trace.
@@ -68,8 +60,11 @@ let FunctionCallActor = protocol.ActorClass({
    *        The called function's arguments.
    * @param any result
    *        The value returned by the function call.
+   * @param boolean holdWeak
+   *        Determines whether or not FunctionCallActor stores a weak reference
+   *        to the underlying objects.
    */
-  initialize: function(conn, [window, global, caller, type, name, stack, args, result]) {
+  initialize: function(conn, [window, global, caller, type, name, stack, args, result], holdWeak) {
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this.details = {
@@ -81,7 +76,7 @@ let FunctionCallActor = protocol.ActorClass({
     // Store a weak reference to all objects so we don't
     // prevent natural GC if `holdWeak` was passed into
     // setup as truthy. Used in the Web Audio Editor.
-    if (this._holdWeak) {
+    if (holdWeak) {
       let weakRefs = {
         window: Cu.getWeakReference(window),
         caller: Cu.getWeakReference(caller),
@@ -194,14 +189,24 @@ let FunctionCallActor = protocol.ActorClass({
    *         The arguments as a string.
    */
   _generateArgsPreview: function() {
-    let { caller, args } = this.details;
+    let { caller, args, name } = this.details;
     let { global } = this.meta;
+
+    // Get method signature to determine if there are any enums
+    // used in this method.
+    let enumArgs = (CallWatcherFront.ENUM_METHODS[global] || {})[name];
+    if (typeof enumArgs === "function") {
+      enumArgs = enumArgs(args);
+    }
 
     // XXX: All of this sucks. Make this smarter, so that the frontend
     // can inspect each argument, be it object or primitive. Bug 978960.
-    let serializeArgs = () => args.map(arg => {
-      if (typeof arg == "undefined") {
+    let serializeArgs = () => args.map((arg, i) => {
+      if (arg === undefined) {
         return "undefined";
+      }
+      if (arg === null) {
+        return "null";
       }
       if (typeof arg == "function") {
         return "Function";
@@ -209,12 +214,10 @@ let FunctionCallActor = protocol.ActorClass({
       if (typeof arg == "object") {
         return "Object";
       }
-      if (global == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
-        // XXX: This doesn't handle combined bitmasks. Bug 978964.
-        return getEnumsLookupTable("webgl", caller)[arg] || arg;
-      }
-      if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
-        return getEnumsLookupTable("2d", caller)[arg] || arg;
+      // If this argument matches the method's signature
+      // and is an enum, change it to its constant name.
+      if (enumArgs && enumArgs.indexOf(i) !== -1) {
+        return getBitToEnumValue(global, caller, arg);
       }
       return arg;
     });
@@ -268,7 +271,7 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
    * created, in order to instrument the specified objects and become
    * aware of everything the content does with them.
    */
-  setup: method(function({ tracedGlobals, tracedFunctions, startRecording, performReload, holdWeak }) {
+  setup: method(function({ tracedGlobals, tracedFunctions, startRecording, performReload, holdWeak, storeCalls }) {
     if (this._initialized) {
       return;
     }
@@ -278,10 +281,10 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
     this._tracedGlobals = tracedGlobals || [];
     this._tracedFunctions = tracedFunctions || [];
     this._holdWeak = !!holdWeak;
-    this._contentObserver = new ContentObserver(this.tabActor);
+    this._storeCalls = !!storeCalls;
 
-    on(this._contentObserver, "global-created", this._onGlobalCreated);
-    on(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
+    on(this.tabActor, "window-ready", this._onGlobalCreated);
+    on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
 
     if (startRecording) {
       this.resumeRecording();
@@ -295,7 +298,8 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
       tracedFunctions: Option(0, "nullable:array:string"),
       startRecording: Option(0, "boolean"),
       performReload: Option(0, "boolean"),
-      holdWeak: Option(0, "boolean")
+      holdWeak: Option(0, "boolean"),
+      storeCalls: Option(0, "boolean")
     },
     oneway: true
   }),
@@ -310,14 +314,13 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
       return;
     }
     this._initialized = false;
+    this._finalized = true;
 
-    this._contentObserver.stopListening();
-    off(this._contentObserver, "global-created", this._onGlobalCreated);
-    off(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
+    off(this.tabActor, "window-ready", this._onGlobalCreated);
+    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
 
     this._tracedGlobals = null;
     this._tracedFunctions = null;
-    this._contentObserver = null;
   }, {
     oneway: true
   }),
@@ -366,10 +369,15 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
   /**
    * Invoked whenever the current tab actor's document global is created.
    */
-  _onGlobalCreated: function(window) {
+  _onGlobalCreated: function({window, id, isTopLevel}) {
     let self = this;
 
-    this._tracedWindowId = ContentObserver.GetInnerWindowID(window);
+    // TODO: bug 981748, support more than just the top-level documents.
+    if (!isTopLevel) {
+      return;
+    }
+    this._tracedWindowId = id;
+
     let unwrappedWindow = XPCNativeWrapper.unwrap(window);
     let callback = this._onContentFunctionCall;
 
@@ -404,19 +412,27 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
      * Instruments a function on the specified target object.
      */
     function overrideFunction(global, target, name, descriptor, callback) {
-      let originalFunc = target[name];
+      // Invoking .apply on an unxrayed content function doesn't work, because
+      // the arguments array is inaccessible to it. Get Xrays back.
+      let originalFunc = Cu.unwaiveXrays(target[name]);
+
+      Cu.exportFunction(function(...args) {
+        let result;
+        try {
+          result = Cu.waiveXrays(originalFunc.apply(this, args));
+        } catch (e) {
+          throw createContentError(e, unwrappedWindow);
+        }
+
+        if (self._recording) {
+          let stack = getStack(name);
+          let type = CallWatcherFront.METHOD_FUNCTION;
+          callback(unwrappedWindow, global, this, type, name, stack, args, result);
+        }
+        return result;
+      }, target, { defineAs: name });
 
       Object.defineProperty(target, name, {
-        value: function(...args) {
-          let result = originalFunc.apply(this, args);
-
-          if (self._recording) {
-            let stack = getStack(name);
-            let type = CallWatcherFront.METHOD_FUNCTION;
-            callback(unwrappedWindow, global, this, type, name, stack, args, result);
-          }
-          return result;
-        },
         configurable: descriptor.configurable,
         enumerable: descriptor.enumerable,
         writable: true
@@ -427,13 +443,15 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
      * Instruments a getter or setter on the specified target object.
      */
     function overrideAccessor(global, target, name, descriptor, callback) {
-      let originalGetter = target.__lookupGetter__(name);
-      let originalSetter = target.__lookupSetter__(name);
+      // Invoking .apply on an unxrayed content function doesn't work, because
+      // the arguments array is inaccessible to it. Get Xrays back.
+      let originalGetter = Cu.unwaiveXrays(target.__lookupGetter__(name));
+      let originalSetter = Cu.unwaiveXrays(target.__lookupSetter__(name));
 
       Object.defineProperty(target, name, {
         get: function(...args) {
           if (!originalGetter) return undefined;
-          let result = originalGetter.apply(this, args);
+          let result = Cu.waiveXrays(originalGetter.apply(this, args));
 
           if (self._recording) {
             let stack = getStack(name);
@@ -515,7 +533,7 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
   /**
    * Invoked whenever the current tab actor's inner window is destroyed.
    */
-  _onGlobalDestroyed: function(id) {
+  _onGlobalDestroyed: function({window, id, isTopLevel}) {
     if (this._tracedWindowId == id) {
       this.pauseRecording();
       this.eraseRecording();
@@ -526,8 +544,17 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
    * Invoked whenever an instrumented function is called.
    */
   _onContentFunctionCall: function(...details) {
-    let functionCall = new FunctionCallActor(this.conn, details);
-    this._functionCalls.push(functionCall);
+    // If the consuming tool has finalized call-watcher, ignore the
+    // still-instrumented calls.
+    if (this._finalized) {
+      return;
+    }
+    let functionCall = new FunctionCallActor(this.conn, details, this._holdWeak);
+
+    if (this._storeCalls) {
+      this._functionCalls.push(functionCall);
+    }
+
     this.onCall(functionCall);
   }
 });
@@ -538,7 +565,6 @@ let CallWatcherActor = exports.CallWatcherActor = protocol.ActorClass({
 let CallWatcherFront = exports.CallWatcherFront = protocol.FrontClass(CallWatcherActor, {
   initialize: function(client, { callWatcherActor }) {
     protocol.Front.prototype.initialize.call(this, client, { actor: callWatcherActor });
-    client.addActorPool(this);
     this.manage(this);
   }
 });
@@ -555,6 +581,68 @@ CallWatcherFront.UNKNOWN_SCOPE = 1;
 CallWatcherFront.CANVAS_WEBGL_CONTEXT = 2;
 CallWatcherFront.CANVAS_2D_CONTEXT = 3;
 
+CallWatcherFront.ENUM_METHODS = {};
+CallWatcherFront.ENUM_METHODS[CallWatcherFront.CANVAS_2D_CONTEXT] = {
+  asyncDrawXULElement: [6],
+  drawWindow: [6]
+};
+
+CallWatcherFront.ENUM_METHODS[CallWatcherFront.CANVAS_WEBGL_CONTEXT] = {
+  activeTexture: [0],
+  bindBuffer: [0],
+  bindFramebuffer: [0],
+  bindRenderbuffer: [0],
+  bindTexture: [0],
+  blendEquation: [0],
+  blendEquationSeparate: [0, 1],
+  blendFunc: [0, 1],
+  blendFuncSeparate: [0, 1, 2, 3],
+  bufferData: [0, 1, 2],
+  bufferSubData: [0, 1],
+  checkFramebufferStatus: [0],
+  clear: [0],
+  compressedTexImage2D: [0, 2],
+  compressedTexSubImage2D: [0, 6],
+  copyTexImage2D: [0, 2],
+  copyTexSubImage2D: [0],
+  createShader: [0],
+  cullFace: [0],
+  depthFunc: [0],
+  disable: [0],
+  drawArrays: [0],
+  drawElements: [0, 2],
+  enable: [0],
+  framebufferRenderbuffer: [0, 1, 2],
+  framebufferTexture2D: [0, 1, 2],
+  frontFace: [0],
+  generateMipmap: [0],
+  getBufferParameter: [0, 1],
+  getParameter: [0],
+  getFramebufferAttachmentParameter: [0, 1, 2],
+  getProgramParameter: [1],
+  getRenderbufferParameter: [0, 1],
+  getShaderParameter: [1],
+  getShaderPrecisionFormat: [0, 1],
+  getTexParameter: [0, 1],
+  getVertexAttrib: [1],
+  getVertexAttribOffset: [1],
+  hint: [0, 1],
+  isEnabled: [0],
+  pixelStorei: [0],
+  readPixels: [4, 5],
+  renderbufferStorage: [0, 1],
+  stencilFunc: [0],
+  stencilFuncSeparate: [0, 1],
+  stencilMaskSeparate: [0],
+  stencilOp: [0, 1, 2],
+  stencilOpSeparate: [0, 1, 2, 3],
+  texImage2D: (args) => args.length > 6 ? [0, 2, 6, 7] : [0, 2, 3, 4],
+  texParameterf: [0, 1],
+  texParameteri: [0, 1, 2],
+  texSubImage2D: (args) => args.length === 9 ? [0, 6, 7] : [0, 4, 5],
+  vertexAttribPointer: [2]
+};
+
 /**
  * A lookup table for cross-referencing flags or properties with their name
  * assuming they look LIKE_THIS most of the time.
@@ -562,22 +650,93 @@ CallWatcherFront.CANVAS_2D_CONTEXT = 3;
  * For example, when gl.clear(gl.COLOR_BUFFER_BIT) is called, the actual passed
  * argument's value is 16384, which we want identified as "COLOR_BUFFER_BIT".
  */
-var gEnumRegex = /^[A-Z_]+$/;
+var gEnumRegex = /^[A-Z][A-Z0-9_]+$/;
 var gEnumsLookupTable = {};
 
-function getEnumsLookupTable(type, object) {
-  let cachedEnum = gEnumsLookupTable[type];
-  if (cachedEnum) {
-    return cachedEnum;
-  }
+// These values are returned from errors, or empty values,
+// and need to be ignored when checking arguments due to the bitwise math.
+var INVALID_ENUMS = [
+  "INVALID_ENUM", "NO_ERROR", "INVALID_VALUE", "OUT_OF_MEMORY", "NONE"
+];
 
-  let table = gEnumsLookupTable[type] = {};
+function getBitToEnumValue(type, object, arg) {
+  let table = gEnumsLookupTable[type];
 
-  for (let key in object) {
-    if (key.match(gEnumRegex)) {
-      table[object[key]] = key;
+  // If mapping not yet created, do it on the first run.
+  if (!table) {
+    table = gEnumsLookupTable[type] = {};
+
+    for (let key in object) {
+      if (key.match(gEnumRegex)) {
+        // Maps `16384` to `"COLOR_BUFFER_BIT"`, etc.
+        table[object[key]] = key;
+      }
     }
   }
 
-  return table;
+  // If a single bit value, just return it.
+  if (table[arg]) {
+    return table[arg];
+  }
+
+  // Otherwise, attempt to reduce it to the original bit flags:
+  // `16640` -> "COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT"
+  let flags = [];
+  for (let flag in table) {
+    if (INVALID_ENUMS.indexOf(table[flag]) !== -1) {
+      continue;
+    }
+
+    // Cast to integer as all values are stored as strings
+    // in `table`
+    flag = flag | 0;
+    if (flag && (arg & flag) === flag) {
+      flags.push(table[flag]);
+    }
+  }
+
+  // Cache the combined bitmask value
+  return table[arg] = flags.join(" | ") || arg;
+}
+
+/**
+ * Creates a new error from an error that originated from content but was called
+ * from a wrapped overridden method. This is so we can make our own error
+ * that does not look like it originated from the call watcher.
+ *
+ * We use toolkit/loader's parseStack and serializeStack rather than the
+ * parsing done in the local `getStack` function, because it does not expose
+ * column number, would have to change the protocol models `call-stack-items` and `call-details`
+ * which hurts backwards compatibility, and the local `getStack` is an optimized, hot function.
+ */
+function createContentError (e, win) {
+  let { message, name, stack } = e;
+  let parsedStack = parseStack(stack);
+  let { fileName, lineNumber, columnNumber } = parsedStack[parsedStack.length - 1];
+  let error;
+
+  let isDOMException = e instanceof Ci.nsIDOMDOMException;
+  let constructor = isDOMException ? win.DOMException : (win[e.name] || win.Error);
+
+  if (isDOMException) {
+    error = new constructor(message, name);
+    Object.defineProperties(error, {
+      code: { value: e.code },
+      columnNumber: { value: 0 }, // columnNumber is always 0 for DOMExceptions?
+      filename: { value: fileName }, // note the lowercase `filename`
+      lineNumber: { value: lineNumber },
+      result: { value: e.result },
+      stack: { value: serializeStack(parsedStack) }
+    });
+  }
+  else {
+    // Constructing an error here retains all the stack information,
+    // and we can add message, fileName and lineNumber via constructor, though
+    // need to manually add columnNumber.
+    error = new constructor(message, fileName, lineNumber);
+    Object.defineProperty(error, "columnNumber", {
+      value: columnNumber
+    });
+  }
+  return error;
 }

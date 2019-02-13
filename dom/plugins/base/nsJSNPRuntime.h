@@ -15,6 +15,7 @@ class nsJSNPRuntime
 {
 public:
   static void OnPluginDestroy(NPP npp);
+  static void OnPluginDestroyPending(NPP npp);
 };
 
 class nsJSObjWrapperKey
@@ -36,19 +37,19 @@ public:
   const NPP mNpp;
 };
 
-extern const JSClass sNPObjectJSWrapperClass;
-
 class nsJSObjWrapper : public NPObject
 {
 public:
-  JS::PersistentRooted<JSObject *> mJSObj;
+  JS::Heap<JSObject *> mJSObj;
   const NPP mNpp;
+  bool mDestroyPending;
 
   static NPObject *GetNewOrUsed(NPP npp, JSContext *cx,
                                 JS::Handle<JSObject*> obj);
+  static bool HasOwnProperty(NPObject* npobj, NPIdentifier npid);
 
 protected:
-  nsJSObjWrapper(NPP npp);
+  explicit nsJSObjWrapper(NPP npp);
   ~nsJSObjWrapper();
 
   static NPObject * NP_Allocate(NPP npp, NPClass *aClass);
@@ -78,6 +79,7 @@ public:
 class nsNPObjWrapper
 {
 public:
+  static bool IsWrapper(JSObject *obj);
   static void OnDestroy(NPObject *npobj);
   static JSObject *GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj);
 };

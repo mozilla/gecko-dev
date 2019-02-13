@@ -1,4 +1,4 @@
-// -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,7 @@ let gOCSPRequestCount = 0;
 function run_test() {
   do_get_profile();
   Services.prefs.setBoolPref("security.OCSP.require", true);
+  Services.prefs.setIntPref("security.OCSP.enabled", 1);
 
   // We don't actually make use of stapling in this test. This is just how we
   // get a TLS connection.
@@ -30,28 +31,21 @@ function run_test() {
     response.write(ocspResponseBadSignature);
     gOCSPRequestCount++;
   });
-  ocspResponder.start(8080);
+  ocspResponder.start(8888);
 
-  add_tests_in_mode(true);
-  add_tests_in_mode(false);
+  add_tests();
 
   add_test(function () { ocspResponder.stop(run_next_test); });
 
   run_next_test();
 }
 
-function add_tests_in_mode(useMozillaPKIX)
+function add_tests()
 {
-  add_test(function () {
-    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
-                               useMozillaPKIX);
-    run_next_test();
-  });
-
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
+                      SEC_ERROR_OCSP_BAD_SIGNATURE);
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
+                      SEC_ERROR_OCSP_BAD_SIGNATURE);
   add_test(function () {
     do_check_eq(gOCSPRequestCount, 1);
     gOCSPRequestCount = 0;

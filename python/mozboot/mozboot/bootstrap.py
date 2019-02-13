@@ -7,7 +7,10 @@ from __future__ import print_function
 
 import platform
 import sys
+import os.path
 
+# Don't forgot to add new mozboot modules to the bootstrap download
+# list in bin/bootstrap.py!
 from mozboot.centos import CentOSBootstrapper
 from mozboot.debian import DebianBootstrapper
 from mozboot.fedora import FedoraBootstrapper
@@ -16,10 +19,28 @@ from mozboot.gentoo import GentooBootstrapper
 from mozboot.osx import OSXBootstrapper
 from mozboot.openbsd import OpenBSDBootstrapper
 from mozboot.ubuntu import UbuntuBootstrapper
+from mozboot.archlinux import ArchlinuxBootstrapper
 
+APPLICATION_CHOICE = '''
+Please choose the version of Firefox you want to build:
+%s
+Your choice:
+'''
+
+APPLICATIONS_LIST=[
+    ('Firefox for Desktop', 'browser'),
+    ('Firefox for Android', 'mobile_android')
+]
+
+# This is a workaround for the fact that we must support python2.6 (which has
+# no OrderedDict)
+APPLICATIONS = dict(
+    desktop=APPLICATIONS_LIST[0],
+    android=APPLICATIONS_LIST[1],
+)
 
 FINISHED = '''
-Your system should be ready to build Firefox! If you have not already,
+Your system should be ready to build %s! If you have not already,
 obtain a copy of the source code by running:
 
     hg clone https://hg.mozilla.org/mozilla-central
@@ -33,16 +54,17 @@ Or, if you prefer Git:
 class Bootstrapper(object):
     """Main class that performs system bootstrap."""
 
-    def __init__(self, finished=FINISHED):
+    def __init__(self, finished=FINISHED, choice=None, no_interactive=False):
         self.instance = None
         self.finished = finished
+        self.choice = choice
         cls = None
-        args = {}
+        args = {'no_interactive': no_interactive}
 
         if sys.platform.startswith('linux'):
             distro, version, dist_id = platform.linux_distribution()
 
-            if distro == 'CentOS':
+            if distro in ('CentOS', 'CentOS Linux'):
                 cls = CentOSBootstrapper
             elif distro in ('Debian', 'debian'):
                 cls = DebianBootstrapper
@@ -59,8 +81,11 @@ class Bootstrapper(object):
                     cls = UbuntuBootstrapper
             elif distro == 'Ubuntu':
                 cls = UbuntuBootstrapper
-            elif distro == 'Elementary':
+            elif distro in ('Elementary OS', 'Elementary', '"elementary OS"'):
                 cls = UbuntuBootstrapper
+            elif os.path.exists('/etc/arch-release'):
+                # Even on archlinux, platform.linux_distribution() returns ['','','']
+                cls = ArchlinuxBootstrapper
             else:
                 raise NotImplementedError('Bootstrap support for this Linux '
                                           'distro not yet available.')
@@ -80,10 +105,10 @@ class Bootstrapper(object):
             args['version'] = platform.uname()[2]
 
         elif sys.platform.startswith('dragonfly') or \
-             sys.platform.startswith('freebsd'):
+                sys.platform.startswith('freebsd'):
             cls = FreeBSDBootstrapper
             args['version'] = platform.release()
-            args['flavor']  = platform.system()
+            args['flavor'] = platform.system()
 
         if cls is None:
             raise NotImplementedError('Bootstrap support is not yet available '
@@ -91,10 +116,27 @@ class Bootstrapper(object):
 
         self.instance = cls(**args)
 
-
     def bootstrap(self):
+        if self.choice is None:
+            # Like ['1. Firefox for Desktop', '2. Firefox for Android'].
+            labels = ['%s. %s' % (i + 1, name) for (i, (name, _)) in enumerate(APPLICATIONS_LIST)]
+            prompt = APPLICATION_CHOICE % '\n'.join(labels)
+            prompt_choice = self.instance.prompt_int(prompt=prompt, low=1, high=len(APPLICATIONS))
+            name, application = APPLICATIONS_LIST[prompt_choice-1]
+        elif self.choice not in APPLICATIONS.keys():
+            raise Exception('Please pick a valid application choice: (%s)' % '/'.join(APPLICATIONS.keys()))
+        else:
+            name, application = APPLICATIONS[self.choice]
+
         self.instance.install_system_packages()
+
+        # Like 'install_browser_packages' or 'install_mobile_android_packages'.
+        getattr(self.instance, 'install_%s_packages' % application)()
+
         self.instance.ensure_mercurial_modern()
         self.instance.ensure_python_modern()
 
-        print(self.finished)
+        print(self.finished % name)
+
+        # Like 'suggest_browser_mozconfig' or 'suggest_mobile_android_mozconfig'.
+        getattr(self.instance, 'suggest_%s_mozconfig' % application)()

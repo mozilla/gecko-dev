@@ -32,27 +32,6 @@ SOURCES += [
     'Hal.cpp',
 ]
 
-if CONFIG['MOZ_GAMEPAD_BACKEND'] == 'stub':
-    UNIFIED_SOURCES += [
-        'fallback/FallbackGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'cocoa':
-    UNIFIED_SOURCES += [
-        'cocoa/CocoaGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'windows':
-    UNIFIED_SOURCES += [
-        'windows/WindowsGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'linux':
-    UNIFIED_SOURCES += [
-        'linux/LinuxGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'android':
-    UNIFIED_SOURCES += [
-        'android/AndroidGamepad.cpp'
-    ]
-
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     UNIFIED_SOURCES += [
         'android/AndroidSensor.cpp',
@@ -189,9 +168,14 @@ if CONFIG['MOZ_GAMEPAD']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     # So that we can call nsScreenManagerGonk::GetConfiguration().
     LOCAL_INCLUDES += [
+        '/widget',
         '/widget/gonk',
-        '/widget/xpwidgets'
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     CXXFLAGS += ['-I%s/hardware/libhardware_legacy/include' % CONFIG['ANDROID_SOURCE']]
+
+CFLAGS += CONFIG['GLIB_CFLAGS']
+CFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+CXXFLAGS += CONFIG['GLIB_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- /
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- /
 /* vim: set shiftwidth=4 tabstop=8 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@ this.EXPORTED_SYMBOLS = ["OnRefTestLoad"];
 const CC = Components.classes;
 const CI = Components.interfaces;
 const CR = Components.results;
+const CU = Components.utils;
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -35,7 +36,9 @@ const NS_DIRECTORY_SERVICE_CONTRACTID =
 const NS_OBSERVER_SERVICE_CONTRACTID =
           "@mozilla.org/observer-service;1";
 
-Components.utils.import("resource://gre/modules/FileUtils.jsm");
+CU.import("resource://gre/modules/FileUtils.jsm");
+CU.import("chrome://reftest/content/httpd.jsm", this);
+CU.import("resource://gre/modules/Services.jsm");
 
 var gLoadTimeout = 0;
 var gTimeoutHook = null;
@@ -57,6 +60,7 @@ const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2
 var gBrowser;
 // Are we testing web content loaded in a separate process?
 var gBrowserIsRemote;           // bool
+var gB2GisMulet;                // bool
 // Are we using <iframe mozbrowser>?
 var gBrowserIsIframe;           // bool
 var gBrowserMessageManager;
@@ -109,6 +113,10 @@ var gExpectedCrashDumpFiles = [];
 var gUnexpectedCrashDumpFiles = { };
 var gCrashDumpDir;
 var gFailedNoPaint = false;
+var gFailedOpaqueLayer = false;
+var gFailedOpaqueLayerMessages = [];
+var gFailedAssignedLayer = false;
+var gFailedAssignedLayerMessages = [];
 
 // The enabled-state of the test-plugins, stored so they can be reset later
 var gTestPluginEnabledStates = null;
@@ -246,6 +254,12 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     }
 
     try {
+        gB2GisMulet = prefs.getBoolPref("b2g.is_mulet");
+    } catch (e) {
+        gB2GisMulet = false;
+    }
+
+    try {
       gBrowserIsIframe = prefs.getBoolPref("reftest.browser.iframe.enabled");
     } catch (e) {
       gBrowserIsIframe = false;
@@ -268,10 +282,9 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     gBrowser.setAttribute("id", "browser");
     gBrowser.setAttribute("type", "content-primary");
     gBrowser.setAttribute("remote", gBrowserIsRemote ? "true" : "false");
-    gBrowser.setAttribute("mozasyncpanzoom", "true");
     // Make sure the browser element is exactly 800x1000, no matter
     // what size our window is
-    gBrowser.setAttribute("style", "min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
+    gBrowser.setAttribute("style", "padding: 0px; margin: 0px; border:none; min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
 
 #ifdef BOOTSTRAP
 #ifdef REFTEST_B2G
@@ -396,17 +409,7 @@ function InitAndStartRefTests()
     if (gRemote) {
         gServer = null;
     } else {
-        // not all gecko applications autoregister xpcom components
-        if (CC["@mozilla.org/server/jshttp;1"] === undefined) {
-            var file = CC["@mozilla.org/file/directory_service;1"].
-                        getService(CI.nsIProperties).get("ProfD", CI.nsIFile);
-            file.appendRelativePath("extensions/reftest@mozilla.org/chrome.manifest");
-
-            registrar = Components.manager.QueryInterface(CI.nsIComponentRegistrar);
-            registrar.autoRegister(file);
-        }
-        gServer = CC["@mozilla.org/server/jshttp;1"].
-                      createInstance(CI.nsIHttpServer);
+        gServer = new HttpServer();
     }
     try {
         if (gServer)
@@ -600,15 +603,15 @@ function BuildConditionSandbox(aURL) {
     var xr = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULRuntime);
     var appInfo = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULAppInfo);
     sandbox.isDebugBuild = gDebug.isDebugBuild;
-    sandbox.xulRuntime = {widgetToolkit: xr.widgetToolkit, OS: xr.OS, __exposedProps__: { widgetToolkit: "r", OS: "r", XPCOMABI: "r", shell: "r" } };
 
     // xr.XPCOMABI throws exception for configurations without full ABI
     // support (mobile builds on ARM)
+    var XPCOMABI = "";
     try {
-        sandbox.xulRuntime.XPCOMABI = xr.XPCOMABI;
-    } catch(e) {
-        sandbox.xulRuntime.XPCOMABI = "";
-    }
+        XPCOMABI = xr.XPCOMABI;
+    } catch(e) {}
+
+    sandbox.xulRuntime = CU.cloneInto({widgetToolkit: xr.widgetToolkit, OS: xr.OS, XPCOMABI: XPCOMABI}, sandbox);
 
     var testRect = gBrowser.getBoundingClientRect();
     sandbox.smallScreen = false;
@@ -643,9 +646,13 @@ function BuildConditionSandbox(aURL) {
     sandbox.B2GDT = appInfo.name.toLowerCase() == "b2g" && !sandbox.B2G;
     sandbox.Android = xr.OS == "Android" && !sandbox.B2G;
     sandbox.cocoaWidget = xr.widgetToolkit == "cocoa";
-    sandbox.gtk2Widget = xr.widgetToolkit == "gtk2";
+    sandbox.gtkWidget = xr.widgetToolkit == "gtk2"
+                        || xr.widgetToolkit == "gtk3";
     sandbox.qtWidget = xr.widgetToolkit == "qt";
     sandbox.winWidget = xr.widgetToolkit == "windows";
+
+    // Scrollbars that are semi-transparent. See bug 1169666.
+    sandbox.transparentScrollbars = xr.widgetToolkit == "gtk3";
 
     if (sandbox.Android) {
         var sysInfo = CC["@mozilla.org/system-info;1"].getService(CI.nsIPropertyBag2);
@@ -669,18 +676,18 @@ function BuildConditionSandbox(aURL) {
 
     var hh = CC[NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX + "http"].
                  getService(CI.nsIHttpProtocolHandler);
-    sandbox.http = { __exposedProps__: {} };
-    for each (var prop in [ "userAgent", "appName", "appVersion",
-                            "vendor", "vendorSub",
-                            "product", "productSub",
-                            "platform", "oscpu", "language", "misc" ]) {
-        sandbox.http[prop] = hh[prop];
-        sandbox.http.__exposedProps__[prop] = "r";
-    }
+    var httpProps = ["userAgent", "appName", "appVersion", "vendor",
+                     "vendorSub", "product", "productSub", "platform",
+                     "oscpu", "language", "misc"];
+    sandbox.http = new sandbox.Object();
+    httpProps.forEach((x) => sandbox.http[x] = hh[x]);
 
-    // Set OSX to the Mac OS X version for Mac, and 0 otherwise.
-    var osxmatch = /Mac OS X (\d+.\d+)$/.exec(hh.oscpu);
-    sandbox.OSX = osxmatch ? parseFloat(osxmatch[1]) : 0;
+    // Set OSX to be the Mac OS X version, as an integer, or undefined
+    // for other platforms.  The integer is formed by 100 times the
+    // major version plus the minor version, so 1006 for 10.6, 1010 for
+    // 10.10, etc.
+    var osxmatch = /Mac OS X (\d+).(\d+)$/.exec(hh.oscpu);
+    sandbox.OSX = osxmatch ? parseInt(osxmatch[1]) * 100 + parseInt(osxmatch[2]) : undefined;
 
     // see if we have the test plugin available,
     // and set a sandox prop accordingly
@@ -689,11 +696,7 @@ function BuildConditionSandbox(aURL) {
     sandbox.haveTestPlugin = !!testPlugin;
 
     // Set a flag on sandbox if the windows default theme is active
-    var box = gContainingWindow.document.createElement("box");
-    box.setAttribute("id", "_box_windowsDefaultTheme");
-    gContainingWindow.document.documentElement.appendChild(box);
-    sandbox.windowsDefaultTheme = (gContainingWindow.getComputedStyle(box, null).display == "none");
-    gContainingWindow.document.documentElement.removeChild(box);
+    sandbox.windowsDefaultTheme = gContainingWindow.matchMedia("(-moz-windows-default-theme)").matches;
 
     var prefs = CC["@mozilla.org/preferences-service;1"].
                 getService(CI.nsIPrefBranch);
@@ -703,21 +706,12 @@ function BuildConditionSandbox(aURL) {
         sandbox.nativeThemePref = true;
     }
 
-    sandbox.prefs = {
-        __exposedProps__: {
-            getBoolPref: 'r',
-            getIntPref: 'r',
-        },
-        _prefs:      prefs,
-        getBoolPref: function(p) { return this._prefs.getBoolPref(p); },
-        getIntPref:  function(p) { return this._prefs.getIntPref(p); }
-    }
+    sandbox.prefs = CU.cloneInto({
+        getBoolPref: function(p) { return prefs.getBoolPref(p); },
+        getIntPref:  function(p) { return prefs.getIntPref(p); }
+    }, sandbox, { cloneFunctions: true });
 
     sandbox.testPluginIsOOP = function () {
-        try {
-            netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-        } catch (ex) {}
-
         var prefservice = Components.classes["@mozilla.org/preferences-service;1"]
                                     .getService(CI.nsIPrefBranch);
 
@@ -751,14 +745,17 @@ function BuildConditionSandbox(aURL) {
     // Tests shouldn't care about this except for when they need to
     // crash the content process
     sandbox.browserIsRemote = gBrowserIsRemote;
+    sandbox.Mulet = gB2GisMulet;
 
-    // Distinguish the Fennecs:
-    sandbox.xulFennec    = sandbox.Android &&  sandbox.browserIsRemote;
-    sandbox.nativeFennec = sandbox.Android && !sandbox.browserIsRemote;
+    try {
+        sandbox.asyncPanZoom = gContainingWindow.document.docShell.asyncPanZoomEnabled;
+    } catch (e) {
+        sandbox.asyncPanZoom = false;
+    }
 
     if (!gDumpedConditionSandbox) {
         dump("REFTEST INFO | Dumping JSON representation of sandbox \n");
-        dump("REFTEST INFO | " + JSON.stringify(sandbox) + " \n");
+        dump("REFTEST INFO | " + JSON.stringify(CU.waiveXrays(sandbox)) + " \n");
         gDumpedConditionSandbox = true;
     }
     return sandbox;
@@ -820,7 +817,12 @@ function ReadManifest(aURL, inherited_status)
                      .getService(CI.nsIScriptSecurityManager);
 
     var listURL = aURL;
-    var channel = gIOService.newChannelFromURI(aURL);
+    var channel = gIOService.newChannelFromURI2(aURL,
+                                                null,      // aLoadingNode
+                                                Services.scriptSecurityManager.getSystemPrincipal(),
+                                                null,      // aTriggeringPrincipal
+                                                CI.nsILoadInfo.SEC_NORMAL,
+                                                CI.nsIContentPolicy.TYPE_OTHER);
     var inputStream = channel.open();
     if (channel instanceof Components.interfaces.nsIHttpChannel
         && channel.responseStatus != 200) {
@@ -836,7 +838,7 @@ function ReadManifest(aURL, inherited_status)
     var lineNo = 0;
     var urlprefix = "";
     var defaultTestPrefSettings = [], defaultRefPrefSettings = [];
-    for each (var str in lines) {
+    for (var str of lines) {
         ++lineNo;
         if (str.charAt(0) == "#")
             continue; // entire line was a comment
@@ -883,8 +885,9 @@ function ReadManifest(aURL, inherited_status)
         var refPrefSettings = defaultRefPrefSettings.concat();
         var fuzzy_max_delta = 2;
         var fuzzy_max_pixels = 1;
+        var chaosMode = false;
 
-        while (items[0].match(/^(fails|needs-focus|random|skip|asserts|slow|require-or|silentfail|pref|test-pref|ref-pref|fuzzy)/)) {
+        while (items[0].match(/^(fails|needs-focus|random|skip|asserts|slow|require-or|silentfail|pref|test-pref|ref-pref|fuzzy|chaos-mode)/)) {
             var item = items.shift();
             var stat;
             var cond;
@@ -918,12 +921,12 @@ function ReadManifest(aURL, inherited_status)
             } else if ((m = item.match(/^require-or\((.*?)\)$/))) {
                 var args = m[1].split(/,/);
                 if (args.length != 2) {
-                    throw "Error 7 in manifest file " + aURL.spec + " line " + lineNo + ": wrong number of args to require-or";
+                    throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": wrong number of args to require-or";
                 }
                 var [precondition_str, fallback_action] = args;
                 var preconditions = precondition_str.split(/&&/);
                 cond = false;
-                for each (var precondition in preconditions) {
+                for (var precondition of preconditions) {
                     if (precondition === "debugMode") {
                         // Currently unimplemented. Requires asynchronous
                         // JSD call + getting an event while no JS is running
@@ -963,8 +966,11 @@ function ReadManifest(aURL, inherited_status)
                 fuzzy_max_delta = Number(m[2]);
                 fuzzy_max_pixels = Number(m[3]);
               }
+            } else if (item == "chaos-mode") {
+                cond = false;
+                chaosMode = true;
             } else {
-                throw "Error 1 in manifest file " + aURL.spec + " line " + lineNo;
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": unexpected item " + item;
             }
 
             if (cond) {
@@ -1015,17 +1021,20 @@ function ReadManifest(aURL, inherited_status)
         var principal = secMan.getSimpleCodebasePrincipal(aURL);
 
         if (items[0] == "include") {
-            if (items.length != 2 || runHttp)
-                throw "Error 2 in manifest file " + aURL.spec + " line " + lineNo;
+            if (items.length != 2)
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to include";
+            if (runHttp)
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": use of include with http";
             var incURI = gIOService.newURI(items[1], null, listURL);
             secMan.checkLoadURIWithPrincipal(principal, incURI,
                                              CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
             ReadManifest(incURI, expected_status);
         } else if (items[0] == TYPE_LOAD) {
-            if (items.length != 2 ||
-                (expected_status != EXPECTED_PASS &&
-                 expected_status != EXPECTED_DEATH))
-                throw "Error 3 in manifest file " + aURL.spec + " line " + lineNo;
+            if (items.length != 2)
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to load";
+            if (expected_status != EXPECTED_PASS &&
+                expected_status != EXPECTED_DEATH)
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect known failure type for load test";
             var [testURI] = runHttp
                             ? ServeFiles(principal, httpDepth,
                                          listURL, [items[1]])
@@ -1048,10 +1057,11 @@ function ReadManifest(aURL, inherited_status)
                           fuzzyMaxDelta: fuzzy_max_delta,
                           fuzzyMaxPixels: fuzzy_max_pixels,
                           url1: testURI,
-                          url2: null });
+                          url2: null,
+                          chaosMode: chaosMode });
         } else if (items[0] == TYPE_SCRIPT) {
             if (items.length != 2)
-                throw "Error 4 in manifest file " + aURL.spec + " line " + lineNo;
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to script";
             var [testURI] = runHttp
                             ? ServeFiles(principal, httpDepth,
                                          listURL, [items[1]])
@@ -1074,10 +1084,11 @@ function ReadManifest(aURL, inherited_status)
                           fuzzyMaxDelta: fuzzy_max_delta,
                           fuzzyMaxPixels: fuzzy_max_pixels,
                           url1: testURI,
-                          url2: null });
+                          url2: null,
+                          chaosMode: chaosMode });
         } else if (items[0] == TYPE_REFTEST_EQUAL || items[0] == TYPE_REFTEST_NOTEQUAL) {
             if (items.length != 3)
-                throw "Error 5 in manifest file " + aURL.spec + " line " + lineNo;
+                throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to " + items[0];
             var [testURI, refURI] = runHttp
                                   ? ServeFiles(principal, httpDepth,
                                                listURL, [items[1], items[2]])
@@ -1103,9 +1114,10 @@ function ReadManifest(aURL, inherited_status)
                           fuzzyMaxDelta: fuzzy_max_delta,
                           fuzzyMaxPixels: fuzzy_max_pixels,
                           url1: testURI,
-                          url2: refURI });
+                          url2: refURI,
+                          chaosMode: chaosMode });
         } else {
-            throw "Error 6 in manifest file " + aURL.spec + " line " + lineNo;
+            throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": unknown test type " + items[0];
         }
     }
 }
@@ -1237,6 +1249,9 @@ function StartCurrentTest()
     }
     else {
         gDumpLog("REFTEST TEST-START | " + gURLs[0].prettyPath + "\n");
+        if (gURLs[0].chaosMode) {
+            gWindowUtils.enterChaosMode();
+        }
         if (!gURLs[0].needsFocus) {
             Blur();
         }
@@ -1490,6 +1505,12 @@ function UpdateCurrentCanvasForInvalidation(rects)
         var right = Math.ceil(r.right);
         var bottom = Math.ceil(r.bottom);
 
+        // Clamp the values to the canvas size
+        left = Math.max(0, Math.min(left, gCurrentCanvas.width));
+        top = Math.max(0, Math.min(top, gCurrentCanvas.height));
+        right = Math.max(0, Math.min(right, gCurrentCanvas.width));
+        bottom = Math.max(0, Math.min(bottom, gCurrentCanvas.height));
+
         ctx.save();
         ctx.translate(left, top);
         DoDrawWindow(ctx, left, top, right - left, bottom - top);
@@ -1655,20 +1676,34 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
                 gDumpLog("REFTEST fuzzy match\n");
             }
 
+            var failedExtraCheck = gFailedNoPaint || gFailedOpaqueLayer || gFailedAssignedLayer;
+
             // whether the comparison result matches what is in the manifest
-            var test_passed = (equal == (gURLs[0].type == TYPE_REFTEST_EQUAL)) && !gFailedNoPaint;
+            var test_passed = (equal == (gURLs[0].type == TYPE_REFTEST_EQUAL)) && !failedExtraCheck;
 
             output = outputs[expected][test_passed];
 
             ++gTestResults[output.n];
 
-            // It's possible that we failed both reftest-no-paint and the normal comparison, but we don't
-            // have a way to annotate these separately, so just print an error for the no-paint failure.
-            if (gFailedNoPaint) {
+            // It's possible that we failed both an "extra check" and the normal comparison, but we don't
+            // have a way to annotate these separately, so just print an error for the extra check failures.
+            if (failedExtraCheck) {
+                var failures = [];
+                if (gFailedNoPaint) {
+                    failures.push("failed reftest-no-paint");
+                }
+                // The gFailed*Messages arrays will contain messages from both the test and the reference.
+                if (gFailedOpaqueLayer) {
+                    failures.push("failed reftest-opaque-layer: " + gFailedOpaqueLayerMessages.join(", "));
+                }
+                if (gFailedAssignedLayer) {
+                    failures.push("failed reftest-assigned-layer: " + gFailedAssignedLayerMessages.join(", "));
+                }
+                var failureString = failures.join(", ");
                 if (expected == EXPECTED_FAIL) {
-                    gDumpLog("REFTEST TEST-KNOWN-FAIL | " + gURLs[0].prettyPath + " | failed reftest-no-paint\n");
+                    gDumpLog("REFTEST TEST-KNOWN-FAIL | " + gURLs[0].prettyPath + " | " + failureString + "\n");
                 } else {
-                    gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " + gURLs[0].prettyPath + " | failed reftest-no-paint\n");
+                    gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " + gURLs[0].prettyPath + " | " + failureString + "\n");
                 }
             } else {
                 var result = "REFTEST " + output.s + " | " +
@@ -1698,17 +1733,17 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
                 }
 
                 gDumpLog(result);
+
+                if (gURLs[0].prefSettings1.length == 0) {
+                    UpdateCanvasCache(gURLs[0].url1, gCanvas1);
+                }
+                if (gURLs[0].prefSettings2.length == 0) {
+                    UpdateCanvasCache(gURLs[0].url2, gCanvas2);
+                }
             }
 
-            if (!test_passed && expected == EXPECTED_PASS) {
+            if ((!test_passed && expected == EXPECTED_PASS) || (test_passed && expected == EXPECTED_FAIL)) {
                 FlushTestLog();
-            }
-
-            if (gURLs[0].prefSettings1.length == 0) {
-                UpdateCanvasCache(gURLs[0].url1, gCanvas1);
-            }
-            if (gURLs[0].prefSettings2.length == 0) {
-                UpdateCanvasCache(gURLs[0].url2, gCanvas2);
             }
 
             CleanUpCrashDumpFiles();
@@ -1736,7 +1771,7 @@ function LoadFailed(why)
 function RemoveExpectedCrashDumpFiles()
 {
     if (gExpectingProcessCrash) {
-        for each (let crashFilename in gExpectedCrashDumpFiles) {
+        for (let crashFilename of gExpectedCrashDumpFiles) {
             let file = gCrashDumpDir.clone();
             file.append(crashFilename);
             if (file.exists()) {
@@ -1790,9 +1825,12 @@ function FinishTestItem()
     gDumpLog("REFTEST INFO | Loading a blank page\n");
     // After clearing, content will notify us of the assertion count
     // and tests will continue.
-    SetAsyncScroll(false);
     SendClear();
     gFailedNoPaint = false;
+    gFailedOpaqueLayer = false;
+    gFailedOpaqueLayerMessages = [];
+    gFailedAssignedLayer = false;
+    gFailedAssignedLayerMessages = [];
 }
 
 function DoAssertionCheck(numAsserts)
@@ -1835,6 +1873,9 @@ function DoAssertionCheck(numAsserts)
         }
     }
 
+    if (gURLs[0].chaosMode) {
+        gWindowUtils.leaveChaosMode();
+    }
     gDumpLog("REFTEST TEST-END | " + gURLs[0].prettyPath + "\n");
 
     // And start the next test.
@@ -1893,6 +1934,14 @@ function RegisterMessageListenersAndLoadContentScript()
         function (m) { RecvFailedNoPaint(); }
     );
     gBrowserMessageManager.addMessageListener(
+        "reftest:FailedOpaqueLayer",
+        function (m) { RecvFailedOpaqueLayer(m.json.why); }
+    );
+    gBrowserMessageManager.addMessageListener(
+        "reftest:FailedAssignedLayer",
+        function (m) { RecvFailedAssignedLayer(m.json.why); }
+    );
+    gBrowserMessageManager.addMessageListener(
         "reftest:InitCanvasWithSnapshot",
         function (m) { return RecvInitCanvasWithSnapshot(); }
     );
@@ -1920,19 +1969,8 @@ function RegisterMessageListenersAndLoadContentScript()
         "reftest:ExpectProcessCrash",
         function (m) { RecvExpectProcessCrash(); }
     );
-    gBrowserMessageManager.addMessageListener(
-        "reftest:EnableAsyncScroll",
-        function (m) { SetAsyncScroll(true); }
-    );
 
     gBrowserMessageManager.loadFrameScript("chrome://reftest/content/reftest-content.js", true, true);
-}
-
-function SetAsyncScroll(enabled)
-{
-    gBrowser.QueryInterface(CI.nsIFrameLoaderOwner).frameLoader.renderMode =
-        enabled ? CI.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL :
-                  CI.nsIFrameLoader.RENDER_MODE_DEFAULT;
 }
 
 function RecvAssertionCount(count)
@@ -1960,6 +1998,16 @@ function RecvFailedLoad(why)
 function RecvFailedNoPaint()
 {
     gFailedNoPaint = true;
+}
+
+function RecvFailedOpaqueLayer(why) {
+    gFailedOpaqueLayer = true;
+    gFailedOpaqueLayerMessages.push(why);
+}
+
+function RecvFailedAssignedLayer(why) {
+    gFailedAssignedLayer = true;
+    gFailedAssignedLayerMessages.push(why);
 }
 
 function RecvInitCanvasWithSnapshot()

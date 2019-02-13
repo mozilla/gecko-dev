@@ -52,6 +52,7 @@ static const ssl3CipherSuite nonDTLSSuites[] = {
  * TLS             DTLS
  * 1.1 (0302)      1.0 (feff)
  * 1.2 (0303)      1.2 (fefd)
+ * 1.3 (0304)      1.3 (fefc)
  */
 SSL3ProtocolVersion
 dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
@@ -61,6 +62,9 @@ dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
     }
     if (tlsv == SSL_LIBRARY_VERSION_TLS_1_2) {
         return SSL_LIBRARY_VERSION_DTLS_1_2_WIRE;
+    }
+    if (tlsv == SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SSL_LIBRARY_VERSION_DTLS_1_3_WIRE;
     }
 
     /* Anything other than TLS 1.1 or 1.2 is an error, so return
@@ -84,6 +88,9 @@ dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv)
     }
     if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_2_WIRE) {
         return SSL_LIBRARY_VERSION_TLS_1_2;
+    }
+    if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_3_WIRE) {
+        return SSL_LIBRARY_VERSION_TLS_1_3;
     }
 
     /* Return a fictional higher version than we know of */
@@ -222,7 +229,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 #define MAX_HANDSHAKE_MSG_LEN 0x1ffff   /* 128k - 1 */
         if (message_length > MAX_HANDSHAKE_MSG_LEN) {
             (void)ssl3_DecodeError(ss);
-            PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
+            PORT_SetError(SSL_ERROR_RX_MALFORMED_HANDSHAKE);
             return SECFailure;
         }
 #undef MAX_HANDSHAKE_MSG_LEN

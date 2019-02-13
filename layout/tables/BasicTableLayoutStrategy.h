@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * Web-compatible algorithms that determine column and table widths,
+ * Web-compatible algorithms that determine column and table isizes,
  * used for CSS2's 'table-layout: auto'.
  */
 
@@ -20,62 +20,62 @@ class nsTableFrame;
 class BasicTableLayoutStrategy : public nsITableLayoutStrategy
 {
 public:
-    BasicTableLayoutStrategy(nsTableFrame *aTableFrame);
+    explicit BasicTableLayoutStrategy(nsTableFrame *aTableFrame);
     virtual ~BasicTableLayoutStrategy();
 
     // nsITableLayoutStrategy implementation
-    virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
-    virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext,
-                                 bool aComputingSize) MOZ_OVERRIDE;
-    virtual void MarkIntrinsicWidthsDirty() MOZ_OVERRIDE;
-    virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
+    virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+    virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
+                                 bool aComputingSize) override;
+    virtual void MarkIntrinsicISizesDirty() override;
+    virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState) override;
 
 private:
-    // NOTE: Using prefix "BTLS" to avoid overlapping names with 
-    // the values of nsLayoutUtils::IntrinsicWidthType
-    enum BtlsWidthType { BTLS_MIN_WIDTH, 
-                         BTLS_PREF_WIDTH, 
-                         BTLS_FINAL_WIDTH };
+    // NOTE: Using prefix "BTLS" to avoid overlapping names with
+    // the values of nsLayoutUtils::IntrinsicISizeType
+    enum BtlsISizeType { BTLS_MIN_ISIZE,
+                         BTLS_PREF_ISIZE,
+                         BTLS_FINAL_ISIZE };
 
-    // Compute intrinsic width member variables on the columns.
-    void ComputeColumnIntrinsicWidths(nsRenderingContext* aRenderingContext);
+    // Compute intrinsic isize member variables on the columns.
+    void ComputeColumnIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
-    // Distribute a colspanning cell's percent width (if any) to its columns.
-    void DistributePctWidthToColumns(float aSpanPrefPct,
+    // Distribute a colspanning cell's percent isize (if any) to its columns.
+    void DistributePctISizeToColumns(float aSpanPrefPct,
                                      int32_t aFirstCol,
                                      int32_t aColCount);
 
-    // Distribute a width of some BltsWidthType type to a set of columns.
-    //  aWidth: The amount of width to be distributed
+    // Distribute an isize of some BltsISizeType type to a set of columns.
+    //  aISize: The amount of isize to be distributed
     //  aFirstCol: The index (in the table) of the first column to be
-    //             considered for receiving width
+    //             considered for receiving isize
     //  aColCount: The number of consecutive columns (starting with aFirstCol)
-    //             to be considered for receiving width
-    //  aWidthType: The type of width being distributed.  (BTLS_MIN_WIDTH and
-    //              BTLS_PREF_WIDTH are intended to be used for dividing up
-    //              colspan's min & pref width.  BTLS_FINAL_WIDTH is intended
-    //              to be used for distributing the table's final width across
+    //             to be considered for receiving isize
+    //  aISizeType: The type of isize being distributed.  (BTLS_MIN_ISIZE and
+    //              BTLS_PREF_ISIZE are intended to be used for dividing up
+    //              colspan's min & pref isize.  BTLS_FINAL_ISIZE is intended
+    //              to be used for distributing the table's final isize across
     //              all its columns)
-    //  aSpanHasSpecifiedWidth: Should be true iff:
+    //  aSpanHasSpecifiedISize: Should be true iff:
     //                           - We're distributing a colspanning cell's
-    //                             pref or min width to its columns
-    //                           - The colspanning cell has a specified width.
-    void DistributeWidthToColumns(nscoord aWidth, 
-                                  int32_t aFirstCol, 
+    //                             pref or min isize to its columns
+    //                           - The colspanning cell has a specified isize.
+    void DistributeISizeToColumns(nscoord aISize,
+                                  int32_t aFirstCol,
                                   int32_t aColCount,
-                                  BtlsWidthType aWidthType,
-                                  bool aSpanHasSpecifiedWidth);
- 
+                                  BtlsISizeType aISizeType,
+                                  bool aSpanHasSpecifiedISize);
 
-    // Compute the min and pref widths of the table from the width
+
+    // Compute the min and pref isizes of the table from the isize
     // variables on the columns.
-    void ComputeIntrinsicWidths(nsRenderingContext* aRenderingContext);
+    void ComputeIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
     nsTableFrame *mTableFrame;
-    nscoord mMinWidth;
-    nscoord mPrefWidth;
-    nscoord mPrefWidthPctExpand;
-    nscoord mLastCalcWidth;
+    nscoord mMinISize;
+    nscoord mPrefISize;
+    nscoord mPrefISizePctExpand;
+    nscoord mLastCalcISize;
 };
 
 #endif /* !defined(BasicTableLayoutStrategy_h_) */

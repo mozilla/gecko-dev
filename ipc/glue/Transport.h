@@ -24,8 +24,9 @@ class FileDescriptor;
 
 typedef IPC::Channel Transport;
 
-bool CreateTransport(base::ProcessHandle aProcOne, base::ProcessHandle aProcTwo,
-                     TransportDescriptor* aOne, TransportDescriptor* aTwo);
+nsresult CreateTransport(base::ProcessId aProcIdOne,
+                         TransportDescriptor* aOne,
+                         TransportDescriptor* aTwo);
 
 Transport* OpenDescriptor(const TransportDescriptor& aTd,
                           Transport::Mode aMode);

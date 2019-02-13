@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 
 // Don't modify this code. Please use:
@@ -8,9 +8,13 @@
 
 this.EXPORTED_SYMBOLS = ["PhoneNumber"];
 
-Components.utils.import("resource://gre/modules/PhoneNumberMetaData.jsm");
-Components.utils.import("resource://gre/modules/PhoneNumberNormalizer.jsm");
+const Cu = Components.utils;
 
+Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, "PHONE_NUMBER_META_DATA",
+                                  "resource://gre/modules/PhoneNumberMetaData.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PhoneNumberNormalizer",
+                                  "resource://gre/modules/PhoneNumberNormalizer.jsm");
 this.PhoneNumber = (function (dataBase) {
   // Use strict in our context only - users might not want it
   'use strict';
@@ -302,8 +306,9 @@ this.PhoneNumber = (function (dataBase) {
     // Remove formating characters and whitespace.
     number = PhoneNumberNormalizer.Normalize(number);
 
-    // If there is no defaultRegion, we can't parse international access codes.
-    if (!defaultRegion && number[0] !== '+')
+    // If there is no defaultRegion or the defaultRegion is the global region,
+    // we can't parse international access codes.
+    if ((!defaultRegion || defaultRegion === '001') && number[0] !== '+')
       return null;
 
     // Detect and strip leading '+'.
@@ -312,6 +317,11 @@ this.PhoneNumber = (function (dataBase) {
 
     // Lookup the meta data for the given region.
     var md = FindMetaDataForRegion(defaultRegion.toUpperCase());
+
+    if (!md) {
+      dump("Couldn't find Meta Data for region: " + defaultRegion + "\n");
+      return null;
+    }
 
     // See if the number starts with an international prefix, and if the
     // number resulting from stripping the code is valid, then remove the

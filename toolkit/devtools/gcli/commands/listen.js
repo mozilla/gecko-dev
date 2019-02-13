@@ -6,19 +6,40 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 const Services = require("Services");
-const gcli = require("gcli/index");
-const { DebuggerServer } = require("resource://gre/modules/devtools/dbg-server.jsm");
+const l10n = require("gcli/l10n");
+const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsLoader",
+  "resource://gre/modules/devtools/Loader.jsm");
 
 const BRAND_SHORT_NAME = Cc["@mozilla.org/intl/stringbundle;1"]
                            .getService(Ci.nsIStringBundleService)
                            .createBundle("chrome://branding/locale/brand.properties")
                            .GetStringFromName("brandShortName");
 
+XPCOMUtils.defineLazyGetter(this, "debuggerServer", () => {
+  // Create a separate loader instance, so that we can be sure to receive
+  // a separate instance of the DebuggingServer from the rest of the
+  // devtools.  This allows us to safely use the tools against even the
+  // actors and DebuggingServer itself, especially since we can mark
+  // serverLoader as invisible to the debugger (unlike the usual loader
+  // settings).
+  let serverLoader = new DevToolsLoader();
+  serverLoader.invisibleToDebugger = true;
+  serverLoader.main("devtools/server/main");
+  let debuggerServer = serverLoader.DebuggerServer;
+  debuggerServer.init();
+  debuggerServer.addBrowserActors();
+  debuggerServer.allowChromeProcess = !l10n.hiddenByChromePref();
+  return debuggerServer;
+});
+
 exports.items = [
   {
+    item: "command",
+    runAt: "client",
     name: "listen",
-    description: gcli.lookup("listenDesc"),
-    manual: gcli.lookupFormat("listenManual2", [ BRAND_SHORT_NAME ]),
+    description: l10n.lookup("listenDesc"),
+    manual: l10n.lookupFormat("listenManual2", [ BRAND_SHORT_NAME ]),
     params: [
       {
         name: "port",
@@ -26,24 +47,34 @@ exports.items = [
         get defaultValue() {
           return Services.prefs.getIntPref("devtools.debugger.chrome-debugging-port");
         },
-        description: gcli.lookup("listenPortDesc"),
+        description: l10n.lookup("listenPortDesc"),
       }
     ],
     exec: function(args, context) {
-      if (!DebuggerServer.initialized) {
-        DebuggerServer.init();
-        DebuggerServer.addBrowserActors();
-      }
-      var reply = DebuggerServer.openListener(args.port);
-      if (!reply) {
-        throw new Error(gcli.lookup("listenDisabledOutput"));
+      var listener = debuggerServer.createListener();
+      if (!listener) {
+        throw new Error(l10n.lookup("listenDisabledOutput"));
       }
 
-      if (DebuggerServer.initialized) {
-        return gcli.lookupFormat("listenInitOutput", [ "" + args.port ]);
+      listener.portOrPath = args.port;
+      listener.open();
+
+      if (debuggerServer.initialized) {
+        return l10n.lookupFormat("listenInitOutput", [ "" + args.port ]);
       }
 
-      return gcli.lookup("listenNoInitOutput");
+      return l10n.lookup("listenNoInitOutput");
     },
+  },
+  {
+    item: "command",
+    runAt: "client",
+    name: "unlisten",
+    description: l10n.lookup("unlistenDesc"),
+    manual: l10n.lookup("unlistenManual"),
+    exec: function(args, context) {
+      debuggerServer.closeAllListeners();
+      return l10n.lookup("unlistenOutput");
+    }
   }
 ];

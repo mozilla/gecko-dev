@@ -6,9 +6,20 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const Cu = Components.utils;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
+/* Constants for password prompt telemetry.
+ * Mirrored in nsLoginManagerPrompter.js */
+const PROMPT_DISPLAYED = 0;
+
+const PROMPT_ADD = 1;
+const PROMPT_NOTNOW = 2;
+const PROMPT_NEVER = 3;
+
+const PROMPT_UPDATE = 1;
 
 /* ==================== LoginManagerPrompter ==================== */
 /*
@@ -53,8 +64,12 @@ LoginManagerPrompter.prototype = {
         if (!this.__strBundle) {
             var bunService = Cc["@mozilla.org/intl/stringbundle;1"].
                              getService(Ci.nsIStringBundleService);
-            this.__strBundle = bunService.createBundle(
-                        "chrome://passwordmgr/locale/passwordmgr.properties");
+            this.__strBundle = {
+              pwmgr : bunService.createBundle(
+                        "chrome://passwordmgr/locale/passwordmgr.properties"),
+              brand : bunService.createBundle("chrome://branding/locale/brand.properties")
+            };
+
             if (!this.__strBundle)
                 throw "String bundle for Login Manager not present!";
         }
@@ -108,6 +123,9 @@ LoginManagerPrompter.prototype = {
         this.log("===== initialized =====");
     },
 
+    setE10sData : function (aBrowser, aOpener) {
+        throw new Error("This should be filled in when Android is multiprocess");
+    },
 
     /*
      * promptToSavePassword
@@ -115,6 +133,7 @@ LoginManagerPrompter.prototype = {
      */
     promptToSavePassword : function (aLogin) {
         this._showSaveLoginNotification(aLogin);
+        Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION").add(PROMPT_DISPLAYED);
     },
 
 
@@ -122,14 +141,27 @@ LoginManagerPrompter.prototype = {
      * _showLoginNotification
      *
      * Displays a notification doorhanger.
-     *
+     * @param aBody
+     *        String message to be displayed in the doorhanger
+     * @param aButtons
+     *        Buttons to display with the doorhanger
+     * @param aUsername
+     *        Username string used in creating a doorhanger action
+     * @param aPassword
+     *        Password string used in creating a doorhanger action
      */
-    _showLoginNotification : function (aName, aText, aButtons) {
-        this.log("Adding new " + aName + " notification bar");
+    _showLoginNotification : function (aBody, aButtons, aUsername, aPassword) {
         let notifyWin = this._window.top;
         let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
         let browser = chromeWin.BrowserApp.getBrowserForWindow(notifyWin);
         let tabID = chromeWin.BrowserApp.getTabForBrowser(browser).id;
+
+        let actionText = {
+            text: aUsername,
+            type: "EDIT",
+            bundle: { username: aUsername,
+                      password: aPassword }
+        };
 
         // The page we're going to hasn't loaded yet, so we want to persist
         // across the first location change.
@@ -138,15 +170,15 @@ LoginManagerPrompter.prototype = {
         // at the post-authentication page. I don't see a good way to
         // heuristically determine when to ignore such location changes, so
         // we'll try ignoring location changes based on a time interval.
-
         let options = {
             persistWhileVisible: true,
-            timeout: Date.now() + 10000
+            timeout: Date.now() + 10000,
+            actionText: actionText
         }
 
         var nativeWindow = this._getNativeWindow();
         if (nativeWindow)
-            nativeWindow.doorhanger.show(aText, aName, aButtons, tabID, options);
+            nativeWindow.doorhanger.show(aBody, "password", aButtons, tabID, options, "LOGIN");
     },
 
 
@@ -159,36 +191,41 @@ LoginManagerPrompter.prototype = {
      *
      */
     _showSaveLoginNotification : function (aLogin) {
-        var displayHost = this._getShortDisplayHost(aLogin.hostname);
-        var notificationText;
-        if (aLogin.username) {
-            var displayUser = this._sanitizeUsername(aLogin.username);
-            notificationText  = this._getLocalizedString("savePassword", [displayUser, displayHost]);
-        } else {
-            notificationText  = this._getLocalizedString("savePasswordNoUser", [displayHost]);
-        }
+        let brandShortName = this._strBundle.brand.GetStringFromName("brandShortName");
+        let notificationText  = this._getLocalizedString("saveLogin", [brandShortName]);
+
+        let username = aLogin.username ? this._sanitizeUsername(aLogin.username) : "";
 
         // The callbacks in |buttons| have a closure to access the variables
         // in scope here; set one to |this._pwmgr| so we can get back to pwmgr
         // without a getService() call.
         var pwmgr = this._pwmgr;
+        let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION");
 
         var buttons = [
             {
-                label: this._getLocalizedString("saveButton"),
+                label: this._getLocalizedString("neverButton"),
                 callback: function() {
-                    pwmgr.addLogin(aLogin);
+                    promptHistogram.add(PROMPT_NEVER);
+                    pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
                 }
             },
             {
-                label: this._getLocalizedString("dontSaveButton"),
-                callback: function() {
-                    // Don't set a permanent exception
-                }
+                label: this._getLocalizedString("rememberButton"),
+                callback: function(checked, response) {
+
+                    if (response) {
+                        aLogin.username = response["username"] || aLogin.username;
+                        aLogin.password = response["password"] || aLogin.password;
+                    }
+                    pwmgr.addLogin(aLogin);
+                    promptHistogram.add(PROMPT_ADD);
+                },
+                positive: true
             }
         ];
 
-        this._showLoginNotification("password-save", notificationText, buttons);
+        this._showLoginNotification(notificationText, buttons, aLogin.username, aLogin.password);
     },
 
     /*
@@ -201,6 +238,7 @@ LoginManagerPrompter.prototype = {
      */
     promptToChangePassword : function (aOldLogin, aNewLogin) {
         this._showChangeLoginNotification(aOldLogin, aNewLogin.password);
+        Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION").add(PROMPT_DISPLAYED);
     },
 
     /*
@@ -222,23 +260,29 @@ LoginManagerPrompter.prototype = {
         // in scope here; set one to |this._pwmgr| so we can get back to pwmgr
         // without a getService() call.
         var self = this;
+        let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION");
 
         var buttons = [
             {
-                label: this._getLocalizedString("updateButton"),
+                label: this._getLocalizedString("dontUpdateButton"),
                 callback:  function() {
-                    self._updateLogin(aOldLogin, aNewPassword);
+                    promptHistogram.add(PROMPT_NOTNOW);
+                    // do nothing
                 }
             },
             {
-                label: this._getLocalizedString("dontUpdateButton"),
-                callback:  function() {
-                    // do nothing
-                }
+                label: this._getLocalizedString("updateButton"),
+                callback:  function(checked, response) {
+                   let password = response ? response["password"] : aNewPassword;
+                   self._updateLogin(aOldLogin, password);
+
+                   promptHistogram.add(PROMPT_UPDATE);
+                },
+                positive: true
             }
         ];
 
-        this._showLoginNotification("password-change", notificationText, buttons);
+        this._showLoginNotification(notificationText, buttons, aOldLogin.username, aNewPassword);
     },
 
 
@@ -258,7 +302,7 @@ LoginManagerPrompter.prototype = {
     promptToChangePasswordWithUsernames : function (logins, count, aNewLogin) {
         const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
 
-        var usernames = logins.map(function (l) l.username);
+        var usernames = logins.map(l => l.username);
         var dialogText  = this._getLocalizedString("userSelectText");
         var dialogTitle = this._getLocalizedString("passwordChangeTitle");
         var selectedIndex = { value: null };
@@ -356,10 +400,10 @@ LoginManagerPrompter.prototype = {
      */ 
     _getLocalizedString : function (key, formatArgs) {
         if (formatArgs)
-            return this._strBundle.formatStringFromName(
+            return this._strBundle.pwmgr.formatStringFromName(
                                         key, formatArgs, formatArgs.length);
         else
-            return this._strBundle.GetStringFromName(key);
+            return this._strBundle.pwmgr.GetStringFromName(key);
     },
 
 
@@ -400,7 +444,7 @@ LoginManagerPrompter.prototype = {
 
         // If the URI explicitly specified a port, only include it when
         // it's not the default. (We never want "http://foo.com:80")
-        port = uri.port;
+        let port = uri.port;
         if (port != -1) {
             var handler = Services.io.getProtocolHandler(scheme);
             if (port != handler.defaultPort)
@@ -408,35 +452,6 @@ LoginManagerPrompter.prototype = {
         }
 
         return hostname;
-    },
-
-
-    /*
-     * _getShortDisplayHost
-     *
-     * Converts a login's hostname field (a URL) to a short string for
-     * prompting purposes. Eg, "http://foo.com" --> "foo.com", or
-     * "ftp://www.site.co.uk" --> "site.co.uk".
-     */
-    _getShortDisplayHost: function (aURIString) {
-        var displayHost;
-
-        var eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
-                          getService(Ci.nsIEffectiveTLDService);
-        var idnService = Cc["@mozilla.org/network/idn-service;1"].
-                         getService(Ci.nsIIDNService);
-        try {
-            var uri = Services.io.newURI(aURIString, null, null);
-            var baseDomain = eTLDService.getBaseDomain(uri);
-            displayHost = idnService.convertToDisplayIDN(baseDomain, {});
-        } catch (e) {
-            this.log("_getShortDisplayHost couldn't process " + aURIString);
-        }
-
-        if (!displayHost)
-            displayHost = aURIString;
-
-        return displayHost;
     },
 
 }; // end of LoginManagerPrompter implementation

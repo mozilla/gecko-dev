@@ -17,7 +17,7 @@ import unittest
 import mozunit
 from cStringIO import StringIO
 from urllib import pathname2url
-import mozpack.path
+import mozpack.path as mozpath
 import os
 
 
@@ -135,6 +135,7 @@ class TestJar(unittest.TestCase):
             self.assertRaises(JarWriterError, jar.add, 'foo', 'bar')
             jar.add('bar', 'aaaaaaaaaaaaanopqrstuvwxyz')
             jar.add('baz/qux', 'aaaaaaaaaaaaanopqrstuvwxyz', False)
+            jar.add('baz\\backslash', 'aaaaaaaaaaaaaaa')
 
         files = [j for j in JarReader(fileobj=s)]
 
@@ -149,6 +150,13 @@ class TestJar(unittest.TestCase):
         self.assertEqual(files[2].filename, 'baz/qux')
         self.assertFalse(files[2].compressed)
         self.assertEqual(files[2].read(), 'aaaaaaaaaaaaanopqrstuvwxyz')
+
+        if os.sep == '\\':
+            self.assertEqual(files[3].filename, 'baz/backslash',
+                'backslashes in filenames on Windows should get normalized')
+        else:
+            self.assertEqual(files[3].filename, 'baz\\backslash',
+                'backslashes in filenames on POSIX platform are untouched')
 
         s = MockDest()
         with JarWriter(fileobj=s, compress=False,
@@ -280,7 +288,7 @@ class TestJarLog(unittest.TestCase):
         ]))
         log = JarLog(fileobj=s)
         canonicalize = lambda p: \
-            mozpack.path.normsep(os.path.normcase(os.path.realpath(p)))
+            mozpath.normsep(os.path.normcase(os.path.realpath(p)))
         baz_jar = canonicalize('bar/baz.jar')
         qux_zip = canonicalize('qux.zip')
         self.assertEqual(set(log.keys()), set([

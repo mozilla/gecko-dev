@@ -1,22 +1,20 @@
-/* -*- Mode: javascript; js-indent-level: 2; -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 // Test pretty printing source mapped sources.
 
-var gDebuggee;
 var gClient;
 var gThreadClient;
 var gSource;
 
-let gTab, gDebuggee, gPanel, gClient, gThreadClient, gSource;
+let gTab, gPanel, gClient, gThreadClient, gSource;
 
 const TAB_URL = EXAMPLE_URL + "doc_pretty-print-2.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gClient = gPanel.panelWin.gClient;
     gThreadClient = gPanel.panelWin.DebuggerController.activeThread;
@@ -50,13 +48,13 @@ function prettyPrint() {
 function runCode({ error }) {
   ok(!error);
   gClient.addOneTimeListener("paused", testDbgStatement);
-  gDebuggee.a();
+  callInTab(gTab, "a");
 }
 
 function testDbgStatement(event, { frame, why }) {
   is(why.type, "debuggerStatement");
-  const { url, line } = frame.where;
-  is(url, B_URL);
+  const { source, line } = frame.where;
+  is(source.url, B_URL);
   is(line, 2);
 
   disablePrettyPrint();
@@ -68,7 +66,7 @@ function disablePrettyPrint() {
 
 function testUgly({ error, source }) {
   ok(!error);
-  ok(!source.contains("\n  "));
+  ok(!source.includes("\n  "));
   getFrame();
 }
 
@@ -77,13 +75,13 @@ function getFrame() {
 }
 
 function testFrame({ frames: [frame] }) {
-  const { url, line } = frame.where;
-  is(url, B_URL);
+  const { source, line } = frame.where;
+  is(source.url, B_URL);
   is(line, 1);
 
   resumeDebuggerThenCloseAndFinish(gPanel);
 }
 
 registerCleanupFunction(function() {
-  gTab = gDebuggee = gPanel = gClient = gThreadClient = null;
+  gTab = gPanel = gClient = gThreadClient = null;
 });

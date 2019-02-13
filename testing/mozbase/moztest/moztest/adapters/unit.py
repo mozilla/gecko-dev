@@ -3,7 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import unittest
+import sys
 import time
+import traceback
 
 try:
     from unittest import TextTestResult
@@ -14,6 +16,28 @@ except ImportError:
 """Adapter used to output structuredlog messages from unittest
 testsuites"""
 
+def get_test_class_name(test):
+    """
+    This method is used to return the full class name from a
+    :class:`unittest.TestCase` instance.
+
+    It is used as a default to define the "class_name" extra value
+    passed in structured loggers. You can override the default by
+    implementing a "get_test_class_name" method on you TestCase subclass.
+    """
+    return "%s.%s" % (test.__class__.__module__,
+                      test.__class__.__name__)
+
+def get_test_method_name(test):
+    """
+    This method is used to return the full method name from a
+    :class:`unittest.TestCase` instance.
+
+    It is used as a default to define the "method_name" extra value
+    passed in structured loggers. You can override the default by
+    implementing a "get_test_method_name" method on you TestCase subclass.
+    """
+    return test._testMethodName
 
 class StructuredTestResult(TextTestResult):
     def __init__(self, *args, **kwargs):
@@ -33,7 +57,10 @@ class StructuredTestResult(TextTestResult):
         return debug_info
 
     def startTestRun(self):
-        self.logger.suite_start(tests=self.test_list)
+        # This would be an opportunity to call the logger's suite_start action,
+        # however some users may use multiple suites, and per the structured
+        # logging protocol, this action should only be called once.
+        pass
 
     def startTest(self, test):
         self.testsRun += 1
@@ -43,38 +70,92 @@ class StructuredTestResult(TextTestResult):
         pass
 
     def stopTestRun(self):
-        self.logger.suite_end()
+        # This would be an opportunity to call the logger's suite_end action,
+        # however some users may use multiple suites, and per the structured
+        # logging protocol, this action should only be called once.
+        pass
+
+    def _extract_err_message(self, err):
+        # Format an exception message in the style of unittest's _exc_info_to_string
+        # while maintaining a division between a traceback and a message.
+        exc_ty, val, _ = err
+        exc_msg = "".join(traceback.format_exception_only(exc_ty, val))
+        if self.buffer:
+            output_msg = "\n".join([sys.stdout.getvalue(), sys.stderr.getvalue()])
+            return "".join([exc_msg, output_msg])
+        return exc_msg.rstrip()
+
+    def _extract_stacktrace(self, err, test):
+        # Format an exception stack in the style of unittest's _exc_info_to_string
+        # while maintaining a division between a traceback and a message.
+        # This is mostly borrowed from unittest.result._exc_info_to_string.
+
+        exctype, value, tb = err
+        while tb and self._is_relevant_tb_level(tb):
+            tb = tb.tb_next
+        # Header usually included by print_exception
+        lines = ["Traceback (most recent call last):\n"]
+        if exctype is test.failureException:
+            length = self._count_relevant_tb_levels(tb)
+            lines += traceback.format_tb(tb, length)
+        else:
+            lines += traceback.format_tb(tb)
+        return "".join(lines)
+
+    def _get_class_method_name(self, test):
+        if hasattr(test, 'get_test_class_name'):
+            class_name = test.get_test_class_name()
+        else:
+            class_name = get_test_class_name(test)
+
+        if hasattr(test, 'get_test_method_name'):
+            method_name = test.get_test_method_name()
+        else:
+            method_name = get_test_method_name(test)
+
+        return {
+            'class_name': class_name,
+            'method_name': method_name
+        }
 
     def addError(self, test, err):
         self.errors.append((test, self._exc_info_to_string(err, test)))
         extra = self.call_callbacks(test, "ERROR")
+        extra.update(self._get_class_method_name(test))
         self.logger.test_end(test.id(),
                              "ERROR",
-                             message=self._exc_info_to_string(err, test),
+                             message=self._extract_err_message(err),
                              expected="PASS",
+                             stack=self._extract_stacktrace(err, test),
                              extra=extra)
 
     def addFailure(self, test, err):
         extra = self.call_callbacks(test, "ERROR")
+        extra.update(self._get_class_method_name(test))
         self.logger.test_end(test.id(),
                             "FAIL",
-                             message=self._exc_info_to_string(err, test),
+                             message=self._extract_err_message(err),
                              expected="PASS",
+                             stack=self._extract_stacktrace(err, test),
                              extra=extra)
 
     def addSuccess(self, test):
-        self.logger.test_end(test.id(), "PASS", expected="PASS")
+        extra = self._get_class_method_name(test)
+        self.logger.test_end(test.id(), "PASS", expected="PASS", extra=extra)
 
     def addExpectedFailure(self, test, err):
         extra = self.call_callbacks(test, "ERROR")
+        extra.update(self._get_class_method_name(test))
         self.logger.test_end(test.id(),
                             "FAIL",
-                             message=self._exc_info_to_string(err, test),
+                             message=self._extract_err_message(err),
                              expected="FAIL",
+                             stack=self._extract_stacktrace(err, test),
                              extra=extra)
 
     def addUnexpectedSuccess(self, test):
         extra = self.call_callbacks(test, "ERROR")
+        extra.update(self._get_class_method_name(test))
         self.logger.test_end(test.id(),
                              "PASS",
                              expected="FAIL",
@@ -82,6 +163,7 @@ class StructuredTestResult(TextTestResult):
 
     def addSkip(self, test, reason):
         extra = self.call_callbacks(test, "ERROR")
+        extra.update(self._get_class_method_name(test))
         self.logger.test_end(test.id(),
                              "SKIP",
                              message=reason,
@@ -132,6 +214,5 @@ class StructuredTestRunner(unittest.TextTestRunner):
         stopTime = time.time()
         if hasattr(result, 'time_taken'):
             result.time_taken = stopTime - startTime
-        run = result.testsRun
 
         return result

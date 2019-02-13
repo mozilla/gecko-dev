@@ -42,6 +42,7 @@ const EXT_STATE_EDITABLE = nsIAccessibleStates.EXT_STATE_EDITABLE;
 const EXT_STATE_ENABLED = nsIAccessibleStates.EXT_STATE_ENABLED;
 const EXT_STATE_EXPANDABLE = nsIAccessibleStates.EXT_STATE_EXPANDABLE;
 const EXT_STATE_HORIZONTAL = nsIAccessibleStates.EXT_STATE_HORIZONTAL;
+const EXT_STATE_MODAL = nsIAccessibleStates.EXT_STATE_MODAL;
 const EXT_STATE_MULTI_LINE = nsIAccessibleStates.EXT_STATE_MULTI_LINE;
 const EXT_STATE_PINNED = nsIAccessibleStates.EXT_STATE_PINNED;
 const EXT_STATE_SENSITIVE = nsIAccessibleStates.EXT_STATE_SENSITIVE;
@@ -51,7 +52,7 @@ const EXT_STATE_SUPPORTS_AUTOCOMPLETION =
   nsIAccessibleStates.EXT_STATE_SUPPORTS_AUTOCOMPLETION;
 const EXT_STATE_VERTICAL = nsIAccessibleStates.EXT_STATE_VERTICAL;
 
-const kOrdinalState = 0;
+const kOrdinalState = false;
 const kExtraState = 1;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -197,6 +198,17 @@ function testStatesInSubtree(aAccOrElmOrID, aState, aExtraState, aAbsentState)
   }
 }
 
+/**
+ * Fails if no defunct state on the accessible.
+ */
+function testIsDefunct(aAccessible, aTestName)
+{
+  var id = prettyName(aAccessible) + (aTestName ? " [" + aTestName + "]" : "");
+  var [state, extraState] = getStates(aAccessible);
+  isState(extraState & EXT_STATE_DEFUNCT, EXT_STATE_DEFUNCT, true,
+          "no defuct state for " + id + "!");
+}
+
 function getStringStates(aAccOrElmOrID)
 {
   var [state, extraState] = getStates(aAccOrElmOrID);
@@ -208,7 +220,7 @@ function getStates(aAccOrElmOrID)
   var acc = getAccessible(aAccOrElmOrID);
   if (!acc)
     return [0, 0];
-  
+
   var state = {}, extraState = {};
   acc.getState(state, extraState);
 

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,7 @@ var tests = [
         addBookmarks();
 
         yield BookmarkJSONUtils.exportToFile(this.file);
-        remove_all_bookmarks();
+        yield PlacesUtils.bookmarks.eraseEverything();
         try {
           yield BookmarkJSONUtils.importFromFile(this.file, true);
         }
@@ -114,7 +114,7 @@ var tests = [
         this.file = yield promiseFile("bookmarks-test_restoreNotification.html");
         addBookmarks();
         yield BookmarkHTMLUtils.exportToFile(this.file);
-        remove_all_bookmarks();
+        yield PlacesUtils.bookmarks.eraseEverything();
         try {
           BookmarkHTMLUtils.importFromFile(this.file, false)
                            .then(null, do_report_unexpected_exception);
@@ -174,7 +174,7 @@ var tests = [
         this.file = yield promiseFile("bookmarks-test_restoreNotification.init.html");
         addBookmarks();
         yield BookmarkHTMLUtils.exportToFile(this.file);
-        remove_all_bookmarks();
+        yield PlacesUtils.bookmarks.eraseEverything();
         try {
           BookmarkHTMLUtils.importFromFile(this.file, true)
                            .then(null, do_report_unexpected_exception);
@@ -269,8 +269,7 @@ var successAndFailedObserver = {
     else
       do_check_eq(test.folderId, null);
 
-    remove_all_bookmarks();
-    do_execute_soon(doNextTest);
+    PlacesUtils.bookmarks.eraseEverything().then(doNextTest);
   }
 };
 

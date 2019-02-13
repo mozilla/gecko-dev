@@ -11,7 +11,7 @@ let gManifestWindow, gManifestEditor;
 function test() {
   waitForExplicitFinish();
 
-  Task.spawn(function() {
+  Task.spawn(function*() {
     Services.prefs.setBoolPref(MANIFEST_EDITOR_ENABLED, true);
     let tab = yield openAppManager();
     yield selectProjectsPanel();
@@ -23,6 +23,13 @@ function test() {
     yield changeManifestValue("name", "the best app");
     yield changeManifestValueBad("name", "the worst app");
     yield addNewManifestProperty("developer", "foo", "bar");
+
+    // add duplicate property in the same parent doesn't create duplicates
+    yield addNewManifestProperty("developer", "foo", "bar2");
+
+    // add propery with same key in other parent is allowed
+    yield addNewManifestProperty("tester", "foo", "new");
+
     yield addNewManifestPropertyBad("developer", "blob", "bob");
     yield removeManifestProperty("developer", "foo");
     gManifestWindow = null;
@@ -41,7 +48,7 @@ function waitForUpdate() {
 }
 
 function changeManifestValue(key, value) {
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let propElem = gManifestWindow.document
                    .querySelector("[id ^= '" + key + "']");
     is(propElem.querySelector(".name").value, key,
@@ -67,7 +74,7 @@ function changeManifestValue(key, value) {
 }
 
 function changeManifestValueBad(key, value) {
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let propElem = gManifestWindow.document
                    .querySelector("[id ^= '" + key + "']");
     is(propElem.querySelector(".name").value, key,
@@ -94,15 +101,14 @@ function changeManifestValueBad(key, value) {
 }
 
 function addNewManifestProperty(parent, key, value) {
-  return Task.spawn(function() {
+  info("Adding new property - parent: " + parent + "; key: " + key + "; value: " + value + "\n\n");
+  return Task.spawn(function*() {
     let parentElem = gManifestWindow.document
                      .querySelector("[id ^= '" + parent + "']");
-    ok(parentElem,
-      "Found parent element");
-    let addPropertyElem = parentElem
-                          .querySelector(".variables-view-add-property");
-    ok(addPropertyElem,
-      "Found add-property button");
+    ok(parentElem, "Found parent element: " + parentElem.id);
+
+    let addPropertyElem = parentElem.querySelector(".variables-view-add-property");
+    ok(addPropertyElem, "Found add-property button");
 
     EventUtils.sendMouseEvent({ type: "mousedown" }, addPropertyElem, gManifestWindow);
 
@@ -116,10 +122,13 @@ function addNewManifestProperty(parent, key, value) {
 
     yield waitForUpdate();
 
-    let newElem = gManifestWindow.document.querySelector("[id ^= '" + key + "']");
+    parentElem = gManifestWindow.document.querySelector("[id ^= '" + parent + "']");
+    let elems = parentElem.querySelectorAll("[id ^= '" + key + "']");
+    is(elems.length, 1, "No duplicate property is added");
+
+    let newElem = elems[0];
     let nameElem = newElem.querySelector(".name");
-    is(nameElem.value, key,
-       "Key doesn't match expected Key");
+    is(nameElem.value, key, "Key doesn't match expected Key");
 
     ok(key in gManifestEditor.manifest[parent],
        "Manifest doesn't contain expected key");
@@ -134,7 +143,7 @@ function addNewManifestProperty(parent, key, value) {
 }
 
 function addNewManifestPropertyBad(parent, key, value) {
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let parentElem = gManifestWindow.document
                      .querySelector("[id ^= '" + parent + "']");
     ok(parentElem,
@@ -167,7 +176,7 @@ function addNewManifestPropertyBad(parent, key, value) {
 function removeManifestProperty(parent, key) {
   info("*** Remove property test ***");
 
-  return Task.spawn(function() {
+  return Task.spawn(function*() {
     let parentElem = gManifestWindow.document
                      .querySelector("[id ^= '" + parent + "']");
     ok(parentElem, "Found parent element");

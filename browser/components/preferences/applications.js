@@ -13,6 +13,7 @@ var Ci = Components.interfaces;
 var Cr = Components.results;
 
 Components.utils.import('resource://gre/modules/Services.jsm');
+Components.utils.import('resource://gre/modules/AppConstants.jsm');
 
 const TYPE_MAYBE_FEED = "application/vnd.mozilla.maybe.feed";
 const TYPE_MAYBE_VIDEO_FEED = "application/vnd.mozilla.maybe.video.feed";
@@ -73,17 +74,9 @@ const PREF_AUDIO_FEED_SELECTED_READER = "browser.audioFeeds.handler.default";
 // identifying the "use plugin" action, so we use this constant instead.
 const kActionUsePlugin = 5;
 
-/*
-#ifdef MOZ_WIDGET_GTK
-*/
-const ICON_URL_APP      = "moz-icon://dummy.exe?size=16";
-/*
-#else
-*/
-const ICON_URL_APP      = "chrome://browser/skin/preferences/application.png";
-/*
-#endif
-*/
+const ICON_URL_APP = AppConstants.platform == "linux" ?
+                     "moz-icon://dummy.exe?size=16" :
+                     "chrome://browser/skin/preferences/application.png";
 
 // For CSS. Can be one of "ask", "save", "plugin" or "feed". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
@@ -292,6 +285,14 @@ HandlerInfoWrapper.prototype = {
   },
 
   set preferredAction(aNewValue) {
+    // If the action is to use the plugin,
+    // we must set the preferred action to "save to disk".
+    // But only if it's not currently the preferred action.
+    if ((aNewValue == kActionUsePlugin) &&
+        (this.preferredAction != Ci.nsIHandlerInfo.saveToDisk)) {
+      aNewValue = Ci.nsIHandlerInfo.saveToDisk;
+    }
+
     // We don't modify the preferred action if the new action is to use a plugin
     // because handler info objects don't understand our custom "use plugin"
     // value.  Also, leaving it untouched means that we can automatically revert
@@ -1089,29 +1090,20 @@ var gApplicationsPane = {
   _loadPluginHandlers: function() {
     "use strict";
 
-    let pluginHost = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
-    let pluginTags = pluginHost.getPluginTags();
+    let mimeTypes = navigator.mimeTypes;
 
-    for (let i = 0; i < pluginTags.length; ++i) {
-      let pluginTag = pluginTags[i];
-
-      let mimeTypes = pluginTag.getMimeTypes();
-      for (let j = 0; j < mimeTypes.length; ++j) {
-        let type = mimeTypes[j];
-
-        let handlerInfoWrapper;
-        if (type in this._handledTypes)
-          handlerInfoWrapper = this._handledTypes[type];
-        else {
-          let wrappedHandlerInfo =
-            this._mimeSvc.getFromTypeAndExtension(type, null);
-          handlerInfoWrapper = new HandlerInfoWrapper(type, wrappedHandlerInfo);
-          handlerInfoWrapper.handledOnlyByPlugin = true;
-          this._handledTypes[type] = handlerInfoWrapper;
-        }
-
-        handlerInfoWrapper.pluginName = pluginTag.name;
+    for (let mimeType of mimeTypes) {
+      let handlerInfoWrapper;
+      if (mimeType.type in this._handledTypes) {
+        handlerInfoWrapper = this._handledTypes[mimeType.type];
+      } else {
+        let wrappedHandlerInfo =
+              this._mimeSvc.getFromTypeAndExtension(mimeType.type, null);
+        handlerInfoWrapper = new HandlerInfoWrapper(mimeType.type, wrappedHandlerInfo);
+        handlerInfoWrapper.handledOnlyByPlugin = true;
+        this._handledTypes[mimeType.type] = handlerInfoWrapper;
       }
+      handlerInfoWrapper.pluginName = mimeType.enabledPlugin.name;
     }
   },
 
@@ -1398,7 +1390,7 @@ var gApplicationsPane = {
 
     {
       var askMenuItem = document.createElement("menuitem");
-      askMenuItem.setAttribute("alwaysAsk", "true");
+      askMenuItem.setAttribute("action", Ci.nsIHandlerInfo.alwaysAsk);
       let label;
       if (isFeedType(handlerInfo.type))
         label = this._prefsBundle.getFormattedString("previewInApp",
@@ -1644,33 +1636,31 @@ var gApplicationsPane = {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
-    if (aActionItem.hasAttribute("alwaysAsk")) {
+    let action = parseInt(aActionItem.getAttribute("action"), 10);
+
+    // Set the plugin state if we're enabling or disabling a plugin.
+    if (action == kActionUsePlugin)
+      handlerInfo.enablePluginType();
+    else if (handlerInfo.pluginName && !handlerInfo.isDisabledPluginType)
+      handlerInfo.disablePluginType();
+
+    // Set the preferred application handler.
+    // We leave the existing preferred app in the list when we set
+    // the preferred action to something other than useHelperApp so that
+    // legacy datastores that don't have the preferred app in the list
+    // of possible apps still include the preferred app in the list of apps
+    // the user can choose to handle the type.
+    if (action == Ci.nsIHandlerInfo.useHelperApp)
+      handlerInfo.preferredApplicationHandler = aActionItem.handlerApp;
+
+    // Set the "always ask" flag.
+    if (action == Ci.nsIHandlerInfo.alwaysAsk)
       handlerInfo.alwaysAskBeforeHandling = true;
-    }
-    else if (aActionItem.hasAttribute("action")) {
-      let action = parseInt(aActionItem.getAttribute("action"));
-
-      // Set the plugin state if we're enabling or disabling a plugin.
-      if (action == kActionUsePlugin)
-        handlerInfo.enablePluginType();
-      else if (handlerInfo.pluginName && !handlerInfo.isDisabledPluginType)
-        handlerInfo.disablePluginType();
-
-      // Set the preferred application handler.
-      // We leave the existing preferred app in the list when we set
-      // the preferred action to something other than useHelperApp so that
-      // legacy datastores that don't have the preferred app in the list
-      // of possible apps still include the preferred app in the list of apps
-      // the user can choose to handle the type.
-      if (action == Ci.nsIHandlerInfo.useHelperApp)
-        handlerInfo.preferredApplicationHandler = aActionItem.handlerApp;
-
-      // Set the "always ask" flag.
+    else
       handlerInfo.alwaysAskBeforeHandling = false;
 
-      // Set the preferred action.
-      handlerInfo.preferredAction = action;
-    }
+    // Set the preferred action.
+    handlerInfo.preferredAction = action;
 
     handlerInfo.store();
 
@@ -1844,10 +1834,9 @@ var gApplicationsPane = {
         return this._getIconURLForSystemDefault(aHandlerInfo);
 
       case Ci.nsIHandlerInfo.useHelperApp:
-        let (preferredApp = aHandlerInfo.preferredApplicationHandler) {
-          if (this.isValidHandlerApp(preferredApp))
-            return this._getIconURLForHandlerApp(preferredApp);
-        }
+        let preferredApp = aHandlerInfo.preferredApplicationHandler;
+        if (this.isValidHandlerApp(preferredApp))
+          return this._getIconURLForHandlerApp(preferredApp);
         break;
 
       // This should never happen, but if preferredAction is set to some weird

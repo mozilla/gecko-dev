@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@ tests.push({
 
     // create a test root
     this._folderTitle = "test folder";
-    this._folderId = 
+    this._folderId =
       PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId,
                                          this._folderTitle,
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
@@ -58,7 +58,7 @@ tests.push({
                                          "excluded",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
     do_check_eq(rootNode.childCount, 6);
-    this.excludeItemsFromRestore.push(excludedFolderId); 
+    this.excludeItemsFromRestore.push(excludedFolderId);
 
     // add a test bookmark to it
     PlacesUtils.bookmarks.insertBookmark(excludedFolderId, this._testURI,
@@ -96,7 +96,7 @@ tests.push({
     for (var i = 0; i < rootNode.childCount; i++) {
       var node = rootNode.getChild(i);
 
-      LOG("validating " + node.title);
+      do_print("validating " + node.title);
       if (node.itemId != PlacesUtils.tagsFolderId) {
         if (node.title == this._folderTitle) {
           // check the test folder's properties

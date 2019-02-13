@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +17,9 @@ class nsGlobalWindow;
 class nsIPresShell;
 class nsIWidget;
 class nsPresContext;
-class nsPoint;
 class nsIDocument;
+class nsView;
+struct nsPoint;
 
 namespace mozilla {
   namespace layers {
@@ -25,7 +27,7 @@ namespace mozilla {
   }
 }
 
-class nsTranslationNodeList MOZ_FINAL : public nsITranslationNodeList
+class nsTranslationNodeList final : public nsITranslationNodeList
 {
 public:
   nsTranslationNodeList()
@@ -46,21 +48,26 @@ public:
   }
 
 private:
+  ~nsTranslationNodeList() {}
+
   nsTArray<nsCOMPtr<nsIDOMNode> > mNodes;
   nsTArray<bool> mNodeIsRoot;
   uint32_t mLength;
 };
 
-class nsDOMWindowUtils MOZ_FINAL : public nsIDOMWindowUtils,
-                                   public nsSupportsWeakReference
+class nsDOMWindowUtils final : public nsIDOMWindowUtils,
+                               public nsSupportsWeakReference
 {
+  typedef mozilla::widget::TextEventDispatcher
+    TextEventDispatcher;
 public:
-  nsDOMWindowUtils(nsGlobalWindow *aWindow);
-  ~nsDOMWindowUtils();
+  explicit nsDOMWindowUtils(nsGlobalWindow *aWindow);
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMWINDOWUTILS
 
 protected:
+  ~nsDOMWindowUtils();
+
   nsWeakPtr mWindow;
 
   // If aOffset is non-null, it gets filled in with the offset of the root
@@ -88,6 +95,26 @@ protected:
                                   bool *aPreventDefault,
                                   bool aIsSynthesized);
 
+  NS_IMETHOD SendPointerEventCommon(const nsAString& aType,
+                                    float aX,
+                                    float aY,
+                                    int32_t aButton,
+                                    int32_t aClickCount,
+                                    int32_t aModifiers,
+                                    bool aIgnoreRootScrollFrame,
+                                    float aPressure,
+                                    unsigned short aInputSourceArg,
+                                    int32_t aPointerId,
+                                    int32_t aWidth,
+                                    int32_t aHeight,
+                                    int32_t aTiltX,
+                                    int32_t aTiltY,
+                                    bool aIsPrimary,
+                                    bool aIsSynthesized,
+                                    uint8_t aOptionalArgCount,
+                                    bool aToWindow,
+                                    bool* aPreventDefault);
+
   NS_IMETHOD SendTouchEventCommon(const nsAString& aType,
                                   uint32_t* aIdentifiers,
                                   int32_t* aXs,
@@ -101,9 +128,6 @@ protected:
                                   bool aIgnoreRootScrollFrame,
                                   bool aToWindow,
                                   bool* aPreventDefault);
-
-
-  static mozilla::Modifiers GetWidgetModifiers(int32_t aModifiers);
 };
 
 #endif

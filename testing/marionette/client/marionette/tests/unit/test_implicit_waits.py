@@ -2,15 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from marionette import NoSuchElementException
+from marionette import MarionetteTestCase
+from marionette_driver.errors import NoSuchElementException
 
 class TestImplicitWaits(MarionetteTestCase):
     def testShouldImplicitlyWaitForASingleElement(self):
         test_html = self.marionette.absolute_url("test_dynamic.html")
         self.marionette.navigate(test_html)
         add = self.marionette.find_element("id", "adder")
-        self.marionette.set_search_timeout("3000")
+        self.marionette.set_search_timeout("30000")
         add.click()
         # All is well if this doesnt throw
         self.marionette.find_element("id", "box0")

@@ -11,19 +11,34 @@
 
 class nsPluginPlayPreviewInfo : public nsIPluginPlayPreviewInfo
 {
+  virtual ~nsPluginPlayPreviewInfo();
+
 public:
    NS_DECL_ISUPPORTS
    NS_DECL_NSIPLUGINPLAYPREVIEWINFO
 
   nsPluginPlayPreviewInfo(const char* aMimeType,
                           bool aIgnoreCTP,
-                          const char* aRedirectURL);
-  nsPluginPlayPreviewInfo(const nsPluginPlayPreviewInfo* aSource);
-  virtual ~nsPluginPlayPreviewInfo();
+                          const char* aRedirectURL,
+                          const char* aWhitelist);
+  explicit nsPluginPlayPreviewInfo(const nsPluginPlayPreviewInfo* aSource);
+
+  /** This function checks aPageURI and aObjectURI against the whitelist
+   *  specified in aWhitelist. This is public static function because this
+   *  whitelist checking code needs to be accessed without any instances of
+   *  nsIPluginPlayPreviewInfo. In particular, the Shumway whitelist is
+   *  obtained directly from prefs and compared using this code for telemetry
+   *  purposes.
+   */
+  static nsresult CheckWhitelist(const nsACString& aPageURI,
+                                 const nsACString& aObjectURI,
+                                 const nsACString& aWhitelist,
+                                 bool *_retval);
 
   nsCString mMimeType;
   bool      mIgnoreCTP;
   nsCString mRedirectURL;
+  nsCString mWhitelist;
 };
 
 

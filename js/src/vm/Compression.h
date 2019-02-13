@@ -7,8 +7,6 @@
 #ifndef vm_Compression_h
 #define vm_Compression_h
 
-#ifdef USE_ZLIB
-
 #include <zlib.h>
 
 #include "jstypes.h"
@@ -20,7 +18,7 @@ class Compressor
     /* Number of bytes we should hand to zlib each compressMore() call. */
     static const size_t CHUNKSIZE = 2048;
     z_stream zs;
-    const unsigned char *inp;
+    const unsigned char* inp;
     size_t inplen;
     size_t outbytes;
     bool initialized;
@@ -33,10 +31,10 @@ class Compressor
         OOM
     };
 
-    Compressor(const unsigned char *inp, size_t inplen);
+    Compressor(const unsigned char* inp, size_t inplen);
     ~Compressor();
     bool init();
-    void setOutput(unsigned char *out, size_t outlen);
+    void setOutput(unsigned char* out, size_t outlen);
     size_t outWritten() const { return outbytes; }
     /* Compress some of the input. Return true if it should be called again. */
     Status compressMore();
@@ -46,10 +44,9 @@ class Compressor
  * Decompress a string. The caller must know the length of the output and
  * allocate |out| to a string of that length.
  */
-bool DecompressString(const unsigned char *inp, size_t inplen,
-                      unsigned char *out, size_t outlen);
+bool DecompressString(const unsigned char* inp, size_t inplen,
+                      unsigned char* out, size_t outlen);
 
 } /* namespace js */
 
-#endif /* USE_ZLIB */
 #endif /* vm_Compression_h */

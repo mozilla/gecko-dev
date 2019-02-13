@@ -6,8 +6,8 @@
 
 // Tests that the no results placeholder works properly.
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,no results placeholder test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,no results placeholder test");
 
   info("Creating the test document");
   content.document.body.innerHTML = '<style type="text/css"> ' +
@@ -36,9 +36,7 @@ function* enterInvalidFilter(inspector, computedView) {
 
   let onRefreshed = inspector.once("computed-view-refreshed");
   searchbar.focus();
-  for each (let c in searchTerm) {
-    EventUtils.synthesizeKey(c, {}, computedView.styleWindow);
-  }
+  synthesizeKeys(searchTerm, computedView.styleWindow)
   yield onRefreshed;
 }
 

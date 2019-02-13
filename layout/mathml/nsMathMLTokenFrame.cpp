@@ -10,6 +10,8 @@
 #include "RestyleManager.h"
 #include <algorithm>
 
+using namespace mozilla;
+
 nsIFrame*
 NS_NewMathMLTokenFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -35,7 +37,7 @@ eMathMLFrameType
 nsMathMLTokenFrame::GetMathMLFrameType()
 {
   // treat everything other than <mi> as ordinary...
-  if (mContent->Tag() != nsGkAtoms::mi_) {
+  if (!mContent->IsMathMLElement(nsGkAtoms::mi_)) {
     return eMathMLFrameType_Ordinary;
   }
 
@@ -73,11 +75,9 @@ nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
       }
     }
   }
-  if (mContent->Tag() == nsGkAtoms::mi_ && childCount == 1) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mi_) && childCount == 1) {
     nsAutoString data;
-    if (!nsContentUtils::GetNodeTextContent(mContent, false, data)) {
-      NS_RUNTIMEABORT("OOM");
-    }
+    nsContentUtils::GetNodeTextContent(mContent, false, data);
 
     data.CompressWhitespace();
     int32_t length = data.Length();
@@ -124,18 +124,23 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
+  mPresentationData.flags &= ~NS_MATHML_ERROR;
+
   // initializations needed for empty markup like <mtag></mtag>
-  aDesiredSize.Width() = aDesiredSize.Height() = 0;
+  aDesiredSize.ClearSize();
   aDesiredSize.SetBlockStartAscent(0);
   aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
 
-  nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
   nsIFrame* childFrame = GetFirstPrincipalChild();
   while (childFrame) {
     // ask our children to compute their bounding metrics
     nsHTMLReflowMetrics childDesiredSize(aReflowState.GetWritingMode(),
                                          aDesiredSize.mFlags
                                          | NS_REFLOW_CALC_BOUNDING_METRICS);
+    WritingMode wm = childFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
     ReflowChild(childFrame, aPresContext, childDesiredSize,
@@ -173,7 +178,9 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
   }
 
   nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+                                        nsLayoutUtils::
+                                        FontSizeInflationFor(this));
   nscoord ascent = fm->MaxAscent();
   nscoord descent = fm->MaxDescent();
 

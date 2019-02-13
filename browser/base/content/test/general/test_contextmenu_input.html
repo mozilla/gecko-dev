@@ -40,8 +40,8 @@ function runTest(testNum) {
         // Context menu for text input field.
         checkContextMenu(["context-undo",        false,
                           "---",                 null,
-                          "context-cut",         false,
-                          "context-copy",        false,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      false,
                           "---",                 null,
@@ -52,16 +52,17 @@ function runTest(testNum) {
                           "context-inspect",     true]);
         closeContextMenu();
         input.setAttribute('spellcheck', 'true');
-        openContextMenuFor(input); // Invoke context menu for next test.
+        // Invoke context menu for next test and wait for spell check to finish
+        openContextMenuFor(input, false, true);
         break;
 
     case 3:
-        var value = SpecialPowers.Services.appinfo.OS != "Darwin";
+        var value = false;
         // Context menu for spell-check input.
         checkContextMenu(["context-undo",        value,
                           "---",                 null,
-                          "context-cut",         value,
-                          "context-copy",        value,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      value,
                           "---",                 null,
@@ -69,7 +70,7 @@ function runTest(testNum) {
                           "---",                 null,
                           "spell-check-enabled", true,
                           "spell-dictionaries",  true,
-                              [/*"spell-check-dictionary-en-US", true,*/
+                              ["spell-check-dictionary-en-US", true,
                                "---",                          null,
                                "spell-add-dictionaries",       true], null,
                           "---",                 null,
@@ -77,19 +78,20 @@ function runTest(testNum) {
 
         closeContextMenu();
         input.removeAttribute('spellcheck');
-        openContextMenuFor(inputspellwrong); // Invoke context menu for next test.
+        // Invoke context menu for next test and wait for spell check to finish
+        openContextMenuFor(inputspellwrong, false, true);
         break;
 
     case 4:
-        var value = SpecialPowers.Services.appinfo.OS != "Darwin";
+        var value = false;
         // Context menu for spell-check input with a unknwon word.
-        checkContextMenu([/*"*prodigality",        true,*/ // spelling suggestion
-                          /*"spell-add-to-dictionary", true,*/
-                          /*"---",                 null,*/
+        checkContextMenu(["*prodigality",        true, // spelling suggestion
+                          "spell-add-to-dictionary", true,
+                          "---",                 null,
                           "context-undo",        value,
                           "---",                 null,
-                          "context-cut",         value,
-                          "context-copy",        value,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      value,
                           "---",                 null,
@@ -97,23 +99,24 @@ function runTest(testNum) {
                           "---",                 null,
                           "spell-check-enabled", true,
                           "spell-dictionaries",  true,
-                              [/*"spell-check-dictionary-en-US", true,*/
+                              ["spell-check-dictionary-en-US", true,
                                "---",                          null,
                                "spell-add-dictionaries",       true], null,
                           "---",                 null,
                           "context-inspect",     true]);
 
         closeContextMenu();
-        openContextMenuFor(inputspellcorrect); // Invoke context menu for next test.
+        // Invoke context menu for next test and wait for spell check to finish
+        openContextMenuFor(inputspellcorrect, false, true);
         break;
 
     case 5:
-        var value = SpecialPowers.Services.appinfo.OS != "Darwin";
+        var value = false;
         // Context menu for spell-check input with a known word.
         checkContextMenu(["context-undo",        value,
                           "---",                 null,
-                          "context-cut",         value,
-                          "context-copy",        value,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      value,
                           "---",                 null,
@@ -121,7 +124,7 @@ function runTest(testNum) {
                           "---",                 null,
                           "spell-check-enabled", true,
                           "spell-dictionaries",  true,
-                              [/*"spell-check-dictionary-en-US", true,*/
+                              ["spell-check-dictionary-en-US", true,
                                "---",                          null,
                                "spell-add-dictionaries",       true], null,
                           "---",                 null,
@@ -136,8 +139,8 @@ function runTest(testNum) {
         // Context menu for disabled input.
         checkContextMenu(["context-undo",        false,
                           "---",                 null,
-                          "context-cut",         false,
-                          "context-copy",        false,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      false,
                           "---",                 null,
@@ -154,14 +157,11 @@ function runTest(testNum) {
         break;
 
     case 7: // password
-    case 8: // email
-    case 9: // url
-    case 10: // tel
-        // Context menu for tel, password, email and url input fields.
+        // Context menu for password input fields.
         checkContextMenu(["context-undo",        false,
                           "---",                 null,
-                          "context-cut",         false,
-                          "context-copy",        false,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      false,
                           "---",                 null,
@@ -171,22 +171,44 @@ function runTest(testNum) {
 
         closeContextMenu();
 
-        if (testNum == 7) {
-          input.type = 'email';
-        } else if (testNum == 8) {
+        input.type = 'email';
+
+        openContextMenuFor(input); // Invoke context menu for next test.
+        break;
+
+    case 8: // email
+    case 9: // url
+    case 10: // tel
+    case 11: // type='number'
+        // Context menu for tel, email, url and number input fields.
+        checkContextMenu(["context-undo",        false,
+                          "---",                 null,
+                          "context-cut",         true,
+                          "context-copy",        true,
+                          "context-paste",       null, // ignore clipboard state
+                          "context-delete",      false,
+                          "---",                 null,
+                          "context-selectall",   false,
+                          "---",                 null,
+                          "context-inspect",     true]);
+
+        closeContextMenu();
+
+        if (testNum == 8) {
           input.type = 'url';
         } else if (testNum == 9) {
           input.type = 'tel';
         } else if (testNum == 10) {
+          input.type = 'number';
+        } else if (testNum == 11) {
           input.type = 'date';
         }
 
         openContextMenuFor(input); // Invoke context menu for next test.
         break;
 
-    case 11: // type='date'
-    case 12: // type='time'
-    case 13: // type='number'
+    case 12: // type='date'
+    case 13: // type='time'
     case 14: // type='color'
     case 15: // type='range'
         checkContextMenu(["context-navigation", null,
@@ -206,10 +228,8 @@ function runTest(testNum) {
                           "context-inspect",     true]);
         closeContextMenu();
 
-        if (testNum == 11) {
+        if (testNum == 12) {
           input.type = 'time';
-        } else if (testNum == 12) {
-          input.type = 'number';
         } else if (testNum == 13) {
           input.type = 'color';
         } else if (testNum == 14) {
@@ -225,8 +245,8 @@ function runTest(testNum) {
         // Context menu for search input fields.
         checkContextMenu(["context-undo",        false,
                           "---",                 null,
-                          "context-cut",         false,
-                          "context-copy",        false,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      false,
                           "---",                 null,
@@ -254,8 +274,8 @@ function runTest(testNum) {
         // Context menu for a read-only input.
         checkContextMenu(["context-undo",        false,
                           "---",                 null,
-                          "context-cut",         false,
-                          "context-copy",        false,
+                          "context-cut",         true,
+                          "context-copy",        true,
                           "context-paste",       null, // ignore clipboard state
                           "context-delete",      false,
                           "---",                 null,
@@ -324,7 +344,7 @@ function waitForEvents(event)
   if (painted && loaded) {
     subwindow.removeEventListener("MozAfterPaint", waitForEvents, false);
     subwindow.onload = null;
-    startTest();
+    SimpleTest.waitForFocus(startTest, subwindow);
   }
 }
 

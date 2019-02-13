@@ -70,11 +70,12 @@ protected:
 //-------------------------------------------------------------------------
 // Printer Enumerator
 //-------------------------------------------------------------------------
-class nsPrinterEnumeratorWin MOZ_FINAL : public nsIPrinterEnumerator
+class nsPrinterEnumeratorWin final : public nsIPrinterEnumerator
 {
+  ~nsPrinterEnumeratorWin();
+
 public:
   nsPrinterEnumeratorWin();
-  ~nsPrinterEnumeratorWin();
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPRINTERENUMERATOR
 };

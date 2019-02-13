@@ -22,11 +22,9 @@
 <!ENTITY  generalReferrer       "Referring URL:">
 <!ENTITY  generalSource         "Cache Source:">
 <!ENTITY  generalModified       "Modified:">
-<!ENTITY  generalEncoding       "Encoding:">
+<!ENTITY  generalEncoding2      "Text Encoding:">
 <!ENTITY  generalMetaName       "Name">
 <!ENTITY  generalMetaContent    "Content">
-<!ENTITY  generalSecurityDetails   "Details">
-<!ENTITY  generalSecurityDetails.accesskey "D">
 
 <!ENTITY  mediaTab              "Media">
 <!ENTITY  mediaTab.accesskey    "M">
@@ -65,7 +63,6 @@
 
 <!ENTITY  securityTab           "Security">
 <!ENTITY  securityTab.accesskey "S">
-<!ENTITY  securityHeader        "Security information for this page">
 <!ENTITY  securityView.certView "View Certificate">
 <!ENTITY  securityView.accesskey "V">
 <!ENTITY  securityView.unknown   "Unknown">
@@ -86,3 +83,5 @@
 <!ENTITY  securityView.privacy.viewPasswords.accessKey  "w">
 
 <!ENTITY  securityView.technical.header                 "Technical Details">
+
+<!ENTITY  helpButton.label                              "Help">

@@ -40,7 +40,7 @@ struct LooseEqualityData
     JS::RootedValue poszero;
     JS::RootedValue negzero;
 
-    explicit LooseEqualityData(JSContext *cx)
+    explicit LooseEqualityData(JSContext* cx)
       : qNaN(cx),
         sNaN(cx),
         d42(cx),
@@ -63,8 +63,8 @@ struct LooseEqualityData
 #ifdef XP_WIN
 # define copysign _copysign
 #endif
-        JS_ASSERT(copysign(1.0, poszero.toDouble()) == 1.0);
-        JS_ASSERT(copysign(1.0, negzero.toDouble()) == -1.0);
+        MOZ_RELEASE_ASSERT(copysign(1.0, poszero.toDouble()) == 1.0);
+        MOZ_RELEASE_ASSERT(copysign(1.0, negzero.toDouble()) == -1.0);
 #ifdef XP_WIN
 # undef copysign
 #endif

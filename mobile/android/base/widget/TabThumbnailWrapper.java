@@ -7,7 +7,7 @@ import org.mozilla.gecko.R;
 
 
 public class TabThumbnailWrapper extends FrameLayout {
-    private boolean mRecording = false;
+    private boolean mRecording;
     private static final int[] STATE_RECORDING = { R.attr.state_recording };
 
     public TabThumbnailWrapper(Context context, AttributeSet attrs, int defStyle) {
@@ -28,7 +28,7 @@ public class TabThumbnailWrapper extends FrameLayout {
 
         if (mRecording) {
             mergeDrawableStates(drawableState, STATE_RECORDING);
-	}
+        }
         return drawableState;
     }
 

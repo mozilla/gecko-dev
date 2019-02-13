@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ Cu.import("resource://gre/modules/devtools/Templater.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 
-const FILTER_CHANGED_TIMEOUT = 300;
+const FILTER_CHANGED_TIMEOUT = 150;
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
@@ -130,8 +130,8 @@ UpdateProcess.prototype = {
  */
 function CssHtmlTree(aStyleInspector, aPageStyle)
 {
-  this.styleWindow = aStyleInspector.window;
-  this.styleDocument = aStyleInspector.window.document;
+  this.styleWindow = aStyleInspector.doc.defaultView;
+  this.styleDocument = aStyleInspector.doc;
   this.styleInspector = aStyleInspector;
   this.inspector = this.styleInspector.inspector;
   this.pageStyle = aPageStyle;
@@ -151,18 +151,32 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._onClick = this._onClick.bind(this);
   this._onCopy = this._onCopy.bind(this);
   this._onCopyColor = this._onCopyColor.bind(this);
+  this._onCopyImageDataUrl = this._onCopyImageDataUrl.bind(this);
+  this._onFilterStyles = this._onFilterStyles.bind(this);
+  this._onFilterKeyPress = this._onFilterKeyPress.bind(this);
+  this._onClearSearch = this._onClearSearch.bind(this);
+  this._onIncludeBrowserStyles = this._onIncludeBrowserStyles.bind(this);
+  this._onFilterTextboxContextMenu = this._onFilterTextboxContextMenu.bind(this);
 
-  this.styleDocument.addEventListener("copy", this._onCopy);
+  let doc = this.styleDocument;
+  this.root = doc.getElementById("root");
+  this.element = doc.getElementById("propertyContainer");
+  this.searchField = doc.getElementById("computedview-searchbox");
+  this.searchClearButton = doc.getElementById("computedview-searchinput-clear");
+  this.includeBrowserStylesCheckbox = doc.getElementById("browser-style-checkbox");
+
   this.styleDocument.addEventListener("mousedown", this.focusWindow);
-  this.styleDocument.addEventListener("contextmenu", this._onContextMenu);
+  this.element.addEventListener("click", this._onClick);
+  this.element.addEventListener("copy", this._onCopy);
+  this.element.addEventListener("contextmenu", this._onContextMenu);
+  this.searchField.addEventListener("input", this._onFilterStyles);
+  this.searchField.addEventListener("keypress", this._onFilterKeyPress);
+  this.searchField.addEventListener("contextmenu", this._onFilterTextboxContextMenu);
+  this.searchClearButton.addEventListener("click", this._onClearSearch);
+  this.includeBrowserStylesCheckbox.addEventListener("command",
+    this._onIncludeBrowserStyles);
 
-  // Nodes used in templating
-  this.root = this.styleDocument.getElementById("root");
-  this.templateRoot = this.styleDocument.getElementById("templateRoot");
-  this.element = this.styleDocument.getElementById("propertyContainer");
-
-  // Listen for click events
-  this.element.addEventListener("click", this._onClick, false);
+  this.searchClearButton.hidden = true;
 
   // No results text.
   this.noResults = this.styleDocument.getElementById("noResults");
@@ -175,8 +189,6 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._updateSourceLinks = this._updateSourceLinks.bind(this);
   this._prefObserver = new PrefObserver("devtools.");
   this._prefObserver.on(PREF_ORIG_SOURCES, this._updateSourceLinks);
-
-  CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
   // The element that we're inspecting, and the document that it comes from.
   this.viewedElement = null;
@@ -237,12 +249,14 @@ CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
   }
 };
 
-XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
-        .createBundle("chrome://global/locale/devtools/styleinspector.properties"));
+XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() {
+  return Services.strings.createBundle(
+    "chrome://global/locale/devtools/styleinspector.properties");
+});
 
 XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
-  return Cc["@mozilla.org/widget/clipboardhelper;1"].
-    getService(Ci.nsIClipboardHelper);
+  return Cc["@mozilla.org/widget/clipboardhelper;1"]
+         .getService(Ci.nsIClipboardHelper);
 });
 
 CssHtmlTree.prototype = {
@@ -251,12 +265,6 @@ CssHtmlTree.prototype = {
 
   // Used for cancelling timeouts in the style filter.
   _filterChangedTimeout: null,
-
-  // The search filter
-  searchField: null,
-
-  // Reference to the "Include browser styles" checkbox.
-  includeBrowserStylesCheckbox: null,
 
   // Holds the ID of the panelRefresh timeout.
   _panelRefreshTimeout: null,
@@ -284,13 +292,12 @@ CssHtmlTree.prototype = {
   },
 
   /**
-   * Update the highlighted element. The CssHtmlTree panel will show the style
-   * information for the given element.
-   * @param {nsIDOMElement} aElement The highlighted node to get styles for.
-   *
+   * Update the view with a new selected element.
+   * The CssHtmlTree panel will show the style information for the given element.
+   * @param {NodeFront} aElement The highlighted node to get styles for.
    * @returns a promise that will be resolved when highlighting is complete.
    */
-  highlight: function(aElement) {
+  selectElement: function(aElement) {
     if (!aElement) {
       this.viewedElement = null;
       this.noResults.hidden = false;
@@ -322,41 +329,86 @@ CssHtmlTree.prototype = {
    * - type {String} One of the VIEW_NODE_XXX_TYPE const in
    *   style-inspector-overlays
    * - value {Object} Depends on the type of the node
-   * returns null of the node isn't anything we care about
+   * returns null if the node isn't anything we care about
    */
   getNodeInfo: function(node) {
-    let type, value;
+    if (!node) {
+      return null;
+    }
+
     let classes = node.classList;
 
-    if (classes.contains("property-name") ||
-        classes.contains("property-value") ||
-        (classes.contains("theme-link") && !classes.contains("link"))) {
-      // Go up to the common parent to find the property and value
-      let parent = node.parentNode;
-      while (!parent.classList.contains("property-view")) {
-        parent = parent.parentNode;
+    // Check if the node isn't a selector first since this doesn't require
+    // walking the DOM
+    if (classes.contains("matched") ||
+        classes.contains("bestmatch") ||
+        classes.contains("parentmatch")) {
+      let selectorText = "";
+      for (let child of node.childNodes) {
+        if (child.nodeType === node.TEXT_NODE) {
+          selectorText += child.textContent;
+        }
       }
+      return {
+        type: overlays.VIEW_NODE_SELECTOR_TYPE,
+        value: selectorText.trim()
+      };
+    }
+
+    // Walk up the nodes to find out where node is
+    let propertyView;
+    let propertyContent;
+    let parent = node;
+    while (parent.parentNode) {
+      if (parent.classList.contains("property-view")) {
+        propertyView = parent;
+        break;
+      }
+      if (parent.classList.contains("property-content")) {
+        propertyContent = parent;
+        break;
+      }
+      parent = parent.parentNode;
+    }
+    if (!propertyView && !propertyContent) {
+      return null;
+    }
+
+    let value, type;
+
+    // Get the property and value for a node that's a property name or value
+    let isHref = classes.contains("theme-link") && !classes.contains("link");
+    if (propertyView && (classes.contains("property-name") ||
+                         classes.contains("property-value") ||
+                         isHref)) {
       value = {
         property: parent.querySelector(".property-name").textContent,
         value: parent.querySelector(".property-value").textContent
       };
     }
+    if (propertyContent && (classes.contains("other-property-value") ||
+                            isHref)) {
+      let view = propertyContent.previousSibling;
+      value = {
+        property: view.querySelector(".property-name").textContent,
+        value: node.textContent
+      };
+    }
 
+    // Get the type
     if (classes.contains("property-name")) {
       type = overlays.VIEW_NODE_PROPERTY_TYPE;
-    } else if (classes.contains("property-value")) {
+    } else if (classes.contains("property-value") ||
+               classes.contains("other-property-value")) {
       type = overlays.VIEW_NODE_VALUE_TYPE;
-    } else if (classes.contains("theme-link")) {
+    } else if (isHref) {
       type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
-      value.url = node.textContent;
+      value.url = node.href;
     } else {
       return null;
     }
 
-    return {
-      type: type,
-      value: value
-    };
+    return {type, value};
   },
 
   _createPropertyViews: function()
@@ -408,6 +460,10 @@ CssHtmlTree.prototype = {
       return promise.resolve();
     }
 
+    // Capture the current viewed element to return from the promise handler
+    // early if it changed
+    let viewedElement = this.viewedElement;
+
     return promise.all([
       this._createPropertyViews(),
       this.pageStyle.getComputed(this.viewedElement, {
@@ -416,6 +472,10 @@ CssHtmlTree.prototype = {
         markMatched: true
       })
     ]).then(([createViews, computed]) => {
+      if (viewedElement !== this.viewedElement) {
+        return;
+      }
+
       this._matchedProperties = new Set;
       for (let name in computed) {
         if (computed[name].matched) {
@@ -444,6 +504,13 @@ CssHtmlTree.prototype = {
         onDone: () => {
           this._refreshProcess = null;
           this.noResults.hidden = this.numVisibleProperties > 0;
+
+          if (this.searchField.value.length > 0 && !this.numVisibleProperties) {
+            this.searchField.classList.add("devtools-style-searchbox-no-match");
+          } else {
+            this.searchField.classList.remove("devtools-style-searchbox-no-match");
+          }
+
           this.inspector.emit("computed-view-refreshed");
           deferred.resolve(undefined);
         }
@@ -454,11 +521,11 @@ CssHtmlTree.prototype = {
   },
 
   /**
-   * Called when the user enters a search term.
+   * Called when the user enters a search term in the filter style search box.
    *
    * @param {Event} aEvent the DOM Event object.
    */
-  filterChanged: function CssHtmlTree_filterChanged(aEvent)
+  _onFilterStyles: function(aEvent)
   {
     let win = this.styleWindow;
 
@@ -466,10 +533,60 @@ CssHtmlTree.prototype = {
       win.clearTimeout(this._filterChangedTimeout);
     }
 
+    let filterTimeout = (this.searchField.value.length > 0)
+      ? FILTER_CHANGED_TIMEOUT : 0;
+    this.searchClearButton.hidden = this.searchField.value.length === 0;
+
     this._filterChangedTimeout = win.setTimeout(() => {
+      if (this.searchField.value.length > 0) {
+        this.searchField.setAttribute("filled", true);
+      } else {
+        this.searchField.removeAttribute("filled");
+      }
+
       this.refreshPanel();
       this._filterChangeTimeout = null;
-    }, FILTER_CHANGED_TIMEOUT);
+    }, filterTimeout);
+  },
+
+  /**
+   * Handle the search box's keypress event. If the escape key is pressed,
+   * clear the search box field.
+   */
+  _onFilterKeyPress: function(aEvent) {
+    if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE &&
+        this._onClearSearch()) {
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+    }
+  },
+
+  /**
+   * Context menu handler for filter style search box.
+   */
+  _onFilterTextboxContextMenu: function(event) {
+    try {
+      this.styleDocument.defaultView.focus();
+      let contextmenu = this.inspector.toolbox.textboxContextMenuPopup;
+      contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
+    } catch(e) {
+      console.error(e);
+    }
+  },
+
+  /**
+   * Called when the user clicks on the clear button in the filter style search
+   * box. Returns true if the search box is cleared and false otherwise.
+   */
+  _onClearSearch: function() {
+    if (this.searchField.value) {
+      this.searchField.value = "";
+      this.searchField.focus();
+      this._onFilterStyles();
+      return true;
+    }
+
+    return false;
   },
 
   /**
@@ -477,18 +594,17 @@ CssHtmlTree.prototype = {
    *
    * @param {Event} aEvent the DOM Event object.
    */
-  includeBrowserStylesChanged:
-  function CssHtmltree_includeBrowserStylesChanged(aEvent)
+  _onIncludeBrowserStyles: function(aEvent)
   {
     this.refreshSourceFilter();
     this.refreshPanel();
   },
 
   /**
-   * When includeBrowserStyles.checked is false we only display properties that
-   * have matched selectors and have been included by the document or one of the
-   * document's stylesheets. If .checked is false we display all properties
-   * including those that come from UA stylesheets.
+   * When includeBrowserStylesCheckbox.checked is false we only display
+   * properties that have matched selectors and have been included by the
+   * document or one of thedocument's stylesheets. If .checked is false we
+   * display all properties including those that come from UA stylesheets.
    */
   refreshSourceFilter: function CssHtmlTree_setSourceFilter()
   {
@@ -503,6 +619,7 @@ CssHtmlTree.prototype = {
     for (let propView of this.propertyViews) {
       propView.updateSourceLinks();
     }
+    this.inspector.emit("computed-view-sourcelinks-updated");
   },
 
   /**
@@ -522,7 +639,10 @@ CssHtmlTree.prototype = {
     let mozProps = [];
     for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
       let prop = styles.item(i);
-      if (prop.charAt(0) == "-") {
+      if (prop.startsWith("--")) {
+        // Skip any CSS variables used inside of browser CSS files
+        continue;
+      } else if (prop.startsWith("-")) {
         mozProps.push(prop);
       } else {
         CssHtmlTree.propertyNames.push(prop);
@@ -533,7 +653,14 @@ CssHtmlTree.prototype = {
     CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
       mozProps.sort());
 
-    this._createPropertyViews();
+    this._createPropertyViews().then(null, e => {
+      if (!this.styleInspector) {
+        console.warn("The creation of property views was cancelled because the " +
+          "computed-view was destroyed before it was done creating views");
+      } else {
+        console.error(e);
+      }
+    });
   },
 
   /**
@@ -589,11 +716,19 @@ CssHtmlTree.prototype = {
       command: this._onCopyColor
     });
 
+    // Copy data URI
+    this.menuitemCopyImageDataUrl = createMenuItem(this._contextmenu, {
+      label: "styleinspector.contextmenu.copyImageDataUrl",
+      accesskey: "styleinspector.contextmenu.copyImageDataUrl.accessKey",
+      command: this._onCopyImageDataUrl
+    });
+
     // Show Original Sources
     this.menuitemSources= createMenuItem(this._contextmenu, {
       label: "ruleView.contextmenu.showOrigSources",
       accesskey: "ruleView.contextmenu.showOrigSources.accessKey",
-      command: this._onToggleOrigSources
+      command: this._onToggleOrigSources,
+      type: "checkbox"
     });
 
     let popupset = doc.documentElement.querySelector("popupset");
@@ -614,18 +749,11 @@ CssHtmlTree.prototype = {
     let disable = win.getSelection().isCollapsed;
     this.menuitemCopy.disabled = disable;
 
-    let label = "ruleView.contextmenu.showOrigSources";
-    if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
-      label = "ruleView.contextmenu.showCSSSources";
-    }
-    this.menuitemSources.setAttribute("label",
-                                      CssHtmlTree.l10n(label));
-
-    let accessKey = label + ".accessKey";
-    this.menuitemSources.setAttribute("accesskey",
-                                      CssHtmlTree.l10n(accessKey));
+    let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
+    this.menuitemSources.setAttribute("checked", showOrig);
 
     this.menuitemCopyColor.hidden = !this._isColorPopup();
+    this.menuitemCopyImageDataUrl.hidden = !this._isImageUrlPopup();
   },
 
   /**
@@ -638,13 +766,11 @@ CssHtmlTree.prototype = {
   _isColorPopup: function () {
     this._colorToCopy = "";
 
-    let trigger = this.popupNode;
-    if (!trigger) {
+
+    let container = this._getPopupNodeContainer();
+    if (!container) {
       return false;
     }
-
-    let container = (trigger.nodeType == trigger.TEXT_NODE) ?
-                     trigger.parentElement : trigger;
 
     let isColorNode = el => el.dataset && "color" in el.dataset;
 
@@ -657,6 +783,52 @@ CssHtmlTree.prototype = {
 
     this._colorToCopy = container.dataset["color"];
     return true;
+  },
+
+  /**
+   * Check if the context menu popup was opened with a click on an image link
+   * If true, save the image url to this._imageUrlToCopy
+   */
+  _isImageUrlPopup: function () {
+    this._imageUrlToCopy = "";
+
+    let container = this._getPopupNodeContainer();
+    let isImageUrlNode = this._isImageUrlNode(container);
+    if (isImageUrlNode) {
+      this._imageUrlToCopy = container.href;
+    }
+
+    return isImageUrlNode;
+  },
+
+  /**
+   * Check if a node is an image url
+   * @param {DOMNode} node The node which we want information about
+   * @return {Boolean} true if the node is an image url
+   */
+  _isImageUrlNode: function (node) {
+    let nodeInfo = this.getNodeInfo(node);
+    if (!nodeInfo) {
+      return false
+    }
+    return nodeInfo.type == overlays.VIEW_NODE_IMAGE_URL_TYPE;
+  },
+
+  /**
+   * Get the DOM Node container for the current popupNode.
+   * If popupNode is a textNode, return the parent node, otherwise return popupNode itself.
+   * @return {DOMNode}
+   */
+  _getPopupNodeContainer: function () {
+    let container = null;
+    let node = this.popupNode;
+
+    if (node) {
+      let isTextNode = node.nodeType == node.TEXT_NODE;
+      container = isTextNode ? node.parentElement : node;
+    }
+
+    return container;
   },
 
   /**
@@ -699,8 +871,24 @@ CssHtmlTree.prototype = {
   },
 
   _onCopyColor: function() {
-    clipboardHelper.copyString(this._colorToCopy, this.styleDocument);
+    clipboardHelper.copyString(this._colorToCopy);
   },
+
+  /**
+   * Retrieve the image data for the selected image url and copy it to the clipboard
+   */
+  _onCopyImageDataUrl: Task.async(function*() {
+    let message;
+    try {
+      let inspectorFront = this.inspector.inspector;
+      let data = yield inspectorFront.getImageDataFromURL(this._imageUrlToCopy);
+      message = yield data.data.string();
+    } catch (e) {
+      message = CssHtmlTree.l10n("styleinspector.copyImageDataUrlError");
+    }
+
+    clipboardHelper.copyString(message);
+  }),
 
   /**
    * Copy selected text.
@@ -737,7 +925,7 @@ CssHtmlTree.prototype = {
         result = textArray[0];
       }
 
-      clipboardHelper.copyString(result, this.styleDocument);
+      clipboardHelper.copyString(result);
 
       if (event) {
         event.preventDefault();
@@ -764,10 +952,6 @@ CssHtmlTree.prototype = {
     this.viewedElement = null;
     this._outputParser = null;
 
-    // Remove event listeners
-    this.includeBrowserStylesCheckbox.removeEventListener("command",
-      this.includeBrowserStylesChanged);
-    this.searchField.removeEventListener("command", this.filterChanged);
     gDevTools.off("pref-changed", this._handlePrefChange);
 
     this._prefObserver.off(PREF_ORIG_SOURCES, this._updateSourceLinks);
@@ -780,8 +964,6 @@ CssHtmlTree.prototype = {
     if (this._refreshProcess) {
       this._refreshProcess.cancel();
     }
-
-    this.element.removeEventListener("click", this._onClick, false);
 
     // Remove context menu
     if (this._contextmenu) {
@@ -797,6 +979,10 @@ CssHtmlTree.prototype = {
       this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
       this.menuitemCopyColor = null;
 
+      // Destroy Copy Data URI menuitem.
+      this.menuitemCopyImageDataUrl.removeEventListener("command", this._onCopyImageDataUrl);
+      this.menuitemCopyImageDataUrl = null;
+
       // Destroy the context menu.
       this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
       this._contextmenu.parentNode.removeChild(this._contextmenu);
@@ -809,14 +995,24 @@ CssHtmlTree.prototype = {
     this.highlighters.destroy();
 
     // Remove bound listeners
-    this.styleDocument.removeEventListener("contextmenu", this._onContextMenu);
-    this.styleDocument.removeEventListener("copy", this._onCopy);
     this.styleDocument.removeEventListener("mousedown", this.focusWindow);
+    this.element.removeEventListener("click", this._onClick);
+    this.element.removeEventListener("copy", this._onCopy);
+    this.element.removeEventListener("contextmenu", this._onContextMenu);
+    this.searchField.removeEventListener("input", this._onFilterStyles);
+    this.searchField.removeEventListener("keypress", this._onFilterKeyPress);
+    this.searchField.removeEventListener("contextmenu", this._onFilterTextboxContextMenu);
+    this.searchClearButton.removeEventListener("click", this._onClearSearch);
+    this.includeBrowserStylesCheckbox.removeEventListener("command",
+      this.includeBrowserStylesChanged);
 
     // Nodes used in templating
     this.root = null;
     this.element = null;
     this.panel = null;
+    this.searchField = null;
+    this.searchClearButton = null;
+    this.includeBrowserStylesCheckbox = null;
 
     // The document in which we display the results (csshtmltree.xul).
     this.styleDocument = null;
@@ -854,6 +1050,10 @@ function createMenuItem(aMenu, aAttributes)
   item.setAttribute("accesskey", CssHtmlTree.l10n(aAttributes.accesskey));
   item.addEventListener("command", aAttributes.command);
 
+  if (aAttributes.type) {
+    item.setAttribute("type", aAttributes.type);
+  }
+
   aMenu.appendChild(item);
 
   return item;
@@ -875,7 +1075,6 @@ function PropertyView(aTree, aName)
 
   this.link = "https://developer.mozilla.org/CSS/" + aName;
 
-  this.templateMatchedSelectors = aTree.styleDocument.getElementById("templateMatchedSelectors");
   this._propertyInfo = new PropertyInfo(aTree, aName);
 }
 
@@ -948,8 +1147,10 @@ PropertyView.prototype = {
     }
 
     let searchTerm = this.tree.searchField.value.toLowerCase();
-    if (searchTerm && this.name.toLowerCase().indexOf(searchTerm) == -1 &&
-      this.value.toLowerCase().indexOf(searchTerm) == -1) {
+    let isValidSearchTerm = searchTerm.trim().length > 0;
+    if (isValidSearchTerm &&
+        this.name.toLowerCase().indexOf(searchTerm) == -1 &&
+        this.value.toLowerCase().indexOf(searchTerm) == -1) {
       return false;
     }
 
@@ -964,7 +1165,7 @@ PropertyView.prototype = {
   {
     if (this.visible) {
       let isDark = this.tree._darkStripe = !this.tree._darkStripe;
-      return isDark ? "property-view theme-bg-darker" : "property-view";
+      return isDark ? "property-view row-striped" : "property-view";
     }
     return "property-view-hidden";
   },
@@ -978,7 +1179,7 @@ PropertyView.prototype = {
   {
     if (this.visible) {
       let isDark = this.tree._darkStripe;
-      return isDark ? "property-content theme-bg-darker" : "property-content";
+      return isDark ? "property-content row-striped" : "property-content";
     }
     return "property-content-hidden";
   },
@@ -1085,6 +1286,7 @@ PropertyView.prototype = {
       this.propertyInfo.value,
       {
         colorSwatchClass: "computedview-colorswatch",
+        colorClass: "computedview-color",
         urlClass: "theme-link"
         // No need to use baseURI here as computed URIs are never relative.
       });
@@ -1115,10 +1317,11 @@ PropertyView.prototype = {
         }
 
         this._matchedSelectorResponse = matched;
-        CssHtmlTree.processTemplate(this.templateMatchedSelectors,
-          this.matchedSelectorsContainer, this);
-        this.matchedExpander.setAttribute("open", "");
-        this.tree.inspector.emit("computed-view-property-expanded");
+
+        return this._buildMatchedSelectors().then(() => {
+          this.matchedExpander.setAttribute("open", "");
+          this.tree.inspector.emit("computed-view-property-expanded");
+        });
       }).then(null, console.error);
     } else {
       this.matchedSelectorsContainer.innerHTML = "";
@@ -1131,6 +1334,43 @@ PropertyView.prototype = {
   get matchedSelectors()
   {
     return this._matchedSelectorResponse;
+  },
+
+  _buildMatchedSelectors: function() {
+    let promises = [];
+    let frag = this.element.ownerDocument.createDocumentFragment();
+
+    for (let selector of this.matchedSelectorViews) {
+      let p = createChild(frag, "p");
+      let span = createChild(p, "span", {
+        class: "rule-link"
+      });
+      let link = createChild(span, "a", {
+        target: "_blank",
+        class: "link theme-link",
+        title: selector.href,
+        sourcelocation: selector.source,
+        tabindex: "0",
+        textContent: selector.source
+      });
+      link.addEventListener("click", selector.openStyleEditor, false);
+      link.addEventListener("keydown", selector.maybeOpenStyleEditor, false);
+
+      let status = createChild(p, "span", {
+        dir: "ltr",
+        class: "rule-text theme-fg-color3 " + selector.statusClass,
+        title: selector.statusText,
+        textContent: selector.sourceText
+      });
+      let valueSpan = createChild(status, "span", {
+        class: "other-property-value theme-fg-color1"
+      });
+      valueSpan.appendChild(selector.outputFragment);
+      promises.push(selector.ready);
+    }
+
+    this.matchedSelectorsContainer.appendChild(frag);
+    return promise.all(promises);
   },
 
   /**
@@ -1172,6 +1412,9 @@ PropertyView.prototype = {
    */
   onMatchedToggle: function PropertyView_onMatchedToggle(aEvent)
   {
+    if (aEvent.shiftKey) {
+      return;
+    }
     this.matchedExpanded = !this.matchedExpanded;
     this.refreshMatchedSelectors();
     aEvent.preventDefault();
@@ -1221,7 +1464,10 @@ function SelectorView(aTree, aSelectorInfo)
   this.selectorInfo = aSelectorInfo;
   this._cacheStatusNames();
 
-  this.updateSourceLink();
+  this.openStyleEditor = this.openStyleEditor.bind(this);
+  this.maybeOpenStyleEditor = this.maybeOpenStyleEditor.bind(this);
+
+  this.ready = this.updateSourceLink();
 }
 
 /**
@@ -1311,6 +1557,7 @@ SelectorView.prototype = {
       this.selectorInfo.name,
       this.selectorInfo.value, {
       colorSwatchClass: "computedview-colorswatch",
+      colorClass: "computedview-color",
       urlClass: "theme-link",
       baseURI: this.selectorInfo.rule.href
     });
@@ -1323,7 +1570,7 @@ SelectorView.prototype = {
    */
   updateSourceLink: function()
   {
-    this.updateSource().then((oldSource) => {
+    return this.updateSource().then((oldSource) => {
       if (oldSource != this.source && this.tree.element) {
         let selector = '[sourcelocation="' + oldSource + '"]';
         let link = this.tree.element.querySelector(selector);
@@ -1412,29 +1659,53 @@ SelectorView.prototype = {
           contentDoc = rawNode.ownerDocument;
         }
       }
-      let viewSourceUtils = inspector.viewSourceUtils;
-      viewSourceUtils.viewSource(rule.href, null, contentDoc, rule.line);
+      let toolbox = gDevTools.getToolbox(inspector.target);
+      toolbox.viewSource(rule.href, rule.line);
       return;
     }
 
-    let location = promise.resolve({
-      href: rule.href,
-      line: rule.line
-    });
-    if (rule.href && Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
+    let location = promise.resolve(rule.location);
+    if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
       location = rule.getOriginalLocation();
     }
-
-    location.then(({href, line}) => {
+    location.then(({source, href, line, column}) => {
       let target = inspector.target;
       if (ToolDefinitions.styleEditor.isTargetSupported(target)) {
         gDevTools.showToolbox(target, "styleeditor").then(function(toolbox) {
-          toolbox.getCurrentPanel().selectStyleSheet(href, line);
+          let sheet = source || href;
+          toolbox.getCurrentPanel().selectStyleSheet(sheet, line, column);
         });
       }
     });
   }
 };
+
+/**
+ * Create a child element with a set of attributes.
+ *
+ * @param {Element} aParent
+ *        The parent node.
+ * @param {string} aTag
+ *        The tag name.
+ * @param {object} aAttributes
+ *        A set of attributes to set on the node.
+ */
+function createChild(aParent, aTag, aAttributes={}) {
+  let elt = aParent.ownerDocument.createElementNS(HTML_NS, aTag);
+  for (let attr in aAttributes) {
+    if (aAttributes.hasOwnProperty(attr)) {
+      if (attr === "textContent") {
+        elt.textContent = aAttributes[attr];
+      } else if(attr === "child") {
+        elt.appendChild(aAttributes[attr]);
+      } else {
+        elt.setAttribute(attr, aAttributes[attr]);
+      }
+    }
+  }
+  aParent.appendChild(elt);
+  return elt;
+}
 
 exports.CssHtmlTree = CssHtmlTree;
 exports.PropertyView = PropertyView;

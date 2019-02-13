@@ -3,10 +3,10 @@
 import os
 import stat
 import shutil
-import tempfile
 import threading
 import time
 import unittest
+import errno
 
 import mozfile
 import mozinfo
@@ -32,7 +32,7 @@ class FileOpenCloseThread(threading.Thread):
         self.delete = delete
 
     def run(self):
-        with open(self.path) as f:
+        with open(self.path):
             time.sleep(self.delay)
         if self.delete:
             try:
@@ -182,3 +182,15 @@ class MozfileRemoveTestCase(unittest.TestCase):
         # original linked file
         mozfile.remove(symlink_path)
         self.assertFalse(os.path.exists(symlink_path))
+
+    def test_remove_path_that_does_not_exists(self):
+        not_existing_path = os.path.join(self.tempdir, 'I_do_not_not_exists')
+        try:
+            mozfile.remove(not_existing_path)
+        except OSError, exc:
+            if exc.errno == errno.ENOENT:
+                self.fail("removing non existing path must not raise error")
+            raise
+
+if __name__ == '__main__':
+    unittest.main()

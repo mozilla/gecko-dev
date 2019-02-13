@@ -15,98 +15,346 @@
 #ifndef SHARED_SURFACE_H_
 #define SHARED_SURFACE_H_
 
+#include <queue>
+#include <set>
 #include <stdint.h>
-#include "mozilla/Attributes.h"
+
+#include "GLContextTypes.h"
 #include "GLDefs.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/WeakPtr.h"
+#include "ScopedGLHelpers.h"
 #include "SurfaceTypes.h"
+
+class nsIThread;
 
 namespace mozilla {
 namespace gfx {
+class DrawTarget;
+}
 
+namespace layers {
+class ISurfaceAllocator;
+class SharedSurfaceTextureClient;
+enum class TextureFlags : uint32_t;
+class SurfaceDescriptor;
+class TextureClient;
+}
+
+namespace gl {
+
+class GLContext;
 class SurfaceFactory;
+class ShSurfHandle;
 
 class SharedSurface
 {
-protected:
+public:
+    static void ProdCopy(SharedSurface* src, SharedSurface* dest,
+                         SurfaceFactory* factory);
+
     const SharedSurfaceType mType;
-    const APITypeT mAPI;
     const AttachmentType mAttachType;
+    GLContext* const mGL;
     const gfx::IntSize mSize;
     const bool mHasAlpha;
+    const bool mCanRecycle;
+protected:
     bool mIsLocked;
+    bool mIsProducerAcquired;
+    bool mIsConsumerAcquired;
+    DebugOnly<nsIThread* const> mOwningThread;
 
     SharedSurface(SharedSurfaceType type,
-                  APITypeT api,
                   AttachmentType attachType,
+                  GLContext* gl,
                   const gfx::IntSize& size,
-                  bool hasAlpha)
-        : mType(type)
-        , mAPI(api)
-        , mAttachType(attachType)
-        , mSize(size)
-        , mHasAlpha(hasAlpha)
-        , mIsLocked(false)
-    {
-    }
+                  bool hasAlpha,
+                  bool canRecycle);
 
 public:
     virtual ~SharedSurface() {
     }
 
-    static void Copy(SharedSurface* src, SharedSurface* dest,
-                     SurfaceFactory* factory);
+    bool IsLocked() const {
+        return mIsLocked;
+    }
 
     // This locks the SharedSurface as the production buffer for the context.
     // This is needed by backends which use PBuffers and/or EGLSurfaces.
-    virtual void LockProd() {
-        MOZ_ASSERT(!mIsLocked);
-        LockProdImpl();
-        mIsLocked = true;
-    }
+    void LockProd();
 
     // Unlocking is harmless if we're already unlocked.
-    virtual void UnlockProd() {
-        if (!mIsLocked)
-            return;
+    void UnlockProd();
 
-        UnlockProdImpl();
-        mIsLocked = false;
-    }
-
+protected:
     virtual void LockProdImpl() = 0;
     virtual void UnlockProdImpl() = 0;
 
+    virtual void ProducerAcquireImpl() {}
+    virtual void ProducerReleaseImpl() {
+        Fence();
+    }
+    virtual void ProducerReadAcquireImpl() {}
+    virtual void ProducerReadReleaseImpl() {}
+    virtual void ConsumerAcquireImpl() {
+        WaitSync();
+    }
+    virtual void ConsumerReleaseImpl() {}
+
+public:
+    void ProducerAcquire() {
+        MOZ_ASSERT(!mIsProducerAcquired);
+        ProducerAcquireImpl();
+        mIsProducerAcquired = true;
+    }
+    void ProducerRelease() {
+        MOZ_ASSERT(mIsProducerAcquired);
+        ProducerReleaseImpl();
+        mIsProducerAcquired = false;
+    }
+    void ProducerReadAcquire() {
+        MOZ_ASSERT(!mIsProducerAcquired);
+        ProducerReadAcquireImpl();
+        mIsProducerAcquired = true;
+    }
+    void ProducerReadRelease() {
+        MOZ_ASSERT(mIsProducerAcquired);
+        ProducerReadReleaseImpl();
+        mIsProducerAcquired = false;
+    }
+    void ConsumerAcquire() {
+        MOZ_ASSERT(!mIsConsumerAcquired);
+        ConsumerAcquireImpl();
+        mIsConsumerAcquired = true;
+    }
+    void ConsumerRelease() {
+        MOZ_ASSERT(mIsConsumerAcquired);
+        ConsumerReleaseImpl();
+        mIsConsumerAcquired = false;
+    }
+
     virtual void Fence() = 0;
     virtual bool WaitSync() = 0;
+    virtual bool PollSync() = 0;
 
+    // Use these if you can. They can only be called from the Content
+    // thread, though!
+    void Fence_ContentThread();
+    bool WaitSync_ContentThread();
+    bool PollSync_ContentThread();
+
+protected:
+    virtual void Fence_ContentThread_Impl() {
+        Fence();
+    }
+    virtual bool WaitSync_ContentThread_Impl() {
+        return WaitSync();
+    }
+    virtual bool PollSync_ContentThread_Impl() {
+        return PollSync();
+    }
+
+public:
     // This function waits until the buffer is no longer being used.
     // To optimize the performance, some implementaions recycle SharedSurfaces
     // even when its buffer is still being used.
     virtual void WaitForBufferOwnership() {}
 
-    SharedSurfaceType Type() const {
-        return mType;
+    // For use when AttachType is correct.
+    virtual GLenum ProdTextureTarget() const {
+        MOZ_ASSERT(mAttachType == AttachmentType::GLTexture);
+        return LOCAL_GL_TEXTURE_2D;
     }
 
-    APITypeT APIType() const {
-        return mAPI;
+    virtual GLuint ProdTexture() {
+        MOZ_ASSERT(mAttachType == AttachmentType::GLTexture);
+        MOZ_CRASH("Did you forget to override this function?");
     }
 
-    AttachmentType AttachType() const {
-        return mAttachType;
+    virtual GLuint ProdRenderbuffer() {
+        MOZ_ASSERT(mAttachType == AttachmentType::GLRenderbuffer);
+        MOZ_CRASH("Did you forget to override this function?");
     }
 
-    const gfx::IntSize& Size() const {
-        return mSize;
+    virtual bool CopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x,
+                                GLint y, GLsizei width, GLsizei height, GLint border)
+    {
+        return false;
     }
 
-    bool HasAlpha() const {
-        return mHasAlpha;
+    virtual bool ReadPixels(GLint x, GLint y,
+                            GLsizei width, GLsizei height,
+                            GLenum format, GLenum type,
+                            GLvoid* pixels)
+    {
+        return false;
+    }
+
+    virtual bool NeedsIndirectReads() const {
+        return false;
+    }
+
+    virtual bool ToSurfaceDescriptor(layers::SurfaceDescriptor* const out_descriptor) = 0;
+};
+
+template<typename T>
+class RefSet
+{
+    std::set<T*> mSet;
+
+public:
+    ~RefSet() {
+        clear();
+    }
+
+    auto begin() -> decltype(mSet.begin()) {
+        return mSet.begin();
+    }
+
+    void clear() {
+        for (auto itr = mSet.begin(); itr != mSet.end(); ++itr) {
+            (*itr)->Release();
+        }
+        mSet.clear();
+    }
+
+    bool empty() const {
+        return mSet.empty();
+    }
+
+    bool insert(T* x) {
+        if (mSet.insert(x).second) {
+            x->AddRef();
+            return true;
+        }
+
+        return false;
+    }
+
+    bool erase(T* x) {
+        if (mSet.erase(x)) {
+            x->Release();
+            return true;
+        }
+
+        return false;
     }
 };
 
-} /* namespace gfx */
-} /* namespace mozilla */
+template<typename T>
+class RefQueue
+{
+    std::queue<T*> mQueue;
 
-#endif /* SHARED_SURFACE_H_ */
+public:
+    ~RefQueue() {
+        clear();
+    }
+
+    void clear() {
+        while (!empty()) {
+            pop();
+        }
+    }
+
+    bool empty() const {
+        return mQueue.empty();
+    }
+
+    size_t size() const {
+        return mQueue.size();
+    }
+
+    void push(T* x) {
+        mQueue.push(x);
+        x->AddRef();
+    }
+
+    T* front() const {
+        return mQueue.front();
+    }
+
+    void pop() {
+        T* x = mQueue.front();
+        x->Release();
+        mQueue.pop();
+    }
+};
+
+class SurfaceFactory : public SupportsWeakPtr<SurfaceFactory>
+{
+public:
+    // Should use the VIRTUAL version, but it's currently incompatible
+    // with SupportsWeakPtr. (bug 1049278)
+    MOZ_DECLARE_WEAKREFERENCE_TYPENAME(SurfaceFactory)
+
+    const SharedSurfaceType mType;
+    GLContext* const mGL;
+    const SurfaceCaps mCaps;
+    const RefPtr<layers::ISurfaceAllocator> mAllocator;
+    const layers::TextureFlags mFlags;
+    const GLFormats mFormats;
+protected:
+    SurfaceCaps mDrawCaps;
+    SurfaceCaps mReadCaps;
+    RefQueue<layers::SharedSurfaceTextureClient> mRecycleFreePool;
+    RefSet<layers::SharedSurfaceTextureClient> mRecycleTotalPool;
+
+    SurfaceFactory(SharedSurfaceType type, GLContext* gl, const SurfaceCaps& caps,
+                   const RefPtr<layers::ISurfaceAllocator>& allocator,
+                   const layers::TextureFlags& flags);
+
+public:
+    virtual ~SurfaceFactory();
+
+    const SurfaceCaps& DrawCaps() const {
+        return mDrawCaps;
+    }
+
+    const SurfaceCaps& ReadCaps() const {
+        return mReadCaps;
+    }
+
+protected:
+    virtual UniquePtr<SharedSurface> CreateShared(const gfx::IntSize& size) = 0;
+
+    void StartRecycling(layers::SharedSurfaceTextureClient* tc);
+    void SetRecycleCallback(layers::SharedSurfaceTextureClient* tc);
+    void StopRecycling(layers::SharedSurfaceTextureClient* tc);
+
+public:
+    UniquePtr<SharedSurface> NewSharedSurface(const gfx::IntSize& size);
+    //TemporaryRef<ShSurfHandle> NewShSurfHandle(const gfx::IntSize& size);
+    TemporaryRef<layers::SharedSurfaceTextureClient> NewTexClient(const gfx::IntSize& size);
+
+    static void RecycleCallback(layers::TextureClient* tc, void* /*closure*/);
+
+    // Auto-deletes surfs of the wrong type.
+    bool Recycle(layers::SharedSurfaceTextureClient* texClient);
+};
+
+class ScopedReadbackFB
+{
+    GLContext* const mGL;
+    ScopedBindFramebuffer mAutoFB;
+    GLuint mTempFB;
+    GLuint mTempTex;
+    SharedSurface* mSurfToUnlock;
+    SharedSurface* mSurfToLock;
+
+public:
+    explicit ScopedReadbackFB(SharedSurface* src);
+    ~ScopedReadbackFB();
+};
+
+bool ReadbackSharedSurface(SharedSurface* src, gfx::DrawTarget* dst);
+uint32_t ReadPixel(SharedSurface* src);
+
+} // namespace gl
+} // namespace mozilla
+
+#endif // SHARED_SURFACE_H_

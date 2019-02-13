@@ -22,10 +22,12 @@ public:
 
     // nsAboutProtocolHandler methods:
     nsAboutProtocolHandler() {}
+
+private:
     virtual ~nsAboutProtocolHandler() {}
 };
 
-class nsSafeAboutProtocolHandler MOZ_FINAL : public nsIProtocolHandler
+class nsSafeAboutProtocolHandler final : public nsIProtocolHandler
 {
 public:
     NS_DECL_ISUPPORTS

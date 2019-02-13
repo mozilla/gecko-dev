@@ -58,7 +58,7 @@ add_task(function* test_simple_paths() {
 
 // Test presence of paths that only exist on Desktop platforms
 add_task(function* test_desktop_paths() {
-  if (OS.Constants.Sys.Name == "Android") {
+  if (OS.Constants.Sys.Name == "Android" || OS.Constants.Sys.Name == "Gonk") {
     return;
   }
   do_check_true(!!OS.Constants.Path.desktopDir);
@@ -73,6 +73,7 @@ add_task(function* test_desktop_paths() {
 
   compare_paths(OS.Constants.Path.macUserLibDir, "ULibDir");
   compare_paths(OS.Constants.Path.macLocalApplicationsDir, "LocApp");
+  compare_paths(OS.Constants.Path.macTrashDir, "Trsh");
 });
 
 // Open libxul

@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 /*jshint globalstrict: false */
+/* globals PDFJS */
 
 // Initializing PDFJS global object (if still undefined)
 if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.370';
-PDFJS.build = '13efe84';
+PDFJS.version = '1.1.215';
+PDFJS.build = 'c9a7498';
 
 (function pdfjsWrapper() {
   // Use strict in our context only - users might not want it
@@ -51,7 +52,7 @@ PDFJS.build = '13efe84';
 
 var globalScope = (typeof window === 'undefined') ? this : window;
 
-var isWorker = (typeof window == 'undefined');
+var isWorker = (typeof window === 'undefined');
 
 var FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 
@@ -72,6 +73,39 @@ var ImageKind = {
   GRAYSCALE_1BPP: 1,
   RGB_24BPP: 2,
   RGBA_32BPP: 3
+};
+
+var AnnotationType = {
+  WIDGET: 1,
+  TEXT: 2,
+  LINK: 3
+};
+
+var StreamType = {
+  UNKNOWN: 0,
+  FLATE: 1,
+  LZW: 2,
+  DCT: 3,
+  JPX: 4,
+  JBIG: 5,
+  A85: 6,
+  AHX: 7,
+  CCF: 8,
+  RL: 9
+};
+
+var FontType = {
+  UNKNOWN: 0,
+  TYPE1: 1,
+  TYPE1C: 2,
+  CIDFONTTYPE0: 3,
+  CIDFONTTYPE0C: 4,
+  TRUETYPE: 5,
+  CIDFONTTYPE2: 6,
+  TYPE3: 7,
+  OPENTYPE: 8,
+  TYPE0: 9,
+  MMTYPE1: 10
 };
 
 // The global PDFJS object exposes the API
@@ -205,17 +239,10 @@ function warn(msg) {
 // Fatal errors that should trigger the fallback UI and halt execution by
 // throwing an exception.
 function error(msg) {
-  // If multiple arguments were passed, pass them all to the log function.
-  if (arguments.length > 1) {
-    var logArguments = ['Error:'];
-    logArguments.push.apply(logArguments, arguments);
-    console.log.apply(console, logArguments);
-    // Join the arguments into a single string for the lines below.
-    msg = [].join.call(arguments, ' ');
-  } else {
+  if (PDFJS.verbosity >= PDFJS.VERBOSITY_LEVELS.errors) {
     console.log('Error: ' + msg);
+    console.log(backtrace());
   }
-  console.log(backtrace());
   UnsupportedManager.notify(UNSUPPORTED_FEATURES.unknown);
   throw new Error(msg);
 }
@@ -269,7 +296,7 @@ function combineUrl(baseUrl, url) {
     return url;
   }
   var i;
-  if (url.charAt(0) == '/') {
+  if (url.charAt(0) === '/') {
     // absolute path
     i = baseUrl.indexOf('://');
     if (url.charAt(1) === '/') {
@@ -307,6 +334,7 @@ function isValidUrl(url, allowRelative) {
     case 'https':
     case 'ftp':
     case 'mailto':
+    case 'tel':
       return true;
     default:
       return false;
@@ -321,6 +349,7 @@ function shadow(obj, prop, value) {
                                      writable: false });
   return value;
 }
+PDFJS.shadow = shadow;
 
 var PasswordResponses = PDFJS.PasswordResponses = {
   NEED_PASSWORD: 1,
@@ -339,6 +368,7 @@ var PasswordException = (function PasswordExceptionClosure() {
 
   return PasswordException;
 })();
+PDFJS.PasswordException = PasswordException;
 
 var UnknownErrorException = (function UnknownErrorExceptionClosure() {
   function UnknownErrorException(msg, details) {
@@ -352,6 +382,7 @@ var UnknownErrorException = (function UnknownErrorExceptionClosure() {
 
   return UnknownErrorException;
 })();
+PDFJS.UnknownErrorException = UnknownErrorException;
 
 var InvalidPDFException = (function InvalidPDFExceptionClosure() {
   function InvalidPDFException(msg) {
@@ -364,6 +395,7 @@ var InvalidPDFException = (function InvalidPDFExceptionClosure() {
 
   return InvalidPDFException;
 })();
+PDFJS.InvalidPDFException = InvalidPDFException;
 
 var MissingPDFException = (function MissingPDFExceptionClosure() {
   function MissingPDFException(msg) {
@@ -376,6 +408,22 @@ var MissingPDFException = (function MissingPDFExceptionClosure() {
 
   return MissingPDFException;
 })();
+PDFJS.MissingPDFException = MissingPDFException;
+
+var UnexpectedResponseException =
+    (function UnexpectedResponseExceptionClosure() {
+  function UnexpectedResponseException(msg, status) {
+    this.name = 'UnexpectedResponseException';
+    this.message = msg;
+    this.status = status;
+  }
+
+  UnexpectedResponseException.prototype = new Error();
+  UnexpectedResponseException.constructor = UnexpectedResponseException;
+
+  return UnexpectedResponseException;
+})();
+PDFJS.UnexpectedResponseException = UnexpectedResponseException;
 
 var NotImplementedException = (function NotImplementedExceptionClosure() {
   function NotImplementedException(msg) {
@@ -417,6 +465,8 @@ var XRefParseException = (function XRefParseExceptionClosure() {
 
 
 function bytesToString(bytes) {
+  assert(bytes !== null && typeof bytes === 'object' &&
+         bytes.length !== undefined, 'Invalid argument for bytesToString');
   var length = bytes.length;
   var MAX_ARGUMENT_COUNT = 8192;
   if (length < MAX_ARGUMENT_COUNT) {
@@ -431,16 +481,8 @@ function bytesToString(bytes) {
   return strBuf.join('');
 }
 
-function stringToArray(str) {
-  var length = str.length;
-  var array = [];
-  for (var i = 0; i < length; ++i) {
-    array[i] = str.charCodeAt(i);
-  }
-  return array;
-}
-
 function stringToBytes(str) {
+  assert(typeof str === 'string', 'Invalid argument for stringToBytes');
   var length = str.length;
   var bytes = new Uint8Array(length);
   for (var i = 0; i < length; ++i) {
@@ -499,8 +541,15 @@ var IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 var Util = PDFJS.Util = (function UtilClosure() {
   function Util() {}
 
-  Util.makeCssRgb = function Util_makeCssRgb(rgb) {
-    return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+  var rgbBuf = ['rgb(', 0, ',', 0, ',', 0, ')'];
+
+  // makeCssRgb() can be called thousands of times. Using |rgbBuf| avoids
+  // creating many intermediate strings.
+  Util.makeCssRgb = function Util_makeCssRgb(r, g, b) {
+    rgbBuf[1] = r;
+    rgbBuf[3] = g;
+    rgbBuf[5] = b;
+    return rgbBuf.join('');
   };
 
   // Concatenates two transformation matrices together and returns the result.
@@ -650,12 +699,11 @@ var Util = PDFJS.Util = (function UtilClosure() {
     return num < 0 ? -1 : 1;
   };
 
-  // TODO(mack): Rename appendToArray
-  Util.concatenateToArray = function concatenateToArray(arr1, arr2) {
+  Util.appendToArray = function Util_appendToArray(arr1, arr2) {
     Array.prototype.push.apply(arr1, arr2);
   };
 
-  Util.prependToArray = function concatenateToArray(arr1, arr2) {
+  Util.prependToArray = function Util_prependToArray(arr1, arr2) {
     Array.prototype.unshift.apply(arr1, arr2);
   };
 
@@ -871,6 +919,10 @@ function stringToUTF8String(str) {
   return decodeURIComponent(escape(str));
 }
 
+function utf8StringToString(str) {
+  return unescape(encodeURIComponent(str));
+}
+
 function isEmptyObj(obj) {
   for (var key in obj) {
     return false;
@@ -879,7 +931,7 @@ function isEmptyObj(obj) {
 }
 
 function isBool(v) {
-  return typeof v == 'boolean';
+  return typeof v === 'boolean';
 }
 
 function isInt(v) {
@@ -892,10 +944,6 @@ function isNum(v) {
 
 function isString(v) {
   return typeof v === 'string';
-}
-
-function isNull(v) {
-  return v === null;
 }
 
 function isName(v) {
@@ -1240,815 +1288,12 @@ function loadJpegStream(id, imageUrl, objs) {
   img.onload = (function loadJpegStream_onloadClosure() {
     objs.resolve(id, img);
   });
+  img.onerror = (function loadJpegStream_onerrorClosure() {
+    objs.resolve(id, null);
+    warn('Error during JPEG image loading');
+  });
   img.src = imageUrl;
 }
-
-
-var DEFAULT_ICON_SIZE = 22; // px
-var HIGHLIGHT_OFFSET = 4; // px
-var SUPPORTED_TYPES = ['Link', 'Text', 'Widget'];
-
-var Annotation = (function AnnotationClosure() {
-  // 12.5.5: Algorithm: Appearance streams
-  function getTransformMatrix(rect, bbox, matrix) {
-    var bounds = Util.getAxialAlignedBoundingBox(bbox, matrix);
-    var minX = bounds[0];
-    var minY = bounds[1];
-    var maxX = bounds[2];
-    var maxY = bounds[3];
-
-    if (minX === maxX || minY === maxY) {
-      // From real-life file, bbox was [0, 0, 0, 0]. In this case,
-      // just apply the transform for rect
-      return [1, 0, 0, 1, rect[0], rect[1]];
-    }
-
-    var xRatio = (rect[2] - rect[0]) / (maxX - minX);
-    var yRatio = (rect[3] - rect[1]) / (maxY - minY);
-    return [
-      xRatio,
-      0,
-      0,
-      yRatio,
-      rect[0] - minX * xRatio,
-      rect[1] - minY * yRatio
-    ];
-  }
-
-  function getDefaultAppearance(dict) {
-    var appearanceState = dict.get('AP');
-    if (!isDict(appearanceState)) {
-      return;
-    }
-
-    var appearance;
-    var appearances = appearanceState.get('N');
-    if (isDict(appearances)) {
-      var as = dict.get('AS');
-      if (as && appearances.has(as.name)) {
-        appearance = appearances.get(as.name);
-      }
-    } else {
-      appearance = appearances;
-    }
-    return appearance;
-  }
-
-  function Annotation(params) {
-    if (params.data) {
-      this.data = params.data;
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data = {};
-
-    data.subtype = dict.get('Subtype').name;
-    var rect = dict.get('Rect') || [0, 0, 0, 0];
-    data.rect = Util.normalizeRect(rect);
-    data.annotationFlags = dict.get('F');
-
-    var color = dict.get('C');
-    if (isArray(color) && color.length === 3) {
-      // TODO(mack): currently only supporting rgb; need support different
-      // colorspaces
-      data.color = color;
-    } else {
-      data.color = [0, 0, 0];
-    }
-
-    // Some types of annotations have border style dict which has more
-    // info than the border array
-    if (dict.has('BS')) {
-      var borderStyle = dict.get('BS');
-      data.borderWidth = borderStyle.has('W') ? borderStyle.get('W') : 1;
-    } else {
-      var borderArray = dict.get('Border') || [0, 0, 1];
-      data.borderWidth = borderArray[2] || 0;
-
-      // TODO: implement proper support for annotations with line dash patterns.
-      var dashArray = borderArray[3];
-      if (data.borderWidth > 0 && dashArray) {
-        if (!isArray(dashArray)) {
-          // Ignore the border if dashArray is not actually an array,
-          // this is consistent with the behaviour in Adobe Reader. 
-          data.borderWidth = 0;
-        } else {
-          var dashArrayLength = dashArray.length;
-          if (dashArrayLength > 0) {
-            // According to the PDF specification: the elements in a dashArray
-            // shall be numbers that are nonnegative and not all equal to zero.
-            var isInvalid = false;
-            var numPositive = 0;
-            for (var i = 0; i < dashArrayLength; i++) {
-              var validNumber = (+dashArray[i] >= 0);
-              if (!validNumber) {
-                isInvalid = true;
-                break;
-              } else if (dashArray[i] > 0) {
-                numPositive++;
-              }
-            }
-            if (isInvalid || numPositive === 0) {
-              data.borderWidth = 0;
-            }
-          }
-        }
-      }
-    }
-
-    this.appearance = getDefaultAppearance(dict);
-    data.hasAppearance = !!this.appearance;
-    data.id = params.ref.num;
-  }
-
-  Annotation.prototype = {
-
-    getData: function Annotation_getData() {
-      return this.data;
-    },
-
-    hasHtml: function Annotation_hasHtml() {
-      return false;
-    },
-
-    getHtmlElement: function Annotation_getHtmlElement(commonObjs) {
-      throw new NotImplementedException(
-        'getHtmlElement() should be implemented in subclass');
-    },
-
-    // TODO(mack): Remove this, it's not really that helpful.
-    getEmptyContainer: function Annotation_getEmptyContainer(tagName, rect,
-                                                             borderWidth) {
-      assert(!isWorker,
-        'getEmptyContainer() should be called from main thread');
-
-      var bWidth = borderWidth || 0;
-
-      rect = rect || this.data.rect;
-      var element = document.createElement(tagName);
-      element.style.borderWidth = bWidth + 'px';
-      var width = rect[2] - rect[0] - 2 * bWidth;
-      var height = rect[3] - rect[1] - 2 * bWidth;
-      element.style.width = width + 'px';
-      element.style.height = height + 'px';
-      return element;
-    },
-
-    isInvisible: function Annotation_isInvisible() {
-      var data = this.data;
-      if (data && SUPPORTED_TYPES.indexOf(data.subtype) !== -1) {
-        return false;
-      } else {
-        return !!(data &&
-                  data.annotationFlags &&            // Default: not invisible
-                  data.annotationFlags & 0x1);       // Invisible
-      }
-    },
-
-    isViewable: function Annotation_isViewable() {
-      var data = this.data;
-      return !!(!this.isInvisible() &&
-                data &&
-                (!data.annotationFlags ||
-                 !(data.annotationFlags & 0x22)) &&  // Hidden or NoView
-                data.rect);                          // rectangle is necessary
-    },
-
-    isPrintable: function Annotation_isPrintable() {
-      var data = this.data;
-      return !!(!this.isInvisible() &&
-                data &&
-                data.annotationFlags &&              // Default: not printable
-                data.annotationFlags & 0x4 &&        // Print
-                !(data.annotationFlags & 0x2) &&     // Hidden
-                data.rect);                          // rectangle is necessary
-    },
-
-    loadResources: function Annotation_loadResources(keys) {
-      return new Promise(function (resolve, reject) {
-        this.appearance.dict.getAsync('Resources').then(function (resources) {
-          if (!resources) {
-            resolve();
-            return;
-          }
-          var objectLoader = new ObjectLoader(resources.map,
-                                              keys,
-                                              resources.xref);
-          objectLoader.load().then(function() {
-            resolve(resources);
-          }, reject);
-        }, reject);
-      }.bind(this));
-    },
-
-    getOperatorList: function Annotation_getOperatorList(evaluator) {
-
-      if (!this.appearance) {
-        return Promise.resolve(new OperatorList());
-      }
-
-      var data = this.data;
-
-      var appearanceDict = this.appearance.dict;
-      var resourcesPromise = this.loadResources([
-        'ExtGState',
-        'ColorSpace',
-        'Pattern',
-        'Shading',
-        'XObject',
-        'Font'
-        // ProcSet
-        // Properties
-      ]);
-      var bbox = appearanceDict.get('BBox') || [0, 0, 1, 1];
-      var matrix = appearanceDict.get('Matrix') || [1, 0, 0, 1, 0 ,0];
-      var transform = getTransformMatrix(data.rect, bbox, matrix);
-      var self = this;
-
-      return resourcesPromise.then(function(resources) {
-          var opList = new OperatorList();
-          opList.addOp(OPS.beginAnnotation, [data.rect, transform, matrix]);
-          return evaluator.getOperatorList(self.appearance, resources, opList).
-            then(function () {
-              opList.addOp(OPS.endAnnotation, []);
-              self.appearance.reset();
-              return opList;
-            });
-        });
-    }
-  };
-
-  Annotation.getConstructor =
-      function Annotation_getConstructor(subtype, fieldType) {
-
-    if (!subtype) {
-      return;
-    }
-
-    // TODO(mack): Implement FreeText annotations
-    if (subtype === 'Link') {
-      return LinkAnnotation;
-    } else if (subtype === 'Text') {
-      return TextAnnotation;
-    } else if (subtype === 'Widget') {
-      if (!fieldType) {
-        return;
-      }
-
-      if (fieldType === 'Tx') {
-        return TextWidgetAnnotation;
-      } else {
-        return WidgetAnnotation;
-      }
-    } else {
-      return Annotation;
-    }
-  };
-
-  // TODO(mack): Support loading annotation from data
-  Annotation.fromData = function Annotation_fromData(data) {
-    var subtype = data.subtype;
-    var fieldType = data.fieldType;
-    var Constructor = Annotation.getConstructor(subtype, fieldType);
-    if (Constructor) {
-      return new Constructor({ data: data });
-    }
-  };
-
-  Annotation.fromRef = function Annotation_fromRef(xref, ref) {
-
-    var dict = xref.fetchIfRef(ref);
-    if (!isDict(dict)) {
-      return;
-    }
-
-    var subtype = dict.get('Subtype');
-    subtype = isName(subtype) ? subtype.name : '';
-    if (!subtype) {
-      return;
-    }
-
-    var fieldType = Util.getInheritableProperty(dict, 'FT');
-    fieldType = isName(fieldType) ? fieldType.name : '';
-
-    var Constructor = Annotation.getConstructor(subtype, fieldType);
-    if (!Constructor) {
-      return;
-    }
-
-    var params = {
-      dict: dict,
-      ref: ref,
-    };
-
-    var annotation = new Constructor(params);
-
-    if (annotation.isViewable() || annotation.isPrintable()) {
-      return annotation;
-    } else {
-      if (SUPPORTED_TYPES.indexOf(subtype) === -1) {
-        warn('unimplemented annotation type: ' + subtype);
-      }
-    }
-  };
-
-  Annotation.appendToOperatorList = function Annotation_appendToOperatorList(
-      annotations, opList, pdfManager, partialEvaluator, intent) {
-
-    function reject(e) {
-      annotationsReadyCapability.reject(e);
-    }
-
-    var annotationsReadyCapability = createPromiseCapability();
-
-    var annotationPromises = [];
-    for (var i = 0, n = annotations.length; i < n; ++i) {
-      if (intent === 'display' && annotations[i].isViewable() ||
-          intent === 'print' && annotations[i].isPrintable()) {
-        annotationPromises.push(
-          annotations[i].getOperatorList(partialEvaluator));
-      }
-    }
-    Promise.all(annotationPromises).then(function(datas) {
-      opList.addOp(OPS.beginAnnotations, []);
-      for (var i = 0, n = datas.length; i < n; ++i) {
-        var annotOpList = datas[i];
-        opList.addOpList(annotOpList);
-      }
-      opList.addOp(OPS.endAnnotations, []);
-      annotationsReadyCapability.resolve();
-    }, reject);
-
-    return annotationsReadyCapability.promise;
-  };
-
-  return Annotation;
-})();
-PDFJS.Annotation = Annotation;
-
-
-var WidgetAnnotation = (function WidgetAnnotationClosure() {
-
-  function WidgetAnnotation(params) {
-    Annotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    data.fieldValue = stringToPDFString(
-      Util.getInheritableProperty(dict, 'V') || '');
-    data.alternativeText = stringToPDFString(dict.get('TU') || '');
-    data.defaultAppearance = Util.getInheritableProperty(dict, 'DA') || '';
-    var fieldType = Util.getInheritableProperty(dict, 'FT');
-    data.fieldType = isName(fieldType) ? fieldType.name : '';
-    data.fieldFlags = Util.getInheritableProperty(dict, 'Ff') || 0;
-    this.fieldResources = Util.getInheritableProperty(dict, 'DR') || Dict.empty;
-
-    // Building the full field name by collecting the field and
-    // its ancestors 'T' data and joining them using '.'.
-    var fieldName = [];
-    var namedItem = dict;
-    var ref = params.ref;
-    while (namedItem) {
-      var parent = namedItem.get('Parent');
-      var parentRef = namedItem.getRaw('Parent');
-      var name = namedItem.get('T');
-      if (name) {
-        fieldName.unshift(stringToPDFString(name));
-      } else {
-        // The field name is absent, that means more than one field
-        // with the same name may exist. Replacing the empty name
-        // with the '`' plus index in the parent's 'Kids' array.
-        // This is not in the PDF spec but necessary to id the
-        // the input controls.
-        var kids = parent.get('Kids');
-        var j, jj;
-        for (j = 0, jj = kids.length; j < jj; j++) {
-          var kidRef = kids[j];
-          if (kidRef.num == ref.num && kidRef.gen == ref.gen) {
-            break;
-          }
-        }
-        fieldName.unshift('`' + j);
-      }
-      namedItem = parent;
-      ref = parentRef;
-    }
-    data.fullName = fieldName.join('.');
-  }
-
-  var parent = Annotation.prototype;
-  Util.inherit(WidgetAnnotation, Annotation, {
-    isViewable: function WidgetAnnotation_isViewable() {
-      if (this.data.fieldType === 'Sig') {
-        warn('unimplemented annotation type: Widget signature');
-        return false;
-      }
-
-      return parent.isViewable.call(this);
-    }
-  });
-
-  return WidgetAnnotation;
-})();
-
-var TextWidgetAnnotation = (function TextWidgetAnnotationClosure() {
-  function TextWidgetAnnotation(params) {
-    WidgetAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    this.data.textAlignment = Util.getInheritableProperty(params.dict, 'Q');
-  }
-
-  // TODO(mack): This dupes some of the logic in CanvasGraphics.setFont()
-  function setTextStyles(element, item, fontObj) {
-
-    var style = element.style;
-    style.fontSize = item.fontSize + 'px';
-    style.direction = item.fontDirection < 0 ? 'rtl': 'ltr';
-
-    if (!fontObj) {
-      return;
-    }
-
-    style.fontWeight = fontObj.black ?
-                            (fontObj.bold ? 'bolder' : 'bold') :
-                            (fontObj.bold ? 'bold' : 'normal');
-    style.fontStyle = fontObj.italic ? 'italic' : 'normal';
-
-    var fontName = fontObj.loadedName;
-    var fontFamily = fontName ? '"' + fontName + '", ' : '';
-    // Use a reasonable default font if the font doesn't specify a fallback
-    var fallbackName = fontObj.fallbackName || 'Helvetica, sans-serif';
-    style.fontFamily = fontFamily + fallbackName;
-  }
-
-
-  Util.inherit(TextWidgetAnnotation, WidgetAnnotation, {
-    hasHtml: function TextWidgetAnnotation_hasHtml() {
-      return !this.data.hasAppearance && !!this.data.fieldValue;
-    },
-
-    getHtmlElement: function TextWidgetAnnotation_getHtmlElement(commonObjs) {
-      assert(!isWorker, 'getHtmlElement() shall be called from main thread');
-
-      var item = this.data;
-
-      var element = this.getEmptyContainer('div');
-      element.style.display = 'table';
-
-      var content = document.createElement('div');
-      content.textContent = item.fieldValue;
-      var textAlignment = item.textAlignment;
-      content.style.textAlign = ['left', 'center', 'right'][textAlignment];
-      content.style.verticalAlign = 'middle';
-      content.style.display = 'table-cell';
-
-      var fontObj = item.fontRefName ?
-                    commonObjs.getData(item.fontRefName) : null;
-      setTextStyles(content, item, fontObj);
-
-      element.appendChild(content);
-
-      return element;
-    },
-
-    getOperatorList: function TextWidgetAnnotation_getOperatorList(evaluator) {
-      if (this.appearance) {
-        return Annotation.prototype.getOperatorList.call(this, evaluator);
-      }
-
-      var opList = new OperatorList();
-      var data = this.data;
-
-      // Even if there is an appearance stream, ignore it. This is the
-      // behaviour used by Adobe Reader.
-      if (!data.defaultAppearance) {
-        return Promise.resolve(opList);
-      }
-
-      var stream = new Stream(stringToBytes(data.defaultAppearance));
-      return evaluator.getOperatorList(stream, this.fieldResources, opList).
-        then(function () {
-          return opList;
-        });
-    }
-  });
-
-  return TextWidgetAnnotation;
-})();
-
-var InteractiveAnnotation = (function InteractiveAnnotationClosure() {
-  function InteractiveAnnotation(params) {
-    Annotation.call(this, params);
-  }
-
-  Util.inherit(InteractiveAnnotation, Annotation, {
-    hasHtml: function InteractiveAnnotation_hasHtml() {
-      return true;
-    },
-
-    highlight: function InteractiveAnnotation_highlight() {
-      if (this.highlightElement &&
-         this.highlightElement.hasAttribute('hidden')) {
-        this.highlightElement.removeAttribute('hidden');
-      }
-    },
-
-    unhighlight: function InteractiveAnnotation_unhighlight() {
-      if (this.highlightElement &&
-         !this.highlightElement.hasAttribute('hidden')) {
-        this.highlightElement.setAttribute('hidden', true);
-      }
-    },
-
-    initContainer: function InteractiveAnnotation_initContainer() {
-
-      var item = this.data;
-      var rect = item.rect;
-
-      var container = this.getEmptyContainer('section', rect, item.borderWidth);
-      container.style.backgroundColor = item.color;
-
-      var color = item.color;
-      var rgb = [];
-      for (var i = 0; i < 3; ++i) {
-        rgb[i] = Math.round(color[i] * 255);
-      }
-      item.colorCssRgb = Util.makeCssRgb(rgb);
-
-      var highlight = document.createElement('div');
-      highlight.className = 'annotationHighlight';
-      highlight.style.left = highlight.style.top = -HIGHLIGHT_OFFSET + 'px';
-      highlight.style.right = highlight.style.bottom = -HIGHLIGHT_OFFSET + 'px';
-      highlight.setAttribute('hidden', true);
-
-      this.highlightElement = highlight;
-      container.appendChild(this.highlightElement);
-
-      return container;
-    }
-  });
-
-  return InteractiveAnnotation;
-})();
-
-var TextAnnotation = (function TextAnnotationClosure() {
-  function TextAnnotation(params) {
-    InteractiveAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    var content = dict.get('Contents');
-    var title = dict.get('T');
-    data.content = stringToPDFString(content || '');
-    data.title = stringToPDFString(title || '');
-
-    if (data.hasAppearance) {
-      data.name = 'NoIcon';
-    } else {
-      data.rect[1] = data.rect[3] - DEFAULT_ICON_SIZE;
-      data.rect[2] = data.rect[0] + DEFAULT_ICON_SIZE;
-      data.name = dict.has('Name') ? dict.get('Name').name : 'Note';
-    }
-
-    if (dict.has('C')) {
-      data.hasBgColor = true;
-    }
-  }
-
-  var ANNOT_MIN_SIZE = 10;
-
-  Util.inherit(TextAnnotation, InteractiveAnnotation, {
-
-    getHtmlElement: function TextAnnotation_getHtmlElement(commonObjs) {
-      assert(!isWorker, 'getHtmlElement() shall be called from main thread');
-
-      var item = this.data;
-      var rect = item.rect;
-
-      // sanity check because of OOo-generated PDFs
-      if ((rect[3] - rect[1]) < ANNOT_MIN_SIZE) {
-        rect[3] = rect[1] + ANNOT_MIN_SIZE;
-      }
-      if ((rect[2] - rect[0]) < ANNOT_MIN_SIZE) {
-        rect[2] = rect[0] + (rect[3] - rect[1]); // make it square
-      }
-
-      var container = this.initContainer();
-      container.className = 'annotText';
-
-      var image  = document.createElement('img');
-      image.style.height = container.style.height;
-      image.style.width = container.style.width;
-      var iconName = item.name;
-      image.src = PDFJS.imageResourcesPath + 'annotation-' +
-        iconName.toLowerCase() + '.svg';
-      image.alt = '[{{type}} Annotation]';
-      image.dataset.l10nId = 'text_annotation_type';
-      image.dataset.l10nArgs = JSON.stringify({type: iconName});
-
-      var contentWrapper = document.createElement('div');
-      contentWrapper.className = 'annotTextContentWrapper';
-      contentWrapper.style.left = Math.floor(rect[2] - rect[0] + 5) + 'px';
-      contentWrapper.style.top = '-10px';
-
-      var content = document.createElement('div');
-      content.className = 'annotTextContent';
-      content.setAttribute('hidden', true);
-
-      var i, ii;
-      if (item.hasBgColor) {
-        var color = item.color;
-        var rgb = [];
-        for (i = 0; i < 3; ++i) {
-          // Enlighten the color (70%)
-          var c = Math.round(color[i] * 255);
-          rgb[i] = Math.round((255 - c) * 0.7) + c;
-        }
-        content.style.backgroundColor = Util.makeCssRgb(rgb);
-      }
-
-      var title = document.createElement('h1');
-      var text = document.createElement('p');
-      title.textContent = item.title;
-
-      if (!item.content && !item.title) {
-        content.setAttribute('hidden', true);
-      } else {
-        var e = document.createElement('span');
-        var lines = item.content.split(/(?:\r\n?|\n)/);
-        for (i = 0, ii = lines.length; i < ii; ++i) {
-          var line = lines[i];
-          e.appendChild(document.createTextNode(line));
-          if (i < (ii - 1)) {
-            e.appendChild(document.createElement('br'));
-          }
-        }
-        text.appendChild(e);
-
-        var pinned = false;
-
-        var showAnnotation = function showAnnotation(pin) {
-          if (pin) {
-            pinned = true;
-          }
-          if (content.hasAttribute('hidden')) {
-            container.style.zIndex += 1;
-            content.removeAttribute('hidden');
-          }
-        };
-
-        var hideAnnotation = function hideAnnotation(unpin) {
-          if (unpin) {
-            pinned = false;
-          }
-          if (!content.hasAttribute('hidden') && !pinned) {
-            container.style.zIndex -= 1;
-            content.setAttribute('hidden', true);
-          }
-        };
-
-        var toggleAnnotation = function toggleAnnotation() {
-          if (pinned) {
-            hideAnnotation(true);
-          } else {
-            showAnnotation(true);
-          }
-        };
-
-        image.addEventListener('click', function image_clickHandler() {
-          toggleAnnotation();
-        }, false);
-        image.addEventListener('mouseover', function image_mouseOverHandler() {
-          showAnnotation();
-        }, false);
-        image.addEventListener('mouseout', function image_mouseOutHandler() {
-          hideAnnotation();
-        }, false);
-
-        content.addEventListener('click', function content_clickHandler() {
-          hideAnnotation(true);
-        }, false);
-      }
-
-      content.appendChild(title);
-      content.appendChild(text);
-      contentWrapper.appendChild(content);
-      container.appendChild(image);
-      container.appendChild(contentWrapper);
-
-      return container;
-    }
-  });
-
-  return TextAnnotation;
-})();
-
-var LinkAnnotation = (function LinkAnnotationClosure() {
-  function LinkAnnotation(params) {
-    InteractiveAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    var action = dict.get('A');
-    if (action) {
-      var linkType = action.get('S').name;
-      if (linkType === 'URI') {
-        var url = action.get('URI');
-        if (isName(url)) {
-          // Some bad PDFs do not put parentheses around relative URLs.
-          url = '/' + url.name;
-        } else if (url) {
-          url = addDefaultProtocolToUrl(url);
-        }
-        // TODO: pdf spec mentions urls can be relative to a Base
-        // entry in the dictionary.
-        if (!isValidUrl(url, false)) {
-          url = '';
-        }
-        data.url = url;
-      } else if (linkType === 'GoTo') {
-        data.dest = action.get('D');
-      } else if (linkType === 'GoToR') {
-        var urlDict = action.get('F');
-        if (isDict(urlDict)) {
-          // We assume that the 'url' is a Filspec dictionary
-          // and fetch the url without checking any further
-          url = urlDict.get('F') || '';
-        }
-
-        // TODO: pdf reference says that GoToR
-        // can also have 'NewWindow' attribute
-        if (!isValidUrl(url, false)) {
-          url = '';
-        }
-        data.url = url;
-        data.dest = action.get('D');
-      } else if (linkType === 'Named') {
-        data.action = action.get('N').name;
-      } else {
-        warn('unrecognized link type: ' + linkType);
-      }
-    } else if (dict.has('Dest')) {
-      // simple destination link
-      var dest = dict.get('Dest');
-      data.dest = isName(dest) ? dest.name : dest;
-    }
-  }
-
-  // Lets URLs beginning with 'www.' default to using the 'http://' protocol.
-  function addDefaultProtocolToUrl(url) {
-    if (url && url.indexOf('www.') === 0) {
-      return ('http://' + url);
-    }
-    return url;
-  }
-
-  Util.inherit(LinkAnnotation, InteractiveAnnotation, {
-    hasOperatorList: function LinkAnnotation_hasOperatorList() {
-      return false;
-    },
-
-    getHtmlElement: function LinkAnnotation_getHtmlElement(commonObjs) {
-
-      var container = this.initContainer();
-      container.className = 'annotLink';
-
-      var item = this.data;
-
-      container.style.borderColor = item.colorCssRgb;
-      container.style.borderStyle = 'solid';
-
-      var link = document.createElement('a');
-      link.href = link.title = this.data.url || '';
-
-      container.appendChild(link);
-
-      return container;
-    }
-  });
-
-  return LinkAnnotation;
-})();
 
 
 /**
@@ -2072,7 +1317,7 @@ PDFJS.cMapUrl = (PDFJS.cMapUrl === undefined ? null : PDFJS.cMapUrl);
  */
 PDFJS.cMapPacked = PDFJS.cMapPacked === undefined ? false : PDFJS.cMapPacked;
 
-/*
+/**
  * By default fonts are converted to OpenType fonts and loaded via font face
  * rules. If disabled, the font will be rendered using a built in font renderer
  * that constructs the glyphs with primitive path commands.
@@ -2116,9 +1361,20 @@ PDFJS.disableRange = (PDFJS.disableRange === undefined ?
                       false : PDFJS.disableRange);
 
 /**
+ * Disable streaming of PDF file data. By default PDF.js attempts to load PDF
+ * in chunks. This default behavior can be disabled.
+ * @var {boolean}
+ */
+PDFJS.disableStream = (PDFJS.disableStream === undefined ?
+                       false : PDFJS.disableStream);
+
+/**
  * Disable pre-fetching of PDF file data. When range requests are enabled PDF.js
  * will automatically keep fetching more data even if it isn't needed to display
  * the current page. This default behavior can be disabled.
+ *
+ * NOTE: It is also necessary to disable streaming, see above,
+ *       in order for disabling of pre-fetching to work correctly.
  * @var {boolean}
  */
 PDFJS.disableAutoFetch = (PDFJS.disableAutoFetch === undefined ?
@@ -2152,6 +1408,14 @@ PDFJS.disableWebGL = (PDFJS.disableWebGL === undefined ?
                       true : PDFJS.disableWebGL);
 
 /**
+ * Disables fullscreen support, and by extension Presentation Mode,
+ * in browsers which support the fullscreen API.
+ * @var {boolean}
+ */
+PDFJS.disableFullscreen = (PDFJS.disableFullscreen === undefined ?
+                           false : PDFJS.disableFullscreen);
+
+/**
  * Enables CSS only zooming.
  * @var {boolean}
  */
@@ -2170,7 +1434,7 @@ PDFJS.verbosity = (PDFJS.verbosity === undefined ?
                    PDFJS.VERBOSITY_LEVELS.warnings : PDFJS.verbosity);
 
 /**
- * The maximum supported canvas size in total pixels e.g. width * height. 
+ * The maximum supported canvas size in total pixels e.g. width * height.
  * The default value is 4096 * 4096. Use -1 for no limit.
  * @var {number}
  */
@@ -2178,11 +1442,22 @@ PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
                          16777216 : PDFJS.maxCanvasPixels);
 
 /**
+ * Opens external links in a new window if enabled. The default behavior opens
+ * external links in the PDF.js window.
+ * @var {boolean}
+ */
+PDFJS.openExternalLinksInNewWindow = (
+  PDFJS.openExternalLinksInNewWindow === undefined ?
+    false : PDFJS.openExternalLinksInNewWindow);
+
+/**
  * Document initialization / loading parameters object.
  *
  * @typedef {Object} DocumentInitParameters
  * @property {string}     url   - The URL of the PDF.
- * @property {TypedArray} data  - A typed array with PDF data.
+ * @property {TypedArray|Array|string} data - Binary PDF data. Use typed arrays
+ *   (Uint8Array) to improve the memory usage. If PDF data is BASE64-encoded,
+ *   use atob() to convert it to a binary string first.
  * @property {Object}     httpHeaders - Basic authentication headers.
  * @property {boolean}    withCredentials - Indicates whether or not cross-site
  *   Access-Control requests should be made using credentials such as cookies
@@ -2191,6 +1466,17 @@ PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
  * @property {TypedArray} initialData - A typed array with the first portion or
  *   all of the pdf data. Used by the extension since some data is already
  *   loaded before the switch to range requests.
+ * @property {number}     length - The PDF file length. It's used for progress
+ *   reports and range requests operations.
+ * @property {PDFDataRangeTransport} range
+ */
+
+/**
+ * @typedef {Object} PDFDocumentStats
+ * @property {Array} streamTypes - Used stream types in the document (an item
+ *   is set to true if specific stream ID was used in the document).
+ * @property {Array} fontTypes - Used font type in the document (an item is set
+ *   to true if specific font ID was used in the document).
  */
 
 /**
@@ -2199,62 +1485,225 @@ PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
  * is used, which means it must follow the same origin rules that any XHR does
  * e.g. No cross domain requests without CORS.
  *
- * @param {string|TypedArray|DocumentInitParameters} source Can be a url to
- * where a PDF is located, a typed array (Uint8Array) already populated with
- * data or parameter object.
+ * @param {string|TypedArray|DocumentInitParameters|PDFDataRangeTransport} src
+ * Can be a url to where a PDF is located, a typed array (Uint8Array)
+ * already populated with data or parameter object.
  *
- * @param {Object} pdfDataRangeTransport is optional. It is used if you want
- * to manually serve range requests for data in the PDF. See viewer.js for
- * an example of pdfDataRangeTransport's interface.
+ * @param {PDFDataRangeTransport} pdfDataRangeTransport (deprecated) It is used
+ * if you want to manually serve range requests for data in the PDF.
  *
- * @param {function} passwordCallback is optional. It is used to request a
+ * @param {function} passwordCallback (deprecated) It is used to request a
  * password if wrong or no password was provided. The callback receives two
  * parameters: function that needs to be called with new password and reason
  * (see {PasswordResponses}).
  *
- * @return {Promise} A promise that is resolved with {@link PDFDocumentProxy}
- *   object.
+ * @param {function} progressCallback (deprecated) It is used to be able to
+ * monitor the loading progress of the PDF file (necessary to implement e.g.
+ * a loading bar). The callback receives an {Object} with the properties:
+ * {number} loaded and {number} total.
+ *
+ * @return {PDFDocumentLoadingTask}
  */
-PDFJS.getDocument = function getDocument(source,
+PDFJS.getDocument = function getDocument(src,
                                          pdfDataRangeTransport,
                                          passwordCallback,
                                          progressCallback) {
-  var workerInitializedCapability, workerReadyCapability, transport;
+  var task = new PDFDocumentLoadingTask();
 
-  if (typeof source === 'string') {
-    source = { url: source };
-  } else if (isArrayBuffer(source)) {
-    source = { data: source };
-  } else if (typeof source !== 'object') {
-    error('Invalid parameter in getDocument, need either Uint8Array, ' +
-          'string or a parameter object');
+  // Support of the obsolete arguments (for compatibility with API v1.0)
+  if (pdfDataRangeTransport) {
+    if (!(pdfDataRangeTransport instanceof PDFDataRangeTransport)) {
+      // Not a PDFDataRangeTransport instance, trying to add missing properties.
+      pdfDataRangeTransport = Object.create(pdfDataRangeTransport);
+      pdfDataRangeTransport.length = src.length;
+      pdfDataRangeTransport.initialData = src.initialData;
+    }
+    src = Object.create(src);
+    src.range = pdfDataRangeTransport;
+  }
+  task.onPassword = passwordCallback || null;
+  task.onProgress = progressCallback || null;
+
+  var workerInitializedCapability, transport;
+  var source;
+  if (typeof src === 'string') {
+    source = { url: src };
+  } else if (isArrayBuffer(src)) {
+    source = { data: src };
+  } else if (src instanceof PDFDataRangeTransport) {
+    source = { range: src };
+  } else {
+    if (typeof src !== 'object') {
+      error('Invalid parameter in getDocument, need either Uint8Array, ' +
+        'string or a parameter object');
+    }
+    if (!src.url && !src.data && !src.range) {
+      error('Invalid parameter object: need either .data, .range or .url');
+    }
+
+    source = src;
   }
 
-  if (!source.url && !source.data) {
-    error('Invalid parameter array, need either .data or .url');
-  }
-
-  // copy/use all keys as is except 'url' -- full path is required
   var params = {};
   for (var key in source) {
     if (key === 'url' && typeof window !== 'undefined') {
+      // The full path is required in the 'url' field.
       params[key] = combineUrl(window.location.href, source[key]);
+      continue;
+    } else if (key === 'range') {
+      continue;
+    } else if (key === 'data' && !(source[key] instanceof Uint8Array)) {
+      // Converting string or array-like data to Uint8Array.
+      var pdfBytes = source[key];
+      if (typeof pdfBytes === 'string') {
+        params[key] = stringToBytes(pdfBytes);
+      } else if (typeof pdfBytes === 'object' && pdfBytes !== null &&
+                 !isNaN(pdfBytes.length)) {
+        params[key] = new Uint8Array(pdfBytes);
+      } else {
+        error('Invalid PDF binary data: either typed array, string or ' +
+              'array-like object is expected in the data property.');
+      }
       continue;
     }
     params[key] = source[key];
   }
 
   workerInitializedCapability = createPromiseCapability();
-  workerReadyCapability = createPromiseCapability();
-  transport = new WorkerTransport(workerInitializedCapability,
-                                  workerReadyCapability, pdfDataRangeTransport,
-                                  progressCallback);
+  transport = new WorkerTransport(workerInitializedCapability, source.range);
   workerInitializedCapability.promise.then(function transportInitialized() {
-    transport.passwordCallback = passwordCallback;
-    transport.fetchDocument(params);
+    transport.fetchDocument(task, params);
   });
-  return workerReadyCapability.promise;
+
+  return task;
 };
+
+/**
+ * PDF document loading operation.
+ * @class
+ */
+var PDFDocumentLoadingTask = (function PDFDocumentLoadingTaskClosure() {
+  /** @constructs PDFDocumentLoadingTask */
+  function PDFDocumentLoadingTask() {
+    this._capability = createPromiseCapability();
+
+    /**
+     * Callback to request a password if wrong or no password was provided.
+     * The callback receives two parameters: function that needs to be called
+     * with new password and reason (see {PasswordResponses}).
+     */
+    this.onPassword = null;
+
+    /**
+     * Callback to be able to monitor the loading progress of the PDF file
+     * (necessary to implement e.g. a loading bar). The callback receives
+     * an {Object} with the properties: {number} loaded and {number} total.
+     */
+    this.onProgress = null;
+  }
+
+  PDFDocumentLoadingTask.prototype =
+      /** @lends PDFDocumentLoadingTask.prototype */ {
+    /**
+     * @return {Promise}
+     */
+    get promise() {
+      return this._capability.promise;
+    },
+
+    // TODO add cancel or abort method
+
+    /**
+     * Registers callbacks to indicate the document loading completion.
+     *
+     * @param {function} onFulfilled The callback for the loading completion.
+     * @param {function} onRejected The callback for the loading failure.
+     * @return {Promise} A promise that is resolved after the onFulfilled or
+     *                   onRejected callback.
+     */
+    then: function PDFDocumentLoadingTask_then(onFulfilled, onRejected) {
+      return this.promise.then.apply(this.promise, arguments);
+    }
+  };
+
+  return PDFDocumentLoadingTask;
+})();
+
+/**
+ * Abstract class to support range requests file loading.
+ * @class
+ */
+var PDFDataRangeTransport = (function pdfDataRangeTransportClosure() {
+  /**
+   * @constructs PDFDataRangeTransport
+   * @param {number} length
+   * @param {Uint8Array} initialData
+   */
+  function PDFDataRangeTransport(length, initialData) {
+    this.length = length;
+    this.initialData = initialData;
+
+    this._rangeListeners = [];
+    this._progressListeners = [];
+    this._progressiveReadListeners = [];
+    this._readyCapability = createPromiseCapability();
+  }
+  PDFDataRangeTransport.prototype =
+      /** @lends PDFDataRangeTransport.prototype */ {
+    addRangeListener:
+        function PDFDataRangeTransport_addRangeListener(listener) {
+      this._rangeListeners.push(listener);
+    },
+
+    addProgressListener:
+        function PDFDataRangeTransport_addProgressListener(listener) {
+      this._progressListeners.push(listener);
+    },
+
+    addProgressiveReadListener:
+        function PDFDataRangeTransport_addProgressiveReadListener(listener) {
+      this._progressiveReadListeners.push(listener);
+    },
+
+    onDataRange: function PDFDataRangeTransport_onDataRange(begin, chunk) {
+      var listeners = this._rangeListeners;
+      for (var i = 0, n = listeners.length; i < n; ++i) {
+        listeners[i](begin, chunk);
+      }
+    },
+
+    onDataProgress: function PDFDataRangeTransport_onDataProgress(loaded) {
+      this._readyCapability.promise.then(function () {
+        var listeners = this._progressListeners;
+        for (var i = 0, n = listeners.length; i < n; ++i) {
+          listeners[i](loaded);
+        }
+      }.bind(this));
+    },
+
+    onDataProgressiveRead:
+        function PDFDataRangeTransport_onDataProgress(chunk) {
+      this._readyCapability.promise.then(function () {
+        var listeners = this._progressiveReadListeners;
+        for (var i = 0, n = listeners.length; i < n; ++i) {
+          listeners[i](chunk);
+        }
+      }.bind(this));
+    },
+
+    transportReady: function PDFDataRangeTransport_transportReady() {
+      this._readyCapability.resolve();
+    },
+
+    requestDataRange:
+        function PDFDataRangeTransport_requestDataRange(begin, end) {
+      throw new Error('Abstract method PDFDataRangeTransport.requestDataRange');
+    }
+  };
+  return PDFDataRangeTransport;
+})();
+
+PDFJS.PDFDataRangeTransport = PDFDataRangeTransport;
 
 /**
  * Proxy to a PDFDocument in the worker thread. Also, contains commonly used
@@ -2300,9 +1749,19 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
     /**
      * @return {Promise} A promise that is resolved with a lookup table for
      * mapping named destinations to reference numbers.
+     *
+     * This can be slow for large documents: use getDestination instead
      */
     getDestinations: function PDFDocumentProxy_getDestinations() {
       return this.transport.getDestinations();
+    },
+    /**
+     * @param {string} id The named destination to get.
+     * @return {Promise} A promise that is resolved with all information
+     * of the given named destination.
+     */
+    getDestination: function PDFDocumentProxy_getDestination(id) {
+      return this.transport.getDestination(id);
     },
     /**
      * @return {Promise} A promise that is resolved with a lookup table for
@@ -2359,6 +1818,13 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
      */
     getDownloadInfo: function PDFDocumentProxy_getDownloadInfo() {
       return this.transport.downloadInfoCapability.promise;
+    },
+    /**
+     * @return {Promise} A promise this is resolved with current stats about
+     * document structures (see {@link PDFDocumentStats}).
+     */
+    getStats: function PDFDocumentProxy_getStats() {
+      return this.transport.getStats();
     },
     /**
      * Cleans up resources allocated by the document, e.g. created @font-face.
@@ -2418,10 +1884,19 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
  *                    (default value is 'display').
  * @property {Object} imageLayer - (optional) An object that has beginLayout,
  *                    endLayout and appendImage functions.
- * @property {function} continueCallback - (optional) A function that will be
+ * @property {function} continueCallback - (deprecated) A function that will be
  *                      called each time the rendering is paused.  To continue
  *                      rendering call the function that is the first argument
  *                      to the callback.
+ */
+
+/**
+ * PDF page operator list.
+ *
+ * @typedef {Object} PDFOperatorList
+ * @property {Array} fnArray - Array containing the operator functions.
+ * @property {Array} argsArray - Array containing the arguments of the
+ *                               functions.
  */
 
 /**
@@ -2508,8 +1983,7 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
       // this call to render.
       this.pendingDestroy = false;
 
-      var renderingIntent = ('intent' in params ?
-        (params.intent == 'print' ? 'print' : 'display') : 'display');
+      var renderingIntent = (params.intent === 'print' ? 'print' : 'display');
 
       if (!this.intentStates[renderingIntent]) {
         this.intentStates[renderingIntent] = {};
@@ -2539,11 +2013,17 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
                                                       this.commonObjs,
                                                       intentState.operatorList,
                                                       this.pageNumber);
+      internalRenderTask.useRequestAnimationFrame = renderingIntent !== 'print';
       if (!intentState.renderTasks) {
         intentState.renderTasks = [];
       }
       intentState.renderTasks.push(internalRenderTask);
-      var renderTask = new RenderTask(internalRenderTask);
+      var renderTask = internalRenderTask.task;
+
+      // Obsolete parameter support
+      if (params.continueCallback) {
+        renderTask.onContinue = params.continueCallback;
+      }
 
       var self = this;
       intentState.displayReadyCapability.promise.then(
@@ -2583,6 +2063,45 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
 
       return renderTask;
     },
+
+    /**
+     * @return {Promise} A promise resolved with an {@link PDFOperatorList}
+     * object that represents page's operator list.
+     */
+    getOperatorList: function PDFPageProxy_getOperatorList() {
+      function operatorListChanged() {
+        if (intentState.operatorList.lastChunk) {
+          intentState.opListReadCapability.resolve(intentState.operatorList);
+        }
+      }
+
+      var renderingIntent = 'oplist';
+      if (!this.intentStates[renderingIntent]) {
+        this.intentStates[renderingIntent] = {};
+      }
+      var intentState = this.intentStates[renderingIntent];
+
+      if (!intentState.opListReadCapability) {
+        var opListTask = {};
+        opListTask.operatorListChanged = operatorListChanged;
+        intentState.receivingOperatorList = true;
+        intentState.opListReadCapability = createPromiseCapability();
+        intentState.renderTasks = [];
+        intentState.renderTasks.push(opListTask);
+        intentState.operatorList = {
+          fnArray: [],
+          argsArray: [],
+          lastChunk: false
+        };
+
+        this.transport.messageHandler.send('RenderPageRequest', {
+          pageIndex: this.pageIndex,
+          intent: renderingIntent
+        });
+      }
+      return intentState.opListReadCapability.promise;
+    },
+
     /**
      * @return {Promise} That is resolved a {@link TextContent}
      * object that represent the page text content.
@@ -2628,7 +2147,11 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
     _startRenderPage: function PDFPageProxy_startRenderPage(transparency,
                                                             intent) {
       var intentState = this.intentStates[intent];
-      intentState.displayReadyCapability.resolve(transparency);
+      // TODO Refactor RenderPageRequest to separate rendering
+      // and operator list logic
+      if (intentState.displayReadyCapability) {
+        intentState.displayReadyCapability.resolve(transparency);
+      }
     },
     /**
      * For internal use only.
@@ -2665,18 +2188,16 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
  * @ignore
  */
 var WorkerTransport = (function WorkerTransportClosure() {
-  function WorkerTransport(workerInitializedCapability, workerReadyCapability,
-                           pdfDataRangeTransport, progressCallback) {
+  function WorkerTransport(workerInitializedCapability, pdfDataRangeTransport) {
     this.pdfDataRangeTransport = pdfDataRangeTransport;
-
-    this.workerReadyCapability = workerReadyCapability;
-    this.progressCallback = progressCallback;
+    this.workerInitializedCapability = workerInitializedCapability;
     this.commonObjs = new PDFObjects();
+
+    this.loadingTask = null;
 
     this.pageCache = [];
     this.pagePromises = [];
     this.downloadInfoCapability = createPromiseCapability();
-    this.passwordCallback = null;
 
     // If worker support isn't disabled explicit and the browser has worker
     // support, create a new web worker and test if it/the browser fullfills
@@ -2706,11 +2227,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
             this.setupMessageHandler(messageHandler);
             workerInitializedCapability.resolve();
           } else {
-            globalScope.PDFJS.disableWorker = true;
-            this.loadFakeWorkerFiles().then(function() {
-              this.setupFakeWorker();
-              workerInitializedCapability.resolve();
-            }.bind(this));
+            this.setupFakeWorker();
           }
         }.bind(this));
 
@@ -2731,11 +2248,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
     }
     // Either workers are disabled, not supported or have thrown an exception.
     // Thus, we fallback to a faked worker.
-    globalScope.PDFJS.disableWorker = true;
-    this.loadFakeWorkerFiles().then(function() {
-      this.setupFakeWorker();
-      workerInitializedCapability.resolve();
-    }.bind(this));
+    this.setupFakeWorker();
   }
   WorkerTransport.prototype = {
     destroy: function WorkerTransport_destroy() {
@@ -2750,7 +2263,9 @@ var WorkerTransport = (function WorkerTransportClosure() {
       });
     },
 
-    loadFakeWorkerFiles: function WorkerTransport_loadFakeWorkerFiles() {
+    setupFakeWorker: function WorkerTransport_setupFakeWorker() {
+      globalScope.PDFJS.disableWorker = true;
+
       if (!PDFJS.fakeWorkerFilesLoadedCapability) {
         PDFJS.fakeWorkerFilesLoadedCapability = createPromiseCapability();
         // In the developer build load worker_loader which in turn loads all the
@@ -2760,25 +2275,25 @@ var WorkerTransport = (function WorkerTransportClosure() {
           PDFJS.fakeWorkerFilesLoadedCapability.resolve();
         });
       }
-      return PDFJS.fakeWorkerFilesLoadedCapability.promise;
-    },
+      PDFJS.fakeWorkerFilesLoadedCapability.promise.then(function () {
+        warn('Setting up fake worker.');
+        // If we don't use a worker, just post/sendMessage to the main thread.
+        var fakeWorker = {
+          postMessage: function WorkerTransport_postMessage(obj) {
+            fakeWorker.onmessage({data: obj});
+          },
+          terminate: function WorkerTransport_terminate() {}
+        };
 
-    setupFakeWorker: function WorkerTransport_setupFakeWorker() {
-      warn('Setting up fake worker.');
-      // If we don't use a worker, just post/sendMessage to the main thread.
-      var fakeWorker = {
-        postMessage: function WorkerTransport_postMessage(obj) {
-          fakeWorker.onmessage({data: obj});
-        },
-        terminate: function WorkerTransport_terminate() {}
-      };
+        var messageHandler = new MessageHandler('main', fakeWorker);
+        this.setupMessageHandler(messageHandler);
 
-      var messageHandler = new MessageHandler('main', fakeWorker);
-      this.setupMessageHandler(messageHandler);
+        // If the main thread is our worker, setup the handling for the messages
+        // the main thread sends to it self.
+        PDFJS.WorkerMessageHandler.setup(messageHandler);
 
-      // If the main thread is our worker, setup the handling for the messages
-      // the main thread sends to it self.
-      PDFJS.WorkerMessageHandler.setup(messageHandler);
+        this.workerInitializedCapability.resolve();
+      }.bind(this));
     },
 
     setupMessageHandler:
@@ -2804,6 +2319,12 @@ var WorkerTransport = (function WorkerTransportClosure() {
           });
         });
 
+        pdfDataRangeTransport.addProgressiveReadListener(function(chunk) {
+          messageHandler.send('OnDataRange', {
+            chunk: chunk
+          });
+        });
+
         messageHandler.on('RequestDataRange',
           function transportDataRange(data) {
             pdfDataRangeTransport.requestDataRange(data.begin, data.end);
@@ -2815,43 +2336,61 @@ var WorkerTransport = (function WorkerTransportClosure() {
         this.numPages = data.pdfInfo.numPages;
         var pdfDocument = new PDFDocumentProxy(pdfInfo, this);
         this.pdfDocument = pdfDocument;
-        this.workerReadyCapability.resolve(pdfDocument);
+        this.loadingTask._capability.resolve(pdfDocument);
       }, this);
 
-      messageHandler.on('NeedPassword', function transportPassword(data) {
-        if (this.passwordCallback) {
-          return this.passwordCallback(updatePassword,
-                                       PasswordResponses.NEED_PASSWORD);
+      messageHandler.on('NeedPassword',
+                        function transportNeedPassword(exception) {
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onPassword) {
+          return loadingTask.onPassword(updatePassword,
+                                        PasswordResponses.NEED_PASSWORD);
         }
-        this.workerReadyCapability.reject(data.exception.message,
-                                          data.exception);
+        loadingTask._capability.reject(
+          new PasswordException(exception.message, exception.code));
       }, this);
 
-      messageHandler.on('IncorrectPassword', function transportBadPass(data) {
-        if (this.passwordCallback) {
-          return this.passwordCallback(updatePassword,
-                                       PasswordResponses.INCORRECT_PASSWORD);
+      messageHandler.on('IncorrectPassword',
+                        function transportIncorrectPassword(exception) {
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onPassword) {
+          return loadingTask.onPassword(updatePassword,
+                                        PasswordResponses.INCORRECT_PASSWORD);
         }
-        this.workerReadyCapability.reject(data.exception.message,
-                                          data.exception);
+        loadingTask._capability.reject(
+          new PasswordException(exception.message, exception.code));
       }, this);
 
-      messageHandler.on('InvalidPDF', function transportInvalidPDF(data) {
-        this.workerReadyCapability.reject(data.exception.name, data.exception);
+      messageHandler.on('InvalidPDF', function transportInvalidPDF(exception) {
+        this.loadingTask._capability.reject(
+          new InvalidPDFException(exception.message));
       }, this);
 
-      messageHandler.on('MissingPDF', function transportMissingPDF(data) {
-        this.workerReadyCapability.reject(data.exception.message,
-                                          data.exception);
+      messageHandler.on('MissingPDF', function transportMissingPDF(exception) {
+        this.loadingTask._capability.reject(
+          new MissingPDFException(exception.message));
       }, this);
 
-      messageHandler.on('UnknownError', function transportUnknownError(data) {
-        this.workerReadyCapability.reject(data.exception.message,
-                                          data.exception);
+      messageHandler.on('UnexpectedResponse',
+                        function transportUnexpectedResponse(exception) {
+        this.loadingTask._capability.reject(
+          new UnexpectedResponseException(exception.message, exception.status));
+      }, this);
+
+      messageHandler.on('UnknownError',
+                        function transportUnknownError(exception) {
+        this.loadingTask._capability.reject(
+          new UnknownErrorException(exception.message, exception.details));
       }, this);
 
       messageHandler.on('DataLoaded', function transportPage(data) {
         this.downloadInfoCapability.resolve(data);
+      }, this);
+
+      messageHandler.on('PDFManagerReady', function transportPage(data) {
+        if (this.pdfDataRangeTransport) {
+          this.pdfDataRangeTransport.transportReady();
+        }
       }, this);
 
       messageHandler.on('StartRenderPage', function transportRender(data) {
@@ -2885,7 +2424,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
               this.commonObjs.resolve(id, error);
               break;
             } else {
-              font = new FontFace(exportedData);
+              font = new FontFaceObject(exportedData);
             }
 
             FontLoader.bind(
@@ -2935,22 +2474,19 @@ var WorkerTransport = (function WorkerTransportClosure() {
       }, this);
 
       messageHandler.on('DocProgress', function transportDocProgress(data) {
-        if (this.progressCallback) {
-          this.progressCallback({
+        var loadingTask = this.loadingTask;
+        if (loadingTask.onProgress) {
+          loadingTask.onProgress({
             loaded: data.loaded,
             total: data.total
           });
         }
       }, this);
 
-      messageHandler.on('DocError', function transportDocError(data) {
-        this.workerReadyCapability.reject(data);
-      }, this);
-
       messageHandler.on('PageError', function transportError(data) {
         var page = this.pageCache[data.pageNum - 1];
         var intentState = page.intentStates[data.intent];
-        if (intentState.displayReadyCapability.promise) {
+        if (intentState.displayReadyCapability) {
           intentState.displayReadyCapability.reject(data.error);
         } else {
           error(data.error);
@@ -2960,7 +2496,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
       messageHandler.on('JpegDecode', function(data) {
         var imageUrl = data[0];
         var components = data[1];
-        if (components != 3 && components != 1) {
+        if (components !== 3 && components !== 1) {
           return Promise.reject(
             new Error('Only 3 components or 1 component can be returned'));
         }
@@ -2979,13 +2515,13 @@ var WorkerTransport = (function WorkerTransportClosure() {
             var data = tmpCtx.getImageData(0, 0, width, height).data;
             var i, j;
 
-            if (components == 3) {
+            if (components === 3) {
               for (i = 0, j = 0; i < rgbaLength; i += 4, j += 3) {
                 buf[j] = data[i];
                 buf[j + 1] = data[i + 1];
                 buf[j + 2] = data[i + 2];
               }
-            } else if (components == 1) {
+            } else if (components === 1) {
               for (i = 0, j = 0; i < rgbaLength; i += 4, j++) {
                 buf[j] = data[i];
               }
@@ -3000,9 +2536,16 @@ var WorkerTransport = (function WorkerTransportClosure() {
       });
     },
 
-    fetchDocument: function WorkerTransport_fetchDocument(source) {
+    fetchDocument: function WorkerTransport_fetchDocument(loadingTask, source) {
+      this.loadingTask = loadingTask;
+
       source.disableAutoFetch = PDFJS.disableAutoFetch;
+      source.disableStream = PDFJS.disableStream;
       source.chunkedViewerLoading = !!this.pdfDataRangeTransport;
+      if (this.pdfDataRangeTransport) {
+        source.length = this.pdfDataRangeTransport.length;
+        source.initialData = this.pdfDataRangeTransport.initialData;
+      }
       this.messageHandler.send('GetDocRequest', {
         source: source,
         disableRange: PDFJS.disableRange,
@@ -3053,6 +2596,10 @@ var WorkerTransport = (function WorkerTransportClosure() {
       return this.messageHandler.sendWithPromise('GetDestinations', null);
     },
 
+    getDestination: function WorkerTransport_getDestination(id) {
+      return this.messageHandler.sendWithPromise('GetDestination', { id: id } );
+    },
+
     getAttachments: function WorkerTransport_getAttachments() {
       return this.messageHandler.sendWithPromise('GetAttachments', null);
     },
@@ -3073,6 +2620,10 @@ var WorkerTransport = (function WorkerTransportClosure() {
           metadata: (results[1] ? new PDFJS.Metadata(results[1]) : null)
         };
       });
+    },
+
+    getStats: function WorkerTransport_getStats() {
+      return this.messageHandler.sendWithPromise('GetStats', null);
     },
 
     startCleanup: function WorkerTransport_startCleanup() {
@@ -3205,26 +2756,37 @@ var PDFObjects = (function PDFObjectsClosure() {
  */
 var RenderTask = (function RenderTaskClosure() {
   function RenderTask(internalRenderTask) {
-    this.internalRenderTask = internalRenderTask;
+    this._internalRenderTask = internalRenderTask;
+
     /**
-     * Promise for rendering task completion.
-     * @type {Promise}
+     * Callback for incremental rendering -- a function that will be called
+     * each time the rendering is paused.  To continue rendering call the
+     * function that is the first argument to the callback.
+     * @type {function}
      */
-    this.promise = this.internalRenderTask.capability.promise;
+    this.onContinue = null;
   }
 
   RenderTask.prototype = /** @lends RenderTask.prototype */ {
+    /**
+     * Promise for rendering task completion.
+     * @return {Promise}
+     */
+    get promise() {
+      return this._internalRenderTask.capability.promise;
+    },
+
     /**
      * Cancels the rendering task. If the task is currently rendering it will
      * not be cancelled until graphics pauses with a timeout. The promise that
      * this object extends will resolved when cancelled.
      */
     cancel: function RenderTask_cancel() {
-      this.internalRenderTask.cancel();
+      this._internalRenderTask.cancel();
     },
 
     /**
-     * Registers callback to indicate the rendering task completion.
+     * Registers callbacks to indicate the rendering task completion.
      *
      * @param {function} onFulfilled The callback for the rendering completion.
      * @param {function} onRejected The callback for the rendering failure.
@@ -3232,7 +2794,7 @@ var RenderTask = (function RenderTaskClosure() {
      *                   onRejected callback.
      */
     then: function RenderTask_then(onFulfilled, onRejected) {
-      return this.promise.then(onFulfilled, onRejected);
+      return this.promise.then.apply(this.promise, arguments);
     }
   };
 
@@ -3257,8 +2819,10 @@ var InternalRenderTask = (function InternalRenderTaskClosure() {
     this.running = false;
     this.graphicsReadyCallback = null;
     this.graphicsReady = false;
+    this.useRequestAnimationFrame = false;
     this.cancelled = false;
     this.capability = createPromiseCapability();
+    this.task = new RenderTask(this);
     // caching this-bound methods
     this._continueBound = this._continue.bind(this);
     this._scheduleNextBound = this._scheduleNext.bind(this);
@@ -3321,15 +2885,19 @@ var InternalRenderTask = (function InternalRenderTaskClosure() {
       if (this.cancelled) {
         return;
       }
-      if (this.params.continueCallback) {
-        this.params.continueCallback(this._scheduleNextBound);
+      if (this.task.onContinue) {
+        this.task.onContinue.call(this.task, this._scheduleNextBound);
       } else {
         this._scheduleNext();
       }
     },
 
     _scheduleNext: function InternalRenderTask__scheduleNext() {
-      window.requestAnimationFrame(this._nextBound);
+      if (this.useRequestAnimationFrame) {
+        window.requestAnimationFrame(this._nextBound);
+      } else {
+        Promise.resolve(undefined).then(this._nextBound);
+      }
     },
 
     _next: function InternalRenderTask__next() {
@@ -3365,8 +2933,8 @@ var Metadata = PDFJS.Metadata = (function MetadataClosure() {
       var chars = '';
       for (var i = 0; i < bytes.length; i += 2) {
         var code = bytes.charCodeAt(i) * 256 + bytes.charCodeAt(i + 1);
-        chars += code >= 32 && code < 127 && code != 60 && code != 62 &&
-          code != 38 && false ? String.fromCharCode(code) :
+        chars += code >= 32 && code < 127 && code !== 60 && code !== 62 &&
+          code !== 38 && false ? String.fromCharCode(code) :
           '&#x' + (0x10000 + code).toString(16).substring(1) + ';';
       }
       return '>' + chars;
@@ -3441,9 +3009,17 @@ var Metadata = PDFJS.Metadata = (function MetadataClosure() {
 
 // Minimal font size that would be used during canvas fillText operations.
 var MIN_FONT_SIZE = 16;
+// Maximum font size that would be used during canvas fillText operations.
+var MAX_FONT_SIZE = 100;
 var MAX_GROUP_SIZE = 4096;
 
+// Heuristic value used when enforcing minimum line widths.
+var MIN_WIDTH_FACTOR = 0.65;
+
 var COMPILE_TYPE3_GLYPHS = true;
+var MAX_SIZE_TO_COMPILE = 1000;
+
+var FULL_CHUNK_HEIGHT = 16;
 
 function createScratchCanvas(width, height) {
   var canvas = document.createElement('canvas');
@@ -3453,11 +3029,8 @@ function createScratchCanvas(width, height) {
 }
 
 function addContextCurrentTransform(ctx) {
-  // If the context doesn't expose a `mozCurrentTransform`, add a JS based on.
+  // If the context doesn't expose a `mozCurrentTransform`, add a JS based one.
   if (!ctx.mozCurrentTransform) {
-    // Store the original context
-    ctx._scaleX = ctx._scaleX || 1.0;
-    ctx._scaleY = ctx._scaleY || 1.0;
     ctx._originalSave = ctx.save;
     ctx._originalRestore = ctx.restore;
     ctx._originalRotate = ctx.rotate;
@@ -3466,7 +3039,7 @@ function addContextCurrentTransform(ctx) {
     ctx._originalTransform = ctx.transform;
     ctx._originalSetTransform = ctx.setTransform;
 
-    ctx._transformMatrix = [ctx._scaleX, 0, 0, ctx._scaleY, 0, 0];
+    ctx._transformMatrix = ctx._transformMatrix || [1, 0, 0, 1, 0, 0];
     ctx._transformStack = [];
 
     Object.defineProperty(ctx, 'mozCurrentTransform', {
@@ -3577,7 +3150,7 @@ var CachedCanvases = (function CachedCanvasesClosure() {
     getCanvas: function CachedCanvases_getCanvas(id, width, height,
                                                  trackTransform) {
       var canvasEntry;
-      if (id in cache) {
+      if (cache[id] !== undefined) {
         canvasEntry = cache[id];
         canvasEntry.canvas.width = width;
         canvasEntry.canvas.height = height;
@@ -3594,7 +3167,14 @@ var CachedCanvases = (function CachedCanvasesClosure() {
       return canvasEntry;
     },
     clear: function () {
-      cache = {};
+      for (var id in cache) {
+        var canvasEntry = cache[id];
+        // Zeroing the width and height causes Firefox to release graphics
+        // resources immediately, which can greatly reduce memory consumption.
+        canvasEntry.canvas.width = 0;
+        canvasEntry.canvas.height = 0;
+        delete cache[id];
+      }
     }
   };
 })();
@@ -3784,6 +3364,7 @@ var CanvasExtraState = (function CanvasExtraStateClosure() {
     // Default fore and background colors
     this.fillColor = '#000000';
     this.strokeColor = '#000000';
+    this.patternFill = false;
     // Note: fill alpha applies to all non-stroking operations
     this.fillAlpha = 1;
     this.strokeAlpha = 1;
@@ -3834,8 +3415,11 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     this.smaskCounter = 0;
     this.tempSMask = null;
     if (canvasCtx) {
+      // NOTE: if mozCurrentTransform is polyfilled, then the current state of
+      // the transformation must already be set in canvasCtx._transformMatrix.
       addContextCurrentTransform(canvasCtx);
     }
+    this.cachedGetSinglePixelWidth = null;
   }
 
   function putBinaryImageData(ctx, imgData) {
@@ -3856,13 +3440,11 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     // that's ok; any such pixels are ignored.
 
     var height = imgData.height, width = imgData.width;
-    var fullChunkHeight = 16;
-    var fracChunks = height / fullChunkHeight;
-    var fullChunks = Math.floor(fracChunks);
-    var totalChunks = Math.ceil(fracChunks);
-    var partialChunkHeight = height - fullChunks * fullChunkHeight;
+    var partialChunkHeight = height % FULL_CHUNK_HEIGHT;
+    var fullChunks = (height - partialChunkHeight) / FULL_CHUNK_HEIGHT;
+    var totalChunks = partialChunkHeight === 0 ? fullChunks : fullChunks + 1;
 
-    var chunkImgData = ctx.createImageData(width, fullChunkHeight);
+    var chunkImgData = ctx.createImageData(width, FULL_CHUNK_HEIGHT);
     var srcPos = 0, destPos;
     var src = imgData.data;
     var dest = chunkImgData.data;
@@ -3882,7 +3464,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
         0xFF000000 : 0x000000FF;
       for (i = 0; i < totalChunks; i++) {
         thisChunkHeight =
-          (i < fullChunks) ? fullChunkHeight : partialChunkHeight;
+          (i < fullChunks) ? FULL_CHUNK_HEIGHT : partialChunkHeight;
         destPos = 0;
         for (j = 0; j < thisChunkHeight; j++) {
           var srcDiff = srcLength - srcPos;
@@ -3917,19 +3499,19 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           dest32[destPos++] = 0;
         }
 
-        ctx.putImageData(chunkImgData, 0, i * fullChunkHeight);
+        ctx.putImageData(chunkImgData, 0, i * FULL_CHUNK_HEIGHT);
       }
     } else if (imgData.kind === ImageKind.RGBA_32BPP) {
       // RGBA, 32-bits per pixel.
 
       j = 0;
-      elemsInThisChunk = width * fullChunkHeight * 4;
+      elemsInThisChunk = width * FULL_CHUNK_HEIGHT * 4;
       for (i = 0; i < fullChunks; i++) {
         dest.set(src.subarray(srcPos, srcPos + elemsInThisChunk));
         srcPos += elemsInThisChunk;
 
         ctx.putImageData(chunkImgData, 0, j);
-        j += fullChunkHeight;
+        j += FULL_CHUNK_HEIGHT;
       }
       if (i < totalChunks) {
         elemsInThisChunk = width * partialChunkHeight * 4;
@@ -3939,11 +3521,11 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
     } else if (imgData.kind === ImageKind.RGB_24BPP) {
       // RGB, 24-bits per pixel.
-      thisChunkHeight = fullChunkHeight;
+      thisChunkHeight = FULL_CHUNK_HEIGHT;
       elemsInThisChunk = width * thisChunkHeight;
       for (i = 0; i < totalChunks; i++) {
         if (i >= fullChunks) {
-          thisChunkHeight =partialChunkHeight;
+          thisChunkHeight = partialChunkHeight;
           elemsInThisChunk = width * thisChunkHeight;
         }
 
@@ -3954,7 +3536,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           dest[destPos++] = src[srcPos++];
           dest[destPos++] = 255;
         }
-        ctx.putImageData(chunkImgData, 0, i * fullChunkHeight);
+        ctx.putImageData(chunkImgData, 0, i * FULL_CHUNK_HEIGHT);
       }
     } else {
       error('bad image kind: ' + imgData.kind);
@@ -3963,20 +3545,18 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
   function putBinaryImageMask(ctx, imgData) {
     var height = imgData.height, width = imgData.width;
-    var fullChunkHeight = 16;
-    var fracChunks = height / fullChunkHeight;
-    var fullChunks = Math.floor(fracChunks);
-    var totalChunks = Math.ceil(fracChunks);
-    var partialChunkHeight = height - fullChunks * fullChunkHeight;
+    var partialChunkHeight = height % FULL_CHUNK_HEIGHT;
+    var fullChunks = (height - partialChunkHeight) / FULL_CHUNK_HEIGHT;
+    var totalChunks = partialChunkHeight === 0 ? fullChunks : fullChunks + 1;
 
-    var chunkImgData = ctx.createImageData(width, fullChunkHeight);
+    var chunkImgData = ctx.createImageData(width, FULL_CHUNK_HEIGHT);
     var srcPos = 0;
     var src = imgData.data;
     var dest = chunkImgData.data;
 
     for (var i = 0; i < totalChunks; i++) {
       var thisChunkHeight =
-        (i < fullChunks) ? fullChunkHeight : partialChunkHeight;
+        (i < fullChunks) ? FULL_CHUNK_HEIGHT : partialChunkHeight;
 
       // Expand the mask so it can be used by the canvas.  Any required
       // inversion has already been handled.
@@ -3993,7 +3573,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           mask >>= 1;
         }
       }
-      ctx.putImageData(chunkImgData, 0, i * fullChunkHeight);
+      ctx.putImageData(chunkImgData, 0, i * FULL_CHUNK_HEIGHT);
     }
   }
 
@@ -4003,14 +3583,14 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
                       'globalCompositeOperation', 'font'];
     for (var i = 0, ii = properties.length; i < ii; i++) {
       var property = properties[i];
-      if (property in sourceCtx) {
+      if (sourceCtx[property] !== undefined) {
         destCtx[property] = sourceCtx[property];
       }
     }
-    if ('setLineDash' in sourceCtx) {
+    if (sourceCtx.setLineDash !== undefined) {
       destCtx.setLineDash(sourceCtx.getLineDash());
       destCtx.lineDashOffset =  sourceCtx.lineDashOffset;
-    } else if ('mozDash' in sourceCtx) {
+    } else if (sourceCtx.mozDashOffset !== undefined) {
       destCtx.mozDash = sourceCtx.mozDash;
       destCtx.mozDashOffset = sourceCtx.mozDashOffset;
     }
@@ -4045,9 +3625,9 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
   function composeSMaskLuminosity(maskData, layerData) {
     var length = maskData.length;
     for (var i = 3; i < length; i += 4) {
-      var y = ((maskData[i - 3] * 77) +     // * 0.3 / 255 * 0x10000
-               (maskData[i - 2] * 152) +    // * 0.59 ....
-               (maskData[i - 1] * 28)) | 0; // * 0.11 ....
+      var y = (maskData[i - 3] * 77) +  // * 0.3 / 255 * 0x10000
+              (maskData[i - 2] * 152) + // * 0.59 ....
+              (maskData[i - 1] * 28);   // * 0.11 ....
       layerData[i] = (layerData[i] * y) >> 16;
     }
   }
@@ -4067,7 +3647,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     }
 
     // processing image in chunks to save memory
-    var PIXELS_TO_PROCESS = 65536;
+    var PIXELS_TO_PROCESS = 1048576;
     var chunkSize = Math.min(height, Math.ceil(PIXELS_TO_PROCESS / width));
     for (var row = 0; row < height; row += chunkSize) {
       var chunkHeight = Math.min(chunkSize, height - row);
@@ -4237,7 +3817,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     },
     setDash: function CanvasGraphics_setDash(dashArray, dashPhase) {
       var ctx = this.ctx;
-      if ('setLineDash' in ctx) {
+      if (ctx.setLineDash !== undefined) {
         ctx.setLineDash(dashArray);
         ctx.lineDashOffset = dashPhase;
       } else {
@@ -4372,10 +3952,14 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
         this.current = this.stateStack.pop();
         this.ctx.restore();
+
+        this.cachedGetSinglePixelWidth = null;
       }
     },
     transform: function CanvasGraphics_transform(a, b, c, d, e, f) {
       this.ctx.transform(a, b, c, d, e, f);
+
+      this.cachedGetSinglePixelWidth = null;
     },
 
     // Path
@@ -4385,6 +3969,26 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var x = current.x, y = current.y;
       for (var i = 0, j = 0, ii = ops.length; i < ii; i++) {
         switch (ops[i] | 0) {
+          case OPS.rectangle:
+            x = args[j++];
+            y = args[j++];
+            var width = args[j++];
+            var height = args[j++];
+            if (width === 0) {
+              width = this.getSinglePixelWidth();
+            }
+            if (height === 0) {
+              height = this.getSinglePixelWidth();
+            }
+            var xw = x + width;
+            var yh = y + height;
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(xw, y);
+            this.ctx.lineTo(xw, yh);
+            this.ctx.lineTo(x, yh);
+            this.ctx.lineTo(x, y);
+            this.ctx.closePath();
+            break;
           case OPS.moveTo:
             x = args[j++];
             y = args[j++];
@@ -4425,23 +4029,13 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     closePath: function CanvasGraphics_closePath() {
       this.ctx.closePath();
     },
-    rectangle: function CanvasGraphics_rectangle(x, y, width, height) {
-      if (width === 0) {
-        width = this.getSinglePixelWidth();
-      }
-      if (height === 0) {
-        height = this.getSinglePixelWidth();
-      }
-
-      this.ctx.rect(x, y, width, height);
-    },
     stroke: function CanvasGraphics_stroke(consumePath) {
       consumePath = typeof consumePath !== 'undefined' ? consumePath : true;
       var ctx = this.ctx;
       var strokeColor = this.current.strokeColor;
-      if (this.current.lineWidth === 0) {
-        ctx.lineWidth = this.getSinglePixelWidth();
-      }
+      // Prevent drawing too thin lines by enforcing a minimum line width.
+      ctx.lineWidth = Math.max(this.getSinglePixelWidth() * MIN_WIDTH_FACTOR,
+                               this.current.lineWidth);
       // For stroke we want to temporarily change the global alpha to the
       // stroking alpha.
       ctx.globalAlpha = this.current.strokeAlpha;
@@ -4470,10 +4064,10 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       consumePath = typeof consumePath !== 'undefined' ? consumePath : true;
       var ctx = this.ctx;
       var fillColor = this.current.fillColor;
+      var isPatternFill = this.current.patternFill;
       var needRestore = false;
 
-      if (fillColor && fillColor.hasOwnProperty('type') &&
-          fillColor.type === 'Pattern') {
+      if (isPatternFill) {
         ctx.save();
         ctx.fillStyle = fillColor.getPattern(ctx, this);
         needRestore = true;
@@ -4614,7 +4208,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       }
 
       var name = fontObj.loadedName || 'sans-serif';
-      var bold = fontObj.black ? (fontObj.bold ? 'bolder' : 'bold') :
+      var bold = fontObj.black ? (fontObj.bold ? '900' : 'bold') :
                                  (fontObj.bold ? 'bold' : 'normal');
 
       var italic = fontObj.italic ? 'italic' : 'normal';
@@ -4624,9 +4218,9 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       // Keeping the font at minimal size and using the fontSizeScale to change
       // the current transformation matrix before the fillText/strokeText.
       // See https://bugzilla.mozilla.org/show_bug.cgi?id=726227
-      var browserFontSize = size >= MIN_FONT_SIZE ? size : MIN_FONT_SIZE;
-      this.current.fontSizeScale = browserFontSize != MIN_FONT_SIZE ? 1.0 :
-                                   size / MIN_FONT_SIZE;
+      var browserFontSize = size < MIN_FONT_SIZE ? MIN_FONT_SIZE :
+                            size > MAX_FONT_SIZE ? MAX_FONT_SIZE : size;
+      this.current.fontSizeScale = size / browserFontSize;
 
       var rule = italic + ' ' + bold + ' ' + browserFontSize + 'px ' + typeface;
       this.ctx.font = rule;
@@ -4766,12 +4360,18 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var lineWidth = current.lineWidth;
       var scale = current.textMatrixScale;
       if (scale === 0 || lineWidth === 0) {
-        lineWidth = this.getSinglePixelWidth();
+        var fillStrokeMode = current.textRenderingMode &
+          TextRenderingMode.FILL_STROKE_MASK;
+        if (fillStrokeMode === TextRenderingMode.STROKE ||
+            fillStrokeMode === TextRenderingMode.FILL_STROKE) {
+          this.cachedGetSinglePixelWidth = null;
+          lineWidth = this.getSinglePixelWidth() * MIN_WIDTH_FACTOR;
+        }
       } else {
         lineWidth /= scale;
       }
 
-      if (fontSizeScale != 1.0) {
+      if (fontSizeScale !== 1.0) {
         ctx.scale(fontSizeScale, fontSizeScale);
         lineWidth /= fontSizeScale;
       }
@@ -4861,17 +4461,20 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var textHScale = current.textHScale * fontDirection;
       var fontMatrix = current.fontMatrix || FONT_IDENTITY_MATRIX;
       var glyphsLength = glyphs.length;
+      var isTextInvisible =
+        current.textRenderingMode === TextRenderingMode.INVISIBLE;
       var i, glyph, width;
 
-      if (fontSize === 0) {
+      if (isTextInvisible || fontSize === 0) {
         return;
       }
+      this.cachedGetSinglePixelWidth = null;
 
       ctx.save();
       ctx.transform.apply(ctx, current.textMatrix);
       ctx.translate(current.x, current.y);
 
-      ctx.scale(textHScale, 1);
+      ctx.scale(textHScale, fontDirection);
 
       for (i = 0; i < glyphsLength; ++i) {
         glyph = glyphs[i];
@@ -4887,16 +4490,21 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           continue;
         }
 
+        var operatorList = font.charProcOperatorList[glyph.operatorListId];
+        if (!operatorList) {
+          warn('Type3 character \"' + glyph.operatorListId +
+               '\" is not available');
+          continue;
+        }
         this.processingType3 = glyph;
         this.save();
         ctx.scale(fontSize, fontSize);
         ctx.transform.apply(ctx, fontMatrix);
-        var operatorList = font.charProcOperatorList[glyph.operatorListId];
         this.executeOperatorList(operatorList);
         this.restore();
 
         var transformed = Util.applyTransform([glyph.width, 0], fontMatrix);
-        width = ((transformed[0] * fontSize + charSpacing) * fontDirection);
+        width = transformed[0] * fontSize + charSpacing;
 
         ctx.translate(width, 0);
         current.x += width * textHScale;
@@ -4918,7 +4526,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
                                                                         ury) {
       // TODO According to the spec we're also suppose to ignore any operators
       // that set color or include images while processing this type3 font.
-      this.rectangle(llx, lly, urx - llx, ury - lly);
+      this.ctx.rect(llx, lly, urx - llx, ury - lly);
       this.clip();
       this.endPath();
     },
@@ -4940,16 +4548,18 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     },
     setFillColorN: function CanvasGraphics_setFillColorN(/*...*/) {
       this.current.fillColor = this.getColorN_Pattern(arguments);
+      this.current.patternFill = true;
     },
     setStrokeRGBColor: function CanvasGraphics_setStrokeRGBColor(r, g, b) {
-      var color = Util.makeCssRgb(arguments);
+      var color = Util.makeCssRgb(r, g, b);
       this.ctx.strokeStyle = color;
       this.current.strokeColor = color;
     },
     setFillRGBColor: function CanvasGraphics_setFillRGBColor(r, g, b) {
-      var color = Util.makeCssRgb(arguments);
+      var color = Util.makeCssRgb(r, g, b);
       this.ctx.fillStyle = color;
       this.current.fillColor = color;
+      this.current.patternFill = false;
     },
 
     shadingFill: function CanvasGraphics_shadingFill(patternIR) {
@@ -5011,7 +4621,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       if (isArray(bbox) && 4 === bbox.length) {
         var width = bbox[2] - bbox[0];
         var height = bbox[3] - bbox[1];
-        this.rectangle(bbox[0], bbox[1], width, height);
+        this.ctx.rect(bbox[0], bbox[1], width, height);
         this.clip();
         this.endPath();
       }
@@ -5163,7 +4773,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       if (isArray(rect) && 4 === rect.length) {
         var width = rect[2] - rect[0];
         var height = rect[3] - rect[1];
-        this.rectangle(rect[0], rect[1], width, height);
+        this.ctx.rect(rect[0], rect[1], width, height);
         this.clip();
         this.endPath();
       }
@@ -5208,11 +4818,12 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     paintImageMaskXObject: function CanvasGraphics_paintImageMaskXObject(img) {
       var ctx = this.ctx;
       var width = img.width, height = img.height;
+      var fillColor = this.current.fillColor;
+      var isPatternFill = this.current.patternFill;
 
       var glyph = this.processingType3;
 
-      if (COMPILE_TYPE3_GLYPHS && glyph && !('compiled' in glyph)) {
-        var MAX_SIZE_TO_COMPILE = 1000;
+      if (COMPILE_TYPE3_GLYPHS && glyph && glyph.compiled === undefined) {
         if (width <= MAX_SIZE_TO_COMPILE && height <= MAX_SIZE_TO_COMPILE) {
           glyph.compiled =
             compileType3Glyph({data: img.data, width: width, height: height});
@@ -5234,9 +4845,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
       maskCtx.globalCompositeOperation = 'source-in';
 
-      var fillColor = this.current.fillColor;
-      maskCtx.fillStyle = (fillColor && fillColor.hasOwnProperty('type') &&
-                          fillColor.type === 'Pattern') ?
+      maskCtx.fillStyle = isPatternFill ?
                           fillColor.getPattern(maskCtx, this) : fillColor;
       maskCtx.fillRect(0, 0, width, height);
 
@@ -5250,7 +4859,8 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
                                                           scaleY, positions) {
       var width = imgData.width;
       var height = imgData.height;
-      var ctx = this.ctx;
+      var fillColor = this.current.fillColor;
+      var isPatternFill = this.current.patternFill;
 
       var maskCanvas = CachedCanvases.getCanvas('maskCanvas', width, height);
       var maskCtx = maskCanvas.context;
@@ -5260,14 +4870,13 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
       maskCtx.globalCompositeOperation = 'source-in';
 
-      var fillColor = this.current.fillColor;
-      maskCtx.fillStyle = (fillColor && fillColor.hasOwnProperty('type') &&
-        fillColor.type === 'Pattern') ?
-        fillColor.getPattern(maskCtx, this) : fillColor;
+      maskCtx.fillStyle = isPatternFill ?
+                          fillColor.getPattern(maskCtx, this) : fillColor;
       maskCtx.fillRect(0, 0, width, height);
 
       maskCtx.restore();
 
+      var ctx = this.ctx;
       for (var i = 0, ii = positions.length; i < ii; i += 2) {
         ctx.save();
         ctx.transform(scaleX, 0, 0, scaleY, positions[i], positions[i + 1]);
@@ -5282,6 +4891,8 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       function CanvasGraphics_paintImageMaskXObjectGroup(images) {
       var ctx = this.ctx;
 
+      var fillColor = this.current.fillColor;
+      var isPatternFill = this.current.patternFill;
       for (var i = 0, ii = images.length; i < ii; i++) {
         var image = images[i];
         var width = image.width, height = image.height;
@@ -5294,9 +4905,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
         maskCtx.globalCompositeOperation = 'source-in';
 
-        var fillColor = this.current.fillColor;
-        maskCtx.fillStyle = (fillColor && fillColor.hasOwnProperty('type') &&
-                            fillColor.type === 'Pattern') ?
+        maskCtx.fillStyle = isPatternFill ?
                             fillColor.getPattern(maskCtx, this) : fillColor;
         maskCtx.fillRect(0, 0, width, height);
 
@@ -5499,11 +5108,14 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       ctx.beginPath();
     },
     getSinglePixelWidth: function CanvasGraphics_getSinglePixelWidth(scale) {
-      var inverse = this.ctx.mozCurrentTransformInverse;
-      // max of the current horizontal and vertical scale
-      return Math.sqrt(Math.max(
-        (inverse[0] * inverse[0] + inverse[1] * inverse[1]),
-        (inverse[2] * inverse[2] + inverse[3] * inverse[3])));
+      if (this.cachedGetSinglePixelWidth === null) {
+        var inverse = this.ctx.mozCurrentTransformInverse;
+        // max of the current horizontal and vertical scale
+        this.cachedGetSinglePixelWidth = Math.sqrt(Math.max(
+          (inverse[0] * inverse[0] + inverse[1] * inverse[1]),
+          (inverse[2] * inverse[2] + inverse[3] * inverse[3])));
+      }
+      return this.cachedGetSinglePixelWidth;
     },
     getCanvasPosition: function CanvasGraphics_getCanvasPosition(x, y) {
         var transform = this.ctx.mozCurrentTransform;
@@ -5520,7 +5132,6 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
   return CanvasGraphics;
 })();
-
 
 
 var WebGLUtils = (function WebGLUtilsClosure() {
@@ -5571,7 +5182,7 @@ var WebGLUtils = (function WebGLUtilsClosure() {
   }
 
   var currentGL, currentCanvas;
-  function generageGL() {
+  function generateGL() {
     if (currentGL) {
       return;
     }
@@ -5629,7 +5240,7 @@ var WebGLUtils = (function WebGLUtilsClosure() {
   function initSmaskGL() {
     var canvas, gl;
 
-    generageGL();
+    generateGL();
     canvas = currentCanvas;
     currentCanvas = null;
     gl = currentGL;
@@ -5761,7 +5372,7 @@ var WebGLUtils = (function WebGLUtilsClosure() {
   function initFiguresGL() {
     var canvas, gl;
 
-    generageGL();
+    generateGL();
     canvas = currentCanvas;
     currentCanvas = null;
     gl = currentGL;
@@ -5910,6 +5521,14 @@ var WebGLUtils = (function WebGLUtilsClosure() {
   }
 
   function cleanup() {
+    if (smaskCache && smaskCache.canvas) {
+      smaskCache.canvas.width = 0;
+      smaskCache.canvas.height = 0;
+    }
+    if (figuresCache && figuresCache.canvas) {
+      figuresCache.canvas.width = 0;
+      figuresCache.canvas.height = 0;
+    }
     smaskCache = null;
     figuresCache = null;
   }
@@ -5921,7 +5540,7 @@ var WebGLUtils = (function WebGLUtilsClosure() {
       }
       var enabled = false;
       try {
-        generageGL();
+        generateGL();
         enabled = !!currentGL;
       } catch (e) { }
       return shadow(this, 'isEnabled', enabled);
@@ -6140,24 +5759,24 @@ ShadingIRs.Mesh = {
     return {
       type: 'Pattern',
       getPattern: function Mesh_getPattern(ctx, owner, shadingFill) {
-        var combinedScale;
-        // Obtain scale from matrix and current transformation matrix.
+        var scale;
         if (shadingFill) {
-          combinedScale = Util.singularValueDecompose2dScale(
-            ctx.mozCurrentTransform);
+          scale = Util.singularValueDecompose2dScale(ctx.mozCurrentTransform);
         } else {
-          var matrixScale = Util.singularValueDecompose2dScale(matrix);
-          var curMatrixScale = Util.singularValueDecompose2dScale(
-            owner.baseTransform);
-          combinedScale = [matrixScale[0] * curMatrixScale[0],
-            matrixScale[1] * curMatrixScale[1]];
+          // Obtain scale from matrix and current transformation matrix.
+          scale = Util.singularValueDecompose2dScale(owner.baseTransform);
+          if (matrix) {
+            var matrixScale = Util.singularValueDecompose2dScale(matrix);
+            scale = [scale[0] * matrixScale[0],
+                     scale[1] * matrixScale[1]];
+          }
         }
 
 
         // Rasterizing on the main thread since sending/queue large canvases
         // might cause OOM.
-        var temporaryPatternCanvas = createMeshCanvas(bounds, combinedScale,
-          coords, colors, figures, shadingFill ? null : background);
+        var temporaryPatternCanvas = createMeshCanvas(bounds, scale, coords,
+          colors, figures, shadingFill ? null : background);
 
         if (!shadingFill) {
           ctx.setTransform.apply(ctx, owner.baseTransform);
@@ -6296,10 +5915,10 @@ var TilingPattern = (function TilingPatternClosure() {
     },
 
     clipBbox: function clipBbox(graphics, bbox, x0, y0, x1, y1) {
-      if (bbox && isArray(bbox) && 4 == bbox.length) {
+      if (bbox && isArray(bbox) && bbox.length === 4) {
         var bboxWidth = x1 - x0;
         var bboxHeight = y1 - y0;
-        graphics.rectangle(x0, y0, bboxWidth, bboxHeight);
+        graphics.ctx.rect(x0, y0, bboxWidth, bboxHeight);
         graphics.clip();
         graphics.endPath();
       }
@@ -6314,7 +5933,7 @@ var TilingPattern = (function TilingPatternClosure() {
             context.strokeStyle = ctx.strokeStyle;
             break;
           case PaintType.UNCOLORED:
-            var cssColor = Util.makeCssRgb(color);
+            var cssColor = Util.makeCssRgb(color[0], color[1], color[2]);
             context.fillStyle = cssColor;
             context.strokeStyle = cssColor;
             break;
@@ -6378,8 +5997,8 @@ var FontLoader = {
   }
 };
 
-var FontFace = (function FontFaceClosure() {
-  function FontFace(name, file, properties) {
+var FontFaceObject = (function FontFaceObjectClosure() {
+  function FontFaceObject(name, file, properties) {
     this.compiledGlyphs = {};
     if (arguments.length === 1) {
       // importing translated data
@@ -6390,8 +6009,9 @@ var FontFace = (function FontFaceClosure() {
       return;
     }
   }
-  FontFace.prototype = {
-    bindDOM: function FontFace_bindDOM() {
+  FontFaceObject.prototype = {
+
+    bindDOM: function FontFaceObject_bindDOM() {
       if (!this.data) {
         return null;
       }
@@ -6418,7 +6038,7 @@ var FontFace = (function FontFaceClosure() {
       return rule;
     },
 
-    getPathGenerator: function (objs, character) {
+    getPathGenerator: function FontLoader_getPathGenerator(objs, character) {
       if (!(character in this.compiledGlyphs)) {
         var js = objs.get(this.loadedName + '_path_' + character);
         /*jshint -W054 */
@@ -6427,8 +6047,238 @@ var FontFace = (function FontFaceClosure() {
       return this.compiledGlyphs[character];
     }
   };
-  return FontFace;
+  return FontFaceObject;
 })();
+
+
+var ANNOT_MIN_SIZE = 10; // px
+
+var AnnotationUtils = (function AnnotationUtilsClosure() {
+  // TODO(mack): This dupes some of the logic in CanvasGraphics.setFont()
+  function setTextStyles(element, item, fontObj) {
+
+    var style = element.style;
+    style.fontSize = item.fontSize + 'px';
+    style.direction = item.fontDirection < 0 ? 'rtl': 'ltr';
+
+    if (!fontObj) {
+      return;
+    }
+
+    style.fontWeight = fontObj.black ?
+      (fontObj.bold ? 'bolder' : 'bold') :
+      (fontObj.bold ? 'bold' : 'normal');
+    style.fontStyle = fontObj.italic ? 'italic' : 'normal';
+
+    var fontName = fontObj.loadedName;
+    var fontFamily = fontName ? '"' + fontName + '", ' : '';
+    // Use a reasonable default font if the font doesn't specify a fallback
+    var fallbackName = fontObj.fallbackName || 'Helvetica, sans-serif';
+    style.fontFamily = fontFamily + fallbackName;
+  }
+
+  function initContainer(item, drawBorder) {
+    var container = document.createElement('section');
+    var cstyle = container.style;
+    var width = item.rect[2] - item.rect[0];
+    var height = item.rect[3] - item.rect[1];
+
+    var bWidth = item.borderWidth || 0;
+    if (bWidth) {
+      width = width - 2 * bWidth;
+      height = height - 2 * bWidth;
+      cstyle.borderWidth = bWidth + 'px';
+      var color = item.color;
+      if (drawBorder && color) {
+        cstyle.borderStyle = 'solid';
+        cstyle.borderColor = Util.makeCssRgb(Math.round(color[0] * 255),
+                                             Math.round(color[1] * 255),
+                                             Math.round(color[2] * 255));
+      }
+    }
+    cstyle.width = width + 'px';
+    cstyle.height = height + 'px';
+    return container;
+  }
+
+  function getHtmlElementForTextWidgetAnnotation(item, commonObjs) {
+    var element = document.createElement('div');
+    var width = item.rect[2] - item.rect[0];
+    var height = item.rect[3] - item.rect[1];
+    element.style.width = width + 'px';
+    element.style.height = height + 'px';
+    element.style.display = 'table';
+
+    var content = document.createElement('div');
+    content.textContent = item.fieldValue;
+    var textAlignment = item.textAlignment;
+    content.style.textAlign = ['left', 'center', 'right'][textAlignment];
+    content.style.verticalAlign = 'middle';
+    content.style.display = 'table-cell';
+
+    var fontObj = item.fontRefName ?
+      commonObjs.getData(item.fontRefName) : null;
+    setTextStyles(content, item, fontObj);
+
+    element.appendChild(content);
+
+    return element;
+  }
+
+  function getHtmlElementForTextAnnotation(item) {
+    var rect = item.rect;
+
+    // sanity check because of OOo-generated PDFs
+    if ((rect[3] - rect[1]) < ANNOT_MIN_SIZE) {
+      rect[3] = rect[1] + ANNOT_MIN_SIZE;
+    }
+    if ((rect[2] - rect[0]) < ANNOT_MIN_SIZE) {
+      rect[2] = rect[0] + (rect[3] - rect[1]); // make it square
+    }
+
+    var container = initContainer(item, false);
+    container.className = 'annotText';
+
+    var image  = document.createElement('img');
+    image.style.height = container.style.height;
+    image.style.width = container.style.width;
+    var iconName = item.name;
+    image.src = PDFJS.imageResourcesPath + 'annotation-' +
+      iconName.toLowerCase() + '.svg';
+    image.alt = '[{{type}} Annotation]';
+    image.dataset.l10nId = 'text_annotation_type';
+    image.dataset.l10nArgs = JSON.stringify({type: iconName});
+
+    var contentWrapper = document.createElement('div');
+    contentWrapper.className = 'annotTextContentWrapper';
+    contentWrapper.style.left = Math.floor(rect[2] - rect[0] + 5) + 'px';
+    contentWrapper.style.top = '-10px';
+
+    var content = document.createElement('div');
+    content.className = 'annotTextContent';
+    content.setAttribute('hidden', true);
+
+    var i, ii;
+    if (item.hasBgColor) {
+      var color = item.color;
+
+      // Enlighten the color (70%)
+      var BACKGROUND_ENLIGHT = 0.7;
+      var r = BACKGROUND_ENLIGHT * (1.0 - color[0]) + color[0];
+      var g = BACKGROUND_ENLIGHT * (1.0 - color[1]) + color[1];
+      var b = BACKGROUND_ENLIGHT * (1.0 - color[2]) + color[2];
+      content.style.backgroundColor = Util.makeCssRgb((r * 255) | 0,
+                                                      (g * 255) | 0,
+                                                      (b * 255) | 0);
+    }
+
+    var title = document.createElement('h1');
+    var text = document.createElement('p');
+    title.textContent = item.title;
+
+    if (!item.content && !item.title) {
+      content.setAttribute('hidden', true);
+    } else {
+      var e = document.createElement('span');
+      var lines = item.content.split(/(?:\r\n?|\n)/);
+      for (i = 0, ii = lines.length; i < ii; ++i) {
+        var line = lines[i];
+        e.appendChild(document.createTextNode(line));
+        if (i < (ii - 1)) {
+          e.appendChild(document.createElement('br'));
+        }
+      }
+      text.appendChild(e);
+
+      var pinned = false;
+
+      var showAnnotation = function showAnnotation(pin) {
+        if (pin) {
+          pinned = true;
+        }
+        if (content.hasAttribute('hidden')) {
+          container.style.zIndex += 1;
+          content.removeAttribute('hidden');
+        }
+      };
+
+      var hideAnnotation = function hideAnnotation(unpin) {
+        if (unpin) {
+          pinned = false;
+        }
+        if (!content.hasAttribute('hidden') && !pinned) {
+          container.style.zIndex -= 1;
+          content.setAttribute('hidden', true);
+        }
+      };
+
+      var toggleAnnotation = function toggleAnnotation() {
+        if (pinned) {
+          hideAnnotation(true);
+        } else {
+          showAnnotation(true);
+        }
+      };
+
+      image.addEventListener('click', function image_clickHandler() {
+        toggleAnnotation();
+      }, false);
+      image.addEventListener('mouseover', function image_mouseOverHandler() {
+        showAnnotation();
+      }, false);
+      image.addEventListener('mouseout', function image_mouseOutHandler() {
+        hideAnnotation();
+      }, false);
+
+      content.addEventListener('click', function content_clickHandler() {
+        hideAnnotation(true);
+      }, false);
+    }
+
+    content.appendChild(title);
+    content.appendChild(text);
+    contentWrapper.appendChild(content);
+    container.appendChild(image);
+    container.appendChild(contentWrapper);
+
+    return container;
+  }
+
+  function getHtmlElementForLinkAnnotation(item) {
+    var container = initContainer(item, true);
+    container.className = 'annotLink';
+
+    var link = document.createElement('a');
+    link.href = link.title = item.url || '';
+    if (item.url && PDFJS.openExternalLinksInNewWindow) {
+      link.target = '_blank';
+    }
+
+    container.appendChild(link);
+
+    return container;
+  }
+
+  function getHtmlElement(data, objs) {
+    switch (data.annotationType) {
+      case AnnotationType.WIDGET:
+        return getHtmlElementForTextWidgetAnnotation(data, objs);
+      case AnnotationType.TEXT:
+        return getHtmlElementForTextAnnotation(data);
+      case AnnotationType.LINK:
+        return getHtmlElementForLinkAnnotation(data);
+      default:
+        throw new Error('Unsupported annotationType: ' + data.annotationType);
+    }
+  }
+
+  return {
+    getHtmlElement: getHtmlElement
+  };
+})();
+PDFJS.AnnotationUtils = AnnotationUtils;
+
+
 
 
 }).call((typeof window === 'undefined') ? this : window);

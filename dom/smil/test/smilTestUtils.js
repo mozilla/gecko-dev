@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,14 +55,14 @@ var SMILUtil =
   },
 
   // Smart wrapper for getComputedStyle, which will generate a "fake" computed
-  // style for recognized shorthand properties (font, overflow, marker)
+  // style for recognized shorthand properties (font, font-variant, overflow, marker)
   getComputedStyleWrapper : function(elem, propName)
   {
     // Special cases for shorthand properties (which aren't directly queriable
     // via getComputedStyle)
     var computedStyle;
     if (propName == "font") {
-      var subProps = ["font-style", "font-variant", "font-weight",
+      var subProps = ["font-style", "font-variant-caps", "font-weight",
                       "font-size", "line-height", "font-family"];
       for (var i in subProps) {
         var subPropStyle = SMILUtil.getComputedStyleSimple(elem, subProps[i]);
@@ -78,6 +78,10 @@ var SMILUtil =
           }
         }
       }
+    } else if (propName == "font-variant") {
+      // xxx - this isn't completely correct but it's sufficient for what's
+      //       being tested here
+      computedStyle = SMILUtil.getComputedStyleSimple(elem, "font-variant-caps");
     } else if (propName == "marker") {
       var subProps = ["marker-end", "marker-mid", "marker-start"];
       for (var i in subProps) {

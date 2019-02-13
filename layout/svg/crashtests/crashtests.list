@@ -61,7 +61,7 @@ load 385552-2.svg
 load 385840-1.svg
 load 385852-1.svg
 load 386475-1.xhtml
-asserts(1) load 386566-1.svg # Bug 713626
+load 386566-1.svg
 load 386690-1.svg
 load 387290-1.svg
 load 402408-1.svg
@@ -76,6 +76,7 @@ load 453754-1.svg
 load 455314-1.xhtml
 load 458453.html
 load 459666-1.html
+load 459883.xhtml
 load 461289-1.svg
 load 464374-1.svg
 load 466585-1.svg
@@ -176,6 +177,7 @@ load 895311-1.svg
 load 897342-1.svg
 load 898909-1.svg
 load 898951-1.svg
+load 913990.html
 load 919371-1.xhtml
 load 952270-1.svg
 load 963086-1.svg
@@ -185,4 +187,6 @@ load 979407-1.svg
 load 979407-2.svg
 load 993443.svg
 load 1016145.svg
-
+load 1028512.svg
+load 1140080-1.svg
+load 1182496-1.html

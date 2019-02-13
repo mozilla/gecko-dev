@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -58,7 +58,7 @@ this.DownloadPaths = {
     // that can't be created on some platforms, and for which a normal call to
     // nsIFile.create would result in NS_ERROR_FILE_NOT_FOUND. This can result
     // very rarely in strange names like "base(9999).tar-1.gz" or "ba-1.gz".
-    curFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0644);
+    curFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
     return curFile;
   },
 

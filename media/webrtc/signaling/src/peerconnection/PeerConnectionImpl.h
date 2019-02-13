@@ -22,13 +22,18 @@
 #include "nricemediastream.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPIDOMWindow.h"
+#include "nsIUUIDGenerator.h"
 #include "nsIThread.h"
+
+#include "signaling/src/jsep/JsepSession.h"
+#include "signaling/src/jsep/JsepSessionImpl.h"
+#include "signaling/src/sdp/SdpMediaSection.h"
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PeerConnectionImplEnumsBinding.h"
 #include "StreamBuffer.h"
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 #include "mozilla/TimeStamp.h"
 #include "mozilla/net/DataChannel.h"
 #include "VideoUtils.h"
@@ -50,10 +55,10 @@ class AFakePCObserver;
 
 #ifdef USE_FAKE_MEDIA_STREAMS
 class Fake_DOMMediaStream;
+class Fake_MediaStreamTrack;
 #endif
 
 class nsGlobalWindow;
-class nsIDOMMediaStream;
 class nsDOMDataChannel;
 
 namespace mozilla {
@@ -67,14 +72,20 @@ class MediaPipeline;
 
 #ifdef USE_FAKE_MEDIA_STREAMS
 typedef Fake_DOMMediaStream DOMMediaStream;
+typedef Fake_MediaStreamTrack MediaStreamTrack;
 #else
 class DOMMediaStream;
 #endif
 
 namespace dom {
-class RTCConfiguration;
-class MediaConstraintsInternal;
+struct RTCConfiguration;
+struct RTCIceServer;
+struct RTCOfferOptions;
+#ifdef USE_FAKE_MEDIA_STREAMS
+typedef Fake_MediaStreamTrack MediaStreamTrack;
+#else
 class MediaStreamTrack;
+#endif
 
 #ifdef USE_FAKE_PCOBSERVER
 typedef test::AFakePCObserver PeerConnectionObserver;
@@ -84,7 +95,6 @@ class PeerConnectionObserver;
 typedef NS_ConvertUTF8toUTF16 PCObserverString;
 #endif
 }
-class MediaConstraintsExternal;
 }
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
@@ -104,12 +114,14 @@ void func (__VA_ARGS__, rv)
 NS_IMETHODIMP func(__VA_ARGS__, resulttype **result);                  \
 already_AddRefed<resulttype> func (__VA_ARGS__, rv)
 
-namespace sipcc {
+struct MediaStreamTable;
+
+namespace mozilla {
 
 using mozilla::dom::PeerConnectionObserver;
 using mozilla::dom::RTCConfiguration;
-using mozilla::dom::MediaConstraintsInternal;
-using mozilla::MediaConstraintsExternal;
+using mozilla::dom::RTCIceServer;
+using mozilla::dom::RTCOfferOptions;
 using mozilla::DOMMediaStream;
 using mozilla::NrIceCtx;
 using mozilla::NrIceMediaStream;
@@ -117,25 +129,35 @@ using mozilla::DtlsIdentity;
 using mozilla::ErrorResult;
 using mozilla::NrIceStunServer;
 using mozilla::NrIceTurnServer;
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 using mozilla::PeerIdentity;
 #endif
 
 class PeerConnectionWrapper;
 class PeerConnectionMedia;
 class RemoteSourceStreamInfo;
-class OnCallEventArgs;
+
+// Uuid Generator
+class PCUuidGenerator : public mozilla::JsepUuidGenerator {
+ public:
+  virtual bool Generate(std::string* idp) override;
+
+ private:
+  nsCOMPtr<nsIUUIDGenerator> mGenerator;
+};
 
 class IceConfiguration
 {
 public:
-  bool addStunServer(const std::string& addr, uint16_t port)
+  bool addStunServer(const std::string& addr, uint16_t port,
+                     const char* transport)
   {
-    NrIceStunServer* server(NrIceStunServer::Create(addr, port));
+    NrIceStunServer* server(NrIceStunServer::Create(addr, port, transport));
     if (!server) {
       return false;
     }
     addStunServer(*server);
+    delete server;
     return true;
   }
   bool addTurnServer(const std::string& addr, uint16_t port,
@@ -153,6 +175,7 @@ public:
       return false;
     }
     addTurnServer(*server);
+    delete server;
     return true;
   }
   void addStunServer(const NrIceStunServer& server) { mStunServers.push_back (server); }
@@ -164,7 +187,7 @@ private:
   std::vector<NrIceTurnServer> mTurnServers;
 };
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 // Not an inner class so we can forward declare.
 class RTCStatsQuery {
   public:
@@ -175,6 +198,7 @@ class RTCStatsQuery {
     std::string error;
     // A timestamp to help with telemetry.
     mozilla::TimeStamp iceStartTime;
+    bool isHello;
     // Just for convenience, maybe integrate into the report later
     bool failed;
 
@@ -184,7 +208,7 @@ class RTCStatsQuery {
     bool internalStats;
     nsTArray<mozilla::RefPtr<mozilla::MediaPipeline>> pipelines;
     mozilla::RefPtr<NrIceCtx> iceCtx;
-    nsTArray<mozilla::RefPtr<NrIceMediaStream>> streams;
+    bool grabAllLevels;
     DOMHighResTimeStamp now;
 };
 #endif // MOZILLA_INTERNAL_API
@@ -197,39 +221,42 @@ class RTCStatsQuery {
       nsresult res = CheckApiState(assert_ice_ready);             \
       if (NS_FAILED(res)) return res; \
     } while(0)
+#define PC_AUTO_ENTER_API_CALL_VOID_RETURN(assert_ice_ready) \
+    do { \
+      /* do/while prevents res from conflicting with locals */    \
+      nsresult res = CheckApiState(assert_ice_ready);             \
+      if (NS_FAILED(res)) return; \
+    } while(0)
 #define PC_AUTO_ENTER_API_CALL_NO_CHECK() CheckThread()
 
-class PeerConnectionImpl MOZ_FINAL : public nsISupports,
-#ifdef MOZILLA_INTERNAL_API
-                                     public mozilla::DataChannelConnection::DataConnectionListener,
-                                     public nsNSSShutDownObject,
-                                     public DOMMediaStream::PrincipalChangeObserver,
+class PeerConnectionImpl final : public nsISupports,
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+                                 public mozilla::DataChannelConnection::DataConnectionListener,
+                                 public nsNSSShutDownObject,
+                                 public DOMMediaStream::PrincipalChangeObserver,
 #endif
-                                     public sigslot::has_slots<>
+                                 public sigslot::has_slots<>
 {
-  class Internal; // Avoid exposing c includes to bindings
+  struct Internal; // Avoid exposing c includes to bindings
 
 public:
-  PeerConnectionImpl(const mozilla::dom::GlobalObject* aGlobal = nullptr);
-  virtual ~PeerConnectionImpl();
+  explicit PeerConnectionImpl(const mozilla::dom::GlobalObject* aGlobal = nullptr);
 
   enum Error {
     kNoError                          = 0,
-    kInvalidConstraintsType           = 1,
-    kInvalidCandidateType             = 2,
+    kInvalidCandidate                 = 2,
     kInvalidMediastreamTrack          = 3,
     kInvalidState                     = 4,
     kInvalidSessionDescription        = 5,
     kIncompatibleSessionDescription   = 6,
-    kIncompatibleConstraints          = 7,
     kIncompatibleMediaStreamTrack     = 8,
     kInternalError                    = 9
   };
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
-#ifdef MOZILLA_INTERNAL_API
-  virtual JSObject* WrapObject(JSContext* cx);
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, JS::MutableHandle<JSObject*> aReflector);
 #endif
 
   static already_AddRefed<PeerConnectionImpl>
@@ -237,21 +264,30 @@ public:
   static PeerConnectionImpl* CreatePeerConnection();
   static nsresult ConvertRTCConfiguration(const RTCConfiguration& aSrc,
                                           IceConfiguration *aDst);
-  already_AddRefed<DOMMediaStream> MakeMediaStream(uint32_t aHint);
+  static nsresult AddIceServer(const RTCIceServer& aServer,
+                               IceConfiguration* aDst);
+  already_AddRefed<DOMMediaStream> MakeMediaStream();
 
-  nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo);
-
-  // Implementation of the only observer we need
-  void onCallEvent(const OnCallEventArgs &args);
+  nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo,
+                                        const std::string& aId);
 
   // DataConnection observers
-  void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel);
+  void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel)
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+    // PeerConnectionImpl only inherits from mozilla::DataChannelConnection
+    // inside libxul.
+    override
+#endif
+    ;
 
   // Get the media object
   const nsRefPtr<PeerConnectionMedia>& media() const {
     PC_AUTO_ENTER_API_CALL_NO_CHECK();
     return mMedia;
   }
+
+  // Configure the ability to use localhost.
+  void SetAllowIceLoopback(bool val) { mAllowIceLoopback = val; }
 
   // Handle system to allow weak references to be passed through C code
   virtual const std::string& GetHandle();
@@ -264,6 +300,11 @@ public:
                                 NrIceCtx::ConnectionState state);
   void IceGatheringStateChange(NrIceCtx* ctx,
                                NrIceCtx::GatheringState state);
+  void EndOfLocalCandidates(const std::string& defaultAddr,
+                            uint16_t defaultPort,
+                            const std::string& defaultRtcpAddr,
+                            uint16_t defaultRtcpPort,
+                            uint16_t level);
   void IceStreamReady(NrIceMediaStream *aStream);
 
   static void ListenThread(void *aData);
@@ -283,12 +324,6 @@ public:
 
   // Get the DTLS identity (local side)
   mozilla::RefPtr<DtlsIdentity> const GetIdentity() const;
-  std::string GetFingerprint() const;
-  std::string GetFingerprintAlgorithm() const;
-  std::string GetFingerprintHexValue() const;
-
-  // Create a fake media stream
-  nsresult CreateFakeMediaStream(uint32_t hint, nsIDOMMediaStream** retval);
 
   nsPIDOMWindow* GetWindow() const {
     PC_AUTO_ENTER_API_CALL_NO_CHECK();
@@ -317,19 +352,19 @@ public:
   }
 
   NS_IMETHODIMP_TO_ERRORRESULT(CreateOffer, ErrorResult &rv,
-                               const MediaConstraintsInternal& aConstraints)
+                               const RTCOfferOptions& aOptions)
   {
-    rv = CreateOffer(aConstraints);
+    rv = CreateOffer(aOptions);
   }
 
-  NS_IMETHODIMP_TO_ERRORRESULT(CreateAnswer, ErrorResult &rv,
-                               const MediaConstraintsInternal& aConstraints)
+  NS_IMETHODIMP CreateAnswer();
+  void CreateAnswer(ErrorResult &rv)
   {
-    rv = CreateAnswer(aConstraints);
+    rv = CreateAnswer();
   }
 
-  NS_IMETHODIMP CreateOffer(const MediaConstraintsExternal& aConstraints);
-  NS_IMETHODIMP CreateAnswer(const MediaConstraintsExternal& aConstraints);
+  NS_IMETHODIMP CreateOffer(
+      const mozilla::JsepOfferOptions& aConstraints);
 
   NS_IMETHODIMP SetLocalDescription (int32_t aAction, const char* aSDP);
 
@@ -368,26 +403,32 @@ public:
     rv = CloseStreams();
   }
 
-  NS_IMETHODIMP_TO_ERRORRESULT(AddStream, ErrorResult &rv,
-                               DOMMediaStream& aMediaStream,
-                               const MediaConstraintsInternal& aConstraints)
+  NS_IMETHODIMP_TO_ERRORRESULT(AddTrack, ErrorResult &rv,
+      mozilla::dom::MediaStreamTrack& aTrack,
+      const mozilla::dom::Sequence<mozilla::dom::OwningNonNull<DOMMediaStream>>& aStreams)
   {
-    rv = AddStream(aMediaStream, aConstraints);
+    rv = AddTrack(aTrack, aStreams);
   }
 
-  nsresult AddStream(DOMMediaStream &aMediaStream,
-                     const MediaConstraintsExternal& aConstraints);
-
-  NS_IMETHODIMP_TO_ERRORRESULT(RemoveStream, ErrorResult &rv,
-                               DOMMediaStream& aMediaStream)
+  NS_IMETHODIMP_TO_ERRORRESULT(RemoveTrack, ErrorResult &rv,
+                               mozilla::dom::MediaStreamTrack& aTrack)
   {
-    rv = RemoveStream(aMediaStream);
+    rv = RemoveTrack(aTrack);
   }
 
+  nsresult
+  AddTrack(mozilla::dom::MediaStreamTrack& aTrack, DOMMediaStream& aStream);
+
+  NS_IMETHODIMP_TO_ERRORRESULT(ReplaceTrack, ErrorResult &rv,
+                               mozilla::dom::MediaStreamTrack& aThisTrack,
+                               mozilla::dom::MediaStreamTrack& aWithTrack)
+  {
+    rv = ReplaceTrack(aThisTrack, aWithTrack);
+  }
 
   nsresult GetPeerIdentity(nsAString& peerIdentity)
   {
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
     if (mPeerIdentity) {
       peerIdentity = mPeerIdentity->ToString();
       return NS_OK;
@@ -398,7 +439,7 @@ public:
     return NS_OK;
   }
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   const PeerIdentity* GetPeerIdentity() const { return mPeerIdentity; }
   nsresult SetPeerIdentity(const nsAString& peerIdentity);
 
@@ -412,7 +453,15 @@ public:
     id = NS_ConvertASCIItoUTF16(mName.c_str());
     return NS_OK;
   }
+
+  nsresult SetId(const nsAString& id)
+  {
+    mName = NS_ConvertUTF16toUTF8(id).get();
+    return NS_OK;
+  }
 #endif
+
+  bool IsLoop() const { return mIsLoop; }
 
   // this method checks to see if we've made a promise to protect media.
   bool PrivacyRequested() const { return mPrivacyRequested; }
@@ -433,7 +482,7 @@ public:
     char *tmp;
     GetLocalDescription(&tmp);
     aSDP.AssignASCII(tmp);
-    delete tmp;
+    delete[] tmp;
   }
 
   NS_IMETHODIMP GetRemoteDescription(char** aSDP);
@@ -443,7 +492,7 @@ public:
     char *tmp;
     GetRemoteDescription(&tmp);
     aSDP.AssignASCII(tmp);
-    delete tmp;
+    delete[] tmp;
   }
 
   NS_IMETHODIMP SignalingState(mozilla::dom::PCImplSignalingState* aState);
@@ -452,15 +501,6 @@ public:
   {
     mozilla::dom::PCImplSignalingState state;
     SignalingState(&state);
-    return state;
-  }
-
-  NS_IMETHODIMP SipccState(mozilla::dom::PCImplSipccState* aState);
-
-  mozilla::dom::PCImplSipccState SipccState()
-  {
-    mozilla::dom::PCImplSipccState state;
-    SipccState(&state);
     return state;
   }
 
@@ -491,16 +531,10 @@ public:
     rv = Close();
   }
 
-  nsresult InitializeDataChannel(int track_id, uint16_t aLocalport,
-                                 uint16_t aRemoteport, uint16_t aNumstreams);
+  bool PluginCrash(uint32_t aPluginID,
+                   const nsAString& aPluginName);
 
-  NS_IMETHODIMP_TO_ERRORRESULT(ConnectDataConnection, ErrorResult &rv,
-                               uint16_t aLocalport,
-                               uint16_t aRemoteport,
-                               uint16_t aNumstreams)
-  {
-    rv = ConnectDataConnection(aLocalport, aRemoteport, aNumstreams);
-  }
+  nsresult InitializeDataChannel();
 
   NS_IMETHODIMP_TO_ERRORRESULT_RETREF(nsDOMDataChannel,
                                       CreateDataChannel, ErrorResult &rv,
@@ -542,7 +576,11 @@ public:
   const std::vector<std::string> &GetSdpParseErrors();
 
   // Sets the RTC Signaling State
-  void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState);
+  void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState,
+                           bool rollback = false);
+
+  // Updates the RTC signaling state based on the JsepSession state
+  void UpdateSignalingState(bool rollback = false);
 
   bool IsClosed() const;
   // called when DTLS connects; we only need this once
@@ -550,7 +588,7 @@ public:
 
   bool HasMedia() const;
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   // initialize telemetry for when calls start
   void startCallTelem();
 
@@ -562,10 +600,20 @@ public:
 
   // for monitoring changes in stream ownership
   // PeerConnectionMedia can't do it because it doesn't know about principals
-  virtual void PrincipalChanged(DOMMediaStream* aMediaStream) MOZ_OVERRIDE;
+  virtual void PrincipalChanged(DOMMediaStream* aMediaStream) override;
+
+  nsresult GetRemoteTrackId(const std::string streamId,
+                            TrackID numericTrackId,
+                            std::string* trackId) const;
 #endif
 
+  static std::string GetStreamId(const DOMMediaStream& aStream);
+  static std::string GetTrackId(const dom::MediaStreamTrack& track);
+
+  void OnMediaError(const std::string& aError);
+
 private:
+  virtual ~PeerConnectionImpl();
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
   NS_IMETHODIMP Initialize(PeerConnectionObserver& aObserver,
@@ -573,18 +621,23 @@ private:
                            const IceConfiguration* aConfiguration,
                            const RTCConfiguration* aRTCConfiguration,
                            nsISupports* aThread);
+  nsresult CalculateFingerprint(const std::string& algorithm,
+                                std::vector<uint8_t>& fingerprint) const;
+  nsresult ConfigureJsepSessionCodecs();
 
   NS_IMETHODIMP EnsureDataConnection(uint16_t aNumstreams);
 
   nsresult CloseInt();
   nsresult CheckApiState(bool assert_ice_ready) const;
   void CheckThread() const {
-    NS_ABORT_IF_FALSE(CheckThreadInt(), "Wrong thread");
+    MOZ_ASSERT(CheckThreadInt(), "Wrong thread");
   }
   bool CheckThreadInt() const {
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
     // Thread assertions are disabled in the C++ unit tests because those
     // make API calls off the main thread.
+    // This affects the standalone version of WebRTC since it is also used
+    // for an alternate build of the unit tests.
     // TODO(ekr@rtfm.com): Fix the unit tests so they don't do that.
     bool on;
     NS_ENSURE_SUCCESS(mThread->IsOnCurrentThread(&on), false);
@@ -593,8 +646,8 @@ private:
     return true;
   }
 
-#ifdef MOZILLA_INTERNAL_API
-  void virtualDestroyNSSReference() MOZ_FINAL;
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+  void virtualDestroyNSSReference() final;
   void destructorSafeDestroyNSSReference();
   nsresult GetTimeSinceEpoch(DOMHighResTimeStamp *result);
 #endif
@@ -602,17 +655,16 @@ private:
   // Shut down media - called on main thread only
   void ShutdownMedia();
 
-  // ICE callbacks run on the right thread.
-  nsresult IceConnectionStateChange_m(
-      mozilla::dom::PCImplIceConnectionState aState);
-  nsresult IceGatheringStateChange_m(
-      mozilla::dom::PCImplIceGatheringState aState);
+  void CandidateReady(const std::string& candidate, uint16_t level);
+  void SendLocalIceCandidateToContent(uint16_t level,
+                                      const std::string& mid,
+                                      const std::string& candidate);
 
-  NS_IMETHOD FingerprintSplitHelper(
-      std::string& fingerprint, size_t& spaceIdx) const;
+  nsresult GetDatachannelParameters(
+      const mozilla::JsepApplicationCodecDescription** codec,
+      uint16_t* level) const;
 
-
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   static void GetStatsForPCObserver_s(
       const std::string& pcHandle,
       nsAutoPtr<RTCStatsQuery> query);
@@ -631,13 +683,13 @@ private:
   // or other things.
   void RecordLongtermICEStatistics();
 
+  void OnNegotiationNeeded();
+
   // Timecard used to measure processing time. This should be the first class
   // attribute so that we accurately measure the time required to instantiate
   // any other attributes of this class.
   Timecard *mTimeCard;
 
-  // The call
-  mozilla::ScopedDeletePtr<Internal> mInternal;
   mozilla::dom::PCImplSignalingState mSignalingState;
 
   // ICE State
@@ -657,9 +709,6 @@ private:
   // The SDP sent in from JS - here for debugging.
   std::string mLocalRequestedSDP;
   std::string mRemoteRequestedSDP;
-  // The SDP we are using.
-  std::string mLocalSDP;
-  std::string mRemoteSDP;
 
   // DTLS fingerprint
   std::string mFingerprint;
@@ -667,9 +716,9 @@ private:
 
   // identity-related fields
   mozilla::RefPtr<DtlsIdentity> mIdentity;
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   // The entity on the other end of the peer-to-peer connection;
-  // void if they are not yet identified, and no constraint has been set
+  // void if they are not yet identified, and no identity setting has been set
   nsAutoPtr<PeerIdentity> mPeerIdentity;
 #endif
   // Whether an app should be prevented from accessing media produced by the PC
@@ -685,18 +734,24 @@ private:
 
   // A name for this PC that we are willing to expose to content.
   std::string mName;
+  bool mIsLoop; // For telemetry; doesn't have to be 100% right
 
   // The target to run stuff on
   nsCOMPtr<nsIEventTarget> mSTSThread;
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   // DataConnection that's used to get all the DataChannels
   nsRefPtr<mozilla::DataChannelConnection> mDataConnection;
 #endif
 
+  bool mAllowIceLoopback;
   nsRefPtr<PeerConnectionMedia> mMedia;
 
-#ifdef MOZILLA_INTERNAL_API
+  // The JSEP negotiation session.
+  mozilla::UniquePtr<PCUuidGenerator> mUuidGen;
+  mozilla::UniquePtr<mozilla::JsepSession> mJsepSession;
+
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   // Start time of ICE, used for telemetry
   mozilla::TimeStamp mIceStartTime;
   // Start time of call used for Telemetry
@@ -712,11 +767,11 @@ private:
 
   bool mHaveDataStream;
 
-  // Holder for error messages from parsing SDP
-  std::vector<std::string> mSDPParseErrorMessages;
   unsigned int mAddCandidateErrorCount;
 
   bool mTrickle;
+
+  bool mShouldSuppressNegotiationNeeded;
 
 public:
   //these are temporary until the DataChannel Listen/Connect API is removed
@@ -729,7 +784,7 @@ public:
 class PeerConnectionWrapper
 {
  public:
-  PeerConnectionWrapper(const std::string& handle);
+  explicit PeerConnectionWrapper(const std::string& handle);
 
   PeerConnectionImpl *impl() { return impl_; }
 
@@ -737,7 +792,7 @@ class PeerConnectionWrapper
   nsRefPtr<PeerConnectionImpl> impl_;
 };
 
-}  // end sipcc namespace
+}  // end mozilla namespace
 
 #undef NS_IMETHODIMP_TO_ERRORRESULT
 #undef NS_IMETHODIMP_TO_ERRORRESULT_RETREF

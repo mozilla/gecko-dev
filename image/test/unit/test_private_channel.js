@@ -53,7 +53,12 @@ var gImgPath = 'http://localhost:' + server.identity.primaryPort + '/image.png';
 
 function setup_chan(path, isPrivate, callback) {
   var uri = gIoService.newURI(gImgPath, null, null);
-  var chan = gIoService.newChannelFromURI(uri);
+  var chan = gIoService.newChannelFromURI2(uri,
+                                           null,      // aLoadingNode
+                                           Services.scriptSecurityManager.getSystemPrincipal(),
+                                           null,      // aTriggeringPrincipal
+                                           Ci.nsILoadInfo.SEC_NORMAL,
+                                           Ci.nsIContentPolicy.TYPE_OTHER);
   chan.notificationCallbacks = new NotificationCallbacks(isPrivate);
   var channelListener = new ChannelListener();
   chan.asyncOpen(channelListener, null);
@@ -77,7 +82,7 @@ function loadImage(isPrivate, callback) {
   var loadGroup = Cc["@mozilla.org/network/load-group;1"].createInstance(Ci.nsILoadGroup);
   loadGroup.notificationCallbacks = new NotificationCallbacks(isPrivate);
   var loader = isPrivate ? gPrivateLoader : gPublicLoader;
-  requests.push(loader.loadImageXPCOM(uri, null, null, null, loadGroup, outer, null, 0, null, null));
+  requests.push(loader.loadImageXPCOM(uri, null, null, "default", null, loadGroup, outer, null, 0, null));
   listener.synchronous = false;
 }
 

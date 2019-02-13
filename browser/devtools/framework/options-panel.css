@@ -21,9 +21,23 @@
 
 .options-vertical-pane {
   margin: 5px;
-  width: calc(50% - 30px);
-  min-width: 350px;
+  width: calc(100%/3 - 30px);
+  min-width: 320px;
   -moz-padding-start: 5px;
+}
+
+#devtools-theme-box {
+  margin-left: 0px;
+  padding-left: 0px;
+}
+
+/* Snap to 50% width once there is not room for 3 columns anymore.
+   This prevents having 2 columns showing in a row, but taking up
+   only ~66% of the available space. */
+@media (max-width: 1000px) {
+  .options-vertical-pane {
+    width: calc(100%/2 - 30px);
+  }
 }
 
 .options-vertical-pane > label {
@@ -55,4 +69,12 @@
 .hidden-labels-box:not(.visible) > label,
 .hidden-labels-box.visible ~ .hidden-labels-box > label:last-child {
   display: none;
+}
+
+#devtools-sourceeditor-keybinding-menulist {
+  min-width: 100px;
+}
+
+#devtools-sourceeditor-tabsize-menulist {
+  min-width: 50px;
 }

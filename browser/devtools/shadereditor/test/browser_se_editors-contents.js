@@ -6,8 +6,8 @@
  * becomes available.
  */
 
-function ifWebGLSupported() {
-  let [target, debuggee, panel] = yield initShaderEditor(SIMPLE_CANVAS_URL);
+function* ifWebGLSupported() {
+  let { target, panel } = yield initShaderEditor(SIMPLE_CANVAS_URL);
   let { gFront, ShadersEditorsView, EVENTS } = panel.panelWin;
 
   reload(target);

@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "DMD.h"
-
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -29,21 +27,32 @@
 #endif
 
 #include "nscore.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 
 #include "js/HashTable.h"
 #include "js/Vector.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/JSONWriter.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryReporting.h"
 
+// CodeAddressService is defined entirely in the header, so this does not make
+// DMD depend on XPCOM's object file.
+#include "CodeAddressService.h"
+
+// replace_malloc.h needs to be included before replace_malloc_bridge.h,
+// which DMD.h includes, so DMD.h needs to be included after replace_malloc.h.
 // MOZ_REPLACE_ONLY_MEMALIGN saves us from having to define
 // replace_{posix_memalign,aligned_alloc,valloc}.  It requires defining
 // PAGE_SIZE.  Nb: sysconf() is expensive, but it's only used for (the obsolete
 // and rarely used) valloc.
 #define MOZ_REPLACE_ONLY_MEMALIGN 1
+
+#ifndef PAGE_SIZE
+#define DMD_DEFINED_PAGE_SIZE
 #ifdef XP_WIN
 #define PAGE_SIZE GetPageSize()
 static long GetPageSize()
@@ -52,15 +61,44 @@ static long GetPageSize()
   GetSystemInfo(&si);
   return si.dwPageSize;
 }
-#else
+#else // XP_WIN
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
-#endif
+#endif // XP_WIN
+#endif // PAGE_SIZE
 #include "replace_malloc.h"
 #undef MOZ_REPLACE_ONLY_MEMALIGN
+#ifdef DMD_DEFINED_PAGE_SIZE
+#undef DMD_DEFINED_PAGE_SIZE
 #undef PAGE_SIZE
+#endif // DMD_DEFINED_PAGE_SIZE
+
+#include "DMD.h"
 
 namespace mozilla {
 namespace dmd {
+
+class DMDBridge : public ReplaceMallocBridge
+{
+  virtual DMDFuncs* GetDMDFuncs() override;
+};
+
+static DMDBridge* gDMDBridge;
+static DMDFuncs gDMDFuncs;
+
+DMDFuncs*
+DMDBridge::GetDMDFuncs()
+{
+  return &gDMDFuncs;
+}
+
+inline void
+StatusMsg(const char* aFmt, ...)
+{
+  va_list ap;
+  va_start(ap, aFmt);
+  gDMDFuncs.StatusMsg(aFmt, ap);
+  va_end(ap);
+}
 
 //---------------------------------------------------------------------------
 // Utilities
@@ -74,16 +112,22 @@ namespace dmd {
 
 static const malloc_table_t* gMallocTable = nullptr;
 
-// This enables/disables DMD.
-static bool gIsDMDRunning = false;
+// Whether DMD finished initializing.
+static bool gIsDMDInitialized = false;
 
 // This provides infallible allocations (they abort on OOM).  We use it for all
 // of DMD's own allocations, which fall into the following three cases.
+//
 // - Direct allocations (the easy case).
+//
 // - Indirect allocations in js::{Vector,HashSet,HashMap} -- this class serves
 //   as their AllocPolicy.
-// - Other indirect allocations (e.g. NS_StackWalk) -- see the comments on
+//
+// - Other indirect allocations (e.g. MozStackWalk) -- see the comments on
 //   Thread::mBlockIntercepts and in replace_malloc for how these work.
+//
+// It would be nice if we could use the InfallibleAllocPolicy from mozalloc,
+// but DMD cannot use mozalloc.
 //
 class InfallibleAllocPolicy
 {
@@ -97,11 +141,29 @@ public:
     return p;
   }
 
+  template <typename T>
+  static T* pod_malloc(size_t aNumElems)
+  {
+    if (aNumElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
+      return nullptr;
+    void* p = gMallocTable->malloc(aNumElems * sizeof(T));
+    ExitOnFailure(p);
+    return (T*)p;
+  }
+
   static void* calloc_(size_t aSize)
   {
     void* p = gMallocTable->calloc(1, aSize);
     ExitOnFailure(p);
     return p;
+  }
+
+  template <typename T>
+  static T* pod_calloc(size_t aNumElems)
+  {
+    void* p = gMallocTable->calloc(aNumElems, sizeof(T));
+    ExitOnFailure(p);
+    return (T*)p;
   }
 
   // This realloc_ is the one we use for direct reallocs within DMD.
@@ -113,9 +175,12 @@ public:
   }
 
   // This realloc_ is required for this to be a JS container AllocPolicy.
-  static void* realloc_(void* aPtr, size_t aOldSize, size_t aNewSize)
+  template <typename T>
+  static T* pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
   {
-    return InfallibleAllocPolicy::realloc_(aPtr, aNewSize);
+    if (aNewSize & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
+      return nullptr;
+    return (T*)InfallibleAllocPolicy::realloc_((void *)aPtr, aNewSize * sizeof(T));
   }
 
   static void* memalign_(size_t aAlignment, size_t aSize)
@@ -169,53 +234,31 @@ MallocSizeOf(const void* aPtr)
   return gMallocTable->malloc_usable_size(const_cast<void*>(aPtr));
 }
 
-static void
-StatusMsg(const char* aFmt, ...)
+void
+DMDFuncs::StatusMsg(const char* aFmt, va_list aAp)
 {
-  va_list ap;
-  va_start(ap, aFmt);
 #ifdef ANDROID
-  __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, ap);
+#ifdef MOZ_B2G_LOADER
+  // Don't call __android_log_vprint() during initialization, or the magic file
+  // descriptors will be occupied by android logcat.
+  if (gIsDMDInitialized)
+#endif
+    __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, aAp);
 #else
   // The +64 is easily enough for the "DMD[<pid>] " prefix and the NUL.
   char* fmt = (char*) InfallibleAllocPolicy::malloc_(strlen(aFmt) + 64);
   sprintf(fmt, "DMD[%d] %s", getpid(), aFmt);
-  vfprintf(stderr, fmt, ap);
+  vfprintf(stderr, fmt, aAp);
   InfallibleAllocPolicy::free_(fmt);
 #endif
-  va_end(ap);
 }
 
 /* static */ void
 InfallibleAllocPolicy::ExitOnFailure(const void* aP)
 {
   if (!aP) {
-    StatusMsg("out of memory;  aborting\n");
-    MOZ_CRASH();
+    MOZ_CRASH("DMD out of memory; aborting");
   }
-}
-
-void
-Writer::Write(const char* aFmt, ...) const
-{
-  va_list ap;
-  va_start(ap, aFmt);
-  mWriterFun(mWriteState, aFmt, ap);
-  va_end(ap);
-}
-
-#define W(...) aWriter.Write(__VA_ARGS__);
-
-#define WriteTitle(...)                                                       \
-  W("------------------------------------------------------------------\n");  \
-  W(__VA_ARGS__);                                                             \
-  W("------------------------------------------------------------------\n\n");
-
-MOZ_EXPORT void
-FpWrite(void* aWriteState, const char* aFmt, va_list aAp)
-{
-  FILE* fp = static_cast<FILE*>(aWriteState);
-  vfprintf(fp, aFmt, aAp);
 }
 
 static double
@@ -224,11 +267,9 @@ Percent(size_t part, size_t whole)
   return (whole == 0) ? 0 : 100 * (double)part / whole;
 }
 
-// Commifies the number and prepends a '~' if requested.  Best used with
-// |kBufLen| and |gBuf[1234]|, because they should be big enough for any number
-// we'll see.
+// Commifies the number.
 static char*
-Show(size_t n, char* buf, size_t buflen, bool addTilde = false)
+Show(size_t n, char* buf, size_t buflen)
 {
   int nc = 0, i = 0, lasti = buflen - 2;
   buf[lasti + 1] = '\0';
@@ -249,26 +290,9 @@ Show(size_t n, char* buf, size_t buflen, bool addTilde = false)
   }
   int firstCharIndex = lasti - i + 1;
 
-  if (addTilde) {
-    firstCharIndex--;
-    buf[firstCharIndex] = '~';
-  }
-
   MOZ_ASSERT(firstCharIndex >= 0);
   return &buf[firstCharIndex];
 }
-
-static const char*
-Plural(size_t aN)
-{
-  return aN == 1 ? "" : "s";
-}
-
-// Used by calls to Show().
-static const size_t kBufLen = 64;
-static char gBuf1[kBufLen];
-static char gBuf2[kBufLen];
-static char gBuf3[kBufLen];
 
 //---------------------------------------------------------------------------
 // Options (Part 1)
@@ -287,37 +311,72 @@ class Options
     {}
   };
 
-  enum Mode {
-    Normal,   // run normally
-    Test,     // do some basic correctness tests
-    Stress    // do some performance stress tests
+  // DMD has several modes. These modes affect what data is recorded and
+  // written to the output file, and the written data affects the
+  // post-processing that dmd.py can do.
+  //
+  // Users specify the mode as soon as DMD starts. This leads to minimal memory
+  // usage and log file size. It has the disadvantage that is inflexible -- if
+  // you want to change modes you have to re-run DMD. But in practice changing
+  // modes seems to be rare, so it's not much of a problem.
+  //
+  // An alternative possibility would be to always record and output *all* the
+  // information needed for all modes. This would let you choose the mode when
+  // running dmd.py, and so you could do multiple kinds of profiling on a
+  // single DMD run. But if you are only interested in one of the simpler
+  // modes, you'd pay the price of (a) increased memory usage and (b) *very*
+  // large log files.
+  //
+  // Finally, another alternative possibility would be to do mode selection
+  // partly at DMD startup or recording, and then partly in dmd.py. This would
+  // give some extra flexibility at moderate memory and file size cost. But
+  // certain mode pairs wouldn't work, which would be confusing.
+  //
+  enum Mode
+  {
+    // For each live block, this mode outputs: size (usable and slop),
+    // allocation stack, and whether it's sampled. This mode is good for live
+    // heap profiling.
+    Live,
+
+    // Like "Live", but for each live block it also outputs: zero or more
+    // report stacks. This mode is good for identifying where memory reporters
+    // should be added. This is the default mode.
+    DarkMatter,
+
+    // Like "Live", but also outputs the same data for dead blocks. This mode
+    // does cumulative heap profiling, which is good for identifying where large
+    // amounts of short-lived allocations occur.
+    Cumulative
   };
 
-  char* mDMDEnvVar;   // a saved copy, for printing during Dump()
+  char* mDMDEnvVar;   // a saved copy, for later printing
 
-  NumOption<size_t>   mSampleBelowSize;
-  NumOption<uint32_t> mMaxFrames;
-  NumOption<uint32_t> mMaxRecords;
   Mode mMode;
+  NumOption<size_t> mSampleBelowSize;
+  NumOption<uint32_t> mMaxFrames;
+  bool mShowDumpStats;
 
   void BadArg(const char* aArg);
   static const char* ValueIfMatch(const char* aArg, const char* aOptionName);
   static bool GetLong(const char* aArg, const char* aOptionName,
-                      long aMin, long aMax, long* aN);
+                      long aMin, long aMax, long* aValue);
+  static bool GetBool(const char* aArg, const char* aOptionName, bool* aValue);
 
 public:
-  Options(const char* aDMDEnvVar);
+  explicit Options(const char* aDMDEnvVar);
+
+  bool IsLiveMode()       const { return mMode == Live; }
+  bool IsDarkMatterMode() const { return mMode == DarkMatter; }
+  bool IsCumulativeMode() const { return mMode == Cumulative; }
+
+  const char* ModeString() const;
 
   const char* DMDEnvVar() const { return mDMDEnvVar; }
 
   size_t SampleBelowSize() const { return mSampleBelowSize.mActual; }
   size_t MaxFrames()       const { return mMaxFrames.mActual; }
-  size_t MaxRecords()      const { return mMaxRecords.mActual; }
-
-  void SetSampleBelowSize(size_t aN) { mSampleBelowSize.mActual = aN; }
-
-  bool IsTestMode()   const { return mMode == Test; }
-  bool IsStressMode() const { return mMode == Stress; }
+  size_t ShowDumpStats()   const { return mShowDumpStats; }
 };
 
 static Options *gOptions;
@@ -337,25 +396,11 @@ class MutexBase
   DISALLOW_COPY_AND_ASSIGN(MutexBase);
 
 public:
-  MutexBase()
-  {
-    InitializeCriticalSection(&mCS);
-  }
+  MutexBase()  { InitializeCriticalSection(&mCS); }
+  ~MutexBase() { DeleteCriticalSection(&mCS); }
 
-  ~MutexBase()
-  {
-    DeleteCriticalSection(&mCS);
-  }
-
-  void Lock()
-  {
-    EnterCriticalSection(&mCS);
-  }
-
-  void Unlock()
-  {
-    LeaveCriticalSection(&mCS);
-  }
+  void Lock()   { EnterCriticalSection(&mCS); }
+  void Unlock() { LeaveCriticalSection(&mCS); }
 };
 
 #else
@@ -370,20 +415,10 @@ class MutexBase
   DISALLOW_COPY_AND_ASSIGN(MutexBase);
 
 public:
-  MutexBase()
-  {
-    pthread_mutex_init(&mMutex, nullptr);
-  }
+  MutexBase() { pthread_mutex_init(&mMutex, nullptr); }
 
-  void Lock()
-  {
-    pthread_mutex_lock(&mMutex);
-  }
-
-  void Unlock()
-  {
-    pthread_mutex_unlock(&mMutex);
-  }
+  void Lock()   { pthread_mutex_lock(&mMutex); }
+  void Unlock() { pthread_mutex_unlock(&mMutex); }
 };
 
 #endif
@@ -413,14 +448,14 @@ public:
     MutexBase::Unlock();
   }
 
-  bool IsLocked()
-  {
-    return mIsLocked;
-  }
+  bool IsLocked() { return mIsLocked; }
 };
 
-// This lock must be held while manipulating global state, such as
-// gStackTraceTable, gBlockTable, etc.
+// This lock must be held while manipulating global state such as
+// gStackTraceTable, gLiveBlockTable, gDeadBlockTable. Note that gOptions is
+// *not* protected by this lock because it is only written to by Options(),
+// which is only invoked at start-up and in ResetEverything(), which is only
+// used by SmokeDMD.cpp.
 static Mutex* gStateLock = nullptr;
 
 class AutoLockState
@@ -428,14 +463,8 @@ class AutoLockState
   DISALLOW_COPY_AND_ASSIGN(AutoLockState);
 
 public:
-  AutoLockState()
-  {
-    gStateLock->Lock();
-  }
-  ~AutoLockState()
-  {
-    gStateLock->Unlock();
-  }
+  AutoLockState()  { gStateLock->Lock(); }
+  ~AutoLockState() { gStateLock->Unlock(); }
 };
 
 class AutoUnlockState
@@ -443,14 +472,8 @@ class AutoUnlockState
   DISALLOW_COPY_AND_ASSIGN(AutoUnlockState);
 
 public:
-  AutoUnlockState()
-  {
-    gStateLock->Unlock();
-  }
-  ~AutoUnlockState()
-  {
-    gStateLock->Lock();
-  }
+  AutoUnlockState()  { gStateLock->Unlock(); }
+  ~AutoUnlockState() { gStateLock->Lock(); }
 };
 
 //---------------------------------------------------------------------------
@@ -489,7 +512,7 @@ class Thread
   // When true, this blocks intercepts, which allows malloc interception
   // functions to themselves call malloc.  (Nb: for direct calls to malloc we
   // can just use InfallibleAllocPolicy::{malloc_,new_}, but we sometimes
-  // indirectly call vanilla malloc via functions like NS_StackWalk.)
+  // indirectly call vanilla malloc via functions like MozStackWalk.)
   bool mBlockIntercepts;
 
   Thread()
@@ -513,10 +536,7 @@ public:
     return mBlockIntercepts = false;
   }
 
-  bool InterceptsAreBlocked() const
-  {
-    return mBlockIntercepts;
-  }
+  bool InterceptsAreBlocked() const { return mBlockIntercepts; }
 };
 
 /* static */ Thread*
@@ -543,7 +563,7 @@ class AutoBlockIntercepts
   DISALLOW_COPY_AND_ASSIGN(AutoBlockIntercepts);
 
 public:
-  AutoBlockIntercepts(Thread* aT)
+  explicit AutoBlockIntercepts(Thread* aT)
     : mT(aT)
   {
     mT->BlockIntercepts();
@@ -559,27 +579,36 @@ public:
 // Location service
 //---------------------------------------------------------------------------
 
-// This class is used to print details about code locations.
-class LocationService
+class StringTable
 {
-  // WriteLocation() is the key function in this class.  It's basically a
-  // wrapper around NS_DescribeCodeAddress.
-  //
-  // However, NS_DescribeCodeAddress is very slow on some platforms, and we
-  // have lots of repeated (i.e. same PC) calls to it.  So we do some caching
-  // of results.  Each cached result includes two strings (|mFunction| and
-  // |mLibrary|), so we also optimize them for space in the following ways.
-  //
-  // - The number of distinct library names is small, e.g. a few dozen.  There
-  //   is lots of repetition, especially of libxul.  So we intern them in their
-  //   own table, which saves space over duplicating them for each cache entry.
-  //
-  // - The number of distinct function names is much higher, so we duplicate
-  //   them in each cache entry.  That's more space-efficient than interning
-  //   because entries containing single-occurrence function names are quickly
-  //   overwritten, and their copies released.  In addition, empty function
-  //   names are common, so we use nullptr to represent them compactly.
+public:
+  StringTable() { (void)mSet.init(64); }
 
+  const char*
+  Intern(const char* aString)
+  {
+    StringHashSet::AddPtr p = mSet.lookupForAdd(aString);
+    if (p) {
+      return *p;
+    }
+
+    const char* newString = InfallibleAllocPolicy::strdup_(aString);
+    (void)mSet.add(p, newString);
+    return newString;
+  }
+
+  size_t
+  SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    size_t n = 0;
+    n += mSet.sizeOfExcludingThis(aMallocSizeOf);
+    for (auto r = mSet.all(); !r.empty(); r.popFront()) {
+      n += aMallocSizeOf(r.front());
+    }
+    return n;
+  }
+
+private:
   struct StringHasher
   {
       typedef const char* Lookup;
@@ -595,176 +624,33 @@ class LocationService
       }
   };
 
-  typedef js::HashSet<const char*, StringHasher, InfallibleAllocPolicy>
-          StringTable;
+  typedef js::HashSet<const char*, StringHasher, InfallibleAllocPolicy> StringHashSet;
 
-  StringTable mLibraryStrings;
-
-  struct Entry
-  {
-    const void* mPc;
-    char*       mFunction;  // owned by the Entry;  may be null
-    const char* mLibrary;   // owned by mLibraryStrings;  never null
-                            //   in a non-empty entry is in use
-    ptrdiff_t   mLOffset;
-    char*       mFileName;  // owned by the Entry; may be null
-    uint32_t    mLineNo:31;
-    uint32_t    mInUse:1;   // is the entry used?
-
-    Entry()
-      : mPc(0), mFunction(nullptr), mLibrary(nullptr), mLOffset(0), mFileName(nullptr), mLineNo(0), mInUse(0)
-    {}
-
-    ~Entry()
-    {
-      // We don't free mLibrary because it's externally owned.
-      InfallibleAllocPolicy::free_(mFunction);
-      InfallibleAllocPolicy::free_(mFileName);
-    }
-
-    void Replace(const void* aPc, const char* aFunction,
-                 const char* aLibrary, ptrdiff_t aLOffset,
-                 const char* aFileName, unsigned long aLineNo)
-    {
-      mPc = aPc;
-
-      // Convert "" to nullptr.  Otherwise, make a copy of the name.
-      InfallibleAllocPolicy::free_(mFunction);
-      mFunction =
-        !aFunction[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFunction);
-      InfallibleAllocPolicy::free_(mFileName);
-      mFileName =
-        !aFileName[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFileName);
-
-
-      mLibrary = aLibrary;
-      mLOffset = aLOffset;
-      mLineNo = aLineNo;
-
-      mInUse = 1;
-    }
-
-    size_t SizeOfExcludingThis() {
-      // Don't measure mLibrary because it's externally owned.
-      return MallocSizeOf(mFunction) + MallocSizeOf(mFileName);
-    }
-  };
-
-  // A direct-mapped cache.  When doing a dump just after starting desktop
-  // Firefox (which is similar to dumping after a longer-running session,
-  // thanks to the limit on how many records we dump), a cache with 2^24
-  // entries (which approximates an infinite-entry cache) has a ~91% hit rate.
-  // A cache with 2^12 entries has a ~83% hit rate, and takes up ~85 KiB (on
-  // 32-bit platforms) or ~150 KiB (on 64-bit platforms).
-  static const size_t kNumEntries = 1 << 12;
-  static const size_t kMask = kNumEntries - 1;
-  Entry mEntries[kNumEntries];
-
-  size_t mNumCacheHits;
-  size_t mNumCacheMisses;
-
-public:
-  LocationService()
-    : mEntries(), mNumCacheHits(0), mNumCacheMisses(0)
-  {
-    (void)mLibraryStrings.init(64);
-  }
-
-  void WriteLocation(const Writer& aWriter, const void* aPc)
-  {
-    MOZ_ASSERT(gStateLock->IsLocked());
-
-    uint32_t index = HashGeneric(aPc) & kMask;
-    MOZ_ASSERT(index < kNumEntries);
-    Entry& entry = mEntries[index];
-
-    if (!entry.mInUse || entry.mPc != aPc) {
-      mNumCacheMisses++;
-
-      // NS_DescribeCodeAddress can (on Linux) acquire a lock inside
-      // the shared library loader.  Another thread might call malloc
-      // while holding that lock (when loading a shared library).  So
-      // we have to exit gStateLock around this call.  For details, see
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=363334#c3
-      nsCodeAddressDetails details;
-      {
-        AutoUnlockState unlock;
-        (void)NS_DescribeCodeAddress(const_cast<void*>(aPc), &details);
-      }
-
-      // Intern the library name.
-      const char* library = nullptr;
-      StringTable::AddPtr p = mLibraryStrings.lookupForAdd(details.library);
-      if (!p) {
-        library = InfallibleAllocPolicy::strdup_(details.library);
-        (void)mLibraryStrings.add(p, library);
-      } else {
-        library = *p;
-      }
-
-      entry.Replace(aPc, details.function, library, details.loffset, details.filename, details.lineno);
-
-    } else {
-      mNumCacheHits++;
-    }
-
-    MOZ_ASSERT(entry.mPc == aPc);
-
-    uintptr_t entryPc = (uintptr_t)(entry.mPc);
-    // Sometimes we get nothing useful.  Just print "???" for the entire entry
-    // so that fix-linux-stack.pl doesn't complain about an empty filename.
-    if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      W("   ??? 0x%x\n", entryPc);
-    } else {
-      // Use "???" for unknown functions.
-      const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
-      if (entry.mFileName) {
-        // On Windows we can get the filename and line number at runtime.
-        W("   %s (%s:%lu) 0x%x\n",
-          entryFunction, entry.mFileName, entry.mLineNo, entryPc);
-      } else {
-        // On Linux and Mac we cannot get the filename and line number at
-        // runtime, so we print the offset in a form that fix-linux-stack.pl and
-        // fix_macosx_stack.py can post-process.
-        W("   %s[%s +0x%X] 0x%x\n",
-          entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
-      }
-    }
-  }
-
-  size_t SizeOfIncludingThis()
-  {
-    size_t n = MallocSizeOf(this);
-    for (uint32_t i = 0; i < kNumEntries; i++) {
-      n += mEntries[i].SizeOfExcludingThis();
-    }
-
-    n += mLibraryStrings.sizeOfExcludingThis(MallocSizeOf);
-    for (StringTable::Range r = mLibraryStrings.all();
-         !r.empty();
-         r.popFront()) {
-      n += MallocSizeOf(r.front());
-    }
-
-    return n;
-  }
-
-  size_t CacheCapacity() const { return kNumEntries; }
-
-  size_t CacheCount() const
-  {
-    size_t n = 0;
-    for (size_t i = 0; i < kNumEntries; i++) {
-      if (mEntries[i].mInUse) {
-        n++;
-      }
-    }
-    return n;
-  }
-
-  size_t NumCacheHits()   const { return mNumCacheHits; }
-  size_t NumCacheMisses() const { return mNumCacheMisses; }
+  StringHashSet mSet;
 };
+
+class StringAlloc
+{
+public:
+  static char* copy(const char* aString)
+  {
+    return InfallibleAllocPolicy::strdup_(aString);
+  }
+  static void free(char* aString)
+  {
+    InfallibleAllocPolicy::free_(aString);
+  }
+};
+
+struct DescribeCodeAddressLock
+{
+  static void Unlock() { gStateLock->Unlock(); }
+  static void Lock() { gStateLock->Lock(); }
+  static bool IsLocked() { return gStateLock->IsLocked(); }
+};
+
+typedef CodeAddressService<StringTable, StringAlloc, DescribeCodeAddressLock>
+  CodeAddressService;
 
 //---------------------------------------------------------------------------
 // Stack traces
@@ -776,29 +662,26 @@ public:
   static const uint32_t MaxFrames = 24;
 
 private:
-  uint32_t mLength;         // The number of PCs.
-  void* mPcs[MaxFrames];    // The PCs themselves.  If --max-frames is less
-                            // than 24, this array is bigger than necessary,
-                            // but that case is unusual.
+  uint32_t mLength;             // The number of PCs.
+  const void* mPcs[MaxFrames];  // The PCs themselves.  If --max-frames is less
+                                // than 24, this array is bigger than
+                                // necessary, but that case is unusual.
 
 public:
   StackTrace() : mLength(0) {}
 
   uint32_t Length() const { return mLength; }
-  void* Pc(uint32_t i) const { MOZ_ASSERT(i < mLength); return mPcs[i]; }
+  const void* Pc(uint32_t i) const
+  {
+    MOZ_ASSERT(i < mLength);
+    return mPcs[i];
+  }
 
   uint32_t Size() const { return mLength * sizeof(mPcs[0]); }
 
   // The stack trace returned by this function is interned in gStackTraceTable,
   // and so is immortal and unmovable.
   static const StackTrace* Get(Thread* aT);
-
-  void Sort()
-  {
-    qsort(mPcs, mLength, sizeof(mPcs[0]), StackTrace::QsortCmp);
-  }
-
-  void Print(const Writer& aWriter, LocationService* aLocService) const;
 
   // Hash policy.
 
@@ -817,21 +700,14 @@ public:
   }
 
 private:
-  static void StackWalkCallback(void* aPc, void* aSp, void* aClosure)
+  static void StackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
+                                void* aClosure)
   {
     StackTrace* st = (StackTrace*) aClosure;
     MOZ_ASSERT(st->mLength < MaxFrames);
     st->mPcs[st->mLength] = aPc;
     st->mLength++;
-  }
-
-  static int QsortCmp(const void* aA, const void* aB)
-  {
-    const void* const a = *static_cast<const void* const*>(aA);
-    const void* const b = *static_cast<const void* const*>(aB);
-    if (a < b) return -1;
-    if (a > b) return  1;
-    return 0;
+    MOZ_ASSERT(st->mLength == aFrameNumber);
   }
 };
 
@@ -839,21 +715,19 @@ typedef js::HashSet<StackTrace*, StackTrace, InfallibleAllocPolicy>
         StackTraceTable;
 static StackTraceTable* gStackTraceTable = nullptr;
 
+typedef js::HashSet<const StackTrace*, js::DefaultHasher<const StackTrace*>,
+                    InfallibleAllocPolicy>
+        StackTraceSet;
+
+typedef js::HashSet<const void*, js::DefaultHasher<const void*>,
+                    InfallibleAllocPolicy>
+        PointerSet;
+typedef js::HashMap<const void*, uint32_t, js::DefaultHasher<const void*>,
+                    InfallibleAllocPolicy>
+        PointerIdMap;
+
 // We won't GC the stack trace table until it this many elements.
 static uint32_t gGCStackTraceTableWhenSizeExceeds = 4 * 1024;
-
-void
-StackTrace::Print(const Writer& aWriter, LocationService* aLocService) const
-{
-  if (mLength == 0) {
-    W("   (empty)\n");  // StackTrace::Get() must have failed
-    return;
-  }
-
-  for (uint32_t i = 0; i < mLength; i++) {
-    aLocService->WriteLocation(aWriter, Pc(i));
-  }
-}
 
 /* static */ const StackTrace*
 StackTrace::Get(Thread* aT)
@@ -861,40 +735,23 @@ StackTrace::Get(Thread* aT)
   MOZ_ASSERT(gStateLock->IsLocked());
   MOZ_ASSERT(aT->InterceptsAreBlocked());
 
-  // On Windows, NS_StackWalk can acquire a lock from the shared library
+  // On Windows, MozStackWalk can acquire a lock from the shared library
   // loader.  Another thread might call malloc while holding that lock (when
   // loading a shared library).  So we can't be in gStateLock during the call
-  // to NS_StackWalk.  For details, see
+  // to MozStackWalk.  For details, see
   // https://bugzilla.mozilla.org/show_bug.cgi?id=374829#c8
   // On Linux, something similar can happen;  see bug 824340.
   // So let's just release it on all platforms.
-  nsresult rv;
   StackTrace tmp;
   {
     AutoUnlockState unlock;
     uint32_t skipFrames = 2;
-    rv = NS_StackWalk(StackWalkCallback, skipFrames,
-                      gOptions->MaxFrames(), &tmp, 0, nullptr);
-  }
-
-  if (rv == NS_OK) {
-    // Handle the common case first.  All is ok.  Nothing to do.
-  } else if (rv == NS_ERROR_NOT_IMPLEMENTED || rv == NS_ERROR_FAILURE) {
-    tmp.mLength = 0;
-  } else if (rv == NS_ERROR_UNEXPECTED) {
-    // XXX: This |rv| only happens on Mac, and it indicates that we're handling
-    // a call to malloc that happened inside a mutex-handling function.  Any
-    // attempt to create a semaphore (which can happen in printf) could
-    // deadlock.
-    //
-    // However, the most complex thing DMD does after Get() returns is to put
-    // something in a hash table, which might call
-    // InfallibleAllocPolicy::malloc_.  I'm not yet sure if this needs special
-    // handling, hence the forced abort.  Sorry.  If you hit this, please file
-    // a bug and CC nnethercote.
-    MOZ_CRASH();
-  } else {
-    MOZ_CRASH();  // should be impossible
+    if (MozStackWalk(StackWalkCallback, skipFrames,
+                      gOptions->MaxFrames(), &tmp, 0, nullptr)) {
+      // Handle the common case first.  All is ok.  Nothing to do.
+    } else {
+      tmp.mLength = 0;
+    }
   }
 
   StackTraceTable::AddPtr p = gStackTraceTable->lookupForAdd(&tmp);
@@ -959,39 +816,46 @@ public:
   bool Tag() const { return bool(mUint & kTagMask); }
 };
 
-// A live heap block.
-class Block
+// A live heap block. Stores both basic data and data about reports, if we're
+// in DarkMatter mode.
+class LiveBlock
 {
   const void*  mPtr;
   const size_t mReqSize;    // size requested
 
   // Ptr: |mAllocStackTrace| - stack trace where this block was allocated.
-  // Tag bit 0: |mSampled| - was this block sampled? (if so, slop == 0).
+  // Tag bit 0: |mIsSampled| - was this block sampled? (if so, slop == 0).
+  //
+  // Only used in DarkMatter mode.
   TaggedPtr<const StackTrace* const>
-    mAllocStackTrace_mSampled;
+    mAllocStackTrace_mIsSampled;
 
   // This array has two elements because we record at most two reports of a
   // block.
   // - Ptr: |mReportStackTrace| - stack trace where this block was reported.
   //   nullptr if not reported.
   // - Tag bit 0: |mReportedOnAlloc| - was the block reported immediately on
-  //   allocation?  If so, DMD must not clear the report at the end of Dump().
-  //   Only relevant if |mReportStackTrace| is non-nullptr.
+  //   allocation?  If so, DMD must not clear the report at the end of
+  //   Analyze(). Only relevant if |mReportStackTrace| is non-nullptr.
   //
-  // |mPtr| is used as the key in BlockTable, so it's ok for this member
+  // |mPtr| is used as the key in LiveBlockTable, so it's ok for this member
   // to be |mutable|.
+  //
+  // Only used in DarkMatter mode.
   mutable TaggedPtr<const StackTrace*> mReportStackTrace_mReportedOnAlloc[2];
 
 public:
-  Block(const void* aPtr, size_t aReqSize, const StackTrace* aAllocStackTrace,
-        bool aSampled)
-    : mPtr(aPtr),
-      mReqSize(aReqSize),
-      mAllocStackTrace_mSampled(aAllocStackTrace, aSampled),
-      mReportStackTrace_mReportedOnAlloc()     // all fields get zeroed
+  LiveBlock(const void* aPtr, size_t aReqSize,
+            const StackTrace* aAllocStackTrace, bool aIsSampled)
+    : mPtr(aPtr)
+    , mReqSize(aReqSize)
+    , mAllocStackTrace_mIsSampled(aAllocStackTrace, aIsSampled)
+    , mReportStackTrace_mReportedOnAlloc()     // all fields get zeroed
   {
     MOZ_ASSERT(aAllocStackTrace);
   }
+
+  const void* Address() const { return mPtr; }
 
   size_t ReqSize() const { return mReqSize; }
 
@@ -1008,31 +872,55 @@ public:
 
   bool IsSampled() const
   {
-    return mAllocStackTrace_mSampled.Tag();
+    return mAllocStackTrace_mIsSampled.Tag();
   }
 
   const StackTrace* AllocStackTrace() const
   {
-    return mAllocStackTrace_mSampled.Ptr();
+    return mAllocStackTrace_mIsSampled.Ptr();
   }
 
-  const StackTrace* ReportStackTrace1() const {
+  const StackTrace* ReportStackTrace1() const
+  {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     return mReportStackTrace_mReportedOnAlloc[0].Ptr();
   }
 
-  const StackTrace* ReportStackTrace2() const {
+  const StackTrace* ReportStackTrace2() const
+  {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     return mReportStackTrace_mReportedOnAlloc[1].Ptr();
   }
 
-  bool ReportedOnAlloc1() const {
+  bool ReportedOnAlloc1() const
+  {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     return mReportStackTrace_mReportedOnAlloc[0].Tag();
   }
 
-  bool ReportedOnAlloc2() const {
+  bool ReportedOnAlloc2() const
+  {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     return mReportStackTrace_mReportedOnAlloc[1].Tag();
   }
 
-  uint32_t NumReports() const {
+  void AddStackTracesToTable(StackTraceSet& aStackTraces) const
+  {
+    aStackTraces.put(AllocStackTrace());  // never null
+    if (gOptions->IsDarkMatterMode()) {
+      const StackTrace* st;
+      if ((st = ReportStackTrace1())) {     // may be null
+        aStackTraces.put(st);
+      }
+      if ((st = ReportStackTrace2())) {     // may be null
+        aStackTraces.put(st);
+      }
+    }
+  }
+
+  uint32_t NumReports() const
+  {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     if (ReportStackTrace2()) {
       MOZ_ASSERT(ReportStackTrace1());
       return 2;
@@ -1046,6 +934,7 @@ public:
   // This is |const| thanks to the |mutable| fields above.
   void Report(Thread* aT, bool aReportedOnAlloc) const
   {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     // We don't bother recording reports after the 2nd one.
     uint32_t numReports = NumReports();
     if (numReports < 2) {
@@ -1056,6 +945,7 @@ public:
 
   void UnreportIfNotReportedOnAlloc() const
   {
+    MOZ_ASSERT(gOptions->IsDarkMatterMode());
     if (!ReportedOnAlloc1() && !ReportedOnAlloc2()) {
       mReportStackTrace_mReportedOnAlloc[0].Set(nullptr, 0);
       mReportStackTrace_mReportedOnAlloc[1].Set(nullptr, 0);
@@ -1080,18 +970,102 @@ public:
     return mozilla::HashGeneric(aPtr);
   }
 
-  static bool match(const Block& aB, const void* const& aPtr)
+  static bool match(const LiveBlock& aB, const void* const& aPtr)
   {
     return aB.mPtr == aPtr;
   }
 };
 
-typedef js::HashSet<Block, Block, InfallibleAllocPolicy> BlockTable;
-static BlockTable* gBlockTable = nullptr;
+typedef js::HashSet<LiveBlock, LiveBlock, InfallibleAllocPolicy> LiveBlockTable;
+static LiveBlockTable* gLiveBlockTable = nullptr;
 
-typedef js::HashSet<const StackTrace*, js::DefaultHasher<const StackTrace*>,
-                    InfallibleAllocPolicy>
-        StackTraceSet;
+// A freed heap block.
+class DeadBlock
+{
+  const size_t mReqSize;    // size requested
+  const size_t mSlopSize;   // slop above size requested
+
+  // Ptr: |mAllocStackTrace| - stack trace where this block was allocated.
+  // Tag bit 0: |mIsSampled| - was this block sampled? (if so, slop == 0).
+  TaggedPtr<const StackTrace* const>
+    mAllocStackTrace_mIsSampled;
+
+public:
+  DeadBlock()
+    : mReqSize(0)
+    , mSlopSize(0)
+    , mAllocStackTrace_mIsSampled(nullptr, 0)
+  {}
+
+  explicit DeadBlock(const LiveBlock& aLb)
+    : mReqSize(aLb.ReqSize())
+    , mSlopSize(aLb.SlopSize())
+    , mAllocStackTrace_mIsSampled(aLb.AllocStackTrace(), aLb.IsSampled())
+  {
+    MOZ_ASSERT(AllocStackTrace());
+    MOZ_ASSERT_IF(IsSampled(), SlopSize() == 0);
+  }
+
+  ~DeadBlock() {}
+
+  size_t ReqSize()    const { return mReqSize; }
+  size_t SlopSize()   const { return mSlopSize; }
+  size_t UsableSize() const { return mReqSize + mSlopSize; }
+
+  bool IsSampled() const
+  {
+    return mAllocStackTrace_mIsSampled.Tag();
+  }
+
+  const StackTrace* AllocStackTrace() const
+  {
+    return mAllocStackTrace_mIsSampled.Ptr();
+  }
+
+  void AddStackTracesToTable(StackTraceSet& aStackTraces) const
+  {
+    aStackTraces.put(AllocStackTrace());  // never null
+  }
+
+  // Hash policy.
+
+  typedef DeadBlock Lookup;
+
+  static uint32_t hash(const DeadBlock& aB)
+  {
+    return mozilla::HashGeneric(aB.ReqSize(),
+                                aB.SlopSize(),
+                                aB.IsSampled(),
+                                aB.AllocStackTrace());
+  }
+
+  static bool match(const DeadBlock& aA, const DeadBlock& aB)
+  {
+    return aA.ReqSize() == aB.ReqSize() &&
+           aA.SlopSize() == aB.SlopSize() &&
+           aA.IsSampled() == aB.IsSampled() &&
+           aA.AllocStackTrace() == aB.AllocStackTrace();
+  }
+};
+
+// For each unique DeadBlock value we store a count of how many actual dead
+// blocks have that value.
+typedef js::HashMap<DeadBlock, size_t, DeadBlock, InfallibleAllocPolicy>
+  DeadBlockTable;
+static DeadBlockTable* gDeadBlockTable = nullptr;
+
+// Add the dead block to the dead block table, if that's appropriate.
+void MaybeAddToDeadBlockTable(const DeadBlock& aDb)
+{
+  if (gOptions->IsCumulativeMode() && aDb.AllocStackTrace()) {
+    AutoLockState lock;
+    if (DeadBlockTable::AddPtr p = gDeadBlockTable->lookupForAdd(aDb)) {
+      p->value() += 1;
+    } else {
+      gDeadBlockTable->add(p, aDb, 1);
+    }
+  }
+}
 
 // Add a pointer to each live stack trace into the given StackTraceSet.  (A
 // stack trace is live if it's used by one of the live blocks.)
@@ -1102,18 +1076,15 @@ GatherUsedStackTraces(StackTraceSet& aStackTraces)
   MOZ_ASSERT(Thread::Fetch()->InterceptsAreBlocked());
 
   aStackTraces.finish();
-  aStackTraces.init(1024);
+  aStackTraces.init(512);
 
-  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
-    const Block& b = r.front();
-    aStackTraces.put(b.AllocStackTrace());
-    aStackTraces.put(b.ReportStackTrace1());
-    aStackTraces.put(b.ReportStackTrace2());
+  for (auto r = gLiveBlockTable->all(); !r.empty(); r.popFront()) {
+    r.front().AddStackTracesToTable(aStackTraces);
   }
 
-  // Any of the stack traces added above may have been null.  For the sake of
-  // cleanliness, don't leave the null pointer in the set.
-  aStackTraces.remove(nullptr);
+  for (auto r = gDeadBlockTable->all(); !r.empty(); r.popFront()) {
+    r.front().key().AddStackTracesToTable(aStackTraces);
+  }
 }
 
 // Delete stack traces that we aren't using, and compact our hashtable.
@@ -1128,11 +1099,8 @@ GCStackTraces()
 
   // Delete all unused stack traces from gStackTraceTable.  The Enum destructor
   // will automatically rehash and compact the table.
-  for (StackTraceTable::Enum e(*gStackTraceTable);
-       !e.empty();
-       e.popFront()) {
+  for (StackTraceTable::Enum e(*gStackTraceTable); !e.empty(); e.popFront()) {
     StackTrace* const& st = e.front();
-
     if (!usedStackTraces.has(st)) {
       e.removeFront();
       InfallibleAllocPolicy::delete_(st);
@@ -1153,8 +1121,6 @@ static size_t gSmallBlockActualSizeCounter = 0;
 static void
 AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
 {
-  MOZ_ASSERT(gIsDMDRunning);
-
   if (!aPtr) {
     return;
   }
@@ -1174,21 +1140,20 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
     if (gSmallBlockActualSizeCounter >= sampleBelowSize) {
       gSmallBlockActualSizeCounter -= sampleBelowSize;
 
-      Block b(aPtr, sampleBelowSize, StackTrace::Get(aT), /* sampled */ true);
-      (void)gBlockTable->putNew(aPtr, b);
+      LiveBlock b(aPtr, sampleBelowSize, StackTrace::Get(aT),
+                  /* isSampled */ true);
+      (void)gLiveBlockTable->putNew(aPtr, b);
     }
   } else {
     // If this block size is larger than the sample size, record it exactly.
-    Block b(aPtr, aReqSize, StackTrace::Get(aT), /* sampled */ false);
-    (void)gBlockTable->putNew(aPtr, b);
+    LiveBlock b(aPtr, aReqSize, StackTrace::Get(aT), /* isSampled */ false);
+    (void)gLiveBlockTable->putNew(aPtr, b);
   }
 }
 
 static void
-FreeCallback(void* aPtr, Thread* aT)
+FreeCallback(void* aPtr, Thread* aT, DeadBlock* aDeadBlock)
 {
-  MOZ_ASSERT(gIsDMDRunning);
-
   if (!aPtr) {
     return;
   }
@@ -1196,7 +1161,17 @@ FreeCallback(void* aPtr, Thread* aT)
   AutoLockState lock;
   AutoBlockIntercepts block(aT);
 
-  gBlockTable->remove(aPtr);
+  if (LiveBlockTable::Ptr lb = gLiveBlockTable->lookup(aPtr)) {
+    if (gOptions->IsCumulativeMode()) {
+      // Copy it out so it can be added to the dead block list later.
+      new (aDeadBlock) DeadBlock(*lb);
+    }
+    gLiveBlockTable->remove(lb);
+  } else {
+    // We have no record of the block. Do nothing. Either:
+    // - We're sampling and we skipped this block. This is likely.
+    // - It's a bogus pointer.
+  }
 
   if (gStackTraceTable->count() > gGCStackTraceTableWhenSizeExceeds) {
     GCStackTraces();
@@ -1218,12 +1193,18 @@ replace_init(const malloc_table_t* aMallocTable)
   mozilla::dmd::Init(aMallocTable);
 }
 
+ReplaceMallocBridge*
+replace_get_bridge()
+{
+  return mozilla::dmd::gDMDBridge;
+}
+
 void*
 replace_malloc(size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     // DMD hasn't started up, either because it wasn't enabled by the user, or
     // we're still in Init() and something has indirectly called malloc.  Do a
     // vanilla malloc.  (In the latter case, if it fails we'll crash.  But
@@ -1234,7 +1215,7 @@ replace_malloc(size_t aSize)
   Thread* t = Thread::Fetch();
   if (t->InterceptsAreBlocked()) {
     // Intercepts are blocked, which means this must be a call to malloc
-    // triggered indirectly by DMD (e.g. via NS_StackWalk).  Be infallible.
+    // triggered indirectly by DMD (e.g. via MozStackWalk).  Be infallible.
     return InfallibleAllocPolicy::malloc_(aSize);
   }
 
@@ -1249,7 +1230,7 @@ replace_calloc(size_t aCount, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->calloc(aCount, aSize);
   }
 
@@ -1268,7 +1249,7 @@ replace_realloc(void* aOldPtr, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->realloc(aOldPtr, aSize);
   }
 
@@ -1286,15 +1267,19 @@ replace_realloc(void* aOldPtr, size_t aSize)
   // the realloc to avoid races, just like in replace_free().
   // Nb: This does an unnecessary hashtable remove+add if the block doesn't
   // move, but doing better isn't worth the effort.
-  FreeCallback(aOldPtr, t);
+  DeadBlock db;
+  FreeCallback(aOldPtr, t, &db);
   void* ptr = gMallocTable->realloc(aOldPtr, aSize);
   if (ptr) {
     AllocCallback(ptr, aSize, t);
+    MaybeAddToDeadBlockTable(db);
   } else {
-    // If realloc fails, we re-insert the old pointer.  It will look like it
-    // was allocated for the first time here, which is untrue, and the slop
-    // bytes will be zero, which may be untrue.  But this case is rare and
-    // doing better isn't worth the effort.
+    // If realloc fails, we undo the prior operations by re-inserting the old
+    // pointer into the live block table. We don't have to do anything with the
+    // dead block list because the dead block hasn't yet been inserted. The
+    // block will end up looking like it was allocated for the first time here,
+    // which is untrue, and the slop bytes will be zero, which may be untrue.
+    // But this case is rare and doing better isn't worth the effort.
     AllocCallback(aOldPtr, gMallocTable->malloc_usable_size(aOldPtr), t);
   }
   return ptr;
@@ -1305,7 +1290,7 @@ replace_memalign(size_t aAlignment, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->memalign(aAlignment, aSize);
   }
 
@@ -1324,7 +1309,7 @@ replace_free(void* aPtr)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     gMallocTable->free(aPtr);
     return;
   }
@@ -1337,191 +1322,14 @@ replace_free(void* aPtr)
   // Do the actual free after updating the table.  Otherwise, another thread
   // could call malloc and get the freed block and update the table, and then
   // our update here would remove the newly-malloc'd block.
-  FreeCallback(aPtr, t);
+  DeadBlock db;
+  FreeCallback(aPtr, t, &db);
+  MaybeAddToDeadBlockTable(db);
   gMallocTable->free(aPtr);
 }
 
 namespace mozilla {
 namespace dmd {
-
-//---------------------------------------------------------------------------
-// Stack trace records
-//---------------------------------------------------------------------------
-
-class TraceRecordKey
-{
-public:
-  const StackTrace* const mAllocStackTrace;   // never null
-protected:
-  const StackTrace* const mReportStackTrace1; // nullptr if unreported
-  const StackTrace* const mReportStackTrace2; // nullptr if not 2x-reported
-
-public:
-  TraceRecordKey(const Block& aB)
-    : mAllocStackTrace(aB.AllocStackTrace()),
-      mReportStackTrace1(aB.ReportStackTrace1()),
-      mReportStackTrace2(aB.ReportStackTrace2())
-  {
-    MOZ_ASSERT(mAllocStackTrace);
-  }
-
-  // Hash policy.
-
-  typedef TraceRecordKey Lookup;
-
-  static uint32_t hash(const TraceRecordKey& aKey)
-  {
-    return mozilla::HashGeneric(aKey.mAllocStackTrace,
-                                aKey.mReportStackTrace1,
-                                aKey.mReportStackTrace2);
-  }
-
-  static bool match(const TraceRecordKey& aA, const TraceRecordKey& aB)
-  {
-    return aA.mAllocStackTrace   == aB.mAllocStackTrace &&
-           aA.mReportStackTrace1 == aB.mReportStackTrace1 &&
-           aA.mReportStackTrace2 == aB.mReportStackTrace2;
-  }
-};
-
-class RecordSize
-{
-  static const size_t kReqBits = sizeof(size_t) * 8 - 1;  // 31 or 63
-
-  size_t mReq;              // size requested
-  size_t mSlop:kReqBits;    // slop bytes
-  size_t mSampled:1;        // were one or more blocks contributing to this
-                            //   RecordSize sampled?
-public:
-  RecordSize()
-    : mReq(0),
-      mSlop(0),
-      mSampled(false)
-  {}
-
-  size_t Req()    const { return mReq; }
-  size_t Slop()   const { return mSlop; }
-  size_t Usable() const { return mReq + mSlop; }
-
-  bool IsSampled() const { return mSampled; }
-
-  void Add(const Block& aB)
-  {
-    mReq  += aB.ReqSize();
-    mSlop += aB.SlopSize();
-    mSampled = mSampled || aB.IsSampled();
-  }
-
-  void Add(const RecordSize& aRecordSize)
-  {
-    mReq  += aRecordSize.Req();
-    mSlop += aRecordSize.Slop();
-    mSampled = mSampled || aRecordSize.IsSampled();
-  }
-
-  static int Cmp(const RecordSize& aA, const RecordSize& aB)
-  {
-    // Primary sort: put bigger usable sizes first.
-    if (aA.Usable() > aB.Usable()) return -1;
-    if (aA.Usable() < aB.Usable()) return  1;
-
-    // Secondary sort: put bigger requested sizes first.
-    if (aA.Req() > aB.Req()) return -1;
-    if (aA.Req() < aB.Req()) return  1;
-
-    // Tertiary sort: put non-sampled records before sampled records.
-    if (!aA.mSampled &&  aB.mSampled) return -1;
-    if ( aA.mSampled && !aB.mSampled) return  1;
-
-    return 0;
-  }
-};
-
-// A collection of one or more heap blocks with a common TraceRecordKey.
-class TraceRecord : public TraceRecordKey
-{
-  // The TraceRecordKey base class serves as the key in TraceRecordTables.
-  // These two fields constitute the value, so it's ok for them to be
-  // |mutable|.
-  mutable uint32_t    mNumBlocks; // number of blocks with this TraceRecordKey
-  mutable RecordSize mRecordSize; // combined size of those blocks
-
-public:
-  explicit TraceRecord(const TraceRecordKey& aKey)
-    : TraceRecordKey(aKey),
-      mNumBlocks(0),
-      mRecordSize()
-  {}
-
-  uint32_t NumBlocks() const { return mNumBlocks; }
-
-  const RecordSize& GetRecordSize() const { return mRecordSize; }
-
-  // This is |const| thanks to the |mutable| fields above.
-  void Add(const Block& aB) const
-  {
-    mNumBlocks++;
-    mRecordSize.Add(aB);
-  }
-
-  void Print(const Writer& aWriter, LocationService* aLocService,
-             uint32_t aM, uint32_t aN, const char* aStr, const char* astr,
-             size_t aCategoryUsableSize, size_t aCumulativeUsableSize,
-             size_t aTotalUsableSize) const;
-
-  static int QsortCmp(const void* aA, const void* aB)
-  {
-    const TraceRecord* const a = *static_cast<const TraceRecord* const*>(aA);
-    const TraceRecord* const b = *static_cast<const TraceRecord* const*>(aB);
-
-    return RecordSize::Cmp(a->mRecordSize, b->mRecordSize);
-  }
-};
-
-typedef js::HashSet<TraceRecord, TraceRecord, InfallibleAllocPolicy>
-        TraceRecordTable;
-
-void
-TraceRecord::Print(const Writer& aWriter, LocationService* aLocService,
-                   uint32_t aM, uint32_t aN, const char* aStr, const char* astr,
-                   size_t aCategoryUsableSize, size_t aCumulativeUsableSize,
-                   size_t aTotalUsableSize) const
-{
-  bool showTilde = mRecordSize.IsSampled();
-
-  W("%s: %s block%s in stack trace record %s of %s\n",
-    aStr,
-    Show(mNumBlocks, gBuf1, kBufLen, showTilde), Plural(mNumBlocks),
-    Show(aM, gBuf2, kBufLen),
-    Show(aN, gBuf3, kBufLen));
-
-  W(" %s bytes (%s requested / %s slop)\n",
-    Show(mRecordSize.Usable(), gBuf1, kBufLen, showTilde),
-    Show(mRecordSize.Req(),    gBuf2, kBufLen, showTilde),
-    Show(mRecordSize.Slop(),   gBuf3, kBufLen, showTilde));
-
-  W(" %4.2f%% of the heap (%4.2f%% cumulative); "
-    " %4.2f%% of %s (%4.2f%% cumulative)\n",
-    Percent(mRecordSize.Usable(), aTotalUsableSize),
-    Percent(aCumulativeUsableSize, aTotalUsableSize),
-    Percent(mRecordSize.Usable(), aCategoryUsableSize),
-    astr,
-    Percent(aCumulativeUsableSize, aCategoryUsableSize));
-
-  W(" Allocated at\n");
-  mAllocStackTrace->Print(aWriter, aLocService);
-
-  if (mReportStackTrace1) {
-    W("\n Reported at\n");
-    mReportStackTrace1->Print(aWriter, aLocService);
-  }
-  if (mReportStackTrace2) {
-    W("\n Reported again at\n");
-    mReportStackTrace2->Print(aWriter, aLocService);
-  }
-
-  W("\n");
-}
 
 //---------------------------------------------------------------------------
 // Options (Part 2)
@@ -1546,13 +1354,31 @@ Options::ValueIfMatch(const char* aArg, const char* aOptionName)
 // the range |aMin..aMax| (inclusive).
 bool
 Options::GetLong(const char* aArg, const char* aOptionName,
-                 long aMin, long aMax, long* aN)
+                 long aMin, long aMax, long* aValue)
 {
   if (const char* optionValue = ValueIfMatch(aArg, aOptionName)) {
     char* endPtr;
-    *aN = strtol(optionValue, &endPtr, /* base */ 10);
-    if (!*endPtr && aMin <= *aN && *aN <= aMax &&
-        *aN != LONG_MIN && *aN != LONG_MAX) {
+    *aValue = strtol(optionValue, &endPtr, /* base */ 10);
+    if (!*endPtr && aMin <= *aValue && *aValue <= aMax &&
+        *aValue != LONG_MIN && *aValue != LONG_MAX) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Extracts a |bool| value for an option -- encoded as "yes" or "no" -- from an
+// argument.
+bool
+Options::GetBool(const char* aArg, const char* aOptionName, bool* aValue)
+{
+  if (const char* optionValue = ValueIfMatch(aArg, aOptionName)) {
+    if (strcmp(optionValue, "yes") == 0) {
+      *aValue = true;
+      return true;
+    }
+    if (strcmp(optionValue, "no") == 0) {
+      *aValue = false;
       return true;
     }
   }
@@ -1568,14 +1394,18 @@ Options::GetLong(const char* aArg, const char* aOptionName,
 //   prime size will explore all possible values of the alloc counter.
 //
 Options::Options(const char* aDMDEnvVar)
-  : mDMDEnvVar(InfallibleAllocPolicy::strdup_(aDMDEnvVar)),
-    mSampleBelowSize(4093, 100 * 100 * 1000),
-    mMaxFrames(StackTrace::MaxFrames, StackTrace::MaxFrames),
-    mMaxRecords(1000, 1000000),
-    mMode(Normal)
+  : mDMDEnvVar(aDMDEnvVar ? InfallibleAllocPolicy::strdup_(aDMDEnvVar)
+                          : nullptr)
+  , mMode(DarkMatter)
+  , mSampleBelowSize(4093, 100 * 100 * 1000)
+  , mMaxFrames(StackTrace::MaxFrames, StackTrace::MaxFrames)
+  , mShowDumpStats(false)
 {
+  // It's no longer necessary to set the DMD env var to "1" if you want default
+  // options (you can leave it undefined) but we still accept "1" for
+  // backwards compatibility.
   char* e = mDMDEnvVar;
-  if (strcmp(e, "1") != 0) {
+  if (e && strcmp(e, "1") != 0) {
     bool isEnd = false;
     while (!isEnd) {
       // Consume leading whitespace.
@@ -1597,21 +1427,23 @@ Options::Options(const char* aDMDEnvVar)
 
       // Handle arg
       long myLong;
-      if (GetLong(arg, "--sample-below", 1, mSampleBelowSize.mMax, &myLong)) {
+      bool myBool;
+      if (strcmp(arg, "--mode=live") == 0) {
+        mMode = Options::Live;
+      } else if (strcmp(arg, "--mode=dark-matter") == 0) {
+        mMode = Options::DarkMatter;
+      } else if (strcmp(arg, "--mode=cumulative") == 0) {
+        mMode = Options::Cumulative;
+
+      } else if (GetLong(arg, "--sample-below", 1, mSampleBelowSize.mMax,
+                 &myLong)) {
         mSampleBelowSize.mActual = myLong;
 
       } else if (GetLong(arg, "--max-frames", 1, mMaxFrames.mMax, &myLong)) {
         mMaxFrames.mActual = myLong;
 
-      } else if (GetLong(arg, "--max-records", 1, mMaxRecords.mMax, &myLong)) {
-        mMaxRecords.mActual = myLong;
-
-      } else if (strcmp(arg, "--mode=normal") == 0) {
-        mMode = Options::Normal;
-      } else if (strcmp(arg, "--mode=test")   == 0) {
-        mMode = Options::Test;
-      } else if (strcmp(arg, "--mode=stress") == 0) {
-        mMode = Options::Stress;
+      } else if (GetBool(arg, "--show-dump-stats", &myBool)) {
+        mShowDumpStats = myBool;
 
       } else if (strcmp(arg, "") == 0) {
         // This can only happen if there is trailing whitespace.  Ignore.
@@ -1633,13 +1465,12 @@ Options::BadArg(const char* aArg)
   StatusMsg("\n");
   StatusMsg("Bad entry in the $DMD environment variable: '%s'.\n", aArg);
   StatusMsg("\n");
-  StatusMsg("Valid values of $DMD are:\n");
-  StatusMsg("- undefined or \"\" or \"0\", which disables DMD, or\n");
-  StatusMsg("- \"1\", which enables it with the default options, or\n");
-  StatusMsg("- a whitespace-separated list of |--option=val| entries, which\n");
-  StatusMsg("  enables it with non-default options.\n");
+  StatusMsg("$DMD must be a whitespace-separated list of |--option=val|\n");
+  StatusMsg("entries.\n");
   StatusMsg("\n");
   StatusMsg("The following options are allowed;  defaults are shown in [].\n");
+  StatusMsg("  --mode=<mode>                Profiling mode [dark-matter]\n");
+  StatusMsg("      where <mode> is one of: live, dark-matter, cumulative\n");
   StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n",
             int(mSampleBelowSize.mMax),
             int(mSampleBelowSize.mDefault));
@@ -1647,12 +1478,25 @@ Options::BadArg(const char* aArg)
   StatusMsg("  --max-frames=<1..%d>         Max. depth of stack traces [%d]\n",
             int(mMaxFrames.mMax),
             int(mMaxFrames.mDefault));
-  StatusMsg("  --max-records=<1..%u>   Max. number of records printed [%u]\n",
-            mMaxRecords.mMax,
-            mMaxRecords.mDefault);
-  StatusMsg("  --mode=<normal|test|stress>  Mode of operation [normal]\n");
+  StatusMsg("  --show-dump-stats=<yes|no>   Show stats about dumps? [no]\n");
   StatusMsg("\n");
   exit(1);
+}
+
+const char*
+Options::ModeString() const
+{
+  switch (mMode) {
+  case Live:
+    return "live";
+  case DarkMatter:
+    return "dark-matter";
+  case Cumulative:
+    return "cumulative";
+  default:
+    MOZ_ASSERT(false);
+    return "(unknown DMD mode)";
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -1661,25 +1505,11 @@ Options::BadArg(const char* aArg)
 
 #ifdef XP_MACOSX
 static void
-NopStackWalkCallback(void* aPc, void* aSp, void* aClosure)
+NopStackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
+                     void* aClosure)
 {
 }
 #endif
-
-// Note that fopen() can allocate.
-static FILE*
-OpenOutputFile(const char* aFilename)
-{
-  FILE* fp = fopen(aFilename, "w");
-  if (!fp) {
-    StatusMsg("can't create %s file: %s\n", aFilename, strerror(errno));
-    exit(1);
-  }
-  return fp;
-}
-
-static void RunTestMode(FILE* fp);
-static void RunStressMode(FILE* fp);
 
 // WARNING: this function runs *very* early -- before all static initializers
 // have run.  For this reason, non-scalar globals such as gStateLock and
@@ -1688,35 +1518,29 @@ static void RunStressMode(FILE* fp);
 static void
 Init(const malloc_table_t* aMallocTable)
 {
-  MOZ_ASSERT(!gIsDMDRunning);
-
   gMallocTable = aMallocTable;
+  gDMDBridge = InfallibleAllocPolicy::new_<DMDBridge>();
 
   // DMD is controlled by the |DMD| environment variable.
-  // - If it's unset or empty or "0", DMD doesn't run.
-  // - Otherwise, the contents dictate DMD's behaviour.
+  const char* e = getenv("DMD");
 
-  char* e = getenv("DMD");
-  StatusMsg("$DMD = '%s'\n", e);
-
-  if (!e || strcmp(e, "") == 0 || strcmp(e, "0") == 0) {
-    StatusMsg("DMD is not enabled\n");
-    return;
+  if (e) {
+    StatusMsg("$DMD = '%s'\n", e);
+  } else {
+    StatusMsg("$DMD is undefined\n", e);
   }
 
   // Parse $DMD env var.
   gOptions = InfallibleAllocPolicy::new_<Options>(e);
-
-  StatusMsg("DMD is enabled\n");
 
 #ifdef XP_MACOSX
   // On Mac OS X we need to call StackWalkInitCriticalAddress() very early
   // (prior to the creation of any mutexes, apparently) otherwise we can get
   // hangs when getting stack traces (bug 821577).  But
   // StackWalkInitCriticalAddress() isn't exported from xpcom/, so instead we
-  // just call NS_StackWalk, because that calls StackWalkInitCriticalAddress().
+  // just call MozStackWalk, because that calls StackWalkInitCriticalAddress().
   // See the comment above StackWalkInitCriticalAddress() for more details.
-  (void)NS_StackWalk(NopStackWalkCallback, /* skipFrames */ 0,
+  (void)MozStackWalk(NopStackWalkCallback, /* skipFrames */ 0,
                      /* maxFrames */ 1, nullptr, 0, nullptr);
 #endif
 
@@ -1732,46 +1556,27 @@ Init(const malloc_table_t* aMallocTable)
     gStackTraceTable = InfallibleAllocPolicy::new_<StackTraceTable>();
     gStackTraceTable->init(8192);
 
-    gBlockTable = InfallibleAllocPolicy::new_<BlockTable>();
-    gBlockTable->init(8192);
+    gLiveBlockTable = InfallibleAllocPolicy::new_<LiveBlockTable>();
+    gLiveBlockTable->init(8192);
+
+    // Create this even if the mode isn't Cumulative (albeit with a small
+    // size), in case the mode is changed later on (as is done by SmokeDMD.cpp,
+    // for example).
+    gDeadBlockTable = InfallibleAllocPolicy::new_<DeadBlockTable>();
+    gDeadBlockTable->init(gOptions->IsCumulativeMode() ? 8192 : 4);
   }
 
-  if (gOptions->IsTestMode()) {
-    // OpenOutputFile() can allocate.  So do this before setting
-    // gIsDMDRunning so those allocations don't show up in our results.  Once
-    // gIsDMDRunning is set we are intercepting malloc et al. in earnest.
-    FILE* fp = OpenOutputFile("test.dmd");
-    gIsDMDRunning = true;
-
-    StatusMsg("running test mode...\n");
-    RunTestMode(fp);
-    StatusMsg("finished test mode\n");
-    fclose(fp);
-    exit(0);
-  }
-
-  if (gOptions->IsStressMode()) {
-    FILE* fp = OpenOutputFile("stress.dmd");
-    gIsDMDRunning = true;
-
-    StatusMsg("running stress mode...\n");
-    RunStressMode(fp);
-    StatusMsg("finished stress mode\n");
-    fclose(fp);
-    exit(0);
-  }
-
-  gIsDMDRunning = true;
+  gIsDMDInitialized = true;
 }
 
 //---------------------------------------------------------------------------
-// DMD reporting and unreporting
+// Block reporting and unreporting
 //---------------------------------------------------------------------------
 
 static void
 ReportHelper(const void* aPtr, bool aReportedOnAlloc)
 {
-  if (!gIsDMDRunning || !aPtr) {
+  if (!gOptions->IsDarkMatterMode() || !aPtr) {
     return;
   }
 
@@ -1780,7 +1585,7 @@ ReportHelper(const void* aPtr, bool aReportedOnAlloc)
   AutoBlockIntercepts block(t);
   AutoLockState lock;
 
-  if (BlockTable::Ptr p = gBlockTable->lookup(aPtr)) {
+  if (LiveBlockTable::Ptr p = gLiveBlockTable->lookup(aPtr)) {
     p->Report(t, aReportedOnAlloc);
   } else {
     // We have no record of the block.  Do nothing.  Either:
@@ -1790,14 +1595,14 @@ ReportHelper(const void* aPtr, bool aReportedOnAlloc)
   }
 }
 
-MOZ_EXPORT void
-Report(const void* aPtr)
+void
+DMDFuncs::Report(const void* aPtr)
 {
   ReportHelper(aPtr, /* onAlloc */ false);
 }
 
-MOZ_EXPORT void
-ReportOnAlloc(const void* aPtr)
+void
+DMDFuncs::ReportOnAlloc(const void* aPtr)
 {
   ReportHelper(aPtr, /* onAlloc */ true);
 }
@@ -1806,53 +1611,10 @@ ReportOnAlloc(const void* aPtr)
 // DMD output
 //---------------------------------------------------------------------------
 
-static void
-PrintSortedTraceRecords(const Writer& aWriter, LocationService* aLocService,
-                        const char* aStr, const char* astr,
-                        const TraceRecordTable& aRecordTable,
-                        size_t aCategoryUsableSize, size_t aTotalUsableSize)
-{
-  StatusMsg("  creating and sorting %s stack trace record array...\n", astr);
-
-  // Convert the table into a sorted array.
-  js::Vector<const TraceRecord*, 0, InfallibleAllocPolicy> recordArray;
-  recordArray.reserve(aRecordTable.count());
-  for (TraceRecordTable::Range r = aRecordTable.all();
-       !r.empty();
-       r.popFront()) {
-    recordArray.infallibleAppend(&r.front());
-  }
-  qsort(recordArray.begin(), recordArray.length(), sizeof(recordArray[0]),
-        TraceRecord::QsortCmp);
-
-  WriteTitle("%s stack trace records\n", aStr);
-
-  if (recordArray.length() == 0) {
-    W("(none)\n\n");
-    return;
-  }
-
-  StatusMsg("  printing %s stack trace record array...\n", astr);
-  size_t cumulativeUsableSize = 0;
-
-  // Limit the number of records printed, because fix-linux-stack.pl is too
-  // damn slow.  Note that we don't break out of this loop because we need to
-  // keep adding to |cumulativeUsableSize|.
-  uint32_t numRecords = recordArray.length();
-  uint32_t maxRecords = gOptions->MaxRecords();
-  for (uint32_t i = 0; i < numRecords; i++) {
-    const TraceRecord* r = recordArray[i];
-    cumulativeUsableSize += r->GetRecordSize().Usable();
-    if (i < maxRecords) {
-      r->Print(aWriter, aLocService, i+1, numRecords, aStr, astr,
-               aCategoryUsableSize, cumulativeUsableSize, aTotalUsableSize);
-    } else if (i == maxRecords) {
-      W("%s: stopping after %s stack trace records\n\n", aStr,
-        Show(maxRecords, gBuf1, kBufLen));
-    }
-  }
-  MOZ_ASSERT(aCategoryUsableSize == cumulativeUsableSize);
-}
+// The version number of the output format. Increment this if you make
+// backwards-incompatible changes to the format. See DMD.h for the version
+// history.
+static const int kOutputVersionNumber = 4;
 
 // Note that, unlike most SizeOf* functions, this function does not take a
 // |mozilla::MallocSizeOf| argument.  That's because those arguments are
@@ -1871,16 +1633,10 @@ SizeOfInternal(Sizes* aSizes)
 
   aSizes->Clear();
 
-  if (!gIsDMDRunning) {
-    return;
-  }
-
   StackTraceSet usedStackTraces;
   GatherUsedStackTraces(usedStackTraces);
 
-  for (StackTraceTable::Range r = gStackTraceTable->all();
-       !r.empty();
-       r.popFront()) {
+  for (auto r = gStackTraceTable->all(); !r.empty(); r.popFront()) {
     StackTrace* const& st = r.front();
 
     if (usedStackTraces.has(st)) {
@@ -1893,17 +1649,15 @@ SizeOfInternal(Sizes* aSizes)
   aSizes->mStackTraceTable =
     gStackTraceTable->sizeOfIncludingThis(MallocSizeOf);
 
-  aSizes->mBlockTable = gBlockTable->sizeOfIncludingThis(MallocSizeOf);
+  aSizes->mLiveBlockTable = gLiveBlockTable->sizeOfIncludingThis(MallocSizeOf);
+
+  aSizes->mDeadBlockTable = gDeadBlockTable->sizeOfIncludingThis(MallocSizeOf);
 }
 
-MOZ_EXPORT void
-SizeOf(Sizes* aSizes)
+void
+DMDFuncs::SizeOf(Sizes* aSizes)
 {
   aSizes->Clear();
-
-  if (!gIsDMDRunning) {
-    return;
-  }
 
   AutoBlockIntercepts block(Thread::Fetch());
   AutoLockState lock;
@@ -1911,541 +1665,325 @@ SizeOf(Sizes* aSizes)
 }
 
 void
-ClearReportsInternal()
+DMDFuncs::ClearReports()
 {
-  MOZ_ASSERT(gStateLock->IsLocked());
+  if (!gOptions->IsDarkMatterMode()) {
+    return;
+  }
+
+  AutoLockState lock;
 
   // Unreport all blocks that were marked reported by a memory reporter.  This
   // excludes those that were reported on allocation, because they need to keep
   // their reported marking.
-  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
+  for (auto r = gLiveBlockTable->all(); !r.empty(); r.popFront()) {
     r.front().UnreportIfNotReportedOnAlloc();
   }
 }
 
-MOZ_EXPORT void
-ClearReports()
+class ToIdStringConverter final
 {
-  if (!gIsDMDRunning) {
-    return;
+public:
+  ToIdStringConverter() : mNextId(0) { mIdMap.init(512); }
+
+  // Converts a pointer to a unique ID. Reuses the existing ID for the pointer
+  // if it's been seen before.
+  const char* ToIdString(const void* aPtr)
+  {
+    uint32_t id;
+    PointerIdMap::AddPtr p = mIdMap.lookupForAdd(aPtr);
+    if (!p) {
+      id = mNextId++;
+      (void)mIdMap.add(p, aPtr, id);
+    } else {
+      id = p->value();
+    }
+    return Base32(id);
   }
 
-  AutoLockState lock;
-  ClearReportsInternal();
-}
-
-MOZ_EXPORT bool
-IsRunning()
-{
-  return gIsDMDRunning;
-}
-
-MOZ_EXPORT void
-Dump(Writer aWriter)
-{
-  if (!gIsDMDRunning) {
-    const char* msg = "cannot Dump();  DMD was not enabled at startup\n";
-    StatusMsg("%s", msg);
-    W("%s", msg);
-    return;
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    return mIdMap.sizeOfExcludingThis(aMallocSizeOf);
   }
 
+private:
+  // This function converts an integer to base-32. |aBuf| must have space for at
+  // least eight chars, which is the space needed to hold 'Dffffff' (including
+  // the terminating null char), which is the base-32 representation of
+  // 0xffffffff.
+  //
+  // We use base-32 values for indexing into the traceTable and the frameTable,
+  // for the following reasons.
+  //
+  // - Base-32 gives more compact indices than base-16.
+  //
+  // - 32 is a power-of-two, which makes the necessary div/mod calculations fast.
+  //
+  // - We can (and do) choose non-numeric digits for base-32. When
+  //   inspecting/debugging the JSON output, non-numeric indices are easier to
+  //   search for than numeric indices.
+  //
+  char* Base32(uint32_t aN)
+  {
+    static const char digits[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef";
+
+    char* b = mIdBuf + kIdBufLen - 1;
+    *b = '\0';
+    do {
+      b--;
+      if (b == mIdBuf) {
+        MOZ_CRASH("Base32 buffer too small");
+      }
+      *b = digits[aN % 32];
+      aN /= 32;
+    } while (aN);
+
+    return b;
+  }
+
+  PointerIdMap mIdMap;
+  uint32_t mNextId;
+  static const size_t kIdBufLen = 16;
+  char mIdBuf[kIdBufLen];
+};
+
+static void
+AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
+{
   AutoBlockIntercepts block(Thread::Fetch());
   AutoLockState lock;
 
-  static int dumpCount = 1;
-  StatusMsg("Dump %d {\n", dumpCount++);
-
-  StatusMsg("  gathering stack trace records...\n");
-
-  TraceRecordTable unreportedTraceRecordTable;
-  (void)unreportedTraceRecordTable.init(1024);
-  size_t unreportedUsableSize = 0;
-  size_t unreportedNumBlocks = 0;
-
-  TraceRecordTable onceReportedTraceRecordTable;
-  (void)onceReportedTraceRecordTable.init(1024);
-  size_t onceReportedUsableSize = 0;
-  size_t onceReportedNumBlocks = 0;
-
-  TraceRecordTable twiceReportedTraceRecordTable;
-  (void)twiceReportedTraceRecordTable.init(0);
-  size_t twiceReportedUsableSize = 0;
-  size_t twiceReportedNumBlocks = 0;
-
-  bool anyBlocksSampled = false;
-
-  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
-    const Block& b = r.front();
-
-    TraceRecordTable* table;
-    uint32_t numReports = b.NumReports();
-    if (numReports == 0) {
-      unreportedUsableSize += b.UsableSize();
-      unreportedNumBlocks++;
-      table = &unreportedTraceRecordTable;
-    } else if (numReports == 1) {
-      onceReportedUsableSize += b.UsableSize();
-      onceReportedNumBlocks++;
-      table = &onceReportedTraceRecordTable;
-    } else {
-      MOZ_ASSERT(numReports == 2);
-      twiceReportedUsableSize += b.UsableSize();
-      twiceReportedNumBlocks++;
-      table = &twiceReportedTraceRecordTable;
-    }
-    TraceRecordKey key(b);
-    TraceRecordTable::AddPtr p = table->lookupForAdd(key);
-    if (!p) {
-      TraceRecord tr(b);
-      (void)table->add(p, tr);
-    }
-    p->Add(b);
-
-    anyBlocksSampled = anyBlocksSampled || b.IsSampled();
-  }
-  size_t totalUsableSize =
-    unreportedUsableSize + onceReportedUsableSize + twiceReportedUsableSize;
-  size_t totalNumBlocks =
-    unreportedNumBlocks + onceReportedNumBlocks + twiceReportedNumBlocks;
-
-  WriteTitle("Invocation\n");
-  W("$DMD = '%s'\n", gOptions->DMDEnvVar());
-  W("Sample-below size = %lld\n\n",
-    (long long)(gOptions->SampleBelowSize()));
-
   // Allocate this on the heap instead of the stack because it's fairly large.
-  LocationService* locService = InfallibleAllocPolicy::new_<LocationService>();
+  auto locService = InfallibleAllocPolicy::new_<CodeAddressService>();
 
-  PrintSortedTraceRecords(aWriter, locService,
-                          "Twice-reported", "twice-reported",
-                          twiceReportedTraceRecordTable,
-                          twiceReportedUsableSize, totalUsableSize);
+  StackTraceSet usedStackTraces;
+  usedStackTraces.init(512);
 
-  PrintSortedTraceRecords(aWriter, locService,
-                          "Unreported", "unreported",
-                          unreportedTraceRecordTable,
-                          unreportedUsableSize, totalUsableSize);
+  PointerSet usedPcs;
+  usedPcs.init(512);
 
-  PrintSortedTraceRecords(aWriter, locService,
-                          "Once-reported", "once-reported",
-                          onceReportedTraceRecordTable,
-                          onceReportedUsableSize, totalUsableSize);
+  size_t iscSize;
 
-  bool showTilde = anyBlocksSampled;
-  WriteTitle("Summary\n");
+  static int analysisCount = 1;
+  StatusMsg("Dump %d {\n", analysisCount++);
 
-  W("Total:          %12s bytes (%6.2f%%) in %7s blocks (%6.2f%%)\n",
-    Show(totalUsableSize, gBuf1, kBufLen, showTilde),
-    100.0,
-    Show(totalNumBlocks,  gBuf2, kBufLen, showTilde),
-    100.0);
+  JSONWriter writer(Move(aWriter));
+  writer.Start();
+  {
+    writer.IntProperty("version", kOutputVersionNumber);
 
-  W("Unreported:     %12s bytes (%6.2f%%) in %7s blocks (%6.2f%%)\n",
-    Show(unreportedUsableSize, gBuf1, kBufLen, showTilde),
-    Percent(unreportedUsableSize, totalUsableSize),
-    Show(unreportedNumBlocks, gBuf2, kBufLen, showTilde),
-    Percent(unreportedNumBlocks, totalNumBlocks));
+    writer.StartObjectProperty("invocation");
+    {
+      const char* var = gOptions->DMDEnvVar();
+      if (var) {
+        writer.StringProperty("dmdEnvVar", var);
+      } else {
+        writer.NullProperty("dmdEnvVar");
+      }
 
-  W("Once-reported:  %12s bytes (%6.2f%%) in %7s blocks (%6.2f%%)\n",
-    Show(onceReportedUsableSize, gBuf1, kBufLen, showTilde),
-    Percent(onceReportedUsableSize, totalUsableSize),
-    Show(onceReportedNumBlocks, gBuf2, kBufLen, showTilde),
-    Percent(onceReportedNumBlocks, totalNumBlocks));
+      writer.StringProperty("mode", gOptions->ModeString());
+      writer.IntProperty("sampleBelowSize", gOptions->SampleBelowSize());
+    }
+    writer.EndObject();
 
-  W("Twice-reported: %12s bytes (%6.2f%%) in %7s blocks (%6.2f%%)\n",
-    Show(twiceReportedUsableSize, gBuf1, kBufLen, showTilde),
-    Percent(twiceReportedUsableSize, totalUsableSize),
-    Show(twiceReportedNumBlocks, gBuf2, kBufLen, showTilde),
-    Percent(twiceReportedNumBlocks, totalNumBlocks));
+    StatusMsg("  Constructing the heap block list...\n");
 
-  W("\n");
+    ToIdStringConverter isc;
 
-  // Stats are non-deterministic, so don't show them in test mode.
-  if (!gOptions->IsTestMode()) {
+    writer.StartArrayProperty("blockList");
+    {
+      // Live blocks.
+      for (auto r = gLiveBlockTable->all(); !r.empty(); r.popFront()) {
+        const LiveBlock& b = r.front();
+        b.AddStackTracesToTable(usedStackTraces);
+
+        writer.StartObjectElement(writer.SingleLineStyle);
+        {
+          if (!b.IsSampled()) {
+            writer.IntProperty("req", b.ReqSize());
+            if (b.SlopSize() > 0) {
+              writer.IntProperty("slop", b.SlopSize());
+            }
+          }
+          writer.StringProperty("alloc", isc.ToIdString(b.AllocStackTrace()));
+          if (gOptions->IsDarkMatterMode() && b.NumReports() > 0) {
+            writer.StartArrayProperty("reps");
+            {
+              if (b.ReportStackTrace1()) {
+                writer.StringElement(isc.ToIdString(b.ReportStackTrace1()));
+              }
+              if (b.ReportStackTrace2()) {
+                writer.StringElement(isc.ToIdString(b.ReportStackTrace2()));
+              }
+            }
+            writer.EndArray();
+          }
+        }
+        writer.EndObject();
+      }
+
+      // Dead blocks.
+      for (auto r = gDeadBlockTable->all(); !r.empty(); r.popFront()) {
+        const DeadBlock& b = r.front().key();
+        b.AddStackTracesToTable(usedStackTraces);
+
+        size_t num = r.front().value();
+        MOZ_ASSERT(num > 0);
+
+        writer.StartObjectElement(writer.SingleLineStyle);
+        {
+          if (!b.IsSampled()) {
+            writer.IntProperty("req", b.ReqSize());
+            if (b.SlopSize() > 0) {
+              writer.IntProperty("slop", b.SlopSize());
+            }
+          }
+          writer.StringProperty("alloc", isc.ToIdString(b.AllocStackTrace()));
+
+          if (num > 1) {
+            writer.IntProperty("num", num);
+          }
+        }
+        writer.EndObject();
+      }
+    }
+    writer.EndArray();
+
+    StatusMsg("  Constructing the stack trace table...\n");
+
+    writer.StartObjectProperty("traceTable");
+    {
+      for (auto r = usedStackTraces.all(); !r.empty(); r.popFront()) {
+        const StackTrace* const st = r.front();
+        writer.StartArrayProperty(isc.ToIdString(st), writer.SingleLineStyle);
+        {
+          for (uint32_t i = 0; i < st->Length(); i++) {
+            const void* pc = st->Pc(i);
+            writer.StringElement(isc.ToIdString(pc));
+            usedPcs.put(pc);
+          }
+        }
+        writer.EndArray();
+      }
+    }
+    writer.EndObject();
+
+    StatusMsg("  Constructing the stack frame table...\n");
+
+    writer.StartObjectProperty("frameTable");
+    {
+      static const size_t locBufLen = 1024;
+      char locBuf[locBufLen];
+
+      for (PointerSet::Enum e(usedPcs); !e.empty(); e.popFront()) {
+        const void* const pc = e.front();
+
+        // Use 0 for the frame number. See the JSON format description comment
+        // in DMD.h to understand why.
+        locService->GetLocation(0, pc, locBuf, locBufLen);
+        writer.StringProperty(isc.ToIdString(pc), locBuf);
+      }
+    }
+    writer.EndObject();
+
+    iscSize = isc.sizeOfExcludingThis(MallocSizeOf);
+  }
+  writer.End();
+
+  if (gOptions->ShowDumpStats()) {
     Sizes sizes;
     SizeOfInternal(&sizes);
 
-    WriteTitle("Execution measurements\n");
+    static const size_t kBufLen = 64;
+    char buf1[kBufLen];
+    char buf2[kBufLen];
+    char buf3[kBufLen];
 
-    W("Data structures that persist after Dump() ends:\n");
+    StatusMsg("  Execution measurements {\n");
 
-    W("  Used stack traces:    %10s bytes\n",
-      Show(sizes.mStackTracesUsed, gBuf1, kBufLen));
+    StatusMsg("    Data structures that persist after Dump() ends {\n");
 
-    W("  Unused stack traces:  %10s bytes\n",
-      Show(sizes.mStackTracesUnused, gBuf1, kBufLen));
+    StatusMsg("      Used stack traces:    %10s bytes\n",
+      Show(sizes.mStackTracesUsed, buf1, kBufLen));
 
-    W("  Stack trace table:    %10s bytes (%s entries, %s used)\n",
-      Show(sizes.mStackTraceTable,       gBuf1, kBufLen),
-      Show(gStackTraceTable->capacity(), gBuf2, kBufLen),
-      Show(gStackTraceTable->count(),    gBuf3, kBufLen));
+    StatusMsg("      Unused stack traces:  %10s bytes\n",
+      Show(sizes.mStackTracesUnused, buf1, kBufLen));
 
-    W("  Block table:          %10s bytes (%s entries, %s used)\n",
-      Show(sizes.mBlockTable,       gBuf1, kBufLen),
-      Show(gBlockTable->capacity(), gBuf2, kBufLen),
-      Show(gBlockTable->count(),    gBuf3, kBufLen));
+    StatusMsg("      Stack trace table:    %10s bytes (%s entries, %s used)\n",
+      Show(sizes.mStackTraceTable,       buf1, kBufLen),
+      Show(gStackTraceTable->capacity(), buf2, kBufLen),
+      Show(gStackTraceTable->count(),    buf3, kBufLen));
 
-    W("\nData structures that are destroyed after Dump() ends:\n");
+    StatusMsg("      Live block table:     %10s bytes (%s entries, %s used)\n",
+      Show(sizes.mLiveBlockTable,       buf1, kBufLen),
+      Show(gLiveBlockTable->capacity(), buf2, kBufLen),
+      Show(gLiveBlockTable->count(),    buf3, kBufLen));
 
-    size_t unreportedSize =
-      unreportedTraceRecordTable.sizeOfIncludingThis(MallocSizeOf);
-    W("  Unreported table:     %10s bytes (%s entries, %s used)\n",
-      Show(unreportedSize,                        gBuf1, kBufLen),
-      Show(unreportedTraceRecordTable.capacity(), gBuf2, kBufLen),
-      Show(unreportedTraceRecordTable.count(),    gBuf3, kBufLen));
+    StatusMsg("      Dead block table:     %10s bytes (%s entries, %s used)\n",
+      Show(sizes.mDeadBlockTable,       buf1, kBufLen),
+      Show(gDeadBlockTable->capacity(), buf2, kBufLen),
+      Show(gDeadBlockTable->count(),    buf3, kBufLen));
 
-    size_t onceReportedSize =
-      onceReportedTraceRecordTable.sizeOfIncludingThis(MallocSizeOf);
-    W("  Once-reported table:  %10s bytes (%s entries, %s used)\n",
-      Show(onceReportedSize,                        gBuf1, kBufLen),
-      Show(onceReportedTraceRecordTable.capacity(), gBuf2, kBufLen),
-      Show(onceReportedTraceRecordTable.count(),    gBuf3, kBufLen));
+    StatusMsg("    }\n");
+    StatusMsg("    Data structures that are destroyed after Dump() ends {\n");
 
-    size_t twiceReportedSize =
-      twiceReportedTraceRecordTable.sizeOfIncludingThis(MallocSizeOf);
-    W("  Twice-reported table: %10s bytes (%s entries, %s used)\n",
-      Show(twiceReportedSize,                        gBuf1, kBufLen),
-      Show(twiceReportedTraceRecordTable.capacity(), gBuf2, kBufLen),
-      Show(twiceReportedTraceRecordTable.count(),    gBuf3, kBufLen));
+    StatusMsg("      Location service:      %10s bytes\n",
+      Show(locService->SizeOfIncludingThis(MallocSizeOf), buf1, kBufLen));
+    StatusMsg("      Used stack traces set: %10s bytes\n",
+      Show(usedStackTraces.sizeOfExcludingThis(MallocSizeOf), buf1, kBufLen));
+    StatusMsg("      Used PCs set:          %10s bytes\n",
+      Show(usedPcs.sizeOfExcludingThis(MallocSizeOf), buf1, kBufLen));
+    StatusMsg("      Pointer ID map:        %10s bytes\n",
+      Show(iscSize, buf1, kBufLen));
 
-    W("  Location service:     %10s bytes\n",
-      Show(locService->SizeOfIncludingThis(), gBuf1, kBufLen));
-
-    W("\nCounts:\n");
+    StatusMsg("    }\n");
+    StatusMsg("    Counts {\n");
 
     size_t hits   = locService->NumCacheHits();
     size_t misses = locService->NumCacheMisses();
     size_t requests = hits + misses;
-    W("  Location service:    %10s requests\n",
-      Show(requests, gBuf1, kBufLen));
+    StatusMsg("      Location service:    %10s requests\n",
+      Show(requests, buf1, kBufLen));
 
     size_t count    = locService->CacheCount();
     size_t capacity = locService->CacheCapacity();
-    W("  Location service cache:  %4.1f%% hit rate, %.1f%% occupancy at end\n",
+    StatusMsg("      Location service cache:  "
+      "%4.1f%% hit rate, %.1f%% occupancy at end\n",
       Percent(hits, requests), Percent(count, capacity));
 
-    W("\n");
+    StatusMsg("    }\n");
+    StatusMsg("  }\n");
   }
 
   InfallibleAllocPolicy::delete_(locService);
 
-  ClearReportsInternal(); // Use internal version, we already have the lock.
-
   StatusMsg("}\n");
+}
+
+void
+DMDFuncs::Analyze(UniquePtr<JSONWriteFunc> aWriter)
+{
+  AnalyzeImpl(Move(aWriter));
+  ClearReports();
 }
 
 //---------------------------------------------------------------------------
 // Testing
 //---------------------------------------------------------------------------
 
-// This function checks that heap blocks that have the same stack trace but
-// different (or no) reporters get aggregated separately.
-void foo()
+void
+DMDFuncs::ResetEverything(const char* aOptions)
 {
-   char* a[6];
-   for (int i = 0; i < 6; i++) {
-      a[i] = (char*) malloc(128 - 16*i);
-   }
+  AutoLockState lock;
 
-   for (int i = 0; i <= 1; i++)
-      Report(a[i]);                     // reported
-   Report(a[2]);                        // reported
-   Report(a[3]);                        // reported
-   // a[4], a[5] unreported
-}
+  // Reset options.
+  InfallibleAllocPolicy::delete_(gOptions);
+  gOptions = InfallibleAllocPolicy::new_<Options>(aOptions);
 
-// This stops otherwise-unused variables from being optimized away.
-static void
-UseItOrLoseIt(void* a)
-{
-  char buf[64];
-  sprintf(buf, "%p\n", a);
-  fwrite(buf, 1, strlen(buf) + 1, stderr);
-}
-
-// The output from this should be compared against test-expected.dmd.  It's
-// been tested on Linux64, and probably will give different results on other
-// platforms.
-static void
-RunTestMode(FILE* fp)
-{
-  Writer writer(FpWrite, fp);
-
-  // The first part of this test requires sampling to be disabled.
-  gOptions->SetSampleBelowSize(1);
-
-  // Dump 1.  Zero for everything.
-  Dump(writer);
-
-  // Dump 2: 1 freed, 9 out of 10 unreported.
-  // Dump 3: still present and unreported.
-  int i;
-  char* a;
-  for (i = 0; i < 10; i++) {
-      a = (char*) malloc(100);
-      UseItOrLoseIt(a);
-  }
-  free(a);
-
-  // Min-sized block.
-  // Dump 2: reported.
-  // Dump 3: thrice-reported.
-  char* a2 = (char*) malloc(0);
-  Report(a2);
-
-  // Operator new[].
-  // Dump 2: reported.
-  // Dump 3: reportedness carries over, due to ReportOnAlloc.
-  char* b = new char[10];
-  ReportOnAlloc(b);
-
-  // ReportOnAlloc, then freed.
-  // Dump 2: freed, irrelevant.
-  // Dump 3: freed, irrelevant.
-  char* b2 = new char;
-  ReportOnAlloc(b2);
-  free(b2);
-
-  // Dump 2: reported 4 times.
-  // Dump 3: freed, irrelevant.
-  char* c = (char*) calloc(10, 3);
-  Report(c);
-  for (int i = 0; i < 3; i++) {
-    Report(c);
-  }
-
-  // Dump 2: ignored.
-  // Dump 3: irrelevant.
-  Report((void*)(intptr_t)i);
-
-  // jemalloc rounds this up to 8192.
-  // Dump 2: reported.
-  // Dump 3: freed.
-  char* e = (char*) malloc(4096);
-  e = (char*) realloc(e, 4097);
-  Report(e);
-
-  // First realloc is like malloc;  second realloc is shrinking.
-  // Dump 2: reported.
-  // Dump 3: re-reported.
-  char* e2 = (char*) realloc(nullptr, 1024);
-  e2 = (char*) realloc(e2, 512);
-  Report(e2);
-
-  // First realloc is like malloc;  second realloc creates a min-sized block.
-  // XXX: on Windows, second realloc frees the block.
-  // Dump 2: reported.
-  // Dump 3: freed, irrelevant.
-  char* e3 = (char*) realloc(nullptr, 1023);
-//e3 = (char*) realloc(e3, 0);
-  MOZ_ASSERT(e3);
-  Report(e3);
-
-  // Dump 2: freed, irrelevant.
-  // Dump 3: freed, irrelevant.
-  char* f = (char*) malloc(64);
-  free(f);
-
-  // Dump 2: ignored.
-  // Dump 3: irrelevant.
-  Report((void*)(intptr_t)0x0);
-
-  // Dump 2: mixture of reported and unreported.
-  // Dump 3: all unreported.
-  foo();
-  foo();
-
-  // Dump 2: twice-reported.
-  // Dump 3: twice-reported.
-  char* g1 = (char*) malloc(77);
-  ReportOnAlloc(g1);
-  ReportOnAlloc(g1);
-
-  // Dump 2: twice-reported.
-  // Dump 3: once-reported.
-  char* g2 = (char*) malloc(78);
-  Report(g2);
-  ReportOnAlloc(g2);
-
-  // Dump 2: twice-reported.
-  // Dump 3: once-reported.
-  char* g3 = (char*) malloc(79);
-  ReportOnAlloc(g3);
-  Report(g3);
-
-  // All the odd-ball ones.
-  // Dump 2: all unreported.
-  // Dump 3: all freed, irrelevant.
-  // XXX: no memalign on Mac
-//void* x = memalign(64, 65);           // rounds up to 128
-//UseItOrLoseIt(x);
-  // XXX: posix_memalign doesn't work on B2G
-//void* y;
-//posix_memalign(&y, 128, 129);         // rounds up to 256
-//UseItOrLoseIt(y);
-  // XXX: valloc doesn't work on Windows.
-//void* z = valloc(1);                  // rounds up to 4096
-//UseItOrLoseIt(z);
-//aligned_alloc(64, 256);               // XXX: C11 only
-
-  // Dump 2.
-  Dump(writer);
-
-  //---------
-
-  Report(a2);
-  Report(a2);
-  free(c);
-  free(e);
-  Report(e2);
-  free(e3);
-//free(x);
-//free(y);
-//free(z);
-
-  // Dump 3.
-  Dump(writer);
-
-  //---------
-
-  // Clear all knowledge of existing blocks to give us a clean slate.
-  gBlockTable->clear();
-
-  gOptions->SetSampleBelowSize(128);
-
-  char* s;
-
-  // This equals the sample size, and so is reported exactly.  It should be
-  // listed before records of the same size that are sampled.
-  s = (char*) malloc(128);
-  UseItOrLoseIt(s);
-
-  // This exceeds the sample size, and so is reported exactly.
-  s = (char*) malloc(144);
-  UseItOrLoseIt(s);
-
-  // These together constitute exactly one sample.
-  for (int i = 0; i < 16; i++) {
-    s = (char*) malloc(8);
-    UseItOrLoseIt(s);
-  }
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
-
-  // These fall 8 bytes short of a full sample.
-  for (int i = 0; i < 15; i++) {
-    s = (char*) malloc(8);
-    UseItOrLoseIt(s);
-  }
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
-
-  // This exceeds the sample size, and so is recorded exactly.
-  s = (char*) malloc(256);
-  UseItOrLoseIt(s);
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
-
-  // This gets more than to a full sample from the |i < 15| loop above.
-  s = (char*) malloc(96);
-  UseItOrLoseIt(s);
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 88);
-
-  // This gets to another full sample.
-  for (int i = 0; i < 5; i++) {
-    s = (char*) malloc(8);
-    UseItOrLoseIt(s);
-  }
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
-
-  // This allocates 16, 32, ..., 128 bytes, which results in a stack trace
-  // record that contains a mix of sample and non-sampled blocks, and so should
-  // be printed with '~' signs.
-  for (int i = 1; i <= 8; i++) {
-    s = (char*) malloc(i * 16);
-    UseItOrLoseIt(s);
-  }
-  MOZ_ASSERT(gSmallBlockActualSizeCounter == 64);
-
-  // At the end we're 64 bytes into the current sample so we report ~1,424
-  // bytes of allocation overall, which is 64 less than the real value 1,488.
-
-  // Dump 4.
-  Dump(writer);
-}
-
-//---------------------------------------------------------------------------
-// Stress testing microbenchmark
-//---------------------------------------------------------------------------
-
-// This stops otherwise-unused variables from being optimized away.
-static void
-UseItOrLoseIt2(void* a)
-{
-  if (a == (void*)0x42) {
-    printf("UseItOrLoseIt2\n");
-  }
-}
-
-MOZ_NEVER_INLINE static void
-stress5()
-{
-  for (int i = 0; i < 10; i++) {
-    void* x = malloc(64);
-    UseItOrLoseIt2(x);
-    if (i & 1) {
-      free(x);
-    }
-  }
-}
-
-MOZ_NEVER_INLINE static void
-stress4()
-{
-  stress5(); stress5(); stress5(); stress5(); stress5();
-  stress5(); stress5(); stress5(); stress5(); stress5();
-}
-
-MOZ_NEVER_INLINE static void
-stress3()
-{
-  for (int i = 0; i < 10; i++) {
-    stress4();
-  }
-}
-
-MOZ_NEVER_INLINE static void
-stress2()
-{
-  stress3(); stress3(); stress3(); stress3(); stress3();
-  stress3(); stress3(); stress3(); stress3(); stress3();
-}
-
-MOZ_NEVER_INLINE static void
-stress1()
-{
-  for (int i = 0; i < 10; i++) {
-    stress2();
-  }
-}
-
-// This stress test does lots of allocations and frees, which is where most of
-// DMD's overhead occurs.  It allocates 1,000,000 64-byte blocks, spread evenly
-// across 1,000 distinct stack traces.  It frees every second one immediately
-// after allocating it.
-//
-// It's highly artificial, but it's deterministic and easy to run.  It can be
-// timed under different conditions to glean performance data.
-static void
-RunStressMode(FILE* fp)
-{
-  Writer writer(FpWrite, fp);
-
-  // Disable sampling for maximum stress.
-  gOptions->SetSampleBelowSize(1);
-
-  stress1(); stress1(); stress1(); stress1(); stress1();
-  stress1(); stress1(); stress1(); stress1(); stress1();
-
-  Dump(writer);
+  // Clear all existing blocks.
+  gLiveBlockTable->clear();
+  gDeadBlockTable->clear();
+  gSmallBlockActualSizeCounter = 0;
 }
 
 }   // namespace dmd

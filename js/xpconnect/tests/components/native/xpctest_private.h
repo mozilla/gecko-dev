@@ -14,15 +14,18 @@
 #include "nsStringGlue.h"
 #include "xpctest_attributes.h"
 #include "xpctest_params.h"
+#include "xpctest_returncode.h"
 #include "mozilla/Attributes.h"
 
-class xpcTestObjectReadOnly MOZ_FINAL : public nsIXPCTestObjectReadOnly {
+class xpcTestObjectReadOnly final : public nsIXPCTestObjectReadOnly {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTOBJECTREADONLY
   xpcTestObjectReadOnly();
 
  private:
+    ~xpcTestObjectReadOnly() {}
+
     bool    boolProperty;
     int16_t shortProperty;
     int32_t longProperty;
@@ -31,25 +34,26 @@ class xpcTestObjectReadOnly MOZ_FINAL : public nsIXPCTestObjectReadOnly {
     PRTime  timeProperty;
 };
 
-class xpcTestObjectReadWrite MOZ_FINAL : public nsIXPCTestObjectReadWrite {
+class xpcTestObjectReadWrite final : public nsIXPCTestObjectReadWrite {
   public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTOBJECTREADWRITE
 
   xpcTestObjectReadWrite();
-  ~xpcTestObjectReadWrite();
 
  private:
+     ~xpcTestObjectReadWrite();
+
      bool boolProperty;
      int16_t shortProperty;
      int32_t longProperty;
      float floatProperty;
      char charProperty;
-     char *stringProperty;
+     char* stringProperty;
      PRTime timeProperty;
 };
 
-class nsXPCTestParams MOZ_FINAL : public nsIXPCTestParams
+class nsXPCTestParams final : public nsIXPCTestParams
 {
 public:
     NS_DECL_ISUPPORTS
@@ -59,6 +63,18 @@ public:
 
 private:
     ~nsXPCTestParams();
+};
+
+class nsXPCTestReturnCodeParent final : public nsIXPCTestReturnCodeParent
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIXPCTESTRETURNCODEPARENT
+
+    nsXPCTestReturnCodeParent();
+
+private:
+    ~nsXPCTestReturnCodeParent();
 };
 
 #endif /* xpctest_private_h___ */

@@ -68,6 +68,22 @@ let tests = [
       done();
     });
   },
+
+  function unicodePreferences(done) {
+    let name = "font.name.sans-serif.x-western";
+    let utf8Value = "\xc4\x8capk\xc5\xafv Krasopis"
+    let unicodeValue = "\u010Capk\u016Fv Krasopis";
+
+    // set/getCharPref work with 8bit strings (utf8)
+    Services.prefs.setCharPref(name, utf8Value);
+
+    Troubleshoot.snapshot(function (snapshot) {
+      let p = snapshot.modifiedPreferences;
+      is(p[name], unicodeValue, "The pref should have correct Unicode value.");
+      Services.prefs.deleteBranch(name);
+      done();
+    });
+  }
 ];
 
 // This is inspired by JSON Schema, or by the example on its Wikipedia page
@@ -88,6 +104,10 @@ const SNAPSHOT_SCHEMA = {
           required: true,
           type: "string",
         },
+        buildID: {
+          required: true,
+          type: "string",
+        },
         userAgent: {
           required: true,
           type: "string",
@@ -95,8 +115,21 @@ const SNAPSHOT_SCHEMA = {
         vendor: {
           type: "string",
         },
+        updateChannel: {
+          type: "string",
+        },
         supportURL: {
           type: "string",
+        },
+        remoteAutoStart: {
+          type: "boolean",
+          required: true,
+        },
+        numTotalWindows: {
+          type: "number",
+        },
+        numRemoteWindows: {
+          type: "number",
         },
       },
     },
@@ -182,6 +215,9 @@ const SNAPSHOT_SCHEMA = {
         windowLayerManagerRemote: {
           type: "boolean",
         },
+        supportsHardwareH264: {
+          type: "boolean",
+        },
         numAcceleratedWindowsMessage: {
           type: "array",
         },
@@ -192,6 +228,9 @@ const SNAPSHOT_SCHEMA = {
           type: "string",
         },
         adapterDeviceID: {
+          type: "string",
+        },
+        adapterSubsysID: {
           type: "string",
         },
         adapterRAM: {
@@ -213,6 +252,9 @@ const SNAPSHOT_SCHEMA = {
           type: "string",
         },
         adapterDeviceID2: {
+          type: "string",
+        },
+        adapterSubsysID2: {
           type: "string",
         },
         adapterRAM2: {
@@ -372,6 +414,36 @@ const SNAPSHOT_SCHEMA = {
     },
     experiments: {
       type: "array",
+    },
+    sandbox: {
+      required: false,
+      type: "object",
+      properties: {
+        hasSeccompBPF: {
+          required: true,
+          type: "boolean"
+        },
+        hasSeccompTSync: {
+          required: true,
+          type: "boolean"
+        },
+        hasUserNamespaces: {
+          required: true,
+          type: "boolean"
+        },
+        hasPrivilegedUserNamespaces: {
+          required: true,
+          type: "boolean"
+        },
+        canSandboxContent: {
+          required: false,
+          type: "boolean"
+        },
+        canSandboxMedia: {
+          required: false,
+          type: "boolean"
+        },
+      },
     },
   },
 };

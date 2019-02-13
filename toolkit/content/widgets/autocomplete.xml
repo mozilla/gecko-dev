@@ -5,11 +5,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<!DOCTYPE bindings [
-<!ENTITY % actionsDTD SYSTEM "chrome://global/locale/actions.dtd">
-%actionsDTD;
-]>
-
 <bindings id="autocompleteBindings"
           xmlns="http://www.mozilla.org/xbl"
           xmlns:html="http://www.w3.org/1999/xhtml"
@@ -19,6 +14,7 @@
   <binding id="autocomplete" role="xul:combobox"
            extends="chrome://global/content/bindings/textbox.xml#textbox">
     <resources>
+      <stylesheet src="chrome://global/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
@@ -134,7 +130,7 @@
       <property name="timeout"
                 onset="this.setAttribute('timeout', val); return val;">
         <getter><![CDATA[
-          // For security reasons delay searches on pasted values. 
+          // For security reasons delay searches on pasted values.
           if (this._valueIsPasted) {
             let t = parseInt(this.getAttribute('pastetimeout'));
             return isNaN(t) ? 1000 : t;
@@ -160,6 +156,9 @@
 
       <property name="inPrivateContext" readonly="true"
                 onget="return this.PrivateBrowsingUtils.isWindowPrivate(window);"/>
+
+      <property name="noRollupOnCaretMove" readonly="true"
+                onget="return this.popup.getAttribute('norolluponanchor') == 'true'"/>
 
       <!-- This is the maximum number of drop-down rows we get when we
             hit the drop marker beside fields that have it (like the URLbar).-->
@@ -305,23 +304,13 @@
       <!-- option to allow scrolling through the list via the tab key, rather than
            tab moving focus out of the textbox -->
       <property name="tabScrolling"
-                onset="return this.setAttribute('tabscrolling', val); return val;"
+                onset="this.setAttribute('tabscrolling', val); return val;"
                 onget="return this.getAttribute('tabscrolling') == 'true';"/>
 
       <!-- disable key navigation handling in the popup results -->
       <property name="disableKeyNavigation"
                 onset="this.setAttribute('disablekeynavigation', val); return val;"
                 onget="return this.getAttribute('disablekeynavigation') == 'true';"/>
-
-      <!-- option to completely ignore any blur events while
-           searches are still going on.  This is useful so that nothing
-           gets autopicked if the window is required to lose focus for
-           some reason (eg in LDAP autocomplete, another window may be
-           brought up so that the user can enter a password to authenticate
-           to an LDAP server).  -->
-      <property name="ignoreBlurWhileSearching"
-                onset="this.setAttribute('ignoreblurwhilesearching', val); return val;"
-                onget="return this.getAttribute('ignoreblurwhilesearching') == 'true';"/>
 
       <!-- option to highlight entries that don't have any matches -->
       <property name="highlightNonMatches"
@@ -340,12 +329,8 @@
 
       <method name="detachController">
         <body><![CDATA[
-          try {
-            if  (this.mController.input == this)
+          if (this.mController.input == this)
             this.mController.input = null;
-          } catch (ex) {
-            // nothing really to do.
-          }
         ]]></body>
       </method>
 
@@ -359,7 +344,6 @@
 
       <method name="closePopup">
         <body><![CDATA[
-          this.popup.setAttribute("consumeoutsideclicks", "false");
           this.popup.closePopup();
         ]]></body>
       </method>
@@ -376,7 +360,6 @@
             input.setAttribute("open", "true");
             function onHide() {
               input.removeAttribute("open");
-              popup.setAttribute("consumeoutsideclicks", "false");
               popup.removeEventListener("popuphiding", onHide, false);
             }
             popup.addEventListener("popuphiding", onHide, false);
@@ -396,7 +379,6 @@
           // Ensure that we have focus.
           if (!this.focused)
             this.focus();
-          this.popup.setAttribute("consumeoutsideclicks", "true");
           this.attachController();
           this.mController.startSearch("");
         ]]></body>
@@ -426,7 +408,15 @@
 
       <!-- ::::::::::::: key handling ::::::::::::: -->
 
+      <field name="_selectionDetails">null</field>
       <method name="onKeyPress">
+        <parameter name="aEvent"/>
+        <body><![CDATA[
+          return this.handleKeyPress(aEvent);
+        ]]></body>
+      </method>
+
+      <method name="handleKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
           if (aEvent.target.localName != "textbox")
@@ -464,6 +454,8 @@
                   cancel = this.mController.handleKeyNavigation(aEvent.shiftKey ?
                                                                 KeyEvent.DOM_VK_UP :
                                                                 KeyEvent.DOM_VK_DOWN);
+                else if (this.forceComplete && this.mController.matchCount >= 1)
+                  this.mController.handleTab();
                 break;
               case KeyEvent.DOM_VK_UP:
               case KeyEvent.DOM_VK_DOWN:
@@ -487,14 +479,20 @@
                 aEvent.preventDefault();
 #endif
               this.mEnterEvent = aEvent;
-              cancel = this.mController.handleEnter(false);
+              if (this.mController.selection) {
+                this._selectionDetails = {
+                  index: this.mController.selection.currentIndex,
+                  kind: "key"
+                };
+              }
+              cancel = this.handleEnter();
               break;
             case KeyEvent.DOM_VK_DELETE:
 #ifdef XP_MACOSX
             case KeyEvent.DOM_VK_BACK_SPACE:
               if (aEvent.shiftKey)
 #endif
-              cancel = this.mController.handleDelete();
+              cancel = this.handleDelete();
               break;
             case KeyEvent.DOM_VK_DOWN:
             case KeyEvent.DOM_VK_UP:
@@ -514,6 +512,18 @@
           }
 
           return true;
+        ]]></body>
+      </method>
+
+      <method name="handleEnter">
+        <body><![CDATA[
+          return this.mController.handleEnter(false);
+        ]]></body>
+      </method>
+
+      <method name="handleDelete">
+        <body><![CDATA[
+          return this.mController.handleDelete();
         ]]></body>
       </method>
 
@@ -566,15 +576,22 @@
           onEvent: function() {}
         })
       ]]></field>
+
+      <method name="onInput">
+        <parameter name="aEvent"/>
+        <body><![CDATA[
+          if (!this.mIgnoreInput && this.mController.input == this) {
+            this.valueIsTyped = true;
+            this.mController.handleText();
+          }
+          this.resetActionType();
+        ]]></body>
+      </method>
     </implementation>
 
     <handlers>
       <handler event="input"><![CDATA[
-        if (!this.mIgnoreInput && this.mController.input == this) {
-          this.valueIsTyped = true;
-          this.mController.handleText();
-        }
-        this.resetActionType();
+        this.onInput(event);
       ]]></handler>
 
       <handler event="keypress" phase="capturing"
@@ -589,18 +606,24 @@
       <handler event="focus" phase="capturing"
                action="this.attachController();"/>
 
-      <handler event="blur" phase="capturing"
-               action="if (!this._dontBlur) this.detachController();"/>
+      <handler event="blur" phase="capturing"><![CDATA[
+        if (!this._dontBlur) {
+          if (this.forceComplete && this.mController.matchCount >= 1)
+            this.mController.handleEnter(false);
+          this.detachController();
+        }
+      ]]></handler>
     </handlers>
   </binding>
 
   <binding id="autocomplete-result-popup" extends="chrome://global/content/bindings/autocomplete.xml#autocomplete-base-popup">
     <resources>
+      <stylesheet src="chrome://global/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/tree.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
-    <content ignorekeys="true" level="top" consumeoutsideclicks="false">
+    <content ignorekeys="true" level="top" consumeoutsideclicks="never">
       <xul:tree anonid="tree" class="autocomplete-tree plain" hidecolumnpicker="true" flex="1" seltype="single">
         <xul:treecols anonid="treecols">
           <xul:treecol id="treecolAutoCompleteValue" class="autocomplete-treecol" flex="1" overflow="true"/>
@@ -703,9 +726,9 @@
 
           var height = rows * bx.rowHeight;
 
-          if (height == 0)
+          if (height == 0) {
             this.tree.setAttribute("collapsed", "true");
-          else {
+          } else {
             if (this.tree.hasAttribute("collapsed"))
               this.tree.removeAttribute("collapsed");
 
@@ -743,7 +766,7 @@
             var nav = aElement.ownerDocument.defaultView.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                               .getInterface(Components.interfaces.nsIWebNavigation);
             var docShell = nav.QueryInterface(Components.interfaces.nsIDocShell);
-            var docViewer = docShell.contentViewer.QueryInterface(Components.interfaces.nsIMarkupDocumentViewer);
+            var docViewer = docShell.contentViewer;
             var width = (rect.right - rect.left) * docViewer.fullZoom;
             this.setAttribute("width", width > 100 ? width : 100);
 
@@ -796,9 +819,7 @@
         <setter><![CDATA[
           // We must do this by hand because the tree binding may not be ready yet
           this.mView = val;
-          var bx = this.tree.boxObject;
-          bx = bx.QueryInterface(Components.interfaces.nsITreeBoxObject);
-          bx.view = val;
+          this.tree.boxObject.view = val;
         ]]></setter>
       </property>
 
@@ -894,8 +915,26 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <handler event="popupshowing"><![CDATA[
         // If normalMaxRows wasn't already set by the input, then set it here
         // so that we restore the correct number when the popup is hidden.
-        if (this._normalMaxRows < 0)
+
+        // Null-check this.mInput; see bug 1017914
+        if (this._normalMaxRows < 0 && this.mInput) {
           this._normalMaxRows = this.mInput.maxRows;
+        }
+
+        // Set an attribute for styling the popup based on the input.
+        let inputID = "";
+        if (this.mInput && this.mInput.ownerDocument &&
+            this.mInput.ownerDocument.documentURIObject.schemeIs("chrome")) {
+          inputID = this.mInput.id;
+          // Take care of elements with no id that are inside xbl bindings
+          if (!inputID) {
+            let bindingParent = this.mInput.ownerDocument.getBindingParent(this.mInput);
+            if (bindingParent) {
+              inputID = bindingParent.id;
+            }
+          }
+        }
+        this.setAttribute("autocompleteinput", inputID);
 
         this.mPopupOpen = true;
       ]]></handler>
@@ -907,16 +946,22 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
         controller.stopSearch();
 
+        this.removeAttribute("autocompleteinput");
         this.mPopupOpen = false;
 
         // Reset the maxRows property to the cached "normal" value, and reset
         // _normalMaxRows so that we can detect whether it was set by the input
         // when the popupshowing handler runs.
-        this.mInput.maxRows = this._normalMaxRows;
+
+        // Null-check this.mInput; see bug 1017914
+        if (this.mInput)
+          this.mInput.maxRows = this._normalMaxRows;
         this._normalMaxRows = -1;
         // If the list was being navigated and then closed, make sure
         // we fire accessible focus event back to textbox
-        if (isListActive) {
+
+        // Null-check this.mInput; see bug 1017914
+        if (isListActive && this.mInput) {
           this.mInput.mIgnoreFocus = true;
           this.mInput._focus();
           this.mInput.mIgnoreFocus = false;
@@ -927,10 +972,11 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
   <binding id="autocomplete-rich-result-popup" extends="chrome://global/content/bindings/autocomplete.xml#autocomplete-base-popup">
     <resources>
+      <stylesheet src="chrome://global/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
-    <content ignorekeys="true" level="top" consumeoutsideclicks="false">
+    <content ignorekeys="true" level="top" consumeoutsideclicks="never">
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
       <xul:hbox>
         <children/>
@@ -1075,6 +1121,24 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         </body>
       </method>
 
+      <method name="_getImageURLForResolution">
+        <parameter name="aWin"/>
+        <parameter name="aURL"/>
+        <parameter name="aWidth"/>
+        <parameter name="aHeight"/>
+        <body>
+          <![CDATA[
+          if (!aURL.endsWith('.ico') && !aURL.endsWith('.ICO')) {
+            return aURL;
+          }
+          let width  = Math.round(aWidth * aWin.devicePixelRatio);
+          let height = Math.round(aHeight * aWin.devicePixelRatio);
+          return aURL + (aURL.includes("#") ? "&" : "#") +
+                 "-moz-resolution=" + width + "," + height;
+          ]]>
+        </body>
+      </method>
+
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
@@ -1085,7 +1149,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           // Process maxRows per chunk to improve performance and user experience
           for (let i = 0; i < this.maxRows; i++) {
             if (this._currentIndex >= matchCount)
-              return;
+              break;
 
             var item;
 
@@ -1096,9 +1160,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             let url = Components.classes["@mozilla.org/intl/texttosuburi;1"].
               getService(Components.interfaces.nsITextToSubURI).
               unEscapeURIForUI("UTF-8", controller.getValueAt(this._currentIndex));
-
-            if (typeof this.input.trimValue == "function")
-              url = this.input.trimValue(url);
 
             if (this._currentIndex < existingItemsCount) {
               // re-use the existing item
@@ -1119,7 +1180,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
             // set these attributes before we set the class
             // so that we can use them from the constructor
-            item.setAttribute("image", controller.getImageAt(this._currentIndex));
+            let iconURI = this._getImageURLForResolution(window, controller.getImageAt(this._currentIndex), 16, 16);
+            item.setAttribute("image", iconURI);
             item.setAttribute("url", url);
             item.setAttribute("title", controller.getCommentAt(this._currentIndex));
             item.setAttribute("type", controller.getStyleAt(this._currentIndex));
@@ -1140,8 +1202,14 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             this._currentIndex++;
           }
 
-          // yield after each batch of items so that typing the url bar is responsive
-          setTimeout(function (self) { self._appendCurrentResult(); }, 0, this);
+          if (typeof this.onResultsAdded == "function")
+            this.onResultsAdded();
+
+          if (this._currentIndex < matchCount) {
+            // yield after each batch of items so that typing the url bar is
+            // responsive
+            setTimeout(function (self) { self._appendCurrentResult(); }, 0, this);
+          }
         ]]>
         </body>
       </method>
@@ -1195,7 +1263,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           <xul:label class="ac-normal-text ac-comment" xbl:inherits="selected" value=":"/>
           <xul:description anonid="extra" class="ac-normal-text ac-comment" xbl:inherits="selected"/>
         </xul:hbox>
-        <xul:image anonid="type-image" class="ac-type-icon"/>
+        <xul:image anonid="type-image" class="ac-type-icon" xbl:inherits="selected"/>
       </xul:hbox>
       <xul:hbox align="center" class="ac-url-box">
         <xul:spacer class="ac-site-icon"/>
@@ -1257,14 +1325,29 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
             // allow consumers that have extended popups to override
             // the label values for the richlistitems
-            if (panel.createResultLabel)
-              return panel.createResultLabel(title, url, this.getAttribute("type"));
+            if (panel.createResultLabel) {
+              let types = this.getAttribute("type").split(/\s+/);
+              // We only want one type for createResultLabel, so get the first
+              // that isn't "action".
+              let type = types.find(v => v != "action");
+
+              return panel.createResultLabel(title, url, type);
+            }
 
             // aType (ex: "ac-result-type-<aType>") is related to the class of the image,
             // and is not "visible" text so don't use it for the label (for accessibility).
             return title + " " + url;
           ]]>
         </getter>
+      </property>
+
+      <property name="_stringBundle">
+        <getter><![CDATA[
+          if (!this.__stringBundle) {
+            this.__stringBundle = Services.strings.createBundle("chrome://global/locale/autocomplete.properties");
+          }
+          return this.__stringBundle;
+        ]]></getter>
       </property>
 
       <field name="_boundaryCutoff">null</field>
@@ -1309,8 +1392,10 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           }
 
           // Sort the regions by start position then end position
-          regions = regions.sort(function(a, b) let (start = a[0] - b[0])
-            start == 0 ? a[1] - b[1] : start);
+          regions = regions.sort((a, b) => {
+            let start = a[0] - b[0];
+            return (start == 0) ? a[1] - b[1] : start;
+          });
 
           // Generate the boundary indices from each region
           let start = 0;
@@ -1403,14 +1488,137 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         </body>
       </method>
 
+      <!--
+        This will generate an array of emphasis pairs for use with
+        _setUpEmphasisedSections(). Each pair is a tuple (array) that
+        represents a block of text - containing the text of that block, and a
+        boolean for whether that block should have an emphasis styling applied
+        to it.
+
+        These pairs are generated by parsing a localised string (aSourceString)
+        with parameters, in the format that is used by
+        nsIStringBundle.formatStringFromName():
+
+          "textA %1$S textB textC %2$S"
+
+        Or:
+
+          "textA %S"
+
+        Where "%1$S", "%2$S", and "%S" are intended to be replaced by provided
+        replacement strings. These are specified an array of tuples
+        (aReplacements), each containing the replacement text and a boolean for
+        whether that text should have an emphasis styling applied. This is used
+        as a 1-based array - ie, "%1$S" is replaced by the item in the first
+        index of aReplacements, "%2$S" by the second, etc. "%S" will always
+        match the first index.
+      -->
+      <method name="_generateEmphasisPairs">
+        <parameter name="aSourceString"/>
+        <parameter name="aReplacements"/>
+        <body>
+          <![CDATA[
+            let pairs = [];
+
+            // Split on %S, %1$S, %2$S, etc. ie:
+            //   "textA %S"
+            //     becomes ["textA ", "%S"]
+            //   "textA %1$S textB textC %2$S"
+            //     becomes ["textA ", "%1$S", " textB textC ", "%2$S"]
+            let parts = aSourceString.split(/(%(?:[0-9]+\$)?S)/);
+
+            for (let part of parts) {
+              // The above regex will actually give us an empty string at the
+              // end - we don't want that, as we don't want to later generate an
+              // empty text node for it.
+              if (part.length === 0)
+                continue;
+
+              // Determine if this token is a replacement token or a normal text
+              // token. If it is a replacement token, we want to extract the
+              // numerical number. However, we still want to match on "$S".
+              let match = part.match(/^%(?:([0-9]+)\$)?S$/);
+
+              if (match) {
+                // "%S" doesn't have a numerical number in it, but will always
+                // be assumed to be 1. Furthermore, the input string specifies
+                // these with a 1-based index, but we want a 0-based index.
+                let index = (match[1] || 1) - 1;
+
+                if (index >= 0 && index < aReplacements.length) {
+                  pairs.push([...aReplacements[index]]);
+                }
+              } else {
+                pairs.push([part]);
+              }
+            }
+
+            return pairs;
+          ]]>
+        </body>
+      </method>
+
+      <!--
+        _setUpEmphasisedSections() has the same use as _setUpDescription,
+        except instead of taking a string and highlighting given tokens, it takes
+        an array of pairs generated by _generateEmphasisPairs(). This allows
+        control over emphasising based on specific blocks of text, rather than
+        search for substrings.
+      -->
+      <method name="_setUpEmphasisedSections">
+        <parameter name="aDescriptionElement"/>
+        <parameter name="aTextPairs"/>
+        <body>
+          <![CDATA[
+          // Get rid of all previous text
+          while (aDescriptionElement.hasChildNodes())
+            aDescriptionElement.firstChild.remove();
+
+          for (let [text, emphasise] of aTextPairs) {
+            if (emphasise) {
+              let span = aDescriptionElement.appendChild(
+                document.createElementNS("http://www.w3.org/1999/xhtml", "span"));
+              span.textContent = text;
+              switch(emphasise) {
+                case "match":
+                  span.className = "ac-emphasize-text";
+                  break;
+                case "selected":
+                  span.className = "ac-selected-text";
+                  break;
+              }
+            } else {
+              aDescriptionElement.appendChild(document.createTextNode(text));
+            }
+          }
+          ]]>
+        </body>
+      </method>
+
       <method name="_adjustAcItem">
         <body>
           <![CDATA[
-          var url = this.getAttribute("url");
-          var title = this.getAttribute("title");
-          var type = this.getAttribute("type");
+          let url = this.getAttribute("url");
+          let title = this.getAttribute("title");
+          let type = this.getAttribute("type");
+
+          let displayUrl = url;
+
+          let input = this.parentNode.parentNode.input;
+          if (typeof input.trimValue == "function")
+            displayUrl = input.trimValue(url);
+
+          let emphasiseTitle = true;
+          let emphasiseUrl = true;
+
+          // Hide the title's extra box by default, until we find out later if
+          // we need extra stuff.
+          this._extraBox.hidden = true;
+          this._titleBox.flex = 1;
+          this._typeImage.hidden = false;
 
           this.removeAttribute("actiontype");
+          this.classList.remove("overridable-action");
 
           // The ellipses are hidden via their visibility so that they always
           // take up space and don't pop in on top of text when shown.  For
@@ -1418,24 +1626,116 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           // space when hidden.  Setting the hidden property accomplishes that.
           this._titleOverflowEllipsis.hidden = false;
 
+          let types = new Set(type.split(/\s+/));
+          let initialTypes = new Set(types);
+
           // If the type includes an action, set up the item appropriately.
-          var types = type.split(/\s+/);
-          var actionIndex = types.indexOf("action");
-          if (actionIndex >= 0) {
-            let [,action, param] = url.match(/^moz-action:([^,]+),(.*)$/);
-            this.setAttribute("actiontype", action);
-            url = param;
-            let desc = "]]>&action.switchToTab.label;<![CDATA[";
-            this._setUpDescription(this._action, desc, true);
+          if (types.has("action")) {
+            let action = this._parseActionUrl(url);
+            this.setAttribute("actiontype", action.type);
+
+            if (action.type == "switchtab") {
+              this.classList.add("overridable-action");
+              displayUrl = action.params.url;
+              let desc = this._stringBundle.GetStringFromName("switchToTab");
+              this._setUpDescription(this._action, desc, true);
+            } else if (action.type == "searchengine") {
+              emphasiseUrl = false;
+
+              // The order here is not localizable, we default to appending
+              // "- Search with Engine" to the search string, to be able to
+              // properly generate emphasis pairs. That said, no localization
+              // changed the order while it was possible, so doesn't look like
+              // there's a strong need for that.
+              let {engineName, searchSuggestion, searchQuery} = action.params;
+              let engineStr = "- " +
+                this._stringBundle.formatStringFromName("searchWithEngine",
+                                                        [engineName], 1);
+
+              // Make the title by generating an array of pairs and its
+              // corresponding interpolation string (e.g., "%1$S") to pass to
+              // _generateEmphasisPairs.
+              let pairs;
+              if (searchSuggestion) {
+                // Check if the search query appears in the suggestion.  It may
+                // not.  If it does, then emphasize the query in the suggestion
+                // and otherwise just include the suggestion without emphasis.
+                let idx = searchSuggestion.indexOf(searchQuery);
+                if (idx >= 0) {
+                  pairs = [
+                    [searchSuggestion.substring(0, idx), ""],
+                    [searchQuery, "match"],
+                    [searchSuggestion.substring(idx + searchQuery.length), ""],
+                  ];
+                } else {
+                  pairs = [
+                    [searchSuggestion, ""],
+                  ];
+                }
+              } else {
+                pairs = [
+                  [searchQuery, ""],
+                ];
+              }
+              pairs.push([engineStr, "selected"]);
+              let interpStr = pairs.map((pair, i) => `%${i + 1}$S`).join("");
+              title = this._generateEmphasisPairs(interpStr, pairs);
+
+              // If this is a default search match, we remove the image so we
+              // can style it ourselves with a generic search icon.
+              // We don't do this when matching an aliased search engine,
+              // because the icon helps with recognising which engine will be
+              // used (when using the default engine, we don't need that
+              // recognition).
+              if (!action.params.alias) {
+                this.removeAttribute("image");
+              }
+            } else if (action.type == "visiturl") {
+              emphasiseUrl = false;
+              displayUrl = action.params.url;
+
+              let sourceStr = this._stringBundle.GetStringFromName("visitURL");
+              title = this._generateEmphasisPairs(sourceStr, [
+                                                    [displayUrl, "match"],
+                                                  ]);
+            }
 
             // Remove the "action" substring so that the correct style, if any,
             // is applied below.
-            types.splice(actionIndex, 1);
-            type = types.join(" ");
+            types.delete("action");
           }
 
+          // Check if we have a search engine name
+          if (types.has("search")) {
+            emphasiseUrl = false;
+
+            const TITLE_SEARCH_ENGINE_SEPARATOR = " \u00B7\u2013\u00B7 ";
+
+            let searchEngine = "";
+            [title, searchEngine] = title.split(TITLE_SEARCH_ENGINE_SEPARATOR);
+            displayUrl = this._stringBundle.formatStringFromName("searchWithEngine", [searchEngine], 1);
+
+            // Remove the "search" substring so that the correct style, if any,
+            // is applied below.
+            types.delete("search");
+          }
+
+          // Check if we have an auto-fill URL
+          if (types.has("autofill")) {
+            emphasiseUrl = false;
+
+            let sourceStr = this._stringBundle.GetStringFromName("visitURL");
+            title = this._generateEmphasisPairs(sourceStr, [
+                                                 [displayUrl, "match"],
+                                                ]);
+
+            types.delete("autofill");
+          }
+
+          type = [...types].join(" ");
+
           // If we have a tag match, show the tags and icon
-          if (type == "tag") {
+          if (type == "tag" || type == "bookmark-tag") {
             // Configure the extra box for tags display
             this._extraBox.hidden = false;
             this._extraBox.childNodes[0].hidden = false;
@@ -1453,48 +1753,73 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             // Emphasize the matching text in the tags
             this._setUpDescription(this._extra, sortedTags);
 
-            // Treat tagged matches as bookmarks for the star
-            type = "bookmark";
-          } else if (type == "keyword") {
+            // If we're suggesting bookmarks, then treat tagged matches as
+            // bookmarks for the star.
+            if (type == "bookmark-tag") {
+              type = "bookmark";
+            } else {
+              this._typeImage.hidden = true;
+            }
+          // keyword and favicon type results for search engines
+          // have an extra magnifying glass icon after them
+          } else if (type == "keyword" || (initialTypes.has("search") &&
+              initialTypes.has("favicon"))) {
             // Configure the extra box for keyword display
             this._extraBox.hidden = false;
             this._extraBox.childNodes[0].hidden = true;
-            this._extraBox.childNodes[1].hidden = false;
+            // The second child node is ":" and it should be hidden for non keyword types
+            this._extraBox.childNodes[1].hidden = type == "keyword" ? false : true;
             this._extraBox.pack = "start";
             this._titleBox.flex = 0;
 
             // Hide the ellipsis so it doesn't take up space.
             this._titleOverflowEllipsis.hidden = true;
 
-            // Put the parameters next to the title if we have any
-            let search = this.getAttribute("text");
-            let params = "";
-            let paramsIndex = search.indexOf(' ');
-            if (paramsIndex != -1)
-              params = search.substr(paramsIndex + 1);
+            if (type == "keyword") {
+              // Put the parameters next to the title if we have any
+              let search = this.getAttribute("text");
+              let params = "";
+              let paramsIndex = search.indexOf(" ");
+              if (paramsIndex != -1)
+                params = search.substr(paramsIndex + 1);
 
-            // Emphasize the keyword parameters
-            this._setUpDescription(this._extra, params);
+              // Emphasize the keyword parameters
+              this._setUpDescription(this._extra, params);
 
-            // Don't emphasize keyword searches in the title or url
-            this.setAttribute("text", "");
-          } else {
-            // Hide the title's extra box if we don't need extra stuff
-            this._extraBox.hidden = true;
-            this._titleBox.flex = 1;
+              // Don't emphasize keyword searches in the title or url
+              emphasiseUrl = false;
+              emphasiseTitle = false;
+            } else {
+              // Don't show any description for non keyword types.
+              this._setUpDescription(this._extra, "", true);
+            }
+            // If the result has the type favicon and a known search provider,
+            // customize it the same way as a keyword result.
+            type = "keyword";
           }
 
           // Give the image the icon style and a special one for the type
           this._typeImage.className = "ac-type-icon" +
             (type ? " ac-result-type-" + type : "");
 
-          // Show the url as the title if we don't have a title
-          if (title == "")
-            title = url;
+          // Show the domain as the title if we don't have a title.
+          if (title == "") {
+            title = displayUrl;
+            try {
+              let uri = Services.io.newURI(url, null, null);
+              // Not all valid URLs have a domain.
+              if (uri.host)
+                title = uri.host;
+            } catch (e) {}
+          }
 
           // Emphasize the matching search terms for the description
-          this._setUpDescription(this._title, title);
-          this._setUpDescription(this._url, url);
+          if (Array.isArray(title))
+            this._setUpEmphasisedSections(this._title, title);
+          else
+            this._setUpDescription(this._title, title, !emphasiseTitle);
+
+          this._setUpDescription(this._url, displayUrl, !emphasiseUrl);
 
           // Set up overflow on a timeout because the contents of the box
           // might not have a width yet even though we just changed them
@@ -1502,6 +1827,36 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           setTimeout(this._setUpOverflow, 0, this._urlBox, this._urlOverflowEllipsis);
           ]]>
         </body>
+      </method>
+
+      <method name="_parseActionUrl">
+        <parameter name="aUrl"/>
+        <body><![CDATA[
+          if (!aUrl.startsWith("moz-action:"))
+            return null;
+
+          // URL is in the format moz-action:ACTION,PARAMS
+          // Where PARAMS is a JSON encoded object.
+          let [, type, params] = aUrl.match(/^moz-action:([^,]+),(.*)$/);
+
+          let action = {
+            type: type,
+          };
+
+          try {
+            action.params = JSON.parse(params);
+          } catch (e) {
+            // If this failed, we assume that params is not a JSON object, and
+            // is instead just a flat string. This will happen when
+            // UnifiedComplete is disabled - in which case, the param is always
+            // a URL.
+            action.params = {
+              url: params,
+            }
+          }
+
+          return action;
+        ]]></body>
       </method>
 
       <method name="_setUpOverflow">

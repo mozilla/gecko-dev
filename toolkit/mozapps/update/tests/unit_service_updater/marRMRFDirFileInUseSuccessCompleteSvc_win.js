@@ -12,7 +12,7 @@ function run_test() {
   setupTestCommon();
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, true);
+  setupUpdaterTest(FILE_COMPLETE_MAR);
 
   let fileInUseBin = getApplyDirFile(gTestDirs[4].relPathDir +
                                      gTestDirs[4].subDirs[0] +
@@ -27,10 +27,10 @@ function run_test() {
   helperBin.copyTo(fileInUseDir, gTestDirs[4].subDirFiles[0]);
 
   // Launch an existing file so it is in use during the update.
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
+  let args = [getApplyDirPath() + DIR_RESOURCES, "input", "output", "-s",
               HELPER_SLEEP_TIMEOUT];
-  let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                         createInstance(AUS_Ci.nsIProcess);
+  let fileInUseProcess = Cc["@mozilla.org/process/util;1"].
+                         createInstance(Ci.nsIProcess);
   fileInUseProcess.init(fileInUseBin);
   fileInUseProcess.run(false, args, args.length);
 
@@ -50,7 +50,8 @@ function checkUpdateFinished() {
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateSuccess();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, true);
   checkUpdateLogContains(ERR_BACKUP_DISCARD);
+  standardInit();
   checkCallbackServiceLog();
 }

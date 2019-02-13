@@ -7,10 +7,30 @@
 
 #include "mozilla/Preferences.h"
 #include "MainThreadUtils.h"
+#include "mozilla/gfx/Logging.h"
 
 using namespace mozilla;
 
 gfxPrefs* gfxPrefs::sInstance = nullptr;
+bool gfxPrefs::sInstanceHasBeenDestroyed = false;
+
+class PreferenceAccessImpl : public mozilla::gfx::PreferenceAccess
+{
+public:
+  virtual ~PreferenceAccessImpl();
+  virtual void LivePref(const char* aName, int32_t* aVar, int32_t aDefault) override;
+};
+
+PreferenceAccessImpl::~PreferenceAccessImpl()
+{
+}
+
+void PreferenceAccessImpl::LivePref(const char* aName,
+                                    int32_t* aVar,
+                                    int32_t aDefault)
+{
+  Preferences::AddIntVarCache(aVar, aName, aDefault);
+}
 
 void
 gfxPrefs::DestroySingleton()
@@ -18,7 +38,9 @@ gfxPrefs::DestroySingleton()
   if (sInstance) {
     delete sInstance;
     sInstance = nullptr;
+    sInstanceHasBeenDestroyed = true;
   }
+  MOZ_ASSERT(!SingletonExists());
 }
 
 bool
@@ -29,13 +51,25 @@ gfxPrefs::SingletonExists()
 
 gfxPrefs::gfxPrefs()
 {
-  // Needs to be created on the main thread.
-  MOZ_ASSERT(NS_IsMainThread(), "must be constructed on the main thread");
+  gfxPrefs::AssertMainThread();
+  mMoz2DPrefAccess = new PreferenceAccessImpl;
+  mozilla::gfx::PreferenceAccess::SetAccess(mMoz2DPrefAccess);
 }
 
 gfxPrefs::~gfxPrefs()
 {
-  MOZ_ASSERT(NS_IsMainThread(), "must be destructed on the main thread");
+  gfxPrefs::AssertMainThread();
+
+  // gfxPrefs is a singleton, we can reset this to null once
+  // it goes away.
+  mozilla::gfx::PreferenceAccess::SetAccess(nullptr);
+  delete mMoz2DPrefAccess;
+  mMoz2DPrefAccess = nullptr;
+}
+
+void gfxPrefs::AssertMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread(), "this code must be run on the main thread");
 }
 
 void gfxPrefs::PrefAddVarCache(bool* aVariable,
@@ -84,5 +118,25 @@ uint32_t gfxPrefs::PrefGet(const char* aPref, uint32_t aDefault)
 float gfxPrefs::PrefGet(const char* aPref, float aDefault)
 {
   return Preferences::GetFloat(aPref, aDefault);
+}
+
+void gfxPrefs::PrefSet(const char* aPref, bool aValue)
+{
+  Preferences::SetBool(aPref, aValue);
+}
+
+void gfxPrefs::PrefSet(const char* aPref, int32_t aValue)
+{
+  Preferences::SetInt(aPref, aValue);
+}
+
+void gfxPrefs::PrefSet(const char* aPref, uint32_t aValue)
+{
+  Preferences::SetUint(aPref, aValue);
+}
+
+void gfxPrefs::PrefSet(const char* aPref, float aValue)
+{
+  Preferences::SetFloat(aPref, aValue);
 }
 

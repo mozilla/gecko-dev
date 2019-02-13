@@ -1,19 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
 const { contract } = require('../../util/contract');
 const { isLocalURL } = require('../../url');
 const { isNil, isObject, isString } = require('../../lang/type');
-const { required, either, string, boolean, object } = require('../../deprecated/api-utils');
+const { required, either, string, boolean, object, number } = require('../../deprecated/api-utils');
 const { merge } = require('../../util/object');
 const { freeze } = Object;
 
-function isIconSet(icons) {
-  return Object.keys(icons).
-    every(size => String(size >>> 0) === size && isLocalURL(icons[size]))
-}
+const isIconSet = (icons) =>
+  Object.keys(icons).
+    every(size => String(size >>> 0) === size && isLocalURL(icons[size]));
 
 let iconSet = {
   is: either(object, string),
@@ -36,10 +35,22 @@ let label = {
   msg: 'The option "label" must be a non empty string'
 }
 
+let badge = {
+  is: either(string, number),
+  msg: 'The option "badge" must be a string or a number'
+}
+
+let badgeColor = {
+  is: string,
+  msg: 'The option "badgeColor" must be a string'
+}
+
 let stateContract = contract({
   label: label,
   icon: iconSet,
-  disabled: boolean
+  disabled: boolean,
+  badge: badge,
+  badgeColor: badgeColor
 });
 
 exports.stateContract = stateContract;

@@ -2,21 +2,51 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global loop, sinon */
-
-var expect = chai.expect;
-var l10n = document.webL10n || document.mozL10n;
-
 describe("loop.shared.views", function() {
   "use strict";
 
-  var sharedModels = loop.shared.models,
-      sharedViews = loop.shared.views,
-      sandbox;
+  var expect = chai.expect;
+  var l10n = navigator.mozL10n || document.mozL10n;
+  var TestUtils = React.addons.TestUtils;
+  var sharedActions = loop.shared.actions;
+  var sharedModels = loop.shared.models;
+  var sharedViews = loop.shared.views;
+  var SCREEN_SHARE_STATES = loop.shared.utils.SCREEN_SHARE_STATES;
+  var getReactElementByClass = TestUtils.findRenderedDOMComponentWithClass;
+  var sandbox, fakeAudioXHR, dispatcher, OS, OSVersion;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
     sandbox.useFakeTimers(); // exposes sandbox.clock as a fake timer
+    sandbox.stub(l10n, "get", function(x) {
+      return "translated:" + x;
+    });
+
+    dispatcher = new loop.Dispatcher();
+    sandbox.stub(dispatcher, "dispatch");
+
+    fakeAudioXHR = {
+      open: sinon.spy(),
+      send: function() {},
+      abort: function() {},
+      getResponseHeader: function(header) {
+        if (header === "Content-Type") {
+          return "audio/ogg";
+        }
+      },
+      responseType: null,
+      response: new ArrayBuffer(10),
+      onload: null
+    };
+
+    OS = "mac";
+    OSVersion = { major: 10, minor: 10 };
+    sandbox.stub(loop.shared.utils, "getOS", function() {
+      return OS;
+    });
+    sandbox.stub(loop.shared.utils, "getOSVersion", function() {
+      return OSVersion;
+    });
   });
 
   afterEach(function() {
@@ -24,30 +54,336 @@ describe("loop.shared.views", function() {
     sandbox.restore();
   });
 
-  describe("L10nView", function() {
-    beforeEach(function() {
-      sandbox.stub(l10n, "translate");
+  describe("MediaControlButton", function() {
+    it("should render an enabled local audio button", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.MediaControlButton, {
+          scope: "local",
+          type: "audio",
+          action: function(){},
+          enabled: true
+        }));
+
+      expect(comp.getDOMNode().classList.contains("muted")).eql(false);
     });
 
-    it("should translate generated contents on render()", function() {
-      var TestView = loop.shared.views.L10nView.extend();
+    it("should render a muted local audio button", function() {
+      var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.MediaControlButton, {
+          scope: "local",
+          type: "audio",
+          action: function(){},
+          enabled: false
+        }));
 
-      var view = new TestView();
-      view.render();
+      expect(comp.getDOMNode().classList.contains("muted")).eql(true);
+    });
 
-      sinon.assert.calledOnce(l10n.translate);
-      sinon.assert.calledWithExactly(l10n.translate, view.el);
+    it("should render an enabled local video button", function() {
+      var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.MediaControlButton, {
+          scope: "local",
+          type: "video",
+          action: function(){},
+          enabled: true
+        }));
+
+      expect(comp.getDOMNode().classList.contains("muted")).eql(false);
+    });
+
+    it("should render a muted local video button", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.MediaControlButton, {
+          scope: "local",
+          type: "video",
+          action: function(){},
+          enabled: false
+        }));
+
+      expect(comp.getDOMNode().classList.contains("muted")).eql(true);
+    });
+  });
+
+  describe("ScreenShareControlButton", function() {
+    it("should render a visible share button", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.INACTIVE
+        }));
+
+      expect(comp.getDOMNode().classList.contains("active")).eql(false);
+      expect(comp.getDOMNode().classList.contains("disabled")).eql(false);
+    });
+
+    it("should render a disabled share button when share is pending", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.PENDING
+        }));
+
+      var node = comp.getDOMNode().querySelector(".btn-screen-share");
+      expect(node.classList.contains("active")).eql(false);
+      expect(node.classList.contains("disabled")).eql(true);
+    });
+
+    it("should render an active share button", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.ACTIVE
+        }));
+
+      var node = comp.getDOMNode().querySelector(".btn-screen-share");
+      expect(node.classList.contains("active")).eql(true);
+      expect(node.classList.contains("disabled")).eql(false);
+    });
+
+    it("should show the screenshare dropdown on click when the state is not active",
+       function() {
+        var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.ScreenShareControlButton, {
+            dispatcher: dispatcher,
+            visible: true,
+            state: SCREEN_SHARE_STATES.INACTIVE
+          }));
+
+        expect(comp.state.showMenu).eql(false);
+
+        TestUtils.Simulate.click(comp.getDOMNode().querySelector(".btn-screen-share"));
+
+        expect(comp.state.showMenu).eql(true);
+      });
+
+    it("should dispatch a 'browser' StartScreenShare action on option click",
+      function() {
+        var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.ScreenShareControlButton, {
+            dispatcher: dispatcher,
+            visible: true,
+            state: SCREEN_SHARE_STATES.INACTIVE
+          }));
+
+        TestUtils.Simulate.click(comp.getDOMNode().querySelector(
+          ".conversation-window-dropdown > li"));
+
+        sinon.assert.calledOnce(dispatcher.dispatch);
+        sinon.assert.calledWithExactly(dispatcher.dispatch,
+          new sharedActions.StartScreenShare({ type: "browser" }));
+      });
+
+    it("should dispatch a 'window' StartScreenShare action on option click",
+      function() {
+        var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.ScreenShareControlButton, {
+            dispatcher: dispatcher,
+            visible: true,
+            state: SCREEN_SHARE_STATES.INACTIVE
+          }));
+
+        TestUtils.Simulate.click(comp.getDOMNode().querySelector(
+          ".conversation-window-dropdown > li:last-child"));
+
+        sinon.assert.calledOnce(dispatcher.dispatch);
+        sinon.assert.calledWithExactly(dispatcher.dispatch,
+          new sharedActions.StartScreenShare({ type: "window" }));
+      });
+
+    it("should have the 'window' option enabled", function() {
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.INACTIVE
+        }));
+
+      var node = comp.getDOMNode().querySelector(".conversation-window-dropdown > li:last-child");
+      expect(node.classList.contains("disabled")).eql(false);
+    });
+
+    it("should disable the 'window' option on Windows XP", function() {
+      OS = "win";
+      OSVersion = { major: 5, minor: 1 };
+
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.INACTIVE
+        }));
+
+      var node = comp.getDOMNode().querySelector(".conversation-window-dropdown > li:last-child");
+      expect(node.classList.contains("disabled")).eql(true);
+    });
+
+    it("should disable the 'window' option on OSX 10.6", function() {
+      OS = "mac";
+      OSVersion = { major: 10, minor: 6 };
+
+      var comp = TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ScreenShareControlButton, {
+          dispatcher: dispatcher,
+          visible: true,
+          state: SCREEN_SHARE_STATES.INACTIVE
+        }));
+
+      var node = comp.getDOMNode().querySelector(".conversation-window-dropdown > li:last-child");
+      expect(node.classList.contains("disabled")).eql(true);
+    });
+
+    it("should dispatch a EndScreenShare action on click when the state is active",
+      function() {
+        var comp = TestUtils.renderIntoDocument(
+          React.createElement(sharedViews.ScreenShareControlButton, {
+            dispatcher: dispatcher,
+            visible: true,
+            state: SCREEN_SHARE_STATES.ACTIVE
+          }));
+
+        TestUtils.Simulate.click(comp.getDOMNode().querySelector(".btn-screen-share"));
+
+        sinon.assert.calledOnce(dispatcher.dispatch);
+        sinon.assert.calledWithExactly(dispatcher.dispatch,
+          new sharedActions.EndScreenShare({}));
+      });
+  });
+
+  describe("ConversationToolbar", function() {
+    var hangup, publishStream;
+
+    function mountTestComponent(props) {
+      props = _.extend({
+        dispatcher: dispatcher
+      }, props || {});
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ConversationToolbar, props));
+    }
+
+    beforeEach(function() {
+      hangup = sandbox.stub();
+      publishStream = sandbox.stub();
+    });
+
+    it("should accept a hangupButtonLabel optional prop", function() {
+      var comp = mountTestComponent({
+        hangupButtonLabel: "foo",
+        hangup: hangup,
+        publishStream: publishStream
+      });
+
+      expect(comp.getDOMNode().querySelector("button.btn-hangup").textContent)
+            .eql("foo");
+    });
+
+    it("should accept a enableHangup optional prop", function() {
+      var comp = mountTestComponent({
+        enableHangup: false,
+        hangup: hangup,
+        publishStream: publishStream
+      });
+
+      expect(comp.getDOMNode().querySelector("button.btn-hangup").disabled)
+            .eql(true);
+    });
+
+    it("should hangup when hangup button is clicked", function() {
+      var comp = mountTestComponent({
+        hangup: hangup,
+        publishStream: publishStream,
+        audio: {enabled: true}
+      });
+
+      TestUtils.Simulate.click(
+        comp.getDOMNode().querySelector(".btn-hangup"));
+
+      sinon.assert.calledOnce(hangup);
+      sinon.assert.calledWithExactly(hangup);
+    });
+
+    it("should unpublish audio when audio mute btn is clicked", function() {
+      var comp = mountTestComponent({
+        hangup: hangup,
+        publishStream: publishStream,
+        audio: {enabled: true}
+      });
+
+      TestUtils.Simulate.click(
+        comp.getDOMNode().querySelector(".btn-mute-audio"));
+
+      sinon.assert.calledOnce(publishStream);
+      sinon.assert.calledWithExactly(publishStream, "audio", false);
+    });
+
+    it("should publish audio when audio mute btn is clicked", function() {
+      var comp = mountTestComponent({
+        hangup: hangup,
+        publishStream: publishStream,
+        audio: {enabled: false}
+      });
+
+      TestUtils.Simulate.click(
+        comp.getDOMNode().querySelector(".btn-mute-audio"));
+
+      sinon.assert.calledOnce(publishStream);
+      sinon.assert.calledWithExactly(publishStream, "audio", true);
+    });
+
+    it("should unpublish video when video mute btn is clicked", function() {
+      var comp = mountTestComponent({
+        hangup: hangup,
+        publishStream: publishStream,
+        video: {enabled: true}
+      });
+
+      TestUtils.Simulate.click(
+        comp.getDOMNode().querySelector(".btn-mute-video"));
+
+      sinon.assert.calledOnce(publishStream);
+      sinon.assert.calledWithExactly(publishStream, "video", false);
+    });
+
+    it("should publish video when video mute btn is clicked", function() {
+      var comp = mountTestComponent({
+        hangup: hangup,
+        publishStream: publishStream,
+        video: {enabled: false}
+      });
+
+      TestUtils.Simulate.click(
+        comp.getDOMNode().querySelector(".btn-mute-video"));
+
+      sinon.assert.calledOnce(publishStream);
+      sinon.assert.calledWithExactly(publishStream, "video", true);
     });
   });
 
   describe("ConversationView", function() {
-    var fakeSDK, fakeSessionData, fakeSession, fakePublisher, model;
+    var fakeSDK, fakeSessionData, fakeSession, fakePublisher, model, fakeAudio;
+
+    function mountTestComponent(props) {
+      props = _.extend({
+        dispatcher: dispatcher
+      }, props || {});
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ConversationView, props));
+    }
 
     beforeEach(function() {
+      fakeAudio = {
+        play: sinon.spy(),
+        pause: sinon.spy(),
+        removeAttribute: sinon.spy()
+      };
+      sandbox.stub(window, "Audio").returns(fakeAudio);
+
       fakeSessionData = {
-        sessionId:    "sessionId",
+        sessionId: "sessionId",
         sessionToken: "sessionToken",
-        apiKey:       "apiKey"
+        apiKey: "apiKey"
       };
       fakeSession = _.extend({
         connection: {connectionId: 42},
@@ -57,63 +393,85 @@ describe("loop.shared.views", function() {
         unpublish: sandbox.spy(),
         subscribe: sandbox.spy()
       }, Backbone.Events);
-      fakePublisher = {
-        on: sandbox.spy(),
-        off: sandbox.spy()
-      };
+      fakePublisher = _.extend({
+        publishAudio: sandbox.spy(),
+        publishVideo: sandbox.spy()
+      }, Backbone.Events);
       fakeSDK = {
         initPublisher: sandbox.stub().returns(fakePublisher),
-        initSession: sandbox.stub().returns(fakeSession)
+        initSession: sandbox.stub().returns(fakeSession),
+        on: sandbox.stub()
       };
       model = new sharedModels.ConversationModel(fakeSessionData, {
         sdk: fakeSDK
       });
     });
 
-    describe("#initialize", function() {
-      it("should require a sdk object", function() {
-        expect(function() {
-          new sharedViews.ConversationView();
-        }).to.Throw(Error, /sdk/);
-      });
-
-      it("should start a session", function() {
+    describe("#componentDidMount", function() {
+      it("should start a session by default", function() {
         sandbox.stub(model, "startSession");
 
-        new sharedViews.ConversationView({sdk: fakeSDK, model: model});
+        mountTestComponent({
+          sdk: fakeSDK,
+          model: model,
+          video: {enabled: true}
+        });
 
         sinon.assert.calledOnce(model.startSession);
+      });
+
+      it("shouldn't start a session if initiate is false", function() {
+        sandbox.stub(model, "startSession");
+
+        mountTestComponent({
+          initiate: false,
+          sdk: fakeSDK,
+          model: model,
+          video: {enabled: true}
+        });
+
+        sinon.assert.notCalled(model.startSession);
       });
     });
 
     describe("constructed", function() {
-      describe("#hangup", function() {
-        it("should disconnect the session", function() {
-          var view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
-          sandbox.stub(model, "endSession");
-          view.publish();
+      var comp;
 
-          view.hangup({preventDefault: function() {}});
-
-          sinon.assert.calledOnce(model.endSession);
+      beforeEach(function() {
+        comp = mountTestComponent({
+          sdk: fakeSDK,
+          model: model,
+          video: {enabled: false}
         });
       });
 
-      describe("#publish", function() {
-        var view;
-
+      describe("#hangup", function() {
         beforeEach(function() {
-          view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
+          comp.startPublishing();
+        });
+
+        it("should disconnect the session", function() {
+          sandbox.stub(model, "endSession");
+
+          comp.hangup();
+
+          sinon.assert.calledOnce(model.endSession);
+        });
+
+        it("should stop publishing local streams", function() {
+          comp.hangup();
+
+          sinon.assert.calledOnce(fakeSession.unpublish);
+        });
+      });
+
+      describe("#startPublishing", function() {
+        beforeEach(function() {
+          sandbox.stub(fakePublisher, "on");
         });
 
         it("should publish local stream", function() {
-          view.publish();
+          comp.startPublishing();
 
           sinon.assert.calledOnce(fakeSDK.initPublisher);
           sinon.assert.calledOnce(fakeSession.publish);
@@ -122,278 +480,236 @@ describe("loop.shared.views", function() {
         it("should start listening to OT publisher accessDialogOpened and " +
           " accessDenied events",
           function() {
-            view.publish();
+            comp.startPublishing();
 
-            sinon.assert.calledTwice(fakePublisher.on);
-            sinon.assert.calledWith(fakePublisher.on, "accessDialogOpened");
-            sinon.assert.calledWith(fakePublisher.on, "accessDenied");
+            sinon.assert.called(fakePublisher.on);
+            sinon.assert.calledWith(fakePublisher.on,
+                                    "accessDialogOpened accessDenied");
           });
       });
 
-      describe("#unpublish", function() {
-        var view;
-
+      describe("#stopPublishing", function() {
         beforeEach(function() {
-          view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
-          view.publish();
+          sandbox.stub(fakePublisher, "off");
+          comp.startPublishing();
         });
 
-        it("should unpublish local stream", function() {
-          view.unpublish();
+        it("should stop publish local stream", function() {
+          comp.stopPublishing();
 
           sinon.assert.calledOnce(fakeSession.unpublish);
         });
 
-        it("should unsubscribe from accessDialogOpened and accessDenied events",
+        it("should unsubscribe from publisher events",
           function() {
-            view.unpublish();
+            comp.stopPublishing();
 
-            sinon.assert.calledTwice(fakePublisher.off);
-            sinon.assert.calledWith(fakePublisher.off, "accessDialogOpened");
-            sinon.assert.calledWith(fakePublisher.off, "accessDenied");
+            // Note: Backbone.Events#stopListening calls off() on passed object.
+            sinon.assert.calledOnce(fakePublisher.off);
           });
+      });
+
+      describe("#publishStream", function() {
+        var component;
+
+        beforeEach(function() {
+          component = mountTestComponent({
+            sdk: fakeSDK,
+            model: model,
+            video: {enabled: false}
+          });
+          component.startPublishing();
+        });
+
+        it("should start streaming local audio", function() {
+          component.publishStream("audio", true);
+
+          sinon.assert.calledOnce(fakePublisher.publishAudio);
+          sinon.assert.calledWithExactly(fakePublisher.publishAudio, true);
+        });
+
+        it("should stop streaming local audio", function() {
+          component.publishStream("audio", false);
+
+          sinon.assert.calledOnce(fakePublisher.publishAudio);
+          sinon.assert.calledWithExactly(fakePublisher.publishAudio, false);
+        });
+
+        it("should start streaming local video", function() {
+          component.publishStream("video", true);
+
+          sinon.assert.calledOnce(fakePublisher.publishVideo);
+          sinon.assert.calledWithExactly(fakePublisher.publishVideo, true);
+        });
+
+        it("should stop streaming local video", function() {
+          component.publishStream("video", false);
+
+          sinon.assert.calledOnce(fakePublisher.publishVideo);
+          sinon.assert.calledWithExactly(fakePublisher.publishVideo, false);
+        });
       });
 
       describe("Model events", function() {
-        var view;
 
+        describe("for standalone", function() {
+
+          beforeEach(function() {
+            // In standalone, navigator.mozLoop does not exists
+            if (navigator.hasOwnProperty("mozLoop")) {
+              sandbox.stub(navigator, "mozLoop", undefined);
+            }
+          });
+
+          it("should play a connected sound, once, on session:connected",
+             function() {
+               var url = "shared/sounds/connected.ogg";
+               sandbox.stub(window, "XMLHttpRequest").returns(fakeAudioXHR);
+               model.trigger("session:connected");
+
+               fakeAudioXHR.onload();
+
+               sinon.assert.called(fakeAudioXHR.open);
+               sinon.assert.calledWithExactly(fakeAudioXHR.open, "GET", url, true);
+
+               sinon.assert.calledOnce(fakeAudio.play);
+               expect(fakeAudio.loop).to.not.equal(true);
+             });
+        });
+
+        describe("for desktop", function() {
+          var origMozLoop;
+
+          beforeEach(function() {
+            origMozLoop = navigator.mozLoop;
+            navigator.mozLoop = {
+              getAudioBlob: sinon.spy(function(name, callback) {
+                var data = new ArrayBuffer(10);
+                callback(null, new Blob([data], {type: "audio/ogg"}));
+              })
+            };
+          });
+
+          afterEach(function() {
+            navigator.mozLoop = origMozLoop;
+          });
+
+          it("should play a connected sound, once, on session:connected",
+             function() {
+               var url = "chrome://browser/content/loop/shared/sounds/connected.ogg";
+               model.trigger("session:connected");
+
+               sinon.assert.calledOnce(navigator.mozLoop.getAudioBlob);
+               sinon.assert.calledWithExactly(navigator.mozLoop.getAudioBlob,
+                                              "connected", sinon.match.func);
+               sinon.assert.calledOnce(fakeAudio.play);
+               expect(fakeAudio.loop).to.not.equal(true);
+             });
+        });
+
+        describe("for both (standalone and desktop)", function() {
+          beforeEach(function() {
+            sandbox.stub(window, "XMLHttpRequest").returns(fakeAudioXHR);
+          });
+
+          it("should start streaming on session:connected", function() {
+            model.trigger("session:connected");
+
+            sinon.assert.calledOnce(fakeSDK.initPublisher);
+          });
+
+          it("should publish remote stream on session:stream-created",
+             function() {
+               var s1 = {connection: {connectionId: 42}};
+
+               model.trigger("session:stream-created", {stream: s1});
+
+               sinon.assert.calledOnce(fakeSession.subscribe);
+               sinon.assert.calledWith(fakeSession.subscribe, s1);
+             });
+
+          it("should unpublish local stream on session:ended", function() {
+            comp.startPublishing();
+
+            model.trigger("session:ended");
+
+            sinon.assert.calledOnce(fakeSession.unpublish);
+          });
+
+          it("should unpublish local stream on session:peer-hungup", function() {
+            comp.startPublishing();
+
+            model.trigger("session:peer-hungup");
+
+            sinon.assert.calledOnce(fakeSession.unpublish);
+          });
+
+          it("should unpublish local stream on session:network-disconnected",
+             function() {
+               comp.startPublishing();
+
+               model.trigger("session:network-disconnected");
+
+               sinon.assert.calledOnce(fakeSession.unpublish);
+             });
+        });
+
+      });
+
+      describe("Publisher events", function() {
         beforeEach(function() {
-          sandbox.stub(sharedViews.ConversationView.prototype, "publish");
-          sandbox.stub(sharedViews.ConversationView.prototype, "unpublish");
-          view = new sharedViews.ConversationView({sdk: fakeSDK, model: model});
+          comp.startPublishing();
         });
 
-        it("should publish local stream on session:connected", function() {
-          model.trigger("session:connected");
+        it("should set audio state on streamCreated", function() {
+          fakePublisher.trigger("streamCreated", {stream: {hasAudio: true}});
+          expect(comp.state.audio.enabled).eql(true);
 
-          sinon.assert.calledOnce(view.publish);
+          fakePublisher.trigger("streamCreated", {stream: {hasAudio: false}});
+          expect(comp.state.audio.enabled).eql(false);
         });
 
-        it("should publish remote streams on session:stream-created",
-          function() {
-            var s1 = {connection: {connectionId: 42}};
-            var s2 = {connection: {connectionId: 43}};
+        it("should set video state on streamCreated", function() {
+          fakePublisher.trigger("streamCreated", {stream: {hasVideo: true}});
+          expect(comp.state.video.enabled).eql(true);
 
-            model.trigger("session:stream-created", {streams: [s1, s2]});
-
-            sinon.assert.calledOnce(fakeSession.subscribe);
-            sinon.assert.calledWith(fakeSession.subscribe, s2);
-          });
-
-        it("should unpublish local stream on session:ended", function() {
-          model.trigger("session:ended");
-
-          sinon.assert.calledOnce(view.unpublish);
+          fakePublisher.trigger("streamCreated", {stream: {hasVideo: false}});
+          expect(comp.state.video.enabled).eql(false);
         });
 
-        it("should unpublish local stream on session:peer-hungup", function() {
-          model.trigger("session:peer-hungup");
+        it("should set media state on streamDestroyed", function() {
+          fakePublisher.trigger("streamDestroyed");
 
-          sinon.assert.calledOnce(view.unpublish);
+          expect(comp.state.audio.enabled).eql(false);
+          expect(comp.state.video.enabled).eql(false);
         });
-
-        it("should unpublish local stream on session:network-disconnected",
-          function() {
-            model.trigger("session:network-disconnected");
-
-            sinon.assert.calledOnce(view.unpublish);
-          });
-      });
-    });
-  });
-
-  describe("NotificationView", function() {
-    var collection, model, view;
-
-    beforeEach(function() {
-      $("#fixtures").append('<div id="test-notif"></div>');
-      model = new sharedModels.NotificationModel({
-        level: "error",
-        message: "plop"
-      });
-      collection = new sharedModels.NotificationCollection([model]);
-      view = new sharedViews.NotificationView({
-        el: $("#test-notif"),
-        collection: collection,
-        model: model
-      });
-    });
-
-    describe("#dismiss", function() {
-      it("should automatically dismiss notification after 500ms", function() {
-        view.render().dismiss({preventDefault: sandbox.spy()});
-
-        expect(view.$(".message").text()).eql("plop");
-
-        sandbox.clock.tick(500);
-
-        expect(collection).to.have.length.of(0);
-        expect($("#test-notif").html()).eql(undefined);
-      });
-    });
-
-    describe("#render", function() {
-      it("should render template with model attribute values", function() {
-        view.render();
-
-        expect(view.$(".message").text()).eql("plop");
       });
     });
   });
 
   describe("NotificationListView", function() {
-    var coll, notifData, testNotif;
+    var coll, view, testNotif;
+
+    function mountTestComponent(props) {
+      props = _.extend({
+        key: 0
+      }, props || {});
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.NotificationListView, props));
+    }
 
     beforeEach(function() {
-      sandbox.stub(l10n, "get", function(x) {
-        return "translated:" + x;
-      });
-      notifData = {level: "error", message: "plop"};
-      testNotif = new sharedModels.NotificationModel(notifData);
       coll = new sharedModels.NotificationCollection();
+      view = mountTestComponent({notifications: coll});
+      testNotif = {level: "warning", message: "foo"};
+      sinon.spy(view, "render");
     });
 
-    describe("#initialize", function() {
-      it("should accept a collection option", function() {
-        var view = new sharedViews.NotificationListView({collection: coll});
-
-        expect(view.collection).to.be.an.instanceOf(
-          sharedModels.NotificationCollection);
-      });
-
-      it("should set a default collection when none is passed", function() {
-        var view = new sharedViews.NotificationListView();
-
-        expect(view.collection).to.be.an.instanceOf(
-          sharedModels.NotificationCollection);
-      });
-    });
-
-    describe("#clear", function() {
-      it("should clear all notifications from the collection", function() {
-        var view = new sharedViews.NotificationListView();
-        view.notify(testNotif);
-
-        view.clear();
-
-        expect(coll).to.have.length.of(0);
-      });
-    });
-
-    describe("#notify", function() {
-      var view;
-
-      beforeEach(function() {
-        view = new sharedViews.NotificationListView({collection: coll});
-      });
-
-      describe("adds a new notification to the stack", function() {
-        it("using a plain object", function() {
-          view.notify(notifData);
-
-          expect(coll).to.have.length.of(1);
-        });
-
-        it("using a NotificationModel instance", function() {
-          view.notify(testNotif);
-
-          expect(coll).to.have.length.of(1);
-        });
-      });
-    });
-
-    describe("#notifyL10n", function() {
-      var view;
-
-      beforeEach(function() {
-        view = new sharedViews.NotificationListView({collection: coll});
-      });
-
-      it("should translate a message string identifier", function() {
-        view.notifyL10n("fakeId", "warning");
-
-        sinon.assert.calledOnce(l10n.get);
-        sinon.assert.calledWithExactly(l10n.get, "fakeId");
-      });
-
-      it("should notify end user with the provided message", function() {
-        sandbox.stub(view, "notify");
-
-        view.notifyL10n("fakeId", "warning");
-
-        sinon.assert.calledOnce(view.notify);
-        sinon.assert.calledWithExactly(view.notify, {
-          message: "translated:fakeId",
-          level: "warning"
-        });
-      });
-    });
-
-    describe("#warn", function() {
-      it("should add a warning notification to the stack", function() {
-        var view = new sharedViews.NotificationListView({collection: coll});
-
-        view.warn("watch out");
-
-        expect(coll).to.have.length.of(1);
-        expect(coll.at(0).get("level")).eql("warning");
-        expect(coll.at(0).get("message")).eql("watch out");
-      });
-    });
-
-    describe("#warnL10n", function() {
-      it("should warn using a l10n string id", function() {
-        var view = new sharedViews.NotificationListView({collection: coll});
-        sandbox.stub(view, "notify");
-
-        view.warnL10n("fakeId");
-
-        sinon.assert.called(view.notify);
-        sinon.assert.calledWithExactly(view.notify, {
-          message: "translated:fakeId",
-          level: "warning"
-        });
-      });
-    });
-
-    describe("#error", function() {
-      it("should add an error notification to the stack", function() {
-        var view = new sharedViews.NotificationListView({collection: coll});
-
-        view.error("wrong");
-
-        expect(coll).to.have.length.of(1);
-        expect(coll.at(0).get("level")).eql("error");
-        expect(coll.at(0).get("message")).eql("wrong");
-      });
-    });
-
-    describe("#errorL10n", function() {
-      it("should notify an error using a l10n string id", function() {
-        var view = new sharedViews.NotificationListView({collection: coll});
-        sandbox.stub(view, "notify");
-
-        view.errorL10n("fakeId");
-
-        sinon.assert.called(view.notify);
-        sinon.assert.calledWithExactly(view.notify, {
-          message: "translated:fakeId",
-          level: "error"
-        });
-      });
+    afterEach(function() {
+      view.render.restore();
     });
 
     describe("Collection events", function() {
-      var view;
-
-      beforeEach(function() {
-        sandbox.stub(sharedViews.NotificationListView.prototype, "render");
-        view = new sharedViews.NotificationListView({collection: coll});
-      });
-
       it("should render when a notification is added to the collection",
         function() {
           coll.add(testNotif);
@@ -406,7 +722,7 @@ describe("loop.shared.views", function() {
           coll.add(testNotif);
           coll.remove(testNotif);
 
-          sinon.assert.calledTwice(view.render);
+          sinon.assert.calledOnce(view.render);
         });
 
       it("should render when the collection is reset", function() {
@@ -416,5 +732,326 @@ describe("loop.shared.views", function() {
       });
     });
   });
-});
 
+  describe("Checkbox", function() {
+    var view;
+
+    afterEach(function() {
+      view = null;
+    });
+
+    function mountTestComponent(props) {
+      props = _.extend({ onChange: function() {} }, props);
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.Checkbox, props));
+    }
+
+    describe("#render", function() {
+      it("should render a checkbox with only required props supplied", function() {
+        view = mountTestComponent();
+
+        var node = view.getDOMNode();
+        expect(node).to.not.eql(null);
+        expect(node.classList.contains("checkbox-wrapper")).to.eql(true);
+        expect(node.hasAttribute("disabled")).to.eql(false);
+        expect(node.childNodes.length).to.eql(1);
+      });
+
+      it("should render a label when it's supplied", function() {
+        view = mountTestComponent({ label: "Some label" });
+
+        var node = view.getDOMNode();
+        expect(node.lastChild.localName).to.eql("label");
+        expect(node.lastChild.textContent).to.eql("Some label");
+      });
+
+      it("should render the checkbox as disabled when told to", function() {
+        view = mountTestComponent({
+          disabled: true
+        });
+
+        var node = view.getDOMNode();
+        expect(node.classList.contains("disabled")).to.eql(true);
+        expect(node.hasAttribute("disabled")).to.eql(true);
+      });
+
+      it("should render the checkbox as checked when the prop is set", function() {
+        view = mountTestComponent({
+          checked: true
+        });
+
+        var checkbox = view.getDOMNode().querySelector(".checkbox");
+        expect(checkbox.classList.contains("checked")).eql(true);
+      });
+
+      it("should alter the render state when the props are changed", function() {
+        view = mountTestComponent({
+          checked: true
+        });
+
+        view.setProps({checked: false});
+
+        var checkbox = view.getDOMNode().querySelector(".checkbox");
+        expect(checkbox.classList.contains("checked")).eql(false);
+      });
+    });
+
+    describe("#_handleClick", function() {
+      var onChange;
+
+      beforeEach(function() {
+        onChange = sinon.stub();
+      });
+
+      afterEach(function() {
+        onChange = null;
+      });
+
+      it("should invoke the `onChange` function on click", function() {
+        view = mountTestComponent({ onChange: onChange });
+
+        expect(view.state.checked).to.eql(false);
+
+        var node = view.getDOMNode();
+        TestUtils.Simulate.click(node);
+
+        expect(view.state.checked).to.eql(true);
+        sinon.assert.calledOnce(onChange);
+        sinon.assert.calledWithExactly(onChange, {
+          checked: true,
+          value: ""
+        });
+      });
+
+      it("should signal a value change on click", function() {
+        view = mountTestComponent({
+          onChange: onChange,
+          value: "some-value"
+        });
+
+        expect(view.state.value).to.eql("");
+
+        var node = view.getDOMNode();
+        TestUtils.Simulate.click(node);
+
+        expect(view.state.value).to.eql("some-value");
+        sinon.assert.calledOnce(onChange);
+        sinon.assert.calledWithExactly(onChange, {
+          checked: true,
+          value: "some-value"
+        });
+      });
+    });
+  });
+
+  describe("ContextUrlView", function() {
+    var view;
+
+    function mountTestComponent(extraProps) {
+      var props = _.extend({
+        allowClick: false,
+        description: "test",
+        dispatcher: dispatcher,
+        showContextTitle: false,
+        useDesktopPaths: false
+      }, extraProps);
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.ContextUrlView, props));
+    }
+
+    it("should display nothing if the url is invalid", function() {
+      view = mountTestComponent({
+        url: "fjrTykyw"
+      });
+
+      expect(view.getDOMNode()).eql(null);
+    });
+
+    it("should use a default thumbnail if one is not supplied", function() {
+      view = mountTestComponent({
+        url: "http://wonderful.invalid"
+      });
+
+      expect(view.getDOMNode().querySelector(".context-preview").getAttribute("src"))
+        .eql("shared/img/icons-16x16.svg#globe");
+    });
+
+    it("should use a default thumbnail for desktop if one is not supplied", function() {
+      view = mountTestComponent({
+        useDesktopPaths: true,
+        url: "http://wonderful.invalid"
+      });
+
+      expect(view.getDOMNode().querySelector(".context-preview").getAttribute("src"))
+        .eql("loop/shared/img/icons-16x16.svg#globe");
+    });
+
+    it("should not display a title if by default", function() {
+      view = mountTestComponent({
+        url: "http://wonderful.invalid"
+      });
+
+      expect(view.getDOMNode().querySelector(".context-content > p")).eql(null);
+    });
+
+    it("should display a title if required", function() {
+      view = mountTestComponent({
+        showContextTitle: true,
+        url: "http://wonderful.invalid"
+      });
+
+      expect(view.getDOMNode().querySelector(".context-content > p")).not.eql(null);
+    });
+
+    it("should set the href on the link if clicks are allowed", function() {
+      view = mountTestComponent({
+        allowClick: true,
+        url: "http://wonderful.invalid"
+      });
+
+      expect(view.getDOMNode().querySelector(".context-url").href)
+        .eql("http://wonderful.invalid/");
+    });
+
+    it("should dispatch an action to record link clicks", function() {
+      view = mountTestComponent({
+        allowClick: true,
+        url: "http://wonderful.invalid"
+      });
+
+      var linkNode = view.getDOMNode().querySelector(".context-url");
+
+      TestUtils.Simulate.click(linkNode);
+
+      sinon.assert.calledOnce(dispatcher.dispatch);
+      sinon.assert.calledWith(dispatcher.dispatch,
+        new sharedActions.RecordClick({
+          linkInfo: "Shared URL"
+        }));
+    });
+  });
+
+  describe("MediaView", function() {
+    var view;
+
+    function mountTestComponent(props) {
+      props = _.extend({
+        isLoading: false
+      }, props || {});
+      return TestUtils.renderIntoDocument(
+        React.createElement(sharedViews.MediaView, props));
+    }
+
+    it("should display an avatar view", function() {
+      view = mountTestComponent({
+        displayAvatar: true,
+        mediaType: "local"
+      });
+
+      TestUtils.findRenderedComponentWithType(view,
+        sharedViews.AvatarView);
+    });
+
+    it("should display a no-video div if no source object is supplied", function() {
+      view = mountTestComponent({
+        displayAvatar: false,
+        mediaType: "local"
+      });
+
+      var element = view.getDOMNode();
+
+      expect(element.className).eql("no-video");
+    });
+
+    it("should display a video element if a source object is supplied", function() {
+      view = mountTestComponent({
+        displayAvatar: false,
+        mediaType: "local",
+        // This doesn't actually get assigned to the video element, but is enough
+        // for this test to check display of the video element.
+        srcVideoObject: {
+          fake: 1
+        }
+      });
+
+      var element = view.getDOMNode();
+
+      expect(element).not.eql(null);
+      expect(element.className).eql("local-video");
+      expect(element.muted).eql(true);
+    });
+
+    // We test this function by itself, as otherwise we'd be into creating fake
+    // streams etc.
+    describe("#attachVideo", function() {
+      var fakeViewElement;
+
+      beforeEach(function() {
+        fakeViewElement = {
+          play: sinon.stub(),
+          tagName: "VIDEO"
+        };
+
+        view = mountTestComponent({
+          displayAvatar: false,
+          mediaType: "local",
+          srcVideoObject: {
+            fake: 1
+          }
+        });
+      });
+
+      it("should not throw if no source object is specified", function() {
+        expect(function() {
+          view.attachVideo(null);
+        }).to.not.Throw();
+      });
+
+      it("should not throw if the element is not a video object", function() {
+        sinon.stub(view, "getDOMNode").returns({
+          tagName: "DIV"
+        });
+
+        expect(function() {
+          view.attachVideo({});
+        }).to.not.Throw();
+      });
+
+      it("should attach a video object according to the standard", function() {
+        fakeViewElement.srcObject = null;
+
+        sinon.stub(view, "getDOMNode").returns(fakeViewElement);
+
+        view.attachVideo({
+          srcObject: {fake: 1}
+        });
+
+        expect(fakeViewElement.srcObject).eql({fake: 1});
+      });
+
+      it("should attach a video object for Firefox", function() {
+        fakeViewElement.mozSrcObject = null;
+
+        sinon.stub(view, "getDOMNode").returns(fakeViewElement);
+
+        view.attachVideo({
+          mozSrcObject: {fake: 2}
+        });
+
+        expect(fakeViewElement.mozSrcObject).eql({fake: 2});
+      });
+
+      it("should attach a video object for Chrome", function() {
+        fakeViewElement.src = null;
+
+        sinon.stub(view, "getDOMNode").returns(fakeViewElement);
+
+        view.attachVideo({
+          src: {fake: 2}
+        });
+
+        expect(fakeViewElement.src).eql({fake: 2});
+      });
+    });
+  });
+});

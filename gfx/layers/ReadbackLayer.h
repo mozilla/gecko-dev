@@ -9,14 +9,13 @@
 #include <stdint.h>                     // for uint64_t
 #include "Layers.h"                     // for Layer, etc
 #include "gfxColor.h"                   // for gfxRGBA
-#include "gfxRect.h"                    // for gfxRect
+#include "mozilla/gfx/Rect.h"                    // for gfxRect
+#include "mozilla/gfx/Point.h"                    // for gfxRect
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsAutoPtr.h"                  // for nsAutoPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
-#include "nsSize.h"                     // for nsIntSize
 #include "nscore.h"                     // for nsACString
 
 class gfxContext;
@@ -25,6 +24,10 @@ namespace mozilla {
 namespace layers {
 
 class ReadbackProcessor;
+
+namespace layerscope {
+class LayersPacket;
+}
 
 /**
  * A ReadbackSink receives a stream of updates to a rectangle of pixels.
@@ -57,14 +60,14 @@ public:
    * first BeginUpdate after a SetUnknown will have the complete background.
    */
   virtual already_AddRefed<gfxContext>
-      BeginUpdate(const nsIntRect& aRect, uint64_t aSequenceNumber) = 0;
+      BeginUpdate(const gfx::IntRect& aRect, uint64_t aSequenceNumber) = 0;
   /**
    * EndUpdate must be called immediately after BeginUpdate, without returning
    * to the event loop.
    * @param aContext the context returned by BeginUpdate
    * Implicitly Restore()s the state of aContext.
    */
-  virtual void EndUpdate(gfxContext* aContext, const nsIntRect& aRect) = 0;
+  virtual void EndUpdate(gfxContext* aContext, const gfx::IntRect& aRect) = 0;
 };
 
 /**
@@ -83,12 +86,12 @@ class ReadbackLayer : public Layer {
 public:
   MOZ_LAYER_DECL_NAME("ReadbackLayer", TYPE_READBACK)
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override
   {
     // Snap our local transform first, and snap the inherited transform as well.
     // This makes our snapping equivalent to what would happen if our content
-    // was drawn into a ThebesLayer (gfxContext would snap using the local
-    // transform, then we'd snap again when compositing the ThebesLayer).
+    // was drawn into a PaintedLayer (gfxContext would snap using the local
+    // transform, then we'd snap again when compositing the PaintedLayer).
     mEffectiveTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mSize.width, mSize.height),
                       nullptr)*
@@ -118,13 +121,13 @@ public:
    * has its top-left at 0,0 and has size aSize.
    * Can only be called while the sink is null!
    */
-  void SetSize(const nsIntSize& aSize)
+  void SetSize(const gfx::IntSize& aSize)
   {
     NS_ASSERTION(!mSink, "Should have no sink while changing size!");
     mSize = aSize;
   }
-  const nsIntSize& GetSize() { return mSize; }
-  nsIntRect GetRect() { return nsIntRect(nsIntPoint(0, 0), mSize); }
+  const gfx::IntSize& GetSize() { return mSize; }
+  gfx::IntRect GetRect() { return gfx::IntRect(gfx::IntPoint(0, 0), mSize); }
 
   bool IsBackgroundKnown()
   {
@@ -136,7 +139,7 @@ public:
     mSink = nullptr;
   }
 
-  void NotifyThebesLayerRemoved(ThebesLayer* aLayer)
+  void NotifyPaintedLayerRemoved(PaintedLayer* aLayer)
   {
     if (mBackgroundLayer == aLayer) {
       mBackgroundLayer = nullptr;
@@ -170,22 +173,22 @@ protected:
     mBackgroundColor(gfxRGBA(0,0,0,0))
   {}
 
-  // Print interesting information about this into aTo.  Internally
-  // used to implement Dump*() and Log*().
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
+
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) override;
 
   uint64_t mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;
-  nsIntSize mSize;
+  gfx::IntSize mSize;
 
-  // This can refer to any (earlier) sibling ThebesLayer. That ThebesLayer
-  // must have mUsedForReadback set on it. If the ThebesLayer is removed
-  // for the container, this will be set to null by NotifyThebesLayerRemoved.
-  // This ThebesLayer contains the contents which have previously been reported
-  // to mSink. The ThebesLayer had only an integer translation transform,
+  // This can refer to any (earlier) sibling PaintedLayer. That PaintedLayer
+  // must have mUsedForReadback set on it. If the PaintedLayer is removed
+  // for the container, this will be set to null by NotifyPaintedLayerRemoved.
+  // This PaintedLayer contains the contents which have previously been reported
+  // to mSink. The PaintedLayer had only an integer translation transform,
   // and it covered the entire readback area. This layer also had only an
   // integer translation transform.
-  ThebesLayer* mBackgroundLayer;
+  PaintedLayer* mBackgroundLayer;
   // When mBackgroundLayer is non-null, this is the offset to add to
   // convert from the coordinates of mBackgroundLayer to the coordinates
   // of this layer.

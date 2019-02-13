@@ -28,9 +28,24 @@ SourceSurfaceRawData::InitWrappingData(uint8_t *aData,
   return true;
 }
 
+void
+SourceSurfaceRawData::GuaranteePersistance()
+{
+  if (mOwnData) {
+    return;
+  }
+
+  uint8_t* oldData = mRawData;
+  mRawData = new uint8_t[mStride * mSize.height];
+
+  memcpy(mRawData, oldData, mStride * mSize.height);
+  mOwnData = true;
+}
+
 bool
 SourceSurfaceAlignedRawData::Init(const IntSize &aSize,
-                                  SurfaceFormat aFormat)
+                                  SurfaceFormat aFormat,
+                                  bool aZero)
 {
   mFormat = aFormat;
   mStride = GetAlignedStride<16>(aSize.width * BytesPerPixel(aFormat));
@@ -39,7 +54,7 @@ SourceSurfaceAlignedRawData::Init(const IntSize &aSize,
   if (bufLen > 0) {
     static_assert(sizeof(decltype(mArray[0])) == 1,
                   "mArray.Realloc() takes an object count, so its objects must be 1-byte sized if we use bufLen");
-    mArray.Realloc(/* actually an object count */ bufLen);
+    mArray.Realloc(/* actually an object count */ bufLen, aZero);
     mSize = aSize;
   } else {
     mArray.Dealloc();
@@ -52,7 +67,8 @@ SourceSurfaceAlignedRawData::Init(const IntSize &aSize,
 bool
 SourceSurfaceAlignedRawData::InitWithStride(const IntSize &aSize,
                                             SurfaceFormat aFormat,
-                                            int32_t aStride)
+                                            int32_t aStride,
+                                            bool aZero)
 {
   mFormat = aFormat;
   mStride = aStride;
@@ -61,7 +77,7 @@ SourceSurfaceAlignedRawData::InitWithStride(const IntSize &aSize,
   if (bufLen > 0) {
     static_assert(sizeof(decltype(mArray[0])) == 1,
                   "mArray.Realloc() takes an object count, so its objects must be 1-byte sized if we use bufLen");
-    mArray.Realloc(/* actually an object count */ bufLen);
+    mArray.Realloc(/* actually an object count */ bufLen, aZero);
     mSize = aSize;
   } else {
     mArray.Dealloc();

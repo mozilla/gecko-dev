@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,13 +26,17 @@ class nsXBLAttributeEntry;
 class nsXBLBinding;
 class nsXBLProtoImplField;
 
+namespace mozilla {
+class CSSStyleSheet;
+} // namespace mozilla
+
 // *********************************************************************/
 // The XBLPrototypeBinding class
 
 // Instances of this class are owned by the nsXBLDocumentInfo object returned
 // by XBLDocumentInfo().  Consumers who want to refcount things should refcount
 // that.
-class nsXBLPrototypeBinding MOZ_FINAL
+class nsXBLPrototypeBinding final
 {
 public:
   nsIContent* GetBindingElement() const { return mBinding; }
@@ -85,11 +90,11 @@ public:
     }
   }
 
-  const nsCString& ClassName() const {
-    return mImplementation ? mImplementation->mClassName : EmptyCString();
+  const nsString& ClassName() const {
+    return mImplementation ? mImplementation->mClassName : EmptyString();
   }
 
-  nsresult InitClass(const nsCString& aClassName, JSContext * aContext,
+  nsresult InitClass(const nsString& aClassName, JSContext* aContext,
                      JS::Handle<JSObject*> aScriptObject,
                      JS::MutableHandle<JSObject*> aClassObject,
                      bool* aNew);
@@ -113,13 +118,15 @@ public:
 
   void SetInitialAttributes(nsIContent* aBoundElement, nsIContent* aAnonymousContent);
 
-  nsIStyleRuleProcessor* GetRuleProcessor();
-  nsXBLPrototypeResources::sheet_array_type* GetOrCreateStyleSheets();
-  nsXBLPrototypeResources::sheet_array_type* GetStyleSheets();
+  void AppendStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void RemoveStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void InsertStyleSheetAt(size_t aIndex, mozilla::CSSStyleSheet* aSheet);
+  mozilla::CSSStyleSheet* StyleSheetAt(size_t aIndex) const;
+  size_t SheetCount() const;
+  bool HasStyleSheets() const;
+  void AppendStyleSheetsTo(nsTArray<mozilla::CSSStyleSheet*>& aResult) const;
 
-  bool HasStyleSheets() {
-    return mResources && mResources->mStyleSheetList.Length() > 0;
-  }
+  nsIStyleRuleProcessor* GetRuleProcessor();
 
   nsresult FlushSkinSheets();
 
@@ -158,6 +165,8 @@ private:
    * to indicate the first binding in a document.
    * XBLBinding_Serialize_ChromeOnlyContent indicates that
    * nsXBLPrototypeBinding::mChromeOnlyContent should be true.
+   * XBLBinding_Serialize_BindToUntrustedContent indicates that
+   * nsXBLPrototypeBinding::mBindToUntrustedContent should be true.
    */
 public:
   static nsresult ReadNewBinding(nsIObjectInputStream* aStream,
@@ -235,7 +244,7 @@ public:
                 bool aFirstBinding = false);
 
   void Traverse(nsCycleCollectionTraversalCallback &cb) const;
-  void UnlinkJSObjects();
+  void Unlink();
   void Trace(const TraceCallbacks& aCallbacks, void *aClosure) const;
 
 // Internal member functions.
@@ -251,6 +260,7 @@ public:
                              nsIContent* aTemplChild);
 
   bool ChromeOnlyContent() { return mChromeOnlyContent; }
+  bool BindToUntrustedContent() { return mBindToUntrustedContent; }
 
   typedef nsClassHashtable<nsISupportsHashKey, nsXBLAttributeEntry> InnerAttributeTable;
 
@@ -263,6 +273,9 @@ protected:
                            nsIContent* aContent);
   void ConstructAttributeTable(nsIContent* aElement);
   void CreateKeyHandlers();
+
+private:
+  void EnsureResources();
 
 // MEMBER VARIABLES
 protected:
@@ -282,6 +295,7 @@ protected:
   bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;
   bool mChromeOnlyContent;
+  bool mBindToUntrustedContent;
 
   nsAutoPtr<nsXBLPrototypeResources> mResources; // If we have any resources, this will be non-null.
 
@@ -298,7 +312,7 @@ protected:
     typedef const nsIID& KeyType;
     typedef const nsIID* KeyTypePointer;
 
-    IIDHashKey(const nsIID* aKey)
+    explicit IIDHashKey(const nsIID* aKey)
       : mKey(*aKey)
     {}
     IIDHashKey(const IIDHashKey& aOther)

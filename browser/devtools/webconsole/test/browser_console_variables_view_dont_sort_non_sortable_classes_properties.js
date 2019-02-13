@@ -1,4 +1,4 @@
-/* -*- js2-basic-offset: 2; indent-tabs-mode: nil; -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -57,16 +57,18 @@ function test() {
 
     // Create an ArrayBuffer of 80 bytes to test TypedArrays. 80 bytes is
     // enough to get 10 items in all different TypedArrays.
-    jsterm.execute("let buf = ArrayBuffer(80);");
+    yield jsterm.execute("let buf = new ArrayBuffer(80);");
 
     // Array
     yield testNotSorted("Array(0,1,2,3,4,5,6,7,8,9,10)");
     // NodeList
     yield testNotSorted("document.querySelectorAll('div')");
+    // Object
+    yield testSorted("Object({'hello':1,1:5,10:2,4:2,'abc':1})");
 
     // Typed arrays.
     for (let type of typedArrayTypes) {
-      yield testNotSorted(type + "(buf)");
+      yield testNotSorted("new " + type + "(buf)");
     }
   }
 
@@ -78,7 +80,7 @@ function test() {
    *        A string that, once executed, creates and returns the object to
    *        inspect.
    */
-  function testNotSorted(aObject) {
+  function* testNotSorted(aObject) {
     info("Testing " + aObject);
     let deferred = promise.defer();
     jsterm.once("variablesview-fetched", (_, aVar) => deferred.resolve(aVar));
@@ -95,6 +97,35 @@ function test() {
 
     // If the properties are sorted, the next one will be 10.
     is(keyIterator.next().value, "2", "Third key is 2, not 10");
+  }
+  /**
+   * A helper that ensures the properties are sorted when an object
+   * specified by aObject is inspected.
+   *
+   * @param string aObject
+   *        A string that, once executed, creates and returns the object to
+   *        inspect.
+   */
+  function* testSorted(aObject) {
+    info("Testing " + aObject);
+    let deferred = promise.defer();
+    jsterm.once("variablesview-fetched", (_, aVar) => deferred.resolve(aVar));
+    jsterm.execute("inspect(" + aObject + ")");
+
+    let variableScope = yield deferred.promise;
+    ok(variableScope, "Variables view opened");
+
+    // If the properties are sorted: keys = ["1", "4", "10",..., "abc", "hello"] <- correct
+    // If the properties are not sorted: keys = ["1", "10", "4",...] <- incorrect
+    let keyIterator = variableScope._store.keys();
+    is(keyIterator.next().value, "1", "First key should be 1");
+    is(keyIterator.next().value, "4", "Second key should be 4");
+
+    // If the properties are sorted, the next one will be 10.
+    is(keyIterator.next().value, "10", "Third key is 10");
+    // If sorted next properties should be "abc" then "hello"
+    is(keyIterator.next().value, "abc", "Fourth key is abc");
+    is(keyIterator.next().value, "hello", "Fifth key is hello");
   }
 
   Task.spawn(runner).then(finishTest);

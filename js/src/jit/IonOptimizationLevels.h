@@ -24,10 +24,8 @@ enum OptimizationLevel
     Optimization_Count
 };
 
-#ifdef JS_ION
-
 #ifdef DEBUG
-inline const char *
+inline const char*
 OptimizationLevelString(OptimizationLevel level)
 {
     switch (level) {
@@ -38,7 +36,7 @@ OptimizationLevelString(OptimizationLevel level)
       case Optimization_AsmJS:
         return "Optimization_AsmJS";
       default:
-        MOZ_ASSUME_UNREACHABLE("Invalid OptimizationLevel");
+        MOZ_CRASH("Invalid OptimizationLevel");
     }
 }
 #endif
@@ -50,6 +48,9 @@ class OptimizationInfo
 
     // Toggles whether Effective Address Analysis is performed.
     bool eaa_;
+
+    // Toggles whether Alignment Mask Analysis is performed.
+    bool ama_;
 
     // Toggles whether Edge Case Analysis is used.
     bool edgeCaseAnalysis_;
@@ -63,28 +64,41 @@ class OptimizationInfo
     // Toggles whether native scripts get inlined.
     bool inlineNative_;
 
+    // Toggles whether eager unboxing of SIMD is used.
+    bool eagerSimdUnbox_;
+
     // Toggles whether global value numbering is used.
     bool gvn_;
-
-    // Toggles whether global value numbering is optimistic or pessimistic.
-    IonGvnKind gvnKind_;
 
     // Toggles whether loop invariant code motion is performed.
     bool licm_;
 
-    // Toggles whether Unreachable Code Elimination is performed.
-    bool uce_;
-
     // Toggles whether Range Analysis is used.
     bool rangeAnalysis_;
+
+    // Toggles whether loop unrolling is performed.
+    bool loopUnrolling_;
 
     // Toggles whether Truncation based on Range Analysis is used.
     bool autoTruncate_;
 
+    // Toggles whether sink is used.
+    bool sink_;
+
     // Describes which register allocator to use.
     IonRegisterAllocator registerAllocator_;
 
-    // The maximum total bytecode size of an inline call site.
+    // The maximum total bytecode size of an inline call site. We use a lower
+    // value if off-thread compilation is not available, to avoid stalling the
+    // main thread.
+    uint32_t inlineMaxBytecodePerCallSiteOffThread_;
+    uint32_t inlineMaxBytecodePerCallSiteMainThread_;
+
+    // The maximum value we allow for baselineScript->inlinedBytecodeLength_
+    // when inlining.
+    uint16_t inlineMaxCalleeInlinedBytecodeLength_;
+
+    // The maximum bytecode length we'll inline in a single compilation.
     uint32_t inlineMaxTotalBytecodeLength_;
 
     // The maximum bytecode length the caller may have,
@@ -93,6 +107,9 @@ class OptimizationInfo
 
     // The maximum inlining depth.
     uint32_t maxInlineDepth_;
+
+    // Toggles whether scalar replacement is used.
+    bool scalarReplacement_;
 
     // The maximum inlining depth for functions.
     //
@@ -104,11 +121,19 @@ class OptimizationInfo
 
     // How many invocations or loop iterations are needed before functions
     // are compiled.
-    uint32_t usesBeforeCompile_;
+    uint32_t compilerWarmUpThreshold_;
+
+    // Default compiler warmup threshold, unless it is overridden.
+    static const uint32_t CompilerWarmupThreshold = 1000;
 
     // How many invocations or loop iterations are needed before calls
-    // are inlined, as a fraction of usesBeforeCompile.
-    double usesBeforeInliningFactor_;
+    // are inlined, as a fraction of compilerWarmUpThreshold.
+    double inliningWarmUpThresholdFactor_;
+
+    // How many invocations or loop iterations are needed before a function
+    // is hot enough to recompile the outerScript to inline that function,
+    // as a multiplication of inliningWarmUpThreshold.
+    uint32_t inliningRecompileThresholdFactor_;
 
     OptimizationInfo()
     { }
@@ -128,7 +153,11 @@ class OptimizationInfo
         return inlineNative_ && !js_JitOptions.disableInlining;
     }
 
-    uint32_t usesBeforeCompile(JSScript *script, jsbytecode *pc = nullptr) const;
+    uint32_t compilerWarmUpThreshold(JSScript* script, jsbytecode* pc = nullptr) const;
+
+    bool eagerSimdUnboxEnabled() const {
+        return eagerSimdUnbox_ && !js_JitOptions.disableEagerSimdUnbox;
+    }
 
     bool gvnEnabled() const {
         return gvn_ && !js_JitOptions.disableGvn;
@@ -138,20 +167,28 @@ class OptimizationInfo
         return licm_ && !js_JitOptions.disableLicm;
     }
 
-    bool uceEnabled() const {
-        return uce_ && !js_JitOptions.disableUce;
-    }
-
     bool rangeAnalysisEnabled() const {
         return rangeAnalysis_ && !js_JitOptions.disableRangeAnalysis;
+    }
+
+    bool loopUnrollingEnabled() const {
+        return loopUnrolling_ && !js_JitOptions.disableLoopUnrolling;
     }
 
     bool autoTruncateEnabled() const {
         return autoTruncate_ && rangeAnalysisEnabled();
     }
 
+    bool sinkEnabled() const {
+        return sink_ && !js_JitOptions.disableSink;
+    }
+
     bool eaaEnabled() const {
         return eaa_ && !js_JitOptions.disableEaa;
+    }
+
+    bool amaEnabled() const {
+        return ama_ && !js_JitOptions.disableAma;
     }
 
     bool edgeCaseAnalysisEnabled() const {
@@ -162,26 +199,34 @@ class OptimizationInfo
         return eliminateRedundantChecks_;
     }
 
-    IonGvnKind gvnKind() const {
-        if (!js_JitOptions.forceGvnKind)
-            return gvnKind_;
-        return js_JitOptions.forcedGvnKind;
+    IonRegisterAllocator registerAllocator() const {
+        if (js_JitOptions.forcedRegisterAllocator.isSome())
+            return js_JitOptions.forcedRegisterAllocator.ref();
+        return registerAllocator_;
     }
 
-    IonRegisterAllocator registerAllocator() const {
-        if (!js_JitOptions.forceRegisterAllocator)
-            return registerAllocator_;
-        return js_JitOptions.forcedRegisterAllocator;
+    bool scalarReplacementEnabled() const {
+        return scalarReplacement_ && !js_JitOptions.disableScalarReplacement;
     }
 
     uint32_t smallFunctionMaxInlineDepth() const {
         return smallFunctionMaxInlineDepth_;
     }
 
-    bool isSmallFunction(JSScript *script) const;
+    bool isSmallFunction(JSScript* script) const;
 
     uint32_t maxInlineDepth() const {
         return maxInlineDepth_;
+    }
+
+    uint32_t inlineMaxBytecodePerCallSite(bool offThread) const {
+        return (offThread || !js_JitOptions.limitScriptSize)
+               ? inlineMaxBytecodePerCallSiteOffThread_
+               : inlineMaxBytecodePerCallSiteMainThread_;
+    }
+
+    uint16_t inlineMaxCalleeInlinedBytecodeLength() const {
+        return inlineMaxCalleeInlinedBytecodeLength_;
     }
 
     uint32_t inlineMaxTotalBytecodeLength() const {
@@ -189,14 +234,18 @@ class OptimizationInfo
     }
 
     uint32_t inliningMaxCallerBytecodeLength() const {
-        return inlineMaxTotalBytecodeLength_;
+        return inliningMaxCallerBytecodeLength_;
     }
 
-    uint32_t usesBeforeInlining() const {
-        uint32_t usesBeforeCompile = usesBeforeCompile_;
-        if (js_JitOptions.forceDefaultIonUsesBeforeCompile)
-            usesBeforeCompile = js_JitOptions.forcedDefaultIonUsesBeforeCompile;
-        return usesBeforeCompile * usesBeforeInliningFactor_;
+    uint32_t inliningWarmUpThreshold() const {
+        uint32_t compilerWarmUpThreshold = compilerWarmUpThreshold_;
+        if (js_JitOptions.forcedDefaultIonWarmUpThreshold.isSome())
+            compilerWarmUpThreshold = js_JitOptions.forcedDefaultIonWarmUpThreshold.ref();
+        return compilerWarmUpThreshold * inliningWarmUpThresholdFactor_;
+    }
+
+    uint32_t inliningRecompileThreshold() const {
+        return inliningWarmUpThreshold() * inliningRecompileThresholdFactor_;
     }
 };
 
@@ -208,9 +257,9 @@ class OptimizationInfos
   public:
     OptimizationInfos();
 
-    const OptimizationInfo *get(OptimizationLevel level) const {
-        JS_ASSERT(level < Optimization_Count);
-        JS_ASSERT(level != Optimization_DontCompile);
+    const OptimizationInfo* get(OptimizationLevel level) const {
+        MOZ_ASSERT(level < Optimization_Count);
+        MOZ_ASSERT(level != Optimization_DontCompile);
 
         return &infos_[level - 1];
     }
@@ -218,12 +267,10 @@ class OptimizationInfos
     OptimizationLevel nextLevel(OptimizationLevel level) const;
     OptimizationLevel firstLevel() const;
     bool isLastLevel(OptimizationLevel level) const;
-    OptimizationLevel levelForScript(JSScript *script, jsbytecode *pc = nullptr) const;
+    OptimizationLevel levelForScript(JSScript* script, jsbytecode* pc = nullptr) const;
 };
 
 extern OptimizationInfos js_IonOptimizations;
-
-#endif // JS_ION
 
 } // namespace jit
 } // namespace js

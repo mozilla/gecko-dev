@@ -6,8 +6,8 @@
  * shaders are linked.
  */
 
-function ifWebGLSupported() {
-  let [target, debuggee, panel] = yield initShaderEditor(MULTIPLE_CONTEXTS_URL);
+function* ifWebGLSupported() {
+  let { target, panel } = yield initShaderEditor(MULTIPLE_CONTEXTS_URL);
   let { gFront, EVENTS, L10N, ShadersListView, ShadersEditorsView } = panel.panelWin;
 
   is(ShadersListView.itemCount, 0,

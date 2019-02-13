@@ -11,8 +11,8 @@
 #include "CSSValue.h"
 #include "nsTArray.h"
 
-class nsDOMCSSValueList MOZ_FINAL : public mozilla::dom::CSSValue,
-  public nsIDOMCSSValueList
+class nsDOMCSSValueList final : public mozilla::dom::CSSValue,
+                                public nsIDOMCSSValueList
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -23,7 +23,6 @@ public:
 
   // nsDOMCSSValueList
   nsDOMCSSValueList(bool aCommaDelimited, bool aReadonly);
-  ~nsDOMCSSValueList();
 
   /**
    * Adds a value to this list.
@@ -31,10 +30,10 @@ public:
   void AppendCSSValue(CSSValue* aValue);
 
   virtual void GetCssText(nsString& aText, mozilla::ErrorResult& aRv)
-    MOZ_OVERRIDE MOZ_FINAL;
+    override final;
   virtual void SetCssText(const nsAString& aText,
-                          mozilla::ErrorResult& aRv) MOZ_OVERRIDE MOZ_FINAL;
-  virtual uint16_t CssValueType() const MOZ_OVERRIDE MOZ_FINAL;
+                          mozilla::ErrorResult& aRv) override final;
+  virtual uint16_t CssValueType() const override final;
 
   CSSValue* IndexedGetter(uint32_t aIdx, bool& aFound) const
   {
@@ -57,9 +56,11 @@ public:
     return nullptr;
   }
 
-  virtual JSObject *WrapObject(JSContext *cx) MOZ_OVERRIDE;
+  virtual JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
 private:
+  ~nsDOMCSSValueList();
+
   bool                        mCommaDelimited;  // some value lists use a comma
                                                 // as the delimiter, some just use
                                                 // spaces.

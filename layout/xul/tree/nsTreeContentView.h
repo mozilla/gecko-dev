@@ -22,14 +22,12 @@ class Row;
 
 nsresult NS_NewTreeContentView(nsITreeView** aResult);
 
-class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
-                                    public nsITreeContentView,
-                                    public nsStubDocumentObserver
+class nsTreeContentView final : public nsINativeTreeView,
+                                public nsITreeContentView,
+                                public nsStubDocumentObserver
 {
   public:
     nsTreeContentView(void);
-
-    ~nsTreeContentView(void);
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTreeContentView,
@@ -37,7 +35,7 @@ class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
 
     NS_DECL_NSITREEVIEW
     // nsINativeTreeView: Untrusted code can use us
-    NS_IMETHOD EnsureNative() MOZ_OVERRIDE { return NS_OK; }
+    NS_IMETHOD EnsureNative() override { return NS_OK; }
 
     NS_DECL_NSITREECONTENTVIEW
 
@@ -51,6 +49,8 @@ class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
     static bool CanTrustTreeSelection(nsISupports* aValue);
 
   protected:
+    ~nsTreeContentView(void);
+
     // Recursive methods which deal with serializing of nested content.
     void Serialize(nsIContent* aContent, int32_t aParentIndex, int32_t* aIndex,
                    nsTArray<nsAutoPtr<Row> >& aRows);

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,6 +33,10 @@ public:
 
   const nsSMILValue& operator=(const nsSMILValue& aVal);
 
+  // Move constructor / reassignment operator:
+  nsSMILValue(nsSMILValue&& aVal);
+  nsSMILValue& operator=(nsSMILValue&& aVal);
+
   // Equality operators. These are allowed to be conservative (return false
   // more than you'd expect) - see comment above nsISMILType::IsEqual.
   bool operator==(const nsSMILValue& aVal) const;
@@ -43,9 +48,6 @@ public:
   {
     return (mType == nsSMILNullType::Singleton());
   }
-
-  // Swaps the member data (mU & mPtr) of |this| with |aOther|
-  void     Swap(nsSMILValue& aOther);
 
   nsresult Add(const nsSMILValue& aValueToAdd, uint32_t aCount = 1);
   nsresult SandwichAdd(const nsSMILValue& aValueToAdd);

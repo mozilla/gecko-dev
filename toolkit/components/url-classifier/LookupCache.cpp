@@ -7,7 +7,7 @@
 #include "HashStore.h"
 #include "nsISeekableStream.h"
 #include "mozilla/Telemetry.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prprf.h"
 
 // We act as the main entry point for all the real lookups,
@@ -34,13 +34,8 @@
 
 // NSPR_LOG_MODULES=UrlClassifierDbService:5
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
-#if defined(PR_LOGGING)
-#define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, 4)
-#else
-#define LOG(args)
-#define LOG_ENABLED() (false)
-#endif
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace safebrowsing {
@@ -172,7 +167,7 @@ LookupCache::Build(AddPrefixArray& aAddPrefixes,
   return NS_OK;
 }
 
-#if defined(DEBUG) && defined(PR_LOGGING)
+#if defined(DEBUG)
 void
 LookupCache::Dump()
 {
@@ -632,7 +627,7 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
 
 #ifdef DEBUG
   uint32_t size;
-  size = mPrefixSet->SizeOfIncludingThis(moz_malloc_size_of);
+  size = mPrefixSet->SizeInMemory();
   LOG(("SB tree done, size = %d bytes\n", size));
 #endif
 
@@ -675,7 +670,7 @@ LookupCache::LoadPrefixSet()
 
 #ifdef DEBUG
   if (mPrimed) {
-    uint32_t size = mPrefixSet->SizeOfIncludingThis(moz_malloc_size_of);
+    uint32_t size = mPrefixSet->SizeInMemory();
     LOG(("SB tree done, size = %d bytes\n", size));
   }
 #endif
@@ -684,21 +679,14 @@ LookupCache::LoadPrefixSet()
 }
 
 nsresult
-LookupCache::GetPrefixes(nsTArray<uint32_t>* aAddPrefixes)
+LookupCache::GetPrefixes(FallibleTArray<uint32_t>& aAddPrefixes)
 {
   if (!mPrimed) {
     // This can happen if its a new table, so no error.
     LOG(("GetPrefixes from empty LookupCache"));
     return NS_OK;
   }
-  uint32_t cnt;
-  uint32_t *arr;
-  nsresult rv = mPrefixSet->GetPrefixes(&cnt, &arr);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!aAddPrefixes->AppendElements(arr, cnt))
-    return NS_ERROR_FAILURE;
-  nsMemory::Free(arr);
-  return NS_OK;
+  return mPrefixSet->GetPrefixesNative(aAddPrefixes);
 }
 
 

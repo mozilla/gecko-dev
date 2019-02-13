@@ -5,19 +5,58 @@
 import multiprocessing
 import sys
 import time
-
-# psutil will raise NotImplementedError if the platform is not supported.
-try:
-    import psutil
-except Exception:
-    psutil = None
+import warnings
 
 from collections import (
     OrderedDict,
     namedtuple,
 )
 
+class PsutilStub(object):
+    def __init__(self):
+        self.sswap = namedtuple('sswap', ['total', 'used', 'free', 'percent', 'sin',
+                                          'sout'])
+        self.sdiskio = namedtuple('sdiskio', ['read_count', 'write_count',
+                                              'read_bytes', 'write_bytes',
+                                              'read_time', 'write_time'])
+        self.pcputimes = namedtuple('pcputimes', ['user', 'system'])
+        self.svmem = namedtuple(
+            'svmem', ['total', 'available', 'percent', 'used', 'free',
+                      'active', 'inactive', 'buffers', 'cached'])
+
+    def cpu_percent(self, a, b):
+        return [0]
+    def cpu_times(self, percpu):
+        if percpu:
+            return [self.pcputimes(0, 0)]
+        else:
+            return self.pcputimes(0, 0)
+    def disk_io_counters(self):
+        return self.sdiskio(0, 0, 0, 0, 0, 0)
+    def swap_memory(self):
+        return self.sswap(0, 0, 0, 0, 0, 0)
+    def virtual_memory(self):
+        return self.svmem(0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+# psutil will raise NotImplementedError if the platform is not supported.
+try:
+    import psutil
+except Exception:
+    try:
+        # The PsutilStub should get us time intervals, at least
+        psutil = PsutilStub()
+    except Exception:
+        psutil = None
+
 from contextlib import contextmanager
+
+def get_disk_io_counters():
+    try:
+        io_counters = psutil.disk_io_counters()
+    except RuntimeError:
+        io_counters = []
+
+    return io_counters
 
 
 def _collect(pipe, poll_interval):
@@ -34,7 +73,7 @@ def _collect(pipe, poll_interval):
     # We should ideally use a monotonic clock. However, Python 2.7 doesn't
     # make a monotonic clock available on all platforms. Python 3.3 does!
     last_time = time.time()
-    io_last = psutil.disk_io_counters()
+    io_last = get_disk_io_counters()
     cpu_last = psutil.cpu_times(True)
     swap_last = psutil.swap_memory()
     psutil.cpu_percent(None, True)
@@ -45,7 +84,7 @@ def _collect(pipe, poll_interval):
     sleep_interval = poll_interval
 
     while not pipe.poll(sleep_interval):
-        io = psutil.disk_io_counters()
+        io = get_disk_io_counters()
         cpu_times = psutil.cpu_times(True)
         cpu_percent = psutil.cpu_percent(None, True)
         virt_mem = psutil.virtual_memory()
@@ -170,15 +209,26 @@ class SystemResourceMonitor(object):
 
         self._running = False
         self._stopped = False
+        self._process = None
 
         if psutil is None:
             return
 
-        cpu_percent = psutil.cpu_percent(0.0, True)
-        cpu_times = psutil.cpu_times(False)
-        io = psutil.disk_io_counters()
-        virt = psutil.virtual_memory()
-        swap = psutil.swap_memory()
+        # This try..except should not be needed! However, some tools (like
+        # |mach build|) attempt to load psutil before properly creating a
+        # virtualenv by building psutil. As a result, python/psutil may be in
+        # sys.path and its .py files may pick up the psutil C extension from
+        # the system install. If the versions don't match, we typically see
+        # failures invoking one of these functions.
+        try:
+            cpu_percent = psutil.cpu_percent(0.0, True)
+            cpu_times = psutil.cpu_times(False)
+            io = get_disk_io_counters()
+            virt = psutil.virtual_memory()
+            swap = psutil.swap_memory()
+        except Exception as e:
+            warnings.warn('psutil failed to run: %s' % e)
+            return
 
         self._cpu_cores = len(cpu_percent)
         self._cpu_times_type = type(cpu_times)
@@ -207,7 +257,7 @@ class SystemResourceMonitor(object):
 
         You should only call this once per instance.
         """
-        if psutil is None:
+        if not self._process:
             return
 
         self._running = True
@@ -221,7 +271,7 @@ class SystemResourceMonitor(object):
 
         Currently, data is not available until you call stop().
         """
-        if psutil is None:
+        if not self._process:
             self._stopped = True
             return
 
@@ -564,7 +614,7 @@ class SystemResourceMonitor(object):
             o['end'] = None
             o['duration'] = None
 
-        o['events'] = [list(e) for e in self.events]
+        o['events'] = [list(ev) for ev in self.events]
 
         for phase, v in self.phases.items():
             e = dict(

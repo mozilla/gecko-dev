@@ -5,6 +5,7 @@
 
 <resources>
 
-    <dimen name="history_tab_widget_width">360dp</dimen>
+    <!-- Remote Tabs static view top padding. Less in landscape on phones. -->
+    <dimen name="home_remote_tabs_top_padding">48dp</dimen>
 
 </resources>

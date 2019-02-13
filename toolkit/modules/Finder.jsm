@@ -1,8 +1,9 @@
+// vim: set ts=2 sw=2 sts=2 tw=80:
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-this.EXPORTED_SYMBOLS = ["Finder"];
+this.EXPORTED_SYMBOLS = ["Finder","GetClipboardSearchString"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -11,6 +12,7 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Geometry.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "TextToSubURIService",
                                          "@mozilla.org/intl/texttosuburi;1",
@@ -21,6 +23,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "Clipboard",
 XPCOMUtils.defineLazyServiceGetter(this, "ClipboardHelper",
                                          "@mozilla.org/widget/clipboardhelper;1",
                                          "nsIClipboardHelper");
+
+const kHighlightIterationSizeMax = 100;
+const kSelectionMaxLen = 150;
 
 function Finder(docShell) {
   this._fastFind = Cc["@mozilla.org/typeaheadfind;1"].createInstance(Ci.nsITypeAheadFind);
@@ -87,31 +92,10 @@ Finder.prototype = {
   },
 
   get clipboardSearchString() {
-    let searchString = "";
-    if (!Clipboard.supportsFindClipboard())
-      return searchString;
-
-    try {
-      let trans = Cc["@mozilla.org/widget/transferable;1"]
-                    .createInstance(Ci.nsITransferable);
-      trans.init(this._getWindow()
-                     .QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIWebNavigation)
-                     .QueryInterface(Ci.nsILoadContext));
-      trans.addDataFlavor("text/unicode");
-
-      Clipboard.getData(trans, Ci.nsIClipboard.kFindClipboard);
-
-      let data = {};
-      let dataLen = {};
-      trans.getTransferData("text/unicode", data, dataLen);
-      if (data.value) {
-        data = data.value.QueryInterface(Ci.nsISupportsString);
-        searchString = data.toString();
-      }
-    } catch (ex) {}
-
-    return searchString;
+    return GetClipboardSearchString(this._getWindow()
+                                        .QueryInterface(Ci.nsIInterfaceRequestor)
+                                        .getInterface(Ci.nsIWebNavigation)
+                                        .QueryInterface(Ci.nsILoadContext));
   },
 
   set clipboardSearchString(aSearchString) {
@@ -119,13 +103,14 @@ Finder.prototype = {
       return;
 
     ClipboardHelper.copyStringToClipboard(aSearchString,
-                                          Ci.nsIClipboard.kFindClipboard,
-                                          this._getWindow().document);
+                                          Ci.nsIClipboard.kFindClipboard);
   },
 
   set caseSensitive(aSensitive) {
     this._fastFind.caseSensitive = aSensitive;
   },
+
+  _lastFindResult: null,
 
   /**
    * Used for normal search operations, highlights the first match.
@@ -135,9 +120,9 @@ Finder.prototype = {
    * @param aDrawOutline Puts an outline around matched links.
    */
   fastFind: function (aSearchString, aLinksOnly, aDrawOutline) {
-    let result = this._fastFind.find(aSearchString, aLinksOnly);
+    this._lastFindResult = this._fastFind.find(aSearchString, aLinksOnly);
     let searchString = this._fastFind.searchString;
-    this._notify(searchString, result, false, aDrawOutline);
+    this._notify(searchString, this._lastFindResult, false, aDrawOutline);
   },
 
   /**
@@ -150,9 +135,9 @@ Finder.prototype = {
    * @param aDrawOutline Puts an outline around matched links.
    */
   findAgain: function (aFindBackwards, aLinksOnly, aDrawOutline) {
-    let result = this._fastFind.findAgain(aFindBackwards, aLinksOnly);
+    this._lastFindResult = this._fastFind.findAgain(aFindBackwards, aLinksOnly);
     let searchString = this._fastFind.searchString;
-    this._notify(searchString, result, aFindBackwards, aDrawOutline);
+    this._notify(searchString, this._lastFindResult, aFindBackwards, aDrawOutline);
   },
 
   /**
@@ -160,12 +145,8 @@ Finder.prototype = {
    * selected text in the window, on supported platforms (i.e. OSX).
    */
   setSearchStringToSelection: function() {
-    // Find the selected text.
-    let selection = this._getWindow().getSelection();
-    // Don't go for empty selections.
-    if (!selection.rangeCount)
-      return null;
-    let searchString = (selection.toString() || "").trim();
+    let searchString = this.getActiveSelectionText();
+
     // Empty strings are rather useless to search for.
     if (!searchString.length)
       return null;
@@ -174,13 +155,64 @@ Finder.prototype = {
     return searchString;
   },
 
-  highlight: function (aHighlight, aWord) {
-    let found = this._highlight(aHighlight, aWord, null);
+  _notifyHighlightFinished: function(aHighlight) {
+    for (let l of this._listeners) {
+      try {
+        l.onHighlightFinished(aHighlight);
+      } catch (ex) {}
+    }
+  },
+
+  highlight: Task.async(function* (aHighlight, aWord) {
+    if (this._abortHighlight) {
+      this._abortHighlight();
+    }
+
+    let found = yield this._highlight(aHighlight, aWord, null);
+    this._notifyHighlightFinished(aHighlight);
     if (aHighlight) {
       let result = found ? Ci.nsITypeAheadFind.FIND_FOUND
                          : Ci.nsITypeAheadFind.FIND_NOTFOUND;
       this._notify(aWord, result, false, false, false);
     }
+  }),
+
+  getInitialSelection: function() {
+    this._getWindow().setTimeout(() => {
+      let initialSelection = this.getActiveSelectionText();
+      for (let l of this._listeners) {
+        try {
+          l.onCurrentSelection(initialSelection, true);
+        } catch (ex) {}
+      }
+    }, 0);
+  },
+
+  getActiveSelectionText: function() {
+    let focusedWindow = {};
+    let focusedElement =
+      Services.focus.getFocusedElementForWindow(this._getWindow(), true,
+                                                focusedWindow);
+    focusedWindow = focusedWindow.value;
+
+    let selText;
+
+    if (focusedElement instanceof Ci.nsIDOMNSEditableElement &&
+        focusedElement.editor) {
+      // The user may have a selection in an input or textarea.
+      selText = focusedElement.editor.selectionController
+        .getSelection(Ci.nsISelectionController.SELECTION_NORMAL)
+        .toString();
+    } else {
+      // Look for any selected text on the actual page.
+      selText = focusedWindow.getSelection().toString();
+    }
+
+    if (!selText)
+      return "";
+
+    // Process our text to get rid of unwanted characters.
+    return selText.trim().replace(/\s+/g, " ").substr(0, kSelectionMaxLen);
   },
 
   enableSelection: function() {
@@ -197,9 +229,12 @@ Finder.prototype = {
     // Allow Finder listeners to cancel focusing the content.
     for (let l of this._listeners) {
       try {
-        if (!l.shouldFocusContent())
+        if ("shouldFocusContent" in l &&
+            !l.shouldFocusContent())
           return;
-      } catch (ex) {}
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
     }
 
     let fastFind = this._fastFind;
@@ -259,7 +294,22 @@ Finder.prototype = {
     }
   },
 
+  _notifyMatchesCount: function(result) {
+    for (let l of this._listeners) {
+      try {
+        l.onMatchesCountResult(result);
+      } catch (ex) {}
+    }
+  },
+
   requestMatchesCount: function(aWord, aMatchLimit, aLinksOnly) {
+    if (this._lastFindResult == Ci.nsITypeAheadFind.FIND_NOTFOUND ||
+        this.searchString == "") {
+      return this._notifyMatchesCount({
+        total: 0,
+        current: 0
+      });
+    }
     let window = this._getWindow();
     let result = this._countMatchesInWindow(aWord, aMatchLimit, aLinksOnly, window);
 
@@ -276,11 +326,7 @@ Finder.prototype = {
     delete result._currentFound;
     delete result._framesToCount;
 
-    for (let l of this._listeners) {
-      try {
-        l.onMatchesCountResult(result);
-      } catch (ex) {}
-    }
+    this._notifyMatchesCount(result);
   },
 
   /**
@@ -319,41 +365,37 @@ Finder.prototype = {
 
     let foundRange = this._fastFind.getFoundRange();
 
-    this._findIterator(aWord, aWindow, aRange => {
-      if (!aLinksOnly || this._rangeStartsInLink(aRange)) {
+    for(let range of this._findIterator(aWord, aWindow)) {
+      if (!aLinksOnly || this._rangeStartsInLink(range)) {
         ++aStats.total;
         if (!aStats._currentFound) {
           ++aStats.current;
           aStats._currentFound = (foundRange &&
-            aRange.startContainer == foundRange.startContainer &&
-            aRange.startOffset == foundRange.startOffset &&
-            aRange.endContainer == foundRange.endContainer &&
-            aRange.endOffset == foundRange.endOffset);
+            range.startContainer == foundRange.startContainer &&
+            range.startOffset == foundRange.startOffset &&
+            range.endContainer == foundRange.endContainer &&
+            range.endOffset == foundRange.endOffset);
         }
       }
       if (aStats.total == aMatchLimit) {
         aStats.total = -1;
-        return false;
+        break;
       }
-    });
+    };
 
     return aStats;
   },
 
   /**
-   * Basic wrapper around nsIFind that provides invoking a callback `aOnFind`
-   * each time an occurence of `aWord` string is found.
+   * Basic wrapper around nsIFind that provides a generator yielding
+   * a range each time an occurence of `aWord` string is found.
    *
    * @param aWord
    *        the word to search for.
    * @param aWindow
    *        the window to search in.
-   * @param aOnFind
-   *        the Function to invoke when a word is found. if Boolean `false` is
-   *        returned, the find operation will be stopped and the Function will
-   *        not be invoked again.
    */
-  _findIterator: function(aWord, aWindow, aOnFind) {
+  _findIterator: function* (aWord, aWindow) {
     let doc = aWindow.document;
     let body = (doc instanceof Ci.nsIDOMHTMLDocument && doc.body) ?
                doc.body : doc.documentElement;
@@ -378,11 +420,32 @@ Finder.prototype = {
     finder.caseSensitive = this._fastFind.caseSensitive;
 
     while ((retRange = finder.Find(aWord, searchRange, startPt, endPt))) {
-      if (aOnFind(retRange) === false)
-        break;
+      yield retRange;
       startPt = retRange.cloneRange();
       startPt.collapse(false);
     }
+  },
+
+  _highlightIterator: Task.async(function* (aWord, aWindow, aOnFind) {
+    let count = 0;
+    for (let range of this._findIterator(aWord, aWindow)) {
+      aOnFind(range);
+      if (++count >= kHighlightIterationSizeMax) {
+          count = 0;
+          yield this._highlightSleep(0);
+      }
+    }
+  }),
+
+  _abortHighlight: null,
+  _highlightSleep: function(delay) {
+    return new Promise((resolve, reject) => {
+      this._abortHighlight = () => {
+        this._abortHighlight = null;
+        reject();
+      };
+      this._getWindow().setTimeout(resolve, delay);
+    });
   },
 
   /**
@@ -518,12 +581,12 @@ Finder.prototype = {
     }
   },
 
-  _highlight: function (aHighlight, aWord, aWindow) {
+  _highlight: Task.async(function* (aHighlight, aWord, aWindow) {
     let win = aWindow || this._getWindow();
 
     let found = false;
     for (let i = 0; win.frames && i < win.frames.length; i++) {
-      if (this._highlight(aHighlight, aWord, win.frames[i]))
+      if (yield this._highlight(aHighlight, aWord, win.frames[i]))
         found = true;
     }
 
@@ -536,7 +599,7 @@ Finder.prototype = {
     }
 
     if (aHighlight) {
-      this._findIterator(aWord, win, aRange => {
+      yield this._highlightIterator(aWord, win, aRange => {
         this._highlightRange(aRange, controller);
         found = true;
       });
@@ -564,7 +627,7 @@ Finder.prototype = {
     }
 
     return found;
-  },
+  }),
 
   _highlightRange: function(aRange, aController) {
     let node = aRange.startContainer;
@@ -598,8 +661,14 @@ Finder.prototype = {
 
   _getSelectionController: function(aWindow) {
     // display: none iframes don't have a selection controller, see bug 493658
-    if (!aWindow.innerWidth || !aWindow.innerHeight)
+    try {
+      if (!aWindow.innerWidth || !aWindow.innerHeight)
+        return null;
+    } catch (e) {
+      // If getting innerWidth or innerHeight throws, we can't get a selection
+      // controller.
       return null;
+    }
 
     // Yuck. See bug 138068.
     let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -613,19 +682,18 @@ Finder.prototype = {
   },
 
   /*
-   * For a given node, walk up it's parent chain, to try and find an
-   * editable node.
+   * For a given node returns its editable parent or null if there is none.
+   * It's enough to check if aNode is a text node and its parent's parent is
+   * instance of nsIDOMNSEditableElement.
    *
    * @param aNode the node we want to check
    * @returns the first node in the parent chain that is editable,
    *          null if there is no such node
    */
   _getEditableNode: function (aNode) {
-    while (aNode) {
-      if (aNode instanceof Ci.nsIDOMNSEditableElement)
-        return aNode.editor ? aNode : null;
-
-      aNode = aNode.parentNode;
+    if (aNode.nodeType === aNode.TEXT_NODE && aNode.parentNode && aNode.parentNode.parentNode &&
+        aNode.parentNode.parentNode instanceof Ci.nsIDOMNSEditableElement) {
+      return aNode.parentNode.parentNode;
     }
     return null;
   },
@@ -755,6 +823,7 @@ Finder.prototype = {
     }
 
     const XLink_NS = "http://www.w3.org/1999/xlink";
+    const HTMLAnchorElement = (node.ownerDocument || node).defaultView.HTMLAnchorElement;
     do {
       if (node instanceof HTMLAnchorElement) {
         isInsideLink = node.hasAttribute("href");
@@ -954,3 +1023,31 @@ Finder.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference])
 };
+
+function GetClipboardSearchString(aLoadContext) {
+  let searchString = "";
+  if (!Clipboard.supportsFindClipboard())
+    return searchString;
+
+  try {
+    let trans = Cc["@mozilla.org/widget/transferable;1"]
+                  .createInstance(Ci.nsITransferable);
+    trans.init(aLoadContext);
+    trans.addDataFlavor("text/unicode");
+
+    Clipboard.getData(trans, Ci.nsIClipboard.kFindClipboard);
+
+    let data = {};
+    let dataLen = {};
+    trans.getTransferData("text/unicode", data, dataLen);
+    if (data.value) {
+      data = data.value.QueryInterface(Ci.nsISupportsString);
+      searchString = data.toString();
+    }
+  } catch (ex) {}
+
+  return searchString;
+}
+
+this.Finder = Finder;
+this.GetClipboardSearchString = GetClipboardSearchString;

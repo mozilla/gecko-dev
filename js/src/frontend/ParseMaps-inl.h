@@ -16,19 +16,21 @@ namespace frontend {
 
 template <class Map>
 inline bool
-AtomThingMapPtr<Map>::ensureMap(ExclusiveContext *cx)
+AtomThingMapPtr<Map>::ensureMap(ExclusiveContext* cx)
 {
     if (map_)
         return true;
 
     AutoLockForExclusiveAccess lock(cx);
     map_ = cx->parseMapPool().acquire<Map>();
+    if (!map_)
+        ReportOutOfMemory(cx);
     return !!map_;
 }
 
 template <class Map>
 inline void
-AtomThingMapPtr<Map>::releaseMap(ExclusiveContext *cx)
+AtomThingMapPtr<Map>::releaseMap(ExclusiveContext* cx)
 {
     if (!map_)
         return;

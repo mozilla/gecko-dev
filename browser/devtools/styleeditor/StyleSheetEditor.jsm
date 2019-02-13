@@ -15,11 +15,13 @@ const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devt
 const Editor  = require("devtools/sourceeditor/editor");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {CssLogic} = require("devtools/styleinspector/css-logic");
+const {console} = require("resource://gre/modules/devtools/Console.jsm");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 
@@ -33,6 +35,9 @@ const UPDATE_STYLESHEET_THROTTLE_DELAY = 500;
 // Pref which decides if CSS autocompletion is enabled in Style Editor or not.
 const AUTOCOMPLETION_PREF = "devtools.styleeditor.autocompletion-enabled";
 
+// Pref which decides whether updates to the stylesheet use transitions
+const TRANSITION_PREF = "devtools.styleeditor.transitions";
+
 // How long to wait to update linked CSS file after original source was saved
 // to disk. Time in ms.
 const CHECK_LINKED_SHEET_DELAY=500;
@@ -42,6 +47,10 @@ const MAX_CHECK_COUNT=10;
 
 // The classname used to show a line that is not used
 const UNUSED_CLASS = "cm-unused-line";
+
+// How much time should the mouse be still before the selector at that position
+// gets highlighted?
+const SELECTOR_HIGHLIGHT_TIMEOUT = 500;
 
 /**
  * StyleSheetEditor controls the editor linked to a particular StyleSheet
@@ -62,8 +71,11 @@ const UNUSED_CLASS = "cm-unused-line";
  *        Optional whether the sheet was created by the user
  * @param {Walker} walker
  *        Optional walker used for selectors autocompletion
+ * @param {CustomHighlighterFront} highlighter
+ *        Optional highlighter front for the SelectorHighligher used to
+ *        highlight selectors
  */
-function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
+function StyleSheetEditor(styleSheet, win, file, isNew, walker, highlighter) {
   EventEmitter.decorate(this);
 
   this.styleSheet = styleSheet;
@@ -72,14 +84,14 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
   this._window = win;
   this._isNew = isNew;
   this.walker = walker;
+  this.highlighter = highlighter;
 
   this._state = {   // state to use when inputElement attaches
     text: "",
     selection: {
       start: {line: 0, ch: 0},
       end: {line: 0, ch: 0}
-    },
-    topIndex: 0              // the first visible line
+    }
   };
 
   this._styleSheetFilePath = null;
@@ -94,13 +106,16 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
   this._onMediaRulesChanged = this._onMediaRulesChanged.bind(this)
   this.checkLinkedFileForChanges = this.checkLinkedFileForChanges.bind(this);
   this.markLinkedFileBroken = this.markLinkedFileBroken.bind(this);
+  this.saveToFile = this.saveToFile.bind(this);
+  this.updateStyleSheet = this.updateStyleSheet.bind(this);
+  this._onMouseMove = this._onMouseMove.bind(this);
 
   this._focusOnSourceEditorReady = false;
   this.cssSheet.on("property-change", this._onPropertyChange);
   this.styleSheet.on("error", this._onError);
   this.mediaRules = [];
   if (this.cssSheet.getMediaRules) {
-    this.cssSheet.getMediaRules().then(this._onMediaRulesChanged);
+    this.cssSheet.getMediaRules().then(this._onMediaRulesChanged, Cu.reportError);
   }
   this.cssSheet.on("media-rules-changed", this._onMediaRulesChanged);
   this.savedFile = file;
@@ -221,22 +236,34 @@ StyleSheetEditor.prototype = {
 
   /**
    * Start fetching the full text source for this editor's sheet.
+   *
+   * @return {Promise}
+   *         A promise that'll resolve with the source text once the source
+   *         has been loaded or reject on unexpected error.
    */
-  fetchSource: function(callback) {
-    return this.styleSheet.getText().then((longStr) => {
-      longStr.string().then((source) => {
-        this._state.text = CssLogic.prettifyCSS(source);
-        this.sourceLoaded = true;
+  fetchSource: function () {
+    return Task.spawn(function* () {
+      let longStr = yield this.styleSheet.getText();
+      let source = yield longStr.string();
+      let ruleCount = this.styleSheet.ruleCount;
+      if (!this.styleSheet.isOriginalSource) {
+        source = CssLogic.prettifyCSS(source, ruleCount);
+      }
+      this._state.text = source;
+      this.sourceLoaded = true;
 
-        if (callback) {
-          callback(source);
-        }
-        return source;
-      });
-    }, e => {
-      this.emit("error", { key: LOAD_ERROR, append: this.styleSheet.href });
-      throw e;
-    })
+      return source;
+    }.bind(this)).then(null, e => {
+      if (this._isDestroyed) {
+        console.warn("Could not fetch the source for " +
+                     this.styleSheet.href +
+                     ", the editor was destroyed");
+        Cu.reportError(e);
+      } else {
+        this.emit("error", { key: LOAD_ERROR, append: this.styleSheet.href });
+        throw e;
+      }
+    });
   },
 
   /**
@@ -336,6 +363,11 @@ StyleSheetEditor.prototype = {
    *         Promise that will resolve when the style editor is loaded.
    */
   load: function(inputElement) {
+    if (this._isDestroyed) {
+      return promise.reject("Won't load source editor as the style sheet has " +
+                            "already been removed from Style Editor.");
+    }
+
     this._inputElement = inputElement;
 
     let config = {
@@ -343,26 +375,21 @@ StyleSheetEditor.prototype = {
       lineNumbers: true,
       mode: Editor.modes.css,
       readOnly: false,
-      autoCloseBrackets: "{}()[]",
+      autoCloseBrackets: "{}()",
       extraKeys: this._getKeyBindings(),
       contextMenu: "sourceEditorContextMenu",
-      autocomplete: Services.prefs.getBoolPref(AUTOCOMPLETION_PREF)
+      autocomplete: Services.prefs.getBoolPref(AUTOCOMPLETION_PREF),
+      autocompleteOpts: { walker: this.walker }
     };
-    let sourceEditor = new Editor(config);
+    let sourceEditor = this._sourceEditor = new Editor(config);
 
     sourceEditor.on("dirty-change", this._onPropertyChange);
 
     return sourceEditor.appendTo(inputElement).then(() => {
-      sourceEditor.setupAutoCompletion({ walker: this.walker });
-
-      sourceEditor.on("save", () => {
-        this.saveToFile();
-      });
+      sourceEditor.on("save", this.saveToFile);
 
       if (this.styleSheet.update) {
-        sourceEditor.on("change", () => {
-          this.updateStyleSheet();
-        });
+        sourceEditor.on("change", this.updateStyleSheet);
       }
 
       this.sourceEditor = sourceEditor;
@@ -372,9 +399,12 @@ StyleSheetEditor.prototype = {
         sourceEditor.focus();
       }
 
-      sourceEditor.setFirstVisibleLine(this._state.topIndex);
       sourceEditor.setSelection(this._state.selection.start,
                                 this._state.selection.end);
+
+      if (this.highlighter && this.walker) {
+        sourceEditor.container.addEventListener("mousemove", this._onMouseMove);
+      }
 
       this.emit("source-editor-load");
     });
@@ -414,7 +444,9 @@ StyleSheetEditor.prototype = {
    */
   onShow: function() {
     if (this.sourceEditor) {
-      this.sourceEditor.setFirstVisibleLine(this._state.topIndex);
+      // CodeMirror needs refresh to restore scroll position after hiding and
+      // showing the editor.
+      this.sourceEditor.refresh();
     }
     this.focus();
   },
@@ -423,7 +455,7 @@ StyleSheetEditor.prototype = {
    * Toggled the disabled state of the underlying stylesheet.
    */
   toggleDisabled: function() {
-    this.styleSheet.toggleDisabled();
+    this.styleSheet.toggleDisabled().then(null, Cu.reportError);
   },
 
   /**
@@ -463,8 +495,57 @@ StyleSheetEditor.prototype = {
       this._state.text = this.sourceEditor.getText();
     }
 
-    this.styleSheet.update(this._state.text, true);
+    let transitionsEnabled = Services.prefs.getBoolPref(TRANSITION_PREF);
+
+    this.styleSheet.update(this._state.text, transitionsEnabled)
+                   .then(null, Cu.reportError);
   },
+
+  /**
+   * Handle mousemove events, calling _highlightSelectorAt after a delay only
+   * and reseting the delay everytime.
+   */
+  _onMouseMove: function(e) {
+    this.highlighter.hide();
+
+    if (this.mouseMoveTimeout) {
+      this._window.clearTimeout(this.mouseMoveTimeout);
+      this.mouseMoveTimeout = null;
+    }
+
+    this.mouseMoveTimeout = this._window.setTimeout(() => {
+      this._highlightSelectorAt(e.clientX, e.clientY);
+    }, SELECTOR_HIGHLIGHT_TIMEOUT);
+  },
+
+  /**
+   * Highlight nodes matching the selector found at coordinates x,y in the
+   * editor, if any.
+   *
+   * @param {Number} x
+   * @param {Number} y
+   */
+  _highlightSelectorAt: Task.async(function*(x, y) {
+    // Need to catch parsing exceptions as long as bug 1051900 isn't fixed
+    let info;
+    try {
+      let pos = this.sourceEditor.getPositionFromCoords({left: x, top: y});
+      info = this.sourceEditor.getInfoAt(pos);
+    } catch (e) {}
+    if (!info || info.state !== "selector") {
+      return;
+    }
+
+    let node = yield this.walker.getStyleSheetOwnerNode(this.styleSheet.actorID);
+    yield this.highlighter.show(node, {
+      selector: info.selector,
+      hideInfoBar: true,
+      showOnly: "border",
+      region: "border"
+    });
+
+    this.emit("node-highlighted");
+  }),
 
   /**
    * Save the editor contents into a file and set savedFile property.
@@ -623,6 +704,8 @@ StyleSheetEditor.prototype = {
       this.saveToFile();
     };
 
+    bindings["Esc"] = false;
+
     return bindings;
   },
 
@@ -630,12 +713,20 @@ StyleSheetEditor.prototype = {
    * Clean up for this editor.
    */
   destroy: function() {
-    if (this.sourceEditor) {
-      this.sourceEditor.destroy();
+    if (this._sourceEditor) {
+      this._sourceEditor.off("dirty-change", this._onPropertyChange);
+      this._sourceEditor.off("save", this.saveToFile);
+      this._sourceEditor.off("change", this.updateStyleSheet);
+      if (this.highlighter && this.walker && this._sourceEditor.container) {
+        this._sourceEditor.container.removeEventListener("mousemove",
+          this._onMouseMove);
+      }
+      this._sourceEditor.destroy();
     }
     this.cssSheet.off("property-change", this._onPropertyChange);
     this.cssSheet.off("media-rules-changed", this._onMediaRulesChanged);
     this.styleSheet.off("error", this._onError);
+    this._isDestroyed = true;
   }
 }
 

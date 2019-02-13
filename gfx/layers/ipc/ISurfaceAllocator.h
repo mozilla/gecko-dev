@@ -30,12 +30,6 @@
 #define MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 #endif
 
-class gfxSharedImageSurface;
-
-namespace base {
-class Thread;
-}
-
 namespace mozilla {
 namespace ipc {
 class Shmem;
@@ -47,8 +41,6 @@ class DataSourceSurface;
 namespace layers {
 
 class MaybeMagicGrallocBufferHandle;
-class MemoryTextureClient;
-class MemoryTextureHost;
 
 enum BufferCapabilities {
   DEFAULT_BUFFER_CAPS = 0,
@@ -85,7 +77,9 @@ class ISurfaceAllocator : public AtomicRefCountedWithFinalize<ISurfaceAllocator>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ISurfaceAllocator)
-  ISurfaceAllocator() {}
+  ISurfaceAllocator()
+    : mDefaultMessageLoop(MessageLoop::current())
+  {}
 
   void Finalize();
 
@@ -160,8 +154,18 @@ public:
 
   void DeallocGrallocBuffer(MaybeMagicGrallocBufferHandle* aHandle);
 
+  void DropGrallocBuffer(MaybeMagicGrallocBufferHandle* aHandle);
+
   virtual bool IPCOpen() const { return true; }
   virtual bool IsSameProcess() const = 0;
+  virtual base::ProcessId ParentPid() const { return base::ProcessId(); }
+
+  virtual bool IsImageBridgeChild() const { return false; }
+
+  virtual MessageLoop * GetMessageLoop() const
+  {
+    return mDefaultMessageLoop;
+  }
 
   // Returns true if aSurface wraps a Shmem.
   static bool IsShmem(SurfaceDescriptor* aSurface);
@@ -177,11 +181,15 @@ protected:
   // This is used to implement an extremely simple & naive heap allocator.
   std::vector<mozilla::ipc::Shmem> mUsedShmems;
 
+  MessageLoop* mDefaultMessageLoop;
+
   friend class AtomicRefCountedWithFinalize<ISurfaceAllocator>;
 };
 
-class GfxMemoryImageReporter MOZ_FINAL : public nsIMemoryReporter
+class GfxMemoryImageReporter final : public nsIMemoryReporter
 {
+  ~GfxMemoryImageReporter() {}
+
 public:
   NS_DECL_ISUPPORTS
 
@@ -210,7 +218,7 @@ public:
   }
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize) override
   {
     return MOZ_COLLECT_REPORT(
       "explicit/gfx/heap-textures", KIND_HEAP, UNITS_BYTES, sAmount,

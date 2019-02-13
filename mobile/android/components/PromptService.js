@@ -8,7 +8,9 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Prompt.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
+                                  "resource://gre/modules/Prompt.jsm");
 
 var gPromptService = null;
 
@@ -372,17 +374,18 @@ InternalPrompt.prototype = {
   },
 
   nsIAuthPrompt_promptUsernameAndPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass) {
-    return nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass);
+    return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass);
   },
 
   nsIAuthPrompt_promptPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aPass) {
-    return nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, null, aPass);
+    return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, null, aPass);
   },
 
   nsIAuthPrompt_loginPrompt: function(aTitle, aPasswordRealm, aSavePassword, aUser, aPass) {
     let checkMsg = null;
     let check = { value: false };
-    let [hostname, realm, aUser] = PromptUtils.getHostnameAndRealm(aPasswordRealm);
+    let hostname, realm;
+    [hostname, realm, aUser] = PromptUtils.getHostnameAndRealm(aPasswordRealm);
 
     let canSave = PromptUtils.canSaveLogin(hostname, aSavePassword);
     if (canSave) {
@@ -391,11 +394,12 @@ InternalPrompt.prototype = {
       [checkMsg, check] = PromptUtils.getUsernameAndPassword(foundLogins, aUser, aPass);
     }
 
+    // (eslint-disable: see bug 1177904)
     let ok = false;
     if (aUser)
-      ok = this.nsIPrompt_promptUsernameAndPassword(aTitle, aText, aUser, aPass, checkMsg, check);
+      ok = this.nsIPrompt_promptUsernameAndPassword(aTitle, aText, aUser, aPass, checkMsg, check); // eslint-disable-line no-undef
     else
-      ok = this.nsIPrompt_promptPassword(aTitle, aText, aPass, checkMsg, check);
+      ok = this.nsIPrompt_promptPassword(aTitle, aText, aPass, checkMsg, check); // eslint-disable-line no-undef
 
     if (ok && canSave && check.value)
       PromptUtils.savePassword(hostname, realm, aUser, aPass);
@@ -571,9 +575,9 @@ let PromptUtils = {
     if (!aLabel)
       return "";
 
-    if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
+    if (/ *\(\&([^&])\)(:?)$/.test(aLabel)) {
       aLabel = RegExp.leftContext + RegExp.$2;
-    } else if (/^(.*[^&])?\&(([^&]).*$)/.test(aLabel)) {
+    } else if (/^([^&]*)\&(([^&]).*$)/.test(aLabel)) {
       aLabel = RegExp.$1 + RegExp.$2;
     }
 
@@ -615,7 +619,7 @@ let PromptUtils = {
     let check = { value: false };
     let selectedLogin;
 
-    checkLabel = this.getLocaleString("saveButton", "passwdmgr");
+    checkLabel = this.getLocaleString("rememberButton", "passwdmgr");
 
     // XXX Like the original code, we can't deal with multiple
     // account selection. (bug 227632)
@@ -681,7 +685,7 @@ let PromptUtils = {
     this.pwmgr.modifyLogin(aLogin, propBag);
   },
 
-  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/src/nsPrompt.cpp#388
+  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/nsPrompt.cpp#388
   makeDialogText: function pu_makeDialogText(aChannel, aAuthInfo) {
     let isProxy    = (aAuthInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY);
     let isPassOnly = (aAuthInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD);
@@ -713,7 +717,7 @@ let PromptUtils = {
     return text;
   },
 
-  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/public/nsPromptUtils.h#89
+  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/nsPromptUtils.h#89
   getAuthHostPort: function pu_getAuthHostPort(aChannel, aAuthInfo) {
     let uri = aChannel.URI;
     let res = { host: null, port: -1 };
@@ -800,7 +804,7 @@ let PromptUtils = {
 
     // If the URI explicitly specified a port, only include it when
     // it's not the default. (We never want "http://foo.com:80")
-    port = uri.port;
+    let port = uri.port;
     if (port != -1) {
       let handler = Services.io.getProtocolHandler(scheme);
       if (port != handler.defaultPort)

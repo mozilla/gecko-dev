@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -48,6 +48,9 @@ let librecovery = (function() {
                                          FotaUpdateStatus.ptr)
   };
 })();
+
+const gFactoryResetFile = "__post_reset_cmd__";
+
 #endif
 
 function RecoveryService() {}
@@ -62,16 +65,57 @@ RecoveryService.prototype = {
     classDescription: "B2G Recovery Service"
   }),
 
-  factoryReset: function RS_factoryReset() {
+  factoryReset: function RS_factoryReset(reason) {
 #ifdef MOZ_WIDGET_GONK
-    // If this succeeds, then the device reboots and this never returns
-    if (librecovery.factoryReset() != 0) {
-      log("Error: Factory reset failed. Trying again after clearing cache.");
+    function doReset() {
+      // If this succeeds, then the device reboots and this never returns
+      if (librecovery.factoryReset() != 0) {
+        log("Error: Factory reset failed. Trying again after clearing cache.");
+      }
+      let cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"]
+                    .getService(Ci.nsICacheStorageService);
+      cache.clear();
+      if (librecovery.factoryReset() != 0) {
+        log("Error: Factory reset failed again");
+      }
     }
-    var cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
-    cache.clear();
-    if (librecovery.factoryReset() != 0) {
-      log("Error: Factory reset failed again");
+
+    log("factoryReset " + reason);
+    let commands = [];
+    if (reason == "wipe") {
+      let volumeService = Cc["@mozilla.org/telephony/volume-service;1"]
+                          .getService(Ci.nsIVolumeService);
+      let volNames = volumeService.getVolumeNames();
+      log("Found " + volNames.length + " volumes");
+
+      for (let i = 0; i < volNames.length; i++) {
+        let name = volNames.queryElementAt(i, Ci.nsISupportsString);
+        let volume = volumeService.getVolumeByName(name.data);
+        log("Got volume: " + name.data + " at " + volume.mountPoint);
+        commands.push("wipe " + volume.mountPoint);
+      }
+    } else if (reason == "root") {
+      commands.push("root");
+    }
+
+    if (commands.length > 0) {
+      Cu.import("resource://gre/modules/osfile.jsm");
+      let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+      dir.initWithPath("/persist");
+      var postResetFile = dir.exists() ?
+                          OS.Path.join("/persist", gFactoryResetFile):
+                          OS.Path.join("/cache", gFactoryResetFile);
+      let encoder = new TextEncoder();
+      let text = commands.join("\n");
+      let array = encoder.encode(text);
+      let promise = OS.File.writeAtomic(postResetFile, array,
+                                        { tmpPath: postResetFile + ".tmp" });
+
+      promise.then(doReset, function onError(error) {
+        log("Error: " + error);
+      });
+    } else {
+      doReset();
     }
 #endif
     throw Cr.NS_ERROR_FAILURE;

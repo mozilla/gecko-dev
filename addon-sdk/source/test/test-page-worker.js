@@ -8,10 +8,14 @@ const { Page } = require("sdk/page-worker");
 const { URL } = require("sdk/url");
 const fixtures = require("./fixtures");
 const testURI = fixtures.url("test.html");
+const { getActiveView } = require("sdk/view/core");
+const { getDocShell } = require('sdk/frame/utils');
 
 const ERR_DESTROYED =
   "Couldn't find the worker to receive this message. " +
   "The script may not be initialized yet, or may already have been unloaded.";
+
+const Isolate = fn => "(" + fn + ")()";
 
 exports.testSimplePageCreation = function(assert, done) {
   let page = new Page({
@@ -34,9 +38,15 @@ exports.testWrappedDOM = function(assert, done) {
   let page = Page({
     allow: { script: true },
     contentURL: "data:text/html;charset=utf-8,<script>document.getElementById=3;window.scrollTo=3;</script>",
-    contentScript: "window.addEventListener('load', function () " +
-                   "self.postMessage([typeof(document.getElementById), " +
-                   "typeof(window.scrollTo)]), true)",
+    contentScript: 'new ' + function() {
+      function send() {
+        self.postMessage([typeof(document.getElementById), typeof(window.scrollTo)]);
+      }
+      if (document.readyState !== 'complete')
+        window.addEventListener('load', send, true)
+      else
+        send();
+    },
     onMessage: function (message) {
       assert.equal(message[0],
                        "function",
@@ -79,7 +89,7 @@ exports.testUnwrappedDOM = function(assert, done) {
 exports.testPageProperties = function(assert) {
   let page = new Page();
 
-  for each (let prop in ['contentURL', 'allow', 'contentScriptFile',
+  for (let prop of ['contentURL', 'allow', 'contentScriptFile',
                          'contentScript', 'contentScriptWhen', 'on',
                          'postMessage', 'removeListener']) {
     assert.ok(prop in page, prop + " property is defined on page.");
@@ -262,8 +272,32 @@ exports.testLoadContentPage = function(assert, done) {
         return done();
       assert[msg].apply(assert, message);
     },
-    contentURL: fixtures.url("test-page-worker.html"),
-    contentScriptFile: fixtures.url("test-page-worker.js"),
+    contentURL: fixtures.url("addon-sdk/data/test-page-worker.html"),
+    contentScriptFile: fixtures.url("addon-sdk/data/test-page-worker.js"),
+    contentScriptWhen: "ready"
+  });
+}
+
+exports.testLoadContentPageRelativePath = function(assert, done) {
+  const self = require("sdk/self");
+  const { merge } = require("sdk/util/object");
+
+  const options = merge({}, require('@loader/options'),
+      { id: "testloader", prefixURI: require('./fixtures').url() });
+
+  let loader = Loader(module, null, options);
+
+  let page = loader.require("sdk/page-worker").Page({
+    onMessage: function(message) {
+      // The message is an array whose first item is the test method to call
+      // and the rest of whose items are arguments to pass it.
+      let msg = message.shift();
+      if (msg == "done")
+        return done();
+      assert[msg].apply(assert, message);
+    },
+    contentURL: "./test-page-worker.html",
+    contentScriptFile: "./test-page-worker.js",
     contentScriptWhen: "ready"
   });
 }
@@ -284,6 +318,7 @@ exports.testAllowScript = function(assert, done) {
   let page = Page({
     onMessage: function(message) {
       assert.ok(message, "Script runs when allowed to do so.");
+      page.destroy();
       done();
     },
     allow: { script: true },
@@ -292,6 +327,19 @@ exports.testAllowScript = function(assert, done) {
                    "                 document.documentElement.getAttribute('foo') == 3)",
     contentScriptWhen: "ready"
   });
+
+  let frame = getActiveView(page);
+  assert.equal(getDocShell(frame).allowJavascript, true, "allowJavascript is true");
+}
+
+exports.testGetActiveViewAndDestroy = function(assert) {
+  let page = Page({
+    contentURL: "data:text/html;charset=utf-8,<title>test</title>"
+  });
+  let frame = getActiveView(page);
+  assert.ok(frame.parentNode, "there is a parent node");
+  page.destroy();
+  assert.ok(!frame.parentNode, "there is not a parent node");
 }
 
 exports.testPingPong = function(assert, done) {
@@ -450,6 +498,61 @@ exports.testMessageQueue = function (assert, done) {
   });
 };
 
+exports.testWindowStopDontBreak = function (assert, done) {
+  const { Ci, Cc } = require('chrome');
+  const consoleService = Cc['@mozilla.org/consoleservice;1'].
+                            getService(Ci.nsIConsoleService);
+  const listener = {
+    observe: ({message}) => {
+      if (message.includes('contentWorker is null'))
+        assert.fail('contentWorker is null');
+    }
+  };
+  consoleService.registerListener(listener)
+
+  let page = new Page({
+    contentURL: 'data:text/html;charset=utf-8,testWindowStopDontBreak',
+    contentScriptWhen: 'ready',
+    contentScript: Isolate(() => {
+      window.stop();
+      self.port.on('ping', () => self.port.emit('pong'));
+    })
+  });
+
+  page.port.on('pong', () => {
+    assert.pass('page-worker works after window.stop');
+    page.destroy();
+    consoleService.unregisterListener(listener);
+    done();
+  });
+
+  page.port.emit("ping");
+};
+
+/**
+ * bug 1138545 - the docs claim you can pass in a bare regexp.
+ */
+exports.testRegexArgument = function (assert, done) {
+  let url = 'data:text/html;charset=utf-8,testWindowStopDontBreak';
+
+  let page = new Page({
+    contentURL: url,
+    contentScriptWhen: 'ready',
+    contentScript: Isolate(() => {
+     self.port.emit("pong", document.location.href);
+    }),
+    include: /^data\:text\/html;.*/
+  });
+
+  assert.pass("We can pass in a RegExp into page-worker's include option.");
+
+  page.port.on("pong", (href) => {
+    assert.equal(href, url, "we get back the same url from the content script.");
+    page.destroy();
+    done();
+  });
+};
+
 function isDestroyed(page) {
   try {
     page.postMessage("foo");
@@ -465,4 +568,4 @@ function isDestroyed(page) {
   return false;
 }
 
-require("test").run(exports);
+require("sdk/test").run(exports);

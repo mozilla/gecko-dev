@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { Cc, Ci, Cu, Cm, components } = require("chrome");
 const xulApp = require("sdk/system/xul-app");
 const self = require("sdk/self");
-const { Loader, main, unload } = require("toolkit/loader");
+const { Loader, main, unload, override } = require("toolkit/loader");
+const { PlainTextConsole } = require("sdk/console/plain-text");
+const { Loader: CustomLoader } = require("sdk/test/loader");
 const loaderOptions = require("@loader/options");
-
-const { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 
 exports.testSelf = function(assert) {
   // Likewise, we can't assert anything about the full URL, because that
   // depends on self.id . We can only assert that it ends in the right
   // thing.
-  var url = self.data.url("test-content-symbiont.js");
+  var url = self.data.url("test.html");
   assert.equal(typeof(url), "string", "self.data.url('x') returns string");
-  assert.equal(/\/test-content-symbiont\.js$/.test(url), true);
+  assert.equal(/\/test\.html$/.test(url), true);
 
   // Make sure 'undefined' is not in url when no string is provided.
   url = self.data.url();
@@ -40,27 +39,6 @@ exports.testSelf = function(assert) {
                'usePrivateBrowsing property is false by default');
 };
 
-exports.testSelfID = function(assert, done) {
-  var self = require("sdk/self");
-  // We can't assert anything about the ID inside the unit test right now,
-  // because the ID we get depends upon how the test was invoked. The idea
-  // is that it is supposed to come from the main top-level package's
-  // package.json file, from the "id" key.
-  assert.equal(typeof(self.id), "string", "self.id is a string");
-  assert.ok(self.id.length > 0);
-
-  AddonManager.getAddonByID(self.id, function(addon) {
-    if (!addon) {
-      assert.fail("did not find addon with self.id");
-    }
-    else {
-      assert.pass("found addon with self.id");
-    }
-
-    done();
-  });
-}
-
 exports.testSelfHandlesLackingLoaderOptions = function (assert) {
   let root = module.uri.substr(0, module.uri.lastIndexOf('/'));
   let uri = root + '/fixtures/loader/self/';
@@ -75,5 +53,27 @@ exports.testSelfHandlesLackingLoaderOptions = function (assert) {
     "safely checks sdk/self.packed");
   unload(loader);
 };
+
+exports.testPreferencesBranch = function (assert) {
+  let options = override(loaderOptions, {
+    preferencesBranch: 'human-readable',
+  });
+  let loader = CustomLoader(module, { }, options);
+  let { preferencesBranch } = loader.require('sdk/self');
+  assert.equal(preferencesBranch, 'human-readable',
+    'preferencesBranch is human-readable');
+}
+
+exports.testInvalidPreferencesBranch = function (assert) {
+  let console = new PlainTextConsole(_ => void _);
+  let options = override(loaderOptions, {
+    preferencesBranch: 'invalid^branch*name',
+    id: 'simple@jetpack'
+  });
+  let loader = CustomLoader(module, { console }, options);
+  let { preferencesBranch } = loader.require('sdk/self');
+  assert.equal(preferencesBranch, 'simple@jetpack',
+    'invalid preferencesBranch value ignored');
+}
 
 require("sdk/test").run(exports);

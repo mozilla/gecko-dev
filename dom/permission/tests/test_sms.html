@@ -21,8 +21,9 @@ var gData = [
     perm: ["sms"],
     needParentPerm: true,
     obj: "mozMobileMessage",
-    idl: "nsIDOMMozMobileMessageManager",
-    settings: [["dom.sms.enabled", true]],
+    webidl: "MozMobileMessageManager",
+    settings: [["dom.sms.enabled", true],
+               ["dom.ignore_webidl_scope_checks", true]],
   },
 ]
 </script>

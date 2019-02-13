@@ -4,19 +4,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-LIBRARY_NAME = 'ssltest'
-
 SOURCES += [
+    'DataStorageTest.cpp',
     'OCSPCacheTest.cpp',
     'TLSIntoleranceTest.cpp',
 ]
 
 LOCAL_INCLUDES += [
-    '../../../../certverifier',
-    '../../../../pkix/include',
-    '/security/manager/ssl/src',
+    '/security/certverifier',
+    '/security/manager/ssl',
+    '/security/pkix/include',
+    '/security/pkix/test/lib',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul-gtest'
+
+FAIL_ON_WARNINGS = True

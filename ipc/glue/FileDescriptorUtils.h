@@ -17,14 +17,14 @@ namespace ipc {
 // When Dispatch() is called (from main thread) this class arranges to close the
 // provided FileDescriptor on one of the socket transport service threads (to
 // avoid main thread I/O).
-class CloseFileRunnable MOZ_FINAL : public nsIRunnable
+class CloseFileRunnable final : public nsIRunnable
 {
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
 
   FileDescriptor mFileDescriptor;
 
 public:
-  CloseFileRunnable(const FileDescriptor& aFileDescriptor)
+  explicit CloseFileRunnable(const FileDescriptor& aFileDescriptor)
 #ifdef DEBUG
   ;
 #else

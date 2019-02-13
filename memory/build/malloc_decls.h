@@ -15,16 +15,18 @@
 
 #  include "jemalloc_types.h"
 
-#  if defined(__linux__) && (!defined(MOZ_MEMORY_ANDROID) || ANDROID_VERSION < 19)
-typedef void * usable_ptr_t;
-#  else
-typedef const void * usable_ptr_t;
-#  endif
+#ifndef MALLOC_USABLE_SIZE_CONST_PTR
+#define MALLOC_USABLE_SIZE_CONST_PTR const
+#endif
+
+typedef MALLOC_USABLE_SIZE_CONST_PTR void * usable_ptr_t;
 
 #  define MALLOC_FUNCS_MALLOC 1
 #  define MALLOC_FUNCS_JEMALLOC 2
 #  define MALLOC_FUNCS_INIT 4
-#  define MALLOC_FUNCS_ALL (MALLOC_FUNCS_INIT | MALLOC_FUNCS_MALLOC | MALLOC_FUNCS_JEMALLOC)
+#  define MALLOC_FUNCS_BRIDGE 8
+#  define MALLOC_FUNCS_ALL (MALLOC_FUNCS_INIT | MALLOC_FUNCS_BRIDGE | \
+                            MALLOC_FUNCS_MALLOC | MALLOC_FUNCS_JEMALLOC)
 
 #endif /* malloc_decls_h */
 
@@ -33,8 +35,15 @@ typedef const void * usable_ptr_t;
 #endif
 
 #ifdef MALLOC_DECL
+#  ifndef MALLOC_DECL_VOID
+#    define MALLOC_DECL_VOID(func, ...) MALLOC_DECL(func, void, __VA_ARGS__)
+#  endif
+
 #  if MALLOC_FUNCS & MALLOC_FUNCS_INIT
 MALLOC_DECL(init, void, const malloc_table_t *)
+#  endif
+#  if MALLOC_FUNCS & MALLOC_FUNCS_BRIDGE
+MALLOC_DECL(get_bridge, struct ReplaceMallocBridge*, void)
 #  endif
 #  if MALLOC_FUNCS & MALLOC_FUNCS_MALLOC
 MALLOC_DECL(malloc, void *, size_t)
@@ -42,17 +51,19 @@ MALLOC_DECL(posix_memalign, int, void **, size_t, size_t)
 MALLOC_DECL(aligned_alloc, void *, size_t, size_t)
 MALLOC_DECL(calloc, void *, size_t, size_t)
 MALLOC_DECL(realloc, void *, void *, size_t)
-MALLOC_DECL(free, void, void *)
+MALLOC_DECL_VOID(free, void *)
 MALLOC_DECL(memalign, void *, size_t, size_t)
 MALLOC_DECL(valloc, void *, size_t)
 MALLOC_DECL(malloc_usable_size, size_t, usable_ptr_t)
 MALLOC_DECL(malloc_good_size, size_t, size_t)
 #  endif
 #  if MALLOC_FUNCS & MALLOC_FUNCS_JEMALLOC
-MALLOC_DECL(jemalloc_stats, void, jemalloc_stats_t *)
-MALLOC_DECL(jemalloc_purge_freed_pages, void, void)
-MALLOC_DECL(jemalloc_free_dirty_pages, void, void)
+MALLOC_DECL_VOID(jemalloc_stats, jemalloc_stats_t *)
+MALLOC_DECL_VOID(jemalloc_purge_freed_pages, void)
+MALLOC_DECL_VOID(jemalloc_free_dirty_pages, void)
 #  endif
+
+#  undef MALLOC_DECL_VOID
 #endif /* MALLOC_DECL */
 
 #undef MALLOC_DECL

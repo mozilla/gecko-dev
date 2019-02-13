@@ -1,0 +1,403 @@
+%if 0
+/* - This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. */
+%endif
+@namespace html "http://www.w3.org/1999/xhtml";
+
+#mainPrefPane {
+  max-width: 800px;
+  padding: 0;
+  font: message-box;
+  font-size: 1.25rem;
+}
+
+* {
+  -moz-user-select: text;
+}
+
+button,
+treecol {
+  /* override the * rule */
+  -moz-user-select: none;
+}
+
+/* Category List */
+
+#categories {
+  max-height: 100vh;
+}
+
+#categories > scrollbox {
+  overflow-x: hidden !important;
+}
+
+/**
+ * We want the last category to always have non-0 getBoundingClientRect().bottom
+ * so we can use the value to figure out the max-height of the list in
+ * preferences.js, so use collapse instead of display: none; if it's hidden
+ */
+#categories > .category[hidden="true"] {
+  display: -moz-box;
+  visibility: collapse;
+}
+
+#category-general > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#general");
+}
+
+#category-search > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#search");
+}
+
+#category-content > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#content");
+}
+
+#category-application > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#applications");
+}
+
+#category-privacy > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#privacy");
+}
+
+#category-security > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#security");
+}
+
+#category-sync > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#sync");
+}
+
+#category-advanced > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#advanced");
+}
+
+@media (max-width: 800px) {
+  .category-name {
+    display: none;
+  }
+}
+
+/* header */
+
+#header-advanced {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* General Pane */
+
+#startupTable {
+  border-collapse: collapse;
+}
+
+#startupTable > tr > td {
+  padding: 0; /* remove the padding from html.css */
+}
+
+#startupTable > tr:not(:first-child) > td {
+  padding-top: 0.5em; /* add a spacing between the rows */
+}
+
+#startupTable > tr > .label-cell {
+  text-align: end;
+  width: 0; /* make the column as small as possible */
+}
+
+#startupTable > tr > .label-cell > label {
+  white-space: nowrap;
+}
+
+#startupTable > tr > .content-cell > menulist,
+#startupTable > tr > .content-cell > textbox {
+  width: calc(100% - 8px);
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+#startupTable > tr > .homepage-buttons {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#startupTable > tr > .homepage-buttons > .content-cell-item {
+  flex-grow: 1;
+}
+
+#useFirefoxSync  {
+  font-size: 90%;
+  -moz-margin-end: 8px !important;
+}
+
+#getStarted {
+  font-size: 90%;
+}
+
+#isNotDefaultLabel {
+  font-weight: bold;
+}
+
+#downloadFolder {
+  -moz-margin-start: 0;
+}
+
+/* Content pane */
+#playDRMContentLink {
+  /* Line up with the buttons in the other grid bits: */
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+}
+
+#defaultFontSizeLabel {
+  /* !important needed to override common !important rule */
+  -moz-margin-start: 4px !important;
+}
+
+/* Applications Pane Styles */
+
+#applicationsContent {
+  padding: 15px 0;
+}
+
+#filter {
+  -moz-margin-start: 0;
+}
+
+#handlersView {
+  height: 25em;
+}
+
+#handlersView > richlistitem {
+  min-height: 36px !important;
+}
+
+.typeIcon {
+  -moz-margin-start: 10px !important;
+  -moz-margin-end: 9px !important;
+}
+
+.actionIcon {
+  -moz-margin-start: 11px !important;
+  -moz-margin-end: 8px !important;
+}
+
+.actionsMenu {
+  min-height: 36px;
+}
+
+.actionsMenu > menupopup > menuitem {
+  -moz-padding-start: 10px !important;
+}
+
+.actionsMenu > menupopup > menuitem > .menu-iconic-left {
+  -moz-margin-end: 8px !important;
+}
+
+/* Collapse the non-active vboxes in decks to use only the height the
+   active vbox needs */
+#historyPane:not([selectedIndex="1"]) > #historyDontRememberPane,
+#historyPane:not([selectedIndex="2"]) > #historyCustomPane,
+#weavePrefsDeck:not([selectedIndex="1"]) > #hasAccount,
+#weavePrefsDeck:not([selectedIndex="2"]) > #needsUpdate,
+#weavePrefsDeck:not([selectedIndex="3"]) > #fxaDeterminingStatus,
+#weavePrefsDeck:not([selectedIndex="4"]) > #noFxaAccount,
+#weavePrefsDeck:not([selectedIndex="5"]) > #hasFxaAccount,
+#fxaLoginStatus:not([selectedIndex="1"]) > #fxaLoginUnverified,
+#fxaLoginStatus:not([selectedIndex="2"]) > #fxaLoginRejected {
+  visibility: collapse;
+}
+
+/* XXX This style is for bug 740213 and should be removed once that
+   bug has a solution. */
+description > html|a {
+  cursor: pointer;
+}
+
+#fxaProfileImage {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border-width: 5px;
+  border-color: red;
+  background-image: url(chrome://browser/skin/fxa/default-profile-image.svg);
+  background-size: contain;
+  cursor: pointer;
+  -moz-margin-end: 15px;
+}
+
+#fxaProfileImage:hover {
+  border-color: blue;
+}
+
+#noFxaAccount {
+  /* Overriding the margins from the base preferences.css theme file.
+     These overrides can be simplified by fixing bug 1027174 */
+  margin: 0;
+}
+
+#weavePrefsDeck > vbox > label,
+#weavePrefsDeck > vbox > groupbox,
+#weavePrefsDeck > vbox > description,
+#weavePrefsDeck > vbox > #pairDevice > label,
+#weavePrefsDeck > #needsUpdate > hbox > #loginError,
+#weavePrefsDeck > #hasFxaAccount > vbox > label,
+#weavePrefsDeck > #hasFxaAccount > hbox:not(#tosPP-normal) > label {
+  /* no margin-start for elements at the begin of a line */
+  -moz-margin-start: 0;
+}
+
+#tabsElement {
+  -moz-margin-end: 4px; /* add the 4px end-margin of other elements */
+}
+
+#telemetryLearnMore,
+#FHRLearnMore,
+#crashReporterLearnMore {
+  /* provide some margin between the links and the label text */
+  /* !important is needed to override the rules defined in common.css */
+  -moz-margin-start: 20px !important;
+  /* center the links */
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.indent {
+  -moz-margin-start: 33px;
+}
+
+#trackingProtectionImage {
+  width: 16px;
+  height: 16px;
+  list-style-image: url(chrome://browser/skin/bad-content-blocked-16.png);
+}
+
+@media (min-resolution: 2dppx) {
+  #trackingProtectionImage {
+    list-style-image: url(chrome://browser/skin/bad-content-blocked-16@2x.png);
+  }
+}
+
+#showUpdateHistory {
+  -moz-margin-start: 0;
+}
+
+/**
+ * Dialog
+ */
+
+#dialogOverlay {
+  background-color: rgba(0,0,0,0.5);
+  visibility: hidden;
+}
+
+#dialogBox {
+  background-color: #fbfbfb;
+  background-clip: content-box;
+  color: #424e5a;
+  font-size: 14px;
+  /* `transparent` will use the dialogText color in high-contrast themes and
+     when page colors are disabled */
+  border: 1px solid transparent;
+  border-radius: 3.5px;
+  box-shadow: 0 2px 6px 0 rgba(0,0,0,0.3);
+  display: -moz-box;
+  margin: 0;
+  padding: 0;
+}
+
+#dialogBox[resizable="true"] {
+  resize: both;
+  overflow: hidden;
+  min-height: 20em;
+  min-width: 66ch;
+}
+
+#dialogBox > .groupbox-title {
+  padding: 3.5px 0;
+  background-color: #F1F1F1;
+  border-bottom: 1px solid #C1C1C1;
+}
+
+#dialogTitle {
+  text-align: center;
+  -moz-user-select: none;
+}
+
+.close-icon {
+  background-color: transparent !important;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  min-height: 16px;
+  min-width: 0;
+}
+
+#dialogBox > .groupbox-body {
+  -moz-appearance: none;
+  padding: 20px;
+}
+
+#dialogFrame {
+  -moz-box-flex: 1;
+  /* Default dialog dimensions */
+  height: 20em;
+  width: 66ch;
+}
+
+.largeDialogContainer.doScroll {
+  overflow-y: auto;
+  -moz-box-flex: 1;
+}
+
+/**
+ * End Dialog
+ */
+
+/**
+ * Font dialog menulist fixes
+ */
+
+#defaultFontType,
+#serif,
+#sans-serif,
+#monospace {
+  min-width: 30ch;
+}
+
+/**
+ * Sync migration
+ */
+#sync-migrate-upgrade-description {
+  /* description elts need a min-width to wrap correctly - bug 630864? */
+  min-width: 100px
+}
+
+#sync-migration {
+  border: 1px solid rgba(0, 0, 0, 0.32);
+  background-color: InfoBackground;
+  color: InfoText;
+  text-shadow: none;
+  margin: 5px 0 0 0;
+  animation: fadein 3000ms;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/**
+ * Sync
+ */
+
+#fxaDeviceName {
+  margin: 14px 0px;
+}
+
+#fxaSyncComputerName.plain {
+  background-color: transparent;
+  opacity: 1;
+}

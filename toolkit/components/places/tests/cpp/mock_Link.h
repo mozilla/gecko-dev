@@ -20,8 +20,8 @@ class mock_Link : public mozilla::dom::Link
 public:
   NS_DECL_ISUPPORTS
 
-  mock_Link(void (*aHandlerFunction)(nsLinkState),
-            bool aRunNextTest = true)
+  explicit mock_Link(void (*aHandlerFunction)(nsLinkState),
+                     bool aRunNextTest = true)
   : mozilla::dom::Link(nullptr)
   , mHandler(aHandlerFunction)
   , mRunNextTest(aRunNextTest)
@@ -34,7 +34,7 @@ public:
     mDeathGrip = this;
   }
 
-  virtual void SetLinkState(nsLinkState aState)
+  virtual void SetLinkState(nsLinkState aState) override
   {
     // Notify our callback function.
     mHandler(aState);
@@ -43,11 +43,12 @@ public:
     mDeathGrip = 0;
   }
 
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override
   {
     return 0;   // the value shouldn't matter
   }
 
+protected:
   ~mock_Link() {
     // Run the next test if we are supposed to.
     if (mRunNextTest) {
@@ -117,7 +118,7 @@ Link::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 }
 
 void
-Link::URLSearchParamsUpdated()
+Link::URLSearchParamsUpdated(URLSearchParams* aSearchParams)
 {
   NS_NOTREACHED("Unexpected call to Link::URLSearchParamsUpdated");
 }
@@ -144,7 +145,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(URLSearchParams)
 NS_INTERFACE_MAP_END
 
 
-URLSearchParams::URLSearchParams()
+URLSearchParams::URLSearchParams(URLSearchParamsObserver* aObserver)
 {
 }
 
@@ -153,28 +154,15 @@ URLSearchParams::~URLSearchParams()
 }
 
 JSObject*
-URLSearchParams::WrapObject(JSContext* aCx)
+URLSearchParams::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
   return nullptr;
 }
 
 void
-URLSearchParams::ParseInput(const nsACString& aInput,
-                            URLSearchParamsObserver* aObserver)
+URLSearchParams::ParseInput(const nsACString& aInput)
 {
   NS_NOTREACHED("Unexpected call to URLSearchParams::ParseInput");
-}
-
-void
-URLSearchParams::AddObserver(URLSearchParamsObserver* aObserver)
-{
-  NS_NOTREACHED("Unexpected call to URLSearchParams::SetObserver");
-}
-
-void
-URLSearchParams::RemoveObserver(URLSearchParamsObserver* aObserver)
-{
-  NS_NOTREACHED("Unexpected call to URLSearchParams::SetObserver");
 }
 
 void
@@ -233,9 +221,9 @@ URLSearchParams::DeleteAll()
 }
 
 void
-URLSearchParams::NotifyObservers(URLSearchParamsObserver* aExceptObserver)
+URLSearchParams::NotifyObserver()
 {
-  NS_NOTREACHED("Unexpected call to URLSearchParams::NotifyObservers");
+  NS_NOTREACHED("Unexpected call to URLSearchParams::NotifyObserver");
 }
 
 } // namespace dom

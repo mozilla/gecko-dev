@@ -6,21 +6,19 @@
 // Check that JS errors and CSS warnings open view source when their source link
 // is clicked in the Browser Console. See bug 877778.
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf8,<p>hello world from bug 877778 " +
                  "<button onclick='foobar.explode()' " +
                  "style='test-color: green-please'>click!</button>";
-function test()
-{
+function test() {
   let hud;
 
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
+  loadTab(TEST_URI).then(() => {
     HUDService.toggleBrowserConsole().then(browserConsoleOpened);
-  }, true);
+  });
 
-  function browserConsoleOpened(aHud)
-  {
+  function browserConsoleOpened(aHud) {
     hud = aHud;
     ok(hud, "browser console opened");
 
@@ -50,11 +48,10 @@ function test()
     }).then(onMessageFound);
   }
 
-  function onMessageFound(results)
-  {
+  function onMessageFound(results) {
     let viewSource = hud.viewSource;
     let viewSourceCalled = false;
-    hud.viewSource = () => viewSourceCalled = true;
+    hud.viewSourceInDebugger = () => viewSourceCalled = true;
 
     for (let result of results) {
       viewSourceCalled = false;
@@ -69,7 +66,7 @@ function test()
       ok(viewSourceCalled, "view source opened");
     }
 
-    hud.viewSource = viewSource;
+    hud.viewSourceInDebugger = viewSource;
     finishTest();
   }
 }

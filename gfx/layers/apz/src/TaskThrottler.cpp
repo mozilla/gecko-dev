@@ -9,30 +9,36 @@
 namespace mozilla {
 namespace layers {
 
-TaskThrottler::TaskThrottler(const TimeStamp& aTimeStamp)
+TaskThrottler::TaskThrottler(const TimeStamp& aTimeStamp, const TimeDuration& aMaxWait)
   : mOutstanding(false)
   , mQueuedTask(nullptr)
   , mStartTime(aTimeStamp)
+  , mMaxWait(aMaxWait)
   , mMean(1)
 { }
 
 void
 TaskThrottler::PostTask(const tracked_objects::Location& aLocation,
-                        CancelableTask* aTask, const TimeStamp& aTimeStamp)
+                        UniquePtr<CancelableTask> aTask, const TimeStamp& aTimeStamp)
 {
   aTask->SetBirthPlace(aLocation);
 
   if (mOutstanding) {
     if (mQueuedTask) {
       mQueuedTask->Cancel();
+      mQueuedTask = nullptr;
     }
-    mQueuedTask = aTask;
-  } else {
-    mStartTime = aTimeStamp;
-    aTask->Run();
-    delete aTask;
-    mOutstanding = true;
+    if (TimeSinceLastRequest(aTimeStamp) < mMaxWait) {
+      mQueuedTask = Move(aTask);
+      return;
+    }
+    // we've been waiting for more than the max-wait limit, so just fall through
+    // and send the new task already.
   }
+
+  mStartTime = aTimeStamp;
+  aTask->Run();
+  mOutstanding = true;
 }
 
 void
@@ -50,6 +56,15 @@ TaskThrottler::TaskComplete(const TimeStamp& aTimeStamp)
     mQueuedTask = nullptr;
   } else {
     mOutstanding = false;
+  }
+}
+
+void
+TaskThrottler::CancelPendingTask()
+{
+  if (mQueuedTask) {
+    mQueuedTask->Cancel();
+    mQueuedTask = nullptr;
   }
 }
 

@@ -62,9 +62,11 @@ private:
  *  nsCacheService
  ******************************************************************************/
 
-class nsCacheService : public nsICacheServiceInternal,
-                       public nsIMemoryReporter
+class nsCacheService final : public nsICacheServiceInternal,
+                             public nsIMemoryReporter
 {
+    virtual ~nsCacheService();
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSICACHESERVICE
@@ -72,7 +74,6 @@ public:
     NS_DECL_NSIMEMORYREPORTER
 
     nsCacheService();
-    virtual ~nsCacheService();
 
     // Define a Create method to be used with a factory:
     static nsresult
@@ -181,7 +182,7 @@ public:
     /**
      * Methods called by nsCacheProfilePrefObserver
      */
-    static void      OnProfileShutdown(bool cleanse);
+    static void      OnProfileShutdown();
     static void      OnProfileChanged();
 
     static void      SetDiskCacheEnabled(bool    enabled);
@@ -324,9 +325,7 @@ private:
     PLDHashOperator  ShutdownCustomCacheDeviceEnum(const nsAString& aProfileDir,
                                                    nsRefPtr<nsOfflineCacheDevice>& aDevice,
                                                    void* aUserArg);
-#if defined(PR_LOGGING)
     void LogCacheStatistics();
-#endif
 
     nsresult         SetDiskSmartSize_Locked();
 
@@ -392,7 +391,7 @@ private:
 // execution scope.
 class nsCacheServiceAutoLock {
 public:
-    nsCacheServiceAutoLock(mozilla::Telemetry::ID mainThreadLockerID) {
+    explicit nsCacheServiceAutoLock(mozilla::Telemetry::ID mainThreadLockerID) {
         nsCacheService::Lock(mainThreadLockerID);
     }
     ~nsCacheServiceAutoLock() {

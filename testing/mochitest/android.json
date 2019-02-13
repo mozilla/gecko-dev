@@ -1,7 +1,0 @@
-{
-"runtests": {},
-"excludetests": {
-  "content/canvas/test/webgl-conformance": "bug 865443 - separate suite -- mochitest-gl",
-  "robocop": "TIMED_OUT"
-  }
-}

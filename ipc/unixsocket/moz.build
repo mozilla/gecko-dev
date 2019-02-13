@@ -5,11 +5,25 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS.mozilla.ipc += [
-    'UnixSocket.h',
+    'ConnectionOrientedSocket.h',
+    'DataSocket.h',
+    'ListenSocket.h',
+    'ListenSocketConsumer.h',
+    'SocketBase.h',
+    'StreamSocket.h',
+    'StreamSocketConsumer.h',
+    'UnixSocketConnector.h'
 ]
 
 SOURCES += [
-    'UnixSocket.cpp',
+    'ConnectionOrientedSocket.cpp',
+    'DataSocket.cpp',
+    'ListenSocket.cpp',
+    'ListenSocketConsumer.cpp',
+    'SocketBase.cpp',
+    'StreamSocket.cpp',
+    'StreamSocketConsumer.cpp',
+    'UnixSocketConnector.cpp'
 ]
 
 FAIL_ON_WARNINGS = True

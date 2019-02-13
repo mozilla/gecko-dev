@@ -19,7 +19,7 @@ namespace mozilla {
 namespace gfx {
 
 static inline CGAffineTransform
-GfxMatrixToCGAffineTransform(Matrix m)
+GfxMatrixToCGAffineTransform(const Matrix &m)
 {
   CGAffineTransform t;
   t.a = m._11;
@@ -91,35 +91,54 @@ SetStrokeOptions(CGContextRef cg, const StrokeOptions &aStrokeOptions)
   }
 }
 
+class GlyphRenderingOptionsCG : public GlyphRenderingOptions
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GlyphRenderingOptionsCG, override)
+
+  explicit GlyphRenderingOptionsCG(const Color &aFontSmoothingBackgroundColor)
+    : mFontSmoothingBackgroundColor(aFontSmoothingBackgroundColor)
+  {}
+
+  const Color &FontSmoothingBackgroundColor() const { return mFontSmoothingBackgroundColor; }
+
+  virtual FontType GetType() const override { return FontType::MAC; }
+
+private:
+  Color mFontSmoothingBackgroundColor;
+};
 
 class DrawTargetCG : public DrawTarget
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetCG)
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetCG, override)
   friend class BorrowedCGContext;
+  friend class UnboundnessFixer;
+  friend class SourceSurfaceCGBitmapContext;
   DrawTargetCG();
   virtual ~DrawTargetCG();
 
-  virtual BackendType GetType() const;
-  virtual TemporaryRef<SourceSurface> Snapshot();
+  virtual DrawTargetType GetType() const override;
+  virtual BackendType GetBackendType() const override;
+  virtual TemporaryRef<SourceSurface> Snapshot() override;
 
   virtual void DrawSurface(SourceSurface *aSurface,
                            const Rect &aDest,
                            const Rect &aSource,
                            const DrawSurfaceOptions &aSurfOptions = DrawSurfaceOptions(),
-                           const DrawOptions &aOptions = DrawOptions());
+                           const DrawOptions &aOptions = DrawOptions()) override;
   virtual void DrawFilter(FilterNode *aNode,
                           const Rect &aSourceRect,
                           const Point &aDestPoint,
-                          const DrawOptions &aOptions = DrawOptions());
+                          const DrawOptions &aOptions = DrawOptions()) override;
   virtual void MaskSurface(const Pattern &aSource,
                            SourceSurface *aMask,
                            Point aOffset,
-                           const DrawOptions &aOptions = DrawOptions());
+                           const DrawOptions &aOptions = DrawOptions()) override;
 
   virtual void FillRect(const Rect &aRect,
                         const Pattern &aPattern,
-                        const DrawOptions &aOptions = DrawOptions());
+                        const DrawOptions &aOptions = DrawOptions()) override;
 
 
   //XXX: why do we take a reference to SurfaceFormat?
@@ -128,49 +147,58 @@ public:
   bool Init(CGContextRef cgContext, const IntSize &aSize);
 
   // Flush if using IOSurface context
-  virtual void Flush();
+  virtual void Flush() override;
 
-  virtual void DrawSurfaceWithShadow(SourceSurface *, const Point &, const Color &, const Point &, Float, CompositionOp);
-  virtual void ClearRect(const Rect &);
-  virtual void CopySurface(SourceSurface *, const IntRect&, const IntPoint&);
-  virtual void StrokeRect(const Rect &, const Pattern &, const StrokeOptions&, const DrawOptions&);
-  virtual void StrokeLine(const Point &, const Point &, const Pattern &, const StrokeOptions &, const DrawOptions &);
-  virtual void Stroke(const Path *, const Pattern &, const StrokeOptions &, const DrawOptions &);
-  virtual void Fill(const Path *, const Pattern &, const DrawOptions &);
-  virtual void FillGlyphs(ScaledFont *, const GlyphBuffer&, const Pattern &, const DrawOptions &, const GlyphRenderingOptions *);
+  virtual void DrawSurfaceWithShadow(SourceSurface *, const Point &, const Color &, const Point &, Float, CompositionOp) override;
+  virtual void ClearRect(const Rect &) override;
+  virtual void CopySurface(SourceSurface *, const IntRect&, const IntPoint&) override;
+  virtual void StrokeRect(const Rect &, const Pattern &, const StrokeOptions&, const DrawOptions&) override;
+  virtual void StrokeLine(const Point &, const Point &, const Pattern &, const StrokeOptions &, const DrawOptions &) override;
+  virtual void Stroke(const Path *, const Pattern &, const StrokeOptions &, const DrawOptions &) override;
+  virtual void Fill(const Path *, const Pattern &, const DrawOptions &) override;
+  virtual void FillGlyphs(ScaledFont *, const GlyphBuffer&, const Pattern &, const DrawOptions &, const GlyphRenderingOptions *) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
-                    const DrawOptions &aOptions = DrawOptions());
-  virtual void PushClip(const Path *);
-  virtual void PushClipRect(const Rect &aRect);
-  virtual void PopClip();
-  virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromNativeSurface(const NativeSurface&) const { return nullptr;}
-  virtual TemporaryRef<DrawTarget> CreateSimilarDrawTarget(const IntSize &, SurfaceFormat) const;
-  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule) const;
+                    const DrawOptions &aOptions = DrawOptions()) override;
+  virtual void PushClip(const Path *) override;
+  virtual void PushClipRect(const Rect &aRect) override;
+  virtual void PopClip() override;
+  virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromNativeSurface(const NativeSurface&) const override { return nullptr;}
+  virtual TemporaryRef<DrawTarget> CreateSimilarDrawTarget(const IntSize &, SurfaceFormat) const override;
+  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule) const override;
   virtual TemporaryRef<GradientStops> CreateGradientStops(GradientStop *, uint32_t,
-                                                          ExtendMode aExtendMode = ExtendMode::CLAMP) const;
-  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType);
+                                                          ExtendMode aExtendMode = ExtendMode::CLAMP) const override;
+  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) override;
 
-  virtual void *GetNativeSurface(NativeSurfaceType);
+  virtual void *GetNativeSurface(NativeSurfaceType) override;
 
-  virtual IntSize GetSize() { return mSize; }
+  virtual IntSize GetSize() override { return mSize; }
 
+  virtual void SetTransform(const Matrix &aTransform) override;
 
   /* This is for creating good compatible surfaces */
   virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                             const IntSize &aSize,
                                                             int32_t aStride,
-                                                            SurfaceFormat aFormat) const;
-  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const;
+                                                            SurfaceFormat aFormat) const override;
+  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override;
   CGContextRef GetCGContext() {
       return mCg;
   }
+
+  // 32767 is the maximum size supported by cairo. We clamp to that to make it
+  // easier to interoperate.
+  static size_t GetMaxSurfaceSize() {
+    return 32767;
+  }
+
 private:
   void MarkChanged();
 
   IntSize mSize;
   CGColorSpaceRef mColorSpace;
   CGContextRef mCg;
+  CGAffineTransform mOriginalTransform;
 
   /**
    * The image buffer, if the buffer is owned by this class.
@@ -181,6 +209,7 @@ private:
   AlignedArray<uint8_t> mData;
 
   RefPtr<SourceSurfaceCGContext> mSnapshot;
+  bool mMayContainInvalidPremultipliedData;
 };
 
 }

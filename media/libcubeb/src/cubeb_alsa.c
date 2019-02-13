@@ -5,6 +5,7 @@
  * accompanying file LICENSE for details.
  */
 #undef NDEBUG
+#define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _XOPEN_SOURCE 500
 #include <pthread.h>
@@ -106,6 +107,7 @@ struct cubeb_stream {
      PulseAudio where streams would stop requesting new data despite still
      being logically active and playing. */
   struct timeval last_activity;
+  float volume;
 };
 
 static int
@@ -220,7 +222,9 @@ rebuild(cubeb * ctx)
 static void
 poll_wake(cubeb * ctx)
 {
-  write(ctx->control_fd_write, "x", 1);
+  if (write(ctx->control_fd_write, "x", 1) < 0) {
+    /* ignore write error */
+  }
 }
 
 static void
@@ -311,7 +315,20 @@ alsa_refill_stream(cubeb_stream * stm)
     return ERROR;
   }
   if (got > 0) {
-    snd_pcm_sframes_t wrote = snd_pcm_writei(stm->pcm, p, got);
+    snd_pcm_sframes_t wrote;
+
+    if (stm->params.format == CUBEB_SAMPLE_FLOAT32NE) {
+      float * b = (float *) p;
+      for (uint32_t i = 0; i < got * stm->params.channels; i++) {
+        b[i] *= stm->volume;
+      }
+    } else {
+      short * b = (short *) p;
+      for (uint32_t i = 0; i < got * stm->params.channels; i++) {
+        b[i] *= stm->volume;
+      }
+    }
+    wrote = snd_pcm_writei(stm->pcm, p, got);
     if (wrote == -EPIPE) {
       snd_pcm_recover(stm->pcm, wrote, 1);
       wrote = snd_pcm_writei(stm->pcm, p, got);
@@ -372,7 +389,9 @@ alsa_run(cubeb * ctx)
 
   if (r > 0) {
     if (ctx->fds[0].revents & POLLIN) {
-      read(ctx->control_fd_read, &dummy, 1);
+      if (read(ctx->control_fd_read, &dummy, 1) < 0) {
+        /* ignore read error */
+      }
 
       if (ctx->shutdown) {
         pthread_mutex_unlock(&ctx->mutex);
@@ -809,6 +828,7 @@ alsa_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
   stm->user_ptr = user_ptr;
   stm->params = stream_params;
   stm->state = INACTIVE;
+  stm->volume = 1.0;
 
   r = pthread_mutex_init(&stm->mutex, NULL);
   assert(r == 0);
@@ -867,12 +887,17 @@ alsa_stream_destroy(cubeb_stream * stm)
   int r;
   cubeb * ctx;
 
-  assert(stm && (stm->state == INACTIVE || stm->state == ERROR));
+  assert(stm && (stm->state == INACTIVE ||
+                 stm->state == ERROR ||
+                 stm->state == DRAINING));
 
   ctx = stm->context;
 
   pthread_mutex_lock(&stm->mutex);
   if (stm->pcm) {
+    if (stm->state == DRAINING) {
+      snd_pcm_drain(stm->pcm);
+    }
     alsa_locked_pcm_close(stm->pcm);
     stm->pcm = NULL;
   }
@@ -896,7 +921,7 @@ alsa_stream_destroy(cubeb_stream * stm)
 static int
 alsa_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 {
-  int rv;
+  int r;
   cubeb_stream * stm;
   snd_pcm_hw_params_t* hw_params;
   cubeb_stream_params params;
@@ -908,18 +933,18 @@ alsa_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 
   assert(ctx);
 
-  rv = alsa_stream_init(ctx, &stm, "", params, 100, NULL, NULL, NULL);
-  if (rv != CUBEB_OK) {
+  r = alsa_stream_init(ctx, &stm, "", params, 100, NULL, NULL, NULL);
+  if (r != CUBEB_OK) {
     return CUBEB_ERROR;
   }
 
-  rv = snd_pcm_hw_params_any(stm->pcm, hw_params);
-  if (rv < 0) {
+  r = snd_pcm_hw_params_any(stm->pcm, hw_params);
+  if (r < 0) {
     return CUBEB_ERROR;
   }
 
-  rv = snd_pcm_hw_params_get_channels_max(hw_params, max_channels);
-  if (rv < 0) {
+  r = snd_pcm_hw_params_get_channels_max(hw_params, max_channels);
+  if (r < 0) {
     return CUBEB_ERROR;
   }
 
@@ -930,7 +955,7 @@ alsa_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 
 static int
 alsa_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate) {
-  int rv, dir;
+  int r, dir;
   snd_pcm_t * pcm;
   snd_pcm_hw_params_t * hw_params;
 
@@ -938,19 +963,19 @@ alsa_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate) {
 
   /* get a pcm, disabling resampling, so we get a rate the
    * hardware/dmix/pulse/etc. supports. */
-  rv = snd_pcm_open(&pcm, "", SND_PCM_STREAM_PLAYBACK | SND_PCM_NO_AUTO_RESAMPLE, 0);
-  if (rv < 0) {
+  r = snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK | SND_PCM_NO_AUTO_RESAMPLE, 0);
+  if (r < 0) {
     return CUBEB_ERROR;
   }
 
-  rv = snd_pcm_hw_params_any(pcm, hw_params);
-  if (rv < 0) {
+  r = snd_pcm_hw_params_any(pcm, hw_params);
+  if (r < 0) {
     snd_pcm_close(pcm);
     return CUBEB_ERROR;
   }
 
-  rv = snd_pcm_hw_params_get_rate(hw_params, rate, &dir);
-  if (rv >= 0) {
+  r = snd_pcm_hw_params_get_rate(hw_params, rate, &dir);
+  if (r >= 0) {
     /* There is a default rate: use it. */
     snd_pcm_close(pcm);
     return CUBEB_OK;
@@ -959,8 +984,8 @@ alsa_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate) {
   /* Use a common rate, alsa may adjust it based on hw/etc. capabilities. */
   *rate = 44100;
 
-  rv = snd_pcm_hw_params_set_rate_near(pcm, hw_params, rate, NULL);
-  if (rv < 0) {
+  r = snd_pcm_hw_params_set_rate_near(pcm, hw_params, rate, NULL);
+  if (r < 0) {
     snd_pcm_close(pcm);
     return CUBEB_ERROR;
   }
@@ -974,7 +999,7 @@ static int
 alsa_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * latency_ms)
 {
   /* This is found to be an acceptable minimum, even on a super low-end
-  * machine. */
+   * machine. */
   *latency_ms = 40;
 
   return CUBEB_OK;
@@ -1074,6 +1099,17 @@ alsa_stream_get_latency(cubeb_stream * stm, uint32_t * latency)
   return CUBEB_OK;
 }
 
+int
+alsa_stream_set_volume(cubeb_stream * stm, float volume)
+{
+  /* setting the volume using an API call does not seem very stable/supported */
+  pthread_mutex_lock(&stm->mutex);
+  stm->volume = volume;
+  pthread_mutex_unlock(&stm->mutex);
+
+  return CUBEB_OK;
+}
+
 static struct cubeb_ops const alsa_ops = {
   .init = alsa_init,
   .get_backend_id = alsa_get_backend_id,
@@ -1086,5 +1122,10 @@ static struct cubeb_ops const alsa_ops = {
   .stream_start = alsa_stream_start,
   .stream_stop = alsa_stream_stop,
   .stream_get_position = alsa_stream_get_position,
-  .stream_get_latency = alsa_stream_get_latency
+  .stream_get_latency = alsa_stream_get_latency,
+  .stream_set_volume = alsa_stream_set_volume,
+  .stream_set_panning = NULL,
+  .stream_get_current_device = NULL,
+  .stream_device_destroy = NULL,
+  .stream_register_device_changed_callback = NULL
 };

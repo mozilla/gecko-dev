@@ -7,6 +7,15 @@
 
 interface nsIDOMMozNamedAttrMap;
 
+%{C++
+// Undo the windows.h damage
+#undef GetMessage
+#undef CreateEvent
+#undef GetClassName
+#undef GetBinaryType
+#undef RemoveDirectory
+%}
+
 /**
  * The nsIDOMElement interface represents an element in an HTML or 
  * XML document. 
@@ -15,7 +24,7 @@ interface nsIDOMMozNamedAttrMap;
  * http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#interface-element
  */
 
-[uuid(989422ef-120d-4d29-8a56-6aa2505a8b02)]
+[uuid(6289999b-1008-4269-b42a-413ec5a9d3f4)]
 interface nsIDOMElement : nsIDOMNode
 {
   readonly attribute DOMString        tagName;
@@ -42,6 +51,7 @@ interface nsIDOMElement : nsIDOMNode
   boolean            hasAttribute(in DOMString name);
   boolean            hasAttributeNS(in DOMString namespaceURI, 
                                     in DOMString localName);
+  boolean            hasAttributes();
 
   // Obsolete methods.
   nsIDOMAttr         getAttributeNode(in DOMString name);

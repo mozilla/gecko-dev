@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,14 +17,21 @@
 #include "js/StructuredClone.h"
 #include "nsXMLHttpRequest.h"
 
+namespace mozilla {
+namespace dom {
+class Blob;
+}
+}
+
 BEGIN_WORKERS_NAMESPACE
 
 class Proxy;
 class XMLHttpRequestUpload;
 class WorkerPrivate;
+class WorkerStructuredCloneClosure;
 
-class XMLHttpRequest MOZ_FINAL: public nsXHREventTarget,
-                                public WorkerFeature
+class XMLHttpRequest final: public nsXHREventTarget,
+                            public WorkerFeature
 {
 public:
   struct StateData
@@ -39,7 +47,7 @@ public:
     nsresult mResponseResult;
 
     StateData()
-    : mStatus(0), mReadyState(0), mResponse(JSVAL_VOID),
+    : mStatus(0), mReadyState(0), mResponse(JS::UndefinedValue()),
       mResponseTextResult(NS_OK), mStatusResult(NS_OK),
       mResponseResult(NS_OK)
     { }
@@ -64,7 +72,7 @@ private:
 
 public:
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(XMLHttpRequest,
@@ -100,7 +108,7 @@ public:
   Unpin();
 
   bool
-  Notify(JSContext* aCx, Status aStatus) MOZ_OVERRIDE;
+  Notify(JSContext* aCx, Status aStatus) override;
 
   IMPL_EVENT_HANDLER(readystatechange)
 
@@ -164,13 +172,16 @@ public:
   Send(JS::Handle<JSObject*> aBody, ErrorResult& aRv);
 
   void
+  Send(Blob& aBody, ErrorResult& aRv);
+
+  void
+  Send(nsFormData& aBody, ErrorResult& aRv);
+
+  void
   Send(const ArrayBuffer& aBody, ErrorResult& aRv);
 
   void
   Send(const ArrayBufferView& aBody, ErrorResult& aRv);
-
-  void
-  SendAsBinary(const nsAString& aBody, ErrorResult& aRv);
 
   void
   Abort(ErrorResult& aRv);
@@ -220,18 +231,6 @@ public:
   void
   GetResponseText(nsAString& aResponseText, ErrorResult& aRv);
 
-  JSObject*
-  GetResponseXML() const
-  {
-    return nullptr;
-  }
-
-  JSObject*
-  GetChannel() const
-  {
-    return nullptr;
-  }
-
   void
   GetInterface(JSContext* cx, JS::Handle<JSObject*> aIID,
                JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv)
@@ -272,7 +271,7 @@ public:
   }
 
 private:
-  XMLHttpRequest(WorkerPrivate* aWorkerPrivate);
+  explicit XMLHttpRequest(WorkerPrivate* aWorkerPrivate);
   ~XMLHttpRequest();
 
   enum ReleaseType { Default, XHRIsGoingAway, WorkerIsGoingAway };
@@ -294,7 +293,7 @@ private:
   void
   SendInternal(const nsAString& aStringBody,
                JSAutoStructuredCloneBuffer&& aBody,
-               nsTArray<nsCOMPtr<nsISupports> >& aClonedObjects,
+               WorkerStructuredCloneClosure& aClosure,
                ErrorResult& aRv);
 };
 

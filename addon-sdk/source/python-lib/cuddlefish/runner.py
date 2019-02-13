@@ -17,6 +17,8 @@ from cuddlefish.prefs import DEFAULT_COMMON_PREFS
 from cuddlefish.prefs import DEFAULT_FIREFOX_PREFS
 from cuddlefish.prefs import DEFAULT_THUNDERBIRD_PREFS
 from cuddlefish.prefs import DEFAULT_FENNEC_PREFS
+from cuddlefish.prefs import DEFAULT_NO_CONNECTIONS_PREFS
+from cuddlefish.prefs import DEFAULT_TEST_PREFS
 
 # Used to remove noise from ADB output
 CLEANUP_ADB = re.compile(r'^(I|E)/(stdout|stderr|GeckoConsole)\s*\(\s*\d+\):\s*(.*)$')
@@ -30,12 +32,12 @@ PARSEABLE_TEST_NAME = re.compile(r'TEST-START \| ([^\n]+)\n')
 # The purpose of this timeout is to recover from infinite loops.  It should be
 # longer than the amount of time any test run takes, including those on slow
 # machines running slow (debug) versions of Firefox.
-RUN_TIMEOUT = 1.5 * 60 * 60 # 1.5 Hour
+RUN_TIMEOUT = 5400     #1.5 hours (1.5 * 60 * 60 sec)
 
 # Maximum time we'll wait for tests to emit output, in seconds.
 # The purpose of this timeout is to recover from hangs.  It should be longer
 # than the amount of time any test takes to report results.
-OUTPUT_TIMEOUT = 60 * 5 # five minutes
+OUTPUT_TIMEOUT = 300   #five minutes (60 * 5 sec)
 
 def follow_file(filename):
     """
@@ -103,30 +105,6 @@ class FennecProfile(mozrunner.Profile):
     preferences = {}
     names = ['fennec']
 
-class FennecRunner(mozrunner.Runner):
-    profile_class = FennecProfile
-
-    names = ['fennec']
-
-    __DARWIN_PATH = '/Applications/Fennec.app/Contents/MacOS/fennec'
-
-    def __init__(self, binary=None, **kwargs):
-        if sys.platform == 'darwin' and binary and binary.endswith('.app'):
-            # Assume it's a Fennec app dir.
-            binary = os.path.join(binary, 'Contents/MacOS/fennec')
-
-        self.__real_binary = binary
-
-        mozrunner.Runner.__init__(self, **kwargs)
-
-    def find_binary(self):
-        if not self.__real_binary:
-            if sys.platform == 'darwin':
-                if os.path.exists(self.__DARWIN_PATH):
-                    return self.__DARWIN_PATH
-            self.__real_binary = mozrunner.Runner.find_binary(self)
-        return self.__real_binary
-
 FENNEC_REMOTE_PATH = '/mnt/sdcard/jetpack-profile'
 
 class RemoteFennecRunner(mozrunner.Runner):
@@ -166,11 +144,11 @@ class RemoteFennecRunner(mozrunner.Runner):
         # or use name given as cfx `--mobile-app` argument.
         intents = self.getIntentNames()
         if not intents:
-            raise ValueError("Unable to found any Firefox "
+            raise ValueError("Unable to find any Firefox "
                              "application on your device.")
         elif mobile_app_name:
             if not mobile_app_name in intents:
-                raise ValueError("Unable to found Firefox application "
+                raise ValueError("Unable to find Firefox application "
                                  "with intent name '%s'\n"
                                  "Available ones are: %s" %
                                  (mobile_app_name, ", ".join(intents)))
@@ -411,7 +389,7 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
             app_type, binary=None, profiledir=None, verbose=False,
             parseable=False, enforce_timeouts=False,
             logfile=None, addons=None, args=None, extra_environment={},
-            norun=None,
+            norun=None, noquit=None,
             used_files=None, enable_mobile=False,
             mobile_app_name=None,
             env_root=None,
@@ -419,7 +397,8 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
             overload_modules=False,
             bundle_sdk=True,
             pkgdir="",
-            enable_e10s=False):
+            enable_e10s=False,
+            no_connections=False):
     if binary:
         binary = os.path.expanduser(binary)
 
@@ -431,11 +410,21 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
     cmdargs = []
     preferences = dict(DEFAULT_COMMON_PREFS)
 
+    if is_running_tests:
+      preferences.update(DEFAULT_TEST_PREFS)
+
+    if no_connections:
+      preferences.update(DEFAULT_NO_CONNECTIONS_PREFS)
+
     if enable_e10s:
         preferences['browser.tabs.remote.autostart'] = True
+    else:
+        preferences['browser.tabs.remote.autostart'] = False
+        preferences['browser.tabs.remote.autostart.1'] = False
+        preferences['browser.tabs.remote.autostart.2'] = False
 
     # For now, only allow running on Mobile with --force-mobile argument
-    if app_type in ["fennec", "fennec-on-device"] and not enable_mobile:
+    if app_type in ["fennec-on-device"] and not enable_mobile:
         print """
   WARNING: Firefox Mobile support is still experimental.
   If you would like to run an addon on this platform, use --force-mobile flag:
@@ -449,10 +438,6 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
         runner_class = RemoteFennecRunner
         # We pass the intent name through command arguments
         cmdargs.append(mobile_app_name)
-    elif enable_mobile or app_type == "fennec":
-        profile_class = FennecProfile
-        preferences.update(DEFAULT_FENNEC_PREFS)
-        runner_class = FennecRunner
     elif app_type == "xulrunner":
         profile_class = XulrunnerAppProfile
         runner_class = XulrunnerAppRunner
@@ -507,9 +492,10 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
 
     env = {}
     env.update(os.environ)
+    if no_connections:
+      env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
     env['MOZ_NO_REMOTE'] = '1'
     env['XPCOM_DEBUG_BREAK'] = 'stack'
-    env['NS_TRACE_MALLOC_DISABLE_STACKS'] = '1'
     env.update(extra_environment)
     if norun:
         cmdargs.append("-no-remote")
@@ -539,7 +525,10 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
     outfile_tail = follow_file(outfile)
     def maybe_remove_outfile():
         if os.path.exists(outfile):
-            os.remove(outfile)
+            try:
+                os.remove(outfile)
+            except Exception, e:
+                print "Error Cleaning up: " + str(e)
     atexit.register(maybe_remove_outfile)
     outf = open(outfile, "w")
     popen_kwargs = { 'stdout': outf, 'stderr': outf}
@@ -753,7 +742,8 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
                     raise Timeout("Test run exceeded timeout (%ds)." %
                                   RUN_TIMEOUT, test_name, parseable)
     except:
-        runner.stop()
+        if not noquit:
+            runner.stop()
         raise
     else:
         runner.wait(10)

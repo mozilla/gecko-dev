@@ -6,10 +6,12 @@
 #include "nsDeviceContext.h"
 #include <algorithm>                    // for max
 #include "gfxASurface.h"                // for gfxASurface, etc
+#include "gfxContext.h"
 #include "gfxFont.h"                    // for gfxFontGroup
 #include "gfxImageSurface.h"            // for gfxImageSurface
 #include "gfxPoint.h"                   // for gfxSize
-#include "mozilla/Attributes.h"         // for MOZ_FINAL
+#include "mozilla/Attributes.h"         // for final
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/Preferences.h"        // for Preferences
 #include "mozilla/Services.h"           // for GetObserverService
 #include "mozilla/mozalloc.h"           // for operator new
@@ -29,11 +31,11 @@
 #include "nsISupportsUtils.h"           // for NS_ADDREF, NS_RELEASE
 #include "nsIWidget.h"                  // for nsIWidget, NS_NATIVE_WINDOW
 #include "nsRect.h"                     // for nsRect
-#include "nsRenderingContext.h"         // for nsRenderingContext
 #include "nsServiceManagerUtils.h"      // for do_GetService
 #include "nsString.h"               // for nsDependentString
 #include "nsTArray.h"                   // for nsTArray, nsTArray_Impl
 #include "nsThreadUtils.h"              // for NS_IsMainThread
+#include "mozilla/gfx/Logging.h"
 
 #if !XP_MACOSX
 #include "gfxPDFSurface.h"
@@ -48,13 +50,13 @@
 #endif
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 using mozilla::services::GetObserverService;
 
-class nsFontCache MOZ_FINAL : public nsIObserver
+class nsFontCache final : public nsIObserver
 {
 public:
     nsFontCache()   { MOZ_COUNT_CTOR(nsFontCache); }
-    ~nsFontCache()  { MOZ_COUNT_DTOR(nsFontCache); }
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
@@ -62,7 +64,9 @@ public:
     void Init(nsDeviceContext* aContext);
     void Destroy();
 
-    nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
+    nsresult GetMetricsFor(const nsFont& aFont,
+                           nsIAtom* aLanguage, bool aExplicitLanguage,
+                           gfxFont::Orientation aOrientation,
                            gfxUserFontSet* aUserFontSet,
                            gfxTextPerfMetrics* aTextPerf,
                            nsFontMetrics*& aMetrics);
@@ -72,6 +76,8 @@ public:
     void Flush();
 
 protected:
+    ~nsFontCache()  { MOZ_COUNT_DTOR(nsFontCache); }
+
     nsDeviceContext*          mContext; // owner
     nsCOMPtr<nsIAtom>         mLocaleLanguage;
     nsTArray<nsFontMetrics*>  mFontMetrics;
@@ -120,7 +126,9 @@ nsFontCache::Observe(nsISupports*, const char* aTopic, const char16_t*)
 }
 
 nsresult
-nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
+nsFontCache::GetMetricsFor(const nsFont& aFont,
+                           nsIAtom* aLanguage, bool aExplicitLanguage,
+                           gfxFont::Orientation aOrientation,
                            gfxUserFontSet* aUserFontSet,
                            gfxTextPerfMetrics* aTextPerf,
                            nsFontMetrics*& aMetrics)
@@ -136,13 +144,13 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
     for (int32_t i = n; i >= 0; --i) {
         fm = mFontMetrics[i];
         if (fm->Font().Equals(aFont) && fm->GetUserFontSet() == aUserFontSet &&
-            fm->Language() == aLanguage) {
+            fm->Language() == aLanguage && fm->Orientation() == aOrientation) {
             if (i != n) {
                 // promote it to the end of the cache
                 mFontMetrics.RemoveElementAt(i);
                 mFontMetrics.AppendElement(fm);
             }
-            fm->GetThebesFontGroup()->UpdateFontList();
+            fm->GetThebesFontGroup()->UpdateUserFonts();
             NS_ADDREF(aMetrics = fm);
             return NS_OK;
         }
@@ -152,7 +160,8 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
 
     fm = new nsFontMetrics();
     NS_ADDREF(fm);
-    nsresult rv = fm->Init(aFont, aLanguage, mContext, aUserFontSet, aTextPerf);
+    nsresult rv = fm->Init(aFont, aLanguage, aExplicitLanguage, aOrientation,
+                           mContext, aUserFontSet, aTextPerf);
     if (NS_SUCCEEDED(rv)) {
         // the mFontMetrics list has the "head" at the end, because append
         // is cheaper than insert
@@ -171,7 +180,8 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
     Compact();
     fm = new nsFontMetrics();
     NS_ADDREF(fm);
-    rv = fm->Init(aFont, aLanguage, mContext, aUserFontSet, aTextPerf);
+    rv = fm->Init(aFont, aLanguage, aExplicitLanguage, aOrientation, mContext,
+                  aUserFontSet, aTextPerf);
     if (NS_SUCCEEDED(rv)) {
         mFontMetrics.AppendElement(fm);
         aMetrics = fm;
@@ -237,9 +247,9 @@ nsFontCache::Flush()
 
 nsDeviceContext::nsDeviceContext()
     : mWidth(0), mHeight(0), mDepth(0),
-      mAppUnitsPerDevPixel(-1), mAppUnitsPerDevNotScaledPixel(-1),
+      mAppUnitsPerDevPixel(-1), mAppUnitsPerDevPixelAtUnitFullZoom(-1),
       mAppUnitsPerPhysicalInch(-1),
-      mPixelScale(1.0f), mPrintingScale(1.0f),
+      mFullZoom(1.0f), mPrintingScale(1.0f),
       mFontCache(nullptr)
 {
     MOZ_ASSERT(NS_IsMainThread(), "nsDeviceContext created off main thread");
@@ -259,6 +269,8 @@ nsDeviceContext::~nsDeviceContext()
 nsresult
 nsDeviceContext::GetMetricsFor(const nsFont& aFont,
                                nsIAtom* aLanguage,
+                               bool aExplicitLanguage,
+                               gfxFont::Orientation aOrientation,
                                gfxUserFontSet* aUserFontSet,
                                gfxTextPerfMetrics* aTextPerf,
                                nsFontMetrics*& aMetrics)
@@ -269,8 +281,9 @@ nsDeviceContext::GetMetricsFor(const nsFont& aFont,
         mFontCache->Init(this);
     }
 
-    return mFontCache->GetMetricsFor(aFont, aLanguage, aUserFontSet,
-                                     aTextPerf, aMetrics);
+    return mFontCache->GetMetricsFor(aFont, aLanguage, aExplicitLanguage,
+                                     aOrientation, aUserFontSet, aTextPerf,
+                                     aMetrics);
 }
 
 nsresult
@@ -325,7 +338,7 @@ nsDeviceContext::SetDPI()
             break;
         }
 
-        mAppUnitsPerDevNotScaledPixel =
+        mAppUnitsPerDevPixelAtUnitFullZoom =
             NS_lround((AppUnitsPerCSSPixel() * 96) / dpi);
     } else {
         // A value of -1 means use the maximum of 96 and the system DPI.
@@ -350,36 +363,39 @@ nsDeviceContext::SetDPI()
                                                : CSSToLayoutDeviceScale(1.0);
         double devPixelsPerCSSPixel = scale.scale;
 
-        mAppUnitsPerDevNotScaledPixel =
+        mAppUnitsPerDevPixelAtUnitFullZoom =
             std::max(1, NS_lround(AppUnitsPerCSSPixel() / devPixelsPerCSSPixel));
     }
 
     NS_ASSERTION(dpi != -1.0, "no dpi set");
 
-    mAppUnitsPerPhysicalInch = NS_lround(dpi * mAppUnitsPerDevNotScaledPixel);
-    UpdateScaledAppUnits();
+    mAppUnitsPerPhysicalInch = NS_lround(dpi * mAppUnitsPerDevPixelAtUnitFullZoom);
+    UpdateAppUnitsForFullZoom();
 }
 
 nsresult
 nsDeviceContext::Init(nsIWidget *aWidget)
 {
+    nsresult rv = NS_OK;
     if (mScreenManager && mWidget == aWidget)
-        return NS_OK;
+        return rv;
 
     mWidget = aWidget;
     SetDPI();
 
     if (mScreenManager)
-        return NS_OK;
+        return rv;
 
-    mScreenManager = do_GetService("@mozilla.org/gfx/screenmanager;1");
+    mScreenManager = do_GetService("@mozilla.org/gfx/screenmanager;1", &rv);
 
-    return NS_OK;
+    return rv;
 }
 
-already_AddRefed<nsRenderingContext>
+already_AddRefed<gfxContext>
 nsDeviceContext::CreateRenderingContext()
 {
+    MOZ_ASSERT(mWidth > 0 && mHeight > 0);
+
     nsRefPtr<gfxASurface> printingSurface = mPrintingSurface;
 #ifdef XP_MACOSX
     // CreateRenderingContext() can be called (on reflow) after EndPage()
@@ -392,23 +408,30 @@ nsDeviceContext::CreateRenderingContext()
       printingSurface = mCachedPrintingSurface;
     }
 #endif
-    nsRefPtr<nsRenderingContext> pContext = new nsRenderingContext();
 
     RefPtr<gfx::DrawTarget> dt =
       gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(printingSurface,
                                                              gfx::IntSize(mWidth, mHeight));
 
-    pContext->Init(this, dt);
-    pContext->ThebesContext()->SetFlag(gfxContext::FLAG_DISABLE_SNAPPING);
-    pContext->Scale(mPrintingScale, mPrintingScale);
+    if (!dt) {
+        gfxCriticalError() << "Failed to create draw target in device context sized " << mWidth << "x" << mHeight << " and pointers " << hexa(mPrintingSurface) << " and " << hexa(printingSurface);
+        MOZ_CRASH("Cannot CreateDrawTargetForSurface");
+    }
 
+#ifdef XP_MACOSX
+    dt->AddUserData(&gfxContext::sDontUseAsSourceKey, dt, nullptr);
+#endif
+    dt->AddUserData(&sDisablePixelSnapping, (void*)0x1, nullptr);
+
+    nsRefPtr<gfxContext> pContext = new gfxContext(dt);
+    pContext->SetMatrix(gfxMatrix::Scaling(mPrintingScale, mPrintingScale));
     return pContext.forget();
 }
 
 nsresult
 nsDeviceContext::GetDepth(uint32_t& aDepth)
 {
-    if (mDepth == 0) {
+    if (mDepth == 0 && mScreenManager) {
         nsCOMPtr<nsIScreen> primaryScreen;
         mScreenManager->GetPrimaryScreen(getter_AddRefs(primaryScreen));
         primaryScreen->GetColorDepth(reinterpret_cast<int32_t *>(&mDepth));
@@ -479,7 +502,9 @@ nsDeviceContext::InitForPrinting(nsIDeviceContextSpec *aDevice)
 
     Init(nullptr);
 
-    CalcPrintingSize();
+    if (!CalcPrintingSize()) {
+        return NS_ERROR_FAILURE;
+    }
 
     return NS_OK;
 }
@@ -630,18 +655,29 @@ nsDeviceContext::ComputeFullAreaUsingScreen(nsRect* outRect)
 void
 nsDeviceContext::FindScreen(nsIScreen** outScreen)
 {
-    if (mWidget && mWidget->GetNativeData(NS_NATIVE_WINDOW))
+    if (!mWidget || !mScreenManager) {
+        return;
+    }
+
+    if (mWidget->GetOwningTabChild()) {
+        mScreenManager->ScreenForNativeWidget((void *)mWidget->GetOwningTabChild(),
+                                              outScreen);
+    }
+    else if (mWidget->GetNativeData(NS_NATIVE_WINDOW)) {
         mScreenManager->ScreenForNativeWidget(mWidget->GetNativeData(NS_NATIVE_WINDOW),
                                               outScreen);
-    else
+    }
+    else {
         mScreenManager->GetPrimaryScreen(outScreen);
+    }
 }
 
-void
+bool
 nsDeviceContext::CalcPrintingSize()
 {
-    if (!mPrintingSurface)
-        return;
+    if (!mPrintingSurface) {
+        return (mWidth > 0 && mHeight > 0);
+    }
 
     bool inPoints = true;
 
@@ -691,6 +727,7 @@ nsDeviceContext::CalcPrintingSize()
 #endif
 
     default:
+        gfxCriticalError() << "Printing to unknown surface type " << (int)mPrintingSurface->GetType();
         NS_ERROR("trying to print to unknown surface type");
     }
 
@@ -703,36 +740,38 @@ nsDeviceContext::CalcPrintingSize()
         mWidth = NSToIntRound(size.width);
         mHeight = NSToIntRound(size.height);
     }
+
+    return (mWidth > 0 && mHeight > 0);
 }
 
 bool nsDeviceContext::CheckDPIChange() {
-    int32_t oldDevPixels = mAppUnitsPerDevNotScaledPixel;
+    int32_t oldDevPixels = mAppUnitsPerDevPixelAtUnitFullZoom;
     int32_t oldInches = mAppUnitsPerPhysicalInch;
 
     SetDPI();
 
-    return oldDevPixels != mAppUnitsPerDevNotScaledPixel ||
+    return oldDevPixels != mAppUnitsPerDevPixelAtUnitFullZoom ||
         oldInches != mAppUnitsPerPhysicalInch;
 }
 
 bool
-nsDeviceContext::SetPixelScale(float aScale)
+nsDeviceContext::SetFullZoom(float aScale)
 {
     if (aScale <= 0) {
-        NS_NOTREACHED("Invalid pixel scale value");
+        NS_NOTREACHED("Invalid full zoom value");
         return false;
     }
     int32_t oldAppUnitsPerDevPixel = mAppUnitsPerDevPixel;
-    mPixelScale = aScale;
-    UpdateScaledAppUnits();
+    mFullZoom = aScale;
+    UpdateAppUnitsForFullZoom();
     return oldAppUnitsPerDevPixel != mAppUnitsPerDevPixel;
 }
 
 void
-nsDeviceContext::UpdateScaledAppUnits()
+nsDeviceContext::UpdateAppUnitsForFullZoom()
 {
     mAppUnitsPerDevPixel =
-        std::max(1, NSToIntRound(float(mAppUnitsPerDevNotScaledPixel) / mPixelScale));
-    // adjust mPixelScale to reflect appunit rounding
-    mPixelScale = float(mAppUnitsPerDevNotScaledPixel) / mAppUnitsPerDevPixel;
+        std::max(1, NSToIntRound(float(mAppUnitsPerDevPixelAtUnitFullZoom) / mFullZoom));
+    // adjust mFullZoom to reflect appunit rounding
+    mFullZoom = float(mAppUnitsPerDevPixelAtUnitFullZoom) / mAppUnitsPerDevPixel;
 }

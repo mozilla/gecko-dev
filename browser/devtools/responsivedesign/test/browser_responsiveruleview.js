@@ -11,10 +11,7 @@ function test() {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(startTest, content);
-  }, true);
+  gBrowser.selectedBrowser.addEventListener("load", startTest, true);
 
   content.location = "data:text/html;charset=utf-8,<html><style>" +
     "div {" +
@@ -34,12 +31,13 @@ function test() {
   }
 
   function startTest() {
+    gBrowser.selectedBrowser.removeEventListener("load", startTest, true);
     document.getElementById("Tools:ResponsiveUI").doCommand();
     executeSoon(onUIOpen);
   }
 
   function onUIOpen() {
-    instance = gBrowser.selectedTab.__responsiveUI;
+    instance = mgr.getResponsiveUIForTab(gBrowser.selectedTab);
     ok(instance, "instance of the module is attached to the tab.");
 
     instance.stack.setAttribute("notransition", "true");
@@ -66,8 +64,8 @@ function test() {
 
     is(numberOfRules(), 2, "Should have two rules initially.");
 
-    ruleView.element.addEventListener("CssRuleViewRefreshed", function refresh() {
-      ruleView.element.removeEventListener("CssRuleViewRefreshed", refresh, false);
+    ruleView.on("ruleview-refreshed", function refresh() {
+      ruleView.off("ruleview-refreshed", refresh, false);
       is(numberOfRules(), 3, "Should have three rules after shrinking.");
       testGrow();
     }, false);
@@ -76,29 +74,33 @@ function test() {
   }
 
   function testGrow() {
-    ruleView.element.addEventListener("CssRuleViewRefreshed", function refresh() {
-      ruleView.element.removeEventListener("CssRuleViewRefreshed", refresh, false);
+    ruleView.on("ruleview-refreshed", function refresh() {
+      ruleView.off("ruleview-refreshed", refresh, false);
       is(numberOfRules(), 2, "Should have two rules after growing.");
-      testEscapeCloses();
+      testEscapeOpensSplitConsole();
     }, false);
 
     instance.setSize(500, 500);
   }
 
-  function testEscapeCloses() {
+  function testEscapeOpensSplitConsole() {
     is(document.getElementById("Tools:ResponsiveUI").getAttribute("checked"), "true", "menu checked");
     ok(!inspector._toolbox._splitConsole, "Console is not split.");
 
-    mgr.once("off", function() {executeSoon(finishUp)});
+    inspector._toolbox.once("split-console", function() {
+      mgr.once("off", function() {executeSoon(finishUp)});
+      mgr.toggle(window, gBrowser.selectedTab);
+    });
     EventUtils.synthesizeKey("VK_ESCAPE", {});
   }
 
   function finishUp() {
-    ok(!inspector._toolbox._splitConsole, "Console is still not split after pressing escape.");
+    ok(inspector._toolbox._splitConsole, "Console is split after pressing escape.");
 
     // Menus are correctly updated?
     is(document.getElementById("Tools:ResponsiveUI").getAttribute("checked"), "false", "menu unchecked");
 
+    Services.prefs.clearUserPref("devtools.toolbox.splitconsoleEnabled");
     gBrowser.removeCurrentTab();
     finish();
   }

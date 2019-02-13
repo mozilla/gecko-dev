@@ -15,7 +15,7 @@
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for Layer::AddRef, etc
-#include "nsRect.h"                     // for nsIntRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "mozilla/gfx/PathHelpers.h"
 
@@ -26,18 +26,20 @@ namespace layers {
 
 class BasicColorLayer : public ColorLayer, public BasicImplData {
 public:
-  BasicColorLayer(BasicLayerManager* aLayerManager) :
-    ColorLayer(aLayerManager,
-               static_cast<BasicImplData*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+  explicit BasicColorLayer(BasicLayerManager* aLayerManager) :
+    ColorLayer(aLayerManager, static_cast<BasicImplData*>(this))
   {
     MOZ_COUNT_CTOR(BasicColorLayer);
   }
+
+protected:
   virtual ~BasicColorLayer()
   {
     MOZ_COUNT_DTOR(BasicColorLayer);
   }
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+public:
+  virtual void SetVisibleRegion(const nsIntRegion& aRegion) override
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
@@ -46,22 +48,21 @@ public:
 
   virtual void Paint(DrawTarget* aDT,
                      const gfx::Point& aDeviceOffset,
-                     Layer* aMaskLayer) MOZ_OVERRIDE
+                     Layer* aMaskLayer) override
   {
     if (IsHidden()) {
       return;
     }
 
     Rect snapped(mBounds.x, mBounds.y, mBounds.width, mBounds.height);
-    if (UserToDevicePixelSnapped(snapped, aDT->GetTransform())) {
-      Matrix mat = aDT->GetTransform();
-      mat.Invert();
-      snapped = mat.TransformBounds(snapped);
-    }
+    MaybeSnapToDevicePixels(snapped, *aDT, true);
 
+    // Clip drawing in case we're using (unbounded) operator source.
+    aDT->PushClipRect(snapped);
     FillRectWithMask(aDT, aDeviceOffset, snapped, ToColor(mColor),
                      DrawOptions(GetEffectiveOpacity(), GetEffectiveOperator(this)),
                      aMaskLayer);
+    aDT->PopClip();
   }
 
 protected:

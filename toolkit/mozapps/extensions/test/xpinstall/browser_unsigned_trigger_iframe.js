@@ -6,20 +6,21 @@ function test() {
   Harness.installConfirmCallback = confirm_install;
   Harness.installEndedCallback = install_ended;
   Harness.installsCompletedCallback = finish_test;
+  Harness.finalContentEvent = "InstallComplete";
   Harness.setup();
 
   var pm = Services.perms;
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
 
-  var triggers = encodeURIComponent(JSON.stringify({
+  var inner_url = encodeURIComponent(TESTROOT + "installtrigger.html?" + encodeURIComponent(JSON.stringify({
     "Unsigned XPI": {
       URL: TESTROOT + "unsigned.xpi",
       IconURL: TESTROOT + "icon.png",
       toString: function() { return this.URL; }
     }
-  }));
+  })));
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.loadURI(TESTROOT + "installtrigger_frame.html?" + triggers);
+  gBrowser.loadURI(TESTROOT + "installtrigger_frame.html?" + inner_url);
 }
 
 function confirm_install(window) {

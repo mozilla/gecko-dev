@@ -14,8 +14,10 @@ import signal
 import tempfile
 import time
 import traceback
+import zipfile
 
 from automation import Automation
+from mozlog.structured import get_default_logger
 from mozprocess import ProcessHandlerMixin
 
 
@@ -72,10 +74,81 @@ class B2GRemoteAutomation(Automation):
     def setRemoteLog(self, logfile):
         self._remoteLog = logfile
 
+    def getExtensionIDFromRDF(self, rdfSource):
+        """
+        Retrieves the extension id from an install.rdf file (or string).
+        """
+        from xml.dom.minidom import parse, parseString, Node
+
+        if isinstance(rdfSource, file):
+            document = parse(rdfSource)
+        else:
+            document = parseString(rdfSource)
+
+        # Find the <em:id> element. There can be multiple <em:id> tags
+        # within <em:targetApplication> tags, so we have to check this way.
+        for rdfChild in document.documentElement.childNodes:
+            if rdfChild.nodeType == Node.ELEMENT_NODE and rdfChild.tagName == "Description":
+                for descChild in rdfChild.childNodes:
+                    if descChild.nodeType == Node.ELEMENT_NODE and descChild.tagName == "em:id":
+                        return descChild.childNodes[0].data
+        return None
+
     def installExtension(self, extensionSource, profileDir, extensionID=None):
         # Bug 827504 - installing special-powers extension separately causes problems in B2G
         if extensionID != "special-powers@mozilla.org":
-            Automation.installExtension(self, extensionSource, profileDir, extensionID)
+            if not os.path.isdir(profileDir):
+              self.log.info("INFO | automation.py | Cannot install extension, invalid profileDir at: %s", profileDir)
+              return
+
+            installRDFFilename = "install.rdf"
+
+            extensionsRootDir = os.path.join(profileDir, "extensions", "staged")
+            if not os.path.isdir(extensionsRootDir):
+              os.makedirs(extensionsRootDir)
+
+            if os.path.isfile(extensionSource):
+              reader = zipfile.ZipFile(extensionSource, "r")
+
+              for filename in reader.namelist():
+                # Sanity check the zip file.
+                if os.path.isabs(filename):
+                  self.log.info("INFO | automation.py | Cannot install extension, bad files in xpi")
+                  return
+
+                # We may need to dig the extensionID out of the zip file...
+                if extensionID is None and filename == installRDFFilename:
+                  extensionID = self.getExtensionIDFromRDF(reader.read(filename))
+
+              # We must know the extensionID now.
+              if extensionID is None:
+                self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
+                return
+
+              # Make the extension directory.
+              extensionDir = os.path.join(extensionsRootDir, extensionID)
+              os.mkdir(extensionDir)
+
+              # Extract all files.
+              reader.extractall(extensionDir)
+
+            elif os.path.isdir(extensionSource):
+              if extensionID is None:
+                filename = os.path.join(extensionSource, installRDFFilename)
+                if os.path.isfile(filename):
+                  with open(filename, "r") as installRDF:
+                    extensionID = self.getExtensionIDFromRDF(installRDF)
+
+                if extensionID is None:
+                  self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
+                  return
+
+              # Copy extension tree into its own directory.
+              # "destination directory must not already exist".
+              shutil.copytree(extensionSource, os.path.join(extensionsRootDir, extensionID))
+
+            else:
+              self.log.info("INFO | automation.py | Cannot install extension, invalid extensionSource at: %s", extensionSource)
 
     # Set up what we need for the remote environment
     def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False):
@@ -114,7 +187,11 @@ class B2GRemoteAutomation(Automation):
             local_dump_dir = tempfile.mkdtemp()
             self._devicemanager.getDirectory(remote_dump_dir, local_dump_dir)
             try:
-                crashed = mozcrash.check_for_crashes(local_dump_dir, symbolsPath, test_name=self.lastTestSeen)
+                logger = get_default_logger()
+                if logger is not None:
+                    crashed = mozcrash.log_crashes(logger, local_dump_dir, symbolsPath, test=self.lastTestSeen)
+                else:
+                    crashed = mozcrash.check_for_crashes(local_dump_dir, symbolsPath, test_name=self.lastTestSeen)
             except:
                 traceback.print_exc()
             finally:
@@ -194,7 +271,7 @@ class B2GRemoteAutomation(Automation):
         time.sleep(10)
         self._devicemanager._checkCmd(['shell', 'start', 'b2g'])
         if self._is_emulator:
-            self.marionette.emulator.wait_for_port()
+            self.marionette.emulator.wait_for_port(self.marionette.port)
 
     def rebootDevice(self):
         # find device's current status and serial number
@@ -262,7 +339,7 @@ class B2GRemoteAutomation(Automation):
                                            'tcp:%s' % self.marionette.port])
 
         if self._is_emulator:
-            self.marionette.emulator.wait_for_port()
+            self.marionette.emulator.wait_for_port(self.marionette.port)
         else:
             time.sleep(5)
 
@@ -271,9 +348,24 @@ class B2GRemoteAutomation(Automation):
         if 'b2g' not in session:
             raise Exception("bad session value %s returned by start_session" % session)
 
-        if self.context_chrome:
-            self.marionette.set_context(self.marionette.CONTEXT_CHROME)
-        else:
+        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+        self.marionette.execute_script("""
+            let SECURITY_PREF = "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer";
+            Components.utils.import("resource://gre/modules/Services.jsm");
+            Services.prefs.setBoolPref(SECURITY_PREF, true);
+
+            if (!testUtils.hasOwnProperty("specialPowersObserver")) {
+              let loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+                .getService(Components.interfaces.mozIJSSubScriptLoader);
+              loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserver.js",
+                testUtils);
+              testUtils.specialPowersObserver = new testUtils.SpecialPowersObserver();
+              testUtils.specialPowersObserver.init();
+              testUtils.specialPowersObserver._loadFrameScript();
+            }
+            """)
+
+        if not self.context_chrome:
             self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
 
         # run the script that starts the tests

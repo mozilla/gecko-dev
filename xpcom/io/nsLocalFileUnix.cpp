@@ -26,7 +26,11 @@
 
 #if defined(HAVE_SYS_QUOTA_H) && defined(HAVE_LINUX_QUOTA_H)
 #define USE_LINUX_QUOTACTL
+#include <sys/mount.h>
 #include <sys/quota.h>
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 1024 /* kernel block size */
+#endif
 #endif
 
 #include "xpcom-private.h"
@@ -48,7 +52,6 @@
 
 #ifdef MOZ_WIDGET_GTK
 #include "nsIGIOService.h"
-#include "nsIGnomeVFSService.h"
 #endif
 
 #ifdef MOZ_WIDGET_COCOA
@@ -89,7 +92,7 @@ using namespace mozilla;
     PR_END_MACRO
 
 /* directory enumerator */
-class nsDirEnumeratorUnix MOZ_FINAL
+class nsDirEnumeratorUnix final
   : public nsISimpleEnumerator
   , public nsIDirectoryEnumerator
 {
@@ -129,7 +132,8 @@ nsDirEnumeratorUnix::~nsDirEnumeratorUnix()
   Close();
 }
 
-NS_IMPL_ISUPPORTS(nsDirEnumeratorUnix, nsISimpleEnumerator, nsIDirectoryEnumerator)
+NS_IMPL_ISUPPORTS(nsDirEnumeratorUnix, nsISimpleEnumerator,
+                  nsIDirectoryEnumerator)
 
 NS_IMETHODIMP
 nsDirEnumeratorUnix::Init(nsLocalFile* aParent,
@@ -394,7 +398,7 @@ nsLocalFile::OpenNSPRFileDesc(int32_t aFlags, int32_t aMode,
                               PRFileDesc** aResult)
 {
   *aResult = PR_Open(mPath.get(), aFlags, aMode);
-  if (! *aResult) {
+  if (!*aResult) {
     return NS_ErrorAccordingToNSPR();
   }
 
@@ -415,7 +419,7 @@ NS_IMETHODIMP
 nsLocalFile::OpenANSIFileDesc(const char* aMode, FILE** aResult)
 {
   *aResult = fopen(mPath.get(), aMode);
-  if (! *aResult) {
+  if (!*aResult) {
     return NS_ERROR_FAILURE;
   }
 
@@ -826,10 +830,6 @@ nsLocalFile::CopyToNative(nsIFile* aNewParent, const nsACString& aNewName)
 
     // actually create the file.
     nsLocalFile* newFile = new nsLocalFile();
-    if (!newFile) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
     nsCOMPtr<nsIFile> fileRef(newFile); // release on exit
 
     rv = newFile->InitWithNativePath(newPathName);
@@ -1406,9 +1406,9 @@ nsLocalFile::GetDiskSpaceAvailable(int64_t* aDiskSpaceAvailable)
 #endif
       && dq.dqb_bhardlimit) {
     int64_t QuotaSpaceAvailable = 0;
-    if (dq.dqb_bhardlimit > dq.dqb_curspace) {
-      QuotaSpaceAvailable = int64_t(fs_buf.F_BSIZE * (dq.dqb_bhardlimit - dq.dqb_curspace));
-    }
+    // dqb_bhardlimit is count of BLOCK_SIZE blocks, dqb_curspace is bytes
+    if ((BLOCK_SIZE * dq.dqb_bhardlimit) > dq.dqb_curspace)
+      QuotaSpaceAvailable = int64_t(BLOCK_SIZE * dq.dqb_bhardlimit - dq.dqb_curspace);
     if (QuotaSpaceAvailable < *aDiskSpaceAvailable) {
       *aDiskSpaceAvailable = QuotaSpaceAvailable;
     }
@@ -1768,13 +1768,13 @@ nsLocalFile::GetNativeTarget(nsACString& aResult)
   }
 
   int32_t size = (int32_t)symStat.st_size;
-  char* target = (char*)nsMemory::Alloc(size + 1);
+  char* target = (char*)moz_xmalloc(size + 1);
   if (!target) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   if (readlink(mPath.get(), target, (size_t)size) < 0) {
-    nsMemory::Free(target);
+    free(target);
     return NSRESULT_FOR_ERRNO();
   }
   target[size] = '\0';
@@ -1819,7 +1819,7 @@ nsLocalFile::GetNativeTarget(nsACString& aResult)
 
     int32_t newSize = (int32_t)symStat.st_size;
     if (newSize > size) {
-      char* newTarget = (char*)nsMemory::Realloc(target, newSize + 1);
+      char* newTarget = (char*)moz_xrealloc(target, newSize + 1);
       if (!newTarget) {
         rv = NS_ERROR_OUT_OF_MEMORY;
         break;
@@ -1836,7 +1836,7 @@ nsLocalFile::GetNativeTarget(nsACString& aResult)
     target[linkLen] = '\0';
   }
 
-  nsMemory::Free(target);
+  free(target);
 
   if (NS_FAILED(rv)) {
     aResult.Truncate();
@@ -1949,7 +1949,8 @@ nsLocalFile::SetPersistentDescriptor(const nsACString& aPersistentDescriptor)
 
   Boolean changed;
   FSRef resolvedFSRef;
-  OSErr err = ::FSResolveAlias(nullptr, (AliasHandle)newHandle, &resolvedFSRef, &changed);
+  OSErr err = ::FSResolveAlias(nullptr, (AliasHandle)newHandle, &resolvedFSRef,
+                               &changed);
 
   rv = MacErrorMapper(err);
   DisposeHandle(newHandle);
@@ -1968,8 +1969,7 @@ nsLocalFile::Reveal()
 {
 #ifdef MOZ_WIDGET_GTK
   nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);
-  nsCOMPtr<nsIGnomeVFSService> gnomevfs = do_GetService(NS_GNOMEVFSSERVICE_CONTRACTID);
-  if (!giovfs && !gnomevfs) {
+  if (!giovfs) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1979,14 +1979,8 @@ nsLocalFile::Reveal()
   }
 
   if (isDirectory) {
-    if (giovfs) {
-      return giovfs->ShowURIForInput(mPath);
-    } else
-      /* Fallback to GnomeVFS */
-    {
-      return gnomevfs->ShowURIForInput(mPath);
-    }
-  } else if (giovfs && NS_SUCCEEDED(giovfs->OrgFreedesktopFileManager1ShowItems(mPath))) {
+    return giovfs->ShowURIForInput(mPath);
+  } else if (NS_SUCCEEDED(giovfs->OrgFreedesktopFileManager1ShowItems(mPath))) {
     return NS_OK;
   } else {
     nsCOMPtr<nsIFile> parentDir;
@@ -1998,11 +1992,7 @@ nsLocalFile::Reveal()
       return NS_ERROR_FAILURE;
     }
 
-    if (giovfs) {
-      return giovfs->ShowURIForInput(dirPath);
-    } else {
-      return gnomevfs->ShowURIForInput(dirPath);
-    }
+    return giovfs->ShowURIForInput(dirPath);
   }
 #elif defined(MOZ_WIDGET_COCOA)
   CFURLRef url;
@@ -2022,15 +2012,11 @@ nsLocalFile::Launch()
 {
 #ifdef MOZ_WIDGET_GTK
   nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);
-  nsCOMPtr<nsIGnomeVFSService> gnomevfs = do_GetService(NS_GNOMEVFSSERVICE_CONTRACTID);
-  if (giovfs) {
-    return giovfs->ShowURIForInput(mPath);
-  } else if (gnomevfs) {
-    /* GnomeVFS fallback */
-    return gnomevfs->ShowURIForInput(mPath);
+  if (!giovfs) {
+    return NS_ERROR_FAILURE;
   }
 
-  return NS_ERROR_FAILURE;
+  return giovfs->ShowURIForInput(mPath);
 #elif defined(MOZ_ENABLE_CONTENTACTION)
   QUrl uri = QUrl::fromLocalFile(QString::fromUtf8(mPath.get()));
   ContentAction::Action action =
@@ -2052,9 +2038,13 @@ nsLocalFile::Launch()
   }
 
   nsAutoCString fileUri = NS_LITERAL_CSTRING("file://") + mPath;
-  return widget::android::GeckoAppShell::OpenUriExternal(
+  return widget::GeckoAppShell::OpenUriExternal(
     NS_ConvertUTF8toUTF16(fileUri),
-    NS_ConvertUTF8toUTF16(type)) ? NS_OK : NS_ERROR_FAILURE;
+    NS_ConvertUTF8toUTF16(type),
+    EmptyString(),
+    EmptyString(),
+    EmptyString(),
+    EmptyString()) ? NS_OK : NS_ERROR_FAILURE;
 #elif defined(MOZ_WIDGET_COCOA)
   CFURLRef url;
   if (NS_SUCCEEDED(GetCFURL(&url))) {
@@ -2167,6 +2157,12 @@ nsLocalFile::MoveTo(nsIFile* aNewParentDir, const nsAString& aNewName)
 NS_IMETHODIMP
 nsLocalFile::RenameTo(nsIFile* aNewParentDir, const nsAString& aNewName)
 {
+  SET_UCS_2ARGS_2(RenameToNative, aNewParentDir, aNewName);
+}
+
+NS_IMETHODIMP
+nsLocalFile::RenameToNative(nsIFile* aNewParentDir, const nsACString& aNewName)
+{
   nsresult rv;
 
   // check to make sure that this has been initialized properly
@@ -2174,12 +2170,7 @@ nsLocalFile::RenameTo(nsIFile* aNewParentDir, const nsAString& aNewName)
 
   // check to make sure that we have a new parent
   nsAutoCString newPathName;
-  nsAutoCString newNativeName;
-  rv = NS_CopyUnicodeToNative(aNewName, newNativeName);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = GetNativeTargetPathName(aNewParentDir, newNativeName, newPathName);
+  rv = GetNativeTargetPathName(aNewParentDir, aNewName, newPathName);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -2333,7 +2324,7 @@ NS_IMETHODIMP
 nsLocalFile::InitWithCFURL(CFURLRef aCFURL)
 {
   UInt8 path[PATH_MAX];
-  if (::CFURLGetFileSystemRepresentation(aCFURL, false, path, PATH_MAX)) {
+  if (::CFURLGetFileSystemRepresentation(aCFURL, true, path, PATH_MAX)) {
     nsDependentCString nativePath((char*)path);
     return InitWithNativePath(nativePath);
   }
@@ -2403,7 +2394,8 @@ nsLocalFile::GetFSSpec(FSSpec* aResult)
   FSRef fsRef;
   nsresult rv = GetFSRef(&fsRef);
   if (NS_SUCCEEDED(rv)) {
-    OSErr err = ::FSGetCatalogInfo(&fsRef, kFSCatInfoNone, nullptr, nullptr, aResult, nullptr);
+    OSErr err = ::FSGetCatalogInfo(&fsRef, kFSCatInfoNone, nullptr, nullptr,
+                                   aResult, nullptr);
     return MacErrorMapper(err);
   }
 
@@ -2430,7 +2422,8 @@ nsLocalFile::GetFileSizeWithResFork(int64_t* aFileSizeWithResFork)
     return MacErrorMapper(err);
   }
 
-  *aFileSizeWithResFork = catalogInfo.dataLogicalSize + catalogInfo.rsrcLogicalSize;
+  *aFileSizeWithResFork =
+    catalogInfo.dataLogicalSize + catalogInfo.rsrcLogicalSize;
   return NS_OK;
 }
 

@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,6 +29,8 @@ const { dumpn, dumpv } = DevToolsUtils;
 const StreamUtils = require("devtools/toolkit/transport/stream-utils");
 const { Packet, JSONPacket, BulkPacket } =
   require("devtools/toolkit/transport/packets");
+const promise = require("promise");
+const EventEmitter = require("devtools/toolkit/event-emitter");
 
 DevToolsUtils.defineLazyGetter(this, "Pipe", () => {
   return CC("@mozilla.org/pipe;1", "nsIPipe", "init");
@@ -88,6 +90,8 @@ const PACKET_HEADER_MAX = 200;
  *     @return Promise
  *             The promise is resolved when copying completes or rejected if any
  *             (unexpected) errors occur.
+ *             This object also emits "progress" events for each chunk that is
+ *             copied.  See stream-utils.js.
  *
  * - onClosed(reason) - called when the connection is closed. |reason| is
  *   an optional nsresult or object, typically passed when the transport is
@@ -97,6 +101,8 @@ const PACKET_HEADER_MAX = 200;
  * details on the format of these packets.
  */
 function DebuggerTransport(input, output) {
+  EventEmitter.decorate(this);
+
   this._input = input;
   this._scriptableInput = new ScriptableInputStream(input);
   this._output = output;
@@ -128,6 +134,8 @@ DebuggerTransport.prototype = {
    * they are passed to this method.
    */
   send: function(object) {
+    this.emit("send", object);
+
     let packet = new JSONPacket(this);
     packet.object = object;
     this._outgoing.push(packet);
@@ -172,8 +180,12 @@ DebuggerTransport.prototype = {
    *             @return Promise
    *                     The promise is resolved when copying completes or
    *                     rejected if any (unexpected) errors occur.
+   *                     This object also emits "progress" events for each chunk
+   *                     that is copied.  See stream-utils.js.
    */
   startBulkSend: function(header) {
+    this.emit("startBulkSend", header);
+
     let packet = new BulkPacket(this);
     packet.header = header;
     this._outgoing.push(packet);
@@ -188,6 +200,8 @@ DebuggerTransport.prototype = {
    *        closing the transport (likely because a stream closed or failed).
    */
   close: function(reason) {
+    this.emit("onClosed", reason);
+
     this.active = false;
     this._input.close();
     this._scriptableInput.close();
@@ -254,15 +268,19 @@ DebuggerTransport.prototype = {
    * may not complete.
    */
   onOutputStreamReady: DevToolsUtils.makeInfallible(function(stream) {
-    if (this._outgoing.length === 0) {
+    if (!this._outgoingEnabled || this._outgoing.length === 0) {
       return;
     }
 
     try {
       this._currentOutgoing.write(stream);
-    } catch(e if e.result != Cr.NS_BASE_STREAM_WOULD_BLOCK) {
-      this.close(e.result);
-      return;
+    } catch(e) {
+      if (e.result != Cr.NS_BASE_STREAM_WOULD_BLOCK) {
+        this.close(e.result);
+        return;
+      } else {
+        throw e;
+      }
     }
 
     this._flushOutgoing();
@@ -337,8 +355,12 @@ DebuggerTransport.prototype = {
       while(stream.available() && this._incomingEnabled &&
             this._processIncoming(stream, stream.available())) {}
       this._waitForIncoming();
-    } catch(e if e.result != Cr.NS_BASE_STREAM_WOULD_BLOCK) {
-      this.close(e.result);
+    } catch(e) {
+      if (e.result != Cr.NS_BASE_STREAM_WOULD_BLOCK) {
+        this.close(e.result);
+      } else {
+        throw e;
+      }
     }
   }, "DebuggerTransport.prototype.onInputStreamReady"),
 
@@ -453,6 +475,7 @@ DebuggerTransport.prototype = {
     DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
       // Ensure the transport is still alive by the time this runs.
       if (this.active) {
+        this.emit("onPacket", object);
         this.hooks.onPacket(object);
       }
     }, "DebuggerTransport instance's this.hooks.onPacket"));
@@ -468,6 +491,7 @@ DebuggerTransport.prototype = {
     DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
       // Ensure the transport is still alive by the time this runs.
       if (this.active) {
+        this.emit("onBulkPacket", ...args);
         this.hooks.onBulkPacket(...args);
       }
     }, "DebuggerTransport instance's this.hooks.onBulkPacket"));
@@ -501,6 +525,8 @@ exports.DebuggerTransport = DebuggerTransport;
  * @see DebuggerTransport
  */
 function LocalDebuggerTransport(other) {
+  EventEmitter.decorate(this);
+
   this.other = other;
   this.hooks = null;
 
@@ -519,6 +545,8 @@ LocalDebuggerTransport.prototype = {
    * endpoint.
    */
   send: function(packet) {
+    this.emit("send", packet);
+
     let serial = this._serial.count++;
     if (dumpn.wantLogging) {
       /* Check 'from' first, as 'echo' packets have both. */
@@ -537,6 +565,7 @@ LocalDebuggerTransport.prototype = {
           dumpn("Received packet " + serial + ": " + JSON.stringify(packet, null, 2));
         }
         if (other.hooks) {
+          other.emit("onPacket", packet);
           other.hooks.onPacket(packet);
         }
       }, "LocalDebuggerTransport instance's this.other.hooks.onPacket"));
@@ -553,6 +582,8 @@ LocalDebuggerTransport.prototype = {
    * done with it.
    */
   startBulkSend: function({actor, type, length}) {
+    this.emit("startBulkSend", {actor, type, length});
+
     let serial = this._serial.count++;
 
     dumpn("Sent bulk packet " + serial + " for actor " + actor);
@@ -570,19 +601,22 @@ LocalDebuggerTransport.prototype = {
 
       // Receiver
       let deferred = promise.defer();
-
-      this.other.hooks.onBulkPacket({
+      let packet = {
         actor: actor,
         type: type,
         length: length,
         copyTo: (output) => {
-          deferred.resolve(
-            StreamUtils.copyStream(pipe.inputStream, output, length));
-          return deferred.promise;
+          let copying =
+            StreamUtils.copyStream(pipe.inputStream, output, length);
+          deferred.resolve(copying);
+          return copying;
         },
         stream: pipe.inputStream,
         done: deferred
-      });
+      };
+
+      this.other.emit("onBulkPacket", packet);
+      this.other.hooks.onBulkPacket(packet);
 
       // Await the result of reading from the stream
       deferred.promise.then(() => pipe.inputStream.close(), this.close);
@@ -598,9 +632,10 @@ LocalDebuggerTransport.prototype = {
 
       sendDeferred.resolve({
         copyFrom: (input) => {
-          copyDeferred.resolve(
-            StreamUtils.copyStream(input, pipe.outputStream, length));
-          return copyDeferred.promise;
+          let copying =
+            StreamUtils.copyStream(input, pipe.outputStream, length);
+          copyDeferred.resolve(copying);
+          return copying;
         },
         stream: pipe.outputStream,
         done: copyDeferred
@@ -617,6 +652,8 @@ LocalDebuggerTransport.prototype = {
    * Close the transport.
    */
   close: function() {
+    this.emit("close");
+
     if (this.other) {
       // Remove the reference to the other endpoint before calling close(), to
       // avoid infinite recursion.
@@ -674,6 +711,8 @@ exports.LocalDebuggerTransport = LocalDebuggerTransport;
  * <prefix> is |prefix|, whose data is the protocol packet.
  */
 function ChildDebuggerTransport(sender, prefix) {
+  EventEmitter.decorate(this);
+
   this._sender = sender.QueryInterface(Ci.nsIMessageSender);
   this._messageName = "debug:" + prefix + ":packet";
 }
@@ -694,14 +733,17 @@ ChildDebuggerTransport.prototype = {
 
   close: function () {
     this._sender.removeMessageListener(this._messageName, this);
+    this.emit("onClosed");
     this.hooks.onClosed();
   },
 
   receiveMessage: function ({data}) {
+    this.emit("onPacket", data);
     this.hooks.onPacket(data);
   },
 
   send: function (packet) {
+    this.emit("send", packet);
     this._sender.sendAsyncMessage(this._messageName, packet);
   },
 
@@ -711,5 +753,121 @@ ChildDebuggerTransport.prototype = {
 };
 
 exports.ChildDebuggerTransport = ChildDebuggerTransport;
+
+// WorkerDebuggerTransport is defined differently depending on whether we are
+// on the main thread or a worker thread. In the former case, we are required
+// by the devtools loader, and isWorker will be false. Otherwise, we are
+// required by the worker loader, and isWorker will be true.
+//
+// Each worker debugger supports only a single connection to the main thread.
+// However, its theoretically possible for multiple servers to connect to the
+// same worker. Consequently, each transport has a connection id, to allow
+// messages from multiple connections to be multiplexed on a single channel.
+
+if (!this.isWorker) {
+  (function () { // Main thread
+    /**
+     * A transport that uses a WorkerDebugger to send packets from the main
+     * thread to a worker thread.
+     */
+    function WorkerDebuggerTransport(dbg, id) {
+      this._dbg = dbg;
+      this._id = id;
+      this.onMessage = this._onMessage.bind(this);
+    }
+
+    WorkerDebuggerTransport.prototype = {
+      constructor: WorkerDebuggerTransport,
+
+      ready: function () {
+        this._dbg.addListener(this);
+      },
+
+      close: function () {
+        this._dbg.removeListener(this);
+        if (this.hooks) {
+          this.hooks.onClosed();
+        }
+      },
+
+      send: function (packet) {
+        this._dbg.postMessage(JSON.stringify({
+          type: "message",
+          id: this._id,
+          message: packet
+        }));
+      },
+
+      startBulkSend: function () {
+        throw new Error("Can't send bulk data from worker threads!");
+      },
+
+      _onMessage: function (message) {
+        let packet = JSON.parse(message);
+        if (packet.type !== "message" || packet.id !== this._id) {
+          return;
+        }
+
+        if (this.hooks) {
+          this.hooks.onPacket(packet.message);
+        }
+      }
+    };
+
+    exports.WorkerDebuggerTransport = WorkerDebuggerTransport;
+  }).call(this);
+} else {
+  (function () { // Worker thread
+    /*
+     * A transport that uses a WorkerDebuggerGlobalScope to send packets from a
+     * worker thread to the main thread.
+     */
+    function WorkerDebuggerTransport(scope, id) {
+      this._scope = scope;
+      this._id = id;
+      this._onMessage = this._onMessage.bind(this);
+    }
+
+    WorkerDebuggerTransport.prototype = {
+      constructor: WorkerDebuggerTransport,
+
+      ready: function () {
+        this._scope.addEventListener("message", this._onMessage);
+      },
+
+      close: function () {
+        this._scope.removeEventListener("message", this._onMessage);
+        if (this.hooks) {
+          this.hooks.onClosed();
+        }
+      },
+
+      send: function (packet) {
+        this._scope.postMessage(JSON.stringify({
+          type: "message",
+          id: this._id,
+          message: packet
+        }));
+      },
+
+      startBulkSend: function () {
+        throw new Error("Can't send bulk data from worker threads!");
+      },
+
+      _onMessage: function (event) {
+        let packet = JSON.parse(event.data);
+        if (packet.type !== "message" || packet.id !== this._id) {
+          return;
+        }
+
+        if (this.hooks) {
+          this.hooks.onPacket(packet.message);
+        }
+      }
+    };
+
+    exports.WorkerDebuggerTransport = WorkerDebuggerTransport;
+  }).call(this);
+}
 
 });

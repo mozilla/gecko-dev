@@ -5,22 +5,84 @@
 
 /* Copyright © 2013 Deutsche Telekom, Inc. */
 
-[Constructor(octet tnf, optional Uint8Array type, optional Uint8Array id, optional Uint8Array payload)]
+/**
+ * Type Name Format.
+ *
+ * @see NFCForum-TS-NDEF 3.2.6 TNF
+ */
+enum TNF {
+  "empty",
+  "well-known",
+  "media-type",
+  "absolute-uri",
+  "external",
+  "unknown",
+  "unchanged"
+};
+
+/**
+ * Prefixes of well-known URI.
+ *
+ * @see NFCForum-TS-RTD_URI Table 3. Abbreviation Table.
+ */
+enum WellKnownURIPrefix {
+  "",
+  "http://www.",
+  "https://www.",
+  "http://",
+  "https://",
+  "tel:",
+  "mailto:",
+  "ftp://anonymous:anonymous@",
+  "ftp://ftp.",
+  "ftps://",
+  "sftp://",
+  "smb://",
+  "nfs://",
+  "ftp://",
+  "dav://",
+  "news:",
+  "telnet://",
+  "imap:",
+  "rtsp://",
+  "urn:",
+  "pop:",
+  "sip:",
+  "sips:",
+  "tftp:",
+  "btspp://",
+  "btl2cap://",
+  "btgoep://",
+  "tcpobex://",
+  "irdaobex://",
+  "file://",
+  "urn:epc:id:",
+  "urn:epc:tag:",
+  "urn:epc:pat:",
+  "urn:epc:raw:",
+  "urn:epc:",
+  "urn:nfc:"
+};
+
+/**
+ * Record Type Description.
+ *
+ * Record Types from well-known NDEF Records.
+ * @see NFCForum-TS-RTD
+ */
+enum RTD {
+  "U", // URI
+};
+
+[Constructor(optional MozNDEFRecordOptions options),
+ Constructor(DOMString uri)]
 interface MozNDEFRecord
 {
   /**
-   * Type Name Field (3-bits) - Specifies the NDEF record type in general.
-   *   tnf_empty: 0x00
-   *   tnf_well_known: 0x01
-   *   tnf_mime_media: 0x02
-   *   tnf_absolute_uri: 0x03
-   *   tnf_external type: 0x04
-   *   tnf_unknown: 0x05
-   *   tnf_unchanged: 0x06
-   *   tnf_reserved: 0x07
+   * Type Name Field - Specifies the NDEF record type in general.
    */
   [Constant]
-  readonly attribute octet tnf;
+  readonly attribute TNF tnf;
 
   /**
    * type - Describes the content of the payload. This can be a mime type.
@@ -40,4 +102,23 @@ interface MozNDEFRecord
    */
   [Constant]
   readonly attribute Uint8Array? payload;
+
+  /**
+   * Get the size of this NDEF Record.
+   */
+  [Constant]
+  readonly attribute unsigned long size;
+
+  /**
+   * Returns this NDEF Record as URI, return null if this record cannot be
+   * decoded as a well-known URI record.
+   */
+  DOMString? getAsURI();
+};
+
+dictionary MozNDEFRecordOptions {
+  TNF tnf = "empty";
+  Uint8Array? type;
+  Uint8Array? id;
+  Uint8Array? payload;
 };

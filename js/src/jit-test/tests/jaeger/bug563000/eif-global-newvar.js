@@ -1,5 +1,4 @@
-// |jit-test| debug
-setDebug(true);
+load(libdir + "evalInFrame.js");
 
 function callee() {
   evalInFrame(1, "var x = 'success'");

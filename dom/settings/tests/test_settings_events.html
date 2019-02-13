@@ -12,10 +12,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=678695
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=678695">Mozilla Bug 678695</a>
 <p id="display"></p>
 <div id="content" style="display: none">
-  
+
 </div>
 <pre id="test">
 <script type="application/javascript">
+SpecialPowers.addPermission("settings-api-read", true, document);
+SpecialPowers.addPermission("settings-api-write", true, document);
+SpecialPowers.addPermission("settings-read", true, document);
+SpecialPowers.addPermission("settings-write", true, document);
 
 /** Test for Bug 678695 **/
 
@@ -31,6 +35,14 @@ is(e.settingValue.test, "test", "Name should be 'test'.");
 e = new MozSettingsEvent("settingchanged", {settingName: "a", settingValue: true});
 is(e.settingName, "a", "Name should be a.");
 is(e.settingValue, true, "Value should be true.");
+
+var e = new MozSettingsTransactionEvent("settingtransactionsuccess", {});
+ok(e, "Should have settings event!");
+is(e.error, "", "error should be null");
+
+var e = new MozSettingsTransactionEvent("settingtransactionfailure", {error: "Test error."});
+ok(e, "Should have settings event!");
+is(e.error, "Test error.", "error should be 'Test error.'");
 
 
 </script>

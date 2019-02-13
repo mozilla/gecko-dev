@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-// vim:cindent:ts=4:et:sw=4:
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// vim:cindent:ts=2:et:sw=2:
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * Algorithms that determine column and table widths used for CSS2's
+ * Algorithms that determine column and table isizes used for CSS2's
  * 'table-layout: fixed'.
  */
 
@@ -20,20 +20,21 @@ class nsTableFrame;
 class FixedTableLayoutStrategy : public nsITableLayoutStrategy
 {
 public:
-    FixedTableLayoutStrategy(nsTableFrame *aTableFrame);
-    virtual ~FixedTableLayoutStrategy();
+  explicit FixedTableLayoutStrategy(nsTableFrame *aTableFrame);
+  virtual ~FixedTableLayoutStrategy();
 
-    // nsITableLayoutStrategy implementation
-    virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
-    virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext,
-                                 bool aComputingSize) MOZ_OVERRIDE;
-    virtual void MarkIntrinsicWidthsDirty() MOZ_OVERRIDE;
-    virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
+  // nsITableLayoutStrategy implementation
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
+                               bool aComputingSize) override;
+  virtual void MarkIntrinsicISizesDirty() override;
+  virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState)
+               override;
 
 private:
-    nsTableFrame *mTableFrame;
-    nscoord mMinWidth;
-    nscoord mLastCalcWidth;
+  nsTableFrame *mTableFrame;
+  nscoord mMinISize;
+  nscoord mLastCalcISize;
 };
 
 #endif /* !defined(FixedTableLayoutStrategy_h_) */

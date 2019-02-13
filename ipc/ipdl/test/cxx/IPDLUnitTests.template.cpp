@@ -20,8 +20,9 @@
 ${INCLUDES}
 //-----------------------------------------------------------------------------
 
-using namespace base;
 using namespace std;
+
+using base::Thread;
 
 namespace mozilla {
 namespace _ipdltest {
@@ -37,6 +38,9 @@ Thread* gChildThread;
 MessageLoop *gParentMessageLoop;
 bool gParentDone;
 bool gChildDone;
+
+void
+DeleteChildActor();
 
 //-----------------------------------------------------------------------------
 // data/functions accessed by both parent and child processes
@@ -177,7 +181,7 @@ ${PARENT_ENABLED_CASES_PROC}
     if (!transport)
         fail("no transport");
 
-    base::ProcessHandle child = gSubprocess->GetChildProcessHandle();
+    base::ProcessId child = base::GetProcId(gSubprocess->GetChildProcessHandle());
 
     switch (test) {
 //-----------------------------------------------------------------------------
@@ -321,6 +325,13 @@ QuitParent()
     }
 }
 
+static void
+ChildDie()
+{
+    DeleteChildActor();
+    XRE_ShutdownChildProcess();
+}
+
 void
 QuitChild()
 {
@@ -328,7 +339,8 @@ QuitChild()
         gParentMessageLoop->PostTask(
             FROM_HERE, NewRunnableFunction(ChildCompleted));
     } else { // Process-mode test
-        XRE_ShutdownChildProcess();
+        MessageLoop::current()->PostTask(
+            FROM_HERE, NewRunnableFunction(ChildDie));
     }
 }
 
@@ -359,12 +371,9 @@ ${CHILD_DELETE_CASES}
 
 void
 IPDLUnitTestChildInit(IPC::Channel* transport,
-                      base::ProcessHandle parent,
+                      base::ProcessId parentPid,
                       MessageLoop* worker)
 {
-    if (atexit(DeleteChildActor))
-        fail("can't install atexit() handler");
-
     switch (IPDLUnitTest()) {
 //-----------------------------------------------------------------------------
 //===== TEMPLATED =====

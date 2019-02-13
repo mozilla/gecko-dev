@@ -12,6 +12,7 @@
 
 menu,
 menuitem,
+menucaption,
 .splitmenu-menuitem {
   -moz-appearance: menuitem;
   -moz-box-align: center;
@@ -67,9 +68,8 @@ menuitem.spell-suggestion {
 
 /* ::::: menu/menuitems in menulist popups ::::: */
 
-.menulist-menupopup > menuitem,
 menulist > menupopup > menuitem,
-.menulist-menupopup > menu,
+menulist > menupopup > menucaption,
 menulist > menupopup > menu {
   padding: 1px 5px;
   max-width: none;
@@ -92,6 +92,12 @@ menulist > menupopup > menu {
   /* This is (18 + the size of end-padding on .menu-iconic-left)px */
   -moz-margin-start: 21px !important;
   font-weight: inherit;
+}
+
+menucaption > .menu-text,
+menucaption > .menu-iconic-text {
+  -moz-margin-start: 0 !important;
+  font-weight: bold;
 }
 
 .menu-description {
@@ -150,9 +156,8 @@ menulist > menupopup > menu {
 }
 
 
-.menulist-menupopup > menuitem > .menu-iconic-left,
 menulist > menupopup > menuitem > .menu-iconic-left,
-.menulist-menupopup > menu > .menu-iconic-left,
+menulist > menupopup > menucaption > .menu-iconic-left,
 menulist > menupopup > menu > .menu-iconic-left {
   display: none;
 }
@@ -182,8 +187,7 @@ menuseparator {
   border-bottom: 1px solid ThreeDHighlight;
 }
 
-menulist > menupopup > menuseparator,
-.menulist-menupopup > menuseparator {
+menulist > menupopup > menuseparator {
   border-top: 1px solid #000000;
   border-bottom: none;
 }

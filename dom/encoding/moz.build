@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['test']
-
 EXPORTS.mozilla.dom += [
     'EncodingUtils.h',
     'FallbackEncoding.h',
@@ -22,15 +20,30 @@ UNIFIED_SOURCES += [
 
 FAIL_ON_WARNINGS = True
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/intl/locale/src',
+    '/intl/locale',
 ]
 
-GENERATED_FILES += [
-    'domainsfallbacks.properties.h',
-    'encodingsgroups.properties.h',
-    'labelsencodings.properties.h',
-    'localesfallbacks.properties.h',
-    'nonparticipatingdomains.properties.h',
+props2arrays = '/intl/locale/props2arrays.py'
+prefixes = (
+    'domainsfallbacks',
+    'encodingsgroups',
+    'labelsencodings',
+    'localesfallbacks',
+    'nonparticipatingdomains',
+)
+
+for prefix in prefixes:
+    input_file = prefix + '.properties'
+    header = prefix + '.properties.h'
+    GENERATED_FILES += [header]
+    props = GENERATED_FILES[header]
+    props.script = props2arrays
+    props.inputs = [input_file]
+
+MOCHITEST_MANIFESTS += [
+    'test/mochitest.ini',
 ]
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']

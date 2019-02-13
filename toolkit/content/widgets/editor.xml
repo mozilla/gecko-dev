@@ -8,7 +8,7 @@
    xmlns="http://www.mozilla.org/xbl"
    xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
    xmlns:xbl="http://www.mozilla.org/xbl">
-  
+
   <binding id="editor" role="outerdoc">
     <implementation type="application/javascript">
       <constructor>
@@ -134,29 +134,55 @@
                 readonly="true"/>
       <property name="contentDocument" readonly="true"
                 onget="return this.webNavigation.document;"/>
-      <property name="docShell"
-                onget="return this.boxObject.QueryInterface(Components.interfaces.nsIContainerBoxObject).docShell;"
-                readonly="true"/>
+      <property name="docShell" readonly="true">
+        <getter><![CDATA[
+          let frameLoader = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;
+          return frameLoader ? frameLoader.docShell : null;
+        ]]></getter>
+      </property>
       <property name="currentURI"
                 readonly="true"
                 onget="return this.webNavigation.currentURI;"/>
       <property name="contentWindow"
                 readonly="true"
                 onget="return this.docShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);"/>
+      <property name="contentWindowAsCPOW"
+                readonly="true"
+                onget="return this.contentWindow;"/>
       <property name="webBrowserFind"
                 readonly="true"
                 onget="return this.docShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIWebBrowserFind);"/>
       <property name="markupDocumentViewer"
                 readonly="true"
-                onget="return this.docShell.contentViewer.QueryInterface(Components.interfaces.nsIMarkupDocumentViewer);"/>
+                onget="return this.docShell.contentViewer;"/>
       <property name="editingSession"
                 readonly="true"
                 onget="return this.webNavigation.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIEditingSession);"/>
       <property name="commandManager"
                 readonly="true"
                 onget="return this.webNavigation.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsICommandManager);"/>
+      <property name="fullZoom"
+                onget="return this.markupDocumentViewer.fullZoom;"
+                onset="this.markupDocumentViewer.fullZoom = val;"/>
+      <property name="textZoom"
+                onget="return this.markupDocumentViewer.textZoom;"
+                onset="this.markupDocumentViewer.textZoom = val;"/>
+      <property name="isSyntheticDocument"
+                onget="return this.contentDocument.isSyntheticDocument;"
+                readonly="true"/>
+      <property name="messageManager"
+                readonly="true">
+        <getter>
+          <![CDATA[
+            var owner = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+            if (!owner.frameLoader) {
+              return null;
+            }
+            return owner.frameLoader.messageManager;
+          ]]>
+        </getter>
+      </property>
     </implementation>
   </binding>
 
 </bindings>
-

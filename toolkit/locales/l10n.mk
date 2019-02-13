@@ -62,7 +62,7 @@ clobber-%:
 PACKAGER_NO_LIBS = 1
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/MacOS
+STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources
 else
 STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)
 endif
@@ -112,25 +112,35 @@ ifdef MOZ_STUB_INSTALLER
 	$(STUB_HOOK)
 endif
 	$(PYTHON) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py $(STAGEDIST) $(DIST)/xpi-stage/locale-$(AB_CD) \
+		$(MOZ_PKG_EXTRAL10N) \
 		$(if $(filter omni,$(MOZ_PACKAGER_FORMAT)),$(if $(NON_OMNIJAR_FILES),--non-resource $(NON_OMNIJAR_FILES)))
-ifneq (en,$(AB))
+
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-	mv $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/en.lproj $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/$(AB).lproj
+ifneq (en,$(AB))
+	mv $(STAGEDIST)/en.lproj $(STAGEDIST)/$(AB).lproj
+endif
+ifdef MOZ_CRASHREPORTER
+# On Mac OS X, the crashreporter.ini file needs to be moved from under the
+# application bundle's Resources directory where all other l10n files are
+# located to the crash reporter bundle's Resources directory.
+	mv $(STAGEDIST)/crashreporter.app/Contents/Resources/crashreporter.ini \
+	  $(STAGEDIST)/../MacOS/crashreporter.app/Contents/Resources/crashreporter.ini
+	$(RM) -rf $(STAGEDIST)/crashreporter.app
 endif
 endif
+
 	$(NSINSTALL) -D $(DIST)/l10n-stage/$(PKG_PATH)
 	cd $(DIST)/l10n-stage; \
 	  $(MAKE_PACKAGE)
 ifdef MAKE_COMPLETE_MAR
 	$(MAKE) -C $(MOZDEPTH)/tools/update-packaging full-update AB_CD=$(AB_CD) \
 	  MOZ_PKG_PRETTYNAMES=$(MOZ_PKG_PRETTYNAMES) \
-	  PACKAGE_BASE_DIR='$(_ABS_DIST)/l10n-stage' \
-	  DIST='$(_ABS_DIST)'
+	  PACKAGE_BASE_DIR='$(_ABS_DIST)/l10n-stage'
 endif
 # packaging done, undo l10n stuff
 ifneq (en,$(AB))
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-	mv $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/$(AB).lproj $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/en.lproj
+	mv $(STAGEDIST)/$(AB).lproj $(STAGEDIST)/en.lproj
 endif
 endif
 	$(NSINSTALL) -D $(DIST)/$(PKG_PATH)
@@ -160,8 +170,7 @@ langpack-%: libs-%
 	$(NSINSTALL) -D $(DIST)/$(PKG_LANGPACK_PATH)
 	$(call py_action,preprocessor,$(DEFINES) $(ACDEFINES) \
 	  -I$(TK_DEFINES) -I$(APP_DEFINES) $(srcdir)/generic/install.rdf -o $(DIST)/xpi-stage/$(XPI_NAME)/install.rdf)
-	cd $(DIST)/xpi-stage/locale-$(AB_CD) && \
-	  $(ZIP) -r9D $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest
+	$(call py_action,zip,-C $(DIST)/xpi-stage/locale-$(AB_CD) $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest)
 
 # This variable is to allow the wget-en-US target to know which ftp server to download from
 ifndef EN_US_BINARY_URL 

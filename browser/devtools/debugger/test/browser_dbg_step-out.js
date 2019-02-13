@@ -7,13 +7,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_step-out.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gVars;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gVars = gDebugger.DebuggerView.Variables;
@@ -41,14 +40,12 @@ function testNormalReturn() {
       gDebugger);
   });
 
-  EventUtils.sendMouseEvent({ type: "click" },
-    gDebuggee.document.getElementById("return"),
-    gDebuggee);
+  generateMouseClickInTab(gTab, "content.document.getElementById('return')");
 }
 
 function testReturnWithException() {
   waitForCaretAndScopes(gPanel, 24).then(() => {
-    waitForCaretAndScopes(gPanel, 27).then(() => {
+    waitForCaretAndScopes(gPanel, 26).then(() => {
       let innerScope = gVars.getScopeAtIndex(0);
       let exceptionVar = innerScope.get("<exception>");
 
@@ -65,9 +62,7 @@ function testReturnWithException() {
       gDebugger);
   });
 
-  EventUtils.sendMouseEvent({ type: "click" },
-    gDebuggee.document.getElementById("throw"),
-    gDebuggee);
+  generateMouseClickInTab(gTab, "content.document.getElementById('throw')");
 }
 
 function resumeDebuggee() {
@@ -78,7 +73,6 @@ function resumeDebuggee() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gVars = null;

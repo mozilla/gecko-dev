@@ -6,10 +6,9 @@
 
 /* General utilities used throughout devtools. */
 
-// hasChrome is provided as a global by the loader. It is true if we are running
-// on the main thread, and false if we are running on a worker thread.
-var { Ci, Cu } = require("chrome");
+var { Ci, Cu, Cc, components } = require("chrome");
 var Services = require("Services");
+var promise = require("promise");
 
 /**
  * Turn the error |aError| into a string, without fail.
@@ -39,7 +38,8 @@ exports.safeErrorString = function safeErrorString(aError) {
     }
   } catch (ee) { }
 
-  return "<failed trying to find error description>";
+  // We failed to find a good error description, so do the next best thing.
+  return Object.prototype.toString.call(aError);
 }
 
 /**
@@ -50,7 +50,7 @@ exports.reportException = function reportException(aWho, aException) {
 
   dump(msg + "\n");
 
-  if (Cu.reportError) {
+  if (Cu && Cu.reportError) {
     /*
      * Note that the xpcshell test harness registers an observer for
      * console messages, so when we're running tests, this will cause
@@ -86,11 +86,10 @@ exports.makeInfallible = function makeInfallible(aHandler, aName) {
       if (aName) {
         who += " " + aName;
       }
-      exports.reportException(who, ex);
+      return exports.reportException(who, ex);
     }
   }
 }
-
 /**
  * Interleaves two arrays element by element, returning the combined array, like
  * a zip. In the case of arrays with different sizes, undefined values will be
@@ -122,7 +121,7 @@ exports.zip = function zip(a, b) {
  */
 exports.executeSoon = function executeSoon(aFn) {
   if (isWorker) {
-    setTimeout(aFn, 0);
+    setImmediate(aFn);
   } else {
     Services.tm.mainThread.dispatch({
       run: exports.makeInfallible(aFn)
@@ -152,7 +151,7 @@ exports.waitForTick = function waitForTick() {
  */
 exports.waitForTime = function waitForTime(aDelay) {
   let deferred = promise.defer();
-  setTimeout(deferred.resolve, aDelay);
+  require("Timer").setTimeout(deferred.resolve, aDelay);
   return deferred.promise;
 };
 
@@ -339,26 +338,41 @@ exports.dbg_assert = function dbg_assert(cond, e) {
   if (!cond) {
     return e;
   }
-}
+};
 
 
 /**
- * Utility function for updating an object with the properties of another
- * object.
+ * Utility function for updating an object with the properties of
+ * other objects.
  *
  * @param aTarget Object
  *        The object being updated.
  * @param aNewAttrs Object
- *        The new attributes being set on the target.
+ *        The rest params are objects to update aTarget with. You
+ *        can pass as many as you like.
  */
-exports.update = function update(aTarget, aNewAttrs) {
-  for (let key in aNewAttrs) {
-    let desc = Object.getOwnPropertyDescriptor(aNewAttrs, key);
+exports.update = function update(aTarget, ...aArgs) {
+  for (let attrs of aArgs) {
+    for (let key in attrs) {
+      let desc = Object.getOwnPropertyDescriptor(attrs, key);
 
-    if (desc) {
-      Object.defineProperty(aTarget, key, desc);
+      if (desc) {
+        Object.defineProperty(aTarget, key, desc);
+      }
     }
   }
+
+  return aTarget;
+}
+
+/**
+ * Utility function for getting the values from an object as an array
+ *
+ * @param aObject Object
+ *        The object to iterate over
+ */
+exports.values = function values(aObject) {
+  return Object.keys(aObject).map(k => aObject[k]);
 }
 
 /**
@@ -406,4 +420,250 @@ exports.defineLazyModuleGetter = function defineLazyModuleGetter(aObject, aName,
     Cu.import(aResource, temp);
     return temp[aSymbol || aName];
   });
+};
+
+exports.defineLazyGetter(this, "NetUtil", () => {
+  return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
+});
+
+exports.defineLazyGetter(this, "OS", () => {
+  return Cu.import("resource://gre/modules/osfile.jsm", {}).OS;
+});
+
+exports.defineLazyGetter(this, "TextDecoder", () => {
+  return Cu.import("resource://gre/modules/osfile.jsm", {}).TextDecoder;
+});
+
+exports.defineLazyGetter(this, "NetworkHelper", () => {
+  return require("devtools/toolkit/webconsole/network-helper");
+});
+
+/**
+ * Performs a request to load the desired URL and returns a promise.
+ *
+ * @param aURL String
+ *        The URL we will request.
+ * @param aOptions Object
+ *        An object with the following optional properties:
+ *        - loadFromCache: if false, will bypass the cache and
+ *          always load fresh from the network (default: true)
+ *        - policy: the nsIContentPolicy type to apply when fetching the URL
+ *        - window: the window to get the loadGroup from
+ *        - charset: the charset to use if the channel doesn't provide one
+ * @returns Promise that resolves with an object with the following members on
+ *          success:
+ *           - content: the document at that URL, as a string,
+ *           - contentType: the content type of the document
+ *
+ *          If an error occurs, the promise is rejected with that error.
+ *
+ * XXX: It may be better to use nsITraceableChannel to get to the sources
+ * without relying on caching when we can (not for eval, etc.):
+ * http://www.softwareishard.com/blog/firebug/nsitraceablechannel-intercept-http-traffic/
+ */
+function mainThreadFetch(aURL, aOptions={ loadFromCache: true,
+                                          policy: Ci.nsIContentPolicy.TYPE_OTHER,
+                                          window: null,
+                                          charset: null }) {
+  // Create a channel.
+  let url = aURL.split(" -> ").pop();
+  let channel;
+  try {
+    channel = newChannelForURL(url, aOptions);
+  } catch (ex) {
+    return promise.reject(ex);
+  }
+
+  // Set the channel options.
+  channel.loadFlags = aOptions.loadFromCache
+    ? channel.LOAD_FROM_CACHE
+    : channel.LOAD_BYPASS_CACHE;
+
+  if (aOptions.window) {
+    // Respect private browsing.
+    channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocumentLoader)
+                          .loadGroup;
+  }
+
+  let deferred = promise.defer();
+  let onResponse = (stream, status, request) => {
+    if (!components.isSuccessCode(status)) {
+      deferred.reject(new Error(`Failed to fetch ${url}. Code ${status}.`));
+      return;
+    }
+
+    try {
+      // We cannot use NetUtil to do the charset conversion as if charset
+      // information is not available and our default guess is wrong the method
+      // might fail and we lose the stream data. This means we can't fall back
+      // to using the locale default encoding (bug 1181345).
+
+      // Read and decode the data according to the locale default encoding.
+      let available = stream.available();
+      let source = NetUtil.readInputStreamToString(stream, available);
+      stream.close();
+
+      // If the channel or the caller has correct charset information, the
+      // content will be decoded correctly. If we have to fall back to UTF-8 and
+      // the guess is wrong, the conversion fails and convertToUnicode returns
+      // the input unmodified. Essentially we try to decode the data as UTF-8
+      // and if that fails, we use the locale specific default encoding. This is
+      // the best we can do if the source does not provide charset info.
+      let charset = channel.contentCharset || aOptions.charset || "UTF-8";
+      let unicodeSource = NetworkHelper.convertToUnicode(source, charset);
+
+      deferred.resolve({
+        content: unicodeSource,
+        contentType: request.contentType
+      });
+    } catch (ex) {
+      let uri = request.originalURI;
+      if (ex.name === "NS_BASE_STREAM_CLOSED" && uri instanceof Ci.nsIFileURL) {
+        // Empty files cause NS_BASE_STREAM_CLOSED exception. Use OS.File to
+        // differentiate between empty files and other errors (bug 1170864).
+        // This can be removed when bug 982654 is fixed.
+
+        uri.QueryInterface(Ci.nsIFileURL);
+        let result = OS.File.read(uri.file.path).then(bytes => {
+          // Convert the bytearray to a String.
+          let decoder = new TextDecoder();
+          let content = decoder.decode(bytes);
+
+          // We can't detect the contentType without opening a channel
+          // and that failed already. This is the best we can do here.
+          return {
+            content,
+            contentType: "text/plain"
+          };
+        });
+
+        deferred.resolve(result);
+      } else {
+        deferred.reject(ex);
+      }
+    }
+  };
+
+  // Open the channel
+  try {
+    NetUtil.asyncFetch(channel, onResponse);
+  } catch (ex) {
+    return promise.reject(ex);
+  }
+
+  return deferred.promise;
+}
+
+/**
+ * Opens a channel for given URL. Tries a bit harder than NetUtil.newChannel.
+ *
+ * @param {String} url - The URL to open a channel for.
+ * @param {Object} options - The options object passed to @method fetch.
+ * @return {nsIChannel} - The newly created channel. Throws on failure.
+ */
+function newChannelForURL(url, { policy }) {
+  let channelOptions = {
+    contentPolicyType: policy,
+    loadUsingSystemPrincipal: true,
+    uri: url
+  };
+
+  try {
+    return NetUtil.newChannel(channelOptions);
+  } catch (e) {
+    // In the xpcshell tests, the script url is the absolute path of the test
+    // file, which will make a malformed URI error be thrown. Add the file
+    // scheme to see if it helps.
+    channelOptions.uri = "file://" + url;
+
+    return NetUtil.newChannel(channelOptions);
+  }
+}
+
+// Fetch is defined differently depending on whether we are on the main thread
+// or a worker thread.
+if (!this.isWorker) {
+  exports.fetch = mainThreadFetch;
+} else {
+  // Services is not available in worker threads, nor is there any other way
+  // to fetch a URL. We need to enlist the help from the main thread here, by
+  // issuing an rpc request, to fetch the URL on our behalf.
+  exports.fetch = function (url, options) {
+    return rpc("fetch", url, options);
+  }
+}
+
+/**
+ * Returns a promise that is resolved or rejected when all promises have settled
+ * (resolved or rejected).
+ *
+ * This differs from Promise.all, which will reject immediately after the first
+ * rejection, instead of waiting for the remaining promises to settle.
+ *
+ * @param values
+ *        Iterable of promises that may be pending, resolved, or rejected. When
+ *        when all promises have settled (resolved or rejected), the returned
+ *        promise will be resolved or rejected as well.
+ *
+ * @return A new promise that is fulfilled when all values have settled
+ *         (resolved or rejected). Its resolution value will be an array of all
+ *         resolved values in the given order, or undefined if values is an
+ *         empty array. The reject reason will be forwarded from the first
+ *         promise in the list of given promises to be rejected.
+ */
+exports.settleAll = values => {
+  if (values === null || typeof(values[Symbol.iterator]) != "function") {
+    throw new Error("settleAll() expects an iterable.");
+  }
+
+  let deferred = promise.defer();
+
+  values = Array.isArray(values) ? values : [...values];
+  let countdown = values.length;
+  let resolutionValues = new Array(countdown);
+  let rejectionValue;
+  let rejectionOccurred = false;
+
+  if (!countdown) {
+    deferred.resolve(resolutionValues);
+    return deferred.promise;
+  }
+
+  function checkForCompletion() {
+    if (--countdown > 0) {
+      return;
+    }
+    if (!rejectionOccurred) {
+      deferred.resolve(resolutionValues);
+    } else {
+      deferred.reject(rejectionValue);
+    }
+  }
+
+  for (let i = 0; i < values.length; i++) {
+    let index = i;
+    let value = values[i];
+    let resolver = result => {
+      resolutionValues[index] = result;
+      checkForCompletion();
+    };
+    let rejecter = error => {
+      if (!rejectionOccurred) {
+        rejectionValue = error;
+        rejectionOccurred = true;
+      }
+      checkForCompletion();
+    };
+
+    if (value && typeof(value.then) == "function") {
+      value.then(resolver, rejecter);
+    } else {
+      // Given value is not a promise, forward it as a resolution value.
+      resolver(value);
+    }
+  }
+
+  return deferred.promise;
 };

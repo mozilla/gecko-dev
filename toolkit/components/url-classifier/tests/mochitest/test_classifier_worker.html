@@ -23,19 +23,25 @@ var testUpdate =
   "a:550:32:" + testData.length + "\n" +
   testData;
 
+testData = "example.com/tests/toolkit/components/url-classifier/tests/mochitest/unwantedWorker.js";
+testUpdate +=
+  "n:1000\ni:test-unwanted-simple\nad:550\n" +
+  "a:550:32:" + testData.length + "\n" +
+  testData;
+
 var dbService = Cc["@mozilla.org/url-classifier/dbservice;1"]
                 .getService(Ci.nsIUrlClassifierDBService);
 
 function doUpdate(update) {
   var listener = {
-    QueryInterface: function(iid)
+    QueryInterface: SpecialPowers.wrapCallback(function(iid)
     {
       if (iid.equals(Ci.nsISupports) ||
           iid.equals(Ci.nsIUrlClassifierUpdateObserver))
         return this;
 
       throw Cr.NS_ERROR_NO_INTERFACE;
-    },
+    }),
     updateUrlRequested: function(url) { },
     streamFinished: function(status) { },
     updateError: function(errorCode) {
@@ -54,7 +60,7 @@ function doUpdate(update) {
     }
   };
 
-  dbService.beginUpdate(listener, "test-malware-simple", "");
+  dbService.beginUpdate(listener, "test-malware-simple,test-unwanted-simple", "");
   dbService.beginStream("", "");
   dbService.updateStream(update);
   dbService.finishStream();
@@ -73,8 +79,8 @@ function onmessage(event)
 }
 
 SpecialPowers.pushPrefEnv(
-  {"set" : [["urlclassifier.malware_table", "test-malware-simple"],
-            ["urlclassifier.phish_table", "test-phish-simple"]]},
+  {"set" : [["urlclassifier.malwareTable", "test-malware-simple,test-unwanted-simple"],
+            ["urlclassifier.phishTable", "test-phish-simple"]]},
   function() { doUpdate(testUpdate); });
 
 window.addEventListener("message", onmessage, false);

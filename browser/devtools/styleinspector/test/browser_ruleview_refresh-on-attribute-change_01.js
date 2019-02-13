@@ -6,7 +6,7 @@
 
 // Test that changing the current element's attributes refreshes the rule-view
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,browser_ruleview_refresh-on-attribute-change.js");
 
   info("Preparing the test document and node");
@@ -24,7 +24,7 @@ let test = asyncTest(function*() {
   testElement.setAttribute("style", elementStyle);
 
   let {toolbox, inspector, view} = yield openRuleView();
-  yield selectNode(testElement, inspector);
+  yield selectNode("#testid", inspector);
 
   info("Checking that the rule-view has the element, #testid and .testclass selectors");
   checkRuleViewContent(view, ["element", "#testid", ".testclass"]);
@@ -38,7 +38,7 @@ let test = asyncTest(function*() {
   checkRuleViewContent(view, ["element", ".testclass"]);
 
   info("Reverting the ID attribute change");
-  let ruleViewRefreshed = inspector.once("rule-view-refreshed");
+  ruleViewRefreshed = inspector.once("rule-view-refreshed");
   testElement.setAttribute("id", "testid");
   yield ruleViewRefreshed;
 

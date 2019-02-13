@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,6 +32,9 @@ class DOMError : public nsISupports,
   nsString mName;
   nsString mMessage;
 
+protected:
+  virtual ~DOMError();
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMError)
@@ -41,7 +44,7 @@ public:
   // aWindow can be null if this DOMError is not associated with a particular
   // window.
 
-  DOMError(nsPIDOMWindow* aWindow);
+  explicit DOMError(nsPIDOMWindow* aWindow);
 
   DOMError(nsPIDOMWindow* aWindow, nsresult aValue);
 
@@ -50,15 +53,13 @@ public:
   DOMError(nsPIDOMWindow* aWindow, const nsAString& aName,
            const nsAString& aMessage);
 
-  virtual ~DOMError();
-
   nsPIDOMWindow* GetParentObject() const
   {
     return mWindow;
   }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMError>
   Constructor(const GlobalObject& global, const nsAString& name,
@@ -72,12 +73,6 @@ public:
   void GetMessage(nsString& aRetval) const
   {
     aRetval = mMessage;
-  }
-
-  void Init(const nsAString& aName, const nsAString& aMessage)
-  {
-    mName = aName;
-    mMessage = aMessage;
   }
 };
 

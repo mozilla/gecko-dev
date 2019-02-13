@@ -40,7 +40,7 @@ class ExternalHelperAppParent : public PExternalHelperAppParent
     typedef mozilla::ipc::OptionalURIParams OptionalURIParams;
 
 public:
-    NS_DECL_ISUPPORTS
+    NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIREQUEST
     NS_DECL_NSICHANNEL
     NS_DECL_NSIMULTIPARTCHANNEL
@@ -48,13 +48,13 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIREQUESTOBSERVER
 
-    bool RecvOnStartRequest(const nsCString& entityID) MOZ_OVERRIDE;
+    bool RecvOnStartRequest(const nsCString& entityID) override;
     bool RecvOnDataAvailable(const nsCString& data,
                              const uint64_t& offset,
-                             const uint32_t& count) MOZ_OVERRIDE;
-    bool RecvOnStopRequest(const nsresult& code) MOZ_OVERRIDE;
+                             const uint32_t& count) override;
+    bool RecvOnStopRequest(const nsresult& code) override;
 
-    bool RecvDivertToParentUsing(PChannelDiverterParent* diverter) MOZ_OVERRIDE;
+    bool RecvDivertToParentUsing(PChannelDiverterParent* diverter) override;
 
     ExternalHelperAppParent(const OptionalURIParams& uri, const int64_t& contentLength);
     void Init(ContentParent *parent,
@@ -65,10 +65,11 @@ public:
               const bool& aForceSave,
               const OptionalURIParams& aReferrer,
               PBrowserParent* aBrowser);
-    virtual ~ExternalHelperAppParent();
 
 protected:
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual ~ExternalHelperAppParent();
+
+  virtual void ActorDestroy(ActorDestroyReason why) override;
   void Delete();
 
 private:

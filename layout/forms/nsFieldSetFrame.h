@@ -7,73 +7,82 @@
 #define nsFieldSetFrame_h___
 
 #include "mozilla/Attributes.h"
+#include "imgIContainer.h"
 #include "nsContainerFrame.h"
 
-class nsFieldSetFrame MOZ_FINAL : public nsContainerFrame
+class nsFieldSetFrame final : public nsContainerFrame
 {
+  typedef mozilla::image::DrawResult DrawResult;
+
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsFieldSetFrame(nsStyleContext* aContext);
+  explicit nsFieldSetFrame(nsStyleContext* aContext);
 
   nscoord
-    GetIntrinsicWidth(nsRenderingContext* aRenderingContext,
-                      nsLayoutUtils::IntrinsicWidthType);
-  virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
-  virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
-                             nsSize aCBSize, nscoord aAvailableWidth,
-                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
+    GetIntrinsicISize(nsRenderingContext* aRenderingContext,
+                      nsLayoutUtils::IntrinsicISizeType);
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
+  virtual mozilla::LogicalSize
+  ComputeSize(nsRenderingContext *aRenderingContext,
+              mozilla::WritingMode aWritingMode,
+              const mozilla::LogicalSize& aCBSize,
+              nscoord aAvailableISize,
+              const mozilla::LogicalSize& aMargin,
+              const mozilla::LogicalSize& aBorder,
+              const mozilla::LogicalSize& aPadding,
+              ComputeSizeFlags aFlags) override;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
 
   /**
    * The area to paint box-shadows around.  It's the border rect except
    * when there's a <legend> we offset the y-position to the center of it.
    */
-  virtual nsRect VisualBorderRectRelativeToSelf() const MOZ_OVERRIDE;
+  virtual nsRect VisualBorderRectRelativeToSelf() const override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
                                
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
-  void PaintBorderBackground(nsRenderingContext& aRenderingContext,
-    nsPoint aPt, const nsRect& aDirtyRect, uint32_t aBGFlags);
+  DrawResult PaintBorderBackground(nsRenderingContext& aRenderingContext,
+                                   nsPoint aPt, const nsRect& aDirtyRect,
+                                   uint32_t aBGFlags);
 
 #ifdef DEBUG
   virtual void SetInitialChildList(ChildListID    aListID,
-                                   nsFrameList&   aChildList) MOZ_OVERRIDE;
+                                   nsFrameList&   aChildList) override;
   virtual void AppendFrames(ChildListID    aListID,
-                            nsFrameList&   aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&   aFrameList) override;
   virtual void InsertFrames(ChildListID    aListID,
                             nsIFrame*      aPrevFrame,
-                            nsFrameList&   aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&   aFrameList) override;
   virtual void RemoveFrame(ChildListID    aListID,
-                           nsIFrame*      aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*      aOldFrame) override;
 #endif
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual nsIAtom* GetType() const override;
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
              ~nsIFrame::eCanContainOverflowContainers);
   }
-  virtual nsIScrollableFrame* GetScrollTargetFrame() MOZ_OVERRIDE
+  virtual nsIScrollableFrame* GetScrollTargetFrame() override
   {
     return do_QueryFrame(GetInner());
   }
 
 #ifdef ACCESSIBILITY  
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("FieldSet"), aResult);
   }
 #endif
@@ -94,7 +103,7 @@ public:
   nsIFrame* GetLegend() const;
 
 protected:
-  nsRect    mLegendRect;
+  mozilla::LogicalRect mLegendRect;
   nscoord   mLegendSpace;
 };
 

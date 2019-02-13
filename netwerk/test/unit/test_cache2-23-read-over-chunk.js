@@ -19,13 +19,15 @@ function run_test()
       payload += String.fromCharCode(i + 65);
   }
 
-  asyncOpenCacheEntry("http://read/", "disk", Ci.nsICacheStorage.OPEN_NORMALLY, LoadContextInfo.default,
+  asyncOpenCacheEntry("http://read/", "disk", Ci.nsICacheStorage.OPEN_TRUNCATE, LoadContextInfo.default,
     new OpenCallback(NEW|WAITFORWRITE, "", payload, function(entry) {
       var is = entry.openInputStream(0);
-      do_check_eq(is.available(), kChunkSize + 10);
-      var payloadCheck = read_stream(is, kChunkSize + 10);
-      do_check_true(payloadCheck == payload); // not using do_check_eq since logger will fail for the 1/4MB string
-      finish_cache2_test();
+      pumpReadStream(is, function(read) {
+        do_check_eq(read.length, kChunkSize + 10);
+        is.close();
+        do_check_true(read == payload); // not using do_check_eq since logger will fail for the 1/4MB string
+        finish_cache2_test();
+      });
     })
   );
 

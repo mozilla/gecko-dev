@@ -8,7 +8,7 @@
 #ifdef MOZ_WIDGET_GONK
 
 #include "mozilla/layers/TextureClient.h"
-#include "ISurfaceAllocator.h" // For IsSurfaceDescriptorValid
+#include "mozilla/layers/ISurfaceAllocator.h" // For IsSurfaceDescriptorValid
 #include "mozilla/layers/FenceUtils.h" // for FenceHandle
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>
@@ -19,6 +19,10 @@ class MediaBuffer;
 };
 
 namespace mozilla {
+namespace gl {
+class SharedSurface;
+}
+
 namespace layers {
 
 /**
@@ -37,10 +41,6 @@ namespace layers {
 class GrallocTextureClientOGL : public BufferTextureClient
 {
 public:
-  GrallocTextureClientOGL(MaybeMagicGrallocBufferHandle buffer,
-                          gfx::IntSize aSize,
-                          gfx::BackendType aMoz2dBackend,
-                          TextureFlags aFlags = TextureFlags::DEFAULT);
   GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
                           gfx::SurfaceFormat aFormat,
                           gfx::BackendType aMoz2dBackend,
@@ -48,27 +48,25 @@ public:
 
   ~GrallocTextureClientOGL();
 
-  virtual bool Lock(OpenMode aMode) MOZ_OVERRIDE;
+  virtual bool Lock(OpenMode aMode) override;
 
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual void Unlock() override;
 
-  virtual bool ImplementsLocking() const MOZ_OVERRIDE { return true; }
+  virtual bool ImplementsLocking() const override { return true; }
 
-  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
+  virtual bool HasInternalBuffer() const override { return false; }
 
-  virtual bool IsAllocated() const MOZ_OVERRIDE;
+  virtual bool IsAllocated() const override;
 
-  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) override;
 
-  virtual void SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker) MOZ_OVERRIDE;
+  virtual void SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker) override;
 
-  virtual void WaitForBufferOwnership() MOZ_OVERRIDE;
-
-  void InitWith(MaybeMagicGrallocBufferHandle aDesc, gfx::IntSize aSize);
+  virtual void WaitForBufferOwnership(bool aWaitReleaseFence = true) override;
 
   void SetTextureFlags(TextureFlags aFlags) { AddFlags(aFlags); }
 
-  gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
+  gfx::IntSize GetSize() const override { return mSize; }
 
   android::sp<android::GraphicBuffer> GetGraphicBuffer()
   {
@@ -80,24 +78,26 @@ public:
     return mGraphicBuffer->getPixelFormat();
   }
 
-  virtual uint8_t* GetBuffer() const MOZ_OVERRIDE;
+  virtual uint8_t* GetBuffer() const override;
 
-  virtual gfx::DrawTarget* BorrowDrawTarget() MOZ_OVERRIDE;
+  virtual gfx::DrawTarget* BorrowDrawTarget() override;
 
   virtual bool AllocateForSurface(gfx::IntSize aSize,
-                                  TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;
+                                  TextureAllocationFlags aFlags = ALLOC_DEFAULT) override;
 
   virtual bool AllocateForYCbCr(gfx::IntSize aYSize,
                                 gfx::IntSize aCbCrSize,
-                                StereoMode aStereoMode) MOZ_OVERRIDE;
+                                StereoMode aStereoMode) override;
 
   bool AllocateForGLRendering(gfx::IntSize aSize);
 
   bool AllocateGralloc(gfx::IntSize aYSize, uint32_t aAndroidFormat, uint32_t aUsage);
 
-  virtual bool Allocate(uint32_t aSize) MOZ_OVERRIDE;
+  void SetIsOpaque(bool aIsOpaque) { mIsOpaque = aIsOpaque; }
 
-  virtual size_t GetBufferSize() const MOZ_OVERRIDE;
+  virtual bool Allocate(uint32_t aSize) override;
+
+  virtual size_t GetBufferSize() const override;
 
   /**
    * Hold android::MediaBuffer.
@@ -113,6 +113,13 @@ public:
   {
     return mMediaBuffer;
   }
+
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
+                TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const override;
+
+  static TemporaryRef<TextureClient> FromSharedSurface(gl::SharedSurface* surf,
+                                                       TextureFlags flags);
 
 protected:
   /**
@@ -140,6 +147,8 @@ protected:
   gfx::IntSize mSize;
 
   android::MediaBuffer* mMediaBuffer;
+
+  bool mIsOpaque;
 };
 
 } // namespace layers

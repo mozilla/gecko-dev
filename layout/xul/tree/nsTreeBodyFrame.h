@@ -24,8 +24,8 @@
 #include "nsScrollbarFrame.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LookAndFeel.h"
-#include "nsIScrollbarOwner.h"
 
+class nsFontMetrics;
 class nsOverflowChecker;
 class nsTreeImageListener;
 
@@ -47,17 +47,16 @@ struct nsTreeImageCacheEntry
 };
 
 // The actual frame that paints the cells and rows.
-class nsTreeBodyFrame MOZ_FINAL
+class nsTreeBodyFrame final
   : public nsLeafBoxFrame
   , public nsICSSPseudoComparator
   , public nsIScrollbarMediator
   , public nsIReflowCallback
-  , public nsIScrollbarOwner
 {
 public:
   typedef mozilla::layout::ScrollbarActivity ScrollbarActivity;
 
-  nsTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  explicit nsTreeBodyFrame(nsStyleContext* aContext);
   ~nsTreeBodyFrame();
 
   NS_DECL_QUERYFRAME_TARGET(nsTreeBodyFrame)
@@ -82,12 +81,12 @@ public:
   }
   nsresult GetView(nsITreeView **aView);
   nsresult SetView(nsITreeView *aView);
-  nsresult GetFocused(bool *aFocused);
+  bool GetFocused() const { return mFocused; }
   nsresult SetFocused(bool aFocused);
   nsresult GetTreeBody(nsIDOMElement **aElement);
-  nsresult GetRowHeight(int32_t *aValue);
-  nsresult GetRowWidth(int32_t *aValue);
-  nsresult GetHorizontalPosition(int32_t *aValue);
+  int32_t RowHeight() const;
+  int32_t RowWidth();
+  int32_t GetHorizontalPosition() const;
   nsresult GetSelectionRegion(nsIScriptableRegion **aRegion);
   int32_t FirstVisibleRow() const { return mTopRowIndex; }
   int32_t LastVisibleRow() const { return mTopRowIndex + mPageLength; }
@@ -122,46 +121,61 @@ public:
 
   void ManageReflowCallback(const nsRect& aRect, nscoord aHorzWidth);
 
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
+  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         bool aRemoveOverflowArea = false) MOZ_OVERRIDE;
+                         bool aRemoveOverflowArea = false) override;
 
   // nsIReflowCallback
-  virtual bool ReflowFinished() MOZ_OVERRIDE;
-  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE;
+  virtual bool ReflowFinished() override;
+  virtual void ReflowCallbackCanceled() override;
 
   // nsICSSPseudoComparator
-  virtual bool PseudoMatches(nsCSSSelector* aSelector) MOZ_OVERRIDE;
+  virtual bool PseudoMatches(nsCSSSelector* aSelector) override;
 
   // nsIScrollbarMediator
-  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex) MOZ_OVERRIDE;
-  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex) MOZ_OVERRIDE;
-  NS_IMETHOD VisibilityChanged(bool aVisible) MOZ_OVERRIDE { Invalidate(); return NS_OK; }
-
-  // nsIScrollbarOwner
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
+  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                            nsIScrollbarMediator::ScrollSnapMode aSnap
+                              = nsIScrollbarMediator::DISABLE_SNAP) override;
+  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                             nsIScrollbarMediator::ScrollSnapMode aSnap
+                               = nsIScrollbarMediator::DISABLE_SNAP) override;
+  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                            nsIScrollbarMediator::ScrollSnapMode aSnap
+                              = nsIScrollbarMediator::DISABLE_SNAP) override;
+  virtual void RepeatButtonScroll(nsScrollbarFrame* aScrollbar) override;
+  virtual void ThumbMoved(nsScrollbarFrame* aScrollbar,
+                          nscoord aOldPos,
+                          nscoord aNewPos) override;
+  virtual void ScrollbarReleased(nsScrollbarFrame* aScrollbar) override {}
+  virtual void VisibilityChanged(bool aVisible) override { Invalidate(); }
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) override {
     ScrollParts parts = GetScrollParts();
     return aVertical ? parts.mVScrollbar : parts.mHScrollbar;
+  }
+  virtual void ScrollbarActivityStarted() const override;
+  virtual void ScrollbarActivityStopped() const override;
+  virtual bool IsScrollbarOnRight() const override {
+    return (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR);
   }
 
   // Overridden from nsIFrame to cache our pres context.
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   virtual nsresult GetCursor(const nsPoint& aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
   friend nsIFrame* NS_NewTreeBodyFrame(nsIPresShell* aPresShell);
   friend class nsTreeColumn;
@@ -293,6 +307,7 @@ protected:
   void AdjustForCellText(nsAutoString& aText,
                          int32_t aRowIndex,  nsTreeColumn* aColumn,
                          nsRenderingContext& aRenderingContext,
+                         nsFontMetrics& aFontMetrics,
                          nsRect& aTextRect);
 
   // A helper used when hit testing.
@@ -455,7 +470,7 @@ protected:
   class ScrollEvent : public nsRunnable {
   public:
     NS_DECL_NSIRUNNABLE
-    ScrollEvent(nsTreeBodyFrame *aInner) : mInner(aInner) {}
+    explicit ScrollEvent(nsTreeBodyFrame *aInner) : mInner(aInner) {}
     void Revoke() { mInner = nullptr; }
   private:
     nsTreeBodyFrame* mInner;
@@ -463,9 +478,6 @@ protected:
 
   void PostScrollEvent();
   void FireScrollEvent();
-
-  virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
-  virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
 
   /**
    * Clear the pointer to this frame for all nsTreeImageListeners that were

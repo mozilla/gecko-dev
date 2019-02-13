@@ -15,6 +15,12 @@ var gAdvancedPane = {
    */
   init: function ()
   {
+    function setEventListener(aId, aEventType, aCallback)
+    {
+      document.getElementById(aId)
+              .addEventListener(aEventType, aCallback.bind(gAdvancedPane));
+    }
+
     this._inited = true;
     var advancedPrefs = document.getElementById("advancedPrefs");
 
@@ -22,43 +28,13 @@ var gAdvancedPane = {
     if (preference.value !== null)
         advancedPrefs.selectedIndex = preference.value;
 
-#ifdef HAVE_SHELL_SERVICE
-    this.updateSetDefaultBrowser();
-#ifdef XP_WIN
-    // In Windows 8 we launch the control panel since it's the only
-    // way to get all file type association prefs. So we don't know
-    // when the user will select the default.  We refresh here periodically
-    // in case the default changes.  On other Windows OS's defaults can also
-    // be set while the prefs are open.
-    window.setInterval(this.updateSetDefaultBrowser, 1000);
-
-#ifdef MOZ_METRO
-    // Pre Windows 8, we should hide the update related settings
-    // for the Metro browser
-    let version = Components.classes["@mozilla.org/system-info;1"].
-                  getService(Components.interfaces.nsIPropertyBag2).
-                  getProperty("version");
-    let preWin8 = parseFloat(version) < 6.2;
-    this._showingWin8Prefs = !preWin8;
-    if (preWin8) {
-      ["autoMetro", "autoMetroIndent"].forEach(
-        function(id) document.getElementById(id).collapsed = true
-      );
-    } else {
-      let brandShortName =
-        document.getElementById("bundleBrand").getString("brandShortName");
-      let bundlePrefs = document.getElementById("bundlePreferences");
-      let autoDesktop = document.getElementById("autoDesktop");
-      autoDesktop.label =
-        bundlePrefs.getFormattedString("updateAutoDesktop.label",
-                                       [brandShortName]);
-      autoDesktop.accessKey =
-        bundlePrefs.getString("updateAutoDesktop.accessKey");
-    }
-#endif
-#endif
-#endif
 #ifdef MOZ_UPDATER
+    let onUnload = function () {
+      window.removeEventListener("unload", onUnload, false);
+      Services.prefs.removeObserver("app.update.", this);
+    }.bind(this);
+    window.addEventListener("unload", onUnload, false);
+    Services.prefs.addObserver("app.update.", this, false);
     this.updateReadPrefs();
 #endif
     this.updateOfflineApps();
@@ -69,11 +45,56 @@ var gAdvancedPane = {
 #ifdef MOZ_SERVICES_HEALTHREPORT
     this.initSubmitHealthReport();
 #endif
+    this.updateCacheSizeInputField();
     this.updateActualCacheSize();
     this.updateActualAppCacheSize();
 
-    // Notify observers that the UI is now ready
-    Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
+    setEventListener("layers.acceleration.disabled", "change",
+                     gAdvancedPane.updateHardwareAcceleration);
+    setEventListener("advancedPrefs", "select",
+                     gAdvancedPane.tabSelectionChanged);
+#ifdef MOZ_SERVICES_HEALTHREPORT
+    setEventListener("submitHealthReportBox", "command",
+                     gAdvancedPane.updateSubmitHealthReport);
+#endif
+#ifdef MOZ_CRASHREPORTER
+    setEventListener("submitCrashesBox", "command",
+                     gAdvancedPane.updateSubmitCrashes);
+#endif
+    setEventListener("connectionSettings", "command",
+                     gAdvancedPane.showConnections);
+    setEventListener("clearCacheButton", "command",
+                     gAdvancedPane.clearCache);
+    setEventListener("clearOfflineAppCacheButton", "command",
+                     gAdvancedPane.clearOfflineAppCache);
+    setEventListener("offlineNotifyExceptions", "command",
+                     gAdvancedPane.showOfflineExceptions);
+    setEventListener("offlineAppsList", "select",
+                     gAdvancedPane.offlineAppSelected);
+    let bundlePrefs = document.getElementById("bundlePreferences");
+    document.getElementById("offlineAppsList")
+            .style.height = bundlePrefs.getString("offlineAppsList.height");
+    setEventListener("offlineAppsListRemove", "command",
+                     gAdvancedPane.removeOfflineApp);
+#ifdef MOZ_UPDATER
+    setEventListener("updateRadioGroup", "command",
+                     gAdvancedPane.updateWritePrefs);
+    setEventListener("showUpdateHistory", "command",
+                     gAdvancedPane.showUpdates);
+#endif
+    setEventListener("viewCertificatesButton", "command",
+                     gAdvancedPane.showCertificates);
+    setEventListener("viewSecurityDevicesButton", "command",
+                     gAdvancedPane.showSecurityDevices);
+
+#ifdef MOZ_WIDGET_GTK
+    // GTK tabbox' allow the scroll wheel to change the selected tab,
+    // but we don't want this behavior for the in-content preferences.
+    let tabsElement = document.getElementById("tabsElement");
+    tabsElement.addEventListener("DOMMouseScroll", event => {
+      event.stopPropagation();
+    }, true);
+#endif
   },
 
   /**
@@ -147,6 +168,28 @@ var gAdvancedPane = {
     return checkbox.checked ? (this._storedSpellCheck == 2 ? 2 : 1) : 0;
   },
 
+  /**
+   * security.OCSP.enabled is an integer value for legacy reasons.
+   * A value of 1 means OCSP is enabled. Any other value means it is disabled.
+   */
+  readEnableOCSP: function ()
+  {
+    var preference = document.getElementById("security.OCSP.enabled");
+    // This is the case if the preference is the default value.
+    if (preference.value === undefined) {
+      return true;
+    }
+    return preference.value == 1;
+  },
+
+  /**
+   * See documentation for readEnableOCSP.
+   */
+  writeEnableOCSP: function ()
+  {
+    var checkbox = document.getElementById("enableOCSP");
+    return checkbox.checked ? 1 : 0;
+  },
 
   /**
    * When the user toggles the layers.acceleration.disabled pref,
@@ -221,6 +264,24 @@ var gAdvancedPane = {
 #endif
   },
 
+  /**
+   * Set the status of the telemetry controls based on the input argument.
+   * @param {Boolean} aEnabled False disables the controls, true enables them.
+   */
+  setTelemetrySectionEnabled: function (aEnabled)
+  {
+#ifdef MOZ_TELEMETRY_REPORTING
+    // If FHR is disabled, additional data sharing should be disabled as well.
+    let disabled = !aEnabled;
+    document.getElementById("submitTelemetryBox").disabled = disabled;
+    if (disabled) {
+      // If we disable FHR, untick the telemetry checkbox.
+      Services.prefs.setBoolPref("toolkit.telemetry.enabled", false);
+    }
+    document.getElementById("telemetryDataDesc").disabled = disabled;
+#endif
+  },
+
 #ifdef MOZ_SERVICES_HEALTHREPORT
   /**
    * Initialize the health report service reference and checkbox.
@@ -241,6 +302,7 @@ var gAdvancedPane = {
     }
 
     checkbox.checked = policy.healthReportUploadEnabled;
+    this.setTelemetrySectionEnabled(checkbox.checked);
   },
 
   /**
@@ -259,6 +321,7 @@ var gAdvancedPane = {
     let checkbox = document.getElementById("submitHealthReportBox");
     policy.recordHealthReportUploadEnabled(checkbox.checked,
                                            "Checkbox from preferences pane");
+    this.setTelemetrySectionEnabled(checkbox.checked);
   },
 #endif
 
@@ -351,24 +414,31 @@ var gAdvancedPane = {
   },
 
   /**
-   * Converts the cache size from units of KB to units of MB and returns that
-   * value.
+   * Converts the cache size from units of KB to units of MB and stores it in
+   * the textbox element.
    */
-  readCacheSize: function ()
+  updateCacheSizeInputField()
   {
-    var preference = document.getElementById("browser.cache.disk.capacity");
-    return preference.value / 1024;
+    let cacheSizeElem = document.getElementById("cacheSize");
+    let cachePref = document.getElementById("browser.cache.disk.capacity");
+    cacheSizeElem.value = cachePref.value / 1024;
+    if (cachePref.locked)
+      cacheSizeElem.disabled = true;
   },
 
   /**
-   * Converts the cache size as specified in UI (in MB) to KB and returns that
-   * value.
+   * Updates the cache size preference once user enters a new value.
+   * We intentionally do not set preference="browser.cache.disk.capacity"
+   * onto the textbox directly, as that would update the pref at each keypress
+   * not only after the final value is entered.
    */
-  writeCacheSize: function ()
+  updateCacheSizePref()
   {
-    var cacheSize = document.getElementById("cacheSize");
-    var intValue = parseInt(cacheSize.value, 10);
-    return isNaN(intValue) ? 0 : intValue * 1024;
+    let cacheSizeElem = document.getElementById("cacheSize");
+    let cachePref = document.getElementById("browser.cache.disk.capacity");
+    // Converts the cache size as specified in UI (in MB) to KB.
+    let intValue = parseInt(cacheSizeElem.value, 10);
+    cachePref.value = isNaN(intValue) ? 0 : intValue * 1024;
   },
 
   /**
@@ -601,22 +671,10 @@ var gAdvancedPane = {
   {
     var enabledPref = document.getElementById("app.update.enabled");
     var autoPref = document.getElementById("app.update.auto");
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    var metroEnabledPref = document.getElementById("app.update.metro.enabled");
-#endif
-#endif
     var radiogroup = document.getElementById("updateRadioGroup");
 
     if (!enabledPref.value)   // Don't care for autoPref.value in this case.
       radiogroup.value="manual";    // 3. Never check for updates.
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    // enabledPref.value && autoPref.value && metroEnabledPref.value
-    else if (metroEnabledPref.value && this._showingWin8Prefs)
-      radiogroup.value="autoMetro"; // 0. Automatically install updates
-#endif
-#endif
     else if (autoPref.value)  // enabledPref.value && autoPref.value
       radiogroup.value="auto";      // 1. Automatically install updates
     else                      // enabledPref.value && !autoPref.value
@@ -635,14 +693,6 @@ var gAdvancedPane = {
     // the warnIncompatible checkbox value is set by readAddonWarn
     warnIncompatible.disabled = radiogroup.disabled || modePref.locked ||
                                 !enabledPref.value || !autoPref.value;
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    if (this._showingWin8Prefs) {
-      warnIncompatible.disabled |= metroEnabledPref.value;
-      warnIncompatible.checked |= metroEnabledPref.value;
-    }
-#endif
-#endif
 
 #ifdef MOZ_MAINTENANCE_SERVICE
     // Check to see if the maintenance service is installed.
@@ -673,31 +723,12 @@ var gAdvancedPane = {
     var enabledPref = document.getElementById("app.update.enabled");
     var autoPref = document.getElementById("app.update.auto");
     var modePref = document.getElementById("app.update.mode");
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    var metroEnabledPref = document.getElementById("app.update.metro.enabled");
-    // Initialize the pref to false only if we're showing the option
-    if (this._showingWin8Prefs) {
-      metroEnabledPref.value = false;
-    }
-#endif
-#endif
     var radiogroup = document.getElementById("updateRadioGroup");
     switch (radiogroup.value) {
       case "auto":      // 1. Automatically install updates for Desktop only
         enabledPref.value = true;
         autoPref.value = true;
         break;
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-      case "autoMetro": // 0. Automatically install updates for both Metro and Desktop
-        enabledPref.value = true;
-        autoPref.value = true;
-        metroEnabledPref.value = true;
-        modePref.value = 1;
-        break;
-#endif
-#endif
       case "checkOnly": // 2. Check, but let me choose
         enabledPref.value = true;
         autoPref.value = false;
@@ -711,14 +742,6 @@ var gAdvancedPane = {
     warnIncompatible.disabled = enabledPref.locked || !enabledPref.value ||
                                 autoPref.locked || !autoPref.value ||
                                 modePref.locked;
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    if (this._showingWin8Prefs) {
-      warnIncompatible.disabled |= metroEnabledPref.value;
-      warnIncompatible.checked |= metroEnabledPref.value;
-    }
-#endif
-#endif
   },
 
   /**
@@ -798,16 +821,6 @@ var gAdvancedPane = {
   },
 
   /**
-   * Displays a dialog in which OCSP preferences can be configured.
-   */
-  showOCSP: function ()
-  {
-    openDialog("chrome://mozapps/content/preferences/ocsp.xul",
-               "mozilla:crlmanager",
-               "modal=yes", null);
-  },
-
-  /**
    * Displays a dialog from which the user can manage his security devices.
    */
   showSecurityDevices: function ()
@@ -815,50 +828,15 @@ var gAdvancedPane = {
     openDialog("chrome://pippki/content/device_manager.xul",
                "mozilla:devicemanager",
                "modal=yes", null);
-  }
-#ifdef HAVE_SHELL_SERVICE
-  ,
-
-  // SYSTEM DEFAULTS
-
-  /*
-   * Preferences:
-   *
-   * browser.shell.checkDefault
-   * - true if a default-browser check (and prompt to make it so if necessary)
-   *   occurs at startup, false otherwise
-   */
-
-  /**
-   * Show button for setting browser as default browser or information that
-   * browser is already the default browser.
-   */
-  updateSetDefaultBrowser: function()
-  {
-    let shellSvc = getShellService();
-    let setDefaultPane = document.getElementById("setDefaultPane");
-    if (!shellSvc) {
-      setDefaultPane.hidden = true;
-      document.getElementById("alwaysCheckDefault").disabled = true;
-      return;
-    }
-    let selectedIndex =
-      shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
-    setDefaultPane.selectedIndex = selectedIndex;
   },
 
-  /**
-   * Set browser as the operating system default browser.
-   */
-  setDefaultBrowser: function()
-  {
-    let shellSvc = getShellService();
-    if (!shellSvc)
-      return;
-    shellSvc.setDefaultBrowser(true, false);
-    let selectedIndex =
-      shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
-    document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
-  }
+#ifdef MOZ_UPDATER
+  observe: function (aSubject, aTopic, aData) {
+    switch(aTopic) {
+      case "nsPref:changed":
+        this.updateReadPrefs();
+        break;
+    }
+  },
 #endif
 };

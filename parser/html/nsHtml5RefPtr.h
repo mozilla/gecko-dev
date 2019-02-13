@@ -14,7 +14,7 @@ class nsHtml5RefPtrReleaser : public nsRunnable
     private:
       T* mPtr;
     public:
-      nsHtml5RefPtrReleaser(T* aPtr)
+      explicit nsHtml5RefPtrReleaser(T* aPtr)
           : mPtr(aPtr)
         {}
       NS_IMETHODIMP Run()
@@ -97,7 +97,7 @@ class nsHtml5RefPtr
             mRawPtr->AddRef();
         }
 
-      nsHtml5RefPtr( T* aRawPtr )
+      explicit nsHtml5RefPtr( T* aRawPtr )
             : mRawPtr(aRawPtr)
           // construct from a raw pointer (of the right type)
         {
@@ -105,7 +105,7 @@ class nsHtml5RefPtr
             mRawPtr->AddRef();
         }
 
-      nsHtml5RefPtr( const already_AddRefed<T>& aSmartPtr )
+      explicit nsHtml5RefPtr( const already_AddRefed<T>& aSmartPtr )
             : mRawPtr(aSmartPtr.mRawPtr)
           // construct from |dont_AddRef(expr)|
         {
@@ -204,7 +204,7 @@ class nsHtml5RefPtr
         }
 
       T*
-      operator->() const
+      operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsHtml5RefPtr with operator->().");
           return get();
@@ -378,14 +378,6 @@ operator!=( const U* lhs, const nsHtml5RefPtr<T>& rhs )
     return static_cast<const U*>(lhs) != static_cast<const T*>(rhs.get());
   }
 
-  // To avoid ambiguities caused by the presence of builtin |operator==|s
-  // creating a situation where one of the |operator==| defined above
-  // has a better conversion for one argument and the builtin has a
-  // better conversion for the other argument, define additional
-  // |operator==| without the |const| on the raw pointer.
-  // See bug 65664 for details.
-
-#ifndef NSCAP_DONT_PROVIDE_NONCONST_OPEQ
 template <class T, class U>
 inline
 bool
@@ -417,7 +409,6 @@ operator!=( U* lhs, const nsHtml5RefPtr<T>& rhs )
   {
     return const_cast<const U*>(lhs) != static_cast<const T*>(rhs.get());
   }
-#endif
 
 
 
@@ -458,31 +449,5 @@ operator!=( NSCAP_Zero* lhs, const nsHtml5RefPtr<T>& rhs )
   {
     return reinterpret_cast<const void*>(lhs) != static_cast<const void*>(rhs.get());
   }
-
-
-#ifdef HAVE_CPP_TROUBLE_COMPARING_TO_ZERO
-
-  // We need to explicitly define comparison operators for `int'
-  // because the compiler is lame.
-
-template <class T>
-inline
-bool
-operator==( const nsHtml5RefPtr<T>& lhs, int rhs )
-    // specifically to allow |smartPtr == 0|
-  {
-    return static_cast<const void*>(lhs.get()) == reinterpret_cast<const void*>(rhs);
-  }
-
-template <class T>
-inline
-bool
-operator==( int lhs, const nsHtml5RefPtr<T>& rhs )
-    // specifically to allow |0 == smartPtr|
-  {
-    return reinterpret_cast<const void*>(lhs) == static_cast<const void*>(rhs.get());
-  }
-
-#endif // !defined(HAVE_CPP_TROUBLE_COMPARING_TO_ZERO)
 
 #endif // !defined(nsHtml5RefPtr_h)

@@ -14,13 +14,8 @@
 
 //-----------------------------------------------------
 // PR LOGGING
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG /* Allow logging in the release build */
-#endif
+#include "mozilla/Logging.h"
 
-#include "prlog.h"
-
-#ifdef PR_LOGGING
 #define DUMP_LAYOUT_LEVEL 9 // this turns on the dumping of each doucment's layout info
 static PRLogModuleInfo *
 GetPrintingLog()
@@ -30,11 +25,7 @@ GetPrintingLog()
     sLog = PR_NewLogModule("printing");
   return sLog;
 }
-#define PR_PL(_p1)  PR_LOG(GetPrintingLog(), PR_LOG_DEBUG, _p1);
-#else
-#define PRT_YESNO(_p)
-#define PR_PL(_p1)
-#endif
+#define PR_PL(_p1)  MOZ_LOG(GetPrintingLog(), mozilla::LogLevel::Debug, _p1);
 
 //---------------------------------------------------
 //-- nsPrintData Class Impl
@@ -102,7 +93,7 @@ nsPrintData::~nsPrintData()
   delete mPrintObject;
 
   if (mBrandName) {
-    NS_Free(mBrandName);
+    free(mBrandName);
   }
 }
 

@@ -60,7 +60,7 @@ namespace {
  * between read()s, we sleep by Wait()'ing on a monitor, which we notify on
  * shutdown.
  */
-class MemoryPressureWatcher
+class MemoryPressureWatcher final
   : public nsIRunnable
   , public nsIObserver
 {
@@ -215,6 +215,9 @@ public:
     return NS_OK;
   }
 
+protected:
+  ~MemoryPressureWatcher() {}
+
 private:
   /**
    * Read from aLowMemFd, which we assume corresponds to the
@@ -284,7 +287,8 @@ InitGonkMemoryPressureMonitoring()
   NS_ENSURE_SUCCESS_VOID(memoryPressureWatcher->Init());
 
   nsCOMPtr<nsIThread> thread;
-  NS_NewThread(getter_AddRefs(thread), memoryPressureWatcher);
+  NS_NewNamedThread("MemoryPressure", getter_AddRefs(thread),
+                    memoryPressureWatcher);
 }
 
 } // namespace mozilla

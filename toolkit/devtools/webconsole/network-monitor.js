@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, Cr} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -12,10 +12,21 @@ loader.lazyGetter(this, "NetworkHelper", () => require("devtools/toolkit/webcons
 loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
 loader.lazyImporter(this, "DevToolsUtils", "resource://gre/modules/devtools/DevToolsUtils.jsm");
 loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
-loader.lazyImporter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
 loader.lazyServiceGetter(this, "gActivityDistributor",
                          "@mozilla.org/network/http-activity-distributor;1",
                          "nsIHttpActivityDistributor");
+let _testing = false;
+Object.defineProperty(this, "gTesting", {
+  get: function() {
+    try {
+      const { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
+      _testing = gDevTools.testing;
+    } catch (e) {
+      // gDevTools is not present on B2G.
+    }
+    return _testing;
+  }
+});
 
 ///////////////////////////////////////////////////////////////////////////////
 // Network logging
@@ -57,13 +68,51 @@ function NetworkResponseListener(aOwner, aHttpActivity)
   this.receivedData = "";
   this.httpActivity = aHttpActivity;
   this.bodySize = 0;
+  let channel = this.httpActivity.channel;
+  this._wrappedNotificationCallbacks = channel.notificationCallbacks;
+  channel.notificationCallbacks = this;
 }
 exports.NetworkResponseListener = NetworkResponseListener;
 
 NetworkResponseListener.prototype = {
   QueryInterface:
     XPCOMUtils.generateQI([Ci.nsIStreamListener, Ci.nsIInputStreamCallback,
-                           Ci.nsIRequestObserver, Ci.nsISupports]),
+                           Ci.nsIRequestObserver, Ci.nsIInterfaceRequestor,
+                           Ci.nsISupports]),
+
+  // nsIInterfaceRequestor implementation
+
+  /**
+   * This object implements nsIProgressEventSink, but also needs to forward
+   * interface requests to the notification callbacks of other objects.
+   */
+  getInterface(iid) {
+    if (iid.equals(Ci.nsIProgressEventSink)) {
+      return this;
+    }
+    if (this._wrappedNotificationCallbacks) {
+      return this._wrappedNotificationCallbacks.getInterface(iid);
+    }
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+
+  /**
+   * Forward notifications for interfaces this object implements, in case other
+   * objects also implemented them.
+   */
+  _forwardNotification(iid, method, args) {
+    if (!this._wrappedNotificationCallbacks) {
+      return;
+    }
+    try {
+      let impl = this._wrappedNotificationCallbacks.getInterface(iid);
+      impl[method].apply(impl, args);
+    } catch (e) {
+      if (e.result != Cr.NS_ERROR_NO_INTERFACE) {
+        throw e;
+      }
+    }
+  },
 
   /**
    * This NetworkResponseListener tracks the NetworkMonitor.openResponses object
@@ -71,6 +120,12 @@ NetworkResponseListener.prototype = {
    * @private
    */
   _foundOpenResponse: false,
+
+  /**
+   * If the channel already had notificationCallbacks, hold them here internally
+   * so that we can forward getInterface requests to that object.
+   */
+  _wrappedNotificationCallbacks: null,
 
   /**
    * The response listener owner.
@@ -94,9 +149,14 @@ NetworkResponseListener.prototype = {
   receivedData: null,
 
   /**
-   * The network response body size.
+   * The uncompressed, decoded response body size.
    */
   bodySize: null,
+
+  /**
+   * Response body size on the wire, potentially compressed / encoded.
+   */
+  transferredSize: null,
 
   /**
    * The nsIRequest we are started for.
@@ -159,11 +219,59 @@ NetworkResponseListener.prototype = {
    */
   onStartRequest: function NRL_onStartRequest(aRequest)
   {
+    // Converter will call this again, we should just ignore that.
+    if (this.request)
+      return;
+
     this.request = aRequest;
+    this._getSecurityInfo();
     this._findOpenResponse();
+    // We need to track the offset for the onDataAvailable calls where we pass the data
+    // from our pipe to the coverter.
+    this.offset = 0;
+
+    // In the multi-process mode, the conversion happens on the child side while we can
+    // only monitor the channel on the parent side. If the content is gzipped, we have
+    // to unzip it ourself. For that we use the stream converter services.
+    let channel = this.request;
+    if (channel instanceof Ci.nsIEncodedChannel &&
+        channel.contentEncodings &&
+        !channel.applyConversion) {
+      let encodingHeader = channel.getResponseHeader("Content-Encoding");
+      let scs = Cc["@mozilla.org/streamConverters;1"].
+        getService(Ci.nsIStreamConverterService);
+      let encodings = encodingHeader.split(/\s*\t*,\s*\t*/);
+      let nextListener = this;
+      let acceptedEncodings = ["gzip", "deflate", "x-gzip", "x-deflate"];
+      for (let i in encodings) {
+        // There can be multiple conversions applied
+        let enc = encodings[i].toLowerCase();
+        if (acceptedEncodings.indexOf(enc) > -1) {
+          this.converter = scs.asyncConvertData(enc, "uncompressed", nextListener, null);
+          nextListener = this.converter;
+        }
+      }
+      if (this.converter) {
+        this.converter.onStartRequest(this.request, null);
+      }
+    }
     // Asynchronously wait for the data coming from the request.
     this.setAsyncListener(this.sink.inputStream, this);
   },
+
+  /**
+   * Parse security state of this request and report it to the client.
+   */
+  _getSecurityInfo: DevToolsUtils.makeInfallible(function NRL_getSecurityInfo() {
+    // Take the security information from the original nsIHTTPChannel instead of
+    // the nsIRequest received in onStartRequest. If response to this request
+    // was a redirect from http to https, the request object seems to contain
+    // security info for the https request after redirect.
+    let secinfo = this.httpActivity.channel.securityInfo;
+    let info = NetworkHelper.parseSecurityInfo(secinfo, this.httpActivity);
+
+    this.httpActivity.owner.addSecurityInfo(info);
+  }),
 
   /**
    * Handle the onStopRequest by closing the sink output stream.
@@ -175,6 +283,23 @@ NetworkResponseListener.prototype = {
   {
     this._findOpenResponse();
     this.sink.outputStream.close();
+  },
+
+  // nsIProgressEventSink implementation
+
+  /**
+   * Handle progress event as data is transferred.  This is used to record the
+   * size on the wire, which may be compressed / encoded.
+   */
+  onProgress: function(request, context, progress, progressMax) {
+    this.transferredSize = progress;
+    // Need to forward as well to keep things like Download Manager's progress
+    // bar working properly.
+    this._forwardNotification(Ci.nsIProgressEventSink, "onProgress", arguments);
+  },
+
+  onStatus: function () {
+    this._forwardNotification(Ci.nsIProgressEventSink, "onStatus", arguments);
   },
 
   /**
@@ -194,7 +319,8 @@ NetworkResponseListener.prototype = {
 
     let openResponse = null;
 
-    for each (let item in this.owner.openResponses) {
+    for (let id in this.owner.openResponses) {
+      let item = this.owner.openResponses[id];
       if (item.channel === this.httpActivity.channel) {
         openResponse = item;
         break;
@@ -259,6 +385,7 @@ NetworkResponseListener.prototype = {
     };
 
     response.size = response.text.length;
+    response.transferredSize = this.transferredSize;
 
     try {
       response.mimeType = this.request.contentType;
@@ -276,14 +403,18 @@ NetworkResponseListener.prototype = {
 
     this.receivedData = "";
 
-    this.httpActivity.owner.
-      addResponseContent(response, this.httpActivity.discardResponseBody);
+    this.httpActivity.owner.addResponseContent(
+      response,
+      this.httpActivity.discardResponseBody
+    );
 
+    this._wrappedNotificationCallbacks = null;
     this.httpActivity.channel = null;
     this.httpActivity.owner = null;
     this.httpActivity = null;
     this.sink = null;
     this.inputStream = null;
+    this.converter = null;
     this.request = null;
     this.owner = null;
   },
@@ -311,15 +442,18 @@ NetworkResponseListener.prototype = {
 
     if (available != -1) {
       if (available != 0) {
-        // Note that passing 0 as the offset here is wrong, but the
-        // onDataAvailable() method does not use the offset, so it does not
-        // matter.
-        this.onDataAvailable(this.request, null, aStream, 0, available);
+        if (this.converter) {
+          this.converter.onDataAvailable(this.request, null, aStream, this.offset, available);
+        } else {
+          this.onDataAvailable(this.request, null, aStream, this.offset, available);
+        }
       }
+      this.offset += available;
       this.setAsyncListener(aStream, this);
     }
     else {
       this.onStreamClose();
+      this.offset = 0;
     }
   },
 }; // NetworkResponseListener.prototype
@@ -429,6 +563,8 @@ NetworkMonitor.prototype = {
     if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT) {
       Services.obs.addObserver(this._httpResponseExaminer,
                                "http-on-examine-response", false);
+      Services.obs.addObserver(this._httpResponseExaminer,
+                               "http-on-examine-cached-response", false);
     }
   },
 
@@ -448,7 +584,9 @@ NetworkMonitor.prototype = {
     // NetworkResponseListener is responsible with updating the httpActivity
     // object with the data from the new object in openResponses.
 
-    if (!this.owner || aTopic != "http-on-examine-response" ||
+    if (!this.owner ||
+        (aTopic != "http-on-examine-response" &&
+         aTopic != "http-on-examine-cached-response") ||
         !(aSubject instanceof Ci.nsIHttpChannel)) {
       return;
     }
@@ -499,6 +637,26 @@ NetworkMonitor.prototype = {
                                      httpVersionMin.value;
 
     this.openResponses[response.id] = response;
+
+    if(aTopic === "http-on-examine-cached-response") {
+      // If this is a cached response, there never was a request event
+      // so we need to construct one here so the frontend gets all the
+      // expected events.
+      let httpActivity = this._createNetworkEvent(channel, { fromCache: true });
+      httpActivity.owner.addResponseStart({
+        httpVersion: response.httpVersion,
+        remoteAddress: "",
+        remotePort: "",
+        status: response.status,
+        statusText: response.statusText,
+        headersSize: 0,
+      }, "", true);
+
+      // There also is never any timing events, so we can fire this
+      // event with zeroed out values.
+      let timings = this._setupHarTimings(httpActivity, true);
+      httpActivity.owner.addEventTimings(timings.total, timings.timings);
+    }
   },
 
   /**
@@ -536,7 +694,8 @@ NetworkMonitor.prototype = {
     // Iterate over all currently ongoing requests. If aChannel can't
     // be found within them, then exit this function.
     let httpActivity = null;
-    for each (let item in this.openRequests) {
+    for (let id in this.openRequests) {
+      let item = this.openRequests[id];
       if (item.channel === aChannel) {
         httpActivity = item;
         break;
@@ -594,10 +753,29 @@ NetworkMonitor.prototype = {
       return true;
     }
 
+    // Ignore requests from chrome or add-on code when we are monitoring
+    // content.
+    // TODO: one particular test (browser_styleeditor_fetch-from-cache.js) needs
+    // the gDevTools.testing check. We will move to a better way to serve its
+    // needs in bug 1167188, where this check should be removed.
+    if (!gTesting && aChannel.loadInfo &&
+        aChannel.loadInfo.loadingDocument === null &&
+        aChannel.loadInfo.loadingPrincipal === Services.scriptSecurityManager.getSystemPrincipal()) {
+      return false;
+    }
+
     if (this.window) {
+      // Since frames support, this.window may not be the top level content
+      // frame, so that we can't only compare with win.top.
       let win = NetworkHelper.getWindowForRequest(aChannel);
-      if (win && win.top === this.window) {
-        return true;
+      while(win) {
+        if (win == this.window) {
+          return true;
+        }
+        if (win.parent == win) {
+          break;
+        }
+        win = win.parent;
       }
     }
 
@@ -615,59 +793,66 @@ NetworkMonitor.prototype = {
       }
     }
 
+    // The following check is necessary because beacon channels don't come
+    // associated with a load group. Bug 1160837 will hopefully introduce a
+    // platform fix that will render the following code entirely useless.
+    if (aChannel.loadInfo &&
+        aChannel.loadInfo.contentPolicyType == Ci.nsIContentPolicy.TYPE_BEACON) {
+      let nonE10sMatch = this.window &&
+                         aChannel.loadInfo.loadingDocument === this.window.document;
+      let e10sMatch = this.topFrame &&
+                      this.topFrame.contentPrincipal &&
+                      this.topFrame.contentPrincipal.equals(aChannel.loadInfo.loadingPrincipal) &&
+                      this.topFrame.contentPrincipal.URI.spec == aChannel.referrer.spec;
+      let b2gMatch = this.appId &&
+                     aChannel.loadInfo.loadingPrincipal.appId === this.appId;
+      if (nonE10sMatch || e10sMatch || b2gMatch) {
+        return true;
+      }
+    }
+
     return false;
   },
 
   /**
-   * Handler for ACTIVITY_SUBTYPE_REQUEST_HEADER. When a request starts the
-   * headers are sent to the server. This method creates the |httpActivity|
-   * object where we store the request and response information that is
-   * collected through its lifetime.
    *
-   * @private
-   * @param nsIHttpChannel aChannel
-   * @param number aTimestamp
-   * @param string aExtraStringData
-   * @return void
    */
-  _onRequestHeader:
-  function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
-  {
-    if (!this._matchRequest(aChannel)) {
-      return;
-    }
-
+  _createNetworkEvent: function(aChannel, { timestamp, extraStringData, fromCache }) {
     let win = NetworkHelper.getWindowForRequest(aChannel);
     let httpActivity = this.createActivityObject(aChannel);
 
     // see NM__onRequestBodySent()
     httpActivity.charset = win ? win.document.characterSet : null;
-    httpActivity.private = win ? PrivateBrowsingUtils.isWindowPrivate(win) : false;
 
-    httpActivity.timings.REQUEST_HEADER = {
-      first: aTimestamp,
-      last: aTimestamp
-    };
+    aChannel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
+    httpActivity.private = aChannel.isChannelPrivate;
 
-    let httpVersionMaj = {};
-    let httpVersionMin = {};
+    if(timestamp) {
+      httpActivity.timings.REQUEST_HEADER = {
+        first: timestamp,
+        last: timestamp
+      };
+    }
+
     let event = {};
-    event.startedDateTime = new Date(Math.round(aTimestamp / 1000)).toISOString();
-    event.headersSize = aExtraStringData.length;
     event.method = aChannel.requestMethod;
     event.url = aChannel.URI.spec;
     event.private = httpActivity.private;
+    event.headersSize = 0;
+    event.startedDateTime = (timestamp ? new Date(Math.round(timestamp / 1000)) : new Date()).toISOString();
+    event.fromCache = fromCache;
 
-    // Determine if this is an XHR request.
-    try {
-      let callbacks = aChannel.notificationCallbacks;
-      let xhrRequest = callbacks ? callbacks.getInterface(Ci.nsIXMLHttpRequest) : null;
-      httpActivity.isXHR = event.isXHR = !!xhrRequest;
-    } catch (e) {
-      httpActivity.isXHR = event.isXHR = false;
+    if(extraStringData) {
+      event.headersSize = extraStringData.length;
     }
 
+    // Determine if this is an XHR request.
+    httpActivity.isXHR = event.isXHR =
+        (aChannel.loadInfo.contentPolicyType === Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST);
+
     // Determine the HTTP version.
+    let httpVersionMaj = {};
+    let httpVersionMin = {};
     aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
     aChannel.getRequestVersion(httpVersionMaj, httpVersionMin);
 
@@ -696,14 +881,38 @@ NetworkMonitor.prototype = {
       cookies = NetworkHelper.parseCookieHeader(cookieHeader);
     }
 
-    httpActivity.owner = this.owner.onNetworkEvent(event, aChannel, this);
+    httpActivity.owner = this.owner.onNetworkEvent(event, aChannel);
 
     this._setupResponseListener(httpActivity);
 
-    this.openRequests[httpActivity.id] = httpActivity;
-
-    httpActivity.owner.addRequestHeaders(headers);
+    httpActivity.owner.addRequestHeaders(headers, extraStringData);
     httpActivity.owner.addRequestCookies(cookies);
+
+    this.openRequests[httpActivity.id] = httpActivity;
+    return httpActivity;
+  },
+
+  /**
+   * Handler for ACTIVITY_SUBTYPE_REQUEST_HEADER. When a request starts the
+   * headers are sent to the server. This method creates the |httpActivity|
+   * object where we store the request and response information that is
+   * collected through its lifetime.
+   *
+   * @private
+   * @param nsIHttpChannel aChannel
+   * @param number aTimestamp
+   * @param string aExtraStringData
+   * @return void
+   */
+  _onRequestHeader:
+  function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
+  {
+    if (!this._matchRequest(aChannel)) {
+      return;
+    }
+
+    this._createNetworkEvent(aChannel, { timestamp: aTimestamp,
+                                         extraStringData: aExtraStringData });
   },
 
   /**
@@ -728,6 +937,7 @@ NetworkMonitor.prototype = {
       channel: aChannel,
       charset: null, // see NM__onRequestHeader()
       url: aChannel.URI.spec,
+      hostname: aChannel.URI.host, // needed for host specific security info
       discardRequestBody: !this.saveRequestAndResponseBodies,
       discardResponseBody: !this.saveRequestAndResponseBodies,
       timings: {}, // internal timing information, see NM_observeActivity()
@@ -829,7 +1039,7 @@ NetworkMonitor.prototype = {
     // contains the response status (e.g. HTTP/1.1 200 OK).
     //
     // Note: The response header is not saved here. Calling the
-    // channel.visitResponseHeaders() methood at this point sometimes causes an
+    // channel.visitResponseHeaders() method at this point sometimes causes an
     // NS_ERROR_NOT_AVAILABLE exception.
     //
     // We could parse aExtraStringData to get the headers and their values, but
@@ -842,6 +1052,8 @@ NetworkMonitor.prototype = {
 
     let response = {};
     response.httpVersion = statusLineArray.shift();
+    response.remoteAddress = aHttpActivity.channel.remoteAddress;
+    response.remotePort = aHttpActivity.channel.remotePort;
     response.status = statusLineArray.shift();
     response.statusText = statusLineArray.join(" ");
     response.headersSize = aExtraStringData.length;
@@ -860,7 +1072,7 @@ NetworkMonitor.prototype = {
 
     response.discardResponseBody = aHttpActivity.discardResponseBody;
 
-    aHttpActivity.owner.addResponseStart(response);
+    aHttpActivity.owner.addResponseStart(response, aExtraStringData);
   },
 
   /**
@@ -883,17 +1095,36 @@ NetworkMonitor.prototype = {
    * Update the HTTP activity object to include timing information as in the HAR
    * spec. The HTTP activity object holds the raw timing information in
    * |timings| - these are timings stored for each activity notification. The
-   * HAR timing information is constructed based on these lower level data.
+   * HAR timing information is constructed based on these lower level
+   * data.
    *
    * @param object aHttpActivity
    *        The HTTP activity object we are working with.
+   * @param boolean fromCache
+   *        Indicates that the result was returned from the browser cache
    * @return object
    *         This object holds two properties:
    *         - total - the total time for all of the request and response.
    *         - timings - the HAR timings object.
    */
-  _setupHarTimings: function NM__setupHarTimings(aHttpActivity)
+  _setupHarTimings: function NM__setupHarTimings(aHttpActivity, fromCache)
   {
+    if(fromCache) {
+      // If it came from the browser cache, we have no timing
+      // information and these should all be 0
+      return {
+        total: 0,
+        timings: {
+          blocked: 0,
+          dns: 0,
+          connect: 0,
+          send: 0,
+          wait: 0,
+          receive: 0
+        }
+      };
+    }
+
     let timings = aHttpActivity.timings;
     let harTimings = {};
 
@@ -1074,13 +1305,18 @@ NetworkMonitorChild.prototype = {
 
   destroy: function() {
     let mm = this._messageManager;
-    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
-                             this._onNewEvent);
-    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
-                             this._onUpdateEvent);
-    mm.sendAsyncMessage("debug:netmonitor:" + this.connID, {
-      action: "disconnect",
-    });
+    try {
+      mm.removeMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
+                               this._onNewEvent);
+      mm.removeMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
+                               this._onUpdateEvent);
+    } catch(e) {
+      // On b2g, when registered to a new root docshell,
+      // all message manager functions throw when trying to call them during
+      // message-manager-disconnect event.
+      // As there is no attribute/method on message manager to know
+      // if they are still usable or not, we can only catch the exception...
+    }
     this._netEvents.clear();
     this._messageManager = null;
     this.owner = null;
@@ -1147,8 +1383,8 @@ NetworkEventActorProxy.prototype = {
 (function() {
   // Listeners for new network event data coming from the NetworkMonitor.
   let methods = ["addRequestHeaders", "addRequestCookies", "addRequestPostData",
-                 "addResponseStart", "addResponseHeaders", "addResponseCookies",
-                 "addResponseContent", "addEventTimings"];
+                 "addResponseStart", "addSecurityInfo", "addResponseHeaders",
+                 "addResponseCookies", "addResponseContent", "addEventTimings"];
   let factory = NetworkEventActorProxy.methodFactory;
   for (let method of methods) {
     NetworkEventActorProxy.prototype[method] = factory(method);

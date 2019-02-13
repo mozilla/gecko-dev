@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -86,8 +86,8 @@ add_task(function test() {
   do_print("Sort by keyword asc");
   result.sortingMode = NHQO.SORT_BY_KEYWORD_ASCENDING;
   checkOrder(id3, id2, id1);  // no keywords set - falling back to title sort
-  PlacesUtils.bookmarks.setKeywordForBookmark(id1, "a");
-  PlacesUtils.bookmarks.setKeywordForBookmark(id2, "z");
+  yield PlacesUtils.keywords.insert({ url: uri1.spec, keyword: "a" });
+  yield PlacesUtils.keywords.insert({ url: uri2.spec, keyword: "z" });
   checkOrder(id3, id1, id2);
 
   // XXXtodo: test history sortings (visit count, visit date)
@@ -117,8 +117,7 @@ add_task(function test() {
   // items for that visit, and then notifies onItemVisited.  Thus we must
   // explicitly wait for that.
   let waitForVisited = promiseOnItemVisited();
-  yield promiseAddVisits({ uri: uri2,
-                           transition: TRANSITION_TYPED});
+  yield PlacesTestUtils.addVisits({ uri: uri2, transition: TRANSITION_TYPED });
   yield waitForVisited;
 
   do_print("Sort by frecency desc");

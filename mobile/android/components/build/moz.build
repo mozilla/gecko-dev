@@ -24,10 +24,8 @@ if CONFIG['MOZ_ANDROID_HISTORY']:
         'nsAndroidHistory.cpp',
     ]
     LOCAL_INCLUDES += [
-        '/content/base/src',
         '/docshell/base',
+        '/dom/base',
     ]
-
-LIBRARY_NAME = 'browsercomps'
 
 FINAL_LIBRARY = 'xul'

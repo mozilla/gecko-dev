@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,8 +7,11 @@
 #ifndef mozilla_BackgroundHangMonitor_h
 #define mozilla_BackgroundHangMonitor_h
 
-#include "mozilla/RefPtr.h"
+#include "mozilla/HangAnnotations.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/RefPtr.h"
+
+#include "nsString.h"
 
 #include <stdint.h>
 
@@ -17,14 +21,8 @@ namespace Telemetry {
 class ThreadHangStats;
 };
 
-// Disabled for Beta/Release builds because of bug 965392.
-// Disabled for debug builds because of bug 979069.
-#if !defined(RELEASE_BUILD) && !defined(DEBUG)
-// Undefine to disable background hang monitor
-#define MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-#endif
-
 class BackgroundHangThread;
+class BackgroundHangManager;
 
 /**
  * The background hang monitor is responsible for detecting and reporting
@@ -106,11 +104,18 @@ class BackgroundHangThread;
  *    }
  *  }
  *
+ * Prohibit() and Allow() make the background hang monitor work safely
+ * before Startup().
  */
 class BackgroundHangMonitor
 {
 private:
+  friend BackgroundHangManager;
+
   RefPtr<BackgroundHangThread> mThread;
+
+  static bool ShouldDisableOnBeta(const nsCString &);
+  static bool DisableOnBeta();
 
 public:
   static const uint32_t kNoTimeout = 0;
@@ -166,6 +171,11 @@ public:
   static void Shutdown();
 
   /**
+   * Returns true if BHR is disabled.
+   */
+  static bool IsDisabled();
+
+  /**
    * Start monitoring hangs for the current thread.
    *
    * @param aName Name to identify the thread with
@@ -203,6 +213,42 @@ public:
    * NotifyActivity when subsequently exiting the wait state.
    */
   void NotifyWait();
+
+  /**
+   * Prohibit the hang monitor from activating.
+   *
+   * Startup() should not be called between Prohibit() and Allow().
+   * This function makes the background hang monitor stop monitoring
+   * threads.
+   *
+   * Prohibit() and Allow() can be called before XPCOM is ready.  If
+   * we don't stop monitoring threads it could case errors.
+   */
+  static void Prohibit();
+
+  /**
+   * Allow the hang monitor to run.
+   *
+   * Allow() and Prohibit() should be called in pair.
+   *
+   * \see Prohibit()
+   */
+  static void Allow();
+
+  /**
+   * Register an annotator with BHR for the current thread.
+   * @param aAnnotator annotator to register
+   * @return true if the annotator was registered, otherwise false.
+   */
+  static bool RegisterAnnotator(HangMonitor::Annotator& aAnnotator);
+
+  /**
+   * Unregister an annotator that was previously registered via
+   * RegisterAnnotator.
+   * @param aAnnotator annotator to unregister
+   * @return true if there are still remaining annotators registered
+   */
+  static bool UnregisterAnnotator(HangMonitor::Annotator& aAnnotator);
 };
 
 } // namespace mozilla

@@ -52,14 +52,14 @@ public class BrowserLocaleManager implements LocaleManager {
 
     // These are volatile because we don't impose restrictions
     // over which thread calls our methods.
-    private volatile Locale currentLocale = null;
+    private volatile Locale currentLocale;
     private volatile Locale systemLocale = Locale.getDefault();
 
-    private AtomicBoolean inited = new AtomicBoolean(false);
-    private boolean systemLocaleDidChange = false;
+    private final AtomicBoolean inited = new AtomicBoolean(false);
+    private boolean systemLocaleDidChange;
     private BroadcastReceiver receiver;
 
-    private static AtomicReference<LocaleManager> instance = new AtomicReference<LocaleManager>();
+    private static final AtomicReference<LocaleManager> instance = new AtomicReference<LocaleManager>();
 
     public static LocaleManager getInstance() {
         LocaleManager localeManager = instance.get();
@@ -75,49 +75,9 @@ public class BrowserLocaleManager implements LocaleManager {
         }
     }
 
+    @Override
     public boolean isEnabled() {
         return AppConstants.MOZ_LOCALE_SWITCHER;
-    }
-
-    /**
-     * Gecko uses locale codes like "es-ES", whereas a Java {@link Locale}
-     * stringifies as "es_ES".
-     *
-     * This method approximates the Java 7 method <code>Locale#toLanguageTag()</code>.
-     *
-     * @return a locale string suitable for passing to Gecko.
-     */
-    public static String getLanguageTag(final Locale locale) {
-        // If this were Java 7:
-        // return locale.toLanguageTag();
-
-        String language = locale.getLanguage();  // Can, but should never be, an empty string.
-        // Modernize certain language codes.
-        if (language.equals("iw")) {
-            language = "he";
-        } else if (language.equals("in")) {
-            language = "id";
-        } else if (language.equals("ji")) {
-            language = "yi";
-        }
-
-        String country = locale.getCountry();    // Can be an empty string.
-        if (country.equals("")) {
-            return language;
-        }
-        return language + "-" + country;
-    }
-
-    public static Locale parseLocaleCode(final String localeCode) {
-        int index;
-        if ((index = localeCode.indexOf('-')) != -1 ||
-            (index = localeCode.indexOf('_')) != -1) {
-            final String langCode = localeCode.substring(0, index);
-            final String countryCode = localeCode.substring(index + 1);
-            return new Locale(langCode, countryCode);
-        } else {
-            return new Locale(localeCode);
-        }
     }
 
     /**
@@ -205,7 +165,7 @@ public class BrowserLocaleManager implements LocaleManager {
      *
      * If we're currently mirroring the system locale, this method returns the
      * supplied configuration's locale, unless the current activity locale is
-     * correct. , If we're not currently mirroring, this methodupdates the
+     * correct. If we're not currently mirroring, this method updates the
      * configuration object to match the user's currently selected locale, and
      * returns that, unless the current activity locale is correct.
      *
@@ -229,6 +189,37 @@ public class BrowserLocaleManager implements LocaleManager {
         }
 
         return changed;
+    }
+
+    /**
+     * Gecko needs to know the OS locale to compute a useful Accept-Language
+     * header. If it changed since last time, send a message to Gecko and
+     * persist the new value. If unchanged, returns immediately.
+     *
+     * @param prefs the SharedPreferences instance to use. Cannot be null.
+     * @param osLocale the new locale instance. Safe if null.
+     */
+    public static void storeAndNotifyOSLocale(final SharedPreferences prefs,
+                                              final Locale osLocale) {
+        if (osLocale == null) {
+            return;
+        }
+
+        final String lastOSLocale = prefs.getString("osLocale", null);
+        final String osLocaleString = osLocale.toString();
+
+        if (osLocaleString.equals(lastOSLocale)) {
+            return;
+        }
+
+        // Store the Java-native form.
+        prefs.edit().putString("osLocale", osLocaleString).apply();
+
+        // The value we send to Gecko should be a language tag, not
+        // a Java locale string.
+        final String osLanguageTag = Locales.getLanguageTag(osLocale);
+        final GeckoEvent localeOSEvent = GeckoEvent.createBroadcastEvent("Locale:OS", osLanguageTag);
+        GeckoAppShell.sendEventToGecko(localeOSEvent);
     }
 
     @Override
@@ -272,7 +263,7 @@ public class BrowserLocaleManager implements LocaleManager {
         persistLocale(context, localeCode);
 
         // Tell Gecko.
-        GeckoEvent ev = GeckoEvent.createBroadcastEvent(EVENT_LOCALE_CHANGED, BrowserLocaleManager.getLanguageTag(getCurrentLocale(context)));
+        GeckoEvent ev = GeckoEvent.createBroadcastEvent(EVENT_LOCALE_CHANGED, Locales.getLanguageTag(getCurrentLocale(context)));
         GeckoAppShell.sendEventToGecko(ev);
 
         return resultant;
@@ -282,7 +273,7 @@ public class BrowserLocaleManager implements LocaleManager {
     public void resetToSystemLocale(Context context) {
         // Wipe the pref.
         final SharedPreferences settings = getSharedPreferences(context);
-        settings.edit().remove(PREF_LOCALE).commit();
+        settings.edit().remove(PREF_LOCALE).apply();
 
         // Apply the system locale.
         updateLocale(context, systemLocale);
@@ -312,6 +303,9 @@ public class BrowserLocaleManager implements LocaleManager {
         return GeckoSharedPrefs.forApp(context);
     }
 
+    /**
+     * @return the persisted locale in Java format: "en_US".
+     */
     private String getPersistedLocale(Context context) {
         final SharedPreferences settings = getSharedPreferences(context);
         final String locale = settings.getString(PREF_LOCALE, "");
@@ -324,7 +318,7 @@ public class BrowserLocaleManager implements LocaleManager {
 
     private void persistLocale(Context context, String localeCode) {
         final SharedPreferences settings = getSharedPreferences(context);
-        settings.edit().putString(PREF_LOCALE, localeCode).commit();
+        settings.edit().putString(PREF_LOCALE, localeCode).apply();
     }
 
     @Override
@@ -337,7 +331,7 @@ public class BrowserLocaleManager implements LocaleManager {
         if (current == null) {
             return null;
         }
-        return currentLocale = parseLocaleCode(current);
+        return currentLocale = Locales.parseLocaleCode(current);
     }
 
     /**
@@ -346,6 +340,9 @@ public class BrowserLocaleManager implements LocaleManager {
      * Returns the persisted locale if it differed.
      *
      * Does not notify Gecko.
+     *
+     * @param localeCode a locale string in Java format: "en_US".
+     * @return if it differed, a locale string in Java format: "en_US".
      */
     private String updateLocale(Context context, String localeCode) {
         // Fast path.
@@ -354,11 +351,14 @@ public class BrowserLocaleManager implements LocaleManager {
             return null;
         }
 
-        final Locale locale = parseLocaleCode(localeCode);
+        final Locale locale = Locales.parseLocaleCode(localeCode);
 
         return updateLocale(context, locale);
     }
 
+    /**
+     * @return the Java locale string: e.g., "en_US".
+     */
     private String updateLocale(Context context, final Locale locale) {
         // Fast path.
         if (Locale.getDefault().equals(locale)) {
@@ -398,13 +398,9 @@ public class BrowserLocaleManager implements LocaleManager {
      */
     public static Collection<String> getPackagedLocaleTags(final Context context) {
         final String resPath = "res/multilocale.json";
-        final String apkPath = context.getPackageResourcePath();
+        final String jarURL = GeckoJarReader.getJarURL(context, resPath);
 
-        final String jarURL = "jar:jar:" + new File(apkPath).toURI() + "!/" +
-                              AppConstants.OMNIJAR_NAME + "!/" +
-                              resPath;
-
-        final String contents = GeckoJarReader.getText(jarURL);
+        final String contents = GeckoJarReader.getText(context, jarURL);
         if (contents == null) {
             // GeckoJarReader logs and swallows exceptions.
             return null;
@@ -437,7 +433,8 @@ public class BrowserLocaleManager implements LocaleManager {
      * @return the single default locale baked into this application.
      *         Applicable when there is no multilocale.json present.
      */
-    public static String getFallbackLocaleTag() {
+    @SuppressWarnings("static-method")
+    public String getFallbackLocaleTag() {
         return FALLBACK_LOCALE_TAG;
     }
 }

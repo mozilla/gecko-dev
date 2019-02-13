@@ -147,8 +147,10 @@ function testGetCaches(uri, prefName) {
   insertSetting.execute();
   let settingId = cps.DBConnection.lastInsertRowID;
 
-  let insertPref = cps.DBConnection.createStatement("INSERT INTO prefs (groupID, settingID, value) " +
-                                                    "VALUES (:groupId, :settingId, :value)");
+  let insertPref = cps.DBConnection.createStatement(`
+    INSERT INTO prefs (groupID, settingID, value)
+    VALUES (:groupId, :settingId, :value)
+  `);
   insertPref.params.groupId = groupId;
   insertPref.params.settingId = settingId;
   insertPref.params.value = VALUE;
@@ -223,7 +225,7 @@ function testCacheEviction(uri, prefName) {
 }
 
 function selectValue(stmt, columnName, param1, param2) {
-  let stmt = cps.DBConnection.createStatement(stmt);
+  stmt = cps.DBConnection.createStatement(stmt);
   if (param1)
     stmt.params.param1 = param1;
 

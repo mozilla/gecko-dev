@@ -25,7 +25,7 @@
 
 #include "mozilla/Endian.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 
 #include "nsCRT.h"
 #include "nsString.h"
@@ -36,8 +36,9 @@
 
 #include "jsfriendapi.h"
 
+using mozilla::MakeUnique;
 using mozilla::PodCopy;
-using mozilla::ScopedDeleteArray;
+using mozilla::UniquePtr;
 
 NS_IMPL_ISUPPORTS(nsBinaryOutputStream,
                   nsIObjectOutputStream,
@@ -227,7 +228,7 @@ nsBinaryOutputStream::WriteWStringZ(const char16_t* aString)
   if (length <= 64) {
     copy = temp;
   } else {
-    copy = reinterpret_cast<char16_t*>(moz_malloc(byteCount));
+    copy = reinterpret_cast<char16_t*>(malloc(byteCount));
     if (!copy) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -236,7 +237,7 @@ nsBinaryOutputStream::WriteWStringZ(const char16_t* aString)
   mozilla::NativeEndian::copyAndSwapToBigEndian(copy, aString, length);
   rv = WriteBytes(reinterpret_cast<const char*>(copy), byteCount);
   if (copy != temp) {
-    moz_free(copy);
+    free(copy);
   }
 #endif
 
@@ -314,7 +315,7 @@ nsBinaryOutputStream::WriteCompoundObject(nsISupports* aObject,
 
     rv = WriteID(*cidptr);
 
-    NS_Free(cidptr);
+    free(cidptr);
   }
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -426,9 +427,9 @@ nsBinaryInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aNumRead)
 // a thunking function which keeps the real input stream around.
 
 // the closure wrapper
-struct ReadSegmentsClosure
+struct MOZ_STACK_CLASS ReadSegmentsClosure
 {
-  nsIInputStream* mRealInputStream;
+  nsCOMPtr<nsIInputStream> mRealInputStream;
   void* mRealClosure;
   nsWriteSegmentFun mRealWriter;
   nsresult mRealResult;
@@ -764,7 +765,7 @@ nsBinaryInputStream::ReadString(nsAString& aString)
   }
 
   // pre-allocate output buffer, and get direct access to buffer...
-  if (!aString.SetLength(length, mozilla::fallible_t())) {
+  if (!aString.SetLength(length, mozilla::fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -797,18 +798,18 @@ nsBinaryInputStream::ReadBytes(uint32_t aLength, char** aResult)
   uint32_t bytesRead;
   char* s;
 
-  s = reinterpret_cast<char*>(moz_malloc(aLength));
+  s = reinterpret_cast<char*>(malloc(aLength));
   if (!s) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   rv = Read(s, aLength, &bytesRead);
   if (NS_FAILED(rv)) {
-    moz_free(s);
+    free(s);
     return rv;
   }
   if (bytesRead != aLength) {
-    moz_free(s);
+    free(s);
     return NS_ERROR_FAILURE;
   }
 
@@ -825,7 +826,7 @@ nsBinaryInputStream::ReadByteArray(uint32_t aLength, uint8_t** aResult)
 NS_IMETHODIMP
 nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength,
                                      JS::Handle<JS::Value> aBuffer,
-                                     JSContext* aCx, uint32_t *rLength)
+                                     JSContext* aCx, uint32_t* aReadLength)
 {
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
@@ -840,21 +841,16 @@ nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength,
     return NS_ERROR_FAILURE;
   }
 
-  char* data = reinterpret_cast<char*>(JS_GetStableArrayBufferData(aCx, buffer));
-  if (!data) {
-    return NS_ERROR_FAILURE;
-  }
-
   uint32_t bufSize = std::min<uint32_t>(aLength, 4096);
-  ScopedDeleteArray<char> buf(new char[bufSize]);
+  UniquePtr<char[]> buf = MakeUnique<char[]>(bufSize);
 
-  uint32_t remaining = aLength;
-  *rLength = 0;
+  uint32_t pos = 0;
+  *aReadLength = 0;
   do {
     // Read data into temporary buffer.
     uint32_t bytesRead;
-    uint32_t amount = std::min(remaining, bufSize);
-    nsresult rv = Read(buf, amount, &bytesRead);
+    uint32_t amount = std::min(aLength - pos, bufSize);
+    nsresult rv = Read(buf.get(), amount, &bytesRead);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -865,16 +861,22 @@ nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength,
     }
 
     // Copy data into actual buffer.
+
+    JS::AutoCheckCannotGC nogc;
     if (bufferLength != JS_GetArrayBufferByteLength(buffer)) {
       return NS_ERROR_FAILURE;
     }
 
-    *rLength += bytesRead;
-    PodCopy(data, buf.get(), bytesRead);
+    char* data = reinterpret_cast<char*>(JS_GetArrayBufferData(buffer, nogc));
+    if (!data) {
+      return NS_ERROR_FAILURE;
+    }
 
-    remaining -= bytesRead;
-    data += bytesRead;
-  } while (remaining > 0);
+    *aReadLength += bytesRead;
+    PodCopy(data + pos, buf.get(), bytesRead);
+
+    pos += bytesRead;
+  } while (pos < aLength);
 
   return NS_OK;
 }

@@ -175,7 +175,7 @@
                            xbl:inherits="accesskey=findnextaccesskey"/>
       </xul:hbox>
       <xul:toolbarbutton anonid="highlight"
-                         class="findbar-highlight tabbable"
+                         class="findbar-highlight findbar-button tabbable"
                          label="&highlightAll.label;"
                          accesskey="&highlightAll.accesskey;"
                          tooltiptext="&highlightAll.tooltiptext;"
@@ -183,11 +183,11 @@
                          type="checkbox"
                          xbl:inherits="accesskey=highlightaccesskey"/>
       <xul:toolbarbutton anonid="find-case-sensitive"
-                         class="findbar-case-sensitive tabbable"
+                         class="findbar-case-sensitive findbar-button tabbable"
                          label="&caseSensitive.label;"
                          accesskey="&caseSensitive.accesskey;"
                          tooltiptext="&caseSensitive.tooltiptext;"
-                         oncommand="_setCaseSensitivity(this.checked);"
+                         oncommand="_setCaseSensitivity(this.checked ? 1 : 0);"
                          type="checkbox"
                          xbl:inherits="accesskey=matchcaseaccesskey"/>
       <xul:label anonid="match-case-status" class="findbar-find-fast"/>
@@ -205,20 +205,28 @@
                        oncommand="close();"/>
     </content>
 
-    <implementation implements="nsIDOMEventListener, nsIEditActionListener">
+    <implementation implements="nsIMessageListener, nsIEditActionListener">
+      <!-- Please keep in sync with toolkit/content/browser-content.js -->
       <field name="FIND_NORMAL">0</field>
       <field name="FIND_TYPEAHEAD">1</field>
       <field name="FIND_LINKS">2</field>
 
-      <field name="_findMode">0</field>
+      <field name="__findMode">0</field>
+      <property name="_findMode" onget="return this.__findMode;"
+                onset="this.__findMode = val; this._updateBrowserWithState(); return val;"/>
 
       <field name="_flashFindBar">0</field>
       <field name="_initialFlashFindBarCount">6</field>
 
+      <!--
+        - For tests that need to know when the find bar is finished
+        - initializing, we store a promise to notify on.
+        -->
+      <field name="_startFindDeferred">null</field>
+
       <property name="prefillWithSelection"
                 onget="return this.getAttribute('prefillwithselection') != 'false'"
                 onset="this.setAttribute('prefillwithselection', val); return val;"/>
-      <field name="_selectionMaxLen">150</field>
 
       <method name="getElement">
         <parameter name="aAnonymousID"/>
@@ -258,8 +266,10 @@
         ]]></getter>
         <setter><![CDATA[
           if (this._browser) {
-            this._browser.removeEventListener("keypress", this, false);
-            this._browser.removeEventListener("mouseup", this, false);
+            if (this._browser.messageManager) {
+              this._browser.messageManager.removeMessageListener("Findbar:Keypress", this);
+              this._browser.messageManager.removeMessageListener("Findbar:Mouseup", this);
+            }
             let finder = this._browser.finder;
             if (finder)
               finder.removeResultListener(this);
@@ -267,8 +277,10 @@
 
           this._browser = val;
           if (this._browser) {
-            this._browser.addEventListener("keypress", this, false);
-            this._browser.addEventListener("mouseup", this, false);
+            // Need to do this in case FAYT
+            this._updateBrowserWithState();
+            this._browser.messageManager.addMessageListener("Findbar:Keypress", this);
+            this._browser.messageManager.addMessageListener("Findbar:Mouseup", this);
             this._browser.finder.addResultListener(this);
 
             this._findField.value = this._browser._lastSearchString;
@@ -299,16 +311,14 @@
 
           switch (aPrefName) {
             case "accessibility.typeaheadfind":
-              this._self._useTypeAheadFind = prefsvc.getBoolPref(aPrefName);
+              this._self._findAsYouType = prefsvc.getBoolPref(aPrefName);
+              this._self._updateBrowserWithState();
               break;
             case "accessibility.typeaheadfind.linksonly":
               this._self._typeAheadLinksOnly = prefsvc.getBoolPref(aPrefName);
               break;
             case "accessibility.typeaheadfind.casesensitive":
-              this._self._typeAheadCaseSensitive = prefsvc.getIntPref(aPrefName);
-              this._self._updateCaseSensitivity();
-              if (this._self.getElement("highlight").checked)
-                this._self._setHighlightTimeout();
+              this._self._setCaseSensitivity(prefsvc.getIntPref(aPrefName));
               break;
           }
         }
@@ -345,7 +355,7 @@
         prefsvc.addObserver("accessibility.typeaheadfind.casesensitive",
                             this._observer, false);
 
-        this._useTypeAheadFind =
+        this._findAsYouType =
           prefsvc.getBoolPref("accessibility.typeaheadfind");
         this._typeAheadLinksOnly =
           prefsvc.getBoolPref("accessibility.typeaheadfind.linksonly");
@@ -451,40 +461,24 @@
         ]]></getter>
       </property>
 
-      <method name="_updateMatchesCountWorker">
-        <parameter name="aRes"/>
-        <body><![CDATA[
-          let word = this._findField.value;
-          if (aRes == this.nsITypeAheadFind.FIND_NOTFOUND || !word) {
-            this._foundMatches.hidden = true;
-            this._foundMatches.value = "";
-          } else {
-            let matchesCount = this.browser.finder.requestMatchesCount(
-              word, this._matchesCountLimit, this._findMode == this.FIND_LINKS);
-            window.clearTimeout(this._updateMatchesCountTimeout);
-            this._updateMatchesCountTimeout = null;
-          }
-        ]]></body>
-      </method>
-
       <!--
         - Updates the search match count after each find operation on a new string.
         - @param aRes
         -        the result of the find operation
         -->
       <method name="_updateMatchesCount">
-        <parameter name="aRes"/>
         <body><![CDATA[
           if (this._matchesCountLimit == 0 || !this._dispatchFindEvent("matchescount"))
             return;
 
           if (this._updateMatchesCountTimeout) {
             window.clearTimeout(this._updateMatchesCountTimeout);
-            this._updateMatchesCountTimeout = null;
           }
           this._updateMatchesCountTimeout =
-            window.setTimeout(() => this._updateMatchesCountWorker(aRes),
-                              this._matchesCountTimeoutLength);
+            window.setTimeout(() => {
+              this.browser.finder.requestMatchesCount(this._findField.value, this._matchesCountLimit,
+                  this._findMode == this.FIND_LINKS);
+            }, this._matchesCountTimeoutLength);
         ]]></body>
       </method>
 
@@ -546,19 +540,21 @@
 
       <!--
         - Sets the findbar case-sensitivity mode
-        - @param aCaseSensitive (boolean)
-        -        Whether or not case-sensitivity should be turned on.
+        - @param aCaseSensitivity (int)
+        -   0 - case insensitive
+        -   1 - case sensitive
+        -   2 - auto = case sensitive iff match string contains upper case letters
+        -   @see _shouldBeCaseSensitive
         -->
       <method name="_setCaseSensitivity">
-        <parameter name="aCaseSensitive"/>
+        <parameter name="aCaseSensitivity"/>
         <body><![CDATA[
-          let prefsvc =
-            Components.classes["@mozilla.org/preferences-service;1"]
-                      .getService(Components.interfaces.nsIPrefBranch);
-
-          // Just set the pref; our observer will change the find bar behavior
-          prefsvc.setIntPref("accessibility.typeaheadfind.casesensitive",
-                             aCaseSensitive ? 1 : 0);
+          this._typeAheadCaseSensitive = aCaseSensitivity;
+          this._updateCaseSensitivity();
+          this._findFailedString = null;
+          this._find();
+          if (this.getElement("highlight").checked)
+            this._setHighlightTimeout();
 
           this._dispatchFindEvent("casesensitivitychange");
         ]]></body>
@@ -639,7 +635,6 @@
 
           this.browser.finder.focusContent();
           this.browser.finder.enableSelection();
-          this._findField.blur();
 
           this._cancelTimers();
 
@@ -715,86 +710,6 @@
         ]]></body>
       </method>
 
-      <!--
-        - Returns true if |aMimeType| is text-based, or false otherwise.
-        -
-        - @param aMimeType
-        -        The MIME type to check.
-        -
-        - if adding types to this function, please see the similar function
-        - in browser/base/content/browser.js
-        -->
-      <method name="_mimeTypeIsTextBased">
-        <parameter name="aMimeType"/>
-        <body><![CDATA[
-          return /^text\/|\+xml$/.test(aMimeType) ||
-                 aMimeType == "application/x-javascript" ||
-                 aMimeType == "application/javascript" ||
-                 aMimeType == "application/json" ||
-                 aMimeType == "application/xml";
-        ]]></body>
-      </method>
-
-      <!--
-        - Returns whether FAYT can be used for the given event in
-        - the current content state.
-        -->
-      <method name="_shouldFastFind">
-        <parameter name="aEvent"/>
-        <body><![CDATA[
-          if (aEvent.ctrlKey || aEvent.altKey || aEvent.metaKey ||
-              aEvent.defaultPrevented)
-            return false;
-
-          let {BrowserUtils} = Components.utils.import("resource://gre/modules/BrowserUtils.jsm", {});
-          let [elt, win] = BrowserUtils.getFocusSync(document);
-
-          if (elt) {
-            if (elt instanceof HTMLInputElement && elt.mozIsTextField(false))
-              return false;
-
-            if (elt.isContentEditable)
-              return false;
-
-            if (elt instanceof HTMLTextAreaElement ||
-                elt instanceof HTMLSelectElement ||
-                elt instanceof HTMLObjectElement ||
-                elt instanceof HTMLEmbedElement)
-              return false;
-          }
-
-          if (win && !this._mimeTypeIsTextBased(win.document.contentType))
-              return false;
-
-          // disable FAYT in about:blank to prevent FAYT opening unexpectedly.
-          let url = this.browser.currentURI;
-          if (url.spec == "about:blank")
-            return false;
-
-          // disable FAYT in documents that ask for it to be disabled.
-          if ((url.schemeIs("about") || url.schemeIs("chrome")) &&
-              (win.document.documentElement &&
-               win.document.documentElement.getAttribute("disablefastfind") == "true"))
-            return false;
-
-          if (win) {
-            try {
-              let editingSession = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                                   .getInterface(Components.interfaces.nsIWebNavigation)
-                                   .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                                   .getInterface(Components.interfaces.nsIEditingSession);
-              if (editingSession.windowIsEditable(win))
-                return false;
-            }
-            catch (e) {
-              // If someone built with composer disabled, we can't get an editing session.
-            }
-         }
-
-          return true;
-        ]]></body>
-      </method>
-
       <method name="_shouldBeCaseSensitive">
         <parameter name="aString"/>
         <body><![CDATA[
@@ -807,32 +722,33 @@
         ]]></body>
       </method>
 
+      <!-- We get a fake event object through an IPC message which contains the
+           data we need to make a decision. We then return |true| if and only if
+           the page gets to deal with the event itself. Everywhere we return
+           false, the message sender will take care of calling event.preventDefault
+           on the real event. -->
       <method name="_onBrowserKeypress">
-        <parameter name="aEvent"/>
+        <parameter name="aFakeEvent"/>
         <body><![CDATA[
-          const TAF_LINKS_KEY = "'";
-          const TAF_TEXT_KEY = "/";
-
-          if (!this._shouldFastFind(aEvent))
-            return;
+          const FAYT_LINKS_KEY = "'";
+          const FAYT_TEXT_KEY = "/";
 
           if (this._findMode != this.FIND_NORMAL && this._quickFindTimeout) {
-            if (!aEvent.charCode)
-              return;
+            if (!aFakeEvent.charCode)
+              return true;
 
             this._findField.select();
             this._findField.focus();
-            this._dispatchKeypressEvent(this._findField.inputField, aEvent);
-            aEvent.preventDefault();
-            return;
+            this._dispatchKeypressEvent(this._findField.inputField, aFakeEvent);
+            return false;
           }
 
-          let key = aEvent.charCode ? String.fromCharCode(aEvent.charCode) : null;
-          let manualstartFAYT = (key == TAF_LINKS_KEY || key == TAF_TEXT_KEY);
-          let autostartFAYT = !manualstartFAYT && this._useTypeAheadFind &&
+          let key = aFakeEvent.charCode ? String.fromCharCode(aFakeEvent.charCode) : null;
+          let manualstartFAYT = (key == FAYT_LINKS_KEY || key == FAYT_TEXT_KEY);
+          let autostartFAYT = !manualstartFAYT && this._findAsYouType &&
                               key && key != " ";
           if (manualstartFAYT || autostartFAYT) {
-            let mode = (key == TAF_LINKS_KEY ||
+            let mode = (key == FAYT_LINKS_KEY ||
                         (autostartFAYT && this._typeAheadLinksOnly)) ?
               this.FIND_LINKS : this.FIND_TYPEAHEAD;
 
@@ -846,28 +762,41 @@
             this._findField.focus();
 
             if (autostartFAYT)
-              this._dispatchKeypressEvent(this._findField.inputField, aEvent);
+              this._dispatchKeypressEvent(this._findField.inputField, aFakeEvent);
             else
               this._updateStatusUI(this.nsITypeAheadFind.FIND_FOUND);
 
-            aEvent.preventDefault();
+            return false;
           }
         ]]></body>
       </method>
 
-      <!-- See nsIDOMEventListener -->
-      <method name="handleEvent">
-        <parameter name="aEvent"/>
+      <!-- See nsIMessageListener -->
+      <method name="receiveMessage">
+        <parameter name="aMessage"/>
         <body><![CDATA[
-          switch (aEvent.type) {
-            case "mouseup":
+          if (aMessage.target != this._browser) {
+            return;
+          }
+          switch (aMessage.name) {
+            case "Findbar:Mouseup":
               if (!this.hidden && this._findMode != this.FIND_NORMAL)
                 this.close();
+              break;
 
-              break;
-            case "keypress":
-              this._onBrowserKeypress(aEvent);
-              break;
+            case "Findbar:Keypress":
+              return this._onBrowserKeypress(aMessage.data);
+          }
+        ]]></body>
+      </method>
+
+      <method name="_updateBrowserWithState">
+        <body><![CDATA[
+          if (this._browser && this._browser.messageManager) {
+            this._browser.messageManager.sendAsyncMessage("Findbar:UpdateState", {
+              findMode: this._findMode,
+              findAsYouType: this._findAsYouType,
+            });
           }
         ]]></body>
       </method>
@@ -1037,43 +966,6 @@
         ]]></body>
       </method>
 
-      <method name="_getInitialSelection">
-        <body><![CDATA[
-          let focusedElement = document.commandDispatcher.focusedElement;
-          let selText;
-
-          if (focusedElement instanceof Components.interfaces.nsIDOMNSEditableElement &&
-              focusedElement.editor &&
-              focusedElement.ownerDocument.defaultView.top == this._browser.contentWindow)
-          {
-            // The user may have a selection in an input or textarea
-            selText = focusedElement.editor.selectionController
-              .getSelection(Components.interfaces.nsISelectionController.SELECTION_NORMAL)
-              .toString();
-          }
-          else {
-            // Look for any selected text on the actual page
-            let focusedWindow = document.commandDispatcher.focusedWindow;
-            if (focusedWindow.top == this._browser.contentWindow)
-              selText = focusedWindow.getSelection().toString();
-          }
-
-          if (!selText)
-            return "";
-
-          // Process our text to get rid of unwanted characters
-          if (selText.length > this._selectionMaxLen) {
-            let pattern = new RegExp("^(?:\\s*.){0," + this._selectionMaxLen + "}");
-            pattern.test(selText);
-            selText = RegExp.lastMatch;
-          }
-          return selText.replace(/^\s+/, "")
-                        .replace(/\s+$/, "")
-                        .replace(/\s+/g, " ")
-                        .substr(0, this._selectionMaxLen);
-        ]]></body>
-      </method>
-
       <method name="_dispatchFindEvent">
         <parameter name="aType"/>
         <parameter name="aFindPrevious"/>
@@ -1113,28 +1005,29 @@
                                --this._flashFindBar);
           }
 
+          let {PromiseUtils} =
+            Components.utils.import("resource://gre/modules/PromiseUtils.jsm", {});
+          this._startFindDeferred = PromiseUtils.defer();
+          let startFindPromise = this._startFindDeferred.promise;
+
           if (this.prefillWithSelection)
             userWantsPrefill =
               prefsvc.getBoolPref("accessibility.typeaheadfind.prefillwithselection");
 
-          let initialString = null;
-          if (this.prefillWithSelection && userWantsPrefill)
-            initialString = this._getInitialSelection();
-#ifdef XP_MACOSX
-          if (!initialString) {
-            let clipboardSearchString = this.browser.finder.clipboardSearchString;
-            if (clipboardSearchString)
-              initialString = clipboardSearchString;
+          if (this.prefillWithSelection && userWantsPrefill) {
+            // NB: We have to focus this._findField here so tests that send
+            // key events can open and close the find bar synchronously.
+            this._findField.focus();
+            this.browser.finder.getInitialSelection();
+            return startFindPromise;
           }
-#endif
 
-          if (initialString)
-            this._findField.value = initialString;
-
-          this._enableFindButtons(!!this._findField.value);
-
-          this._findField.select();
-          this._findField.focus();
+          // If userWantsPrefill is false but prefillWithSelection is true,
+          // then we might need to check the selection clipboard. Call
+          // onCurrentSelection to do so.
+          // Note: this.onCurrentSelection clears this._startFindDeferred.
+          this.onCurrentSelection("", true);
+          return startFindPromise;
         ]]></body>
       </method>
 
@@ -1146,7 +1039,7 @@
         -->
       <method name="onFindCommand">
         <body><![CDATA[
-          this.startFind(this.FIND_NORMAL);
+          return this.startFind(this.FIND_NORMAL);
         ]]></body>
       </method>
 
@@ -1159,10 +1052,8 @@
         <parameter name="aFindPrevious"/>
         <body><![CDATA[
           let findString = this._browser.finder.searchString || this._findField.value;
-          if (!findString) {
-            this.startFind();
-            return;
-          }
+          if (!findString)
+            return this.startFind();
 
           // We dispatch the findAgain event here instead of in _findAgain since
           // if there is a find event handler that prevents the default then
@@ -1233,8 +1124,6 @@
       <method name="onFindResult">
         <parameter name="aData"/>
         <body><![CDATA[
-          if (aData.storeResult && this._findField.value != this.browser.finder.searchString)
-            this._findField.value = this.browser.finder.searchString;
           this._updateStatusUI(aData.result, aData.findBackwards);
           this._updateStatusUIBar(aData.linkURL);
 
@@ -1274,6 +1163,33 @@
           } else {
             this._foundMatches.hidden = true;
             this._foundMatches.value = "";
+          }
+        ]]></body>
+      </method>
+
+      <method name="onCurrentSelection">
+        <parameter name="aSelectionString" />
+        <parameter name="aIsInitialSelection" />
+        <body><![CDATA[
+#ifdef XP_MACOSX
+          if (aIsInitialSelection && !aSelectionString) {
+            let clipboardSearchString = this.browser.finder.clipboardSearchString;
+            if (clipboardSearchString)
+              aSelectionString = clipboardSearchString;
+          }
+#endif
+
+          if (aSelectionString)
+            this._findField.value = aSelectionString;
+
+          if (aIsInitialSelection) {
+            this._enableFindButtons(!!this._findField.value);
+            this._findField.select();
+            this._findField.focus();
+            if (this._startFindDeferred) {
+              this._startFindDeferred.resolve();
+              this._startFindDeferred = null;
+            }
           }
         ]]></body>
       </method>

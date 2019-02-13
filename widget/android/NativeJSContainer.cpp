@@ -5,8 +5,11 @@
 
 #include "NativeJSContainer.h"
 #include "AndroidBridge.h"
+#include "js/StructuredClone.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 #include "prthread.h"
+#include "nsJSUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -197,7 +200,8 @@ public:
             return nullptr;
         }
         size_t newIndex = container->mRootedObjects.length();
-        PersistentObjectPtr rootedJSObject(new PersistentObject(cx, jsObject));
+        PersistentObjectPtr rootedJSObject =
+            MakeUnique<PersistentObject>(cx, jsObject);
         if (!container->mRootedObjects.append(Move(rootedJSObject))) {
             AndroidBridge::ThrowException(env,
                 "java/lang/OutOfMemoryError", "Cannot allocate object");
@@ -232,7 +236,7 @@ public:
         MOZ_ASSERT(mBuffer.data());
         MOZ_ALWAYS_TRUE(mBuffer.read(mThreadContext, &value));
         if (value.isObject()) {
-            mJSObject = new PersistentObject(mThreadContext, &value.toObject());
+            mJSObject = MakeUnique<PersistentObject>(mThreadContext, &value.toObject());
         }
         if (!mJSObject) {
             AndroidBridge::ThrowException(env,
@@ -280,7 +284,7 @@ private:
     }
 
     typedef JS::PersistentRooted<JSObject*>   PersistentObject;
-    typedef ScopedDeletePtr<PersistentObject> PersistentObjectPtr;
+    typedef UniquePtr<PersistentObject> PersistentObjectPtr;
 
     // Thread that the object is valid on
     PRThread* mThread;
@@ -358,7 +362,7 @@ public:
         : mEnv(env)
         , mJNIString(str)
         , mJSString(!str ? nullptr :
-            reinterpret_cast<const jschar*>(env->GetStringChars(str, nullptr)))
+            reinterpret_cast<const char16_t*>(env->GetStringChars(str, nullptr)))
     {
     }
     ~JSJNIString() {
@@ -367,7 +371,7 @@ public:
                 reinterpret_cast<const jchar*>(mJSString));
         }
     }
-    operator const jschar*() const {
+    operator const char16_t*() const {
         return mJSString;
     }
     size_t Length() const {
@@ -376,7 +380,7 @@ public:
 private:
     JNIEnv* const mEnv;
     const jstring mJNIString;
-    const jschar* const mJSString;
+    const char16_t* const mJSString;
 };
 
 bool
@@ -404,7 +408,7 @@ template <bool (*InValue)(JSContext*, JS::HandleValue)> bool
 CheckProperty(JNIEnv* env, JSContext* cx, JS::HandleValue val) {
     if (!(*InValue)(cx, val)) {
         AndroidBridge::ThrowException(env,
-            "java/lang/IllegalArgumentException",
+            "org/mozilla/gecko/util/NativeJSObject$InvalidPropertyException",
             "Property type mismatch");
         return false;
     }
@@ -412,7 +416,7 @@ CheckProperty(JNIEnv* env, JSContext* cx, JS::HandleValue val) {
 }
 
 bool
-AppendJSON(const jschar* buf, uint32_t len, void* data)
+AppendJSON(const char16_t* buf, uint32_t len, void* data)
 {
     static_cast<nsAutoString*>(data)->Append(buf, len);
     return true;
@@ -442,7 +446,7 @@ struct PrimitiveProperty
 
     static ArrayType NewArray(JNIEnv* env, jobject instance, JSContext* cx,
                               JS::HandleObject array, size_t length) {
-        ScopedDeleteArray<Type> buffer(new Type[length]);
+        UniquePtr<Type[]> buffer = MakeUnique<Type[]>(length);
         for (size_t i = 0; i < length; i++) {
             JS::RootedValue elem(cx);
             if (!CheckJSCall(env, JS_GetElement(cx, array, i, &elem)) ||
@@ -456,7 +460,7 @@ struct PrimitiveProperty
         if (!jarray) {
             return nullptr;
         }
-        (env->*SetArrayRegionMethod)(jarray, 0, length, buffer);
+        (env->*SetArrayRegionMethod)(jarray, 0, length, buffer.get());
         if (env->ExceptionCheck()) {
             return nullptr;
         }
@@ -502,14 +506,13 @@ struct StringProperty
 
     static Type FromValue(JNIEnv* env, jobject instance,
                           JSContext* cx, const JS::HandleString str) {
-        size_t strLen = 0;
-        const jschar* const strChars =
-            JS_GetStringCharsAndLength(cx, str, &strLen);
-        if (!CheckJSCall(env, !!strChars)) {
+        nsAutoJSString autoStr;
+        if (!CheckJSCall(env, autoStr.init(cx, str))) {
             return nullptr;
         }
         jstring ret = env->NewString(
-            reinterpret_cast<const jchar*>(strChars), strLen);
+            reinterpret_cast<const jchar*>(autoStr.BeginReading()),
+            autoStr.Length());
         MOZ_ASSERT(ret);
         return ret;
     }
@@ -642,10 +645,10 @@ struct HasProperty
     }
 };
 
-MOZ_BEGIN_ENUM_CLASS(FallbackOption)
+enum class FallbackOption {
     THROW,
     RETURN,
-MOZ_END_ENUM_CLASS(FallbackOption)
+};
 
 template <class Property>
 typename Property::Type
@@ -676,7 +679,7 @@ GetProperty(JNIEnv* env, jobject instance, jstring name,
     if (val.isUndefined() || val.isNull()) {
         if (option == FallbackOption::THROW) {
             AndroidBridge::ThrowException(env,
-                "java/lang/IllegalArgumentException",
+                "org/mozilla/gecko/util/NativeJSObject$InvalidPropertyException",
                 "Property does not exist");
         }
         return fallback;
@@ -997,7 +1000,7 @@ Java_org_mozilla_gecko_util_NativeJSObject_toString(JNIEnv* env, jobject instanc
 
     if (!object ||
         !CheckJSCall(env,
-            JS_Stringify(cx, &value, JS::NullPtr(), JS::NullHandleValue, AppendJSON, &json))) {
+            JS_Stringify(cx, &value, nullptr, JS::NullHandleValue, AppendJSON, &json))) {
         return nullptr;
     }
     jstring ret = env->NewString(reinterpret_cast<const jchar*>(json.get()), json.Length());

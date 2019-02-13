@@ -18,17 +18,21 @@ namespace plugins {
 
 class PluginInstanceParent;
 class PluginScriptableObjectParent;
-class PPluginIdentifierParent;
 
 struct ParentNPObject : NPObject
 {
   ParentNPObject()
-    : NPObject(), parent(nullptr), invalidated(false) { }
+    : NPObject()
+    , parent(nullptr)
+    , invalidated(false)
+    , asyncWrapperCount(0)
+  {}
 
   // |parent| is always valid as long as the actor is alive. Once the actor is
   // destroyed this will be set to null.
   PluginScriptableObjectParent* parent;
   bool invalidated;
+  int32_t asyncWrapperCount;
 };
 
 class PluginScriptableObjectParent : public PPluginScriptableObjectParent
@@ -36,7 +40,7 @@ class PluginScriptableObjectParent : public PPluginScriptableObjectParent
   friend class PluginInstanceParent;
 
 public:
-  PluginScriptableObjectParent(ScriptableObjectType aType);
+  explicit PluginScriptableObjectParent(ScriptableObjectType aType);
   virtual ~PluginScriptableObjectParent();
 
   void
@@ -46,60 +50,60 @@ public:
   InitializeLocal(NPObject* aObject);
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool
-  AnswerHasMethod(PPluginIdentifierParent* aId,
-                  bool* aHasMethod) MOZ_OVERRIDE;
+  AnswerHasMethod(const PluginIdentifier& aId,
+                  bool* aHasMethod) override;
 
   virtual bool
-  AnswerInvoke(PPluginIdentifierParent* aId,
-               const InfallibleTArray<Variant>& aArgs,
+  AnswerInvoke(const PluginIdentifier& aId,
+               InfallibleTArray<Variant>&& aArgs,
                Variant* aResult,
-               bool* aSuccess) MOZ_OVERRIDE;
+               bool* aSuccess) override;
 
   virtual bool
-  AnswerInvokeDefault(const InfallibleTArray<Variant>& aArgs,
+  AnswerInvokeDefault(InfallibleTArray<Variant>&& aArgs,
                       Variant* aResult,
-                      bool* aSuccess) MOZ_OVERRIDE;
+                      bool* aSuccess) override;
 
   virtual bool
-  AnswerHasProperty(PPluginIdentifierParent* aId,
-                    bool* aHasProperty) MOZ_OVERRIDE;
+  AnswerHasProperty(const PluginIdentifier& aId,
+                    bool* aHasProperty) override;
 
   virtual bool
-  AnswerGetParentProperty(PPluginIdentifierParent* aId,
+  AnswerGetParentProperty(const PluginIdentifier& aId,
                           Variant* aResult,
-                          bool* aSuccess) MOZ_OVERRIDE;
+                          bool* aSuccess) override;
 
   virtual bool
-  AnswerSetProperty(PPluginIdentifierParent* aId,
+  AnswerSetProperty(const PluginIdentifier& aId,
                     const Variant& aValue,
-                    bool* aSuccess) MOZ_OVERRIDE;
+                    bool* aSuccess) override;
 
   virtual bool
-  AnswerRemoveProperty(PPluginIdentifierParent* aId,
-                       bool* aSuccess) MOZ_OVERRIDE;
+  AnswerRemoveProperty(const PluginIdentifier& aId,
+                       bool* aSuccess) override;
 
   virtual bool
-  AnswerEnumerate(InfallibleTArray<PPluginIdentifierParent*>* aProperties,
-                  bool* aSuccess) MOZ_OVERRIDE;
+  AnswerEnumerate(InfallibleTArray<PluginIdentifier>* aProperties,
+                  bool* aSuccess) override;
 
   virtual bool
-  AnswerConstruct(const InfallibleTArray<Variant>& aArgs,
+  AnswerConstruct(InfallibleTArray<Variant>&& aArgs,
                   Variant* aResult,
-                  bool* aSuccess) MOZ_OVERRIDE;
+                  bool* aSuccess) override;
 
   virtual bool
   AnswerNPN_Evaluate(const nsCString& aScript,
                      Variant* aResult,
-                     bool* aSuccess) MOZ_OVERRIDE;
+                     bool* aSuccess) override;
 
   virtual bool
-  RecvProtect() MOZ_OVERRIDE;
+  RecvProtect() override;
 
   virtual bool
-  RecvUnprotect() MOZ_OVERRIDE;
+  RecvUnprotect() override;
 
   static const NPClass*
   GetClass()

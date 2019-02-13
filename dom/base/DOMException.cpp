@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,7 +7,6 @@
 #include "mozilla/dom/DOMException.h"
 
 #include "jsprf.h"
-#include "js/OldDebugAPI.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/Exceptions.h"
@@ -22,6 +22,7 @@
 #include "xpcprivate.h"
 
 #include "mozilla/dom/DOMExceptionBinding.h"
+#include "mozilla/ErrorResult.h"
 
 using namespace mozilla;
 
@@ -73,6 +74,19 @@ enum DOM4ErrorTypeCodeMap {
 
   /* WebCrypto errors https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-DataError */
   OperationError           = 0,
+
+  /* Bluetooth API errors */
+  BtFailError              = 0,
+  BtNotReadyError          = 0,
+  BtNoMemError             = 0,
+  BtBusyError              = 0,
+  BtDoneError              = 0,
+  BtUnsupportedError       = 0,
+  BtParmInvalidError       = 0,
+  BtUnhandledError         = 0,
+  BtAuthFailureError       = 0,
+  BtRmtDevDownError        = 0,
+  BtAuthRejectedError      = 0,
 };
 
 #define DOM4_MSG_DEF(name, message, nsresult) {(nsresult), name, #name, message},
@@ -145,6 +159,8 @@ bool Exception::sEverMadeOneFromFactory = false;
 NS_IMPL_CLASSINFO(Exception, nullptr, nsIClassInfo::DOM_OBJECT,
                   NS_XPCEXCEPTION_CID)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Exception)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(Exception)
   NS_INTERFACE_MAP_ENTRY(nsIException)
   NS_INTERFACE_MAP_ENTRY(nsIXPCException)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIException)
@@ -186,8 +202,6 @@ Exception::Exception(const nsACString& aMessage,
   mInitialized(false),
   mHoldingJSVal(false)
 {
-  SetIsDOMBinding();
-
   // A little hack... The nsIGenericModule nsIClassInfo scheme relies on there
   // having been at least one instance made via the factory. Otherwise, the
   // shared factory/classinsance object never gets created and our QI getter
@@ -477,9 +491,9 @@ Exception::Initialize(const nsACString& aMessage, nsresult aResult,
 }
 
 JSObject*
-Exception::WrapObject(JSContext* cx)
+Exception::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
 {
-  return ExceptionBinding::Wrap(cx, this);
+  return ExceptionBinding::Wrap(cx, this, aGivenProto);
 }
 
 void
@@ -554,6 +568,14 @@ Exception::GetData() const
 }
 
 void
+Exception::GetStack(nsAString& aStack, ErrorResult& aRv) const
+{
+  if (mLocation) {
+    aRv = mLocation->GetFormattedStack(aStack);
+  }
+}
+
+void
 Exception::Stringify(nsString& retval)
 {
   nsCString str;
@@ -578,7 +600,6 @@ DOMException::DOMException(nsresult aRv, const nsACString& aMessage,
     mMessage(aMessage),
     mCode(aCode)
 {
-  SetIsDOMBinding();
 }
 
 NS_IMETHODIMP
@@ -656,10 +677,39 @@ DOMException::GetMessageMoz(nsString& retval)
   CopyUTF8toUTF16(mMessage, retval);
 }
 
-JSObject*
-DOMException::WrapObject(JSContext* aCx)
+already_AddRefed<DOMException>
+DOMException::Constructor(GlobalObject& /* unused */,
+                          const nsAString& aMessage,
+                          const Optional<nsAString>& aName,
+                          ErrorResult& aError)
 {
-  return DOMExceptionBinding::Wrap(aCx, this);
+  nsresult exceptionResult = NS_OK;
+  uint16_t exceptionCode = 0;
+  nsCString name(NS_LITERAL_CSTRING("Error"));
+
+  if (aName.WasPassed()) {
+    CopyUTF16toUTF8(aName.Value(), name);
+    for (uint32_t idx = 0; idx < ArrayLength(sDOMErrorMsgMap); idx++) {
+      if (name.EqualsASCII(sDOMErrorMsgMap[idx].mName)) {
+        exceptionResult = sDOMErrorMsgMap[idx].mNSResult;
+        exceptionCode = sDOMErrorMsgMap[idx].mCode;
+        break;
+      }
+    }
+  }
+
+  nsRefPtr<DOMException> retval =
+    new DOMException(exceptionResult,
+                     NS_ConvertUTF16toUTF8(aMessage),
+                     name,
+                     exceptionCode);
+  return retval.forget();
+}
+
+JSObject*
+DOMException::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+{
+  return DOMExceptionBinding::Wrap(aCx, this, aGivenProto);
 }
 
 /* static */already_AddRefed<DOMException>
@@ -671,6 +721,18 @@ DOMException::Create(nsresult aRv)
   NSResultToNameAndMessage(aRv, name, message, &code);
   nsRefPtr<DOMException> inst =
     new DOMException(aRv, message, name, code);
+  return inst.forget();
+}
+
+/* static */already_AddRefed<DOMException>
+DOMException::Create(nsresult aRv, const nsACString& aMessage)
+{
+  nsCString name;
+  nsCString message;
+  uint16_t code;
+  NSResultToNameAndMessage(aRv, name, message, &code);
+  nsRefPtr<DOMException> inst =
+    new DOMException(aRv, aMessage, name, code);
   return inst.forget();
 }
 

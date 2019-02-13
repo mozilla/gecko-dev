@@ -833,18 +833,18 @@
                   oncommand="document.getBindingParent(this)._increaseOrDecreaseMonth(-1);"/>
           <spacer flex="1"/>
           <deck anonid="monthlabeldeck">
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
           </deck>
           <label anonid="yearlabel" class="datepicker-gridlabel"/>
           <spacer flex="1"/>
@@ -1258,7 +1258,7 @@
       <property name="open" onget="return this.hasAttribute('open');">
         <setter>
           <![CDATA[
-            if (this.boxObject instanceof Components.interfaces.nsIMenuBoxObject)
+            if (this.boxObject instanceof MenuBoxObject)
               this.boxObject.openMenu(val);
             return val;
           ]]>

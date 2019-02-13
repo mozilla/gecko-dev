@@ -1,4 +1,4 @@
-/* -*- js2-basic-offset: 2; indent-tabs-mode: nil; -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,6 +7,9 @@
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+const EventEmitter = require("devtools/toolkit/event-emitter");
+const promise = require("promise");
 
 loader.lazyImporter(this, "LongStringClient", "resource://gre/modules/devtools/dbg-client.jsm");
 
@@ -26,31 +29,165 @@ function WebConsoleClient(aDebuggerClient, aResponse)
   this._client = aDebuggerClient;
   this._longStrings = {};
   this.traits = aResponse.traits || {};
+  this.events = [];
+  this._networkRequests = new Map();
+
+  this.pendingEvaluationResults = new Map();
+  this.onEvaluationResult = this.onEvaluationResult.bind(this);
+  this.onNetworkEvent = this._onNetworkEvent.bind(this);
+  this.onNetworkEventUpdate = this._onNetworkEventUpdate.bind(this);
+
+  this._client.addListener("evaluationResult", this.onEvaluationResult);
+  this._client.addListener("networkEvent", this.onNetworkEvent);
+  this._client.addListener("networkEventUpdate", this.onNetworkEventUpdate);
+  EventEmitter.decorate(this);
 }
+
 exports.WebConsoleClient = WebConsoleClient;
 
 WebConsoleClient.prototype = {
   _longStrings: null,
   traits: null,
 
+  /**
+   * Holds the network requests currently displayed by the Web Console. Each key
+   * represents the connection ID and the value is network request information.
+   * @private
+   * @type object
+   */
+  _networkRequests: null,
+
+  getNetworkRequest(actorId) {
+    return this._networkRequests.get(actorId);
+  },
+
+  hasNetworkRequest(actorId) {
+    return this._networkRequests.has(actorId);
+  },
+
+  removeNetworkRequest(actorId) {
+    this._networkRequests.delete(actorId);
+  },
+
+  getNetworkEvents() {
+    return this._networkRequests.values();
+  },
+
   get actor() { return this._actor; },
+
+  /**
+   * The "networkEvent" message type handler. We redirect any message to
+   * the UI for displaying.
+   *
+   * @private
+   * @param string type
+   *        Message type.
+   * @param object packet
+   *        The message received from the server.
+   */
+  _onNetworkEvent: function (type, packet)
+  {
+    if (packet.from == this._actor) {
+      let actor = packet.eventActor;
+      let networkInfo = {
+        _type: "NetworkEvent",
+        timeStamp: actor.timeStamp,
+        node: null,
+        actor: actor.actor,
+        discardRequestBody: true,
+        discardResponseBody: true,
+        startedDateTime: actor.startedDateTime,
+        request: {
+          url: actor.url,
+          method: actor.method,
+        },
+        isXHR: actor.isXHR,
+        response: {},
+        timings: {},
+        updates: [], // track the list of network event updates
+        private: actor.private,
+        fromCache: actor.fromCache
+      };
+      this._networkRequests.set(actor.actor, networkInfo);
+
+      this.emit("networkEvent", networkInfo);
+    }
+  },
+
+  /**
+   * The "networkEventUpdate" message type handler. We redirect any message to
+   * the UI for displaying.
+   *
+   * @private
+   * @param string type
+   *        Message type.
+   * @param object packet
+   *        The message received from the server.
+   */
+  _onNetworkEventUpdate: function (type, packet)
+  {
+    let networkInfo = this.getNetworkRequest(packet.from);
+    if (!networkInfo) {
+      return;
+    }
+
+    networkInfo.updates.push(packet.updateType);
+
+    switch (packet.updateType) {
+      case "requestHeaders":
+        networkInfo.request.headersSize = packet.headersSize;
+        break;
+      case "requestPostData":
+        networkInfo.discardRequestBody = packet.discardRequestBody;
+        networkInfo.request.bodySize = packet.dataSize;
+        break;
+      case "responseStart":
+        networkInfo.response.httpVersion = packet.response.httpVersion;
+        networkInfo.response.status = packet.response.status;
+        networkInfo.response.statusText = packet.response.statusText;
+        networkInfo.response.headersSize = packet.response.headersSize;
+        networkInfo.response.remoteAddress = packet.response.remoteAddress;
+        networkInfo.response.remotePort = packet.response.remotePort;
+        networkInfo.discardResponseBody = packet.response.discardResponseBody;
+        break;
+      case "responseContent":
+        networkInfo.response.content = {
+          mimeType: packet.mimeType,
+        };
+        networkInfo.response.bodySize = packet.contentSize;
+        networkInfo.response.transferredSize = packet.transferredSize;
+        networkInfo.discardResponseBody = packet.discardResponseBody;
+        break;
+      case "eventTimings":
+        networkInfo.totalTime = packet.totalTime;
+        break;
+      case "securityInfo":
+        networkInfo.securityInfo = packet.state;
+        break;
+    }
+
+    this.emit("networkEventUpdate", {
+      packet: packet,
+      networkInfo
+    });
+  },
 
   /**
    * Retrieve the cached messages from the server.
    *
    * @see this.CACHED_MESSAGES
-   * @param array aTypes
+   * @param array types
    *        The array of message types you want from the server. See
    *        this.CACHED_MESSAGES for known types.
    * @param function aOnResponse
    *        The function invoked when the response is received.
    */
-  getCachedMessages: function WCC_getCachedMessages(aTypes, aOnResponse)
+  getCachedMessages: function WCC_getCachedMessages(types, aOnResponse)
   {
     let packet = {
       to: this._actor,
       type: "getCachedMessages",
-      messageTypes: aTypes,
+      messageTypes: types,
     };
     this._client.request(packet, aOnResponse);
   },
@@ -103,6 +240,11 @@ WebConsoleClient.prototype = {
    *
    *        - url: the url to evaluate the script as. Defaults to
    *        "debugger eval code".
+   *
+   *        - selectedNodeActor: the NodeActor ID of the current selection in the
+   *        Inspector, if such a selection exists. This is used by helper functions
+   *        that can reference the currently selected node in the Inspector, like
+   *        $0.
    */
   evaluateJS: function WCC_evaluateJS(aString, aOnResponse, aOptions = {})
   {
@@ -113,8 +255,57 @@ WebConsoleClient.prototype = {
       bindObjectActor: aOptions.bindObjectActor,
       frameActor: aOptions.frameActor,
       url: aOptions.url,
+      selectedNodeActor: aOptions.selectedNodeActor,
     };
     this._client.request(packet, aOnResponse);
+  },
+
+  /**
+   * Evaluate a JavaScript expression asynchronously.
+   * See evaluateJS for parameter and response information.
+   */
+  evaluateJSAsync: function(aString, aOnResponse, aOptions = {})
+  {
+    // Pre-37 servers don't support async evaluation.
+    if (!this.traits.evaluateJSAsync) {
+      this.evaluateJS(aString, aOnResponse, aOptions);
+      return;
+    }
+
+    let packet = {
+      to: this._actor,
+      type: "evaluateJSAsync",
+      text: aString,
+      bindObjectActor: aOptions.bindObjectActor,
+      frameActor: aOptions.frameActor,
+      url: aOptions.url,
+      selectedNodeActor: aOptions.selectedNodeActor,
+    };
+
+    this._client.request(packet, response => {
+      // Null check this in case the client has been detached while waiting
+      // for a response.
+      if (this.pendingEvaluationResults) {
+        this.pendingEvaluationResults.set(response.resultID, aOnResponse);
+      }
+    });
+  },
+
+  /**
+   * Handler for the actors's unsolicited evaluationResult packet.
+   */
+  onEvaluationResult: function(aNotification, aPacket) {
+    // Find the associated callback based on this ID, and fire it.
+    // In a sync evaluation, this would have already been called in
+    // direct response to the client.request function.
+    let onResponse = this.pendingEvaluationResults.get(aPacket.resultID);
+    if (onResponse) {
+      onResponse(aPacket);
+      this.pendingEvaluationResults.delete(aPacket.resultID);
+    } else {
+      DevToolsUtils.reportException("onEvaluationResult",
+        "No response handler for an evaluateJSAsync result (resultID: " + aPacket.resultID + ")");
+    }
   },
 
   /**
@@ -309,6 +500,23 @@ WebConsoleClient.prototype = {
   },
 
   /**
+   * Retrieve the security information for the given NetworkEventActor.
+   *
+   * @param string aActor
+   *        The NetworkEventActor ID.
+   * @param function aOnResponse
+   *        The function invoked when the response is received.
+   */
+  getSecurityInfo: function WCC_getSecurityInfo(aActor, aOnResponse)
+  {
+    let packet = {
+      to: aActor,
+      type: "getSecurityInfo",
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  /**
    * Send a HTTP request with the given data.
    *
    * @param string aData
@@ -391,10 +599,61 @@ WebConsoleClient.prototype = {
    * @param function aOnResponse
    *        Function to invoke when the server response is received.
    */
-  close: function WCC_close(aOnResponse)
+  detach: function WCC_detach(aOnResponse)
   {
+    this._client.removeListener("evaluationResult", this.onEvaluationResult);
+    this._client.removeListener("networkEvent", this.onNetworkEvent);
+    this._client.removeListener("networkEventUpdate", this.onNetworkEventUpdate);
     this.stopListeners(null, aOnResponse);
     this._longStrings = null;
     this._client = null;
+    this.pendingEvaluationResults.clear();
+    this.pendingEvaluationResults = null;
+    this.clearNetworkRequests();
+    this._networkRequests = null;
   },
+
+  clearNetworkRequests: function () {
+    this._networkRequests.clear();
+  },
+
+  /**
+   * Fetches the full text of a LongString.
+   *
+   * @param object | string stringGrip
+   *        The long string grip containing the corresponding actor.
+   *        If you pass in a plain string (by accident or because you're lazy),
+   *        then a promise of the same string is simply returned.
+   * @return object Promise
+   *         A promise that is resolved when the full string contents
+   *         are available, or rejected if something goes wrong.
+   */
+  getString: function(stringGrip) {
+    // Make sure this is a long string.
+    if (typeof stringGrip != "object" || stringGrip.type != "longString") {
+      return promise.resolve(stringGrip); // Go home string, you're drunk.
+    }
+
+    // Fetch the long string only once.
+    if (stringGrip._fullText) {
+      return stringGrip._fullText.promise;
+    }
+
+    let deferred = stringGrip._fullText = promise.defer();
+    let { actor, initial, length } = stringGrip;
+    let longStringClient = this.longString(stringGrip);
+
+    longStringClient.substring(initial.length, length, aResponse => {
+      if (aResponse.error) {
+        DevToolsUtils.reportException("getString",
+            aResponse.error + ": " + aResponse.message);
+
+        deferred.reject(aResponse);
+        return;
+      }
+      deferred.resolve(initial + aResponse.substring);
+    });
+
+    return deferred.promise;
+  }
 };

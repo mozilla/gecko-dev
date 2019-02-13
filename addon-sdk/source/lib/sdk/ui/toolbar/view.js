@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
 module.metadata = {
@@ -96,7 +96,7 @@ const addView = curry((options, {document}) => {
   view.setAttribute("mode", "icons");
   view.setAttribute("iconsize", "small");
   view.setAttribute("context", "toolbar-context-menu");
-  view.setAttribute("class", "toolbar-primary chromeclass-toolbar");
+  view.setAttribute("class", "chromeclass-toolbar");
 
   let label = document.createElementNS(XUL_NS, "label");
   label.setAttribute("value", options.title);

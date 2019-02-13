@@ -8,11 +8,7 @@ let modifiers = {
 let toolbox;
 
 function test() {
-  waitForExplicitFinish();
-
-  addTab("about:blank", function() {
-    openToolbox();
-  });
+  addTab("about:blank").then(openToolbox);
 }
 
 function openToolbox() {
@@ -53,8 +49,7 @@ function sendZoomKey(id, times) {
 
 function getCurrentZoom() {
   var contViewer = toolbox.frame.docShell.contentViewer;
-  var docViewer = contViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
-  return docViewer.fullZoom;
+  return contViewer.fullZoom;
 }
 
 function tidyUp() {

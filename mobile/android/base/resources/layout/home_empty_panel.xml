@@ -4,30 +4,42 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/home_empty_view"
-              android:layout_width="fill_parent"
-              android:layout_height="fill_parent"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
               android:orientation="vertical"
               android:gravity="center"
               android:paddingLeft="50dp"
               android:paddingRight="50dp">
 
     <!-- Empty spacer view -->
-    <View android:layout_width="fill_parent"
+    <View android:layout_width="match_parent"
           android:layout_height="0dip"
           android:layout_weight="1"/>
 
     <ImageView android:id="@+id/home_empty_image"
-               android:layout_width="150dp"
-               android:layout_height="150dp"
+               android:layout_width="90dp"
+               android:layout_height="90dp"
+               android:layout_marginBottom="10dp"
                android:gravity="top|center"
                android:scaleType="fitCenter"/>
 
     <TextView android:id="@+id/home_empty_text"
-              android:layout_width="fill_parent"
-              android:layout_height="0dip"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
               android:gravity="top|center"
-              android:textAppearance="@style/TextAppearance.EmptyMessage"
-              android:layout_weight="3"/>
+              android:textAppearance="@style/TextAppearance.EmptyMessage"/>
+
+    <TextView android:id="@+id/home_empty_hint"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:visibility="gone"
+              android:gravity="top|center"
+              android:textAppearance="@style/TextAppearance.EmptyHint"
+              android:textColorLink="#FFA62F" />
+    <!-- Empty spacer view -->
+    <View android:layout_width="match_parent"
+          android:layout_height="0dip"
+          android:layout_weight="2"/>
 
 </LinearLayout>
 

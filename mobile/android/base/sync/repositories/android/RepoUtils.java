@@ -95,7 +95,24 @@ public class RepoUtils {
     }
   }
 
-  public static String getStringFromCursor(Cursor cur, String colId) {
+  /**
+   * This method exists because the behavior of <code>cur.getString()</code> is undefined
+   * when the value in the database is <code>NULL</code>.
+   * This method will return <code>null</code> in that case.
+   */
+  public static String optStringFromCursor(final Cursor cur, final String colId) {
+    final int col = cur.getColumnIndex(colId);
+    if (cur.isNull(col)) {
+      return null;
+    }
+    return cur.getString(col);
+  }
+
+  /**
+   * The behavior of this method when the value in the database is <code>NULL</code> is
+   * determined by the implementation of the {@link Cursor}.
+   */
+  public static String getStringFromCursor(final Cursor cur, final String colId) {
     // TODO: getColumnIndexOrThrow?
     // TODO: don't look up columns by name!
     return cur.getString(cur.getColumnIndex(colId));
@@ -194,7 +211,7 @@ public class RepoUtils {
 
     final String collection = "history";
     final long lastModified = getLongFromCursor(cur, BrowserContract.SyncColumns.DATE_MODIFIED);
-    final boolean deleted = getLongFromCursor(cur, BrowserContract.SyncColumns.IS_DELETED) == 1 ? true : false;
+    final boolean deleted = getLongFromCursor(cur, BrowserContract.SyncColumns.IS_DELETED) == 1;
 
     final HistoryRecord rec = new HistoryRecord(guid, collection, lastModified, deleted);
 
@@ -242,12 +259,27 @@ public class RepoUtils {
     if (a == b) return true;
     if (a == null && b != null) return false;
     if (a != null && b == null) return false;
-    
+
     return a.equals(b);
   }
 
+  public static String computeSQLLongInClause(long[] items, String field) {
+    final StringBuilder builder = new StringBuilder(field);
+    builder.append(" IN (");
+    int i = 0;
+    for (; i < items.length - 1; ++i) {
+      builder.append(items[i]);
+      builder.append(", ");
+    }
+    if (i < items.length) {
+      builder.append(items[i]);
+    }
+    builder.append(")");
+    return builder.toString();
+  }
+
   public static String computeSQLInClause(int items, String field) {
-    StringBuilder builder = new StringBuilder(field);
+    final StringBuilder builder = new StringBuilder(field);
     builder.append(" IN (");
     int i = 0;
     for (; i < items - 1; ++i) {

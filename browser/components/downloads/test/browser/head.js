@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -29,16 +29,77 @@ registerCleanupFunction(function () {
 });
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Infrastructure
+//// Asynchronous support subroutines
 
-function test()
+function promiseOpenAndLoadWindow(aOptions)
 {
-  waitForExplicitFinish();
-  Task.spawn(test_task).then(null, ex => ok(false, ex)).then(finish);
+  return new Promise((resolve, reject) => {
+    let win = OpenBrowserWindow(aOptions);
+    win.addEventListener("load", function onLoad() {
+      win.removeEventListener("load", onLoad);
+      resolve(win);
+    });
+  });
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Asynchronous support subroutines
+/**
+ * Waits for a load (or custom) event to finish in a given tab. If provided
+ * load an uri into the tab.
+ *
+ * @param tab
+ *        The tab to load into.
+ * @param [optional] url
+ *        The url to load, or the current url.
+ * @param [optional] event
+ *        The load event type to wait for.  Defaults to "load".
+ * @return {Promise} resolved when the event is handled.
+ * @resolves to the received event
+ * @rejects if a valid load event is not received within a meaningful interval
+ */
+function promiseTabLoadEvent(tab, url, eventType="load")
+{
+  let deferred = Promise.defer();
+  info("Wait tab event: " + eventType);
+
+  function handle(event) {
+    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+        event.target.location.href == "about:blank" ||
+        (url && event.target.location.href != url)) {
+      info("Skipping spurious '" + eventType + "'' event" +
+           " for " + event.target.location.href);
+      return;
+    }
+    // Remove reference to tab from the cleanup function:
+    realCleanup = () => {};
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    info("Tab event received: " + eventType);
+    deferred.resolve(event);
+  }
+
+  // Juggle a bit to avoid leaks:
+  let realCleanup = () => tab.linkedBrowser.removeEventListener(eventType, handle, true);
+  registerCleanupFunction(() => realCleanup());
+
+  tab.linkedBrowser.addEventListener(eventType, handle, true, true);
+  if (url)
+    tab.linkedBrowser.loadURI(url);
+  return deferred.promise;
+}
+
+function promiseWindowClosed(win)
+{
+  let promise = new Promise((resolve, reject) => {
+    Services.obs.addObserver(function obs(subject, topic) {
+      if (subject == win) {
+        Services.obs.removeObserver(obs, topic);
+        resolve();
+      }
+    }, "domwindowclosed", false);
+  });
+  win.close();
+  return promise;
+}
+
 
 function promiseFocus()
 {

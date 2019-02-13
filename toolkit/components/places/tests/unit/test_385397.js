@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ add_task(function test_execute()
     let testURI = uri(site);
     let testImageURI = uri(site + "blank.gif");
     let when = now + (i * TOTAL_SITES);
-    yield promiseAddVisits([
+    yield PlacesTestUtils.addVisits([
       { uri: testURI, visitDate: when, transition: TRANSITION_TYPED },
       { uri: testImageURI, visitDate: ++when, transition: TRANSITION_EMBED },
       { uri: testImageURI, visitDate: ++when, transition: TRANSITION_FRAMED_LINK },
@@ -72,13 +72,13 @@ add_task(function test_execute()
   // ...
   // http://www.test-0.com/
   // http://www.test-0.com/
-  let options = PlacesUtils.history.getNewQueryOptions();
+  options = PlacesUtils.history.getNewQueryOptions();
   options.sortingMode = options.SORT_BY_DATE_DESCENDING;
   options.resultType = options.RESULTS_AS_VISIT;
-  let root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
+  root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
                                               options).root;
   root.containerOpen = true;
-  let cc = root.childCount;
+  cc = root.childCount;
   // 2 * TOTAL_SITES because we count the TYPED and LINK, but not EMBED or FRAMED
   do_check_eq(cc, 2 * TOTAL_SITES); 
   for (let i=0; i < TOTAL_SITES; i++) {
@@ -100,14 +100,14 @@ add_task(function test_execute()
   // http://www.test-19.com/
   // ...
   // http://www.test-10.com/
-  let options = PlacesUtils.history.getNewQueryOptions();
+  options = PlacesUtils.history.getNewQueryOptions();
   options.sortingMode = options.SORT_BY_DATE_DESCENDING;
   options.maxResults = 10;
   options.resultType = options.RESULTS_AS_URI;
-  let root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
+  root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
                                               options).root;
   root.containerOpen = true;
-  let cc = root.childCount;
+  cc = root.childCount;
   do_check_eq(cc, options.maxResults);
   for (let i=0; i < cc; i++) {
     let node = root.getChild(i);
@@ -124,13 +124,13 @@ add_task(function test_execute()
   // http://www.test-19.com/
   // ...
   // http://www.test-10.com/
-  let options = PlacesUtils.history.getNewQueryOptions();
+  options = PlacesUtils.history.getNewQueryOptions();
   options.sortingMode = options.SORT_BY_DATE_DESCENDING;
   options.resultType = options.RESULTS_AS_URI;
-  let root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
+  root = PlacesUtils.history.executeQuery(PlacesUtils.history.getNewQuery(),
                                               options).root;
   root.containerOpen = true;
-  let cc = root.childCount;
+  cc = root.childCount;
   do_check_eq(cc, TOTAL_SITES);
   for (let i=0; i < 10; i++) {
     let node = root.getChild(i);

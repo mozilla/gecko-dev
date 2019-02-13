@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,11 +11,10 @@
 #include "nsMemory.h"
 #include "nsAutoPtr.h"
 #include "prinrval.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 using namespace mozilla;
 
-#ifdef PR_LOGGING
 static PRLogModuleInfo*
 GetThreadPoolLog()
 {
@@ -25,11 +24,10 @@ GetThreadPoolLog()
   }
   return sLog;
 }
-#endif
 #ifdef LOG
 #undef LOG
 #endif
-#define LOG(args) PR_LOG(GetThreadPoolLog(), PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(GetThreadPoolLog(), mozilla::LogLevel::Debug, args)
 
 // DESIGN:
 //  o  Allocate anonymous threads.
@@ -76,12 +74,18 @@ nsThreadPool::PutEvent(nsIRunnable* aEvent)
   {
     ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
 
+    if (NS_WARN_IF(mShutdown)) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
     LOG(("THRD-P(%p) put [%d %d %d]\n", this, mIdleCount, mThreads.Count(),
          mThreadLimit));
     MOZ_ASSERT(mIdleCount <= (uint32_t)mThreads.Count(), "oops");
 
     // Make sure we have a thread to service this event.
-    if (mIdleCount == 0 && mThreads.Count() < (int32_t)mThreadLimit) {
+    if (mThreads.Count() < (int32_t)mThreadLimit &&
+        // Spawn a new thread if we don't have enough idle threads to serve
+        // pending events immediately.
+        mEvents.Count() >= mIdleCount) {
       spawnThread = true;
     }
 
@@ -119,7 +123,7 @@ nsThreadPool::PutEvent(nsIRunnable* aEvent)
     // of nsStreamCopier. To prevent this situation, dispatch a shutdown event
     // to the current thread instead of calling nsIThread::Shutdown() directly.
 
-    nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(thread,
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(thread,
                                                    &nsIThread::Shutdown);
     NS_DispatchToCurrentThread(r);
   } else {
@@ -139,7 +143,7 @@ nsThreadPool::ShutdownThread(nsIThread* aThread)
 
   MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
 
-  nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(aThread, &nsIThread::Shutdown);
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(aThread, &nsIThread::Shutdown);
   NS_DispatchToMainThread(r);
 }
 
@@ -264,6 +268,10 @@ NS_IMETHODIMP
 nsThreadPool::IsOnCurrentThread(bool* aResult)
 {
   ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
+  if (NS_WARN_IF(mShutdown)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nsIThread* thread = NS_GetCurrentThread();
   for (uint32_t i = 0; i < static_cast<uint32_t>(mThreads.Count()); ++i) {
     if (mThreads[i] == thread) {

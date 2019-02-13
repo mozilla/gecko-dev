@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -21,7 +22,14 @@ function inChildProcess() {
 function make_channel(url, callback, ctx) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         Services.scriptSecurityManager.getSystemPrincipal(),
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 const redirectTargetBody = "response body";
@@ -36,13 +44,7 @@ function redirectHandler(metadata, response)
 
 function finish_test(request, buffer)
 {
-  if (inChildProcess()) {
-    // redirects to protocols other than http/ftp will fail until bug 590682 is fixed.
-    do_check_eq(buffer, response301Body);
-  } else {
-    do_check_eq(buffer, redirectTargetBody);
-  }
-
+  do_check_eq(buffer, redirectTargetBody);
   httpServer.stop(do_test_finished);
 }
 

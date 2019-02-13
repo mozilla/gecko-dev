@@ -23,6 +23,10 @@ const ANIMATION_GENERATORS = [
   "mozRequestAnimationFrame"
 ];
 
+const LOOP_GENERATORS = [
+  "setTimeout"
+];
+
 const DRAW_CALLS = [
   // 2D canvas
   "fill",
@@ -51,24 +55,22 @@ const INTERESTING_CALLS = [
   "useProgram"
 ];
 
-exports.register = function(handle) {
-  handle.addTabActor(CanvasActor, "canvasActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeTabActor(CanvasActor);
-};
-
 /**
- * Type representing an Uint32Array buffer, serialized fast(er).
+ * Type representing an ArrayBufferView, serialized fast(er).
+ *
+ * Don't create a new array buffer view from the parsed array on the frontend.
+ * Consumers may copy the data into an existing buffer, or create a new one if
+ * necesasry. For example, this avoids the need for a redundant copy when
+ * populating ImageData objects, at the expense of transferring char views
+ * of a pixel buffer over the protocol instead of a packed int view.
  *
  * XXX: It would be nice if on local connections (only), we could just *give*
  * the buffer directly to the front, instead of going through all this
  * serialization redundancy.
  */
-protocol.types.addType("uint32-array", {
+protocol.types.addType("array-buffer-view", {
   write: (v) => "[" + Array.join(v, ",") + "]",
-  read: (v) => new Uint32Array(JSON.parse(v))
+  read: (v) => JSON.parse(v)
 });
 
 /**
@@ -78,8 +80,9 @@ protocol.types.addDictType("snapshot-image", {
   index: "number",
   width: "number",
   height: "number",
+  scaling: "number",
   flipped: "boolean",
-  pixels: "uint32-array"
+  pixels: "array-buffer-view"
 });
 
 /**
@@ -115,7 +118,7 @@ let FrameSnapshotActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
     this._contentCanvas = canvas;
     this._functionCalls = calls;
-    this._lastDrawCallScreenshot = screenshot;
+    this._animationFrameEndScreenshot = screenshot;
   },
 
   /**
@@ -125,7 +128,7 @@ let FrameSnapshotActor = protocol.ActorClass({
     return {
       calls: this._functionCalls,
       thumbnails: this._functionCalls.map(e => e._thumbnail).filter(e => !!e),
-      screenshot: this._lastDrawCallScreenshot
+      screenshot: this._animationFrameEndScreenshot
     };
   }, {
     response: { overview: RetVal("snapshot-overview") }
@@ -146,7 +149,7 @@ let FrameSnapshotActor = protocol.ActorClass({
     // To get a screenshot, replay all the steps necessary to render the frame,
     // by invoking the context calls up to and including the specified one.
     // This will be done in a custom framebuffer in case of a WebGL context.
-    let { replayContext, lastDrawCallIndex } = ContextUtils.replayAnimationFrame({
+    let replayData = ContextUtils.replayAnimationFrame({
       contextType: global,
       canvas: canvas,
       calls: calls,
@@ -154,24 +157,25 @@ let FrameSnapshotActor = protocol.ActorClass({
       last: index
     });
 
-    // To keep things fast, generate an image that's relatively small.
-    let dimensions = Math.min(CanvasFront.SCREENSHOT_HEIGHT_MAX, canvas.height);
+    let { replayContext, replayContextScaling, lastDrawCallIndex, doCleanup } = replayData;
+    let [left, top, width, height] = replayData.replayViewport;
     let screenshot;
 
     // Depending on the canvas' context, generating a screenshot is done
-    // in different ways. In case of the WebGL context, we also need to reset
-    // the framebuffer binding to the default value.
+    // in different ways.
     if (global == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
-      screenshot = ContextUtils.getPixelsForWebGL(replayContext);
-      replayContext.bindFramebuffer(replayContext.FRAMEBUFFER, null);
+      screenshot = ContextUtils.getPixelsForWebGL(replayContext, left, top, width, height);
       screenshot.flipped = true;
-    }
-    // In case of 2D contexts, no additional special treatment is necessary.
-    else if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
-      screenshot = ContextUtils.getPixelsFor2D(replayContext);
+    } else if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
+      screenshot = ContextUtils.getPixelsFor2D(replayContext, left, top, width, height);
       screenshot.flipped = false;
     }
 
+    // In case of the WebGL context, we also need to reset the framebuffer
+    // binding to the original value, after generating the screenshot.
+    doCleanup();
+
+    screenshot.scaling = replayContextScaling;
     screenshot.index = lastDrawCallIndex;
     return screenshot;
   }, {
@@ -186,17 +190,17 @@ let FrameSnapshotActor = protocol.ActorClass({
 let FrameSnapshotFront = protocol.FrontClass(FrameSnapshotActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
-    this._lastDrawCallScreenshot = null;
+    this._animationFrameEndScreenshot = null;
     this._cachedScreenshots = new WeakMap();
   },
 
   /**
-   * This implementation caches the last draw call screenshot to optimize
+   * This implementation caches the animation frame end screenshot to optimize
    * frontend requests to `generateScreenshotFor`.
    */
   getOverview: custom(function() {
     return this._getOverview().then(data => {
-      this._lastDrawCallScreenshot = data.screenshot;
+      this._animationFrameEndScreenshot = data.screenshot;
       return data;
     });
   }, {
@@ -208,8 +212,9 @@ let FrameSnapshotFront = protocol.FrontClass(FrameSnapshotActor, {
    * was already generated and retrieved once.
    */
   generateScreenshotFor: custom(function(functionCall) {
-    if (CanvasFront.ANIMATION_GENERATORS.has(functionCall.name)) {
-      return promise.resolve(this._lastDrawCallScreenshot);
+    if (CanvasFront.ANIMATION_GENERATORS.has(functionCall.name) ||
+        CanvasFront.LOOP_GENERATORS.has(functionCall.name)) {
+      return promise.resolve(this._animationFrameEndScreenshot);
     }
     let cachedScreenshot = this._cachedScreenshots.get(functionCall);
     if (cachedScreenshot) {
@@ -229,6 +234,10 @@ let FrameSnapshotFront = protocol.FrontClass(FrameSnapshotActor, {
  * made when drawing frame inside an animation loop.
  */
 let CanvasActor = exports.CanvasActor = protocol.ActorClass({
+  // Reset for each recording, boolean indicating whether or not
+  // any draw calls were called for a recording.
+  _animationContainsDrawCall: false,
+
   typeName: "canvas",
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -253,8 +262,9 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     this._callWatcher.onCall = this._onContentFunctionCall;
     this._callWatcher.setup({
       tracedGlobals: CANVAS_CONTEXTS,
-      tracedFunctions: ANIMATION_GENERATORS,
-      performReload: reload
+      tracedFunctions: [...ANIMATION_GENERATORS, ...LOOP_GENERATORS],
+      performReload: reload,
+      storeCalls: true
     });
   }, {
     request: { reload: Option(0, "boolean") },
@@ -286,26 +296,49 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
   }),
 
   /**
+   * Returns whether or not the CanvasActor is recording an animation.
+   * Used in tests.
+   */
+  isRecording: method(function() {
+    return !!this._callWatcher.isRecording();
+  }, {
+    response: { recording: RetVal("boolean") }
+  }),
+
+  /**
    * Records a snapshot of all the calls made during the next animation frame.
    * The animation should be implemented via the de-facto requestAnimationFrame
-   * utility, not inside a `setInterval` or recursive `setTimeout`.
-   *
-   * XXX: Currently only supporting requestAnimationFrame. When this isn't used,
-   * it'd be a good idea to display a huge red flashing banner telling people to
-   * STOP USING `setInterval` OR `setTimeout` FOR ANIMATION. Bug 978948.
+   * utility, or inside recursive `setTimeout`s. `setInterval` at this time are not supported.
    */
   recordAnimationFrame: method(function() {
     if (this._callWatcher.isRecording()) {
       return this._currentAnimationFrameSnapshot.promise;
     }
 
+    this._recordingContainsDrawCall = false;
     this._callWatcher.eraseRecording();
     this._callWatcher.resumeRecording();
 
     let deferred = this._currentAnimationFrameSnapshot = promise.defer();
     return deferred.promise;
   }, {
-    response: { snapshot: RetVal("frame-snapshot") }
+    response: { snapshot: RetVal("nullable:frame-snapshot") }
+  }),
+
+  /**
+   * Cease attempts to record an animation frame.
+   */
+  stopRecordingAnimationFrame: method(function() {
+   if (!this._callWatcher.isRecording()) {
+      return;
+    }
+    this._animationStarted = false;
+    this._callWatcher.pauseRecording();
+    this._callWatcher.eraseRecording();
+    this._currentAnimationFrameSnapshot.resolve(null);
+    this._currentAnimationFrameSnapshot = null;
+  }, {
+    oneway: true
   }),
 
   /**
@@ -323,7 +356,15 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     // They need to be cloned.
     inplaceShallowCloneArrays(args, window);
 
+    // Handle animations generated using requestAnimationFrame
     if (CanvasFront.ANIMATION_GENERATORS.has(name)) {
+      this._handleAnimationFrame(functionCall);
+      return;
+    }
+    // Handle animations generated using setTimeout. While using
+    // those timers is considered extremely poor practice, they're still widely
+    // used on the web, especially for old demos; it's nice to support them as well.
+    if (CanvasFront.LOOP_GENERATORS.has(name)) {
       this._handleAnimationFrame(functionCall);
       return;
     }
@@ -339,7 +380,11 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
   _handleAnimationFrame: function(functionCall) {
     if (!this._animationStarted) {
       this._handleAnimationFrameBegin();
-    } else {
+    }
+    // Check to see if draw calls occurred yet, as it could be future frames,
+    // like in the scenario where requestAnimationFrame is called to trigger an animation,
+    // and rAF is at the beginning of the animate loop.
+    else if (this._animationContainsDrawCall) {
       this._handleAnimationFrameEnd(functionCall);
     }
   },
@@ -361,20 +406,22 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     // previously recorded calls.
     let functionCalls = this._callWatcher.pauseRecording();
     this._callWatcher.eraseRecording();
+    this._animationContainsDrawCall = false;
 
     // Since the animation frame finished, get a hold of the (already retrieved)
     // canvas pixels to conveniently create a screenshot of the final rendering.
     let index = this._lastDrawCallIndex;
     let width = this._lastContentCanvasWidth;
     let height = this._lastContentCanvasHeight;
-    let flipped = this._lastThumbnailFlipped;
-    let pixels = ContextUtils.getPixelStorage()["32bit"];
-    let lastDrawCallScreenshot = {
+    let flipped = !!this._lastThumbnailFlipped; // undefined -> false
+    let pixels = ContextUtils.getPixelStorage()["8bit"];
+    let animationFrameEndScreenshot = {
       index: index,
       width: width,
       height: height,
+      scaling: 1,
       flipped: flipped,
-      pixels: pixels.subarray(0, width * height)
+      pixels: pixels.subarray(0, width * height * 4)
     };
 
     // Wrap the function calls and screenshot in a FrameSnapshotActor instance,
@@ -382,7 +429,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let frameSnapshot = new FrameSnapshotActor(this.conn, {
       canvas: this._lastDrawCallCanvas,
       calls: functionCalls,
-      screenshot: lastDrawCallScreenshot
+      screenshot: animationFrameEndScreenshot
     });
 
     this._currentAnimationFrameSnapshot.resolve(frameSnapshot);
@@ -405,8 +452,10 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let h = this._lastContentCanvasHeight = contentCanvas.height;
 
     // To keep things fast, generate images of small and fixed dimensions.
-    let dimensions = CanvasFront.THUMBNAIL_HEIGHT;
+    let dimensions = CanvasFront.THUMBNAIL_SIZE;
     let thumbnail;
+
+    this._animationContainsDrawCall = true;
 
     // Create a thumbnail on every draw call on the canvas context, to augment
     // the respective function call actor with this additional data.
@@ -465,7 +514,8 @@ let ContextUtils = {
    * @param number dstHeight [optional]
    *        The desired generated screenshot height.
    * @return object
-   *         An objet containing the screenshot's width, height and pixel data.
+   *         An objet containing the screenshot's width, height and pixel data,
+   *         represented as an 8-bit array buffer of r, g, b, a values.
    */
   getPixelsForWebGL: function(gl,
     srcX = 0, srcY = 0,
@@ -496,7 +546,8 @@ let ContextUtils = {
    * @param number dstHeight [optional]
    *        The desired generated screenshot height.
    * @return object
-   *         An objet containing the screenshot's width, height and pixel data.
+   *         An objet containing the screenshot's width, height and pixel data,
+   *         represented as an 8-bit array buffer of r, g, b, a values.
    */
   getPixelsFor2D: function(ctx,
     srcX = 0, srcY = 0,
@@ -522,14 +573,13 @@ let ContextUtils = {
    * @param number dstHeight [optional]
    *        The desired resized pixel data height.
    * @return object
-   *         An objet containing the resized pixels width, height and data.
+   *         An objet containing the resized pixels width, height and data,
+   *         represented as an 8-bit array buffer of r, g, b, a values.
    */
   resizePixels: function(srcPixels, srcWidth, srcHeight, dstHeight) {
     let screenshotRatio = dstHeight / srcHeight;
-    let dstWidth = Math.floor(srcWidth * screenshotRatio);
-
-    // Use a plain array instead of a Uint32Array to make serializing faster.
-    let dstPixels = new Array(dstWidth * dstHeight);
+    let dstWidth = (srcWidth * screenshotRatio) | 0;
+    let dstPixels = new Uint32Array(dstWidth * dstHeight);
 
     // If the resized image ends up being completely transparent, returning
     // an empty array will skip some redundant serialization cycles.
@@ -537,8 +587,8 @@ let ContextUtils = {
 
     for (let dstX = 0; dstX < dstWidth; dstX++) {
       for (let dstY = 0; dstY < dstHeight; dstY++) {
-        let srcX = Math.floor(dstX / screenshotRatio);
-        let srcY = Math.floor(dstY / screenshotRatio);
+        let srcX = (dstX / screenshotRatio) | 0;
+        let srcY = (dstY / screenshotRatio) | 0;
         let cPos = srcX + srcWidth * srcY;
         let dPos = dstX + dstWidth * dstY;
         let color = dstPixels[dPos] = srcPixels[cPos];
@@ -551,7 +601,7 @@ let ContextUtils = {
     return {
       width: dstWidth,
       height: dstHeight,
-      pixels: isTransparent ? [] : dstPixels
+      pixels: isTransparent ? [] : new Uint8Array(dstPixels.buffer)
     };
   },
 
@@ -563,8 +613,11 @@ let ContextUtils = {
    * the respective canvas, and the rendering will be performed into it.
    * This is necessary because some state (like shaders, textures etc.) can't
    * be shared between two different WebGL contexts.
-   * Hopefully, once SharedResources are a thing this won't be necessary:
-   * http://www.khronos.org/webgl/wiki/SharedResouces
+   *   - Hopefully, once SharedResources are a thing this won't be necessary:
+   *     http://www.khronos.org/webgl/wiki/SharedResouces
+   *   - Alternatively, we could pursue the idea of using the same context
+   *     for multiple canvases, instead of trying to share resources:
+   *     https://www.khronos.org/webgl/public-mailing-list/archives/1210/msg00058.html
    *
    * In case of a 2D context, a new canvas is created, since there's no
    * intrinsic state that can't be easily duplicated.
@@ -580,33 +633,59 @@ let ContextUtils = {
    * @param number last
    *        The last (inclusive) function call to end at.
    * @return object
-   *         The context on which the specified calls were invoked and the
-   *         last registered draw call's index.
+   *         The context on which the specified calls were invoked, the
+   *         last registered draw call's index and a cleanup function, which
+   *         needs to be called whenever any potential followup work is finished.
    */
   replayAnimationFrame: function({ contextType, canvas, calls, first, last }) {
     let w = canvas.width;
     let h = canvas.height;
 
-    let replayCanvas;
     let replayContext;
+    let replayContextScaling;
+    let customViewport;
     let customFramebuffer;
     let lastDrawCallIndex = -1;
+    let doCleanup = () => {};
 
     // In case of WebGL contexts, rendering will be done offscreen, in a
-    // custom framebuffer, but on the provided canvas context.
+    // custom framebuffer, but using the same provided context. This is
+    // necessary because it's very memory-unfriendly to rebuild all the
+    // required GL state (like recompiling shaders, setting global flags, etc.)
+    // in an entirely new canvas. However, special care is needed to not
+    // permanently affect the existing GL state in the process.
     if (contextType == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
-      replayCanvas = canvas;
-      replayContext = this.getWebGLContext(replayCanvas);
-      customFramebuffer = this.createBoundFramebuffer(replayContext, w, h);
+      // To keep things fast, replay the context calls on a framebuffer
+      // of smaller dimensions than the actual canvas (maximum 256x256 pixels).
+      let scaling = Math.min(CanvasFront.WEBGL_SCREENSHOT_MAX_HEIGHT, h) / h;
+      replayContextScaling = scaling;
+      w = (w * scaling) | 0;
+      h = (h * scaling) | 0;
+
+      // Fetch the same WebGL context and bind a new framebuffer.
+      let gl = replayContext = this.getWebGLContext(canvas);
+      let { newFramebuffer, oldFramebuffer } = this.createBoundFramebuffer(gl, w, h);
+      customFramebuffer = newFramebuffer;
+
+      // Set the viewport to match the new framebuffer's dimensions.
+      let { newViewport, oldViewport } = this.setCustomViewport(gl, w, h);
+      customViewport = newViewport;
+
+      // Revert the framebuffer and viewport to the original values.
+      doCleanup = () => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, oldFramebuffer);
+        gl.viewport.apply(gl, oldViewport);
+      };
     }
     // In case of 2D contexts, draw everything on a separate canvas context.
     else if (contextType == CallWatcherFront.CANVAS_2D_CONTEXT) {
       let contentDocument = canvas.ownerDocument;
-      replayCanvas = contentDocument.createElement("canvas");
+      let replayCanvas = contentDocument.createElement("canvas");
       replayCanvas.width = w;
       replayCanvas.height = h;
       replayContext = replayCanvas.getContext("2d");
-      replayContext.clearRect(0, 0, w, h);
+      replayContextScaling = 1;
+      customViewport = [0, 0, w, h];
     }
 
     // Replay all the context calls up to and including the specified one.
@@ -617,23 +696,33 @@ let ContextUtils = {
       // to the default value, since we want to perform the rendering offscreen.
       if (name == "bindFramebuffer" && args[1] == null) {
         replayContext.bindFramebuffer(replayContext.FRAMEBUFFER, customFramebuffer);
-      } else {
-        if (type == CallWatcherFront.METHOD_FUNCTION) {
-          replayContext[name].apply(replayContext, args);
-        } else if (type == CallWatcherFront.SETTER_FUNCTION) {
-          replayContext[name] = args;
-        } else {
-          // Ignore getter calls.
+        continue;
+      }
+      // Also prevent WebGL context calls that try to change the viewport
+      // while our custom framebuffer is bound.
+      if (name == "viewport") {
+        let framebufferBinding = replayContext.getParameter(replayContext.FRAMEBUFFER_BINDING);
+        if (framebufferBinding == customFramebuffer) {
+          replayContext.viewport.apply(replayContext, customViewport);
+          continue;
         }
-        if (CanvasFront.DRAW_CALLS.has(name)) {
-          lastDrawCallIndex = i;
-        }
+      }
+      if (type == CallWatcherFront.METHOD_FUNCTION) {
+        replayContext[name].apply(replayContext, args);
+      } else if (type == CallWatcherFront.SETTER_FUNCTION) {
+        replayContext[name] = args;
+      }
+      if (CanvasFront.DRAW_CALLS.has(name)) {
+        lastDrawCallIndex = i;
       }
     }
 
     return {
       replayContext: replayContext,
-      lastDrawCallIndex: lastDrawCallIndex
+      replayContextScaling: replayContextScaling,
+      replayViewport: customViewport,
+      lastDrawCallIndex: lastDrawCallIndex,
+      doCleanup: doCleanup
     };
   },
 
@@ -688,16 +777,21 @@ let ContextUtils = {
    *         The generated framebuffer object.
    */
   createBoundFramebuffer: function(gl, width, height) {
-    let framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    let oldFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    let oldRenderbufferBinding = gl.getParameter(gl.RENDERBUFFER_BINDING);
+    let oldTextureBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
 
-    // Use a texture as the color rendebuffer attachment, since consumenrs of
+    let newFramebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, newFramebuffer);
+
+    // Use a texture as the color renderbuffer attachment, since consumers of
     // this function will most likely want to read the rendered pixels back.
     let colorBuffer = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, colorBuffer);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     let depthBuffer = gl.createRenderbuffer();
@@ -707,10 +801,24 @@ let ContextUtils = {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorBuffer, 0);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, oldTextureBinding);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, oldRenderbufferBinding);
 
-    return framebuffer;
+    return { oldFramebuffer, newFramebuffer };
+  },
+
+  /**
+   * Sets the viewport of the drawing buffer for a WebGL context.
+   * @param WebGLRenderingContext gl
+   * @param number width
+   * @param number height
+   */
+  setCustomViewport: function(gl, width, height) {
+    let oldViewport = XPCNativeWrapper.unwrap(gl.getParameter(gl.VIEWPORT));
+    let newViewport = [0, 0, width, height];
+    gl.viewport.apply(gl, newViewport);
+
+    return { oldViewport, newViewport };
   }
 };
 
@@ -720,7 +828,6 @@ let ContextUtils = {
 let CanvasFront = exports.CanvasFront = protocol.FrontClass(CanvasActor, {
   initialize: function(client, { canvasActor }) {
     protocol.Front.prototype.initialize.call(this, client, { actor: canvasActor });
-    client.addActorPool(this);
     this.manage(this);
   }
 });
@@ -730,10 +837,11 @@ let CanvasFront = exports.CanvasFront = protocol.FrontClass(CanvasActor, {
  */
 CanvasFront.CANVAS_CONTEXTS = new Set(CANVAS_CONTEXTS);
 CanvasFront.ANIMATION_GENERATORS = new Set(ANIMATION_GENERATORS);
+CanvasFront.LOOP_GENERATORS = new Set(LOOP_GENERATORS);
 CanvasFront.DRAW_CALLS = new Set(DRAW_CALLS);
 CanvasFront.INTERESTING_CALLS = new Set(INTERESTING_CALLS);
-CanvasFront.THUMBNAIL_HEIGHT = 50; // px
-CanvasFront.SCREENSHOT_HEIGHT_MAX = 256; // px
+CanvasFront.THUMBNAIL_SIZE = 50; // px
+CanvasFront.WEBGL_SCREENSHOT_MAX_HEIGHT = 256; // px
 CanvasFront.INVALID_SNAPSHOT_IMAGE = {
   index: -1,
   width: 0,

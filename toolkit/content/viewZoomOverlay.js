@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,8 +41,10 @@ var ZoomManager = {
   },
 
   getZoomForBrowser: function ZoomManager_getZoomForBrowser(aBrowser) {
-    return (this.useFullZoom || aBrowser.isSyntheticDocument)
-           ? aBrowser.fullZoom : aBrowser.textZoom;
+    let zoom = (this.useFullZoom || aBrowser.isSyntheticDocument)
+               ? aBrowser.fullZoom : aBrowser.textZoom;
+    // Round to remove any floating-point error.
+    return Number(zoom.toFixed(2));
   },
 
   set zoom(aVal) {

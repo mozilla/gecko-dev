@@ -15,8 +15,9 @@
 # include "nsExceptionHandler.h"
 #endif
 #include "nsString.h"
+#include "nsXULAppAPI.h"
 #include "prprf.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsError.h"
 #include "prerror.h"
 #include "prerr.h"
@@ -40,9 +41,6 @@
 #if defined(XP_WIN)
 #include <tchar.h>
 #include "nsString.h"
-#ifdef MOZ_METRO
-#include "nsWindowsHelpers.h"
-#endif
 #endif
 
 #if defined(XP_MACOSX) || defined(__DragonFly__) || defined(__FreeBSD__) \
@@ -107,7 +105,7 @@ static const char* sMultiprocessDescription = nullptr;
 
 static Atomic<int32_t> gAssertionCount;
 
-NS_IMPL_QUERY_INTERFACE(nsDebugImpl, nsIDebug, nsIDebug2)
+NS_IMPL_QUERY_INTERFACE(nsDebugImpl, nsIDebug2)
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsDebugImpl::AddRef()
@@ -229,7 +227,8 @@ InitLog()
   }
 }
 
-enum nsAssertBehavior {
+enum nsAssertBehavior
+{
   NS_ASSERT_UNINITIALIZED,
   NS_ASSERT_WARN,
   NS_ASSERT_SUSPEND,
@@ -247,17 +246,7 @@ GetAssertBehavior()
     return gAssertBehavior;
   }
 
-#if defined(XP_WIN) && defined(MOZ_METRO)
-  if (IsRunningInWindowsMetro()) {
-    gAssertBehavior = NS_ASSERT_WARN;
-  } else {
-    gAssertBehavior = NS_ASSERT_TRAP;
-  }
-#elif defined(XP_WIN)
-  gAssertBehavior = NS_ASSERT_TRAP;
-#else
   gAssertBehavior = NS_ASSERT_WARN;
-#endif
 
   const char* assertString = PR_GetEnv("XPCOM_DEBUG_BREAK");
   if (!assertString || !*assertString) {
@@ -331,23 +320,23 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
   InitLog();
 
   FixedBuffer buf;
-  PRLogModuleLevel ll = PR_LOG_WARNING;
+  mozilla::LogLevel ll = LogLevel::Warning;
   const char* sevString = "WARNING";
 
   switch (aSeverity) {
     case NS_DEBUG_ASSERTION:
       sevString = "###!!! ASSERTION";
-      ll = PR_LOG_ERROR;
+      ll = LogLevel::Error;
       break;
 
     case NS_DEBUG_BREAK:
       sevString = "###!!! BREAK";
-      ll = PR_LOG_ALWAYS;
+      ll = LogLevel::Error;
       break;
 
     case NS_DEBUG_ABORT:
       sevString = "###!!! ABORT";
-      ll = PR_LOG_ALWAYS;
+      ll = LogLevel::Error;
       break;
 
     default:
@@ -361,7 +350,9 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
   if (sMultiprocessDescription) {
     PrintToBuffer("%s ", sMultiprocessDescription);
   }
+#if !defined(MOZILLA_XPCOMRT_API)
   PrintToBuffer("%d] ", base::GetCurrentProcId());
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
   PrintToBuffer("%s: ", sevString);
 
@@ -381,12 +372,12 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
 #  undef PrintToBuffer
 
   // Write out the message to the debug log
-  PR_LOG(gDebugLog, ll, ("%s", buf.buffer));
+  MOZ_LOG(gDebugLog, ll, ("%s", buf.buffer));
   PR_LogFlush();
 
   // errors on platforms without a debugdlg ring a bell on stderr
 #if !defined(XP_WIN)
-  if (ll != PR_LOG_WARNING) {
+  if (ll != LogLevel::Warning) {
     fprintf(stderr, "\07");
   }
 #endif
@@ -411,19 +402,24 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       return;
 
     case NS_DEBUG_ABORT: {
-#if defined(MOZ_CRASHREPORTER)
-      nsCString note("xpcom_runtime_abort(");
-      note += buf.buffer;
-      note += ")";
-      CrashReporter::AppendAppNotesToCrashReport(note);
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
-                                         nsDependentCString(buf.buffer));
+#if defined(MOZ_CRASHREPORTER) && !defined(MOZILLA_XPCOMRT_API)
+      // Updating crash annotations in the child causes us to do IPC. This can
+      // really cause trouble if we're asserting from within IPC code. So we
+      // have to do without the annotations in that case.
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        nsCString note("xpcom_runtime_abort(");
+        note += buf.buffer;
+        note += ")";
+        CrashReporter::AppendAppNotesToCrashReport(note);
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
+                                           nsDependentCString(buf.buffer));
+      }
 #endif  // MOZ_CRASHREPORTER
 
 #if defined(DEBUG) && defined(_WIN32)
       RealBreak();
 #endif
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(MOZILLA_XPCOMRT_API)
       nsTraceRefcnt::WalkTheStack(stderr);
 #endif
       Abort(buf.buffer);
@@ -448,11 +444,15 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       return;
 
     case NS_ASSERT_STACK:
+#if !defined(MOZILLA_XPCOMRT_API)
       nsTraceRefcnt::WalkTheStack(stderr);
+#endif // !defined(MOZILLA_XPCOMRT_API)
       return;
 
     case NS_ASSERT_STACK_AND_ABORT:
+#if !defined(MOZILLA_XPCOMRT_API)
       nsTraceRefcnt::WalkTheStack(stderr);
+#endif // !defined(MOZILLA_XPCOMRT_API)
       // Fall through to abort
 
     case NS_ASSERT_ABORT:
@@ -511,7 +511,8 @@ Break(const char* aMsg)
   static int ignoreDebugger;
   if (!ignoreDebugger) {
     const char* shouldIgnoreDebugger = getenv("XPCOM_DEBUG_DLG");
-    ignoreDebugger = 1 + (shouldIgnoreDebugger && !strcmp(shouldIgnoreDebugger, "1"));
+    ignoreDebugger =
+      1 + (shouldIgnoreDebugger && !strcmp(shouldIgnoreDebugger, "1"));
   }
   if ((ignoreDebugger == 2) || !::IsDebuggerPresent()) {
     DWORD code = IDRETRY;
@@ -578,17 +579,20 @@ Break(const char* aMsg)
 #endif
 }
 
-static const nsDebugImpl kImpl;
-
 nsresult
 nsDebugImpl::Create(nsISupports* aOuter, const nsIID& aIID, void** aInstancePtr)
 {
+  static const nsDebugImpl* sImpl;
+
   if (NS_WARN_IF(aOuter)) {
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  return const_cast<nsDebugImpl*>(&kImpl)->
-    QueryInterface(aIID, aInstancePtr);
+  if (!sImpl) {
+    sImpl = new nsDebugImpl();
+  }
+
+  return const_cast<nsDebugImpl*>(sImpl)->QueryInterface(aIID, aInstancePtr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -619,7 +623,7 @@ NS_ErrorAccordingToNSPR()
 void
 NS_ABORT_OOM(size_t aSize)
 {
-#ifdef MOZ_CRASHREPORTER
+#if defined(MOZ_CRASHREPORTER) && !defined(MOZILLA_XPCOMRT_API)
   CrashReporter::AnnotateOOMAllocationSize(aSize);
 #endif
   MOZ_CRASH();

@@ -6,7 +6,7 @@
 #include "nsIOService.h"
 #include "nsFtpControlConnection.h"
 #include "nsFtpProtocolHandler.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIInputStream.h"
 #include "nsISocketTransportService.h"
 #include "nsISocketTransport.h"
@@ -15,11 +15,9 @@
 #include "nsNetCID.h"
 #include <algorithm>
 
-#if defined(PR_LOGGING)
 extern PRLogModuleInfo* gFTPLog;
-#endif
-#define LOG(args)         PR_LOG(gFTPLog, PR_LOG_DEBUG, args)
-#define LOG_ALWAYS(args)  PR_LOG(gFTPLog, PR_LOG_ALWAYS, args)
+#define LOG(args)         MOZ_LOG(gFTPLog, mozilla::LogLevel::Debug, args)
+#define LOG_INFO(args)  MOZ_LOG(gFTPLog, mozilla::LogLevel::Info, args)
 
 //
 // nsFtpControlConnection implementation ...
@@ -68,12 +66,12 @@ nsFtpControlConnection::nsFtpControlConnection(const nsCSubstring& host,
     : mServerType(0), mSessionId(gFtpHandler->GetSessionId())
     , mUseUTF8(false), mHost(host), mPort(port)
 {
-    LOG_ALWAYS(("FTP:CC created @%p", this));
+    LOG_INFO(("FTP:CC created @%p", this));
 }
 
 nsFtpControlConnection::~nsFtpControlConnection() 
 {
-    LOG_ALWAYS(("FTP:CC destroyed @%p", this));
+    LOG_INFO(("FTP:CC destroyed @%p", this));
 }
 
 bool
@@ -155,7 +153,7 @@ nsFtpControlConnection::Disconnect(nsresult status)
     if (!mSocket)
         return NS_OK;  // already disconnected
     
-    LOG_ALWAYS(("FTP:(%p) CC disconnecting (%x)", this, status));
+    LOG_INFO(("FTP:(%p) CC disconnecting (%x)", this, status));
 
     if (NS_FAILED(status)) {
         // break cyclic reference!

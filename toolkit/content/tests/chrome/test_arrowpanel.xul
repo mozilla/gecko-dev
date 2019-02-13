@@ -44,6 +44,8 @@
 
 SimpleTest.waitForExplicitFinish();
 
+const isOSXYosemite = navigator.userAgent.indexOf("Mac OS X 10.10") != -1;
+
 var expectedAnchor = null;
 var expectedSide = "", expectedAnchorEdge = "", expectedPack = "", expectedAlignment = "";
 var zoomFactor = 1;
@@ -186,10 +188,12 @@ function nextTest()
       transitions++;
       // Two properties transition so continue on the second one finishing.
       if (!(transitions % 2)) {
+        is($("animatepanel").state, "open", "state is open after transitionend");
         ok(animatedPopupShown, "popupshown now fired")
         SimpleTest.executeSoon(() => runNextTest.next());
       }
       else {
+        is($("animatepanel").state, "showing", "state is showing during transitionend");
         ok(!animatedPopupShown, "popupshown not fired yet")
       }
     }
@@ -197,6 +201,7 @@ function nextTest()
     // Check that the transition occurs for an arrow panel with animate="true"
     window.addEventListener("transitionend", transitionEnded, false);
     $("animatepanel").openPopup($("topleft"), "after_start", 0, 0, false, false, null, "start");
+    is($("animatepanel").state, "showing", "state is showing");
     yield;
     window.removeEventListener("transitionend", transitionEnded, false);
 
@@ -214,7 +219,7 @@ function setScale(win, scale)
   var wn = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
               .getInterface(Components.interfaces.nsIWebNavigation);
   var shell = wn.QueryInterface(Components.interfaces.nsIDocShell);
-  var docViewer = shell.contentViewer.QueryInterface(Components.interfaces.nsIMarkupDocumentViewer);
+  var docViewer = shell.contentViewer;
   docViewer.fullZoom = scale;
   zoomFactor = scale;
 }
@@ -289,7 +294,8 @@ function checkPanelPosition(panel)
       adj = hwinpos + parseInt(getComputedStyle(panel, "").marginRight);
       if (iscentered)
         adj += Math.round(anchorRect.width) / 2;
-      isWithinHalfPixel(panelRect.right, anchorRect.right * zoomFactor - adj, "anchored on right");
+      if (!isOSXYosemite)
+        isWithinHalfPixel(panelRect.right, anchorRect.right * zoomFactor - adj, "anchored on right");
       break;
   }
 

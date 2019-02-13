@@ -1,4 +1,5 @@
-/* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,38 +7,48 @@
 #ifndef mozilla_dom_AnimationTimeline_h
 #define mozilla_dom_AnimationTimeline_h
 
+#include "nsISupports.h"
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/AnimationUtils.h"
 #include "mozilla/Attributes.h"
+#include "nsIGlobalObject.h"
 #include "js/TypeDecls.h"
-#include "nsIDocument.h"
-
-struct JSContext;
 
 namespace mozilla {
 namespace dom {
 
-class AnimationTimeline MOZ_FINAL : public nsWrapperCache
+class AnimationTimeline
+  : public nsISupports
+  , public nsWrapperCache
 {
 public:
-  AnimationTimeline(nsIDocument* aDocument)
-    : mDocument(aDocument)
+  explicit AnimationTimeline(nsIGlobalObject* aWindow)
+    : mWindow(aWindow)
   {
-    SetIsDOMBinding();
+    MOZ_ASSERT(mWindow);
   }
 
+protected:
   virtual ~AnimationTimeline() { }
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationTimeline)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(AnimationTimeline)
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AnimationTimeline)
 
-  nsISupports* GetParentObject() const { return mDocument; }
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  nsIGlobalObject* GetParentObject() const { return mWindow; }
 
-  Nullable<double> GetCurrentTime() const;
+  // AnimationTimeline methods
+  virtual Nullable<TimeDuration> GetCurrentTime() const = 0;
+
+  // Wrapper functions for AnimationTimeline DOM methods when called from
+  // script.
+  Nullable<double> GetCurrentTimeAsDouble() const {
+    return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
+  }
 
 protected:
-  nsCOMPtr<nsIDocument> mDocument;
+  nsCOMPtr<nsIGlobalObject> mWindow;
 };
 
 } // namespace dom

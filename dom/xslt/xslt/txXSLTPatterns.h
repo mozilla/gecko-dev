@@ -7,10 +7,9 @@
 #define TX_XSLT_PATTERNS_H
 
 #include "mozilla/Attributes.h"
+#include "txExpandedName.h"
 #include "txExpr.h"
 #include "txXMLUtils.h"
-
-class ProcessorState;
 
 class txPattern
 {
@@ -87,19 +86,19 @@ public:
 };
 
 #define TX_DECL_PATTERN_BASE \
-    bool matches(const txXPathNode& aNode, txIMatchContext* aContext); \
-    double getDefaultPriority(); \
-    virtual Expr* getSubExprAt(uint32_t aPos); \
-    virtual void setSubExprAt(uint32_t aPos, Expr* aExpr); \
-    virtual txPattern* getSubPatternAt(uint32_t aPos); \
-    virtual void setSubPatternAt(uint32_t aPos, txPattern* aPattern)
+    bool matches(const txXPathNode& aNode, txIMatchContext* aContext) override; \
+    double getDefaultPriority() override; \
+    virtual Expr* getSubExprAt(uint32_t aPos) override; \
+    virtual void setSubExprAt(uint32_t aPos, Expr* aExpr) override; \
+    virtual txPattern* getSubPatternAt(uint32_t aPos) override; \
+    virtual void setSubPatternAt(uint32_t aPos, txPattern* aPattern) override
 
 #ifndef TX_TO_STRING
 #define TX_DECL_PATTERN TX_DECL_PATTERN_BASE
 #else
 #define TX_DECL_PATTERN \
     TX_DECL_PATTERN_BASE; \
-    void toString(nsAString& aDest)
+    void toString(nsAString& aDest) override
 #endif
 
 #define TX_IMPL_PATTERN_STUBS_NO_SUB_EXPR(_class)             \
@@ -136,7 +135,7 @@ public:
     }
 
     TX_DECL_PATTERN;
-    Type getType() MOZ_OVERRIDE;
+    Type getType() override;
 
 private:
     txOwningArray<txPattern> mLocPathPatterns;
@@ -187,7 +186,7 @@ private:
 class txIdPattern : public txPattern
 {
 public:
-    txIdPattern(const nsSubstring& aString);
+    explicit txIdPattern(const nsSubstring& aString);
 
     TX_DECL_PATTERN;
 
@@ -228,7 +227,7 @@ public:
     }
 
     TX_DECL_PATTERN;
-    Type getType() MOZ_OVERRIDE;
+    Type getType() override;
 
     txNodeTest* getNodeTest()
     {

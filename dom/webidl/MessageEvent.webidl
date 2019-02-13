@@ -7,9 +7,8 @@
  * http://www.whatwg.org/specs/web-apps/current-work/#messageevent
  */
 
-interface WindowProxy;
-
-[Constructor(DOMString type, optional MessageEventInit eventInitDict)]
+[Constructor(DOMString type, optional MessageEventInit eventInitDict),
+ Exposed=(Window,Worker,System)]
 interface MessageEvent : Event {
   /**
    * Custom data associated with this event.
@@ -32,9 +31,12 @@ interface MessageEvent : Event {
   readonly attribute DOMString lastEventId;
 
   /**
-   * The window or the port which originated this event.
+   * The window, port or client which originated this event.
+   * FIXME(catalinb): Update this when the spec changes are implemented.
+   * https://www.w3.org/Bugs/Public/show_bug.cgi?id=28199
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1143717
    */
-  readonly attribute (WindowProxy or MessagePort)? source;
+  readonly attribute (WindowProxy or MessagePort or Client)? source;
 
   /**
    * Initializes this event with the given data, in a manner analogous to
@@ -48,6 +50,6 @@ dictionary MessageEventInit : EventInit {
   any data;
   DOMString origin;
   DOMString lastEventId;
-  (WindowProxy or MessagePort)? source = null;
+  (Window or MessagePort)? source = null;
   sequence<MessagePort>? ports;
 };

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -85,6 +85,7 @@ function f6() {
 
 try
 {
+/*
   var rv = f1(5);
   if (!isNaN(rv))
     throw "f1(5):\n" +
@@ -96,7 +97,7 @@ try
     throw "f2(5):\n" +
       "  expected:  NaN\n" +
       "  actual:    " + rv;
-/*
+
   rv = f3(8);
   if (rv != 9)
   throw "f3(8):\n" +

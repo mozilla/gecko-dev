@@ -15,20 +15,25 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
     EXPORTS += [
         'GeckoProfilerFunc.h',
         'GeckoProfilerImpl.h',
+        'ProfilerBacktrace.h',
         'ProfilerMarkers.h',
         'PseudoStack.h',
         'shared-libraries.h',
     ]
-    EXTRA_JS_MODULES = [
+    EXPORTS.mozilla += [
+        'ProfileGatherer.h',
+    ]
+    EXTRA_JS_MODULES += [
         'Profiler.jsm',
     ]
     UNIFIED_SOURCES += [
-        'BreakpadSampler.cpp',
-        'JSStreamWriter.cpp',
         'nsProfiler.cpp',
         'nsProfilerFactory.cpp',
+        'nsProfilerStartParams.cpp',
         'platform.cpp',
         'ProfileEntry.cpp',
+        'ProfileGatherer.cpp',
+        'ProfileJSONWriter.cpp',
         'ProfilerBacktrace.cpp',
         'ProfilerIOInterposeObserver.cpp',
         'ProfilerMarkers.cpp',
@@ -36,7 +41,6 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
         'SyncProfile.cpp',
         'TableTicker.cpp',
         'ThreadResponsiveness.cpp',
-        'UnwinderThread2.cpp',
     ]
 
     # This file cannot be built in unified mode because of name clashes with mozglue headers on Android.
@@ -52,7 +56,7 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
             'LulDwarfSummariser.cpp',
             'LulElf.cpp',
             'LulMain.cpp',
-            'LulRWLock.cpp',
+            'platform-linux-lul.cpp',
         ]
         # These files cannot be built in unified mode because of name clashes with mozglue headers on Android.
         SOURCES += [
@@ -80,6 +84,7 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
         ]
 
     LOCAL_INCLUDES += [
+        '/docshell/base',
         '/ipc/chromium/src',
         '/mozglue/linker',
         '/toolkit/crashreporter/google-breakpad/src',
@@ -98,7 +103,7 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
     if CONFIG['ENABLE_TESTS']:
         DIRS += ['tests/gtest']
 
-    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['ANDROID_VERSION'] <= '17':
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and (CONFIG['ANDROID_VERSION'] <= '17' or CONFIG['ANDROID_VERSION'] >= '21'):
         DEFINES['ELFSIZE'] = 32
 
     FINAL_LIBRARY = 'xul'

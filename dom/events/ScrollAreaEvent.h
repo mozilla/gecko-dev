@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -31,36 +32,36 @@ public:
   NS_FORWARD_NSIDOMUIEVENT(UIEvent::)
 
   NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION
-  NS_IMETHOD DuplicatePrivateData()
+  NS_IMETHOD DuplicatePrivateData() override
   {
     return Event::DuplicatePrivateData();
   }
-  NS_IMETHOD_(void) Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) MOZ_OVERRIDE;
-  NS_IMETHOD_(bool) Deserialize(const IPC::Message* aMsg, void** aIter) MOZ_OVERRIDE;
+  NS_IMETHOD_(void) Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) override;
+  NS_IMETHOD_(bool) Deserialize(const IPC::Message* aMsg, void** aIter) override;
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return ScrollAreaEventBinding::Wrap(aCx, this);
+    return ScrollAreaEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   float X() const
   {
-    return mClientArea.Left();
+    return mClientArea->Left();
   }
 
   float Y() const
   {
-    return mClientArea.Top();
+    return mClientArea->Top();
   }
 
   float Width() const
   {
-    return mClientArea.Width();
+    return mClientArea->Width();
   }
 
   float Height() const
   {
-    return mClientArea.Height();
+    return mClientArea->Height();
   }
 
   void InitScrollAreaEvent(const nsAString& aType,
@@ -77,7 +78,9 @@ public:
   }
 
 protected:
-  DOMRect mClientArea;
+  ~ScrollAreaEvent() {}
+
+  nsRefPtr<DOMRect> mClientArea;
 };
 
 } // namespace dom

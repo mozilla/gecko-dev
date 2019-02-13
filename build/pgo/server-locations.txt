@@ -8,7 +8,7 @@
 # It is referred to by the following page, so if this file moves, that page must
 # be modified accordingly:
 #
-# http://developer.mozilla.org/en/docs/Mochitest#How_do_I_test_issues_which_only_show_up_when_tests_are_run_across_domains.3F
+# https://developer.mozilla.org/en/docs/Mochitest#How_do_I_test_issues_which_only_show_up_when_tests_are_run_across_domains.3F
 #
 # Empty lines and lines which begin with "#" are ignored and may be used for
 # storing comments.  All other lines consist of an origin followed by whitespace
@@ -20,7 +20,8 @@
 # number is the default for the protocol.
 #
 # Unrecognized options are ignored.  Recognized options are "primary" and
-# "privileged", "nocert", "cert=some_cert_nickname", "redir=hostname".
+# "privileged", "nocert", "cert=some_cert_nickname", "redir=hostname" and
+# "failHandshake".
 #
 # "primary" denotes a location which is the canonical location of
 # the server; this location is the one assumed for requests which don't
@@ -31,6 +32,9 @@
 #
 # "nocert" makes sense only for https:// hosts and means there is not
 # any certificate automatically generated for this host.
+#
+# "failHandshake" causes the tls handshake to fail (by sending a client hello to
+# the client).
 #
 # "cert=nickname" tells the pgo server to use a particular certificate
 # for this host. The certificate is referenced by its nickname that must
@@ -60,6 +64,10 @@ http://127.0.0.1:80               privileged
 http://127.0.0.1:8888             privileged
 http://test:80                    privileged
 http://mochi.test:8888            privileged
+http://test1.mochi.test:8888
+http://sub1.test1.mochi.test:8888
+http://sub2.xn--lt-uia.mochi.test:8888
+http://test2.mochi.test:8888
 http://example.org:80                privileged
 http://test1.example.org:80          privileged
 http://test2.example.org:80          privileged
@@ -84,8 +92,11 @@ http://sub2.test1.example.com:80     privileged
 http://sub2.test2.example.com:80     privileged
 http://noxul.example.com:80          privileged,noxul
 http://example.net:80                privileged
+# Used to test that clearing Service Workers for domain example.com, does not clear prefixexample.com
+http://prefixexample.com:80
 
 https://example.com:443                privileged
+https://example.org:443                privileged
 https://test1.example.com:443          privileged
 https://test2.example.com:443          privileged
 https://sub1.test1.example.com:443     privileged
@@ -153,10 +164,12 @@ https://sub.sectest1.example.org:443
 # Used while testing the url-classifier
 #
 http://malware.example.com:80
+http://tracking.example.com:80
+http://not-tracking.example.com:80
+http://tracking.example.org:80
 
 # Bug 483437, 484111
 https://www.bank1.com:443           privileged,cert=escapeattack1
-https://www.bank2.com:443           privileged,cert=escapeattack2
 
 #
 # CONNECT for redirproxy results in a 302 redirect to
@@ -215,3 +228,22 @@ http://example.fi:80                privileged
 
 # Hosts for testing marketplace apps installations
 https://marketplace.firefox.com:443       privileged
+https://marketplace-dev.allizom.org:443   privileged
+https://marketplace.allizom.org:443       privileged
+
+# Host for HPKP
+https://include-subdomains.pinning-dynamic.example.com:443        privileged,cert=dynamicPinningGood
+https://bad.include-subdomains.pinning-dynamic.example.com:443    privileged,cert=dynamicPinningBad
+
+# Host for static pin tests
+https://badchain.include-subdomains.pinning.example.com:443       privileged,cert=staticPinningBad
+https://fail-handshake.example.com:443                            privileged,failHandshake
+
+# Hosts for sha1 console warning tests
+https://sha1ee.example.com:443                                    privileged,cert=sha1_end_entity
+https://sha256ee.example.com:443                                  privileged,cert=sha256_end_entity
+
+# Hosts for ssl3/rc4 console warning tests
+https://ssl3.example.com:443        privileged,ssl3
+https://rc4.example.com:443         privileged,rc4
+https://ssl3rc4.example.com:443     privileged,ssl3,rc4

@@ -10,7 +10,7 @@
 #ifndef nsXULPopupManager_h__
 #define nsXULPopupManager_h__
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIContent.h"
 #include "nsIRollupListener.h"
 #include "nsIDOMEventListener.h"
@@ -24,6 +24,7 @@
 #include "nsStyleConsts.h"
 #include "nsWidgetInitData.h"
 #include "mozilla/Attributes.h"
+#include "Units.h"
 
 // X.h defines KeyPress
 #ifdef KeyPress
@@ -189,7 +190,7 @@ public:
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupShowingEvent constructor");
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
 
 private:
   nsCOMPtr<nsIContent> mPopup;
@@ -206,19 +207,19 @@ public:
                         nsIContent* aLastPopup,
                         nsPopupType aPopupType,
                         bool aDeselectMenu,
-                        bool aIsRollup)
+                        bool aIsCancel)
     : mPopup(aPopup),
       mNextPopup(aNextPopup),
       mLastPopup(aLastPopup),
       mPopupType(aPopupType),
       mDeselectMenu(aDeselectMenu),
-      mIsRollup(aIsRollup)
+      mIsRollup(aIsCancel)
   {
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupHidingEvent constructor");
     // aNextPopup and aLastPopup may be null
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
 
 private:
   nsCOMPtr<nsIContent> mPopup;
@@ -254,7 +255,7 @@ public:
     NS_ASSERTION(aMenu, "null menu supplied to nsXULMenuCommandEvent constructor");
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
 
   void SetCloseMenuMode(CloseMenuMode aCloseMenuMode) { mCloseMenuMode = aCloseMenuMode; }
 
@@ -270,10 +271,10 @@ private:
   CloseMenuMode mCloseMenuMode;
 };
 
-class nsXULPopupManager MOZ_FINAL : public nsIDOMEventListener,
-                                    public nsIRollupListener,
-                                    public nsITimerCallback,
-                                    public nsIObserver
+class nsXULPopupManager final : public nsIDOMEventListener,
+                                public nsIRollupListener,
+                                public nsITimerCallback,
+                                public nsIObserver
 {
 
 public:
@@ -288,13 +289,14 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   // nsIRollupListener
-  virtual bool Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** aLastRolledUp) MOZ_OVERRIDE;
-  virtual bool ShouldRollupOnMouseWheelEvent() MOZ_OVERRIDE;
-  virtual bool ShouldConsumeOnMouseWheelEvent() MOZ_OVERRIDE;
-  virtual bool ShouldRollupOnMouseActivate() MOZ_OVERRIDE;
-  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) MOZ_OVERRIDE;
-  virtual void NotifyGeometryChange() MOZ_OVERRIDE {}
-  virtual nsIWidget* GetRollupWidget() MOZ_OVERRIDE;
+  virtual bool Rollup(uint32_t aCount, bool aFlush,
+                      const nsIntPoint* pos, nsIContent** aLastRolledUp) override;
+  virtual bool ShouldRollupOnMouseWheelEvent() override;
+  virtual bool ShouldConsumeOnMouseWheelEvent() override;
+  virtual bool ShouldRollupOnMouseActivate() override;
+  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) override;
+  virtual void NotifyGeometryChange() override {}
+  virtual nsIWidget* GetRollupWidget() override;
 
   static nsXULPopupManager* sInstance;
 
@@ -403,6 +405,16 @@ public:
                          bool aIsContextMenu,
                          nsIDOMEvent* aTriggerEvent);
 
+  /* Open a popup anchored at a screen rectangle specified by aRect.
+   * The remaining arguments are similar to ShowPopup.
+   */
+  void ShowPopupAtScreenRect(nsIContent* aPopup,
+                             const nsAString& aPosition,
+                             const nsIntRect& aRect,
+                             bool aIsContextMenu,
+                             bool aAttributesOverride,
+                             nsIDOMEvent* aTriggerEvent);
+
   /**
    * Open a tooltip at a specific screen position specified by aXPos and aYPos,
    * measured in CSS pixels.
@@ -438,7 +450,7 @@ public:
    * aAsynchronous - true if the first popuphiding event should be sent
    *                 asynchrously. This should be true if HidePopup is called
    *                 from a frame.
-   * aIsRollup - true if this popup is hiding due to a rollup or escape keypress.
+   * aIsCancel - true if this popup is hiding due to being cancelled.
    * aLastPopup - optional popup to close last when hiding a chain of menus.
    *              If null, then all popups will be closed.
    */
@@ -446,7 +458,7 @@ public:
                  bool aHideChain,
                  bool aDeselectMenu,
                  bool aAsynchronous,
-                 bool aIsRollup,
+                 bool aIsCancel,
                  nsIContent* aLastPopup = nullptr);
 
   /**
@@ -530,9 +542,9 @@ public:
 
   /**
    * Indicate that the popup associated with aView has been resized to the
-   * specified screen width and height.
+   * given device pixel size aSize.
    */
-  void PopupResized(nsIFrame* aFrame, nsIntSize ASize);
+  void PopupResized(nsIFrame* aFrame, mozilla::LayoutDeviceIntSize aSize);
 
   /**
    * Called when a popup frame is destroyed. In this case, just remove the
@@ -671,7 +683,7 @@ protected:
    * aPresContext - nsPresContext for the popup's frame
    * aPopupType - the PopupType of the frame. 
    * aDeselectMenu - true to unhighlight the menu when hiding it
-   * aIsRollup - true if this popup is hiding due to a rollup or escape keypress
+   * aIsCancel - true if this popup is hiding due to being cancelled.
    */
   void FirePopupHidingEvent(nsIContent* aPopup,
                             nsIContent* aNextPopup,
@@ -679,7 +691,7 @@ protected:
                             nsPresContext *aPresContext,
                             nsPopupType aPopupType,
                             bool aDeselectMenu,
-                            bool aIsRollup);
+                            bool aIsCancel);
 
   /**
    * Handle keyboard navigation within a menu popup specified by aItem.
@@ -742,7 +754,7 @@ protected:
   int32_t mRangeOffset;
   // Device pixels relative to the showing popup's presshell's
   // root prescontext's root frame.
-  nsIntPoint mCachedMousePoint;
+  mozilla::LayoutDeviceIntPoint mCachedMousePoint;
 
   // cached modifiers
   mozilla::Modifiers mCachedModifiers;

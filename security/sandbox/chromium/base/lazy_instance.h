@@ -43,7 +43,6 @@
 #include "base/debug/leak_annotations.h"
 #include "base/logging.h"
 #include "base/memory/aligned_memory.h"
-#include "base/third_party/dynamic_annotations/dynamic_annotations.h"
 #include "base/threading/thread_restrictions.h"
 
 // LazyInstance uses its own struct initializer-list style static
@@ -57,7 +56,9 @@ namespace base {
 template <typename Type>
 struct DefaultLazyInstanceTraits {
   static const bool kRegisterOnExit = true;
+#ifndef NDEBUG
   static const bool kAllowedToAccessOnNonjoinableThread = false;
+#endif
 
   static Type* New(void* instance) {
     DCHECK_EQ(reinterpret_cast<uintptr_t>(instance) & (ALIGNOF(Type) - 1), 0u)
@@ -89,7 +90,9 @@ namespace internal {
 template <typename Type>
 struct LeakyLazyInstanceTraits {
   static const bool kRegisterOnExit = false;
+#ifndef NDEBUG
   static const bool kAllowedToAccessOnNonjoinableThread = true;
+#endif
 
   static Type* New(void* instance) {
     ANNOTATE_SCOPED_MEMORY_LEAK;
@@ -162,13 +165,6 @@ class LazyInstance {
       internal::CompleteLazyInstance(&private_instance_, value, this,
                                      Traits::kRegisterOnExit ? OnExit : NULL);
     }
-
-    // This annotation helps race detectors recognize correct lock-less
-    // synchronization between different threads calling Pointer().
-    // We suggest dynamic race detection tool that "Traits::New" above
-    // and CompleteLazyInstance(...) happens before "return instance()" below.
-    // See the corresponding HAPPENS_BEFORE in CompleteLazyInstance(...).
-    ANNOTATE_HAPPENS_AFTER(&private_instance_);
     return instance();
   }
 

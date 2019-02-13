@@ -14,13 +14,6 @@
 #define TO_UINT32(x) ((x) >>> 0)
 #define IS_UINT32(x) ((x) >>> 0 === (x))
 
-// Assertions.
-#ifdef DEBUG
-#define assert(b, info) if (!(b)) AssertionFailed(info)
-#else
-#define assert(b, info) // Elided assertion.
-#endif
-
 // Unforgeable versions of ARRAY.push(ELEMENT) and ARRAY.slice.
 #define ARRAY_PUSH(ARRAY, ELEMENT) \
   callFunction(std_Array_push, ARRAY, ELEMENT);
@@ -35,5 +28,8 @@
 #define ATTR_NONENUMERABLE      0x08
 #define ATTR_NONCONFIGURABLE    0x10
 #define ATTR_NONWRITABLE        0x20
+
+// Stores the private WeakMap slot used for WeakSets
+#define WEAKSET_MAP_SLOT 0
 
 #endif

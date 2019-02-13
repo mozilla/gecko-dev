@@ -16,15 +16,16 @@ import android.util.Log;
 public class GeckoConnectivityReceiver extends BroadcastReceiver {
     /*
      * Keep the below constants in sync with
-     * http://mxr.mozilla.org/mozilla-central/source/netwerk/base/public/nsINetworkLinkService.idl
+     * http://mxr.mozilla.org/mozilla-central/source/netwerk/base/nsINetworkLinkService.idl
      */
     private static final String LINK_DATA_UP = "up";
     private static final String LINK_DATA_DOWN = "down";
+    private static final String LINK_DATA_CHANGED = "changed";
     private static final String LINK_DATA_UNKNOWN = "unknown";
 
     private static final String LOGTAG = "GeckoConnectivityReceiver";
 
-    private static GeckoConnectivityReceiver sInstance = new GeckoConnectivityReceiver();
+    private static final GeckoConnectivityReceiver sInstance = new GeckoConnectivityReceiver();
 
     private final IntentFilter mFilter;
     private Context mApplicationContext;
@@ -82,6 +83,7 @@ public class GeckoConnectivityReceiver extends BroadcastReceiver {
 
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             GeckoAppShell.sendEventToGecko(GeckoEvent.createNetworkLinkChangeEvent(status));
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createNetworkLinkChangeEvent(LINK_DATA_CHANGED));
         }
     }
 }

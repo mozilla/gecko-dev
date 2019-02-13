@@ -16,6 +16,10 @@
   <marquee>Marquee</marquee>
   </body>
 
+  <!-- some URIs that should be anonymized in anonymous mode -->
+  <iframe id="amFrame"  height="200" src="http://example.org:80"></iframe>
+  <iframe id="amFrame"  height="200" src="https://example.com:443"></iframe>
+
   <!-- test code goes here -->
   <script type="application/javascript">
   <![CDATA[
@@ -41,9 +45,11 @@
 
   let vsizeAmounts = [];
   let residentAmounts = [];
-  let jsGcHeapAmounts = [];
   let heapAllocatedAmounts = [];
   let storageSqliteAmounts = [];
+
+  let jsGcHeapUsedGcThingsTotal = 0;
+  let jsGcHeapUsedGcThings = {};
 
   let present = {}
 
@@ -67,15 +73,17 @@
   let mySandbox = Components.utils.Sandbox(document.nodePrincipal,
                     { sandboxName: "this-is-a-sandbox-name" });
 
-  function handleReport(aProcess, aPath, aKind, aUnits, aAmount, aDescription)
+  function handleReportNormal(aProcess, aPath, aKind, aUnits, aAmount,
+                              aDescription)
   {
     // Record the values of some notable reporters.
     if (aPath === "vsize") {
       vsizeAmounts.push(aAmount);
     } else if (aPath === "resident") {
       residentAmounts.push(aAmount);
-    } else if (aPath === "js-main-runtime-gc-heap-committed/used/gc-things") {
-      jsGcHeapAmounts.push(aAmount); 
+    } else if (aPath.search(/^js-main-runtime-gc-heap-committed\/used\/gc-things\//) >= 0) {
+      jsGcHeapUsedGcThingsTotal += aAmount;
+      jsGcHeapUsedGcThings[aPath] = (jsGcHeapUsedGcThings[aPath] | 0) + 1;
     } else if (aPath === "heap-allocated") {
       heapAllocatedAmounts.push(aAmount);
     } else if (aPath === "storage-sqlite") {
@@ -92,18 +100,37 @@
       present.images = true;
     } else if (aPath.search(/^explicit\/xpti-working-set$/) >= 0) {
       present.xptiWorkingSet = true;
-    } else if (aPath.search(/^explicit\/atom-tables$/) >= 0) {
-      present.atomTable = true;
+    } else if (aPath.search(/^explicit\/atom-tables\/main$/) >= 0) {
+      present.atomTablesMain = true;
     } else if (/\[System Principal\].*this-is-a-sandbox-name/.test(aPath)) {
       // A system compartment with a location (such as a sandbox) should
       // show that location.
       present.sandboxLocation = true;
-    } else if (aPath.contains(bigStringPrefix)) {
+    } else if (aPath.includes(bigStringPrefix)) {
       present.bigString = true;
-    } else if (aPath.contains("!)(*&")) {
+    } else if (aPath.includes("!)(*&")) {
       present.smallString1 = true;
-    } else if (aPath.contains("@)(*&")) {
+    } else if (aPath.includes("@)(*&")) {
       present.smallString2 = true;
+    }
+
+    // Shouldn't get any anonymized paths.
+    if (aPath.includes('<anonymized')) {
+        present.anonymizedWhenUnnecessary = aPath;
+    }
+  }
+
+  function handleReportAnonymized(aProcess, aPath, aKind, aUnits, aAmount,
+                                  aDescription)
+  {
+    // Shouldn't get http: or https: in any paths.
+    if (aPath.includes('http:')) {
+        present.httpWhenAnonymized = aPath;
+    }
+
+    // file: URLs should have their path anonymized.
+    if (aPath.search('file:..[^<]') !== -1) {
+        present.unanonymizedFilePathWhenAnonymized = aPath;
     }
   }
 
@@ -115,7 +142,7 @@
   // non-deterministic.
   //
   // Nb: mgr.explicit will throw NS_ERROR_NOT_AVAILABLE if this is a
-  // --enable-trace-malloc build.  Allow for that exception, but *only* that
+  // --disable-jemalloc build.  Allow for that exception, but *only* that
   // exception.
   let dummy;
   let haveExplicit = true;
@@ -130,6 +157,8 @@
     "vsizeMaxContiguous",
     "resident",
     "residentFast",
+    "residentPeak",
+    "residentUnique",
     "heapAllocated",
     "heapOverheadRatio",
     "JSMainRuntimeGCHeap",
@@ -171,15 +200,26 @@
                 domSize, styleSize, otherSize, totalSize,
                 jsMilliseconds, nonJSMilliseconds);
 
-  mgr.getReportsForThisProcess(handleReport, null);
+  mgr.getReportsForThisProcess(handleReportNormal, null,
+                               /* anonymize = */ false);
+
+  mgr.getReportsForThisProcess(handleReportAnonymized, null,
+                               /* anonymize = */ true);
+
+  function checkSizeReasonable(aName, aAmount)
+  {
+    // Check the size is reasonable -- i.e. not ridiculously large or small.
+    ok(100 * 1000 <= aAmount && aAmount <= 10 * 1000 * 1000 * 1000,
+       aName + "'s size is reasonable");
+  }
 
   function checkSpecialReport(aName, aAmounts, aCanBeUnreasonable)
   {
     ok(aAmounts.length == 1, aName + " has " + aAmounts.length + " report");
     let n = aAmounts[0];
-    // Check the size is reasonable -- i.e. not ridiculously large or small.
-    ok((100 * 1000 <= n && n <= 10 * 1000 * 1000 * 1000) || aCanBeUnreasonable,
-       aName + "'s size is reasonable");
+    if (!aCanBeUnreasonable) {
+      checkSizeReasonable(aName, n);
+    }
   }
 
   // If mgr.explicit failed, we won't have "heap-allocated" either.
@@ -189,19 +229,33 @@
   // vsize may be unreasonable if ASAN is enabled
   checkSpecialReport("vsize",          vsizeAmounts, /*canBeUnreasonable*/true);
   checkSpecialReport("resident",       residentAmounts);
-  checkSpecialReport("js-main-runtime-gc-heap-committed/used/gc-things", jsGcHeapAmounts);
+
+  for (var reporter in jsGcHeapUsedGcThings) {
+    ok(jsGcHeapUsedGcThings[reporter] == 1);
+  }
+  checkSizeReasonable("js-main-runtime-gc-heap-committed/used/gc-things",
+                      jsGcHeapUsedGcThingsTotal);
 
   ok(present.jsNonWindowCompartments,     "js-non-window compartments are present");
   ok(present.windowObjectsJsCompartments, "window-objects/.../js compartments are present");
   ok(present.places,                      "places is present");
   ok(present.images,                      "images is present");
   ok(present.xptiWorkingSet,              "xpti-working-set is present");
-  ok(present.atomTable,                   "atom-table is present");
+  ok(present.atomTablesMain,              "atom-tables/main is present");
   ok(present.sandboxLocation,             "sandbox locations are present");
   ok(present.bigString,                   "large string is present");
   ok(present.smallString1,                "small string 1 is present");
   ok(present.smallString2,                "small string 2 is present");
 
+  ok(!present.anonymizedWhenUnnecessary,
+     "anonymized paths are not present when unnecessary. Failed case: " +
+     present.anonymizedWhenUnnecessary);
+  ok(!present.httpWhenAnonymized,
+     "http URLs are anonymized when necessary. Failed case: " +
+     present.httpWhenAnonymized);
+  ok(!present.unanonymizedFilePathWhenAnonymized,
+     "file URLs are anonymized when necessary. Failed case: " +
+     present.unanonymizedFilePathWhenAnonymized);
 
   // Reporter registration tests
 
@@ -245,7 +299,7 @@
       }
     },
     // nsIMemoryReporter
-    collectReports: function(callback, data) {
+    collectReports: function(callback, data, anonymize) {
       for (let path of Object.keys(this.tests)) {
         try {
           let test = this.tests[path];
@@ -294,7 +348,8 @@
     mgr.registerStrongReporter(reporterAndCallback);
 
     // Check the generated reports.
-    mgr.getReportsForThisProcess(reporterAndCallback, null);
+    mgr.getReportsForThisProcess(reporterAndCallback, null,
+                                 /* anonymize = */ false);
     reporterAndCallback.finish();
 
     // Unregistration works.
@@ -302,7 +357,8 @@
 
     // The reporter was unregistered, hence there shouldn't be any reports from
     // the test reporter.
-    mgr.getReportsForThisProcess(reporterAndCallback, null);
+    mgr.getReportsForThisProcess(reporterAndCallback, null,
+                                 /* anonymize = */ false);
     reporterAndCallback.finish(0);
   }
 

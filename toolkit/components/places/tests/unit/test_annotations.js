@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -103,7 +103,7 @@ add_task(function test_execute()
 
   // test getPagesWithAnnotation
   var uri2 = uri("http://www.tests.tld");
-  yield promiseAddVisits(uri2);
+  yield PlacesTestUtils.addVisits(uri2);
   annosvc.setPageAnnotation(uri2, testAnnoName, testAnnoVal, 0, 0);
   var pages = annosvc.getPagesWithAnnotation(testAnnoName);
   do_check_eq(pages.length, 2);
@@ -155,7 +155,7 @@ add_task(function test_execute()
 
   // copy annotations to another uri
   var newURI = uri("http://mozilla.org");
-  yield promiseAddVisits(newURI);
+  yield PlacesTestUtils.addVisits(newURI);
   annosvc.setPageAnnotation(testURI, "oldAnno", "new", 0, 0);
   annosvc.setPageAnnotation(newURI, "oldAnno", "old", 0, 0);
   var annoNames = annosvc.getPageAnnotationNames(newURI);
@@ -271,9 +271,9 @@ add_task(function test_execute()
   bmsvc.setItemLastModified(testItemId, --lastModified3);
   annosvc.removeItemAnnotation(testItemId, int32Key);
   var lastModified4 = bmsvc.getItemLastModified(testItemId);
-  LOG("verify that removing an annotation updates the last modified date");
-  LOG("lastModified3 = " + lastModified3);
-  LOG("lastModified4 = " + lastModified4);
+  do_print("verify that removing an annotation updates the last modified date");
+  do_print("lastModified3 = " + lastModified3);
+  do_print("lastModified4 = " + lastModified4);
   do_check_true(lastModified4 > lastModified3);
 
   do_check_eq(annoObserver.PAGE_lastRemoved_URI, testURI.spec);

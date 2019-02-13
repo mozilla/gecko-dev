@@ -1,16 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 'use strict';
 
 let {
-  Loader, main, unload, parseStack, generateMap, resolve, join
+  Loader, main, unload, parseStack, generateMap, resolve, join,
+  Require, Module
 } = require('toolkit/loader');
 let { readURI } = require('sdk/net/url');
 
-let root = module.uri.substr(0, module.uri.lastIndexOf('/'))
+let root = module.uri.substr(0, module.uri.lastIndexOf('/'));
 
+const app = require('sdk/system/xul-app');
 
 // The following adds Debugger constructor to the global namespace.
 const { Cu } = require('chrome');
@@ -331,7 +332,7 @@ exports['test console global by default'] = function (assert) {
   let uri = root + '/fixtures/loader/globals/';
   let loader = Loader({ paths: { '': uri }});
   let program = main(loader, 'main');
- 
+
   assert.ok(typeof program.console === 'object', 'global `console` exists');
   assert.ok(typeof program.console.log === 'function', 'global `console.log` exists');
 
@@ -343,4 +344,184 @@ exports['test console global by default'] = function (assert) {
   function fakeConsole () {};
 };
 
-require('test').run(exports);
+exports['test shared globals'] = function(assert) {
+  let uri = root + '/fixtures/loader/cycles/';
+  let loader = Loader({ paths: { '': uri }, sharedGlobal: true,
+                        sharedGlobalBlacklist: ['b'] });
+
+  let program = main(loader, 'main');
+
+  // As it is hard to verify what is the global of an object
+  // (due to wrappers) we check that we see the `foo` symbol
+  // being manually injected into the shared global object
+  loader.sharedGlobalSandbox.foo = true;
+
+  let m = loader.sandboxes[uri + 'main.js'];
+  let a = loader.sandboxes[uri + 'a.js'];
+  let b = loader.sandboxes[uri + 'b.js'];
+
+  assert.ok(Cu.getGlobalForObject(m).foo, "main is shared");
+  assert.ok(Cu.getGlobalForObject(a).foo, "a is shared");
+  assert.ok(!Cu.getGlobalForObject(b).foo, "b isn't shared");
+
+  unload(loader);
+}
+
+exports["test require#resolve"] = function(assert) {
+  let foundRoot = require.resolve("sdk/tabs").replace(/sdk\/tabs.js$/, "");
+  assert.ok(root, foundRoot, "correct resolution root");
+
+  assert.equal(foundRoot + "sdk/tabs.js", require.resolve("sdk/tabs"), "correct resolution of sdk module");
+  assert.equal(foundRoot + "toolkit/loader.js", require.resolve("toolkit/loader"), "correct resolution of sdk module");
+};
+
+const modulesURI = require.resolve("toolkit/loader").replace("toolkit/loader.js", "");
+exports["test loading a loader"] = function(assert) {
+  const loader = Loader({ paths: { "": modulesURI } });
+
+  const require = Require(loader, module);
+
+  const requiredLoader = require("toolkit/loader");
+
+  assert.equal(requiredLoader.Loader, Loader,
+               "got the same Loader instance");
+
+  const jsmLoader = Cu.import(require.resolve("toolkit/loader"), {}).Loader;
+
+  assert.equal(jsmLoader.Loader, requiredLoader.Loader,
+               "loading loader via jsm returns same loader");
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility true'] = function(assert) {
+  let loader = Loader({
+    paths: { '': root + "/" },
+    checkCompatibility: true
+  });
+  let require = Require(loader, module);
+
+  assert.throws(() => {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+  }, /^Unsupported Application/, "throws Unsupported Application");
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility false'] = function(assert) {
+  let loader = Loader({
+    paths: { '': root + "/" },
+    checkCompatibility: false
+  });
+  let require = Require(loader, module);
+
+  try {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+    assert.pass("loaded unsupported module without an error");
+  }
+  catch(e) {
+    assert.fail(e);
+  }
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility default'] = function(assert) {
+  let loader = Loader({ paths: { '': root + "/" } });
+  let require = Require(loader, module);
+
+  try {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+    assert.pass("loaded unsupported module without an error");
+  }
+  catch(e) {
+    assert.fail(e);
+  }
+
+  unload(loader);
+};
+
+exports["test Cu.import of toolkit/loader"] = (assert) => {
+  const toolkitLoaderURI = require.resolve("toolkit/loader");
+  const loaderModule = Cu.import(toolkitLoaderURI).Loader;
+  const { Loader, Require, Main } = loaderModule;
+  const version = "0.1.0";
+  const id = `fxos_${version.replace(".", "_")}_simulator@mozilla.org`;
+  const uri = `resource://${encodeURIComponent(id.replace("@", "at"))}/`;
+
+  const loader = Loader({
+    paths: {
+      "./": uri + "lib/",
+      // Can't just put `resource://gre/modules/commonjs/` as it
+      // won't take module overriding into account.
+      "": toolkitLoaderURI.replace("toolkit/loader.js", "")
+    },
+    globals: {
+      console: console
+    },
+    modules: {
+      "toolkit/loader": loaderModule,
+      addon: {
+        id: "simulator",
+        version: "0.1",
+        uri: uri
+      }
+    }
+  });
+
+  let require_ = Require(loader, { id: "./addon" });
+  assert.equal(typeof(loaderModule),
+               typeof(require_("toolkit/loader")),
+               "module returned is whatever was mapped to it");
+};
+
+exports["test Cu.import in b2g style"] = (assert) => {
+  const {FakeCu} = require("./loader/b2g");
+  const toolkitLoaderURI = require.resolve("toolkit/loader");
+  const b2g = new FakeCu();
+
+  const exported = {};
+  const loader = b2g.import(toolkitLoaderURI, exported);
+
+  assert.equal(typeof(exported.Loader),
+               "function",
+               "loader is a function");
+  assert.equal(typeof(exported.Loader.Loader),
+               "function",
+               "Loader.Loader is a funciton");
+};
+
+exports['test lazy globals'] = function (assert) {
+  let uri = root + '/fixtures/loader/lazy/';
+  let gotFoo = false;
+  let foo = {};
+  let modules = {
+    get foo() {
+      gotFoo = true;
+      return foo;
+    }
+  };
+  let loader = Loader({ paths: { '': uri }, modules: modules});
+  assert.ok(!gotFoo, "foo hasn't been accessed during loader instanciation");
+  let program = main(loader, 'main');
+  assert.ok(!gotFoo, "foo hasn't been accessed during module loading");
+  assert.equal(program.useFoo(), foo, "foo mock works");
+  assert.ok(gotFoo, "foo has been accessed only when we first try to use it");
+};
+
+require('sdk/test').run(exports);

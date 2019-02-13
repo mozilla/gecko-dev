@@ -10,15 +10,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.SynchronousQueue;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.gfx.InputConnectionHandler;
 import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.ThreadUtils.AssertBehavior;
 
-import android.R;
 import android.content.Context;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -227,7 +226,6 @@ class GeckoInputConnection
     private final ExtractedText mUpdateExtract = new ExtractedText();
     private boolean mBatchSelectionChanged;
     private boolean mBatchTextChanged;
-    private long mLastRestartInputTime;
     private final InputConnection mKeyInputConnection;
 
     public static GeckoEditableListener create(View targetView,
@@ -292,10 +290,10 @@ class GeckoInputConnection
         int selEnd = Selection.getSelectionEnd(editable);
 
         switch (id) {
-            case R.id.selectAll:
+            case android.R.id.selectAll:
                 setSelection(0, editable.length());
                 break;
-            case R.id.cut:
+            case android.R.id.cut:
                 // If selection is empty, we'll select everything
                 if (selStart == selEnd) {
                     // Fill the clipboard
@@ -309,10 +307,10 @@ class GeckoInputConnection
                     editable.delete(selStart, selEnd);
                 }
                 break;
-            case R.id.paste:
+            case android.R.id.paste:
                 commitText(Clipboard.getText(), 1);
                 break;
-            case R.id.copy:
+            case android.R.id.copy:
                 // Copy the current selection or the empty string if nothing is selected.
                 String copiedText = selStart == selEnd ? "" :
                                     editable.toString().substring(
@@ -383,18 +381,7 @@ class GeckoInputConnection
         }
     }
 
-    private void tryRestartInput() {
-        // Coalesce restartInput calls because InputMethodManager.restartInput()
-        // is expensive and successive calls to it can lock up the keyboard
-        if (SystemClock.uptimeMillis() < mLastRestartInputTime + 200) {
-            return;
-        }
-        restartInput();
-    }
-
     private void restartInput() {
-
-        mLastRestartInputTime = SystemClock.uptimeMillis();
 
         final InputMethodManager imm = getInputMethodManager();
         if (imm == null) {
@@ -430,7 +417,7 @@ class GeckoInputConnection
     }
 
     @Override
-    public void onTextChange(String text, int start, int oldEnd, int newEnd) {
+    public void onTextChange(CharSequence text, int start, int oldEnd, int newEnd) {
 
         if (mUpdateRequest == null) {
             // Android always expects selection updates when not in extracted mode;
@@ -517,7 +504,8 @@ class GeckoInputConnection
                     GeckoInputConnection.class.notify();
                 }
                 Looper.loop();
-                sBackgroundHandler = null;
+                // We should never be exiting the thread loop.
+                throw new IllegalThreadStateException("unreachable code");
             }
         }, LOGTAG);
         backgroundThread.setDaemon(true);
@@ -562,11 +550,7 @@ class GeckoInputConnection
         if (!canReturnCustomHandler()) {
             return defHandler;
         }
-        // getBackgroundHandler() is synchronized and requires locking,
-        // but if we already have our handler, we don't have to lock
-        final Handler newHandler = sBackgroundHandler != null
-                                 ? sBackgroundHandler
-                                 : getBackgroundHandler();
+        final Handler newHandler = getBackgroundHandler();
         if (mEditableClient.setInputConnectionHandler(newHandler)) {
             return newHandler;
         }
@@ -593,8 +577,6 @@ class GeckoInputConnection
             outAttrs.inputType |= InputType.TYPE_TEXT_VARIATION_URI;
         else if (mIMETypeHint.equalsIgnoreCase("email"))
             outAttrs.inputType |= InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
-        else if (mIMETypeHint.equalsIgnoreCase("search"))
-            outAttrs.imeOptions = EditorInfo.IME_ACTION_SEARCH;
         else if (mIMETypeHint.equalsIgnoreCase("tel"))
             outAttrs.inputType = InputType.TYPE_CLASS_PHONE;
         else if (mIMETypeHint.equalsIgnoreCase("number") ||
@@ -625,9 +607,12 @@ class GeckoInputConnection
                 outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
             else if (mIMEModeHint.equalsIgnoreCase("titlecase"))
                 outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_WORDS;
+            else if (mIMETypeHint.equalsIgnoreCase("text") &&
+                    !mIMEModeHint.equalsIgnoreCase("autocapitalized"))
+                outAttrs.inputType |= InputType.TYPE_TEXT_VARIATION_NORMAL;
             else if (!mIMEModeHint.equalsIgnoreCase("lowercase"))
                 outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
-            // auto-capitalized mode is the default
+            // auto-capitalized mode is the default for types other than text
         }
 
         if (mIMEActionHint.equalsIgnoreCase("go"))
@@ -636,7 +621,8 @@ class GeckoInputConnection
             outAttrs.imeOptions = EditorInfo.IME_ACTION_DONE;
         else if (mIMEActionHint.equalsIgnoreCase("next"))
             outAttrs.imeOptions = EditorInfo.IME_ACTION_NEXT;
-        else if (mIMEActionHint.equalsIgnoreCase("search"))
+        else if (mIMEActionHint.equalsIgnoreCase("search") ||
+                 mIMETypeHint.equalsIgnoreCase("search"))
             outAttrs.imeOptions = EditorInfo.IME_ACTION_SEARCH;
         else if (mIMEActionHint.equalsIgnoreCase("send"))
             outAttrs.imeOptions = EditorInfo.IME_ACTION_SEND;
@@ -816,13 +802,14 @@ class GeckoInputConnection
             !shouldProcessKey(keyCode, event)) {
             return false;
         }
+        final int action = down ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
         event = translateKey(keyCode, event);
         keyCode = event.getKeyCode();
 
         View view = getView();
         if (view == null) {
             InputThreadUtils.sInstance.sendEventFromUiThread(ThreadUtils.getUiHandler(),
-                mEditableClient, GeckoEvent.createKeyEvent(event, 0));
+                mEditableClient, GeckoEvent.createKeyEvent(event, action, 0));
             return true;
         }
 
@@ -840,7 +827,7 @@ class GeckoInputConnection
             (down && !keyListener.onKeyDown(view, uiEditable, keyCode, event)) ||
             (!down && !keyListener.onKeyUp(view, uiEditable, keyCode, event))) {
             InputThreadUtils.sInstance.sendEventFromUiThread(uiHandler, mEditableClient,
-                GeckoEvent.createKeyEvent(event, TextKeyListener.getMetaState(uiEditable)));
+                GeckoEvent.createKeyEvent(event, action, TextKeyListener.getMetaState(uiEditable)));
             if (skip && down) {
                 // Usually, the down key listener call above adjusts meta states for us.
                 // However, if we skip that call above, we have to manually adjust meta
@@ -864,27 +851,43 @@ class GeckoInputConnection
         return processKey(keyCode, event, false);
     }
 
+    /**
+     * Get a key that represents a given character.
+     */
+    private KeyEvent getCharKeyEvent(final char c) {
+        final long time = SystemClock.uptimeMillis();
+        return new KeyEvent(time, time, KeyEvent.ACTION_MULTIPLE,
+                            KeyEvent.KEYCODE_UNKNOWN, /* repeat */ 0) {
+            @Override
+            public int getUnicodeChar() {
+                return c;
+            }
+
+            @Override
+            public int getUnicodeChar(int metaState) {
+                return c;
+            }
+        };
+    }
+
     @Override
     public boolean onKeyMultiple(int keyCode, int repeatCount, final KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_UNKNOWN) {
             // KEYCODE_UNKNOWN means the characters are in KeyEvent.getCharacters()
-            View view = getView();
-            if (view != null) {
-                InputThreadUtils.sInstance.runOnIcThread(
-                    view.getRootView().getHandler(), mEditableClient,
-                    new Runnable() {
-                        @Override public void run() {
-                            // Don't call GeckoInputConnection.commitText because it can
-                            // post a key event back to onKeyMultiple, causing a loop
-                            GeckoInputConnection.super.commitText(event.getCharacters(), 1);
-                        }
-                    });
+            final String str = event.getCharacters();
+            for (int i = 0; i < str.length(); i++) {
+                final KeyEvent charEvent = getCharKeyEvent(str.charAt(i));
+                if (!processKey(KeyEvent.KEYCODE_UNKNOWN, charEvent, /* down */ true) ||
+                    !processKey(KeyEvent.KEYCODE_UNKNOWN, charEvent, /* down */ false)) {
+                    return false;
+                }
             }
             return true;
         }
+
         while ((repeatCount--) != 0) {
-            if (!processKey(keyCode, event, true) ||
-                !processKey(keyCode, event, false)) {
+            if (!processKey(keyCode, event, /* down */ true) ||
+                !processKey(keyCode, event, /* down */ false)) {
                 return false;
             }
         }
@@ -916,17 +919,6 @@ class GeckoInputConnection
     public void notifyIME(int type) {
         switch (type) {
 
-            case NOTIFY_IME_TO_CANCEL_COMPOSITION:
-                // Set composition to empty and end composition
-                setComposingText("", 0);
-                // Fall through
-
-            case NOTIFY_IME_TO_COMMIT_COMPOSITION:
-                // Commit and end composition
-                finishComposingText();
-                tryRestartInput();
-                break;
-
             case NOTIFY_IME_OF_FOCUS:
             case NOTIFY_IME_OF_BLUR:
                 // Showing/hiding vkb is done in notifyIMEContext
@@ -953,10 +945,10 @@ class GeckoInputConnection
         if (typeHint != null &&
             (typeHint.equalsIgnoreCase("date") ||
              typeHint.equalsIgnoreCase("time") ||
-             (Build.VERSION.SDK_INT >= 11 && (typeHint.equalsIgnoreCase("datetime") ||
-                                              typeHint.equalsIgnoreCase("month") ||
-                                              typeHint.equalsIgnoreCase("week") ||
-                                              typeHint.equalsIgnoreCase("datetime-local"))))) {
+             (Versions.feature11Plus && (typeHint.equalsIgnoreCase("datetime") ||
+                                         typeHint.equalsIgnoreCase("month") ||
+                                         typeHint.equalsIgnoreCase("week") ||
+                                         typeHint.equalsIgnoreCase("datetime-local"))))) {
             state = IME_STATE_DISABLED;
         }
 
@@ -1000,7 +992,7 @@ final class DebugGeckoInputConnection
         implements InvocationHandler {
 
     private InputConnection mProxy;
-    private StringBuilder mCallLevel;
+    private final StringBuilder mCallLevel;
 
     private DebugGeckoInputConnection(View targetView,
                                       GeckoEditableClient editable) {
@@ -1010,7 +1002,7 @@ final class DebugGeckoInputConnection
 
     public static GeckoEditableListener create(View targetView,
                                                GeckoEditableClient editable) {
-        final Class[] PROXY_INTERFACES = { InputConnection.class,
+        final Class<?>[] PROXY_INTERFACES = { InputConnection.class,
                 InputConnectionHandler.class,
                 GeckoEditableListener.class };
         DebugGeckoInputConnection dgic =
@@ -1027,21 +1019,23 @@ final class DebugGeckoInputConnection
 
         StringBuilder log = new StringBuilder(mCallLevel);
         log.append("> ").append(method.getName()).append("(");
-        for (Object arg : args) {
-            // translate argument values to constant names
-            if ("notifyIME".equals(method.getName()) && arg == args[0]) {
-                log.append(GeckoEditable.getConstantName(
-                    GeckoEditableListener.class, "NOTIFY_IME_", arg));
-            } else if ("notifyIMEContext".equals(method.getName()) && arg == args[0]) {
-                log.append(GeckoEditable.getConstantName(
-                    GeckoEditableListener.class, "IME_STATE_", arg));
-            } else {
-                GeckoEditable.debugAppend(log, arg);
+        if (args != null) {
+            for (Object arg : args) {
+                // translate argument values to constant names
+                if ("notifyIME".equals(method.getName()) && arg == args[0]) {
+                    log.append(GeckoEditable.getConstantName(
+                        GeckoEditableListener.class, "NOTIFY_IME_", arg));
+                } else if ("notifyIMEContext".equals(method.getName()) && arg == args[0]) {
+                    log.append(GeckoEditable.getConstantName(
+                        GeckoEditableListener.class, "IME_STATE_", arg));
+                } else {
+                    GeckoEditable.debugAppend(log, arg);
+                }
+                log.append(", ");
             }
-            log.append(", ");
-        }
-        if (args.length > 0) {
-            log.setLength(log.length() - 2);
+            if (args.length > 0) {
+                log.setLength(log.length() - 2);
+            }
         }
         log.append(")");
         Log.d(LOGTAG, log.toString());

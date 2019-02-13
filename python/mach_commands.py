@@ -2,14 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import glob
 import logging
-import mozpack.path
+import mozpack.path as mozpath
 import os
-import sys
 
 from mozbuild.base import (
     MachCommandBase,
@@ -25,7 +23,6 @@ from mach.decorators import (
 @CommandProvider
 class MachCommands(MachCommandBase):
     @Command('python', category='devenv',
-        allow_all_args=True,
         description='Run Python.')
     @CommandArgument('args', nargs=argparse.REMAINDER)
     def python(self, args):
@@ -55,6 +52,7 @@ class MachCommands(MachCommandBase):
         help='Tests to run. Each test can be a single file or a directory.')
     def python_test(self, tests, verbose=False, stop=False):
         self._activate_virtualenv()
+        import glob
 
         # Python's unittest, and in particular discover, has problems with
         # clashing namespaces when importing multiple test modules. What follows
@@ -63,19 +61,32 @@ class MachCommands(MachCommandBase):
         # which produces output in the format Mozilla infrastructure expects.
         return_code = 0
         files = []
-        for test in tests:
-            if test.endswith('.py') and os.path.isfile(test):
-                files.append(test)
-            elif os.path.isfile(test + '.py'):
-                files.append(test + '.py')
-            elif os.path.isdir(test):
-                files += glob.glob(mozpack.path.join(test, 'test*.py'))
-                files += glob.glob(mozpack.path.join(test, 'unit*.py'))
-            else:
-                self.log(logging.WARN, 'python-test', {'test': test},
-                         'TEST-UNEXPECTED-FAIL | Invalid test: {test}')
-                if stop:
-                    return 1
+        # We search for files in both the current directory (for people running
+        # from topsrcdir or cd'd into their test directory) and topsrcdir (to
+        # support people running mach from the objdir).  The |break|s in the
+        # loop below ensure that we don't run tests twice if we're running mach
+        # from topsrcdir
+        search_dirs = ['.', self.topsrcdir]
+        last_search_dir = search_dirs[-1]
+        for t in tests:
+            for d in search_dirs:
+                test = mozpath.join(d, t)
+                if test.endswith('.py') and os.path.isfile(test):
+                    files.append(test)
+                    break
+                elif os.path.isfile(test + '.py'):
+                    files.append(test + '.py')
+                    break
+                elif os.path.isdir(test):
+                    files += glob.glob(mozpath.join(test, 'test*.py'))
+                    files += glob.glob(mozpath.join(test, 'unit*.py'))
+                    break
+                elif d == last_search_dir:
+                    self.log(logging.WARN, 'python-test',
+                             {'test': t},
+                             'TEST-UNEXPECTED-FAIL | Invalid test: {test}')
+                    if stop:
+                        return 1
 
         for f in files:
             file_displayed_test = [] # Used as a boolean.

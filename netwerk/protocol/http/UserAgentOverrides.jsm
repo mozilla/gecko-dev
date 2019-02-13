@@ -30,7 +30,7 @@ var gUpdatedOverrides;
 var gOverrideForHostCache = new Map;
 var gInitialized = false;
 var gOverrideFunctions = [
-  function (aHttpChannel) UserAgentOverrides.getOverrideForURI(aHttpChannel.URI)
+  function (aHttpChannel) { return UserAgentOverrides.getOverrideForURI(aHttpChannel.URI); }
 ];
 var gBuiltUAs = new Map;
 
@@ -57,7 +57,7 @@ this.UserAgentOverrides = {
         for (let domain in overrides) {
           overrides[domain] = getUserAgentFromOverride(overrides[domain]);
         }
-        overrides.get = function(key) this[key];
+        overrides.get = function(key) { return this[key]; };
       }
       gUpdatedOverrides = overrides;
     });
@@ -125,7 +125,7 @@ this.UserAgentOverrides = {
     let name = aMessage.name;
     switch (name) {
       case OVERRIDE_MESSAGE:
-        let uri = aMessage.data.uri;
+        let uri = Services.io.newURI(aMessage.data.uri, null, null);
         return this.getOverrideForURI(uri);
       default:
         throw("Wrong Message in UserAgentOverride: " + name);

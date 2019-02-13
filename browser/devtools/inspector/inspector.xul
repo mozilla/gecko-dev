@@ -18,9 +18,6 @@
   <script type="application/javascript;version=1.8"
           src="chrome://browser/content/devtools/theme-switching.js"/>
 
-  <script type="application/javascript"
-          src="chrome://global/content/viewSourceUtils.js"/>
-
   <commandset>
     <command id="nodeSearchCommand"
       oncommand="inspector.searchBox.focus()"/>
@@ -55,16 +52,63 @@
       <menuitem id="node-menu-copyimagedatauri"
         label="&inspectorCopyImageDataUri.label;"
         oncommand="inspector.copyImageDataUri()"/>
+      <menuitem id="node-menu-showdomproperties"
+        label="&inspectorShowDOMProperties.label;"
+        oncommand="inspector.showDOMProperties()"/>
+      <menuitem id="node-menu-expand"
+        label="&inspectorExpandNode.label;"
+        oncommand="inspector.expandNode()"/>
+      <menuitem id="node-menu-collapse"
+        label="&inspectorCollapseNode.label;"
+        oncommand="inspector.collapseNode()"/>
       <menuseparator/>
+      <menuitem id="node-menu-pasteinnerhtml"
+        label="&inspectorHTMLPasteInner.label;"
+        accesskey="&inspectorHTMLPasteInner.accesskey;"
+        oncommand="inspector.pasteInnerHTML()"/>
       <menuitem id="node-menu-pasteouterhtml"
         label="&inspectorHTMLPasteOuter.label;"
         accesskey="&inspectorHTMLPasteOuter.accesskey;"
         oncommand="inspector.pasteOuterHTML()"/>
+      <menu id="node-menu-paste-extra-submenu"
+        label="&inspectorHTMLPasteExtraSubmenu.label;"
+        accesskey="&inspectorHTMLPasteExtraSubmenu.accesskey;">
+        <menupopup>
+          <menuitem id="node-menu-pastebefore"
+            label="&inspectorHTMLPasteBefore.label;"
+            accesskey="&inspectorHTMLPasteBefore.accesskey;"
+            oncommand="inspector.pasteAdjacentHTML('beforeBegin')"/>
+          <menuitem id="node-menu-pasteafter"
+            label="&inspectorHTMLPasteAfter.label;"
+            accesskey="&inspectorHTMLPasteAfter.accesskey;"
+            oncommand="inspector.pasteAdjacentHTML('afterEnd')"/>
+          <menuitem id="node-menu-pastefirstchild"
+            label="&inspectorHTMLPasteFirstChild.label;"
+            accesskey="&inspectorHTMLPasteFirstChild.accesskey;"
+            oncommand="inspector.pasteAdjacentHTML('afterBegin')"/>
+          <menuitem id="node-menu-pastelastchild"
+            label="&inspectorHTMLPasteLastChild.label;"
+            accesskey="&inspectorHTMLPasteLastChild.accesskey;"
+            oncommand="inspector.pasteAdjacentHTML('beforeEnd')"/>
+        </menupopup>
+      </menu>
       <menuseparator/>
+      <menuitem id="node-menu-scrollnodeintoview"
+        label="&inspectorScrollNodeIntoView.label;"
+        accesskey="&inspectorScrollNodeIntoView.accesskey;"
+        oncommand="inspector.scrollNodeIntoView()"/>
+      <menuitem id="node-menu-screenshotnode"
+        label="&inspectorScreenshotNode.label;"
+        oncommand="inspector.screenshotNode()" />
       <menuitem id="node-menu-delete"
         label="&inspectorHTMLDelete.label;"
         accesskey="&inspectorHTMLDelete.accesskey;"
         oncommand="inspector.deleteNode()"/>
+      <menuseparator id="node-menu-link-separator"/>
+      <menuitem id="node-menu-link-follow"
+        oncommand="inspector.followAttributeLink()"/>
+      <menuitem id="node-menu-link-copy"
+        oncommand="inspector.copyAttributeLink()"/>
       <menuseparator/>
       <menuitem id="node-menu-pseudo-hover"
         label=":hover" type="checkbox"
@@ -79,7 +123,7 @@
   </popupset>
 
   <box flex="1" class="devtools-responsive-container theme-body">
-    <vbox flex="1">
+    <vbox flex="1" class="devtools-main-content">
       <toolbar id="inspector-toolbar"
         class="devtools-toolbar"
         nowindowdrag="true">
@@ -91,7 +135,10 @@
           type="search"
           timeout="50"
           class="devtools-searchinput"
-          placeholder="&inspectorSearchHTML.label;"/>
+          placeholder="&inspectorSearchHTML.label2;"/>
+        <toolbarbutton id="inspector-pane-toggle"
+          class="devtools-toolbarbutton"
+          tabindex="0" />
       </toolbar>
       <vbox flex="1" id="markup-box">
       </vbox>

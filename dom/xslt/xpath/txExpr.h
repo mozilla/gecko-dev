@@ -24,7 +24,6 @@
 */
 
 class nsIAtom;
-class txIParseContext;
 class txIMatchContext;
 class txIEvalContext;
 class txNodeSet;
@@ -139,29 +138,28 @@ public:
 
 #ifdef TX_TO_STRING
 #define TX_DECL_TOSTRING \
-    void toString(nsAString& aDest);
+    void toString(nsAString& aDest) override;
 #define TX_DECL_GETNAMEATOM \
-    nsresult getNameAtom(nsIAtom** aAtom);
+    nsresult getNameAtom(nsIAtom** aAtom) override;
 #else
 #define TX_DECL_TOSTRING
 #define TX_DECL_GETNAMEATOM
 #endif
 
 #define TX_DECL_EXPR_BASE \
-    nsresult evaluate(txIEvalContext* aContext, txAExprResult** aResult); \
-    ResultType getReturnType(); \
-    bool isSensitiveTo(ContextSensitivity aContexts);
+    nsresult evaluate(txIEvalContext* aContext, txAExprResult** aResult) override; \
+    ResultType getReturnType() override; \
+    bool isSensitiveTo(ContextSensitivity aContexts) override;
 
 #define TX_DECL_EXPR \
     TX_DECL_EXPR_BASE \
     TX_DECL_TOSTRING \
-    Expr* getSubExprAt(uint32_t aPos); \
-    void setSubExprAt(uint32_t aPos, Expr* aExpr);
+    Expr* getSubExprAt(uint32_t aPos) override; \
+    void setSubExprAt(uint32_t aPos, Expr* aExpr) override;
 
 #define TX_DECL_OPTIMIZABLE_EXPR \
     TX_DECL_EXPR \
-    ExprType getType();
-    
+    ExprType getType() override;
 
 #define TX_DECL_FUNCTION \
     TX_DECL_GETNAMEATOM \
@@ -286,8 +284,8 @@ public:
                                  txIEvalContext* aContext);
 
     TX_DECL_TOSTRING
-    Expr* getSubExprAt(uint32_t aPos) MOZ_OVERRIDE;
-    void setSubExprAt(uint32_t aPos, Expr* aExpr) MOZ_OVERRIDE;
+    Expr* getSubExprAt(uint32_t aPos) override;
+    void setSubExprAt(uint32_t aPos, Expr* aExpr) override;
 
 protected:
 
@@ -362,7 +360,7 @@ public:
     /*
      * Creates a txCoreFunctionCall of the given type
      */
-    txCoreFunctionCall(eType aType) : mType(aType)
+    explicit txCoreFunctionCall(eType aType) : mType(aType)
     {
     }
 
@@ -426,9 +424,9 @@ public:
 
 #define TX_DECL_NODE_TEST \
     TX_DECL_TOSTRING \
-    bool matches(const txXPathNode& aNode, txIMatchContext* aContext); \
-    double getDefaultPriority(); \
-    bool isSensitiveTo(Expr::ContextSensitivity aContext);
+    bool matches(const txXPathNode& aNode, txIMatchContext* aContext) override; \
+    double getDefaultPriority() override; \
+    bool isSensitiveTo(Expr::ContextSensitivity aContext) override;
 
 /*
  * This class represents a NameTest as defined by the XPath spec
@@ -443,7 +441,7 @@ public:
     txNameTest(nsIAtom* aPrefix, nsIAtom* aLocalName, int32_t aNSID,
                uint16_t aNodeType);
 
-    NodeTestType getType() MOZ_OVERRIDE;
+    NodeTestType getType() override;
 
     TX_DECL_NODE_TEST
 
@@ -470,7 +468,7 @@ public:
     /*
      * Creates a new txNodeTypeTest of the given type
      */
-    txNodeTypeTest(NodeType aNodeType)
+    explicit txNodeTypeTest(NodeType aNodeType)
         : mNodeType(aNodeType)
     {
     }
@@ -488,7 +486,7 @@ public:
         return mNodeType;
     }
 
-    NodeTestType getType() MOZ_OVERRIDE;
+    NodeTestType getType() override;
 
     TX_DECL_NODE_TEST
 
@@ -650,7 +648,7 @@ public:
      * Creates a new FilterExpr using the given Expr
      * @param expr the Expr to use for evaluation
      */
-    FilterExpr(Expr* aExpr)
+    explicit FilterExpr(Expr* aExpr)
         : expr(aExpr)
     {
     }
@@ -665,15 +663,15 @@ private:
 
 class txLiteralExpr : public Expr {
 public:
-    txLiteralExpr(double aDbl)
+    explicit txLiteralExpr(double aDbl)
         : mValue(new NumberResult(aDbl, nullptr))
     {
     }
-    txLiteralExpr(const nsAString& aStr)
+    explicit txLiteralExpr(const nsAString& aStr)
         : mValue(new StringResult(aStr, nullptr))
     {
     }
-    txLiteralExpr(txAExprResult* aValue)
+    explicit txLiteralExpr(txAExprResult* aValue)
         : mValue(aValue)
     {
     }
@@ -691,7 +689,7 @@ class UnaryExpr : public Expr {
 
 public:
 
-    UnaryExpr(Expr* aExpr)
+    explicit UnaryExpr(Expr* aExpr)
         : expr(aExpr)
     {
     }
@@ -987,7 +985,7 @@ class txErrorExpr : public Expr
 {
 public:
 #ifdef TX_TO_STRING
-    txErrorExpr(const nsAString& aStr)
+    explicit txErrorExpr(const nsAString& aStr)
       : mStr(aStr)
     {
     }

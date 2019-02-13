@@ -5,7 +5,7 @@
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
 
-#include "cairo/cairo.h"
+#include "cairo.h"
 
 int
 GetASurfaceRefCount(gfxASurface *s) {
@@ -44,7 +44,7 @@ TestNewSurface () {
     int failures = 0;
     int destroyed = 0;
 
-    nsRefPtr<gfxASurface> s = new gfxImageSurface (gfxIntSize(10, 10), gfxImageFormat::ARGB32);
+    nsRefPtr<gfxASurface> s = new gfxImageSurface (mozilla::gfx::IntSize(10, 10), gfxImageFormat::ARGB32);
     cairo_surface_t *cs = s->CairoSurface();
 
     cairo_surface_set_user_data (cs, &destruction_key, &destroyed, SurfaceDestroyNotifier);

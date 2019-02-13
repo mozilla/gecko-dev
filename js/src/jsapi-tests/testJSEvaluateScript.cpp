@@ -4,39 +4,28 @@
 
 #include "jsapi-tests/tests.h"
 
+using mozilla::ArrayLength;
+
 BEGIN_TEST(testJSEvaluateScript)
 {
-    JS::RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), global));
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     CHECK(obj);
 
-    CHECK(JS::ContextOptionsRef(cx).varObjFix());
-
-    static const char src[] = "var x = 5;";
+    static const char16_t src[] = MOZ_UTF16("var x = 5;");
 
     JS::RootedValue retval(cx);
-    CHECK(JS_EvaluateScript(cx, obj, src, sizeof(src) - 1, __FILE__, __LINE__, &retval));
+    JS::CompileOptions opts(cx);
+    JS::AutoObjectVector scopeChain(cx);
+    CHECK(scopeChain.append(obj));
+    CHECK(JS::Evaluate(cx, scopeChain, opts.setFileAndLine(__FILE__, __LINE__),
+                       src, ArrayLength(src) - 1, &retval));
 
     bool hasProp = true;
     CHECK(JS_AlreadyHasOwnProperty(cx, obj, "x", &hasProp));
-    CHECK(!hasProp);
+    CHECK(hasProp);
 
     hasProp = false;
     CHECK(JS_HasProperty(cx, global, "x", &hasProp));
-    CHECK(hasProp);
-
-    // Now do the same thing, but without JSOPTION_VAROBJFIX
-    JS::ContextOptionsRef(cx).setVarObjFix(false);
-
-    static const char src2[] = "var y = 5;";
-
-    CHECK(JS_EvaluateScript(cx, obj, src2, sizeof(src2) - 1, __FILE__, __LINE__, &retval));
-
-    hasProp = false;
-    CHECK(JS_AlreadyHasOwnProperty(cx, obj, "y", &hasProp));
-    CHECK(hasProp);
-
-    hasProp = true;
-    CHECK(JS_AlreadyHasOwnProperty(cx, global, "y", &hasProp));
     CHECK(!hasProp);
 
     return true;

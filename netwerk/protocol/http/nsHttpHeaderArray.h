@@ -13,6 +13,12 @@
 
 class nsIHttpHeaderVisitor;
 
+// This needs to be forward declared here so we can include only this header
+// without also including PHttpChannelParams.h
+namespace IPC {
+    template <typename> struct ParamTraits;
+}
+
 namespace mozilla { namespace net {
 
 class nsHttpHeaderArray
@@ -54,6 +60,8 @@ public:
 
     void Flatten(nsACString &, bool pruneProxyHeaders=false);
 
+    void ParseHeaderSet(char *buffer);
+
     uint32_t Count() const { return mHeaders.Length(); }
 
     const char *PeekHeaderAt(uint32_t i, nsHttpAtom &header) const;
@@ -71,7 +79,17 @@ public:
             return entry.header == header;
           }
         };
+
+        bool operator==(const nsEntry& aOther) const
+        {
+            return header == aOther.header && value == aOther.value;
+        }
     };
+
+    bool operator==(const nsHttpHeaderArray& aOther) const
+    {
+        return mHeaders == aOther.mHeaders;
+    }
 
 private:
     int32_t LookupEntry(nsHttpAtom header, const nsEntry **) const;

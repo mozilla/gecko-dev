@@ -6,3 +6,12 @@
 
 XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell/xpcshell.ini']
 BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
+
+TESTING_JS_MODULES += [
+    'AppData.jsm',
+    'AppInfo.jsm',
+    'Assert.jsm',
+    'MockRegistrar.jsm',
+    'StructuredLog.jsm',
+    'TestUtils.jsm',
+]

@@ -18,6 +18,7 @@ using class nsHttpHeaderArray from "nsHttpHeaderArray.h";
 using class nsHttpResponseHead from "nsHttpResponseHead.h";
 using struct nsHttpAtom from "nsHttp.h";
 using mozilla::net::NetAddr from "mozilla/net/DNS.h";
+using struct mozilla::net::ResourceTimingStruct from "mozilla/net/TimingStruct.h";
 
 namespace mozilla {
 namespace net {
@@ -32,6 +33,7 @@ parent:
   // see PNecko.ipdl
 
   SetPriority(uint16_t priority);
+  SetClassOfService(uint32_t cos);
 
   SetCacheTokenCachedCharset(nsCString charset);
 
@@ -91,7 +93,8 @@ child:
                  nsCString           securityInfoSerialization,
                  NetAddr             selfAddr,
                  NetAddr             peerAddr,
-                 int16_t             redirectCount);
+                 int16_t             redirectCount,
+                 uint32_t            cacheKey);
 
   // Combines a single OnDataAvailable and its associated OnProgress &
   // OnStatus calls into one IPDL message
@@ -103,9 +106,9 @@ child:
                      uint64_t  offset,
                      uint32_t  count);
 
-  OnStopRequest(nsresult channelStatus);
+  OnStopRequest(nsresult channelStatus, ResourceTimingStruct timing);
 
-  OnProgress(uint64_t progress, uint64_t progressMax);
+  OnProgress(int64_t progress, int64_t progressMax);
 
   OnStatus(nsresult status);
 
@@ -123,9 +126,12 @@ child:
   // Called if redirect successful so that child can complete setup.
   Redirect3Complete();
 
-  // Associte the child with an application ids
+  // Associate the child with an application ids
   AssociateApplicationCache(nsCString groupID,
                             nsCString clientID);
+
+  // Tell the child that tracking protection was disabled for this load.
+  NotifyTrackingProtectionDisabled();
 
   // Parent has been suspended for diversion; no more events to be enqueued.
   FlushedForDiversion();
@@ -133,6 +139,10 @@ child:
   // Child should resume processing the ChannelEventQueue, i.e. diverting any
   // OnDataAvailable and OnStopRequest messages in the queue back to the parent.
   DivertMessages();
+
+  // Report a security message to the console associated with this
+  // channel.
+  ReportSecurityMessage(nsString messageTag, nsString messageCategory);
 
   // Tell child to delete channel (all IPDL deletes must be done from child to
   // avoid races: see bug 591708).

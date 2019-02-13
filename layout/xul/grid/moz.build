@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'XP Toolkit/Widgets: XUL')
+
 EXPORTS += [
     'nsGrid.h',
     'nsGridCell.h',
@@ -30,7 +33,7 @@ UNIFIED_SOURCES += [
 
 FAIL_ON_WARNINGS = True
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '..',
     '../../forms',

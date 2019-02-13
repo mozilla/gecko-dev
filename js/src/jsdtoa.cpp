@@ -62,7 +62,7 @@ static const uint8_t dtoaModes[] = {
     2};  /* DTOSTR_PRECISION */
 
 double
-js_strtod_harder(DtoaState *state, const char *s00, char **se, int *err)
+js_strtod_harder(DtoaState* state, const char* s00, char** se, int* err)
 {
     double retval;
     if (err)
@@ -71,20 +71,20 @@ js_strtod_harder(DtoaState *state, const char *s00, char **se, int *err)
     return retval;
 }
 
-char *
-js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, int precision,
+char*
+js_dtostr(DtoaState* state, char* buffer, size_t bufferSize, JSDToStrMode mode, int precision,
           double dinput)
 {
     U d;
     int decPt;        /* Offset of decimal point from first digit */
     int sign;         /* Nonzero if the sign bit was set in d */
     int nDigits;      /* Number of significand digits returned by js_dtoa */
-    char *numBegin;   /* Pointer to the digits returned by js_dtoa */
-    char *numEnd = 0; /* Pointer past the digits returned by js_dtoa */
+    char* numBegin;   /* Pointer to the digits returned by js_dtoa */
+    char* numEnd = 0; /* Pointer past the digits returned by js_dtoa */
 
-    JS_ASSERT(bufferSize >= (size_t)(mode <= DTOSTR_STANDARD_EXPONENTIAL
-                                    ? DTOSTR_STANDARD_BUFFER_SIZE
-                                    : DTOSTR_VARIABLE_BUFFER_SIZE(precision)));
+    MOZ_ASSERT(bufferSize >= (size_t)(mode <= DTOSTR_STANDARD_EXPONENTIAL
+                                     ? DTOSTR_STANDARD_BUFFER_SIZE
+                                     : DTOSTR_VARIABLE_BUFFER_SIZE(precision)));
 
     /*
      * Change mode here rather than below because the buffer may not be large
@@ -100,7 +100,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
     }
 
     nDigits = numEnd - numBegin;
-    JS_ASSERT((size_t) nDigits <= bufferSize - 2);
+    MOZ_ASSERT((size_t) nDigits <= bufferSize - 2);
     if ((size_t) nDigits > bufferSize - 2) {
         return nullptr;
     }
@@ -115,8 +115,8 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
     if (decPt != 9999) {
         bool exponentialNotation = false;
         int minNDigits = 0;  /* Min number of significant digits required */
-        char *p;
-        char *q;
+        char* p;
+        char* q;
 
         switch (mode) {
             case DTOSTR_STANDARD:
@@ -134,7 +134,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
                 break;
 
             case DTOSTR_EXPONENTIAL:
-                JS_ASSERT(precision > 0);
+                MOZ_ASSERT(precision > 0);
                 minNDigits = precision;
                 /* Fall through */
             case DTOSTR_STANDARD_EXPONENTIAL:
@@ -142,7 +142,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
                 break;
 
             case DTOSTR_PRECISION:
-                JS_ASSERT(precision > 0);
+                MOZ_ASSERT(precision > 0);
                 minNDigits = precision;
                 if (decPt < -5 || decPt > precision)
                     exponentialNotation = true;
@@ -169,7 +169,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
             JS_snprintf(numEnd, bufferSize - (numEnd - buffer), "e%+d", decPt-1);
         } else if (decPt != nDigits) {
             /* Some kind of a fraction in fixed notation */
-            JS_ASSERT(decPt <= nDigits);
+            MOZ_ASSERT(decPt <= nDigits);
             if (decPt > 0) {
                 /* dd...dd . dd...dd */
                 p = --numBegin;
@@ -183,7 +183,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
                 p = numEnd;
                 numEnd += 1 - decPt;
                 q = numEnd;
-                JS_ASSERT(numEnd < buffer + bufferSize);
+                MOZ_ASSERT(numEnd < buffer + bufferSize);
                 *numEnd = '\0';
                 while (p != numBegin)
                     *--q = *--p;
@@ -210,14 +210,14 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
  * divisor must be between 1 and 65536.
  * This function cannot run out of memory. */
 static uint32_t
-divrem(Bigint *b, uint32_t divisor)
+divrem(Bigint* b, uint32_t divisor)
 {
     int32_t n = b->wds;
     uint32_t remainder = 0;
-    ULong *bx;
-    ULong *bp;
+    ULong* bx;
+    ULong* bp;
 
-    JS_ASSERT(divisor > 0 && divisor <= 65536);
+    MOZ_ASSERT(divisor > 0 && divisor <= 65536);
 
     if (!n)
         return 0; /* b is zero */
@@ -230,11 +230,11 @@ divrem(Bigint *b, uint32_t divisor)
         ULong quotientLo;
 
         remainder = dividend - quotientHi*divisor;
-        JS_ASSERT(quotientHi <= 0xFFFF && remainder < divisor);
+        MOZ_ASSERT(quotientHi <= 0xFFFF && remainder < divisor);
         dividend = remainder << 16 | (a & 0xFFFF);
         quotientLo = dividend / divisor;
         remainder = dividend - quotientLo*divisor;
-        JS_ASSERT(quotientLo <= 0xFFFF && remainder < divisor);
+        MOZ_ASSERT(quotientLo <= 0xFFFF && remainder < divisor);
         *bp = quotientHi << 16 | quotientLo;
     } while (bp != bx);
     /* Decrease the size of the number if its most significant word is now zero. */
@@ -244,11 +244,12 @@ divrem(Bigint *b, uint32_t divisor)
 }
 
 /* Return floor(b/2^k) and set b to be the remainder.  The returned quotient must be less than 2^32. */
-static uint32_t quorem2(Bigint *b, int32_t k)
+static uint32_t quorem2(Bigint* b, int32_t k)
 {
     ULong mask;
     ULong result;
-    ULong *bx, *bxe;
+    ULong* bx;
+    ULong* bxe;
     int32_t w;
     int32_t n = k >> 5;
     k &= 0x1F;
@@ -257,13 +258,13 @@ static uint32_t quorem2(Bigint *b, int32_t k)
     w = b->wds - n;
     if (w <= 0)
         return 0;
-    JS_ASSERT(w <= 2);
+    MOZ_ASSERT(w <= 2);
     bx = b->x;
     bxe = bx + n;
     result = *bxe >> k;
     *bxe &= mask;
     if (w == 2) {
-        JS_ASSERT(!(bxe[1] & ~mask));
+        MOZ_ASSERT(!(bxe[1] & ~mask));
         if (k)
             result |= bxe[1] << (32 - k);
     }
@@ -283,19 +284,19 @@ static uint32_t quorem2(Bigint *b, int32_t k)
 #define DTOBASESTR_BUFFER_SIZE 1078
 #define BASEDIGIT(digit) ((char)(((digit) >= 10) ? 'a' - 10 + (digit) : '0' + (digit)))
 
-char *
-js_dtobasestr(DtoaState *state, int base, double dinput)
+char*
+js_dtobasestr(DtoaState* state, int base, double dinput)
 {
     U d;
-    char *buffer;        /* The output string */
-    char *p;             /* Pointer to current position in the buffer */
-    char *pInt;          /* Pointer to the beginning of the integer part of the string */
-    char *q;
+    char* buffer;        /* The output string */
+    char* p;             /* Pointer to current position in the buffer */
+    char* pInt;          /* Pointer to the beginning of the integer part of the string */
+    char* q;
     uint32_t digit;
     U di;                /* d truncated to an integer */
     U df;                /* The fractional part of d */
 
-    JS_ASSERT(base >= 2 && base <= 36);
+    MOZ_ASSERT(base >= 2 && base <= 36);
 
     dval(d) = dinput;
     buffer = (char*) js_malloc(DTOBASESTR_BUFFER_SIZE);
@@ -328,14 +329,14 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
                 uint32_t m = n / base;
                 digit = n - m*base;
                 n = m;
-                JS_ASSERT(digit < (uint32_t)base);
+                MOZ_ASSERT(digit < (uint32_t)base);
                 *p++ = BASEDIGIT(digit);
             } while (n);
         else *p++ = '0';
     } else {
         int e;
         int bits;  /* Number of significant bits in di; not used. */
-        Bigint *b = d2b(PASS_STATE di, &e, &bits);
+        Bigint* b = d2b(PASS_STATE di, &e, &bits);
         if (!b)
             goto nomem1;
         b = lshift(PASS_STATE b, e);
@@ -347,7 +348,7 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
         }
         do {
             digit = divrem(b, base);
-            JS_ASSERT(digit < (uint32_t)base);
+            MOZ_ASSERT(digit < (uint32_t)base);
             *p++ = BASEDIGIT(digit);
         } while (b->wds);
         Bfree(PASS_STATE b);
@@ -365,9 +366,10 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
         /* We have a fraction. */
         int e, bbits;
         int32_t s2, done;
-        Bigint *b, *s, *mlo, *mhi;
-
-        b = s = mlo = mhi = nullptr;
+        Bigint* b = nullptr;
+        Bigint* s = nullptr;
+        Bigint* mlo = nullptr;
+        Bigint* mhi = nullptr;
 
         *p++ = '.';
         b = d2b(PASS_STATE df, &e, &bbits);
@@ -381,7 +383,7 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
             js_free(buffer);
             return nullptr;
         }
-        JS_ASSERT(e < 0);
+        MOZ_ASSERT(e < 0);
         /* At this point df = b * 2^e.  e must be less than zero because 0 < df < 1. */
 
         s2 = -(int32_t)(word0(d) >> Exp_shift1 & Exp_mask>>Exp_shift1);
@@ -391,7 +393,7 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
 #endif
         s2 += Bias + P;
         /* 1/2^s2 = (nextDouble(d) - d)/2 */
-        JS_ASSERT(-s2 < e);
+        MOZ_ASSERT(-s2 < e);
         mlo = i2b(PASS_STATE 1);
         if (!mlo)
             goto nomem2;
@@ -426,7 +428,7 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
         done = false;
         do {
             int32_t j, j1;
-            Bigint *delta;
+            Bigint* delta;
 
             b = multadd(PASS_STATE b, base, 0);
             if (!b)
@@ -484,7 +486,7 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
                 digit++;
                 done = true;
             }
-            JS_ASSERT(digit < (uint32_t)base);
+            MOZ_ASSERT(digit < (uint32_t)base);
             *p++ = BASEDIGIT(digit);
         } while (!done);
         Bfree(PASS_STATE b);
@@ -493,19 +495,22 @@ js_dtobasestr(DtoaState *state, int base, double dinput)
             Bfree(PASS_STATE mlo);
         Bfree(PASS_STATE mhi);
     }
-    JS_ASSERT(p < buffer + DTOBASESTR_BUFFER_SIZE);
+    MOZ_ASSERT(p < buffer + DTOBASESTR_BUFFER_SIZE);
     *p = '\0';
     return buffer;
 }
 
-DtoaState *
-js_NewDtoaState()
+DtoaState*
+js::NewDtoaState()
 {
     return newdtoa();
 }
 
 void
-js_DestroyDtoaState(DtoaState *state)
+js::DestroyDtoaState(DtoaState* state)
 {
     destroydtoa(state);
 }
+
+/* Cleanup pollution from dtoa.c */
+#undef Bias

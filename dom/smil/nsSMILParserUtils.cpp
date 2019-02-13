@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -271,16 +272,15 @@ ParseOptionalOffset(RangedPtr<const char16_t>& aIter,
 bool
 ParseAccessKey(const nsAString& aSpec, nsSMILTimeValueSpecParams& aResult)
 {
-  NS_ABORT_IF_FALSE(StringBeginsWith(aSpec, ACCESSKEY_PREFIX_CC) ||
-      StringBeginsWith(aSpec, ACCESSKEY_PREFIX_LC),
-      "Calling ParseAccessKey on non-accesskey-type spec");
+  MOZ_ASSERT(StringBeginsWith(aSpec, ACCESSKEY_PREFIX_CC) ||
+             StringBeginsWith(aSpec, ACCESSKEY_PREFIX_LC),
+             "Calling ParseAccessKey on non-accesskey-type spec");
 
   nsSMILTimeValueSpecParams result;
   result.mType = nsSMILTimeValueSpecParams::ACCESSKEY;
 
-  NS_ABORT_IF_FALSE(
-      ACCESSKEY_PREFIX_LC.Length() == ACCESSKEY_PREFIX_CC.Length(),
-      "Case variations for accesskey prefix differ in length");
+  MOZ_ASSERT(ACCESSKEY_PREFIX_LC.Length() == ACCESSKEY_PREFIX_CC.Length(),
+             "Case variations for accesskey prefix differ in length");
 
   RangedPtr<const char16_t> iter(SVGContentUtils::GetStartRangedPtr(aSpec));
   RangedPtr<const char16_t> end(SVGContentUtils::GetEndRangedPtr(aSpec));
@@ -371,7 +371,7 @@ ConvertTokenToAtom(const nsAString& aToken,
   bool escape = false;
 
   while (read != end) {
-    NS_ABORT_IF_FALSE(write <= read, "Writing past where we've read");
+    MOZ_ASSERT(write <= read, "Writing past where we've read");
     if (!escape && *read == '\\') {
       escape = true;
       ++read;
@@ -535,7 +535,8 @@ nsSMILParserUtils::ParseKeySplines(const nsAString& aSpec,
         !aKeySplines.AppendElement(nsSMILKeySpline(values[0],
                                                    values[1],
                                                    values[2],
-                                                   values[3]))) {
+                                                   values[3]),
+                                   fallible)) {
       return false;
     }
   }
@@ -563,7 +564,7 @@ nsSMILParserUtils::ParseSemicolonDelimitedProgressList(const nsAString& aSpec,
       return false;
     }
 
-    if (!aArray.AppendElement(value)) {
+    if (!aArray.AppendElement(value, fallible)) {
       return false;
     }
     previousValue = value;
@@ -587,14 +588,14 @@ public:
     mPreventCachingOfSandwich(aPreventCachingOfSandwich)
   {}
 
-  virtual bool Parse(const nsAString& aValueStr) MOZ_OVERRIDE {
+  virtual bool Parse(const nsAString& aValueStr) override {
     nsSMILValue newValue;
     bool tmpPreventCachingOfSandwich = false;
     if (NS_FAILED(mSMILAttr->ValueFromString(aValueStr, mSrcElement, newValue,
                                              tmpPreventCachingOfSandwich)))
       return false;
 
-    if (!mValuesArray->AppendElement(newValue)) {
+    if (!mValuesArray->AppendElement(newValue, fallible)) {
       return false;
     }
     if (tmpPreventCachingOfSandwich) {

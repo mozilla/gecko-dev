@@ -19,7 +19,7 @@
 
 #include "nsIConsoleService.h"
 
-class nsConsoleService MOZ_FINAL : public nsIConsoleService
+class nsConsoleService final : public nsIConsoleService
 {
 public:
   nsConsoleService();
@@ -53,8 +53,10 @@ public:
   virtual nsresult LogMessageWithMode(nsIConsoleMessage* aMessage,
                                       OutputMode aOutputMode);
 
-  typedef nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> ListenerHash;
-  void EnumerateListeners(ListenerHash::EnumReadFunction aFunction, void* aClosure);
+  typedef nsInterfaceHashtable<nsISupportsHashKey,
+                               nsIConsoleListener> ListenerHash;
+  void EnumerateListeners(ListenerHash::EnumReadFunction aFunction,
+                          void* aClosure);
 
 private:
   ~nsConsoleService();

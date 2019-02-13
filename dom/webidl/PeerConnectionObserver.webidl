@@ -23,10 +23,15 @@ interface PeerConnectionObserver
   void onAddIceCandidateSuccess();
   void onAddIceCandidateError(unsigned long name, DOMString message);
   void onIceCandidate(unsigned short level, DOMString mid, DOMString candidate);
+  void onNegotiationNeeded();
 
   /* Stats callbacks */
   void onGetStatsSuccess(optional RTCStatsReportInternal report);
   void onGetStatsError(unsigned long name, DOMString message);
+
+  /* replaceTrack callbacks */
+  void onReplaceTrackSuccess();
+  void onReplaceTrackError(unsigned long name, DOMString message);
 
   /* Data channel callbacks */
   void notifyDataChannel(DataChannel channel);
@@ -34,14 +39,9 @@ interface PeerConnectionObserver
   /* Notification of one of several types of state changed */
   void onStateChange(PCObserverStateType state);
 
-  /* Changes to MediaStreams */
+  /* Changes to MediaStreamTracks */
   void onAddStream(MediaStream stream);
-  void onRemoveStream();
-  void onAddTrack();
-  void onRemoveTrack();
-
-  /* Helper function to access supported constraints defined in webidl. Needs to
-   * be in a separate webidl object we hold, so putting it here was convenient.
-   */
-  MediaConstraintSet getSupportedConstraints(optional MediaConstraintSet constraints);
+  void onRemoveStream(MediaStream stream);
+  void onAddTrack(MediaStreamTrack track);
+  void onRemoveTrack(MediaStreamTrack track);
 };

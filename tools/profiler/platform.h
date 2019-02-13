@@ -29,6 +29,11 @@
 #ifndef TOOLS_PLATFORM_H_
 #define TOOLS_PLATFORM_H_
 
+#ifdef SPS_STANDALONE
+#define MOZ_COUNT_CTOR(name)
+#define MOZ_COUNT_DTOR(name)
+#endif
+
 #ifdef ANDROID
 #include <android/log.h>
 #else
@@ -41,12 +46,15 @@
 
 #include <stdint.h>
 #include <math.h>
+#ifndef SPS_STANDALONE
 #include "MainThreadUtils.h"
-#include "mozilla/unused.h"
-#include "mozilla/TimeStamp.h"
 #include "mozilla/Mutex.h"
-#include "PlatformMacros.h"
 #include "ThreadResponsiveness.h"
+#endif
+#include "mozilla/TimeStamp.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/unused.h"
+#include "PlatformMacros.h"
 #include "v8-support.h"
 #include <vector>
 
@@ -111,10 +119,22 @@ class Mutex {
   // Unlocks the given mutex. The mutex is assumed to be locked and owned by
   // the calling thread on entrance.
   virtual int Unlock() = 0;
+};
 
-  // Tries to lock the given mutex. Returns whether the mutex was
-  // successfully locked.
-  virtual bool TryLock() = 0;
+class MutexAutoLock {
+ public:
+  explicit MutexAutoLock(::Mutex& aMutex)
+    : mMutex(&aMutex)
+  {
+    mMutex->Lock();
+  }
+
+  ~MutexAutoLock() {
+    mMutex->Unlock();
+  }
+
+ private:
+  Mutex* mMutex;
 };
 
 // ----------------------------------------------------------------------------
@@ -135,6 +155,8 @@ class OS {
 
   // Called on startup to initialize platform specific things
   static void Startup();
+
+  static mozilla::UniquePtr< ::Mutex> CreateMutex(const char* aDesc);
 
  private:
   static const int msPerSecond = 1000;
@@ -203,8 +225,7 @@ class Thread {
 // backtraces are available only on selected platforms.  Breakpad is
 // the only supported native unwinder.  HAVE_NATIVE_UNWIND is set at
 // build time to indicate whether native unwinding is possible on this
-// platform.  The actual unwind mode currently in use is stored in
-// sUnwindMode.
+// platform.
 
 #undef HAVE_NATIVE_UNWIND
 #if defined(MOZ_PROFILING) \
@@ -217,7 +238,6 @@ class Thread {
 
 /* Some values extracted at startup from environment variables, that
    control the behaviour of the breakpad unwinder. */
-extern const char* PROFILER_MODE;
 extern const char* PROFILER_INTERVAL;
 extern const char* PROFILER_ENTRIES;
 extern const char* PROFILER_STACK;
@@ -227,18 +247,10 @@ void read_profiler_env_vars();
 void profiler_usage();
 
 // Helper methods to expose modifying profiler behavior
-bool set_profiler_mode(const char*);
 bool set_profiler_interval(const char*);
 bool set_profiler_entries(const char*);
 bool set_profiler_scan(const char*);
 bool is_native_unwinding_avail();
-
-typedef  enum { UnwINVALID, UnwNATIVE, UnwPSEUDO, UnwCOMBINED }  UnwMode;
-extern UnwMode sUnwindMode;       /* what mode? */
-extern int     sUnwindInterval;   /* in milliseconds */
-extern int     sUnwindStackScan;  /* max # of dubious frames allowed */
-
-extern int     sProfileEntries;   /* how many entries do we store? */
 
 void set_tls_stack_top(void* stackTop);
 
@@ -249,7 +261,7 @@ void set_tls_stack_top(void* stackTop);
 // (if used for profiling) the program counter and stack pointer for
 // the thread that created it.
 
-class PseudoStack;
+struct PseudoStack;
 class ThreadProfile;
 
 // TickSample captures the information collected for each sample.
@@ -264,7 +276,10 @@ class TickSample {
         lr(NULL),
 #endif
         context(NULL),
-        isSamplingCurrentThread(false) {}
+        isSamplingCurrentThread(false),
+        threadProfile(nullptr),
+        rssMemory(0),
+        ussMemory(0) {}
 
   void PopulateContext(void* aContext);
 
@@ -306,6 +321,8 @@ class Sampler {
   virtual void RequestSave() = 0;
   // Process any outstanding request outside a signal handler.
   virtual void HandleSaveRequest() = 0;
+  // Delete markers which are no longer part of the profile due to buffer wraparound.
+  virtual void DeleteExpiredMarkers() = 0;
 
   // Start and stop sampler.
   void Start();
@@ -356,10 +373,13 @@ class Sampler {
   static TableTicker* GetActiveSampler() { return sActiveSampler; }
   static void SetActiveSampler(TableTicker* sampler) { sActiveSampler = sampler; }
 
-  static mozilla::Mutex* sRegisteredThreadsMutex;
+  static mozilla::UniquePtr<Mutex> sRegisteredThreadsMutex;
 
   static bool CanNotifyObservers() {
-#if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+#ifdef MOZ_WIDGET_GONK
+    // We use profile.sh on b2g to manually select threads and options per process.
+    return false;
+#elif defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
     // Android ANR reporter uses the profiler off the main thread
     return NS_IsMainThread();
 #else
@@ -402,17 +422,26 @@ class ThreadInfo {
 
   bool IsMainThread() const { return mIsMainThread; }
   PseudoStack* Stack() const { return mPseudoStack; }
-  
+
   void SetProfile(ThreadProfile* aProfile) { mProfile = aProfile; }
   ThreadProfile* Profile() const { return mProfile; }
 
   PlatformData* GetPlatformData() const { return mPlatformData; }
   void* StackTop() const { return mStackTop; }
 
+  virtual void SetPendingDelete();
+  bool IsPendingDelete() const { return mPendingDelete; }
+
+#ifdef MOZ_NUWA_PROCESS
+  void SetThreadId(int aThreadId) { mThreadId = aThreadId; }
+#endif
+
+#ifndef SPS_STANDALONE
   /**
    * May be null for the main thread if the profiler was started during startup
    */
   nsIThread* GetThread() const { return mThread.get(); }
+#endif
  private:
   char* mName;
   int mThreadId;
@@ -421,7 +450,19 @@ class ThreadInfo {
   PlatformData* mPlatformData;
   ThreadProfile* mProfile;
   void* const mStackTop;
+#ifndef SPS_STANDALONE
   nsCOMPtr<nsIThread> mThread;
+#endif
+  bool mPendingDelete;
+};
+
+// Just like ThreadInfo, but owns a reference to the PseudoStack.
+class StackOwningThreadInfo : public ThreadInfo {
+ public:
+  StackOwningThreadInfo(const char* aName, int aThreadId, bool aIsMainThread, PseudoStack* aPseudoStack, void* aStackTop);
+  virtual ~StackOwningThreadInfo();
+
+  virtual void SetPendingDelete();
 };
 
 #endif /* ndef TOOLS_PLATFORM_H_ */

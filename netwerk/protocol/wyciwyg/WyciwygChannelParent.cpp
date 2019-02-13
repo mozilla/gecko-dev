@@ -13,6 +13,8 @@
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/NeckoParent.h"
 #include "SerializedLoadContext.h"
+#include "nsIContentPolicy.h"
+#include "mozilla/ipc/BackgroundUtils.h"
 
 using namespace mozilla::ipc;
 
@@ -23,10 +25,8 @@ WyciwygChannelParent::WyciwygChannelParent()
  : mIPCClosed(false)
  , mReceivedAppData(false)
 {
-#if defined(PR_LOGGING)
   if (!gWyciwygLog)
     gWyciwygLog = PR_NewLogModule("nsWyciwygChannel");
-#endif
 }
 
 WyciwygChannelParent::~WyciwygChannelParent()
@@ -58,7 +58,11 @@ NS_IMPL_ISUPPORTS(WyciwygChannelParent,
 //-----------------------------------------------------------------------------
 
 bool
-WyciwygChannelParent::RecvInit(const URIParams& aURI)
+WyciwygChannelParent::RecvInit(const URIParams&          aURI,
+                               const ipc::PrincipalInfo& aRequestingPrincipalInfo,
+                               const ipc::PrincipalInfo& aTriggeringPrincipalInfo,
+                               const uint32_t&           aSecurityFlags,
+                               const uint32_t&           aContentPolicyType)
 {
   nsresult rv;
 
@@ -75,8 +79,30 @@ WyciwygChannelParent::RecvInit(const URIParams& aURI)
   if (NS_FAILED(rv))
     return SendCancelEarly(rv);
 
+  nsCOMPtr<nsIPrincipal> requestingPrincipal =
+    mozilla::ipc::PrincipalInfoToPrincipal(aRequestingPrincipalInfo, &rv);
+  if (NS_FAILED(rv)) {
+    return SendCancelEarly(rv);
+  }
+
+  nsCOMPtr<nsIPrincipal> triggeringPrincipal =
+    mozilla::ipc::PrincipalInfoToPrincipal(aTriggeringPrincipalInfo, &rv);
+  if (NS_FAILED(rv)) {
+    return SendCancelEarly(rv);
+  }
+
   nsCOMPtr<nsIChannel> chan;
-  rv = NS_NewChannel(getter_AddRefs(chan), uri, ios);
+  rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(chan),
+                                           uri,
+                                           requestingPrincipal,
+                                           triggeringPrincipal,
+                                           aSecurityFlags,
+                                           aContentPolicyType,
+                                           nullptr,   // loadGroup
+                                           nullptr,   // aCallbacks
+                                           nsIRequest::LOAD_NORMAL,
+                                           ios);
+
   if (NS_FAILED(rv))
     return SendCancelEarly(rv);
 
@@ -89,7 +115,7 @@ WyciwygChannelParent::RecvInit(const URIParams& aURI)
 
 bool
 WyciwygChannelParent::RecvAppData(const IPC::SerializedLoadContext& loadContext,
-                                  PBrowserParent* parent)
+                                  const PBrowserOrId &parent)
 {
   LOG(("WyciwygChannelParent RecvAppData [this=%p]\n", this));
 
@@ -102,7 +128,7 @@ WyciwygChannelParent::RecvAppData(const IPC::SerializedLoadContext& loadContext,
 
 bool
 WyciwygChannelParent::SetupAppData(const IPC::SerializedLoadContext& loadContext,
-                                   PBrowserParent* aParent)
+                                   const PBrowserOrId &aParent)
 {
   if (!mChannel)
     return true;
@@ -131,7 +157,7 @@ bool
 WyciwygChannelParent::RecvAsyncOpen(const URIParams& aOriginal,
                                     const uint32_t& aLoadFlags,
                                     const IPC::SerializedLoadContext& loadContext,
-                                    PBrowserParent* aParent)
+                                    const PBrowserOrId &aParent)
 {
   nsCOMPtr<nsIURI> original = DeserializeURI(aOriginal);
   if (!original)
@@ -315,8 +341,8 @@ WyciwygChannelParent::GetInterface(const nsIID& uuid, void** result)
 {
   // Only support nsILoadContext if child channel's callbacks did too
   if (uuid.Equals(NS_GET_IID(nsILoadContext)) && mLoadContext) {
-    NS_ADDREF(mLoadContext);
-    *result = static_cast<nsILoadContext*>(mLoadContext);
+    nsCOMPtr<nsILoadContext> copy = mLoadContext;
+    copy.forget(result);
     return NS_OK;
   }
 

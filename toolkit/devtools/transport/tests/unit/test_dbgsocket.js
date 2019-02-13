@@ -4,41 +4,51 @@
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
-let port = 2929;
+let gPort;
+let gExtraListener;
 
 function run_test()
 {
   do_print("Starting test at " + new Date().toTimeString());
   initTestDebuggerServer();
 
-  add_test(test_socket_conn);
-  add_test(test_socket_shutdown);
+  add_task(test_socket_conn);
+  add_task(test_socket_shutdown);
   add_test(test_pipe_conn);
 
   run_next_test();
 }
 
-function really_long() {
-  let ret = "0123456789";
-  for (let i = 0; i < 18; i++) {
-    ret += ret;
-  }
-  return ret;
-}
-
-function test_socket_conn()
+function* test_socket_conn()
 {
-  do_check_eq(DebuggerServer._socketConnections, 0);
-  try_open_listener();
-  do_print("Debugger server port is " + port);
-  do_check_eq(DebuggerServer._socketConnections, 1);
-  // Make sure opening the listener twice does nothing.
-  do_check_true(DebuggerServer.openListener(port));
-  do_check_eq(DebuggerServer._socketConnections, 1);
+  do_check_eq(DebuggerServer.listeningSockets, 0);
+  let AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
+  let authenticator = new AuthenticatorType.Server();
+  authenticator.allowConnection = () => {
+    return DebuggerServer.AuthenticationResult.ALLOW;
+  };
+  let listener = DebuggerServer.createListener();
+  do_check_true(listener);
+  listener.portOrPath = -1 /* any available port */;
+  listener.authenticator = authenticator;
+  listener.open();
+  do_check_eq(DebuggerServer.listeningSockets, 1);
+  gPort = DebuggerServer._listeners[0].port;
+  do_print("Debugger server port is " + gPort);
+  // Open a second, separate listener
+  gExtraListener = DebuggerServer.createListener();
+  gExtraListener.portOrPath = -1;
+  gExtraListener.authenticator = authenticator;
+  gExtraListener.open();
+  do_check_eq(DebuggerServer.listeningSockets, 2);
 
   do_print("Starting long and unicode tests at " + new Date().toTimeString());
   let unicodeString = "(╯°□°）╯︵ ┻━┻";
-  let transport = debuggerSocketConnect("127.0.0.1", port);
+  let transport = yield DebuggerClient.socketConnect({
+    host: "127.0.0.1",
+    port: gPort
+  });
+  let closedDeferred = promise.defer();
   transport.hooks = {
     onPacket: function(aPacket) {
       this.onPacket = function(aPacket) {
@@ -54,38 +64,44 @@ function test_socket_conn()
       do_check_eq(aPacket.from, "root");
     },
     onClosed: function(aStatus) {
-      run_next_test();
+      closedDeferred.resolve();
     },
   };
   transport.ready();
+  return closedDeferred.promise;
 }
 
-function test_socket_shutdown()
+function* test_socket_shutdown()
 {
-  do_check_eq(DebuggerServer._socketConnections, 1);
-  do_check_true(DebuggerServer.closeListener());
-  do_check_eq(DebuggerServer._socketConnections, 0);
+  do_check_eq(DebuggerServer.listeningSockets, 2);
+  gExtraListener.close();
+  do_check_eq(DebuggerServer.listeningSockets, 1);
+  do_check_true(DebuggerServer.closeAllListeners());
+  do_check_eq(DebuggerServer.listeningSockets, 0);
   // Make sure closing the listener twice does nothing.
-  do_check_false(DebuggerServer.closeListener());
-  do_check_eq(DebuggerServer._socketConnections, 0);
+  do_check_false(DebuggerServer.closeAllListeners());
+  do_check_eq(DebuggerServer.listeningSockets, 0);
 
   do_print("Connecting to a server socket at " + new Date().toTimeString());
-  let transport = debuggerSocketConnect("127.0.0.1", port);
-  transport.hooks = {
-    onPacket: function(aPacket) {
-      // Shouldn't reach this, should never connect.
-      do_check_true(false);
-    },
-
-    onClosed: function(aStatus) {
-      do_print("test_socket_shutdown onClosed called at " + new Date().toTimeString());
-      do_check_eq(aStatus, Cr.NS_ERROR_CONNECTION_REFUSED);
-      run_next_test();
+  try {
+    let transport = yield DebuggerClient.socketConnect({
+      host: "127.0.0.1",
+      port: gPort
+    });
+  } catch (e) {
+    if (e.result == Cr.NS_ERROR_CONNECTION_REFUSED ||
+        e.result == Cr.NS_ERROR_NET_TIMEOUT) {
+      // The connection should be refused here, but on slow or overloaded
+      // machines it may just time out.
+      do_check_true(true);
+      return;
+    } else {
+      throw e;
     }
-  };
+  }
 
-  do_print("Initializing input stream at " + new Date().toTimeString());
-  transport.ready();
+  // Shouldn't reach this, should never connect.
+  do_check_true(false);
 }
 
 function test_pipe_conn()
@@ -102,15 +118,4 @@ function test_pipe_conn()
   };
 
   transport.ready();
-}
-
-function try_open_listener()
-{
-  try {
-    do_check_true(DebuggerServer.openListener(port));
-  } catch (e) {
-    // In case the port is unavailable, pick a random one between 2000 and 65000.
-    port = Math.floor(Math.random() * (65000 - 2000 + 1)) + 2000;
-    try_open_listener();
-  }
 }

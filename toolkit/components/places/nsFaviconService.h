@@ -38,7 +38,7 @@ class mozIStorageStatementCallback;
 class UnassociatedIconHashKey : public nsURIHashKey
 {
 public:
-  UnassociatedIconHashKey(const nsIURI* aURI)
+  explicit UnassociatedIconHashKey(const nsIURI* aURI)
   : nsURIHashKey(aURI)
   {
   }
@@ -51,9 +51,9 @@ public:
   PRTime created;
 };
 
-class nsFaviconService MOZ_FINAL : public nsIFaviconService
-                                 , public mozIAsyncFavicons
-                                 , public nsITimerCallback
+class nsFaviconService final : public nsIFaviconService
+                             , public mozIAsyncFavicons
+                             , public nsITimerCallback
 {
 public:
   nsFaviconService();

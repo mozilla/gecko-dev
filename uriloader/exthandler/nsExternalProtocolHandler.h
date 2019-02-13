@@ -17,7 +17,7 @@
 class nsIURI;
 
 // protocol handlers need to support weak references if we want the netlib nsIOService to cache them.
-class nsExternalProtocolHandler MOZ_FINAL : public nsIExternalProtocolHandler, public nsSupportsWeakReference
+class nsExternalProtocolHandler final : public nsIExternalProtocolHandler, public nsSupportsWeakReference
 {
 public:
 	NS_DECL_THREADSAFE_ISUPPORTS
@@ -25,9 +25,10 @@ public:
 	NS_DECL_NSIEXTERNALPROTOCOLHANDLER
 
 	nsExternalProtocolHandler();
-	~nsExternalProtocolHandler();
 
 protected:
+  ~nsExternalProtocolHandler();
+
   // helper function
   bool HaveExternalProtocolHandler(nsIURI * aURI);
 	nsCString	m_schemeName;

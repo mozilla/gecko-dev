@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-#include "mozilla/TypedEnum.h"
-
 /**
  * XXX Following enums should be in BasicEvents.h.  However, currently, it's
  *     impossible to use foward delearation for enum.
@@ -25,10 +23,28 @@ enum nsEventStatus
   // The event is consumed, don't do default processing
   nsEventStatus_eConsumeNoDefault,
   // The event is consumed, but do default processing
-  nsEventStatus_eConsumeDoDefault
+  nsEventStatus_eConsumeDoDefault,
+  // Value is not for use, only for serialization
+  nsEventStatus_eSentinel
 };
 
 namespace mozilla {
+
+typedef uint8_t EventClassIDType;
+
+enum EventClassID : EventClassIDType
+{
+  // The event class name will be:
+  //   eBasicEventClass for WidgetEvent
+  //   eFooEventClass for WidgetFooEvent or InternalFooEvent
+#define NS_ROOT_EVENT_CLASS(aPrefix, aName)   eBasic##aName##Class
+#define NS_EVENT_CLASS(aPrefix, aName)      , e##aName##Class
+
+#include "mozilla/EventClassList.h"
+
+#undef NS_EVENT_CLASS
+#undef NS_ROOT_EVENT_CLASS
+};
 
 typedef uint16_t Modifiers;
 
@@ -61,7 +77,7 @@ enum CodeNameIndex
 #define NS_DEFINE_COMMAND(aName, aCommandStr) , Command##aName
 
 typedef int8_t CommandInt;
-enum Command MOZ_ENUM_TYPE(CommandInt)
+enum Command : CommandInt
 {
   CommandDoNothing
 
@@ -86,6 +102,7 @@ namespace mozilla {
 #undef NS_ROOT_EVENT_CLASS
 
 // BasicEvents.h
+struct BaseEventFlags;
 struct EventFlags;
 
 // TextEvents.h
@@ -96,6 +113,9 @@ struct TextRangeStyle;
 struct TextRange;
 
 class TextRangeArray;
+
+// FontRange.h
+struct FontRange;
 
 } // namespace mozilla
 

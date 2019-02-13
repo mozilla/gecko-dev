@@ -11,7 +11,27 @@
 #include "nsCoord.h"
 #include "nsStyleConsts.h"
 
-enum nsStyleUnit {
+namespace mozilla {
+class WritingMode;
+
+// Logical axis, edge and side constants for use in various places.
+enum LogicalAxis {
+  eLogicalAxisBlock  = 0x0,
+  eLogicalAxisInline = 0x1
+};
+enum LogicalEdge {
+  eLogicalEdgeStart  = 0x0,
+  eLogicalEdgeEnd    = 0x1
+};
+enum LogicalSide {
+  eLogicalSideBStart = (eLogicalAxisBlock  << 1) | eLogicalEdgeStart,  // 0x0
+  eLogicalSideBEnd   = (eLogicalAxisBlock  << 1) | eLogicalEdgeEnd,    // 0x1
+  eLogicalSideIStart = (eLogicalAxisInline << 1) | eLogicalEdgeStart,  // 0x2
+  eLogicalSideIEnd   = (eLogicalAxisInline << 1) | eLogicalEdgeEnd     // 0x3
+};
+};
+
+enum nsStyleUnit : uint8_t {
   eStyleUnit_Null         = 0,      // (no value) value is not specified
   eStyleUnit_Normal       = 1,      // (no value)
   eStyleUnit_Auto         = 2,      // (no value)
@@ -27,20 +47,18 @@ enum nsStyleUnit {
   eStyleUnit_Integer      = 30,     // (int) value is simple integer
   eStyleUnit_Enumerated   = 32,     // (int) value has enumerated meaning
 
-  // The following are allocated types.  They are weak pointers to
-  // values allocated by nsStyleContext::Alloc.
-  eStyleUnit_Calc         = 40      // (Calc*) calc() toplevel; always present
+  // The following are reference counted allocated types.
+  eStyleUnit_Calc         = 40,     // (Calc*) calc() toplevel; always present
                                     // to distinguish 50% from calc(50%), etc.
+
+  eStyleUnit_MAX          = 40      // highest valid nsStyleUnit value
 };
 
 typedef union {
   int32_t     mInt;   // nscoord is a int32_t for now
   float       mFloat;
-  // An mPointer is a weak pointer to a value that is guaranteed to
-  // outlive the nsStyleCoord.  In the case of nsStyleCoord::Calc*, it
-  // is a pointer owned by the style context, allocated through
-  // nsStyleContext::Alloc (and, therefore, is never stored in the rule
-  // tree).
+  // An mPointer is a reference counted pointer.  Currently this can only
+  // ever be an nsStyleCoord::Calc*.
   void*       mPointer;
 } nsStyleUnion;
 
@@ -54,32 +72,50 @@ typedef union {
  */
 class nsStyleCoord {
 public:
-  struct Calc {
+  // Non-reference counted calc() value.  See nsStyleStruct.h for some uses
+  // of this.
+  struct CalcValue {
     // Every calc() expression evaluates to a length plus a percentage.
     nscoord mLength;
     float mPercent;
     bool mHasPercent; // whether there was any % syntax, even if 0
 
-    bool operator==(const Calc& aOther) const {
+    bool operator==(const CalcValue& aOther) const {
       return mLength == aOther.mLength &&
              mPercent == aOther.mPercent &&
              mHasPercent == aOther.mHasPercent;
     }
-    bool operator!=(const Calc& aOther) const { return !(*this == aOther); }
+    bool operator!=(const CalcValue& aOther) const {
+      return !(*this == aOther);
+    }
   };
 
-  nsStyleCoord(nsStyleUnit aUnit = eStyleUnit_Null);
+  // Reference counted calc() value.  This is the type that is used to store
+  // the calc() value in nsStyleCoord.
+  struct Calc final : public CalcValue {
+    NS_INLINE_DECL_REFCOUNTING(Calc)
+    Calc() {}
+
+  private:
+    Calc(const Calc&) = delete;
+    ~Calc() {}
+    Calc& operator=(const Calc&) = delete;
+  };
+
+  explicit nsStyleCoord(nsStyleUnit aUnit = eStyleUnit_Null);
   enum CoordConstructorType { CoordConstructor };
   inline nsStyleCoord(nscoord aValue, CoordConstructorType);
   nsStyleCoord(int32_t aValue, nsStyleUnit aUnit);
   nsStyleCoord(float aValue, nsStyleUnit aUnit);
   inline nsStyleCoord(const nsStyleCoord& aCopy);
   inline nsStyleCoord(const nsStyleUnion& aValue, nsStyleUnit aUnit);
+  ~nsStyleCoord() { Reset(); }
 
   nsStyleCoord&  operator=(const nsStyleCoord& aOther)
   {
-    mUnit = aOther.mUnit;
-    mValue = aOther.mValue;
+    if (this != &aOther) {
+      SetValue(mUnit, mValue, aOther);
+    }
     return *this;
   }
   bool           operator==(const nsStyleCoord& aOther) const;
@@ -94,12 +130,20 @@ public:
     return eStyleUnit_Degree <= mUnit && mUnit <= eStyleUnit_Turn;
   }
 
+  static bool IsCalcUnit(nsStyleUnit aUnit) {
+    return aUnit == eStyleUnit_Calc;
+  }
+
+  static bool IsPointerUnit(nsStyleUnit aUnit) {
+    return IsCalcUnit(aUnit);
+  }
+
   bool IsCalcUnit() const {
-    return eStyleUnit_Calc == mUnit;
+    return IsCalcUnit(mUnit);
   }
 
   bool IsPointerValue() const {
-    return IsCalcUnit();
+    return IsPointerUnit(mUnit);
   }
 
   bool IsCoordPercentCalcUnit() const {
@@ -128,14 +172,18 @@ public:
   int32_t     GetIntValue() const;
   float       GetPercentValue() const;
   float       GetFactorValue() const;
+  float       GetFactorOrPercentValue() const;
   float       GetAngleValue() const;
+  double      GetAngleValueInDegrees() const;
   double      GetAngleValueInRadians() const;
   float       GetFlexFractionValue() const;
   Calc*       GetCalcValue() const;
-  void        GetUnionValue(nsStyleUnion& aValue) const;
   uint32_t    HashValue(uint32_t aHash) const;
 
-  void  Reset();  // sets to null
+  // Sets to null and releases any refcounted objects.  Only use this if the
+  // object is initialized (i.e. don't use it in nsStyleCoord constructors).
+  void Reset();
+
   void  SetCoordValue(nscoord aValue);
   void  SetIntValue(int32_t aValue, nsStyleUnit aUnit);
   void  SetPercentValue(float aValue);
@@ -146,6 +194,20 @@ public:
   void  SetAutoValue();
   void  SetNoneValue();
   void  SetCalcValue(Calc* aValue);
+
+  // Resets a coord represented by a unit/value pair.
+  static inline void Reset(nsStyleUnit& aUnit, nsStyleUnion& aValue);
+
+  // Sets a coord represented by a unit/value pair from a second
+  // unit/value pair.
+  static inline void SetValue(nsStyleUnit& aUnit,
+                              nsStyleUnion& aValue,
+                              nsStyleUnit aOtherUnit,
+                              const nsStyleUnion& aOtherValue);
+
+  // Sets a coord represented by a unit/value pair from an nsStyleCoord.
+  static inline void SetValue(nsStyleUnit& aUnit, nsStyleUnion& aValue,
+                              const nsStyleCoord& aOther);
 
 private:
   nsStyleUnit   mUnit;
@@ -160,8 +222,10 @@ private:
 class nsStyleSides {
 public:
   nsStyleSides();
+  nsStyleSides(const nsStyleSides&);
+  ~nsStyleSides();
 
-//  nsStyleSides&  operator=(const nsStyleSides& aCopy);  // use compiler's version
+  nsStyleSides&  operator=(const nsStyleSides& aCopy);
   bool           operator==(const nsStyleSides& aOther) const;
   bool           operator!=(const nsStyleSides& aOther) const;
 
@@ -177,7 +241,28 @@ public:
   inline nsStyleCoord GetRight() const;
   inline nsStyleCoord GetBottom() const;
 
-  void  Reset();
+  // Methods to access the units and values in terms of logical sides
+  // for a given writing mode.
+  // NOTE: The definitions are in WritingModes.h (after we have the full
+  // declaration of WritingMode available).
+  inline nsStyleUnit GetUnit(mozilla::WritingMode aWritingMode,
+                             mozilla::LogicalSide aSide) const;
+  inline nsStyleUnit GetIStartUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetBStartUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetIEndUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetBEndUnit(mozilla::WritingMode aWritingMode) const;
+
+  inline nsStyleCoord Get(mozilla::WritingMode aWritingMode,
+                          mozilla::LogicalSide aSide) const;
+  inline nsStyleCoord GetIStart(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetBStart(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetIEnd(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetBEnd(mozilla::WritingMode aWritingMode) const;
+
+  // Sets each side to null and releases any refcounted objects.  Only use this
+  // if the object is initialized (i.e. don't use it in nsStyleSides
+  // constructors).
+  void Reset();
 
   inline void Set(mozilla::css::Side aSide, const nsStyleCoord& aCoord);
   inline void SetLeft(const nsStyleCoord& aCoord);
@@ -186,7 +271,7 @@ public:
   inline void SetBottom(const nsStyleCoord& aCoord);
 
 protected:
-  uint8_t       mUnits[4];
+  nsStyleUnit   mUnits[4];
   nsStyleUnion  mValues[4];
 };
 
@@ -198,9 +283,11 @@ protected:
 class nsStyleCorners {
 public:
   nsStyleCorners();
+  nsStyleCorners(const nsStyleCorners&);
+  ~nsStyleCorners();
 
   // use compiler's version
-  //nsStyleCorners&  operator=(const nsStyleCorners& aCopy);
+  nsStyleCorners& operator=(const nsStyleCorners& aCopy);
   bool           operator==(const nsStyleCorners& aOther) const;
   bool           operator!=(const nsStyleCorners& aOther) const;
 
@@ -209,12 +296,15 @@ public:
 
   inline nsStyleCoord Get(uint8_t aHalfCorner) const;
 
-  void  Reset();
+  // Sets each corner to null and releases any refcounted objects.  Only use
+  // this if the object is initialized (i.e. don't use it in nsStyleCorners
+  // constructors).
+  void Reset();
 
   inline void Set(uint8_t aHalfCorner, const nsStyleCoord& aCoord);
 
 protected:
-  uint8_t       mUnits[8];
+  nsStyleUnit   mUnits[8];
   nsStyleUnion  mValues[8];
 };
 
@@ -228,26 +318,16 @@ inline nsStyleCoord::nsStyleCoord(nscoord aValue, CoordConstructorType)
   mValue.mInt = aValue;
 }
 
-// FIXME: In C++0x we can rely on the default copy constructor since
-// default copy construction is defined properly for unions.  But when
-// can we actually use that?  (It seems to work in gcc 4.4.)
 inline nsStyleCoord::nsStyleCoord(const nsStyleCoord& aCopy)
-  : mUnit(aCopy.mUnit)
+  : mUnit(eStyleUnit_Null)
 {
-  if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
-    mValue.mFloat = aCopy.mValue.mFloat;
-  }
-  else if (IsPointerValue()) {
-    mValue.mPointer = aCopy.mValue.mPointer;
-  }
-  else {
-    mValue.mInt = aCopy.mValue.mInt;
-  }
+  SetValue(mUnit, mValue, aCopy);
 }
 
 inline nsStyleCoord::nsStyleCoord(const nsStyleUnion& aValue, nsStyleUnit aUnit)
-  : mUnit(aUnit), mValue(aValue)
+  : mUnit(eStyleUnit_Null)
 {
+  SetValue(mUnit, mValue, aUnit, aValue);
 }
 
 inline bool nsStyleCoord::operator!=(const nsStyleCoord& aOther) const
@@ -293,6 +373,16 @@ inline float nsStyleCoord::GetFactorValue() const
   return 0.0f;
 }
 
+inline float nsStyleCoord::GetFactorOrPercentValue() const
+{
+  NS_ASSERTION(mUnit == eStyleUnit_Factor || mUnit == eStyleUnit_Percent,
+               "not a percent or factor value");
+  if (mUnit == eStyleUnit_Factor || mUnit == eStyleUnit_Percent) {
+    return mValue.mFloat;
+  }
+  return 0.0f;
+}
+
 inline float nsStyleCoord::GetAngleValue() const
 {
   NS_ASSERTION(mUnit >= eStyleUnit_Degree &&
@@ -321,11 +411,51 @@ inline nsStyleCoord::Calc* nsStyleCoord::GetCalcValue() const
   return nullptr;
 }
 
-
-inline void nsStyleCoord::GetUnionValue(nsStyleUnion& aValue) const
+/* static */ inline void
+nsStyleCoord::Reset(nsStyleUnit& aUnit, nsStyleUnion& aValue)
 {
-  aValue = mValue;
+  MOZ_ASSERT(aUnit <= eStyleUnit_MAX,
+             "calling Reset on uninitialized nsStyleCoord?");
+
+  switch (aUnit) {
+    case eStyleUnit_Calc:
+      static_cast<Calc*>(aValue.mPointer)->Release();
+      break;
+    default:
+      MOZ_ASSERT(!IsPointerUnit(aUnit), "check pointer refcounting logic");
+  }
+
+  aUnit = eStyleUnit_Null;
+  aValue.mInt = 0;
 }
+
+/* static */ inline void
+nsStyleCoord::SetValue(nsStyleUnit& aUnit,
+                       nsStyleUnion& aValue,
+                       nsStyleUnit aOtherUnit,
+                       const nsStyleUnion& aOtherValue)
+{
+  Reset(aUnit, aValue);
+
+  aUnit = aOtherUnit;
+  aValue = aOtherValue;
+
+  switch (aUnit) {
+    case eStyleUnit_Calc:
+      static_cast<Calc*>(aValue.mPointer)->AddRef();
+      break;
+    default:
+      MOZ_ASSERT(!IsPointerUnit(aUnit), "check pointer refcounting logic");
+  }
+}
+
+/* static */ inline void
+nsStyleCoord::SetValue(nsStyleUnit& aUnit, nsStyleUnion& aValue,
+                       const nsStyleCoord& aOther)
+{
+  SetValue(aUnit, aValue, aOther.mUnit, aOther.mValue);
+}
+
 
 // -------------------------
 // nsStyleSides inlines
@@ -387,8 +517,7 @@ inline nsStyleCoord nsStyleSides::GetBottom() const
 
 inline void nsStyleSides::Set(mozilla::css::Side aSide, const nsStyleCoord& aCoord)
 {
-  mUnits[aSide] = aCoord.GetUnit();
-  aCoord.GetUnionValue(mValues[aSide]);
+  nsStyleCoord::SetValue(mUnits[aSide], mValues[aSide], aCoord);
 }
 
 inline void nsStyleSides::SetLeft(const nsStyleCoord& aCoord)
@@ -431,8 +560,7 @@ inline nsStyleCoord nsStyleCorners::Get(uint8_t aCorner) const
 
 inline void nsStyleCorners::Set(uint8_t aCorner, const nsStyleCoord& aCoord)
 {
-  mUnits[aCorner] = aCoord.GetUnit();
-  aCoord.GetUnionValue(mValues[aCorner]);
+  nsStyleCoord::SetValue(mUnits[aCorner], mValues[aCorner], aCoord);
 }
 
 #endif /* nsStyleCoord_h___ */

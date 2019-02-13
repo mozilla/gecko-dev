@@ -48,7 +48,6 @@ extern "C" {
 
 namespace mozilla {
 
-class DTLSConnection;
 class DataChannelConnection;
 class DataChannel;
 class DataChannelOnMessageAvailable;
@@ -83,7 +82,7 @@ public:
 
   ~QueuedDataMessage()
   {
-    moz_free(mData);
+    free(mData);
   }
 
   uint16_t mStream;
@@ -98,6 +97,8 @@ class DataChannelConnection: public nsITimerCallback
                              , public sigslot::has_slots<>
 #endif
 {
+  virtual ~DataChannelConnection();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
@@ -105,15 +106,14 @@ public:
   class DataConnectionListener : public SupportsWeakPtr<DataConnectionListener>
   {
   public:
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(DataChannelConnection::DataConnectionListener)
+    MOZ_DECLARE_WEAKREFERENCE_TYPENAME(DataChannelConnection::DataConnectionListener)
     virtual ~DataConnectionListener() {}
 
     // Called when a new DataChannel has been opened by the other side.
     virtual void NotifyDataChannel(already_AddRefed<DataChannel> channel) = 0;
   };
 
-  DataChannelConnection(DataConnectionListener *listener);
-  virtual ~DataChannelConnection();
+  explicit DataChannelConnection(DataConnectionListener *listener);
 
   bool Init(unsigned short aPort, uint16_t aNumStreams, bool aUsingDtls);
   void Destroy(); // So we can spawn refs tied to runnables in shutdown
@@ -143,6 +143,7 @@ public:
     PARTIAL_RELIABLE_TIMED = 2
   } Type;
 
+  MOZ_WARN_UNUSED_RESULT
   already_AddRefed<DataChannel> Open(const nsACString& label,
                                      const nsACString& protocol,
                                      Type type, bool inOrder,
@@ -150,7 +151,7 @@ public:
                                      DataChannelListener *aListener,
                                      nsISupports *aContext,
                                      bool aExternalNegotiated,
-                                     uint16_t aStream) NS_WARN_UNUSED_RESULT;
+                                     uint16_t aStream);
 
   void Close(DataChannel *aChannel);
   // CloseInt() must be called with mLock held
@@ -199,7 +200,7 @@ private:
 
 #ifdef SCTP_DTLS_SUPPORTED
   static void DTLSConnectThread(void *data);
-  int SendPacket(const unsigned char* data, size_t len, bool release);
+  int SendPacket(unsigned char data[], size_t len, bool release);
   void SctpDtlsInput(TransportFlow *flow, const unsigned char *data, size_t len);
   static int SctpDtlsOutput(void *addr, void *buffer, size_t length, uint8_t tos, uint8_t set_df);
 #endif
@@ -263,7 +264,7 @@ private:
   // channels available from the stack must be negotiated!
   bool mAllocateEven;
   nsAutoTArray<nsRefPtr<DataChannel>,16> mStreams;
-  nsDeque mPending; // Holds already_AddRefed<DataChannel>s -- careful!
+  nsDeque mPending; // Holds addref'ed DataChannel's -- careful!
   // holds data that's come in before a channel is open
   nsTArray<nsAutoPtr<QueuedDataMessage> > mQueuedData;
 
@@ -331,7 +332,10 @@ public:
       NS_ASSERTION(mConnection,"NULL connection");
     }
 
+private:
   ~DataChannel();
+
+public:
   void Destroy(); // when we disconnect from the connection after stream RESET
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannel)

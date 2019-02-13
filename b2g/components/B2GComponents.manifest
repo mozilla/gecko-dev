@@ -40,10 +40,13 @@ category app-startup ProcessGlobal service,@mozilla.org/b2g-process-global;1
 # OMAContentHandler.js
 component {a6b2ab13-9037-423a-9897-dde1081be323} OMAContentHandler.js
 contract @mozilla.org/uriloader/content-handler;1?type=application/vnd.oma.drm.message {a6b2ab13-9037-423a-9897-dde1081be323}
+contract @mozilla.org/uriloader/content-handler;1?type=application/vnd.oma.dd+xml {a6b2ab13-9037-423a-9897-dde1081be323}
 
-# PaymentGlue.js
+# Payments
 component {8b83eabc-7929-47f4-8b48-4dea8d887e4b} PaymentGlue.js
 contract @mozilla.org/payment/ui-glue;1 {8b83eabc-7929-47f4-8b48-4dea8d887e4b}
+component {4834b2e1-2c91-44ea-b020-e2581ed279a4} PaymentProviderStrategy.js
+contract @mozilla.org/payment/provider-strategy;1 {4834b2e1-2c91-44ea-b020-e2581ed279a4}
 
 # TelProtocolHandler.js
 component {782775dd-7351-45ea-aff1-0ffa872cfdd2} TelProtocolHandler.js
@@ -56,10 +59,6 @@ contract @mozilla.org/network/protocol;1?name=sms {81ca20cb-0dad-4e32-8566-979c8
 # MailtoProtocolHandler.js
 component {50777e53-0331-4366-a191-900999be386c} MailtoProtocolHandler.js
 contract @mozilla.org/network/protocol;1?name=mailto {50777e53-0331-4366-a191-900999be386c}
-
-# YoutubeProtocolHandler.js
-component {c3f1b945-7e71-49c8-95c7-5ae9cc9e2bad} YoutubeProtocolHandler.js
-contract @mozilla.org/network/protocol;1?name=vnd.youtube {c3f1b945-7e71-49c8-95c7-5ae9cc9e2bad}
 
 # RecoveryService.js
 component {b3caca5d-0bb0-48c6-912b-6be6cbf08832} RecoveryService.js
@@ -79,11 +78,9 @@ component {637b0f77-2429-49a0-915f-abf5d0db8b9a} WebappsUpdateTimer.js
 contract @mozilla.org/b2g/webapps-update-timer;1 {637b0f77-2429-49a0-915f-abf5d0db8b9a}
 category update-timer WebappsUpdateTimer @mozilla.org/b2g/webapps-update-timer;1,getService,background-update-timer,webapps.update.interval,86400
 
-#ifdef MOZ_SERVICES_FXACCOUNTS
 # FxAccountsUIGlue.js
 component {51875c14-91d7-4b8c-b65d-3549e101228c} FxAccountsUIGlue.js
 contract @mozilla.org/fxaccounts/fxaccounts-ui-glue;1 {51875c14-91d7-4b8c-b65d-3549e101228c}
-#endif
 
 # HelperAppDialog.js
 component {710322af-e6ae-4b0c-b2c9-1474a87b077e} HelperAppDialog.js
@@ -97,8 +94,26 @@ category profile-after-change SimulatorScreen @mozilla.org/simulator-screen;1
 component {e30b0e13-2d12-4cb0-bc4c-4e617a1bf76e} OopCommandLine.js
 contract @mozilla.org/commandlinehandler/general-startup;1?type=b2goop {e30b0e13-2d12-4cb0-bc4c-4e617a1bf76e}
 category command-line-handler m-b2goop @mozilla.org/commandlinehandler/general-startup;1?type=b2goop
+
+component {385993fe-8710-4621-9fb1-00a09d8bec37} CommandLine.js
+contract @mozilla.org/commandlinehandler/general-startup;1?type=b2gcmds {385993fe-8710-4621-9fb1-00a09d8bec37}
+category command-line-handler m-b2gcmds @mozilla.org/commandlinehandler/general-startup;1?type=b2gcmds
 #endif
+
+# BootstrapCommandLine.js
+component {fd663ec8-cf3f-4c2b-aacb-17a6915ccb44} BootstrapCommandLine.js
+contract @mozilla.org/commandlinehandler/general-startup;1?type=b2gbootstrap {fd663ec8-cf3f-4c2b-aacb-17a6915ccb44}
+category command-line-handler m-b2gbootstrap @mozilla.org/commandlinehandler/general-startup;1?type=b2gbootstrap
 
 # MobileIdentityUIGlue.js
 component {83dbe26a-81f3-4a75-9541-3d0b7ca496b5} MobileIdentityUIGlue.js
 contract @mozilla.org/services/mobileid-ui-glue;1 {83dbe26a-81f3-4a75-9541-3d0b7ca496b5}
+
+# B2GAppMigrator.js
+component {7211ece0-b458-4635-9afc-f8d7f376ee95} B2GAppMigrator.js
+contract @mozilla.org/app-migrator;1 {7211ece0-b458-4635-9afc-f8d7f376ee95}
+
+# B2GPresentationDevicePrompt.js
+component {4a300c26-e99b-4018-ab9b-c48cf9bc4de1} B2GPresentationDevicePrompt.js
+contract @mozilla.org/presentation-device/prompt;1 {4a300c26-e99b-4018-ab9b-c48cf9bc4de1}
+

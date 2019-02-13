@@ -20,7 +20,6 @@ XPIDL_SOURCES += [
     'nsIDownloadHistory.idl',
     'nsIGlobalHistory2.idl',
     'nsILoadContext.idl',
-    'nsIMarkupDocumentViewer.idl',
     'nsIPrivacyTransitionObserver.idl',
     'nsIReflowObserver.idl',
     'nsIRefreshURI.idl',
@@ -43,14 +42,17 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    'AutoTimelineMarker.h',
     'IHistory.h',
     'LoadContext.h',
 ]
 
 UNIFIED_SOURCES += [
+    'AutoTimelineMarker.cpp',
     'LoadContext.cpp',
     'nsAboutRedirector.cpp',
     'nsDefaultURIFixup.cpp',
+    'nsDocShell.cpp',
     'nsDocShellEditorData.cpp',
     'nsDocShellEnumerator.cpp',
     'nsDocShellLoadInfo.cpp',
@@ -59,28 +61,22 @@ UNIFIED_SOURCES += [
     'nsDSURIContentListener.cpp',
     'nsWebNavigationInfo.cpp',
     'SerializedLoadContext.cpp',
-]
-
-# nsDocShell.cpp cannot be built in unified mode because it forces NSPR logging.
-SOURCES += [
-    'nsDocShell.cpp',
+    'TimelineMarker.cpp',
 ]
 
 FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../shistory/src',
-    '/content/base/src',
+    '/docshell/shistory',
     '/dom/base',
     '/layout/base',
     '/layout/generic',
     '/layout/xul',
     '/netwerk/protocol/viewsource',
+    '/tools/profiler',
 ]
 
 if CONFIG['MOZ_TOOLKIT_SEARCH']:

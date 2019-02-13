@@ -15,6 +15,7 @@
 
 var Cc = SpecialPowers.Cc;
 var Ci = SpecialPowers.Ci;
+var firstLoad = true;
 
 // Add some URLs to the malware database.
 var testData = "malware.example.com/";
@@ -23,19 +24,29 @@ var testUpdate =
   "a:524:32:" + testData.length + "\n" +
   testData;
 
+testData = "unwanted.example.com/";
+testUpdate +=
+  "n:1000\ni:test-unwanted-simple\nad:1\n" +
+  "a:524:32:" + testData.length + "\n" +
+  testData;
+
 var dbService = Cc["@mozilla.org/url-classifier/dbservice;1"]
                 .getService(Ci.nsIUrlClassifierDBService);
 
+function loadTestFrame() {
+  document.getElementById("testFrame").src = "classifierFrame.html";
+}
+
 function doUpdate(update) {
   var listener = {
-    QueryInterface: function(iid)
+    QueryInterface: SpecialPowers.wrapCallback(function(iid)
     {
       if (iid.equals(Ci.nsISupports) ||
           iid.equals(Ci.nsIUrlClassifierUpdateObserver))
         return this;
 
       throw Cr.NS_ERROR_NO_INTERFACE;
-    },
+    }),
     updateUrlRequested: function(url) { },
     streamFinished: function(status) { },
     updateError: function(errorCode) {
@@ -46,14 +57,11 @@ function doUpdate(update) {
     updateSuccess: function(requestedTimeout) {
       SpecialPowers.pushPrefEnv(
         {"set" : [["browser.safebrowsing.malware.enabled", true]]},
-        function loadTestFrame() {
-          document.getElementById("testFrame").src = "classifierFrame.html";
-        }
-      );
+        loadTestFrame);
     }
   };
 
-  dbService.beginUpdate(listener, "test-malware-simple", "");
+  dbService.beginUpdate(listener, "test-malware-simple,test-unwanted-simple", "");
   dbService.beginStream("", "");
   dbService.updateStream(update);
   dbService.finishStream();
@@ -61,8 +69,8 @@ function doUpdate(update) {
 }
 
 SpecialPowers.pushPrefEnv(
-  {"set" : [["urlclassifier.malware_table", "test-malware-simple"],
-            ["urlclassifier.phish_table", "test-phish-simple"]]},
+  {"set" : [["urlclassifier.malwareTable", "test-malware-simple,test-unwanted-simple"],
+            ["urlclassifier.phishTable", "test-phish-simple"]]},
   function() { doUpdate(testUpdate); });
 
 // Expected finish() call is in "classifierFrame.html".

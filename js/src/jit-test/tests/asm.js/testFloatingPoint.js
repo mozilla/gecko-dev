@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { return 1.1 } return f"))(), 1.1);
@@ -94,7 +95,7 @@ var {f,g} = asmLink(asmCompile(USE_ASM + "function f() { return 3.5 } function g
 assertEq(f(), 3.5);
 assertEq(g(1), 1+3.5);
 
-var buf = new ArrayBuffer(4096);
+var buf = new ArrayBuffer(BUF_MIN);
 var f64 = new Float64Array(buf);
 var i32 = new Int32Array(buf);
 var u32 = new Uint32Array(buf);

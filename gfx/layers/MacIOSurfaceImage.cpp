@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MacIOSurfaceImage.h"
+#include "mozilla/layers/CompositableClient.h"
+#include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/MacIOSurfaceTextureClientOGL.h"
 
 using namespace mozilla;
@@ -13,10 +15,9 @@ TextureClient*
 MacIOSurfaceImage::GetTextureClient(CompositableClient* aClient)
 {
   if (!mTextureClient) {
-    RefPtr<MacIOSurfaceTextureClientOGL> buffer =
-      new MacIOSurfaceTextureClientOGL(TextureFlags::DEFAULT);
-    buffer->InitWith(mSurface);
-    mTextureClient = buffer;
+    mTextureClient = MacIOSurfaceTextureClientOGL::Create(aClient->GetForwarder(),
+                                                          TextureFlags::DEFAULT,
+                                                          mSurface);
   }
   return mTextureClient;
 }
@@ -33,8 +34,9 @@ MacIOSurfaceImage::GetAsSourceSurface()
 
   RefPtr<gfx::DataSourceSurface> dataSurface
     = gfx::Factory::CreateDataSourceSurface(gfx::IntSize(ioWidth, ioHeight), gfx::SurfaceFormat::B8G8R8A8);
-  if (!dataSurface)
+  if (NS_WARN_IF(!dataSurface)) {
     return nullptr;
+  }
 
   gfx::DataSourceSurface::MappedSurface mappedSurface;
   if (!dataSurface->Map(gfx::DataSourceSurface::WRITE, &mappedSurface))
@@ -49,5 +51,5 @@ MacIOSurfaceImage::GetAsSourceSurface()
   dataSurface->Unmap();
   mSurface->Unlock();
 
-  return dataSurface;
+  return dataSurface.forget();
 }

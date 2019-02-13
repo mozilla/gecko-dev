@@ -6,8 +6,13 @@
 Cu.import("resource://gre/modules/Metrics.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/experiments/Experiments.jsm");
+Cu.import("resource://testing-common/AddonManagerTesting.jsm");
 Cu.import("resource://testing-common/services/healthreport/utils.jsm");
-Cu.import("resource://testing-common/services-common/logging.js");
+Cu.import("resource://testing-common/services/common/logging.js");
+
+const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
+
+const kMeasurementVersion = 2;
 
 function getStorageAndProvider(name) {
   return Task.spawn(function* get() {
@@ -26,6 +31,7 @@ function run_test() {
 add_test(function setup() {
   do_get_profile();
   initTestLogging();
+  loadAddonManager();
 
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, true);
@@ -53,7 +59,7 @@ add_task(function* test_collect() {
 
   // Initial state should not report anything.
   yield provider.collectDailyData();
-  let m = provider.getMeasurement("info", 1);
+  let m = provider.getMeasurement("info", kMeasurementVersion);
   let values = yield m.getValues();
   Assert.equal(values.days.size, 0, "Have no data if no experiments known.");
 
@@ -69,6 +75,8 @@ add_task(function* test_collect() {
   let day = values.days.getDay(now);
   Assert.ok(day.has("lastActive"), "Has lastActive field.");
   Assert.equal(day.get("lastActive"), "id2", "Last active ID is sane.");
+  Assert.strictEqual(day.get("lastActiveBranch"), undefined,
+		     "no branch should be set yet");
 
   // Making an experiment active replaces the lastActive value.
   replaceExperiments(provider._experiments, FAKE_EXPERIMENTS_1);
@@ -76,6 +84,8 @@ add_task(function* test_collect() {
   values = yield m.getValues();
   day = values.days.getDay(now);
   Assert.equal(day.get("lastActive"), "id1", "Last active ID is the active experiment.");
+  Assert.equal(day.get("lastActiveBranch"), "foo",
+	       "Experiment branch should be visible");
 
   // And make sure the observer works.
   replaceExperiments(provider._experiments, FAKE_EXPERIMENTS_2);

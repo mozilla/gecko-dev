@@ -5,6 +5,8 @@
 from __future__ import absolute_import
 
 import importlib
+import os
+import sys
 
 from sphinx.util.compat import Directive
 from sphinx.util.docstrings import prepare_docstring
@@ -75,7 +77,7 @@ def variable_reference(v, st_type, in_type, doc, tier):
     return lines
 
 
-def special_reference(v, typ, doc):
+def special_reference(v, func, typ, doc):
     lines = [
         v,
         '-' * len(v),
@@ -99,6 +101,22 @@ def special_reference(v, typ, doc):
 
 def format_module(m):
     lines = []
+
+    for subcontext, cls in sorted(m.SUBCONTEXTS.items()):
+        lines.extend([
+            '.. _mozbuild_subcontext_%s:' % subcontext,
+            '',
+            'Sub-Context: %s' % subcontext,
+            '=============' + '=' * len(subcontext),
+            '',
+        ])
+        lines.extend(prepare_docstring(cls.__doc__))
+        if lines[-1]:
+            lines.append('')
+
+        for k, v in sorted(cls.VARIABLES.items()):
+            lines.extend(variable_reference(k, *v))
+
     lines.extend([
         'Variables',
         '=========',
@@ -152,3 +170,31 @@ class MozbuildSymbols(Directive):
 
 def setup(app):
     app.add_directive('mozbuildsymbols', MozbuildSymbols)
+
+    # Unlike typical Sphinx installs, our documentation is assembled from
+    # many sources and staged in a common location. This arguably isn't a best
+    # practice, but it was the easiest to implement at the time.
+    #
+    # Here, we invoke our custom code for staging/generating all our
+    # documentation.
+    from moztreedocs import SphinxManager
+
+    topsrcdir = app.config._raw_config['topsrcdir']
+    manager = SphinxManager(topsrcdir,
+        os.path.join(topsrcdir, 'tools', 'docs'),
+        app.outdir)
+    manager.generate_docs(app)
+
+    app.srcdir = os.path.join(app.outdir, '_staging')
+
+    # We need to adjust sys.path in order for Python API docs to get generated
+    # properly. We leverage the in-tree virtualenv for this.
+    from mozbuild.virtualenv import VirtualenvManager
+
+    ve = VirtualenvManager(topsrcdir,
+        os.path.join(topsrcdir, 'dummy-objdir'),
+        os.path.join(app.outdir, '_venv'),
+        sys.stderr,
+        os.path.join(topsrcdir, 'build', 'virtualenv_packages.txt'))
+    ve.ensure()
+    ve.activate()

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,8 +14,6 @@
  * - EXPIRE_MONTHS: annotation would be expired after 180 days
  */
 
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
 let as = Cc["@mozilla.org/browser/annotation-service;1"].
          getService(Ci.nsIAnnotationService);
 
@@ -88,9 +86,13 @@ add_task(function test_annos_expire_policy() {
   // Add some bookmarked page and timed annotations for each.
   for (let i = 0; i < 5; i++) {
     let pageURI = uri("http://item_anno." + i + ".mozilla.org/");
-    yield promiseAddVisits({ uri: pageURI, visitDate: now++ });
-    let id = bs.insertBookmark(bs.unfiledBookmarksFolder, pageURI,
-                               bs.DEFAULT_INDEX, null);
+    yield PlacesTestUtils.addVisits({ uri: pageURI, visitDate: now++ });
+    let bm = yield PlacesUtils.bookmarks.insert({
+      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+      url: pageURI,
+      title: null
+    });
+    let id = yield PlacesUtils.promiseItemId(bm.guid);
     // Add a 6 days old anno.
     add_old_anno(id, "persist_days", "test", as.EXPIRE_DAYS, 6);
     // Add a 8 days old anno, modified 5 days ago.
@@ -137,7 +139,7 @@ add_task(function test_annos_expire_policy() {
   // Add some visited page and timed annotations for each.
   for (let i = 0; i < 5; i++) {
     let pageURI = uri("http://page_anno." + i + ".mozilla.org/");
-    yield promiseAddVisits({ uri: pageURI, visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: pageURI, visitDate: now++ });
     // Add a 6 days old anno.
     add_old_anno(pageURI, "persist_days", "test", as.EXPIRE_DAYS, 6);
     // Add a 8 days old anno, modified 5 days ago.

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -116,7 +117,7 @@ DragEvent::GetDataTransfer()
   // with the drag. It is initialized when an attempt is made to retrieve it
   // rather that when the event is created to avoid duplicating the data when
   // no listener ever uses it.
-  if (!mEvent || mEvent->eventStructType != NS_DRAG_EVENT) {
+  if (!mEvent || mEvent->mClass != eDragEventClass) {
     NS_WARNING("Tried to get dataTransfer from non-drag event!");
     return nullptr;
   }
@@ -129,6 +130,27 @@ DragEvent::GetDataTransfer()
   }
 
   return dragEvent->dataTransfer;
+}
+
+// static
+already_AddRefed<DragEvent>
+DragEvent::Constructor(const GlobalObject& aGlobal,
+                       const nsAString& aType,
+                       const DragEventInit& aParam,
+                       ErrorResult& aRv)
+{
+  nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
+  nsRefPtr<DragEvent> e = new DragEvent(t, nullptr, nullptr);
+  bool trusted = e->Init(t);
+  aRv = e->InitDragEvent(aType, aParam.mBubbles, aParam.mCancelable,
+                         aParam.mView, aParam.mDetail, aParam.mScreenX,
+                         aParam.mScreenY, aParam.mClientX, aParam.mClientY,
+                         aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey,
+                         aParam.mMetaKey, aParam.mButton, aParam.mRelatedTarget,
+                         aParam.mDataTransfer);
+  e->InitializeExtraMouseEventDictionaryMembers(aParam);
+  e->SetTrusted(trusted);
+  return e.forget();
 }
 
 } // namespace dom

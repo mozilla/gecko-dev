@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,6 +7,7 @@
 #include "FMRadioParent.h"
 #include "mozilla/unused.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/DebugOnly.h"
 #include "FMRadioRequestParent.h"
 #include "FMRadioService.h"
 
@@ -69,6 +71,12 @@ FMRadioParent::AllocPFMRadioRequestParent(const FMRadioRequestArgs& aArgs)
     case FMRadioRequestArgs::TCancelSeekRequestArgs:
       IFMRadioService::Singleton()->CancelSeek(requestParent);
       break;
+    case FMRadioRequestArgs::TEnableRDSArgs:
+      IFMRadioService::Singleton()->EnableRDS(requestParent);
+      break;
+    case FMRadioRequestArgs::TDisableRDSArgs:
+      IFMRadioService::Singleton()->DisableRDS(requestParent);
+      break;
     default:
       MOZ_CRASH();
   }
@@ -98,6 +106,43 @@ FMRadioParent::Notify(const FMRadioEventType& aType)
         IFMRadioService::Singleton()->IsEnabled(),
         IFMRadioService::Singleton()->GetFrequency());
       break;
+    case RDSEnabledChanged:
+      unused << SendNotifyRDSEnabledChanged(
+        IFMRadioService::Singleton()->IsRDSEnabled());
+      break;
+    case PIChanged: {
+      Nullable<unsigned short> pi =
+        IFMRadioService::Singleton()->GetPi();
+      unused << SendNotifyPIChanged(!pi.IsNull(),
+                                    pi.IsNull() ? 0 : pi.Value());
+      break;
+    }
+    case PTYChanged: {
+      Nullable<uint8_t> pty = IFMRadioService::Singleton()->GetPty();
+      unused << SendNotifyPTYChanged(!pty.IsNull(),
+                                     pty.IsNull() ? 0 : pty.Value());
+      break;
+    }
+    case PSChanged: {
+      nsAutoString psname;
+      IFMRadioService::Singleton()->GetPs(psname);
+      unused << SendNotifyPSChanged(psname);
+      break;
+    }
+    case RadiotextChanged: {
+      nsAutoString radiotext;
+      IFMRadioService::Singleton()->GetRt(radiotext);
+      unused << SendNotifyRadiotextChanged(radiotext);
+      break;
+    }
+    case NewRDSGroup: {
+      uint64_t group;
+      DebugOnly<bool> rdsgroupset =
+        IFMRadioService::Singleton()->GetRdsgroup(group);
+      MOZ_ASSERT(rdsgroupset);
+      unused << SendNotifyNewRDSGroup(group);
+      break;
+    }
     default:
       NS_RUNTIMEABORT("not reached");
       break;
@@ -108,6 +153,13 @@ bool
 FMRadioParent::RecvEnableAudio(const bool& aAudioEnabled)
 {
   IFMRadioService::Singleton()->EnableAudio(aAudioEnabled);
+  return true;
+}
+
+bool
+FMRadioParent::RecvSetRDSGroupMask(const uint32_t& aRDSGroupMask)
+{
+  IFMRadioService::Singleton()->SetRDSGroupMask(aRDSGroupMask);
   return true;
 }
 

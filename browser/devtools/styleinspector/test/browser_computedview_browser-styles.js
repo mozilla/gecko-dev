@@ -6,8 +6,8 @@
 
 // Tests that the checkbox to include browser styles works properly.
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,default styles test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,default styles test");
 
   info("Creating the test document");
   content.document.body.innerHTML = '<style type="text/css"> ' +
@@ -45,7 +45,7 @@ let test = asyncTest(function*() {
 function isPropertyVisible(name, view) {
   info("Checking property visibility for " + name);
   let propertyViews = view.propertyViews;
-  for each (let propView in propertyViews) {
+  for (let propView of propertyViews) {
     if (propView.name == name) {
       return propView.visible;
     }

@@ -8,9 +8,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://services-sync/healthreport.jsm", this);
-Cu.import("resource://testing-common/services/healthreport/utils.jsm", this);
-Cu.import("resource://gre/modules/services/healthreport/providers.jsm");
 Cu.import("resource://testing-common/AddonManagerTesting.jsm");
 
 const PREF_EXPERIMENTS_ENABLED  = "experiments.enabled";
@@ -19,7 +16,6 @@ const PREF_LOGGING_DUMP         = "experiments.logging.dump";
 const PREF_MANIFEST_URI         = "experiments.manifest.uri";
 const PREF_FETCHINTERVAL        = "experiments.manifest.fetchIntervalSeconds";
 const PREF_TELEMETRY_ENABLED    = "toolkit.telemetry.enabled";
-const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 
 function getExperimentPath(base) {
   let p = do_get_cwd();
@@ -76,6 +72,7 @@ const FAKE_EXPERIMENTS_1 = [
     description: "experiment 1",
     active: true,
     detailUrl: "https://dummy/experiment1",
+    branch: "foo",
   },
 ];
 
@@ -87,6 +84,7 @@ const FAKE_EXPERIMENTS_2 = [
     active: false,
     endDate: new Date(2014, 2, 11, 2, 4, 35, 42).getTime(),
     detailUrl: "https://dummy/experiment2",
+    branch: null,
   },
   {
     id: "id1",
@@ -95,32 +93,15 @@ const FAKE_EXPERIMENTS_2 = [
     active: false,
     endDate: new Date(2014, 2, 10, 0, 0, 0, 0).getTime(),
     detailURL: "https://dummy/experiment1",
+    branch: null,
   },
 ];
 
 let gAppInfo = null;
 
-function getReporter(name, uri, inspected) {
-  return Task.spawn(function init() {
-    let reporter = getHealthReporter(name, uri, inspected);
-    yield reporter.init();
-
-    yield reporter._providerManager.registerProviderFromType(
-      HealthReportProvider);
-
-    throw new Task.Result(reporter);
-  });
-}
-
 function removeCacheFile() {
   let path = OS.Path.join(OS.Constants.Path.profileDir, "experiments.json");
   return OS.File.remove(path);
-}
-
-function disableCertificateChecks() {
-  let pref = "experiments.manifest.cert.checkAttributes";
-  Services.prefs.setBoolPref(pref, false);
-  do_register_cleanup(() => Services.prefs.clearUserPref(pref));
 }
 
 function patchPolicy(policy, data) {
@@ -154,6 +135,15 @@ function loadAddonManager() {
   ns.Services.scriptloader.loadSubScript(uri.spec, gGlobalScope);
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
   startupManager();
+}
+
+// Starts the addon manager without creating app info. We can't directly use
+// |loadAddonManager| defined above in test_conditions.js as it would make the test fail.
+function startAddonManagerOnly() {
+  let addonManager = Cc["@mozilla.org/addons/integration;1"]
+                       .getService(Ci.nsIObserver)
+                       .QueryInterface(Ci.nsITimerCallback);
+  addonManager.observe(null, "addons-startup", null);
 }
 
 function getExperimentAddons(previous=false) {

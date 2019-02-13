@@ -102,6 +102,8 @@ var eventMap = {
 
 var originalDwellThreshold = GestureSettings.dwellThreshold;
 var originalSwipeMaxDuration = GestureSettings.swipeMaxDuration;
+var originalConsecutiveGestureDelay =
+  GestureSettings.maxConsecutiveGestureDelay;
 
 /**
  * Attach a listener for the mozAccessFuGesture event that tests its
@@ -110,14 +112,16 @@ var originalSwipeMaxDuration = GestureSettings.swipeMaxDuration;
  * Note: the listener is removed once the stack reaches 0.
  */
 function testMozAccessFuGesture(aExpectedGestures) {
-  var types = typeof aExpectedGestures === "string" ?
-    [aExpectedGestures] : aExpectedGestures;
+  var types = aExpectedGestures;
   function handleGesture(aEvent) {
-    if (aEvent.detail.type !== types[0]) {
+    if (aEvent.detail.type !== types[0].type) {
+      info('Got ' + aEvent.detail.type + ' waiting for ' + types[0].type);
       // The is not the event of interest.
       return;
     }
-    ok(true, 'Received correct mozAccessFuGesture: ' + types.shift() + '.');
+    is(!!aEvent.detail.edge, !!types[0].edge);
+    ok(true, 'Received correct mozAccessFuGesture: ' +
+      JSON.stringify(types.shift()) + '.');
     if (types.length === 0) {
       win.removeEventListener('mozAccessFuGesture', handleGesture);
       if (AccessFuTest.sequenceCleanup) {
@@ -173,6 +177,9 @@ AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
       };
       var timeStamp = Date.now();
       resetTimers();
+      GestureSettings.maxConsecutiveGestureDelay =
+        aEvent.removeConsecutiveGestureDelay ?
+        0 : originalConsecutiveGestureDelay;
       GestureTracker.handle(event, timeStamp);
       setTimers(timeStamp, aEvent.removeDwellThreshold,
         aEvent.removeSwipeMaxDuration);

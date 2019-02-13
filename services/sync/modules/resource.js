@@ -146,7 +146,14 @@ AsyncResource.prototype = {
   // to obtain a request channel.
   //
   _createRequest: function Res__createRequest(method) {
-    let channel = Services.io.newChannel(this.spec, null, null)
+    let channel = Services.io.newChannel2(this.spec,
+                                          null,
+                                          null,
+                                          null,      // aLoadingNode
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      // aTriggeringPrincipal
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER)
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
 
@@ -301,6 +308,14 @@ AsyncResource.prototype = {
       if (success && headers["x-weave-quota-remaining"]) {
         Observers.notify("weave:service:quota:remaining",
                          parseInt(headers["x-weave-quota-remaining"], 10));
+      }
+
+      let contentLength = headers["content-length"];
+      if (success && contentLength && data &&
+          contentLength != data.length) {
+        this._log.warn("The response body's length of: " + data.length +
+                       " doesn't match the header's content-length of: " +
+                       contentLength + ".");
       }
     } catch (ex) {
       this._log.debug("Caught exception " + CommonUtils.exceptionStr(ex) +

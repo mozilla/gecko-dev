@@ -64,19 +64,9 @@ exports.getHighlighterUtils = function(toolbox) {
   /**
    * Does the target support custom highlighters.
    */
-  let supportsCustomHighlighters = function() {
+  let supportsCustomHighlighters = exported.supportsCustomHighlighters = () => {
     return !!target.client.traits.customHighlighters;
-  }
-
-  /**
-   * Is typeName a known custom highlighter
-   * @param {String} typeName
-   * @return {Boolean}
-   */
-  let hasCustomHighlighter = exported.hasCustomHighlighter = function(typeName) {
-    return supportsCustomHighlighters() &&
-           target.client.traits.customHighlighters.indexOf(typeName) !== -1;
-  }
+  };
 
   /**
    * Make a function that initializes the inspector before it runs.
@@ -130,6 +120,7 @@ exports.getHighlighterUtils = function(toolbox) {
     if (isRemoteHighlightable()) {
       toolbox.walker.on("picker-node-hovered", onPickerNodeHovered);
       toolbox.walker.on("picker-node-picked", onPickerNodePicked);
+      toolbox.walker.on("picker-node-canceled", onPickerNodeCanceled);
 
       yield toolbox.highlighter.pick();
       toolbox.emit("picker-started");
@@ -161,6 +152,7 @@ exports.getHighlighterUtils = function(toolbox) {
       yield toolbox.highlighter.cancelPick();
       toolbox.walker.off("picker-node-hovered", onPickerNodeHovered);
       toolbox.walker.off("picker-node-picked", onPickerNodePicked);
+      toolbox.walker.off("picker-node-canceled", onPickerNodeCanceled);
     } else {
       // If the target doesn't have the highlighter actor, use the walker's
       // cancelPick method instead
@@ -189,6 +181,15 @@ exports.getHighlighterUtils = function(toolbox) {
   }
 
   /**
+   * When the picker is canceled, stop the picker, and make sure the toolbox
+   * gets the focus.
+   */
+  function onPickerNodeCanceled() {
+    stopPicker();
+    toolbox.frame.focus();
+  }
+
+  /**
    * Show the box model highlighter on a node in the content page.
    * The node needs to be a NodeFront, as defined by the inspector actor
    * @see toolkit/devtools/server/actors/inspector.js
@@ -210,7 +211,7 @@ exports.getHighlighterUtils = function(toolbox) {
       yield toolbox.walker.highlight(nodeFront);
     }
 
-    toolbox.emit("node-highlight", nodeFront);
+    toolbox.emit("node-highlight", nodeFront, options.toSource());
   });
 
   /**
@@ -273,12 +274,15 @@ exports.getHighlighterUtils = function(toolbox) {
    */
   let getHighlighterByType = exported.getHighlighterByType = requireInspector(
   function*(typeName) {
-    if (hasCustomHighlighter(typeName)) {
-      return yield toolbox.inspector.getHighlighterByType(typeName);
-    } else {
-      throw "The target doesn't support creating highlighters by types or " +
-        typeName + " is unknown";
+    let highlighter = null;
+
+    if (supportsCustomHighlighters()) {
+      highlighter = yield toolbox.inspector.getHighlighterByType(typeName);
     }
+
+    return highlighter || promise.reject("The target doesn't support " +
+        `creating highlighters by types or ${typeName} is unknown`);
+
   });
 
   // Return the public API

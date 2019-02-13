@@ -51,9 +51,10 @@ public:
 
 
     nsHTTPCompressConv ();
-    virtual ~nsHTTPCompressConv ();
 
 private:
+
+    virtual ~nsHTTPCompressConv ();
 
     nsIStreamListener   *mListener; // this guy gets the converted data via his OnDataAvailable ()
 	CompressMode        mMode;
@@ -75,6 +76,7 @@ private:
     bool        mStreamEnded;
     bool        mStreamInitialized;
     bool        mDummyStreamInitialised;
+    bool        mFailUncleanStops;
 
     z_stream d_stream;
     unsigned mLen, hMode, mSkipCount, mFlags;

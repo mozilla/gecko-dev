@@ -64,8 +64,7 @@ class HTTPUpload::AutoInternetHandle {
 // static
 bool HTTPUpload::SendRequest(const wstring &url,
                              const map<wstring, wstring> &parameters,
-                             const wstring &upload_file,
-                             const wstring &file_part_name,
+                             const map<wstring, wstring> &files,
                              int *timeout,
                              wstring *response_body,
                              int *response_code) {
@@ -143,8 +142,7 @@ bool HTTPUpload::SendRequest(const wstring &url,
                         HTTP_ADDREQ_FLAG_ADD);
 
   string request_body;
-  if (!GenerateRequestBody(parameters, upload_file,
-                           file_part_name, boundary, &request_body)) {
+  if (!GenerateRequestBody(parameters, files, boundary, &request_body)) {
     return false;
   }
 
@@ -269,15 +267,9 @@ wstring HTTPUpload::GenerateRequestHeader(const wstring &boundary) {
 
 // static
 bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
-                                     const wstring &upload_file,
-                                     const wstring &file_part_name,
+                                     const map<wstring, wstring> &files,
                                      const wstring &boundary,
                                      string *request_body) {
-  vector<char> contents;
-  if (!GetFileContents(upload_file, &contents)) {
-    return false;
-  }
-
   string boundary_str = WideToUTF8(boundary);
   if (boundary_str.empty()) {
     return false;
@@ -294,28 +286,36 @@ bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
                          WideToUTF8(pos->second) + "\r\n");
   }
 
-  // Now append the upload file as a binary (octet-stream) part
-  string filename_utf8 = WideToUTF8(upload_file);
-  if (filename_utf8.empty()) {
-    return false;
-  }
+  for (map<wstring, wstring>::const_iterator pos = files.begin();
+       pos != files.end(); ++pos) {
+    vector<char> contents;
+    if (!GetFileContents(pos->second, &contents)) {
+      return false;
+    }
 
-  string file_part_name_utf8 = WideToUTF8(file_part_name);
-  if (file_part_name_utf8.empty()) {
-    return false;
-  }
+    // Now append the upload files as a binary (octet-stream) part
+    string filename_utf8 = WideToUTF8(pos->second);
+    if (filename_utf8.empty()) {
+      return false;
+    }
 
-  request_body->append("--" + boundary_str + "\r\n");
-  request_body->append("Content-Disposition: form-data; "
-                       "name=\"" + file_part_name_utf8 + "\"; "
-                       "filename=\"" + filename_utf8 + "\"\r\n");
-  request_body->append("Content-Type: application/octet-stream\r\n");
-  request_body->append("\r\n");
+    string file_part_name_utf8 = WideToUTF8(pos->first);
+    if (file_part_name_utf8.empty()) {
+      return false;
+    }
 
-  if (!contents.empty()) {
+    request_body->append("--" + boundary_str + "\r\n");
+    request_body->append("Content-Disposition: form-data; "
+      "name=\"" + file_part_name_utf8 + "\"; "
+      "filename=\"" + filename_utf8 + "\"\r\n");
+    request_body->append("Content-Type: application/octet-stream\r\n");
+    request_body->append("\r\n");
+
+    if (!contents.empty()) {
       request_body->append(&(contents[0]), contents.size());
+    }
+    request_body->append("\r\n");
   }
-  request_body->append("\r\n");
   request_body->append("--" + boundary_str + "--\r\n");
   return true;
 }
@@ -327,11 +327,13 @@ bool HTTPUpload::GetFileContents(const wstring &filename,
   // wchar_t* filename, so use _wfopen directly in that case.  For VC8 and
   // later, _wfopen has been deprecated in favor of _wfopen_s, which does
   // not exist in earlier versions, so let the ifstream open the file itself.
-#if _MSC_VER >= 1400  // MSVC 2005/8
+  // GCC doesn't support wide file name and opening on FILE* requires ugly
+  // hacks, so fallback to multi byte file.
+#ifdef _MSC_VER
   ifstream file;
   file.open(filename.c_str(), ios::binary);
-#else  // _MSC_VER >= 1400
-  ifstream file(_wfopen(filename.c_str(), L"rb"));
+#else // GCC
+  ifstream file(WideToMBCP(filename, CP_ACP).c_str(), ios::binary);
 #endif  // _MSC_VER >= 1400
   if (file.is_open()) {
     file.seekg(0, ios::end);
@@ -369,13 +371,13 @@ wstring HTTPUpload::UTF8ToWide(const string &utf8) {
 }
 
 // static
-string HTTPUpload::WideToUTF8(const wstring &wide) {
+string HTTPUpload::WideToMBCP(const wstring &wide, unsigned int cp) {
   if (wide.length() == 0) {
     return string();
   }
 
   // compute the length of the buffer we'll need
-  int charcount = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1,
+  int charcount = WideCharToMultiByte(cp, 0, wide.c_str(), -1,
                                       NULL, 0, NULL, NULL);
   if (charcount == 0) {
     return string();
@@ -383,7 +385,7 @@ string HTTPUpload::WideToUTF8(const wstring &wide) {
 
   // convert
   char *buf = new char[charcount];
-  WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, buf, charcount,
+  WideCharToMultiByte(cp, 0, wide.c_str(), -1, buf, charcount,
                       NULL, NULL);
 
   string result(buf);

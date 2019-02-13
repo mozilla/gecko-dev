@@ -11,24 +11,24 @@
 #include "nsNetUtil.h"
 #include "nsStringAPI.h"
 #include "nsCOMPtr.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
-#if defined(PR_LOGGING)
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
 class MySocketListener : public nsIServerSocketListener
 {
+protected:
+    virtual ~MySocketListener() {}
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSISERVERSOCKETLISTENER
 
     MySocketListener() {}
-    virtual ~MySocketListener() {}
 };
 
 NS_IMPL_ISUPPORTS(MySocketListener, nsIServerSocketListener)
@@ -117,9 +117,7 @@ main(int argc, char* argv[])
         return -1;
     }
 
-#if defined(PR_LOGGING)
     gTestLog = PR_NewLogModule("Test");
-#endif
 
     /* 
      * The following code only deals with XPCOM registration stuff. and setting

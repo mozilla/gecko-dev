@@ -13,7 +13,6 @@
 
 class nsISupports;
 class nsIEventTarget;
-class nsIThread;
 
 namespace mozilla {
 namespace net {
@@ -33,14 +32,12 @@ class ChannelEvent
 // instance) to be dispatched and called before mListener->OnStartRequest has
 // completed.
 
-class AutoEventEnqueuerBase;
-
-class ChannelEventQueue MOZ_FINAL
+class ChannelEventQueue final
 {
-  NS_INLINE_DECL_REFCOUNTING(ChannelEventQueue)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ChannelEventQueue)
 
  public:
-  ChannelEventQueue(nsISupports *owner)
+  explicit ChannelEventQueue(nsISupports *owner)
     : mSuspendCount(0)
     , mSuspended(false)
     , mForced(false)
@@ -94,8 +91,8 @@ class ChannelEventQueue MOZ_FINAL
   // Keep ptr to avoid refcount cycle: only grab ref during flushing.
   nsISupports *mOwner;
 
-  // Target thread for delivery of events.
-  nsCOMPtr<nsIThread> mTargetThread;
+  // EventTarget for delivery of events to the correct thread.
+  nsCOMPtr<nsIEventTarget> mTargetThread;
 
   friend class AutoEventEnqueuer;
 };
@@ -105,8 +102,8 @@ ChannelEventQueue::ShouldEnqueue()
 {
   bool answer =  mForced || mSuspended || mFlushing;
 
-  NS_ABORT_IF_FALSE(answer == true || mEventQueue.IsEmpty(),
-                    "Should always enqueue if ChannelEventQueue not empty");
+  MOZ_ASSERT(answer == true || mEventQueue.IsEmpty(),
+             "Should always enqueue if ChannelEventQueue not empty");
 
   return answer;
 }
@@ -162,17 +159,17 @@ ChannelEventQueue::MaybeFlushQueue()
 // Ensures that ShouldEnqueue() will be true during its lifetime (letting
 // caller know incoming IPDL msgs should be queued). Flushes the queue when it
 // goes out of scope.
-class AutoEventEnqueuer
+class MOZ_STACK_CLASS AutoEventEnqueuer
 {
  public:
-  AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
+  explicit AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
     mEventQueue->StartForcedQueueing();
   }
   ~AutoEventEnqueuer() {
     mEventQueue->EndForcedQueueing();
   }
  private:
-  ChannelEventQueue* mEventQueue;
+  nsRefPtr<ChannelEventQueue> mEventQueue;
 };
 
 }

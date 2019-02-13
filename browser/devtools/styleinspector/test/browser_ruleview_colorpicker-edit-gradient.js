@@ -16,8 +16,8 @@ const PAGE_CONTENT = [
   'Updating a gradient declaration with the color picker tooltip'
 ].join("\n");
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,rule view color picker tooltip test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,rule view color picker tooltip test");
 
   info("Creating the test document");
   content.document.body.innerHTML = PAGE_CONTENT;
@@ -66,8 +66,7 @@ function* testPickingNewColor(view) {
 
   is(swatchEl.style.backgroundColor, "rgb(1, 1, 1)",
     "The color swatch's background was updated");
-  is(colorEl.textContent, "rgba(1, 1, 1, 1)",
-    "The color text was updated");
+  is(colorEl.textContent, "#010101", "The color text was updated");
   is(content.getComputedStyle(content.document.body).backgroundImage,
     "linear-gradient(to left, rgb(255, 0, 102) 25%, rgb(51, 51, 51) 95%, rgb(0, 0, 0) 100%)",
     "The gradient has been updated correctly");

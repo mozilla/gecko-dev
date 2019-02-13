@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,7 +22,14 @@ function loadFile(aUriSpec)
     if (!serv) {
         throw Components.results.ERR_FAILURE;
     }
-    var chan = serv.newChannel(aUriSpec, null, null);
+    var chan = serv.newChannel2(aUriSpec,
+                                null,
+                                null,
+                                null,      // aLoadingNode
+                                Services.scriptSecurityManager.getSystemPrincipal(),
+                                null,      // aTriggeringPrincipal
+                                Ci.nsILoadInfo.SEC_NORMAL,
+                                Ci.nsIContentPolicy.TYPE_OTHER);
     var instream = 
         Components.classes[SIS_CTRID].createInstance(nsISIS);
     instream.init(chan.open());

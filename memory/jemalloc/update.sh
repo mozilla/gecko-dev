@@ -12,16 +12,16 @@ cd src
 git checkout "$UPSTREAM_COMMIT"
 autoconf
 git describe --long --abbrev=40 > VERSION
-rm -rf .git .gitignore autom4te.cache
+rm -rf .git .gitignore .gitattributes autom4te.cache .autom4te.cfg
 
-patch -p1 < ../0001-Use-a-configure-test-to-detect-whether-to-use-a-cons.patch
-patch -p1 < ../0002-Use-ULL-prefix-instead-of-LLU-for-unsigned-long-long.patch
-patch -p1 < ../0003-Don-t-use-msvc_compat-s-C99-headers-with-MSVC-versio.patch
-patch -p1 < ../0004-Try-to-use-__builtin_ffsl-if-ffsl-is-unavailable.patch
-patch -p1 < ../0005-Check-for-__builtin_ffsl-before-ffsl.patch
-patch -p1 < ../0006-Fix-clang-warnings.patch
-patch -p1 < ../0007-Ensure-the-default-purgeable-zone-is-after-the-defau.patch
-patch -p1 < ../0008-Allow-to-build-with-clang-cl.patch
+patch -p1 < ../0001-Dont-overwrite-VERSION-on-a-git-repository.patch
+patch -p1 < ../0002-Move-variable-declaration-to-the-top-its-block-for-M.patch
+patch -p1 < ../0003-Add-a-isblank-definition-for-MSVC-2013.patch
+patch -p1 < ../0004-Implement-stats.bookkeeping.patch
+patch -p1 < ../0005-Bug-1121314-Avoid-needing-the-arena-in-chunk_alloc_d.patch
+patch -p1 < ../0006-Make-opt.lg_dirty_mult-work-as-documented.patch
+patch -p1 < ../0007-Preserve-LastError-when-calling-TlsGetValue.patch
+patch -p1 < ../0008-Make-without-export-actually-work.patch
 
 cd ..
 hg addremove -q src

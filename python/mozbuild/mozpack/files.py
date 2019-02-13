@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import errno
 import os
 import platform
@@ -26,7 +28,7 @@ from mozpack.errors import (
     errors,
 )
 from mozpack.mozjar import JarReader
-import mozpack.path
+import mozpack.path as mozpath
 from collections import OrderedDict
 from jsmin import JavascriptMinify
 from tempfile import (
@@ -34,6 +36,30 @@ from tempfile import (
     NamedTemporaryFile,
 )
 
+try:
+    import hglib
+except ImportError:
+    hglib = None
+
+
+# For clean builds, copying files on win32 using CopyFile through ctypes is
+# ~2x as fast as using shutil.copyfile.
+if platform.system() != 'Windows':
+    _copyfile = shutil.copyfile
+else:
+    import ctypes
+    _kernel32 = ctypes.windll.kernel32
+    _CopyFileA = _kernel32.CopyFileA
+    _CopyFileW = _kernel32.CopyFileW
+
+    def _copyfile(src, dest):
+        # False indicates `dest` should be overwritten if it exists already.
+        if isinstance(src, unicode) and isinstance(dest, unicode):
+            _CopyFileW(src, dest, False)
+        elif isinstance(src, str) and isinstance(dest, str):
+            _CopyFileA(src, dest, False)
+        else:
+            raise TypeError('mismatched path types!')
 
 class Dest(object):
     '''
@@ -135,7 +161,8 @@ class BaseFile(object):
 
         if can_skip_content_check:
             if getattr(self, 'path', None) and getattr(dest, 'path', None):
-                shutil.copy2(self.path, dest.path)
+                _copyfile(self.path, dest.path)
+                shutil.copystat(self.path, dest.path)
             else:
                 # Ensure the file is always created
                 if not dest.exists():
@@ -170,6 +197,9 @@ class BaseFile(object):
         assert self.path is not None
         return open(self.path, 'rb')
 
+    def read(self):
+        raise NotImplementedError('BaseFile.read() not implemented. Bug 1170329.')
+
     @property
     def mode(self):
         '''
@@ -193,7 +223,26 @@ class File(BaseFile):
         if platform.system() == 'Windows':
             return None
         assert self.path is not None
-        return os.stat(self.path).st_mode
+        mode = os.stat(self.path).st_mode
+        # Normalize file mode:
+        # - keep file type (e.g. S_IFREG)
+        ret = stat.S_IFMT(mode)
+        # - expand user read and execute permissions to everyone
+        if mode & 0400:
+            ret |= 0444
+        if mode & 0100:
+            ret |= 0111
+        # - keep user write permissions
+        if mode & 0200:
+            ret |= 0200
+        # - leave away sticky bit, setuid, setgid
+        return ret
+
+    def read(self):
+        '''Return the contents of the file.'''
+        with open(self.path, 'rb') as fh:
+            return fh.read()
+
 
 class ExecutableFile(File):
     '''
@@ -393,7 +442,7 @@ class PreprocessedFile(BaseFile):
         # If a dependency file was specified, and it exists, add any
         # dependencies from that file to our list.
         if self.depfile and os.path.exists(self.depfile):
-            target = mozpack.path.normpath(dest.name)
+            target = mozpath.normpath(dest.name)
             with open(self.depfile, 'rb') as fileobj:
                 for rule in makeutil.read_dep_makefile(fileobj):
                     if target in rule.targets():
@@ -609,7 +658,7 @@ class MinifiedJavaScript(BaseFile):
 
     def open(self):
         output = BytesIO()
-        minify = JavascriptMinify(self._file.open(), output)
+        minify = JavascriptMinify(self._file.open(), output, quote_chars="'\"`")
         minify.minify()
         output.seek(0)
 
@@ -681,6 +730,20 @@ class BaseFinder(object):
         for p, f in self._find(pattern):
             yield p, self._minify_file(p, f)
 
+    def get(self, path):
+        """Obtain a single file.
+
+        Where ``find`` is tailored towards matching multiple files, this method
+        is used for retrieving a single file. Use this method when performance
+        is critical.
+
+        Returns a ``BaseFile`` if at most one file exists or ``None`` otherwise.
+        """
+        files = list(self.find(path))
+        if len(files) != 1:
+            return None
+        return files[0][1]
+
     def __iter__(self):
         '''
         Iterates over all files under the base directory (excluding files
@@ -721,6 +784,30 @@ class BaseFinder(object):
 
         return file
 
+    def _find_helper(self, pattern, files, file_getter):
+        """Generic implementation of _find.
+
+        A few *Finder implementations share logic for returning results.
+        This function implements the custom logic.
+
+        The ``file_getter`` argument is a callable that receives a path
+        that is known to exist. The callable should return a ``BaseFile``
+        instance.
+        """
+        if '*' in pattern:
+            for p in files:
+                if mozpath.match(p, pattern):
+                    yield p, file_getter(p)
+        elif pattern == '':
+            for p in files:
+                yield p, file_getter(p)
+        elif pattern in files:
+            yield pattern, file_getter(pattern)
+        else:
+            for p in files:
+                if mozpath.basedir(p, [pattern]) == pattern:
+                    yield p, file_getter(p)
+
 
 class FileFinder(BaseFinder):
     '''
@@ -736,7 +823,7 @@ class FileFinder(BaseFinder):
 
         ``ignore`` accepts an iterable of patterns to ignore. Entries are
         strings that match paths relative to ``base`` using
-        ``mozpack.path.match()``. This means if an entry corresponds
+        ``mozpath.match()``. This means if an entry corresponds
         to a directory, all files under that directory will be ignored. If
         an entry corresponds to a file, that particular file will be ignored.
         '''
@@ -752,11 +839,12 @@ class FileFinder(BaseFinder):
         scanning directories, but are not ignored when explicitely requested.
         '''
         if '*' in pattern:
-            return self._find_glob('', mozpack.path.split(pattern))
+            return self._find_glob('', mozpath.split(pattern))
         elif os.path.isdir(os.path.join(self.base, pattern)):
             return self._find_dir(pattern)
         else:
-            return self._find_file(pattern)
+            f = self.get(pattern)
+            return ((pattern, f),) if f else ()
 
     def _find_dir(self, path):
         '''
@@ -766,7 +854,7 @@ class FileFinder(BaseFinder):
         path itself has leafs starting with a '.', they are not ignored.
         '''
         for p in self.ignore:
-            if mozpack.path.match(path, p):
+            if mozpath.match(path, p):
                 return
 
         # The sorted makes the output idempotent. Otherwise, we are
@@ -775,26 +863,22 @@ class FileFinder(BaseFinder):
         for p in sorted(os.listdir(os.path.join(self.base, path))):
             if p.startswith('.'):
                 continue
-            for p_, f in self._find(mozpack.path.join(path, p)):
+            for p_, f in self._find(mozpath.join(path, p)):
                 yield p_, f
 
-    def _find_file(self, path):
-        '''
-        Actual implementation of FileFinder.find() when the given pattern
-        corresponds to an existing file under the base directory.
-        '''
+    def get(self, path):
         srcpath = os.path.join(self.base, path)
         if not os.path.exists(srcpath):
-            return
+            return None
 
         for p in self.ignore:
-            if mozpack.path.match(path, p):
-                return
+            if mozpath.match(path, p):
+                return None
 
         if self.find_executables and is_executable(srcpath):
-            yield path, ExecutableFile(srcpath)
+            return ExecutableFile(srcpath)
         else:
-            yield path, File(srcpath)
+            return File(srcpath)
 
     def _find_glob(self, base, pattern):
         '''
@@ -802,7 +886,7 @@ class FileFinder(BaseFinder):
         contains globbing patterns ('*' or '**'). This is meant to be an
         equivalent of:
             for p, f in self:
-                if mozpack.path.match(p, pattern):
+                if mozpath.match(p, pattern):
                     yield p, f
         but avoids scanning the entire tree.
         '''
@@ -811,26 +895,26 @@ class FileFinder(BaseFinder):
                 yield p, f
         elif pattern[0] == '**':
             for p, f in self._find(base):
-                if mozpack.path.match(p, mozpack.path.join(*pattern)):
+                if mozpath.match(p, mozpath.join(*pattern)):
                     yield p, f
         elif '*' in pattern[0]:
             if not os.path.exists(os.path.join(self.base, base)):
                 return
 
             for p in self.ignore:
-                if mozpack.path.match(base, p):
+                if mozpath.match(base, p):
                     return
 
             # See above comment w.r.t. sorted() and idempotent behavior.
             for p in sorted(os.listdir(os.path.join(self.base, base))):
                 if p.startswith('.') and not pattern[0].startswith('.'):
                     continue
-                if mozpack.path.match(p, pattern[0]):
-                    for p_, f in self._find_glob(mozpack.path.join(base, p),
+                if mozpath.match(p, pattern[0]):
+                    for p_, f in self._find_glob(mozpath.join(base, p),
                                                  pattern[1:]):
                         yield p_, f
         else:
-            for p, f in self._find_glob(mozpack.path.join(base, pattern[0]),
+            for p, f in self._find_glob(mozpath.join(base, pattern[0]),
                                         pattern[1:]):
                 yield p, f
 
@@ -853,16 +937,113 @@ class JarFinder(BaseFinder):
         Actual implementation of JarFinder.find(), dispatching to specialized
         member functions depending on what kind of pattern was given.
         '''
-        if '*' in pattern:
-            for p in self._files:
-                if mozpack.path.match(p, pattern):
-                    yield p, DeflatedFile(self._files[p])
-        elif pattern == '':
-            for p in self._files:
-                yield p, DeflatedFile(self._files[p])
-        elif pattern in self._files:
-            yield pattern, DeflatedFile(self._files[pattern])
-        else:
-            for p in self._files:
-                if mozpack.path.basedir(p, [pattern]) == pattern:
-                    yield p, DeflatedFile(self._files[p])
+        return self._find_helper(pattern, self._files,
+                                 lambda x: DeflatedFile(self._files[x]))
+
+
+class ComposedFinder(BaseFinder):
+    '''
+    Composes multiple File Finders in some sort of virtual file system.
+
+    A ComposedFinder is initialized from a dictionary associating paths to
+    *Finder instances.
+
+    Note this could be optimized to be smarter than getting all the files
+    in advance.
+    '''
+    def __init__(self, finders):
+        # Can't import globally, because of the dependency of mozpack.copier
+        # on this module.
+        from mozpack.copier import FileRegistry
+        self.files = FileRegistry()
+
+        for base, finder in sorted(finders.iteritems()):
+            if self.files.contains(base):
+                self.files.remove(base)
+            for p, f in finder.find(''):
+                self.files.add(mozpath.join(base, p), f)
+
+    def find(self, pattern):
+        for p in self.files.match(pattern):
+            yield p, self.files[p]
+
+
+class MercurialFile(BaseFile):
+    """File class for holding data from Mercurial."""
+    def __init__(self, client, rev, path):
+        self._content = client.cat([path], rev=rev)
+
+    def read(self):
+        return self._content
+
+
+class MercurialRevisionFinder(BaseFinder):
+    """A finder that operates on a specific Mercurial revision."""
+
+    def __init__(self, repo, rev='.', recognize_repo_paths=False, **kwargs):
+        """Create a finder attached to a specific revision in a repository.
+
+        If no revision is given, open the parent of the working directory.
+
+        ``recognize_repo_paths`` will enable a mode where ``.get()`` will
+        recognize full paths that include the repo's path. Typically Finder
+        instances are "bound" to a base directory and paths are relative to
+        that directory. This mode changes that. When this mode is activated,
+        ``.find()`` will not work! This mode exists to support the moz.build
+        reader, which uses absolute paths instead of relative paths. The reader
+        should eventually be rewritten to use relative paths and this hack
+        should be removed (TODO bug 1171069).
+        """
+        if not hglib:
+            raise Exception('hglib package not found')
+
+        super(MercurialRevisionFinder, self).__init__(base=repo, **kwargs)
+
+        self._root = mozpath.normpath(repo).rstrip('/')
+        self._recognize_repo_paths = recognize_repo_paths
+
+        # We change directories here otherwise we have to deal with relative
+        # paths.
+        oldcwd = os.getcwd()
+        os.chdir(self._root)
+        try:
+            self._client = hglib.open(path=repo, encoding=b'utf-8')
+        finally:
+            os.chdir(oldcwd)
+        self._rev = rev if rev is not None else b'.'
+        self._files = OrderedDict()
+
+        # Immediately populate the list of files in the repo since nearly every
+        # operation requires this list.
+        out = self._client.rawcommand([b'files', b'--rev', str(self._rev)])
+        for relpath in out.splitlines():
+            self._files[relpath] = None
+
+    def _find(self, pattern):
+        if self._recognize_repo_paths:
+            raise NotImplementedError('cannot use find with recognize_repo_path')
+
+        return self._find_helper(pattern, self._files, self._get)
+
+    def get(self, path):
+        if self._recognize_repo_paths:
+            if not path.startswith(self._root):
+                raise ValueError('lookups in recognize_repo_paths mode must be '
+                                 'prefixed with repo path: %s' % path)
+            path = path[len(self._root) + 1:]
+
+        try:
+            return self._get(path)
+        except KeyError:
+            return None
+
+    def _get(self, path):
+        # We lazy populate self._files because potentially creating tens of
+        # thousands of MercurialFile instances for every file in the repo is
+        # inefficient.
+        f = self._files[path]
+        if not f:
+            f = MercurialFile(self._client, self._rev, path)
+            self._files[path] = f
+
+        return f

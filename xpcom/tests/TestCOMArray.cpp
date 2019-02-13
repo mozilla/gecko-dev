@@ -24,18 +24,19 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IFoo, NS_IFOO_IID)
 
-class Foo MOZ_FINAL : public IFoo {
+class Foo final : public IFoo {
+  ~Foo();
+
 public:
 
-  Foo(int32_t aID);
-  ~Foo();
+  explicit Foo(int32_t aID);
 
   // nsISupports implementation
   NS_DECL_ISUPPORTS
 
   // IFoo implementation
-  NS_IMETHOD_(MozExternalRefCountType) RefCnt() { return mRefCnt; }
-  NS_IMETHOD_(int32_t) ID() { return mID; }
+  NS_IMETHOD_(MozExternalRefCountType) RefCnt() override { return mRefCnt; }
+  NS_IMETHOD_(int32_t) ID() override { return mID; }
 
   static int32_t gCount;
 
@@ -74,11 +75,10 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IBar, NS_IBAR_IID)
 
-class Bar MOZ_FINAL : public IBar {
+class Bar final : public IBar {
 public:
 
   explicit Bar(nsCOMArray<IBar>& aArray);
-  ~Bar();
 
   // nsISupports implementation
   NS_DECL_ISUPPORTS
@@ -86,6 +86,8 @@ public:
   static int32_t sReleaseCalled;
 
 private:
+  ~Bar();
+
   nsCOMArray<IBar>& mArray;
 };
 

@@ -15,16 +15,6 @@ Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 let kLongestReturnedString = 128;
 
-// Event whitelisted for bubbling.
-let whitelistedEvents = [
-  Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   // Back button.
-  Ci.nsIDOMKeyEvent.DOM_VK_SLEEP,    // Power button.
-  Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
-  Ci.nsIDOMKeyEvent.DOM_VK_F5,       // Search button.
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP,  // Volume up.
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN // Volume down.
-];
-
 function debug(msg) {
   //dump("BrowserElementChildPreload - " + msg + "\n");
 }
@@ -59,54 +49,17 @@ function sendSyncMsg(msg, data) {
 
 let CERTIFICATE_ERROR_PAGE_PREF = 'security.alternate_certificate_error_page';
 
-let NS_ERROR_MODULE_BASE_OFFSET = 0x45;
-let NS_ERROR_MODULE_SECURITY= 21;
-function NS_ERROR_GET_MODULE(err) {
-  return ((((err) >> 16) - NS_ERROR_MODULE_BASE_OFFSET) & 0x1fff);
-}
-
-function NS_ERROR_GET_CODE(err) {
-  return ((err) & 0xffff);
-}
-
-let SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
-let SEC_ERROR_UNKNOWN_ISSUER = (SEC_ERROR_BASE + 13);
-let SEC_ERROR_CA_CERT_INVALID =   (SEC_ERROR_BASE + 36);
-let SEC_ERROR_UNTRUSTED_ISSUER = (SEC_ERROR_BASE + 20);
-let SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE = (SEC_ERROR_BASE + 30);
-let SEC_ERROR_UNTRUSTED_CERT = (SEC_ERROR_BASE + 21);
-let SEC_ERROR_EXPIRED_CERTIFICATE = (SEC_ERROR_BASE + 11);
-let SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED = (SEC_ERROR_BASE + 176);
-
-let SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
-let SSL_ERROR_BAD_CERT_DOMAIN = (SSL_ERROR_BASE + 12);
-
-function getErrorClass(errorCode) {
-  let NSPRCode = -1 * NS_ERROR_GET_CODE(errorCode);
-
-  switch (NSPRCode) {
-    case SEC_ERROR_UNKNOWN_ISSUER:
-    case SEC_ERROR_UNTRUSTED_ISSUER:
-    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
-    case SEC_ERROR_UNTRUSTED_CERT:
-    case SSL_ERROR_BAD_CERT_DOMAIN:
-    case SEC_ERROR_EXPIRED_CERTIFICATE:
-    case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
-      return Ci.nsINSSErrorsService.ERROR_CLASS_BAD_CERT;
-    default:
-      return Ci.nsINSSErrorsService.ERROR_CLASS_SSL_PROTOCOL;
-  }
-
-  return null;
-}
-
 const OBSERVED_EVENTS = [
-  'fullscreen-origin-change',
-  'ask-parent-to-exit-fullscreen',
-  'ask-parent-to-rollback-fullscreen',
   'xpcom-shutdown',
   'activity-done'
 ];
+
+const COMMAND_MAP = {
+  'cut': 'cmd_cut',
+  'copy': 'cmd_copyAndCollapseToEnd',
+  'paste': 'cmd_paste',
+  'selectall': 'cmd_selectAll'
+};
 
 /**
  * The BrowserElementChild implements one half of <iframe mozbrowser>.
@@ -138,6 +91,7 @@ function BrowserElementChild() {
 
   this._isContentWindowCreated = false;
   this._pendingSetInputMethodActive = [];
+  this._selectionStateChangedTarget = null;
 
   this._init();
 };
@@ -185,9 +139,54 @@ BrowserElementChild.prototype = {
                      /* useCapture = */ true,
                      /* wantsUntrusted = */ false);
 
-    addEventListener('DOMMetaAdded',
-                     this._metaAddedHandler.bind(this),
+    addEventListener('MozScrolledAreaChanged',
+                     this._mozScrollAreaChanged.bind(this),
                      /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener("MozDOMFullscreen:Request",
+                     this._mozRequestedDOMFullscreen.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener("MozDOMFullscreen:NewOrigin",
+                     this._mozFullscreenOriginChange.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener("MozDOMFullscreen:Exit",
+                     this._mozExitDomFullscreen.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('DOMMetaAdded',
+                     this._metaChangedHandler.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('DOMMetaChanged',
+                     this._metaChangedHandler.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('DOMMetaRemoved',
+                     this._metaChangedHandler.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('mozselectionstatechanged',
+                     this._selectionStateChangedHandler.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('scrollviewchange',
+                     this._ScrollViewChangeHandler.bind(this),
+                     /* useCapture = */ true,
+                     /* wantsUntrusted = */ false);
+
+    addEventListener('click',
+                     this._ClickHandler.bind(this),
+                     /* useCapture = */ false,
                      /* wantsUntrusted = */ false);
 
     // This listens to unload events from our message manager, but /not/ from
@@ -210,6 +209,7 @@ BrowserElementChild.prototype = {
     let mmCalls = {
       "purge-history": this._recvPurgeHistory,
       "get-screenshot": this._recvGetScreenshot,
+      "get-contentdimensions": this._recvGetContentDimensions,
       "set-visible": this._recvSetVisible,
       "get-visible": this._recvVisible,
       "send-mouse-event": this._recvSendMouseEvent,
@@ -220,13 +220,19 @@ BrowserElementChild.prototype = {
       "go-forward": this._recvGoForward,
       "reload": this._recvReload,
       "stop": this._recvStop,
+      "zoom": this._recvZoom,
       "unblock-modal-prompt": this._recvStopWaiting,
       "fire-ctx-callback": this._recvFireCtxCallback,
       "owner-visibility-change": this._recvOwnerVisibilityChange,
+      "entered-fullscreen": this._recvEnteredFullscreen,
       "exit-fullscreen": this._recvExitFullscreen.bind(this),
       "activate-next-paint-listener": this._activateNextPaintListener.bind(this),
       "set-input-method-active": this._recvSetInputMethodActive.bind(this),
-      "deactivate-next-paint-listener": this._deactivateNextPaintListener.bind(this)
+      "deactivate-next-paint-listener": this._deactivateNextPaintListener.bind(this),
+      "do-command": this._recvDoCommand,
+      "find-all": this._recvFindAll.bind(this),
+      "find-next": this._recvFindNext.bind(this),
+      "clear-match": this._recvClearMatch.bind(this),
     }
 
     addMessageListener("browser-element-api:call", function(aMessage) {
@@ -240,15 +246,6 @@ BrowserElementChild.prototype = {
 
     // We are using the system group for those events so if something in the
     // content called .stopPropagation() this will still be called.
-    els.addSystemEventListener(global, 'keydown',
-                               this._keyEventHandler.bind(this),
-                               /* useCapture = */ true);
-    els.addSystemEventListener(global, 'keypress',
-                               this._keyEventHandler.bind(this),
-                               /* useCapture = */ true);
-    els.addSystemEventListener(global, 'keyup',
-                               this._keyEventHandler.bind(this),
-                               /* useCapture = */ true);
     els.addSystemEventListener(global, 'DOMWindowClose',
                                this._windowCloseHandler.bind(this),
                                /* useCapture = */ false);
@@ -278,15 +275,6 @@ BrowserElementChild.prototype = {
     if (topic == 'activity-done' && docShell !== subject)
       return;
     switch (topic) {
-      case 'fullscreen-origin-change':
-        sendAsyncMsg('fullscreen-origin-change', { _payload_: data });
-        break;
-      case 'ask-parent-to-exit-fullscreen':
-        sendAsyncMsg('exit-fullscreen');
-        break;
-      case 'ask-parent-to-rollback-fullscreen':
-        sendAsyncMsg('rollback-fullscreen');
-        break;
       case 'activity-done':
         sendAsyncMsg('activitydone', { success: (data == 'activity-success') });
         break;
@@ -305,6 +293,12 @@ BrowserElementChild.prototype = {
     OBSERVED_EVENTS.forEach((aTopic) => {
       Services.obs.removeObserver(this, aTopic);
     });
+  },
+
+  get _windowUtils() {
+    return content.document.defaultView
+                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIDOMWindowUtils);
   },
 
   _tryGetInnerWindowID: function(win) {
@@ -338,6 +332,15 @@ BrowserElementChild.prototype = {
         args.promptType == 'custom-prompt') {
       return returnValue;
     }
+  },
+
+  _isCommandEnabled: function(cmd) {
+    let command = COMMAND_MAP[cmd];
+    if (!command) {
+      return false;
+    }
+
+    return docShell.isCommandEnabled(command);
   },
 
   /**
@@ -389,6 +392,10 @@ BrowserElementChild.prototype = {
     }
     debug("Nested event loop - finish");
 
+    if (win.modalDepth == 0) {
+      delete this._windowIDDict[outerWindowID];
+    }
+
     // If we exited the loop because the inner window changed, then bail on the
     // modal prompt.
     if (innerWindowID !== this._tryGetInnerWindowID(win)) {
@@ -421,7 +428,6 @@ BrowserElementChild.prototype = {
     }
 
     let win = this._windowIDDict[outerID].get();
-    delete this._windowIDDict[outerID];
 
     if (!win) {
       debug("recvStopWaiting, but window is gone\n");
@@ -438,11 +444,18 @@ BrowserElementChild.prototype = {
     win.modalDepth--;
   },
 
+  _recvEnteredFullscreen: function() {
+    if (!this._windowUtils.handleFullscreenRequests() &&
+        !content.document.mozFullScreen) {
+      // If we don't actually have any pending fullscreen request
+      // to handle, neither we have been in fullscreen, tell the
+      // parent to just exit.
+      sendAsyncMsg("exit-dom-fullscreen");
+    }
+  },
+
   _recvExitFullscreen: function() {
-    var utils = content.document.defaultView
-                       .QueryInterface(Ci.nsIInterfaceRequestor)
-                       .getInterface(Ci.nsIDOMWindowUtils);
-    utils.exitFullscreen();
+    this._windowUtils.exitFullscreen();
   },
 
   _titleChangedHandler: function(e) {
@@ -459,13 +472,17 @@ BrowserElementChild.prototype = {
     }
   },
 
+  _maybeCopyAttribute: function(src, target, attribute) {
+    if (src.getAttribute(attribute)) {
+      target[attribute] = src.getAttribute(attribute);
+    }
+  },
+
   _iconChangedHandler: function(e) {
     debug('Got iconchanged: (' + e.target.href + ')');
     let icon = { href: e.target.href };
-    if (e.target.getAttribute('sizes')) {
-      icon.sizes = e.target.getAttribute('sizes');
-    }
-
+    this._maybeCopyAttribute(e.target, icon, 'sizes');
+    this._maybeCopyAttribute(e.target, icon, 'rel');
     sendAsyncMsg('iconchange', icon);
   },
 
@@ -499,7 +516,8 @@ BrowserElementChild.prototype = {
     }
 
     let handlers = {
-      'icon': this._iconChangedHandler,
+      'icon': this._iconChangedHandler.bind(this),
+      'apple-touch-icon': this._iconChangedHandler.bind(this),
       'search': this._openSearchHandler,
       'manifest': this._manifestChangedHandler
     };
@@ -513,7 +531,7 @@ BrowserElementChild.prototype = {
     }, this);
   },
 
-  _metaAddedHandler: function(e) {
+  _metaChangedHandler: function(e) {
     let win = e.target.ownerDocument.defaultView;
     // Ignore metas which don't come from the top-level
     // <iframe mozbrowser> window.
@@ -526,39 +544,190 @@ BrowserElementChild.prototype = {
       return;
     }
 
-    debug('Got metaAdded: (' + e.target.name + ') ' + e.target.content);
-    if (e.target.name == 'application-name') {
-      let meta = { name: e.target.name,
-                   content: e.target.content };
+    debug('Got metaChanged: (' + e.target.name + ') ' + e.target.content);
 
-      let lang;
-      let elm;
+    let handlers = {
+      'viewmode': this._genericMetaHandler.bind(null, 'viewmode'),
+      'theme-color': this._genericMetaHandler.bind(null, 'theme-color'),
+      'theme-group': this._genericMetaHandler.bind(null, 'theme-group'),
+      'application-name': this._applicationNameChangedHandler
+    };
 
-      for (elm = e.target;
-           !lang && elm && elm.nodeType == e.target.ELEMENT_NODE;
-           elm = elm.parentNode) {
-        if (elm.hasAttribute('lang')) {
-          lang = elm.getAttribute('lang');
-          continue;
-        }
-
-        if (elm.hasAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang')) {
-          lang = elm.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang');
-          continue;
-        }
-      }
-
-      // No lang has been detected.
-      if (!lang && elm.nodeType == e.target.DOCUMENT_NODE) {
-        lang = elm.contentLanguage;
-      }
-
-      if (lang) {
-        meta.lang = lang;
-      }
-
-      sendAsyncMsg('metachange', meta);
+    let handler = handlers[e.target.name];
+    if (handler) {
+      handler(e.type, e.target);
     }
+  },
+
+  _applicationNameChangedHandler: function(eventType, target) {
+    if (eventType !== 'DOMMetaAdded') {
+      // Bug 1037448 - Decide what to do when <meta name="application-name">
+      // changes
+      return;
+    }
+
+    let meta = { name: 'application-name',
+                 content: target.content };
+
+    let lang;
+    let elm;
+
+    for (elm = target;
+         !lang && elm && elm.nodeType == target.ELEMENT_NODE;
+         elm = elm.parentNode) {
+      if (elm.hasAttribute('lang')) {
+        lang = elm.getAttribute('lang');
+        continue;
+      }
+
+      if (elm.hasAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang')) {
+        lang = elm.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang');
+        continue;
+      }
+    }
+
+    // No lang has been detected.
+    if (!lang && elm.nodeType == target.DOCUMENT_NODE) {
+      lang = elm.contentLanguage;
+    }
+
+    if (lang) {
+      meta.lang = lang;
+    }
+
+    sendAsyncMsg('metachange', meta);
+  },
+
+  _ScrollViewChangeHandler: function(e) {
+    e.stopPropagation();
+    let detail = {
+      state: e.state,
+    };
+    sendAsyncMsg('scrollviewchange', detail);
+  },
+
+  _ClickHandler: function(e) {
+
+    let isHTMLLink = node =>
+      ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
+       (node instanceof Ci.nsIDOMHTMLAreaElement && node.href) ||
+        node instanceof Ci.nsIDOMHTMLLinkElement);
+
+    // Open in a new tab if middle click or ctrl/cmd-click,
+    // and e.target is a link or inside a link.
+    if ((Services.appinfo.OS == 'Darwin' && e.metaKey) ||
+        (Services.appinfo.OS != 'Darwin' && e.ctrlKey) ||
+         e.button == 1) {
+
+      let node = e.target;
+      while (node && !isHTMLLink(node)) {
+        node = node.parentNode;
+      }
+
+      if (node) {
+        sendAsyncMsg('opentab', {url: node.href});
+      }
+    }
+  },
+
+  _selectionStateChangedHandler: function(e) {
+    e.stopPropagation();
+
+    if (!this._isContentWindowCreated) {
+      return;
+    }
+
+    let boundingClientRect = e.boundingClientRect;
+
+    let isCollapsed = (e.selectedText.length == 0);
+    let isMouseUp = (e.states.indexOf('mouseup') == 0);
+    let canPaste = this._isCommandEnabled("paste");
+
+    if (this._selectionStateChangedTarget != e.target) {
+      // SelectionStateChanged events with the following states are not
+      // necessary to trigger the text dialog, bypass these events
+      // by default.
+      //
+      if(e.states.length == 0 ||
+         e.states.indexOf('drag') == 0 ||
+         e.states.indexOf('keypress') == 0 ||
+         e.states.indexOf('mousedown') == 0) {
+        return;
+      }
+
+      // The collapsed SelectionStateChanged event is unnecessary to dispatch,
+      // bypass this event by default, but here comes some exceptional cases
+      if (isCollapsed) {
+        if (isMouseUp && canPaste) {
+          // Always dispatch to support shortcut mode which can paste previous
+          // copied content easily
+        } else if (e.states.indexOf('blur') == 0) {
+          // Always dispatch to notify the blur for the focus content
+        } else if (e.states.indexOf('taponcaret') == 0) {
+          // Always dispatch to notify the caret be touched
+        } else {
+          return;
+        }
+      }
+    }
+
+    // If we select something and selection range is visible, we cache current
+    // event's target to selectionStateChangedTarget.
+    // And dispatch the next SelectionStateChagne event if target is matched, so
+    // that the parent side can hide the text dialog.
+    // We clear selectionStateChangedTarget if selection carets are invisible.
+    if (e.visible && !isCollapsed) {
+      this._selectionStateChangedTarget = e.target;
+    } else if (canPaste && isCollapsed) {
+      this._selectionStateChangedTarget = e.target;
+    } else {
+      this._selectionStateChangedTarget = null;
+    }
+
+    let zoomFactor = content.screen.width / content.innerWidth;
+
+    let detail = {
+      rect: {
+        width: boundingClientRect ? boundingClientRect.width : 0,
+        height: boundingClientRect ? boundingClientRect.height : 0,
+        top: boundingClientRect ? boundingClientRect.top : 0,
+        bottom: boundingClientRect ? boundingClientRect.bottom : 0,
+        left: boundingClientRect ? boundingClientRect.left : 0,
+        right: boundingClientRect ? boundingClientRect.right : 0,
+      },
+      commands: {
+        canSelectAll: this._isCommandEnabled("selectall"),
+        canCut: this._isCommandEnabled("cut"),
+        canCopy: this._isCommandEnabled("copy"),
+        canPaste: this._isCommandEnabled("paste"),
+      },
+      zoomFactor: zoomFactor,
+      states: e.states,
+      isCollapsed: (e.selectedText.length == 0),
+      visible: e.visible,
+    };
+
+    // Get correct geometry information if we have nested iframe.
+    let currentWindow = e.target.defaultView;
+    while (currentWindow.realFrameElement) {
+      let currentRect = currentWindow.realFrameElement.getBoundingClientRect();
+      detail.rect.top += currentRect.top;
+      detail.rect.bottom += currentRect.top;
+      detail.rect.left += currentRect.left;
+      detail.rect.right += currentRect.left;
+      currentWindow = currentWindow.realFrameElement.ownerDocument.defaultView;
+    }
+
+    sendAsyncMsg('selectionstatechanged', detail);
+  },
+
+  _genericMetaHandler: function(name, eventType, target) {
+    let meta = {
+      name: name,
+      content: target.content,
+      type: eventType.replace('DOMMeta', '').toLowerCase()
+    };
+    sendAsyncMsg('metachange', meta);
   },
 
   _addMozAfterPaintHandler: function(callback) {
@@ -681,10 +850,10 @@ BrowserElementChild.prototype = {
       }
     }
 
-    // The value returned by the contextmenu sync call is true iff the embedder
+    // The value returned by the contextmenu sync call is true if the embedder
     // called preventDefault() on its contextmenu event.
     //
-    // We call preventDefault() on our contextmenu event iff the embedder called
+    // We call preventDefault() on our contextmenu event if the embedder called
     // preventDefault() on /its/ contextmenu event.  This way, if the embedder
     // ignored the contextmenu event, TabChild will fire a click.
     if (sendSyncMsg('contextmenu', menuData)[0]) {
@@ -695,21 +864,50 @@ BrowserElementChild.prototype = {
   },
 
   _getSystemCtxMenuData: function(elem) {
+    let documentURI = 
+      docShell.QueryInterface(Ci.nsIWebNavigation).currentURI.spec;
     if ((elem instanceof Ci.nsIDOMHTMLAnchorElement && elem.href) ||
         (elem instanceof Ci.nsIDOMHTMLAreaElement && elem.href)) {
       return {uri: elem.href,
+              documentURI: documentURI,
               text: elem.textContent.substring(0, kLongestReturnedString)};
     }
     if (elem instanceof Ci.nsIImageLoadingContent && elem.currentURI) {
-      return {uri: elem.currentURI.spec};
+      return {uri: elem.currentURI.spec, documentURI: documentURI};
     }
     if (elem instanceof Ci.nsIDOMHTMLImageElement) {
-      return {uri: elem.src};
+      return {uri: elem.src, documentURI: documentURI};
     }
     if (elem instanceof Ci.nsIDOMHTMLMediaElement) {
       let hasVideo = !(elem.readyState >= elem.HAVE_METADATA &&
                        (elem.videoWidth == 0 || elem.videoHeight == 0));
-      return {uri: elem.currentSrc || elem.src, hasVideo: hasVideo};
+      return {uri: elem.currentSrc || elem.src,
+              hasVideo: hasVideo,
+              documentURI: documentURI};
+    }
+    if (elem instanceof Ci.nsIDOMHTMLInputElement &&
+        elem.hasAttribute("name")) {
+      // For input elements, we look for a parent <form> and if there is
+      // one we return the form's method and action uri.
+      let parent = elem.parentNode;
+      while (parent) {
+        if (parent instanceof Ci.nsIDOMHTMLFormElement &&
+            parent.hasAttribute("action")) {
+          let actionHref = docShell.QueryInterface(Ci.nsIWebNavigation)
+                                   .currentURI
+                                   .resolve(parent.getAttribute("action"));
+          let method = parent.hasAttribute("method")
+            ? parent.getAttribute("method").toLowerCase()
+            : "get";
+          return {
+            documentURI: documentURI,
+            action: actionHref,
+            method: method,
+            name: elem.getAttribute("name"),
+          }
+        }
+        parent = parent.parentNode;
+      }
     }
     return false;
   },
@@ -762,6 +960,43 @@ BrowserElementChild.prototype = {
     // anyway.
     Cc['@mozilla.org/message-loop;1'].getService(Ci.nsIMessageLoop).postIdleTask(
       takeScreenshotClosure, maxDelayMS);
+  },
+
+  _recvGetContentDimensions: function(data) {
+    debug("Received getContentDimensions message: (" + data.json.id + ")");
+    sendAsyncMsg('got-contentdimensions', {
+      id: data.json.id,
+      successRv: this._getContentDimensions()
+    });
+  },
+
+  _mozScrollAreaChanged: function(e) {
+    let dimensions = this._getContentDimensions();
+    sendAsyncMsg('scrollareachanged', {
+      width: dimensions.width,
+      height: dimensions.height
+    });
+  },
+
+  _mozRequestedDOMFullscreen: function(e) {
+    sendAsyncMsg("requested-dom-fullscreen");
+  },
+
+  _mozFullscreenOriginChange: function(e) {
+    sendAsyncMsg("fullscreen-origin-change", {
+      originNoSuffix: e.target.nodePrincipal.originNoSuffix
+    });
+  },
+
+  _mozExitDomFullscreen: function(e) {
+    sendAsyncMsg("exit-dom-fullscreen");
+  },
+
+  _getContentDimensions: function() {
+    return {
+      width: content.document.body.scrollWidth,
+      height: content.document.body.scrollHeight
+    }
   },
 
   /**
@@ -868,14 +1103,8 @@ BrowserElementChild.prototype = {
   },
 
   _buildMenuObj: function(menu, idPrefix) {
-    function maybeCopyAttribute(src, target, attribute) {
-      if (src.getAttribute(attribute)) {
-        target[attribute] = src.getAttribute(attribute);
-      }
-    }
-
     var menuObj = {type: 'menu', items: []};
-    maybeCopyAttribute(menu, menuObj, 'label');
+    this._maybeCopyAttribute(menu, menuObj, 'label');
 
     for (var i = 0, child; child = menu.children[i++];) {
       if (child.nodeName === 'MENU') {
@@ -883,8 +1112,8 @@ BrowserElementChild.prototype = {
       } else if (child.nodeName === 'MENUITEM') {
         var id = this._ctxCounter + '_' + idPrefix + i;
         var menuitem = {id: id, type: 'menuitem'};
-        maybeCopyAttribute(child, menuitem, 'label');
-        maybeCopyAttribute(child, menuitem, 'icon');
+        this._maybeCopyAttribute(child, menuitem, 'label');
+        this._maybeCopyAttribute(child, menuitem, 'icon');
         this._ctxHandlers[id] = child;
         menuObj.items.push(menuitem);
       }
@@ -921,7 +1150,7 @@ BrowserElementChild.prototype = {
 
   _updateVisibility: function() {
     var visible = this._forcedVisible && this._ownerVisible;
-    if (docShell.isActive !== visible) {
+    if (docShell && docShell.isActive !== visible) {
       docShell.isActive = visible;
       sendAsyncMsg('visibilitychange', {visible: visible});
     }
@@ -994,6 +1223,68 @@ BrowserElementChild.prototype = {
     webNav.stop(webNav.STOP_NETWORK);
   },
 
+  _recvZoom: function(data) {
+    docShell.contentViewer.fullZoom = data.json.zoom;
+  },
+
+  _recvDoCommand: function(data) {
+    if (this._isCommandEnabled(data.json.command)) {
+      this._selectionStateChangedTarget = null;
+      docShell.doCommand(COMMAND_MAP[data.json.command]);
+    }
+  },
+
+  _initFinder: function() {
+    if (!this._finder) {
+      try {
+        this._findLimit = Services.prefs.getIntPref("accessibility.typeaheadfind.matchesCountLimit");
+      } catch (e) {
+        // Pref not available, assume 0, no match counting.
+        this._findLimit = 0;
+      }
+
+      let {Finder} = Components.utils.import("resource://gre/modules/Finder.jsm", {});
+      this._finder = new Finder(docShell);
+      this._finder.addResultListener({
+        onMatchesCountResult: (data) => {
+          sendAsyncMsg('findchange', {
+            active: true,
+            searchString: this._finder.searchString,
+            searchLimit: this._findLimit,
+            activeMatchOrdinal: data.current,
+            numberOfMatches: data.total
+          });
+        }
+      });
+    }
+  },
+
+  _recvFindAll: function(data) {
+    this._initFinder();
+    let searchString = data.json.searchString;
+    this._finder.caseSensitive = data.json.caseSensitive;
+    this._finder.fastFind(searchString, false, false);
+    this._finder.requestMatchesCount(searchString, this._findLimit, false);
+  },
+
+  _recvFindNext: function(data) {
+    if (!this._finder) {
+      debug("findNext() called before findAll()");
+      return;
+    }
+    this._finder.findAgain(data.json.backward, false, false);
+    this._finder.requestMatchesCount(this._finder.searchString, this._findLimit, false);
+  },
+
+  _recvClearMatch: function(data) {
+    if (!this._finder) {
+      debug("clearMach() called before findAll()");
+      return;
+    }
+    this._finder.removeSelection();
+    sendAsyncMsg('findchange', {active: false});
+  },
+
   _recvSetInputMethodActive: function(data) {
     let msgData = { id: data.json.id };
     if (!this._isContentWindowCreated) {
@@ -1017,16 +1308,6 @@ BrowserElementChild.prototype = {
       msgData.errorMsg = 'Cannot access mozInputMethod.';
     }
     sendAsyncMsg('got-set-input-method-active', msgData);
-  },
-
-  _keyEventHandler: function(e) {
-    if (whitelistedEvents.indexOf(e.keyCode) != -1 && !e.defaultPrevented) {
-      sendAsyncMsg('keyevent', {
-        type: e.type,
-        keyCode: e.keyCode,
-        charCode: e.charCode,
-      });
-    }
   },
 
   // The docShell keeps a weak reference to the progress listener, so we need
@@ -1073,34 +1354,117 @@ BrowserElementChild.prototype = {
         } catch (e) {}
         sendAsyncMsg('loadend', {backgroundColor: bgColor});
 
-        // Ignoring NS_BINDING_ABORTED, which is set when loading page is
-        // stopped.
-        if (status == Cr.NS_OK ||
-            status == Cr.NS_BINDING_ABORTED) {
-          return;
-        }
-
-        if (NS_ERROR_GET_MODULE(status) == NS_ERROR_MODULE_SECURITY &&
-            getErrorClass(status) == Ci.nsINSSErrorsService.ERROR_CLASS_BAD_CERT) {
-
-          // XXX Is there a point firing the event if the error page is not
-          // certerror? If yes, maybe we should add a property to the
-          // event to to indicate whether there is a custom page. That would
-          // let the embedder have more control over the desired behavior.
-          var errorPage = null;
-          try {
-            errorPage = Services.prefs.getCharPref(CERTIFICATE_ERROR_PAGE_PREF);
-          } catch(e) {}
-
-          if (errorPage == 'certerror') {
-            sendAsyncMsg('error', { type: 'certerror' });
+        switch (status) {
+          case Cr.NS_OK :
+          case Cr.NS_BINDING_ABORTED :
+            // Ignoring NS_BINDING_ABORTED, which is set when loading page is
+            // stopped.
             return;
-          }
-        }
 
-        // TODO See nsDocShell::DisplayLoadError for a list of all the error
-        // codes (the status param) we should eventually handle here.
-        sendAsyncMsg('error', { type: 'other' });
+          // TODO See nsDocShell::DisplayLoadError to see what extra
+          // information we should be annotating this first block of errors
+          // with. Bug 1107091.
+          case Cr.NS_ERROR_UNKNOWN_PROTOCOL :
+            sendAsyncMsg('error', { type: 'unknownProtocolFound' });
+            return;
+          case Cr.NS_ERROR_FILE_NOT_FOUND :
+            sendAsyncMsg('error', { type: 'fileNotFound' });
+            return;
+          case Cr.NS_ERROR_UNKNOWN_HOST :
+            sendAsyncMsg('error', { type: 'dnsNotFound' });
+            return;
+          case Cr.NS_ERROR_CONNECTION_REFUSED :
+            sendAsyncMsg('error', { type: 'connectionFailure' });
+            return;
+          case Cr.NS_ERROR_NET_INTERRUPT :
+            sendAsyncMsg('error', { type: 'netInterrupt' });
+            return;
+          case Cr.NS_ERROR_NET_TIMEOUT :
+            sendAsyncMsg('error', { type: 'netTimeout' });
+            return;
+          case Cr.NS_ERROR_CSP_FRAME_ANCESTOR_VIOLATION :
+            sendAsyncMsg('error', { type: 'cspBlocked' });
+            return;
+          case Cr.NS_ERROR_PHISHING_URI :
+            sendAsyncMsg('error', { type: 'phishingBlocked' });
+            return;
+          case Cr.NS_ERROR_MALWARE_URI :
+            sendAsyncMsg('error', { type: 'malwareBlocked' });
+            return;
+          case Cr.NS_ERROR_UNWANTED_URI :
+            sendAsyncMsg('error', { type: 'unwantedBlocked' });
+            return;
+
+          case Cr.NS_ERROR_OFFLINE :
+            sendAsyncMsg('error', { type: 'offline' });
+            return;
+          case Cr.NS_ERROR_MALFORMED_URI :
+            sendAsyncMsg('error', { type: 'malformedURI' });
+            return;
+          case Cr.NS_ERROR_REDIRECT_LOOP :
+            sendAsyncMsg('error', { type: 'redirectLoop' });
+            return;
+          case Cr.NS_ERROR_UNKNOWN_SOCKET_TYPE :
+            sendAsyncMsg('error', { type: 'unknownSocketType' });
+            return;
+          case Cr.NS_ERROR_NET_RESET :
+            sendAsyncMsg('error', { type: 'netReset' });
+            return;
+          case Cr.NS_ERROR_DOCUMENT_NOT_CACHED :
+            sendAsyncMsg('error', { type: 'notCached' });
+            return;
+          case Cr.NS_ERROR_DOCUMENT_IS_PRINTMODE :
+            sendAsyncMsg('error', { type: 'isprinting' });
+            return;
+          case Cr.NS_ERROR_PORT_ACCESS_NOT_ALLOWED :
+            sendAsyncMsg('error', { type: 'deniedPortAccess' });
+            return;
+          case Cr.NS_ERROR_UNKNOWN_PROXY_HOST :
+            sendAsyncMsg('error', { type: 'proxyResolveFailure' });
+            return;
+          case Cr.NS_ERROR_PROXY_CONNECTION_REFUSED :
+            sendAsyncMsg('error', { type: 'proxyConnectFailure' });
+            return;
+          case Cr.NS_ERROR_INVALID_CONTENT_ENCODING :
+            sendAsyncMsg('error', { type: 'contentEncodingFailure' });
+            return;
+          case Cr.NS_ERROR_REMOTE_XUL :
+            sendAsyncMsg('error', { type: 'remoteXUL' });
+            return;
+          case Cr.NS_ERROR_UNSAFE_CONTENT_TYPE :
+            sendAsyncMsg('error', { type: 'unsafeContentType' });
+            return;
+          case Cr.NS_ERROR_CORRUPTED_CONTENT :
+            sendAsyncMsg('error', { type: 'corruptedContentError' });
+            return;
+
+          default:
+            // getErrorClass() will throw if the error code passed in is not a NSS
+            // error code.
+            try {
+              let nssErrorsService = Cc['@mozilla.org/nss_errors_service;1']
+                                       .getService(Ci.nsINSSErrorsService);
+              if (nssErrorsService.getErrorClass(status)
+                    == Ci.nsINSSErrorsService.ERROR_CLASS_BAD_CERT) {
+                // XXX Is there a point firing the event if the error page is not
+                // certerror? If yes, maybe we should add a property to the
+                // event to to indicate whether there is a custom page. That would
+                // let the embedder have more control over the desired behavior.
+                let errorPage = null;
+                try {
+                  errorPage = Services.prefs.getCharPref(CERTIFICATE_ERROR_PAGE_PREF);
+                } catch (e) {}
+
+                if (errorPage == 'certerror') {
+                  sendAsyncMsg('error', { type: 'certerror' });
+                  return;
+                }
+              }
+            } catch (e) {}
+
+            sendAsyncMsg('error', { type: 'other' });
+            return;
+        }
       }
     },
 
@@ -1119,12 +1483,17 @@ BrowserElementChild.prototype = {
       else if (state & Ci.nsIWebProgressListener.STATE_IS_INSECURE) {
         stateDesc = 'insecure';
       }
+      else if (state & Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT) {
+        stateDesc = 'loaded_tracking_content';
+      }
+      else if (state & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT) {
+        stateDesc = 'blocked_tracking_content';
+      }
       else {
         debug("Unexpected securitychange state!");
         stateDesc = '???';
       }
 
-      // XXX Until bug 764496 is fixed, this will always return false.
       var isEV = !!(state & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL);
 
       sendAsyncMsg('securitychange', { state: stateDesc, extendedValidation: isEV });

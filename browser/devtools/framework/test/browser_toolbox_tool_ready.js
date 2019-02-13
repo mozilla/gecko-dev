@@ -1,40 +1,50 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function test() {
-  addTab().then(function(data) {
-    data.target.makeRemote().then(performChecks.bind(null, data));
-  }).then(null, console.error);
+///////////////////
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Shader Editor is still waiting for a WebGL context to be created.");
 
-  function performChecks(data) {
+function performChecks(target) {
+  return Task.spawn(function*() {
     let toolIds = gDevTools.getToolDefinitionArray()
-                    .filter(def => def.isTargetSupported(data.target))
-                    .map(def => def.id);
+                           .filter(def => def.isTargetSupported(target))
+                           .map(def => def.id);
 
-    let open = function(index) {
+    let toolbox;
+    for (let index = 0; index < toolIds.length; index++) {
       let toolId = toolIds[index];
 
+      // FIXME Bug 1175850 - Enable storage inspector tests after upgrading for E10S
+      if (toolId === "storage") {
+        continue;
+      }
+
       info("About to open " + index + "/" + toolId);
-      gDevTools.showToolbox(data.target, toolId).then(function(toolbox) {
-        ok(toolbox, "toolbox exists for " + toolId);
-        is(toolbox.currentToolId, toolId, "currentToolId should be " + toolId);
+      toolbox = yield gDevTools.showToolbox(target, toolId);
+      ok(toolbox, "toolbox exists for " + toolId);
+      is(toolbox.currentToolId, toolId, "currentToolId should be " + toolId);
 
-        let panel = toolbox.getCurrentPanel();
-        ok(panel.isReady, toolId + " panel should be ready");
+      let panel = toolbox.getCurrentPanel();
+      ok(panel.isReady, toolId + " panel should be ready");
+    }
 
-        let nextIndex = index + 1;
-        if (nextIndex >= toolIds.length) {
-          toolbox.destroy().then(function() {
-            gBrowser.removeCurrentTab();
-            finish();
-          });
-        }
-        else {
-          open(nextIndex);
-        }
-      }, console.error);
-    };
+    yield toolbox.destroy();
+  });
+}
 
-    open(0);
-  }
+function test() {
+  Task.spawn(function*() {
+    toggleAllTools(true);
+    let tab = yield addTab("about:blank");
+    let target = TargetFactory.forTab(tab);
+    yield target.makeRemote();
+    yield performChecks(target);
+    gBrowser.removeCurrentTab();
+    toggleAllTools(false);
+    finish();
+  }, console.error);
 }

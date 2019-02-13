@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -64,8 +64,10 @@ function run_test() {
   // Ensure safebrowsing is enabled for this test, even if the app
   // doesn't have it enabled.
   Services.prefs.setBoolPref("browser.safebrowsing.malware.enabled", true);
+  Services.prefs.setBoolPref("browser.safebrowsing.downloads.enabled", true);
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
+    Services.prefs.clearUserPref("browser.safebrowsing.downloads.enabled");
   });
 
   // Set block and allow tables explicitly, since the allowlist is normally
@@ -164,21 +166,6 @@ add_test(function test_nullCallback() {
   }
 });
 
-add_test(function test_disabled() {
-  let counts = get_telemetry_counts();
-  Services.prefs.setCharPref("browser.safebrowsing.appRepURL", "");
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://example.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    // We should be getting NS_ERROR_NOT_AVAILABLE if the service is disabled
-    do_check_eq(Cr.NS_ERROR_NOT_AVAILABLE, aStatus);
-    do_check_false(aShouldBlock);
-    check_telemetry(counts.total + 1, counts.shouldBlock, counts.listCounts);
-    run_next_test();
-  });
-});
-
 // Set up the local whitelist.
 add_test(function test_local_list() {
   // Construct a response with redirect urls.
@@ -205,7 +192,6 @@ add_test(function test_local_list() {
 
   let streamUpdater = Cc["@mozilla.org/url-classifier/streamupdater;1"]
     .getService(Ci.nsIUrlClassifierStreamUpdater);
-  streamUpdater.updateUrl = "http://localhost:4444/downloads";
 
   // Load up some update chunks for the safebrowsing server to serve.
   // This chunk contains the hash of blocklisted.com/.
@@ -228,6 +214,7 @@ add_test(function test_local_list() {
   streamUpdater.downloadUpdates(
     "goog-downloadwhite-digest256,goog-badbinurl-shavar",
     "goog-downloadwhite-digest256,goog-badbinurl-shavar;\n",
+    "http://localhost:4444/downloads",
     updateSuccess, handleError, handleError);
 });
 

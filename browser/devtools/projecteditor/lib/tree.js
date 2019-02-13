@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -54,9 +54,6 @@ var ResourceContainer = Class({
     this.expander.setAttribute("open", "");
     this.line.appendChild(this.expander);
 
-    this.icon = doc.createElementNS(HTML_NS, "span");
-    this.line.appendChild(this.icon);
-
     this.label = doc.createElementNS(HTML_NS, "span");
     this.label.className = "file-label";
     this.line.appendChild(this.label);
@@ -72,29 +69,37 @@ var ResourceContainer = Class({
     this.elt.appendChild(this.children);
 
     this.line.addEventListener("click", (evt) => {
-      if (!this.selected) {
-        this.select();
-        this.expanded = true;
-        evt.stopPropagation();
-      }
+      this.select();
+      this.toggleExpansion();
+      evt.stopPropagation();
     }, false);
     this.expander.addEventListener("click", (evt) => {
-      this.expanded = !this.expanded;
+      this.toggleExpansion();
       this.select();
       evt.stopPropagation();
     }, true);
 
+    if (!this.resource.isRoot) {
+      this.expanded = false;
+    }
     this.update();
+  },
+
+  toggleExpansion: function() {
+    if (!this.resource.isRoot) {
+      this.expanded = !this.expanded;
+    } else {
+      this.expanded = true;
+    }
   },
 
   destroy: function() {
     this.elt.remove();
     this.expander.remove();
-    this.icon.remove();
     this.highlighter.remove();
     this.children.remove();
     this.label.remove();
-    this.elt = this.expander = this.icon = this.highlighter = this.children = this.label = null;
+    this.elt = this.expander = this.highlighter = this.children = this.label = null;
   },
 
   /**
@@ -106,7 +111,7 @@ var ResourceContainer = Class({
    */
   openContextMenu: function(ev) {
     ev.preventDefault();
-    let popup = this.tree.doc.getElementById("directory-menu-popup");
+    let popup = this.tree.options.contextMenuPopup;
     popup.openPopupAtScreen(ev.screenX, ev.screenY, true);
   },
 
@@ -121,29 +126,6 @@ var ResourceContainer = Class({
     this.elt.hidden = !visible;
 
     this.tree.options.resourceFormatter(this.resource, this.label);
-
-    this.icon.className = "file-icon";
-
-    let contentCategory = this.resource.contentCategory;
-    let baseName = this.resource.basename || "";
-
-    if (!this.resource.parent) {
-      this.icon.classList.add("icon-none");
-    } else if (this.resource.isDir) {
-      this.icon.classList.add("icon-folder");
-    } else if (baseName.endsWith(".manifest") || baseName.endsWith(".webapp")) {
-      this.icon.classList.add("icon-manifest");
-    } else if (contentCategory === "js") {
-      this.icon.classList.add("icon-js");
-    } else if (contentCategory === "css") {
-      this.icon.classList.add("icon-css");
-    } else if (contentCategory === "html") {
-      this.icon.classList.add("icon-html");
-    } else if (contentCategory === "image") {
-      this.icon.classList.add("icon-img");
-    } else {
-      this.icon.classList.add("icon-file");
-    }
 
     this.expander.style.visibility = this.resource.hasChildren ? "visible" : "hidden";
 
@@ -208,13 +190,14 @@ var TreeView = Class({
   /**
    * @param Document document
    * @param Object options
+   *               - contextMenuPopup: a <menupopup> element
    *               - resourceFormatter: a function(Resource, DOMNode)
    *                 that renders the resource into the view
    *               - resourceVisible: a function(Resource) -> Boolean
    *                 that determines if the resource should show up.
    */
-  initialize: function(document, options) {
-    this.doc = document;
+  initialize: function(doc, options) {
+    this.doc = doc;
     this.options = merge({
       resourceFormatter: function(resource, elt) {
         elt.textContent = resource.toString();
@@ -223,14 +206,14 @@ var TreeView = Class({
     this.models = new Set();
     this.roots = new Set();
     this._containers = new Map();
-    this.elt = document.createElementNS(HTML_NS, "div");
+    this.elt = this.doc.createElementNS(HTML_NS, "div");
     this.elt.tree = this;
     this.elt.className = "sources-tree";
     this.elt.setAttribute("with-arrows", "true");
     this.elt.setAttribute("theme", "dark");
     this.elt.setAttribute("flex", "1");
 
-    this.children = document.createElementNS(HTML_NS, "ul");
+    this.children = this.doc.createElementNS(HTML_NS, "ul");
     this.elt.appendChild(this.children);
 
     this.resourceChildrenChanged = this.resourceChildrenChanged.bind(this);
@@ -287,6 +270,39 @@ var TreeView = Class({
       },
       destroy: () => {
         item.parentNode.removeChild(item);
+      },
+    });
+
+    return deferred.promise;
+  },
+
+  /**
+   * Prompt the user to rename file in the tree.
+   *
+   * @param string initial
+   *               The suggested starting file name
+   * @param resource
+   *
+   * @returns Promise
+   *          Resolves once the prompt has been successful,
+   *          Rejected if it is cancelled
+   */
+  promptEdit: function(initial, resource) {
+    let deferred = promise.defer();
+    let placeholder = this._containers.get(resource).elt;
+
+    new InplaceEditor({
+      element: placeholder,
+      initial: initial,
+      start: editor => {
+        editor.input.select();
+      },
+      done: function(val, commit) {
+        if (commit) {
+          deferred.resolve(val);
+        } else {
+          deferred.reject(val);
+        }
       },
     });
 

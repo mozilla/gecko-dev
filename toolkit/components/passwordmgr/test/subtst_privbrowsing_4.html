@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Subtest for Login Manager notifications (private browsing)</title>
   <script type="text/javascript" src="pwmgr_common.js"></script>
 </head>
@@ -28,9 +30,10 @@ function submitForm() {
   setTimeout(function(){ form.submit(); }, 100);
 }
 
-window.onload = startAutocomplete;
 var form      = document.getElementById("form");
 var userField = document.getElementById("user");
+
+window.addEventListener('message', () => { startAutocomplete(); });
 
 </script>
 </body>

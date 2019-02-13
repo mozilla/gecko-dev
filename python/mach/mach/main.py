@@ -16,7 +16,6 @@ import os
 import sys
 import traceback
 import uuid
-import sys
 
 from .base import (
     CommandContext,
@@ -78,21 +77,18 @@ Run |mach help| to show a list of commands.
 
 UNKNOWN_COMMAND_ERROR = r'''
 It looks like you are trying to %s an unknown mach command: %s
-
+%s
 Run |mach help| to show a list of commands.
 '''.lstrip()
+
+SUGGESTED_COMMANDS_MESSAGE = r'''
+Did you want to %s any of these commands instead: %s?
+'''
 
 UNRECOGNIZED_ARGUMENT_ERROR = r'''
 It looks like you passed an unrecognized argument into mach.
 
 The %s command does not accept the arguments: %s
-'''.lstrip()
-
-INVALID_COMMAND_CONTEXT = r'''
-It looks like you tried to run a mach command from an invalid context. The %s
-command failed to meet the following conditions: %s
-
-Run |mach help| to show a list of all commands available to the current context.
 '''.lstrip()
 
 INVALID_ENTRY_POINT = r'''
@@ -143,6 +139,28 @@ class ArgumentParser(argparse.ArgumentParser):
         return text
 
 
+class ContextWrapper(object):
+    def __init__(self, context, handler):
+        object.__setattr__(self, '_context', context)
+        object.__setattr__(self, '_handler', handler)
+
+    def __getattribute__(self, key):
+        try:
+            return getattr(object.__getattribute__(self, '_context'), key)
+        except AttributeError as e:
+            try:
+                ret = object.__getattribute__(self, '_handler')(self, key)
+            except (AttributeError, TypeError):
+                # TypeError is in case the handler comes from old code not
+                # taking a key argument.
+                raise e
+            setattr(self, key, ret)
+            return ret
+
+    def __setattr__(self, key, value):
+        setattr(object.__getattribute__(self, '_context'), key, value)
+
+
 @CommandProvider
 class Mach(object):
     """Main mach driver type.
@@ -154,10 +172,15 @@ class Mach(object):
     behavior:
 
         populate_context_handler -- If defined, it must be a callable. The
-            callable will be called with the mach.base.CommandContext instance
-            as its single argument right before command dispatch. This allows
-            modification of the context instance and thus passing of
-            arbitrary data to command handlers.
+            callable signature is the following:
+                populate_context_handler(context, key=None)
+            It acts as a fallback getter for the mach.base.CommandContext
+            instance.
+            This allows to augment the context instance with arbitrary data
+            for use in command handlers.
+            For backwards compatibility, it is also called before command
+            dispatch without a key, allowing the context handler to add
+            attributes to the context instance.
 
         require_conditions -- If True, commands that do not have any condition
             functions applied will be skipped. Defaults to False.
@@ -343,6 +366,7 @@ To see more help for a specific command, run:
 
         if self.populate_context_handler:
             self.populate_context_handler(context)
+            context = ContextWrapper(context, self.populate_context_handler)
 
         parser = self.get_argument_parser(context)
 
@@ -360,7 +384,8 @@ To see more help for a specific command, run:
             print(NO_COMMAND_ERROR)
             return 1
         except UnknownCommandError as e:
-            print(UNKNOWN_COMMAND_ERROR % (e.verb, e.command))
+            suggestion_message = SUGGESTED_COMMANDS_MESSAGE % (e.verb, ', '.join(e.suggested_commands)) if e.suggested_commands else ''
+            print(UNKNOWN_COMMAND_ERROR % (e.verb, e.command, suggestion_message))
             return 1
         except UnrecognizedArgumentError as e:
             print(UNRECOGNIZED_ARGUMENT_ERROR % (e.command,
@@ -393,41 +418,17 @@ To see more help for a specific command, run:
             raise MachError('ArgumentParser result missing mach handler info.')
 
         handler = getattr(args, 'mach_handler')
-        cls = handler.cls
-
-        if handler.pass_context:
-            instance = cls(context)
-        else:
-            instance = cls()
-
-        if handler.conditions:
-            fail_conditions = []
-            for c in handler.conditions:
-                if not c(instance):
-                    fail_conditions.append(c)
-
-            if fail_conditions:
-                print(self._condition_failed_message(handler.name, fail_conditions))
-                return 1
-
-        fn = getattr(instance, handler.method)
 
         try:
-            result = fn(**vars(args.command_args))
-
-            if not result:
-                result = 0
-
-            assert isinstance(result, (int, long))
-
-            return result
+            return Registrar._run_command_handler(handler, context=context,
+                debug_command=args.debug_command, **vars(args.command_args))
         except KeyboardInterrupt as ki:
             raise ki
         except Exception as e:
             exc_type, exc_value, exc_tb = sys.exc_info()
 
-            # The first frame is us and is never used.
-            stack = traceback.extract_tb(exc_tb)[1:]
+            # The first two frames are us and are never used.
+            stack = traceback.extract_tb(exc_tb)[2:]
 
             # If we have nothing on the stack, the exception was raised as part
             # of calling the @Command method itself. This likely means a
@@ -473,16 +474,6 @@ To see more help for a specific command, run:
         """Helper method to record a structured log event."""
         self.logger.log(level, format_str,
             extra={'action': action, 'params': params})
-
-    @classmethod
-    def _condition_failed_message(cls, name, conditions):
-        msg = ['\n']
-        for c in conditions:
-            part = ['  %s' % c.__name__]
-            if c.__doc__ is not None:
-                part.append(c.__doc__)
-            msg.append(' - '.join(part))
-        return INVALID_COMMAND_CONTEXT % (name, '\n'.join(msg))
 
     def _print_error_header(self, argv, fh):
         fh.write('Error running mach:\n\n')
@@ -570,6 +561,8 @@ To see more help for a specific command, run:
         global_group.add_argument('-h', '--help', dest='help',
             action='store_true', default=False,
             help='Show this help message.')
+        global_group.add_argument('--debug-command', action='store_true',
+            help='Start a Python debugger when command is dispatched.')
 
         for args, kwargs in self.global_arguments:
             global_group.add_argument(*args, **kwargs)

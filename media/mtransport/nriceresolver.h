@@ -61,9 +61,10 @@ namespace mozilla {
 
 class NrIceResolver
 {
+ private:
+  ~NrIceResolver();
  public:
   NrIceResolver();
-  ~NrIceResolver();
 
   nsresult Init();
   nr_resolver *AllocateResolver();
@@ -96,14 +97,14 @@ class NrIceResolver
         transport_(transport),
         cb_(cb), cb_arg_(cb_arg),
         canceled_ (false) {}
-    virtual ~PendingResolution(){};
     NS_IMETHOD OnLookupComplete(nsICancelable *request, nsIDNSRecord *record,
-                                nsresult status);
+                                nsresult status) override;
     int cancel();
     nsCOMPtr<nsICancelable> request_;
     NS_DECL_THREADSAFE_ISUPPORTS
 
    private:
+    virtual ~PendingResolution(){};
     nsCOMPtr<nsIEventTarget> thread_;
     uint16_t port_;
     int transport_;

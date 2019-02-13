@@ -36,7 +36,7 @@ exports.testDebugger = function(assert, done) {
   ok(true, 'PageMod was created');
 
   if (!DebuggerServer.initialized) {
-    DebuggerServer.init(() => true);
+    DebuggerServer.init();
     DebuggerServer.addBrowserActors();
   }
 
@@ -91,7 +91,7 @@ function testDebuggerStatement([aGrip, aResponse]) {
     });
   });
 
-  let debuggee = getMostRecentBrowserWindow().gBrowser.selectedTab.linkedBrowser.contentWindow.wrappedJSObject;
+  let debuggee = getMostRecentBrowserWindow().gBrowser.selectedBrowser.contentWindow.wrappedJSObject;
   debuggee.runDebuggerStatement();
   ok(true, 'called runDebuggerStatement');
 
@@ -126,5 +126,8 @@ function closeConnection() {
   gClient.close(deferred.resolve);
   return deferred.promise;
 }
+
+// bug 1042976 - temporary test disable
+module.exports = {};
 
 require('sdk/test/runner').runTestsFromModule(module);

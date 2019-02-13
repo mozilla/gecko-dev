@@ -10,7 +10,7 @@
  * W3C liability, trademark and document use rules apply.
  */
 
-[Pref="media.eme.enabled"]
+[Pref="media.eme.apiVisible"]
 interface MediaKeySession : EventTarget {
   // error state
   readonly attribute MediaKeyError? error;
@@ -19,25 +19,25 @@ interface MediaKeySession : EventTarget {
   readonly attribute DOMString keySystem;
   readonly attribute DOMString sessionId;
 
-  // Invalid WebIDL, doesn't work.
-  // https://www.w3.org/Bugs/Public/show_bug.cgi?id=25594
-  // readonly attribute Array<Uint8Array> usableKeyIds;
-
   readonly attribute unrestricted double expiration;
 
-  // Promise<any>
-  readonly attribute Promise closed;
+  readonly attribute Promise<void> closed;
+
+  readonly attribute MediaKeyStatusMap keyStatuses;
+
+  [NewObject]
+  Promise<void> generateRequest(DOMString initDataType, BufferSource initData);
+
+  [NewObject]
+  Promise<boolean> load(DOMString sessionId);
 
   // session operations
-  //Promise<any>
   [NewObject]
-  Promise update(Uint8Array response);
+  Promise<void> update(BufferSource response);
 
-  // Promise<any>
   [NewObject]
-  Promise close();
+  Promise<void> close();
 
-  // Promise<any>
   [NewObject]
-  Promise remove();
+  Promise<void> remove();
 };

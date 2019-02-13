@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef _nsGIFDecoder2_h
-#define _nsGIFDecoder2_h
+#ifndef mozilla_image_decoders_nsGIFDecoder2_h
+#define mozilla_image_decoders_nsGIFDecoder2_h
 
-#include "nsCOMPtr.h"
 #include "Decoder.h"
 
 #include "GIF2.h"
+#include "nsCOMPtr.h"
 
 namespace mozilla {
 namespace image {
@@ -23,16 +23,16 @@ class nsGIFDecoder2 : public Decoder
 {
 public:
 
-  nsGIFDecoder2(RasterImage &aImage);
+  explicit nsGIFDecoder2(RasterImage* aImage);
   ~nsGIFDecoder2();
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
-  virtual void FinishInternal();
-  virtual Telemetry::ID SpeedHistogram();
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount) override;
+  virtual void FinishInternal() override;
+  virtual Telemetry::ID SpeedHistogram() override;
 
 private:
-  /* These functions will be called when the decoder has a decoded row,
-   * frame size information, etc. */
+  // These functions will be called when the decoder has a decoded row,
+  // frame size information, etc.
 
   void      BeginGIF();
   void      BeginImageFrame(uint16_t aDepth);
@@ -40,9 +40,9 @@ private:
   void      FlushImageData();
   void      FlushImageData(uint32_t fromRow, uint32_t rows);
 
-  nsresult  GifWrite(const uint8_t * buf, uint32_t numbytes);
+  nsresult  GifWrite(const uint8_t* buf, uint32_t numbytes);
   uint32_t  OutputRow();
-  bool      DoLzw(const uint8_t *q);
+  bool      DoLzw(const uint8_t* q);
   bool      SetHold(const uint8_t* buf, uint32_t count,
                     const uint8_t* buf2 = nullptr, uint32_t count2 = 0);
 
@@ -55,7 +55,7 @@ private:
 
   // The frame number of the currently-decoding frame when we're in the middle
   // of decoding it, and -1 otherwise.
-  int32_t mCurrentFrame;
+  int32_t mCurrentFrameIndex;
 
   uint8_t mCurrentPass;
   uint8_t mLastFlushedPass;
@@ -69,4 +69,4 @@ private:
 } // namespace image
 } // namespace mozilla
 
-#endif
+#endif // mozilla_image_decoders_nsGIFDecoder2_h

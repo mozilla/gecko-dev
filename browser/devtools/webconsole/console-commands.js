@@ -4,48 +4,39 @@
 
 "use strict";
 
-const gcli = require("gcli/index");
-const EventEmitter = require("devtools/toolkit/event-emitter");
-const { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
-
-const eventEmitter = new EventEmitter();
-
-gDevTools.on("toolbox-ready", (e, toolbox) => {
-  if (!toolbox.target) {
-    return;
-  }
-
-  let fireChangeForTab = () => {
-    eventEmitter.emit("changed", toolbox.target.tab);
-  };
-
-  toolbox.on("split-console", fireChangeForTab);
-  toolbox.on("select", fireChangeForTab);
-
-  toolbox.once("destroyed", () => {
-    toolbox.off("split-console", fireChangeForTab);
-    toolbox.off("select", fireChangeForTab);
-  });
-});
+const l10n = require("gcli/l10n");
+loader.lazyGetter(this, "gDevTools", () => require("resource:///modules/devtools/gDevTools.jsm").gDevTools);
 
 exports.items = [
   {
+    item: "command",
+    runAt: "client",
     name: 'splitconsole',
     hidden: true,
     buttonId: "command-button-splitconsole",
     buttonClass: "command-button command-button-invertable",
-    tooltipText: gcli.lookup("splitconsoleTooltip"),
+    tooltipText: l10n.lookup("splitconsoleTooltip"),
+    isRemoteSafe: true,
     state: {
       isChecked: function(target) {
         let toolbox = gDevTools.getToolbox(target);
-        return toolbox && toolbox.splitConsole;
+        return !!(toolbox && toolbox.splitConsole);
       },
       onChange: function(target, changeHandler) {
-        eventEmitter.on("changed", changeHandler);
-      },
-      offChange: function(target, changeHandler) {
-        eventEmitter.off("changed", changeHandler);
-      },
+        // Register handlers for when a change event should be fired
+        // (which resets the checked state of the button).
+        let toolbox = gDevTools.getToolbox(target);
+        let callback = changeHandler.bind(null, "changed", { target: target });
+
+        if (!toolbox) {
+          return;
+        }
+
+        toolbox.on("split-console", callback);
+        toolbox.once("destroyed", () => {
+          toolbox.off("split-console", callback);
+        });
+      }
     },
     exec: function(args, context) {
       let target = context.environment.target;
@@ -62,12 +53,14 @@ exports.items = [
   },
   {
     name: "console",
-    description: gcli.lookup("consoleDesc"),
-    manual: gcli.lookup("consoleManual")
+    description: l10n.lookup("consoleDesc"),
+    manual: l10n.lookup("consoleManual")
   },
   {
+    item: "command",
+    runAt: "client",
     name: "console clear",
-    description: gcli.lookup("consoleclearDesc"),
+    description: l10n.lookup("consoleclearDesc"),
     exec: function(args, context) {
       let toolbox = gDevTools.getToolbox(context.environment.target);
       if (toolbox == null) {
@@ -83,17 +76,24 @@ exports.items = [
     }
   },
   {
+    item: "command",
+    runAt: "client",
     name: "console close",
-    description: gcli.lookup("consolecloseDesc"),
+    description: l10n.lookup("consolecloseDesc"),
     exec: function(args, context) {
-      return gDevTools.closeToolbox(context.environment.target);
+      return gDevTools.closeToolbox(context.environment.target)
+                      .then(() => {}); // Don't return a value to GCLI
     }
   },
   {
+    item: "command",
+    runAt: "client",
     name: "console open",
-    description: gcli.lookup("consoleopenDesc"),
+    description: l10n.lookup("consoleopenDesc"),
     exec: function(args, context) {
-      return gDevTools.showToolbox(context.environment.target, "webconsole");
+      const target = context.environment.target;
+      return gDevTools.showToolbox(target, "webconsole")
+                      .then(() => {}); // Don't return a value to GCLI
     }
   }
 ];

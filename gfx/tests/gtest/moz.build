@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-LIBRARY_NAME = 'gfxtest'
-
 UNIFIED_SOURCES += [
     'gfxSurfaceRefCountTest.cpp',
     # Disabled on suspicion of causing bug 904227
@@ -13,8 +11,13 @@ UNIFIED_SOURCES += [
     'TestAsyncPanZoomController.cpp',
     'TestBufferRotation.cpp',
     'TestColorNames.cpp',
+    'TestCompositor.cpp',
     'TestGfxPrefs.cpp',
+    'TestGfxWidgets.cpp',
     'TestLayers.cpp',
+    'TestMoz2D.cpp',
+    'TestQcms.cpp',
+    'TestRect.cpp',
     'TestRegion.cpp',
     'TestSkipChars.cpp',
     # Hangs on linux in ApplyGdkScreenFontOptions
@@ -23,23 +26,16 @@ UNIFIED_SOURCES += [
     # Test works but it doesn't assert anything
     #'gfxTextRunPerfTest.cpp',
     'TestTiledLayerBuffer.cpp',
+    'TestVsync.cpp',
 ]
 
-# Because of gkmedia on windows we wont find these
-# symbols in xul.dll.
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'windows':
-    UNIFIED_SOURCES += [ '%s/gfx/2d/unittest/%s' % (TOPSRCDIR, p) for p in [
-        'TestBase.cpp',
-        'TestBugs.cpp',
-        'TestPoint.cpp',
-        'TestScaling.cpp',
-    ]]
-    UNIFIED_SOURCES += [
-        'TestMoz2D.cpp',
-        'TestRect.cpp',
-    ]
-
-EXPORT_LIBRARY = True
+UNIFIED_SOURCES += [ '/gfx/2d/unittest/%s' % p for p in [
+    'TestBase.cpp',
+    'TestBugs.cpp',
+    'TestCairo.cpp',
+    'TestPoint.cpp',
+    'TestScaling.cpp',
+]]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -47,6 +43,11 @@ LOCAL_INCLUDES += [
     '/gfx/2d',
     '/gfx/2d/unittest',
     '/gfx/layers',
+    '/gfx/qcms',
 ]
 
 FINAL_LIBRARY = 'xul-gtest'
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+FAIL_ON_WARNINGS = True

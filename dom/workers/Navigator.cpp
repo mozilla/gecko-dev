@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +15,8 @@
 #include "Navigator.h"
 #include "nsProxyRelease.h"
 #include "RuntimeService.h"
+
+#include "nsIDocument.h"
 
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
@@ -36,17 +39,15 @@ WorkerNavigator::Create(bool aOnLine)
     rts->GetNavigatorProperties();
 
   nsRefPtr<WorkerNavigator> navigator =
-    new WorkerNavigator(properties.mAppName, properties.mAppVersion,
-                        properties.mPlatform, properties.mUserAgent,
-                        aOnLine);
+    new WorkerNavigator(properties, aOnLine);
 
   return navigator.forget();
 }
 
 JSObject*
-WorkerNavigator::WrapObject(JSContext* aCx)
+WorkerNavigator::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return WorkerNavigatorBinding_workers::Wrap(aCx, this);
+  return WorkerNavigatorBinding_workers::Wrap(aCx, this, aGivenProto);
 }
 
 // A WorkerMainThreadRunnable to synchronously add DataStoreChangeEventProxy on
@@ -59,7 +60,7 @@ class DataStoreAddEventListenerRunnable : public WorkerMainThreadRunnable
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 
@@ -117,34 +118,37 @@ GetDataStoresStructuredCloneCallbacksRead(JSContext* aCx,
     return nullptr;
   }
 
-  nsRefPtr<WorkerDataStore> workerStore =
-    new WorkerDataStore(workerPrivate->GlobalScope());
-  nsMainThreadPtrHandle<DataStore> backingStore = dataStoreholder;
+  // Protect workerStoreObj from moving GC during ~nsRefPtr.
+  JS::Rooted<JSObject*> workerStoreObj(aCx, nullptr);
+  {
+    nsRefPtr<WorkerDataStore> workerStore =
+      new WorkerDataStore(workerPrivate->GlobalScope());
+    nsMainThreadPtrHandle<DataStore> backingStore(dataStoreholder);
 
-  // When we're on the worker thread, prepare a DataStoreChangeEventProxy.
-  nsRefPtr<DataStoreChangeEventProxy> eventProxy =
-    new DataStoreChangeEventProxy(workerPrivate, workerStore);
+    // When we're on the worker thread, prepare a DataStoreChangeEventProxy.
+    nsRefPtr<DataStoreChangeEventProxy> eventProxy =
+      new DataStoreChangeEventProxy(workerPrivate, workerStore);
 
-  // Add the DataStoreChangeEventProxy as an event listener on the main thread.
-  nsRefPtr<DataStoreAddEventListenerRunnable> runnable =
-    new DataStoreAddEventListenerRunnable(workerPrivate,
-                                          backingStore,
-                                          eventProxy);
-  runnable->Dispatch(aCx);
+    // Add the DataStoreChangeEventProxy as an event listener on the main thread.
+    nsRefPtr<DataStoreAddEventListenerRunnable> runnable =
+      new DataStoreAddEventListenerRunnable(workerPrivate,
+                                            backingStore,
+                                            eventProxy);
+    runnable->Dispatch(aCx);
 
-  // Point WorkerDataStore to DataStore.
-  workerStore->SetBackingDataStore(backingStore);
+    // Point WorkerDataStore to DataStore.
+    workerStore->SetBackingDataStore(backingStore);
 
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
-  if (!global) {
-    MOZ_ASSERT(false, "cannot get global!");
-    return nullptr;
-  }
-
-  JS::Rooted<JSObject*> workerStoreObj(aCx, workerStore->WrapObject(aCx));
-  if (!JS_WrapObject(aCx, &workerStoreObj)) {
-    MOZ_ASSERT(false, "cannot wrap object for workerStoreObj!");
-    return nullptr;
+    JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+    if (!global) {
+      MOZ_ASSERT(false, "cannot get global!");
+    } else {
+      workerStoreObj = workerStore->WrapObject(aCx, nullptr);
+      if (!JS_WrapObject(aCx, &workerStoreObj)) {
+        MOZ_ASSERT(false, "cannot wrap object for workerStoreObj!");
+        workerStoreObj = nullptr;
+      }
+    }
   }
 
   return workerStoreObj;
@@ -191,7 +195,7 @@ GetDataStoresStructuredCloneCallbacksWrite(JSContext* aCx,
   return true;
 }
 
-static JSStructuredCloneCallbacks kGetDataStoresStructuredCloneCallbacks = {
+static const JSStructuredCloneCallbacks kGetDataStoresStructuredCloneCallbacks = {
   GetDataStoresStructuredCloneCallbacksRead,
   GetDataStoresStructuredCloneCallbacksWrite,
   nullptr
@@ -199,33 +203,50 @@ static JSStructuredCloneCallbacks kGetDataStoresStructuredCloneCallbacks = {
 
 // A WorkerMainThreadRunnable to run WorkerNavigator::GetDataStores(...) on the
 // main thread.
-class NavigatorGetDataStoresRunnable MOZ_FINAL : public WorkerMainThreadRunnable
+class NavigatorGetDataStoresRunnable final : public WorkerMainThreadRunnable
 {
   nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   const nsString mName;
+  const nsString mOwner;
   ErrorResult& mRv;
 
 public:
   NavigatorGetDataStoresRunnable(WorkerPrivate* aWorkerPrivate,
                                  Promise* aWorkerPromise,
                                  const nsAString& aName,
+                                 const nsAString& aOwner,
                                  ErrorResult& aRv)
     : WorkerMainThreadRunnable(aWorkerPrivate)
     , mName(aName)
+    , mOwner(aOwner)
     , mRv(aRv)
   {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
+    // this might return null if the worker has started the close handler.
     mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate,
-                             aWorkerPromise,
-                             &kGetDataStoresStructuredCloneCallbacks);
+      PromiseWorkerProxy::Create(aWorkerPrivate,
+                                 aWorkerPromise,
+                                 &kGetDataStoresStructuredCloneCallbacks);
   }
+
+  bool Dispatch(JSContext* aCx)
+  {
+    if (mPromiseWorkerProxy) {
+      return WorkerMainThreadRunnable::Dispatch(aCx);
+    }
+
+    // If the creation of mProxyWorkerProxy failed, the worker is terminating.
+    // In this case we don't want to dispatch the runnable and we should stop
+    // the promise chain here.
+    return true;
+  }
+
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 
@@ -243,7 +264,8 @@ protected:
       return false;
     }
 
-    nsRefPtr<Promise> promise = Navigator::GetDataStores(window, mName, mRv);
+    nsRefPtr<Promise> promise =
+      Navigator::GetDataStores(window, mName, mOwner, mRv);
     promise->AppendNativeHandler(mPromiseWorkerProxy);
     return true;
   }
@@ -252,19 +274,127 @@ protected:
 already_AddRefed<Promise>
 WorkerNavigator::GetDataStores(JSContext* aCx,
                                const nsAString& aName,
+                               const nsAString& aOwner,
                                ErrorResult& aRv)
 {
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(workerPrivate);
   workerPrivate->AssertIsOnWorkerThread();
 
-  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+  nsRefPtr<Promise> promise = Promise::Create(workerPrivate->GlobalScope(), aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
 
   nsRefPtr<NavigatorGetDataStoresRunnable> runnable =
-    new NavigatorGetDataStoresRunnable(workerPrivate, promise, aName, aRv);
+    new NavigatorGetDataStoresRunnable(workerPrivate, promise, aName, aOwner, aRv);
   runnable->Dispatch(aCx);
 
   return promise.forget();
+}
+
+void
+WorkerNavigator::SetLanguages(const nsTArray<nsString>& aLanguages)
+{
+  WorkerNavigatorBinding_workers::ClearCachedLanguagesValue(this);
+  mProperties.mLanguages = aLanguages;
+}
+
+void
+WorkerNavigator::GetAppName(nsString& aAppName) const
+{
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  if (!mProperties.mAppNameOverridden.IsEmpty() &&
+      !workerPrivate->UsesSystemPrincipal()) {
+    aAppName = mProperties.mAppNameOverridden;
+  } else {
+    aAppName = mProperties.mAppName;
+  }
+}
+
+void
+WorkerNavigator::GetAppVersion(nsString& aAppVersion) const
+{
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  if (!mProperties.mAppVersionOverridden.IsEmpty() &&
+      !workerPrivate->UsesSystemPrincipal()) {
+    aAppVersion = mProperties.mAppVersionOverridden;
+  } else {
+    aAppVersion = mProperties.mAppVersion;
+  }
+}
+
+void
+WorkerNavigator::GetPlatform(nsString& aPlatform) const
+{
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  if (!mProperties.mPlatformOverridden.IsEmpty() &&
+      !workerPrivate->UsesSystemPrincipal()) {
+    aPlatform = mProperties.mPlatformOverridden;
+  } else {
+    aPlatform = mProperties.mPlatform;
+  }
+}
+
+namespace {
+
+class GetUserAgentRunnable final : public WorkerMainThreadRunnable
+{
+  nsString& mUA;
+
+public:
+  GetUserAgentRunnable(WorkerPrivate* aWorkerPrivate, nsString& aUA)
+    : WorkerMainThreadRunnable(aWorkerPrivate)
+    , mUA(aUA)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+  virtual bool MainThreadRun() override
+  {
+    AssertIsOnMainThread();
+
+    nsCOMPtr<nsPIDOMWindow> window = mWorkerPrivate->GetWindow();
+    nsCOMPtr<nsIURI> uri;
+    if (window && window->GetDocShell()) {
+      nsIDocument* doc = window->GetExtantDoc();
+      if (doc) {
+        doc->NodePrincipal()->GetURI(getter_AddRefs(uri));
+      }
+    }
+
+    bool isCallerChrome = mWorkerPrivate->UsesSystemPrincipal();
+    nsresult rv = dom::Navigator::GetUserAgent(window, uri,
+                                               isCallerChrome, mUA);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Failed to retrieve user-agent from the worker thread.");
+    }
+
+    return true;
+  }
+};
+
+} // anonymous namespace
+
+void
+WorkerNavigator::GetUserAgent(nsString& aUserAgent) const
+{
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  nsRefPtr<GetUserAgentRunnable> runnable =
+    new GetUserAgentRunnable(workerPrivate, aUserAgent);
+
+  if (!runnable->Dispatch(workerPrivate->GetJSContext())) {
+    JS_ReportPendingException(workerPrivate->GetJSContext());
+  }
 }
 
 END_WORKERS_NAMESPACE

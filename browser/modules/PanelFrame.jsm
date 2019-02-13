@@ -14,8 +14,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI", "resource:///modules/CustomizableUI.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "SharedFrame", "resource:///modules/SharedFrame.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "DynamicResizeWatcher", "resource:///modules/Social.jsm");
 
 // The minimum sizes for the auto-resize panel code.
@@ -47,45 +45,49 @@ let PanelFrameInternal = {
    */
   _attachNotificatonPanel: function(aWindow, aParent, aButton, aType, aOrigin, aSrc, aSize) {
     aParent.hidden = false;
-    let notificationFrameId = aOrigin ? aType + "-status-" + aOrigin : aType;
-    let frame = aWindow.document.getElementById(notificationFrameId);
+    let notificationFrameId = aOrigin ? aType + "-status-" + aOrigin : aType + "-panel-iframe";
+    let doc = aWindow.document;
+    let frame = doc.getElementById(notificationFrameId);
 
-    // If the button was customized to a new location, we we'll destroy the
+    // If the button was customized to a new location, destroy the
     // iframe and start fresh.
     if (frame && frame.parentNode != aParent) {
-      SharedFrame.forgetGroup(frame.id);
       frame.parentNode.removeChild(frame);
       frame = null;
     }
 
     if (!frame) {
       let {width, height} = aSize ? aSize : {width: PANEL_MIN_WIDTH, height: PANEL_MIN_HEIGHT};
+      frame = doc.createElement("browser");
+      let attrs = {
+        "type": "content",
+        "mozbrowser": "true",
+        // All frames use social-panel-frame as the class.
+        "class": "social-panel-frame",
+        "id": notificationFrameId,
+        "tooltip": "aHTMLTooltip",
+        "context": "contentAreaContextMenu",
+        "flex": "1",
 
-      frame = SharedFrame.createFrame(
-        notificationFrameId, /* frame name */
-        aParent, /* parent */
-        {
-          "type": "content",
-          "mozbrowser": "true",
-          // All frames use social-panel-frame as the class.
-          "class": "social-panel-frame",
-          "id": notificationFrameId,
-          "tooltip": "aHTMLTooltip",
-          "context": "contentAreaContextMenu",
-          "flex": "1",
+        // work around bug 793057 - by making the panel roughly the final size
+        // we are more likely to have the anchor in the correct position.
+        "style": "width: " + width + "px; height: " + height + "px;",
+        "dynamicresizer": !aSize,
 
-          // work around bug 793057 - by making the panel roughly the final size
-          // we are more likely to have the anchor in the correct position.
-          "style": "width: " + width + "px; height: " + height + "px;",
-          "dynamicresizer": !aSize,
-
-          "origin": aOrigin,
-          "src": aSrc
-        }
-      );
+        "origin": aOrigin,
+        "src": aSrc
+      };
+      if (aType == "social") {
+        attrs["message"] = "true";
+        attrs["messagemanagergroup"] = aType;
+      }
+      for (let [k, v] of Iterator(attrs)) {
+        frame.setAttribute(k, v);
+      }
+      aParent.appendChild(frame);
     } else {
       frame.setAttribute("origin", aOrigin);
-      SharedFrame.updateURL(notificationFrameId, aSrc);
+      frame.setAttribute("src", aSrc);
     }
     aButton.setAttribute("notificationFrameId", notificationFrameId);
   }
@@ -111,29 +113,20 @@ let PanelFrame = {
    * @param {Function} aCallback Optional, callback to be called with the iframe when it is
    *                             set up.
    */
-  showPopup: function(aWindow, aPanelUI, aToolbarButton, aType, aOrigin, aSrc, aSize, aCallback) {
-    // if we're a slice in the hamburger, use that panel instead
+  showPopup: function(aWindow, aToolbarButton, aType, aOrigin, aSrc, aSize, aCallback) {
+    // if we're overflowed, our anchor needs to be the overflow button
     let widgetGroup = CustomizableUI.getWidget(aToolbarButton.getAttribute("id"));
     let widget = widgetGroup.forWindow(aWindow);
-    let panel, showingEvent, hidingEvent;
-    let inMenuPanel = widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL;
-    if (inMenuPanel) {
-      panel = aWindow.document.getElementById("PanelUI-" + aType + "api");
-      PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
-      widget.node.setAttribute("closemenu", "none");
-      showingEvent = "ViewShowing";
-      hidingEvent = "ViewHiding";
-    } else {
-      panel = aWindow.document.getElementById(aType + "-notification-panel");
-      PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
-      showingEvent = "popupshown";
-      hidingEvent = "popuphidden";
-    }
+    // if we're a slice in the hamburger, our anchor will be the menu button,
+    // this panel will replace the menu panel when the button is clicked on
+    let anchorBtn = widget.anchor;
+
+    let panel = aWindow.document.getElementById(aType + "-notification-panel");
+    PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
+
     let notificationFrameId = aToolbarButton.getAttribute("notificationFrameId");
     let notificationFrame = aWindow.document.getElementById(notificationFrameId);
 
-    let wasAlive = SharedFrame.isGroupAlive(notificationFrameId);
-    SharedFrame.setOwner(notificationFrameId, notificationFrame);
 
     // Clear dimensions on all browsers so the panel size will
     // only use the selected browser.
@@ -151,25 +144,20 @@ let PanelFrame = {
 
     // we only use a dynamic resizer when we're located the toolbar.
     let dynamicResizer;
-    if (!inMenuPanel && notificationFrame.getAttribute("dynamicresizer") == "true") {
+    if (notificationFrame.getAttribute("dynamicresizer") == "true") {
       dynamicResizer = PanelFrameInternal._dynamicResizer;
     }
-    panel.addEventListener(hidingEvent, function onpopuphiding() {
-      panel.removeEventListener(hidingEvent, onpopuphiding);
-      aToolbarButton.removeAttribute("open");
+    panel.addEventListener("popuphidden", function onpopuphiding() {
+      panel.removeEventListener("popuphidden", onpopuphiding);
+      anchorBtn.removeAttribute("open");
       if (dynamicResizer)
         dynamicResizer.stop();
       notificationFrame.docShell.isActive = false;
       dispatchPanelEvent(aType + "FrameHide");
     });
 
-    panel.addEventListener(showingEvent, function onpopupshown() {
-      panel.removeEventListener(showingEvent, onpopupshown);
-      // This attribute is needed on both the button and the
-      // containing toolbaritem since the buttons on OS X have
-      // moz-appearance:none, while their container gets
-      // moz-appearance:toolbarbutton due to the way that toolbar buttons
-      // get combined on OS X.
+    panel.addEventListener("popupshown", function onpopupshown() {
+      panel.removeEventListener("popupshown", onpopupshown);
       let initFrameShow = () => {
         notificationFrame.docShell.isActive = true;
         notificationFrame.docShell.isAppTab = true;
@@ -177,10 +165,14 @@ let PanelFrame = {
           dynamicResizer.start(panel, notificationFrame);
         dispatchPanelEvent(aType + "FrameShow");
       };
-      if (!inMenuPanel)
-        aToolbarButton.setAttribute("open", "true");
+      // This attribute is needed on both the button and the
+      // containing toolbaritem since the buttons on OS X have
+      // moz-appearance:none, while their container gets
+      // moz-appearance:toolbarbutton due to the way that toolbar buttons
+      // get combined on OS X.
+      anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
-          notificationFrame.contentDocument.readyState == "complete" && wasAlive) {
+          notificationFrame.contentDocument.readyState == "complete") {
         initFrameShow();
       } else {
         // first time load, wait for load and dispatch after load
@@ -191,17 +183,14 @@ let PanelFrame = {
       }
     });
 
-    if (inMenuPanel) {
-      aPanelUI.showSubView("PanelUI-" + aType + "api", widget.node,
-                           CustomizableUI.AREA_PANEL);
-    } else {
-      let anchor = aWindow.document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-badge-container");
-      // Bug 849216 - open the popup asynchronously so we avoid the auto-rollup
-      // handling from preventing it being opened in some cases.
-      Services.tm.mainThread.dispatch(function() {
-        panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
-      }, Ci.nsIThread.DISPATCH_NORMAL);
-    }
+    // in overflow, the anchor is a normal toolbarbutton, in toolbar it is a badge button
+    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
+                 aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
+    // Bug 849216 - open the popup asynchronously so we avoid the auto-rollup
+    // handling from preventing it being opened in some cases.
+    Services.tm.mainThread.dispatch(function() {
+      panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
+    }, Ci.nsIThread.DISPATCH_NORMAL);
 
     if (aCallback)
       aCallback(notificationFrame);

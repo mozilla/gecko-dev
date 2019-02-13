@@ -201,15 +201,15 @@ class nsLineLink {
  * enough state to support incremental reflow of the frames, event handling
  * for the frames, and rendering of the frames.
  */
-class nsLineBox MOZ_FINAL : public nsLineLink {
+class nsLineBox final : public nsLineLink {
 private:
   nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock);
   ~nsLineBox();
   
-  // Overloaded new operator. Uses an arena (which comes from the presShell)
-  // to perform the allocation.
+  // Infallible overloaded new operator. Uses an arena (which comes from the
+  // presShell) to perform the allocation.
   void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
-  void operator delete(void* aPtr, size_t sz) MOZ_DELETE;
+  void operator delete(void* aPtr, size_t sz) = delete;
 
 public:
   // Use these functions to allocate and destroy line boxes
@@ -342,9 +342,9 @@ private:
     MOZ_ASSERT(!mFlags.mHasHashedFrames);
     uint32_t count = GetChildCount();
     mFlags.mHasHashedFrames = 1;
-    uint32_t minSize =
-      std::max(kMinChildCountForHashtable, uint32_t(PL_DHASH_MIN_SIZE));
-    mFrames = new nsTHashtable< nsPtrHashKey<nsIFrame> >(std::max(count, minSize));
+    uint32_t minLength = std::max(kMinChildCountForHashtable,
+                                  uint32_t(PL_DHASH_DEFAULT_INITIAL_LENGTH));
+    mFrames = new nsTHashtable< nsPtrHashKey<nsIFrame> >(std::max(count, minLength));
     for (nsIFrame* f = mFirstChild; count-- > 0; f = f->GetNextSibling()) {
       mFrames->PutEntry(f);
     }
@@ -427,10 +427,10 @@ public:
     return !IsBlock() ? mFlags.mBreakType : NS_STYLE_CLEAR_NONE;
   }
 
-  // mCarriedOutBottomMargin value
-  nsCollapsingMargin GetCarriedOutBottomMargin() const;
+  // mCarriedOutBEndMargin value
+  nsCollapsingMargin GetCarriedOutBEndMargin() const;
   // Returns true if the margin changed
-  bool SetCarriedOutBottomMargin(nsCollapsingMargin aValue);
+  bool SetCarriedOutBEndMargin(nsCollapsingMargin aValue);
 
   // mFloats
   bool HasFloats() const {
@@ -446,6 +446,12 @@ public:
   // used for painting-related things, but should never be used for
   // layout (except for handling of 'overflow').
   void SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
+  mozilla::LogicalRect GetOverflowArea(nsOverflowType aType,
+                                       mozilla::WritingMode aWM,
+                                       nscoord aContainerWidth)
+  {
+    return mozilla::LogicalRect(aWM, GetOverflowArea(aType), aContainerWidth);
+  }
   nsRect GetOverflowArea(nsOverflowType aType) {
     return mData ? mData->mOverflowAreas.Overflow(aType) : GetPhysicalBounds();
   }
@@ -467,10 +473,32 @@ public:
     mContainerWidth = aContainerWidth;
     mBounds.BStart(mWritingMode) += aDBCoord;
     if (mData) {
+      nsPoint physicalDelta = mozilla::LogicalPoint(mWritingMode, 0, aDBCoord).
+                                         GetPhysicalPoint(mWritingMode, 0);
       NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
-        mData->mOverflowAreas.Overflow(otype).y += aDBCoord;
+        mData->mOverflowAreas.Overflow(otype) += physicalDelta;
       }
     }
+  }
+
+  // Container-width for the line is changing (and therefore if writing mode
+  // was vertical-rl, the line will move physically; this is like SlideBy,
+  // but it is the container width instead of the line's own logical coord
+  // that is changing.
+  nscoord UpdateContainerWidth(nscoord aNewContainerWidth)
+  {
+    NS_ASSERTION(mContainerWidth != -1, "container width not set");
+    nscoord delta = mContainerWidth - aNewContainerWidth;
+    mContainerWidth = aNewContainerWidth;
+    // this has a physical-coordinate effect only in vertical-rl mode
+    if (mWritingMode.IsVerticalRL() && mData) {
+      nsPoint physicalDelta = mozilla::LogicalPoint(mWritingMode, 0, delta).
+                                         GetPhysicalPoint(mWritingMode, 0);
+      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+        mData->mOverflowAreas.Overflow(otype) += physicalDelta;
+      }
+    }
+    return delta;
   }
 
   void IndentBy(nscoord aDICoord, nscoord aContainerWidth) {
@@ -579,14 +607,18 @@ public:
   nsIFrame* mFirstChild;
 
   mozilla::WritingMode mWritingMode;
+
+  // Physical width. Use only for physical <-> logical coordinate conversion.
   nscoord mContainerWidth;
+
  private:
   mozilla::LogicalRect mBounds;
+
  public:
   const mozilla::LogicalRect& GetBounds() { return mBounds; }
   nsRect GetPhysicalBounds() const
   {
-    if (mBounds.IsEmpty()) {
+    if (mBounds.IsAllZero()) {
       return nsRect(0, 0, 0, 0);
     }
 
@@ -639,22 +671,22 @@ public:
   };
 
   struct ExtraData {
-    ExtraData(const nsRect& aBounds) : mOverflowAreas(aBounds, aBounds) {
+    explicit ExtraData(const nsRect& aBounds) : mOverflowAreas(aBounds, aBounds) {
     }
     nsOverflowAreas mOverflowAreas;
   };
 
   struct ExtraBlockData : public ExtraData {
-    ExtraBlockData(const nsRect& aBounds)
+    explicit ExtraBlockData(const nsRect& aBounds)
       : ExtraData(aBounds),
-        mCarriedOutBottomMargin()
+        mCarriedOutBEndMargin()
     {
     }
-    nsCollapsingMargin mCarriedOutBottomMargin;
+    nsCollapsingMargin mCarriedOutBEndMargin;
   };
 
   struct ExtraInlineData : public ExtraData {
-    ExtraInlineData(const nsRect& aBounds) : ExtraData(aBounds) {
+    explicit ExtraInlineData(const nsRect& aBounds) : ExtraData(aBounds) {
     }
     nsFloatCacheList mFloats;
   };
@@ -744,44 +776,44 @@ class nsLineList_iterator {
 
     reference operator*()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<pointer>(mCurrent);
     }
 
     pointer operator->()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     pointer get()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     operator pointer()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     const_reference operator*() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer operator->() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
 #ifndef __MWERKS__
     operator const_pointer() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 #endif /* !__MWERKS__ */
@@ -814,22 +846,22 @@ class nsLineList_iterator {
     // to keep AIX happy.
     bool operator==(const iterator_self_type aOther) const
     {
-      NS_ABORT_IF_FALSE(mListLink == aOther.mListLink, "comparing iterators over different lists");
+      MOZ_ASSERT(mListLink == aOther.mListLink, "comparing iterators over different lists");
       return mCurrent == aOther.mCurrent;
     }
     bool operator!=(const iterator_self_type aOther) const
     {
-      NS_ABORT_IF_FALSE(mListLink == aOther.mListLink, "comparing iterators over different lists");
+      MOZ_ASSERT(mListLink == aOther.mListLink, "comparing iterators over different lists");
       return mCurrent != aOther.mCurrent;
     }
     bool operator==(const iterator_self_type aOther)
     {
-      NS_ABORT_IF_FALSE(mListLink == aOther.mListLink, "comparing iterators over different lists");
+      MOZ_ASSERT(mListLink == aOther.mListLink, "comparing iterators over different lists");
       return mCurrent == aOther.mCurrent;
     }
     bool operator!=(const iterator_self_type aOther)
     {
-      NS_ABORT_IF_FALSE(mListLink == aOther.mListLink, "comparing iterators over different lists");
+      MOZ_ASSERT(mListLink == aOther.mListLink, "comparing iterators over different lists");
       return mCurrent != aOther.mCurrent;
     }
 
@@ -903,44 +935,44 @@ class nsLineList_reverse_iterator {
 
     reference operator*()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<pointer>(mCurrent);
     }
 
     pointer operator->()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     pointer get()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     operator pointer()
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<pointer>(mCurrent);
     }
 
     const_reference operator*() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer operator->() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
 #ifndef __MWERKS__
     operator const_pointer() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 #endif /* !__MWERKS__ */
@@ -1043,26 +1075,26 @@ class nsLineList_const_iterator {
 
     const_reference operator*() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer operator->() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer get() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
 #ifndef __MWERKS__
     operator const_pointer() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 #endif /* !__MWERKS__ */
@@ -1177,26 +1209,26 @@ class nsLineList_const_reverse_iterator {
 
     const_reference operator*() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return *static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer operator->() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
     const_pointer get() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 
 #ifndef __MWERKS__
     operator const_pointer() const
     {
-      NS_ABORT_IF_FALSE(mCurrent != mListLink, "running past end");
+      MOZ_ASSERT(mCurrent != mListLink, "running past end");
       return static_cast<const_pointer>(mCurrent);
     }
 #endif /* !__MWERKS__ */
@@ -1676,33 +1708,32 @@ nsLineList_const_reverse_iterator::operator=(const nsLineList_const_reverse_iter
 
 //----------------------------------------------------------------------
 
-class nsLineIterator MOZ_FINAL : public nsILineIterator
+class nsLineIterator final : public nsILineIterator
 {
 public:
   nsLineIterator();
   ~nsLineIterator();
 
-  virtual void DisposeLineIterator() MOZ_OVERRIDE;
+  virtual void DisposeLineIterator() override;
 
-  virtual int32_t GetNumLines() MOZ_OVERRIDE;
-  virtual bool GetDirection() MOZ_OVERRIDE;
+  virtual int32_t GetNumLines() override;
+  virtual bool GetDirection() override;
   NS_IMETHOD GetLine(int32_t aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
-                     nsRect& aLineBounds,
-                     uint32_t* aLineFlags) MOZ_OVERRIDE;
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) MOZ_OVERRIDE;
+                     nsRect& aLineBounds) override;
+  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) override;
   NS_IMETHOD FindFrameAt(int32_t aLineNumber,
-                         nscoord aX,
+                         nsPoint aPos,
                          nsIFrame** aFrameFound,
-                         bool* aXIsBeforeFirstFrame,
-                         bool* aXIsAfterLastFrame) MOZ_OVERRIDE;
+                         bool* aPosIsBeforeFirstFrame,
+                         bool* aPosIsAfterLastFrame) override;
 
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) MOZ_OVERRIDE;
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) override;
   NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
-                            nsIFrame                 **aLastVisual) MOZ_OVERRIDE;
+                            nsIFrame                 **aLastVisual) override;
   nsresult Init(nsLineList& aLines, bool aRightToLeft);
 
 private:

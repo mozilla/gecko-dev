@@ -198,6 +198,18 @@ let PaymentManager =  {
       }
     }
 
+#ifdef MOZ_B2G
+    let appsService = Cc["@mozilla.org/AppsService;1"]
+                        .getService(Ci.nsIAppsService);
+    let systemAppId = Ci.nsIScriptSecurityManager.NO_APP_ID;
+
+    try {
+      let manifestURL = Services.prefs.getCharPref("b2g.system_manifest_url");
+      systemAppId = appsService.getAppLocalIdByManifestURL(manifestURL);
+      this.LOG("System app id=" + systemAppId);
+    } catch(e) {}
+#endif
+
     // Now register the payment providers.
     for (let i in nums) {
       let branch = prefService
@@ -211,12 +223,28 @@ let PaymentManager =  {
         if (type in this.registeredProviders) {
           continue;
         }
-        this.registeredProviders[type] = {
+        let provider = this.registeredProviders[type] = {
           name: branch.getCharPref("name"),
           uri: branch.getCharPref("uri"),
           description: branch.getCharPref("description"),
           requestMethod: branch.getCharPref("requestMethod")
         };
+
+#ifdef MOZ_B2G
+        // Let this payment provider access the firefox-accounts API when
+        // it's loaded in the trusted UI.
+        if (systemAppId != Ci.nsIScriptSecurityManager.NO_APP_ID) {
+          this.LOG("Granting firefox-accounts permission to " + provider.uri);
+          let uri = Services.io.newURI(provider.uri, null, null);
+          let principal = Services.scriptSecurityManager
+                            .getAppCodebasePrincipal(uri, systemAppId, true);
+
+          Services.perms.addFromPrincipal(principal, "firefox-accounts",
+                                          Ci.nsIPermissionManager.ALLOW_ACTION,
+                                          Ci.nsIPermissionManager.EXPIRE_SESSION);
+        }
+#endif
+
         if (this._debug) {
           this.LOG("Registered Payment Providers: " +
                     JSON.stringify(this.registeredProviders[type]));
@@ -273,7 +301,7 @@ let PaymentManager =  {
       // the payment request information to be shown to the user.
       // Before decoding the JWT string we need to normalize it to be compliant
       // with RFC 4648.
-      segments[1] = segments[1].replace("-", "+", "g").replace("_", "/", "g");
+      segments[1] = segments[1].replace(/-/g, "+").replace(/_/g, "/");
       let payload = atob(segments[1]);
       if (this._debug) {
         this.LOG("Payload " + payload);
@@ -350,6 +378,8 @@ let PaymentManager =  {
     paymentFlowInfo.uri = aPaymentProvider.uri;
     paymentFlowInfo.requestMethod = aPaymentProvider.requestMethod;
     paymentFlowInfo.jwt = aJwt;
+    paymentFlowInfo.name = aPaymentProvider.name;
+    paymentFlowInfo.description = aPaymentProvider.description;
 
     let glue = Cc["@mozilla.org/payment/ui-glue;1"]
                .createInstance(Ci.nsIPaymentUIGlue);

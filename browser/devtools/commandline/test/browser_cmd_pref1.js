@@ -7,15 +7,13 @@ let prefBranch = Cc["@mozilla.org/preferences-service;1"]
                     .getService(Ci.nsIPrefService).getBranch(null)
                     .QueryInterface(Ci.nsIPrefBranch2);
 
-let settings = require("gcli/settings");
-
 const TEST_URI = "data:text/html;charset=utf-8,gcli-pref1";
 
 function test() {
   return Task.spawn(spawnTest).then(finish, helpers.handleError);
 }
 
-function spawnTest() {
+function* spawnTest() {
   let options = yield helpers.openTab(TEST_URI);
   yield helpers.openToolbar(options);
 
@@ -137,7 +135,9 @@ function spawnTest() {
       setup: 'pref show devtools.tilt.enabled',
       check: {
         args: {
-          setting: { value: settings.getSetting("devtools.tilt.enabled") }
+          setting: {
+            value: options.requisition.system.settings.get("devtools.tilt.enabled")
+          }
         },
       },
       exec: {

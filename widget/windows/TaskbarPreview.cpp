@@ -184,7 +184,7 @@ TaskbarPreview::GetActive(bool *active) {
 NS_IMETHODIMP
 TaskbarPreview::Invalidate() {
   if (!mVisible)
-    return NS_ERROR_FAILURE;
+    return NS_OK;
 
   // DWM Composition is required for previews
   if (!nsUXThemeData::CheckForCompositor())
@@ -407,7 +407,7 @@ TaskbarPreview::MainWindowHook(void *aContext,
   if (nMsg == WM_DESTROY) {
     // nsWindow is being destroyed
     // We can't really do anything at this point including removing hooks
-    preview->mWnd = nullptr;
+    return false;
   } else {
     nsWindow *window = WinUtils::GetNSWindowPtr(preview->mWnd);
     if (window) {

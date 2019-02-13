@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 /**
  * This test ensures that form data collection respects the privacy level as
  * set by the user.
@@ -28,7 +30,7 @@ add_task(function test_formdata() {
       yield setInputValue(browser, {id: "txt", value: INNER_VALUE, frame: 0});
 
       // Remove the tab.
-      gBrowser.removeTab(tab);
+      yield promiseRemoveTab(tab);
     });
   }
 
@@ -41,7 +43,7 @@ add_task(function test_formdata() {
   Services.prefs.setIntPref("browser.sessionstore.privacy_level", 1);
 
   yield createAndRemoveTab();
-  let [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
+  [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
   is(formdata.id.txt, OUTER_VALUE, "outer value is correct");
   ok(!formdata.children, "inner value was *not* stored");
 
@@ -49,61 +51,11 @@ add_task(function test_formdata() {
   Services.prefs.setIntPref("browser.sessionstore.privacy_level", 2);
 
   yield createAndRemoveTab();
-  let [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
+  [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
   ok(!formdata, "form data has *not* been stored");
 
   // Restore the default privacy level.
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
-});
-
-/**
- * This test ensures that we maintain backwards compatibility with the form
- * data format used pre Fx 29.
- */
-add_task(function test_old_format() {
-  const URL = "data:text/html;charset=utf-8,<input%20id=input>";
-  const VALUE = "value-" + Math.random();
-
-  // Create a tab with an iframe containing an input field.
-  let tab = gBrowser.addTab(URL);
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  // Check that the form value is restored.
-  let state = {entries: [{url: URL, formdata: {id: {input: VALUE}}}]};
-  ss.setTabState(tab, JSON.stringify(state));
-  yield promiseTabRestored(tab);
-  is((yield getInputValue(browser, "input")), VALUE, "form data restored");
-
-  // Cleanup.
-  gBrowser.removeTab(tab);
-});
-
-/**
- * This test ensures that we maintain backwards compatibility with the form
- * data form used pre Fx 29, esp. the .innerHTML property for editable docs.
- */
-add_task(function test_old_format_inner_html() {
-  const URL = "data:text/html;charset=utf-8,<h1>mozilla</h1>" +
-              "<script>document.designMode='on'</script>";
-  const VALUE = "<h1>value-" + Math.random() + "</h1>";
-
-  // Create a tab with an iframe containing an input field.
-  let tab = gBrowser.addTab(URL);
-  let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  // Restore the tab state.
-  let state = {entries: [{url: URL, innerHTML: VALUE}]};
-  ss.setTabState(tab, JSON.stringify(state));
-  yield promiseTabRestored(tab);
-
-  // Check that the innerHTML value was restored.
-  let html = yield getInnerHTML(browser);
-  is(html, VALUE, "editable document has been restored correctly");
-
-  // Cleanup.
-  gBrowser.removeTab(tab);
 });
 
 /**
@@ -128,8 +80,7 @@ add_task(function test_url_check() {
       state.formdata.url = url;
     }
 
-    ss.setTabState(tab, JSON.stringify(state));
-    return promiseTabRestored(tab).then(() => getInputValue(browser, "input"));
+    return promiseTabState(tab, state).then(() => getInputValue(browser, "input"));
   }
 
   // Check that the form value is restored with the correct URL.
@@ -168,19 +119,19 @@ add_task(function test_nested() {
   yield sendMessage(browser, "ss-test:sendKeyEvent", {key: "m", frame: 0});
 
   // Remove the tab and check that we stored form data correctly.
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
   let [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
   is(JSON.stringify(formdata), JSON.stringify(FORM_DATA),
     "formdata for iframe stored correctly");
 
   // Restore the closed tab.
-  let tab = ss.undoCloseTab(window, 0);
-  let browser = tab.linkedBrowser;
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
   yield promiseTabRestored(tab);
 
   // Check that the input field has the right value.
-  SyncHandlers.get(browser).flush();
-  let {formdata} = JSON.parse(ss.getTabState(tab));
+  yield TabStateFlusher.flush(browser);
+  ({formdata} = JSON.parse(ss.getTabState(tab)));
   is(JSON.stringify(formdata), JSON.stringify(FORM_DATA),
     "formdata for iframe restored correctly");
 
@@ -204,17 +155,29 @@ add_task(function test_design_mode() {
   // Modify the document content.
   yield sendMessage(browser, "ss-test:sendKeyEvent", {key: "m"});
 
-  // Duplicate the modified tab.
-  let tab2 = gBrowser.duplicateTab(tab);
-  yield promiseTabRestored(tab2);
+  // Close and restore the tab.
+  yield promiseRemoveTab(tab);
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
+  yield promiseTabRestored(tab);
 
   // Check that the innerHTML value was restored.
   let html = yield getInnerHTML(browser);
   let expected = "<h1>Mmozilla</h1><script>document.designMode='on'</script>";
   is(html, expected, "editable document has been restored correctly");
 
+  // Close and restore the tab.
+  yield promiseRemoveTab(tab);
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
+  yield promiseTabRestored(tab);
+
+  // Check that the innerHTML value was restored.
+  html = yield getInnerHTML(browser);
+  expected = "<h1>Mmozilla</h1><script>document.designMode='on'</script>";
+  is(html, expected, "editable document has been restored correctly");
+
   // Cleanup.
-  gBrowser.removeTab(tab2);
   gBrowser.removeTab(tab);
 });
 

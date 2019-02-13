@@ -13,6 +13,12 @@
 callback DecodeSuccessCallback = void (AudioBuffer decodedData);
 callback DecodeErrorCallback = void ();
 
+enum AudioContextState {
+    "suspended",
+    "running",
+    "closed"
+};
+
 [Constructor,
  Constructor(AudioChannel audioChannelType)]
 interface AudioContext : EventTarget {
@@ -21,16 +27,25 @@ interface AudioContext : EventTarget {
     readonly attribute float sampleRate;
     readonly attribute double currentTime;
     readonly attribute AudioListener listener;
+    readonly attribute AudioContextState state;
+    [Throws]
+    Promise<void> suspend();
+    [Throws]
+    Promise<void> resume();
+    [Throws]
+    Promise<void> close();
+    attribute EventHandler onstatechange;
 
     [NewObject, Throws]
     AudioBuffer createBuffer(unsigned long numberOfChannels, unsigned long length, float sampleRate);
 
-    void decodeAudioData(ArrayBuffer audioData,
-                         DecodeSuccessCallback successCallback,
-                         optional DecodeErrorCallback errorCallback);
+    [Throws]
+    Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
+                                         optional DecodeSuccessCallback successCallback,
+                                         optional DecodeErrorCallback errorCallback);
 
     // AudioNode creation
-    [NewObject]
+    [NewObject, Throws]
     AudioBufferSourceNode createBufferSource();
 
     [NewObject, Throws]
@@ -41,23 +56,25 @@ interface AudioContext : EventTarget {
                                               optional unsigned long numberOfInputChannels = 2,
                                               optional unsigned long numberOfOutputChannels = 2);
 
-    [NewObject]
+    [NewObject, Throws]
+    StereoPannerNode createStereoPanner();
+    [NewObject, Throws]
     AnalyserNode createAnalyser();
-    [NewObject, Throws]
+    [NewObject, Throws, UnsafeInPrerendering]
     MediaElementAudioSourceNode createMediaElementSource(HTMLMediaElement mediaElement);
-    [NewObject, Throws]
+    [NewObject, Throws, UnsafeInPrerendering]
     MediaStreamAudioSourceNode createMediaStreamSource(MediaStream mediaStream);
-    [NewObject]
+    [NewObject, Throws]
     GainNode createGain();
     [NewObject, Throws]
     DelayNode createDelay(optional double maxDelayTime = 1);
-    [NewObject]
+    [NewObject, Throws]
     BiquadFilterNode createBiquadFilter();
-    [NewObject]
+    [NewObject, Throws]
     WaveShaperNode createWaveShaper();
-    [NewObject]
+    [NewObject, Throws]
     PannerNode createPanner();
-    [NewObject]
+    [NewObject, Throws]
     ConvolverNode createConvolver();
 
     [NewObject, Throws]
@@ -65,10 +82,10 @@ interface AudioContext : EventTarget {
     [NewObject, Throws]
     ChannelMergerNode createChannelMerger(optional unsigned long numberOfInputs = 6);
 
-    [NewObject]
+    [NewObject, Throws]
     DynamicsCompressorNode createDynamicsCompressor();
 
-    [NewObject]
+    [NewObject, Throws]
     OscillatorNode createOscillator();
     [NewObject, Throws]
     PeriodicWave createPeriodicWave(Float32Array real, Float32Array imag);
@@ -78,11 +95,9 @@ interface AudioContext : EventTarget {
 // Mozilla extensions
 partial interface AudioContext {
   // Read AudioChannel.webidl for more information about this attribute.
-  [Pref="media.useAudioChannelService", SetterThrows]
-  attribute AudioChannel mozAudioChannelType;
-};
+  [Pref="media.useAudioChannelService"]
+  readonly attribute AudioChannel mozAudioChannelType;
 
-partial interface AudioContext {
   // These 2 events are dispatched when the AudioContext object is muted by
   // the AudioChannelService. It's call 'interrupt' because when this event is
   // dispatched on a HTMLMediaElement, the audio stream is paused.
@@ -91,4 +106,7 @@ partial interface AudioContext {
 
   [Pref="media.useAudioChannelService"]
   attribute EventHandler onmozinterruptend;
+
+  // This method is for test only.
+  [ChromeOnly] AudioChannel testAudioChannelInAudioNodeStream();
 };

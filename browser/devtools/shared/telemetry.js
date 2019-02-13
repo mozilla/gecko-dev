@@ -36,7 +36,7 @@
  * about:telemetry.
  *
  * You can view telemetry stats for large groups of Firefox users at
- * metrics.mozilla.com.
+ * telemetry.mozilla.org.
  */
 
 const TOOLS_OPENED_PREF = "devtools.telemetry.tools.opened.version";
@@ -105,6 +105,11 @@ Telemetry.prototype = {
       userHistogram: "DEVTOOLS_FONTINSPECTOR_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_FONTINSPECTOR_TIME_ACTIVE_SECONDS"
     },
+    animationinspector: {
+      histogram: "DEVTOOLS_ANIMATIONINSPECTOR_OPENED_BOOLEAN",
+      userHistogram: "DEVTOOLS_ANIMATIONINSPECTOR_OPENED_PER_USER_FLAG",
+      timerHistogram: "DEVTOOLS_ANIMATIONINSPECTOR_TIME_ACTIVE_SECONDS"
+    },
     jsdebugger: {
       histogram: "DEVTOOLS_JSDEBUGGER_OPENED_BOOLEAN",
       userHistogram: "DEVTOOLS_JSDEBUGGER_OPENED_PER_USER_FLAG",
@@ -135,7 +140,7 @@ Telemetry.prototype = {
       userHistogram: "DEVTOOLS_CANVASDEBUGGER_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_CANVASDEBUGGER_TIME_ACTIVE_SECONDS"
     },
-    jsprofiler: {
+    performance: {
       histogram: "DEVTOOLS_JSPROFILER_OPENED_BOOLEAN",
       userHistogram: "DEVTOOLS_JSPROFILER_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_JSPROFILER_TIME_ACTIVE_SECONDS"
@@ -144,6 +149,11 @@ Telemetry.prototype = {
       histogram: "DEVTOOLS_NETMONITOR_OPENED_BOOLEAN",
       userHistogram: "DEVTOOLS_NETMONITOR_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_NETMONITOR_TIME_ACTIVE_SECONDS"
+    },
+    storage: {
+       histogram: "DEVTOOLS_STORAGE_OPENED_BOOLEAN",
+       userHistogram: "DEVTOOLS_STORAGE_OPENED_PER_USER_FLAG",
+       timerHistogram: "DEVTOOLS_STORAGE_TIME_ACTIVE_SECONDS"
     },
     tilt: {
       histogram: "DEVTOOLS_TILT_OPENED_BOOLEAN",
@@ -165,10 +175,27 @@ Telemetry.prototype = {
       userHistogram: "DEVTOOLS_RESPONSIVE_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_RESPONSIVE_TIME_ACTIVE_SECONDS"
     },
+    eyedropper: {
+      histogram: "DEVTOOLS_EYEDROPPER_OPENED_BOOLEAN",
+      userHistogram: "DEVTOOLS_EYEDROPPER_OPENED_PER_USER_FLAG",
+    },
+    menueyedropper: {
+      histogram: "DEVTOOLS_MENU_EYEDROPPER_OPENED_BOOLEAN",
+      userHistogram: "DEVTOOLS_MENU_EYEDROPPER_OPENED_PER_USER_FLAG",
+    },
+    pickereyedropper: {
+      histogram: "DEVTOOLS_PICKER_EYEDROPPER_OPENED_BOOLEAN",
+      userHistogram: "DEVTOOLS_PICKER_EYEDROPPER_OPENED_PER_USER_FLAG",
+    },
     developertoolbar: {
       histogram: "DEVTOOLS_DEVELOPERTOOLBAR_OPENED_BOOLEAN",
       userHistogram: "DEVTOOLS_DEVELOPERTOOLBAR_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_DEVELOPERTOOLBAR_TIME_ACTIVE_SECONDS"
+    },
+    webide: {
+      histogram: "DEVTOOLS_WEBIDE_OPENED_BOOLEAN",
+      userHistogram: "DEVTOOLS_WEBIDE_OPENED_PER_USER_FLAG",
+      timerHistogram: "DEVTOOLS_WEBIDE_TIME_ACTIVE_SECONDS"
     },
     custom: {
       histogram: "DEVTOOLS_CUSTOM_OPENED_BOOLEAN",
@@ -194,7 +221,7 @@ Telemetry.prototype = {
       this.logOncePerBrowserVersion(charts.userHistogram, true);
     }
     if (charts.timerHistogram) {
-      this._timers.set(charts.timerHistogram, new Date());
+      this.startTimer(charts.timerHistogram);
     }
   },
 
@@ -205,12 +232,31 @@ Telemetry.prototype = {
       return;
     }
 
-    let startTime = this._timers.get(charts.timerHistogram);
+    this.stopTimer(charts.timerHistogram);
+  },
 
+  /**
+   * Record the start time for a timing-based histogram entry.
+   *
+   * @param String histogramId
+   *        Histogram in which the data is to be stored.
+   */
+  startTimer: function(histogramId) {
+    this._timers.set(histogramId, new Date());
+  },
+
+  /**
+   * Stop the timer and log elasped time for a timing-based histogram entry.
+   *
+   * @param String histogramId
+   *        Histogram in which the data is to be stored.
+   */
+  stopTimer: function(histogramId) {
+    let startTime = this._timers.get(histogramId);
     if (startTime) {
       let time = (new Date() - startTime) / 1000;
-      this.log(charts.timerHistogram, time);
-      this._timers.delete(charts.timerHistogram);
+      this.log(histogramId, time);
+      this._timers.delete(histogramId);
     }
   },
 
@@ -227,6 +273,28 @@ Telemetry.prototype = {
       try {
         let histogram = Services.telemetry.getHistogramById(histogramId);
         histogram.add(value);
+      } catch(e) {
+        dump("Warning: An attempt was made to write to the " + histogramId +
+             " histogram, which is not defined in Histograms.json\n");
+      }
+    }
+  },
+
+  /**
+   * Log a value to a keyed histogram.
+   *
+   * @param  {String} histogramId
+   *         Histogram in which the data is to be stored.
+   * @param  {String} key
+   *         The key within the single histogram.
+   * @param  value
+   *         Value to store.
+   */
+  logKeyed: function(histogramId, key, value) {
+    if (histogramId) {
+      try {
+        let histogram = Services.telemetry.getKeyedHistogramById(histogramId);
+        histogram.add(key, value);
       } catch(e) {
         dump("Warning: An attempt was made to write to the " + histogramId +
              " histogram, which is not defined in Histograms.json\n");
@@ -258,11 +326,8 @@ Telemetry.prototype = {
   },
 
   destroy: function() {
-    for (let [histogram, time] of this._timers) {
-      time = (new Date() - time) / 1000;
-
-      this.log(histogram, time);
-      this._timers.delete(histogram);
+    for (let histogramId of this._timers.keys()) {
+      this.stopTimer(histogramId);
     }
   }
 };

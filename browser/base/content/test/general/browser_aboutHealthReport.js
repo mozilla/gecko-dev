@@ -7,29 +7,77 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 
+const CHROME_BASE = "chrome://mochitests/content/browser/browser/base/content/test/general/";
+const HTTPS_BASE = "https://example.com/browser/browser/base/content/test/general/";
+
+const TELEMETRY_LOG_PREF = "toolkit.telemetry.log.level";
+const telemetryOriginalLogPref = Preferences.get(TELEMETRY_LOG_PREF, null);
+
+const originalReportUrl = Services.prefs.getCharPref("datareporting.healthreport.about.reportUrl");
+const originalReportUrlUnified = Services.prefs.getCharPref("datareporting.healthreport.about.reportUrlUnified");
+
 registerCleanupFunction(function() {
   // Ensure we don't pollute prefs for next tests.
+  if (telemetryOriginalLogPref) {
+    Preferences.set(TELEMETRY_LOG_PREF, telemetryOriginalLogPref);
+  } else {
+    Preferences.reset(TELEMETRY_LOG_PREF);
+  }
+
   try {
-    Services.prefs.clearUserPref("datareporting.healthreport.about.reportUrl");
+    Services.prefs.setCharPref("datareporting.healthreport.about.reportUrl", originalReportUrl);
+    Services.prefs.setCharPref("datareporting.healthreport.about.reportUrlUnified", originalReportUrlUnified);
     let policy = Cc["@mozilla.org/datareporting/service;1"]
                  .getService(Ci.nsISupports)
                  .wrappedJSObject
                  .policy;
-        policy.recordHealthReportUploadEnabled(true,
+    policy.recordHealthReportUploadEnabled(true,
                                            "Resetting after tests.");
   } catch (ex) {}
 });
+
+function fakeTelemetryNow(...args) {
+  let date = new Date(...args);
+  let scope = {};
+  const modules = [
+    Cu.import("resource://gre/modules/TelemetrySession.jsm", scope),
+    Cu.import("resource://gre/modules/TelemetryEnvironment.jsm", scope),
+    Cu.import("resource://gre/modules/TelemetryController.jsm", scope),
+  ];
+
+  for (let m of modules) {
+    m.Policy.now = () => new Date(date);
+  }
+
+  return date;
+}
+
+function setupPingArchive() {
+  let scope = {};
+  Cu.import("resource://gre/modules/TelemetryController.jsm", scope);
+  Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
+    .loadSubScript(CHROME_BASE + "healthreport_pingData.js", scope);
+
+  for (let p of scope.TEST_PINGS) {
+    fakeTelemetryNow(p.date);
+    p.id = yield scope.TelemetryController.submitExternalPing(p.type, p.payload);
+  }
+}
 
 let gTests = [
 
 {
   desc: "Test the remote commands",
-  setup: function ()
+  setup: Task.async(function*()
   {
-    Services.prefs.setCharPref("datareporting.healthreport.about.reportUrl",
-                               "https://example.com/browser/browser/base/content/test/general/healthreport_testRemoteCommands.html");
-  },
-  run: function ()
+    Preferences.set(TELEMETRY_LOG_PREF, "Trace");
+    yield setupPingArchive();
+    Preferences.set("datareporting.healthreport.about.reportUrl",
+                    HTTPS_BASE + "healthreport_testRemoteCommands.html");
+    Preferences.set("datareporting.healthreport.about.reportUrlUnified",
+                    HTTPS_BASE + "healthreport_testRemoteCommands.html");
+  }),
+  run: function (iframe)
   {
     let deferred = Promise.defer();
 
@@ -40,19 +88,18 @@ let gTests = [
 
     let results = 0;
     try {
-      let win = gBrowser.contentWindow;
-      win.addEventListener("message", function testLoad(e) {
-        if (e.data.type == "testResult") {
-          ok(e.data.pass, e.data.info);
+      iframe.contentWindow.addEventListener("FirefoxHealthReportTestResponse", function evtHandler(event) {
+        let data = event.detail.data;
+        if (data.type == "testResult") {
+          ok(data.pass, data.info);
           results++;
         }
-        else if (e.data.type == "testsComplete") {
-          is(results, e.data.count, "Checking number of results received matches the number of tests that should have run");
-          win.removeEventListener("message", testLoad, false, true);
+        else if (data.type == "testsComplete") {
+          is(results, data.count, "Checking number of results received matches the number of tests that should have run");
+          iframe.contentWindow.removeEventListener("FirefoxHealthReportTestResponse", evtHandler, true);
           deferred.resolve();
         }
-
-      }, false, true);
+      }, true);
 
     } catch(e) {
       ok(false, "Failed to get all commands");
@@ -61,7 +108,6 @@ let gTests = [
     return deferred.promise;
   }
 },
-
 
 ]; // gTests
 
@@ -75,11 +121,11 @@ function test()
   Task.spawn(function () {
     for (let test of gTests) {
       info(test.desc);
-      test.setup();
+      yield test.setup();
 
-      yield promiseNewTabLoadEvent("about:healthreport");
+      let iframe = yield promiseNewTabLoadEvent("about:healthreport");
 
-      yield test.run();
+      yield test.run(iframe);
 
       gBrowser.removeCurrentTab();
     }
@@ -96,10 +142,13 @@ function promiseNewTabLoadEvent(aUrl, aEventType="load")
     tab.linkedBrowser.removeEventListener(aEventType, load, true);
     let iframe = tab.linkedBrowser.contentDocument.getElementById("remote-report");
       iframe.addEventListener("load", function frameLoad(e) {
+        if (iframe.contentWindow.location.href == "about:blank" ||
+            e.target != iframe) {
+          return;
+        }
         iframe.removeEventListener("load", frameLoad, false);
-        deferred.resolve();
+        deferred.resolve(iframe);
       }, false);
     }, true);
   return deferred.promise;
 }
-

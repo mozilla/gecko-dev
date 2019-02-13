@@ -6,17 +6,16 @@
 
 #include "nsIconDecoder.h"
 #include "nsIInputStream.h"
-#include "RasterImage.h"
 #include "nspr.h"
 #include "nsRect.h"
-
 #include "nsError.h"
+#include "RasterImage.h"
 #include <algorithm>
 
 namespace mozilla {
 namespace image {
 
-nsIconDecoder::nsIconDecoder(RasterImage &aImage)
+nsIconDecoder::nsIconDecoder(RasterImage* aImage)
  : Decoder(aImage),
    mWidth(-1),
    mHeight(-1),
@@ -30,9 +29,9 @@ nsIconDecoder::~nsIconDecoder()
 { }
 
 void
-nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrategy)
+nsIconDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 {
-  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
+  MOZ_ASSERT(!HasError(), "Shouldn't call WriteInternal after error!");
 
   // We put this here to avoid errors about crossing initialization with case
   // jumps on linux.
@@ -59,6 +58,9 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
         // Post our size to the superclass
         PostSize(mWidth, mHeight);
+
+        PostHasTransparency();
+
         if (HasError()) {
           // Setting the size led to an error.
           mState = iconStateFinished;
@@ -82,8 +84,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
         mState = iconStateReadPixels;
         break;
 
-      case iconStateReadPixels:
-      {
+      case iconStateReadPixels: {
 
         // How many bytes are we reading?
         bytesToRead = std::min(aCount, mImageDataLength - mPixBytesRead);

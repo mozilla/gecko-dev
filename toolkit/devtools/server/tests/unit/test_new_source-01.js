@@ -25,7 +25,7 @@ function run_test()
 
 function test_simple_new_source()
 {
-  gClient.addOneTimeListener("newSource", function (aEvent, aPacket) {
+  gThreadClient.addOneTimeListener("newSource", function (aEvent, aPacket) {
     do_check_eq(aEvent, "newSource");
     do_check_eq(aPacket.type, "newSource");
     do_check_true(!!aPacket.source);
@@ -34,7 +34,7 @@ function test_simple_new_source()
     finishClient(gClient);
   });
 
-  gDebuggee.eval(function inc(n) {
+  Components.utils.evalInSandbox(function inc(n) {
     return n+1;
-  }.toString());
+  }.toString(), gDebuggee);
 }

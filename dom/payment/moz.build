@@ -4,17 +4,36 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['interfaces']
+DIRS += ['interfaces']
 
-TEST_DIRS += ['tests']
+EXPORTS.mozilla.dom += [
+    'PaymentProviderUtils.h',
+]
 
-EXTRA_JS_MODULES += [
+SOURCES += [
+    'PaymentProviderUtils.cpp',
+]
+
+EXTRA_PP_JS_MODULES += [
     'Payment.jsm',
 ]
 
 EXTRA_COMPONENTS += [
     'Payment.js',
     'Payment.manifest',
-    'PaymentFlowInfo.js',
+    'PaymentFlowInfo.js'
 ]
 
+EXTRA_PP_COMPONENTS += [
+    'PaymentProvider.js'
+]
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '/dom/base'
+]
+
+XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
+
+MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']

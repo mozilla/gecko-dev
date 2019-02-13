@@ -12,9 +12,9 @@
 #define mozilla_css_GroupRule_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/IncrementalClearCOMRuleArray.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/Rule.h"
-#include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -22,6 +22,9 @@ class nsPresContext;
 class nsMediaQueryResultCacheKey;
 
 namespace mozilla {
+
+class CSSStyleSheet;
+
 namespace css {
 
 class GroupRuleRuleList;
@@ -31,7 +34,7 @@ class GroupRuleRuleList;
 class GroupRule : public Rule
 {
 protected:
-  GroupRule();
+  GroupRule(uint32_t aLineNumber, uint32_t aColumnNumber);
   GroupRule(const GroupRule& aCopy);
   virtual ~GroupRule();
 public:
@@ -41,11 +44,11 @@ public:
 
   // implement part of nsIStyleRule and Rule
   DECL_STYLE_RULE_INHERIT_NO_DOMRULE
-  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet);
+  virtual void SetStyleSheet(CSSStyleSheet* aSheet) override;
 
   // to help implement nsIStyleRule
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
 #endif
 
 public:
@@ -54,7 +57,7 @@ public:
   int32_t StyleRuleCount() const { return mRules.Count(); }
   Rule* GetStyleRuleAt(int32_t aIndex) const;
 
-  typedef nsCOMArray<Rule>::nsCOMArrayEnumFunc RuleEnumFunc;
+  typedef IncrementalClearCOMRuleArray::nsCOMArrayEnumFunc RuleEnumFunc;
   bool EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const;
 
   /*
@@ -71,13 +74,13 @@ public:
 
   // non-virtual -- it is only called by subclasses
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const = 0;
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override = 0;
 
   static bool
   CloneRuleInto(Rule* aRule, void* aArray)
   {
     nsRefPtr<Rule> clone = aRule->Clone();
-    static_cast<nsCOMArray<Rule>*>(aArray)->AppendObject(clone);
+    static_cast<IncrementalClearCOMRuleArray*>(aArray)->AppendObject(clone);
     return true;
   }
 
@@ -92,7 +95,7 @@ protected:
                       uint32_t* _retval);
   nsresult DeleteRule(uint32_t aIndex);
 
-  nsCOMArray<Rule> mRules;
+  IncrementalClearCOMRuleArray mRules;
   nsRefPtr<GroupRuleRuleList> mRuleCollection; // lazily constructed
 };
 

@@ -49,11 +49,11 @@ public class PasswordsRepositorySession extends
   }
 
   private static final String LOG_TAG = "PasswordsRepoSession";
-  private static String COLLECTION = "passwords";
+  private static final String COLLECTION = "passwords";
 
-  private RepoUtils.QueryHelper passwordsHelper;
-  private RepoUtils.QueryHelper deletedPasswordsHelper;
-  private ContentProviderClient passwordsProvider;
+  private final RepoUtils.QueryHelper passwordsHelper;
+  private final RepoUtils.QueryHelper deletedPasswordsHelper;
+  private final ContentProviderClient passwordsProvider;
 
   private final Context context;
 
@@ -270,11 +270,8 @@ public class PasswordsRepositorySession extends
         PasswordRecord existingRecord;
         try {
           existingRecord = retrieveByGUID(guid);
-        } catch (NullCursorException e) {
+        } catch (NullCursorException | RemoteException e) {
           // Indicates a serious problem.
-          delegate.onRecordStoreFailed(e, record.guid);
-          return;
-        } catch (RemoteException e) {
           delegate.onRecordStoreFailed(e, record.guid);
           return;
         }

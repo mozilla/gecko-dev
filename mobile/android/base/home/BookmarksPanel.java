@@ -7,12 +7,14 @@ package org.mozilla.gecko.home;
 
 import java.util.List;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.home.BookmarksListAdapter.FolderInfo;
 import org.mozilla.gecko.home.BookmarksListAdapter.OnRefreshFolderListener;
 import org.mozilla.gecko.home.BookmarksListAdapter.RefreshType;
+import org.mozilla.gecko.home.HomeContextMenuInfo.RemoveItemType;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 
 import android.app.Activity;
@@ -20,7 +22,6 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -77,6 +78,7 @@ public class BookmarksPanel extends HomeFragment {
                 info.url = cursor.getString(cursor.getColumnIndexOrThrow(Bookmarks.URL));
                 info.title = cursor.getString(cursor.getColumnIndexOrThrow(Bookmarks.TITLE));
                 info.bookmarkId = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
+                info.itemType = RemoveItemType.BOOKMARKS;
                 return info;
             }
         });
@@ -139,23 +141,10 @@ public class BookmarksPanel extends HomeFragment {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
-        // Reattach the fragment, forcing a reinflation of its view.
-        // We use commitAllowingStateLoss() instead of commit() here to avoid
-        // an IllegalStateException. If the phone is rotated while Fennec
-        // is in the background, onConfigurationChanged() is fired.
-        // onConfigurationChanged() is called before onResume(), so
-        // using commit() would throw an IllegalStateException since it can't
-        // be used between the Activity's onSaveInstanceState() and
-        // onResume().
         if (isVisible()) {
             // The parent stack is saved just so that the folder state can be
             // restored on rotation.
             mSavedParentStack = mListAdapter.getParentStack();
-
-            getFragmentManager().beginTransaction()
-                                .detach(this)
-                                .attach(this)
-                                .commitAllowingStateLoss();
         }
     }
 
@@ -186,27 +175,31 @@ public class BookmarksPanel extends HomeFragment {
     private static class BookmarksLoader extends SimpleCursorLoader {
         private final FolderInfo mFolderInfo;
         private final RefreshType mRefreshType;
+        private final BrowserDB mDB;
 
         public BookmarksLoader(Context context) {
-            this(context, new FolderInfo(Bookmarks.FIXED_ROOT_ID), RefreshType.CHILD);
+            this(context,
+                 new FolderInfo(Bookmarks.FIXED_ROOT_ID, context.getResources().getString(R.string.bookmarks_title)),
+                 RefreshType.CHILD);
         }
 
         public BookmarksLoader(Context context, FolderInfo folderInfo, RefreshType refreshType) {
             super(context);
             mFolderInfo = folderInfo;
             mRefreshType = refreshType;
+            mDB = GeckoProfile.get(context).getDB();
         }
 
         @Override
         public Cursor loadCursor() {
-            return BrowserDB.getBookmarksInFolder(getContext().getContentResolver(), mFolderInfo.id);
+            return mDB.getBookmarksInFolder(getContext().getContentResolver(), mFolderInfo.id);
         }
 
         @Override
         public void onContentChanged() {
             // Invalidate the cached value that keeps track of whether or
             // not desktop bookmarks exist.
-            BrowserDB.invalidateCachedState();
+            mDB.invalidate();
             super.onContentChanged();
         }
 
@@ -222,7 +215,7 @@ public class BookmarksPanel extends HomeFragment {
     /**
      * Loader callbacks for the LoaderManager of this fragment.
      */
-    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+    private class CursorLoaderCallbacks extends TransitionAwareCursorLoaderCallbacks {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             if (args == null) {
@@ -235,7 +228,7 @@ public class BookmarksPanel extends HomeFragment {
         }
 
         @Override
-        public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
+        public void onLoadFinishedAfterTransitions(Loader<Cursor> loader, Cursor c) {
             BookmarksLoader bl = (BookmarksLoader) loader;
             mListAdapter.swapCursor(c, bl.getFolderInfo(), bl.getRefreshType());
             updateUiFromCursor(c);
@@ -243,6 +236,8 @@ public class BookmarksPanel extends HomeFragment {
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
+            super.onLoaderReset(loader);
+
             if (mList != null) {
                 mListAdapter.swapCursor(null);
             }

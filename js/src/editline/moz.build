@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-LIBRARY_NAME = 'editline'
+Library('editline')
 
 UNIFIED_SOURCES += [
     'editline.c',
@@ -16,3 +16,5 @@ FORCE_STATIC_LIB = True
 for var in ('ANSI_ARROWS', 'HAVE_TCGETATTR', 'HIDE', 'USE_DIRENT', 'SYS_UNIX',
             'HAVE_STDLIB', 'UNIQUE_HISTORY'):
     DEFINES[var] = True
+
+FAIL_ON_WARNINGS = True

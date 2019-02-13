@@ -36,8 +36,8 @@ add_test(function test_ril_worker_cellbroadcast_activate() {
     setup(isCdma);
     context.RIL.setCellBroadcastDisabled({disabled: true});
     // Makesure that request parcel is sent out.
-    do_check_neq(parcelTypes.indexOf(expectedRequest), -1);
-    do_check_eq(context.RIL.cellBroadcastDisabled, true);
+    notEqual(parcelTypes.indexOf(expectedRequest), -1);
+    equal(context.RIL.cellBroadcastDisabled, true);
   }
 
   test(false, REQUEST_GSM_SMS_BROADCAST_ACTIVATION);
@@ -74,28 +74,28 @@ add_test(function test_ril_worker_cellbroadcast_config() {
 
     let found = false;
     worker.postRILMessage = function(id, parcel) {
-      u32Parcel = U32ArrayFromParcelArray(Array.slice(parcel));
+      let u32Parcel = U32ArrayFromParcelArray(Array.slice(parcel));
       if (u32Parcel[1] != parcelType) {
         return;
       }
 
       found = true;
       // Check parcel. Data start from 4th word (32bit)
-      do_check_eq(u32Parcel.slice(3).toString(), expected);
+      equal(u32Parcel.slice(3).toString(), expected);
     };
 
     context.RIL._isCdma = isCdma;
     context.RIL.setSmsBroadcastConfig(configs);
 
     // Makesure that request parcel is sent out.
-    do_check_true(found);
+    ok(found);
   }
 
   // (GSM) RIL writes the following data to outgoing parcel:
   //   nums [(from, to, 0, 0xFF, 1), ... ]
   test(false,
        [1, 2, 4, 7]  /* 1, 4-6 */,
-       ["2", "1,2,0,255,1", "4,7,0,255,1"].join());
+       ["2", "1,1,0,255,1", "4,6,0,255,1"].join());
 
   // (CDMA) RIL writes the following data to outgoing parcel:
   //   nums [(id, 0, 1), ... ]
@@ -121,7 +121,7 @@ add_test(function test_ril_worker_cellbroadcast_merge_config() {
     context.RIL._isCdma = isCdma;
     context.RIL.cellBroadcastConfigs = configs;
     context.RIL._mergeAllCellBroadcastConfigs();
-    do_check_eq(context.RIL.mergedCellBroadcastConfig.toString(), expected);
+    equal(context.RIL.mergedCellBroadcastConfig.toString(), expected);
   }
 
   let configs = {
@@ -155,8 +155,8 @@ add_test(function test_ril_worker_cellbroadcast_set_search_list() {
     let options = { searchList: aSearchList };
     context.RIL.setCellBroadcastSearchList(options);
     // Enforce the MMI result to string for comparison.
-    do_check_eq("" + context.RIL.cellBroadcastConfigs.MMI, aExpected);
-    do_check_eq(options.success, true);
+    equal("" + context.RIL.cellBroadcastConfigs.MMI, aExpected);
+    do_check_eq(options.errorMsg, undefined);
   }
 
   let searchListStr = "1,2,3,4";

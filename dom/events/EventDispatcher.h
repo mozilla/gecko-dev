@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,12 +10,13 @@
 
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 
 // Microsoft's API Name hackery sucks
 #undef CreateEvent
 
+class nsIContent;
 class nsIDOMEvent;
-class nsIScriptGlobalObject;
 class nsPresContext;
 
 template<class E> class nsCOMArray;
@@ -193,12 +195,19 @@ public:
    * which should be used when the event is handled at mParentTarget.
    */
   dom::EventTarget* mEventTargetAtParent;
+
+  /**
+   * An array of destination insertion points that need to be inserted
+   * into the event path of nodes that are distributed by the
+   * web components distribution algorithm.
+   */
+  nsTArray<nsIContent*> mDestInsertionPoints;
 };
 
 class EventChainPostVisitor : public mozilla::EventChainVisitor
 {
 public:
-  EventChainPostVisitor(EventChainVisitor& aOther)
+  explicit EventChainPostVisitor(EventChainVisitor& aOther)
     : EventChainVisitor(aOther.mPresContext, aOther.mEvent,
                         aOther.mDOMEvent, aOther.mEventStatus)
   {
@@ -246,7 +255,7 @@ public:
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
                            EventDispatchingCallback* aCallback = nullptr,
-                           nsCOMArray<dom::EventTarget>* aTargets = nullptr);
+                           nsTArray<dom::EventTarget*>* aTargets = nullptr);
 
   /**
    * Dispatches an event.

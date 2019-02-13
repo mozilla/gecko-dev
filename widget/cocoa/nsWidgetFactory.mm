@@ -7,6 +7,7 @@
 #include "nsISupports.h"
 #include "nsIComponentManager.h"
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/WidgetUtils.h"
 
 #include "nsWidgetsCID.h"
 
@@ -37,8 +38,6 @@
 #include "nsPrintDialogX.h"
 #include "nsPrintSession.h"
 #include "nsToolkitCompsCID.h"
-
-#include "mozilla/Module.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -79,6 +78,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsMacWebAppUtils)
 #include "nsStandaloneNativeMenu.h"
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsStandaloneNativeMenu)
 
+#include "nsSystemStatusBarCocoa.h"
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsSystemStatusBarCocoa)
+
 #include "GfxInfo.h"
 namespace mozilla {
 namespace widget {
@@ -112,6 +114,7 @@ NS_DEFINE_NAMED_CID(NS_NATIVEMENUSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_MACDOCKSUPPORT_CID);
 NS_DEFINE_NAMED_CID(NS_MACWEBAPPUTILS_CID);
 NS_DEFINE_NAMED_CID(NS_STANDALONENATIVEMENU_CID);
+NS_DEFINE_NAMED_CID(NS_MACSYSTEMSTATUSBAR_CID);
 NS_DEFINE_NAMED_CID(NS_GFXINFO_CID);
 
 static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
@@ -132,22 +135,22 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
   { &kNS_CLIPBOARDHELPER_CID, false, NULL, nsClipboardHelperConstructor },
   { &kNS_DRAGSERVICE_CID, false, NULL, nsDragServiceConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor },
+  { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor,
+    mozilla::Module::MAIN_PROCESS_ONLY },
   { &kNS_THEMERENDERER_CID, false, NULL, nsNativeThemeCocoaConstructor },
-  { &kNS_SCREENMANAGER_CID, false, NULL, nsScreenManagerCocoaConstructor },
-  { &kNS_DEVICE_CONTEXT_SPEC_CID, false, NULL, nsDeviceContextSpecXConstructor,
+  { &kNS_SCREENMANAGER_CID, false, NULL, nsScreenManagerCocoaConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { &kNS_PRINTSESSION_CID, false, NULL, nsPrintSessionConstructor,
-    mozilla::Module::MAIN_PROCESS_ONLY },
+  { &kNS_DEVICE_CONTEXT_SPEC_CID, false, NULL, nsDeviceContextSpecXConstructor },
+  { &kNS_PRINTSESSION_CID, false, NULL, nsPrintSessionConstructor },
   { &kNS_PRINTSETTINGSSERVICE_CID, false, NULL, nsPrintOptionsXConstructor },
-  { &kNS_PRINTDIALOGSERVICE_CID, false, NULL, nsPrintDialogServiceXConstructor,
-    mozilla::Module::MAIN_PROCESS_ONLY },
+  { &kNS_PRINTDIALOGSERVICE_CID, false, NULL, nsPrintDialogServiceXConstructor },
   { &kNS_IDLE_SERVICE_CID, false, NULL, nsIdleServiceXConstructor },
   { &kNS_SYSTEMALERTSSERVICE_CID, false, NULL, OSXNotificationCenterConstructor },
   { &kNS_NATIVEMENUSERVICE_CID, false, NULL, nsNativeMenuServiceXConstructor },
   { &kNS_MACDOCKSUPPORT_CID, false, NULL, nsMacDockSupportConstructor },
   { &kNS_MACWEBAPPUTILS_CID, false, NULL, nsMacWebAppUtilsConstructor },
   { &kNS_STANDALONENATIVEMENU_CID, false, NULL, nsStandaloneNativeMenuConstructor },
+  { &kNS_MACSYSTEMSTATUSBAR_CID, false, NULL, nsSystemStatusBarCocoaConstructor },
   { &kNS_GFXINFO_CID, false, NULL, mozilla::widget::GfxInfoConstructor },
   { NULL }
 };
@@ -170,22 +173,22 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
   { "@mozilla.org/widget/clipboardhelper;1", &kNS_CLIPBOARDHELPER_CID },
   { "@mozilla.org/widget/dragservice;1", &kNS_DRAGSERVICE_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID },
+  { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID,
+    mozilla::Module::MAIN_PROCESS_ONLY },
   { "@mozilla.org/chrome/chrome-native-theme;1", &kNS_THEMERENDERER_CID },
-  { "@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID },
-  { "@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID,
+  { "@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { "@mozilla.org/gfx/printsession;1", &kNS_PRINTSESSION_CID,
-    mozilla::Module::MAIN_PROCESS_ONLY },
+  { "@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID },
+  { "@mozilla.org/gfx/printsession;1", &kNS_PRINTSESSION_CID },
   { "@mozilla.org/gfx/printsettings-service;1", &kNS_PRINTSETTINGSSERVICE_CID },
-  { NS_PRINTDIALOGSERVICE_CONTRACTID, &kNS_PRINTDIALOGSERVICE_CID,
-    mozilla::Module::MAIN_PROCESS_ONLY },
+  { NS_PRINTDIALOGSERVICE_CONTRACTID, &kNS_PRINTDIALOGSERVICE_CID },
   { "@mozilla.org/widget/idleservice;1", &kNS_IDLE_SERVICE_CID },
   { "@mozilla.org/system-alerts-service;1", &kNS_SYSTEMALERTSSERVICE_CID },
   { "@mozilla.org/widget/nativemenuservice;1", &kNS_NATIVEMENUSERVICE_CID },
   { "@mozilla.org/widget/macdocksupport;1", &kNS_MACDOCKSUPPORT_CID },
   { "@mozilla.org/widget/mac-web-app-utils;1", &kNS_MACWEBAPPUTILS_CID },
   { "@mozilla.org/widget/standalonenativemenu;1", &kNS_STANDALONENATIVEMENU_CID },
+  { "@mozilla.org/widget/macsystemstatusbar;1", &kNS_MACSYSTEMSTATUSBAR_CID },
   { "@mozilla.org/gfx/info;1", &kNS_GFXINFO_CID },
   { NULL }
 };
@@ -193,6 +196,9 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
 static void
 nsWidgetCocoaModuleDtor()
 {
+  // Shutdown all XP level widget classes.
+  WidgetUtils::Shutdown();
+
   NativeKeyBindings::Shutdown();
   nsLookAndFeel::Shutdown();
   nsToolkit::Shutdown();

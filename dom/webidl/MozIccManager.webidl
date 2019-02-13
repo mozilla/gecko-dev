@@ -3,7 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-[Pref="dom.icc.enabled"]
+[Pref="dom.icc.enabled",
+ CheckPermissions="mobileconnection",
+ AvailableIn="CertifiedApps"]
 interface MozIccManager : EventTarget
 {
   /**
@@ -68,6 +70,9 @@ interface MozIccManager : EventTarget
   /** REFRESH performed with additional EFs read */
   const unsigned short STK_RESULT_PRFRMD_WITH_ADDITIONAL_EFS_READ   = 0x03;
 
+  /** Command performed successfully, but icon could not be displayed */
+  const unsigned short STK_RESULT_PRFRMD_ICON_NOT_DISPLAYED         = 0x04;
+
   /** Command performed successfully, limited service */
   const unsigned short STK_RESULT_PRFRMD_LIMITED_SERVICE            = 0x06;
 
@@ -101,6 +106,9 @@ interface MozIccManager : EventTarget
 
   /** User cleared down call before connection or network release */
   const unsigned short STK_RESULT_USER_CLEAR_DOWN_CALL              = 0x23;
+
+  /** Action in contradiction with the current timer state */
+  const unsigned short STK_RESULT_ACTION_CONTRADICTION_TIMER_STATE  = 0x24;
 
   /** Launch browser generic error code */
   const unsigned short STK_RESULT_LAUNCH_BROWSER_ERROR              = 0x26;
@@ -145,6 +153,20 @@ interface MozIccManager : EventTarget
 
   /** Bearer independent protocol error */
   const unsigned short STK_RESULT_BIP_ERROR                         = 0x3a;
+
+  /**
+   * Additional information on result:
+   *
+   * TS 11.14, 12.12.1-11 and TS 31.111,8.12.1-13 defines additional infomation
+   * for different categories such as SEND SS, ME problem, network problem, etc.
+   *
+   * Note: We define these information here by category when needed.
+   */
+
+  /**
+   * 12.12.2 Additional information for ME problem:
+   */
+  const unsigned short STK_ADDITIONAL_INFO_ME_PROBLEM_SCREEN_IS_BUSY = 0x01;
 
   /**
    * STK event list.

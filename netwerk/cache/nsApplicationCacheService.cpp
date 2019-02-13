@@ -27,6 +27,10 @@ nsApplicationCacheService::nsApplicationCacheService()
     mCacheService = nsCacheService::GlobalInstance();
 }
 
+nsApplicationCacheService::~nsApplicationCacheService()
+{
+}
+
 NS_IMETHODIMP
 nsApplicationCacheService::BuildGroupID(nsIURI *aManifestURL,
                                         nsILoadContextInfo *aLoadContextInfo,
@@ -203,13 +207,13 @@ nsApplicationCacheService::GetGroupsTimeOrdered(uint32_t *count,
 
 namespace {
 
-class AppCacheClearDataObserver MOZ_FINAL : public nsIObserver {
+class AppCacheClearDataObserver final : public nsIObserver {
 public:
     NS_DECL_ISUPPORTS
 
     // nsIObserver implementation.
     NS_IMETHODIMP
-    Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
+    Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData) override
     {
         MOZ_ASSERT(!nsCRT::strcmp(aTopic, TOPIC_WEB_APP_CLEAR_DATA));
 
@@ -225,6 +229,9 @@ public:
 
         return cacheService->DiscardByAppId(appId, browserOnly);
     }
+
+private:
+    ~AppCacheClearDataObserver() {}
 };
 
 NS_IMPL_ISUPPORTS(AppCacheClearDataObserver, nsIObserver)
@@ -235,13 +242,12 @@ NS_IMPL_ISUPPORTS(AppCacheClearDataObserver, nsIObserver)
 void
 nsApplicationCacheService::AppClearDataObserverInit()
 {
-    nsCOMPtr<nsIObserverService> observerService =
-        do_GetService("@mozilla.org/observer-service;1");
-    if (observerService) {
-        nsRefPtr<AppCacheClearDataObserver> obs
-            = new AppCacheClearDataObserver();
-        observerService->AddObserver(obs, TOPIC_WEB_APP_CLEAR_DATA,
-                                     /*holdsWeak=*/ false);
-    }
+  nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
+  if (observerService) {
+    nsRefPtr<AppCacheClearDataObserver> obs
+      = new AppCacheClearDataObserver();
+    observerService->AddObserver(obs, TOPIC_WEB_APP_CLEAR_DATA,
+				 /*holdsWeak=*/ false);
+  }
 }
 

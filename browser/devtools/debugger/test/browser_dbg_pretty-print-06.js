@@ -8,13 +8,12 @@
 const TAB_URL = EXAMPLE_URL + "doc_included-script.html";
 const JS_URL = EXAMPLE_URL + "code_location-changes.js";
 
-let gTab, gDebuggee, gPanel, gDebugger, gClient;
+let gTab, gPanel, gDebugger, gClient;
 let gEditor, gSources, gControllerSources, gPrettyPrinted;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gClient = gDebugger.gClient;
@@ -36,7 +35,7 @@ function test() {
       };
     }(gClient.request));
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       yield waitForSourceShown(gPanel, JS_URL);
 
       // From this point onward, the source editor's text should never change.
@@ -44,9 +43,9 @@ function test() {
         ok(false, "The source editor text shouldn't have changed.");
       });
 
-      is(gSources.selectedValue, JS_URL,
+      is(getSelectedSourceURL(gSources), JS_URL,
         "The correct source is currently selected.");
-      ok(gEditor.getText().contains("myFunction"),
+      ok(gEditor.getText().includes("myFunction"),
         "The source shouldn't be pretty printed yet.");
 
       clickPrettyPrintButton();
@@ -56,16 +55,17 @@ function test() {
         yield gControllerSources.togglePrettyPrint(source);
         ok(false, "The promise for a prettified source should be rejected!");
       } catch ([source, error]) {
-        ok(error.contains("prettyPrintError"),
+        ok(error.includes("prettyPrintError"),
           "The promise was correctly rejected with a meaningful message.");
       }
 
-      let [source, text] = yield gControllerSources.getText(source);
-      is(gSources.selectedValue, JS_URL,
+      let text;
+      [source, text] = yield gControllerSources.getText(source);
+      is(getSelectedSourceURL(gSources), JS_URL,
         "The correct source is still selected.");
-      ok(gEditor.getText().contains("myFunction"),
+      ok(gEditor.getText().includes("myFunction"),
         "The displayed source hasn't changed.");
-      ok(text.contains("myFunction"),
+      ok(text.includes("myFunction"),
         "The cached source text wasn't altered in any way.");
 
       is(gPrettyPrinted, true,
@@ -82,7 +82,6 @@ function clickPrettyPrintButton() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gClient = null;

@@ -13,6 +13,9 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-introspection
 # The following warning options are useful for debugging: -Wpadded
 #AM_CXXFLAGS =
 
+# Convenience targets:
+lib: libharfbuzz.la
+
 lib_LTLIBRARIES = libharfbuzz.la
 
 HBCFLAGS =
@@ -35,6 +38,7 @@ HBSOURCES =  \
 	hb-object-private.hh \
 	hb-open-file-private.hh \
 	hb-open-type-private.hh \
+	hb-ot-cmap-table.hh \
 	hb-ot-head-table.hh \
 	hb-ot-hhea-table.hh \
 	hb-ot-hmtx-table.hh \
@@ -51,7 +55,6 @@ HBSOURCES =  \
 	hb-shaper-impl-private.hh \
 	hb-shaper-private.hh \
 	hb-shaper.cc \
-	hb-tt-font.cc \
 	hb-unicode-private.hh \
 	hb-unicode.cc \
 	hb-utf-private.hh \
@@ -76,6 +79,7 @@ HBNODISTHEADERS = \
 
 if HAVE_OT
 HBSOURCES += \
+	hb-ot-font.cc \
 	hb-ot-layout.cc \
 	hb-ot-layout-common-private.hh \
 	hb-ot-layout-gdef-table.hh \
@@ -90,6 +94,7 @@ HBSOURCES += \
 	hb-ot-shape-complex-arabic.cc \
 	hb-ot-shape-complex-arabic-fallback.hh \
 	hb-ot-shape-complex-arabic-table.hh \
+	hb-ot-shape-complex-arabic-win1256.hh \
 	hb-ot-shape-complex-default.cc \
 	hb-ot-shape-complex-hangul.cc \
 	hb-ot-shape-complex-hebrew.cc \
@@ -112,6 +117,7 @@ HBSOURCES += \
 	$(NULL)
 HBHEADERS += \
 	hb-ot.h \
+	hb-ot-font.h \
 	hb-ot-layout.h \
 	hb-ot-shape.h \
 	hb-ot-tag.h \
@@ -231,8 +237,8 @@ hb-gobject-enums.%: hb-gobject-enums.%.tmpl $(HBHEADERS)
 	$(AM_V_GEN) $(GLIB_MKENUMS) \
 		--identifier-prefix hb_ --symbol-prefix hb_gobject \
 		--template $^ | \
-	sed 's/_t_get_type/_get_type/g; s/_T (/ (/g' > "$@.tmp" && \
-	mv "$@.tmp" "$@" || ( $(RM) "@.tmp" && false )
+	sed 's/_t_get_type/_get_type/g; s/_T (/ (/g' > "$@" \
+	|| ($(RM) "$@"; false)
 endif
 EXTRA_DIST += \
 	harfbuzz-gobject.pc.in \
@@ -248,8 +254,8 @@ EXTRA_DIST += \
 		-e 's@%libdir%@$(libdir)@g' \
 		-e 's@%includedir%@$(includedir)@g' \
 		-e 's@%VERSION%@$(VERSION)@g' \
-	"$<" \
-	> "$@.tmp" && mv "$@.tmp" "$@" || ( $(RM) "$@.tmp"; false )
+	"$<" > "$@" \
+	|| ($(RM) "$@"; false)
 
 CLEANFILES += $(pkgconfig_DATA)
 
@@ -262,8 +268,9 @@ harfbuzz.def: $(HBHEADERS) $(HBNODISTHEADERS)
 	sed -e 's/ (.*//' | \
 	LANG=C sort; \
 	echo LIBRARY libharfbuzz-$(HB_VERSION_MAJOR).dll; \
-	) >"$@.tmp"
-	@ ! grep -q hb_ERROR "$@.tmp" && mv "$@.tmp" "$@" || ($(RM) "$@"; false)
+	) >"$@"
+	@ ! grep -q hb_ERROR "$@" \
+	|| ($(RM) "$@"; false)
 
 
 GENERATORS = \
@@ -275,25 +282,25 @@ EXTRA_DIST += $(GENERATORS)
 unicode-tables: arabic-table indic-table
 
 indic-table: gen-indic-table.py IndicSyllabicCategory.txt IndicMatraCategory.txt Blocks.txt
-	$(AM_V_GEN) $(builddir)/$^ > hb-ot-shape-complex-indic-table.cc.tmp && \
-	mv hb-ot-shape-complex-indic-table.cc.tmp $(srcdir)/hb-ot-shape-complex-indic-table.cc || \
-	($(RM) hb-ot-shape-complex-indic-table.cc.tmp; false)
+	$(AM_V_GEN) $(builddir)/$^ > hb-ot-shape-complex-indic-table.cc \
+	|| ($(RM) hb-ot-shape-complex-indic-table.cc; false)
 
-arabic-table: gen-arabic-table.py ArabicShaping.txt UnicodeData.txt
-	$(AM_V_GEN) $(builddir)/$^ > hb-ot-shape-complex-arabic-table.hh.tmp && \
-	mv hb-ot-shape-complex-arabic-table.hh.tmp $(srcdir)/hb-ot-shape-complex-arabic-table.hh || \
-	($(RM) hb-ot-shape-complex-arabic-table.hh.tmp; false)
+arabic-table: gen-arabic-table.py ArabicShaping.txt UnicodeData.txt Blocks.txt
+	$(AM_V_GEN) $(builddir)/$^ > hb-ot-shape-complex-arabic-table.hh \
+	|| ($(RM) hb-ot-shape-complex-arabic-table.hh; false)
 
+built-sources: $(BUILT_SOURCES)
 
-.PHONY: unicode-tables arabic-table indic-table
+.PHONY: unicode-tables arabic-table indic-table built-sources
 
-BUILT_SOURCES += \
-	hb-buffer-deserialize-json.hh \
-	hb-buffer-deserialize-text.hh \
-	hb-ot-shape-complex-indic-machine.hh \
-	hb-ot-shape-complex-myanmar-machine.hh \
-	hb-ot-shape-complex-sea-machine.hh \
+RAGEL_GENERATED = \
+	$(srcdir)/hb-buffer-deserialize-json.hh \
+	$(srcdir)/hb-buffer-deserialize-text.hh \
+	$(srcdir)/hb-ot-shape-complex-indic-machine.hh \
+	$(srcdir)/hb-ot-shape-complex-myanmar-machine.hh \
+	$(srcdir)/hb-ot-shape-complex-sea-machine.hh \
 	$(NULL)
+BUILT_SOURCES += $(RAGEL_GENERATED)
 EXTRA_DIST += \
 	hb-buffer-deserialize-json.rl \
 	hb-buffer-deserialize-text.rl \
@@ -301,9 +308,10 @@ EXTRA_DIST += \
 	hb-ot-shape-complex-myanmar-machine.rl \
 	hb-ot-shape-complex-sea-machine.rl \
 	$(NULL)
-.rl.hh:
-	$(AM_V_GEN)$(top_srcdir)/missing --run ragel -e -F1 -o "$@.tmp" "$<" && \
-	mv "$@.tmp" "$@" || ( $(RM) "$@.tmp" && false )
+MAINTAINERCLEANFILES += $(RAGEL_GENERATED)
+$(srcdir)/%.hh: $(srcdir)/%.rl
+	$(AM_V_GEN)(cd $(srcdir) && $(RAGEL) -e -F1 -o "$*.hh" "$*.rl") \
+	|| ($(RM) "$@"; false)
 
 noinst_PROGRAMS = \
 	main \
@@ -358,6 +366,7 @@ if HAVE_INTROSPECTION
 INTROSPECTION_GIRS = HarfBuzz-$(HB_VERSION_MAJOR).0.gir # What does the 0 mean anyway?!
 INTROSPECTION_SCANNER_ARGS = -I$(srcdir) -n hb --identifier-prefix=hb_ --warn-all
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+INTROSPECTION_SCANNER_ENV = CC="$(CC)"
 
 HarfBuzz-0.0.gir: libharfbuzz.la libharfbuzz-gobject.la
 HarfBuzz_0_0_gir_INCLUDES = GObject-2.0

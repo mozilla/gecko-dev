@@ -9,9 +9,8 @@
 #include <stdint.h>                     // for INT32_MAX, int32_t
 #include "Layers.h"                     // for Layer (ptr only), etc
 #include "gfxTypes.h"
-#include "gfxCachedTempSurface.h"       // for gfxCachedTempSurface
 #include "gfxContext.h"                 // for gfxContext
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/WidgetUtils.h"        // for ScreenRotation
 #include "mozilla/layers/LayersTypes.h"  // for BufferMode, LayersBackend, etc
 #include "nsAString.h"
@@ -21,44 +20,46 @@
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nscore.h"                     // for nsAString, etc
 
-class gfxPattern;
 class nsIWidget;
 
 namespace mozilla {
 namespace layers {
 
-class BasicShadowableLayer;
 class ImageFactory;
 class ImageLayer;
 class PaintLayerContext;
 class ReadbackLayer;
-class ReadbackProcessor;
 
 /**
  * This is a cairo/Thebes-only, main-thread-only implementation of layers.
  * 
  * In each transaction, the client sets up the layer tree and then during
- * the drawing phase, each ThebesLayer is painted directly into the target
+ * the drawing phase, each PaintedLayer is painted directly into the target
  * context (with appropriate clipping and Push/PopGroups performed
  * between layers).
  */
-class BasicLayerManager :
+class BasicLayerManager final :
     public LayerManager
 {
 public:
+  enum BasicLayerManagerType {
+    BLM_WIDGET,
+    BLM_OFFSCREEN,
+    BLM_INACTIVE
+  };
   /**
    * Construct a BasicLayerManager which will have no default
    * target context. SetDefaultTarget or BeginTransactionWithTarget
-   * must be called for any rendering to happen. ThebesLayers will not
+   * must be called for any rendering to happen. PaintedLayers will not
    * be retained.
    */
-  BasicLayerManager();
+  explicit BasicLayerManager(BasicLayerManagerType aType);
   /**
    * Construct a BasicLayerManager which will have no default
    * target context. SetDefaultTarget or BeginTransactionWithTarget
-   * must be called for any rendering to happen. ThebesLayers will be
+   * must be called for any rendering to happen. PaintedLayers will be
    * retained; that is, we will try to retain the visible contents of
-   * ThebesLayers as cairo surfaces. We create ThebesLayer buffers by
+   * PaintedLayers as cairo surfaces. We create PaintedLayer buffers by
    * creating similar surfaces to the default target context, or to
    * aWidget's GetThebesSurface if there is no default target context, or
    * to the passed-in context if there is no widget and no default
@@ -68,9 +69,12 @@ public:
    * must ensure that the widget outlives the layer manager or call
    * ClearWidget before the widget dies.
    */
-  BasicLayerManager(nsIWidget* aWidget);
+  explicit BasicLayerManager(nsIWidget* aWidget);
+
+protected:
   virtual ~BasicLayerManager();
 
+public:
   /**
    * Set the default target context that will be used when BeginTransaction
    * is called. This can only be called outside a transaction.
@@ -89,30 +93,31 @@ public:
   nsIWidget* GetRetainerWidget() { return mWidget; }
   void ClearRetainerWidget() { mWidget = nullptr; }
 
-  virtual bool IsWidgetLayerManager() { return mWidget != nullptr; }
+  virtual bool IsWidgetLayerManager() override { return mWidget != nullptr; }
+  virtual bool IsInactiveLayerManager() override { return mType == BLM_INACTIVE; }
 
-  virtual void BeginTransaction();
-  virtual void BeginTransactionWithTarget(gfxContext* aTarget);
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+  virtual void BeginTransaction() override;
+  virtual void BeginTransactionWithTarget(gfxContext* aTarget) override;
+  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) override;
+  virtual void EndTransaction(DrawPaintedLayerCallback aCallback,
                               void* aCallbackData,
-                              EndTransactionFlags aFlags = END_DEFAULT);
-  virtual bool AreComponentAlphaLayersEnabled() { return !IsWidgetLayerManager(); }
+                              EndTransactionFlags aFlags = END_DEFAULT) override;
+  virtual bool ShouldAvoidComponentAlphaLayers() override { return IsWidgetLayerManager(); }
 
   void AbortTransaction();
 
-  virtual void SetRoot(Layer* aLayer);
+  virtual void SetRoot(Layer* aLayer) override;
 
-  virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
-  virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
-  virtual already_AddRefed<ImageLayer> CreateImageLayer();
-  virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
-  virtual already_AddRefed<ColorLayer> CreateColorLayer();
-  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
+  virtual already_AddRefed<PaintedLayer> CreatePaintedLayer() override;
+  virtual already_AddRefed<ContainerLayer> CreateContainerLayer() override;
+  virtual already_AddRefed<ImageLayer> CreateImageLayer() override;
+  virtual already_AddRefed<CanvasLayer> CreateCanvasLayer() override;
+  virtual already_AddRefed<ColorLayer> CreateColorLayer() override;
+  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() override;
   virtual ImageFactory *GetImageFactory();
 
-  virtual LayersBackend GetBackendType() { return LayersBackend::LAYERS_BASIC; }
-  virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Basic"); }
+  virtual LayersBackend GetBackendType() override { return LayersBackend::LAYERS_BASIC; }
+  virtual void GetBackendName(nsAString& name) override { name.AssignLiteral("Basic"); }
 
   bool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }
 #ifdef DEBUG
@@ -125,10 +130,10 @@ public:
   void SetTarget(gfxContext* aTarget) { mUsingDefaultTarget = false; mTarget = aTarget; }
   bool IsRetained() { return mWidget != nullptr; }
 
-  virtual const char* Name() const { return "Basic"; }
+  virtual const char* Name() const override { return "Basic"; }
 
   // Clear the cached contents of this layer tree.
-  virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
+  virtual void ClearCachedResources(Layer* aSubtree = nullptr) override;
 
   void SetTransactionIncomplete() { mTransactionIncomplete = true; }
   bool IsTransactionIncomplete() { return mTransactionIncomplete; }
@@ -136,15 +141,12 @@ public:
   already_AddRefed<gfxContext> PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
                                                  const nsIntRegion& aRegion,
                                                  bool* aNeedsClipToVisibleRegion);
-  already_AddRefed<gfxContext> PushGroupWithCachedSurface(gfxContext *aTarget,
-                                                          gfxContentType aContent);
-  void PopGroupToSourceWithCachedSurface(gfxContext *aTarget, gfxContext *aPushed);
 
-  virtual bool IsCompositingCheap() { return false; }
-  virtual int32_t GetMaxTextureSize() const { return INT32_MAX; }
+  virtual bool IsCompositingCheap() override { return false; }
+  virtual int32_t GetMaxTextureSize() const override { return INT32_MAX; }
   bool CompositorMightResample() { return mCompositorMightResample; }
 
-  virtual bool SupportsMixBlendModes(EnumSet<gfx::CompositionOp>& aMixBlendModes) MOZ_OVERRIDE { return true; }
+  virtual bool SupportsMixBlendModes(EnumSet<gfx::CompositionOp>& aMixBlendModes) override { return true; }
 
 protected:
   enum TransactionPhase {
@@ -164,21 +166,19 @@ protected:
   // Paints aLayer to mTarget.
   void PaintLayer(gfxContext* aTarget,
                   Layer* aLayer,
-                  DrawThebesLayerCallback aCallback,
+                  DrawPaintedLayerCallback aCallback,
                   void* aCallbackData);
 
   // Clear the contents of a layer
   void ClearLayer(Layer* aLayer);
 
-  bool EndTransactionInternal(DrawThebesLayerCallback aCallback,
+  bool EndTransactionInternal(DrawPaintedLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT);
 
   void FlashWidgetUpdateArea(gfxContext* aContext);
 
-  void RenderDebugOverlay();
-
-  // Widget whose surface should be used as the basis for ThebesLayer
+  // Widget whose surface should be used as the basis for PaintedLayer
   // buffers.
   nsIWidget* mWidget;
   // The default context for BeginTransaction.
@@ -188,12 +188,9 @@ protected:
   // Image factory we use.
   nsRefPtr<ImageFactory> mFactory;
 
-  // Cached surface for double buffering
-  gfxCachedTempSurface mCachedSurface;
-
   BufferMode mDoubleBuffering;
+  BasicLayerManagerType mType;
   bool mUsingDefaultTarget;
-  bool mCachedSurfaceInUse;
   bool mTransactionIncomplete;
   bool mCompositorMightResample;
 };

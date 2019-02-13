@@ -33,8 +33,6 @@ const TEST_DATA = [
   ["right", "node7"],
   ["right", "*text*"],
   ["down", "node8"],
-  ["right", "node8"],
-  ["left", "node8"],
   ["down", "node9"],
   ["down", "node10"],
   ["down", "node11"],
@@ -68,7 +66,7 @@ const TEST_DATA = [
   ["down", "html"]
 ];
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let {inspector} = yield addTab(TEST_URL).then(openInspector);
 
   info("Making sure the markup-view frame is focused");
@@ -114,7 +112,7 @@ function pressKey(key) {
 }
 
 function checkSelectedNode(key, className, inspector) {
-  let node = inspector.selection.node;
+  let node = inspector.selection.nodeFront;
 
   if (className == "*comment*") {
     is(node.nodeType, Node.COMMENT_NODE, "Found a comment after pressing " + key);

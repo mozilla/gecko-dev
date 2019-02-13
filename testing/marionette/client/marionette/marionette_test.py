@@ -14,15 +14,20 @@ import unittest
 import weakref
 import warnings
 
-from errors import (
-        ErrorCodes, MarionetteException, InstallGeckoError, TimeoutException, InvalidResponseException, 
-        JavascriptException, NoSuchElementException, XPathLookupException, NoSuchWindowException,
+
+from marionette_driver.errors import (
+        MarionetteException, TimeoutException,
+        JavascriptException, NoSuchElementException, NoSuchWindowException,
         StaleElementException, ScriptTimeoutException, ElementNotVisibleException,
         NoSuchFrameException, InvalidElementStateException, NoAlertPresentException,
         InvalidCookieDomainException, UnableToSetCookieException, InvalidSelectorException,
         MoveTargetOutOfBoundsException, FrameSendNotInitializedError, FrameSendFailureError
         )
-from marionette import Marionette
+from marionette_driver.marionette import Marionette
+from mozlog.structured.structuredlog import get_default_logger
+from marionette_driver.wait import Wait
+from marionette_driver.expected import element_present, element_not_present
+
 
 class SkipTest(Exception):
     """
@@ -78,16 +83,131 @@ def expectedFailure(func):
 
 def skip_if_b2g(target):
     def wrapper(self, *args, **kwargs):
-        if not hasattr(self.marionette, 'b2g') or not self.marionette.b2g:
-            return target(self, *args, **kwargs)
-        else:
-            sys.stderr.write('skipping ... ')
+        if self.marionette.session_capabilities.get('b2g') == True:
+            raise SkipTest('skipping due to b2g')
+        return target(self, *args, **kwargs)
+
     return wrapper
+
+def skip_if_e10s(target):
+    def wrapper(self, *args, **kwargs):
+        with self.marionette.using_context('chrome'):
+            multi_process_browser = self.marionette.execute_script("""
+            try {
+              return Services.appinfo.browserTabsRemoteAutostart;
+            } catch (e) {
+              return false;
+            }""")
+
+        if multi_process_browser:
+            raise SkipTest('skipping due to e10s')
+        return target(self, *args, **kwargs)
+    return wrapper
+
+def parameterized(func_suffix, *args, **kwargs):
+    """
+    A decorator that can generate methods given a base method and some data.
+
+    **func_suffix** is used as a suffix for the new created method and must be
+    unique given a base method. if **func_suffix** countains characters that
+    are not allowed in normal python function name, these characters will be
+    replaced with "_".
+
+    This decorator can be used more than once on a single base method. The class
+    must have a metaclass of :class:`MetaParameterized`.
+
+    Example::
+
+      # This example will generate two methods:
+      #
+      # - MyTestCase.test_it_1
+      # - MyTestCase.test_it_2
+      #
+      class MyTestCase(MarionetteTestCase):
+          @parameterized("1", 5, named='name')
+          @parameterized("2", 6, named='name2')
+          def test_it(self, value, named=None):
+              print value, named
+
+    :param func_suffix: will be used as a suffix for the new method
+    :param \*args: arguments to pass to the new method
+    :param \*\*kwargs: named arguments to pass to the new method
+    """
+    def wrapped(func):
+        if not hasattr(func, 'metaparameters'):
+            func.metaparameters = []
+        func.metaparameters.append((func_suffix, args, kwargs))
+        return func
+    return wrapped
+
+def with_parameters(parameters):
+    """
+    A decorator that can generate methods given a base method and some data.
+    Acts like :func:`parameterized`, but define all methods in one call.
+
+    Example::
+
+      # This example will generate two methods:
+      #
+      # - MyTestCase.test_it_1
+      # - MyTestCase.test_it_2
+      #
+
+      DATA = [("1", [5], {'named':'name'}), ("2", [6], {'named':'name2'})]
+
+      class MyTestCase(MarionetteTestCase):
+          @with_parameters(DATA)
+          def test_it(self, value, named=None):
+              print value, named
+
+    :param parameters: list of tuples (**func_suffix**, **args**, **kwargs**)
+                       defining parameters like in :func:`todo`.
+    """
+    def wrapped(func):
+        func.metaparameters = parameters
+        return func
+    return wrapped
+
+def wraps_parameterized(func, func_suffix, args, kwargs):
+    """Internal: for MetaParameterized"""
+    def wrapper(self):
+        return func(self, *args, **kwargs)
+    wrapper.__name__ = func.__name__ + '_' + str(func_suffix)
+    wrapper.__doc__ = '[%s] %s' % (func_suffix, func.__doc__)
+    return wrapper
+
+class MetaParameterized(type):
+    """
+    A metaclass that allow a class to use decorators like :func:`parameterized`
+    or :func:`with_parameters` to generate new methods.
+    """
+    RE_ESCAPE_BAD_CHARS = re.compile(r'[\.\(\) -/]')
+    def __new__(cls, name, bases, attrs):
+        for k, v in attrs.items():
+            if callable(v) and hasattr(v, 'metaparameters'):
+                for func_suffix, args, kwargs in v.metaparameters:
+                    func_suffix = cls.RE_ESCAPE_BAD_CHARS.sub('_', func_suffix)
+                    wrapper = wraps_parameterized(v, func_suffix, args, kwargs)
+                    if wrapper.__name__ in attrs:
+                        raise KeyError("%s is already a defined method on %s" %
+                                        (wrapper.__name__, name))
+                    attrs[wrapper.__name__] = wrapper
+                del attrs[k]
+
+        return type.__new__(cls, name, bases, attrs)
+
+class JSTest:
+    head_js_re = re.compile(r"MARIONETTE_HEAD_JS(\s*)=(\s*)['|\"](.*?)['|\"];")
+    context_re = re.compile(r"MARIONETTE_CONTEXT(\s*)=(\s*)['|\"](.*?)['|\"];")
+    timeout_re = re.compile(r"MARIONETTE_TIMEOUT(\s*)=(\s*)(\d+);")
+    inactivity_timeout_re = re.compile(r"MARIONETTE_INACTIVITY_TIMEOUT(\s*)=(\s*)(\d+);")
 
 class CommonTestCase(unittest.TestCase):
 
+    __metaclass__ = MetaParameterized
     match_re = None
     failureException = AssertionError
+    pydebugger = None
 
     def __init__(self, methodName, **kwargs):
         unittest.TestCase.__init__(self, methodName)
@@ -95,6 +215,11 @@ class CommonTestCase(unittest.TestCase):
         self.duration = 0
         self.start_time = 0
         self.expected = kwargs.pop('expected', 'pass')
+        self.logger = get_default_logger()
+
+    def _enter_pm(self):
+        if self.pydebugger:
+            self.pydebugger.post_mortem(sys.exc_info()[2])
 
     def _addSkip(self, result, reason):
         addSkip = getattr(result, 'addSkip', None)
@@ -157,6 +282,7 @@ class CommonTestCase(unittest.TestCase):
             except _ExpectedFailure as e:
                 expected_failure(result, e.exc_info)
             except:
+                self._enter_pm()
                 result.addError(self, sys.exc_info())
             else:
                 try:
@@ -169,6 +295,7 @@ class CommonTestCase(unittest.TestCase):
                     else:
                         testMethod()
                 except self.failureException:
+                    self._enter_pm()
                     result.addFailure(self, sys.exc_info())
                 except KeyboardInterrupt:
                     raise
@@ -185,6 +312,7 @@ class CommonTestCase(unittest.TestCase):
                 except SkipTest as e:
                     self._addSkip(result, str(e))
                 except:
+                    self._enter_pm()
                     result.addError(self, sys.exc_info())
                 else:
                     success = True
@@ -201,6 +329,7 @@ class CommonTestCase(unittest.TestCase):
                 except _ExpectedFailure as e:
                     expected_failure(result, e.exc_info)
                 except:
+                    self._enter_pm()
                     result.addError(self, sys.exc_info())
                     success = False
             # Here we could handle doCleanups() instead of calling cleanTest directly
@@ -244,6 +373,13 @@ class CommonTestCase(unittest.TestCase):
                                     self.__class__.__name__,
                                     self._testMethodName)
 
+    def id(self):
+        # TBPL starring requires that the "test name" field of a failure message
+        # not differ over time. The test name to be used is passed to
+        # mozlog.structured via the test id, so this is overriden to maintain
+        # consistency.
+        return self.test_name
+
     def set_up_test_page(self, emulator, url="test.html", permissions=None):
         emulator.set_context("content")
         url = emulator.absolute_url(url)
@@ -279,6 +415,13 @@ permissions.forEach(function (perm) {
         else:
             self.marionette.timeouts(self.marionette.TIMEOUT_PAGE, 30000)
 
+        if hasattr(self, 'test_container') and self.test_container:
+            self.switch_into_test_container()
+        elif hasattr(self, 'test_container') and self.test_container is False:
+            if self.marionette.session_capabilities.has_key('b2g') \
+            and self.marionette.session_capabilities['b2g'] == True:
+                self.close_test_container()
+
     def tearDown(self):
         pass
 
@@ -305,6 +448,196 @@ permissions.forEach(function (perm) {
                         pass
         self.marionette = None
 
+    def switch_into_test_container(self):
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+
+        frame = Wait(self.marionette, timeout=10, interval=0.2).until(element_present(
+            'css selector',
+            'iframe[src*="app://test-container.gaiamobile.org/index.html"]'
+        ))
+
+        self.marionette.switch_to_frame(frame)
+
+    def close_test_container(self):
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+
+        result = self.marionette.execute_async_script("""
+if((navigator.mozSettings == undefined) || (navigator.mozSettings == null) || (navigator.mozApps == undefined) || (navigator.mozApps == null)) {
+    marionetteScriptFinished(false);
+    return;
+}
+let setReq = navigator.mozSettings.createLock().set({'lockscreen.enabled': false});
+setReq.onsuccess = function() {
+    let appsReq = navigator.mozApps.mgmt.getAll();
+    appsReq.onsuccess = function() {
+        let apps = appsReq.result;
+        for (let i = 0; i < apps.length; i++) {
+            let app = apps[i];
+            if (app.manifest.name === 'Test Container') {
+                window.wrappedJSObject.Service.request('AppWindowManager:kill', app.origin).then(function() {
+                    marionetteScriptFinished(true);
+                }).catch(function() {
+                    marionetteScriptFinished(false);
+                });
+                return;
+            }
+        }
+        marionetteScriptFinished(false);
+    }
+    appsReq.onerror = function() {
+        marionetteScriptFinished(false);
+    }
+}
+setReq.onerror = function() {
+    marionetteScriptFinished(false);
+}""", script_timeout=60000)
+
+        if not result:
+            raise Exception('Failed to close Test Container app')
+
+        Wait(self.marionette, timeout=10, interval=0.2).until(element_not_present(
+            'css selector',
+            'iframe[src*="app://test-container.gaiamobile.org/index.html"]'
+        ))
+
+    def setup_SpecialPowers_observer(self):
+        self.marionette.set_context("chrome")
+        self.marionette.execute_script("""
+            let SECURITY_PREF = "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer";
+            Components.utils.import("resource://gre/modules/Services.jsm");
+            Services.prefs.setBoolPref(SECURITY_PREF, true);
+
+            if (!testUtils.hasOwnProperty("specialPowersObserver")) {
+              let loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+                .getService(Components.interfaces.mozIJSSubScriptLoader);
+              loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserver.js",
+                testUtils);
+              testUtils.specialPowersObserver = new testUtils.SpecialPowersObserver();
+              testUtils.specialPowersObserver.init();
+              testUtils.specialPowersObserver._loadFrameScript();
+            }
+            """)
+
+    def run_js_test(self, filename, marionette=None):
+        '''
+        Run a JavaScript test file and collect its set of assertions
+        into the current test's results.
+
+        :param filename: The path to the JavaScript test file to execute.
+                         May be relative to the current script.
+        :param marionette: The Marionette object in which to execute the test.
+                           Defaults to self.marionette.
+        '''
+        marionette = marionette or self.marionette
+        if not os.path.isabs(filename):
+            # Find the caller's filename and make the path relative to that.
+            caller_file = sys._getframe(1).f_globals.get('__file__', '')
+            caller_file = os.path.abspath(caller_file)
+            filename = os.path.join(os.path.dirname(caller_file), filename)
+        self.assert_(os.path.exists(filename),
+                     'Script "%s" must exist' % filename)
+        original_test_name = self.marionette.test_name
+        self.marionette.test_name = os.path.basename(filename)
+        f = open(filename, 'r')
+        js = f.read()
+        args = []
+
+        head_js = JSTest.head_js_re.search(js);
+        if head_js:
+            head_js = head_js.group(3)
+            head = open(os.path.join(os.path.dirname(filename), head_js), 'r')
+            js = head.read() + js;
+
+        context = JSTest.context_re.search(js)
+        if context:
+            context = context.group(3)
+        else:
+            context = 'content'
+
+        if 'SpecialPowers' in js:
+            self.setup_SpecialPowers_observer()
+
+            if context == 'content':
+                js = "var SpecialPowers = window.wrappedJSObject.SpecialPowers;\n" + js
+            else:
+                marionette.execute_script("""
+                if (typeof(SpecialPowers) == 'undefined') {
+                  let loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+                    .getService(Components.interfaces.mozIJSSubScriptLoader);
+                  loader.loadSubScript("chrome://specialpowers/content/specialpowersAPI.js");
+                  loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserverAPI.js");
+                  loader.loadSubScript("chrome://specialpowers/content/ChromePowers.js");
+                }
+                """)
+
+        marionette.set_context(context)
+
+        if context != 'chrome':
+            marionette.navigate('data:text/html,<html>test page</html>')
+
+        timeout = JSTest.timeout_re.search(js)
+        if timeout:
+            timeout = timeout.group(3)
+            marionette.set_script_timeout(timeout)
+
+        inactivity_timeout = JSTest.inactivity_timeout_re.search(js)
+        if inactivity_timeout:
+            inactivity_timeout = inactivity_timeout.group(3)
+
+        try:
+            results = marionette.execute_js_script(
+                js,
+                args,
+                inactivity_timeout=inactivity_timeout,
+                filename=os.path.basename(filename)
+            )
+
+            self.assertTrue(not 'timeout' in filename,
+                            'expected timeout not triggered')
+
+            if 'fail' in filename:
+                self.assertTrue(len(results['failures']) > 0,
+                                "expected test failures didn't occur")
+            else:
+                for failure in results['failures']:
+                    diag = "" if failure.get('diag') is None else failure['diag']
+                    name = "got false, expected true" if failure.get('name') is None else failure['name']
+                    self.logger.test_status(self.test_name, name, 'FAIL',
+                                            message=diag)
+                for failure in results['expectedFailures']:
+                    diag = "" if failure.get('diag') is None else failure['diag']
+                    name = "got false, expected false" if failure.get('name') is None else failure['name']
+                    self.logger.test_status(self.test_name, name, 'FAIL',
+                                            expected='FAIL', message=diag)
+                for failure in results['unexpectedSuccesses']:
+                    diag = "" if failure.get('diag') is None else failure['diag']
+                    name = "got true, expected false" if failure.get('name') is None else failure['name']
+                    self.logger.test_status(self.test_name, name, 'PASS',
+                                            expected='FAIL', message=diag)
+                self.assertEqual(0, len(results['failures']),
+                                 '%d tests failed' % len(results['failures']))
+                if len(results['unexpectedSuccesses']) > 0:
+                    raise _UnexpectedSuccess('')
+                if len(results['expectedFailures']) > 0:
+                    raise _ExpectedFailure((AssertionError, AssertionError(''), None))
+
+            self.assertTrue(results['passed']
+                            + len(results['failures'])
+                            + len(results['expectedFailures'])
+                            + len(results['unexpectedSuccesses']) > 0,
+                            'no tests run')
+
+        except ScriptTimeoutException:
+            if 'timeout' in filename:
+                # expected exception
+                pass
+            else:
+                self.loglines = marionette.get_logs()
+                raise
+        self.marionette.test_name = original_test_name
+
+
+
 class MarionetteTestCase(CommonTestCase):
 
     match_re = re.compile(r"test_(.*)\.py$")
@@ -317,6 +650,7 @@ class MarionetteTestCase(CommonTestCase):
         self.methodName = methodName
         self.filepath = filepath
         self.testvars = kwargs.pop('testvars', None)
+        self.test_container = kwargs.pop('test_container', None)
         CommonTestCase.__init__(self, methodName, **kwargs)
 
     @classmethod
@@ -342,10 +676,11 @@ class MarionetteTestCase(CommonTestCase):
                                        (self.filepath.replace('\\', '\\\\'), self.methodName))
 
     def tearDown(self):
-        self.marionette.check_for_crash()
-        self.marionette.set_context("content")
-        self.marionette.execute_script("log('TEST-END: %s:%s')" %
-                                       (self.filepath.replace('\\', '\\\\'), self.methodName))
+        if not self.marionette.check_for_crash():
+           self.marionette.set_context("content")
+           self.marionette.clear_imported_scripts()
+           self.marionette.execute_script("log('TEST-END: %s:%s')" %
+                                          (self.filepath.replace('\\', '\\\\'), self.methodName))
         self.marionette.test_name = None
         CommonTestCase.tearDown(self)
 
@@ -376,10 +711,6 @@ class MarionetteTestCase(CommonTestCase):
 
 class MarionetteJSTestCase(CommonTestCase):
 
-    head_js_re = re.compile(r"MARIONETTE_HEAD_JS(\s*)=(\s*)['|\"](.*?)['|\"];")
-    context_re = re.compile(r"MARIONETTE_CONTEXT(\s*)=(\s*)['|\"](.*?)['|\"];")
-    timeout_re = re.compile(r"MARIONETTE_TIMEOUT(\s*)=(\s*)(\d+);")
-    inactivity_timeout_re = re.compile(r"MARIONETTE_INACTIVITY_TIMEOUT(\s*)=(\s*)(\d+);")
     match_re = re.compile(r"test_(.*)\.js$")
 
     def __init__(self, marionette_weakref, methodName='runTest', jsFile=None, **kwargs):
@@ -387,7 +718,7 @@ class MarionetteJSTestCase(CommonTestCase):
         self.jsFile = jsFile
         self._marionette_weakref = marionette_weakref
         self.marionette = None
-        self.oop = kwargs.pop('oop')
+        self.test_container = kwargs.pop('test_container', None)
         CommonTestCase.__init__(self, methodName)
 
     @classmethod
@@ -397,134 +728,20 @@ class MarionetteJSTestCase(CommonTestCase):
     def runTest(self):
         if self.marionette.session is None:
             self.marionette.start_session()
-        self.marionette.test_name = os.path.basename(self.jsFile)
         self.marionette.execute_script("log('TEST-START: %s');" % self.jsFile.replace('\\', '\\\\'))
 
-        f = open(self.jsFile, 'r')
-        js = f.read()
-        args = []
-
-        # if this is a browser_ test, prepend head.js to it
-        if os.path.basename(self.jsFile).startswith('browser_'):
-            local_head = open(os.path.join(os.path.dirname(__file__), 'tests', 'head.js'), 'r')
-            js = local_head.read() + js
-            head = open(os.path.join(os.path.dirname(self.jsFile), 'head.js'), 'r')
-            for line in head:
-                # we need a bigger timeout than the default specified by the
-                # 'real' head.js
-                if 'const kDefaultWait' in line:
-                    js += 'const kDefaultWait = 45000;\n'
-                else:
-                    js += line
-
-        if os.path.basename(self.jsFile).startswith('test_'):
-            head_js = self.head_js_re.search(js);
-            if head_js:
-                head_js = head_js.group(3)
-                head = open(os.path.join(os.path.dirname(self.jsFile), head_js), 'r')
-                js = head.read() + js;
-
-        if self.oop:
-            print 'running oop'
-            frame = None
-            try:
-                frame = self.marionette.find_element(
-                    'css selector',
-                    'iframe[src*="app://test-container.gaiamobile.org/index.html"]'
-                )
-            except NoSuchElementException:
-                result = self.marionette.execute_async_script("""
-let setReq = navigator.mozSettings.createLock().set({'lockscreen.enabled': false});
-setReq.onsuccess = function() {
-    let appsReq = navigator.mozApps.mgmt.getAll();
-    appsReq.onsuccess = function() {
-        let apps = appsReq.result;
-        for (let i = 0; i < apps.length; i++) {
-            let app = apps[i];
-            if (app.manifest.name === 'Test Container') {
-                app.launch();
-                window.addEventListener('apploadtime', function apploadtime(){
-                    window.removeEventListener('apploadtime', apploadtime);
-                    marionetteScriptFinished(true);
-                });
-                return;
-            }
-        }
-        marionetteScriptFinished(false);
-    }
-    appsReq.onerror = function() {
-        marionetteScriptFinished(false);
-    }
-}
-setReq.onerror = function() {
-    marionetteScriptFinished(false);
-}""", script_timeout=60000)
-                self.assertTrue(result)
-
-                frame = self.marionette.find_element(
-                    'css selector',
-                    'iframe[src*="app://test-container.gaiamobile.org/index.html"]'
-                )
-
-            self.marionette.switch_to_frame(frame)
-            main_process = self.marionette.execute_script("""
-                return SpecialPowers.isMainProcess();
-                """)
-            self.assertFalse(main_process)
-
-        context = self.context_re.search(js)
-        if context:
-            context = context.group(3)
-            self.marionette.set_context(context)
-
-        if context != "chrome":
-            self.marionette.navigate('data:text/html,<html>test page</html>')
-
-        timeout = self.timeout_re.search(js)
-        if timeout:
-            timeout = timeout.group(3)
-            self.marionette.set_script_timeout(timeout)
-
-        inactivity_timeout = self.inactivity_timeout_re.search(js)
-        if inactivity_timeout:
-            inactivity_timeout = inactivity_timeout.group(3)
-
-        try:
-            results = self.marionette.execute_js_script(js,
-                                                        args,
-                                                        special_powers=True,
-                                                        inactivity_timeout=inactivity_timeout,
-                                                        filename=os.path.basename(self.jsFile))
-
-            self.assertTrue(not 'timeout' in self.jsFile,
-                            'expected timeout not triggered')
-
-            if 'fail' in self.jsFile:
-                self.assertTrue(results['failed'] > 0,
-                                "expected test failures didn't occur")
-            else:
-                fails = []
-                for failure in results['failures']:
-                    diag = "" if failure.get('diag') is None else "| %s " % failure['diag']
-                    name = "got false, expected true" if failure.get('name') is None else failure['name']
-                    fails.append('TEST-UNEXPECTED-FAIL | %s %s| %s' %
-                                 (os.path.basename(self.jsFile), diag, name))
-                self.assertEqual(0, results['failed'],
-                                 '%d tests failed:\n%s' % (results['failed'], '\n'.join(fails)))
-
-            self.assertTrue(results['passed'] + results['failed'] > 0,
-                            'no tests run')
-
-        except ScriptTimeoutException:
-            if 'timeout' in self.jsFile:
-                # expected exception
-                pass
-            else:
-                self.loglines = self.marionette.get_logs()
-                raise
-
-        if self.oop:
-            self.marionette.switch_to_frame()
+        self.run_js_test(self.jsFile)
 
         self.marionette.execute_script("log('TEST-END: %s');" % self.jsFile.replace('\\', '\\\\'))
         self.marionette.test_name = None
+
+    def get_test_class_name(self):
+        # returns a dot separated folders as class name
+        dirname = os.path.dirname(self.jsFile).replace('\\', '/')
+        if dirname.startswith('/'):
+            dirname = dirname[1:]
+        return '.'.join(dirname.split('/'))
+
+    def get_test_method_name(self):
+        # returns the js filename without extension as method name
+        return os.path.splitext(os.path.basename(self.jsFile))[0]

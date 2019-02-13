@@ -5,28 +5,34 @@
 
 package org.mozilla.gecko.home;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.SuggestClient;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.gecko.db.BrowserDB.URLColumns;
+import org.mozilla.gecko.db.BrowserContract.History;
+import org.mozilla.gecko.db.BrowserContract.URLColumns;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.home.SearchEngine;
 import org.mozilla.gecko.home.SearchLoader.SearchCursorLoader;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.toolbar.AutocompleteHandler;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
 import android.content.Context;
@@ -55,14 +61,32 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-
 /**
  * Fragment that displays frecency search results in a ListView.
  */
 public class BrowserSearch extends HomeFragment
-                           implements GeckoEventListener {
+                           implements GeckoEventListener,
+                                      SearchEngineBar.OnSearchBarClickListener {
+
+    @RobocopTarget
+    public interface SuggestClientFactory {
+        public SuggestClient getSuggestClient(Context context, String template, int timeout, int max);
+    }
+
+    @RobocopTarget
+    public static class DefaultSuggestClientFactory implements SuggestClientFactory {
+        @Override
+        public SuggestClient getSuggestClient(Context context, String template, int timeout, int max) {
+            return new SuggestClient(context, template, timeout, max, true);
+        }
+    }
+
+    /**
+     * Set this to mock the suggestion mechanism. Public for access from tests.
+     */
+    @RobocopTarget
+    public static volatile SuggestClientFactory sSuggestClientFactory = new DefaultSuggestClientFactory();
+
     // Logging tag name
     private static final String LOGTAG = "GeckoBrowserSearch";
 
@@ -101,11 +125,22 @@ public class BrowserSearch extends HomeFragment
     // The list showing search results
     private HomeListView mList;
 
-    // Client that performs search suggestion queries
-    private volatile SuggestClient mSuggestClient;
+    // The bar on the bottom of the screen displaying search engine options.
+    private SearchEngineBar mSearchEngineBar;
 
-    // List of search engines from gecko
-    private ArrayList<SearchEngine> mSearchEngines;
+    // Client that performs search suggestion queries.
+    // Public for testing.
+    @RobocopTarget
+    public volatile SuggestClient mSuggestClient;
+
+    // List of search engines from Gecko.
+    // Do not mutate this list.
+    // Access to this member must only occur from the UI thread.
+    private List<SearchEngine> mSearchEngines;
+
+    // Track the locale that was last in use when we filled mSearchEngines.
+    // Access to this member must only occur from the UI thread.
+    private Locale mLastLocale;
 
     // Whether search suggestions are enabled or not
     private boolean mSuggestionsEnabled;
@@ -118,9 +153,6 @@ public class BrowserSearch extends HomeFragment
 
     // Autocomplete handler used when filtering results
     private AutocompleteHandler mAutocompleteHandler;
-
-    // On URL open listener
-    private OnUrlOpenListener mUrlOpenListener;
 
     // On search listener
     private OnSearchListener mSearchListener;
@@ -161,13 +193,6 @@ public class BrowserSearch extends HomeFragment
         super.onAttach(activity);
 
         try {
-            mUrlOpenListener = (OnUrlOpenListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement BrowserSearch.OnUrlOpenListener");
-        }
-
-        try {
             mSearchListener = (OnSearchListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
@@ -187,7 +212,6 @@ public class BrowserSearch extends HomeFragment
         super.onDetach();
 
         mAutocompleteHandler = null;
-        mUrlOpenListener = null;
         mSearchListener = null;
         mEditSuggestionListener = null;
     }
@@ -207,25 +231,15 @@ public class BrowserSearch extends HomeFragment
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-
-        // Adjusting the window size when showing the keyboard results in the underlying
-        // activity being painted when the keyboard is hidden (bug 933422). This can be
-        // prevented by not resizing the window.
-        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-
-        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
+
+        // Fetch engines if we need to.
+        if (mSearchEngines.isEmpty() || !Locale.getDefault().equals(mLastLocale)) {
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
+        } else {
+            updateSearchEngineBar();
+        }
 
         Telemetry.startUISession(TelemetryContract.Session.FRECENCY);
     }
@@ -243,6 +257,7 @@ public class BrowserSearch extends HomeFragment
         // If the style of the list changes, inflate it from an XML.
         mView = (LinearLayout) inflater.inflate(R.layout.browser_search, container, false);
         mList = (HomeListView) mView.findViewById(R.id.home_list_view);
+        mSearchEngineBar = (SearchEngineBar) mView.findViewById(R.id.search_engine_bar);
 
         return mView;
     }
@@ -253,6 +268,9 @@ public class BrowserSearch extends HomeFragment
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
             "SearchEngines:Data");
+
+        mSearchEngineBar.setAdapter(null);
+        mSearchEngineBar = null;
 
         mList.setAdapter(null);
         mList = null;
@@ -278,7 +296,7 @@ public class BrowserSearch extends HomeFragment
                 }
 
                 // Account for the search engine rows.
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
                 final Cursor c = mAdapter.getCursor(position);
                 final String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
 
@@ -301,7 +319,7 @@ public class BrowserSearch extends HomeFragment
                 }
 
                 // Account for the search engine rows.
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
                 return mList.onItemLongClick(parent, view, position, id);
             }
         });
@@ -326,14 +344,14 @@ public class BrowserSearch extends HomeFragment
         EventDispatcher.getInstance().registerGeckoThreadListener(this,
             "SearchEngines:Data");
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
+        mSearchEngineBar.setOnSearchBarClickListener(this);
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        // Intialize the search adapter
+        // Initialize the search adapter
         mAdapter = new SearchAdapter(getActivity());
         mList.setAdapter(mAdapter);
 
@@ -432,7 +450,7 @@ public class BrowserSearch extends HomeFragment
         }
 
         final int searchLength = searchTerm.length();
-        final int urlIndex = c.getColumnIndexOrThrow(URLColumns.URL);
+        final int urlIndex = c.getColumnIndexOrThrow(History.URL);
         int searchCount = 0;
 
         do {
@@ -440,7 +458,7 @@ public class BrowserSearch extends HomeFragment
 
             if (searchCount == 0) {
                 // Prefetch the first item in the list since it's weighted the highest
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Prefetch", url.toString()));
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Prefetch", url));
             }
 
             // Does the completion match against the whole URL? This will match
@@ -506,11 +524,15 @@ public class BrowserSearch extends HomeFragment
     }
 
     private void setSuggestions(ArrayList<String> suggestions) {
+        ThreadUtils.assertOnUiThread();
+
         mSearchEngines.get(0).setSuggestions(suggestions);
         mAdapter.notifyDataSetChanged();
     }
 
     private void setSearchEngines(JSONObject data) {
+        ThreadUtils.assertOnUiThread();
+
         // This method is called via a Runnable posted from the Gecko thread, so
         // it's possible the fragment and/or its view has been destroyed by the
         // time we get here. If so, just abort.
@@ -530,10 +552,12 @@ public class BrowserSearch extends HomeFragment
             ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
             for (int i = 0; i < engines.length(); i++) {
                 final JSONObject engineJSON = engines.getJSONObject(i);
-                final SearchEngine engine = new SearchEngine(engineJSON);
+                final SearchEngine engine = new SearchEngine((Context) getActivity(), engineJSON);
 
                 if (engine.name.equals(suggestEngine) && suggestTemplate != null) {
                     // Suggest engine should be at the front of the list.
+                    // We're baking in an assumption here that the suggest engine
+                    // is also the default engine.
                     searchEngines.add(0, engine);
 
                     // The only time Tabs.getInstance().getSelectedTab() should
@@ -544,22 +568,21 @@ public class BrowserSearch extends HomeFragment
                     final boolean isPrivate = (tab != null && tab.isPrivate());
 
                     // Only create a new instance of SuggestClient if it hasn't been
-                    // set yet. e.g. Robocop tests might set it directly before search
-                    // engines are loaded.
-                    if (mSuggestClient == null && !isPrivate) {
-                        setSuggestClient(new SuggestClient(getActivity(), suggestTemplate,
-                                    SUGGESTION_TIMEOUT, SUGGESTION_MAX));
-                    }
+                    // set yet.
+                    maybeSetSuggestClient(suggestTemplate, isPrivate);
                 } else {
                     searchEngines.add(engine);
                 }
             }
 
-            mSearchEngines = searchEngines;
+            mSearchEngines = Collections.unmodifiableList(searchEngines);
+            mLastLocale = Locale.getDefault();
 
             if (mAdapter != null) {
                 mAdapter.notifyDataSetChanged();
             }
+
+            updateSearchEngineBar();
 
             // Show suggestions opt-in prompt only if suggestions are not enabled yet,
             // user hasn't been prompted and we're not on a private browsing tab.
@@ -573,18 +596,33 @@ public class BrowserSearch extends HomeFragment
         filterSuggestions();
     }
 
-    /**
-     * Sets the private SuggestClient instance. Should only be called if the suggestClient is
-     * null (i.e. has not yet been initialized or has been nulled). Non-private access is
-     * for testing purposes only.
-     */
-    @RobocopTarget
-    public void setSuggestClient(final SuggestClient client) {
-        if (mSuggestClient != null) {
-            throw new IllegalStateException("Can only set the SuggestClient if it has not " +
-                    "yet been initialized!");
+    private void updateSearchEngineBar() {
+        final int primaryEngineCount = getPrimaryEngineCount();
+
+        if (primaryEngineCount < mSearchEngines.size()) {
+            mSearchEngineBar.setSearchEngines(
+                    mSearchEngines.subList(primaryEngineCount, mSearchEngines.size())
+            );
+            mSearchEngineBar.setVisibility(View.VISIBLE);
+        } else {
+            mSearchEngineBar.setVisibility(View.GONE);
         }
-        mSuggestClient = client;
+    }
+
+    @Override
+    public void onSearchBarClickListener(final SearchEngine searchEngine) {
+        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM,
+                "searchenginebar");
+
+        mSearchListener.onSearch(searchEngine, mSearchTerm);
+    }
+
+    private void maybeSetSuggestClient(final String suggestTemplate, final boolean isPrivate) {
+        if (mSuggestClient != null || isPrivate) {
+            return;
+        }
+
+        mSuggestClient = sSuggestClientFactory.getSuggestClient(getActivity(), suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
     }
 
     private void showSuggestionsOptIn() {
@@ -706,8 +744,8 @@ public class BrowserSearch extends HomeFragment
         mList.startAnimation(shrinkAnimation);
     }
 
-    private int getSuggestEngineCount() {
-        return (TextUtils.isEmpty(mSearchTerm) || mSuggestClient == null || !mSuggestionsEnabled) ? 0 : 1;
+    private int getPrimaryEngineCount() {
+        return mSearchEngines.size() > 0 ? 1 : 0;
     }
 
     private void restartSearchLoader() {
@@ -755,7 +793,6 @@ public class BrowserSearch extends HomeFragment
             super(context);
             mSuggestClient = suggestClient;
             mSearchTerm = searchTerm;
-            mSuggestions = null;
         }
 
         @Override
@@ -813,19 +850,20 @@ public class BrowserSearch extends HomeFragment
 
         @Override
         public int getItemViewType(int position) {
-            final int engine = getEngineIndex(position);
+            if (position < getPrimaryEngineCount()) {
+                if (mSuggestionsEnabled && mSearchEngines.get(position).hasSuggestions()) {
+                    // Give suggestion views their own type to prevent them from
+                    // sharing other recycled search result views. Using other
+                    // recycled views for the suggestion row can break animations
+                    // (bug 815937).
 
-            if (engine == -1) {
-                return ROW_STANDARD;
-            } else if (engine == 0 && mSuggestionsEnabled) {
-                // Give suggestion views their own type to prevent them from
-                // sharing other recycled search engine views. Using other
-                // recycled views for the suggestion row can break animations
-                // (bug 815937).
-                return ROW_SUGGEST;
+                    return ROW_SUGGEST;
+                } else {
+                    return ROW_SEARCH;
+                }
             }
 
-            return ROW_SEARCH;
+            return ROW_STANDARD;
         }
 
         @Override
@@ -840,9 +878,9 @@ public class BrowserSearch extends HomeFragment
             // query), allow the entire row to be clickable; clicking the row
             // has the same effect as clicking the single suggestion. If the
             // row contains multiple items, clicking the row will do nothing.
-            final int index = getEngineIndex(position);
-            if (index != -1) {
-                return !mSearchEngines.get(index).hasSuggestions();
+
+            if (position < getPrimaryEngineCount()) {
+                return !mSearchEngines.get(position).hasSuggestions();
             }
 
             return true;
@@ -858,7 +896,7 @@ public class BrowserSearch extends HomeFragment
                 return resultCount;
             }
 
-            return resultCount + mSearchEngines.size();
+            return resultCount + getPrimaryEngineCount();
         }
 
         @Override
@@ -872,7 +910,7 @@ public class BrowserSearch extends HomeFragment
                 row.setOnEditSuggestionListener(mEditSuggestionListener);
                 row.setSearchTerm(mSearchTerm);
 
-                final SearchEngine engine = mSearchEngines.get(getEngineIndex(position));
+                final SearchEngine engine = mSearchEngines.get(position);
                 final boolean animate = (mAnimateSuggestions && engine.hasSuggestions());
                 row.updateFromSearchEngine(engine, animate);
                 if (animate) {
@@ -881,30 +919,12 @@ public class BrowserSearch extends HomeFragment
                 }
             } else {
                 // Account for the search engines
-                position -= getSuggestEngineCount();
+                position -= getPrimaryEngineCount();
 
                 final Cursor c = getCursor(position);
                 final TwoLinePageRow row = (TwoLinePageRow) view;
                 row.updateFromCursor(c);
             }
-        }
-
-        private int getEngineIndex(int position) {
-            final int resultCount = super.getCount();
-            final int suggestEngineCount = getSuggestEngineCount();
-
-            // Return suggest engine index
-            if (position < suggestEngineCount) {
-                return position;
-            }
-
-            // Not an engine
-            if (position - suggestEngineCount < resultCount) {
-                return -1;
-            }
-
-            // Return search engine index
-            return position - resultCount;
         }
     }
 

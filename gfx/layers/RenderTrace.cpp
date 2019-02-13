@@ -15,8 +15,8 @@ namespace layers {
 
 static int colorId = 0;
 
-static gfx3DMatrix GetRootTransform(Layer *aLayer) {
-  gfx3DMatrix layerTrans = aLayer->GetTransform();
+static gfx::Matrix4x4 GetRootTransform(Layer *aLayer) {
+  gfx::Matrix4x4 layerTrans = aLayer->GetTransform();
   layerTrans.ProjectTo2D();
   if (aLayer->GetParent() != nullptr) {
     return GetRootTransform(aLayer->GetParent()) * layerTrans;
@@ -24,14 +24,14 @@ static gfx3DMatrix GetRootTransform(Layer *aLayer) {
   return layerTrans;
 }
 
-void RenderTraceLayers(Layer *aLayer, const char *aColor, const gfx3DMatrix aRootTransform, bool aReset) {
+void RenderTraceLayers(Layer *aLayer, const char *aColor, const gfx::Matrix4x4 aRootTransform, bool aReset) {
   if (!aLayer)
     return;
 
-  gfx3DMatrix trans = aRootTransform * aLayer->GetTransform();
+  gfx::Matrix4x4 trans = aRootTransform * aLayer->GetTransform();
   trans.ProjectTo2D();
-  nsIntRect clipRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
-  gfxRect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+  gfx::IntRect clipRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
+  Rect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
   trans.TransformBounds(rect);
 
   if (strcmp(aLayer->Name(), "ContainerLayer") != 0 &&
@@ -52,9 +52,9 @@ void RenderTraceLayers(Layer *aLayer, const char *aColor, const gfx3DMatrix aRoo
   if (aReset) colorId = 0;
 }
 
-void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, const nsIntRect aRect) {
-  gfx3DMatrix trans = GetRootTransform(aLayer);
-  gfxRect rect(aRect.x, aRect.y, aRect.width, aRect.height);
+void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, const gfx::IntRect aRect) {
+  gfx::Matrix4x4 trans = GetRootTransform(aLayer);
+  gfx::Rect rect(aRect.x, aRect.y, aRect.width, aRect.height);
   trans.TransformBounds(rect);
 
   printf_stderr("%s RENDERTRACE %u fillrect #%s %i %i %i %i\n",
@@ -64,7 +64,7 @@ void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, const nsIntRe
 }
 void RenderTraceInvalidateEnd(Layer *aLayer, const char *aColor) {
   // Clear with an empty rect
-  RenderTraceInvalidateStart(aLayer, aColor, nsIntRect());
+  RenderTraceInvalidateStart(aLayer, aColor, gfx::IntRect());
 }
 
 void renderTraceEventStart(const char *aComment, const char *aColor) {

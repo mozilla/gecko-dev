@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:set ts=4 sw=4 sts=4 et: */
 /*
  * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
@@ -18,34 +20,30 @@
 #define mozilla_HwcComposer2D
 
 #include "Composer2D.h"
+#include "hwchal/HwcHALBase.h"              // for HwcHAL
+#include "HwcUtils.h"                       // for RectVector
 #include "Layers.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/layers/FenceUtils.h"      // for FenceHandle
+#include "mozilla/UniquePtr.h"              // for HwcHAL
+
 #include <vector>
 #include <list>
 
-#include <hardware/hwcomposer.h>
-#if ANDROID_VERSION >= 17
-#include <ui/Fence.h>
-#endif
+#include <utils/Timers.h>
+
+class nsScreenGonk;
 
 namespace mozilla {
 
-namespace layers {
-class ContainerLayer;
-class Layer;
+namespace gl {
+    class GLContext;
 }
 
-//Holds a dynamically allocated vector of rectangles
-//used to decribe the complex visible region of a layer
-typedef std::vector<hwc_rect_t> RectVector;
-#if ANDROID_VERSION >= 17
-typedef hwc_composer_device_1_t HwcDevice;
-typedef hwc_display_contents_1_t HwcList;
-typedef hwc_layer_1_t HwcLayer;
-#else
-typedef hwc_composer_device_t HwcDevice;
-typedef hwc_layer_list_t HwcList;
-typedef hwc_layer_t HwcLayer;
-#endif
+namespace layers {
+class CompositorParent;
+class Layer;
+}
 
 /*
  * HwcComposer2D provides a way for gecko to render frames
@@ -69,48 +67,52 @@ public:
     HwcComposer2D();
     virtual ~HwcComposer2D();
 
-    int Init(hwc_display_t aDisplay, hwc_surface_t aSurface);
-
-    bool Initialized() const { return mHwc; }
-
     static HwcComposer2D* GetInstance();
 
     // Returns TRUE if the container has been succesfully rendered
     // Returns FALSE if the container cannot be fully rendered
     // by this composer so nothing was rendered at all
-    bool TryRender(layers::Layer* aRoot, const gfx::Matrix& aGLWorldTransform,
-                   bool aGeometryChanged) MOZ_OVERRIDE;
+    virtual bool TryRenderWithHwc(layers::Layer* aRoot,
+                                  nsIWidget* aWidget,
+                                  bool aGeometryChanged) override;
 
-    bool Render(EGLDisplay dpy, EGLSurface sur);
+    virtual bool Render(nsIWidget* aWidget) override;
+
+    virtual bool HasHwc() override { return mHal->HasHwc(); }
+
+    bool EnableVsync(bool aEnable);
+    bool RegisterHwcEventCallback();
+    void Vsync(int aDisplay, int64_t aTimestamp);
+    void Invalidate();
+    void Hotplug(int aDisplay, int aConnected);
+    void SetCompositorParent(layers::CompositorParent* aCompositorParent);
 
 private:
     void Reset();
-    void Prepare(buffer_handle_t fbHandle, int fence);
-    bool Commit();
-    bool TryHwComposition();
+    void Prepare(buffer_handle_t dispHandle, int fence, nsScreenGonk* screen);
+    bool Commit(nsScreenGonk* aScreen);
+    bool TryHwComposition(nsScreenGonk* aScreen);
     bool ReallocLayerList();
     bool PrepareLayerList(layers::Layer* aContainer, const nsIntRect& aClip,
-          const gfxMatrix& aParentTransform, const gfxMatrix& aGLWorldTransform);
-    void setCrop(HwcLayer* layer, hwc_rect_t srcCrop);
-    void setHwcGeometry(bool aGeometryChanged);
+          const gfx::Matrix& aParentTransform);
+    void SendtoLayerScope();
 
-    HwcDevice*              mHwc;
+    UniquePtr<HwcHALBase>   mHal;
     HwcList*                mList;
-    hwc_display_t           mDpy;
-    hwc_surface_t           mSur;
     nsIntRect               mScreenRect;
     int                     mMaxLayerCount;
     bool                    mColorFill;
     bool                    mRBSwapSupport;
     //Holds all the dynamically allocated RectVectors needed
     //to render the current frame
-    std::list<RectVector>   mVisibleRegions;
-#if ANDROID_VERSION >= 17
-    android::sp<android::Fence> mPrevRetireFence;
-    android::sp<android::Fence> mPrevDisplayFence;
-#endif
+    std::list<HwcUtils::RectVector>   mVisibleRegions;
+    layers::FenceHandle mPrevRetireFence;
+    layers::FenceHandle mPrevDisplayFence;
     nsTArray<layers::LayerComposite*> mHwcLayerMap;
     bool                    mPrepared;
+    bool                    mHasHWVsync;
+    nsRefPtr<layers::CompositorParent> mCompositorParent;
+    Mutex mLock;
 };
 
 } // namespace mozilla

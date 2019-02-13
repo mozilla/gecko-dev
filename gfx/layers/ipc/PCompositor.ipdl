@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include LayersSurfaces;
+include LayersMessages;
 include protocol PLayerTransaction;
 include "mozilla/GfxMessageUtils.h";
 include "nsRegion.h";
@@ -18,6 +19,7 @@ using mozilla::layers::LayersBackend from "mozilla/layers/LayersTypes.h";
 using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
+using class mozilla::layers::FrameUniformityData from "mozilla/layers/FrameUniformityData.h";
 
 namespace mozilla {
 namespace layers {
@@ -28,9 +30,7 @@ namespace layers {
  * the main thread and the compositor thread context. It's primary
  * purpose is to manage the PLayerTransaction sub protocol.
  */
-// This should really be 'sync', but we're using 'rpc' as a workaround
-// for Bug 716631.
-intr protocol PCompositor
+sync protocol PCompositor
 {
   // A Compositor manages a single Layer Manager (PLayerTransaction)
   manages PLayerTransaction;
@@ -47,10 +47,43 @@ child:
   // The parent sends the child the requested fill ratio numbers.
   async Overfill(uint32_t aOverfill);
 
-parent:
+  /**
+   * Parent informs the child that the graphics objects are ready for
+   * compositing.  This usually means that the graphics objects (textures
+   * and the like) are available on the GPU.  This is used for chrome UI.
+   * @see RequestNotifyAfterRemotePaint
+   * @see PBrowser
+   */
+  async RemotePaintIsReady();
 
+  /**
+   * Bounce plugin widget configurations over to the main thread for
+   * application on the widgets. Used on Windows and Linux in managing
+   * plugin widgets.
+   */
+  async UpdatePluginConfigurations(IntPoint aContentOffset,
+                                   nsIntRegion aVisibleRegion,
+                                   PluginWindowData[] aPlugins);
+
+  /**
+   * Sets the list of currently visible plugin windows based on a
+   * list of plugin window ids.
+   */
+  async UpdatePluginVisibility(uintptr_t aOwnerWidget,
+                               uintptr_t[] aVisibleIdList);
+
+  /**
+   * Drop any buffers that might be retained on the child compositor
+   * side.
+   */
+  async ClearCachedResources(uint64_t id);
+
+parent:
   // Child sends the parent a request for fill ratio numbers.
   async RequestOverfill();
+
+  // Child requests frame uniformity measurements
+  sync GetFrameUniformity() returns (FrameUniformityData data);
 
   // The child is about to be destroyed, so perform any necessary cleanup.
   sync WillStop();
@@ -63,7 +96,16 @@ parent:
   sync Pause();
   sync Resume();
 
+  // The child layer tree is hidden. id is the layers id of the child
+  // layer tree.
+  async NotifyHidden(uint64_t id);
+
+  // The child layer tree is visible. id is the layers id of the child
+  // layer tree.
+  async NotifyVisible(uint64_t id);
+
   async NotifyChildCreated(uint64_t id);
+  async AdoptChild(uint64_t id);
 
   // Make a snapshot of the content that would have been drawn to our
   // render target at the time this message is received.  If the size
@@ -72,11 +114,23 @@ parent:
   //
   // NB: this message will result in animations, transforms, effects,
   // and so forth being interpolated.  That's what we want to happen.
-  sync MakeSnapshot(SurfaceDescriptor inSnapshot, nsIntRect dirtyRect);
+  sync MakeSnapshot(SurfaceDescriptor inSnapshot, IntRect dirtyRect);
+
+  // Same as Makesnapshot(), except the snapshot is read from the underlying
+  // operating system desktop rather than the compositor's backbuffer. This
+  // is intended for testing whether hardware acceleration works.
+  //
+  // This call is part of IPDL, even though it simply wraps an nsIWidget
+  // call, to make sure it does not occur in the middle of a composite.
+  sync MakeWidgetSnapshot(SurfaceDescriptor inSnapshot);
 
   // Make sure any pending composites are started immediately and
   // block until they are completed.
   sync FlushRendering();
+
+  // Get the size of the tiles. This number should not change at runtime.
+  sync GetTileSize()
+    returns (int32_t tileWidth, int32_t tileHeight);
 
   sync StartFrameTimeRecording(int32_t bufferSize)
     returns (uint32_t startIndex);
@@ -93,10 +147,18 @@ parent:
   // Notify the compositor that a region of the screen has been invalidated.
   async NotifyRegionInvalidated(nsIntRegion region);
 
+  /**
+   * The child (content/chrome thread) requests that the parent inform it when
+   * the graphics objects are ready to display.
+   * @see PBrowser
+   * @see RemotePaintIsReady
+   */
+  async RequestNotifyAfterRemotePaint();
+
 child:
   // Send back Compositor Frame Metrics from APZCs so tiled layers can
   // update progressively.
-  async SharedCompositorFrameMetrics(Handle metrics, CrossProcessMutexHandle mutex, uint32_t aAPZCId);
+  async SharedCompositorFrameMetrics(Handle metrics, CrossProcessMutexHandle mutex, uint64_t aLayersId, uint32_t aAPZCId);
   async ReleaseSharedCompositorFrameMetrics(ViewID aId, uint32_t aAPZCId);
 };
 

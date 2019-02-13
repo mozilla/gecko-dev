@@ -13,10 +13,10 @@
 #include "eintr_wrapper.h"
 #include "base/logging.h"
 #include "base/scoped_nsautorelease_pool.h"
-#include "base/scoped_ptr.h"
 #include "base/time.h"
 #include "nsDependentSubstring.h"
 #include "third_party/libevent/event.h"
+#include "mozilla/UniquePtr.h"
 
 // Lifecycle of struct event
 // Libevent uses two main data structures:
@@ -170,11 +170,28 @@ bool MessagePumpLibevent::WatchFileDescriptor(int fd,
   // If we're modifying an existing event and there's an error then we need to
   // tell libevent to clean it up via event_delete() before returning.
   bool should_delete_event = true;
-  scoped_ptr<event> evt(controller->ReleaseEvent());
+  mozilla::UniquePtr<event> evt(controller->ReleaseEvent());
   if (evt.get() == NULL) {
     should_delete_event = false;
     // Ownership is transferred to the controller.
-    evt.reset(new event);
+    evt = mozilla::MakeUnique<event>();
+  } else {
+    // It's illegal to use this function to listen on 2 separate fds with the
+    // same |controller|.
+    if (EVENT_FD(evt.get()) != fd) {
+      NOTREACHED() << "FDs don't match" << EVENT_FD(evt.get()) << "!=" << fd;
+      return false;
+    }
+
+    // Make sure we don't pick up any funky internal libevent masks.
+    int old_interest_mask = evt.get()->ev_events &
+      (EV_READ | EV_WRITE | EV_PERSIST);
+
+    // Combine old/new event masks.
+    event_mask |= old_interest_mask;
+
+    // Must disarm the event before we can reuse it.
+    event_del(evt.get());
   }
 
   // Set current interest mask and message pump for this event.
@@ -273,7 +290,7 @@ MessagePumpLibevent::CatchSignal(int sig,
   // needed at present
   DCHECK(NULL == sigevent->event_);
 
-  scoped_ptr<event> evt(new event);
+  mozilla::UniquePtr<event> evt = mozilla::MakeUnique<event>();
   signal_set(evt.get(), sig, OnLibeventSignalNotification, delegate);
 
   if (event_base_set(event_base_, evt.get()))

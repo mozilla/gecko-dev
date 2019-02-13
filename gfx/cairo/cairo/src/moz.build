@@ -56,7 +56,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         ]
     else:
         DEFINES['CAIRO_OMIT_WIN32_PRINTING'] = True
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] in {'cocoa', 'uikit'}:
     EXPORTS.cairo += [
         'cairo-quartz-image.h',
         'cairo-quartz.h',
@@ -185,8 +185,6 @@ UNIFIED_SOURCES += [
     'cairo.c',
 ]
 
-MSVC_ENABLE_PGO = True
-
 FINAL_LIBRARY = 'gkmedias'
 
 DEFINES['PACKAGE_VERSION'] = '"moz"'
@@ -199,6 +197,21 @@ for var in ('MOZ_TREE_CAIRO', 'MOZ_TREE_PIXMAN'):
     if CONFIG[var]:
         DEFINES[var] = True
 
+if CONFIG['GNU_CC']:
+    DEFINES['HAVE_CXX11_ATOMIC_PRIMITIVES'] = True
+    # We would normally use autoconf to set these up, using AC_CHECK_SIZEOF.
+    # But AC_CHECK_SIZEOF requires running programs to determine the sizes,
+    # and that doesn't work so well with cross-compiling.  So instead we
+    # use these magic macros, available since at least GCC 4.3, to define
+    # the preprocessor macros cairo wanted from autoconf.
+    DEFINES['SIZEOF_VOID_P'] = '__SIZEOF_POINTER__'
+    DEFINES['SIZEOF_INT'] = '__SIZEOF_INT__'
+    DEFINES['SIZEOF_LONG'] = '__SIZEOF_LONG__'
+    DEFINES['SIZEOF_LONG_LONG'] = '__SIZEOF_LONG_LONG__'
+
+# Normally determined by cairo's configure script.
+DEFINES['HAVE_UINT64_T'] = True
+
 if CONFIG['MOZ_TREE_FREETYPE']:
     DEFINES['HAVE_FT_LIBRARY_SETLCDFILTER'] = True
     DEFINES['FT_LCD_FILTER_H'] = '%s/modules/freetype2/include/freetype/ftlcdfil.h' % TOPSRCDIR
@@ -210,6 +223,8 @@ if CONFIG['GNU_CC']:
         '-Wno-int-to-pointer-cast',
         '-Wno-sign-compare',
         '-Wno-type-limits',
+        '-Wno-missing-field-initializers',
+        '-Wno-conversion',
     ]
     if CONFIG['CLANG_CXX']:
         CFLAGS += [
@@ -217,3 +232,14 @@ if CONFIG['GNU_CC']:
             '-Wno-tautological-compare',
             '-Wno-tautological-constant-out-of-range-compare',
         ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
+    CFLAGS += CONFIG['MOZ_QT_CFLAGS']
+    CXXFLAGS += CONFIG['MOZ_QT_CFLAGS']
+
+if CONFIG['MOZ_X11']:
+    CFLAGS += CONFIG['XCFLAGS']
+
+if CONFIG['MOZ_ENABLE_CAIRO_FT']:
+    CFLAGS += CONFIG['CAIRO_FT_CFLAGS']
+    CXXFLAGS += CONFIG['CAIRO_FT_CFLAGS']

@@ -153,6 +153,27 @@ from its prototype:
     environment enclosing the function when it was created. If the referent
     is a function proxy or not debuggee code, this is `undefined`.
 
+`isBoundFunction`
+:   `true` if the referent is a bound function; `false` otherwise.
+
+`isArrowFunction`
+:   `true` if the referent is an arrow function; `false` otherwise.
+
+`boundTargetFunction`
+:   If the referent is a bound function, this is its target function—the
+    function that was bound to a particular `this` object. If the referent
+    is not a bound function, this is `undefined`.
+
+`boundThis`
+:   If the referent is a bound function, this is the `this` value it was
+    bound to. If the referent is not a bound function, this is `undefined`.
+
+`boundArguments`
+:   If the referent is a bound function, this is an array (in the Debugger
+    object's compartment) that contains the debuggee values of the `arguments`
+    object it was bound to. If the referent is not a bound function, this is
+    `undefined`.
+
 `proxyHandler`
 :   If the referent is a proxy whose handler object was allocated by
     debuggee code, this is its handler object—the object whose methods are
@@ -181,34 +202,11 @@ from its prototype:
     wrapper's global, not the wrapped object's global. The result refers to
     the global directly, not via a wrapper.
 
-`hostAnnotations`
-:   A JavaScript object providing further metadata about the referent, or
-    `null` if none is available. The metadata object is in the same
-    compartment as this `Debugger.Object` instance. The same metadata
-    object is returned each time for a given `Debugger.Object` instance.
-
-    A typical JavaScript embedding provides "host objects" to expose
-    application-specific functionality to scripts. The `hostAnnotations`
-    accessor consults the embedding for additional information about the
-    referent that might be of interest to the debugger. The returned
-    object's properties' meanings are up to the embedding. For example, a
-    web browser might provide host annotations for global objects to
-    distinguish top-level windows, iframes, and internal JavaScript scopes.
-
-    By convention, host annotation objects have a string-valued `"type"`
-    property that, taken together with the object's class, indicate what
-    sort of thing the referent is. The host annotation object's other
-    properties provide further details, as appropriate for the type. For
-    example, in Firefox, a metadata object for a JavaScript Module's global
-    object might look like this:
-
-    ```language-js
-    { "type":"jsm", "uri":"resource:://gre/modules/XPCOMUtils.jsm" }
-    ```
-
-    Firefox provides [DebuggerHostAnnotationsForFirefox annotations] for its
-    host objects.
-
+<code id="allocationsite">allocationSite</code>
+:   If [object allocation site tracking][tracking-allocs] was enabled when this
+    `Debugger.Object`'s referent was allocated, return the
+    [JavaScript execution stack][saved-frame] captured at the time of the
+    allocation. Otherwise, return `null`.
 
 
 ## Function Properties of the Debugger.Object prototype
@@ -247,6 +245,12 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
 `getOwnPropertyNames()`
 :   Return an array of strings naming all the referent's own properties, as
     if <code>Object.getOwnPropertyNames(<i>referent</i>)</code> had been
+    called in the debuggee, and the result copied in the scope of the
+    debugger's global object.
+
+`getOwnPropertySymbols()`
+:   Return an array of strings naming all the referent's own symbols, as
+    if <code>Object.getOwnPropertySymbols(<i>referent</i>)</code> had been
     called in the debuggee, and the result copied in the scope of the
     debugger's global object.
 

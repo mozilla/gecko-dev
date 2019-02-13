@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -34,7 +35,7 @@ public:
    * to be loaded multiple times. The Module object should either be
    * statically or permanently allocated; it will not be freed.
    */
-  virtual const Module* LoadModule(mozilla::FileLocation &aFile) = 0;
+  virtual const Module* LoadModule(mozilla::FileLocation& aFile) = 0;
 };
 NS_DEFINE_STATIC_IID_ACCESSOR(ModuleLoader, MOZILLA_MODULELOADER_PSEUDO_IID)
 

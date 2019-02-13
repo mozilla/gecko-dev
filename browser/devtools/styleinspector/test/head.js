@@ -15,26 +15,25 @@ let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let {editableField, getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
 let {console} = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
 
-// All test are asynchronous
+// All tests are asynchronous
 waitForExplicitFinish();
 
 const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/styleinspector/test/";
 const TEST_URL_ROOT_SSL = "https://example.com/browser/browser/devtools/styleinspector/test/";
+const ROOT_TEST_DIR = getRootDirectory(gTestPath);
+const FRAME_SCRIPT_URL = ROOT_TEST_DIR + "doc_frame_script.js";
 
 // Auto clean-up when a test ends
-registerCleanupFunction(() => {
-  try {
-    let target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.closeToolbox(target);
-  } catch (ex) {
-    dump(ex);
-  }
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
 });
 
-// Uncomment to log events
+// Uncomment this pref to dump all devtools emitted events to the console.
 // Services.prefs.setBoolPref("devtools.dump.emit", true);
 
 // Set the testing flag on gDevTools and reset it when the test ends
@@ -44,6 +43,7 @@ registerCleanupFunction(() => gDevTools.testing = false);
 // Clean-up all prefs that might have been changed during a test run
 // (safer here because if the test fails, then the pref is never reverted)
 registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.defaultColorUnit");
 });
@@ -57,7 +57,7 @@ registerCleanupFunction(() => {
  *
  * All tests should follow the following pattern:
  *
- * let test = asyncTest(function*() {
+ * add_task(function*() {
  *   yield addTab(TEST_URI);
  *   let {toolbox, inspector, view} = yield openComputedView();
  *
@@ -65,7 +65,7 @@ registerCleanupFunction(() => {
  *   yield someAsyncTestFunction(view);
  * });
  *
- * asyncTest is the way to define the testcase in the test file. It accepts
+ * add_task is the way to define the testcase in the test file. It accepts
  * a single generator-function argument.
  * The generator function should yield any async call.
  *
@@ -73,10 +73,10 @@ registerCleanupFunction(() => {
  * automatically.
  *
  * It is advised not to store any references on the global scope. There shouldn't
- * be a need to anyway. Thanks to asyncTest, test steps, even though asynchronous,
+ * be a need to anyway. Thanks to add_task, test steps, even though asynchronous,
  * can be described in a nice flat way, and if/for/while/... control flow can be
  * used as in sync code, making it possible to write the outline of the test case
- * all in asyncTest, and delegate actual processing and assertions to other
+ * all in add_task, and delegate actual processing and assertions to other
  * functions.
  */
 
@@ -84,16 +84,9 @@ registerCleanupFunction(() => {
  * UTILS
  * *********************************************
  * General test utilities.
- * Define the test case, add new tabs, open the toolbox and switch to the
- * various panels, select nodes, get node references, ...
+ * Add new tabs, open the toolbox and switch to the various panels, select
+ * nodes, get node references, ...
  */
-
-/**
- * Define an async test based on a generator function
- */
-function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
-}
 
 /**
  * Add a new test tab in the browser and load the given url.
@@ -101,17 +94,23 @@ function asyncTest(generator) {
  * @return a promise that resolves to the tab object when the url is loaded
  */
 function addTab(url) {
+  info("Adding a new tab with URL: '" + url + "'");
   let def = promise.defer();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    info("URL " + url + " loading complete into new test tab");
-    waitForFocus(() => {
-      def.resolve(tab);
-    }, content);
+  window.focus();
+
+  let tab = window.gBrowser.selectedTab = window.gBrowser.addTab(url);
+  let browser = tab.linkedBrowser;
+
+  info("Loading the helper frame script " + FRAME_SCRIPT_URL);
+  browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
+
+  browser.addEventListener("load", function onload() {
+    browser.removeEventListener("load", onload, true);
+    info("URL '" + url + "' loading complete");
+
+    def.resolve(tab);
   }, true);
-  content.location = url;
 
   return def.promise;
 }
@@ -120,32 +119,67 @@ function addTab(url) {
  * Simple DOM node accesor function that takes either a node or a string css
  * selector as argument and returns the corresponding node
  * @param {String|DOMNode} nodeOrSelector
- * @return {DOMNode}
+ * @return {DOMNode|CPOW} Note that in e10s mode a CPOW object is returned which
+ * doesn't implement *all* of the DOMNode's properties
  */
 function getNode(nodeOrSelector) {
+  info("Getting the node for '" + nodeOrSelector + "'");
   return typeof nodeOrSelector === "string" ?
     content.document.querySelector(nodeOrSelector) :
     nodeOrSelector;
 }
 
 /**
- * Set the inspector's current selection to a node or to the first match of the
- * given css selector
+ * Get the NodeFront for a given css selector, via the protocol
+ * @param {String} selector
  * @param {InspectorPanel} inspector The instance of InspectorPanel currently
  * loaded in the toolbox
- * @param {String} reason Defaults to "test" which instructs the inspector not
- * to highlight the node upon selection
- * @param {String} reason Defaults to "test" which instructs the inspector not to highlight the node upon selection
- * @return a promise that resolves when the inspector is updated with the new
- * node
+ * @return {Promise} Resolves to the NodeFront instance
  */
-function selectNode(nodeOrSelector, inspector, reason="test") {
-  info("Selecting the node " + nodeOrSelector);
-  let node = getNode(nodeOrSelector);
-  let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(node, reason);
-  return updated;
+function getNodeFront(selector, {walker}) {
+  return walker.querySelector(walker.rootNode, selector);
 }
+
+/**
+ * Highlight a node that matches the given css selector and set the inspector's
+ * current selection to this node.
+ * @param {String} selector
+ * @param {InspectorPanel} inspector The instance of InspectorPanel currently
+ * loaded in the toolbox
+ * @return {Promise} Resolves when the inspector is updated with the new node
+ */
+let selectAndHighlightNode = Task.async(function*(selector, inspector) {
+  info("Highlighting and selecting the node for " + selector);
+
+  let nodeFront = yield getNodeFront(selector, inspector);
+  let updated = inspector.toolbox.once("highlighter-ready");
+  inspector.selection.setNodeFront(nodeFront, "test-highlight");
+  yield updated;
+});
+
+/*
+ * Set the inspector's current selection to a node or to the first match of the
+ * given css selector.
+ * @param {String|NodeFront}
+ *        data The node to select
+ * @param {InspectorPanel} inspector
+ *        The instance of InspectorPanel currently
+ * loaded in the toolbox
+ * @param {String} reason
+ *        Defaults to "test" which instructs the inspector not
+ *        to highlight the node upon selection
+ * @return {Promise} Resolves when the inspector is updated with the new node
+ */
+let selectNode = Task.async(function*(data, inspector, reason="test") {
+  info("Selecting the node for '" + data + "'");
+  let nodeFront = data;
+  if (!data._form) {
+    nodeFront = yield getNodeFront(data, inspector);
+  }
+  let updated = inspector.once("inspector-updated");
+  inspector.selection.setNodeFront(nodeFront, reason);
+  yield updated;
+});
 
 /**
  * Set the inspector's current selection to null so that no node is selected
@@ -156,7 +190,7 @@ function selectNode(nodeOrSelector, inspector, reason="test") {
 function clearCurrentNodeSelection(inspector) {
   info("Clearing the current selection");
   let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(null);
+  inspector.selection.setNodeFront(null);
   return updated;
 }
 
@@ -299,6 +333,81 @@ function wait(ms) {
 }
 
 /**
+ * Wait for a content -> chrome message on the message manager (the window
+ * messagemanager is used).
+ * @param {String} name The message name
+ * @return {Promise} A promise that resolves to the response data when the
+ * message has been received
+ */
+function waitForContentMessage(name) {
+  info("Expecting message " + name + " from content");
+
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  let def = promise.defer();
+  mm.addMessageListener(name, function onMessage(msg) {
+    mm.removeMessageListener(name, onMessage);
+    def.resolve(msg.data);
+  });
+  return def.promise;
+}
+
+/**
+ * Send an async message to the frame script (chrome -> content) and wait for a
+ * response message with the same name (content -> chrome).
+ * @param {String} name The message name. Should be one of the messages defined
+ * in doc_frame_script.js
+ * @param {Object} data Optional data to send along
+ * @param {Object} objects Optional CPOW objects to send along
+ * @param {Boolean} expectResponse If set to false, don't wait for a response
+ * with the same name from the content script. Defaults to true.
+ * @return {Promise} Resolves to the response data if a response is expected,
+ * immediately resolves otherwise
+ */
+function executeInContent(name, data={}, objects={}, expectResponse=true) {
+  info("Sending message " + name + " to content");
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  mm.sendAsyncMessage(name, data, objects);
+  if (expectResponse) {
+    return waitForContentMessage(name);
+  } else {
+    return promise.resolve();
+  }
+}
+
+/**
+ * Send an async message to the frame script and get back the requested
+ * computed style property.
+ * @param {String} selector: The selector used to obtain the element.
+ * @param {String} pseudo: pseudo id to query, or null.
+ * @param {String} name: name of the property.
+ */
+function* getComputedStyleProperty(selector, pseudo, propName) {
+ return yield executeInContent("Test:GetComputedStylePropertyValue",
+                               {selector,
+                                pseudo,
+                                name: propName});
+}
+
+/**
+ * Send an async message to the frame script and wait until the requested
+ * computed style property has the expected value.
+ * @param {String} selector: The selector used to obtain the element.
+ * @param {String} pseudo: pseudo id to query, or null.
+ * @param {String} prop: name of the property.
+ * @param {String} expected: expected value of property
+ * @param {String} name: the name used in test message
+ */
+function* waitForComputedStyleProperty(selector, pseudo, name, expected) {
+ return yield executeInContent("Test:WaitForComputedStylePropertyValue",
+                               {selector,
+                                pseudo,
+                                expected,
+                                name});
+}
+
+/**
  * Given an inplace editable element, click to switch it to edit mode, wait for
  * focus
  * @return a promise that resolves to the inplace-editor element when ready
@@ -383,6 +492,21 @@ function waitForWindow() {
 }
 
 /**
+ * Listen for a new tab to open and return a promise that resolves when one
+ * does and completes the load event.
+ * @return a promise that resolves to the tab object
+ */
+let waitForTab = Task.async(function*() {
+  info("Waiting for a tab to open");
+  yield once(gBrowser.tabContainer, "TabOpen");
+  let tab = gBrowser.selectedTab;
+  let browser = tab.linkedBrowser;
+  yield once(browser, "load", true);
+  info("The tab load completed");
+  return tab;
+});
+
+/**
  * @see SimpleTest.waitForClipboard
  * @param {Function} setup Function to execute before checking for the
  * clipboard content
@@ -410,29 +534,21 @@ function fireCopyEvent(element) {
  *
  * @param {Function} validatorFn A validator function that returns a boolean.
  * This is called every few milliseconds to check if the result is true. When
- * it is true, the promise resolves. If validatorFn never returns true, then
- * polling timeouts after several tries and the promise rejects.
+ * it is true, the promise resolves.
  * @param {String} name Optional name of the test. This is used to generate
  * the success and failure messages.
- * @param {Number} timeout Optional timeout for the validator function, in
- * milliseconds. Default is 5000.
  * @return a promise that resolves when the function returned true or rejects
  * if the timeout is reached
  */
-function waitForSuccess(validatorFn, name="untitled", timeout=5000) {
+function waitForSuccess(validatorFn, name="untitled") {
   let def = promise.defer();
-  let start = Date.now();
 
   function wait(validatorFn) {
-    if ((Date.now() - start) > timeout) {
-      ok(false, "Validator function " + name + " timed out");
-      return def.reject();
-    }
     if (validatorFn()) {
       ok(true, "Validator function " + name + " returned true");
       def.resolve();
     } else {
-      setTimeout(() => wait(validatorFn), 100);
+      setTimeout(() => wait(validatorFn), 200);
     }
   }
   wait(validatorFn);
@@ -483,6 +599,17 @@ let getFontFamilyDataURL = Task.async(function*(font, nodeFront) {
   let dataURL = yield data.string();
   return dataURL;
 });
+
+/**
+ * Simulate the key input for the given input in the window.
+ * @param {String} input The string value to input
+ * @param {Window} win The window containing the panel
+ */
+function synthesizeKeys(input, win) {
+  for (let key of input.split("")) {
+     EventUtils.synthesizeKey(key, {}, win);
+  }
+}
 
 /* *********************************************
  * RULE-VIEW
@@ -555,6 +682,30 @@ function getRuleViewPropertyValue(view, selectorText, propertyName) {
 }
 
 /**
+ * Get a reference to the selector DOM element corresponding to a given selector
+ * in the rule-view
+ * @param {CssRuleView} view The instance of the rule-view panel
+ * @param {String} selectorText The selector in the rule-view to look for
+ * @return {DOMNode} The selector DOM element
+ */
+function getRuleViewSelector(view, selectorText) {
+  let rule = getRuleViewRule(view, selectorText);
+  return rule.querySelector(".ruleview-selector, .ruleview-selector-matched");
+}
+
+/**
+ * Get a reference to the selectorhighlighter icon DOM element corresponding to
+ * a given selector in the rule-view
+ * @param {CssRuleView} view The instance of the rule-view panel
+ * @param {String} selectorText The selector in the rule-view to look for
+ * @return {DOMNode} The selectorhighlighter icon DOM element
+ */
+function getRuleViewSelectorHighlighterIcon(view, selectorText) {
+  let rule = getRuleViewRule(view, selectorText);
+  return rule.querySelector(".ruleview-selectorhighlighter");
+}
+
+/**
  * Simulate a color change in a given color picker tooltip, and optionally wait
  * for a given element in the page to have its style changed as a result
  * @param {SwatchColorPickerTooltip} colorPicker
@@ -593,6 +744,30 @@ let simulateColorPickerChange = Task.async(function*(colorPicker, newRgba, expec
 function getRuleViewLinkByIndex(view, index) {
   let links = view.doc.querySelectorAll(".ruleview-rule-source");
   return links[index];
+}
+
+/**
+ * Get rule-link text from the rule-view given its index
+ * @param {CssRuleView} view The instance of the rule-view panel
+ * @param {Number} index The index of the link to get
+ * @return {String} The string at this index
+ */
+function getRuleViewLinkTextByIndex(view, index) {
+  let link = getRuleViewLinkByIndex(view, index);
+  return link.querySelector(".source-link-label").value;
+}
+
+/**
+ * Get the rule editor from the rule-view given its index
+ * @param {CssRuleView} view The instance of the rule-view panel
+ * @param {Number} childrenIndex The children index of the element to get
+ * @param {Number} nodeIndex The child node index of the element to get
+ * @return {DOMNode} The rule editor if any at this index
+ */
+function getRuleViewRuleEditor(view, childrenIndex, nodeIndex) {
+  return nodeIndex !== undefined ?
+    view.element.children[childrenIndex].childNodes[nodeIndex]._ruleEditor :
+    view.element.children[childrenIndex]._ruleEditor;
 }
 
 /**
@@ -640,32 +815,6 @@ let createNewRuleViewProperty = Task.async(function*(ruleEditor, inputValue) {
   yield onFocus;
 });
 
-// TO BE UNCOMMENTED WHEN THE EYEDROPPER FINALLY LANDS
-// /**
-//  * Given a color swatch in the ruleview, click on it to open the color picker
-//  * and then click on the eyedropper button to start the eyedropper tool
-//  * @param {CssRuleView} view The instance of the rule-view panel
-//  * @param {DOMNode} swatch The color swatch to be clicked on
-//  * @return A promise that resolves when the dropper is opened
-//  */
-// let openRuleViewEyeDropper = Task.async(function*(view, swatch) {
-//   info("Opening the colorpicker tooltip on a colorswatch");
-//   let tooltip = view.colorPicker.tooltip;
-//   let onTooltipShown = tooltip.once("shown");
-//   swatch.click();
-//   yield onTooltipShown;
-
-//   info("Finding the eyedropper icon in the colorpicker document");
-//   let tooltipDoc = tooltip.content.contentDocument;
-//   let dropperButton = tooltipDoc.querySelector("#eyedropper-button");
-//   ok(dropperButton, "Found the eyedropper icon");
-
-//   info("Opening the eyedropper");
-//   let onOpen = tooltip.once("eyedropper-opened");
-//   dropperButton.click();
-//   return yield onOpen;
-// });
-
 /* *********************************************
  * COMPUTED-VIEW
  * *********************************************
@@ -695,14 +844,65 @@ function getComputedViewProperty(view, name) {
 }
 
 /**
+ * Get an instance of PropertyView from the computed-view.
+ * @param {CssHtmlTree} view The instance of the computed view panel
+ * @param {String} name The name of the property to retrieve
+ * @return {PropertyView}
+ */
+function getComputedViewPropertyView(view, name) {
+  let propView;
+  for (let propertyView of view.propertyViews) {
+    if (propertyView._propertyInfo.name === name) {
+      propView = propertyView;
+      break;
+    }
+  }
+  return propView;
+}
+
+/**
+ * Get a reference to the property-content element for a given property name in
+ * the computed-view.
+ * A property-content element always follows (nextSibling) the property itself
+ * and is only shown when the twisty icon is expanded on the property.
+ * A property-content element contains matched rules, with selectors, properties,
+ * values and stylesheet links
+ * @param {CssHtmlTree} view The instance of the computed view panel
+ * @param {String} name The name of the property to retrieve
+ * @return {Promise} A promise that resolves to the property matched rules
+ * container
+ */
+let getComputedViewMatchedRules = Task.async(function*(view, name) {
+  let expander;
+  let propertyContent;
+  for (let property of view.styleDocument.querySelectorAll(".property-view")) {
+    let nameSpan = property.querySelector(".property-name");
+    if (nameSpan.textContent === name) {
+      expander = property.querySelector(".expandable");
+      propertyContent = property.nextSibling;
+      break;
+    }
+  }
+
+  if (!expander.hasAttribute("open")) {
+    // Need to expand the property
+    let onExpand = view.inspector.once("computed-view-property-expanded");
+    expander.click();
+    yield onExpand;
+  }
+
+  return propertyContent;
+});
+
+/**
  * Get the text value of the property corresponding to a given name in the
  * computed-view
  * @param {CssHtmlTree} view The instance of the computed view panel
  * @param {String} name The name of the property to retrieve
  * @return {String} The property value
  */
-function getComputedViewPropertyValue(view, selectorText, propertyName) {
-  return getComputedViewProperty(view, selectorText, propertyName)
+function getComputedViewPropertyValue(view, name, propertyName) {
+  return getComputedViewProperty(view, name, propertyName)
     .valueSpan.textContent;
 }
 
@@ -710,19 +910,18 @@ function getComputedViewPropertyValue(view, selectorText, propertyName) {
  * Expand a given property, given its index in the current property list of
  * the computed view
  * @param {CssHtmlTree} view The instance of the computed view panel
- * @param {InspectorPanel} inspector The instance of the inspector panel
  * @param {Number} index The index of the property to be expanded
  * @return a promise that resolves when the property has been expanded, or
  * rejects if the property was not found
  */
-function expandComputedViewPropertyByIndex(view, inspector, index) {
+function expandComputedViewPropertyByIndex(view, index) {
   info("Expanding property " + index + " in the computed view");
   let expandos = view.styleDocument.querySelectorAll(".expandable");
   if (!expandos.length || !expandos[index]) {
     return promise.reject();
   }
 
-  let onExpand = inspector.once("computed-view-property-expanded");
+  let onExpand = view.inspector.once("computed-view-property-expanded");
   expandos[index].click();
   return onExpand;
 }
@@ -758,21 +957,37 @@ function waitForStyleEditor(toolbox, href) {
   let def = promise.defer();
 
   info("Waiting for the toolbox to switch to the styleeditor");
-  toolbox.once("styleeditor-ready").then(() => {
+  toolbox.once("styleeditor-selected").then(() => {
     let panel = toolbox.getCurrentPanel();
     ok(panel && panel.UI, "Styleeditor panel switched to front");
 
-    panel.UI.on("editor-selected", function onEditorSelected(event, editor) {
+    // A helper that resolves the promise once it receives an editor that
+    // matches the expected href. Returns false if the editor was not correct.
+    let gotEditor = (event, editor) => {
       let currentHref = editor.styleSheet.href;
       if (!href || (href && currentHref.endsWith(href))) {
         info("Stylesheet editor selected");
-        panel.UI.off("editor-selected", onEditorSelected);
+        panel.UI.off("editor-selected", gotEditor);
+
         editor.getSourceEditor().then(editor => {
           info("Stylesheet editor fully loaded");
           def.resolve(editor);
         });
+
+        return true;
       }
-    });
+
+      info("The editor was incorrect. Waiting for editor-selected event.");
+      return false;
+    };
+
+    // The expected editor may already be selected. Check the if the currently
+    // selected editor is the expected one and if not wait for an
+    // editor-selected event.
+    if (!gotEditor("styleeditor-selected", panel.UI.selectedEditor)) {
+      // The expected editor is not selected (yet). Wait for it.
+      panel.UI.on("editor-selected", gotEditor);
+    }
   });
 
   return def.promise;

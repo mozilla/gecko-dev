@@ -9,13 +9,21 @@ let bsp = Cu.import("resource://gre/modules/CrashManager.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
+Cu.import("resource://gre/modules/TelemetryEnvironment.jsm", this);
 
 Cu.import("resource://testing-common/CrashManagerTest.jsm", this);
+Cu.import("resource://testing-common/TelemetryArchiveTesting.jsm", this);
 
-const DUMMY_DATE = new Date(1391043519000);
+const DUMMY_DATE = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+DUMMY_DATE.setMilliseconds(0);
+
+const DUMMY_DATE_2 = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
+DUMMY_DATE_2.setMilliseconds(0);
 
 function run_test() {
   do_get_profile();
+  configureLogging();
+  TelemetryArchiveTesting.setup();
   run_next_test();
 }
 
@@ -148,7 +156,7 @@ add_task(function* test_malformed_files_deleted() {
 add_task(function* test_aggregate_ignore_unknown_events() {
   let m = yield getManager();
 
-  yield m.createEventsFile("1", "crash.main.1", DUMMY_DATE, "id1");
+  yield m.createEventsFile("1", "crash.main.2", DUMMY_DATE, "id1");
   yield m.createEventsFile("2", "foobar.1", new Date(), "dummy");
 
   let count = yield m.aggregateEventsFiles();
@@ -165,7 +173,7 @@ add_task(function* test_prune_old() {
   let m = yield getManager();
   let oldDate = new Date(Date.now() - 86400000);
   let newDate = new Date(Date.now() - 10000);
-  yield m.createEventsFile("1", "crash.main.1", oldDate, "id1");
+  yield m.createEventsFile("1", "crash.main.2", oldDate, "id1");
   yield m.addCrash(m.PROCESS_TYPE_PLUGIN, m.CRASH_TYPE_CRASH, "id2", newDate);
 
   yield m.aggregateEventsFiles();
@@ -190,10 +198,10 @@ add_task(function* test_prune_old() {
 
 add_task(function* test_schedule_maintenance() {
   let m = yield getManager();
-  yield m.createEventsFile("1", "crash.main.1", DUMMY_DATE, "id1");
+  yield m.createEventsFile("1", "crash.main.2", DUMMY_DATE, "id1");
 
   let oldDate = new Date(Date.now() - m.PURGE_OLDER_THAN_DAYS * 2 * 24 * 60 * 60 * 1000);
-  yield m.createEventsFile("2", "crash.main.1", oldDate, "id2");
+  yield m.createEventsFile("2", "crash.main.2", oldDate, "id2");
 
   yield m.scheduleMaintenance(25);
   let crashes = yield m.getCrashes();
@@ -202,8 +210,12 @@ add_task(function* test_schedule_maintenance() {
 });
 
 add_task(function* test_main_crash_event_file() {
+  let ac = new TelemetryArchiveTesting.Checker();
+  yield ac.promiseInit();
+  let theEnvironment = TelemetryEnvironment.currentEnvironment;
+
   let m = yield getManager();
-  yield m.createEventsFile("1", "crash.main.1", DUMMY_DATE, "id1");
+  yield m.createEventsFile("1", "crash.main.2", DUMMY_DATE, "id1\nk1=v1\nk2=v2\nTelemetryEnvironment=" + JSON.stringify(theEnvironment));
   let count = yield m.aggregateEventsFiles();
   Assert.equal(count, 1);
 
@@ -211,7 +223,87 @@ add_task(function* test_main_crash_event_file() {
   Assert.equal(crashes.length, 1);
   Assert.equal(crashes[0].id, "id1");
   Assert.equal(crashes[0].type, "main-crash");
+  Assert.equal(crashes[0].metadata.k1, "v1");
+  Assert.equal(crashes[0].metadata.k2, "v2");
+  Assert.ok(crashes[0].metadata.TelemetryEnvironment);
+  Assert.equal(Object.getOwnPropertyNames(crashes[0].metadata).length, 3);
   Assert.deepEqual(crashes[0].crashDate, DUMMY_DATE);
+
+  let found = yield ac.promiseFindPing("crash", [
+    [["payload", "hasCrashEnvironment"], true],
+    [["payload", "metadata", "k1"], "v1"],
+  ]);
+  Assert.ok(found, "Telemetry ping submitted for found crash");
+  Assert.deepEqual(found.environment, theEnvironment, "The saved environment should be present");
+
+  count = yield m.aggregateEventsFiles();
+  Assert.equal(count, 0);
+});
+
+add_task(function* test_main_crash_event_file_noenv() {
+  let ac = new TelemetryArchiveTesting.Checker();
+  yield ac.promiseInit();
+
+  let m = yield getManager();
+  yield m.createEventsFile("1", "crash.main.2", DUMMY_DATE, "id1\nk1=v3\nk2=v2");
+  let count = yield m.aggregateEventsFiles();
+  Assert.equal(count, 1);
+
+  let crashes = yield m.getCrashes();
+  Assert.equal(crashes.length, 1);
+  Assert.equal(crashes[0].id, "id1");
+  Assert.equal(crashes[0].type, "main-crash");
+  Assert.deepEqual(crashes[0].metadata, { k1: "v3", k2: "v2"});
+  Assert.deepEqual(crashes[0].crashDate, DUMMY_DATE);
+
+  let found = yield ac.promiseFindPing("crash", [
+    [["payload", "hasCrashEnvironment"], false],
+    [["payload", "metadata", "k1"], "v3"],
+  ]);
+  Assert.ok(found, "Telemetry ping submitted for found crash");
+  Assert.ok(found.environment, "There is an environment");
+
+  count = yield m.aggregateEventsFiles();
+  Assert.equal(count, 0);
+});
+
+add_task(function* test_crash_submission_event_file() {
+  let m = yield getManager();
+  yield m.createEventsFile("1", "crash.main.2", DUMMY_DATE, "crash1");
+  yield m.createEventsFile("1-submission", "crash.submission.1", DUMMY_DATE_2,
+                           "crash1\nfalse\n");
+
+  // The line below has been intentionally commented out to make sure that
+  // the crash record is created when one does not exist.
+  //yield m.createEventsFile("2", "crash.main.1", DUMMY_DATE, "crash2");
+  yield m.createEventsFile("2-submission", "crash.submission.1", DUMMY_DATE_2,
+                           "crash2\ntrue\nbp-2");
+  let count = yield m.aggregateEventsFiles();
+  Assert.equal(count, 3);
+
+  let crashes = yield m.getCrashes();
+  Assert.equal(crashes.length, 2);
+
+  let map = new Map(crashes.map(crash => [crash.id, crash]));
+
+  let crash1 = map.get("crash1");
+  Assert.ok(!!crash1);
+  Assert.equal(crash1.remoteID, null);
+  let crash2 = map.get("crash2");
+  Assert.ok(!!crash2);
+  Assert.equal(crash2.remoteID, "bp-2");
+
+  Assert.equal(crash1.submissions.size, 1);
+  let submission = crash1.submissions.values().next().value;
+  Assert.equal(submission.result, m.SUBMISSION_RESULT_FAILED);
+  Assert.equal(submission.requestDate.getTime(), DUMMY_DATE_2.getTime());
+  Assert.equal(submission.responseDate.getTime(), DUMMY_DATE_2.getTime());
+
+  Assert.equal(crash2.submissions.size, 1);
+  submission = crash2.submissions.values().next().value;
+  Assert.equal(submission.result, m.SUBMISSION_RESULT_OK);
+  Assert.equal(submission.requestDate.getTime(), DUMMY_DATE_2.getTime());
+  Assert.equal(submission.responseDate.getTime(), DUMMY_DATE_2.getTime());
 
   count = yield m.aggregateEventsFiles();
   Assert.equal(count, 0);
@@ -232,7 +324,7 @@ add_task(function* test_high_water_mark() {
   let store = yield m._getStore();
 
   for (let i = 0; i < store.HIGH_WATER_DAILY_THRESHOLD + 1; i++) {
-    yield m.createEventsFile("m" + i, "crash.main.1", DUMMY_DATE, "m" + i);
+    yield m.createEventsFile("m" + i, "crash.main.2", DUMMY_DATE, "m" + i);
   }
 
   let count = yield m.aggregateEventsFiles();
@@ -262,9 +354,16 @@ add_task(function* test_addCrash() {
                    "plugin-crash", DUMMY_DATE);
   yield m.addCrash(m.PROCESS_TYPE_PLUGIN, m.CRASH_TYPE_HANG,
                    "plugin-hang", DUMMY_DATE);
+  yield m.addCrash(m.PROCESS_TYPE_GMPLUGIN, m.CRASH_TYPE_CRASH,
+                   "gmplugin-crash", DUMMY_DATE);
+
+  yield m.addCrash(m.PROCESS_TYPE_MAIN, m.CRASH_TYPE_CRASH,
+                   "changing-item", DUMMY_DATE);
+  yield m.addCrash(m.PROCESS_TYPE_CONTENT, m.CRASH_TYPE_HANG,
+                   "changing-item", DUMMY_DATE_2);
 
   crashes = yield m.getCrashes();
-  Assert.equal(crashes.length, 6);
+  Assert.equal(crashes.length, 8);
 
   let map = new Map(crashes.map(crash => [crash.id, crash]));
 
@@ -303,4 +402,69 @@ add_task(function* test_addCrash() {
   Assert.equal(crash.crashDate, DUMMY_DATE);
   Assert.equal(crash.type, m.PROCESS_TYPE_PLUGIN + "-" + m.CRASH_TYPE_HANG);
   Assert.ok(crash.isOfType(m.PROCESS_TYPE_PLUGIN, m.CRASH_TYPE_HANG));
+
+  crash = map.get("gmplugin-crash");
+  Assert.ok(!!crash);
+  Assert.equal(crash.crashDate, DUMMY_DATE);
+  Assert.equal(crash.type, m.PROCESS_TYPE_GMPLUGIN + "-" + m.CRASH_TYPE_CRASH);
+  Assert.ok(crash.isOfType(m.PROCESS_TYPE_GMPLUGIN, m.CRASH_TYPE_CRASH));
+
+  crash = map.get("changing-item");
+  Assert.ok(!!crash);
+  Assert.equal(crash.crashDate, DUMMY_DATE_2);
+  Assert.equal(crash.type, m.PROCESS_TYPE_CONTENT + "-" + m.CRASH_TYPE_HANG);
+  Assert.ok(crash.isOfType(m.PROCESS_TYPE_CONTENT, m.CRASH_TYPE_HANG));
+});
+
+add_task(function* test_generateSubmissionID() {
+  let m = yield getManager();
+
+  const SUBMISSION_ID_REGEX =
+    /^(sub-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+  let id = m.generateSubmissionID();
+  Assert.ok(SUBMISSION_ID_REGEX.test(id));
+});
+
+add_task(function* test_addSubmissionAttemptAndResult() {
+  let m = yield getManager();
+
+  let crashes = yield m.getCrashes();
+  Assert.equal(crashes.length, 0);
+
+  yield m.addCrash(m.PROCESS_TYPE_MAIN, m.CRASH_TYPE_CRASH,
+                   "main-crash", DUMMY_DATE);
+  yield m.addSubmissionAttempt("main-crash", "submission", DUMMY_DATE);
+  yield m.addSubmissionResult("main-crash", "submission", DUMMY_DATE_2,
+                              m.SUBMISSION_RESULT_OK);
+
+  crashes = yield m.getCrashes();
+  Assert.equal(crashes.length, 1);
+
+  let submissions = crashes[0].submissions;
+  Assert.ok(!!submissions);
+
+  let submission = submissions.get("submission");
+  Assert.ok(!!submission);
+  Assert.equal(submission.requestDate.getTime(), DUMMY_DATE.getTime());
+  Assert.equal(submission.responseDate.getTime(), DUMMY_DATE_2.getTime());
+  Assert.equal(submission.result, m.SUBMISSION_RESULT_OK);
+});
+
+add_task(function* test_setCrashClassifications() {
+  let m = yield getManager();
+
+  yield m.addCrash(m.PROCESS_TYPE_MAIN, m.CRASH_TYPE_CRASH,
+                   "main-crash", DUMMY_DATE);
+  yield m.setCrashClassifications("main-crash", ["a"]);
+  let classifications = (yield m.getCrashes())[0].classifications;
+  Assert.ok(classifications.indexOf("a") != -1);
+});
+
+add_task(function* test_setRemoteCrashID() {
+  let m = yield getManager();
+
+  yield m.addCrash(m.PROCESS_TYPE_MAIN, m.CRASH_TYPE_CRASH,
+                   "main-crash", DUMMY_DATE);
+  yield m.setRemoteCrashID("main-crash", "bp-1");
+  Assert.equal((yield m.getCrashes())[0].remoteID, "bp-1");
 });

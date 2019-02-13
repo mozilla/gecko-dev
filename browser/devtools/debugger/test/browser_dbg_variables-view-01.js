@@ -9,13 +9,13 @@
 const TAB_URL = EXAMPLE_URL + "doc_recursion-stack.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     let variables = aPanel.panelWin.DebuggerView.Variables;
     let testScope = variables.addScope("test");
 
     ok(testScope,
       "Should have created a scope.");
-    ok(testScope.id.contains("test"),
+    ok(testScope.id.includes("test"),
       "The newly created scope should have the default id set.");
     is(testScope.name, "test",
       "The newly created scope should have the desired name set.");
@@ -27,7 +27,7 @@ function test() {
 
     ok(testScope.target,
       "The newly created scope should point to a target node.");
-    ok(testScope.target.id.contains("test"),
+    ok(testScope.target.id.includes("test"),
       "Should have the correct scope id on the element.");
 
     is(testScope.target.querySelector(".name").getAttribute("value"), "test",

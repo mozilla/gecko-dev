@@ -68,47 +68,49 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsHTMLFramesetFrame(nsStyleContext* aContext);
+  explicit nsHTMLFramesetFrame(nsStyleContext* aContext);
 
   virtual ~nsHTMLFramesetFrame();
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   virtual void SetInitialChildList(ChildListID  aListID,
-                                   nsFrameList& aChildList) MOZ_OVERRIDE;
+                                   nsFrameList& aChildList) override;
 
   static bool    gDragInProgress;
 
-  void GetSizeOfChild(nsIFrame* aChild, nsSize& aSize);
+  void GetSizeOfChild(nsIFrame* aChild, mozilla::WritingMode aWM,
+                      mozilla::LogicalSize& aSize);
 
-  void GetSizeOfChildAt(int32_t  aIndexInParent, 
-                        nsSize&  aSize, 
+  void GetSizeOfChildAt(int32_t  aIndexInParent,
+                        mozilla::WritingMode aWM,
+                        mozilla::LogicalSize&  aSize,
                         nsIntPoint& aCellIndex);
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext, 
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual nsresult GetCursor(const nsPoint&    aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  virtual bool IsLeaf() const MOZ_OVERRIDE;
+  virtual bool IsLeaf() const override;
   
   void StartMouseDrag(nsPresContext* aPresContext,
                       nsHTMLFramesetBorderFrame* aBorder,
@@ -197,7 +199,7 @@ protected:
   nsBorderColor*   mChildBorderColors;
   nscoord*         mRowSizes;  // currently computed row sizes
   nscoord*         mColSizes;  // currently computed col sizes
-  nsIntPoint       mFirstDragPoint;
+  mozilla::LayoutDeviceIntPoint mFirstDragPoint;
   int32_t          mNumRows;
   int32_t          mNumCols;
   int32_t          mNonBorderChildCount; 

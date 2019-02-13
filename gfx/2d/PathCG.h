@@ -25,7 +25,7 @@ public:
       mCGPath = aPath;
   }
 
-  PathBuilderCG(FillRule aFillRule)
+  explicit PathBuilderCG(FillRule aFillRule)
     : mFillRule(aFillRule)
   {
       mCGPath = CGPathCreateMutable();
@@ -46,6 +46,8 @@ public:
   virtual Point CurrentPoint() const;
 
   virtual TemporaryRef<Path> Finish();
+
+  virtual BackendType GetBackendType() const { return BackendType::COREGRAPHICS; }
 
 private:
   friend class PathCG;

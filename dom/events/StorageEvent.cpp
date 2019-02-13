@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/StorageEvent.h"
-#include "nsIDOMStorage.h"
+#include "mozilla/dom/DOMStorage.h"
 
 namespace mozilla {
 namespace dom {
@@ -45,9 +45,9 @@ StorageEvent::AsStorageEvent()
 }
 
 JSObject*
-StorageEvent::WrapObject(JSContext* aCx)
+StorageEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return StorageEventBinding::Wrap(aCx, this);
+  return StorageEventBinding::Wrap(aCx, this, aGivenProto);
 }
 
 already_AddRefed<StorageEvent>
@@ -85,7 +85,7 @@ StorageEvent::InitStorageEvent(const nsAString& aType, bool aCanBubble,
                                const nsAString& aOldValue,
                                const nsAString& aNewValue,
                                const nsAString& aURL,
-                               nsIDOMStorage* aStorageArea,
+                               DOMStorage* aStorageArea,
                                ErrorResult& aRv)
 {
   aRv = InitEvent(aType, aCanBubble, aCancelable);

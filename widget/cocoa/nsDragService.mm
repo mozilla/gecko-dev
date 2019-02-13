@@ -3,10 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsDragService.h"
 #include "nsObjCExceptions.h"
@@ -31,14 +28,11 @@
 #include "nsCocoaUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "gfxPlatform.h"
-#include "gfxImageSurface.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
 
-#ifdef PR_LOGGING
 extern PRLogModuleInfo* sCocoaLog;
-#endif
 
 extern void EnsureLogInitialized();
 
@@ -278,7 +272,7 @@ nsDragService::InvokeDragSession(nsIDOMNode* aDOMNode, nsISupportsArray* aTransf
     [image unlockFocus];
   }
 
-  nsIntPoint pt(dragRect.x, dragRect.YMost());
+  LayoutDeviceIntPoint pt(dragRect.x, dragRect.YMost());
   CGFloat scaleFactor = nsCocoaUtils::GetBackingScaleFactor(gLastDragView);
   NSPoint point = nsCocoaUtils::DevPixelsToCocoaPoints(pt, scaleFactor);
   point.y = nsCocoaUtils::FlippedScreenY(point.y);
@@ -372,7 +366,7 @@ nsDragService::GetData(nsITransferable* aTransferable, uint32_t aItemIndex)
     nsXPIDLCString flavorStr;
     currentFlavor->ToString(getter_Copies(flavorStr));
 
-    PR_LOG(sCocoaLog, PR_LOG_ALWAYS, ("nsDragService::GetData: looking for clipboard data of type %s\n", flavorStr.get()));
+    MOZ_LOG(sCocoaLog, LogLevel::Info, ("nsDragService::GetData: looking for clipboard data of type %s\n", flavorStr.get()));
 
     if (flavorStr.EqualsLiteral(kFileMime)) {
       NSArray* pFiles = [globalDragPboard propertyListForType:NSFilenamesPboardType];

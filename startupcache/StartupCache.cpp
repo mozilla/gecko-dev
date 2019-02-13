@@ -56,7 +56,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF(StartupCacheMallocSizeOf)
 
 NS_IMETHODIMP
 StartupCache::CollectReports(nsIHandleReportCallback* aHandleReport,
-                             nsISupports* aData)
+                             nsISupports* aData, bool aAnonymize)
 {
 #define REPORT(_path, _kind, _amount, _desc)                                \
   do {                                                                      \
@@ -81,10 +81,7 @@ StartupCache::CollectReports(nsIHandleReportCallback* aHandleReport,
   return NS_OK;
 }
 
-static const char sStartupCacheName[] = "startupCache." SC_WORDSIZE "." SC_ENDIAN;
-#if defined(XP_WIN) && defined(MOZ_METRO)
-static const char sMetroStartupCacheName[] = "metroStartupCache." SC_WORDSIZE "." SC_ENDIAN;
-#endif
+#define STARTUP_CACHE_NAME "startupCache." SC_WORDSIZE "." SC_ENDIAN
 
 StartupCache*
 StartupCache::GetSingleton()
@@ -93,7 +90,7 @@ StartupCache::GetSingleton()
     if (XRE_GetProcessType() != GeckoProcessType_Default) {
       return nullptr;
     }
-#ifdef MOZ_DISABLE_STARTUP_CACHE
+#ifdef MOZ_DISABLE_STARTUPCACHE
     return nullptr;
 #endif
 
@@ -199,14 +196,7 @@ StartupCache::Init()
     if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS)
       return rv;
 
-#if defined(XP_WIN) && defined(MOZ_METRO)
-    if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-      rv = file->AppendNative(NS_LITERAL_CSTRING(sMetroStartupCacheName));
-    } else
-#endif
-    {
-      rv = file->AppendNative(NS_LITERAL_CSTRING(sStartupCacheName));
-    }
+    rv = file->AppendNative(NS_LITERAL_CSTRING(STARTUP_CACHE_NAME));
 
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -357,22 +347,26 @@ StartupCache::PutBuffer(const char* id, const char* inbuf, uint32_t len)
   nsAutoArrayPtr<char> data(new char[len]);
   memcpy(data, inbuf, len);
 
-  nsDependentCString idStr(id);
+  nsCString idStr(id);
   // Cache it for now, we'll write all together later.
   CacheEntry* entry; 
   
+  if (mTable.Get(idStr)) {
+    NS_ASSERTION(false, "Existing entry in StartupCache.");
+    // Double-caching is undesirable but not an error.
+    return NS_OK;
+  }
+
 #ifdef DEBUG
-  mTable.Get(idStr, &entry);
-  NS_ASSERTION(entry == nullptr, "Existing entry in StartupCache.");
-  
   if (mArchive) {
     nsZipItem* zipItem = mArchive->GetItem(id);
     NS_ASSERTION(zipItem == nullptr, "Existing entry in disk StartupCache.");
   }
 #endif
-  
+
   entry = new CacheEntry(data.forget(), len);
   mTable.Put(idStr, entry);
+  mPendingWrites.AppendElement(idStr);
   return ResetStartupWriteTimer();
 }
 
@@ -388,7 +382,8 @@ StartupCache::HeapSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
     // This function could measure more members, but they haven't been found by
     // DMD to be significant.  They can be added later if necessary.
     return aMallocSizeOf(this) +
-           mTable.SizeOfExcludingThis(SizeOfEntryExcludingThis, aMallocSizeOf);
+           mTable.SizeOfExcludingThis(SizeOfEntryExcludingThis, aMallocSizeOf) +
+           mPendingWrites.SizeOfExcludingThis(aMallocSizeOf);
 }
 
 /* static */ size_t
@@ -405,13 +400,13 @@ struct CacheWriteHolder
   PRTime time;
 };
 
-PLDHashOperator
-CacheCloseHelper(const nsACString& key, nsAutoPtr<CacheEntry>& data, 
-                 void* closure) 
+static void
+CacheCloseHelper(const nsACString& key, const CacheEntry* data,
+                 const CacheWriteHolder* holder)
 {
+  MOZ_ASSERT(data); // assert key was found in mTable.
+
   nsresult rv;
- 
-  CacheWriteHolder* holder = (CacheWriteHolder*) closure;  
   nsIStringInputStream* stream = holder->stream;
   nsIZipWriter* writer = holder->writer;
 
@@ -424,11 +419,10 @@ CacheCloseHelper(const nsACString& key, nsAutoPtr<CacheEntry>& data,
                "Existing entry in disk StartupCache.");
 #endif
   rv = writer->AddEntryStream(key, holder->time, true, stream, false);
-  
+
   if (NS_FAILED(rv)) {
     NS_WARNING("cache entry deleted but not written to disk.");
   }
-  return PL_DHASH_REMOVE;
 }
 
 
@@ -478,7 +472,11 @@ StartupCache::WriteToDisk()
   holder.writer = zipW;
   holder.time = now;
 
-  mTable.Enumerate(CacheCloseHelper, &holder);
+  for (auto key = mPendingWrites.begin(); key != mPendingWrites.end(); key++) {
+    CacheCloseHelper(*key, mTable.Get(*key), &holder);
+  }
+  mPendingWrites.Clear();
+  mTable.Clear();
 
   // Close the archive so Windows doesn't choke.
   mArchive = nullptr;
@@ -497,6 +495,7 @@ void
 StartupCache::InvalidateCache() 
 {
   WaitOnWriteThread();
+  mPendingWrites.Clear();
   mTable.Clear();
   mArchive = nullptr;
   nsresult rv = mFile->Remove(false);

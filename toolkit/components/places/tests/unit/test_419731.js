@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,7 @@ function run_test() {
 
   // Workaround timers resolution and time skews.
   let bookmark2LastMod = PlacesUtils.bookmarks.getItemLastModified(bookmark2id);
-  PlacesUtils.bookmarks.setItemLastModified(bookmark1id, bookmark2LastMod + 1);
+  PlacesUtils.bookmarks.setItemLastModified(bookmark1id, bookmark2LastMod + 1000);
 
   // Query the tag.
   options = PlacesUtils.history.getNewQueryOptions();
@@ -76,7 +76,7 @@ function run_test() {
 
   // Workaround timers resolution and time skews.
   let bookmark1LastMod = PlacesUtils.bookmarks.getItemLastModified(bookmark1id);
-  PlacesUtils.bookmarks.setItemLastModified(bookmark2id, bookmark1LastMod + 1);
+  PlacesUtils.bookmarks.setItemLastModified(bookmark2id, bookmark1LastMod + 1000);
 
   // Check that tag container contains new title
   options = PlacesUtils.history.getNewQueryOptions();

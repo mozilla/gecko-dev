@@ -92,10 +92,10 @@ struct ScopedArrayBufferContentsTraits {
 };
 
 struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits> {
-  ScopedArrayBufferContents(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM):
+  explicit ScopedArrayBufferContents(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM):
     Scoped<ScopedArrayBufferContentsTraits>(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_TO_PARENT)
   { }
-  ScopedArrayBufferContents(const ArrayBufferContents& v
+  explicit ScopedArrayBufferContents(const ArrayBufferContents& v
                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM):
     Scoped<ScopedArrayBufferContentsTraits>(v MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT)
   { }
@@ -114,7 +114,7 @@ struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits>
   bool Allocate(uint32_t length) {
     dispose();
     ArrayBufferContents& value = rwget();
-    void *ptr = JS_AllocateArrayBufferContents(/*no context available*/nullptr, length);
+    void *ptr = js_calloc(1, length);
     if (ptr) {
       value.data = (uint8_t *) ptr;
       value.nbytes = length;
@@ -123,8 +123,8 @@ struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits>
     return false;
   }
 private:
-  explicit ScopedArrayBufferContents(ScopedArrayBufferContents& source) MOZ_DELETE;
-  ScopedArrayBufferContents& operator=(ScopedArrayBufferContents& source) MOZ_DELETE;
+  explicit ScopedArrayBufferContents(ScopedArrayBufferContents& source) = delete;
+  ScopedArrayBufferContents& operator=(ScopedArrayBufferContents& source) = delete;
 };
 
 ///////// Cross-platform issues
@@ -171,16 +171,11 @@ public:
    * @param aStartDate The instant at which the operation was
    * requested.  Used to collect Telemetry statistics.
    */
-  AbstractResult(TimeStamp aStartDate)
+  explicit AbstractResult(TimeStamp aStartDate)
     : mStartDate(aStartDate)
   {
     MOZ_ASSERT(NS_IsMainThread());
     mozilla::HoldJSObjects(this);
-  }
-  virtual ~AbstractResult() {
-    MOZ_ASSERT(NS_IsMainThread());
-    DropJSData();
-    mozilla::DropJSObjects(this);
   }
 
   /**
@@ -207,6 +202,12 @@ public:
   }
 
 protected:
+  virtual ~AbstractResult() {
+    MOZ_ASSERT(NS_IsMainThread());
+    DropJSData();
+    mozilla::DropJSObjects(this);
+  }
+
   virtual nsresult GetCacheableResult(JSContext *cx, JS::MutableHandleValue aResult) = 0;
 
 private:
@@ -273,10 +274,10 @@ AbstractResult::GetResult(JSContext *cx, JS::MutableHandleValue aResult)
  * In this implementation, attribute |result| is a string. Strings are
  * passed to JS without copy.
  */
-class StringResult MOZ_FINAL : public AbstractResult
+class StringResult final : public AbstractResult
 {
 public:
-  StringResult(TimeStamp aStartDate)
+  explicit StringResult(TimeStamp aStartDate)
     : AbstractResult(aStartDate)
   {
   }
@@ -296,7 +297,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 
 private:
   nsString mContents;
@@ -324,10 +325,10 @@ StringResult::GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult)
  * In this implementation, attribute |result| is a Uint8Array. The array
  * is passed to JS without memory copy.
  */
-class TypedArrayResult MOZ_FINAL : public AbstractResult
+class TypedArrayResult final : public AbstractResult
 {
 public:
-  TypedArrayResult(TimeStamp aStartDate)
+  explicit TypedArrayResult(TimeStamp aStartDate)
     : AbstractResult(aStartDate)
   {
   }
@@ -345,7 +346,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 private:
   ScopedArrayBufferContents mContents;
 };
@@ -389,7 +390,7 @@ TypedArrayResult::GetCacheableResult(JSContext* cx, JS::MutableHandle<JS::Value>
 /**
  * An event used to notify asynchronously of an error.
  */
-class ErrorEvent MOZ_FINAL : public nsRunnable {
+class ErrorEvent final : public nsRunnable {
 public:
   /**
    * @param aOnSuccess The success callback.
@@ -447,7 +448,7 @@ public:
 /**
  * An event used to notify of a success.
  */
-class SuccessEvent MOZ_FINAL : public nsRunnable {
+class SuccessEvent final : public nsRunnable {
 public:
   /**
    * @param aOnSuccess The success callback.
@@ -595,7 +596,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_METHOD Run() MOZ_OVERRIDE {
+  NS_METHOD Run() override {
     MOZ_ASSERT(!NS_IsMainThread());
     TimeStamp dispatchDate = TimeStamp::Now();
 
@@ -731,7 +732,7 @@ protected:
  * An implementation of a Read event that provides the data
  * as a TypedArray.
  */
-class DoReadToTypedArrayEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToTypedArrayEvent final : public AbstractReadEvent {
 public:
   DoReadToTypedArrayEvent(const nsAString& aPath,
                           const uint32_t aBytes,
@@ -754,7 +755,7 @@ public:
 
 protected:
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
     mResult->Init(aDispatchDate, TimeStamp::Now() - aDispatchDate, aBuffer.forget());
     Succeed(mResult.forget());
@@ -768,7 +769,7 @@ protected:
  * An implementation of a Read event that provides the data
  * as a JavaScript string.
  */
-class DoReadToStringEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToStringEvent final : public AbstractReadEvent {
 public:
   DoReadToStringEvent(const nsAString& aPath,
                       const nsACString& aEncoding,
@@ -791,7 +792,7 @@ public:
   }
 
 protected:
-  nsresult BeforeRead() MOZ_OVERRIDE {
+  nsresult BeforeRead() override {
     // Obtain the decoder. We do this before reading to avoid doing
     // any unnecessary I/O in case the name of the encoding is incorrect.
     MOZ_ASSERT(!NS_IsMainThread());
@@ -810,7 +811,7 @@ protected:
   }
 
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
 
     int32_t maxChars;

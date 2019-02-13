@@ -18,13 +18,7 @@ SOURCES += [
     'OmxPlugin.cpp',
 ]
 
-LIBRARY_NAME = 'omxplugin'
-
-FORCE_SHARED_LIB = True
-
-LOCAL_INCLUDES += [
-    '../../content/media/plugins',
-]
+SharedLibrary('omxplugin')
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     pass
@@ -52,6 +46,22 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
              'system/core/include',
              'hardware/libhardware/include',
          ]
+    ]
+    EXTRA_DSO_LDOPTS += [
+        '-lutils',
+        '-lstagefright',
+        '-lmedia',
+        '-lstagefright_omx',
+        '-lbinder',
+        '-lui',
+        '-lhardware',
+        '-lcutils',
+    ]
+else:
+    USE_LIBS += [
+        '/media/omx-plugin/lib/ics/libstagefright/stagefright',
+        '/media/omx-plugin/lib/ics/libutils/utils',
+        'videoeditorplayer',
     ]
 
 # Don't use STL wrappers; this isn't Gecko code

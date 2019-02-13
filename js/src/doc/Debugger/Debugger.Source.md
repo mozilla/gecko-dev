@@ -74,6 +74,22 @@ from its prototype:
     `url` accessor on `Debugger.Source` instances for such sources should
     return `undefined`.)
 
+`sourceMapURL`
+:   If this source was produced by a minimizer or translated from some other
+    language, and we know the URL of a <b>source map</b> document relating
+    the source positions in this source to the corresponding source
+    positions in the original source, then this property's value is that
+    URL. Otherwise, this is `null`.
+
+    (On the web, the translator may provide the source map URL in a
+    specially formatted comment in the JavaScript source code, or via a
+    header in the HTTP reply that carried the generated JavaScript.)
+
+    This property is writable, so you can change the source map URL by
+    setting it. All Debugger.Source objects referencing the same
+    source will see the change. Setting an empty string has no affect
+    and will not change existing value.
+
 `element`
 :   The [`Debugger.Object`][object] instance referring to the DOM element to which
     this source code belongs, if any, or `undefined` if it belongs to no DOM
@@ -131,42 +147,42 @@ from its prototype:
     * `undefined`, if the implementation doesn't know how the code was
       introduced.
 
-`introductionScript`, `introductionScriptOffset` <i>(future plan)</i>
-:   If this source was introduced by calling a function from debuggee code,
-    then `introductionScript` is the [`Debugger.Script`][script] instance referring to
-    the script containing that call, and `introductionScriptOffset` is the
-    call's bytecode offset within that script. Otherwise, these are both
-    `undefined`. Taken together, these properties indicate the location of
-    the introducing call.
+`introductionScript`, `introductionOffset`
+:   If this source was introduced by calling a function from debuggee code, then
+    `introductionScript` is the [`Debugger.Script`][script] instance referring
+    to the script containing that call, and `introductionOffset` is the call's
+    bytecode offset within that script. Otherwise, these are both `undefined`.
+    Taken together, these properties indicate the location of the introducing
+    call.
 
-    For the purposes of these accessors, assignments to accessor properties
-    are treated as function calls. Thus, setting a DOM element's event
-    handler IDL attribute by assigning to the corresponding JavaScript
-    property creates a source whose `introductionScript` and
-    `introductionScriptOffset` refer to the property assignment.
+    For the purposes of these accessors, assignments to accessor properties are
+    treated as function calls. Thus, setting a DOM element's event handler IDL
+    attribute by assigning to the corresponding JavaScript property creates a
+    source whose `introductionScript` and `introductionOffset` refer to the
+    property assignment.
 
-    Since a `<script>` element parsed from a web page's original HTML
-    was not introduced by any scripted call, its source's
-    `introductionScript` and `introductionScriptOffset` accessors both
-    return `undefined`.
+    Since a `<script>` element parsed from a web page's original HTML was not
+    introduced by any scripted call, its source's `introductionScript` and
+    `introductionOffset` accessors both return `undefined`.
 
-    If a `<script>` element was dynamically inserted into a document,
-    then these accessors refer to the call that actually caused the script
-    to run—usually the call that made the element part of the document.
-    Thus, they do <i>not</i> refer to the call that created the element;
-    stored the source as the element's text child; made the element a child
-    of some uninserted parent node that was later inserted; or the like.
+    If a `<script>` element was dynamically inserted into a document, then these
+    accessors refer to the call that actually caused the script to run—usually
+    the call that made the element part of the document. Thus, they do
+    <i>not</i> refer to the call that created the element; stored the source as
+    the element's text child; made the element a child of some uninserted parent
+    node that was later inserted; or the like.
 
     Although the main script of a worker thread is introduced by a call to
     `Worker` or `SharedWorker`, these accessors always return `undefined` on
     such script's sources. A worker's main script source and the call that
-    created the worker are always in separate threads, but [`Debugger`][debugger-object] is an
-    inherently single-threaded facility: its debuggees must all run in the
-    same thread. Since the global that created the worker is in a different
-    thread, it is guaranteed not to be a debuggee of the [`Debugger`][debugger-object] instance
-    that owns this source; and thus the creating call is never "in debuggee
-    code". Relating a worker to its creator, and other multi-threaded
-    debugging concerns, are out of scope for [`Debugger`][debugger-object].
+    created the worker are always in separate threads, but
+    [`Debugger`][debugger-object] is an inherently single-threaded facility: its
+    debuggees must all run in the same thread. Since the global that created the
+    worker is in a different thread, it is guaranteed not to be a debuggee of
+    the [`Debugger`][debugger-object] instance that owns this source; and thus
+    the creating call is never "in debuggee code". Relating a worker to its
+    creator, and other multi-threaded debugging concerns, are out of scope for
+    [`Debugger`][debugger-object].
 
 
 

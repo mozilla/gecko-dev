@@ -8,6 +8,7 @@
 #include "nsString.h"
 
 #include "AndroidBridge.h"
+#include "AndroidContentController.h"
 #include "AndroidGraphicBuffer.h"
 
 #include <jni.h>
@@ -15,7 +16,6 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sched.h>
 
 #include "nsAppShell.h"
 #include "nsWindow.h"
@@ -30,6 +30,7 @@
 #endif
 
 #include "mozilla/unused.h"
+#include "mozilla/UniquePtr.h"
 
 #include "mozilla/dom/SmsMessage.h"
 #include "mozilla/dom/mobilemessage/Constants.h"
@@ -39,7 +40,7 @@
 #include "mozilla/layers/APZCTreeManager.h"
 #include "nsIMobileMessageDatabaseService.h"
 #include "nsPluginInstanceOwner.h"
-#include "nsSurfaceTexture.h"
+#include "AndroidSurfaceTexture.h"
 #include "GeckoProfiler.h"
 #include "nsMemoryPressure.h"
 
@@ -47,6 +48,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::dom::mobilemessage;
 using namespace mozilla::layers;
+using namespace mozilla::widget;
 using namespace mozilla::widget::android;
 
 /* Forward declare all the JNI methods as extern "C" */
@@ -57,9 +59,16 @@ extern "C" {
  */
 
 NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_nativeInit(JNIEnv *jenv, jclass jc)
+Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread(JNIEnv *jenv, jclass jc)
 {
-    AndroidBridge::ConstructBridge(jenv);
+    AndroidBridge::RegisterJavaUiThread();
+}
+
+NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_nativeInit(JNIEnv *jenv, jclass, jobject clsLoader, jobject msgQueue)
+{
+    AndroidBridge::ConstructBridge(
+            jenv, jni::Object::Ref::From(clsLoader), jni::Object::Ref::From(msgQueue));
 }
 
 NS_EXPORT void JNICALL
@@ -71,6 +80,29 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent(JNIEnv *jenv, jclass jc,
 }
 
 NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers(JNIEnv *aEnv, jclass,
+                                                         jstring aTopic, jstring aData)
+{
+    if (!NS_IsMainThread()) {
+        AndroidBridge::ThrowException(aEnv,
+            "java/lang/IllegalThreadStateException", "Not on Gecko main thread");
+        return;
+    }
+
+    nsCOMPtr<nsIObserverService> obsServ =
+        mozilla::services::GetObserverService();
+    if (!obsServ) {
+        AndroidBridge::ThrowException(aEnv,
+            "java/lang/IllegalStateException", "No observer service");
+        return;
+    }
+
+    const nsJNICString topic(aTopic, aEnv);
+    const nsJNIString data(aData, aEnv);
+    obsServ->NotifyObservers(nullptr, topic.get(), data.get());
+}
+
+NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_processNextNativeEvent(JNIEnv *jenv, jclass, jboolean mayWait)
 {
     // poke the appshell
@@ -78,10 +110,14 @@ Java_org_mozilla_gecko_GeckoAppShell_processNextNativeEvent(JNIEnv *jenv, jclass
         nsAppShell::gAppShell->ProcessNextNativeEvent(mayWait != JNI_FALSE);
 }
 
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_setLayerClient(JNIEnv *jenv, jclass, jobject obj)
+NS_EXPORT jlong JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback(JNIEnv* env, jclass)
 {
-    AndroidBridge::Bridge()->SetLayerClient(jenv, obj);
+    if (!AndroidBridge::Bridge()) {
+        return -1;
+    }
+
+    return AndroidBridge::Bridge()->RunDelayedUiThreadTasks();
 }
 
 NS_EXPORT void JNICALL
@@ -95,12 +131,15 @@ NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring jStackTrace)
 {
 #ifdef MOZ_CRASHREPORTER
-    const nsJNIString stackTrace16(jStackTrace, jenv);
-    const NS_ConvertUTF16toUTF8 stackTrace8(stackTrace16);
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace8);
+    const nsJNICString stackTrace(jStackTrace, jenv);
+    if (NS_WARN_IF(NS_FAILED(CrashReporter::AnnotateCrashReport(
+            NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace)))) {
+        // Only crash below if crash reporter is initialized and annotation succeeded.
+        // Otherwise try other means of reporting the crash in Java.
+        return;
+    }
 #endif // MOZ_CRASHREPORTER
-
-    abort();
+    MOZ_CRASH("Uncaught Java exception");
 }
 
 NS_EXPORT void JNICALL
@@ -774,6 +813,27 @@ cleanup:
 }
 
 NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface(JNIEnv* jenv, jclass, jobject surface)
+{
+    if (surface != NULL) {
+        void* window = AndroidBridge::Bridge()->AcquireNativeWindow(jenv, surface);
+        if (window) {
+            AndroidBridge::Bridge()->SetPresentationWindow(window);
+        }
+    }
+}
+
+NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface(JNIEnv* jenv, jclass, jobject surface)
+{
+    void* window = AndroidBridge::Bridge()->GetPresentationWindow();
+    if (window) {
+        AndroidBridge::Bridge()->SetPresentationWindow(nullptr);
+        AndroidBridge::Bridge()->ReleaseNativeWindow(window);
+    }
+}
+
+NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_onFullScreenPluginHidden(JNIEnv* jenv, jclass, jobject view)
 {
   class ExitFullScreenRunnable : public nsRunnable {
@@ -795,39 +855,12 @@ Java_org_mozilla_gecko_GeckoAppShell_onFullScreenPluginHidden(JNIEnv* jenv, jcla
   NS_DispatchToMainThread(runnable);
 }
 
-NS_EXPORT jobject JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue(JNIEnv* jenv, jclass, jobject queue)
-{
-    static jclass jMessageQueueCls = nullptr;
-    static jfieldID jMessagesField;
-    static jmethodID jNextMethod;
-    if (!jMessageQueueCls) {
-        jMessageQueueCls = (jclass) jenv->NewGlobalRef(jenv->FindClass("android/os/MessageQueue"));
-        jNextMethod = jenv->GetMethodID(jMessageQueueCls, "next", "()Landroid/os/Message;");
-        jMessagesField = jenv->GetFieldID(jMessageQueueCls, "mMessages", "Landroid/os/Message;");
-    }
-
-    if (!jMessageQueueCls || !jNextMethod)
-        return nullptr;
-
-    if (jMessagesField) {
-        jobject msg = jenv->GetObjectField(queue, jMessagesField);
-        // if queue.mMessages is null, queue.next() will block, which we don't want
-        // It turns out to be an order of magnitude more performant to do this extra check here and
-        // block less vs. one fewer checks here and more blocking.
-        if (!msg) {
-            return nullptr;
-        }
-    }
-    return jenv->CallObjectMethod(queue, jNextMethod);
-}
-
 NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_onSurfaceTextureFrameAvailable(JNIEnv* jenv, jclass, jobject surfaceTexture, jint id)
 {
-  nsSurfaceTexture* st = nsSurfaceTexture::Find(id);
+  mozilla::gl::AndroidSurfaceTexture* st = mozilla::gl::AndroidSurfaceTexture::Find(id);
   if (!st) {
-    __android_log_print(ANDROID_LOG_ERROR, "GeckoJNI", "Failed to find nsSurfaceTexture with id %d", id);
+    __android_log_print(ANDROID_LOG_ERROR, "GeckoJNI", "Failed to find AndroidSurfaceTexture with id %d", id);
     return;
   }
 
@@ -843,6 +876,9 @@ Java_org_mozilla_gecko_GeckoAppShell_dispatchMemoryPressure(JNIEnv* jenv, jclass
 NS_EXPORT jdouble JNICALL
 Java_org_mozilla_gecko_GeckoJavaSampler_getProfilerTime(JNIEnv *jenv, jclass jc)
 {
+  if (!profiler_is_active()) {
+    return 0.0;
+  }
   return profiler_time();
 }
 
@@ -863,41 +899,42 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_init(JNIEnv* env, jobject ins
         return;
     }
 
-    NativePanZoomController* oldRef = AndroidBridge::Bridge()->SetNativePanZoomController(instance);
-    if (oldRef && !oldRef->isNull()) {
-        MOZ_ASSERT(false, "Registering a new NPZC when we already have one");
-        delete oldRef;
-    }
+    const auto& newRef = NativePanZoomController::Ref::From(instance);
+    NativePanZoomController::LocalRef oldRef =
+            AndroidContentController::SetNativePanZoomController(newRef);
+
+    MOZ_ASSERT(!oldRef, "Registering a new NPZC when we already have one");
 }
 
-NS_EXPORT void JNICALL
+NS_EXPORT jboolean JNICALL
 Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(JNIEnv* env, jobject instance, jobject event)
 {
     APZCTreeManager *controller = nsWindow::GetAPZCTreeManager();
-    if (controller) {
-        AndroidGeckoEvent* wrapper = AndroidGeckoEvent::MakeFromJavaObject(env, event);
-        const MultiTouchInput& input = wrapper->MakeMultiTouchInput(nsWindow::TopWindow());
-        delete wrapper;
-        if (input.mType >= 0) {
-            controller->ReceiveInputEvent(input, nullptr);
-        }
+    if (!controller) {
+        return false;
     }
+
+    AndroidGeckoEvent* wrapper = AndroidGeckoEvent::MakeFromJavaObject(env, event);
+    MultiTouchInput input = wrapper->MakeMultiTouchInput(nsWindow::TopWindow());
+    delete wrapper;
+
+    if (input.mType < 0 || !nsAppShell::gAppShell) {
+        return false;
+    }
+
+    ScrollableLayerGuid guid;
+    uint64_t blockId;
+    nsEventStatus status = controller->ReceiveInputEvent(input, &guid, &blockId);
+    if (status != nsEventStatus_eConsumeNoDefault) {
+        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeApzInputEvent(input, guid, blockId, status));
+    }
+    return true;
 }
 
 NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_gfx_NativePanZoomController_handleMotionEvent(JNIEnv* env, jobject instance, jobject event)
 {
     // FIXME implement this
-}
-
-NS_EXPORT jlong JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback(JNIEnv* env, jobject instance)
-{
-    if (!AndroidBridge::Bridge()) {
-        return -1;
-    }
-
-    return AndroidBridge::Bridge()->RunDelayedTasks();
 }
 
 NS_EXPORT void JNICALL
@@ -907,22 +944,10 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy(JNIEnv* env, jobject 
         return;
     }
 
-    NativePanZoomController* oldRef = AndroidBridge::Bridge()->SetNativePanZoomController(nullptr);
-    if (!oldRef || oldRef->isNull()) {
-        MOZ_ASSERT(false, "Clearing a non-existent NPZC");
-    } else {
-        delete oldRef;
-    }
-}
+    NativePanZoomController::LocalRef oldRef =
+            AndroidContentController::SetNativePanZoomController(nullptr);
 
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented(JNIEnv* env, jobject instance, jboolean prevented)
-{
-    APZCTreeManager *controller = nsWindow::GetAPZCTreeManager();
-    if (controller) {
-        // TODO: Pass in correct values for presShellId and viewId.
-        controller->ContentReceivedTouch(ScrollableLayerGuid(nsWindow::RootLayerTreeId(), 0, 0), prevented);
-    }
+    MOZ_ASSERT(oldRef, "Clearing a non-existent NPZC");
 }
 
 NS_EXPORT jboolean JNICALL
@@ -985,18 +1010,29 @@ Java_org_mozilla_gecko_ANRReporter_getNativeStack(JNIEnv* jenv, jclass)
         // Maybe profiler support is disabled?
         return nullptr;
     }
-    char *profile = profiler_get_profile();
-    while (profile && !strlen(profile)) {
+
+    // Timeout if we don't get a profiler sample after 5 seconds.
+    const PRIntervalTime timeout = PR_SecondsToInterval(5);
+    const PRIntervalTime startTime = PR_IntervalNow();
+
+    // Pointer to a profile JSON string
+    typedef mozilla::UniquePtr<char[]> ProfilePtr;
+
+    ProfilePtr profile(profiler_get_profile());
+
+    while (profile && !strstr(profile.get(), "\"samples\":[{")) {
         // no sample yet?
-        sched_yield();
-        profile = profiler_get_profile();
+        if (PR_IntervalNow() - startTime >= timeout) {
+            return nullptr;
+        }
+        usleep(100000ul); // Sleep for 100ms
+        profile = ProfilePtr(profiler_get_profile());
     }
-    jstring result = nullptr;
+
     if (profile) {
-        result = jenv->NewStringUTF(profile);
-        free(profile);
+        return jenv->NewStringUTF(profile.get());
     }
-    return result;
+    return nullptr;
 }
 
 NS_EXPORT void JNICALL

@@ -119,11 +119,59 @@ CSS_PROP_ALIAS(-moz-box-sizing,
                box_sizing,
                MozBoxSizing,
                "layout.css.prefixes.box-sizing")
-CSS_PROP_ALIAS(font-feature-settings,
+CSS_PROP_ALIAS(-moz-font-feature-settings,
                font_feature_settings,
-               FontFeatureSettings,
-               "layout.css.font-features.enabled")
-CSS_PROP_ALIAS(font-language-override,
+               MozFontFeatureSettings,
+               "layout.css.prefixes.font-features")
+CSS_PROP_ALIAS(-moz-font-language-override,
                font_language_override,
-               FontLanguageOverride,
-               "layout.css.font-features.enabled")
+               MozFontLanguageOverride,
+               "layout.css.prefixes.font-features")
+CSS_PROP_ALIAS(padding-inline-end,
+               padding_end,
+               PaddingInlineEnd,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(padding-inline-start,
+               padding_start,
+               PaddingInlineStart,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(margin-inline-end,
+               margin_end,
+               MarginInlineEnd,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(margin-inline-start,
+               margin_start,
+               MarginInlineStart,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-end,
+               border_end,
+               BorderInlineEnd,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-end-color,
+               border_end_color,
+               BorderInlineEndColor,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-end-style,
+               border_end_style,
+               BorderInlineEndStyle,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-end-width,
+               border_end_width,
+               BorderInlineEndWidth,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-start,
+               border_start,
+               BorderInlineStart,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-start-color,
+               border_start_color,
+               BorderInlineStartColor,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-start-style,
+               border_start_style,
+               BorderInlineStartStyle,
+               "layout.css.vertical-text.enabled")
+CSS_PROP_ALIAS(border-inline-start-width,
+               border_start_width,
+               BorderInlineStartWidth,
+               "layout.css.vertical-text.enabled")

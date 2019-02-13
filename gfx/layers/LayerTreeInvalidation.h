@@ -7,9 +7,8 @@
 #define GFX_LAYER_TREE_INVALIDATION_H
 
 #include "nsRegion.h"                   // for nsIntRegion
-
-class nsPresContext;
-struct nsIntPoint;
+#include "mozilla/UniquePtr.h"          // for UniquePtr
+#include "mozilla/gfx/Point.h"
 
 namespace mozilla {
 namespace layers {
@@ -42,7 +41,7 @@ struct LayerProperties
    * @param Layer tree to copy, or nullptr if we have no 
    * initial layer tree.
    */
-  static LayerProperties* CloneFrom(Layer* aRoot);
+  static UniquePtr<LayerProperties> CloneFrom(Layer* aRoot);
 
   /**
    * Clear all invalidation status from this layer tree.
@@ -58,12 +57,11 @@ struct LayerProperties
    * are invalidated.
    * @return Painted area changed by the layer tree changes.
    */
-  virtual nsIntRegion ComputeDifferences(Layer* aRoot, 
+  virtual nsIntRegion ComputeDifferences(Layer* aRoot,
                                          NotifySubDocInvalidationFunc aCallback,
                                          bool* aGeometryChanged = nullptr) = 0;
-  
-  
-  virtual void MoveBy(const nsIntPoint& aOffset) = 0;
+
+  virtual void MoveBy(const gfx::IntPoint& aOffset) = 0;
 };
 
 } // namespace layers

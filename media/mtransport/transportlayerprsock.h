@@ -56,7 +56,6 @@ class TransportLayerPrsock : public TransportLayer {
         prsock_(prsock), fd_(fd) {
         mPollFlags = PR_POLL_READ;
       }
-      virtual ~SocketHandler() {}
 
       void Detach() {
         mCondition = NS_BASE_STREAM_CLOSED;
@@ -64,26 +63,26 @@ class TransportLayerPrsock : public TransportLayer {
       }
 
       // Implement nsASocket
-      virtual void OnSocketReady(PRFileDesc *fd, int16_t outflags) {
+      virtual void OnSocketReady(PRFileDesc *fd, int16_t outflags) override {
         if (prsock_) {
           prsock_->OnSocketReady(fd, outflags);
         }
       }
 
-      virtual void OnSocketDetached(PRFileDesc *fd) {
+      virtual void OnSocketDetached(PRFileDesc *fd) override {
         if (prsock_) {
           prsock_->OnSocketDetached(fd);
         }
         PR_Close(fd_);
       }
 
-      virtual void IsLocal(bool *aIsLocal) {
+      virtual void IsLocal(bool *aIsLocal) override {
         // TODO(jesup): better check? Does it matter? (likely no)
         *aIsLocal = false;
       }
 
-      virtual uint64_t ByteCountSent() { return 0; }
-      virtual uint64_t ByteCountReceived() { return 0; }
+      virtual uint64_t ByteCountSent() override { return 0; }
+      virtual uint64_t ByteCountReceived() override { return 0; }
 
       // nsISupports methods
       NS_DECL_THREADSAFE_ISUPPORTS
@@ -92,7 +91,8 @@ class TransportLayerPrsock : public TransportLayer {
       TransportLayerPrsock *prsock_;
       PRFileDesc *fd_;
    private:
-    DISALLOW_COPY_ASSIGN(SocketHandler);
+      DISALLOW_COPY_ASSIGN(SocketHandler);
+      virtual ~SocketHandler() {}
   };
 
   // Allow SocketHandler to talk to our APIs

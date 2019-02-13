@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #ifdef XP_WIN
 #include <windows.h>
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
+#endif
 #define strcasecmp _stricmp
 #endif
 
@@ -25,6 +27,7 @@
 #include "nsINIParser.h"
 
 #ifdef XP_WIN
+#define XRE_DONT_SUPPORT_XPSP2 // See https://bugzil.la/1023941#c32
 #include "nsWindowsWMain.cpp"
 #endif
 

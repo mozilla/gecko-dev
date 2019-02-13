@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="mediaStreamPlayback.js"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+createHTML({ title: "Run enumerateDevices code", bug: "1046245" });
+/**
+  Tests covering enumerateDevices API. Exercise code.
+*/
+
+var pushPrefs = (...p) => new Promise(r => SpecialPowers.pushPrefEnv({set: p}, r));
+
+var getCharPref = name => {
+  try {
+    return SpecialPowers.getCharPref(name);
+  } catch (e) {}
+};
+
+runTest(() =>
+  // turn off fake devices if loopback devices are present in FF<42
+  pushPrefs(["media.navigator.streams.fake",
+             !(getCharPref("media.audio_loopback_dev") ||
+               getCharPref("media.video_loopback_dev")) ])
+  .then(() => navigator.mediaDevices.enumerateDevices())
+  .then(devices => {
+    isnot(devices.length, 0, "At least one device found");
+    devices.forEach(d => {
+      ok(d.kind == "videoinput" || d.kind == "audioinput", "Known device kind");
+      is(d.deviceId.length, 44, "Correct device id length");
+      ok(d.label.length !== undefined, "Device label: " + d.label);
+      is(d.groupId, "", "Don't support groupId yet");
+    });
+  })
+  // Check the special case of no devices found (these prefs override fake).
+  .then(() => pushPrefs(["media.audio_loopback_dev", "none"],
+                        ["media.video_loopback_dev", "none"]))
+  .then(() => navigator.mediaDevices.enumerateDevices())
+  .then(devices => is(devices.length, 0, "No devices found")));
+
+</script>
+</pre>
+</body>
+</html>

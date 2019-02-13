@@ -28,32 +28,31 @@ class CompactBufferWriter;
 
 class CompactBufferReader
 {
-    const uint8_t *buffer_;
-    const uint8_t *end_;
+    const uint8_t* buffer_;
+    const uint8_t* end_;
 
     uint32_t readVariableLength() {
         uint32_t val = 0;
         uint32_t shift = 0;
         uint8_t byte;
         while (true) {
-            JS_ASSERT(shift < 32);
+            MOZ_ASSERT(shift < 32);
             byte = readByte();
             val |= (uint32_t(byte) >> 1) << shift;
             shift += 7;
             if (!(byte & 1))
                 return val;
         }
-        MOZ_ASSUME_UNREACHABLE("unreachable");
     }
 
   public:
-    CompactBufferReader(const uint8_t *start, const uint8_t *end)
+    CompactBufferReader(const uint8_t* start, const uint8_t* end)
       : buffer_(start),
         end_(end)
     { }
-    inline explicit CompactBufferReader(const CompactBufferWriter &writer);
+    inline explicit CompactBufferReader(const CompactBufferWriter& writer);
     uint8_t readByte() {
-        JS_ASSERT(buffer_ < end_);
+        MOZ_ASSERT(buffer_ < end_);
         return *buffer_++;
     }
     uint32_t readFixedUint32_t() {
@@ -67,6 +66,11 @@ class CompactBufferReader
         uint32_t b0 = readByte();
         uint32_t b1 = readByte();
         return b0 | (b1 << 8);
+    }
+    uint32_t readNativeEndianUint32_t() {
+        // Must be at 4-byte boundary
+        MOZ_ASSERT(uintptr_t(buffer_) % sizeof(uint32_t) == 0);
+        return *reinterpret_cast<const uint32_t*>(buffer_);
     }
     uint32_t readUnsigned() {
         return readVariableLength();
@@ -84,14 +88,18 @@ class CompactBufferReader
     }
 
     bool more() const {
-        JS_ASSERT(buffer_ <= end_);
+        MOZ_ASSERT(buffer_ <= end_);
         return buffer_ < end_;
     }
 
-    void seek(const uint8_t *start, uint32_t offset) {
+    void seek(const uint8_t* start, uint32_t offset) {
         buffer_ = start + offset;
         MOZ_ASSERT(start < end_);
         MOZ_ASSERT(buffer_ < end_);
+    }
+
+    const uint8_t* currentPosition() const {
+        return buffer_;
     }
 };
 
@@ -105,11 +113,19 @@ class CompactBufferWriter
       : enoughMemory_(true)
     { }
 
+    void setOOM() {
+        enoughMemory_ = false;
+    }
+
     // Note: writeByte() takes uint32 to catch implicit casts with a runtime
     // assert.
     void writeByte(uint32_t byte) {
-        JS_ASSERT(byte <= 0xFF);
+        MOZ_ASSERT(byte <= 0xFF);
         enoughMemory_ &= buffer_.append(byte);
+    }
+    void writeByteAt(uint32_t pos, uint32_t byte) {
+        MOZ_ASSERT(byte <= 0xFF);
+        buffer_[pos] = byte;
     }
     void writeUnsigned(uint32_t value) {
         do {
@@ -117,6 +133,15 @@ class CompactBufferWriter
             writeByte(byte);
             value >>= 7;
         } while (value);
+    }
+    void writeUnsignedAt(uint32_t pos, uint32_t value, uint32_t original) {
+        MOZ_ASSERT(value <= original);
+        do {
+            uint8_t byte = ((value & 0x7F) << 1) | (original > 0x7F);
+            writeByteAt(pos++, byte);
+            value >>= 7;
+            original >>= 7;
+        } while (original);
     }
     void writeSigned(int32_t v) {
         bool isNegative = v < 0;
@@ -140,13 +165,22 @@ class CompactBufferWriter
         writeByte(value & 0xFF);
         writeByte(value >> 8);
     }
+    void writeNativeEndianUint32_t(uint32_t value) {
+        // Must be at 4-byte boundary
+        MOZ_ASSERT(length() % sizeof(uint32_t) == 0);
+        writeFixedUint32_t(0);
+        if (oom())
+            return;
+        uint8_t* endPtr = buffer() + length();
+        reinterpret_cast<uint32_t*>(endPtr)[-1] = value;
+    }
     size_t length() const {
         return buffer_.length();
     }
-    uint8_t *buffer() {
+    uint8_t* buffer() {
         return &buffer_[0];
     }
-    const uint8_t *buffer() const {
+    const uint8_t* buffer() const {
         return &buffer_[0];
     }
     bool oom() const {
@@ -154,7 +188,7 @@ class CompactBufferWriter
     }
 };
 
-CompactBufferReader::CompactBufferReader(const CompactBufferWriter &writer)
+CompactBufferReader::CompactBufferReader(const CompactBufferWriter& writer)
   : buffer_(writer.buffer()),
     end_(writer.buffer() + writer.length())
 {

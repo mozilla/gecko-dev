@@ -142,10 +142,6 @@ public abstract class NotificationClient {
      * @see NotificationHandler#remove(int)
      */
     public synchronized void remove(final int notificationID) {
-        if (!mReady) {
-            return;
-        }
-
         mTaskQueue.add(new Runnable() {
             @Override
             public void run() {
@@ -153,6 +149,13 @@ public abstract class NotificationClient {
                 mUpdatesMap.remove(notificationID);
             }
         });
+
+        // If mReady == false, we haven't added any notifications yet. That can happen if Fennec is being
+        // started in response to clicking a notification. Call bind() to ensure the task we posted above is run.
+        if (!mReady) {
+            bind();
+        }
+
         notify();
     }
 

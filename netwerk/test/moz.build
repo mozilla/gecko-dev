@@ -4,28 +4,27 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_TOOL_DIRS += ['httpserver']
+TEST_DIRS += ['httpserver']
 
 FAIL_ON_WARNINGS = True
 
 BROWSER_CHROME_MANIFESTS += ['browser/browser.ini']
 MOCHITEST_MANIFESTS += ['mochitests/mochitest.ini']
-XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
 
-# FIXME/bug 575918: out-of-process xpcshell is broken on OS X
-if CONFIG['OS_ARCH'] != 'Darwin':
-    XPCSHELL_TESTS_MANIFESTS += ['unit_ipc/xpcshell.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'unit/xpcshell.ini',
+    'unit/xpcshell_b2g.ini',
+    'unit_ipc/xpcshell.ini',
+]
 
-SIMPLE_PROGRAMS = [
+GeckoSimplePrograms([
     'PropertiesTest',
     'ReadNTLM',
     'TestBlockingSocket',
     'TestCallbacks',
-    'TestCookie',
     'TestDNS',
     'TestIncrementalDownload',
     'TestOpen',
-    'TestPageLoad',
     'TestProtocols',
     'TestServ',
     'TestStandardURL',
@@ -33,13 +32,12 @@ SIMPLE_PROGRAMS = [
     'TestUpload',
     'TestURLParser',
     'urltest',
-]
+])
 
 # XXX Make this work in libxul builds.
 #SIMPLE_PROGRAMS += [
 #    TestIDN',
 #    TestIOThreads',
-#    TestPerf',
 #    TestSocketTransport',
 #    TestStreamChannel',
 #    TestStreamPump',
@@ -47,16 +45,15 @@ SIMPLE_PROGRAMS = [
 #    TestUDPSocketProvider',
 #]
 
-SOURCES += [
-    '%s.cpp' % s for s in SIMPLE_PROGRAMS
-]
-
-CPP_UNIT_TESTS += [
-    'TestSTSParser.cpp',
-    'TestUDPSocket.cpp',
-]
+CppUnitTests([
+    'TestBind',
+    'TestCookie',
+    'TestUDPSocket',
+])
 
 RESOURCE_FILES += [
     'urlparse.dat',
     'urlparse_unx.dat',
 ]
+
+CXXFLAGS += CONFIG['TK_CFLAGS']

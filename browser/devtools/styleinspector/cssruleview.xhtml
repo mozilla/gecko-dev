@@ -35,4 +35,28 @@
       }
     </script>
   </head>
+  <body>
+
+    <div id="root" class="devtools-monospace">
+      <div id="ruleview-toolbar" class="devtools-toolbar">
+        <div class="devtools-searchbox">
+          <input id="ruleview-searchbox"
+                 class="devtools-searchinput devtools-rule-searchbox"
+                 type="search" placeholder="&filterStylesPlaceholder;"/>
+          <button id="ruleview-searchinput-clear" class="devtools-searchinput-clear"></button>
+        </div>
+        <button id="ruleview-add-rule-button" title="&addRuleButtonTooltip;" class="devtools-button"></button>
+        <button id="pseudo-class-panel-toggle" title="&togglePseudoClassPanel;" class="devtools-button"></button>
+      </div>
+      <div id="pseudo-class-panel" class="devtools-toolbar" hidden="true">
+        <label><input id="pseudo-hover-toggle" type="checkbox" value=":hover" />:hover</label>
+        <label><input id="pseudo-active-toggle" type="checkbox" value=":active" />:active</label>
+        <label><input id="pseudo-focus-toggle" type="checkbox" value=":focus" />:focus</label>
+      </div>
+    </div>
+
+    <div id="ruleview-container" class="ruleview devtools-monospace">
+    </div>
+
+  </body>
 </html>

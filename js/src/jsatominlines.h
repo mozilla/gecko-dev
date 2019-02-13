@@ -17,11 +17,11 @@
 
 #include "vm/String.h"
 
-inline JSAtom *
+inline JSAtom*
 js::AtomStateEntry::asPtr() const
 {
-    JS_ASSERT(bits != 0);
-    JSAtom *atom = reinterpret_cast<JSAtom *>(bits & NO_TAG_MASK);
+    MOZ_ASSERT(bits != 0);
+    JSAtom* atom = reinterpret_cast<JSAtom*>(bits & NO_TAG_MASK);
     JSString::readBarrier(atom);
     return atom;
 }
@@ -29,7 +29,7 @@ js::AtomStateEntry::asPtr() const
 namespace js {
 
 inline jsid
-AtomToId(JSAtom *atom)
+AtomToId(JSAtom* atom)
 {
     JS_STATIC_ASSERT(JSID_INT_MIN == 0);
 
@@ -41,11 +41,16 @@ AtomToId(JSAtom *atom)
 }
 
 inline bool
-ValueToIdPure(const Value &v, jsid *id)
+ValueToIdPure(const Value& v, jsid* id)
 {
     int32_t i;
     if (ValueFitsInInt32(v, &i) && INT_FITS_IN_JSID(i)) {
         *id = INT_TO_JSID(i);
+        return true;
+    }
+
+    if (js::IsSymbolOrSymbolWrapper(v)) {
+        *id = SYMBOL_TO_JSID(js::ToSymbolPrimitive(v));
         return true;
     }
 
@@ -58,7 +63,7 @@ ValueToIdPure(const Value &v, jsid *id)
 
 template <AllowGC allowGC>
 inline bool
-ValueToId(JSContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v,
+ValueToId(ExclusiveContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v,
           typename MaybeRooted<jsid, allowGC>::MutableHandleType idp)
 {
     int32_t i;
@@ -67,7 +72,12 @@ ValueToId(JSContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v,
         return true;
     }
 
-    JSAtom *atom = ToAtom<allowGC>(cx, v);
+    if (js::IsSymbolOrSymbolWrapper(v)) {
+        idp.set(SYMBOL_TO_JSID(js::ToSymbolPrimitive(v)));
+        return true;
+    }
+
+    JSAtom* atom = ToAtom<allowGC>(cx, v);
     if (!atom)
         return false;
 
@@ -105,10 +115,10 @@ BackfillIndexInCharBuffer(uint32_t index, mozilla::RangedPtr<T> end)
 }
 
 bool
-IndexToIdSlow(ExclusiveContext *cx, uint32_t index, MutableHandleId idp);
+IndexToIdSlow(ExclusiveContext* cx, uint32_t index, MutableHandleId idp);
 
 inline bool
-IndexToId(ExclusiveContext *cx, uint32_t index, MutableHandleId idp)
+IndexToId(ExclusiveContext* cx, uint32_t index, MutableHandleId idp)
 {
     if (index <= JSID_INT_MAX) {
         idp.set(INT_TO_JSID(index));
@@ -118,8 +128,8 @@ IndexToId(ExclusiveContext *cx, uint32_t index, MutableHandleId idp)
     return IndexToIdSlow(cx, index, idp);
 }
 
-static MOZ_ALWAYS_INLINE JSFlatString *
-IdToString(JSContext *cx, jsid id)
+static MOZ_ALWAYS_INLINE JSFlatString*
+IdToString(JSContext* cx, jsid id)
 {
     if (JSID_IS_STRING(id))
         return JSID_TO_ATOM(id);
@@ -128,7 +138,7 @@ IdToString(JSContext *cx, jsid id)
         return Int32ToString<CanGC>(cx, JSID_TO_INT(id));
 
     RootedValue idv(cx, IdToValue(id));
-    JSString *str = ToStringSlow<CanGC>(cx, idv);
+    JSString* str = ToStringSlow<CanGC>(cx, idv);
     if (!str)
         return nullptr;
 
@@ -136,7 +146,7 @@ IdToString(JSContext *cx, jsid id)
 }
 
 inline
-AtomHasher::Lookup::Lookup(const JSAtom *atom)
+AtomHasher::Lookup::Lookup(const JSAtom* atom)
   : isLatin1(atom->hasLatin1Chars()), length(atom->length()), atom(atom)
 {
     if (isLatin1) {
@@ -149,31 +159,31 @@ AtomHasher::Lookup::Lookup(const JSAtom *atom)
 }
 
 inline bool
-AtomHasher::match(const AtomStateEntry &entry, const Lookup &lookup)
+AtomHasher::match(const AtomStateEntry& entry, const Lookup& lookup)
 {
-    JSAtom *key = entry.asPtr();
+    JSAtom* key = entry.asPtr();
     if (lookup.atom)
         return lookup.atom == key;
     if (key->length() != lookup.length)
         return false;
 
     if (key->hasLatin1Chars()) {
-        const Latin1Char *keyChars = key->latin1Chars(lookup.nogc);
+        const Latin1Char* keyChars = key->latin1Chars(lookup.nogc);
         if (lookup.isLatin1)
             return mozilla::PodEqual(keyChars, lookup.latin1Chars, lookup.length);
-        return EqualCharsLatin1TwoByte(keyChars, lookup.twoByteChars, lookup.length);
+        return EqualChars(keyChars, lookup.twoByteChars, lookup.length);
     }
 
-    const jschar *keyChars = key->twoByteChars(lookup.nogc);
+    const char16_t* keyChars = key->twoByteChars(lookup.nogc);
     if (lookup.isLatin1)
-        return EqualCharsLatin1TwoByte(lookup.latin1Chars, keyChars, lookup.length);
+        return EqualChars(lookup.latin1Chars, keyChars, lookup.length);
     return mozilla::PodEqual(keyChars, lookup.twoByteChars, lookup.length);
 }
 
 inline Handle<PropertyName*>
-TypeName(JSType type, const JSAtomState &names)
+TypeName(JSType type, const JSAtomState& names)
 {
-    JS_ASSERT(type < JSTYPE_LIMIT);
+    MOZ_ASSERT(type < JSTYPE_LIMIT);
     JS_STATIC_ASSERT(offsetof(JSAtomState, undefined) +
                      JSTYPE_LIMIT * sizeof(ImmutablePropertyNamePtr) <=
                      sizeof(JSAtomState));
@@ -182,9 +192,9 @@ TypeName(JSType type, const JSAtomState &names)
 }
 
 inline Handle<PropertyName*>
-ClassName(JSProtoKey key, JSAtomState &atomState)
+ClassName(JSProtoKey key, JSAtomState& atomState)
 {
-    JS_ASSERT(key < JSProto_LIMIT);
+    MOZ_ASSERT(key < JSProto_LIMIT);
     JS_STATIC_ASSERT(offsetof(JSAtomState, Null) +
                      JSProto_LIMIT * sizeof(ImmutablePropertyNamePtr) <=
                      sizeof(JSAtomState));
@@ -193,13 +203,13 @@ ClassName(JSProtoKey key, JSAtomState &atomState)
 }
 
 inline Handle<PropertyName*>
-ClassName(JSProtoKey key, JSRuntime *rt)
+ClassName(JSProtoKey key, JSRuntime* rt)
 {
     return ClassName(key, *rt->commonNames);
 }
 
 inline Handle<PropertyName*>
-ClassName(JSProtoKey key, ExclusiveContext *cx)
+ClassName(JSProtoKey key, ExclusiveContext* cx)
 {
     return ClassName(key, cx->names());
 }

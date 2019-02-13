@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -39,11 +39,14 @@ Date.prototype.getClass = Object.prototype.toString;
 
 new TestCase( SECTION,
 	      "Date.prototype.getClass",
-	      "[object Date]",
+	      "[object Object]",
 	      Date.prototype.getClass() );
 new TestCase( SECTION,
 	      "Date.prototype.valueOf()",
-	      NaN,
-	      Date.prototype.valueOf() );
+	      "TypeError",
+	      (function() { try { Date.prototype.valueOf() } catch (e) { return e.constructor.name; } })());
+new TestCase( SECTION,
+          "Date.prototype.__proto__ == Object.prototype",
+          true,
+          Date.prototype.__proto__ == Object.prototype );
 test();
-

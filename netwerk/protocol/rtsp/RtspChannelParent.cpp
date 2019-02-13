@@ -50,9 +50,8 @@ RtspChannelParent::Init(const RtspChannelConnectArgs& aArgs)
 bool
 RtspChannelParent::ConnectChannel(const uint32_t& channelId)
 {
-  nsresult rv;
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_LinkRedirectChannels(channelId, this, getter_AddRefs(channel));
+  NS_LinkRedirectChannels(channelId, this, getter_AddRefs(channel));
 
   return true;
 }
@@ -147,6 +146,13 @@ RtspChannelParent::OpenContentStream(bool aAsync,
 NS_IMETHODIMP
 RtspChannelParent::SetParentListener(HttpChannelParentListener *aListener)
 {
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+RtspChannelParent::NotifyTrackingProtectionDisabled()
+{
+  // One day, this should probably be filled in.
   return NS_OK;
 }
 

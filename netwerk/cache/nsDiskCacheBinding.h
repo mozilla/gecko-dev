@@ -31,11 +31,12 @@
 class nsDiskCacheDeviceDeactivateEntryEvent;
 
 class nsDiskCacheBinding : public nsISupports, public PRCList {
+    virtual ~nsDiskCacheBinding();
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
 
     nsDiskCacheBinding(nsCacheEntry* entry, nsDiskCacheRecord * record);
-    virtual ~nsDiskCacheBinding();
 
     nsresult EnsureStreamIO();
     bool     IsActive() { return mCacheEntry != nullptr;}
@@ -96,7 +97,7 @@ public:
     nsDiskCacheBindery();
     ~nsDiskCacheBindery();
 
-    nsresult                Init();
+    void                    Init();
     void                    Reset();
 
     nsDiskCacheBinding *    CreateBinding(nsCacheEntry *       entry,
@@ -115,6 +116,8 @@ private:
     static const PLDHashTableOps ops;
     PLDHashTable           table;
     bool                   initialized;
+
+    static const uint32_t kInitialTableLength = 0;
 };
 
 #endif /* _nsDiskCacheBinding_h_ */

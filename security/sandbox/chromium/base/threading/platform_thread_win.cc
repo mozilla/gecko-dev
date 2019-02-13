@@ -10,7 +10,7 @@
 #include "base/threading/thread_id_name_manager.h"
 #include "base/threading/thread_restrictions.h"
 #include "base/tracked_objects.h"
-
+#include "base/win/scoped_handle.h"
 #include "base/win/windows_version.h"
 
 namespace base {
@@ -54,28 +54,35 @@ DWORD __stdcall ThreadFunc(void* params) {
   if (!thread_params->joinable)
     base::ThreadRestrictions::SetSingletonAllowed(false);
 
-  /* Retrieve a copy of the thread handle to use as the key in the
-   * thread name mapping. */
+  // Retrieve a copy of the thread handle to use as the key in the
+  // thread name mapping.
   PlatformThreadHandle::Handle platform_handle;
-  DuplicateHandle(
-      GetCurrentProcess(),
-      GetCurrentThread(),
-      GetCurrentProcess(),
-      &platform_handle,
-      0,
-      FALSE,
-      DUPLICATE_SAME_ACCESS);
+  BOOL did_dup = DuplicateHandle(GetCurrentProcess(),
+                                GetCurrentThread(),
+                                GetCurrentProcess(),
+                                &platform_handle,
+                                0,
+                                FALSE,
+                                DUPLICATE_SAME_ACCESS);
 
-  ThreadIdNameManager::GetInstance()->RegisterThread(
-      platform_handle,
-      PlatformThread::CurrentId());
+  win::ScopedHandle scoped_platform_handle;
+
+  if (did_dup) {
+    scoped_platform_handle.Set(platform_handle);
+    ThreadIdNameManager::GetInstance()->RegisterThread(
+        scoped_platform_handle.Get(),
+        PlatformThread::CurrentId());
+  }
 
   delete thread_params;
   delegate->ThreadMain();
 
-  ThreadIdNameManager::GetInstance()->RemoveName(
-      platform_handle,
-      PlatformThread::CurrentId());
+  if (did_dup) {
+    ThreadIdNameManager::GetInstance()->RemoveName(
+        scoped_platform_handle.Get(),
+        PlatformThread::CurrentId());
+  }
+
   return NULL;
 }
 
@@ -123,6 +130,11 @@ PlatformThreadId PlatformThread::CurrentId() {
 }
 
 // static
+PlatformThreadRef PlatformThread::CurrentRef() {
+  return PlatformThreadRef(GetCurrentThreadId());
+}
+
+// static
 PlatformThreadHandle PlatformThread::CurrentHandle() {
   NOTIMPLEMENTED(); // See OpenThread()
   return PlatformThreadHandle();
@@ -138,9 +150,8 @@ void PlatformThread::Sleep(TimeDelta duration) {
   // When measured with a high resolution clock, Sleep() sometimes returns much
   // too early. We may need to call it repeatedly to get the desired duration.
   TimeTicks end = TimeTicks::Now() + duration;
-  TimeTicks now;
-  while ((now = TimeTicks::Now()) < end)
-    ::Sleep((end - now).InMillisecondsRoundedUp());
+  for (TimeTicks now = TimeTicks::Now(); now < end; now = TimeTicks::Now())
+    ::Sleep(static_cast<DWORD>((end - now).InMillisecondsRoundedUp()));
 }
 
 // static

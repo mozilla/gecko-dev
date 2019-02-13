@@ -6,18 +6,20 @@
 
 const { Services } = require("resource://gre/modules/Services.jsm");
 const { listenOnce } = require("devtools/async-utils");
-const gcli = require("gcli/index");
+const l10n = require("gcli/l10n");
 
 exports.items = [
   {
+    item: "command",
+    runAt: "server",
     name: "inject",
-    description: gcli.lookup("injectDesc"),
-    manual: gcli.lookup("injectManual2"),
+    description: l10n.lookup("injectDesc"),
+    manual: l10n.lookup("injectManual2"),
     params: [{
-      name: 'library',
+      name: "library",
       type: {
         name: "union",
-        types: [
+        alternatives: [
           {
             name: "selection",
             lookup: [
@@ -45,25 +47,29 @@ exports.items = [
             ]
           },
           {
-            name: "string"
+            name: "url"
           }
         ]
       },
-      description: gcli.lookup("injectLibraryDesc")
+      description: l10n.lookup("injectLibraryDesc")
     }],
     exec: function*(args, context) {
       let document = context.environment.document;
       let library = args.library;
       let name = (library.type === "selection") ?
-          library.selection.name : library.string;
+          library.selection.name : library.url;
       let src = (library.type === "selection") ?
-          library.selection.src : library.string;
+          library.selection.src : library.url;
+
+      if (context.environment.window.location.protocol == "https:") {
+        src = src.replace(/^http:/, "https:");
+      }
 
       try {
         // Check if URI is valid
         Services.io.newURI(src, null, null);
       } catch(e) {
-        return gcli.lookupFormat("injectFailed", [name]);
+        return l10n.lookupFormat("injectFailed", [name]);
       }
 
       let newSource = document.createElement("script");
@@ -74,7 +80,7 @@ exports.items = [
 
       yield loadPromise;
 
-      return gcli.lookupFormat("injectLoaded", [name]);
+      return l10n.lookupFormat("injectLoaded", [name]);
     }
   }
 ];

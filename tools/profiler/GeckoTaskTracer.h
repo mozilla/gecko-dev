@@ -25,20 +25,27 @@
 
 class Task;
 class nsIRunnable;
+class nsCString;
+template <class> class nsTArray;
 
 namespace mozilla {
+
+class TimeStamp;
+
 namespace tasktracer {
 
-class FakeTracedTask;
+enum {
+  FORKED_AFTER_NUWA = 1 << 0
+};
 
 enum SourceEventType {
-  UNKNOWN = 0,
-  TOUCH,
-  MOUSE,
-  KEY,
-  BLUETOOTH,
-  UNIXSOCKET,
-  WIFI
+  Unknown = 0,
+  Touch,
+  Mouse,
+  Key,
+  Bluetooth,
+  Unixsocket,
+  Wifi
 };
 
 class AutoSourceEvent
@@ -48,9 +55,19 @@ public:
   ~AutoSourceEvent();
 };
 
+void InitTaskTracer(uint32_t aFlags = 0);
+void ShutdownTaskTracer();
+
 // Add a label to the currently running task, aFormat is the message to log,
 // followed by corresponding parameters.
 void AddLabel(const char* aFormat, ...);
+
+void StartLogging();
+void StopLogging();
+nsTArray<nsCString>* GetLoggedData(TimeStamp aStartTime);
+
+// Returns the timestamp when Task Tracer is enabled in this process.
+const PRTime GetStartTime();
 
 /**
  * Internal functions.
@@ -60,12 +77,12 @@ Task* CreateTracedTask(Task* aTask);
 
 already_AddRefed<nsIRunnable> CreateTracedRunnable(nsIRunnable* aRunnable);
 
-FakeTracedTask* CreateFakeTracedTask(int* aVptr);
-
 // Free the TraceInfo allocated on a thread's TLS. Currently we are wrapping
 // tasks running on nsThreads and base::thread, so FreeTraceInfo is called at
 // where nsThread and base::thread release themselves.
 void FreeTraceInfo();
+
+const char* GetJSLabelPrefix();
 
 } // namespace tasktracer
 } // namespace mozilla.

@@ -8,7 +8,7 @@
 #define js_Id_h
 
 // A jsid is an identifier for a property or method of an object which is
-// either a 31-bit signed integer, interned string or object.
+// either a 31-bit unsigned integer, interned string or symbol.
 //
 // Also, there is an additional jsid value, JSID_VOID, which does not occur in
 // JS scripts but may be used to indicate the absence of a valid jsid.  A void
@@ -17,10 +17,8 @@
 // entry points expecting a jsid and do not need to handle JSID_VOID in hooks
 // receiving a jsid except when explicitly noted in the API contract.
 //
-// A jsid is not implicitly convertible to or from a jsval; JS_ValueToId or
+// A jsid is not implicitly convertible to or from a Value; JS_ValueToId or
 // JS_IdToValue must be used instead.
-
-#include "mozilla/NullPtr.h"
 
 #include "jstypes.h"
 
@@ -40,7 +38,7 @@ struct jsid
 #define JSID_TYPE_STRING                 0x0
 #define JSID_TYPE_INT                    0x1
 #define JSID_TYPE_VOID                   0x2
-#define JSID_TYPE_OBJECT                 0x4
+#define JSID_TYPE_SYMBOL                 0x4
 #define JSID_TYPE_MASK                   0x7
 
 // Avoid using canonical 'id' for jsid parameters since this is a magic word in
@@ -53,12 +51,22 @@ JSID_IS_STRING(jsid id)
     return (JSID_BITS(id) & JSID_TYPE_MASK) == 0;
 }
 
-static MOZ_ALWAYS_INLINE JSString *
+static MOZ_ALWAYS_INLINE JSString*
 JSID_TO_STRING(jsid id)
 {
     MOZ_ASSERT(JSID_IS_STRING(id));
-    return (JSString *)JSID_BITS(id);
+    return (JSString*)JSID_BITS(id);
 }
+
+/*
+ * Only JSStrings that have been interned via the JSAPI can be turned into
+ * jsids by API clients.
+ *
+ * N.B. if a jsid is backed by a string which has not been interned, that
+ * string must be appropriately rooted to avoid being collected by the GC.
+ */
+JS_PUBLIC_API(jsid)
+INTERNED_STRING_TO_JSID(JSContext* cx, JSString* str);
 
 static MOZ_ALWAYS_INLINE bool
 JSID_IS_ZERO(jsid id)
@@ -98,40 +106,44 @@ INT_TO_JSID(int32_t i)
 }
 
 static MOZ_ALWAYS_INLINE bool
-JSID_IS_OBJECT(jsid id)
+JSID_IS_SYMBOL(jsid id)
 {
-    return (JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_OBJECT &&
-           (size_t)JSID_BITS(id) != JSID_TYPE_OBJECT;
+    return (JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_SYMBOL &&
+           JSID_BITS(id) != JSID_TYPE_SYMBOL;
 }
 
-static MOZ_ALWAYS_INLINE JSObject *
-JSID_TO_OBJECT(jsid id)
+static MOZ_ALWAYS_INLINE JS::Symbol*
+JSID_TO_SYMBOL(jsid id)
 {
-    MOZ_ASSERT(JSID_IS_OBJECT(id));
-    return (JSObject *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    MOZ_ASSERT(JSID_IS_SYMBOL(id));
+    return (JS::Symbol*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
 
 static MOZ_ALWAYS_INLINE jsid
-OBJECT_TO_JSID(JSObject *obj)
+SYMBOL_TO_JSID(JS::Symbol* sym)
 {
     jsid id;
-    MOZ_ASSERT(obj != nullptr);
-    MOZ_ASSERT(((size_t)obj & JSID_TYPE_MASK) == 0);
-    JS_ASSERT(!js::gc::IsInsideNursery(JS::AsCell(obj)));
-    JSID_BITS(id) = ((size_t)obj | JSID_TYPE_OBJECT);
+    MOZ_ASSERT(sym != nullptr);
+    MOZ_ASSERT((size_t(sym) & JSID_TYPE_MASK) == 0);
+    MOZ_ASSERT(!js::gc::IsInsideNursery(reinterpret_cast<js::gc::Cell*>(sym)));
+    JSID_BITS(id) = (size_t(sym) | JSID_TYPE_SYMBOL);
     return id;
 }
 
 static MOZ_ALWAYS_INLINE bool
 JSID_IS_GCTHING(jsid id)
 {
-    return JSID_IS_STRING(id) || JSID_IS_OBJECT(id);
+    return JSID_IS_STRING(id) || JSID_IS_SYMBOL(id);
 }
 
-static MOZ_ALWAYS_INLINE void *
+static MOZ_ALWAYS_INLINE JS::GCCellPtr
 JSID_TO_GCTHING(jsid id)
 {
-    return (void *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    void* thing = (void*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    if (JSID_IS_STRING(id))
+        return JS::GCCellPtr(thing, JS::TraceKind::String);
+    MOZ_ASSERT(JSID_IS_SYMBOL(id));
+    return JS::GCCellPtr(thing, JS::TraceKind::Symbol);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -139,16 +151,14 @@ JSID_IS_VOID(const jsid id)
 {
     MOZ_ASSERT_IF(((size_t)JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_VOID,
                  JSID_BITS(id) == JSID_TYPE_VOID);
-    return ((size_t)JSID_BITS(id) == JSID_TYPE_VOID);
+    return (size_t)JSID_BITS(id) == JSID_TYPE_VOID;
 }
 
 static MOZ_ALWAYS_INLINE bool
 JSID_IS_EMPTY(const jsid id)
 {
-    return ((size_t)JSID_BITS(id) == JSID_TYPE_OBJECT);
+    return (size_t)JSID_BITS(id) == JSID_TYPE_SYMBOL;
 }
-
-#undef id
 
 extern JS_PUBLIC_DATA(const jsid) JSID_VOID;
 extern JS_PUBLIC_DATA(const jsid) JSID_EMPTY;
@@ -158,26 +168,30 @@ extern JS_PUBLIC_DATA(const JS::HandleId) JSID_EMPTYHANDLE;
 
 namespace js {
 
-inline bool
-IsPoisonedId(jsid iden)
-{
-    if (JSID_IS_STRING(iden))
-        return JS::IsPoisonedPtr(JSID_TO_STRING(iden));
-    if (JSID_IS_OBJECT(iden))
-        return JS::IsPoisonedPtr(JSID_TO_OBJECT(iden));
-    return false;
-}
-
 template <> struct GCMethods<jsid>
 {
     static jsid initial() { return JSID_VOID; }
-    static bool poisoned(jsid id) { return IsPoisonedId(id); }
     static bool needsPostBarrier(jsid id) { return false; }
-#ifdef JSGC_GENERATIONAL
-    static void postBarrier(jsid *idp) {}
-    static void relocate(jsid *idp) {}
-#endif
+    static void postBarrier(jsid* idp) {}
+    static void relocate(jsid* idp) {}
 };
+
+// If the jsid is a GC pointer type, convert to that type and call |f| with
+// the pointer. If the jsid is not a GC type, calls F::defaultValue.
+template <typename F, typename... Args>
+auto
+DispatchIdTyped(F f, jsid& id, Args&&... args)
+  -> decltype(f(static_cast<JSString*>(nullptr), mozilla::Forward<Args>(args)...))
+{
+    if (JSID_IS_STRING(id))
+        return f(JSID_TO_STRING(id), mozilla::Forward<Args>(args)...);
+    if (JSID_IS_SYMBOL(id))
+        return f(JSID_TO_SYMBOL(id), mozilla::Forward<Args>(args)...);
+    MOZ_ASSERT(!JSID_IS_GCTHING(id));
+    return F::defaultValue(id);
+}
+
+#undef id
 
 }
 

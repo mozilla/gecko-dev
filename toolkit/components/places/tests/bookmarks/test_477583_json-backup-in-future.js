@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,8 +21,8 @@ function run_test() {
     let dateObj = new Date();
     dateObj.setYear(dateObj.getFullYear() + 1);
     let name = PlacesBackups.getFilenameForDate(dateObj);
-    do_check_eq(name, "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json");
-    let files = bookmarksBackupDir.directoryEntries;
+    do_check_eq(name, "bookmarks-" + PlacesBackups.toISODateString(dateObj) + ".json");
+    files = bookmarksBackupDir.directoryEntries;
     while (files.hasMoreElements()) {
       let entry = files.getNext().QueryInterface(Ci.nsIFile);
       if (PlacesBackups.filenamesRegex.test(entry.leafName))

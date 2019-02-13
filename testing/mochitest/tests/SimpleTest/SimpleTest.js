@@ -23,8 +23,13 @@ var parentRunner = null;
 // the primary window.  In single test runs, if there is no parent and there
 // is no opener then it is the primary window.
 var isSingleTestRun = (parent == window && !opener)
-var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
-
+try {
+  var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
+} catch(e) {
+  dump("TEST-UNEXPECTED-FAIL, Exception caught: " + e.message +
+                ", at: " + e.fileName + " (" + e.lineNumber +
+                "), location: " + window.location.href + "\n");
+}
 // Finds the TestRunner for this test run and the SpecialPowers object (in
 // case it is not defined) from a parent/opener window.
 //
@@ -49,6 +54,10 @@ var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
             window.SpecialPowers = w.SpecialPowers;
         }
         w = ancestor(w);
+    }
+
+    if (parentRunner) {
+        SimpleTest.harnessParameters = parentRunner.getParameterInfo();
     }
 })();
 
@@ -91,7 +100,7 @@ if (typeof(repr) == 'undefined') {
         }
         return ostring;
     };
-} 
+}
 
 /* This returns a function that applies the previously given parameters.
  * This is used by SimpleTest.showReport
@@ -116,7 +125,7 @@ if (typeof(partial) == 'undefined') {
 if (typeof(getElement) == 'undefined') {
     this.getElement = function(id) {
         return ((typeof(id) == "string") ?
-            document.getElementById(id) : id); 
+            document.getElementById(id) : id);
     };
     this.$ = this.getElement;
 }
@@ -190,10 +199,10 @@ if (typeof(computedStyle) == 'undefined') {
         if (typeof(style) == 'undefined' || style === null) {
             return undefined;
         }
-        
+
         var selectorCase = cssProperty.replace(/([A-Z])/g, '-$1'
             ).toLowerCase();
-            
+
         return style.getPropertyValue(selectorCase);
     };
 }
@@ -229,21 +238,43 @@ SimpleTest.testPluginIsOOP = function () {
 SimpleTest._tests = [];
 SimpleTest._stopOnLoad = true;
 SimpleTest._cleanupFunctions = [];
+SimpleTest.expected = 'pass';
+SimpleTest.num_failed = 0;
+SimpleTest._inChaosMode = false;
+
+SimpleTest.setExpected = function () {
+  if (parent.TestRunner) {
+    SimpleTest.expected = parent.TestRunner.expected;
+  }
+}
+SimpleTest.setExpected();
 
 /**
  * Something like assert.
 **/
 SimpleTest.ok = function (condition, name, diag) {
+
     var test = {'result': !!condition, 'name': name, 'diag': diag};
-    SimpleTest._logResult(test, "TEST-PASS", "TEST-UNEXPECTED-FAIL");
+    if (SimpleTest.expected == 'fail') {
+      if (!test.result) {
+        SimpleTest.num_failed++;
+        test.result = !test.result;
+      }
+      var successInfo = {status:"FAIL", expected:"FAIL", message:"TEST-KNOWN-FAIL"};
+      var failureInfo = {status:"PASS", expected:"FAIL", message:"TEST-UNEXPECTED-PASS"};
+    } else {
+      var successInfo = {status:"PASS", expected:"PASS", message:"TEST-PASS"};
+      var failureInfo = {status:"FAIL", expected:"PASS", message:"TEST-UNEXPECTED-FAIL"};
+    }
+    SimpleTest._logResult(test, successInfo, failureInfo);
     SimpleTest._tests.push(test);
 };
 
 /**
- * Roughly equivalent to ok(a==b, name)
+ * Roughly equivalent to ok(a===b, name)
 **/
 SimpleTest.is = function (a, b, name) {
-    var pass = (a == b);
+    var pass = (a === b);
     var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b)
     SimpleTest.ok(pass, name, diag);
 };
@@ -255,17 +286,8 @@ SimpleTest.isfuzzy = function (a, b, epsilon, name) {
 };
 
 SimpleTest.isnot = function (a, b, name) {
-    var pass = (a != b);
+    var pass = (a !== b);
     var diag = pass ? "" : "didn't expect " + repr(a) + ", but got it";
-    SimpleTest.ok(pass, name, diag);
-};
-
-/**
- * Roughly equivalent to ok(a===b, name)
-**/
-SimpleTest.ise = function (a, b, name) {
-    var pass = (a === b);
-    var diag = pass ? "" : "got " + repr(a) + ", strictly expected " + repr(b)
     SimpleTest.ok(pass, name, diag);
 };
 
@@ -284,7 +306,9 @@ SimpleTest.doesThrow = function(fn, name) {
 
 SimpleTest.todo = function(condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
-    SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
+    var successInfo = {status:"PASS", expected:"FAIL", message:"TEST-UNEXPECTED-PASS"};
+    var failureInfo = {status:"FAIL", expected:"FAIL", message:"TEST-KNOWN-FAIL"};
+    SimpleTest._logResult(test, successInfo, failureInfo);
     SimpleTest._tests.push(test);
 };
 
@@ -313,130 +337,66 @@ SimpleTest._getCurrentTestURL = function() {
            "unknown test url";
 };
 
-SimpleTest._forceLogMessageOutput = parentRunner && !parentRunner.quiet;
+SimpleTest._forceLogMessageOutput = false;
 
 /**
  * Force all test messages to be displayed.  Only applies for the current test.
  */
 SimpleTest.requestCompleteLog = function() {
-    if (SimpleTest._forceLogMessageOutput)
+    if (!parentRunner || SimpleTest._forceLogMessageOutput) {
         return;
+    }
 
+    parentRunner.structuredLogger.deactivateBuffering();
     SimpleTest._forceLogMessageOutput = true;
+
     SimpleTest.registerCleanupFunction(function() {
+        parentRunner.structuredLogger.activateBuffering();
         SimpleTest._forceLogMessageOutput = false;
     });
 };
 
-/**
- * A circular buffer, managed by _logResult.  We explicitly manage the
- * circularness of the buffer, rather than resorting to .shift()/.push()
- * because explicit management is much faster.
- */
-SimpleTest._bufferedMessages = [];
-SimpleTest._logResult = (function () {
-    var bufferingThreshold = 100;
-    var outputIndex = 0;
+SimpleTest._logResult = function (test, passInfo, failInfo) {
+    var url = SimpleTest._getCurrentTestURL();
+    var result = test.result ? passInfo : failInfo;
+    var diagnostic = test.diag || null;
+    // BUGFIX : coercing test.name to a string, because some a11y tests pass an xpconnect object
+    var subtest = test.name ? String(test.name) : null;
+    var isError = !test.result == !test.todo;
 
-    function logResult(test, passString, failString) {
-        var url = SimpleTest._getCurrentTestURL();
-        var resultString = test.result ? passString : failString;
-        var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
-        var msg = [resultString, url, diagnostic].join(" | ");
-        var isError = !test.result == !test.todo;
-
-        // Due to JavaScript's name lookup rules, it is important that
-        // the second parameter here be named identically to the isError
-        // variable declared above.
-        function dumpMessage(msg, isError) {
-            if (parentRunner) {
-                if (isError) {
-                    parentRunner.addFailedTest(url);
-                    parentRunner.error(msg);
-                } else {
-                    parentRunner.log(msg);
-                }
-            } else if (typeof dump === "function") {
-                dump(msg + "\n");
-            } else {
-                // Non-Mozilla browser?  Just do nothing.
+    if (parentRunner) {
+        if (!result.status || !result.expected) {
+            if (diagnostic) {
+                parentRunner.structuredLogger.info(diagnostic);
             }
+            return;
         }
 
-        // Detect when SimpleTest.reset() has been called, so we can
-        // reset outputIndex.  We store outputIndex as local state to
-        // avoid adding even more state to SimpleTest.
-        if (SimpleTest._bufferedMessages.length == 0) {
-            outputIndex = 0;
-        }
-
-        // We want to eliminate mundane TEST-PASS/TEST-KNOWN-FAIL
-        // output, since some tests produce tens of thousands of of such
-        // messages.  These messages can consume a lot of memory to
-        // generate and take a significant amount of time to output.
-        // However, the reality is that TEST-PASS messages can also be
-        // used as a form of logging via constructs like:
-        //
-        // SimpleTest.ok(true, "some informative message");
-        //
-        // And eliding the logging can be very confusing when trying to
-        // debug test failures.
-        //
-        // Hence the compromise adopted here: We buffer messages up to
-        // some limit and dump the buffer when a test failure happens.
-        // This behavior ought to provide enough context for developers
-        // looking to understand where in the test things failed.
         if (isError) {
-            // Display this message and all the messages we have buffered.
-            if (SimpleTest._bufferedMessages.length > 0) {
-                dumpMessage("TEST-INFO | dumping last " + SimpleTest._bufferedMessages.length + " message(s)");
-                dumpMessage("TEST-INFO | if you need more context, please use SimpleTest.requestCompleteLog() in your test");
-
-                function dumpBufferedMessage(m) {
-                    dumpMessage(m, false);
-                }
-                // The latest message is just before outputIndex.
-                // The earliest message is located at outputIndex.
-                var earliest = SimpleTest._bufferedMessages.slice(outputIndex);
-                var latest = SimpleTest._bufferedMessages.slice(0, outputIndex);
-                earliest.map(dumpBufferedMessage);
-                latest.map(dumpBufferedMessage);
-
-                SimpleTest._bufferedMessages = [];
-            }
-
-            dumpMessage(msg);
-            return;
+            parentRunner.addFailedTest(url);
         }
 
-        var runningSingleTest = ((parentRunner &&
-                                  parentRunner._urls.length == 1) ||
-                                 isSingleTestRun);
-        var shouldLogImmediately = (runningSingleTest ||
-                                    SimpleTest._forceLogMessageOutput);
-
-        if (!shouldLogImmediately) {
-            // Buffer the message for possible later output.
-            if (SimpleTest._bufferedMessages.length >= bufferingThreshold) {
-                if (outputIndex >= bufferingThreshold) {
-                    outputIndex = 0;
-                }
-                SimpleTest._bufferedMessages[outputIndex] = msg;
-                outputIndex++;
-            } else {
-                SimpleTest._bufferedMessages.push(msg);
-            }
-            return;
-        }
-
-        dumpMessage(msg);
+        parentRunner.structuredLogger.testStatus(url,
+                                                 subtest,
+                                                 result.status,
+                                                 result.expected,
+                                                 diagnostic);
+    } else if (typeof dump === "function") {
+        var diagMessage = test.name + (test.diag ? " - " + test.diag : "");
+        var debugMsg = [result.message, url, diagMessage].join(' | ');
+        dump(debugMsg + "\n");
+    } else {
+        // Non-Mozilla browser?  Just do nothing.
     }
-
-    return logResult;
-})();
+};
 
 SimpleTest.info = function(name, message) {
-    SimpleTest._logResult({result:true, name:name, diag:message}, "TEST-INFO");
+    var log = message ? name + ' | ' + message : name;
+    if (parentRunner) {
+        parentRunner.structuredLogger.info(log);
+    } else {
+        dump(log + '\n');
+    }
 };
 
 /**
@@ -444,14 +404,14 @@ SimpleTest.info = function(name, message) {
 **/
 
 SimpleTest.todo_is = function (a, b, name) {
-    var pass = (a == b);
+    var pass = (a === b);
     var diag = pass ? repr(a) + " should equal " + repr(b)
                     : "got " + repr(a) + ", expected " + repr(b);
     SimpleTest.todo(pass, name, diag);
 };
 
 SimpleTest.todo_isnot = function (a, b, name) {
-    var pass = (a != b);
+    var pass = (a !== b);
     var diag = pass ? repr(a) + " should not equal " + repr(b)
                     : "didn't expect " + repr(a) + ", but got it";
     SimpleTest.todo(pass, name, diag);
@@ -531,14 +491,14 @@ SimpleTest.toggleByClass = function (cls, evt) {
         var clsName = child.className;
         if (!clsName) {
             continue;
-        }    
+        }
         var classNames = clsName.split(' ');
         for (var j = 0; j < classNames.length; j++) {
             if (classNames[j] == cls) {
                 elements.push(child);
                 break;
-            }    
-        }    
+            }
+        }
     }
     for (var t=0; t<elements.length; t++) {
         //TODO: again, for-in loop over elems seems to break this
@@ -648,6 +608,31 @@ SimpleTest.expectAssertions = function(min, max) {
     }
 }
 
+SimpleTest._flakyTimeoutIsOK = false;
+SimpleTest._originalSetTimeout = window.setTimeout;
+window.setTimeout = function SimpleTest_setTimeoutShim() {
+    // Don't break tests that are loaded without a parent runner.
+    if (parentRunner) {
+        // Right now, we only enable these checks for mochitest-plain.
+        switch (SimpleTest.harnessParameters.testRoot) {
+        case "browser":
+        case "chrome":
+        case "a11y":
+        case "webapprtContent":
+            break;
+        default:
+            if (!SimpleTest._alreadyFinished && arguments.length > 1 && arguments[1] > 0) {
+                if (SimpleTest._flakyTimeoutIsOK) {
+                    SimpleTest.todo(false, "The author of the test has indicated that flaky timeouts are expected.  Reason: " + SimpleTest._flakyTimeoutReason);
+                } else {
+                    SimpleTest.ok(false, "Test attempted to use a flaky timeout value " + arguments[1]);
+                }
+            }
+        }
+    }
+    return SimpleTest._originalSetTimeout.apply(window, arguments);
+}
+
 /**
  * Request the framework to allow usage of setTimeout(func, timeout)
  * where |timeout > 0|.  This is required to note that the author of
@@ -663,13 +648,23 @@ SimpleTest.expectAssertions = function(min, max) {
  * failures in your test, and are almost never necessary!
  */
 SimpleTest.requestFlakyTimeout = function (reason) {
-    // TODO: This will get implemented in bug 649012.
+    SimpleTest.is(typeof(reason), "string", "A valid string reason is expected");
+    SimpleTest.isnot(reason, "", "Reason cannot be empty");
+    SimpleTest._flakyTimeoutIsOK = true;
+    SimpleTest._flakyTimeoutReason = reason;
 }
 
-SimpleTest.waitForFocus_started = false;
-SimpleTest.waitForFocus_loaded = false;
-SimpleTest.waitForFocus_focused = false;
 SimpleTest._pendingWaitForFocusCount = 0;
+
+/**
+ * Version of waitForFocus that returns a promise.
+ */
+SimpleTest.promiseFocus = function *(targetWindow, expectBlankPage)
+{
+    return new Promise(function (resolve, reject) {
+        SimpleTest.waitForFocus(win => resolve(win), targetWindow, expectBlankPage);
+    });
+}
 
 /**
  * If the page is not yet loaded, waits for the load event. In addition, if
@@ -685,84 +680,199 @@ SimpleTest._pendingWaitForFocusCount = 0;
  * @param callback
  *        function called when load and focus are complete
  * @param targetWindow
- *        optional window to be loaded and focused, defaults to 'window'
+ *        optional window to be loaded and focused, defaults to 'window'.
+ *        This may also be a <browser> element, in which case the window within
+ *        that browser will be focused.
  * @param expectBlankPage
  *        true if targetWindow.location is 'about:blank'. Defaults to false
  */
 SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
-    SimpleTest._pendingWaitForFocusCount++;
-    if (!targetWindow)
-      targetWindow = window;
+    // A separate method is used that is serialized and passed to the child
+    // process via loadFrameScript. Once the child window is focused, the
+    // child will send the WaitForFocus:ChildFocused notification to the parent.
+    // If a child frame in a child process must be focused, a
+    // WaitForFocus:FocusChild message is then sent to the child to focus that
+    // child. This message is used so that the child frame can be passed to it.
+    function waitForFocusInner(targetWindow, isChildProcess, expectBlankPage)
+    {
+      /* Indicates whether the desired targetWindow has loaded or focused. The
+         finished flag is set when the callback has been called and is used to
+         reject extraneous events from invoking the callback again. */
+      var loaded = false, focused = false, finished = false;
 
-    SimpleTest.waitForFocus_started = false;
+      function info(msg) {
+          if (!isChildProcess) {
+              SimpleTest.info(msg);
+          }
+      }
+
+      function focusedWindow() {
+          if (isChildProcess) {
+              return Components.classes["@mozilla.org/focus-manager;1"].
+                      getService(Components.interfaces.nsIFocusManager).focusedWindow;
+          }
+          return SpecialPowers.focusedWindow();
+      }
+
+      function getHref(aWindow) {
+          return isChildProcess ? aWindow.location.href :
+                                  SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
+      }
+
+      /* Event listener for the load or focus events. It will also be called with
+         event equal to null to check if the page is already focused and loaded. */
+      function focusedOrLoaded(event) {
+          try {
+              if (event) {
+                  if (event.type == "load") {
+                      if (expectBlankPage != (event.target.location == "about:blank")) {
+                          return;
+                      }
+
+                      loaded = true;
+                  } else if (event.type == "focus") {
+                      focused = true;
+                  }
+
+                  event.currentTarget.removeEventListener(event.type, focusedOrLoaded, true);
+              }
+
+              if (loaded && focused && !finished) {
+                  finished = true;
+                  if (isChildProcess) {
+                      sendAsyncMessage("WaitForFocus:ChildFocused", {}, null);
+                  } else {
+                      SimpleTest._pendingWaitForFocusCount--;
+                      SimpleTest.executeSoon(function() { callback(targetWindow) });
+                  }
+              }
+          } catch (e) {
+              if (!isChildProcess) {
+                  SimpleTest.ok(false, "Exception caught in focusedOrLoaded: " + e.message +
+                                ", at: " + e.fileName + " (" + e.lineNumber + ")");
+              }
+          }
+      }
+
+      function waitForLoadAndFocusOnWindow(desiredWindow) {
+          /* If the current document is about:blank and we are not expecting a blank
+             page (or vice versa), and the document has not yet loaded, wait for the
+             page to load. A common situation is to wait for a newly opened window
+             to load its content, and we want to skip over any intermediate blank
+             pages that load. This issue is described in bug 554873. */
+          loaded = expectBlankPage ?
+                     getHref(desiredWindow) == "about:blank" :
+                     getHref(desiredWindow) != "about:blank" &&
+                         desiredWindow.document.readyState == "complete";
+          if (!loaded) {
+              info("must wait for load");
+              desiredWindow.addEventListener("load", focusedOrLoaded, true);
+          }
+
+          var childDesiredWindow = { };
+          if (isChildProcess) {
+              var fm = Components.classes["@mozilla.org/focus-manager;1"].
+                         getService(Components.interfaces.nsIFocusManager);
+              fm.getFocusedElementForWindow(desiredWindow, true, childDesiredWindow);
+              childDesiredWindow = childDesiredWindow.value;
+          } else {
+              childDesiredWindow = SpecialPowers.getFocusedElementForWindow(desiredWindow, true);
+          }
+
+          /* If this is a child frame, ensure that the frame is focused. */
+          focused = (focusedWindow() == childDesiredWindow);
+          if (!focused) {
+              info("must wait for focus");
+              childDesiredWindow.addEventListener("focus", focusedOrLoaded, true);
+              if (isChildProcess) {
+                  childDesiredWindow.focus();
+              }
+              else {
+                  SpecialPowers.focus(childDesiredWindow);
+              }
+          }
+
+          focusedOrLoaded(null);
+      }
+
+      if (isChildProcess) {
+          /* This message is used when an inner child frame must be focused. */
+          addMessageListener("WaitForFocus:FocusChild", function focusChild(msg) {
+              removeMessageListener("WaitForFocus:ChildFocused", focusChild);
+              finished = false;
+              waitForLoadAndFocusOnWindow(msg.objects.child);
+          });
+      }
+
+      waitForLoadAndFocusOnWindow(targetWindow);
+    }
+
+    SimpleTest._pendingWaitForFocusCount++;
+    if (!targetWindow) {
+        targetWindow = window;
+    }
+
     expectBlankPage = !!expectBlankPage;
 
-    var childTargetWindow = SpecialPowers.getFocusedElementForWindow(targetWindow, true);
+    // If this is a request to focus a remote child window, the request must
+    // be forwarded to the child process.
+    // XXXndeakin now sure what this issue with Components.utils is about, but
+    // browser tests require the former and plain tests require the latter.
+    var Cu = Components.utils || SpecialPowers.Cu;
+    var Ci = Components.interfaces || SpecialPowers.Ci;
 
-    function info(msg) {
-        SimpleTest.info(msg);
-    }
-    function getHref(aWindow) {
-      return SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
-    }
-
-    function maybeRunTests() {
-        if (SimpleTest.waitForFocus_loaded &&
-            SimpleTest.waitForFocus_focused &&
-            !SimpleTest.waitForFocus_started) {
-            SimpleTest._pendingWaitForFocusCount--;
-            SimpleTest.waitForFocus_started = true;
-            setTimeout(callback, 0, targetWindow);
-        }
+    var browser = null;
+    if (typeof(XULElement) != "undefined" &&
+        targetWindow instanceof XULElement &&
+        targetWindow.localName == "browser") {
+        browser = targetWindow;
     }
 
-    function waitForEvent(event) {
-        try {
-            // Check to make sure that this isn't a load event for a blank or
-            // non-blank page that wasn't desired.
-            if (event.type == "load" && (expectBlankPage != (event.target.location == "about:blank")))
+    var isWrapper = Cu.isCrossProcessWrapper(targetWindow);
+    if (isWrapper || (browser && browser.isRemoteBrowser)) {
+        var mustFocusSubframe = false;
+        if (isWrapper) {
+            // Look for a tabbrowser and see if targetWindow corresponds to one
+            // within that tabbrowser. If not, just return.
+            var tabBrowser = document.getElementsByTagName("tabbrowser")[0] || null;
+            browser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
+            if (!browser) {
+                SimpleTest.info("child process window cannot be focused");
                 return;
+            }
 
-            SimpleTest["waitForFocus_" + event.type + "ed"] = true;
-            var win = (event.type == "load") ? targetWindow : childTargetWindow;
-            win.removeEventListener(event.type, waitForEvent, true);
-            maybeRunTests();
-        } catch (e) {
-            SimpleTest.ok(false, "Exception caught in waitForEvent: " + e.message +
-                ", at: " + e.fileName + " (" + e.lineNumber + ")");
+            mustFocusSubframe = (targetWindow != targetWindow.top);
         }
-    }
 
-    // If the current document is about:blank and we are not expecting a blank
-    // page (or vice versa), and the document has not yet loaded, wait for the
-    // page to load. A common situation is to wait for a newly opened window
-    // to load its content, and we want to skip over any intermediate blank
-    // pages that load. This issue is described in bug 554873.
-    SimpleTest.waitForFocus_loaded =
-        expectBlankPage ?
-            getHref(targetWindow) == "about:blank" :
-            getHref(targetWindow) != "about:blank" && targetWindow.document.readyState == "complete";
-    if (!SimpleTest.waitForFocus_loaded) {
-        info("must wait for load");
-        targetWindow.addEventListener("load", waitForEvent, true);
-    }
+        // If a subframe in a child process needs to be focused, first focus the
+        // parent frame, then send a WaitForFocus:FocusChild message to the child
+        // containing the subframe to focus.
+        browser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
+            if (mustFocusSubframe) {
+                mustFocusSubframe = false;
+                var mm = gBrowser.selectedBrowser.messageManager;
+                mm.sendAsyncMessage("WaitForFocus:FocusChild", {}, { child: targetWindow } );
+            }
+            else {
+                browser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
+                setTimeout(callback, 0, browser ? browser.contentWindowAsCPOW : targetWindow);
+            }
+        });
 
-    // Check if the desired window is already focused.
-    var focusedChildWindow = null;
-    if (SpecialPowers.activeWindow()) {
-        focusedChildWindow = SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true);
-    }
-
-    // If this is a child frame, ensure that the frame is focused.
-    SimpleTest.waitForFocus_focused = (focusedChildWindow == childTargetWindow);
-    if (SimpleTest.waitForFocus_focused) {
-        // If the frame is already focused and loaded, call the callback directly.
-        maybeRunTests();
+        // Serialize the waitForFocusInner function and run it in the child process.
+        var frameScript = "data:,(" + waitForFocusInner.toString() +
+                          ")(content, true, " + expectBlankPage + ");";
+        browser.messageManager.loadFrameScript(frameScript, true);
+        browser.focus();
     }
     else {
-        info("must wait for focus");
-        childTargetWindow.addEventListener("focus", waitForEvent, true);
-        SpecialPowers.focus(childTargetWindow);
+        // Otherwise, this is an attempt to focus a single process or parent window,
+        // so pass false for isChildProcess.
+        if (browser) {
+          targetWindow = browser.contentWindow;
+        }
+
+        waitForFocusInner(targetWindow, false, expectBlankPage);
     }
 };
 
@@ -787,19 +897,45 @@ SimpleTest.waitForClipboard_polls = 0;
  *        A function called if the expected value isn't found on the clipboard
  *        within 5s. It can also be called if the known value can't be found.
  * @param aFlavor [optional] The flavor to look for.  Defaults to "text/unicode".
+ * @param aTimeout [optional]
+ *        The timeout (in milliseconds) to wait for a clipboard change.
+ *        Defaults to 5000.
+ * @param aExpectFailure [optional]
+ *        If true, fail if the clipboard contents are modified within the timeout
+ *        interval defined by aTimeout.  When aExpectFailure is true, the argument
+ *        aExpectedStringOrValidatorFn must be null, as it won't be used.
+ *        Defaults to false.
  */
 SimpleTest.__waitForClipboardMonotonicCounter = 0;
 SimpleTest.__defineGetter__("_waitForClipboardMonotonicCounter", function () {
   return SimpleTest.__waitForClipboardMonotonicCounter++;
 });
 SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
-                                       aSuccessFn, aFailureFn, aFlavor) {
+                                       aSuccessFn, aFailureFn, aFlavor, aTimeout, aExpectFailure) {
     var requestedFlavor = aFlavor || "text/unicode";
 
-    // Build a default validator function for common string input.
-    var inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
-        ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
-        : aExpectedStringOrValidatorFn;
+    // The known value we put on the clipboard before running aSetupFn
+    var initialVal = SimpleTest._waitForClipboardMonotonicCounter +
+                     "-waitForClipboard-known-value";
+
+    var inputValidatorFn;
+    if (aExpectFailure) {
+        // If we expect failure, the aExpectedStringOrValidatorFn should be null
+        if (aExpectedStringOrValidatorFn !== null) {
+            SimpleTest.ok(false, "When expecting failure, aExpectedStringOrValidatorFn must be null");
+        }
+
+        inputValidatorFn = function(aData) {
+            return aData != initialVal;
+        };
+    } else {
+        // Build a default validator function for common string input.
+        inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
+            ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
+            : aExpectedStringOrValidatorFn;
+    }
+
+    var maxPolls = aTimeout ? aTimeout / 100 : 50;
 
     // reset for the next use
     function reset() {
@@ -807,9 +943,9 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
     }
 
     function wait(validatorFn, successFn, failureFn, flavor) {
-        if (++SimpleTest.waitForClipboard_polls > 50) {
+        if (++SimpleTest.waitForClipboard_polls > maxPolls) {
             // Log the failure.
-            SimpleTest.ok(false, "Timed out while polling clipboard for pasted data.");
+            SimpleTest.ok(aExpectFailure, "Timed out while polling clipboard for pasted data");
             reset();
             failureFn();
             return;
@@ -822,17 +958,16 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
             if (preExpectedVal)
                 preExpectedVal = null;
             else
-                SimpleTest.ok(true, "Clipboard has the correct value");
+                SimpleTest.ok(!aExpectFailure, "Clipboard has the given value");
             reset();
             successFn();
         } else {
-            setTimeout(function() { return wait(validatorFn, successFn, failureFn, flavor); }, 100);
+            SimpleTest._originalSetTimeout.apply(window, [function() { return wait(validatorFn, successFn, failureFn, flavor); }, 100]);
         }
     }
 
     // First we wait for a known value different from the expected one.
-    var preExpectedVal = SimpleTest._waitForClipboardMonotonicCounter +
-                         "-waitForClipboard-known-value";
+    var preExpectedVal = initialVal;
     SpecialPowers.clipboardCopyString(preExpectedVal);
     wait(function(aData) { return aData  == preExpectedVal; },
          function() {
@@ -858,31 +993,49 @@ SimpleTest.registerCleanupFunction = function(aFunc) {
     SimpleTest._cleanupFunctions.push(aFunc);
 };
 
+SimpleTest.testInChaosMode = function() {
+    if (SimpleTest._inChaosMode) {
+      // It's already enabled for this test, don't enter twice
+      return;
+    }
+    SpecialPowers.DOMWindowUtils.enterChaosMode();
+    SimpleTest._inChaosMode = true;
+};
+
 /**
  * Finishes the tests. This is automatically called, except when
  * SimpleTest.waitForExplicitFinish() has been invoked.
 **/
 SimpleTest.finish = function() {
-    var Task = SpecialPowers.Cu.import("resource://gre/modules/Task.jsm").Task;
-
     if (SimpleTest._alreadyFinished) {
-        SimpleTest.ok(false, "[SimpleTest.finish()] this test already called finish!");
+        var err = "[SimpleTest.finish()] this test already called finish!";
+        if (parentRunner) {
+            parentRunner.structuredLogger.error(err);
+        } else {
+            dump(err + '\n');
+        }
     }
+
+    if (SimpleTest.expected == 'fail' && SimpleTest.num_failed <= 0) {
+        msg = 'We expected at least one failure';
+        var test = {'result': false, 'name': 'fail-if condition in manifest', 'diag': msg};
+        var successInfo = {status:"FAIL", expected:"FAIL", message:"TEST-KNOWN-FAIL"};
+        var failureInfo = {status:"PASS", expected:"FAIL", message:"TEST-UNEXPECTED-PASS"};
+
+        SimpleTest._logResult(test, successInfo, failureInfo);
+        SimpleTest._tests.push(test);
+    }
+
+    SimpleTest.testsLength = SimpleTest._tests.length;
 
     SimpleTest._alreadyFinished = true;
 
-    Task.spawn(function*() {
-        // Execute all of our cleanup functions.
-        var func;
-        while ((func = SimpleTest._cleanupFunctions.pop())) {
-          try {
-            yield func();
-          }
-          catch (ex) {
-            SimpleTest.ok(false, "Cleanup function threw exception: " + ex);
-          }
-        }
+    if (SimpleTest._inChaosMode) {
+        SpecialPowers.DOMWindowUtils.leaveChaosMode();
+        SimpleTest._inChaosMode = false;
+    }
 
+    var afterCleanup = function() {
         if (SpecialPowers.DOMWindowUtils.isTestControllingRefreshes) {
             SimpleTest.ok(false, "test left refresh driver under test control");
             SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
@@ -909,7 +1062,9 @@ SimpleTest.finish = function() {
         if (parentRunner) {
             /* We're running in an iframe, and the parent has a TestRunner */
             parentRunner.testFinished(SimpleTest._tests);
-        } else {
+        }
+
+        if (!parentRunner || parentRunner.showTestReport) {
             SpecialPowers.flushAllAppsLaunchable();
             SpecialPowers.flushPermissions(function () {
               SpecialPowers.flushPrefEnv(function() {
@@ -917,7 +1072,32 @@ SimpleTest.finish = function() {
               });
             });
         }
-    });
+    }
+
+    var executeCleanupFunction = function() {
+        var func = SimpleTest._cleanupFunctions.pop();
+
+        if (!func) {
+            afterCleanup();
+            return;
+        }
+
+        var ret;
+        try {
+            ret = func();
+        } catch (ex) {
+            SimpleTest.ok(false, "Cleanup function threw exception: " + ex);
+        }
+
+        if (ret && ret.constructor.name == "Promise") {
+            ret.then(executeCleanupFunction,
+                     (ex) => SimpleTest.ok(false, "Cleanup promise rejected: " + ex));
+        } else {
+            executeCleanupFunction();
+        }
+    };
+
+    executeCleanupFunction();
 };
 
 /**
@@ -988,9 +1168,11 @@ SimpleTest.monitorConsole = function (continuation, msgs, forbidUnexpectedMsgs) 
   }
 
   var counter = 0;
+  var assertionLabel = msgs.toSource();
   function listener(msg) {
     if (msg.message === "SENTINEL" && !msg.isScriptError) {
-      is(counter, msgs.length, "monitorConsole | number of messages");
+      is(counter, msgs.length,
+         "monitorConsole | number of messages " + assertionLabel);
       SimpleTest.executeSoon(continuation);
       return;
     }
@@ -1323,7 +1505,6 @@ var ok = SimpleTest.ok;
 var is = SimpleTest.is;
 var isfuzzy = SimpleTest.isfuzzy;
 var isnot = SimpleTest.isnot;
-var ise = SimpleTest.ise;
 var todo = SimpleTest.todo;
 var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
@@ -1342,7 +1523,9 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     var message = (isExpected ? "expected " : "") + "uncaught exception";
     var error = errorMsg + " at " + url + ":" + lineNumber;
     if (!SimpleTest._ignoringAllUncaughtExceptions) {
-        SimpleTest.ok(isExpected, message, error);
+        // Don't log if SimpleTest.finish() is already called, it would cause failures
+        if (!SimpleTest._alreadyFinished)
+          SimpleTest.ok(isExpected, message, error);
         SimpleTest._expectingUncaughtException = false;
     } else {
         SimpleTest.todo(false, message + ": " + error);

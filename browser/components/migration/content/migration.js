@@ -125,7 +125,10 @@ var MigrationWizard = {
 
     // check for more than one source profile
     var sourceProfiles = this._migrator.sourceProfiles;    
-    if (sourceProfiles && sourceProfiles.length > 1) {
+    if (this._skipImportSourcePage) {
+      this._wiz.currentPage.next = "homePageImport";
+    }
+    else if (sourceProfiles && sourceProfiles.length > 1) {
       this._wiz.currentPage.next = "selectProfile";
     }
     else {
@@ -288,6 +291,9 @@ var MigrationWizard = {
         break;
       case "firefox":
         source = "sourceNameFirefox";
+        break;
+      case "360se":
+        source = "sourceName360se";
         break;
     }
 

@@ -17,12 +17,12 @@ browserElementTestHelpers.addPermission();
 function runTest()
 {
   var iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe);
 
   var numPrompts = 0;
   iframe.addEventListener('mozbrowsershowmodalprompt', function(e) {
-    is(e.detail.message, numPrompts, "prompt message");
+    is(e.detail.message, String(numPrompts), "prompt message");
     if (numPrompts / 10 < 1) {
       is(e.detail.promptType, 'alert');
     }

@@ -80,9 +80,17 @@ struct NrIceCandidate {
     ICE_RELAYED
   };
 
+  enum TcpType {
+    ICE_NONE,
+    ICE_ACTIVE,
+    ICE_PASSIVE,
+    ICE_SO
+  };
+
   NrIceAddr cand_addr;
   NrIceAddr local_addr;
   Type type;
+  TcpType tcp_type;
   std::string codeword;
 };
 
@@ -114,19 +122,11 @@ struct NrIceCandidatePair {
   std::string codeword;
 };
 
-// Abstract base class for opaque values.
-class NrIceOpaque {
- public:
-  virtual ~NrIceOpaque() {}
-};
-
 class NrIceMediaStream {
  public:
   static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
                                          const std::string& name,
                                          int components);
-  ~NrIceMediaStream();
-
   enum State { ICE_CONNECTING, ICE_OPEN, ICE_CLOSED};
 
   State state() const { return state_; }
@@ -144,11 +144,11 @@ class NrIceMediaStream {
   // queue, in priority order. |out_pairs| is cleared before being filled.
   nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
 
-  // Get the default candidate as host and port
-  nsresult GetDefaultCandidate(int component, std::string *host, int *port);
+  nsresult GetDefaultCandidate(int component, NrIceCandidate* candidate) const;
 
   // Parse remote attributes
   nsresult ParseAttributes(std::vector<std::string>& candidates);
+  bool HasParsedAttributes() const { return has_parsed_attrs_; }
 
   // Parse trickle ICE candidate
   nsresult ParseTrickleCandidate(const std::string& candidate);
@@ -162,7 +162,7 @@ class NrIceMediaStream {
                          NrIceCandidate** local, NrIceCandidate** remote);
 
   // The number of components
-  int components() const { return components_; }
+  size_t components() const { return components_; }
 
   // The underlying nICEr stream
   nr_ice_media_stream *stream() { return stream_; }
@@ -181,14 +181,15 @@ class NrIceMediaStream {
   // the context has been destroyed.
   void Close();
 
-  // Set an opaque value. Owned by the media stream.
-  void SetOpaque(NrIceOpaque *opaque) { opaque_ = opaque; }
+  // So the receiver of SignalCandidate can determine which level
+  // (ie; m-line index) the candidate belongs to.
+  void SetLevel(uint16_t level) { level_ = level; }
 
-  // Get the opaque
-  NrIceOpaque* opaque() const { return opaque_; }
+  uint16_t GetLevel() const { return level_; }
 
   sigslot::signal2<NrIceMediaStream *, const std::string& >
   SignalCandidate;  // A new ICE candidate:
+
   sigslot::signal1<NrIceMediaStream *> SignalReady;  // Candidate pair ready.
   sigslot::signal1<NrIceMediaStream *> SignalFailed;  // Candidate pair failed.
   sigslot::signal4<NrIceMediaStream *, int, const unsigned char *, int>
@@ -198,22 +199,26 @@ class NrIceMediaStream {
 
  private:
   NrIceMediaStream(NrIceCtx *ctx,  const std::string& name,
-                   int components) :
+                   size_t components) :
       state_(ICE_CONNECTING),
       ctx_(ctx),
       name_(name),
       components_(components),
       stream_(nullptr),
-      opaque_(nullptr) {}
+      level_(0),
+      has_parsed_attrs_(false) {}
+
+  ~NrIceMediaStream();
 
   DISALLOW_COPY_ASSIGN(NrIceMediaStream);
 
   State state_;
   NrIceCtx *ctx_;
   const std::string name_;
-  const int components_;
+  const size_t components_;
   nr_ice_media_stream *stream_;
-  ScopedDeletePtr<NrIceOpaque> opaque_;
+  uint16_t level_;
+  bool has_parsed_attrs_;
 };
 
 

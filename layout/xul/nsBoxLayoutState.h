@@ -18,20 +18,16 @@
 #include "nsIPresShell.h"
 
 class nsRenderingContext;
-class nsCalculatedBoxInfo;
-struct nsHTMLReflowMetrics;
 struct nsHTMLReflowState;
-class nsString;
-class nsHTMLReflowCommand;
 
 class MOZ_STACK_CLASS nsBoxLayoutState
 {
 public:
-  nsBoxLayoutState(nsPresContext* aPresContext,
-                   nsRenderingContext* aRenderingContext = nullptr,
-                   // see OuterReflowState() below
-                   const nsHTMLReflowState* aOuterReflowState = nullptr,
-                   uint16_t aReflowDepth = 0);
+  explicit nsBoxLayoutState(nsPresContext* aPresContext,
+                            nsRenderingContext* aRenderingContext = nullptr,
+                            // see OuterReflowState() below
+                            const nsHTMLReflowState* aOuterReflowState = nullptr,
+                            uint16_t aReflowDepth = 0);
   nsBoxLayoutState(const nsBoxLayoutState& aState);
 
   nsPresContext* PresContext() const { return mPresContext; }
@@ -51,7 +47,7 @@ public:
   nsRenderingContext* GetRenderingContext() const { return mRenderingContext; }
 
   struct AutoReflowDepth {
-    AutoReflowDepth(nsBoxLayoutState& aState)
+    explicit AutoReflowDepth(nsBoxLayoutState& aState)
       : mState(aState) { ++mState.mReflowDepth; }
     ~AutoReflowDepth() { --mState.mReflowDepth; }
     nsBoxLayoutState& mState;

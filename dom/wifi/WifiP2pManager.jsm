@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -21,7 +21,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
                                    "@mozilla.org/network/manager;1",
                                    "nsINetworkManager");
 
-const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
+XPCOMUtils.defineLazyServiceGetter(this, "gNetworkService",
+                                   "@mozilla.org/network/service;1",
+                                   "nsINetworkService");
 
 this.EXPORTED_SYMBOLS = ["WifiP2pManager"];
 
@@ -595,29 +597,41 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       function onFailure()
       {
         _onEnabled(false);
+        _observer.onDisabled();
         _sm.gotoState(stateDisabled);
       }
 
       function onSuccess()
       {
         _onEnabled(true);
+        _observer.onEnabled();
         _sm.gotoState(stateInactive);
       }
 
       _sm.pause();
 
-      // Step 1: Connect to p2p0.
-      aP2pCommand.connectToSupplicant(function (status) {
-        let detail;
-
-        if (0 !== status) {
-          debug('Failed to connect to p2p0');
-          onFailure();
+      // This function will only call back on success.
+      function connectToSupplicantIfNeeded(callback) {
+        if (aP2pCommand.getSdkVersion() >= 19) {
+          // No need to connect to supplicant on KK. Call back directly.
+          callback();
           return;
         }
+        aP2pCommand.connectToSupplicant(function (status) {
+          if (0 !== status) {
+            debug('Failed to connect to p2p0');
+            onFailure();
+            return;
+          }
+          debug('wpa_supplicant p2p0 connected!');
+          _onSupplicantConnected();
+          callback();
+        });
+      }
 
-        debug('wpa_supplicant p2p0 connected!');
-        _onSupplicantConnected();
+      // Step 1: Connect to p2p0 if needed.
+      connectToSupplicantIfNeeded(function callback () {
+        let detail;
 
         // Step 2: Get MAC address.
         if (!_localDevice.address) {
@@ -649,7 +663,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
           // Step 4: Enable p2p0 net interface. wpa_supplicant may have
           //         already done it for us.
-          aNetUtil.enableInterface(P2P_INTERFACE_NAME, function (success) {
+          gNetworkService.enableInterface(P2P_INTERFACE_NAME, function (success) {
             onSuccess();
           });
         });
@@ -1169,7 +1183,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     enter: function() {
       this.groupOwner = {
         macAddress: _groupInfo.goAddress,
-        ipAddress:  _groupInfo.networkInterface.gateway,
+        ipAddress:  _groupInfo.networkInterface.gateways[0],
         passphrase: _groupInfo.passphrase,
         ssid:       _groupInfo.ssid,
         freq:       _groupInfo.freq,
@@ -1318,16 +1332,26 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         debug('Stop DHCP server result: ' + success);
         aP2pCommand.p2pDisable(function(success) {
           debug('P2P function disabled');
-          aP2pCommand.closeSupplicantConnection(function (status) {
+          closeSupplicantConnectionIfNeeded(function() {
             debug('Supplicant connection closed');
-            aNetUtil.disableInterface(P2P_INTERFACE_NAME, function (success){
+            gNetworkService.disableInterface(P2P_INTERFACE_NAME, function (success){
               debug('Disabled interface: ' + P2P_INTERFACE_NAME);
               _onDisabled(true);
+              _observer.onDisabled();
               _sm.gotoState(stateDisabled);
             });
           });
         });
       });
+
+      function closeSupplicantConnectionIfNeeded(callback) {
+        // No need to connect to supplicant on KK. Call back directly.
+        if (aP2pCommand.getSdkVersion() >= 19) {
+          callback();
+          return;
+        }
+        aP2pCommand.closeSupplicantConnection(callback);
+      }
     },
 
     handleEvent: function(aEvent) {
@@ -1476,9 +1500,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
   }
 
   function handleP2pNetworkInterfaceStateChanged() {
-    Services.obs.notifyObservers(_p2pNetworkInterface,
-                                 kNetworkInterfaceStateChangedTopic,
-                                 null);
+    gNetworkManager.updateNetworkInterface(_p2pNetworkInterface);
   }
 
   // Handle 'P2P_GROUP_STARTED' event.

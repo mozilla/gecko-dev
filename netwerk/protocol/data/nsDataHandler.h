@@ -7,9 +7,13 @@
 #define nsDataHandler_h___
 
 #include "nsIProtocolHandler.h"
+#include "nsWeakReference.h"
 
 class nsDataHandler : public nsIProtocolHandler
+                    , public nsSupportsWeakReference
 {
+    virtual ~nsDataHandler();
+
 public:
     NS_DECL_ISUPPORTS
 
@@ -18,7 +22,6 @@ public:
 
     // nsDataHandler methods:
     nsDataHandler();
-    virtual ~nsDataHandler();
 
     // Define a Create method to be used with a factory:
     static nsresult

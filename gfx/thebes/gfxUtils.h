@@ -6,29 +6,39 @@
 #ifndef GFX_UTILS_H
 #define GFX_UTILS_H
 
+#include "gfxColor.h"
 #include "gfxTypes.h"
 #include "GraphicsFilter.h"
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "nsColor.h"
+#include "nsPrintfCString.h"
+#include "mozilla/gfx/Rect.h"
 
+class gfxASurface;
 class gfxDrawable;
 class nsIntRegion;
-struct nsIntRect;
+class nsIPresShell;
 
 namespace mozilla {
 namespace layers {
-class PlanarYCbCrData;
+struct PlanarYCbCrData;
+}
+namespace image {
+class ImageRegion;
 }
 }
 
 class gfxUtils {
 public:
     typedef mozilla::gfx::DataSourceSurface DataSourceSurface;
+    typedef mozilla::gfx::DrawTarget DrawTarget;
     typedef mozilla::gfx::IntPoint IntPoint;
     typedef mozilla::gfx::Matrix Matrix;
     typedef mozilla::gfx::SourceSurface SourceSurface;
     typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+    typedef mozilla::image::ImageRegion ImageRegion;
 
     /*
      * Premultiply or Unpremultiply aSourceSurface, writing the result
@@ -40,8 +50,15 @@ public:
      * If the source is not gfxImageFormat::ARGB32, no operation is performed.  If
      * aDestSurface is given, the data is copied over.
      */
-    static void PremultiplyDataSurface(DataSourceSurface *aSurface);
-    static mozilla::TemporaryRef<DataSourceSurface> UnpremultiplyDataSurface(DataSourceSurface* aSurface);
+    static bool PremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                       DataSourceSurface* destSurf);
+    static bool UnpremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                         DataSourceSurface* destSurf);
+
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreatePremultipliedDataSurface(DataSourceSurface* srcSurf);
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreateUnpremultipliedDataSurface(DataSourceSurface* srcSurf);
 
     static void ConvertBGRAtoRGBA(uint8_t* aData, uint32_t aLength);
 
@@ -58,16 +75,14 @@ public:
      * will tweak the rects and transforms that it gets from the pixel snapping
      * algorithm before passing them on to this method.
      */
-    static void DrawPixelSnapped(gfxContext*      aContext,
-                                 gfxDrawable*     aDrawable,
-                                 const gfxMatrix& aUserSpaceToImageSpace,
-                                 const gfxRect&   aSubimage,
-                                 const gfxRect&   aSourceRect,
-                                 const gfxRect&   aImageRect,
-                                 const gfxRect&   aFill,
+    static void DrawPixelSnapped(gfxContext*        aContext,
+                                 gfxDrawable*       aDrawable,
+                                 const gfxSize&     aImageSize,
+                                 const ImageRegion& aRegion,
                                  const mozilla::gfx::SurfaceFormat aFormat,
-                                 GraphicsFilter aFilter,
-                                 uint32_t         aImageFlags = imgIContainer::FLAG_NONE);
+                                 GraphicsFilter     aFilter,
+                                 uint32_t           aImageFlags = imgIContainer::FLAG_NONE,
+                                 gfxFloat           aOpacity = 1.0);
 
     /**
      * Clip aContext to the region aRegion.
@@ -80,24 +95,9 @@ public:
     static void ClipToRegion(mozilla::gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
 
     /**
-     * Clip aContext to the region aRegion, snapping the rectangles.
-     */
-    static void ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    /**
-     * Clip aTarget to the region aRegion, snapping the rectangles.
-     */
-    static void ClipToRegionSnapped(mozilla::gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
-
-    /**
      * Create a path consisting of rectangles in |aRegion|.
      */
     static void PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    /**
-     * Create a path consisting of rectangles in |aRegion|, snapping the rectangles.
-     */
-    static void PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
 
     /*
      * Convert image format to depth value
@@ -120,11 +120,11 @@ public:
                                       const IntPoint& aToBottomRight);
 
     /**
-     * If aIn can be represented exactly using an nsIntRect (i.e.
+     * If aIn can be represented exactly using an gfx::IntRect (i.e.
      * integer-aligned edges and coordinates in the int32_t range) then we
      * set aOut to that rectangle, otherwise return failure.
     */
-    static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+    static bool GfxRectToIntRect(const gfxRect& aIn, mozilla::gfx::IntRect* aOut);
 
     /**
      * Return the smallest power of kScaleResolution (2) greater than or equal to
@@ -144,7 +144,7 @@ public:
     static void
     GetYCbCrToRGBDestFormatAndSize(const mozilla::layers::PlanarYCbCrData& aData,
                                    gfxImageFormat& aSuggestedFormat,
-                                   gfxIntSize& aSuggestedSize);
+                                   mozilla::gfx::IntSize& aSuggestedSize);
 
     /**
      * Convert YCbCrImage into RGB aDestBuffer
@@ -154,9 +154,16 @@ public:
     static void
     ConvertYCbCrToRGB(const mozilla::layers::PlanarYCbCrData& aData,
                       const gfxImageFormat& aDestFormat,
-                      const gfxIntSize& aDestSize,
+                      const mozilla::gfx::IntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);
+
+    /**
+     * Clears surface to aColor (which defaults to transparent black).
+     */
+    static void ClearThebesSurface(gfxASurface* aSurface,
+                                   mozilla::gfx::IntRect* aRect = nullptr,
+                                   const gfxRGBA& aColor = gfxRGBA(0.0, 0.0, 0.0, 0.0));
 
     /**
      * Creates a copy of aSurface, but having the SurfaceFormat aFormat.
@@ -214,51 +221,97 @@ public:
     static const mozilla::gfx::Color& GetColorForFrameNumber(uint64_t aFrameNumber);
     static const uint32_t sNumFrameColors;
 
-#ifdef MOZ_DUMP_PAINTING
-    /**
-     * Writes a binary PNG file.
-     */
-    static void WriteAsPNG(mozilla::gfx::DrawTarget* aDT, const char* aFile);
+
+    enum BinaryOrData {
+        eBinaryEncode,
+        eDataURIEncode
+    };
 
     /**
-     * Write as a PNG encoded Data URL to stdout.
+     * Encodes the given surface to PNG/JPEG/BMP/etc. using imgIEncoder.
+     *
+     * @param aMimeType The MIME-type of the image type that the surface is to
+     *   be encoded to. Used to create an appropriate imgIEncoder instance to
+     *   do the encoding.
+     *
+     * @param aOutputOptions Passed directly to imgIEncoder::InitFromData as
+     *   the value of the |outputOptions| parameter. Callers are responsible
+     *   for making sure that this is a sane value for the passed MIME-type
+     *   (i.e. for the type of encoder that will be created).
+     *
+     * @aBinaryOrData Flag used to determine if the surface is simply encoded
+     *   to the requested binary image format, or if the binary image is
+     *   further converted to base-64 and written out as a 'data:' URI.
+     *
+     * @aFile If specified, the encoded data is written out to aFile, otherwise
+     *   it is copied to the clipboard.
+     *
+     * TODO: Copying to the clipboard as a binary file is not currently
+     * supported.
      */
-    static void DumpAsDataURL(mozilla::gfx::DrawTarget* aDT);
+    static nsresult
+    EncodeSourceSurface(SourceSurface* aSurface,
+                        const nsACString& aMimeType,
+                        const nsAString& aOutputOptions,
+                        BinaryOrData aBinaryOrData,
+                        FILE* aFile);
 
     /**
-     * Copy a PNG encoded Data URL to the clipboard.
+     * Write as a PNG file to the path aFile.
      */
-    static void CopyAsDataURL(mozilla::gfx::DrawTarget* aDT);
+    static void WriteAsPNG(SourceSurface* aSurface, const nsAString& aFile);
+    static void WriteAsPNG(SourceSurface* aSurface, const char* aFile);
+    static void WriteAsPNG(DrawTarget* aDT, const nsAString& aFile);
+    static void WriteAsPNG(DrawTarget* aDT, const char* aFile);
+    static void WriteAsPNG(nsIPresShell* aShell, const char* aFile);
 
-    static bool DumpPaintList();
+    /**
+     * Dump as a PNG encoded Data URL to a FILE stream (using stdout by
+     * default).
+     *
+     * Rather than giving aFile a default argument we have separate functions
+     * to make them easier to use from a debugger.
+     */
+    static void DumpAsDataURI(SourceSurface* aSourceSurface, FILE* aFile);
+    static inline void DumpAsDataURI(SourceSurface* aSourceSurface) {
+        DumpAsDataURI(aSourceSurface, stdout);
+    }
+    static void DumpAsDataURI(DrawTarget* aDT, FILE* aFile);
+    static inline void DumpAsDataURI(DrawTarget* aDT) {
+        DumpAsDataURI(aDT, stdout);
+    }
+    static nsCString GetAsDataURI(SourceSurface* aSourceSurface);
+    static nsCString GetAsDataURI(DrawTarget* aDT);
+    static nsCString GetAsLZ4Base64Str(DataSourceSurface* aSourceSurface);
+
+    /**
+     * Copy to the clipboard as a PNG encoded Data URL.
+     */
+    static void CopyAsDataURI(SourceSurface* aSourceSurface);
+    static void CopyAsDataURI(DrawTarget* aDT);
+
+    static bool DumpDisplayList();
 
     static bool sDumpPainting;
+    static bool sDumpPaintingIntermediate;
     static bool sDumpPaintingToFile;
+    static bool sDumpPaintItems;
     static FILE* sDumpPaintFile;
-
-    /**
-     * Writes a binary PNG file.
-     * Expensive. Creates a DataSourceSurface, then a DrawTarget, then passes to DrawTarget overloads
-     */
-    static void WriteAsPNG(mozilla::gfx::SourceSurface* aSourceSurface, const char* aFile);
-
-    /**
-     * Write as a PNG encoded Data URL to stdout.
-     * Expensive. Creates a DataSourceSurface, then a DrawTarget, then passes to DrawTarget overloads
-     */
-    static void DumpAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
-
-    /**
-     * Copy a PNG encoded Data URL to the clipboard.
-     * Expensive. Creates a DataSourceSurface, then a DrawTarget, then passes to DrawTarget overloads
-     */
-    static void CopyAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
-#endif
 };
 
 namespace mozilla {
 namespace gfx {
 
+/**
+ * If the CMS mode is eCMSMode_All, these functions transform the passed
+ * color to a device color using the transform returened by gfxPlatform::
+ * GetCMSRGBTransform().  If the CMS mode is some other value, the color is
+ * returned unchanged (other than a type change to Moz2D Color, if
+ * applicable).
+ */
+Color ToDeviceColor(Color aColor);
+Color ToDeviceColor(nscolor aColor);
+Color ToDeviceColor(const gfxRGBA& aColor);
 
 /* These techniques are suggested by "Bit Twiddling Hacks"
  */

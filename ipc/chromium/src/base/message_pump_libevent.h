@@ -62,7 +62,6 @@ class MessagePumpLibevent : public MessagePump {
   };
 
   MessagePumpLibevent();
-  virtual ~MessagePumpLibevent();
 
   enum Mode {
     WATCH_READ = 1 << 0,
@@ -134,10 +133,14 @@ class MessagePumpLibevent : public MessagePump {
 
 
   // MessagePump methods:
-  virtual void Run(Delegate* delegate);
-  virtual void Quit();
-  virtual void ScheduleWork();
-  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
+  virtual void Run(Delegate* delegate) override;
+  virtual void Quit() override;
+  virtual void ScheduleWork() override;
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time) override;
+
+ protected:
+
+  virtual ~MessagePumpLibevent();
 
  private:
 
@@ -201,9 +204,9 @@ protected:
    */
   virtual void OnError() {}
   virtual void OnLineRead(int aFd, nsDependentCSubstring& aMessage) = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int /* aFd */) {}
+  virtual void OnFileCanWriteWithoutBlocking(int /* aFd */) override {}
 private:
-  virtual void OnFileCanReadWithoutBlocking(int aFd) MOZ_FINAL;
+  virtual void OnFileCanReadWithoutBlocking(int aFd) final override;
 
   nsAutoPtr<char> mReceiveBuffer;
   int mReceivedIndex;

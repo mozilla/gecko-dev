@@ -16,6 +16,7 @@
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/TextureD3D9.h"
 #endif
+#include "gfxUtils.h"
 
 namespace mozilla {
 namespace layers {
@@ -43,7 +44,7 @@ public:
     MOZ_COUNT_DTOR(CompositableChild);
   }
 
-  virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
+  virtual void ActorDestroy(ActorDestroyReason) override {
     DestroyAsyncTransactionTrackersHolder();
     if (mCompositableClient) {
       mCompositableClient->mCompositableChild = nullptr;
@@ -54,6 +55,22 @@ public:
 
   uint64_t mAsyncID;
 };
+
+void
+RemoveTextureFromCompositableTracker::ReleaseTextureClient()
+{
+  if (mTextureClient &&
+      mTextureClient->GetAllocator() &&
+      !mTextureClient->GetAllocator()->IsImageBridgeChild())
+  {
+    TextureClientReleaseTask* task = new TextureClientReleaseTask(mTextureClient);
+    RefPtr<ISurfaceAllocator> allocator = mTextureClient->GetAllocator();
+    mTextureClient = nullptr;
+    allocator->GetMessageLoop()->PostTask(FROM_HERE, task);
+  } else {
+    mTextureClient = nullptr;
+  }
+}
 
 /* static */ void
 CompositableClient::TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId)
@@ -111,6 +128,7 @@ CompositableClient::CompositableClient(CompositableForwarder* aForwarder,
 : mCompositableChild(nullptr)
 , mForwarder(aForwarder)
 , mTextureFlags(aTextureFlags)
+, mDestroyed(false)
 {
   MOZ_COUNT_CTOR(CompositableClient);
 }
@@ -152,9 +170,15 @@ CompositableClient::Connect()
 void
 CompositableClient::Destroy()
 {
+  mDestroyed = true;
+
   if (!mCompositableChild) {
     return;
   }
+  // Send pending AsyncMessages before deleting CompositableChild.
+  // They might have dependency to the mCompositableChild.
+  mForwarder->SendPendingAsyncMessges();
+  // Delete CompositableChild.
   mCompositableChild->mCompositableClient = nullptr;
   PCompositableChild::Send__delete__(mCompositableChild);
   mCompositableChild = nullptr;
@@ -170,30 +194,36 @@ CompositableClient::GetAsyncID() const
 }
 
 TemporaryRef<BufferTextureClient>
-CompositableClient::CreateBufferTextureClient(SurfaceFormat aFormat,
-                                              TextureFlags aTextureFlags,
-                                              gfx::BackendType aMoz2DBackend)
+CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
+                                              gfx::IntSize aSize,
+                                              gfx::BackendType aMoz2DBackend,
+                                              TextureFlags aTextureFlags)
 {
-  return TextureClient::CreateBufferTextureClient(GetForwarder(), aFormat,
-                                                  aTextureFlags | mTextureFlags,
-                                                  aMoz2DBackend);
+  return TextureClient::CreateForRawBufferAccess(GetForwarder(),
+                                                 aFormat, aSize, aMoz2DBackend,
+                                                 aTextureFlags | mTextureFlags);
 }
 
 TemporaryRef<TextureClient>
-CompositableClient::CreateTextureClientForDrawing(SurfaceFormat aFormat,
-                                                  TextureFlags aTextureFlags,
+CompositableClient::CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
+                                                  gfx::IntSize aSize,
                                                   gfx::BackendType aMoz2DBackend,
-                                                  const IntSize& aSizeHint)
+                                                  TextureFlags aTextureFlags,
+                                                  TextureAllocationFlags aAllocFlags)
 {
-  return TextureClient::CreateTextureClientForDrawing(GetForwarder(), aFormat,
-                                                      aTextureFlags | mTextureFlags,
-                                                      aMoz2DBackend,
-                                                      aSizeHint);
+  return TextureClient::CreateForDrawing(GetForwarder(),
+                                         aFormat, aSize, aMoz2DBackend,
+                                         aTextureFlags | mTextureFlags,
+                                         aAllocFlags);
 }
 
 bool
 CompositableClient::AddTextureClient(TextureClient* aClient)
 {
+  if(!aClient || !aClient->IsAllocated()) {
+    return false;
+  }
+  aClient->SetAddedToCompositableClient();
   return aClient->InitIPDLActor(mForwarder);
 }
 
@@ -203,27 +233,46 @@ CompositableClient::OnTransaction()
 }
 
 void
-CompositableClient::UseTexture(TextureClient* aTexture)
+CompositableClient::ClearCachedResources()
 {
-  MOZ_ASSERT(aTexture);
-  if (!aTexture) {
-    return;
+  if (mTextureClientRecycler) {
+    mTextureClientRecycler = nullptr;
   }
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  FenceHandle handle = aTexture->GetAcquireFenceHandle();
-  if (handle.IsValid()) {
-    RefPtr<FenceDeliveryTracker> tracker = new FenceDeliveryTracker(handle);
-    mForwarder->SendFenceHandle(tracker, aTexture->GetIPDLActor(), handle);
-  }
-#endif
-  mForwarder->UseTexture(this, aTexture);
 }
 
 void
 CompositableClient::RemoveTexture(TextureClient* aTexture)
 {
   mForwarder->RemoveTextureFromCompositable(this, aTexture);
+}
+
+TextureClientRecycleAllocator*
+CompositableClient::GetTextureClientRecycler()
+{
+  if (mTextureClientRecycler) {
+    return mTextureClientRecycler;
+  }
+
+  if (!mForwarder) {
+    return nullptr;
+  }
+
+  mTextureClientRecycler =
+    new layers::TextureClientRecycleAllocator(mForwarder);
+  return mTextureClientRecycler;
+}
+
+void
+CompositableClient::DumpTextureClient(std::stringstream& aStream, TextureClient* aTexture)
+{
+  if (!aTexture) {
+    return;
+  }
+  RefPtr<gfx::DataSourceSurface> dSurf = aTexture->GetAsSurface();
+  if (!dSurf) {
+    return;
+  }
+  aStream << gfxUtils::GetAsLZ4Base64Str(dSurf).get();
 }
 
 } // namespace layers

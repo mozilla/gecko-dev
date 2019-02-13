@@ -30,6 +30,7 @@
   <script type="application/javascript;version=1.8"
           src="chrome://browser/content/devtools/theme-switching.js"/>
   <xul:script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
+  <xul:script type="application/javascript" src="chrome://browser/content/utilityOverlay.js"/>
   <xul:script type="application/javascript">
     function goUpdateSourceEditorMenuItems() {
       goUpdateGlobalEditMenuItems();
@@ -60,6 +61,10 @@
           accesskey="&gotoLineCmd.accesskey;"
           key="key_gotoLine"
           command="cmd_gotoLine"/>
+    </xul:menupopup>
+    <xul:menupopup id="sidebar-context">
+      <xul:menuitem id="context-openlinknewtab"
+        label="&openLinkNewTab.label;"/>
     </xul:menupopup>
     <xul:menupopup id="style-editor-options-popup"
                    position="before_start">
@@ -102,13 +107,14 @@
             </xul:hbox>
             <xul:spacer/>
             <xul:toolbarbutton id="style-editor-options"
-                        class="devtools-option-toolbarbutton"
+                        class="devtools-toolbarbutton devtools-option-toolbarbutton"
                         tooltiptext="&optionsButton.tooltip;"
                         popup="style-editor-options-popup"/>
           </xul:toolbar>
         </xul:box>
         <xul:box id="splitview-resizer-target" class="theme-sidebar splitview-nav-container"
                 persist="height">
+          <div class="devtools-throbber"></div>
           <ol class="splitview-nav" tabindex="0"></ol>
           <div class="splitview-nav placeholder empty">
             <p><strong>&noStyleSheet.label;</strong></p>
@@ -120,7 +126,7 @@
         </xul:box> <!-- .splitview-nav-container -->
       </xul:box>   <!-- .splitview-controller -->
       <xul:splitter class="devtools-side-splitter splitview-landscape-splitter devtools-invisible-splitter"/>
-      <xul:box class="splitview-side-details"/>
+      <xul:box class="splitview-side-details devtools-main-content"/>
 
       <div id="splitview-templates" hidden="true">
         <li id="splitview-tpl-summary-stylesheet" tabindex="0">
@@ -148,6 +154,7 @@
           <xul:hbox class="stylesheet-details-container">
             <xul:box class="stylesheet-editor-input textbox"
                      data-placeholder="&editorTextbox.placeholder;"/>
+            <xul:splitter class="devtools-side-splitter"/>
             <xul:vbox class="stylesheet-sidebar theme-sidebar" hidden="true">
               <xul:toolbar class="devtools-toolbar">
                 &mediaRules.label;
@@ -167,7 +174,7 @@
             label="&csscoverage.backButton;"
             onclick="${onback}"/>
       </xul:toolbar>
-      <!-- The data for this comes from UsageReportActor.createPageReport -->
+      <!-- The data for this comes from CSSUsageActor.createPageReport -->
       <div class="csscoverage-report-container">
         <div class="csscoverage-report-content">
           <div class="csscoverage-report-summary">
@@ -203,7 +210,7 @@
             </div>
             <p>
               &csscoverage.footer1;
-              <a target="_blank" href="&csscoverage.footer2;">&csscoverage.footer3;</a>
+              <a target="_blank" href="&csscoverage.footer2a;">&csscoverage.footer3;</a>
               &csscoverage.footer4;
             </p>
           </div>

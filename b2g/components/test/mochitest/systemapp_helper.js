@@ -94,7 +94,7 @@ let steps = [
     // Ensure that listener being registered before the system app is ready
     // are correctly removed from the pending list
     function removedListener() {
-      assert(false, "Listener isn't correctly removed from the pending list");
+      assert.ok(false, "Listener isn't correctly removed from the pending list");
     }
     SystemAppProxy.addEventListener("mozChromeEvent", removedListener);
     SystemAppProxy.removeEventListener("mozChromeEvent", removedListener);
@@ -112,6 +112,9 @@ let steps = [
       isLoaded = true;
       SystemAppProxy.setIsReady();
       assert.ok(true, "Frame declared as loaded");
+
+      let gotFrame = SystemAppProxy.getFrame();
+      assert.equal(gotFrame, frame, "getFrame returns the frame we passed");
 
       // Once pending events are received,
       // we will run checkEventDispatching from `listener` function

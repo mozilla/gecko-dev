@@ -9,11 +9,13 @@
 #include "mozilla/Attributes.h"
 #include "nsMathMLContainerFrame.h"
 
+class nsFontMetrics;
+
 //
 // <mfenced> -- surround content with a pair of fences
 //
 
-class nsMathMLmfencedFrame : public nsMathMLContainerFrame {
+class nsMathMLmfencedFrame final : public nsMathMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -21,48 +23,50 @@ public:
 
   virtual void
   SetAdditionalStyleContext(int32_t          aIndex, 
-                            nsStyleContext*  aStyleContext) MOZ_OVERRIDE;
+                            nsStyleContext*  aStyleContext) override;
   virtual nsStyleContext*
-  GetAdditionalStyleContext(int32_t aIndex) const MOZ_OVERRIDE;
+  GetAdditionalStyleContext(int32_t aIndex) const override;
 
   NS_IMETHOD
-  InheritAutomaticData(nsIFrame* aParent) MOZ_OVERRIDE;
+  InheritAutomaticData(nsIFrame* aParent) override;
 
   virtual void
   SetInitialChildList(ChildListID     aListID,
-                      nsFrameList&    aChildList) MOZ_OVERRIDE;
+                      nsFrameList&    aChildList) override;
 
   virtual void
   Reflow(nsPresContext*          aPresContext,
          nsHTMLReflowMetrics&     aDesiredSize,
          const nsHTMLReflowState& aReflowState,
-         nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+         nsReflowStatus&          aStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void
-  GetIntrinsicWidthMetrics(nsRenderingContext* aRenderingContext,
-                           nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+  GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext,
+                           nsHTMLReflowMetrics& aDesiredSize) override;
 
   virtual nsresult
   AttributeChanged(int32_t         aNameSpaceID,
                    nsIAtom*        aAttribute,
-                   int32_t         aModType) MOZ_OVERRIDE;
+                   int32_t         aModType) override;
 
   // override the base method because we must keep separators in sync
   virtual nsresult
-  ChildListChanged(int32_t aModType) MOZ_OVERRIDE;
+  ChildListChanged(int32_t aModType) override;
 
   // override the base method so that we can deal with fences and separators
   virtual nscoord
-  FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+  FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) override;
 
   // helper routines to format the MathMLChars involved here
   static nsresult
   ReflowChar(nsPresContext*      aPresContext,
              nsRenderingContext& aRenderingContext,
+             nsFontMetrics&       aFontMetrics,
+             float                aFontSizeInflation,
              nsMathMLChar*        aMathMLChar,
              nsOperatorFlags      aForm,
              int32_t              aScriptLevel,
@@ -81,7 +85,7 @@ public:
             nscoord&           dx);
 
   virtual bool
-  IsMrowLike() MOZ_OVERRIDE
+  IsMrowLike() override
   {
     // Always treated as an mrow with > 1 child as
     // <mfenced> <mo>%</mo> </mfenced>
@@ -92,7 +96,7 @@ public:
   }
 
 protected:
-  nsMathMLmfencedFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
+  explicit nsMathMLmfencedFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmfencedFrame();
   
   nsMathMLChar* mOpenChar;

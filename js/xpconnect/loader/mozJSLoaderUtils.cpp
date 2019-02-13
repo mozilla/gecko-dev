@@ -8,7 +8,6 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/OldDebugAPI.h"
 
 #include "nsJSPrincipals.h"
 
@@ -21,8 +20,8 @@ using namespace mozilla::scache;
 // principals when writing a script. Instead, when reading it back, we set the
 // principals to the system principals.
 nsresult
-ReadCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
-                 nsIPrincipal *systemPrincipal, MutableHandleScript scriptp)
+ReadCachedScript(StartupCache* cache, nsACString& uri, JSContext* cx,
+                 nsIPrincipal* systemPrincipal, MutableHandleScript scriptp)
 {
     nsAutoArrayPtr<char> buf;
     uint32_t len;
@@ -31,15 +30,15 @@ ReadCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
     if (NS_FAILED(rv))
         return rv; // don't warn since NOT_AVAILABLE is an ok error
 
-    scriptp.set(JS_DecodeScript(cx, buf, len, nullptr));
+    scriptp.set(JS_DecodeScript(cx, buf, len));
     if (!scriptp)
         return NS_ERROR_OUT_OF_MEMORY;
     return NS_OK;
 }
 
 nsresult
-ReadCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
-                   nsIPrincipal *systemPrincipal, JSFunction **functionp)
+ReadCachedFunction(StartupCache* cache, nsACString& uri, JSContext* cx,
+                   nsIPrincipal* systemPrincipal, JSFunction** functionp)
 {
     return NS_ERROR_FAILURE;
 /*  This doesn't actually work ...
@@ -50,7 +49,7 @@ ReadCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
     if (NS_FAILED(rv))
         return rv; // don't warn since NOT_AVAILABLE is an ok error
 
-    JSObject *obj = JS_DecodeInterpretedFunction(cx, buf, len, nsJSPrincipals::get(systemPrincipal), nullptr);
+    JSObject* obj = JS_DecodeInterpretedFunction(cx, buf, len, nsJSPrincipals::get(systemPrincipal), nullptr);
     if (!obj)
         return NS_ERROR_OUT_OF_MEMORY;
     JSFunction* function = JS_ValueToFunction(cx, OBJECT_TO_JSVAL(obj));
@@ -59,37 +58,36 @@ ReadCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
 }
 
 nsresult
-WriteCachedScript(StartupCache* cache, nsACString &uri, JSContext *cx,
-                  nsIPrincipal *systemPrincipal, HandleScript script)
+WriteCachedScript(StartupCache* cache, nsACString& uri, JSContext* cx,
+                  nsIPrincipal* systemPrincipal, HandleScript script)
 {
     MOZ_ASSERT(JS_GetScriptPrincipals(script) == nsJSPrincipals::get(systemPrincipal));
-    MOZ_ASSERT(JS_GetScriptOriginPrincipals(script) == nsJSPrincipals::get(systemPrincipal));
 
     uint32_t size;
-    void *data = JS_EncodeScript(cx, script, &size);
+    void* data = JS_EncodeScript(cx, script, &size);
     if (!data)
         return NS_ERROR_OUT_OF_MEMORY;
 
     MOZ_ASSERT(size);
-    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char *>(data), size);
+    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char*>(data), size);
     js_free(data);
     return rv;
 }
 
 nsresult
-WriteCachedFunction(StartupCache* cache, nsACString &uri, JSContext *cx,
-                    nsIPrincipal *systemPrincipal, JSFunction *function)
+WriteCachedFunction(StartupCache* cache, nsACString& uri, JSContext* cx,
+                    nsIPrincipal* systemPrincipal, JSFunction* function)
 {
     return NS_ERROR_FAILURE;
 /* This doesn't actually work ...
     uint32_t size;
-    void *data =
+    void* data =
       JS_EncodeInterpretedFunction(cx, JS_GetFunctionObject(function), &size);
     if (!data)
         return NS_ERROR_OUT_OF_MEMORY;
 
     MOZ_ASSERT(size);
-    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char *>(data), size);
+    nsresult rv = cache->PutBuffer(PromiseFlatCString(uri).get(), static_cast<char*>(data), size);
     js_free(data);
     return rv;*/
 }

@@ -1,0 +1,150 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIThread.idl"
+
+%{C++
+#include "mozilla/UniquePtr.h"
+#include "nsTArray.h"
+#include "nsStringGlue.h"
+class GMPAudioDecoderProxy;
+class GMPDecryptorProxy;
+class GMPVideoDecoderProxy;
+class GMPVideoEncoderProxy;
+class GMPVideoHost;
+
+template<class T>
+class GMPGetterCallback
+{
+public:
+  GMPGetterCallback() { MOZ_COUNT_CTOR(GMPGetterCallback<T>); }
+  virtual ~GMPGetterCallback() { MOZ_COUNT_DTOR(GMPGetterCallback<T>); }
+  virtual void Done(T*) = 0;
+};
+template<class T>
+class GMPVideoGetterCallback
+{
+public:
+  GMPVideoGetterCallback() { MOZ_COUNT_CTOR(GMPVideoGetterCallback<T>); }
+  virtual ~GMPVideoGetterCallback() { MOZ_COUNT_DTOR(GMPVideoGetterCallback<T>); }
+  virtual void Done(T*, GMPVideoHost*) = 0;
+};
+typedef GMPGetterCallback<GMPDecryptorProxy> GetGMPDecryptorCallback;
+typedef GMPGetterCallback<GMPAudioDecoderProxy> GetGMPAudioDecoderCallback;
+typedef GMPVideoGetterCallback<GMPVideoDecoderProxy> GetGMPVideoDecoderCallback;
+typedef GMPVideoGetterCallback<GMPVideoEncoderProxy> GetGMPVideoEncoderCallback;
+class GetNodeIdCallback
+{
+public:
+  GetNodeIdCallback() { MOZ_COUNT_CTOR(GetNodeIdCallback); }
+  virtual ~GetNodeIdCallback() { MOZ_COUNT_DTOR(GetNodeIdCallback); }
+  virtual void Done(nsresult aResult, const nsACString& aNodeId) = 0;
+};
+%}
+
+[ptr] native TagArray(nsTArray<nsCString>);
+native GetGMPDecryptorCallback(mozilla::UniquePtr<GetGMPDecryptorCallback>&&);
+native GetGMPAudioDecoderCallback(mozilla::UniquePtr<GetGMPAudioDecoderCallback>&&);
+native GetGMPVideoDecoderCallback(mozilla::UniquePtr<GetGMPVideoDecoderCallback>&&);
+native GetGMPVideoEncoderCallback(mozilla::UniquePtr<GetGMPVideoEncoderCallback>&&);
+native GetNodeIdCallback(mozilla::UniquePtr<GetNodeIdCallback>&&);
+
+[scriptable, uuid(787cf744-eea8-48c8-b692-376e0485ef97)]
+interface mozIGeckoMediaPluginService : nsISupports
+{
+
+  /**
+   * The GMP thread. Callable from any thread.
+   */
+  readonly attribute nsIThread thread;
+
+  /**
+   * Get a plugin that supports the specified tags.
+   * Callable on any thread
+   */
+  [noscript]
+  boolean hasPluginForAPI(in ACString api, in TagArray tags);
+
+  /**
+   * Get the version of the plugin that supports the specified tags.
+   * Callable on any thread
+   */
+  [noscript]
+  void getPluginVersionForAPI(in ACString api, in TagArray tags,
+                              out boolean hasPlugin, out ACString version);
+
+  /**
+   * Get a video decoder that supports the specified tags.
+   * The array of tags should at least contain a codec tag, and optionally
+   * other tags such as for EME keysystem.
+   * Callable only on GMP thread.
+   * This is an asynchronous operation, the Done method of the callback object
+   * will be called on the GMP thread with the result (which might be null in
+   * the case of failure). This method always takes ownership of the callback
+   * object, but if this method returns an error then the Done method of the
+   * callback object will not be called at all.
+   */
+  [noscript]
+  void getGMPVideoDecoder(in TagArray tags,
+                          [optional] in ACString nodeId,
+                          in GetGMPVideoDecoderCallback callback);
+
+  /**
+   * Get a video encoder that supports the specified tags.
+   * The array of tags should at least contain a codec tag, and optionally
+   * other tags.
+   * Callable only on GMP thread.
+   * This is an asynchronous operation, the Done method of the callback object
+   * will be called on the GMP thread with the result (which might be null in
+   * the case of failure). This method always takes ownership of the callback
+   * object, but if this method returns an error then the Done method of the
+   * callback object will not be called at all.
+   */
+  [noscript]
+  void getGMPVideoEncoder(in TagArray tags,
+		                      [optional] in ACString nodeId,
+		                      in GetGMPVideoEncoderCallback callback);
+
+  /**
+   * Returns an audio decoder that supports the specified tags.
+   * The array of tags should at least contain a codec tag, and optionally
+   * other tags such as for EME keysystem.
+   * Callable only on GMP thread.
+   * This is an asynchronous operation, the Done method of the callback object
+   * will be called on the GMP thread with the result (which might be null in
+   * the case of failure). This method always takes ownership of the callback
+   * object, but if this method returns an error then the Done method of the
+   * callback object will not be called at all.
+   */
+  [noscript]
+  void getGMPAudioDecoder(in TagArray tags,
+                          [optional] in ACString nodeId,
+                          in GetGMPAudioDecoderCallback callback);
+
+  /**
+   * Returns a decryption session manager that supports the specified tags.
+   * The array of tags should at least contain a key system tag, and optionally
+   * other tags.
+   * Callable only on GMP thread.
+   * This is an asynchronous operation, the Done method of the callback object
+   * will be called on the GMP thread with the result (which might be null in
+   * the case of failure). This method always takes ownership of the callback
+   * object, but if this method returns an error then the Done method of the
+   * callback object will not be called at all.
+   */
+  [noscript]
+  void getGMPDecryptor(in TagArray tags, in ACString nodeId,
+                       in GetGMPDecryptorCallback callback);
+
+  /**
+   * Gets the NodeId for a (origin, urlbarOrigin, isInprivateBrowsing) tuple.
+   */
+  [noscript]
+  void getNodeId(in AString origin,
+                 in AString topLevelOrigin,
+                 in bool inPrivateBrowsingMode,
+                 in GetNodeIdCallback callback);
+};

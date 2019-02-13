@@ -115,6 +115,16 @@ its prototype:
     * `"debugger"`: a frame for a call to user code invoked by the debugger
       (see the `eval` method below).
 
+`implementation`
+:   A string describing which tier of the JavaScript engine this frame is
+    executing in:
+
+    * `"interpreter"`: a frame running in the interpreter.
+
+    * `"baseline"`: a frame running in the unoptimizing, baseline JIT.
+
+    * `"ion"`: a frame running in the optimizing JIT.
+
 `this`
 :   The value of `this` for this frame (a debuggee value).
 
@@ -215,6 +225,12 @@ the compartment to which the handler method belongs.
     how execution should proceed. On newly created frames, this property's
     value is `undefined`.
 
+    When this handler is called, this frame's current execution location, as
+    reflected in its `offset` and `environment` properties, is the operation
+    which caused it to be unwound. In frames returning or throwing an
+    exception, the location is often a return or a throw statement. In frames
+    propagating exceptions, the location is a call.
+
     When an `onPop` call reports the completion of a construction call
     (that is, a function called via the `new` operator), the completion
     value passed to the handler describes the value returned by the
@@ -247,7 +263,9 @@ the compartment to which the handler method belongs.
     resumption value each handler returns establishes the completion value
     reported to the next handler.
 
-    This property is ignored on `"debugger"` frames.
+    This handler is not called on `"debugger"` frames. It is also not called
+    when unwinding a frame due to an over-recursion or out-of-memory
+    exception.
 
 `onResume`
 :   This property must be either `undefined` or a function. If it is a

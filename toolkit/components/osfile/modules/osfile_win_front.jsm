@@ -125,7 +125,7 @@
      /**
       * Write some bytes to a file.
       *
-      * @param {C pointer} buffer A buffer holding the data that must be
+      * @param {Typed array} buffer A buffer holding the data that must be
       * written.
       * @param {number} nbytes The number of bytes to write. It must not
       * exceed the size of |buffer| in bytes.
@@ -231,6 +231,23 @@
        throw_on_zero("setDates",
                      WinFile.SetFileTime(this.fd, null, accessDate.address(),
                                          modificationDate.address()),
+                     this._path);
+     };
+
+     /**
+      * Set the file's access permission bits.
+      */
+     File.prototype.setPermissions = function setPermissions(options = {}) {
+       if (!("winAttributes" in options)) {
+         return;
+       }
+       let oldAttributes = WinFile.GetFileAttributes(this._path);
+       if (oldAttributes == Const.INVALID_FILE_ATTRIBUTES) {
+         throw new File.Error("setPermissions", ctypes.winLastError, this._path);
+       }
+       let newAttributes = toFileAttributes(options.winAttributes, oldAttributes);
+       throw_on_zero("setPermissions",
+                     WinFile.SetFileAttributes(this._path, newAttributes),
                      this._path);
      };
 
@@ -896,9 +913,14 @@
 
        let value = ctypes.UInt64.join(stat.nFileSizeHigh, stat.nFileSizeLow);
        let size = Type.uint64_t.importFromC(value);
+       let winAttributes = {
+         readOnly: !!(stat.dwFileAttributes & Const.FILE_ATTRIBUTE_READONLY),
+         system: !!(stat.dwFileAttributes & Const.FILE_ATTRIBUTE_SYSTEM),
+         hidden: !!(stat.dwFileAttributes & Const.FILE_ATTRIBUTE_HIDDEN),
+       };
 
        SysAll.AbstractInfo.call(this, path, isDir, isSymLink, size,
-         winBirthDate, lastAccessDate, lastWriteDate);
+         winBirthDate, lastAccessDate, lastWriteDate, winAttributes);
      };
      File.Info.prototype = Object.create(SysAll.AbstractInfo.prototype);
 
@@ -951,6 +973,23 @@
        // Directories can only be opened with backup semantics(!)
        winFlags: Const.FILE_FLAG_BACKUP_SEMANTICS,
        winDisposition: Const.OPEN_EXISTING
+     };
+
+     /**
+      * Set the file's access permission bits.
+      */
+     File.setPermissions = function setPermissions(path, options = {}) {
+       if (!("winAttributes" in options)) {
+         return;
+       }
+       let oldAttributes = WinFile.GetFileAttributes(path);
+       if (oldAttributes == Const.INVALID_FILE_ATTRIBUTES) {
+         throw new File.Error("setPermissions", ctypes.winLastError, path);
+       }
+       let newAttributes = toFileAttributes(options.winAttributes, oldAttributes);
+       throw_on_zero("setPermissions",
+                     WinFile.SetFileAttributes(path, newAttributes),
+                     path);
      };
 
      /**
@@ -1015,7 +1054,7 @@
       * @throws {OS.File.Error} In case of I/O error, in particular if |path| is
       *         not a directory.
       */
-     File.removeDir = function(path, options) {
+     File.removeDir = function(path, options = {}) {
        // We can't use File.stat here because it will follow the symlink.
        let attributes = WinFile.GetFileAttributes(path);
        if (attributes == Const.INVALID_FILE_ATTRIBUTES) {
@@ -1054,7 +1093,7 @@
        //
        let buffer_size = 4096;
        while (true) {
-         let array = new (ctypes.ArrayType(ctypes.jschar, buffer_size))();
+         let array = new (ctypes.ArrayType(ctypes.char16_t, buffer_size))();
          let expected_size = throw_on_zero("getCurrentDirectory",
            WinFile.GetCurrentDirectory(buffer_size, array)
          );
@@ -1157,6 +1196,34 @@
          throw new File.Error(operation, ctypes.winLastError, path);
        }
        return result;
+     }
+
+     /**
+      * Helper used by both versions of setPermissions
+      */
+     function toFileAttributes(winAttributes, oldDwAttrs) {
+       if ("readOnly" in winAttributes) {
+         if (winAttributes.readOnly) {
+           oldDwAttrs |= Const.FILE_ATTRIBUTE_READONLY;
+         } else {
+           oldDwAttrs &= ~Const.FILE_ATTRIBUTE_READONLY;
+         }
+       }
+       if ("system" in winAttributes) {
+         if (winAttributes.system) {
+           oldDwAttrs |= Const.FILE_ATTRIBUTE_SYSTEM;
+         } else {
+           oldDwAttrs &= ~Const.FILE_ATTRIBUTE_SYSTEM;
+         }
+       }
+       if ("hidden" in winAttributes) {
+         if (winAttributes.hidden) {
+           oldDwAttrs |= Const.FILE_ATTRIBUTE_HIDDEN;
+         } else {
+           oldDwAttrs &= ~Const.FILE_ATTRIBUTE_HIDDEN;
+         }
+       }
+       return oldDwAttrs;
      }
 
      File.Win = exports.OS.Win.File;

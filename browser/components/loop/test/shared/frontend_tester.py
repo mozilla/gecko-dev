@@ -1,4 +1,5 @@
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
+from marionette_driver.errors import NoSuchElementException
 import threading
 import SimpleHTTPServer
 import SocketServer
@@ -9,7 +10,6 @@ import urlparse
 import os
 
 DEBUG = False
-
 
 # XXX Once we're on a branch with bug 993478 landed, we may want to get
 # rid of this HTTP server and just use the built-in one from Marionette,
@@ -60,10 +60,21 @@ class BaseTestFrontendUnits(MarionetteTestCase):
     def setUp(self):
         super(BaseTestFrontendUnits, self).setUp()
 
-        # This extends the timeout for find_element to 10 seconds.
-        # We need this as the tests take an amount of time to run after loading,
-        # which we have to wait for.
-        self.marionette.set_search_timeout(10000)
+        # Unfortunately, enforcing preferences currently comes with the side
+        # effect of launching and restarting the browser before running the
+        # real functional tests.  Bug 1048554 has been filed to track this.
+        #
+        # Note: when e10s is enabled by default, this pref can go away. The automatic
+        # restart will also go away if this is still the only pref set here.
+        self.marionette.enforce_gecko_prefs({
+            "browser.tabs.remote.autostart": True
+        })
+
+        # This extends the timeout for find_element. We need this as the tests
+        # take an amount of time to run after loading, which we have to wait for.
+        self.marionette.set_search_timeout(120000)
+
+        self.marionette.timeouts("page load", 120000)
 
     # srcdir_path should be the directory relative to this file.
     def set_server_prefix(self, srcdir_path):
@@ -75,18 +86,29 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         commonPath = os.path.commonprefix([__file__, os.getcwd()])
 
         # Now get the relative path between the two
-        relPath = os.path.relpath(os.path.dirname(__file__), commonPath)
+        self.relPath = os.path.relpath(os.path.dirname(__file__), commonPath)
 
-        relPath = urllib.pathname2url(os.path.join(relPath, srcdir_path))
+        self.relPath = urllib.pathname2url(os.path.join(self.relPath, srcdir_path))
 
         # Finally join the relative path with the given src path
         self.server_prefix = urlparse.urljoin("http://localhost:" + str(self.port),
-                                              relPath)
+                                              self.relPath)
 
     def check_page(self, page):
 
         self.marionette.navigate(urlparse.urljoin(self.server_prefix, page))
-        self.marionette.find_element("id", 'complete')
+        try:
+            self.marionette.find_element("id", 'complete')
+        except NoSuchElementException:
+            fullPageUrl = urlparse.urljoin(self.relPath, page)
+
+            details = "%s: 1 failure encountered\n%s" % \
+                      (fullPageUrl,
+                       self.get_failure_summary(
+                           fullPageUrl, "Waiting for Completion",
+                           "Could not find the test complete indicator"))
+
+            raise AssertionError(details)
 
         fail_node = self.marionette.find_element("css selector",
                                                  '.failures > em')
@@ -103,15 +125,30 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         #from ipdb import set_trace
         #set_trace()
 
-        raise AssertionError(self.get_failure_details())
+        raise AssertionError(self.get_failure_details(page))
 
-    def get_failure_details(self):
+    def get_failure_summary(self, fullPageUrl, testName, testError):
+        return "TEST-UNEXPECTED-FAIL | %s | %s - %s" % (fullPageUrl, testName, testError)
+
+    def get_failure_details(self, page):
         fail_nodes = self.marionette.find_elements("css selector",
                                                    '.test.fail')
-        details = ["%d failure(s) encountered:" % len(fail_nodes)]
+        fullPageUrl = urlparse.urljoin(self.relPath, page)
+
+        details = ["%s: %d failure(s) encountered:" % (fullPageUrl, len(fail_nodes))]
+
         for node in fail_nodes:
+            errorText = node.find_element("css selector", '.error').text
+
+            # We have to work our own failure message here, as we could be reporting multiple failures.
+            # XXX Ideally we'd also give the full test tree for <test name> - that requires walking
+            # up the DOM tree.
+
+            # Format: TEST-UNEXPECTED-FAIL | <filename> | <test name> - <test error>
             details.append(
-                node.find_element("tag name", 'h2').text.split("\n")[0])
+                self.get_failure_summary(page,
+                                         node.find_element("tag name", 'h2').text.split("\n")[0],
+                                         errorText.split("\n")[0]))
             details.append(
-                node.find_element("css selector", '.error').text)
+                errorText)
         return "\n".join(details)

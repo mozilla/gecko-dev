@@ -1,130 +1,90 @@
+/* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
-let tempScope = {};
-let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let TargetFactory = devtools.TargetFactory;
+const TEST_URI = BASE_URI + "browser_fontinspector.html";
+const FONTS = [
+  {name: "Ostrich Sans Medium", remote: true, url: BASE_URI + "ostrich-regular.ttf",
+   format: "truetype", cssName: "bar"},
+  {name: "Ostrich Sans Black", remote: true, url: BASE_URI + "ostrich-black.ttf",
+   format: "", cssName: "bar"},
+  {name: "Ostrich Sans Black", remote: true, url: BASE_URI + "ostrich-black.ttf",
+   format: "", cssName: "bar"},
+  {name: "Ostrich Sans Medium", remote: true, url: BASE_URI + "ostrich-regular.ttf",
+   format: "", cssName: "barnormal"},
+];
 
-let DOMUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
+add_task(function*() {
+  let { inspector, fontInspector } = yield openFontInspectorForURL(TEST_URI);
+  ok(!!fontInspector, "Font inspector document is alive.");
 
-function test() {
-  waitForExplicitFinish();
+  let viewDoc = fontInspector.chromeDoc;
 
-  let doc;
-  let view;
-  let viewDoc;
-  let inspector;
+  yield testBodyFonts(inspector, viewDoc);
+  yield testDivFonts(inspector, viewDoc);
+  yield testShowAllFonts(inspector, viewDoc);
+});
 
-  gDevTools.testing = true;
-  SimpleTest.registerCleanupFunction(() => {
-    gDevTools.testing = false;
-  });
+function* testBodyFonts(inspector, viewDoc) {
+  let s = viewDoc.querySelectorAll("#all-fonts > section");
+  is(s.length, 5, "Found 5 fonts");
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    doc = content.document;
-    waitForFocus(setupTest, content);
-  }, true);
-
-  content.location = "http://mochi.test:8888/browser/browser/devtools/fontinspector/test/browser_fontinspector.html";
-
-  function setupTest() {
-    let rng = doc.createRange();
-    rng.selectNode(doc.body);
-    let fonts = DOMUtils.getUsedFontFaces(rng);
-    if (fonts.length != 2) {
-      // Fonts are not loaded yet.
-      // Let try again in a couple of milliseconds (hacky, but
-      // there's not better way to do it. See bug 835247).
-      setTimeout(setupTest, 500);
-    } else {
-      let target = TargetFactory.forTab(gBrowser.selectedTab);
-      gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-        openFontInspector(toolbox.getCurrentPanel());
-      });
-    }
+  for (let i = 0; i < FONTS.length; i++) {
+    let section = s[i];
+    let font = FONTS[i];
+    is(section.querySelector(".font-name").textContent, font.name,
+       "font " + i + " right font name");
+    is(section.classList.contains("is-remote"), font.remote,
+       "font " + i + " remote value correct");
+    is(section.querySelector(".font-url").value, font.url,
+       "font " + i + " url correct");
+    is(section.querySelector(".font-format").hidden, !font.format,
+       "font " + i + " format hidden value correct");
+    is(section.querySelector(".font-format").textContent,
+       font.format, "font " + i + " format correct");
+    is(section.querySelector(".font-css-name").textContent,
+       font.cssName, "font " + i + " css name correct");
   }
 
-  function openFontInspector(aInspector) {
-    info("Inspector open");
-    inspector = aInspector;
+  // test that the bold and regular fonts have different previews
+  let regSrc = s[0].querySelector(".font-preview").src;
+  let boldSrc = s[1].querySelector(".font-preview").src;
+  isnot(regSrc, boldSrc, "preview for bold font is different from regular");
 
-    inspector.selection.setNode(doc.body);
-    inspector.sidebar.select("fontinspector");
-    inspector.sidebar.once("fontinspector-ready", testBodyFonts);
-  }
+  // test system font
+  let localFontName = s[4].querySelector(".font-name").textContent;
+  let localFontCSSName = s[4].querySelector(".font-css-name").textContent;
 
-  function testBodyFonts() {
-    info("Font Inspector ready");
+  // On Linux test machines, the Arial font doesn't exist.
+  // The fallback is "Liberation Sans"
+  ok((localFontName == "Arial") || (localFontName == "Liberation Sans"),
+     "local font right font name");
+  ok(s[4].classList.contains("is-local"), "local font is local");
+  ok((localFontCSSName == "Arial") || (localFontCSSName == "Liberation Sans"),
+     "Arial", "local font has right css name");
+}
 
-    view = inspector.sidebar.getWindowForTab("fontinspector");
-    viewDoc = view.document;
+function* testDivFonts(inspector, viewDoc) {
+  let updated = inspector.once("fontinspector-updated");
+  yield selectNode("div", inspector);
+  yield updated;
 
-    ok(!!view.fontInspector, "Font inspector document is alive.");
+  let sections1 = viewDoc.querySelectorAll("#all-fonts > section");
+  is(sections1.length, 1, "Found 1 font on DIV");
+  is(sections1[0].querySelector(".font-name").textContent, "Ostrich Sans Medium",
+    "The DIV font has the right name");
+}
 
-    let s = viewDoc.querySelectorAll("#all-fonts > section");
-    is(s.length, 2, "Found 2 fonts");
+function* testShowAllFonts(inspector, viewDoc) {
+  info("testing showing all fonts");
 
-    is(s[0].querySelector(".font-name").textContent,
-       "DeLarge Bold", "font 0: Right font name");
-    ok(s[0].classList.contains("is-remote"),
-       "font 0: is remote");
-    is(s[0].querySelector(".font-url").value,
-       "http://mochi.test:8888/browser/browser/devtools/fontinspector/test/browser_font.woff",
-       "font 0: right url");
-    is(s[0].querySelector(".font-format").textContent,
-       "woff", "font 0: right font format");
-    is(s[0].querySelector(".font-css-name").textContent,
-       "bar", "font 0: right css name");
+  let updated = inspector.once("fontinspector-updated");
+  viewDoc.querySelector("#showall").click();
+  yield updated;
 
-    let font1Name = s[1].querySelector(".font-name").textContent;
-    let font1CssName = s[1].querySelector(".font-css-name").textContent;
-
-    // On Linux test machines, the Arial font doesn't exist.
-    // The fallback is "Liberation Sans"
-
-    ok((font1Name == "Arial") || (font1Name == "Liberation Sans"),
-       "font 1: Right font name");
-    ok(s[1].classList.contains("is-local"), "font 1: is local");
-    ok((font1CssName == "Arial") || (font1CssName == "Liberation Sans"),
-       "Arial", "font 1: right css name");
-
-    testDivFonts();
-  }
-
-  function testDivFonts() {
-    inspector.selection.setNode(doc.querySelector("div"));
-    inspector.once("inspector-updated", () => {
-      let s = viewDoc.querySelectorAll("#all-fonts > section");
-      is(s.length, 1, "Found 1 font on DIV");
-      is(s[0].querySelector(".font-name").textContent, "DeLarge Bold",
-        "The DIV font has the right name");
-
-      testShowAllFonts();
-    });
-  }
-
-  function testShowAllFonts() {
-    viewDoc.querySelector("#showall").click();
-    inspector.once("inspector-updated", () => {
-      is(inspector.selection.node, doc.body, "Show all fonts selected the body node");
-      let s = viewDoc.querySelectorAll("#all-fonts > section");
-      is(s.length, 2, "And font-inspector still shows 2 fonts for body");
-
-      finishUp();
-    });
-  }
-
-  function finishUp() {
-    executeSoon(function() {
-      gDevTools.once("toolbox-destroyed", () => {
-        doc = view = viewDoc = inspector = null;
-        gBrowser.removeCurrentTab();
-        finish();
-      });
-      inspector._toolbox.destroy();
-    });
-  }
+  // shouldn't change the node selection
+  is(inspector.selection.nodeFront.nodeName, "DIV", "Show all fonts selected");
+  let sections = viewDoc.querySelectorAll("#all-fonts > section");
+  is(sections.length, 6, "Font inspector shows 6 fonts (1 from iframe)");
 }

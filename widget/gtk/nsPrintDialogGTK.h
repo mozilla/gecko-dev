@@ -22,17 +22,18 @@ typedef enum
 
 class nsPrintDialogServiceGTK : public nsIPrintDialogService
 {
+  virtual ~nsPrintDialogServiceGTK();
+
 public:
   nsPrintDialogServiceGTK();
-  virtual ~nsPrintDialogServiceGTK();
 
   NS_DECL_ISUPPORTS
 
-  NS_IMETHODIMP Init();
+  NS_IMETHODIMP Init() override;
   NS_IMETHODIMP Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings,
-                     nsIWebBrowserPrint *aWebBrowserPrint);
+                     nsIWebBrowserPrint *aWebBrowserPrint) override;
   NS_IMETHODIMP ShowPageSetup(nsIDOMWindow *aParent,
-                              nsIPrintSettings *aSettings);
+                              nsIPrintSettings *aSettings) override;
 };
 
 #endif

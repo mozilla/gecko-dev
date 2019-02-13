@@ -11,7 +11,9 @@ module.metadata = {
 const { Cu } = require("chrome");
 
 // Passing an empty object as second argument to avoid scope's pollution
-const { atob, btoa } = Cu.import("resource://gre/modules/Services.jsm", {});
+// (devtools loader injects these symbols as global and prevent using
+// const here)
+var { atob, btoa } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 function isUTF8(charset) {
   let type = typeof charset;
@@ -27,14 +29,15 @@ function isUTF8(charset) {
 
 exports.decode = function (data, charset) {
   if (isUTF8(charset))
-		return decodeURIComponent(escape(atob(data)))
+    return decodeURIComponent(escape(atob(data)))
 
-	return atob(data);
+  return atob(data);
 }
 
 exports.encode = function (data, charset) {
   if (isUTF8(charset))
     return btoa(unescape(encodeURIComponent(data)))
 
-	return btoa(data);
+  data = String.fromCharCode(...[(c.charCodeAt(0) & 0xff) for (c of data)]);
+  return btoa(data);
 }

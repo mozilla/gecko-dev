@@ -57,5 +57,15 @@ void
 CancelFMRadioSeek()
 {}
 
+bool
+EnableRDS(uint32_t aMask)
+{
+  return false;
+}
+
+void
+DisableRDS()
+{}
+
 } // hal_impl
 } // namespace mozilla

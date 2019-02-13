@@ -16,11 +16,24 @@
       </vbox>
 
       <footer id="PanelUI-footer">
-        <toolbarbutton id="PanelUI-fxa-status"
-                       defaultlabel="&fxaSignIn.label;"
-                       errorlabel="&fxaSignInError.label;"
-                       oncommand="gFxAccounts.onMenuPanelCommand(event);"
+        <toolbarbutton id="PanelUI-update-status"
+                       oncommand="gMenuButtonUpdateBadge.onMenuPanelCommand(event);"
+                       wrap="true"
                        hidden="true"/>
+        <hbox id="PanelUI-footer-fxa">
+          <hbox id="PanelUI-fxa-status"
+                defaultlabel="&fxaSignIn.label;"
+                errorlabel="&fxaSignInError.label;"
+                onclick="gFxAccounts.onMenuPanelCommand();">
+            <image id="PanelUI-fxa-avatar"/>
+            <toolbarbutton id="PanelUI-fxa-label"
+                           fxabrandname="&syncBrand.fxAccount.label;"/>
+          </hbox>
+          <toolbarseparator/>
+          <toolbarbutton id="PanelUI-fxa-icon"
+                         oncommand="gSyncUI.doSync();"
+                         closemenu="none"/>
+        </hbox>
 
         <hbox id="PanelUI-footer-inner">
           <toolbarbutton id="PanelUI-customize" label="&appMenuCustomize.label;"
@@ -37,11 +50,11 @@
           <toolbarseparator/>
           <toolbarbutton id="PanelUI-quit"
 #ifdef XP_WIN
-                         label="&quitApplicationCmdWin.label;"
-                         tooltiptext="&quitApplicationCmdWin.tooltip;"
+                         label="&quitApplicationCmdWin2.label;"
+                         tooltiptext="&quitApplicationCmdWin2.tooltip;"
 #else
 #ifdef XP_MACOSX
-                         label="&quitApplicationCmdMac.label;"
+                         label="&quitApplicationCmdMac2.label;"
 #else
                          label="&quitApplicationCmd.label;"
 #endif
@@ -59,7 +72,7 @@
                        type="checkbox"
                        class="subviewbutton"
                        key="key_gotoHistory"
-                       oncommand="toggleSidebar('viewHistorySidebar'); PanelUI.hide();">
+                       oncommand="SidebarUI.toggle('viewHistorySidebar'); PanelUI.hide();">
           <observes element="viewHistorySidebar" attribute="checked"/>
         </toolbarbutton>
         <toolbarbutton id="appMenuClearRecentHistory"
@@ -98,12 +111,16 @@
                        observes="bookmarkThisPageBroadcaster"
                        command="Browser:AddBookmarkAs"
                        onclick="PanelUI.hide();"/>
+        <toolbarseparator id="panelMenu_pocketSeparator"/>
+        <toolbarbutton id="panelMenu_pocket" label="&pocketMenuitem.label;"
+                       class="subviewbutton cui-withicon"
+                       oncommand="openUILink(Pocket.listURL, event);"/>
         <toolbarseparator/>
         <toolbarbutton id="panelMenu_viewBookmarksSidebar"
                        label="&viewBookmarksSidebar2.label;"
                        class="subviewbutton"
                        key="viewBookmarksSidebarKb"
-                       oncommand="toggleSidebar('viewBookmarksSidebar'); PanelUI.hide();">
+                       oncommand="SidebarUI.toggle('viewBookmarksSidebar'); PanelUI.hide();">
           <observes element="viewBookmarksSidebar" attribute="checked"/>
         </toolbarbutton>
         <toolbarbutton id="panelMenu_viewBookmarksToolbar"
@@ -121,6 +138,17 @@
                        label="&unsortedBookmarksCmd.label;"
                        class="subviewbutton cui-withicon"
                        oncommand="PlacesCommandHook.showPlacesOrganizer('UnfiledBookmarks'); PanelUI.hide();"/>
+        <toolbarseparator>
+          <observes element="readingListSidebar" attribute="hidden"/>
+        </toolbarseparator>
+        <toolbarbutton id="panelMenu_viewReadingListSidebar"
+                       label="&readingList.showSidebar.label;"
+                       class="subviewbutton"
+                       key="key_readingListSidebar"
+                       oncommand="SidebarUI.toggle('readingListSidebar'); PanelUI.hide();">
+          <observes element="readingListSidebar" attribute="checked"/>
+          <observes element="readingListSidebar" attribute="hidden"/>
+        </toolbarbutton>
         <toolbarseparator class="small-separator"/>
         <toolbaritem id="panelMenu_bookmarksMenu"
                      orient="vertical"
@@ -141,9 +169,7 @@
 
     <panelview id="PanelUI-socialapi" flex="1"/>
 
-#ifdef MOZ_LOOP
     <panelview id="PanelUI-loopapi" flex="1"/>
-#endif
 
     <panelview id="PanelUI-feeds" flex="1" oncommand="FeedHandler.subscribeToFeed(null, event);">
       <label value="&feedsMenu.label;" class="panel-subview-header"/>
@@ -165,7 +191,7 @@
     </panelview>
 
     <panelview id="PanelUI-characterEncodingView" flex="1">
-      <label value="&charsetMenu.label;" class="panel-subview-header"/>
+      <label value="&charsetMenu2.label;" class="panel-subview-header"/>
       <vbox class="panel-subview-body">
         <vbox id="PanelUI-characterEncodingView-pinned"
               class="PanelUI-characterEncodingView-list"/>
@@ -180,6 +206,46 @@
         </vbox>
       </vbox>
     </panelview>
+
+    <panelview id="PanelUI-panicView" flex="1">
+      <vbox class="panel-subview-body">
+        <hbox id="PanelUI-panic-timeframe">
+          <image id="PanelUI-panic-timeframe-icon" alt=""/>
+          <vbox flex="1">
+            <hbox id="PanelUI-panic-header">
+              <image id="PanelUI-panic-timeframe-icon-small" alt=""/>
+              <description id="PanelUI-panic-mainDesc" flex="1">&panicButton.view.mainTimeframeDesc;</description>
+            </hbox>
+            <radiogroup id="PanelUI-panic-timeSpan" aria-labelledby="PanelUI-panic-mainDesc" closemenu="none">
+              <radio id="PanelUI-panic-5min" label="&panicButton.view.5min;" selected="true"
+                     value="5" class="subviewradio"/>
+              <radio id="PanelUI-panic-2hr" label="&panicButton.view.2hr;"
+                     value="2" class="subviewradio"/>
+              <radio id="PanelUI-panic-day" label="&panicButton.view.day;"
+                     value="6" class="subviewradio"/>
+            </radiogroup>
+          </vbox>
+        </hbox>
+        <vbox id="PanelUI-panic-explanations">
+          <label id="PanelUI-panic-actionlist-main-label">&panicButton.view.mainActionDesc;</label>
+
+          <label id="PanelUI-panic-actionlist-windows" class="PanelUI-panic-actionlist">&panicButton.view.deleteTabsAndWindows;</label>
+          <label id="PanelUI-panic-actionlist-cookies" class="PanelUI-panic-actionlist">&panicButton.view.deleteCookies;</label>
+          <label id="PanelUI-panic-actionlist-history" class="PanelUI-panic-actionlist">&panicButton.view.deleteHistory;</label>
+          <label id="PanelUI-panic-actionlist-newwindow" class="PanelUI-panic-actionlist">&panicButton.view.openNewWindow;</label>
+
+          <label id="PanelUI-panic-warning">&panicButton.view.undoWarning;</label>
+        </vbox>
+        <button id="PanelUI-panic-view-button"
+                label="&panicButton.view.forgetButton;"/>
+      </vbox>
+    </panelview>
+
+    <panelview id="PanelUI-pocketView" flex="1">
+      <vbox class="panel-subview-body">
+      </vbox>
+    </panelview>
+
 
   </panelmultiview>
   <!-- These menupopups are located here to prevent flickering,
@@ -248,4 +314,22 @@
       <toolbarbutton oncommand="gCustomizeMode.hideTip()" class="close-icon"/>
     </vbox>
   </hbox>
+</panel>
+
+<panel id="panic-button-success-notification"
+       type="arrow"
+       position="bottomcenter topright"
+       hidden="true"
+       role="alert"
+       orient="vertical">
+  <hbox id="panic-button-success-header">
+    <image id="panic-button-success-icon" alt=""/>
+    <vbox>
+      <description>&panicButton.thankyou.msg1;</description>
+      <description>&panicButton.thankyou.msg2;</description>
+    </vbox>
+  </hbox>
+  <button label="&panicButton.thankyou.buttonlabel;"
+          id="panic-button-success-closebutton"
+          oncommand="PanicButtonNotifier.close()"/>
 </panel>

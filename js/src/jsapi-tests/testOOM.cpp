@@ -10,14 +10,16 @@ BEGIN_TEST(testOOM)
 {
     JS::RootedValue v(cx, JS::Int32Value(9));
     JS::RootedString jsstr(cx, JS::ToString(cx, v));
-    mozilla::DebugOnly<const jschar *> s = JS_GetStringCharsZ(cx, jsstr);
-    JS_ASSERT(s[0] == '9' && s[1] == '\0');
+    char16_t ch;
+    if (!JS_GetStringCharAt(cx, jsstr, 0, &ch))
+        return false;
+    MOZ_RELEASE_ASSERT(ch == '9');
     return true;
 }
 
-virtual JSRuntime * createRuntime()
+virtual JSRuntime * createRuntime() override
 {
-    JSRuntime *rt = JS_NewRuntime(0);
+    JSRuntime* rt = JS_NewRuntime(0);
     if (!rt)
         return nullptr;
     JS_SetGCParameter(rt, JSGC_MAX_BYTES, (uint32_t)-1);
@@ -52,7 +54,7 @@ BEGIN_TEST(testNewRuntime)
 {
     uninit(); // Get rid of test harness' original JSRuntime.
 
-    JSRuntime *rt;
+    JSRuntime* rt;
     START_OOM_TEST("new runtime");
     rt = JS_NewRuntime(8L * 1024 * 1024);
     if (rt)

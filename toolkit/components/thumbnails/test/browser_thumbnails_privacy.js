@@ -36,14 +36,6 @@ function runTests() {
     {scheme: "https", cacheControl: "private", diskCacheSSL: false}
   ];
 
-  let urls = positive.map((combi) => {
-    let url = combi.scheme + URL;
-    if (combi.cacheControl)
-      url += "?" + combi.cacheControl;
-    return url;
-  });
-  yield addVisitsAndRepopulateNewTabLinks(urls, next);
-
   yield checkCombinations(positive, true);
   yield checkCombinations(negative, false);
 }
@@ -60,15 +52,23 @@ function checkCombinations(aCombinations, aResult) {
     url += "?" + combi.cacheControl;
   Services.prefs.setBoolPref(PREF_DISK_CACHE_SSL, combi.diskCacheSSL);
 
+  // Add the test page as a top link so it has a chance to be thumbnailed
+  addVisitsAndRepopulateNewTabLinks(url, _ => {
+    testCombination(combi, url, aCombinations, aResult);
+  });
+}
+
+function testCombination(combi, url, aCombinations, aResult) {
   let tab = gBrowser.selectedTab = gBrowser.addTab(url);
   let browser = gBrowser.selectedBrowser;
 
-  whenLoaded(browser, function () {
+  whenLoaded(browser, () => {
     let msg = JSON.stringify(combi) + " == " + aResult;
-    is(gBrowserThumbnails._shouldCapture(browser), aResult, msg);
-    gBrowser.removeTab(tab);
-
-    // Continue with the next combination.
-    checkCombinations(aCombinations, aResult);
+    PageThumbs.shouldStoreThumbnail(browser, (aIsSafeSite) => {
+      is(aIsSafeSite, aResult, msg);
+      gBrowser.removeTab(tab);
+      // Continue with the next combination.
+      checkCombinations(aCombinations, aResult);
+    });
   });
 }

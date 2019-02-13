@@ -29,7 +29,6 @@ SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(ImageClient* aCompositable)
 : PlanarYCbCrImage(nullptr)
 , mCompositable(aCompositable)
 {
-  mTextureClient = aCompositable->CreateBufferTextureClient(gfx::SurfaceFormat::YUV);
   MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
 }
 
@@ -38,8 +37,13 @@ SharedPlanarYCbCrImage::~SharedPlanarYCbCrImage() {
 
   if (mCompositable->GetAsyncID() != 0 &&
       !InImageBridgeChildThread()) {
-    ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient.forget().drop());
-    ImageBridgeChild::DispatchReleaseImageClient(mCompositable.forget().drop());
+    if (mTextureClient) {
+      ADDREF_MANUALLY(mTextureClient);
+      ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient);
+      mTextureClient = nullptr;
+    }
+
+    ImageBridgeChild::DispatchReleaseImageClient(mCompositable.forget().take());
   }
 }
 
@@ -69,7 +73,7 @@ SharedPlanarYCbCrImage::GetBuffer()
 TemporaryRef<gfx::SourceSurface>
 SharedPlanarYCbCrImage::GetAsSourceSurface()
 {
-  if (!mTextureClient->IsAllocated()) {
+  if (!mTextureClient) {
     NS_WARNING("Can't get as surface");
     return nullptr;
   }
@@ -79,15 +83,12 @@ SharedPlanarYCbCrImage::GetAsSourceSurface()
 void
 SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
 {
-  // If mShmem has not been allocated (through Allocate(aData)), allocate it.
-  // This code path is slower than the one used when Allocate has been called
-  // since it will trigger a full copy.
-  if (!mTextureClient->IsAllocated()) {
-    Data data = aData;
-    if (!Allocate(data)) {
-      NS_WARNING("SharedPlanarYCbCrImage::SetData failed to allocate");
-      return;
-    }
+  // If mTextureClient has not already been allocated (through Allocate(aData))
+  // allocate it. This code path is slower than the one used when Allocate has
+  // been called since it will trigger a full copy.
+  PlanarYCbCrData data = aData;
+  if (!mTextureClient && !Allocate(data)) {
+    return;
   }
 
   MOZ_ASSERT(mTextureClient->AsTextureClientYCbCr());
@@ -100,17 +101,6 @@ SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
     MOZ_ASSERT(false, "Failed to copy YCbCr data into the TextureClient");
     return;
   }
-  // do not set mBuffer like in PlanarYCbCrImage because the later
-  // will try to manage this memory without knowing it belongs to a
-  // shmem.
-  mBufferSize = YCbCrImageDataSerializer::ComputeMinBufferSize(mData.mYSize,
-                                                               mData.mCbCrSize);
-  mSize = mData.mPicSize;
-
-  YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer(), mTextureClient->GetBufferSize());
-  mData.mYChannel = serializer.GetYData();
-  mData.mCbChannel = serializer.GetCbData();
-  mData.mCrChannel = serializer.GetCrData();
   mTextureClient->MarkImmutable();
 }
 
@@ -119,11 +109,18 @@ SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
 uint8_t*
 SharedPlanarYCbCrImage::AllocateAndGetNewBuffer(uint32_t aSize)
 {
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(), "This image already has allocated data");
+  MOZ_ASSERT(!mTextureClient, "This image already has allocated data");
   size_t size = YCbCrImageDataSerializer::ComputeMinBufferSize(aSize);
+  if (!size) {
+    return nullptr;
+  }
+
+  mTextureClient = TextureClient::CreateWithBufferSize(mCompositable->GetForwarder(),
+                                                       gfx::SurfaceFormat::YUV, size,
+                                                       mCompositable->GetTextureFlags());
 
   // get new buffer _without_ setting mBuffer.
-  if (!mTextureClient->Allocate(size)) {
+  if (!mTextureClient) {
     return nullptr;
   }
 
@@ -137,6 +134,7 @@ SharedPlanarYCbCrImage::AllocateAndGetNewBuffer(uint32_t aSize)
 void
 SharedPlanarYCbCrImage::SetDataNoCopy(const Data &aData)
 {
+  MOZ_ASSERT(mTextureClient, "This Image should have already allocated data");
   mData = aData;
   mSize = aData.mPicSize;
   /* SetDataNoCopy is used to update YUV plane offsets without (re)allocating
@@ -163,9 +161,12 @@ SharedPlanarYCbCrImage::SetDataNoCopy(const Data &aData)
 uint8_t*
 SharedPlanarYCbCrImage::AllocateBuffer(uint32_t aSize)
 {
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(),
-                    "This image already has allocated data");
-  if (!mTextureClient->Allocate(aSize)) {
+  MOZ_ASSERT(!mTextureClient,
+             "This image already has allocated data");
+  mTextureClient = TextureClient::CreateWithBufferSize(mCompositable->GetForwarder(),
+                                                       gfx::SurfaceFormat::YUV, aSize,
+                                                       mCompositable->GetTextureFlags());
+  if (!mTextureClient) {
     return nullptr;
   }
   return mTextureClient->GetBuffer();
@@ -173,19 +174,21 @@ SharedPlanarYCbCrImage::AllocateBuffer(uint32_t aSize)
 
 bool
 SharedPlanarYCbCrImage::IsValid() {
-  return mTextureClient->IsAllocated();
+  return !!mTextureClient;
 }
 
 bool
 SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
 {
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(),
-                    "This image already has allocated data");
+  MOZ_ASSERT(!mTextureClient,
+             "This image already has allocated data");
 
-  size_t size = YCbCrImageDataSerializer::ComputeMinBufferSize(aData.mYSize,
-                                                               aData.mCbCrSize);
-
-  if (AllocateBuffer(static_cast<uint32_t>(size)) == nullptr) {
+  mTextureClient = TextureClient::CreateForYCbCr(mCompositable->GetForwarder(),
+                                                 aData.mYSize, aData.mCbCrSize,
+                                                 aData.mStereoMode,
+                                                 mCompositable->GetTextureFlags());
+  if (!mTextureClient) {
+    NS_WARNING("SharedPlanarYCbCrImage::Allocate failed.");
     return false;
   }
 
@@ -217,7 +220,14 @@ SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
   mData.mYStride = mData.mYSize.width;
   mData.mCbCrStride = mData.mCbCrSize.width;
 
-  return true;
+  // do not set mBuffer like in PlanarYCbCrImage because the later
+  // will try to manage this memory without knowing it belongs to a
+  // shmem.
+  mBufferSize = YCbCrImageDataSerializer::ComputeMinBufferSize(mData.mYSize,
+                                                               mData.mCbCrSize);
+  mSize = mData.mPicSize;
+
+  return mBufferSize > 0;
 }
 
 } // namespace

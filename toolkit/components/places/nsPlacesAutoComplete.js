@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 expandtab
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Constants
@@ -25,17 +27,17 @@ const Cr = Components.results;
 //   - the bookmark title, if it is a bookmark (kQueryIndexBookmarkTitle)
 //   - the tags associated with a bookmarked entry (kQueryIndexTags)
 const kBookTagSQLFragment =
-  "EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) AS bookmarked, "
-+ "( "
-+   "SELECT title FROM moz_bookmarks WHERE fk = h.id AND title NOTNULL "
-+   "ORDER BY lastModified DESC LIMIT 1 "
-+ ") AS btitle, "
-+ "( "
-+   "SELECT GROUP_CONCAT(t.title, ',') "
-+   "FROM moz_bookmarks b "
-+   "JOIN moz_bookmarks t ON t.id = +b.parent AND t.parent = :parent "
-+   "WHERE b.fk = h.id "
-+ ") AS tags";
+  `EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) AS bookmarked,
+   (
+     SELECT title FROM moz_bookmarks WHERE fk = h.id AND title NOTNULL
+     ORDER BY lastModified DESC LIMIT 1
+   ) AS btitle,
+   (
+     SELECT GROUP_CONCAT(t.title, ',')
+     FROM moz_bookmarks b
+     JOIN moz_bookmarks t ON t.id = +b.parent AND t.parent = :parent
+     WHERE b.fk = h.id
+   ) AS tags`;
 
 // observer topics
 const kTopicShutdown = "places-shutdown";
@@ -105,10 +107,10 @@ function initTempTable(aDatabase)
   // Note: this should be kept up-to-date with the definition in
   //       nsPlacesTables.h.
   let stmt = aDatabase.createAsyncStatement(
-    "CREATE TEMP TABLE moz_openpages_temp ( "
-  + "  url TEXT PRIMARY KEY "
-  + ", open_count INTEGER "
-  + ") "
+    `CREATE TEMP TABLE moz_openpages_temp (
+       url TEXT PRIMARY KEY
+     , open_count INTEGER
+     )`
   );
   stmt.executeAsync();
   stmt.finalize();
@@ -116,13 +118,13 @@ function initTempTable(aDatabase)
   // Note: this should be kept up-to-date with the definition in
   //       nsPlacesTriggers.h.
   stmt = aDatabase.createAsyncStatement(
-    "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger "
-  + "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW "
-  + "WHEN NEW.open_count = 0 "
-  + "BEGIN "
-  +   "DELETE FROM moz_openpages_temp "
-  +   "WHERE url = NEW.url; "
-  + "END "
+    `CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger
+     AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW
+     WHEN NEW.open_count = 0
+     BEGIN
+       DELETE FROM moz_openpages_temp
+       WHERE url = NEW.url;
+     END`
   );
   stmt.executeAsync();
   stmt.finalize();
@@ -200,7 +202,6 @@ function safePrefGetter(aPrefBranch, aName, aDefault) {
     return aDefault;
   }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //// AutoCompleteStatementCallbackWrapper class
@@ -286,21 +287,24 @@ function nsPlacesAutoComplete()
   // TODO bug 412736 in case of a frecency tie, break it with h.typed and
   // h.visit_count which is better than nothing.  This is slow, so not doing it
   // yet...
-  const SQL_BASE = "SELECT h.url, h.title, f.url, " + kBookTagSQLFragment + ", "
-                 +        "h.visit_count, h.typed, h.id, :query_type, "
-                 +        "t.open_count "
-                 + "FROM moz_places h "
-                 + "LEFT JOIN moz_favicons f ON f.id = h.favicon_id "
-                 + "LEFT JOIN moz_openpages_temp t ON t.url = h.url "
-                 + "WHERE h.frecency <> 0 "
-                 +   "AND AUTOCOMPLETE_MATCH(:searchString, h.url, "
-                 +                          "IFNULL(btitle, h.title), tags, "
-                 +                          "h.visit_count, h.typed, "
-                 +                          "bookmarked, t.open_count, "
-                 +                          ":matchBehavior, :searchBehavior) "
-                 +  "{ADDITIONAL_CONDITIONS} "
-                 + "ORDER BY h.frecency DESC, h.id DESC "
-                 + "LIMIT :maxResults";
+  function baseQuery(conditions = "") {
+    let query = `SELECT h.url, h.title, f.url, ${kBookTagSQLFragment},
+                        h.visit_count, h.typed, h.id, :query_type,
+                        t.open_count
+                 FROM moz_places h
+                 LEFT JOIN moz_favicons f ON f.id = h.favicon_id
+                 LEFT JOIN moz_openpages_temp t ON t.url = h.url
+                 WHERE h.frecency <> 0
+                   AND AUTOCOMPLETE_MATCH(:searchString, h.url,
+                                          IFNULL(btitle, h.title), tags,
+                                          h.visit_count, h.typed,
+                                          bookmarked, t.open_count,
+                                          :matchBehavior, :searchBehavior)
+                 ${conditions}
+                 ORDER BY h.frecency DESC, h.id DESC
+                 LIMIT :maxResults`;
+    return query;
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Smart Getters
@@ -314,7 +318,7 @@ function nsPlacesAutoComplete()
 
     // Autocomplete often fallbacks to a table scan due to lack of text indices.
     // In such cases a larger cache helps reducing IO.  The default Storage
-    // value is MAX_CACHE_SIZE_BYTES in storage/src/mozStorageConnection.cpp.
+    // value is MAX_CACHE_SIZE_BYTES in storage/mozStorageConnection.cpp.
     let stmt = db.createAsyncStatement("PRAGMA cache_size = -6144"); // 6MiB
     stmt.executeAsync();
     stmt.finalize();
@@ -342,129 +346,114 @@ function nsPlacesAutoComplete()
     return db;
   });
 
+  this._customQuery = (conditions = "") => {
+    return this._db.createAsyncStatement(baseQuery(conditions));
+  };
+
   XPCOMUtils.defineLazyGetter(this, "_defaultQuery", function() {
-    let replacementText = "";
-    return this._db.createAsyncStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
-    );
+    return this._db.createAsyncStatement(baseQuery());
   });
 
   XPCOMUtils.defineLazyGetter(this, "_historyQuery", function() {
     // Enforce ignoring the visit_count index, since the frecency one is much
     // faster in this case.  ANALYZE helps the query planner to figure out the
     // faster path, but it may not have run yet.
-    let replacementText = "AND +h.visit_count > 0";
-    return this._db.createAsyncStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
-    );
+    return this._db.createAsyncStatement(baseQuery("AND +h.visit_count > 0"));
   });
 
   XPCOMUtils.defineLazyGetter(this, "_bookmarkQuery", function() {
-    let replacementText = "AND bookmarked";
-    return this._db.createAsyncStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
-    );
+    return this._db.createAsyncStatement(baseQuery("AND bookmarked"));
   });
 
   XPCOMUtils.defineLazyGetter(this, "_tagsQuery", function() {
-    let replacementText = "AND tags IS NOT NULL";
-    return this._db.createAsyncStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
-    );
+    return this._db.createAsyncStatement(baseQuery("AND tags IS NOT NULL"));
   });
 
   XPCOMUtils.defineLazyGetter(this, "_openPagesQuery", function() {
     return this._db.createAsyncStatement(
-      "SELECT t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "
-    +         ":query_type, t.open_count, NULL "
-    + "FROM moz_openpages_temp t "
-    + "LEFT JOIN moz_places h ON h.url = t.url "
-    + "WHERE h.id IS NULL "
-    +   "AND AUTOCOMPLETE_MATCH(:searchString, t.url, t.url, NULL, "
-    +                          "NULL, NULL, NULL, t.open_count, "
-    +                          ":matchBehavior, :searchBehavior) "
-    + "ORDER BY t.ROWID DESC "
-    + "LIMIT :maxResults "
+      `SELECT t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+              :query_type, t.open_count, NULL
+       FROM moz_openpages_temp t
+       LEFT JOIN moz_places h ON h.url = t.url
+       WHERE h.id IS NULL
+         AND AUTOCOMPLETE_MATCH(:searchString, t.url, t.url, NULL,
+                                NULL, NULL, NULL, t.open_count,
+                                :matchBehavior, :searchBehavior)
+       ORDER BY t.ROWID DESC
+       LIMIT :maxResults`
     );
   });
 
   XPCOMUtils.defineLazyGetter(this, "_typedQuery", function() {
-    let replacementText = "AND h.typed = 1";
-    return this._db.createAsyncStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
-    );
+    return this._db.createAsyncStatement(baseQuery("AND h.typed = 1"));
   });
 
   XPCOMUtils.defineLazyGetter(this, "_adaptiveQuery", function() {
     return this._db.createAsyncStatement(
-      "/* do not warn (bug 487789) */ "
-    + "SELECT h.url, h.title, f.url, " + kBookTagSQLFragment + ", "
-    +         "h.visit_count, h.typed, h.id, :query_type, t.open_count "
-    + "FROM ( "
-    + "SELECT ROUND( "
-    +     "MAX(use_count) * (1 + (input = :search_string)), 1 "
-    +   ") AS rank, place_id "
-    +   "FROM moz_inputhistory "
-    +   "WHERE input BETWEEN :search_string AND :search_string || X'FFFF' "
-    +   "GROUP BY place_id "
-    + ") AS i "
-    + "JOIN moz_places h ON h.id = i.place_id "
-    + "LEFT JOIN moz_favicons f ON f.id = h.favicon_id "
-    + "LEFT JOIN moz_openpages_temp t ON t.url = h.url "
-    + "WHERE AUTOCOMPLETE_MATCH(NULL, h.url, "
-    +                          "IFNULL(btitle, h.title), tags, "
-    +                          "h.visit_count, h.typed, bookmarked, "
-    +                          "t.open_count, "
-    +                          ":matchBehavior, :searchBehavior) "
-    + "ORDER BY rank DESC, h.frecency DESC "
+      `/* do not warn (bug 487789) */
+       SELECT h.url, h.title, f.url, ${kBookTagSQLFragment},
+              h.visit_count, h.typed, h.id, :query_type, t.open_count
+       FROM (
+       SELECT ROUND(
+           MAX(use_count) * (1 + (input = :search_string)), 1
+         ) AS rank, place_id
+         FROM moz_inputhistory
+         WHERE input BETWEEN :search_string AND :search_string || X'FFFF'
+         GROUP BY place_id
+       ) AS i
+       JOIN moz_places h ON h.id = i.place_id
+       LEFT JOIN moz_favicons f ON f.id = h.favicon_id
+       LEFT JOIN moz_openpages_temp t ON t.url = h.url
+       WHERE AUTOCOMPLETE_MATCH(NULL, h.url,
+                                IFNULL(btitle, h.title), tags,
+                                h.visit_count, h.typed, bookmarked,
+                                t.open_count,
+                                :matchBehavior, :searchBehavior)
+       ORDER BY rank DESC, h.frecency DESC`
     );
   });
 
   XPCOMUtils.defineLazyGetter(this, "_keywordQuery", function() {
     return this._db.createAsyncStatement(
-      "/* do not warn (bug 487787) */ "
-    + "SELECT "
-    +  "(SELECT REPLACE(url, '%s', :query_string) FROM moz_places WHERE id = b.fk) "
-    +  "AS search_url, h.title, "
-    +  "IFNULL(f.url, (SELECT f.url "
-    +                 "FROM moz_places "
-    +                 "JOIN moz_favicons f ON f.id = favicon_id "
-    +                 "WHERE rev_host = (SELECT rev_host FROM moz_places WHERE id = b.fk) "
-    +                 "ORDER BY frecency DESC "
-    +                 "LIMIT 1) "
-    + "), 1, b.title, NULL, h.visit_count, h.typed, IFNULL(h.id, b.fk), "
-    +  ":query_type, t.open_count "
-    +  "FROM moz_keywords k "
-    +  "JOIN moz_bookmarks b ON b.keyword_id = k.id "
-    +  "LEFT JOIN moz_places h ON h.url = search_url "
-    +  "LEFT JOIN moz_favicons f ON f.id = h.favicon_id "
-    +  "LEFT JOIN moz_openpages_temp t ON t.url = search_url "
-    +  "WHERE LOWER(k.keyword) = LOWER(:keyword) "
-    +  "ORDER BY h.frecency DESC "
+      `/* do not warn (bug 487787) */
+       SELECT REPLACE(h.url, '%s', :query_string) AS search_url, h.title,
+       IFNULL(f.url, (SELECT f.url
+                      FROM moz_places
+                      JOIN moz_favicons f ON f.id = favicon_id
+                      WHERE rev_host = h.rev_host
+                      ORDER BY frecency DESC
+                      LIMIT 1)
+       ), 1, NULL, NULL, h.visit_count, h.typed, h.id,
+       :query_type, t.open_count
+       FROM moz_keywords k
+       JOIN moz_places h ON k.place_id = h.id
+       LEFT JOIN moz_favicons f ON f.id = h.favicon_id
+       LEFT JOIN moz_openpages_temp t ON t.url = search_url
+       WHERE k.keyword = LOWER(:keyword)`
     );
   });
 
-  this._registerOpenPageQuerySQL = "INSERT OR REPLACE INTO moz_openpages_temp "
-                                 +   "(url, open_count) "
-                                 + "VALUES (:page_url, "
-                                 +   "IFNULL("
-                                 +     "("
-                                 +        "SELECT open_count + 1 "
-                                 +        "FROM moz_openpages_temp "
-                                 +        "WHERE url = :page_url "
-                                 +      "), "
-                                 +     "1"
-                                 +   ")"
-                                 + ")";
+  this._registerOpenPageQuerySQL =
+    `INSERT OR REPLACE INTO moz_openpages_temp (url, open_count)
+       VALUES (:page_url,
+         IFNULL(
+           (
+             SELECT open_count + 1
+             FROM moz_openpages_temp
+             WHERE url = :page_url
+           ),
+           1
+         )
+       )`;
   XPCOMUtils.defineLazyGetter(this, "_registerOpenPageQuery", function() {
     return this._db.createAsyncStatement(this._registerOpenPageQuerySQL);
   });
 
   XPCOMUtils.defineLazyGetter(this, "_unregisterOpenPageQuery", function() {
     return this._db.createAsyncStatement(
-      "UPDATE moz_openpages_temp "
-    + "SET open_count = open_count - 1 "
-    + "WHERE url = :page_url"
+      `UPDATE moz_openpages_temp
+       SET open_count = open_count - 1
+       WHERE url = :page_url`
     );
   });
 
@@ -475,6 +464,7 @@ function nsPlacesAutoComplete()
   this._prefs = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefService).
                 getBranch(kBrowserUrlbarBranch);
+  this._syncEnabledPref(true);
   this._loadPrefs(true);
 
   // register observers
@@ -504,8 +494,9 @@ nsPlacesAutoComplete.prototype = {
     this._currentSearchString =
       fixupSearchText(this._originalSearchString.toLowerCase());
 
-    let searchParamParts = aSearchParam.split(" ");
-    this._enableActions = searchParamParts.indexOf("enable-actions") != -1;
+    let params = new Set(aSearchParam.split(" "));
+    this._enableActions = params.has("enable-actions");
+    this._disablePrivateActions = params.has("disable-private-actions");
 
     this._listener = aListener;
     let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
@@ -538,8 +529,13 @@ nsPlacesAutoComplete.prototype = {
     let {query, tokens} =
       this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
     let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
-      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery()] :
+      [this._getBoundAdaptiveQuery()];
+
+    if (this._hasBehavior("openpage")) {
+      queries.push(this._getBoundOpenPagesQuery(tokens));
+    }
+    queries.push(query);
 
     // Start executing our queries.
     this._telemetryStartTime = Date.now();
@@ -700,7 +696,7 @@ nsPlacesAutoComplete.prototype = {
       }
     }
     else if (aTopic == kPrefChanged) {
-      this._loadPrefs();
+      this._loadPrefs(aSubject, aTopic, aData);
     }
   },
 
@@ -809,13 +805,51 @@ nsPlacesAutoComplete.prototype = {
   },
 
   /**
+   * Synchronize suggest.* prefs with autocomplete.enabled.
+   */
+  _syncEnabledPref: function PAC_syncEnabledPref(init = false)
+  {
+    let suggestPrefs = ["suggest.history", "suggest.bookmark", "suggest.openpage"];
+    let types = ["History", "Bookmark", "Openpage", "Typed"];
+
+    if (init) {
+      // Make sure to initialize the properties when first called with init = true.
+      this._enabled = safePrefGetter(this._prefs, kBrowserUrlbarAutocompleteEnabledPref,
+                                     true);
+      this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
+      this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
+      this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
+      this._suggestTyped = safePrefGetter(this._prefs, "suggest.history.onlyTyped", false);
+    }
+
+    if (this._enabled) {
+      // If the autocomplete preference is active, activate all suggest
+      // preferences only if all of them are false.
+      if (types.every(type => this["_suggest" + type] == false)) {
+        for (let type of suggestPrefs) {
+          this._prefs.setBoolPref(type, true);
+        }
+      }
+    } else {
+      // If the preference was deactivated, deactivate all suggest preferences.
+      for (let type of suggestPrefs) {
+        this._prefs.setBoolPref(type, false);
+      }
+    }
+  },
+
+  /**
    * Loads the preferences that we care about.
    *
    * @param [optional] aRegisterObserver
    *        Indicates if the preference observer should be added or not.  The
    *        default value is false.
+   * @param [optional] aTopic
+   *        Observer's topic, if any.
+   * @param [optional] aSubject
+   *        Observer's subject, if any.
    */
-  _loadPrefs: function PAC_loadPrefs(aRegisterObserver)
+  _loadPrefs: function PAC_loadPrefs(aRegisterObserver, aTopic, aData)
   {
     this._enabled = safePrefGetter(this._prefs,
                                    kBrowserUrlbarAutocompleteEnabledPref,
@@ -835,13 +869,36 @@ nsPlacesAutoComplete.prototype = {
                                                  "restrict.openpage", "%");
     this._matchTitleToken = safePrefGetter(this._prefs, "match.title", "#");
     this._matchURLToken = safePrefGetter(this._prefs, "match.url", "@");
-    this._defaultBehavior = safePrefGetter(this._prefs, "default.behavior", 0);
+
+    this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
+    this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
+    this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
+    this._suggestTyped = safePrefGetter(this._prefs, "suggest.history.onlyTyped", false);
+
+    // If history is not set, onlyTyped value should be ignored.
+    if (!this._suggestHistory) {
+      this._suggestTyped = false;
+    }
+    let types = ["History", "Bookmark", "Openpage", "Typed"];
+    this._defaultBehavior = types.reduce((memo, type) => {
+      let prefValue = this["_suggest" + type];
+      return memo | (prefValue &&
+                     Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()]);
+    }, 0);
+
     // Further restrictions to apply for "empty searches" (i.e. searches for "").
-    this._emptySearchDefaultBehavior =
-      this._defaultBehavior |
-      safePrefGetter(this._prefs, "default.behavior.emptyRestriction",
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED);
+    // The empty behavior is typed history, if history is enabled. Otherwise,
+    // it is bookmarks, if they are enabled. If both history and bookmarks are disabled,
+    // it defaults to open pages.
+    this._emptySearchDefaultBehavior = Ci.mozIPlacesAutoComplete.BEHAVIOR_RESTRICT;
+    if (this._suggestHistory) {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                                          Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED;
+    } else if (this._suggestBookmark) {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
+    } else {
+      this._emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE;
+    }
 
     // Validate matchBehavior; default to MATCH_BOUNDARY_ANYWHERE.
     if (this._matchBehavior != MATCH_ANYWHERE &&
@@ -852,6 +909,12 @@ nsPlacesAutoComplete.prototype = {
     // register observer
     if (aRegisterObserver) {
       this._prefs.addObserver("", this, false);
+    }
+
+    // Synchronize suggest.* prefs with autocomplete.enabled every time
+    // autocomplete.enabled is changed.
+    if (aData == kBrowserUrlbarAutocompleteEnabledPref) {
+      this._syncEnabledPref();
     }
   },
 
@@ -868,33 +931,43 @@ nsPlacesAutoComplete.prototype = {
    */
   _getSearch: function PAC_getSearch(aTokens)
   {
+    let foundToken = false;
+    let restrict = (behavior) => {
+      if (!foundToken) {
+        this._behavior = 0;
+        this._setBehavior("restrict");
+        foundToken = true;
+      }
+      this._setBehavior(behavior);
+    };
+
     // Set the proper behavior so our call to _getBoundSearchQuery gives us the
     // correct query.
     for (let i = aTokens.length - 1; i >= 0; i--) {
       switch (aTokens[i]) {
         case this._restrictHistoryToken:
-          this._setBehavior("history");
+          restrict("history");
           break;
         case this._restrictBookmarkToken:
-          this._setBehavior("bookmark");
+          restrict("bookmark");
           break;
         case this._restrictTagToken:
-          this._setBehavior("tag");
+          restrict("tag");
           break;
         case this._restrictOpenPageToken:
           if (!this._enableActions) {
             continue;
           }
-          this._setBehavior("openpage");
+          restrict("openpage");
           break;
         case this._matchTitleToken:
-          this._setBehavior("title");
+          restrict("title");
           break;
         case this._matchURLToken:
-          this._setBehavior("url");
+          restrict("url");
           break;
         case this._restrictTypedToken:
-          this._setBehavior("typed");
+          restrict("typed");
           break;
         default:
           // We do not want to remove the token if we did not match.
@@ -918,6 +991,38 @@ nsPlacesAutoComplete.prototype = {
   },
 
   /**
+   * @return a string consisting of the search query to be used based on the
+   * previously set urlbar suggestion preferences.
+   */
+  _getSuggestionPrefQuery: function PAC_getSuggestionPrefQuery()
+  {
+    if (!this._hasBehavior("restrict") && this._hasBehavior("history") &&
+        this._hasBehavior("bookmark")) {
+      return this._hasBehavior("typed") ? this._customQuery("AND h.typed = 1")
+                                        : this._defaultQuery;
+    }
+    let conditions = [];
+    if (this._hasBehavior("history")) {
+      // Enforce ignoring the visit_count index, since the frecency one is much
+      // faster in this case.  ANALYZE helps the query planner to figure out the
+      // faster path, but it may not have up-to-date information yet.
+      conditions.push("+h.visit_count > 0");
+    }
+    if (this._hasBehavior("typed")) {
+      conditions.push("h.typed = 1");
+    }
+    if (this._hasBehavior("bookmark")) {
+      conditions.push("bookmarked");
+    }
+    if (this._hasBehavior("tag")) {
+      conditions.push("tags NOTNULL");
+    }
+
+    return conditions.length ? this._customQuery("AND " + conditions.join(" AND "))
+                             : this._defaultQuery;
+  },
+
+  /**
    * Obtains the search query to be used based on the previously set search
    * behaviors (accessed by this._hasBehavior).  The query is bound and ready to
    * execute.
@@ -934,33 +1039,22 @@ nsPlacesAutoComplete.prototype = {
   _getBoundSearchQuery: function PAC_getBoundSearchQuery(aMatchBehavior,
                                                          aTokens)
   {
-    // We use more optimized queries for restricted searches, so we will always
-    // return the most restrictive one to the least restrictive one if more than
-    // one token is found.
-    // Note: "openpages" behavior is supported by the default query.
-    //       _openPagesQuery instead returns only pages not supported by
-    //       history and it is always executed.
-    let query = this._hasBehavior("tag") ? this._tagsQuery :
-                this._hasBehavior("bookmark") ? this._bookmarkQuery :
-                this._hasBehavior("typed") ? this._typedQuery :
-                this._hasBehavior("history") ? this._historyQuery :
-                this._defaultQuery;
+    let query = this._getSuggestionPrefQuery();
 
     // Bind the needed parameters to the query so consumers can use it.
-    let (params = query.params) {
-      params.parent = PlacesUtils.tagsFolderId;
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = aMatchBehavior;
-      params.searchBehavior = this._behavior;
+    let params = query.params;
+    params.parent = PlacesUtils.tagsFolderId;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = aMatchBehavior;
+    params.searchBehavior = this._behavior;
 
-      // We only want to search the tokens that we are left with - not the
-      // original search string.
-      params.searchString = aTokens.join(" ");
+    // We only want to search the tokens that we are left with - not the
+    // original search string.
+    params.searchString = aTokens.join(" ");
 
-      // Limit the query to the the maximum number of desired results.
-      // This way we can avoid doing more work than needed.
-      params.maxResults = this._maxRichResults;
-    }
+    // Limit the query to the the maximum number of desired results.
+    // This way we can avoid doing more work than needed.
+    params.maxResults = this._maxRichResults;
 
     return query;
   },
@@ -970,15 +1064,15 @@ nsPlacesAutoComplete.prototype = {
     let query = this._openPagesQuery;
 
     // Bind the needed parameters to the query so consumers can use it.
-    let (params = query.params) {
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = this._matchBehavior;
-      params.searchBehavior = this._behavior;
-      // We only want to search the tokens that we are left with - not the
-      // original search string.
-      params.searchString = aTokens.join(" ");
-      params.maxResults = this._maxRichResults;
-    }
+    let params = query.params;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = this._matchBehavior;
+    params.searchBehavior = this._behavior;
+
+    // We only want to search the tokens that we are left with - not the
+    // original search string.
+    params.searchString = aTokens.join(" ");
+    params.maxResults = this._maxRichResults;
 
     return query;
   },
@@ -1001,17 +1095,16 @@ nsPlacesAutoComplete.prototype = {
       queryString = searchString.substring(queryIndex + 1);
     }
     // We need to escape the parameters as if they were the query in a URL
-    queryString = encodeURIComponent(queryString).replace("%20", "+", "g");
+    queryString = encodeURIComponent(queryString).replace(/%20/g, "+");
 
     // The first word could be a keyword, so that's what we'll search.
     let keyword = aTokens[0];
 
     let query = this._keywordQuery;
-    let (params = query.params) {
-      params.keyword = keyword;
-      params.query_string = queryString;
-      params.query_type = kQueryTypeKeyword;
-    }
+    let params = query.params;
+    params.keyword = keyword;
+    params.query_string = queryString;
+    params.query_type = kQueryTypeKeyword;
 
     return query;
   },
@@ -1029,13 +1122,12 @@ nsPlacesAutoComplete.prototype = {
     }
 
     let query = this._adaptiveQuery;
-    let (params = query.params) {
-      params.parent = PlacesUtils.tagsFolderId;
-      params.search_string = this._currentSearchString;
-      params.query_type = kQueryTypeFiltered;
-      params.matchBehavior = aMatchBehavior;
-      params.searchBehavior = this._behavior;
-    }
+    let params = query.params;
+    params.parent = PlacesUtils.tagsFolderId;
+    params.search_string = this._currentSearchString;
+    params.query_type = kQueryTypeFiltered;
+    params.matchBehavior = aMatchBehavior;
+    params.searchBehavior = this._behavior;
 
     return query;
   },
@@ -1058,7 +1150,7 @@ nsPlacesAutoComplete.prototype = {
 
     // If actions are enabled and the page is open, add only the switch-to-tab
     // result.  Otherwise, add the normal result.
-    let [url, action] = this._enableActions && openPageCount > 0 ?
+    let [url, action] = this._enableActions && openPageCount > 0 && this._hasBehavior("openpage") ?
                         ["moz-action:switchtab," + escapedEntryURL, "action "] :
                         [escapedEntryURL, ""];
 
@@ -1078,25 +1170,17 @@ nsPlacesAutoComplete.prototype = {
 
     let style;
     if (aRow.getResultByIndex(kQueryIndexQueryType) == kQueryTypeKeyword) {
-      // If we do not have a title, then we must have a keyword, so let the UI
-      // know it is a keyword.  Otherwise, we found an exact page match, so just
-      // show the page like a regular result.  Because the page title is likely
-      // going to be more specific than the bookmark title (keyword title).
-      if (!entryTitle) {
-        style = "keyword";
-      }
-      else {
-        title = entryTitle;
-      }
+      style = "keyword";
+      title = NetUtil.newURI(escapedEntryURL).host;
     }
 
     // We will always prefer to show tags if we have them.
     let showTags = !!entryTags;
 
-    // However, we'll act as if a page is not bookmarked or tagged if the user
-    // only wants only history and not bookmarks or tags.
-    if (this._hasBehavior("history") &&
-        !(this._hasBehavior("bookmark") || this._hasBehavior("tag"))) {
+    // However, we'll act as if a page is not bookmarked if the user wants
+    // only history and not bookmarks and there are no tags.
+    if (this._hasBehavior("history") && !this._hasBehavior("bookmark") &&
+        !showTags) {
       showTags = false;
       style = "favicon";
     }
@@ -1198,8 +1282,14 @@ nsPlacesAutoComplete.prototype = {
    */
   _hasBehavior: function PAC_hasBehavior(aType)
   {
-    return (this._behavior &
-            Ci.mozIPlacesAutoComplete["BEHAVIOR_" + aType.toUpperCase()]);
+    let behavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_" + aType.toUpperCase()];
+
+    if (this._disablePrivateActions &&
+        behavior == Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE) {
+      return false;
+    }
+
+    return this._behavior & behavior;
   },
 
   /**
@@ -1290,14 +1380,14 @@ urlInlineComplete.prototype = {
       // Add a trailing slash at the end of the hostname, since we always
       // want to complete up to and including a URL separator.
       this.__hostQuery = this._db.createAsyncStatement(
-          "/* do not warn (bug no): could index on (typed,frecency) but not worth it */ "
-        + "SELECT host || '/', prefix || host || '/' "
-        + "FROM moz_hosts "
-        + "WHERE host BETWEEN :search_string AND :search_string || X'FFFF' "
-        + "AND frecency <> 0 "
-        + (this._autofillTyped ? "AND typed = 1 " : "")
-        + "ORDER BY frecency DESC "
-        + "LIMIT 1"
+        `/* do not warn (bug no): could index on (typed,frecency) but not worth it */
+         SELECT host || '/', prefix || host || '/'
+         FROM moz_hosts
+         WHERE host BETWEEN :search_string AND :search_string || X'FFFF'
+         AND frecency <> 0
+         ${this._autofillTyped ? "AND typed = 1" : ""}
+         ORDER BY frecency DESC
+         LIMIT 1`
       );
     }
     return this.__hostQuery;
@@ -1309,17 +1399,17 @@ urlInlineComplete.prototype = {
   {
     if (!this.__urlQuery) {
       this.__urlQuery = this._db.createAsyncStatement(
-          "/* do not warn (bug no): can't use an index */ "
-        + "SELECT h.url "
-        + "FROM moz_places h "
-        + "WHERE h.frecency <> 0 "
-        + (this._autofillTyped ? "AND h.typed = 1 " : "")
-        +   "AND AUTOCOMPLETE_MATCH(:searchString, h.url, "
-        +                          "h.title, '', "
-        +                          "h.visit_count, h.typed, 0, 0, "
-        +                          ":matchBehavior, :searchBehavior) "
-        + "ORDER BY h.frecency DESC, h.id DESC "
-        + "LIMIT 1"
+        `/* do not warn (bug no): can't use an index */
+         SELECT h.url
+         FROM moz_places h
+         WHERE h.frecency <> 0
+         ${this._autofillTyped ? "AND h.typed = 1 " : ""}
+           AND AUTOCOMPLETE_MATCH(:searchString, h.url,
+                                  h.title, '',
+                                  h.visit_count, h.typed, 0, 0,
+                                  :matchBehavior, :searchBehavior)
+         ORDER BY h.frecency DESC, h.id DESC
+         LIMIT 1`
       );
     }
     return this.__urlQuery;
@@ -1335,6 +1425,8 @@ urlInlineComplete.prototype = {
     if (this._pendingQuery) {
       this.stopSearch();
     }
+
+    let pendingSearch = this._pendingSearch = {};
 
     // We want to store the original string with no leading or trailing
     // whitespace for case sensitive searches.
@@ -1354,74 +1446,82 @@ urlInlineComplete.prototype = {
 
     this._listener = aListener;
 
-    // Don't autoFill if the search term is recognized as a keyword, otherwise
-    // it will override default keywords behavior.  Note that keywords are
-    // hashed on first use, so while the first query may delay a little bit,
-    // next ones will just hit the memory hash.
-    if (this._currentSearchString.length == 0 || !this._db ||
-        PlacesUtils.bookmarks.getURIForKeyword(this._currentSearchString)) {
-      this._finishSearch();
-      return;
-    }
-
-    // Don't try to autofill if the search term includes any whitespace.
-    // This may confuse completeDefaultIndex cause the AUTOCOMPLETE_MATCH
-    // tokenizer ends up trimming the search string and returning a value
-    // that doesn't match it, or is even shorter.
-    if (/\s/.test(this._currentSearchString)) {
-      this._finishSearch();
-      return;
-    }
-
-    // Hosts have no "/" in them.
-    let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
-
-    // Search only URLs if there's a slash in the search string...
-    if (lastSlashIndex != -1) {
-      // ...but not if it's exactly at the end of the search string.
-      if (lastSlashIndex < this._currentSearchString.length - 1)
-        this._queryURL();
-      else
+    Task.spawn(function* () {
+      // Don't autoFill if the search term is recognized as a keyword, otherwise
+      // it will override default keywords behavior.  Note that keywords are
+      // hashed on first use, so while the first query may delay a little bit,
+      // next ones will just hit the memory hash.
+      let dontAutoFill = this._currentSearchString.length == 0 || !this._db ||
+                         (yield PlacesUtils.keywords.fetch(this._currentSearchString));
+      if (this._pendingSearch != pendingSearch)
+        return;
+      if (dontAutoFill) {
         this._finishSearch();
-      return;
-    }
-
-    // Do a synchronous search on the table of hosts.
-    let query = this._hostQuery;
-    query.params.search_string = this._currentSearchString.toLowerCase();
-    // This is just to measure the delay to reach the UI, not the query time.
-    TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
-    let ac = this;
-    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-      handleResult: function (aResultSet) {
-        let row = aResultSet.getNextRow();
-        let trimmedHost = row.getResultByIndex(0);
-        let untrimmedHost = row.getResultByIndex(1);
-        // If the untrimmed value doesn't preserve the user's input just
-        // ignore it and complete to the found host.
-        if (untrimmedHost &&
-            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
-          untrimmedHost = null;
-        }
-
-        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
-
-        // handleCompletion() will cause the result listener to be called, and
-        // will display the result in the UI.
-      },
-
-      handleError: function (aError) {
-        Components.utils.reportError(
-          "URL Inline Complete: An async statement encountered an " +
-          "error: " + aError.result + ", '" + aError.message + "'");
-      },
-
-      handleCompletion: function (aReason) {
-        TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
-        ac._finishSearch();
+        return;
       }
-    }, this._db);
-    this._pendingQuery = wrapper.executeAsync([query]);
+
+      // Don't try to autofill if the search term includes any whitespace.
+      // This may confuse completeDefaultIndex cause the AUTOCOMPLETE_MATCH
+      // tokenizer ends up trimming the search string and returning a value
+      // that doesn't match it, or is even shorter.
+      if (/\s/.test(this._currentSearchString)) {
+        this._finishSearch();
+        return;
+      }
+
+      // Hosts have no "/" in them.
+      let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
+
+      // Search only URLs if there's a slash in the search string...
+      if (lastSlashIndex != -1) {
+        // ...but not if it's exactly at the end of the search string.
+        if (lastSlashIndex < this._currentSearchString.length - 1)
+          this._queryURL();
+        else
+          this._finishSearch();
+        return;
+      }
+
+      // Do a synchronous search on the table of hosts.
+      let query = this._hostQuery;
+      query.params.search_string = this._currentSearchString.toLowerCase();
+      // This is just to measure the delay to reach the UI, not the query time.
+      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+      let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+        handleResult: aResultSet => {
+          if (this._pendingSearch != pendingSearch)
+            return;
+          let row = aResultSet.getNextRow();
+          let trimmedHost = row.getResultByIndex(0);
+          let untrimmedHost = row.getResultByIndex(1);
+          // If the untrimmed value doesn't preserve the user's input just
+          // ignore it and complete to the found host.
+          if (untrimmedHost &&
+              !untrimmedHost.toLowerCase().includes(this._originalSearchString.toLowerCase())) {
+            untrimmedHost = null;
+          }
+
+          this._result.appendMatch(this._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
+
+          // handleCompletion() will cause the result listener to be called, and
+          // will display the result in the UI.
+        },
+
+        handleError: aError => {
+          Components.utils.reportError(
+            "URL Inline Complete: An async statement encountered an " +
+            "error: " + aError.result + ", '" + aError.message + "'");
+        },
+
+        handleCompletion: aReason => {
+          if (this._pendingSearch != pendingSearch)
+            return;
+          TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+          this._finishSearch();
+        }
+      }, this._db);
+      this._pendingQuery = wrapper.executeAsync([query]);
+    }.bind(this));
   },
 
   /**
@@ -1442,16 +1542,16 @@ urlInlineComplete.prototype = {
     // Within the standard autocomplete query, we only search the beginning
     // of URLs for 1 result.
     let query = this._urlQuery;
-    let (params = query.params) {
-      params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
-      params.searchBehavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_URL"];
-      params.searchString = this._currentSearchString;
-    }
+    let params = query.params;
+    params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
+    params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                             Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
+                             Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
+    params.searchString = this._currentSearchString;
 
     // Execute the query.
-    let ac = this;
     let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-      handleResult: function(aResultSet) {
+      handleResult: aResultSet => {
         let row = aResultSet.getNextRow();
         let value = row.getResultByIndex(0);
         let url = fixupSearchText(value);
@@ -1459,10 +1559,10 @@ urlInlineComplete.prototype = {
         let prefix = value.slice(0, value.length - stripPrefix(value).length);
 
         // We must complete the URL up to the next separator (which is /, ? or #).
-        let separatorIndex = url.slice(ac._currentSearchString.length)
+        let separatorIndex = url.slice(this._currentSearchString.length)
                                 .search(/[\/\?\#]/);
         if (separatorIndex != -1) {
-          separatorIndex += ac._currentSearchString.length;
+          separatorIndex += this._currentSearchString.length;
           if (url[separatorIndex] == "/") {
             separatorIndex++; // Include the "/" separator
           }
@@ -1474,24 +1574,24 @@ urlInlineComplete.prototype = {
         // ignore it and complete to the found url.
         let untrimmedURL = prefix + url;
         if (untrimmedURL &&
-            !untrimmedURL.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+            !untrimmedURL.toLowerCase().includes(this._originalSearchString.toLowerCase())) {
           untrimmedURL = null;
          }
 
-        ac._result.appendMatch(ac._strippedPrefix + url, "", "", "", untrimmedURL);
+        this._result.appendMatch(this._strippedPrefix + url, "", "", "", untrimmedURL);
 
         // handleCompletion() will cause the result listener to be called, and
         // will display the result in the UI.
       },
 
-      handleError: function(aError) {
+      handleError: aError => {
         Components.utils.reportError(
           "URL Inline Complete: An async statement encountered an " +
           "error: " + aError.result + ", '" + aError.message + "'");
       },
 
-      handleCompletion: function(aReason) {
-        ac._finishSearch();
+      handleCompletion: aReason => {
+        this._finishSearch();
       }
     }, this._db);
     this._pendingQuery = wrapper.executeAsync([query]);
@@ -1503,6 +1603,7 @@ urlInlineComplete.prototype = {
     delete this._currentSearchString;
     delete this._result;
     delete this._listener;
+    delete this._pendingSearch;
 
     if (this._pendingQuery) {
       this._pendingQuery.cancel();

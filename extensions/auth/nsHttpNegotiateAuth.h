@@ -14,13 +14,15 @@
 // The nsHttpNegotiateAuth class provides responses for the GSS-API Negotiate method
 // as specified by Microsoft in draft-brezak-spnego-http-04.txt
 
-class nsHttpNegotiateAuth MOZ_FINAL : public nsIHttpAuthenticator
+class nsHttpNegotiateAuth final : public nsIHttpAuthenticator
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHTTPAUTHENTICATOR
 
 private:
+    ~nsHttpNegotiateAuth() {}
+
     // returns the value of the given boolean pref
     bool TestBoolPref(const char *pref);
 

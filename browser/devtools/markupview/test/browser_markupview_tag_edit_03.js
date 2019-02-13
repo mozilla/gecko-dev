@@ -6,34 +6,45 @@
 
 // Tests that a node's tagname can be edited in the markup-view
 
-const TEST_URL = "data:text/html,<div id='retag-me'><div id='retag-me-2'></div></div>";
+const TEST_URL = "data:text/html;charset=utf-8,<div id='retag-me'><div id='retag-me-2'></div></div>";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let {toolbox, inspector} = yield addTab(TEST_URL).then(openInspector);
 
   yield inspector.markup.expandAll();
 
   info("Selecting the test node");
-  let node = content.document.getElementById("retag-me");
-  let child = content.document.querySelector("#retag-me-2");
-  yield selectNode(node, inspector);
+  yield selectNode("#retag-me", inspector);
 
-  let container = getContainerForRawNode(node, inspector);
-  is(node.tagName, "DIV", "We've got #retag-me element, it's a DIV");
-  ok(container.expanded, "It is expanded");
-  is(child.parentNode, node, "Child #retag-me-2 is inside #retag-me");
+  info("Getting the markup-container for the test node");
+  let container = yield getContainerForSelector("#retag-me", inspector);
+  ok(container.expanded, "The container is expanded");
 
-  info("Changing the tagname");
+  let parentInfo = yield getNodeInfo("#retag-me");
+  is(parentInfo.tagName.toLowerCase(), "div",
+     "We've got #retag-me element, it's a DIV");
+  is(parentInfo.numChildren, 1, "#retag-me has one child");
+  let childInfo = yield getNodeInfo("#retag-me > *");
+  is(childInfo.attributes[0].value, "retag-me-2",
+     "#retag-me's only child is #retag-me-2");
+
+  info("Changing #retag-me's tagname in the markup-view");
   let mutated = inspector.once("markupmutation");
   let tagEditor = container.editor.tag;
   setEditableFieldValue(tagEditor, "p", inspector);
   yield mutated;
 
+  info("Checking that the markup-container exists and is correct");
+  container = yield getContainerForSelector("#retag-me", inspector);
+  ok(container.expanded, "The container is still expanded");
+  ok(container.selected, "The container is still selected");
+
   info("Checking that the tagname change was done");
-  let node = content.document.getElementById("retag-me");
-  let container = getContainerForRawNode(node, inspector);
-  is(node.tagName, "P", "We've got #retag-me, it should now be a P");
-  ok(container.expanded, "It is still expanded");
-  ok(container.selected, "It is still selected");
-  is(child.parentNode, node, "Child #retag-me-2 is still inside #retag-me");
+  parentInfo = yield getNodeInfo("#retag-me");
+  is(parentInfo.tagName.toLowerCase(), "p",
+     "The #retag-me element is now a P");
+  is(parentInfo.numChildren, 1, "#retag-me still has one child");
+  childInfo = yield getNodeInfo("#retag-me > *");
+  is(childInfo.attributes[0].value, "retag-me-2",
+     "#retag-me's only child is #retag-me-2");
 });

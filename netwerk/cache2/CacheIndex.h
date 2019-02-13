@@ -87,7 +87,7 @@ public:
   typedef const SHA1Sum::Hash& KeyType;
   typedef const SHA1Sum::Hash* KeyTypePointer;
 
-  CacheIndexEntry(KeyTypePointer aKey)
+  explicit CacheIndexEntry(KeyTypePointer aKey)
   {
     MOZ_COUNT_CTOR(CacheIndexEntry);
     mRec = new CacheIndexRecord();
@@ -166,32 +166,32 @@ public:
     }
   }
 
-  const SHA1Sum::Hash * Hash() { return &mRec->mHash; }
+  const SHA1Sum::Hash * Hash() const { return &mRec->mHash; }
 
-  bool IsInitialized() { return !!(mRec->mFlags & kInitializedMask); }
+  bool IsInitialized() const { return !!(mRec->mFlags & kInitializedMask); }
 
-  uint32_t AppId() { return mRec->mAppId; }
-  bool     Anonymous() { return !!(mRec->mFlags & kAnonymousMask); }
-  bool     InBrowser() { return !!(mRec->mFlags & kInBrowserMask); }
+  uint32_t AppId() const { return mRec->mAppId; }
+  bool     Anonymous() const { return !!(mRec->mFlags & kAnonymousMask); }
+  bool     InBrowser() const { return !!(mRec->mFlags & kInBrowserMask); }
 
-  bool IsRemoved() { return !!(mRec->mFlags & kRemovedMask); }
+  bool IsRemoved() const { return !!(mRec->mFlags & kRemovedMask); }
   void MarkRemoved() { mRec->mFlags |= kRemovedMask; }
 
-  bool IsDirty() { return !!(mRec->mFlags & kDirtyMask); }
+  bool IsDirty() const { return !!(mRec->mFlags & kDirtyMask); }
   void MarkDirty() { mRec->mFlags |= kDirtyMask; }
   void ClearDirty() { mRec->mFlags &= ~kDirtyMask; }
 
-  bool IsFresh() { return !!(mRec->mFlags & kFreshMask); }
+  bool IsFresh() const { return !!(mRec->mFlags & kFreshMask); }
   void MarkFresh() { mRec->mFlags |= kFreshMask; }
 
   void     SetFrecency(uint32_t aFrecency) { mRec->mFrecency = aFrecency; }
-  uint32_t GetFrecency() { return mRec->mFrecency; }
+  uint32_t GetFrecency() const { return mRec->mFrecency; }
 
   void     SetExpirationTime(uint32_t aExpirationTime)
   {
     mRec->mExpirationTime = aExpirationTime;
   }
-  uint32_t GetExpirationTime() { return mRec->mExpirationTime; }
+  uint32_t GetExpirationTime() const { return mRec->mExpirationTime; }
 
   // Sets filesize in kilobytes.
   void     SetFileSize(uint32_t aFileSize)
@@ -205,12 +205,12 @@ public:
     mRec->mFlags |= aFileSize;
   }
   // Returns filesize in kilobytes.
-  uint32_t GetFileSize() { return GetFileSize(mRec); }
+  uint32_t GetFileSize() const { return GetFileSize(mRec); }
   static uint32_t GetFileSize(CacheIndexRecord *aRec)
   {
     return aRec->mFlags & kFileSizeMask;
   }
-  bool     IsFileEmpty() { return GetFileSize() == 0; }
+  bool     IsFileEmpty() const { return GetFileSize() == 0; }
 
   void WriteToBuf(void *aBuf)
   {
@@ -246,7 +246,7 @@ public:
     mRec->mFlags = NetworkEndian::readUint32(&src->mFlags);
   }
 
-  void Log() {
+  void Log() const {
     LOG(("CacheIndexEntry::Log() [this=%p, hash=%08x%08x%08x%08x%08x, fresh=%u,"
          " initialized=%u, removed=%u, dirty=%u, anonymous=%u, inBrowser=%u, "
          "appId=%u, frecency=%u, expirationTime=%u, size=%u]",
@@ -280,6 +280,7 @@ public:
   }
 
 private:
+  friend class CacheIndexEntryUpdate;
   friend class CacheIndex;
   friend class CacheIndexEntryAutoManage;
 
@@ -306,6 +307,83 @@ private:
   static const uint32_t kFileSizeMask    = 0x00FFFFFF;
 
   nsAutoPtr<CacheIndexRecord> mRec;
+};
+
+class CacheIndexEntryUpdate : public CacheIndexEntry
+{
+public:
+  explicit CacheIndexEntryUpdate(CacheIndexEntry::KeyTypePointer aKey)
+    : CacheIndexEntry(aKey)
+    , mUpdateFlags(0)
+  {
+    MOZ_COUNT_CTOR(CacheIndexEntryUpdate);
+    LOG(("CacheIndexEntryUpdate::CacheIndexEntryUpdate()"));
+  }
+  ~CacheIndexEntryUpdate()
+  {
+    MOZ_COUNT_DTOR(CacheIndexEntryUpdate);
+    LOG(("CacheIndexEntryUpdate::~CacheIndexEntryUpdate()"));
+  }
+
+  CacheIndexEntryUpdate& operator=(const CacheIndexEntry& aOther)
+  {
+    MOZ_ASSERT(memcmp(&mRec->mHash, &aOther.mRec->mHash,
+               sizeof(SHA1Sum::Hash)) == 0);
+    mUpdateFlags = 0;
+    *(static_cast<CacheIndexEntry *>(this)) = aOther;
+    return *this;
+  }
+
+  void InitNew()
+  {
+    mUpdateFlags = kFrecencyUpdatedMask | kExpirationUpdatedMask |
+                   kFileSizeUpdatedMask;
+    CacheIndexEntry::InitNew();
+  }
+
+  void SetFrecency(uint32_t aFrecency)
+  {
+    mUpdateFlags |= kFrecencyUpdatedMask;
+    CacheIndexEntry::SetFrecency(aFrecency);
+  }
+
+  void SetExpirationTime(uint32_t aExpirationTime)
+  {
+    mUpdateFlags |= kExpirationUpdatedMask;
+    CacheIndexEntry::SetExpirationTime(aExpirationTime);
+  }
+
+  void SetFileSize(uint32_t aFileSize)
+  {
+    mUpdateFlags |= kFileSizeUpdatedMask;
+    CacheIndexEntry::SetFileSize(aFileSize);
+  }
+
+  void ApplyUpdate(CacheIndexEntry *aDst) {
+    MOZ_ASSERT(memcmp(&mRec->mHash, &aDst->mRec->mHash,
+               sizeof(SHA1Sum::Hash)) == 0);
+    if (mUpdateFlags & kFrecencyUpdatedMask) {
+      aDst->mRec->mFrecency = mRec->mFrecency;
+    }
+    if (mUpdateFlags & kExpirationUpdatedMask) {
+      aDst->mRec->mExpirationTime = mRec->mExpirationTime;
+    }
+    aDst->mRec->mAppId = mRec->mAppId;
+    if (mUpdateFlags & kFileSizeUpdatedMask) {
+      aDst->mRec->mFlags = mRec->mFlags;
+    } else {
+      // Copy all flags except file size.
+      aDst->mRec->mFlags &= kFileSizeMask;
+      aDst->mRec->mFlags |= (mRec->mFlags & ~kFileSizeMask);
+    }
+  }
+
+private:
+  static const uint32_t kFrecencyUpdatedMask = 0x00000001;
+  static const uint32_t kExpirationUpdatedMask = 0x00000002;
+  static const uint32_t kFileSizeUpdatedMask = 0x00000004;
+
+  uint32_t mUpdateFlags;
 };
 
 class CacheIndexStats
@@ -397,7 +475,7 @@ public:
     return mSize;
   }
 
-  void BeforeChange(CacheIndexEntry *aEntry) {
+  void BeforeChange(const CacheIndexEntry *aEntry) {
 #ifdef DEBUG_STATS
     if (!mDisableLogging) {
       LOG(("CacheIndexStats::BeforeChange()"));
@@ -441,7 +519,7 @@ public:
     }
   }
 
-  void AfterChange(CacheIndexEntry *aEntry) {
+  void AfterChange(const CacheIndexEntry *aEntry) {
     MOZ_ASSERT(mStateLogged, "CacheIndexStats::AfterChange() - state not "
                "logged!");
 #ifdef DEBUG
@@ -561,11 +639,20 @@ public:
 
   // Returns a hash of the least important entry that should be evicted if the
   // cache size is over limit and also returns a total number of all entries in
-  // the index.
-  static nsresult GetEntryForEviction(SHA1Sum::Hash *aHash, uint32_t *aCnt);
+  // the index minus the number of forced valid entries that we encounter
+  // when searching (see below)
+  static nsresult GetEntryForEviction(bool aIgnoreEmptyEntries, SHA1Sum::Hash *aHash, uint32_t *aCnt);
+
+  // Checks if a cache entry is currently forced valid. Used to prevent an entry
+  // (that has been forced valid) from being evicted when the cache size reaches
+  // its limit.
+  static bool IsForcedValidEntry(const SHA1Sum::Hash *aHash);
 
   // Returns cache size in kB.
   static nsresult GetCacheSize(uint32_t *_retval);
+
+  // Returns number of entry files in the cache
+  static nsresult GetEntryFileCount(uint32_t *_retval);
 
   // Synchronously returns the disk occupation and number of entries per-context.
   // Callable on any thread.
@@ -599,15 +686,15 @@ private:
 
   virtual ~CacheIndex();
 
-  NS_IMETHOD OnFileOpened(CacheFileHandle *aHandle, nsresult aResult);
+  NS_IMETHOD OnFileOpened(CacheFileHandle *aHandle, nsresult aResult) override;
   nsresult   OnFileOpenedInternal(FileOpenHelper *aOpener,
                                   CacheFileHandle *aHandle, nsresult aResult);
   NS_IMETHOD OnDataWritten(CacheFileHandle *aHandle, const char *aBuf,
-                           nsresult aResult);
-  NS_IMETHOD OnDataRead(CacheFileHandle *aHandle, char *aBuf, nsresult aResult);
-  NS_IMETHOD OnFileDoomed(CacheFileHandle *aHandle, nsresult aResult);
-  NS_IMETHOD OnEOFSet(CacheFileHandle *aHandle, nsresult aResult);
-  NS_IMETHOD OnFileRenamed(CacheFileHandle *aHandle, nsresult aResult);
+                           nsresult aResult) override;
+  NS_IMETHOD OnDataRead(CacheFileHandle *aHandle, char *aBuf, nsresult aResult) override;
+  NS_IMETHOD OnFileDoomed(CacheFileHandle *aHandle, nsresult aResult) override;
+  NS_IMETHOD OnEOFSet(CacheFileHandle *aHandle, nsresult aResult) override;
+  NS_IMETHOD OnFileRenamed(CacheFileHandle *aHandle, nsresult aResult) override;
 
   void     Lock();
   void     Unlock();
@@ -636,7 +723,7 @@ private:
 
   // Merge all pending operations from mPendingUpdates into mIndex.
   void ProcessPendingOperations();
-  static PLDHashOperator UpdateEntryInIndex(CacheIndexEntry *aEntry,
+  static PLDHashOperator UpdateEntryInIndex(CacheIndexEntryUpdate *aEntry,
                                             void* aClosure);
 
   // Following methods perform writing of the index file.
@@ -819,9 +906,7 @@ private:
     SHUTDOWN = 6
   };
 
-#ifdef PR_LOGGING
   static char const * StateString(EState aState);
-#endif
   void ChangeState(EState aNewState);
 
   // Allocates and releases buffer used for reading and writing index.
@@ -830,9 +915,7 @@ private:
 
   // Methods used by CacheIndexEntryAutoManage to keep the arrays up to date.
   void InsertRecordToFrecencyArray(CacheIndexRecord *aRecord);
-  void InsertRecordToExpirationArray(CacheIndexRecord *aRecord);
   void RemoveRecordFromFrecencyArray(CacheIndexRecord *aRecord);
-  void RemoveRecordFromExpirationArray(CacheIndexRecord *aRecord);
 
   // Methods used by CacheIndexEntryAutoManage to keep the iterators up to date.
   void AddRecordToIterators(CacheIndexRecord *aRecord);
@@ -842,6 +925,8 @@ private:
 
   // Memory reporting (private part)
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;
+
+  void ReportHashStats();
 
   static CacheIndex *gInstance;
 
@@ -923,7 +1008,7 @@ private:
 
   // We cannot add, remove or change any entry in mIndex in states READING and
   // WRITING. We track all changes in mPendingUpdates during these states.
-  nsTHashtable<CacheIndexEntry> mPendingUpdates;
+  nsTHashtable<CacheIndexEntryUpdate> mPendingUpdates;
 
   // Contains information statistics for mIndex + mPendingUpdates.
   CacheIndexStats               mIndexStats;
@@ -934,14 +1019,11 @@ private:
   // of the journal fails or the hash does not match.
   nsTHashtable<CacheIndexEntry> mTmpJournal;
 
-  // Arrays that keep entry records ordered by eviction preference. When looking
-  // for an entry to evict, we first try to find an expired entry. If there is
-  // no expired entry, we take the entry with lowest valid frecency. Zero
-  // frecency is an initial value and such entries are stored at the end of the
-  // array. Uninitialized entries and entries marked as deleted are not present
-  // in these arrays.
+  // An array that keeps entry records ordered by eviction preference; we take
+  // the entry with lowest valid frecency. Zero frecency is an initial value
+  // and such entries are stored at the end of the array. Uninitialized entries
+  // and entries marked as deleted are not present in this array.
   nsTArray<CacheIndexRecord *>  mFrecencyArray;
-  nsTArray<CacheIndexRecord *>  mExpirationArray;
 
   nsTArray<CacheIndexIterator *> mIterators;
 
@@ -964,9 +1046,22 @@ private:
     }
 
   private:
-    DiskConsumptionObserver(nsWeakPtr const &aWeakObserver)
+    explicit DiskConsumptionObserver(nsWeakPtr const &aWeakObserver)
       : mObserver(aWeakObserver) { }
-    virtual ~DiskConsumptionObserver() { }
+    virtual ~DiskConsumptionObserver() {
+      if (mObserver && !NS_IsMainThread()) {
+        nsIWeakReference *obs;
+        mObserver.forget(&obs);
+
+        nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+        if (mainThread) {
+          NS_ProxyRelease(mainThread, obs);
+        } else {
+          NS_WARNING("Cannot get main thread, leaking weak reference to "
+                     "CacheStorageConsumptionObserver.");
+        }
+      }
+    }
 
     NS_IMETHODIMP Run()
     {
@@ -974,6 +1069,8 @@ private:
 
       nsCOMPtr<nsICacheStorageConsumptionObserver> observer =
         do_QueryReferent(mObserver);
+
+      mObserver = nullptr;
 
       if (observer) {
         observer->OnNetworkCacheDiskConsumption(mSize);
@@ -992,7 +1089,7 @@ private:
 
 class CacheIndexAutoLock {
 public:
-  CacheIndexAutoLock(CacheIndex *aIndex)
+  explicit CacheIndexAutoLock(CacheIndex *aIndex)
     : mIndex(aIndex)
     , mLocked(true)
   {
@@ -1024,7 +1121,7 @@ private:
 
 class CacheIndexAutoUnlock {
 public:
-  CacheIndexAutoUnlock(CacheIndex *aIndex)
+  explicit CacheIndexAutoUnlock(CacheIndex *aIndex)
     : mIndex(aIndex)
     , mLocked(false)
   {

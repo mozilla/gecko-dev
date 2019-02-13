@@ -6,21 +6,14 @@
 
 static const JSClass ObjectEmulatingUndefinedClass = {
     "ObjectEmulatingUndefined",
-    JSCLASS_EMULATES_UNDEFINED,
-    JS_PropertyStub,
-    JS_DeletePropertyStub,
-    JS_PropertyStub,
-    JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JSCLASS_EMULATES_UNDEFINED
 };
 
 static bool
-ObjectEmulatingUndefinedConstructor(JSContext *cx, unsigned argc, jsval *vp)
+ObjectEmulatingUndefinedConstructor(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-    JSObject *obj = JS_NewObjectForConstructor(cx, &ObjectEmulatingUndefinedClass, args);
+    JSObject* obj = JS_NewObjectForConstructor(cx, &ObjectEmulatingUndefinedClass, args);
     if (!obj)
         return false;
     args.rval().setObject(*obj);
@@ -29,7 +22,7 @@ ObjectEmulatingUndefinedConstructor(JSContext *cx, unsigned argc, jsval *vp)
 
 BEGIN_TEST(testObjectEmulatingUndefined_truthy)
 {
-    CHECK(JS_InitClass(cx, global, js::NullPtr(), &ObjectEmulatingUndefinedClass,
+    CHECK(JS_InitClass(cx, global, nullptr, &ObjectEmulatingUndefinedClass,
                        ObjectEmulatingUndefinedConstructor, 0,
                        nullptr, nullptr, nullptr, nullptr));
 
@@ -55,7 +48,7 @@ END_TEST(testObjectEmulatingUndefined_truthy)
 
 BEGIN_TEST(testObjectEmulatingUndefined_equal)
 {
-    CHECK(JS_InitClass(cx, global, js::NullPtr(), &ObjectEmulatingUndefinedClass,
+    CHECK(JS_InitClass(cx, global, nullptr, &ObjectEmulatingUndefinedClass,
                        ObjectEmulatingUndefinedConstructor, 0,
                        nullptr, nullptr, nullptr, nullptr));
 

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -82,18 +84,17 @@
  * as a singleton.
  */
 
-class NS_COM_GLUE GenericClassInfo : public nsIClassInfo
+class GenericClassInfo : public nsIClassInfo
 {
 public:
   struct ClassInfoData
   {
-    typedef NS_CALLBACK(GetInterfacesProc)(uint32_t* countp,
-                                           nsIID*** array);
-    typedef NS_CALLBACK(GetLanguageHelperProc)(uint32_t language,
-                                               nsISupports** helper);
+    typedef NS_CALLBACK(GetInterfacesProc)(uint32_t* aCountP,
+                                           nsIID*** aArray);
+    typedef NS_CALLBACK(GetScriptableHelperProc)(nsIXPCScriptable** aHelper);
 
     GetInterfacesProc getinterfaces;
-    GetLanguageHelperProc getlanguagehelper;
+    GetScriptableHelperProc getscriptablehelper;
     uint32_t flags;
     nsCID cid;
   };
@@ -101,9 +102,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSICLASSINFO
 
-  GenericClassInfo(const ClassInfoData* data)
-    : mData(data)
-  { }
+  explicit GenericClassInfo(const ClassInfoData* aData) : mData(aData) {}
 
 private:
   const ClassInfoData* mData;
@@ -115,11 +114,11 @@ private:
   extern NS_IMETHODIMP NS_CI_INTERFACE_GETTER_NAME(_class)                    \
      (uint32_t *, nsIID ***);
 
-#define NS_IMPL_CLASSINFO(_class, _getlanguagehelper, _flags, _cid)     \
+#define NS_IMPL_CLASSINFO(_class, _getscriptablehelper, _flags, _cid)   \
   NS_DECL_CI_INTERFACE_GETTER(_class)                                   \
   static const GenericClassInfo::ClassInfoData k##_class##ClassInfoData = { \
     NS_CI_INTERFACE_GETTER_NAME(_class),                                \
-    _getlanguagehelper,                                                 \
+    _getscriptablehelper,                                               \
     _flags | nsIClassInfo::SINGLETON_CLASSINFO,                         \
     _cid,                                                               \
   };                                                                    \
@@ -139,7 +138,7 @@ NS_IMETHODIMP                                                                 \
 NS_CI_INTERFACE_GETTER_NAME(_class)(uint32_t *count, nsIID ***array)          \
 {                                                                             \
     *count = _c;                                                              \
-    *array = (nsIID **)nsMemory::Alloc(sizeof (nsIID *) * _c);                \
+    *array = (nsIID **)moz_xmalloc(sizeof (nsIID *) * _c);                \
     uint32_t i = 0;
 
 #define NS_CLASSINFO_HELPER_ENTRY(_interface)                                 \

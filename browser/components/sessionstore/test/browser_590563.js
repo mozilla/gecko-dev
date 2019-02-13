@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 function test() {
-  let oldState = {
+  let sessionData = {
     windows: [{
       tabs: [
         { entries: [{ url: "about:mozilla" }], hidden: true },
@@ -10,11 +10,9 @@ function test() {
       ]
     }]
   };
-  let pageData = {
-    url: "about:sessionrestore",
-    formdata: { id: { "sessionData": oldState } }
-  };
-  let state = { windows: [{ tabs: [{ entries: [pageData] }] }] };
+  let url = "about:sessionrestore";
+  let formdata = {id: {sessionData}, url};
+  let state = { windows: [{ tabs: [{ entries: [{url}], formdata }] }] };
 
   waitForExplicitFinish();
 
@@ -38,15 +36,13 @@ function middleClickTest(win) {
   let tree = browser.contentDocument.getElementById("tabList");
   is(tree.view.rowCount, 3, "There should be three items");
 
-  let x = {}, y = {}, width = {}, height = {};
-
   // click on the first tab item
-  tree.treeBoxObject.getCoordsForCellItem(1, tree.columns[1], "text", x, y, width, height);
-  EventUtils.synthesizeMouse(tree.body, x.value, y.value, { button: 1 },
+  var rect = tree.treeBoxObject.getCoordsForCellItem(1, tree.columns[1], "text");
+  EventUtils.synthesizeMouse(tree.body, rect.x, rect.y, { button: 1 },
                              browser.contentWindow);
   // click on the second tab item
-  tree.treeBoxObject.getCoordsForCellItem(2, tree.columns[1], "text", x, y, width, height);
-  EventUtils.synthesizeMouse(tree.body, x.value, y.value, { button: 1 },
+  rect = tree.treeBoxObject.getCoordsForCellItem(2, tree.columns[1], "text");
+  EventUtils.synthesizeMouse(tree.body, rect.x, rect.y, { button: 1 },
                              browser.contentWindow);
 
   is(win.gBrowser.tabs.length, 3,

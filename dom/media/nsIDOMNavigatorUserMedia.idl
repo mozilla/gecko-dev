@@ -4,15 +4,14 @@
 
 #include "nsISupports.idl"
 #include "nsIVariant.idl"
-#include "nsIDOMMediaStream.idl"
 
-[scriptable, builtinclass, uuid(4af2bdb7-1547-4d10-8886-02a78c3c0b83)]
+[scriptable, builtinclass, uuid(cebcefca-2de1-460d-b253-d0582c50b40f)]
 interface nsIMediaDevice : nsISupports
 {
   readonly attribute DOMString type;
   readonly attribute DOMString name;
   readonly attribute DOMString id;
-  readonly attribute DOMString facingMode;
+  readonly attribute DOMString mediaSource;
 };
 
 [scriptable, function, uuid(24544878-d35e-4962-8c5f-fb84e97bdfee)]
@@ -26,13 +25,13 @@ interface nsIDOMGetUserMediaSuccessCallback : nsISupports
 {
   /*
    * value must be a nsIDOMBlob if picture is true and a
-   * nsIDOMLocalMediaStream if either audio or video are true.
+   * DOMLocalMediaStream if either audio or video are true.
    */
   void onSuccess(in nsISupports value);
 };
 
-[scriptable, function, uuid(2614bbcf-85cc-43e5-8740-964f52bdc7ca)]
+[scriptable, function, uuid(39e96c61-2636-4f0e-918e-9bb64276492a)]
 interface nsIDOMGetUserMediaErrorCallback : nsISupports
 {
-  void onError(in DOMString error);
+  void onError(in nsISupports error);
 };

@@ -4,8 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-interface WindowProxy;
-
+[Constructor(DOMString type, optional DragEventInit eventInitDict)]
 interface DragEvent : MouseEvent
 {
   readonly attribute DataTransfer? dataTransfer;
@@ -14,7 +13,7 @@ interface DragEvent : MouseEvent
   void initDragEvent(DOMString type,
                      boolean canBubble,
                      boolean cancelable,
-                     WindowProxy? aView,
+                     Window? aView,
                      long aDetail,
                      long aScreenX,
                      long aScreenY,
@@ -27,4 +26,9 @@ interface DragEvent : MouseEvent
                      unsigned short aButton,
                      EventTarget? aRelatedTarget,
                      DataTransfer? aDataTransfer);
+};
+
+dictionary DragEventInit : MouseEventInit
+{
+  DataTransfer? dataTransfer = null;
 };

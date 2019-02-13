@@ -7,7 +7,6 @@
 
 #include "base/file_path.h"
 #include "base/process_util.h"
-#include "base/scoped_ptr.h"
 #include "base/waitable_event.h"
 #include "chrome/common/child_process_host.h"
 
@@ -20,7 +19,9 @@
 #include "nsXULAppAPI.h"        // for GeckoProcessType
 #include "nsString.h"
 
-class nsIFile;
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+#include "sandboxBroker.h"
+#endif
 
 namespace mozilla {
 namespace ipc {
@@ -37,8 +38,8 @@ public:
 
   static ChildPrivileges DefaultChildPrivileges();
 
-  GeckoChildProcessHost(GeckoProcessType aProcessType,
-                        ChildPrivileges aPrivileges=base::PRIVILEGES_DEFAULT);
+  explicit GeckoChildProcessHost(GeckoProcessType aProcessType,
+                                 ChildPrivileges aPrivileges=base::PRIVILEGES_DEFAULT);
 
   ~GeckoChildProcessHost();
 
@@ -46,10 +47,15 @@ public:
 
   static uint32_t GetSupportedArchitecturesForProcessType(GeckoProcessType type);
 
+  static uint32_t GetUniqueID();
+
   // Block until the IPC channel for our subprocess is initialized,
   // but no longer.  The child process may or may not have been
   // created when this method returns.
-  bool AsyncLaunch(StringVector aExtraOpts=StringVector());
+  bool AsyncLaunch(StringVector aExtraOpts=StringVector(),
+                   base::ProcessArchitecture arch=base::GetCurrentProcessArchitecture());
+
+  virtual bool WaitUntilConnected(int32_t aTimeoutMs = 0);
 
   // Block until the IPC channel for our subprocess is initialized and
   // the OS process is created.  The subprocess may or may not have
@@ -100,18 +106,6 @@ public:
     return mChildProcessHandle;
   }
 
-  // Returns an "owned" handle to the child process - the handle returned
-  // by this function must be closed by the caller.
-  ProcessHandle GetOwnedChildProcessHandle() {
-    ProcessHandle handle;
-    // We use OpenPrivilegedProcessHandle as that is where our
-    // mChildProcessHandle initially came from.
-    bool ok = base::OpenPrivilegedProcessHandle(base::GetProcId(mChildProcessHandle),
-                                                &handle);
-    NS_ASSERTION(ok, "Failed to get owned process handle");
-    return ok ? handle : 0;
-  }
-
   GeckoProcessType GetProcessType() {
     return mProcessType;
   }
@@ -131,15 +125,8 @@ public:
   // For bug 943174: Skip the EnsureProcessTerminated call in the destructor.
   void SetAlreadyDead();
 
-  void SetSandboxEnabled(bool aSandboxEnabled) {
-    mSandboxEnabled = aSandboxEnabled;
-  }
-
-  static void CacheGreDir();
-
 protected:
   GeckoProcessType mProcessType;
-  bool mSandboxEnabled;
   ChildPrivileges mPrivileges;
   Monitor mMonitor;
   FilePath mProcessPath;
@@ -168,7 +155,15 @@ protected:
 #ifdef XP_WIN
   void InitWindowsGroupID();
   nsString mGroupId;
+
+#ifdef MOZ_SANDBOX
+  SandboxBroker mSandboxBroker;
+  std::vector<std::wstring> mAllowedFilesRead;
+  std::vector<std::wstring> mAllowedFilesReadWrite;
+  bool mEnableSandboxLogging;
+  int32_t mSandboxLevel;
 #endif
+#endif // XP_WIN
 
 #if defined(OS_POSIX)
   base::file_handle_mapping_vector mFileMap;
@@ -204,12 +199,11 @@ private:
   // FIXME/cjones: this strongly indicates bad design.  Shame on us.
   std::queue<IPC::Message> mQueue;
 
-  static StaticRefPtr<nsIFile> sGreDir;
-  static DebugOnly<bool> sGreDirCached;
+  static uint32_t sNextUniqueID;
 };
 
 #ifdef MOZ_NUWA_PROCESS
-class GeckoExistingProcessHost MOZ_FINAL : public GeckoChildProcessHost
+class GeckoExistingProcessHost final : public GeckoChildProcessHost
 {
 public:
   GeckoExistingProcessHost(GeckoProcessType aProcessType,
@@ -220,9 +214,9 @@ public:
   ~GeckoExistingProcessHost();
 
   virtual bool PerformAsyncLaunch(StringVector aExtraOpts=StringVector(),
-          base::ProcessArchitecture aArch=base::GetCurrentProcessArchitecture()) MOZ_OVERRIDE;
+          base::ProcessArchitecture aArch=base::GetCurrentProcessArchitecture()) override;
 
-  virtual void InitializeChannel() MOZ_OVERRIDE;
+  virtual void InitializeChannel() override;
 
 private:
   base::ProcessHandle mExistingProcessHandle;

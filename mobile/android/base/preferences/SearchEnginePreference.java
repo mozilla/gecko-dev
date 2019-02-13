@@ -8,6 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.favicons.Favicons;
+import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.FaviconView;
@@ -34,8 +35,13 @@ public class SearchEnginePreference extends CustomListPreference {
 
     // The bitmap backing the drawable above - needed separately for the FaviconView.
     private Bitmap mIconBitmap;
+    private final Object bitmapLock = new Object();
 
     private FaviconView mFaviconView;
+
+    // Search engine identifier specified by the gecko search service. This will be "other"
+    // for engines that are not shipped with the app.
+    private String mIdentifier;
 
     public SearchEnginePreference(Context context, SearchPreferenceCategory parentCategory) {
         super(context, parentCategory);
@@ -51,9 +57,16 @@ public class SearchEnginePreference extends CustomListPreference {
     protected void onBindView(View view) {
         super.onBindView(view);
 
-        // Set the icon in the FaviconView.
-        mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
-        mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+        // We synchronise to avoid a race condition between this and the favicon loading callback in
+        // setSearchEngineFromJSON.
+        synchronized (bitmapLock) {
+            // Set the icon in the FaviconView.
+            mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
+
+            if (mIconBitmap != null) {
+                mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+            }
+        }
     }
 
     @Override
@@ -113,7 +126,14 @@ public class SearchEnginePreference extends CustomListPreference {
                 Log.w(LOGTAG, "Selected index out of range.");
                 break;
         }
-     }
+    }
+
+    /**
+     * @return Identifier of built-in search engine, or "other" if engine is not built-in.
+     */
+    public String getIdentifier() {
+        return mIdentifier;
+    }
 
     /**
      * Configure this Preference object from the Gecko search engine JSON object.
@@ -121,6 +141,13 @@ public class SearchEnginePreference extends CustomListPreference {
      * @throws JSONException If the JSONObject is invalid.
      */
     public void setSearchEngineFromJSON(JSONObject geckoEngineJSON) throws JSONException {
+        mIdentifier = geckoEngineJSON.getString("identifier");
+
+        // A null JS value gets converted into a string.
+        if (mIdentifier.equals("null")) {
+            mIdentifier = "other";
+        }
+
         final String engineName = geckoEngineJSON.getString("name");
         final SpannableString titleSpannable = new SpannableString(engineName);
 
@@ -143,9 +170,20 @@ public class SearchEnginePreference extends CustomListPreference {
                 }
             }
 
-            // TODO: use the cache. Bug 961600.
-            mIconBitmap = FaviconDecoder.getMostSuitableBitmapFromDataURI(iconURI, desiredWidth);
+            Favicons.getSizedFavicon(getContext(), mIdentifier, iconURI, desiredWidth, 0,
+                new OnFaviconLoadedListener() {
+                    @Override
+                    public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
+                        synchronized (bitmapLock) {
+                            mIconBitmap = favicon;
 
+                            if (mFaviconView != null) {
+                                mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+                            }
+                        }
+                    }
+                }
+            );
         } catch (IllegalArgumentException e) {
             Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);
         } catch (NullPointerException e) {

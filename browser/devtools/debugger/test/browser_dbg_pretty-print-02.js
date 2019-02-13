@@ -8,13 +8,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_pretty-print.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gEditor, gContextMenu;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gEditor = gDebugger.DebuggerView.editor;
@@ -43,13 +42,12 @@ function selectContextMenuItem() {
 }
 
 function testSourceIsPretty() {
-  ok(gEditor.getText().contains("\n  "),
+  ok(gEditor.getText().includes("\n  "),
      "The source should be pretty printed.")
 }
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gEditor = null;

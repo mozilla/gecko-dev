@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import os
 import re
 from types import StringTypes
@@ -172,3 +174,13 @@ def read_dep_makefile(fh):
 
     if rule:
         raise Exception('Makefile finishes with a backslash. Expected more input.')
+
+def write_dep_makefile(fh, target, deps):
+    '''
+    Write a Makefile containing only target's dependencies to the file handle
+    specified.
+    '''
+    mk = Makefile()
+    rule = mk.create_rule(targets=[target])
+    rule.add_dependencies(deps)
+    mk.dump(fh, removal_guard=True)

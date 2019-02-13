@@ -27,6 +27,8 @@ class B2GOptions(ReftestOptions):
     def __init__(self, **kwargs):
         defaults = {}
         ReftestOptions.__init__(self)
+        # This is only used for procName in run_remote_reftests.
+        defaults["app"] = Automation.DEFAULT_APP
 
         self.add_option("--browser-arg", action="store",
                     type = "string", dest = "browser_arg",
@@ -58,9 +60,9 @@ class B2GOptions(ReftestOptions):
         defaults["noWindow"] = False
 
         self.add_option("--adbpath", action="store",
-                    type = "string", dest = "adbPath",
+                    type = "string", dest = "adb_path",
                     help = "path to adb")
-        defaults["adbPath"] = "adb"
+        defaults["adb_path"] = "adb"
 
         self.add_option("--deviceIP", action="store",
                     type = "string", dest = "deviceIP",
@@ -101,10 +103,10 @@ class B2GOptions(ReftestOptions):
                         help="the path to a gecko distribution that should "
                         "be installed on the emulator prior to test")
         defaults["geckoPath"] = None
-        self.add_option("--logcat-dir", action="store",
-                        type="string", dest="logcat_dir",
-                        help="directory to store logcat dump files")
-        defaults["logcat_dir"] = None
+        self.add_option("--logdir", action="store",
+                        type="string", dest="logdir",
+                        help="directory to store log files")
+        defaults["logdir"] = None
         self.add_option('--busybox', action='store',
                         type='string', dest='busybox',
                         help="Path to busybox binary to install on device")
@@ -122,6 +124,10 @@ class B2GOptions(ReftestOptions):
                         dest="desktop",
                         help="Run the tests on a B2G desktop build")
         defaults["desktop"] = False
+        self.add_option("--mulet", action="store_true",
+                        dest="mulet",
+                        help="Run the tests on a B2G desktop build")
+        defaults["mulet"] = False
         self.add_option("--enable-oop", action="store_true",
                         dest="oop",
                         help="Run the tests out of process")
@@ -140,12 +146,12 @@ class B2GOptions(ReftestOptions):
             self.error("Cannot run parallel tests here")
 
         if not options.remoteTestRoot:
-            options.remoteTestRoot = auto._devicemanager.getDeviceRoot() + "/reftest"
+            options.remoteTestRoot = auto._devicemanager.deviceRoot + "/reftest"
 
         options.remoteProfile = options.remoteTestRoot + "/profile"
 
         productRoot = options.remoteTestRoot + "/" + auto._product
-        if options.utilityPath == auto.DIST_BIN:
+        if options.utilityPath is None:
             options.utilityPath = productRoot + "/bin"
 
         if options.remoteWebServer == None:
@@ -166,8 +172,8 @@ class B2GOptions(ReftestOptions):
         if options.geckoPath and not options.emulator:
             self.error("You must specify --emulator if you specify --gecko-path")
 
-        if options.logcat_dir and not options.emulator:
-            self.error("You must specify --emulator if you specify --logcat-dir")
+        if options.logdir and not options.emulator:
+            self.error("You must specify --emulator if you specify --logdir")
 
         #if not options.emulator and not options.deviceIP:
         #    print "ERROR: you must provide a device IP"
@@ -239,7 +245,8 @@ class B2GRemoteReftest(RefTest):
     profile = None
 
     def __init__(self, automation, devicemanager, options, scriptDir):
-        RefTest.__init__(self, automation)
+        RefTest.__init__(self)
+        self.automation = automation
         self._devicemanager = devicemanager
         self.runSSLTunnel = False
         self.remoteTestRoot = options.remoteTestRoot
@@ -345,8 +352,6 @@ class B2GRemoteReftest(RefTest):
         if (os.name == "nt"):
             xpcshell += ".exe"
 
-        if (options.utilityPath):
-            paths.insert(0, options.utilityPath)
         options.utilityPath = self.findPath(paths, xpcshell)
         if options.utilityPath == None:
             print "ERROR: unable to find utility path for %s, please specify with --utility-path" % (os.name)
@@ -425,7 +430,6 @@ class B2GRemoteReftest(RefTest):
         prefs["browser.firstrun.show.localepicker"] = False
         prefs["b2g.system_startup_url"] = "app://test-container.gaiamobile.org/index.html"
         prefs["b2g.system_manifest_url"] = "app://test-container.gaiamobile.org/manifest.webapp"
-        prefs["browser.tabs.remote"] = False
         prefs["dom.ipc.tabs.disabled"] = False
         prefs["dom.mozBrowserFramesEnabled"] = True
         prefs["font.size.inflation.emPerLine"] = 0
@@ -437,9 +441,19 @@ class B2GRemoteReftest(RefTest):
         # Set a future policy version to avoid the telemetry prompt.
         prefs["toolkit.telemetry.prompted"] = 999
         prefs["toolkit.telemetry.notifiedOptOut"] = 999
+        # Make sure we disable system updates
+        prefs["app.update.enabled"] = False
+        prefs["app.update.url"] = ""
+        prefs["app.update.url.override"] = ""
+        # Disable webapp updates
+        prefs["webapps.update.enabled"] = False
+        # Disable tiles also
+        prefs["browser.newtabpage.directory.source"] = ""
+        prefs["browser.newtabpage.directory.ping"] = ""
+        # Disable periodic updates of service workers
+        prefs["dom.serviceWorkers.periodic-updates.enabled"] = False
 
         if options.oop:
-            prefs['browser.tabs.remote'] = True
             prefs['browser.tabs.remote.autostart'] = True
             prefs['reftest.browser.iframe.enabled'] = True
 
@@ -484,6 +498,23 @@ class B2GRemoteReftest(RefTest):
     def getManifestPath(self, path):
         return path
 
+    def environment(self, **kwargs):
+     return self.automation.environment(**kwargs)
+
+    def runApp(self, profile, binary, cmdargs, env,
+               timeout=None, debuggerInfo=None,
+               symbolsPath=None, options=None):
+        status = self.automation.runApp(None, env,
+                                        binary,
+                                        profile.profile,
+                                        cmdargs,
+                                        utilityPath=options.utilityPath,
+                                        xrePath=options.xrePath,
+                                        debuggerInfo=debuggerInfo,
+                                        symbolsPath=symbolsPath,
+                                        timeout=timeout)
+        return status
+
 
 def run_remote_reftests(parser, options, args):
     auto = B2GRemoteAutomation(None, "fennec", context_chrome=True)
@@ -497,8 +528,8 @@ def run_remote_reftests(parser, options, args):
             kwargs['noWindow'] = True
         if options.geckoPath:
             kwargs['gecko_path'] = options.geckoPath
-        if options.logcat_dir:
-            kwargs['logcat_dir'] = options.logcat_dir
+        if options.logdir:
+            kwargs['logdir'] = options.logdir
         if options.busybox:
             kwargs['busybox'] = options.busybox
         if options.symbolsPath:
@@ -511,19 +542,21 @@ def run_remote_reftests(parser, options, args):
         host,port = options.marionette.split(':')
         kwargs['host'] = host
         kwargs['port'] = int(port)
-    marionette = Marionette.getMarionetteOrExit(**kwargs)
+    if options.adb_path:
+        kwargs['adb_path'] = options.adb_path
+    marionette = Marionette(**kwargs)
     auto.marionette = marionette
 
     if options.emulator:
         dm = marionette.emulator.dm
     else:
         # create the DeviceManager
-        kwargs = {'adbPath': options.adbPath,
+        kwargs = {'adbPath': options.adb_path,
                   'deviceRoot': options.remoteTestRoot}
         if options.deviceIP:
             kwargs.update({'host': options.deviceIP,
                            'port': options.devicePort})
-        dm = DeviagerADB(**kwargs)
+        dm = DeviceManagerADB(**kwargs)
     auto.setDeviceManager(dm)
 
     options = parser.verifyRemoteOptions(options, auto)
@@ -600,7 +633,7 @@ def main(args=sys.argv[1:]):
     parser = B2GOptions()
     options, args = parser.parse_args(args)
 
-    if options.desktop:
+    if options.desktop or options.mulet:
         return run_desktop_reftests(parser, options, args)
     return run_remote_reftests(parser, options, args)
 

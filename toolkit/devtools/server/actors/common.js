@@ -1,10 +1,129 @@
-/* -*- tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
+
+const promise = require("promise");
+const { method } = require("devtools/server/protocol");
+
+/**
+ * Creates "registered" actors factory meant for creating another kind of
+ * factories, ObservedActorFactory, during the call to listTabs.
+ * These factories live in DebuggerServer.{tab|global}ActorFactories.
+ *
+ * These actors only exposes:
+ * - `name` string attribute used to match actors by constructor name
+ *   in DebuggerServer.remove{Global,Tab}Actor.
+ * - `createObservedActorFactory` function to create "observed" actors factory
+ *
+ * @param options object, function
+ *        Either an object or a function.
+ *        If given an object:
+ *
+ *        If given a function (deprecated):
+ *          Constructor function of an actor.
+ *          The constructor function for this actor type.
+ *          This expects to be called as a constructor (i.e. with 'new'),
+ *          and passed two arguments: the DebuggerServerConnection, and
+ *          the BrowserTabActor with which it will be associated.
+ *          Only used for deprecated eagerly loaded actors.
+ *
+ */
+function RegisteredActorFactory(options, prefix) {
+  // By default the actor name will also be used for the actorID prefix.
+  this._prefix = prefix;
+  if (typeof(options) != "function") {
+    // actors definition registered by actorRegistryActor
+    if (options.constructorFun) {
+      this._getConstructor = () => options.constructorFun;
+    } else {
+      // Lazy actor definition, where options contains all the information
+      // required to load the actor lazily.
+      this._getConstructor = function () {
+        // Load the module
+        let mod;
+        try {
+          mod = require(options.id);
+        } catch(e) {
+          throw new Error("Unable to load actor module '" + options.id + "'.\n" +
+                          e.message + "\n" + e.stack + "\n");
+        }
+        // Fetch the actor constructor
+        let c = mod[options.constructorName];
+        if (!c) {
+          throw new Error("Unable to find actor constructor named '" +
+                          options.constructorName + "'. (Is it exported?)");
+        }
+        return c;
+      };
+    }
+    // Exposes `name` attribute in order to allow removeXXXActor to match
+    // the actor by its actor constructor name.
+    this.name = options.constructorName;
+  } else {
+    // Old actor case, where options is a function that is the actor constructor.
+    this._getConstructor = () => options;
+    // Exposes `name` attribute in order to allow removeXXXActor to match
+    // the actor by its actor constructor name.
+    this.name = options.name;
+
+    // For old actors, we allow the use of a different prefix for actorID
+    // than for listTabs actor names, by fetching a prefix on the actor prototype.
+    // (Used by ChromeDebuggerActor)
+    if (options.prototype && options.prototype.actorPrefix) {
+      this._prefix = options.prototype.actorPrefix;
+    }
+  }
+}
+RegisteredActorFactory.prototype.createObservedActorFactory = function (conn, parentActor) {
+  return new ObservedActorFactory(this._getConstructor, this._prefix, conn, parentActor);
+}
+exports.RegisteredActorFactory = RegisteredActorFactory;
+
+/**
+ * Creates "observed" actors factory meant for creating real actor instances.
+ * These factories lives in actor pools and fake various actor attributes.
+ * They will be replaced in actor pools by final actor instances during
+ * the first request for the same actorID from DebuggerServer._getOrCreateActor.
+ *
+ * ObservedActorFactory fakes the following actors attributes:
+ *   actorPrefix (string) Used by ActorPool.addActor to compute the actor id
+ *   actorID (string) Set by ActorPool.addActor just after being instantiated
+ *   registeredPool (object) Set by ActorPool.addActor just after being
+ *                           instantiated
+ * And exposes the following method:
+ *   createActor (function) Instantiate an actor that is going to replace
+ *                          this factory in the actor pool.
+ */
+function ObservedActorFactory(getConstructor, prefix, conn, parentActor) {
+  this._getConstructor = getConstructor;
+  this._conn = conn;
+  this._parentActor = parentActor;
+
+  this.actorPrefix = prefix;
+
+  this.actorID = null;
+  this.registeredPool = null;
+}
+ObservedActorFactory.prototype.createActor = function () {
+  // Fetch the actor constructor
+  let c = this._getConstructor();
+  // Instantiate a new actor instance
+  let instance = new c(this._conn, this._parentActor);
+  instance.conn = this._conn;
+  instance.parentID = this._parentActor.actorID;
+  // We want the newly-constructed actor to completely replace the factory
+  // actor. Reusing the existing actor ID will make sure ActorPool.addActor
+  // does the right thing.
+  instance.actorID = this.actorID;
+  this.registeredPool.addActor(instance);
+  return instance;
+}
+exports.ObservedActorFactory = ObservedActorFactory;
+
 
 /**
  * Methods shared between RootActor and BrowserTabActor.
@@ -16,7 +135,7 @@
  * |aPool|.
  *
  * The root actor and the tab actor use this to instantiate actors that other
- * parts of the browser have specified with DebuggerServer.addTabActor antd
+ * parts of the browser have specified with DebuggerServer.addTabActor and
  * DebuggerServer.addGlobalActor.
  *
  * @param aFactories
@@ -48,12 +167,19 @@ exports.createExtraActors = function createExtraActors(aFactories, aPool) {
   for (let name in aFactories) {
     let actor = this._extraActors[name];
     if (!actor) {
-      actor = aFactories[name].bind(null, this.conn, this);
-      actor.prototype = aFactories[name].prototype;
-      actor.parentID = this.actorID;
+      // Register another factory, but this time specific to this connection.
+      // It creates a fake actor that looks like an regular actor in the pool,
+      // but without actually instantiating the actor.
+      // It will only be instantiated on the first request made to the actor.
+      actor = aFactories[name].createObservedActorFactory(this.conn, this);
       this._extraActors[name] = actor;
     }
-    aPool.addActor(actor);
+
+    // If the actor already exists in the pool, it may have been instantiated,
+    // so make sure not to overwrite it by a non-instantiated version.
+    if (!aPool.has(actor.actorID)) {
+      aPool.addActor(actor);
+    }
   }
 }
 
@@ -105,7 +231,7 @@ ActorPool.prototype = {
     aActor.conn = this.conn;
     if (!aActor.actorID) {
       let prefix = aActor.actorPrefix;
-      if (typeof aActor == "function") {
+      if (!prefix && typeof aActor == "function") {
         // typeName is a convention used with protocol.js-based actors
         prefix = aActor.prototype.actorPrefix || aActor.prototype.typeName;
       }
@@ -157,12 +283,256 @@ ActorPool.prototype = {
    * Run all actor cleanups.
    */
   cleanup: function AP_cleanup() {
-    for each (let actor in this._cleanups) {
-      actor.disconnect();
+    for (let id in this._cleanups) {
+      this._cleanups[id].disconnect();
     }
     this._cleanups = {};
-  }
+  },
+
+  forEach: function(callback) {
+    for (let name in this._actors) {
+      callback(this._actors[name]);
+    }
+  },
 }
 
 exports.ActorPool = ActorPool;
 
+/**
+ * An OriginalLocation represents a location in an original source.
+ *
+ * @param SourceActor actor
+ *        A SourceActor representing an original source.
+ * @param Number line
+ *        A line within the given source.
+ * @param Number column
+ *        A column within the given line.
+ * @param String name
+ *        The name of the symbol corresponding to this OriginalLocation.
+ */
+function OriginalLocation(actor, line, column, name) {
+  this._connection = actor ? actor.conn : null;
+  this._actorID = actor ? actor.actorID : undefined;
+  this._line = line;
+  this._column = column;
+  this._name = name;
+}
+
+OriginalLocation.fromGeneratedLocation = function (generatedLocation) {
+  return new OriginalLocation(
+    generatedLocation.generatedSourceActor,
+    generatedLocation.generatedLine,
+    generatedLocation.generatedColumn
+  );
+};
+
+OriginalLocation.prototype = {
+  get originalSourceActor() {
+    return this._connection ? this._connection.getActor(this._actorID) : null;
+  },
+
+  get originalUrl() {
+    let actor = this.originalSourceActor;
+    let source = actor.source;
+    return source ? source.url : actor._originalUrl;
+  },
+
+  get originalLine() {
+    return this._line;
+  },
+
+  get originalColumn() {
+    return this._column;
+  },
+
+  get originalName() {
+    return this._name;
+  },
+
+  get generatedSourceActor() {
+    throw new Error("Shouldn't  access generatedSourceActor from an OriginalLocation");
+  },
+
+  get generatedLine() {
+    throw new Error("Shouldn't access generatedLine from an OriginalLocation");
+  },
+
+  get generatedColumn() {
+    throw new Error("Shouldn't access generatedColumn from an Originallocation");
+  },
+
+  equals: function (other) {
+    return this.originalSourceActor.url == other.originalSourceActor.url &&
+           this.originalLine === other.originalLine &&
+           (this.originalColumn === undefined ||
+            other.originalColumn === undefined ||
+            this.originalColumn === other.originalColumn);
+  },
+
+  toJSON: function () {
+    return {
+      source: this.originalSourceActor.form(),
+      line: this.originalLine,
+      column: this.originalColumn
+    };
+  }
+};
+
+exports.OriginalLocation = OriginalLocation;
+
+/**
+ * A GeneratedLocation represents a location in a generated source.
+ *
+ * @param SourceActor actor
+ *        A SourceActor representing a generated source.
+ * @param Number line
+ *        A line within the given source.
+ * @param Number column
+ *        A column within the given line.
+ */
+function GeneratedLocation(actor, line, column, lastColumn) {
+  this._connection = actor ? actor.conn : null;
+  this._actorID = actor ? actor.actorID : undefined;
+  this._line = line;
+  this._column = column;
+  this._lastColumn = (lastColumn !== undefined) ? lastColumn : column + 1;
+}
+
+GeneratedLocation.fromOriginalLocation = function (originalLocation) {
+  return new GeneratedLocation(
+    originalLocation.originalSourceActor,
+    originalLocation.originalLine,
+    originalLocation.originalColumn
+  );
+};
+
+GeneratedLocation.prototype = {
+  get originalSourceActor() {
+    throw new Error();
+  },
+
+  get originalUrl() {
+    throw new Error("Shouldn't access originalUrl from a GeneratedLocation");
+  },
+
+  get originalLine() {
+    throw new Error("Shouldn't access originalLine from a GeneratedLocation");
+  },
+
+  get originalColumn() {
+    throw new Error("Shouldn't access originalColumn from a GeneratedLocation");
+  },
+
+  get originalName() {
+    throw new Error("Shouldn't access originalName from a GeneratedLocation");
+  },
+
+  get generatedSourceActor() {
+    return this._connection ? this._connection.getActor(this._actorID) : null;
+  },
+
+  get generatedLine() {
+    return this._line;
+  },
+
+  get generatedColumn() {
+    return this._column;
+  },
+
+  get generatedLastColumn() {
+    return this._lastColumn;
+  },
+
+  equals: function (other) {
+    return this.generatedSourceActor.url == other.generatedSourceActor.url &&
+           this.generatedLine === other.generatedLine &&
+           (this.generatedColumn === undefined ||
+            other.generatedColumn === undefined ||
+            this.generatedColumn === other.generatedColumn);
+  },
+
+  toJSON: function () {
+    return {
+      source: this.generatedSourceActor.form(),
+      line: this.generatedLine,
+      column: this.generatedColumn,
+      lastColumn: this.generatedLastColumn
+    };
+  }
+};
+
+exports.GeneratedLocation = GeneratedLocation;
+
+// TODO bug 863089: use Debugger.Script.prototype.getOffsetColumn when it is
+// implemented.
+exports.getOffsetColumn = function getOffsetColumn(aOffset, aScript) {
+  let bestOffsetMapping = null;
+  for (let offsetMapping of aScript.getAllColumnOffsets()) {
+    if (!bestOffsetMapping ||
+        (offsetMapping.offset <= aOffset &&
+         offsetMapping.offset > bestOffsetMapping.offset)) {
+      bestOffsetMapping = offsetMapping;
+    }
+  }
+
+  if (!bestOffsetMapping) {
+    // XXX: Try not to completely break the experience of using the debugger for
+    // the user by assuming column 0. Simultaneously, report the error so that
+    // there is a paper trail if the assumption is bad and the debugging
+    // experience becomes wonky.
+    reportError(new Error("Could not find a column for offset " + aOffset
+                          + " in the script " + aScript));
+    return 0;
+  }
+
+  return bestOffsetMapping.columnNumber;
+}
+
+/**
+ * A method decorator that ensures the actor is in the expected state before
+ * proceeding. If the actor is not in the expected state, the decorated method
+ * returns a rejected promise.
+ *
+ * The actor's state must be at this.state property.
+ *
+ * @param String expectedState
+ *        The expected state.
+ * @param String activity
+ *        Additional info about what's going on.
+ * @param Function method
+ *        The actor method to proceed with when the actor is in the expected
+ *        state.
+ *
+ * @returns Function
+ *          The decorated method.
+ */
+function expectState(expectedState, method, activity) {
+  return function(...args) {
+    if (this.state !== expectedState) {
+      const msg = `Wrong state while ${activity}:` +
+                  `Expected '${expectedState}', ` +
+                  `but current state is '${this.state}'.`;
+      return promise.reject(new Error(msg));
+    }
+
+    return method.apply(this, args);
+  };
+}
+
+exports.expectState = expectState;
+
+/**
+ * Proxies a call from an actor to an underlying module, stored
+ * as `bridge` on the actor. This allows a module to be defined in one
+ * place, usable by other modules/actors on the server, but a separate
+ * module defining the actor/RDP definition.
+ *
+ * @see Framerate implementation: toolkit/devtools/shared/framerate.js
+ * @see Framerate actor definition: toolkit/devtools/server/actors/framerate.js
+ */
+function actorBridge (methodName, definition={}) {
+  return method(function () {
+    return this.bridge[methodName].apply(this.bridge, arguments);
+  }, definition);
+}
+exports.actorBridge = actorBridge;

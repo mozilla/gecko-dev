@@ -4,7 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['public']
+XPIDL_SOURCES += [
+    'nsGtkQtIconsConverter.idl',
+]
+
+XPIDL_MODULE = 'gtkqticonsconverter'
 
 SOURCES += [
     'nsIconChannel.cpp',
@@ -18,4 +22,6 @@ EXTRA_PP_COMPONENTS += [
     'gtkqticonsconverter.js',
 ]
 
-FINAL_LIBRARY = 'imgicon'
+FINAL_LIBRARY = 'xul'
+
+CXXFLAGS += CONFIG['MOZ_QT_CFLAGS']

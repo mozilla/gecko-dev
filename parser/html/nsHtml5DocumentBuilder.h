@@ -102,12 +102,12 @@ public:
   }
 
   // nsContentSink methods
-  virtual void UpdateChildCounts();
-  virtual nsresult FlushTags();
+  virtual void UpdateChildCounts() override;
+  virtual nsresult FlushTags() override;
 
 protected:
 
-  nsHtml5DocumentBuilder(bool aRunsToCompletion);
+  explicit nsHtml5DocumentBuilder(bool aRunsToCompletion);
   virtual ~nsHtml5DocumentBuilder();
 
 protected:

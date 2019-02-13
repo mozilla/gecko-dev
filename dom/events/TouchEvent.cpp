@@ -10,14 +10,9 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/TouchEvents.h"
 #include "nsContentUtils.h"
+#include "mozilla/WidgetUtils.h"
 
 namespace mozilla {
-
-#ifdef XP_WIN
-namespace widget {
-extern int32_t IsTouchDeviceSupportPresent();
-} // namespace widget
-#endif // #ifdef XP_WIN
 
 namespace dom {
 
@@ -36,9 +31,9 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(TouchList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TouchList)
 
 JSObject*
-TouchList::WrapObject(JSContext* aCx)
+TouchList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return TouchListBinding::Wrap(aCx, this);
+  return TouchListBinding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
@@ -128,8 +123,8 @@ TouchEvent::Touches()
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
     if (mEvent->message == NS_TOUCH_END || mEvent->message == NS_TOUCH_CANCEL) {
       // for touchend events, remove any changed touches from the touches array
-      nsTArray< nsRefPtr<Touch> > unchangedTouches;
-      const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+      WidgetTouchEvent::AutoTouchArray unchangedTouches;
+      const WidgetTouchEvent::TouchArray& touches = touchEvent->touches;
       for (uint32_t i = 0; i < touches.Length(); ++i) {
         if (!touches[i]->mChanged) {
           unchangedTouches.AppendElement(touches[i]);
@@ -147,9 +142,9 @@ TouchList*
 TouchEvent::TargetTouches()
 {
   if (!mTargetTouches) {
-    nsTArray< nsRefPtr<Touch> > targetTouches;
+    WidgetTouchEvent::AutoTouchArray targetTouches;
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
-    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    const WidgetTouchEvent::TouchArray& touches = touchEvent->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       // for touchend/cancel events, don't append to the target list if this is a
       // touch that is ending
@@ -169,9 +164,9 @@ TouchList*
 TouchEvent::ChangedTouches()
 {
   if (!mChangedTouches) {
-    nsTArray< nsRefPtr<Touch> > changedTouches;
+    WidgetTouchEvent::AutoTouchArray changedTouches;
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
-    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    const WidgetTouchEvent::TouchArray& touches = touchEvent->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       if (touches[i]->mChanged) {
         changedTouches.AppendElement(touches[i]);
@@ -188,8 +183,7 @@ TouchEvent::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   bool prefValue = false;
   int32_t flag = 0;
-  if (NS_SUCCEEDED(Preferences::GetInt("dom.w3c_touch_events.enabled",
-                                        &flag))) {
+  if (NS_SUCCEEDED(Preferences::GetInt("dom.w3c_touch_events.enabled", &flag))) {
     if (flag == 2) {
 #ifdef XP_WIN
       static bool sDidCheckTouchDeviceSupport = false;
@@ -197,7 +191,7 @@ TouchEvent::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
       // On Windows we auto-detect based on device support.
       if (!sDidCheckTouchDeviceSupport) {
         sDidCheckTouchDeviceSupport = true;
-        sIsTouchDeviceSupportPresent = widget::IsTouchDeviceSupportPresent();
+        sIsTouchDeviceSupportPresent = WidgetUtils::IsTouchDeviceSupportPresent();
       }
       prefValue = sIsTouchDeviceSupportPresent;
 #else

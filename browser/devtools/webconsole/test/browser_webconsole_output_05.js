@@ -6,6 +6,7 @@
 // Test the webconsole output for various types of objects.
 
 const TEST_URI = "data:text/html;charset=utf8,test for console output - 05";
+const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
 
 let dateNow = Date.now();
 
@@ -62,20 +63,60 @@ let inputTests = [
 
   // 7
   {
+    input: "Date.prototype",
+    output: /Object \{.*\}/,
+    printOutput: "Invalid Date",
+    inspectable: true,
+    variablesViewLabel: "Object",
+  },
+
+  // 8
+  {
     input: "new Number(43)",
     output: "43",
     inspectable: true,
   },
 
-  // 8
+  // 9
   {
-    input: "new String('hello world')",
-    output: '"hello world"',
+    input: "new String('hello')",
+    output: 'String [ "h", "e", "l", "l", "o" ]',
+    printOutput: "hello",
     inspectable: true,
+    variablesViewLabel: "String[5]"
   },
+
+  // 9
+  {
+    // XXX: Can't test fulfilled and rejected promises, because promises get
+    // settled on the next tick of the event loop.
+    input: "new Promise(function () {})",
+    output: 'Promise { <state>: "pending" }',
+    printOutput: "[object Promise]",
+    inspectable: true,
+    variablesViewLabel: "Promise"
+  },
+
+  // 10
+  {
+    input: "(function () { var p = new Promise(function () {}); p.foo = 1; return p; }())",
+    output: 'Promise { <state>: "pending", foo: 1 }',
+    printOutput: "[object Promise]",
+    inspectable: true,
+    variablesViewLabel: "Promise"
+  },
+
+  //11
+  {
+    input: "new Object({1: 'this\\nis\\nsupposed\\nto\\nbe\\na\\nvery\\nlong\\nstring\\n,shown\\non\\na\\nsingle\\nline', 2: 'a shorter string', 3: 100})",
+    output: 'Object { 1: "this is supposed to be a very long ' + ELLIPSIS + '", 2: "a shorter string", 3: 100 }',
+    printOutput: "[object Object]",
+    inspectable: false,
+  }
 ];
 
 function test() {
+  requestLongerTimeout(2);
   Task.spawn(function*() {
     let {tab} = yield loadTab(TEST_URI);
     let hud = yield openConsole(tab);
@@ -84,6 +125,6 @@ function test() {
 }
 
 function finishUp() {
-  inputTests = null;
+  inputTests = dateNow = null;
   finishTest();
 }

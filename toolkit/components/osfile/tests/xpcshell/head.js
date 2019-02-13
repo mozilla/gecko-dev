@@ -54,8 +54,10 @@ function reference_fetch_file(path, test) {
   do_print("Fetching file " + path);
   let deferred = Promise.defer();
   let file = new FileUtils.File(path);
-  NetUtil.asyncFetch(file,
-    function(stream, status) {
+  NetUtil.asyncFetch({
+    uri: NetUtil.newURI(file),
+    loadUsingSystemPrincipal: true
+  }, function(stream, status) {
       if (!Components.isSuccessCode(status)) {
         deferred.reject(status);
         return;
@@ -72,7 +74,8 @@ function reference_fetch_file(path, test) {
       } else {
         deferred.resolve(result);
       }
-  });
+    });
+
   return deferred.promise;
 };
 

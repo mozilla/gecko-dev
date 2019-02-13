@@ -10,6 +10,7 @@
 #ifdef XP_WIN
 
 #include <windows.h>
+#include "ProtocolUtils.h"
 #define INVALID_HANDLE INVALID_HANDLE_VALUE
 
 #else // XP_WIN
@@ -42,14 +43,14 @@ FileDescriptor::FileDescriptor(PlatformHandleType aHandle)
 void
 FileDescriptor::DuplicateInCurrentProcess(PlatformHandleType aHandle)
 {
-  MOZ_ASSERT_IF(mHandleCreatedByOtherProcess,
+  MOZ_ASSERT_IF(mHandleCreatedByOtherProcess && IsValid(),
                 mHandleCreatedByOtherProcessWasUsed);
 
   if (IsValid(aHandle)) {
     PlatformHandleType newHandle;
 #ifdef XP_WIN
-    if (DuplicateHandle(GetCurrentProcess(), aHandle, GetCurrentProcess(),
-                        &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+    if (::DuplicateHandle(GetCurrentProcess(), aHandle, GetCurrentProcess(),
+                          &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
 #else // XP_WIN
     if ((newHandle = dup(aHandle)) != INVALID_HANDLE) {
 #endif
@@ -65,7 +66,7 @@ FileDescriptor::DuplicateInCurrentProcess(PlatformHandleType aHandle)
 void
 FileDescriptor::CloseCurrentProcessHandle()
 {
-  MOZ_ASSERT_IF(mHandleCreatedByOtherProcess,
+  MOZ_ASSERT_IF(mHandleCreatedByOtherProcess && IsValid(),
                 mHandleCreatedByOtherProcessWasUsed);
 
   // Don't actually close handles created by another process.
@@ -87,13 +88,13 @@ FileDescriptor::CloseCurrentProcessHandle()
 
 FileDescriptor::PickleType
 FileDescriptor::ShareTo(const FileDescriptor::IPDLPrivate&,
-                        FileDescriptor::ProcessHandle aOtherProcess) const
+                        FileDescriptor::ProcessId aTargetPid) const
 {
   PlatformHandleType newHandle;
 #ifdef XP_WIN
   if (IsValid()) {
-    if (DuplicateHandle(GetCurrentProcess(), mHandle, aOtherProcess,
-                        &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+    if (mozilla::ipc::DuplicateHandle(mHandle, aTargetPid, &newHandle, 0,
+                                      DUPLICATE_SAME_ACCESS)) {
       return newHandle;
     }
     NS_WARNING("Failed to duplicate file handle for other process!");

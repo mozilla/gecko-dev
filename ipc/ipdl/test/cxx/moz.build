@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TOOL_DIRS += ['app']
+DIRS += ['app']
 
 EXPORTS.mozilla._ipdltest += [
     'IPDLUnitTestProcessChild.h',
@@ -17,11 +17,13 @@ SOURCES += [
     'TestActorPunning.cpp',
     'TestBadActor.cpp',
     'TestBridgeMain.cpp',
+    'TestCancel.cpp',
     'TestCrashCleanup.cpp',
     'TestDataStructures.cpp',
     'TestDesc.cpp',
     'TestFailedCtor.cpp',
     'TestHangs.cpp',
+    'TestHighestPrio.cpp',
     'TestInterruptErrorCleanup.cpp',
     'TestInterruptRaces.cpp',
     'TestInterruptShutdownRace.cpp',
@@ -31,6 +33,7 @@ SOURCES += [
     'TestMultiMgrs.cpp',
     'TestNestedLoops.cpp',
     'TestOpens.cpp',
+    'TestRaceDeadlock.cpp',
     'TestRaceDeferral.cpp',
     'TestRacyInterruptReplies.cpp',
     'TestRacyReentry.cpp',
@@ -45,6 +48,7 @@ SOURCES += [
     'TestSyncHang.cpp',
     'TestSyncWakeup.cpp',
     'TestUrgency.cpp',
+    'TestUrgentHangs.cpp',
 ]
 
 if CONFIG['OS_ARCH'] == 'Linux':
@@ -53,12 +57,9 @@ if CONFIG['OS_ARCH'] == 'Linux':
     ]
 
 SOURCES += [
+    '!IPDLUnitTests.cpp',
     'IPDLUnitTestProcessChild.cpp',
     'IPDLUnitTestSubprocess.cpp',
-]
-
-GENERATED_SOURCES += [
-    'IPDLUnitTests.cpp',
 ]
 
 IPDL_SOURCES += [
@@ -70,6 +71,7 @@ IPDL_SOURCES += [
     'PTestBridgeMain.ipdl',
     'PTestBridgeMainSub.ipdl',
     'PTestBridgeSub.ipdl',
+    'PTestCancel.ipdl',
     'PTestCrashCleanup.ipdl',
     'PTestDataStructures.ipdl',
     'PTestDataStructuresCommon.ipdlh',
@@ -82,6 +84,7 @@ IPDL_SOURCES += [
     'PTestFailedCtorSubsub.ipdl',
     'PTestHandle.ipdl',
     'PTestHangs.ipdl',
+    'PTestHighestPrio.ipdl',
     'PTestIndirectProtocolParam.ipdlh',
     'PTestIndirectProtocolParamFirst.ipdl',
     'PTestIndirectProtocolParamManage.ipdl',
@@ -100,6 +103,7 @@ IPDL_SOURCES += [
     'PTestNestedLoops.ipdl',
     'PTestOpens.ipdl',
     'PTestOpensOpened.ipdl',
+    'PTestRaceDeadlock.ipdl',
     'PTestRaceDeferral.ipdl',
     'PTestRacyInterruptReplies.ipdl',
     'PTestRacyReentry.ipdl',
@@ -118,6 +122,7 @@ IPDL_SOURCES += [
     'PTestSyncWakeup.ipdl',
     'PTestSysVShmem.ipdl',
     'PTestUrgency.ipdl',
+    'PTestUrgentHangs.ipdl',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

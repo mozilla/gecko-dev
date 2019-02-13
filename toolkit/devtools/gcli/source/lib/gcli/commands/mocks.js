@@ -19,6 +19,7 @@
 var cli = require('../cli');
 var mockCommands = require('../test/mockCommands');
 var mockSettings = require('../test/mockSettings');
+var mockDocument = require('../test/mockDocument');
 
 exports.items = [
   {
@@ -30,7 +31,7 @@ exports.items = [
         name: 'included',
         type: {
           name: 'selection',
-          data: [ 'on', 'off']
+          data: [ 'on', 'off' ]
         },
         description: 'Turn mock commands on or off',
       }
@@ -45,12 +46,14 @@ exports.items = [
 
     on: function(requisition) {
       mockCommands.setup(requisition);
-      mockSettings.setup();
+      mockSettings.setup(requisition.system);
+      mockDocument.setup(requisition);
     },
 
     off: function(requisition) {
       mockCommands.shutdown(requisition);
-      mockSettings.shutdown();
+      mockSettings.shutdown(requisition.system);
+      mockDocument.shutdown(requisition);
     }
   }
 ];

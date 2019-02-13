@@ -5,8 +5,8 @@
  * Tests whether the frontend behaves correctly while reording a snapshot.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, panel] = yield initCanavsDebuggerFrontend(SIMPLE_CANVAS_URL);
+function* ifTestingSupported() {
+  let { target, panel } = yield initCanvasDebuggerFrontend(SIMPLE_CANVAS_URL);
   let { window, EVENTS, $, SnapshotsListView } = panel.panelWin;
 
   yield reload(target);
@@ -32,8 +32,6 @@ function ifTestingSupported() {
 
   is($("#record-snapshot").getAttribute("checked"), "true",
     "The 'record snapshot' button should now be checked.");
-  is($("#record-snapshot").getAttribute("disabled"), "true",
-    "The 'record snapshot' button should now be disabled.");
   is($("#record-snapshot").hasAttribute("hidden"), false,
     "The 'record snapshot' button should still be visible.");
 

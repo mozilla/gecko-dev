@@ -4,99 +4,153 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
-let protocol = require("devtools/server/protocol");
-let {method, RetVal} = protocol;
+const protocol = require("devtools/server/protocol");
+const { method, RetVal, Arg, types } = protocol;
+const { Memory } = require("devtools/toolkit/shared/memory");
+const { actorBridge } = require("devtools/server/actors/common");
+loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyRequireGetter(this, "StackFrameCache",
+                         "devtools/server/actors/utils/stack", true);
+
+types.addDictType("AllocationsRecordingOptions", {
+  // The probability we sample any given allocation when recording
+  // allocations. Must be between 0.0 and 1.0. Defaults to 1.0, or sampling
+  // every allocation.
+  probability: "number",
+
+  // The maximum number of of allocation events to keep in the allocations
+  // log. If new allocations arrive, when we are already at capacity, the oldest
+  // allocation event is lost. This number must fit in a 32 bit signed integer.
+  maxLogLength: "number"
+});
 
 /**
  * An actor that returns memory usage data for its parent actor's window.
  * A tab-scoped instance of this actor will measure the memory footprint of its
  * parent tab. A global-scoped instance however, will measure the memory
  * footprint of the chrome window referenced by the root actor.
+ * 
+ * This actor wraps the Memory module at toolkit/devtools/shared/memory.js
+ * and provides RDP definitions.
+ *
+ * @see toolkit/devtools/shared/memory.js for documentation.
  */
-let MemoryActor = protocol.ActorClass({
+let MemoryActor = exports.MemoryActor = protocol.ActorClass({
   typeName: "memory",
 
-  initialize: function(conn, tabActor) {
+  /**
+   * The set of unsolicited events the MemoryActor emits that will be sent over
+   * the RDP (by protocol.js).
+   */
+
+  events: {
+    // Same format as the data passed to the
+    // `Debugger.Memory.prototype.onGarbageCollection` hook. See
+    // `js/src/doc/Debugger/Debugger.Memory.md` for documentation.
+    "garbage-collection": {
+      type: "garbage-collection",
+      data: Arg(0, "json"),
+    },
+  },
+
+  initialize: function(conn, parent, frameCache = new StackFrameCache()) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.tabActor = tabActor;
-    this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
-                  .getService(Ci.nsIMemoryReporterManager);
+
+    this._onGarbageCollection = this._onGarbageCollection.bind(this);
+    this.bridge = new Memory(parent, frameCache);
+    this.bridge.on("garbage-collection", this._onGarbageCollection);
   },
 
   destroy: function() {
-    this._mgr = null;
+    this.bridge.off("garbage-collection", this._onGarbageCollection);
+    this.bridge.destroy();
     protocol.Actor.prototype.destroy.call(this);
   },
 
-  /**
-   * A method that returns a detailed breakdown of the memory consumption of the
-   * associated window.
-   *
-   * @returns object
-   */
-  measure: method(function() {
-    let result = {};
-
-    let jsObjectsSize = {};
-    let jsStringsSize = {};
-    let jsOtherSize = {};
-    let domSize = {};
-    let styleSize = {};
-    let otherSize = {};
-    let totalSize = {};
-    let jsMilliseconds = {};
-    let nonJSMilliseconds = {};
-
-    try {
-      this._mgr.sizeOfTab(this.tabActor.window, jsObjectsSize, jsStringsSize, jsOtherSize,
-                          domSize, styleSize, otherSize, totalSize, jsMilliseconds, nonJSMilliseconds);
-      result.total = totalSize.value;
-      result.domSize = domSize.value;
-      result.styleSize = styleSize.value;
-      result.jsObjectsSize = jsObjectsSize.value;
-      result.jsStringsSize = jsStringsSize.value;
-      result.jsOtherSize = jsOtherSize.value;
-      result.otherSize = otherSize.value;
-      result.jsMilliseconds = jsMilliseconds.value.toFixed(1);
-      result.nonJSMilliseconds = nonJSMilliseconds.value.toFixed(1);
-    } catch (e) {
-      console.error(e);
-      let url = this.tabActor.url;
-      console.error("Error getting size of "+url);
+  attach: actorBridge("attach", {
+    request: {},
+    response: {
+      type: "attached"
     }
+  }),
 
-    return result;
-  }, {
+  detach: actorBridge("detach", {
+    request: {},
+    response: {
+      type: "detached"
+    }
+  }),
+
+  getState: actorBridge("getState", {
+    response: {
+      state: RetVal(0, "string")
+    }
+  }),
+
+  takeCensus: actorBridge("takeCensus", {
+    request: {},
+    response: RetVal("json")
+  }),
+
+  startRecordingAllocations: actorBridge("startRecordingAllocations", {
+    request: {
+      options: Arg(0, "nullable:AllocationsRecordingOptions")
+    },
+    response: {
+      // Accept `nullable` in the case of server Gecko <= 37, handled on the front
+      value: RetVal(0, "nullable:number")
+    }
+  }),
+
+  stopRecordingAllocations: actorBridge("stopRecordingAllocations", {
+    request: {},
+    response: {
+      // Accept `nullable` in the case of server Gecko <= 37, handled on the front
+      value: RetVal(0, "nullable:number")
+    }
+  }),
+
+  getAllocationsSettings: actorBridge("getAllocationsSettings", {
+    request: {},
+    response: {
+      options: RetVal(0, "json")
+    }
+  }),
+
+  getAllocations: actorBridge("getAllocations", {
+    request: {},
+    response: RetVal("json")
+  }),
+
+  forceGarbageCollection: actorBridge("forceGarbageCollection", {
+    request: {},
+    response: {}
+  }),
+
+  forceCycleCollection: actorBridge("forceCycleCollection", {
+    request: {},
+    response: {}
+  }),
+
+  measure: actorBridge("measure", {
     request: {},
     response: RetVal("json"),
   }),
 
-  residentUnique: method(function() {
-    return this._mgr.residentUnique;
-  }, {
+  residentUnique: actorBridge("residentUnique", {
     request: {},
     response: { value: RetVal("number") }
-  })
-});
+  }),
 
-exports.MemoryActor = MemoryActor;
+  _onGarbageCollection: function (data) {
+    events.emit(this, "garbage-collection", data);
+  },
+});
 
 exports.MemoryFront = protocol.FrontClass(MemoryActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
     this.actorID = form.memoryActor;
-    client.addActorPool(this);
     this.manage(this);
   }
 });
-
-exports.register = function(handle) {
-  handle.addGlobalActor(MemoryActor, "memoryActor");
-  handle.addTabActor(MemoryActor, "memoryActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeGlobalActor(MemoryActor, "memoryActor");
-  handle.removeTabActor(MemoryActor, "memoryActor");
-};

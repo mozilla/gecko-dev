@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,7 @@ this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
  * @param nsIDOMNode aNode
  *        The element associated with the widget.
  * @param Object aOptions
+ *        - contextMenu: optional element or element ID that serves as a context menu.
  *        - showArrows: specifies if items should display horizontal arrows.
  *        - showItemCheckboxes: specifies if items should display checkboxes.
  *        - showGroupCheckboxes: specifies if groups should display checkboxes.
@@ -31,7 +32,8 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
   this.window = this.document.defaultView;
   this._parent = aNode;
 
-  let { showArrows, showItemCheckboxes, showGroupCheckboxes } = aOptions;
+  let { contextMenu, showArrows, showItemCheckboxes, showGroupCheckboxes } = aOptions;
+  this._contextMenu = contextMenu || null;
   this._showArrows = showArrows || false;
   this._showItemCheckboxes = showItemCheckboxes || false;
   this._showGroupCheckboxes = showGroupCheckboxes || false;
@@ -45,6 +47,7 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
   this._list.setAttribute("with-item-checkboxes", this._showItemCheckboxes);
   this._list.setAttribute("with-group-checkboxes", this._showGroupCheckboxes);
   this._list.setAttribute("tabindex", "0");
+  this._list.addEventListener("contextmenu", e => this._showContextMenu(e), false);
   this._list.addEventListener("keypress", e => this.emit("keyPress", e), false);
   this._list.addEventListener("mousedown", e => this.emit("mousePress", e), false);
   this._parent.appendChild(this._list);
@@ -76,14 +79,6 @@ SideMenuWidget.prototype = {
   groupSortPredicate: function(a, b) a.localeCompare(b),
 
   /**
-   * Specifies that the container viewport should be "stuck" to the
-   * bottom. That is, the container is automatically scrolled down to
-   * keep appended items visible, but only when the scroll position is
-   * already at the bottom.
-   */
-  autoscrollWithAppendedItems: false,
-
-  /**
    * Inserts an item in this container at the specified index, optionally
    * grouping by name.
    *
@@ -100,28 +95,41 @@ SideMenuWidget.prototype = {
    *         The element associated with the displayed item.
    */
   insertItemAt: function(aIndex, aContents, aAttachment={}) {
-    // Maintaining scroll position at the bottom when a new item is inserted
-    // depends on several factors (the order of testing is important to avoid
-    // needlessly expensive operations that may cause reflows):
-    let maintainScrollAtBottom =
-      // 1. The behavior should be enabled,
-      this.autoscrollWithAppendedItems &&
-      // 2. There shouldn't currently be any selected item in the list.
-      !this._selectedItem &&
-      // 3. The new item should be appended at the end of the list.
-      (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
-      // 4. The list should already be scrolled at the bottom.
-      (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
-
     let group = this._getMenuGroupForName(aAttachment.group);
     let item = this._getMenuItemForGroup(group, aContents, aAttachment);
     let element = item.insertSelfAt(aIndex);
 
-    if (maintainScrollAtBottom) {
-      this._list.scrollTop = this._list.scrollHeight;
+    return element;
+  },
+
+  /**
+   * Checks to see if the list is scrolled all the way to the bottom.
+   * Uses getBoundsWithoutFlushing to limit the performance impact
+   * of this function.
+   *
+   * @return bool
+   */
+  isScrolledToBottom: function() {
+    if (this._list.lastElementChild) {
+      let utils = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+      let childRect = utils.getBoundsWithoutFlushing(this._list.lastElementChild);
+      let listRect = utils.getBoundsWithoutFlushing(this._list);
+
+      // Cheap way to check if it's scrolled all the way to the bottom.
+      return (childRect.height + childRect.top) <= listRect.bottom;
     }
 
-    return element;
+    return false;
+  },
+
+  /**
+   * Scroll the list to the bottom after a timeout.
+   * If the user scrolls in the meantime, cancel this operation.
+   */
+  scrollToBottom: function() {
+    this._list.scrollTop = this._list.scrollHeight;
+    this.emit("scroll-to-bottom");
   },
 
   /**
@@ -214,7 +222,7 @@ SideMenuWidget.prototype = {
     }
 
     // Ensure the element is visible but not scrolled horizontally.
-    let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    let boxObject = this._list.boxObject;
     boxObject.ensureElementIsVisible(aElement);
     boxObject.scrollBy(-this._list.clientWidth, 0);
   },
@@ -389,6 +397,26 @@ SideMenuWidget.prototype = {
     }
   },
 
+  /**
+   * Shows the contextMenu element.
+   */
+  _showContextMenu: function(e) {
+    if (!this._contextMenu) {
+      return;
+    }
+
+    // Don't show the menu if a descendant node is going to be visible also.
+    let node = e.originalTarget;
+    while (node && node !== this._list) {
+      if (node.hasAttribute("contextmenu")) {
+        return;
+      }
+      node = node.parentNode;
+    }
+
+    this._contextMenu.openPopupAtScreen(e.screenX, e.screenY, true);
+  },
+
   window: null,
   document: null,
   _showArrows: false,
@@ -496,7 +524,7 @@ SideMenuGroup.prototype = {
     for (let group of groupsArray) {
       let name = group.getAttribute("name");
       if (sortPredicate(name, identifier) > 0 && // Insertion sort at its best :)
-          !name.contains(identifier)) { // Least significant group should be last.
+          !name.includes(identifier)) { // Least significant group should be last.
         return groupsArray.indexOf(group);
       }
     }

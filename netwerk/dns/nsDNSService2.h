@@ -21,9 +21,9 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"
 
-class nsDNSService MOZ_FINAL : public nsPIDNSService
-                             , public nsIObserver
-                             , public nsIMemoryReporter
+class nsDNSService final : public nsPIDNSService
+                         , public nsIObserver
+                         , public nsIMemoryReporter
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -33,13 +33,14 @@ public:
     NS_DECL_NSIMEMORYREPORTER
 
     nsDNSService();
-    ~nsDNSService();
 
     static nsIDNSService* GetXPCOMSingleton();
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
 private:
+    ~nsDNSService();
+
     static nsDNSService* GetSingleton();
 
     uint16_t GetAFForLookup(const nsACString &host, uint32_t flags);
@@ -59,6 +60,7 @@ private:
     bool                                      mFirstTime;
     bool                                      mOffline;
     bool                                      mNotifyResolution;
+    bool                                      mOfflineLocalhost;
     nsMainThreadPtrHandle<nsIObserverService> mObserverService;
     nsTHashtable<nsCStringHashKey>            mLocalDomains;
 };

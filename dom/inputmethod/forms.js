@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- /
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -120,7 +120,7 @@ let FormVisibility = {
       let visible = this.yAxisVisible(
         adjustedTop,
         pos.height,
-        pos.width
+        offset.height
       );
 
       if (!visible)
@@ -189,7 +189,9 @@ let FormAssistant = {
     addEventListener("focus", this, true, false);
     addEventListener("blur", this, true, false);
     addEventListener("resize", this, true, false);
-    addEventListener("submit", this, true, false);
+    // We should not blur the fucus if the submit event is cancelled,
+    // therefore we are binding our event listener in the bubbling phase here.
+    addEventListener("submit", this, false, false);
     addEventListener("pagehide", this, true, false);
     addEventListener("beforeunload", this, true, false);
     addEventListener("input", this, true, false);
@@ -212,7 +214,7 @@ let FormAssistant = {
     'range'
   ]),
 
-  isKeyboardOpened: false,
+  isHandlingFocus: false,
   selectionStart: -1,
   selectionEnd: -1,
   textBeforeCursor: "",
@@ -220,10 +222,12 @@ let FormAssistant = {
   scrollIntoViewTimeout: null,
   _focusedElement: null,
   _focusCounter: 0, // up one for every time we focus a new element
-  _observer: null,
+  _focusDeleteObserver: null,
+  _focusContentObserver: null,
   _documentEncoder: null,
   _editor: null,
   _editing: false,
+  _selectionPrivate: null,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -244,15 +248,18 @@ let FormAssistant = {
       return;
 
     if (this.focusedElement) {
-      this.focusedElement.removeEventListener('mousedown', this);
-      this.focusedElement.removeEventListener('mouseup', this);
       this.focusedElement.removeEventListener('compositionend', this);
-      if (this._observer) {
-        this._observer.disconnect();
-        this._observer = null;
+      if (this._focusDeleteObserver) {
+        this._focusDeleteObserver.disconnect();
+        this._focusDeleteObserver = null;
       }
-      if (!element) {
-        this.focusedElement.blur();
+      if (this._focusContentObserver) {
+        this._focusContentObserver.disconnect();
+        this._focusContentObserver = null;
+      }
+      if (this._selectionPrivate) {
+        this._selectionPrivate.removeSelectionListener(this);
+        this._selectionPrivate = null;
       }
     }
 
@@ -269,8 +276,6 @@ let FormAssistant = {
     }
 
     if (element) {
-      element.addEventListener('mousedown', this);
-      element.addEventListener('mouseup', this);
       element.addEventListener('compositionend', this);
       if (isContentEditable(element)) {
         this._documentEncoder = getDocumentEncoder(element);
@@ -280,29 +285,53 @@ let FormAssistant = {
         // Add a nsIEditorObserver to monitor the text content of the focused
         // element.
         this._editor.addEditorObserver(this);
+
+        let selection = this._editor.selection;
+        if (selection) {
+          this._selectionPrivate = selection.QueryInterface(Ci.nsISelectionPrivate);
+          this._selectionPrivate.addSelectionListener(this);
+        }
       }
 
       // If our focusedElement is removed from DOM we want to handle it properly
       let MutationObserver = element.ownerDocument.defaultView.MutationObserver;
-      this._observer = new MutationObserver(function(mutations) {
+      this._focusDeleteObserver = new MutationObserver(function(mutations) {
         var del = [].some.call(mutations, function(m) {
           return [].some.call(m.removedNodes, function(n) {
             return n.contains(element);
           });
         });
         if (del && element === self.focusedElement) {
-          // item was deleted, fake a blur so all state gets set correctly
-          self.handleEvent({ target: element, type: "blur" });
+          self.unhandleFocus();
+          self.selectionStart = -1;
+          self.selectionEnd = -1;
         }
       });
 
-      this._observer.observe(element.ownerDocument.body, {
+      this._focusDeleteObserver.observe(element.ownerDocument.body, {
         childList: true,
         subtree: true
       });
+
+      // If contenteditable, also add a mutation observer on its content and
+      // call selectionChanged when a change occurs
+      if (isContentEditable(element)) {
+        this._focusContentObserver = new MutationObserver(function() {
+          this.updateSelection();
+        }.bind(this));
+
+        this._focusContentObserver.observe(element, {
+          childList: true,
+          subtree: true
+        });
+      }
     }
 
     this.focusedElement = element;
+  },
+
+  notifySelectionChanged: function(aDocument, aSelection, aReason) {
+    this.updateSelection();
   },
 
   get documentEncoder() {
@@ -317,14 +346,14 @@ let FormAssistant = {
   // Implements nsIEditorObserver get notification when the text content of
   // current input field has changed.
   EditAction: function fa_editAction() {
-    if (this._editing) {
+    if (this._editing || !this.isHandlingFocus) {
       return;
     }
-    this.sendKeyboardState(this.focusedElement);
+    this.sendInputState(this.focusedElement);
   },
 
   handleEvent: function fa_handleEvent(evt) {
-    let target = evt.target;
+    let target = evt.composedTarget;
 
     let range = null;
     switch (evt.type) {
@@ -348,13 +377,13 @@ let FormAssistant = {
         }
 
         if (isContentEditable(target)) {
-          this.showKeyboard(this.getTopLevelEditable(target));
+          this.handleFocus(this.getTopLevelEditable(target));
           this.updateSelection();
           break;
         }
 
         if (this.isFocusableElement(target)) {
-          this.showKeyboard(target);
+          this.handleFocus(target);
           this.updateSelection();
         }
         break;
@@ -367,43 +396,22 @@ let FormAssistant = {
           break;
         }
         // fall through
-      case "blur":
       case "submit":
+        if (this.focusedElement && !evt.defaultPrevented) {
+          this.focusedElement.blur();
+        }
+        break;
+
+      case "blur":
         if (this.focusedElement) {
-          this.hideKeyboard();
+          this.unhandleFocus();
           this.selectionStart = -1;
           this.selectionEnd = -1;
         }
         break;
 
-      case 'mousedown':
-         if (!this.focusedElement) {
-          break;
-        }
-
-        // We only listen for this event on the currently focused element.
-        // When the mouse goes down, note the cursor/selection position
-        this.updateSelection();
-        break;
-
-      case 'mouseup':
-        if (!this.focusedElement) {
-          break;
-        }
-
-        // We only listen for this event on the currently focused element.
-        // When the mouse goes up, see if the cursor has moved (or the
-        // selection changed) since the mouse went down. If it has, we
-        // need to tell the keyboard about it
-        range = getSelectionRange(this.focusedElement);
-        if (range[0] !== this.selectionStart ||
-            range[1] !== this.selectionEnd) {
-          this.updateSelection();
-        }
-        break;
-
       case "resize":
-        if (!this.isKeyboardOpened)
+        if (!this.isHandlingFocus)
           return;
 
         if (this.scrollIntoViewTimeout) {
@@ -423,25 +431,12 @@ let FormAssistant = {
         }
         break;
 
-      case "input":
-        if (this.focusedElement) {
-          // When the text content changes, notify the keyboard
-          this.updateSelection();
-        }
-        break;
-
       case "keydown":
         if (!this.focusedElement) {
           break;
         }
 
         CompositionManager.endComposition('');
-
-        // We use 'setTimeout' to wait until the input element accomplishes the
-        // change in selection range.
-        content.setTimeout(function() {
-          this.updateSelection();
-        }.bind(this), 0);
         break;
 
       case "keyup":
@@ -450,7 +445,6 @@ let FormAssistant = {
         }
 
         CompositionManager.endComposition('');
-
         break;
 
       case "compositionend":
@@ -508,24 +502,26 @@ let FormAssistant = {
       case "Forms:Input:SendKey":
         CompositionManager.endComposition('');
 
+        let flags = domWindowUtils.KEY_FLAG_NOT_SYNTHESIZED_FOR_TESTS;
         this._editing = true;
         let doKeypress = domWindowUtils.sendKeyEvent('keydown', json.keyCode,
-                                  json.charCode, json.modifiers);
+                                                     json.charCode, json.modifiers, flags);
         if (doKeypress) {
           domWindowUtils.sendKeyEvent('keypress', json.keyCode,
-                                  json.charCode, json.modifiers);
+                                      json.charCode, json.modifiers, flags);
         }
 
         if(!json.repeat) {
           domWindowUtils.sendKeyEvent('keyup', json.keyCode,
-                                    json.charCode, json.modifiers);
+                                      json.charCode, json.modifiers, flags);
         }
 
         this._editing = false;
 
         if (json.requestId && doKeypress) {
           sendAsyncMessage("Forms:SendKey:Result:OK", {
-            requestId: json.requestId
+            requestId: json.requestId,
+            selectioninfo: this.getSelectionInfo()
           });
         }
         else if (json.requestId && !doKeypress) {
@@ -563,7 +559,10 @@ let FormAssistant = {
         break;
 
       case "Forms:Select:Blur": {
-        this.setFocusedElement(null);
+        if (this.focusedElement) {
+          this.focusedElement.blur();
+        }
+
         break;
       }
 
@@ -583,8 +582,6 @@ let FormAssistant = {
           break;
         }
 
-        this.updateSelection();
-
         if (json.requestId) {
           sendAsyncMessage("Forms:SetSelectionRange:Result:OK", {
             requestId: json.requestId,
@@ -597,11 +594,8 @@ let FormAssistant = {
       case "Forms:ReplaceSurroundingText": {
         CompositionManager.endComposition('');
 
-        let selectionRange = getSelectionRange(target);
         if (!replaceSurroundingText(target,
                                     json.text,
-                                    selectionRange[0],
-                                    selectionRange[1],
                                     json.offset,
                                     json.length)) {
           if (json.requestId) {
@@ -651,6 +645,7 @@ let FormAssistant = {
                                           json.clauses);
         sendAsyncMessage("Forms:SetComposition:Result:OK", {
           requestId: json.requestId,
+          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
@@ -659,6 +654,7 @@ let FormAssistant = {
         CompositionManager.endComposition(json.text);
         sendAsyncMessage("Forms:EndComposition:Result:OK", {
           requestId: json.requestId,
+          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
@@ -667,7 +663,7 @@ let FormAssistant = {
 
   },
 
-  showKeyboard: function fa_showKeyboard(target) {
+  handleFocus: function fa_handleFocus(target) {
     if (this.focusedElement === target)
       return;
 
@@ -675,16 +671,13 @@ let FormAssistant = {
       target = target.parentNode;
 
     this.setFocusedElement(target);
-
-    let kbOpened = this.sendKeyboardState(target);
-    if (this.isTextInputElement(target))
-      this.isKeyboardOpened = kbOpened;
+    this.isHandlingFocus = this.sendInputState(target);
   },
 
-  hideKeyboard: function fa_hideKeyboard() {
-    sendAsyncMessage("Forms:Input", { "type": "blur" });
-    this.isKeyboardOpened = false;
+  unhandleFocus: function fa_unhandleFocus() {
     this.setFocusedElement(null);
+    this.isHandlingFocus = false;
+    sendAsyncMessage("Forms:Input", { "type": "blur" });
   },
 
   isFocusableElement: function fa_isFocusableElement(element) {
@@ -700,12 +693,6 @@ let FormAssistant = {
             !this.ignoredInputTypes.has(element.type));
   },
 
-  isTextInputElement: function fa_isTextInputElement(element) {
-    return element instanceof HTMLInputElement ||
-           element instanceof HTMLTextAreaElement ||
-           isContentEditable(element);
-  },
-
   getTopLevelEditable: function fa_getTopLevelEditable(element) {
     function retrieveTopLevelEditable(element) {
       while (element && !isContentEditable(element))
@@ -717,7 +704,7 @@ let FormAssistant = {
     return retrieveTopLevelEditable(element) || element;
   },
 
-  sendKeyboardState: function(element) {
+  sendInputState: function(element) {
     // FIXME/bug 729623: work around apparent bug in the IME manager
     // in gecko.
     let readonly = element.getAttribute("readonly");
@@ -757,15 +744,29 @@ let FormAssistant = {
     };
   },
 
+  _selectionTimeout: null,
+
   // Notify when the selection range changes
   updateSelection: function fa_updateSelection() {
-    if (!this.focusedElement) {
-      return;
+    // A call to setSelectionRange on input field causes 2 selection changes
+    // one to [0,0] and one to actual value. Both are sent in same tick.
+    // Prevent firing two events in that scenario, always only use the last 1.
+    //
+    // It is also a workaround for Bug 1053048, which prevents
+    // getSelectionInfo() accessing selectionStart or selectionEnd in the
+    // callback function of nsISelectionListener::NotifySelectionChanged().
+    if (this._selectionTimeout) {
+      content.clearTimeout(this._selectionTimeout);
     }
-    let selectionInfo = this.getSelectionInfo();
-    if (selectionInfo.changed) {
-      sendAsyncMessage("Forms:SelectionChange", this.getSelectionInfo());
-    }
+    this._selectionTimeout = content.setTimeout(function() {
+      if (!this.focusedElement) {
+        return;
+      }
+      let selectionInfo = this.getSelectionInfo();
+      if (selectionInfo.changed) {
+        sendAsyncMessage("Forms:SelectionChange", selectionInfo);
+      }
+    }.bind(this), 0);
   }
 };
 
@@ -1115,31 +1116,50 @@ function getPlaintextEditor(element) {
   return editor;
 }
 
-function replaceSurroundingText(element, text, selectionStart, selectionEnd,
-                                offset, length) {
+function replaceSurroundingText(element, text, offset, length) {
   let editor = FormAssistant.editor;
   if (!editor) {
     return false;
   }
 
   // Check the parameters.
-  let start = selectionStart + offset;
-  if (start < 0) {
-    start = 0;
-  }
   if (length < 0) {
     length = 0;
   }
-  let end = start + length;
 
-  if (selectionStart != start || selectionEnd != end) {
-    // Change selection range before replacing.
-    if (!setSelectionRange(element, start, end)) {
-      return false;
+  // Change selection range before replacing. For content editable element,
+  // searching the node for setting selection range is not needed when the
+  // selection is collapsed within a text node.
+  let fastPathHit = false;
+  if (!isPlainTextField(element)) {
+    let sel = element.ownerDocument.defaultView.getSelection();
+    let node = sel.anchorNode;
+    if (sel.isCollapsed && node && node.nodeType == 3 /* TEXT_NODE */) {
+      let start = sel.anchorOffset + offset;
+      let end = start + length;
+      // Fallback to setSelectionRange() if the replacement span multiple nodes.
+      if (start >= 0 && end <= node.textContent.length) {
+        fastPathHit = true;
+        sel.collapse(node, start);
+        sel.extend(node, end);
+      }
+    }
+  }
+  if (!fastPathHit) {
+    let range = getSelectionRange(element);
+    let start = range[0] + offset;
+    if (start < 0) {
+      start = 0;
+    }
+    let end = start + length;
+    if (start != range[0] || end != range[1]) {
+      if (!setSelectionRange(element, start, end)) {
+        return false;
+      }
     }
   }
 
-  if (start != end) {
+  if (length) {
     // Delete the selected text.
     editor.deleteSelection(Ci.nsIEditor.ePrevious, Ci.nsIEditor.eStrip);
   }
@@ -1156,16 +1176,44 @@ function replaceSurroundingText(element, text, selectionStart, selectionEnd,
 
 let CompositionManager =  {
   _isStarted: false,
-  _text: '',
+  _textInputProcessor: null,
   _clauseAttrMap: {
     'raw-input':
-      Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT,
+      Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE,
     'selected-raw-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_SELECTEDRAWTEXT,
+      Ci.nsITextInputProcessor.ATTR_SELECTED_RAW_CLAUSE,
     'converted-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_CONVERTEDTEXT,
+      Ci.nsITextInputProcessor.ATTR_CONVERTED_CLAUSE,
     'selected-converted-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_SELECTEDCONVERTEDTEXT
+      Ci.nsITextInputProcessor.ATTR_SELECTED_CLAUSE
+  },
+
+  _callback: function cm_callback(aTIP, aNotification)
+  {
+    try {
+      switch (aNotification.type) {
+        case "request-to-commit":
+          aTIP.commitComposition();
+          break;
+        case "request-to-cancel":
+          aTIP.cancelComposition();
+          break;
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
+  },
+
+  _prepareTextInputProcessor: function cm_prepareTextInputProcessor(aWindow)
+  {
+    if (!this._textInputProcessor) {
+      this._textInputProcessor =
+        Cc["@mozilla.org/text-input-processor;1"].
+          createInstance(Ci.nsITextInputProcessor);
+    }
+    return this._textInputProcessor.beginInputTransaction(aWindow,
+                                                          this._callback);
   },
 
   setComposition: function cm_setComposition(element, text, cursor, clauses) {
@@ -1192,7 +1240,7 @@ let CompositionManager =  {
           remainingLength -= clauseLength;
           clauseLens.push(clauseLength);
           clauseAttrs.push(this._clauseAttrMap[clauses[i].selectionType] ||
-                           Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT);
+                           Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE);
         }
       }
       // If the total clauses length is less than that of the composition
@@ -1202,48 +1250,33 @@ let CompositionManager =  {
       }
     } else {
       clauseLens.push(len);
-      clauseAttrs.push(Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT);
+      clauseAttrs.push(Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE);
     }
 
-    // Start composition if need to.
-    if (!this._isStarted) {
-      this._isStarted = true;
-      domWindowUtils.sendCompositionEvent('compositionstart', '', '');
-      this._text = '';
+    let win = element.ownerDocument.defaultView;
+    if (!this._prepareTextInputProcessor(win)) {
+      return;
     }
-
     // Update the composing text.
-    if (this._text !== text) {
-      this._text = text;
-      domWindowUtils.sendCompositionEvent('compositionupdate', text, '');
-    }
-    let compositionString = domWindowUtils.createCompositionStringSynthesizer();
-    compositionString.setString(text);
+    this._textInputProcessor.setPendingCompositionString(text);
     for (var i = 0; i < clauseLens.length; i++) {
-      compositionString.appendClause(clauseLens[i], clauseAttrs[i]);
+      if (!clauseLens[i]) {
+        continue;
+      }
+      this._textInputProcessor.appendClauseToPendingComposition(clauseLens[i],
+                                                                clauseAttrs[i]);
     }
     if (cursor >= 0) {
-      compositionString.setCaret(cursor, 0);
+      this._textInputProcessor.setCaretInPendingComposition(cursor);
     }
-    compositionString.dispatchEvent();
+    this._isStarted = this._textInputProcessor.flushPendingComposition();
   },
 
   endComposition: function cm_endComposition(text) {
     if (!this._isStarted) {
       return;
     }
-    // Update the composing text.
-    if (this._text !== text) {
-      domWindowUtils.sendCompositionEvent('compositionupdate', text, '');
-    }
-    let compositionString = domWindowUtils.createCompositionStringSynthesizer();
-    compositionString.setString(text);
-    // Set the cursor position to |text.length| so that the text will be
-    // committed before the cursor position.
-    compositionString.setCaret(text.length, 0);
-    compositionString.dispatchEvent();
-    domWindowUtils.sendCompositionEvent('compositionend', text, '');
-    this._text = '';
+    this._textInputProcessor.commitCompositionWith(text ? text : "");
     this._isStarted = false;
   },
 
@@ -1253,7 +1286,6 @@ let CompositionManager =  {
       return;
     }
 
-    this._text = '';
     this._isStarted = false;
   }
 };

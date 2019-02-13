@@ -43,16 +43,25 @@ static const size_t kBitsPerByteLog2 = 3;
 class MOZ_STACK_CLASS RegExpStackCursor
 {
   public:
-    explicit RegExpStackCursor(JSContext *cx)
-      : cx(cx), cursor(base())
+    explicit RegExpStackCursor(JSContext* cx)
+      : cx(cx), cursor(nullptr)
     {}
+
+    bool init() {
+        if (!stack.init()) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        cursor = base();
+        return true;
+    }
 
     bool push(int32_t value) {
         *cursor++ = value;
-        if (cursor >= stack().limit()) {
+        if (cursor >= stack.limit()) {
             int32_t pos = position();
-            if (!stack().grow()) {
-                js_ReportOverRecursed(cx);
+            if (!stack.grow()) {
+                ReportOverRecursed(cx);
                 return false;
             }
             setPosition(pos);
@@ -61,58 +70,63 @@ class MOZ_STACK_CLASS RegExpStackCursor
     }
 
     int32_t pop() {
-        JS_ASSERT(cursor > base());
+        MOZ_ASSERT(cursor > base());
         return *--cursor;
     }
 
     int32_t peek() {
-        JS_ASSERT(cursor > base());
+        MOZ_ASSERT(cursor > base());
         return *(cursor - 1);
     }
 
     int32_t position() {
+        MOZ_ASSERT(cursor >= base());
         return cursor - base();
     }
 
     void setPosition(int32_t position) {
         cursor = base() + position;
-        JS_ASSERT(cursor < stack().limit());
+        MOZ_ASSERT(cursor < stack.limit());
     }
 
   private:
-    JSContext *cx;
+    JSContext* cx;
+    RegExpStack stack;
 
-    int32_t *cursor;
+    int32_t* cursor;
 
-    RegExpStack &stack() { return cx->runtime()->mainThread.regexpStack; }
-    int32_t *base() { return (int32_t *) stack().base(); }
+    int32_t* base() { return (int32_t*) stack.base(); }
 };
 
 static int32_t
 Load32Aligned(const uint8_t* pc)
 {
-    JS_ASSERT((reinterpret_cast<uintptr_t>(pc) & 3) == 0);
-    return *reinterpret_cast<const int32_t *>(pc);
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(pc) & 3) == 0);
+    return *reinterpret_cast<const int32_t*>(pc);
 }
 
 static int32_t
 Load16Aligned(const uint8_t* pc)
 {
-    JS_ASSERT((reinterpret_cast<uintptr_t>(pc) & 1) == 0);
-    return *reinterpret_cast<const uint16_t *>(pc);
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(pc) & 1) == 0);
+    return *reinterpret_cast<const uint16_t*>(pc);
 }
 
 #define BYTECODE(name)  case BC_##name:
 
+template <typename CharT>
 RegExpRunStatus
-irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
-                        const jschar *chars, size_t current, size_t length, MatchPairs *matches)
+irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* chars, size_t current,
+                        size_t length, MatchPairs* matches)
 {
     const uint8_t* pc = byteCode;
 
-    jschar current_char = current ? chars[current - 1] : '\n';
+    uint32_t current_char = current ? chars[current - 1] : '\n';
 
     RegExpStackCursor stack(cx);
+
+    if (!stack.init())
+        return RegExpRunStatus_Error;
 
     int32_t numRegisters = Load32Aligned(pc);
     pc += 4;
@@ -120,15 +134,14 @@ irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
     Vector<int32_t, 0, SystemAllocPolicy> registers;
     if (!registers.growByUninitialized(numRegisters))
         return RegExpRunStatus_Error;
-    for (size_t i = 0; i < matches->length() * 2; i++)
+    for (size_t i = 0; i < (size_t) numRegisters; i++)
         registers[i] = -1;
 
     while (true) {
         int32_t insn = Load32Aligned(pc);
         switch (insn & BYTECODE_MASK) {
           BYTECODE(BREAK)
-            MOZ_ASSUME_UNREACHABLE("Bad bytecode");
-            return RegExpRunStatus_Error;
+            MOZ_CRASH("Bad bytecode: BREAK");
           BYTECODE(PUSH_CP)
             if (!stack.push(current))
                 return RegExpRunStatus_Error;
@@ -184,7 +197,8 @@ irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
           BYTECODE(FAIL)
             return RegExpRunStatus_Success_NotFound;
           BYTECODE(SUCCEED)
-            memcpy(matches->pairsRaw(), registers.begin(), matches->length() * 2 * sizeof(int32_t));
+            if (matches)
+                memcpy(matches->pairsRaw(), registers.begin(), matches->length() * 2 * sizeof(int32_t));
             return RegExpRunStatus_Success;
           BYTECODE(ADVANCE_CP)
             current += insn >> BYTECODE_SHIFT;
@@ -226,24 +240,23 @@ irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
             if (pos + 2 > length) {
                 pc = byteCode + Load32Aligned(pc + 4);
             } else {
-                jschar next = chars[pos + 1];
-                current_char = (chars[pos] | (next << (kBitsPerByte * sizeof(jschar))));
+                CharT next = chars[pos + 1];
+                current_char = (chars[pos] | (next << (kBitsPerByte * sizeof(CharT))));
                 pc += BC_LOAD_2_CURRENT_CHARS_LENGTH;
             }
             break;
           }
           BYTECODE(LOAD_2_CURRENT_CHARS_UNCHECKED) {
             int pos = current + (insn >> BYTECODE_SHIFT);
-            jschar next = chars[pos + 1];
-            current_char = (chars[pos] | (next << (kBitsPerByte * sizeof(jschar))));
+            char16_t next = chars[pos + 1];
+            current_char = (chars[pos] | (next << (kBitsPerByte * sizeof(char16_t))));
             pc += BC_LOAD_2_CURRENT_CHARS_UNCHECKED_LENGTH;
             break;
           }
           BYTECODE(LOAD_4_CURRENT_CHARS)
-            MOZ_ASSUME_UNREACHABLE("Ascii handling implemented");
-            break;
+            MOZ_CRASH("ASCII handling implemented");
           BYTECODE(LOAD_4_CURRENT_CHARS_UNCHECKED)
-            MOZ_ASSUME_UNREACHABLE("Ascii handling implemented");
+            MOZ_CRASH("ASCII handling implemented");
           BYTECODE(CHECK_4_CHARS) {
             uint32_t c = Load32Aligned(pc + 4);
             if (c == current_char)
@@ -421,7 +434,7 @@ irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
                 pc = byteCode + Load32Aligned(pc + 4);
                 break;
             }
-            if (CaseInsensitiveCompareStrings(chars + from, chars + current, len * 2)) {
+            if (CaseInsensitiveCompareStrings(chars + from, chars + current, len * sizeof(CharT))) {
                 current += len;
                 pc += BC_CHECK_NOT_BACK_REF_NO_CASE_LENGTH;
             } else {
@@ -451,8 +464,15 @@ irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
             break;
           }
           default:
-            MOZ_ASSUME_UNREACHABLE("Bad bytecode");
-            break;
+            MOZ_CRASH("Bad bytecode");
         }
     }
 }
+
+template RegExpRunStatus
+irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const Latin1Char* chars, size_t current,
+                        size_t length, MatchPairs* matches);
+
+template RegExpRunStatus
+irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const char16_t* chars, size_t current,
+                        size_t length, MatchPairs* matches);

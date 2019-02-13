@@ -14,6 +14,7 @@
 #include "base/logging.h"
 #include "base/platform_thread.h"
 #include "base/string_util.h"
+#include "mozilla/UniquePtr.h"
 
 namespace base {
 
@@ -92,7 +93,7 @@ bool SharedMemory::Delete(const std::wstring& name) {
 
   FilePath path(WideToUTF8(mem_filename));
   if (file_util::PathExists(path)) {
-    return file_util::Delete(path, false);
+    return file_util::Delete(path);
   }
 
   // Doesn't exist, so success.
@@ -142,7 +143,7 @@ class ScopedFILEClose {
   }
 };
 
-typedef scoped_ptr_malloc<FILE, ScopedFILEClose> ScopedFILE;
+typedef mozilla::UniquePtr<FILE, ScopedFILEClose> ScopedFILE;
 
 }
 
@@ -169,7 +170,7 @@ bool SharedMemory::CreateOrOpen(const std::wstring &name,
     // Deleting the file prevents anyone else from mapping it in
     // (making it private), and prevents the need for cleanup (once
     // the last fd is closed, it is truly freed).
-    file_util::Delete(path, false);
+    file_util::Delete(path);
   } else {
     std::wstring mem_filename;
     if (FilenameForMemoryName(name, &mem_filename) == false)
@@ -252,7 +253,7 @@ bool SharedMemory::Unmap() {
   return true;
 }
 
-bool SharedMemory::ShareToProcessCommon(ProcessHandle process,
+bool SharedMemory::ShareToProcessCommon(ProcessId processId,
                                         SharedMemoryHandle *new_handle,
                                         bool close_self) {
   const int new_fd = dup(mapped_file_);

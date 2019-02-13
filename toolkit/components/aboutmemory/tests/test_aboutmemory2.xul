@@ -38,7 +38,7 @@
   let jk2Path = "explicit/j/k2";
 
   let fakeReporters = [
-    { collectReports: function(aCbObj, aClosure) {
+    { collectReports: function(aCbObj, aClosure, aAnonymize) {
         function f(aP, aK, aA) {
           aCbObj.callback("", aP, aK, BYTES, aA, "Desc.", aClosure);
         }
@@ -106,7 +106,7 @@
       SimpleTest.waitForClipboard(
         function(aActual) {
           mostRecentActual = aActual;
-          return aActual === aExpected;
+          return aActual.trim() === aExpected.trim();
         },
         function() {
           synthesizeKey("A", {accelKey: true});

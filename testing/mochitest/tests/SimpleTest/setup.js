@@ -1,17 +1,20 @@
-/* -*- js-indent-level: 2; tab-width: 2; indent-tabs-mode: nil -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 TestRunner.logEnabled = true;
 TestRunner.logger = LogController;
 
 /* Helper function */
-parseQueryString = function(encodedString, useArrays) {
+function parseQueryString(encodedString, useArrays) {
   // strip a leading '?' from the encoded string
-  var qstr = (encodedString[0] == "?") ? encodedString.substring(1) : 
-                                         encodedString;
+  var qstr = (encodedString.length > 0 && encodedString[0] == "?")
+             ? encodedString.substring(1)
+             : encodedString;
   var pairs = qstr.replace(/\+/g, "%20").split(/(\&amp\;|\&\#38\;|\&#x26;|\&)/);
   var o = {};
   var decode;
@@ -55,10 +58,12 @@ if (window.readConfig) {
 }
 
 if (config.testRoot == "chrome" || config.testRoot == "a11y") {
-  for (p in params) {
-    if (params[p] == 1) {
+  for (var p in params) {
+    // Compare with arrays to find boolean equivalents, since that's what
+    // |parseQueryString| with useArrays returns.
+    if (params[p] == [1]) {
       config[p] = true;
-    } else if (params[p] == 0) {
+    } else if (params[p] == [0]) {
       config[p] = false;
     } else {
       config[p] = params[p];
@@ -76,6 +81,8 @@ if (params.testRoot == "browser") {
   params.testPrefix = "chrome://mochitests/content/chrome/";
 } else if (params.testRoot == "a11y") {
   params.testPrefix = "chrome://mochitests/content/a11y/";
+} else if (params.testRoot == "webapprtContent") {
+  params.testPrefix = "/webapprtContent/";
 } else {
   params.testPrefix = "/tests/";
 }
@@ -92,7 +99,7 @@ var consoleLevel = params.consoleLevel || null;
 // repeat tells us how many times to repeat the tests
 if (params.repeat) {
   TestRunner.repeat = params.repeat;
-} 
+}
 
 if (params.runUntilFailure) {
   TestRunner.runUntilFailure = true;
@@ -135,20 +142,25 @@ if (params.dumpDMDAfterTest) {
   TestRunner.dumpDMDAfterTest = true;
 }
 
-if (params.quiet) {
-  TestRunner.quiet = true;
+if (params.interactiveDebugger) {
+  TestRunner.structuredLogger.interactiveDebugger = true;
+}
+
+if (params.maxTimeouts) {
+  TestRunner.maxTimeouts = params.maxTimeouts;
 }
 
 // Log things to the console if appropriate.
 TestRunner.logger.addListener("dumpListener", consoleLevel + "", function(msg) {
-  dump(msg.num + " " + msg.level + " " + msg.info.join(' ') + "\n");
+  dump(msg.info.join(' ') + "\n");
 });
 
 var gTestList = [];
-var RunSet = {}
+var RunSet = {};
 RunSet.runall = function(e) {
   // Filter tests to include|exclude tests based on data in params.filter.
   // This allows for including or excluding tests from the gTestList
+  // TODO Only used by ipc tests, remove once those are implemented sanely
   if (params.testManifest) {
     getTestManifest("http://mochi.test:8888/" + params.testManifest, params, function(filter) { gTestList = filterTests(filter, gTestList, params.runOnly); RunSet.runtests(); });
   } else {
@@ -164,10 +176,6 @@ RunSet.runtests = function(e) {
     my_tests = skipTests(my_tests, params.startAt, params.endAt);
   }
 
-  if (params.totalChunks && params.thisChunk) {
-    my_tests = chunkifyTests(my_tests, params.totalChunks, params.thisChunk, params.chunkByDir, TestRunner.logger);
-  }
-
   if (params.shuffle) {
     for (var i = my_tests.length-1; i > 0; --i) {
       var j = Math.floor(Math.random() * i);
@@ -176,6 +184,7 @@ RunSet.runtests = function(e) {
       my_tests[i] = tmp;
     }
   }
+  TestRunner.setParameterInfo(params);
   TestRunner.runTests(my_tests);
 }
 
@@ -190,7 +199,7 @@ RunSet.reloadAndRunAll = function(e) {
     window.location.href += "&autorun=1";
   } else {
     window.location.href += "?autorun=1";
-  }  
+  }
 };
 
 // UI Stuff
@@ -240,12 +249,12 @@ function hookupTests(testList) {
   } else {
     gTestList = [];
     for (var obj in testList) {
-        gTestList.push(obj);
+        gTestList.push(testList[obj]);
     }
   }
 
   document.getElementById('runtests').onclick = RunSet.reloadAndRunAll;
-  document.getElementById('toggleNonTests').onclick = toggleNonTests; 
+  document.getElementById('toggleNonTests').onclick = toggleNonTests;
   // run automatically if autorun specified
   if (params.autorun) {
     RunSet.runall();

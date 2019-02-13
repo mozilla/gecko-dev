@@ -39,7 +39,6 @@
   "querystring": "sdk/querystring",
   "text-streams": "sdk/io/text-streams",
   "app-strings": "sdk/deprecated/app-strings",
-  "light-traits": "sdk/deprecated/light-traits",
   "environment": "sdk/system/environment",
   "keyboard/utils": "sdk/keyboard/utils",
   "dom/events": "sdk/dom/events",
@@ -48,10 +47,6 @@
   "hidden-frame": "sdk/frame/hidden-frame",
   "collection": "sdk/util/collection",
   "array": "sdk/util/array",
-  "cortex": "sdk/deprecated/cortex",
-
-
-  "addon-page": "sdk/addon-page",
   "clipboard": "sdk/clipboard",
   "context-menu": "sdk/context-menu",
   "hotkeys": "sdk/hotkeys",
@@ -70,9 +65,7 @@
   "simple-storage": "sdk/simple-storage",
   "tabs": "sdk/tabs",
   "timers": "sdk/timers",
-  "widget": "sdk/widget",
   "windows": "sdk/windows",
-
   "harness": "sdk/test/harness",
   "run-tests": "sdk/test/runner",
   "test": "sdk/test"

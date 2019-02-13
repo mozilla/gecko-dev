@@ -36,22 +36,16 @@ public:
     virtual bool GetRotateForLandscape() { return (mOrientation == LANDSCAPE); }
 
     // this is in points!
-    virtual const gfxIntSize GetSize() const
+    virtual const mozilla::gfx::IntSize GetSize() const
     {
         return mSize;
-    }
-
-    virtual int32_t GetDefaultContextFlags() const
-    {
-        return gfxContext::FLAG_SIMPLIFY_OPERATORS |
-               gfxContext::FLAG_DISABLE_SNAPPING;
     }
 
 private:
     nsCOMPtr<nsIOutputStream> mStream;
     double mXDPI;
     double mYDPI;
-    gfxIntSize mSize;
+    mozilla::gfx::IntSize mSize;
     PageOrientation mOrientation;
 };
 

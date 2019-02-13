@@ -19,10 +19,30 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+/**
+ * Text selection handles enable a user to change position of selected text in
+ * Gecko's DOM structure.
+ *
+ * A text "Selection" or nsISelection object, has start and end positions,
+ * referred to as Anchor and Focus objects.
+ *
+ * If the Anchor and Focus objects are at the same point, it represents a text
+ * selection Caret, commonly diplayed as a blinking, vertical |.
+ *
+ * Anchor and Focus objects each represent a DOM node, and character offset
+ * from the start of the node. The Anchor always refers to the start of the
+ * Selection, and the Focus refers to its end.
+ *
+ * In LTR languages such as English, the Anchor is to the left of the Focus.
+ * In RTL languages such as Hebrew, the Anchor is to the right of the Focus.
+ *
+ * For multi-line Selections, in both LTR and RTL languages, the Anchor starts
+ * above the Focus.
+ */
 class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     private static final String LOGTAG = "GeckoTextSelectionHandle";
 
-    private enum HandleType { START, MIDDLE, END }; 
+    public enum HandleType { ANCHOR, CARET, FOCUS };
 
     private final HandleType mHandleType;
     private final int mWidth;
@@ -49,15 +69,15 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TextSelectionHandle);
         int handleType = a.getInt(R.styleable.TextSelectionHandle_handleType, 0x01);
+        a.recycle();
 
         if (handleType == 0x01)
-            mHandleType = HandleType.START;
+            mHandleType = HandleType.ANCHOR;
         else if (handleType == 0x02)
-            mHandleType = HandleType.MIDDLE;
+            mHandleType = HandleType.CARET;
         else
-            mHandleType = HandleType.END;
+            mHandleType = HandleType.FOCUS;
 
-        mIsRTL = false;
         mGeckoPoint = new PointF(0.0f, 0.0f);
 
         mWidth = getResources().getDimensionPixelSize(R.dimen.text_selection_handle_width);
@@ -133,7 +153,7 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         // will tell us the position of the caret, so we set the handle
         // position then. This allows us to lock the handle to wherever the
         // caret appears.
-        if (!mHandleType.equals(HandleType.MIDDLE)) {
+        if (mHandleType != HandleType.CARET) {
             setLayoutPosition();
         }
     }
@@ -167,12 +187,13 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     }
 
     private float adjustLeftForHandle() {
-        if (mHandleType.equals(HandleType.START))
+        if (mHandleType == HandleType.ANCHOR) {
             return mIsRTL ? mShadow : mWidth - mShadow;
-        else if (mHandleType.equals(HandleType.MIDDLE))
+        } else if (mHandleType == HandleType.CARET) {
             return mWidth / 2;
-        else
+        } else {
             return mIsRTL ? mWidth - mShadow : mShadow;
+        }
     }
 
     private void setLayoutPosition() {

@@ -7,9 +7,20 @@
         android:title="@string/fxaccount_status_signed_in_as" >
         <Preference
             android:editable="false"
+            android:key="profile"
+            android:icon="@drawable/sync_avatar_default"
+            android:persistent="false"
+            android:title="" />
+        <Preference
+            android:editable="false"
             android:key="email"
             android:persistent="false"
             android:title="@string/fxaccount_email_hint" />
+        <Preference
+            android:editable="false"
+            android:key="auth_server"
+            android:persistent="false"
+            android:title="@string/fxaccount_status_auth_server" />
     </PreferenceCategory>
     <PreferenceCategory
         android:key="sync_category"
@@ -45,10 +56,18 @@
         <Preference
             android:editable="false"
             android:icon="@drawable/fxaccount_sync_error"
-            android:key="needs_account_enabled"
+            android:key="needs_finish_migrating"
             android:layout="@layout/fxaccount_status_error_preference"
             android:persistent="false"
-            android:title="@string/fxaccount_status_needs_account_enabled" />
+            android:title="@string/fxaccount_status_needs_finish_migrating" />
+
+        <Preference
+            android:editable="false"
+            android:key="sync_now"
+            android:defaultValue=""
+            android:persistent="false"
+            android:title="@string/fxaccount_status_sync_now"
+            android:summary="" />
 
         <CheckBoxPreference
             android:key="bookmarks"
@@ -72,6 +91,19 @@
             android:key="device_name"
             android:persistent="false"
             android:title="@string/fxaccount_status_device_name" />
+
+        <Preference
+            android:editable="false"
+            android:key="sync_server"
+            android:persistent="false"
+            android:title="@string/fxaccount_status_sync_server" />
+
+        <Preference
+            android:editable="false"
+            android:key="more"
+            android:persistent="false"
+            android:title="@string/fxaccount_status_more" />
+
     </PreferenceCategory>
     <PreferenceCategory
         android:key="legal_category"
@@ -96,9 +128,13 @@
         <Preference android:key="debug_refresh" />
         <Preference android:key="debug_dump" />
         <Preference android:key="debug_force_sync" />
+        <Preference android:key="debug_invalidate_certificate" />
         <Preference android:key="debug_forget_certificate" />
         <Preference android:key="debug_require_password" />
         <Preference android:key="debug_require_upgrade" />
-    </PreferenceCategory>
+        <Preference android:key="debug_migrated_from_sync11" />
+        <Preference android:key="debug_make_account_stage" />
+        <Preference android:key="debug_make_account_default" />
+	</PreferenceCategory>
 
 </PreferenceScreen>

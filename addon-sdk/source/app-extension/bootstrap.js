@@ -26,6 +26,8 @@ const appInfo = Cc["@mozilla.org/xre/app-info;1"].
 const vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
            getService(Ci.nsIVersionComparator);
 
+const Startup = Cu.import("resource://gre/modules/sdk/system/Startup.js", {}).exports;
+
 
 const REASON = [ 'unknown', 'startup', 'shutdown', 'enable', 'disable',
                  'install', 'uninstall', 'upgrade', 'downgrade' ];
@@ -48,7 +50,15 @@ function setResourceSubstitution(domain, uri) {
 function readURI(uri) {
   let ioservice = Cc['@mozilla.org/network/io-service;1'].
     getService(Ci.nsIIOService);
-  let channel = ioservice.newChannel(uri, 'UTF-8', null);
+
+  let channel = ioservice.newChannel2(uri,
+                                      'UTF-8',
+                                      null,
+                                      null,      // aLoadingNode
+                                      systemPrincipal,
+                                      null,      // aTriggeringPrincipal
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
   let stream = channel.open();
 
   let cstream = Cc['@mozilla.org/intl/converter-input-stream;1'].
@@ -227,13 +237,16 @@ function startup(data, reasonCode) {
       resultFile: options.resultFile,
       // Arguments passed as --static-args
       staticArgs: options.staticArgs,
+
+      // Option to prevent automatic kill of firefox during tests
+      noQuit: options.no_quit,
+
       // Add-on preferences branch name
       preferencesBranch: options.preferencesBranch,
 
       // Arguments related to test runner.
       modules: {
         '@test/options': {
-          allTestModules: options.allTestModules,
           iterations: options.iterations,
           filter: options.filter,
           profileMemory: options.profileMemory,
@@ -341,7 +354,6 @@ function nukeModules() {
   // the addon is unload.
 
   unloadSandbox(cuddlefishSandbox.loaderSandbox);
-  unloadSandbox(cuddlefishSandbox.xulappSandbox);
 
   // Bug 764840: We need to unload cuddlefish otherwise it will stay alive
   // and keep a reference to this compartment.

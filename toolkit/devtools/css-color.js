@@ -9,27 +9,6 @@ const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
 const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
-const REGEX_JUST_QUOTES  = /^""$/;
-const REGEX_RGB_3_TUPLE  = /^rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)$/i;
-const REGEX_RGBA_4_TUPLE = /^rgba\(([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*([\d.]+|1|0)\)$/i;
-const REGEX_HSL_3_TUPLE  = /^\bhsl\(([\d.]+),\s*([\d.]+%),\s*([\d.]+%)\)$/i;
-
-/**
- * This regex matches:
- *  - #F00
- *  - #FF0000
- *  - hsl()
- *  - hsla()
- *  - rgb()
- *  - rgba()
- *  - red
- *
- *  It also matches css keywords e.g. "background-color" otherwise
- *  "background" would be replaced with #6363CE ("background" is a platform
- *  color).
- */
-const REGEX_ALL_COLORS = /#[0-9a-fA-F]{3}\b|#[0-9a-fA-F]{6}\b|hsl\(.*?\)|hsla\(.*?\)|rgba?\(.*?\)|\b[a-zA-Z-]+\b/g;
-
 const SPECIALVALUES = new Set([
   "currentcolor",
   "initial",
@@ -68,9 +47,6 @@ const SPECIALVALUES = new Set([
  *   // Color objects can be reused
  *   color.newColor("green") === "#0F0"; // true
  *
- *   let processed = colorUtils.processCSSString("color:red; background-color:green;");
- *   // Returns "color:#F00; background-color:#0F0;"
- *
  *   Valid values for COLOR_UNIT_PREF are contained in CssColor.COLORUNIT.
  */
 
@@ -80,8 +56,8 @@ function CssColor(colorValue) {
 
 module.exports.colorUtils = {
   CssColor: CssColor,
-  processCSSString: processCSSString,
-  rgbToHsl: rgbToHsl
+  rgbToHsl: rgbToHsl,
+  setAlpha: setAlpha
 };
 
 /**
@@ -96,7 +72,21 @@ CssColor.COLORUNIT = {
 };
 
 CssColor.prototype = {
+  _colorUnit: null,
+
   authored: null,
+
+  get colorUnit() {
+    if (this._colorUnit === null) {
+      let defaultUnit = Services.prefs.getCharPref(COLOR_UNIT_PREF);
+      this._colorUnit = CssColor.COLORUNIT[defaultUnit];
+    }
+    return this._colorUnit;
+  },
+
+  set colorUnit(unit) {
+    this._colorUnit = unit;
+  },
 
   get hasAlpha() {
     if (!this.valid) {
@@ -106,7 +96,7 @@ CssColor.prototype = {
   },
 
   get valid() {
-    return this._validateColor(this.authored);
+    return DOMUtils.isValidCSSColor(this.authored);
   },
 
   /**
@@ -126,11 +116,9 @@ CssColor.prototype = {
   },
 
   get name() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
 
     try {
@@ -147,11 +135,9 @@ CssColor.prototype = {
   },
 
   get hex() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.hasAlpha) {
       return this.rgba;
@@ -167,26 +153,22 @@ CssColor.prototype = {
   },
 
   get longHex() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.hasAlpha) {
       return this.rgba;
     }
-    return this.rgb.replace(/\brgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)/gi, function(_, r, g, b) {
-      return "#" + ((1 << 24) + (r << 16) + (g << 8) + (b << 0)).toString(16).substr(-6).toUpperCase();
-    });
+
+    let tuple = this._getRGBATuple();
+    return "#" + ((1 << 24) + (tuple.r << 16) + (tuple.g << 8) + (tuple.b << 0)).toString(16).substr(-6).toUpperCase();
   },
 
   get rgb() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (!this.hasAlpha) {
       if (this.authored.startsWith("rgb(")) {
@@ -200,11 +182,9 @@ CssColor.prototype = {
   },
 
   get rgba() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("rgba(")) {
       // The color is valid and begins with rgba(. Return the authored value.
@@ -218,11 +198,9 @@ CssColor.prototype = {
   },
 
   get hsl() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("hsl(")) {
       // The color is valid and begins with hsl(. Return the authored value.
@@ -231,15 +209,13 @@ CssColor.prototype = {
     if (this.hasAlpha) {
       return this.hsla;
     }
-    return this._hslNoAlpha();
+    return this._hsl();
   },
 
   get hsla() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("hsla(")) {
       // The color is valid and begins with hsla(. Return the authored value.
@@ -247,9 +223,30 @@ CssColor.prototype = {
     }
     if (this.hasAlpha) {
       let a = this._getRGBATuple().a;
-      return this._hslNoAlpha().replace("hsl", "hsla").replace(")", ", " + a + ")");
+      return this._hsl(a);
     }
-    return this._hslNoAlpha().replace("hsl", "hsla").replace(")", ", 1)");
+    return this._hsl(1);
+  },
+
+  /**
+   * Check whether the current color value is in the special list e.g.
+   * transparent or invalid.
+   *
+   * @return {String|Boolean}
+   *         - If the current color is a special value e.g. "transparent" then
+   *           return the color.
+   *         - If the color is invalid return an empty string.
+   *         - If the color is a regular color e.g. #F06 so we return false
+   *           to indicate that the color is neither invalid or special.
+   */
+  _getInvalidOrSpecialValue: function() {
+    if (this.specialValue) {
+      return this.specialValue;
+    }
+    if (!this.valid) {
+      return "";
+    }
+    return false;
   },
 
   /**
@@ -263,15 +260,31 @@ CssColor.prototype = {
     return this;
   },
 
+  nextColorUnit: function() {
+    // Reorder the formats array to have the current format at the
+    // front so we can cycle through.
+    let formats = ["authored", "hex", "hsl", "rgb", "name"];
+    let putOnEnd = formats.splice(0, formats.indexOf(this.colorUnit));
+    formats = formats.concat(putOnEnd);
+    let currentDisplayedColor = this[formats[0]];
+
+    for (let format of formats) {
+      if (this[format].toLowerCase() !== currentDisplayedColor.toLowerCase()) {
+        this.colorUnit = CssColor.COLORUNIT[format];
+        break;
+      }
+    }
+
+    return this.toString();
+  },
+
   /**
    * Return a string representing a color of type defined in COLOR_UNIT_PREF.
    */
   toString: function() {
     let color;
-    let defaultUnit = Services.prefs.getCharPref(COLOR_UNIT_PREF);
-    let unit = CssColor.COLORUNIT[defaultUnit];
 
-    switch(unit) {
+    switch(this.colorUnit) {
       case CssColor.COLORUNIT.authored:
         color = this.authored;
         break;
@@ -298,42 +311,26 @@ CssColor.prototype = {
    * appropriate.
    */
   _getRGBATuple: function() {
-    let win = Services.appShell.hiddenDOMWindow;
-    let doc = win.document;
-    let span = doc.createElement("span");
-    span.style.color = this.authored;
-    let computed = win.getComputedStyle(span).color;
+    let tuple = DOMUtils.colorToRGBA(this.authored);
 
-    if (computed === "transparent") {
-      return {r: 0, g: 0, b: 0, a: 0};
-    }
+    tuple.a = parseFloat(tuple.a.toFixed(1));
 
-    let rgba = computed.match(REGEX_RGBA_4_TUPLE);
-
-    if (rgba) {
-      let [, r, g, b, a] = rgba;
-      return {r: r, g: g, b: b, a: a};
-    } else {
-      let rgb = computed.match(REGEX_RGB_3_TUPLE);
-      let [, r, g, b] = rgb;
-
-      return {r: r, g: g, b: b, a: 1};
-    }
+    return tuple;
   },
 
-  _hslNoAlpha: function() {
-    let {r, g, b} = this._getRGBATuple();
-
-    if (this.authored.startsWith("hsl(")) {
-      // We perform string manipulations on our output so let's ensure that it
-      // is formatted as we expect.
-      let [, h, s, l] = this.authored.match(REGEX_HSL_3_TUPLE);
-      return "hsl(" + h + ", " + s + ", " + l + ")";
+  _hsl: function(maybeAlpha) {
+    if (this.authored.startsWith("hsl(") && maybeAlpha === undefined) {
+      // We can use it as-is.
+      return this.authored;
     }
 
+    let {r, g, b} = this._getRGBATuple();
     let [h,s,l] = rgbToHsl([r,g,b]);
-
-    return "hsl(" + h + ", " + s + "%, " + l + "%)";
+    if (maybeAlpha !== undefined) {
+      return "hsla(" + h + ", " + s + "%, " + l + "%, " + maybeAlpha + ")";
+    } else {
+      return "hsl(" + h + ", " + s + "%, " + l + "%)";
+    }
   },
 
   /**
@@ -342,59 +339,7 @@ CssColor.prototype = {
   valueOf: function() {
     return this.rgba;
   },
-
-  _validateColor: function(color) {
-    if (typeof color !== "string" || color === "") {
-      return false;
-    }
-
-    let win = Services.appShell.hiddenDOMWindow;
-    let doc = win.document;
-
-    // Create a black span in a hidden window.
-    let span = doc.createElement("span");
-    span.style.color = "rgb(0, 0, 0)";
-
-    // Attempt to set the color. If the color is no longer black we know that
-    // color is valid.
-    span.style.color = color;
-    if (span.style.color !== "rgb(0, 0, 0)") {
-      return true;
-    }
-
-    // If the color is black then the above check will have failed. We change
-    // the span to white and attempt to reapply the color. If the span is not
-    // white then we know that the color is valid otherwise we return invalid.
-    span.style.color = "rgb(255, 255, 255)";
-    span.style.color = color;
-    return span.style.color !== "rgb(255, 255, 255)";
-  },
 };
-
-/**
- * Process a CSS string
- *
- * @param  {String} value
- *         CSS string e.g. "color:red; background-color:green;"
- * @return {String}
- *         Converted CSS String e.g. "color:#F00; background-color:#0F0;"
- */
-function processCSSString(value) {
-  if (value && REGEX_JUST_QUOTES.test(value)) {
-    return value;
-  }
-
-  let colorPattern = REGEX_ALL_COLORS;
-
-  value = value.replace(colorPattern, function(match) {
-    let color = new CssColor(match);
-    if (color.valid) {
-      return color;
-    }
-    return match;
-  });
-  return value;
-}
 
 /**
  * Convert rgb value to hsl
@@ -439,6 +384,35 @@ function rgbToHsl([r,g,b]) {
   }
 
   return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+
+/**
+ * Takes a color value of any type (hex, hsl, hsla, rgb, rgba)
+ * and an alpha value to generate an rgba string with the correct
+ * alpha value.
+ *
+ * @param  {String} colorValue
+ *         Color in the form of hex, hsl, hsla, rgb, rgba.
+ * @param  {Number} alpha
+ *         Alpha value for the color, between 0 and 1.
+ * @return {String}
+ *         Converted color with `alpha` value in rgba form.
+ */
+function setAlpha(colorValue, alpha) {
+  let color = new CssColor(colorValue);
+
+  // Throw if the color supplied is not valid.
+  if (!color.valid) {
+    throw new Error("Invalid color.");
+  }
+
+  // If an invalid alpha valid, just set to 1.
+  if (!(alpha >= 0 && alpha <= 1)) {
+    alpha = 1;
+  }
+
+  let { r, g, b } = color._getRGBATuple();
+  return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
 }
 
 loader.lazyGetter(this, "DOMUtils", function () {

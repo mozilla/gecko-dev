@@ -2,13 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import sys
 import os
 import stat
 import platform
-import urllib2
 import errno
 
 from mach.decorators import (
@@ -174,7 +173,7 @@ class UUIDProvider(object):
         import os
         import xpidl
         from mozpack.files import FileFinder
-        import mozpack.path
+        import mozpack.path as mozpath
         from tempfile import mkdtemp
 
         finder = FileFinder(path, find_executables=False)
@@ -184,7 +183,7 @@ class UUIDProvider(object):
             parser = xpidl.IDLParser(outputdir=tmpdir)
             registry = InterfaceRegistry()
             for p, f in finder.find('**/*.idl'):
-                p = mozpack.path.join(path, p)
+                p = mozpath.join(path, p)
                 try:
                     content = f.open().read()
                     idl = parser.parse(content, filename=p)
@@ -210,7 +209,7 @@ class PastebinProvider(object):
         description='Command line interface to pastebin.mozilla.org.')
     @CommandArgument('--language', default=None,
                      help='Language to use for syntax highlighting')
-    @CommandArgument('--poster', default=None,
+    @CommandArgument('--poster', default='',
                      help='Specify your name for use with pastebin.mozilla.org')
     @CommandArgument('--duration', default='day',
                      choices=['d', 'day', 'm', 'month', 'f', 'forever'],
@@ -219,10 +218,10 @@ class PastebinProvider(object):
                      help='Specify the file to upload to pastebin.mozilla.org')
 
     def pastebin(self, language, poster, duration, file):
-        import sys
         import urllib
+        import urllib2
 
-        URL = 'http://pastebin.mozilla.org/'
+        URL = 'https://pastebin.mozilla.org/'
 
         FILE_TYPES = [{'value': 'text', 'name': 'None', 'extension': 'txt'},
         {'value': 'bash', 'name': 'Bash', 'extension': 'sh'},
@@ -293,36 +292,19 @@ class PastebinProvider(object):
 
 
 @CommandProvider
-class ReviewboardToolsProvider(MachCommandBase):
-    @Command('rbt', category='devenv', allow_all_args=True,
-        description='Run Reviewboard Tools')
-    @CommandArgument('args', nargs='...', help='Arguments to rbt tool')
-    def rbt(self, args):
-        if not args:
-            args = ['help']
-
-        self._activate_virtualenv()
-        self.virtualenv_manager.install_pip_package('RBTools==0.6')
-
-        from rbtools.commands.main import main
-
-        # main() doesn't accept arguments and instead reads from sys.argv. So,
-        # we fake it out.
-        sys.argv = ['rbt'] + args
-        return main()
-
-@CommandProvider
 class FormatProvider(MachCommandBase):
     @Command('clang-format', category='misc',
         description='Run clang-format on current changes')
     @CommandArgument('--show', '-s', action = 'store_true',
         help = 'Show diff output on instead of applying changes')
     def clang_format(self, show=False):
+        import urllib2
+
         plat = platform.system()
         fmt = plat.lower() + "/clang-format-3.5"
         fmt_diff = "clang-format-diff-3.5"
 
-        # We are currently using a modified verion of clang-format hosted on people.mozilla.org.
+        # We are currently using a modified version of clang-format hosted on people.mozilla.org.
         # This is a temporary work around until we upstream the necessary changes and we can use
         # a system version of clang-format. See bug 961541.
         if plat == "Windows":

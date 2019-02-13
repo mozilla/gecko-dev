@@ -21,9 +21,6 @@
     COMPONENT(CONSOLESERVICE, nsConsoleServiceConstructor)
     COMPONENT(ATOMSERVICE, nsAtomServiceConstructor)
     COMPONENT(OBSERVERSERVICE, nsObserverService::Create)
-#ifdef MOZ_VISUAL_EVENT_TRACER
-    COMPONENT(VISUALEVENTTRACER, VisualEventTracerConstructor)
-#endif
 
     COMPONENT(TIMER, nsTimerImplConstructor)
 
@@ -63,7 +60,7 @@
     COMPONENT(VARIANT, nsVariantConstructor)
     COMPONENT(INTERFACEINFOMANAGER_SERVICE, nsXPTIInterfaceInfoManagerGetSingleton)
 
-    COMPONENT(HASH_PROPERTY_BAG, nsHashPropertyBagConstructor)
+    COMPONENT(HASH_PROPERTY_BAG, nsHashPropertyBagCCConstructor)
 
     COMPONENT(UUID_GENERATOR, nsUUIDGeneratorConstructor)
 

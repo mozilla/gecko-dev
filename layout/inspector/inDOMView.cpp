@@ -27,7 +27,6 @@
 #include "mozilla/Services.h"
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessible.h"
 #include "nsIAccessibilityService.h"
 #endif
 
@@ -40,7 +39,7 @@ class inDOMViewNode
 {
 public:
   inDOMViewNode() {}
-  inDOMViewNode(nsIDOMNode* aNode);
+  explicit inDOMViewNode(nsIDOMNode* aNode);
   ~inDOMViewNode();
 
   nsCOMPtr<nsIDOMNode> node;
@@ -330,14 +329,11 @@ inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
 
 #ifdef ACCESSIBILITY
   if (mShowAccessibleNodes) {
-    nsCOMPtr<nsIAccessibilityService> accService(
-      do_GetService("@mozilla.org/accessibilityService;1"));
+	  nsCOMPtr<nsIAccessibilityService> accService =
+        services::GetAccessibilityService();
     NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
-    nsCOMPtr<nsIAccessible> accessible;
-    nsresult rv =
-      accService->GetAccessibleFor(node->node, getter_AddRefs(accessible));
-    if (NS_SUCCEEDED(rv) && accessible)
+    if (accService->HasAccessible(node->node))
       aProps.AppendLiteral(" ACCESSIBLE_NODE");
   }
 #endif

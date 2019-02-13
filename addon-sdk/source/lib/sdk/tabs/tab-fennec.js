@@ -7,15 +7,17 @@ const { Cc, Ci } = require('chrome');
 const { Class } = require('../core/heritage');
 const { tabNS, rawTabNS } = require('./namespace');
 const { EventTarget } = require('../event/target');
-const { activateTab, getTabTitle, setTabTitle, closeTab, getTabURL, getTabContentWindow,
-        getTabForBrowser,
-        setTabURL, getOwnerWindow, getTabContentType, getTabId } = require('./utils');
+const { activateTab, getTabTitle, setTabTitle, closeTab, getTabURL,
+        getTabContentWindow, getTabForBrowser, setTabURL, getOwnerWindow,
+        getTabContentDocument, getTabContentType, getTabId, isTab } = require('./utils');
 const { emit } = require('../event/core');
 const { isPrivate } = require('../private-browsing/utils');
 const { isWindowPrivate } = require('../window/utils');
 const { when: unload } = require('../system/unload');
+const { BLANK } = require('../content/thumbnail');
 const { viewFor } = require('../view/core');
 const { EVENTS } = require('./events');
+const { modelFor } = require('../model/core');
 
 const ERR_FENNEC_MSG = 'This method is not yet supported by Fennec';
 
@@ -94,7 +96,15 @@ const Tab = Class({
     console.error(ERR_FENNEC_MSG);
 
     // return 80x45 blank default
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAtCAYAAAA5reyyAAAAJElEQVRoge3BAQEAAACCIP+vbkhAAQAAAAAAAAAAAAAAAADXBjhtAAGQ0AF/AAAAAElFTkSuQmCC';
+    return BLANK;
+  },
+
+  /**
+   * tab's document readyState, or 'uninitialized' if it doesn't even exist yet.
+   */
+  get readyState() {
+    let doc = getTabContentDocument(tabNS(this).tab);
+    return doc && doc.readyState || 'uninitialized';
   },
 
   get id() {
@@ -243,4 +253,9 @@ function onTabClose(event) {
 
 isPrivate.implement(Tab, tab => {
   return isWindowPrivate(getTabContentWindow(tabNS(tab).tab));
+});
+
+// Implement `modelFor` function for the Tab instances.
+modelFor.when(isTab, rawTab => {
+  return rawTabNS(rawTab).tab;
 });

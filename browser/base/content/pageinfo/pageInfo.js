@@ -98,10 +98,18 @@ pageInfoTreeView.prototype = {
         this,
         this.data,
         treecol.index,
-        function textComparator(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); },
+        function textComparator(a, b) { return (a || "").toLowerCase().localeCompare((b || "").toLowerCase()); },
         this.sortcol,
         this.sortdir
       );
+
+    Array.forEach(tree.columns, function(col) {
+      col.element.removeAttribute("sortActive");
+      col.element.removeAttribute("sortDirection");
+    });
+    treecol.element.setAttribute("sortActive", "true");
+    treecol.element.setAttribute("sortDirection", this.sortdir ?
+                                                  "ascending" : "descending");
 
     this.sortcol = treecol.index;
   },
@@ -112,7 +120,7 @@ pageInfoTreeView.prototype = {
   isContainer: function(index) { return false; },
   isContainerOpen: function(index) { return false; },
   isSeparator: function(index) { return false; },
-  isSorted: function() { },
+  isSorted: function() { return this.sortcol > -1 },
   canDrop: function(index, orientation) { return false; },
   drop: function(row, orientation) { return false; },
   getParentIndex: function(index) { return 0; },
@@ -187,10 +195,11 @@ gImageView.onPageMediaSort = function(columnname) {
   var treecol = tree.columns.getNamedColumn(columnname);
 
   var comparator;
-  if (treecol.index == COL_IMAGE_SIZE || treecol.index == COL_IMAGE_COUNT) {
+  var index = treecol.index;
+  if (index == COL_IMAGE_SIZE || index == COL_IMAGE_COUNT) {
     comparator = function numComparator(a, b) { return a - b; };
   } else {
-    comparator = function textComparator(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); };
+    comparator = function textComparator(a, b) { return (a || "").toLowerCase().localeCompare((b || "").toLowerCase()); };
   }
 
   this.sortdir =
@@ -198,13 +207,21 @@ gImageView.onPageMediaSort = function(columnname) {
       tree,
       this,
       this.data,
-      treecol.index,
+      index,
       comparator,
       this.sortcol,
       this.sortdir
     );
 
-  this.sortcol = treecol.index;
+  Array.forEach(tree.columns, function(col) {
+    col.element.removeAttribute("sortActive");
+    col.element.removeAttribute("sortDirection");
+  });
+  treecol.element.setAttribute("sortActive", "true");
+  treecol.element.setAttribute("sortDirection", this.sortdir ?
+                                                "ascending" : "descending");
+
+  this.sortcol = index;
 };
 
 var gImageHash = { };
@@ -237,12 +254,14 @@ const nsICertificateDialogs = Components.interfaces.nsICertificateDialogs;
 const CERTIFICATEDIALOGS_CONTRACTID = "@mozilla.org/nsCertificateDialogs;1"
 
 // clipboard helper
-try {
-  const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"].getService(Components.interfaces.nsIClipboardHelper);
+function getClipboardHelper() {
+    try {
+        return Components.classes["@mozilla.org/widget/clipboardhelper;1"].getService(Components.interfaces.nsIClipboardHelper);
+    } catch(e) {
+        // do nothing, later code will handle the error
+    }
 }
-catch(e) {
-  // do nothing, later code will handle the error
-}
+const gClipboardHelper = getClipboardHelper();
 
 // Interface for image loading content
 const nsIImageLoadingContent = Components.interfaces.nsIImageLoadingContent;
@@ -323,7 +342,7 @@ function onLoadPageInfo()
              window.arguments[0];
 
   if (!args || !args.doc) {
-    gWindow = window.opener.content;
+    gWindow = window.opener.gBrowser.selectedBrowser.contentWindowAsCPOW;
     gDocument = gWindow.document;
   }
 
@@ -442,14 +461,6 @@ function loadTab(args)
   radioGroup.focus();
 }
 
-function onClickMore()
-{
-  var radioGrp = document.getElementById("viewGroup");
-  var radioElt = document.getElementById("securityTab");
-  radioGrp.selectedItem = radioElt;
-  showTab('security');
-}
-
 function toggleGroupbox(id)
 {
   var elt = document.getElementById(id);
@@ -516,10 +527,11 @@ function makeGeneralTab()
     else
       metaTagsCaption.label = gBundle.getFormattedString("generalMetaTags", [length]);
     var metaTree = document.getElementById("metatree");
-    metaTree.treeBoxObject.view = gMetaView;
+    metaTree.view = gMetaView;
 
     for (var i = 0; i < length; i++)
-      gMetaView.addRow([metaNodes[i].name || metaNodes[i].httpEquiv, metaNodes[i].content]);
+      gMetaView.addRow([metaNodes[i].name || metaNodes[i].httpEquiv || metaNodes[i].getAttribute("property"),
+                        metaNodes[i].content]);
 
     metaGroup.collapsed = false;
   }
@@ -1241,8 +1253,16 @@ function doCopy()
         elem.removeAttribute("copybuffer");
       }
     }
-    gClipboardHelper.copyString(text.join("\n"), document);
+    gClipboardHelper.copyString(text.join("\n"));
   }
+}
+
+function doSelectAllMedia()
+{
+  var tree = document.getElementById("imagetree");
+
+  if (tree)
+    tree.view.selection.selectAll();
 }
 
 function doSelectAll()

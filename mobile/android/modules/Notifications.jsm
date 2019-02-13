@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-"use strict"
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
+"use strict";
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+
+Cu.import("resource://gre/modules/Services.jsm");
 
 this.EXPORTED_SYMBOLS = ["Notifications"];
 
@@ -14,11 +14,12 @@ function log(msg) {
   // Services.console.logStringMessage(msg);
 }
 
-var _notificationsMap = {};
+let _notificationsMap = {};
+let _handlersMap = {};
 
 function Notification(aId, aOptions) {
   this._id = aId;
-  this._when = (new Date).getTime();
+  this._when = (new Date()).getTime();
   this.fillWithOptions(aOptions);
 }
 
@@ -80,6 +81,9 @@ Notification.prototype = {
     else
       this._cookie = null;
 
+    if ("handlerKey" in aOptions && aOptions.handlerKey != null)
+      this._handlerKey = aOptions.handlerKey;
+
     if ("persistent" in aOptions && aOptions.persistent != null)
       this._persistent = aOptions.persistent;
     else
@@ -94,7 +98,7 @@ Notification.prototype = {
         smallIcon: this._icon,
         ongoing: this._ongoing,
         when: this._when,
-        persistent: this._persistent
+        persistent: this._persistent,
     };
 
     if (this._message)
@@ -109,6 +113,9 @@ Notification.prototype = {
       msg.progress_max = 0;
       msg.progress_indeterminate = true;
     }
+
+    if (this._cookie)
+      msg.cookie = JSON.stringify(this._cookie);
 
     if (this._priority)
       msg.priority = this._priority;
@@ -130,38 +137,55 @@ Notification.prototype = {
     if (this._light)
       msg.light = this._light;
 
+    if (this._handlerKey)
+      msg.handlerKey = this._handlerKey;
+
     Services.androidBridge.handleGeckoMessage(msg);
     return this;
   },
 
   cancel: function() {
     let msg = {
-        type: "Notification:Hide",
-        id: this._id
+      type: "Notification:Hide",
+      id: this._id,
+      handlerKey: this._handlerKey,
+      cookie: JSON.stringify(this._cookie),
     };
     Services.androidBridge.handleGeckoMessage(msg);
   }
 }
 
-var Notifications = {
-  _initObserver: function() {
-    if (!this._observerAdded) {
-      Services.obs.addObserver(this, "Notification:Event", true);
-      this._observerAdded = true;
-    }
-  },
-
+let Notifications = {
   get idService() {
     delete this.idService;
     return this.idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
   },
 
+  registerHandler: function(key, handler) {
+    if (!_handlersMap[key]) {
+      _handlersMap[key] = [];
+    }
+    _handlersMap[key].push(handler);
+  },
+
+  unregisterHandler: function(key, handler) {
+    let h = _handlersMap[key];
+    if (!h) {
+      return;
+    }
+    let i = h.indexOf(handler);
+    if (i > -1) {
+      h.splice(i, 1);
+    }
+  },
+
   create: function notif_notify(aOptions) {
-    this._initObserver();
     let id = this.idService.generateUUID().toString();
+
     let notification = new Notification(id, aOptions);
     _notificationsMap[id] = notification;
     notification.show();
+
     return id;
   },
 
@@ -180,33 +204,51 @@ var Notifications = {
   },
 
   observe: function notif_observe(aSubject, aTopic, aData) {
+    Services.console.logStringMessage(aTopic + " " + aData);
+
     let data = JSON.parse(aData);
     let id = data.id;
+    let handlerKey = data.handlerKey;
+    let cookie = data.cookie ? JSON.parse(data.cookie) : undefined;
     let notification = _notificationsMap[id];
-    if (!notification) {
-      Services.console.logStringMessage("Notifications.jsm observe: received unknown event id " + id);
-      return;
-    }
 
     switch (data.eventType) {
       case "notification-clicked":
-        if (notification._onClick)
+        if (notification && notification._onClick)
           notification._onClick(id, notification._cookie);
+
+        if (handlerKey) {
+          _handlersMap[handlerKey].forEach(function(handler) {
+            handler.onClick(cookie);
+          });
+        }
+
         break;
-      case "notification-button-clicked": {
-        if (!notification._buttons) {
-          Services.console.logStringMessage("Notifications.jsm: received button clicked event but no buttons are available");
+      case "notification-button-clicked":
+        if (handlerKey) {
+          _handlersMap[handlerKey].forEach(function(handler) {
+            handler.onButtonClick(data.buttonId, cookie);
+          });
+        }
+
+        if (notification && !notification._buttons) {
           break;
         }
 
         let button = notification._buttons[data.buttonId];
-        if (button)
+        if (button && button.onClicked) {
           button.onClicked(id, notification._cookie);
         }
         break;
       case "notification-cleared":
       case "notification-closed":
-        if (notification._onCancel)
+        if (handlerKey) {
+          _handlersMap[handlerKey].forEach(function(handler) {
+            handler.onCancel(cookie);
+          });
+        }
+
+        if (notification && notification._onCancel)
           notification._onCancel(id, notification._cookie);
         delete _notificationsMap[id]; // since the notification was dismissed, we no longer need to hold a reference.
         break;
@@ -220,4 +262,6 @@ var Notifications = {
       throw Components.results.NS_ERROR_NO_INTERFACE;
     return this;
   }
-}
+};
+
+Services.obs.addObserver(Notifications, "Notification:Event", false);

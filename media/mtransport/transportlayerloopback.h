@@ -107,10 +107,8 @@ class TransportLayerLoopback : public TransportLayer {
   // Fires every 100 ms
   class Deliverer : public nsITimerCallback {
    public:
-    Deliverer(TransportLayerLoopback *layer) :
+    explicit Deliverer(TransportLayerLoopback *layer) :
         layer_(layer) {}
-    virtual ~Deliverer() {
-    }
     void Detach() {
       layer_ = nullptr;
     }
@@ -119,6 +117,9 @@ class TransportLayerLoopback : public TransportLayer {
     NS_DECL_NSITIMERCALLBACK
 
  private:
+    virtual ~Deliverer() {
+    }
+
     DISALLOW_COPY_ASSIGN(Deliverer);
 
     TransportLayerLoopback *layer_;

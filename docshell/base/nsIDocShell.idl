@@ -46,7 +46,7 @@ interface nsITabParent;
  
 typedef unsigned long nsLoadFlags;
 
-[scriptable, builtinclass, uuid(9c65a466-9814-48f8-a4ca-c4600b03b15d)]
+[scriptable, builtinclass, uuid(b3137b7c-d589-48aa-b89b-e02aa451d42c)]
 interface nsIDocShell : nsIDocShellTreeItem
 {
   /**
@@ -113,8 +113,9 @@ interface nsIDocShell : nsIDocShellTreeItem
   // Whether the load should be treated as srcdoc load, rather than a URI one.
   const long INTERNAL_LOAD_FLAGS_IS_SRCDOC               = 0x40;
 
-  const long INTERNAL_LOAD_FLAGS_FIXUP_SCHEME_TYPOS      = 0x80;
   const long INTERNAL_LOAD_FLAGS_NO_OPENER               = 0x100;
+
+  // NB: 0x80 is available.
 
   /**
    * Loads the given URI.  This method is identical to loadURI(...) except
@@ -123,6 +124,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    *
    * @param aURI            - The URI to load.
    * @param aReferrer       - Referring URI
+   * @param aReferrerPolicy - Referrer policy
    * @param aOwner          - Owner (security principal) 
    * @param aInheritOwner   - Flag indicating whether the owner of the current
    *                          document should be inherited if aOwner is null.
@@ -148,6 +150,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   [noscript]void internalLoad(in nsIURI aURI,
                               in nsIURI aReferrer,
+                              in unsigned long aReferrerPolicy,
                               in nsISupports aOwner,
                               in uint32_t aFlags,
                               in wstring aWindowTarget,
@@ -277,6 +280,12 @@ interface nsIDocShell : nsIDocShellTreeItem
    * and false otherwise.  Defaults to true.
    */
   [infallible] attribute boolean allowContentRetargeting;
+
+  /**
+   * True if new child docshells should allow content retargeting.
+   * Setting allowContentRetargeting also overwrites this value.
+   */
+  [infallible] attribute boolean allowContentRetargetingOnChildren;
 
   /**
    * Get an enumerator over this docShell and its children.
@@ -449,6 +458,11 @@ interface nsIDocShell : nsIDocShellTreeItem
                         in wstring aURL,
                         [optional] in nsIChannel aFailedChannel);
 
+  /**
+   * The channel that failed to load and resulted in an error page.
+   * May be null. Relevant only to error pages.
+   */
+  readonly attribute nsIChannel failedChannel;
 
   /**
    * Keeps track of the previous SHTransaction index and the current
@@ -555,6 +569,19 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   [infallible] readonly attribute boolean hasMixedDisplayContentBlocked;
 
+   /**
+   * This attribute determines whether a document has Tracking Content
+   * that has been blocked from loading.
+   */
+   [infallible] readonly attribute boolean hasTrackingContentBlocked;
+
+   /**
+   * This attribute determines whether Tracking Content is loaded on the
+   * document. When it is true, tracking content was not blocked and has
+   * loaded (or is about to load) on the page.
+   */
+  [infallible] readonly attribute boolean hasTrackingContentLoaded;
+
   /**
    * Disconnects this docshell's editor from its window, and stores the
    * editor data in the open document's session history entry.  This
@@ -589,6 +616,13 @@ interface nsIDocShell : nsIDocShellTreeItem
    * like image frame discarding. Docshells are active unless told otherwise.
    */
   attribute boolean isActive;
+
+  /**
+   * Puts the docshell in prerendering mode. noscript because we want only
+   * native code to be able to put a docshell in prerendering.
+   */
+  [noscript] void SetIsPrerendered(in boolean prerendered);
+  [infallible] readonly attribute boolean isPrerendered;
 
   /**
    * The ID of the docshell in the session history.
@@ -639,6 +673,25 @@ interface nsIDocShell : nsIDocShellTreeItem
     out ACString parentCharset,
     out int32_t parentCharsetSource,
     out nsIPrincipal parentCharsetPrincipal);
+
+  /**
+   * Whether the docShell records profile timeline markers at the moment
+   */
+  [infallible] attribute boolean recordProfileTimelineMarkers;
+
+  /**
+   * Return a DOMHighResTimeStamp representing the number of
+   * milliseconds from an arbitrary point in time.  The reference
+   * point is shared by all DocShells and is also used by timestamps
+   * on markers.
+   */
+  DOMHighResTimeStamp now();
+
+  /**
+   * Returns and flushes the profile timeline markers gathered by the docShell
+   */
+  [implicit_jscontext]
+  jsval popProfileTimelineMarkers();
 
   /**
    * Add an observer to the list of parties to be notified when this docshell's
@@ -718,7 +771,7 @@ interface nsIDocShell : nsIDocShellTreeItem
 
   /**
    * Returns true if this docshell corresponds to an <iframe mozbrowser> or
-   * <iframe mozap>, or if this docshell is contained in an <iframe mozbrowser>
+   * <iframe mozapp>, or if this docshell is contained in an <iframe mozbrowser>
    * or <iframe mozapp>.
    *
    * To compute this value, we walk up the docshell hierarchy.  If we encounter
@@ -785,7 +838,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   nsIDocShell getSameTypeParentIgnoreBrowserAndAppBoundaries();
 
-  /** 
+  /**
    * True iff asynchronous panning and zooming is enabled for this
    * docshell.
    */
@@ -971,9 +1024,31 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript,notxpcom,nostdcall] nsITabParent getOpener();
 
   /**
-   * See the documentation for setOpener and getOpener about why we
-   * don't use attribute here instead.
+   * Notify DocShell when the browser is about to start executing JS, and after
+   * that execution has stopped.  This only occurs when the Timeline devtool
+   * is collecting information.
    */
-  [noscript,notxpcom,nostdcall] void setOpenedRemote(in nsITabParent aOpenedRemote);
-  [noscript,notxpcom,nostdcall] nsITabParent getOpenedRemote();
+  [noscript,notxpcom,nostdcall] void notifyJSRunToCompletionStart(in string aReason,
+                                                                  in wstring functionName,
+                                                                  in wstring fileName,
+                                                                  in unsigned long lineNumber);
+  [noscript,notxpcom,nostdcall] void notifyJSRunToCompletionStop();
+
+  /**
+   * This attribute determines whether a document which is not about:blank has
+   * already be loaded by this docShell.
+   */
+  [infallible] readonly attribute boolean hasLoadedNonBlankURI;
+
+  /**
+   * Holds the id of the payment request associated with this docshell if any.
+   */
+  attribute DOMString paymentRequestId;
+
+  /**
+   * Allow usage of -moz-window-dragging:drag for content docshells.
+   * True for top level chrome docshells. Throws if set to false with
+   * top level chrome docshell.
+   */
+  attribute boolean windowDraggingAllowed;
 };

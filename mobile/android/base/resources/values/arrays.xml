@@ -54,24 +54,18 @@
         <item>0</item>
         <item>1</item>
         <item>2</item>
-      </string-array>
-    <string-array name="pref_donottrack_entries">
-      <item>@string/pref_donottrack_disallow_tracking</item>
-      <item>@string/pref_donottrack_allow_tracking</item>
-      <item>@string/pref_donottrack_no_pref</item>
-    </string-array>
-    <string-array name="pref_donottrack_values">
-      <item>1</item>
-      <item>2</item>
-      <item>0</item>
     </string-array>
     <string-array name="pref_import_android_entries">
         <item>@string/bookmarks_title</item>
         <item>@string/history_title</item>
     </string-array>
+    <string-array name="pref_import_android_defaults">
+        <item>true</item>
+        <item>true</item>
+    </string-array>
     <string-array name="pref_import_android_values">
-        <item>true</item>
-        <item>true</item>
+        <item>android_import.data.bookmarks</item>
+        <item>android_import.data.history</item>
     </string-array>
     <string-array name="pref_import_android_keys">
         <item>android_import.data.bookmarks</item>
@@ -79,26 +73,31 @@
     </string-array>
     <string-array name="pref_private_data_entries">
         <item>@string/pref_private_data_history2</item>
+        <item>@string/pref_private_data_searchHistory</item>
         <item>@string/pref_private_data_downloadFiles2</item>
-        <item>@string/pref_private_data_formdata</item>
+        <item>@string/pref_private_data_formdata2</item>
         <item>@string/pref_private_data_cookies2</item>
         <item>@string/pref_private_data_passwords</item>
         <item>@string/pref_private_data_cache</item>
         <item>@string/pref_private_data_offlineApps</item>
         <item>@string/pref_private_data_siteSettings</item>
+        <item>@string/pref_private_data_syncedTabs</item>
+    </string-array>
+    <string-array name="pref_private_data_defaults">
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
+        <item>true</item>
     </string-array>
     <string-array name="pref_private_data_values">
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-        <item>true</item>
-    </string-array>
-    <string-array name="pref_private_data_keys">
         <item>private.data.history</item>
+        <item>private.data.searchHistory</item>
         <item>private.data.downloadFiles</item>
         <item>private.data.formdata</item>
         <item>private.data.cookies_sessions</item>
@@ -106,6 +105,31 @@
         <item>private.data.cache</item>
         <item>private.data.offlineApps</item>
         <item>private.data.siteSettings</item>
+        <item>private.data.syncedTabs</item>
+    </string-array>
+    <string-array name="pref_private_data_keys">
+        <item>private.data.history</item>
+        <item>private.data.searchHistory</item>
+        <item>private.data.downloadFiles</item>
+        <item>private.data.formdata</item>
+        <item>private.data.cookies_sessions</item>
+        <item>private.data.passwords</item>
+        <item>private.data.cache</item>
+        <item>private.data.offlineApps</item>
+        <item>private.data.siteSettings</item>
+        <item>private.data.syncedTabs</item>
+    </string-array>
+    <string-array name="pref_clear_on_exit_defaults">
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
+        <item>false</item>
     </string-array>
     <string-array name="pref_restore_entries">
         <item>@string/pref_restore_always</item>
@@ -124,7 +148,7 @@
         <item>enabled</item>
         <item>wifi</item>
         <item>disabled</item>
-     </string-array>
+    </string-array>
     <string-array name="pref_titlebar_mode_entries">
         <item>@string/pref_titlebar_mode_title</item>
         <item>@string/pref_titlebar_mode_url</item>
@@ -133,9 +157,11 @@
         <item>0</item>
         <item>1</item>
     </string-array>
-    <string-array name="tabs_panel_spinner">
-        <item>@string/tabs_normal</item>
-        <item>@string/tabs_private</item>
-        <item>@string/tabs_synced</item>
-    </string-array>
+    <!-- This value is similar to config_longPressVibePattern in android frameworks/base/core/res/res/values/config.xml-->
+    <integer-array name="long_press_vibrate_msec">
+        <item>0</item>
+        <item>1</item>
+        <item>20</item>
+        <item>21</item>
+    </integer-array>
 </resources>

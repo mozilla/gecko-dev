@@ -30,8 +30,8 @@
 
 #include <arpa/inet.h>
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/mozalloc.h"
+#include "nsTArray.h"
 #include "prnetdb.h"
 #include "prerr.h"
 #include "prerror.h"
@@ -107,7 +107,12 @@ void ARTPConnection::removeStream(PRFileDesc *rtpSocket, PRFileDesc *rtcpSocket)
     sp<AMessage> msg = new AMessage(kWhatRemoveStream, id());
     msg->setPointer("rtp-socket", rtpSocket);
     msg->setPointer("rtcp-socket", rtcpSocket);
-    msg->post();
+
+    // Since the caller will close the sockets after this function
+    // returns, we need to use a blocking post to prevent from polling
+    // closed sockets.
+    sp<AMessage> response;
+    msg->postAndAwaitResponse(&response);
 }
 
 static void bumpSocketBufferSize(PRFileDesc *s) {
@@ -177,6 +182,10 @@ void ARTPConnection::onMessageReceived(const sp<AMessage> &msg) {
         case kWhatRemoveStream:
         {
             onRemoveStream(msg);
+            sp<AMessage> ack = new AMessage;
+            uint32_t replyID;
+            CHECK(msg->senderAwaitsResponse(&replyID));
+            ack->postReply(replyID);
             break;
         }
 
@@ -274,8 +283,9 @@ void ARTPConnection::onPollStreams() {
     }
 
     uint32_t pollCount = mStreams.size() * 2;
-    PRPollDesc *pollList = (PRPollDesc *)
-        moz_xcalloc(pollCount, sizeof(PRPollDesc));
+    nsTArray<PRPollDesc> pollList;
+    pollList.AppendElements(pollCount);
+    memset(pollList.Elements(), 0, sizeof(PRPollDesc) * pollCount);
 
     // |pollIndex| is used to map different RTP & RTCP socket pairs.
     uint32_t numSocketsToPoll = 0, pollIndex = 0;
@@ -309,8 +319,9 @@ void ARTPConnection::onPollStreams() {
         return;
     }
 
-    int32_t numSocketsReadyToRead = PR_Poll(pollList, pollCount,
-        PR_MicrosecondsToInterval(kSocketPollTimeoutUs));
+    const int32_t numSocketsReadyToRead =
+        PR_Poll(pollList.Elements(), pollList.Length(),
+                PR_MicrosecondsToInterval(kSocketPollTimeoutUs));
 
     if (numSocketsReadyToRead > 0) {
         pollIndex = 0;
@@ -706,11 +717,10 @@ void ARTPConnection::onInjectPacket(const sp<AMessage> &msg) {
 
     StreamInfo *s = &*it;
 
-    status_t err;
     if (it->mInterleavedRTPIdx == index) {
-        err = parseRTP(s, buffer);
+        parseRTP(s, buffer);
     } else {
-        err = parseRTCP(s, buffer);
+        parseRTCP(s, buffer);
     }
 }
 

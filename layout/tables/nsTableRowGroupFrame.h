@@ -12,10 +12,10 @@
 #include "nsILineIterator.h"
 #include "nsTablePainter.h"
 #include "nsTArray.h"
+#include "nsTableFrame.h"
+#include "mozilla/WritingModes.h"
 
-class nsTableFrame;
 class nsTableRowFrame;
-class nsTableCellFrame;
 
 struct nsRowGroupReflowState {
   const nsHTMLReflowState& reflowState;  // Our reflow state
@@ -23,18 +23,20 @@ struct nsRowGroupReflowState {
   nsTableFrame* tableFrame;
 
   // The available size (computed from the parent)
-  nsSize availSize;
+  mozilla::LogicalSize availSize;
 
-  // Running y-offset
-  nscoord y;
+  // Running block-offset
+  nscoord bCoord;
 
   nsRowGroupReflowState(const nsHTMLReflowState& aReflowState,
                         nsTableFrame*            aTableFrame)
-      :reflowState(aReflowState), tableFrame(aTableFrame)
+      : reflowState(aReflowState)
+      , tableFrame(aTableFrame)
+      , availSize(aReflowState.GetWritingMode(),
+                  aReflowState.AvailableISize(),
+                  aReflowState.AvailableBSize())
+      , bCoord(0)
   {
-    availSize.width  = reflowState.AvailableWidth();
-    availSize.height = reflowState.AvailableHeight();
-    y = 0;  
   }
 
   ~nsRowGroupReflowState() {}
@@ -43,15 +45,15 @@ struct nsRowGroupReflowState {
 #define MIN_ROWS_NEEDING_CURSOR 20
 
 /**
- * nsTableRowGroupFrame is the frame that maps row groups 
+ * nsTableRowGroupFrame is the frame that maps row groups
  * (HTML tags THEAD, TFOOT, and TBODY). This class cannot be reused
- * outside of an nsTableFrame.  It assumes that its parent is an nsTableFrame, and 
+ * outside of an nsTableFrame.  It assumes that its parent is an nsTableFrame, and
  * its children are nsTableRowFrames.
- * 
+ *
  * @see nsTableFrame
  * @see nsTableRowFrame
  */
-class nsTableRowGroupFrame
+class nsTableRowGroupFrame final
   : public nsContainerFrame
   , public nsILineIterator
 {
@@ -69,55 +71,65 @@ public:
                                                         nsStyleContext* aContext);
   virtual ~nsTableRowGroupFrame();
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  nsTableFrame* GetTableFrame() const
+  {
+    nsIFrame* parent = GetParent();
+    MOZ_ASSERT(parent && parent->GetType() == nsGkAtoms::tableFrame);
+    return static_cast<nsTableFrame*>(parent);
+  }
+
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   /** @see nsIFrame::DidSetStyleContext */
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
-  
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
+
   virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*       aOldFrame) override;
 
-  virtual nsMargin GetUsedMargin() const MOZ_OVERRIDE;
-  virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
-  virtual nsMargin GetUsedPadding() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedMargin() const override;
+  virtual nsMargin GetUsedBorder() const override;
+  virtual nsMargin GetUsedPadding() const override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
    /** calls Reflow for all of its child rows.
-    * Rows are all set to the same width and stacked vertically.
+    * Rows are all set to the same isize and stacked in the block direction.
     * <P> rows are not split unless absolutely necessary.
     *
-    * @param aDesiredSize width set to width of rows, height set to 
-    *                     sum of height of rows that fit in aMaxSize.height.
+    * @param aDesiredSize isize set to isize of rows, bsize set to
+    *                     sum of bsize of rows that fit in AvailableBSize.
     *
     * @see nsIFrame::Reflow
     */
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual bool UpdateOverflow() MOZ_OVERRIDE;
+  virtual bool UpdateOverflow() override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::tableRowGroupFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   nsTableRowFrame* GetFirstRow();
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
+
+  virtual mozilla::WritingMode GetWritingMode() const override
+    { return GetTableFrame()->GetWritingMode(); }
 
   /** return the number of child rows (not necessarily == number of child frames) */
   int32_t GetRowCount();
@@ -127,7 +139,7 @@ public:
     */
   int32_t GetStartRowIndex();
 
-  /** Adjust the row indices of all rows  whose index is >= aRowIndex.  
+  /** Adjust the row indices of all rows  whose index is >= aRowIndex.
     * @param aRowIndex   - start adjusting with this index
     * @param aAdjustment - shift the row index by this amount
     */
@@ -146,78 +158,80 @@ public:
   nsresult  InitRepeatedFrame(nsPresContext*        aPresContext,
                               nsTableRowGroupFrame* aHeaderFooterFrame);
 
-  
+
   /**
-   * Get the total height of all the row rects
+   * Get the total bsize of all the row rects
    */
-  nscoord GetHeightBasis(const nsHTMLReflowState& aReflowState);
-  
-  nsMargin* GetBCBorderWidth(nsMargin& aBorder);
+  nscoord GetBSizeBasis(const nsHTMLReflowState& aReflowState);
+
+  mozilla::LogicalMargin GetBCBorderWidth(mozilla::WritingMode aWM);
 
   /**
    * Gets inner border widths before collapsing with cell borders
-   * Caller must get top border from previous row group or from table
-   * GetContinuousBCBorderWidth will not overwrite aBorder.top
+   * Caller must get bstart border from previous row group or from table
+   * GetContinuousBCBorderWidth will not overwrite aBorder.BStart()
    * see nsTablePainter about continuous borders
    */
-  void GetContinuousBCBorderWidth(nsMargin& aBorder);
+  void GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                  mozilla::LogicalMargin& aBorder);
+
   /**
    * Sets full border widths before collapsing with cell borders
-   * @param aForSide - side to set; only right, left, and bottom valid
+   * @param aForSide - side to set; only IEnd, IStart, BEnd are valid
    */
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(mozilla::LogicalSide aForSide,
                                   BCPixelSize aPixelValue);
   /**
-    * Adjust to the effect of visibibility:collapse on the row group and
+    * Adjust to the effect of visibility:collapse on the row group and
     * its children
-    * @return              additional shift upward that should be applied to
-    *                      subsequent rowgroups due to rows and this rowgroup
-    *                      being collapsed
-    * @param aYTotalOffset the total amount that the rowgroup is shifted up
-    * @param aWidth        new width of the rowgroup
+    * @return              additional shift bstart-wards that should be applied
+    *                      to subsequent rowgroups due to rows and this
+    *                      rowgroup being collapsed
+    * @param aBTotalOffset the total amount that the rowgroup is shifted
+    * @param aISize        new isize of the rowgroup
+    * @param aWM           the table's writing mode
     */
-  nscoord CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
-                                      nscoord aWidth);
+  nscoord CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
+                                      nscoord aISize,
+                                      mozilla::WritingMode aWM);
 
 // nsILineIterator methods
 public:
-  virtual void DisposeLineIterator() MOZ_OVERRIDE { }
+  virtual void DisposeLineIterator() override { }
 
-  // The table row is the equivalent to a line in block layout. 
+  // The table row is the equivalent to a line in block layout.
   // The nsILineIterator assumes that a line resides in a block, this role is
   // fullfilled by the row group. Rows in table are counted relative to the
   // table. The row index of row corresponds to the cellmap coordinates. The
   // line index with respect to a row group can be computed by substracting the
   // row index of the first row in the row group.
-   
+
   /** Get the number of rows in a row group
     * @return the number of lines in a row group
     */
-  virtual int32_t GetNumLines() MOZ_OVERRIDE;
+  virtual int32_t GetNumLines() override;
 
   /** @see nsILineIterator.h GetDirection
     * @return true if the table is rtl
     */
-  virtual bool GetDirection() MOZ_OVERRIDE;
-  
-  /** Return structural information about a line. 
+  virtual bool GetDirection() override;
+
+  /** Return structural information about a line.
     * @param aLineNumber       - the index of the row relative to the row group
     *                            If the line-number is invalid then
-    *                            aFirstFrameOnLine will be nullptr and 
+    *                            aFirstFrameOnLine will be nullptr and
     *                            aNumFramesOnLine will be zero.
     * @param aFirstFrameOnLine - the first cell frame that originates in row
     *                            with a rowindex that matches a line number
     * @param aNumFramesOnLine  - return the numbers of cells originating in
     *                            this row
     * @param aLineBounds       - rect of the row
-    * @param aLineFlags        - unused set to 0
     */
   NS_IMETHOD GetLine(int32_t aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
-                     nsRect& aLineBounds,
-                     uint32_t* aLineFlags) MOZ_OVERRIDE;
-  
+                     nsRect& aLineBounds) override;
+
   /** Given a frame that's a child of the rowgroup, find which line its on.
     * @param aFrame       - frame, should be a row
     * @param aStartLine   - minimal index to return
@@ -225,24 +239,24 @@ public:
     *                       frame and the index is at least aStartLine.
     *                       -1 if the frame cannot be found.
     */
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) MOZ_OVERRIDE;
+  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) override;
 
   /** Find the orginating cell frame on a row that is the nearest to the
-    * coordinate X.
+    * inline-dir coordinate of aPos.
     * @param aLineNumber          - the index of the row relative to the row group
-    * @param aX                   - X coordinate in twips relative to the
+    * @param aPos                 - coordinate in twips relative to the
     *                               origin of the row group
     * @param aFrameFound          - pointer to the cellframe
-    * @param aXIsBeforeFirstFrame - the point is before the first originating
+    * @param aPosIsBeforeFirstFrame - the point is before the first originating
     *                               cellframe
-    * @param aXIsAfterLastFrame   - the point is after the last originating
+    * @param aPosIsAfterLastFrame   - the point is after the last originating
     *                               cellframe
     */
   NS_IMETHOD FindFrameAt(int32_t aLineNumber,
-                         nscoord aX,
+                         nsPoint aPos,
                          nsIFrame** aFrameFound,
-                         bool* aXIsBeforeFirstFrame,
-                         bool* aXIsAfterLastFrame) MOZ_OVERRIDE;
+                         bool* aPosIsBeforeFirstFrame,
+                         bool* aPosIsAfterLastFrame) override;
 
    /** Check whether visual and logical order of cell frames within a line are
      * identical. As the layout will reorder them this is always the case
@@ -255,14 +269,14 @@ public:
   NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
-                            nsIFrame                 **aLastVisual) MOZ_OVERRIDE;
+                            nsIFrame                 **aLastVisual) override;
 
-  /** Find the next originating cell frame that originates in the row.    
+  /** Find the next originating cell frame that originates in the row.
     * @param aFrame      - cell frame to start with, will return the next cell
     *                      originating in a row
     * @param aLineNumber - the index of the row relative to the table
-    */  
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) MOZ_OVERRIDE;
+    */
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) override;
 
   // row cursor methods to speed up searching for the row(s)
   // containing a point. The basic idea is that we set the cursor
@@ -279,13 +293,13 @@ public:
     uint32_t            mCursorIndex;
     nscoord             mOverflowAbove;
     nscoord             mOverflowBelow;
-    
+
     FrameCursorData()
       : mFrames(MIN_ROWS_NEEDING_CURSOR), mCursorIndex(0), mOverflowAbove(0),
         mOverflowBelow(0) {}
 
     bool AppendFrame(nsIFrame* aFrame);
-    
+
     void FinishBuildingCursor() {
       mFrames.Compact();
     }
@@ -316,42 +330,45 @@ public:
    */
   FrameCursorData* SetupRowCursor();
 
-  virtual nsILineIterator* GetLineIterator() MOZ_OVERRIDE { return this; }
+  virtual nsILineIterator* GetLineIterator() override { return this; }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eTablePart));
   }
 
-  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameForRemoval() MOZ_OVERRIDE { InvalidateFrameSubtree(); }
+  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameForRemoval() override { InvalidateFrameSubtree(); }
 
 protected:
-  nsTableRowGroupFrame(nsStyleContext* aContext);
+  explicit nsTableRowGroupFrame(nsStyleContext* aContext);
 
-  void InitChildReflowState(nsPresContext&     aPresContext, 
+  void InitChildReflowState(nsPresContext&     aPresContext,
                             bool               aBorderCollapse,
                             nsHTMLReflowState& aReflowState);
-  
-  virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
+
+  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const override;
 
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,
                   nsIFrame*              aKidFrame,
+                  mozilla::WritingMode   aWM,
+                  const mozilla::LogicalPoint& aKidPosition,
+                  nscoord                aContainerWidth,
                   nsHTMLReflowMetrics&   aDesiredSize,
                   const nsRect&          aOriginalKidRect,
                   const nsRect&          aOriginalKidVisualOverflow);
 
-  void CalculateRowHeights(nsPresContext*           aPresContext, 
-                           nsHTMLReflowMetrics&     aDesiredSize,
-                           const nsHTMLReflowState& aReflowState);
+  void CalculateRowBSizes(nsPresContext*           aPresContext,
+                          nsHTMLReflowMetrics&     aDesiredSize,
+                          const nsHTMLReflowState& aReflowState);
 
   void DidResizeRows(nsHTMLReflowMetrics& aDesiredSize);
 
   void SlideChild(nsRowGroupReflowState& aReflowState,
                   nsIFrame*              aKidFrame);
-  
+
   /**
    * Reflow the frames we've already created
    *
@@ -374,8 +391,8 @@ protected:
   void SplitSpanningCells(nsPresContext&           aPresContext,
                           const nsHTMLReflowState& aReflowState,
                           nsTableFrame&            aTableFrame,
-                          nsTableRowFrame&         aFirstRow, 
-                          nsTableRowFrame&         aLastRow,  
+                          nsTableRowFrame&         aFirstRow,
+                          nsTableRowFrame&         aLastRow,
                           bool                     aFirstRowIsTopOfPage,
                           nscoord                  aSpanningRowBottom,
                           nsTableRowFrame*&        aContRowFrame,
@@ -386,25 +403,25 @@ protected:
                                 nsIFrame&      aRowFrame,
                                 nsIFrame**     aContRowFrame);
 
-  bool IsSimpleRowFrame(nsTableFrame* aTableFrame, 
-                          nsIFrame*     aFrame);
+  bool IsSimpleRowFrame(nsTableFrame* aTableFrame,
+                        nsTableRowFrame* aRowFrame);
 
   void GetNextRowSibling(nsIFrame** aRowFrame);
 
   void UndoContinuedRow(nsPresContext*   aPresContext,
                         nsTableRowFrame* aRow);
-                        
+
 private:
   // border widths in pixels in the collapsing border model
-  BCPixelSize mRightContBorderWidth;
-  BCPixelSize mBottomContBorderWidth;
-  BCPixelSize mLeftContBorderWidth;
+  BCPixelSize mIEndContBorderWidth;
+  BCPixelSize mBEndContBorderWidth;
+  BCPixelSize mIStartContBorderWidth;
 
 public:
   bool IsRepeatable() const;
-  void   SetRepeatable(bool aRepeatable);
-  bool HasStyleHeight() const;
-  void   SetHasStyleHeight(bool aValue);
+  void SetRepeatable(bool aRepeatable);
+  bool HasStyleBSize() const;
+  void SetHasStyleBSize(bool aValue);
   bool HasInternalBreakBefore() const;
   bool HasInternalBreakAfter() const;
 };
@@ -412,42 +429,42 @@ public:
 
 inline bool nsTableRowGroupFrame::IsRepeatable() const
 {
-  return (mState & NS_ROWGROUP_REPEATABLE) == NS_ROWGROUP_REPEATABLE;
+  return HasAnyStateBits(NS_ROWGROUP_REPEATABLE);
 }
 
 inline void nsTableRowGroupFrame::SetRepeatable(bool aRepeatable)
 {
   if (aRepeatable) {
-    mState |= NS_ROWGROUP_REPEATABLE;
+    AddStateBits(NS_ROWGROUP_REPEATABLE);
   } else {
-    mState &= ~NS_ROWGROUP_REPEATABLE;
+    RemoveStateBits(NS_ROWGROUP_REPEATABLE);
   }
 }
 
-inline bool nsTableRowGroupFrame::HasStyleHeight() const
+inline bool nsTableRowGroupFrame::HasStyleBSize() const
 {
-  return (mState & NS_ROWGROUP_HAS_STYLE_HEIGHT) == NS_ROWGROUP_HAS_STYLE_HEIGHT;
+  return HasAnyStateBits(NS_ROWGROUP_HAS_STYLE_BSIZE);
 }
 
-inline void nsTableRowGroupFrame::SetHasStyleHeight(bool aValue)
+inline void nsTableRowGroupFrame::SetHasStyleBSize(bool aValue)
 {
   if (aValue) {
-    mState |= NS_ROWGROUP_HAS_STYLE_HEIGHT;
+    AddStateBits(NS_ROWGROUP_HAS_STYLE_BSIZE);
   } else {
-    mState &= ~NS_ROWGROUP_HAS_STYLE_HEIGHT;
+    RemoveStateBits(NS_ROWGROUP_HAS_STYLE_BSIZE);
   }
 }
 
 inline void
-nsTableRowGroupFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
+nsTableRowGroupFrame::GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                                 mozilla::LogicalMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,
-                                            mRightContBorderWidth);
-  aBorder.bottom = BC_BORDER_TOP_HALF_COORD(aPixelsToTwips,
-                                            mBottomContBorderWidth);
-  aBorder.left = BC_BORDER_RIGHT_HALF_COORD(aPixelsToTwips,
-                                            mLeftContBorderWidth);
-  return;
+  aBorder.IEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mIEndContBorderWidth);
+  aBorder.BEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mBEndContBorderWidth);
+  aBorder.IStart(aWM) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                                 mIStartContBorderWidth);
 }
 #endif

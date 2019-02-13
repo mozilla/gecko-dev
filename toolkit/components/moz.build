@@ -6,13 +6,15 @@
 
 # These component dirs are built for all apps (including suite)
 if CONFIG['MOZ_ENABLE_XREMOTE']:
-    PARALLEL_DIRS += ['remote']
+    DIRS += ['remote']
 
-PARALLEL_DIRS += [
+DIRS += [
     'aboutcache',
     'aboutmemory',
+    'addoncompat',
     'alerts',
     'apppicker',
+    'asyncshutdown',
     'commandlines',
     'console',
     'contentprefs',
@@ -22,9 +24,11 @@ PARALLEL_DIRS += [
     'downloads',
     'exthelper',
     'filepicker',
+    'filewatcher',
     'finalizationwitness',
     'formautofill',
     'find',
+    'gfx',
     'jsdownloads',
     'mediasniffer',
     'microformats',
@@ -33,51 +37,67 @@ PARALLEL_DIRS += [
     'passwordmgr',
     'perf',
     'places',
+    'processsingleton',
+    'promiseworker',
     'prompts',
     'protobuf',
+    'reader',
     'reflect',
     'sqlite',
     'startup',
     'statusfilter',
     'telemetry',
     'thumbnails',
+    'timermanager',
     'typeaheadfind',
     'urlformatter',
     'viewconfig',
-    'viewsource',
     'workerloader',
     'workerlz4',
+    'xulstore'
 ]
 
+if CONFIG['MOZ_BUILD_APP'] != 'mobile/android':
+    DIRS += ['viewsource'];
+
+    if CONFIG['NS_PRINTING']:
+        DIRS += ['printing']
+
 if CONFIG['MOZ_CRASHREPORTER']:
-    PARALLEL_DIRS += ['crashes']
+    DIRS += ['crashes']
 
 if CONFIG['MOZ_SOCIAL']:
-    PARALLEL_DIRS += ['social']
+    DIRS += ['social']
 
 if CONFIG['BUILD_CTYPES']:
-    PARALLEL_DIRS += ['ctypes']
+    DIRS += ['ctypes']
 
 if CONFIG['MOZ_FEEDS']:
-    PARALLEL_DIRS += ['feeds']
+    DIRS += ['feeds']
 
 if CONFIG['MOZ_HELP_VIEWER']:
-    PARALLEL_DIRS += ['help']
-
-if CONFIG['NS_PRINTING']:
-    PARALLEL_DIRS += ['printing']
+    DIRS += ['help']
 
 if CONFIG['MOZ_XUL']:
-    PARALLEL_DIRS += ['autocomplete', 'satchel']
+    DIRS += ['autocomplete', 'satchel']
 
 if CONFIG['MOZ_TOOLKIT_SEARCH']:
-    PARALLEL_DIRS += ['search']
+    DIRS += ['search']
 
 if CONFIG['MOZ_URL_CLASSIFIER']:
-    PARALLEL_DIRS += ['url-classifier']
+    DIRS += ['url-classifier']
 
 if CONFIG['MOZ_CAPTIVEDETECT']:
-    PARALLEL_DIRS += ['captivedetect']
+    DIRS += ['captivedetect']
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != "gonk" and CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
+    DIRS += ['terminator']
+
+if CONFIG['NIGHTLY_BUILD']: # Bug 1136927 - Performance Monitoring is not ready for prime-time yet
+    DIRS += [
+      'aboutperformance',
+      'perfmonitoring',
+    ]
 
 DIRS += ['build']
 

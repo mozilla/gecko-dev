@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Subtest for Login Manager notifications (private browsing)</title>
 </head>
 <body>
@@ -19,8 +21,8 @@ function submitForm() {
   form.submit();
 }
 
-window.onload = submitForm;
 var form      = document.getElementById("form");
+window.addEventListener('message', () => { submitForm(); });
 
 </script>
 </body>

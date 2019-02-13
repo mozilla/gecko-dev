@@ -11,7 +11,6 @@ MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 MOZ_PKG_MANIFEST_P = $(srcdir)/package-manifest.in
 
 DEFINES += \
-	-DAB_CD=$(AB_CD) \
 	-DMOZ_APP_NAME=$(MOZ_APP_NAME) \
 	-DPREF_DIR=$(PREF_DIR) \
 	$(NULL)
@@ -23,8 +22,20 @@ DEFINES += -DMOZ_CHILD_PROCESS_NAME=$(MOZ_CHILD_PROCESS_NAME)
 # Set MSVC dlls version to package, if any.
 ifdef WIN32_REDIST_DIR
 ifdef MOZ_NO_DEBUG_RTL
-DEFINES += -DMOZ_MSVC_REDIST=$(_MSC_VER)
+DEFINES += -DMOZ_PACKAGE_MSVC_DLLS=1
+DEFINES += -DMSVC_C_RUNTIME_DLL=$(MSVC_C_RUNTIME_DLL)
+DEFINES += -DMSVC_CXX_RUNTIME_DLL=$(MSVC_CXX_RUNTIME_DLL)
+ifdef MSVC_APPCRT_DLL
+DEFINES += -DMSVC_APPCRT_DLL=$(MSVC_APPCRT_DLL)
 endif
+ifdef MSVC_DESKTOPCRT_DLL
+DEFINES += -DMSVC_DESKTOPCRT_DLL=$(MSVC_DESKTOPCRT_DLL)
+endif
+endif
+endif
+
+ifdef MOZ_DEBUG
+DEFINES += -DMOZ_DEBUG=1
 endif
 
 ifdef ENABLE_MARIONETTE
@@ -37,23 +48,41 @@ endif
 
 MOZ_PACKAGER_MINIFY=1
 
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+ifndef _APPNAME
+_APPNAME = $(MOZ_MACBUNDLE_NAME)
+endif
+ifndef _BINPATH
+_BINPATH = /$(_APPNAME)/Contents/MacOS
+endif
+ifndef _RESPATH
+_RESPATH = /$(_APPNAME)/Contents/Resources
+endif
+endif
+
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 
 # Note that JS_BINARY can be defined in packager.mk, so this test must come after
 # including that file. MOZ_PACKAGER_MINIFY_JS is used in packager.mk, but since
 # recipe evaluation is deferred, we can set it here after the inclusion.
 ifneq (,$(JS_BINARY))
+ifndef MOZ_DEBUG
 MOZ_PACKAGER_MINIFY_JS=1
+endif
 endif
 
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)
+RESPATH = $(_RESPATH)
 DEFINES += -DAPPNAME=$(_APPNAME)
 else
 # Every other platform just winds up in dist/bin
 BINPATH = bin
+RESPATH = bin
 endif
 DEFINES += -DBINPATH=$(BINPATH)
+DEFINES += -DRESPATH=$(RESPATH)
+
 
 ifneq (,$(filter WINNT Darwin Android,$(OS_TARGET)))
 DEFINES += -DMOZ_SHARED_MOZGLUE=1
@@ -67,9 +96,6 @@ ifdef GKMEDIAS_SHARED_LIBRARY
 DEFINES += -DGKMEDIAS_SHARED_LIBRARY
 endif
 
-ifdef MOZ_REPLACE_MALLOC
-DEFINES += -DMOZ_REPLACE_MALLOC
-endif
 ifdef MOZ_JEMALLOC3
 DEFINES += -DMOZ_JEMALLOC3
 endif
@@ -97,6 +123,8 @@ GARBAGE += $(MOZ_PKG_MANIFEST)
 endif
 
 ifdef FXOS_SIMULATOR
+export MAKE
+
 .PHONY: simulator
 simulator: make-package
 	@echo 'Building simulator addon...'

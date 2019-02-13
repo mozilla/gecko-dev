@@ -1,10 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function test() {
-  TestRunner.run();
-}
-
 /**
  * This test makes sure that we correctly preserve tab attributes when storing
  * and restoring tabs. It also ensures that we skip special attributes like
@@ -13,13 +9,13 @@ function test() {
 
 const PREF = "browser.sessionstore.restore_on_demand";
 
-function runTests() {
+add_task(function* test() {
   Services.prefs.setBoolPref(PREF, true)
   registerCleanupFunction(() => Services.prefs.clearUserPref(PREF));
 
   // Add a new tab with a nice icon.
   let tab = gBrowser.addTab("about:robots");
-  yield whenBrowserLoaded(tab.linkedBrowser);
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
   // Check that the tab has an 'image' attribute.
   ok(tab.hasAttribute("image"), "tab.image exists");
@@ -34,39 +30,35 @@ function runTests() {
   tab.setAttribute("custom", "foobar");
   ss.persistTabAttribute("custom");
 
-  let {attributes} = JSON.parse(ss.getTabState(tab));
+  ({attributes} = JSON.parse(ss.getTabState(tab)));
   is(attributes.custom, "foobar", "'custom' attribute is correct");
 
   // Make sure we're backwards compatible and restore old 'image' attributes.
   let state = {
     entries: [{url: "about:mozilla"}],
-    attributes: {custom: "foobaz", image: gBrowser.getIcon(tab)}
+    attributes: {custom: "foobaz"},
+    image: gBrowser.getIcon(tab)
   };
 
   // Prepare a pending tab waiting to be restored.
-  whenTabRestoring(tab);
-  yield ss.setTabState(tab, JSON.stringify(state));
+  let promise = promiseTabRestoring(tab);
+  ss.setTabState(tab, JSON.stringify(state));
+  yield promise;
 
   ok(tab.hasAttribute("pending"), "tab is pending");
-  is(gBrowser.getIcon(tab), state.attributes.image, "tab has correct icon");
+  is(gBrowser.getIcon(tab), state.image, "tab has correct icon");
+  ok(!state.attributes.image, "'image' attribute not saved");
 
   // Let the pending tab load.
   gBrowser.selectedTab = tab;
-  yield whenTabRestored(tab);
+  yield promiseTabRestored(tab);
 
   // Ensure no 'image' or 'pending' attributes are stored.
-  let {attributes} = JSON.parse(ss.getTabState(tab));
+  ({attributes} = JSON.parse(ss.getTabState(tab)));
   ok(!("image" in attributes), "'image' attribute not saved");
   ok(!("pending" in attributes), "'pending' attribute not saved");
   is(attributes.custom, "foobaz", "'custom' attribute is correct");
 
   // Clean up.
   gBrowser.removeTab(tab);
-}
-
-function whenTabRestoring(tab) {
-  tab.addEventListener("SSTabRestoring", function onRestoring() {
-    tab.removeEventListener("SSTabRestoring", onRestoring);
-    executeSoon(next);
-  });
-}
+});

@@ -3,6 +3,7 @@ var Cu = Components.utils;
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 const Services = devtools.require("Services");
 const {_documentWalker} = devtools.require("devtools/server/actors/inspector");
@@ -15,7 +16,7 @@ SimpleTest.registerCleanupFunction(function() {
 
 
 if (!DebuggerServer.initialized) {
-  DebuggerServer.init(() => true);
+  DebuggerServer.init();
   DebuggerServer.addBrowserActors();
   SimpleTest.registerCleanupFunction(function() {
     DebuggerServer.destroy();
@@ -103,7 +104,7 @@ function serverOwnershipSubtree(walker, node) {
   }
 
   let children = [];
-  let docwalker = _documentWalker(node, window);
+  let docwalker = new _documentWalker(node, window);
   let child = docwalker.firstChild();
   while (child) {
     let item = serverOwnershipSubtree(walker, child);
@@ -124,23 +125,23 @@ function serverOwnershipTree(walker) {
 
   return {
     root: serverOwnershipSubtree(serverWalker, serverWalker.rootDoc ),
-    orphaned: [serverOwnershipSubtree(serverWalker, o.rawNode) for (o of serverWalker._orphaned)],
-    retained: [serverOwnershipSubtree(serverWalker, o.rawNode) for (o of serverWalker._retainedOrphans)]
+    orphaned: [...serverWalker._orphaned].map(o => serverOwnershipSubtree(serverWalker, o.rawNode)),
+    retained: [...serverWalker._retainedOrphans].map(o => serverOwnershipSubtree(serverWalker, o.rawNode))
   };
 }
 
 function clientOwnershipSubtree(node) {
   return {
     name: node.actorID,
-    children: sortOwnershipChildren([clientOwnershipSubtree(child) for (child of node.treeChildren())])
+    children: sortOwnershipChildren(node.treeChildren().map(child => clientOwnershipSubtree(child)))
   }
 }
 
 function clientOwnershipTree(walker) {
   return {
     root: clientOwnershipSubtree(walker.rootNode),
-    orphaned: [clientOwnershipSubtree(o) for (o of walker._orphaned)],
-    retained: [clientOwnershipSubtree(o) for (o of walker._retainedOrphans)]
+    orphaned: [...walker._orphaned].map(o => clientOwnershipSubtree(o)),
+    retained: [...walker._retainedOrphans].map(o => clientOwnershipSubtree(o))
   }
 }
 
@@ -166,7 +167,7 @@ function checkMissing(client, actorID) {
   let front = client.getActor(actorID);
   ok(!front, "Front shouldn't be accessible from the client for actorID: " + actorID);
 
-  let deferred = promise.defer();
+  deferred = promise.defer();
   client.request({
     to: actorID,
     type: "request",
@@ -183,7 +184,7 @@ function checkAvailable(client, actorID) {
   let front = client.getActor(actorID);
   ok(front, "Front should be accessible from the client for actorID: " + actorID);
 
-  let deferred = promise.defer();
+  deferred = promise.defer();
   client.request({
     to: actorID,
     type: "garbageAvailableTest",
@@ -288,6 +289,10 @@ function waitForMutation(walker, test, mutations=[]) {
 var _tests = [];
 function addTest(test) {
   _tests.push(test);
+}
+
+function addAsyncTest(generator) {
+  _tests.push(() => Task.spawn(generator).then(null, ok.bind(null, false)));
 }
 
 function runNextTest() {

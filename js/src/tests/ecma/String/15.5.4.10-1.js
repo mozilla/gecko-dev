@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -52,8 +52,6 @@ var TITLE   = "String.prototype.substring( start, end )";
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 new TestCase( SECTION,  "String.prototype.substring.length",        2,          String.prototype.substring.length );
-new TestCase( SECTION,  "delete String.prototype.substring.length", false,      delete String.prototype.substring.length );
-new TestCase( SECTION,  "delete String.prototype.substring.length; String.prototype.substring.length", 2,      eval("delete String.prototype.substring.length; String.prototype.substring.length") );
 
 // test cases for when substring is called with no arguments.
 

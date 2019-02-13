@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,6 +14,7 @@
 #include "nsIException.h"
 
 class nsIStackFrame;
+class nsPIDOMWindow;
 template <class T>
 struct already_AddRefed;
 
@@ -23,6 +25,11 @@ class Exception;
 
 bool
 Throw(JSContext* cx, nsresult rv, const char* sz = nullptr);
+
+// Create, throw and report an exception to a given window.
+void
+ThrowAndReport(nsPIDOMWindow* aWindow, nsresult aRv,
+               const char* aMessage = nullptr);
 
 bool
 ThrowExceptionObject(JSContext* aCx, Exception* aException);
@@ -38,6 +45,19 @@ CreateException(JSContext* aCx, nsresult aRv, const char* aMessage = nullptr);
 already_AddRefed<nsIStackFrame>
 GetCurrentJSStack();
 
+// Throwing a TypeError on an ErrorResult may result in SpiderMonkey using its
+// own error reporting mechanism instead of just setting the exception on the
+// context.  This happens if no script is running. Bug 1107777 adds a flag that
+// forcibly turns this behaviour off. This is a stack helper to set the flag.
+class MOZ_STACK_CLASS AutoForceSetExceptionOnContext {
+private:
+  JSContext* mCx;
+  bool mOldValue;
+public:
+  explicit AutoForceSetExceptionOnContext(JSContext* aCx);
+  ~AutoForceSetExceptionOnContext();
+};
+
 // Internal stuff not intended to be widely used.
 namespace exceptions {
 
@@ -45,13 +65,6 @@ namespace exceptions {
 // value is -1, a default maximal depth will be selected.
 already_AddRefed<nsIStackFrame>
 CreateStack(JSContext* aCx, int32_t aMaxDepth = -1);
-
-already_AddRefed<nsIStackFrame>
-CreateStackFrameLocation(uint32_t aLanguage,
-                         const char* aFilename,
-                         const char* aFunctionName,
-                         int32_t aLineNumber,
-                         nsIStackFrame* aCaller);
 
 } // namespace exceptions
 } // namespace dom

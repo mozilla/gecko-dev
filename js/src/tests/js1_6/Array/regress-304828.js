@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -29,7 +29,7 @@ reportCompare(expect, actual, summary + ': join');
 
 // reverse
 value  = '123';
-expect = 'TypeError: Array.prototype.reverse.call(...) is read-only';
+expect = 'TypeError: 0 is read-only';
 try
 {
   actual = Array.prototype.reverse.call(value) + '';
@@ -42,7 +42,7 @@ reportCompare(expect, actual, summary + ': reverse');
 
 // sort
 value  = 'cba';
-expect = 'TypeError: Array.prototype.sort.call(...) is read-only';
+expect = 'TypeError: 0 is read-only';
 try
 {
   actual = Array.prototype.sort.call(value) + '';
@@ -86,7 +86,7 @@ reportCompare("f", value[5], summary + ': push String object index 5');
 
 // pop
 value  = 'abc';
-expect = "TypeError: property Array.prototype.pop.call(...) is non-configurable and can't be deleted";
+expect = "TypeError: property 2 is non-configurable and can't be deleted";
 try
 {
   actual = Array.prototype.pop.call(value);
@@ -100,7 +100,7 @@ reportCompare('abc', value, summary + ': pop');
 
 // unshift
 value  = 'def';
-expect = 'TypeError: Array.prototype.unshift.call(...) is read-only';
+expect = 'TypeError: 0 is read-only';
 try
 {
   actual = Array.prototype.unshift.call(value, 'a', 'b', 'c');
@@ -114,7 +114,7 @@ reportCompare('def', value, summary + ': unshift');
 
 // shift
 value  = 'abc';
-expect = 'TypeError: Array.prototype.shift.call(...) is read-only';
+expect = 'TypeError: 0 is read-only';
 try
 {
   actual = Array.prototype.shift.call(value);
@@ -128,7 +128,7 @@ reportCompare('abc', value, summary + ': shift');
 
 // splice
 value  = 'abc';
-expect = 'TypeError: Array.prototype.splice.call(...) is read-only';
+expect = 'TypeError: 1 is read-only';
 try
 {
   actual = Array.prototype.splice.call(value, 1, 1) + '';

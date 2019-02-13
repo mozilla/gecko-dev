@@ -9,6 +9,7 @@
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
+#include "nsUnicharUtils.h"
 #include "nsTArray.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -46,20 +47,20 @@ enum QuotedName { eQuotedName, eUnquotedName };
  * a font type indicated named family or which generic family
  */
 
-struct FontFamilyName MOZ_FINAL {
+struct FontFamilyName final {
     FontFamilyName()
         : mType(eFamily_named)
     {}
 
     // named font family - e.g. Helvetica
-    FontFamilyName(const nsAString& aFamilyName,
-                   QuotedName aQuoted = eUnquotedName) {
+    explicit FontFamilyName(const nsAString& aFamilyName,
+                            QuotedName aQuoted = eUnquotedName) {
         mType = (aQuoted == eQuotedName) ? eFamily_named_quoted : eFamily_named;
         mName = aFamilyName;
     }
 
     // generic font family - e.g. sans-serif
-    FontFamilyName(FontFamilyType aType) {
+    explicit FontFamilyName(FontFamilyType aType) {
         NS_ASSERTION(aType != eFamily_named &&
                      aType != eFamily_named_quoted &&
                      aType != eFamily_none,
@@ -171,17 +172,17 @@ operator==(const FontFamilyName& a, const FontFamilyName& b) {
  * font type is used to preserve the variable font fallback behavior
  */ 
 
-class FontFamilyList MOZ_FINAL {
+class FontFamilyList {
 public:
-    FontFamilyList() : mDefaultFontType(eFamily_none) {
-        MOZ_COUNT_CTOR(FontFamilyList);
+    FontFamilyList()
+        : mDefaultFontType(eFamily_none)
+    {
     }
 
-    FontFamilyList(FontFamilyType aGenericType)
+    explicit FontFamilyList(FontFamilyType aGenericType)
         : mDefaultFontType(eFamily_none)
     {
         Append(FontFamilyName(aGenericType));
-        MOZ_COUNT_CTOR(FontFamilyList);
     }
 
     FontFamilyList(const nsAString& aFamilyName,
@@ -189,17 +190,12 @@ public:
         : mDefaultFontType(eFamily_none)
     {
         Append(FontFamilyName(aFamilyName, aQuoted));
-        MOZ_COUNT_CTOR(FontFamilyList);
     }
 
     FontFamilyList(const FontFamilyList& aOther)
-        : mFontlist(aOther.mFontlist), mDefaultFontType(aOther.mDefaultFontType)
+        : mFontlist(aOther.mFontlist)
+        , mDefaultFontType(aOther.mDefaultFontType)
     {
-        MOZ_COUNT_CTOR(FontFamilyList);
-    }
-
-    ~FontFamilyList() {
-        MOZ_COUNT_DTOR(FontFamilyList);
     }
 
     void Append(const FontFamilyName& aFamilyName) {
@@ -261,6 +257,32 @@ public:
         return false;
     }
 
+    // Find the first generic (but ignoring cursive and fantasy, as they are
+    // rarely configured in any useful way) in the list.
+    // If found, move it to the start and return true; else return false.
+    bool PrioritizeFirstGeneric() {
+        uint32_t len = mFontlist.Length();
+        for (uint32_t i = 0; i < len; i++) {
+            const FontFamilyName name = mFontlist[i];
+            if (name.IsGeneric()) {
+                if (name.mType == eFamily_cursive ||
+                    name.mType == eFamily_fantasy) {
+                    continue;
+                }
+                if (i > 0) {
+                    mFontlist.RemoveElementAt(i);
+                    mFontlist.InsertElementAt(0, name);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void PrependGeneric(FontFamilyType aType) {
+        mFontlist.InsertElementAt(0, FontFamilyName(aType));
+    }
+
     void ToString(nsAString& aFamilyList,
                   bool aQuotes = true,
                   bool aIncludeDefault = false) const {
@@ -285,6 +307,26 @@ public:
         }
     }
 
+    // searches for a specific non-generic name, lowercase comparison
+    bool Contains(const nsAString& aFamilyName) const {
+        uint32_t len = mFontlist.Length();
+        nsAutoString fam(aFamilyName);
+        ToLowerCase(fam);
+        for (uint32_t i = 0; i < len; i++) {
+            const FontFamilyName& name = mFontlist[i];
+            if (name.mType != eFamily_named &&
+                name.mType != eFamily_named_quoted) {
+                continue;
+            }
+            nsAutoString listname(name.mName);
+            ToLowerCase(listname);
+            if (listname.Equals(fam)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     FontFamilyType GetDefaultFontType() const { return mDefaultFontType; }
     void SetDefaultFontType(FontFamilyType aType) {
         NS_ASSERTION(aType == eFamily_none || aType == eFamily_serif ||
@@ -301,8 +343,6 @@ public:
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
         return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
     }
-
-    NS_INLINE_DECL_REFCOUNTING(FontFamilyList)
 
 private:
     nsTArray<FontFamilyName>   mFontlist;

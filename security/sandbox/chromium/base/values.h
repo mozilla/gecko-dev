@@ -31,11 +31,6 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/strings/string16.h"
 
-// This file declares "using base::Value", etc. at the bottom, so that
-// current code can use these classes without the base namespace. In
-// new code, please always use base::Value, etc. or add your own
-// "using" declaration.
-// http://crbug.com/88666
 namespace base {
 
 class DictionaryValue;
@@ -69,13 +64,6 @@ class BASE_EXPORT Value {
   virtual ~Value();
 
   static Value* CreateNullValue();
-  // DEPRECATED: Do not use the following 5 functions. Instead, use
-  // new FundamentalValue or new StringValue.
-  static FundamentalValue* CreateBooleanValue(bool in_value);
-  static FundamentalValue* CreateIntegerValue(int in_value);
-  static FundamentalValue* CreateDoubleValue(double in_value);
-  static StringValue* CreateStringValue(const std::string& in_value);
-  static StringValue* CreateStringValue(const string16& in_value);
 
   // Returns the type of the value stored by the current Value object.
   // Each type will be implemented by only one subclass of Value, so it's
@@ -96,6 +84,7 @@ class BASE_EXPORT Value {
   virtual bool GetAsDouble(double* out_value) const;
   virtual bool GetAsString(std::string* out_value) const;
   virtual bool GetAsString(string16* out_value) const;
+  virtual bool GetAsString(const StringValue** out_value) const;
   virtual bool GetAsList(ListValue** out_value);
   virtual bool GetAsList(const ListValue** out_value) const;
   virtual bool GetAsDictionary(DictionaryValue** out_value);
@@ -132,14 +121,16 @@ class BASE_EXPORT FundamentalValue : public Value {
   explicit FundamentalValue(bool in_value);
   explicit FundamentalValue(int in_value);
   explicit FundamentalValue(double in_value);
-  virtual ~FundamentalValue();
+  ~FundamentalValue() override;
 
   // Overridden from Value:
-  virtual bool GetAsBoolean(bool* out_value) const OVERRIDE;
-  virtual bool GetAsInteger(int* out_value) const OVERRIDE;
-  virtual bool GetAsDouble(double* out_value) const OVERRIDE;
-  virtual FundamentalValue* DeepCopy() const OVERRIDE;
-  virtual bool Equals(const Value* other) const OVERRIDE;
+  bool GetAsBoolean(bool* out_value) const override;
+  bool GetAsInteger(int* out_value) const override;
+  // Values of both type TYPE_INTEGER and TYPE_DOUBLE can be obtained as
+  // doubles.
+  bool GetAsDouble(double* out_value) const override;
+  FundamentalValue* DeepCopy() const override;
+  bool Equals(const Value* other) const override;
 
  private:
   union {
@@ -157,13 +148,18 @@ class BASE_EXPORT StringValue : public Value {
   // Initializes a StringValue with a string16.
   explicit StringValue(const string16& in_value);
 
-  virtual ~StringValue();
+  ~StringValue() override;
+
+  // Returns |value_| as a pointer or reference.
+  std::string* GetString();
+  const std::string& GetString() const;
 
   // Overridden from Value:
-  virtual bool GetAsString(std::string* out_value) const OVERRIDE;
-  virtual bool GetAsString(string16* out_value) const OVERRIDE;
-  virtual StringValue* DeepCopy() const OVERRIDE;
-  virtual bool Equals(const Value* other) const OVERRIDE;
+  bool GetAsString(std::string* out_value) const override;
+  bool GetAsString(string16* out_value) const override;
+  bool GetAsString(const StringValue** out_value) const override;
+  StringValue* DeepCopy() const override;
+  bool Equals(const Value* other) const override;
 
  private:
   std::string value_;
@@ -178,7 +174,7 @@ class BASE_EXPORT BinaryValue: public Value {
   // |buffer|.
   BinaryValue(scoped_ptr<char[]> buffer, size_t size);
 
-  virtual ~BinaryValue();
+  ~BinaryValue() override;
 
   // For situations where you want to keep ownership of your buffer, this
   // factory method creates a new BinaryValue by copying the contents of the
@@ -192,8 +188,8 @@ class BASE_EXPORT BinaryValue: public Value {
   const char* GetBuffer() const { return buffer_.get(); }
 
   // Overridden from Value:
-  virtual BinaryValue* DeepCopy() const OVERRIDE;
-  virtual bool Equals(const Value* other) const OVERRIDE;
+  BinaryValue* DeepCopy() const override;
+  bool Equals(const Value* other) const override;
 
  private:
   scoped_ptr<char[]> buffer_;
@@ -208,12 +204,11 @@ class BASE_EXPORT BinaryValue: public Value {
 class BASE_EXPORT DictionaryValue : public Value {
  public:
   DictionaryValue();
-  virtual ~DictionaryValue();
+  ~DictionaryValue() override;
 
   // Overridden from Value:
-  virtual bool GetAsDictionary(DictionaryValue** out_value) OVERRIDE;
-  virtual bool GetAsDictionary(
-      const DictionaryValue** out_value) const OVERRIDE;
+  bool GetAsDictionary(DictionaryValue** out_value) override;
+  bool GetAsDictionary(const DictionaryValue** out_value) const override;
 
   // Returns true if the current dictionary has a value for the given key.
   bool HasKey(const std::string& key) const;
@@ -266,14 +261,18 @@ class BASE_EXPORT DictionaryValue : public Value {
   // through the |out_value| parameter, and the function will return true.
   // Otherwise, it will return false and |out_value| will be untouched.
   // Note that the dictionary always owns the value that's returned.
+  // |out_value| is optional and will only be set if non-NULL.
   bool Get(const std::string& path, const Value** out_value) const;
   bool Get(const std::string& path, Value** out_value);
 
   // These are convenience forms of Get().  The value will be retrieved
   // and the return value will be true if the path is valid and the value at
   // the end of the path can be returned in the form specified.
+  // |out_value| is optional and will only be set if non-NULL.
   bool GetBoolean(const std::string& path, bool* out_value) const;
   bool GetInteger(const std::string& path, int* out_value) const;
+  // Values of both type TYPE_INTEGER and TYPE_DOUBLE can be obtained as
+  // doubles.
   bool GetDouble(const std::string& path, double* out_value) const;
   bool GetString(const std::string& path, std::string* out_value) const;
   bool GetString(const std::string& path, string16* out_value) const;
@@ -324,6 +323,11 @@ class BASE_EXPORT DictionaryValue : public Value {
   virtual bool RemoveWithoutPathExpansion(const std::string& key,
                                           scoped_ptr<Value>* out_value);
 
+  // Removes a path, clearing out all dictionaries on |path| that remain empty
+  // after removing the value at |path|.
+  virtual bool RemovePath(const std::string& path,
+                          scoped_ptr<Value>* out_value);
+
   // Makes a copy of |this| but doesn't include empty dictionaries and lists in
   // the copy.  This never returns NULL, even if |this| itself is empty.
   DictionaryValue* DeepCopyWithoutEmptyChildren() const;
@@ -343,6 +347,7 @@ class BASE_EXPORT DictionaryValue : public Value {
   class BASE_EXPORT Iterator {
    public:
     explicit Iterator(const DictionaryValue& target);
+    ~Iterator();
 
     bool IsAtEnd() const { return it_ == target_.dictionary_.end(); }
     void Advance() { ++it_; }
@@ -356,8 +361,8 @@ class BASE_EXPORT DictionaryValue : public Value {
   };
 
   // Overridden from Value:
-  virtual DictionaryValue* DeepCopy() const OVERRIDE;
-  virtual bool Equals(const Value* other) const OVERRIDE;
+  DictionaryValue* DeepCopy() const override;
+  bool Equals(const Value* other) const override;
 
  private:
   ValueMap dictionary_;
@@ -372,7 +377,7 @@ class BASE_EXPORT ListValue : public Value {
   typedef ValueVector::const_iterator const_iterator;
 
   ListValue();
-  virtual ~ListValue();
+  ~ListValue() override;
 
   // Clears the contents of this ListValue
   void Clear();
@@ -393,14 +398,18 @@ class BASE_EXPORT ListValue : public Value {
   // Gets the Value at the given index.  Modifies |out_value| (and returns true)
   // only if the index falls within the current list range.
   // Note that the list always owns the Value passed out via |out_value|.
+  // |out_value| is optional and will only be set if non-NULL.
   bool Get(size_t index, const Value** out_value) const;
   bool Get(size_t index, Value** out_value);
 
   // Convenience forms of Get().  Modifies |out_value| (and returns true)
   // only if the index is valid and the Value at that index can be returned
   // in the specified form.
+  // |out_value| is optional and will only be set if non-NULL.
   bool GetBoolean(size_t index, bool* out_value) const;
   bool GetInteger(size_t index, int* out_value) const;
+  // Values of both type TYPE_INTEGER and TYPE_DOUBLE can be obtained as
+  // doubles.
   bool GetDouble(size_t index, double* out_value) const;
   bool GetString(size_t index, std::string* out_value) const;
   bool GetString(size_t index, string16* out_value) const;
@@ -466,10 +475,10 @@ class BASE_EXPORT ListValue : public Value {
   const_iterator end() const { return list_.end(); }
 
   // Overridden from Value:
-  virtual bool GetAsList(ListValue** out_value) OVERRIDE;
-  virtual bool GetAsList(const ListValue** out_value) const OVERRIDE;
-  virtual ListValue* DeepCopy() const OVERRIDE;
-  virtual bool Equals(const Value* other) const OVERRIDE;
+  bool GetAsList(ListValue** out_value) override;
+  bool GetAsList(const ListValue** out_value) const override;
+  ListValue* DeepCopy() const override;
+  bool Equals(const Value* other) const override;
 
  private:
   ValueVector list_;
@@ -521,11 +530,5 @@ BASE_EXPORT inline std::ostream& operator<<(std::ostream& out,
 }
 
 }  // namespace base
-
-// http://crbug.com/88666
-using base::DictionaryValue;
-using base::ListValue;
-using base::StringValue;
-using base::Value;
 
 #endif  // BASE_VALUES_H_

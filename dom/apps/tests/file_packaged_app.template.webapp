@@ -1,5 +1,6 @@
 {
   "name" : "NAMETOKEN",
+  "short_name" : "NAMETOKEN",
   "version" : "VERSIONTOKEN",
   "size" : PACKAGESIZETOKEN,
   "package_path": "PACKAGEPATHTOKEN",
@@ -8,12 +9,17 @@
      "geolocation": {},
      "audio-capture": {},
      "video-capture": {},
+     "test-permission": {"access": "readonly"},
      "downloads": {}
    },
   "launch_path": "tests/dom/apps/tests/file_packaged_app.sjs",
+  "icons": {
+    "15": "icon.png"
+  },
   "developer": {
     "name": "DEVELOPERTOKEN",
     "url": "DEVELOPERURLTOKEN"
   },
-  "default_locale": "en-US"
+  "default_locale": "en-US",
+  "role": "ROLETOKEN"
 }

@@ -7,6 +7,7 @@ package org.mozilla.gecko.db;
 import java.io.File;
 import java.util.HashMap;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.Telemetry;
@@ -38,7 +39,7 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
     private static final String ERROR_MESSAGE_DATABASE_IS_LOCKED = "Can't step statement: (5) database is locked";
 
     private HashMap<String, SQLiteBridge> mDatabasePerProfile;
-    protected Context mContext = null;
+    protected Context mContext;
     private final String mLogTag;
 
     protected SQLiteBridgeContentProvider(String logTag) {
@@ -96,6 +97,10 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
                 }
             }
             mDatabasePerProfile = null;
+        }
+
+        if (AppConstants.Versions.feature11Plus) {
+            super.shutdown();
         }
     }
 
@@ -446,7 +451,7 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
             return;
         }
 
-        Telemetry.HistogramAdd(histogram, op.getBucket());
+        Telemetry.addToHistogram(histogram, op.getBucket());
     }
 
     protected abstract String getDBName();

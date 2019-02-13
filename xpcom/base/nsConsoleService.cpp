@@ -25,21 +25,33 @@
 
 #if defined(ANDROID)
 #include <android/log.h>
+#include "mozilla/dom/ContentChild.h"
 #endif
 #ifdef XP_WIN
 #include <windows.h>
+#endif
+
+#ifdef MOZ_TASK_TRACER
+#include "GeckoTaskTracer.h"
+using namespace mozilla::tasktracer;
 #endif
 
 using namespace mozilla;
 
 NS_IMPL_ADDREF(nsConsoleService)
 NS_IMPL_RELEASE(nsConsoleService)
-NS_IMPL_CLASSINFO(nsConsoleService, nullptr, nsIClassInfo::THREADSAFE | nsIClassInfo::SINGLETON, NS_CONSOLESERVICE_CID)
+NS_IMPL_CLASSINFO(nsConsoleService, nullptr,
+                  nsIClassInfo::THREADSAFE | nsIClassInfo::SINGLETON,
+                  NS_CONSOLESERVICE_CID)
 NS_IMPL_QUERY_INTERFACE_CI(nsConsoleService, nsIConsoleService)
 NS_IMPL_CI_INTERFACE_GETTER(nsConsoleService, nsIConsoleService)
 
 static bool sLoggingEnabled = true;
 static bool sLoggingBuffered = true;
+#if defined(ANDROID)
+static bool sLoggingLogcat = true;
+#endif // defined(ANDROID)
+
 
 nsConsoleService::nsConsoleService()
   : mMessages(nullptr)
@@ -57,20 +69,20 @@ nsConsoleService::nsConsoleService()
 nsConsoleService::~nsConsoleService()
 {
   uint32_t i = 0;
-  while (i < mBufferSize && mMessages[i] != nullptr) {
+  while (i < mBufferSize && mMessages[i]) {
     NS_RELEASE(mMessages[i]);
     i++;
   }
 
   if (mMessages) {
-    nsMemory::Free(mMessages);
+    free(mMessages);
   }
 }
 
 class AddConsolePrefWatchers : public nsRunnable
 {
 public:
-  AddConsolePrefWatchers(nsConsoleService* aConsole) : mConsole(aConsole)
+  explicit AddConsolePrefWatchers(nsConsoleService* aConsole) : mConsole(aConsole)
   {
   }
 
@@ -78,6 +90,9 @@ public:
   {
     Preferences::AddBoolVarCache(&sLoggingEnabled, "consoleservice.enabled", true);
     Preferences::AddBoolVarCache(&sLoggingBuffered, "consoleservice.buffered", true);
+#if defined(ANDROID)
+    Preferences::AddBoolVarCache(&sLoggingLogcat, "consoleservice.logcat", true);
+#endif // defined(ANDROID)
     if (!sLoggingBuffered) {
       mConsole->Reset();
     }
@@ -92,7 +107,7 @@ nsresult
 nsConsoleService::Init()
 {
   mMessages = (nsIConsoleMessage**)
-    nsMemory::Alloc(mBufferSize * sizeof(nsIConsoleMessage*));
+    moz_xmalloc(mBufferSize * sizeof(nsIConsoleMessage*));
   if (!mMessages) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -199,11 +214,40 @@ nsConsoleService::LogMessageWithMode(nsIConsoleMessage* aMessage,
     MutexAutoLock lock(mLock);
 
 #if defined(ANDROID)
-    if (aOutputMode == OutputToLog) {
+    if (sLoggingLogcat && aOutputMode == OutputToLog) {
       nsCString msg;
       aMessage->ToString(msg);
-      __android_log_print(ANDROID_LOG_ERROR, "GeckoConsole",
-                          "%s", msg.get());
+
+      /** Attempt to use the process name as the log tag. */
+      mozilla::dom::ContentChild* child =
+          mozilla::dom::ContentChild::GetSingleton();
+      nsCString appName;
+      if (child) {
+        child->GetProcessName(appName);
+      } else {
+        appName = "GeckoConsole";
+      }
+
+      uint32_t logLevel = 0;
+      aMessage->GetLogLevel(&logLevel);
+
+      android_LogPriority logPriority = ANDROID_LOG_INFO;
+      switch (logLevel) {
+        case nsIConsoleMessage::debug:
+          logPriority = ANDROID_LOG_DEBUG;
+          break;
+        case nsIConsoleMessage::info:
+          logPriority = ANDROID_LOG_INFO;
+          break;
+        case nsIConsoleMessage::warn:
+          logPriority = ANDROID_LOG_WARN;
+          break;
+        case nsIConsoleMessage::error:
+          logPriority = ANDROID_LOG_ERROR;
+          break;
+      }
+
+      __android_log_print(logPriority, appName.get(), "%s", msg.get());
     }
 #endif
 #ifdef XP_WIN
@@ -212,6 +256,17 @@ nsConsoleService::LogMessageWithMode(nsIConsoleMessage* aMessage,
       aMessage->GetMessageMoz(getter_Copies(msg));
       msg.Append('\n');
       OutputDebugStringW(msg.get());
+    }
+#endif
+#ifdef MOZ_TASK_TRACER
+    {
+      nsCString msg;
+      aMessage->ToString(msg);
+      int prefixPos = msg.Find(GetJSLabelPrefix());
+      if (prefixPos >= 0) {
+        nsDependentCSubstring submsg(msg, prefixPos);
+        AddLabel("%s", submsg.BeginReading());
+      }
     }
 #endif
 
@@ -266,7 +321,8 @@ nsConsoleService::LogStringMessage(const char16_t* aMessage)
 }
 
 NS_IMETHODIMP
-nsConsoleService::GetMessageArray(uint32_t* aCount, nsIConsoleMessage*** aMessages)
+nsConsoleService::GetMessageArray(uint32_t* aCount,
+                                  nsIConsoleMessage*** aMessages)
 {
   nsIConsoleMessage** messageArray;
 
@@ -283,7 +339,7 @@ nsConsoleService::GetMessageArray(uint32_t* aCount, nsIConsoleMessage*** aMessag
      * array object when called from script.
      */
     messageArray = (nsIConsoleMessage**)
-      nsMemory::Alloc(sizeof(nsIConsoleMessage*));
+      moz_xmalloc(sizeof(nsIConsoleMessage*));
     *messageArray = nullptr;
     *aMessages = messageArray;
     *aCount = 0;
@@ -293,7 +349,7 @@ nsConsoleService::GetMessageArray(uint32_t* aCount, nsIConsoleMessage*** aMessag
 
   uint32_t resultSize = mFull ? mBufferSize : mCurrent;
   messageArray =
-    (nsIConsoleMessage**)nsMemory::Alloc((sizeof(nsIConsoleMessage*))
+    (nsIConsoleMessage**)moz_xmalloc((sizeof(nsIConsoleMessage*))
                                          * resultSize);
 
   if (!messageArray) {

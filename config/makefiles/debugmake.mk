@@ -13,18 +13,17 @@
 # Support usage outside of config/rules.mk
 ifndef INCLUDED_DEBUGMAKE_MK #{
 
+define CR
+
+
+endef
+
 define shell_quote
-'$(subst ','\'',$(1))'
+'$(subst $(CR),\$(CR),$(subst ','\'',$(1)))'
 endef
 
 echo-variable-%:
 	@echo $(call shell_quote,$($*))
-
-echo-tiers:
-	@echo $(TIERS)
-
-echo-tier-dirs:
-	@$(foreach tier,$(TIERS),echo '$(tier):'; echo '  dirs: $(tier_$(tier)_dirs)'; $(if $(tier_$(tier)_staticdirs),echo '  staticdirs: $(tier_$(tier)_staticdirs)';) )
 
 echo-dirs:
 	@echo $(call shell_quote,$(DIRS))
@@ -46,19 +45,17 @@ ifneq (,$(filter $(PROGRAM) $(HOST_PROGRAM) $(SIMPLE_PROGRAMS) $(HOST_LIBRARY) $
 		SIMPLE_PROGRAMS \
 		LIBRARY \
 		SHARED_LIBRARY \
-		SHARED_LIBRARY_LIBS \
 		LIBS \
 		DEF_FILE \
 		IMPORT_LIBRARY \
 		STATIC_LIBS \
+		SHARED_LIBS \
 		EXTRA_DSO_LDOPTS \
 		DEPENDENT_LIBS \
 	)
 	@echo --------------------------------------------------------------------------------
 endif
-	$(LOOP_OVER_PARALLEL_DIRS)
 	$(LOOP_OVER_DIRS)
-	$(LOOP_OVER_TOOL_DIRS)
 
 showbuild:
 	$(call print_vars,\

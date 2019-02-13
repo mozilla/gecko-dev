@@ -6,8 +6,8 @@
 
 // Test computed view key bindings
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html,default styles test");
+add_task(function*() {
+  yield addTab("data:text/html;charset=utf-8,default styles test");
 
   info("Adding content to the test page");
   content.document.body.innerHTML = '<style type="text/css"> ' +

@@ -46,6 +46,42 @@ evaluated in the same lexical environment.
 A `Debugger.Script` instance inherits the following accessor properties
 from its prototype:
 
+`displayName`
+:   The script's display name, if it has one. If the script has no display name
+    &mdash; for example, if it is a top-level `eval` script &mdash; this is
+    `undefined`.
+
+    If the script's function has a given name, its display name is the same as
+    its function's given name.
+
+    If the script's function has no name, SpiderMonkey attempts to infer an
+    appropriate name for it given its context. For example:
+
+    ```language-js
+    function f() {}          // display name: f (the given name)
+    var g = function () {};  // display name: g
+    o.p = function () {};    // display name: o.p
+    var q = {
+      r: function () {}      // display name: q.r
+    };
+    ```
+
+    Note that the display name may not be a proper JavaScript identifier,
+    or even a proper expression: we attempt to find helpful names even when
+    the function is not immediately assigned as the value of some variable
+    or property. Thus, we use <code><i>a</i>/<i>b</i></code> to refer to
+    the <i>b</i> defined within <i>a</i>, and <code><i>a</i>&lt;</code> to
+    refer to a function that occurs somewhere within an expression that is
+    assigned to <i>a</i>. For example:
+
+    ```language-js
+    function h() {
+      var i = function() {};    // display name: h/i
+      f(function () {});        // display name: h/<
+    }
+    var s = f(function () {});  // display name: s<
+    ```
+
 `url`
 :   The filename or URL from which this script's code was loaded. If the
     `source` property is non-`null`, then this is equal to `source.url`.
@@ -115,17 +151,6 @@ from its prototype:
 :   This is `true` if this script's code is ECMAScript strict mode code, and
     `false` otherwise.
 
-`sourceMapURL`
-:   If this script was produced by a minimizer or translated from some other
-    language, and we know the URL of a <b>source map</b> document relating
-    the source positions in this script to the corresponding source
-    positions in the original source, then this property's value is that
-    URL. Otherwise, this is `null`.
-
-    (On the web, the translator may provide the source map URL in a
-    specially formatted comment in the JavaScript source code, or via a
-    header in the HTTP reply that carried the generated JavaScript.)
-
 ## Function Properties of the Debugger.Script Prototype Object
 
 The functions described below may only be called with a `this` value
@@ -178,6 +203,39 @@ methods of other kinds of objects.
 
     * and the fourth line begins at offset 10.
 
+`getAllColumnOffsets()`:
+:   Return an array describing the relationship between bytecode instruction
+    offsets and source code positions in this script. Unlike getAllOffsets(),
+    which returns all offsets that are entry points for each line,
+    getAllColumnOffsets() returns all offsets that are entry points for each
+    (line, column) pair.
+
+    The elements of the array are objects, each of which describes a single
+    entry point, and contains the following properties:
+
+    * lineNumber: the line number for which offset is an entry point
+
+    * columnNumber: the column number for which offset is an entry point
+
+    * offset: the bytecode instruction offset of the entry point
+
+    For example, suppose we have a script for the following source code:
+
+    ```language-js
+    a=[]
+    for (i=1; i < 10; i++)
+        // It's hip to be square.
+        a[i] = i*i;
+    ```
+
+    Calling `getAllColumnOffsets()` on that code might yield an array like this:
+
+    ```language-js
+    [{ lineNumber: 0, columnNumber: 0, offset: 0 },
+     { lineNumber: 1, columnNumber: 5, offset: 5 },
+     { lineNumber: 1, columnNumber: 10, offset: 20 },
+     { lineNumber: 3, columnNumber: 4, offset: 10 }]
+
 <code>getLineOffsets(<i>line</i>)</code>
 :   Return an array of bytecode instruction offsets representing the entry
     points to source line <i>line</i>. If the script contains no executable
@@ -215,9 +273,12 @@ methods of other kinds of objects.
     and in the compartment containing the handler function (typically the
     debugger's compartment).
 
-    The new breakpoint belongs to the [`Debugger`][debugger-object] instance to which this
-    script belongs; disabling the [`Debugger`][debugger-object] instance disables this
-    breakpoint.
+    The new breakpoint belongs to the [`Debugger`][debugger-object] instance to
+    which this script belongs. Disabling the [`Debugger`][debugger-object]
+    instance disables this breakpoint; and removing a global from the
+    [`Debugger`][debugger-object] instance's set of debuggees clears all the
+    breakpoints belonging to that [`Debugger`][debugger-object] instance in that
+    global's scripts.
 
 <code>getBreakpoints([<i>offset</i>])</code>
 :   Return an array containing the handler objects for all the breakpoints
@@ -241,4 +302,6 @@ methods of other kinds of objects.
     <i>offset</i> is not a valid bytecode offset in this script, throw an
     error.
 
-
+<code>isInCatchScope([<i>offset</i>])</code>
+:   This is `true` if this offset falls within the scope of a try block, and
+    `false` otherwise.

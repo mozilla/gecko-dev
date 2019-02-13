@@ -1,20 +1,25 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WorkerRunnable.h"
 
+#include "nsGlobalWindow.h"
 #include "nsIEventTarget.h"
+#include "nsIGlobalObject.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 
 #include "WorkerPrivate.h"
+#include "WorkerScope.h"
 
 USING_WORKERS_NAMESPACE
 
@@ -45,6 +50,22 @@ WorkerRunnable::WorkerRunnable(WorkerPrivate* aWorkerPrivate,
   MOZ_ASSERT(aWorkerPrivate);
 }
 #endif
+
+bool
+WorkerRunnable::IsDebuggerRunnable() const
+{
+  return false;
+}
+
+nsIGlobalObject*
+WorkerRunnable::DefaultGlobalObject() const
+{
+  if (IsDebuggerRunnable()) {
+    return mWorkerPrivate->DebuggerGlobalScope();
+  } else {
+    return mWorkerPrivate->GlobalScope();
+  }
+}
 
 bool
 WorkerRunnable::PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
@@ -98,7 +119,7 @@ WorkerRunnable::Dispatch(JSContext* aCx)
 
   Maybe<JSAutoCompartment> ac;
   if (global) {
-    ac.construct(aCx, global);
+    ac.emplace(aCx, global);
   }
 
   ok = PreDispatch(aCx, mWorkerPrivate);
@@ -117,7 +138,11 @@ WorkerRunnable::DispatchInternal()
 {
   if (mBehavior == WorkerThreadModifyBusyCount ||
       mBehavior == WorkerThreadUnchangedBusyCount) {
-    return NS_SUCCEEDED(mWorkerPrivate->Dispatch(this));
+    if (IsDebuggerRunnable()) {
+      return NS_SUCCEEDED(mWorkerPrivate->DispatchDebuggerRunnable(this));
+    } else {
+      return NS_SUCCEEDED(mWorkerPrivate->Dispatch(this));
+    }
   }
 
   MOZ_ASSERT(mBehavior == ParentThreadUnchangedBusyCount);
@@ -258,66 +283,85 @@ WorkerRunnable::Run()
     return NS_OK;
   }
 
-  JSContext* cx;
+  if (targetIsWorkerThread &&
+      mWorkerPrivate->AllPendingRunnablesShouldBeCanceled() &&
+      !IsCanceled() && !mCallingCancelWithinRun) {
+
+    // Prevent recursion.
+    mCallingCancelWithinRun = true;
+
+    Cancel();
+
+    MOZ_ASSERT(mCallingCancelWithinRun);
+    mCallingCancelWithinRun = false;
+
+    MOZ_ASSERT(IsCanceled(), "Subclass Cancel() didn't set IsCanceled()!");
+
+    return NS_OK;
+  }
+
+  // Track down the appropriate global to use for the AutoJSAPI/AutoEntryScript.
+  nsCOMPtr<nsIGlobalObject> globalObject;
+  bool isMainThread = !targetIsWorkerThread && !mWorkerPrivate->GetParent();
+  MOZ_ASSERT(isMainThread == NS_IsMainThread());
   nsRefPtr<WorkerPrivate> kungFuDeathGrip;
-  nsCxPusher pusher;
-
   if (targetIsWorkerThread) {
-    if (mWorkerPrivate->AllPendingRunnablesShouldBeCanceled() &&
-        !IsCanceled() &&
-        !mCallingCancelWithinRun) {
-
-      // Prevent recursion.
-      mCallingCancelWithinRun = true;
-
-      Cancel();
-
-      MOZ_ASSERT(mCallingCancelWithinRun);
-      mCallingCancelWithinRun = false;
-
-      MOZ_ASSERT(IsCanceled(), "Subclass Cancel() didn't set IsCanceled()!");
-
-      return NS_OK;
+    JSContext* cx = GetCurrentThreadJSContext();
+    if (NS_WARN_IF(!cx)) {
+      return NS_ERROR_FAILURE;
     }
 
-    cx = mWorkerPrivate->GetJSContext();
-    MOZ_ASSERT(cx);
-  }
-  else {
-    cx = mWorkerPrivate->ParentJSContext();
-    MOZ_ASSERT(cx);
-
-    kungFuDeathGrip = mWorkerPrivate;
-
-    if (!mWorkerPrivate->GetParent()) {
-      AssertIsOnMainThread();
-      pusher.Push(cx);
+    JSObject* global = JS::CurrentGlobalOrNull(cx);
+    if (global) {
+      globalObject = GetGlobalObjectForGlobal(global);
+    } else {
+      globalObject = DefaultGlobalObject();
     }
-  }
-
-  JSAutoRequest ar(cx);
-
-  JS::Rooted<JSObject*> targetCompartmentObject(cx);
-  if (targetIsWorkerThread) {
-    targetCompartmentObject = JS::CurrentGlobalOrNull(cx);
   } else {
-    targetCompartmentObject = mWorkerPrivate->GetWrapper();
+    kungFuDeathGrip = mWorkerPrivate;
+    if (isMainThread) {
+      globalObject = static_cast<nsGlobalWindow*>(mWorkerPrivate->GetWindow());
+    } else {
+      globalObject = mWorkerPrivate->GetParent()->GlobalScope();
+    }
   }
 
+  // We might run script as part of WorkerRun, so we need an AutoEntryScript.
+  // This is part of the HTML spec for workers at:
+  // http://www.whatwg.org/specs/web-apps/current-work/#run-a-worker
+  // If we don't have a globalObject we have to use an AutoJSAPI instead, but
+  // this is OK as we won't be running script in these circumstances.
+  // It's important that aes is declared after jsapi, because if WorkerRun
+  // creates a global then we construct aes before PostRun and we need them to
+  // be destroyed in the correct order.
+  mozilla::dom::AutoJSAPI jsapi;
+  Maybe<mozilla::dom::AutoEntryScript> aes;
+  JSContext* cx;
+  if (globalObject) {
+    aes.emplace(globalObject, "Worker runnable",
+                isMainThread,
+                isMainThread ? nullptr : GetCurrentThreadJSContext());
+    cx = aes->cx();
+  } else {
+    jsapi.Init();
+    cx = jsapi.cx();
+  }
+
+  // If we're not on the worker thread we'll either be in our parent's
+  // compartment or the null compartment, so we need to enter our own.
   Maybe<JSAutoCompartment> ac;
-  if (targetCompartmentObject) {
-    ac.construct(cx, targetCompartmentObject);
+  if (!targetIsWorkerThread && mWorkerPrivate->GetWrapper()) {
+    ac.emplace(cx, mWorkerPrivate->GetWrapper());
   }
 
   bool result = WorkerRun(cx, mWorkerPrivate);
 
   // In the case of CompileScriptRunnnable, WorkerRun above can cause us to
-  // lazily create a global, in which case we need to be in its compartment
-  // when calling PostRun() below. Maybe<> this time...
-  if (targetIsWorkerThread &&
-      ac.empty() &&
-      js::DefaultObjectForContextOrNull(cx)) {
-    ac.construct(cx, js::DefaultObjectForContextOrNull(cx));
+  // lazily create a global, so we construct aes here before calling PostRun.
+  if (targetIsWorkerThread && !aes && DefaultGlobalObject()) {
+    aes.emplace(DefaultGlobalObject(), "worker runnable",
+                false, GetCurrentThreadJSContext());
+    cx = aes->cx();
   }
 
   PostRun(cx, mWorkerPrivate, result);
@@ -335,6 +379,14 @@ WorkerRunnable::Cancel()
   // The docs say that Cancel() should not be called more than once and that we
   // should throw NS_ERROR_UNEXPECTED if it is.
   return (canceledCount == 1) ? NS_OK : NS_ERROR_UNEXPECTED;
+}
+
+void
+WorkerDebuggerRunnable::PostDispatch(JSContext* aCx,
+                                     WorkerPrivate* aWorkerPrivate,
+                                     bool aDispatchResult)
+{
+  MaybeReportMainThreadException(aCx, aDispatchResult);
 }
 
 WorkerSyncRunnable::WorkerSyncRunnable(WorkerPrivate* aWorkerPrivate,
@@ -452,6 +504,16 @@ WorkerControlRunnable::WorkerControlRunnable(WorkerPrivate* aWorkerPrivate,
              "WorkerControlRunnables should not modify the busy count");
 }
 #endif
+
+NS_IMETHODIMP
+WorkerControlRunnable::Cancel()
+{
+  if (NS_FAILED(Run())) {
+    NS_WARNING("WorkerControlRunnable::Run() failed.");
+  }
+
+  return WorkerRunnable::Cancel();
+}
 
 bool
 WorkerControlRunnable::DispatchInternal()

@@ -2,62 +2,83 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
+function testChangeCallBarringPassword(aExpectedError, aOptions) {
+  log("Test changing call barring password from " +
+      aOptions.pin + " to " + aOptions.newPin);
 
-// Permission changes can't change existing Navigator.prototype
-// objects, so grab our objects from a new Navigator
-let ifr = document.createElement("iframe");
-let connection;
-ifr.onload = function() {
-  connection = ifr.contentWindow.navigator.mozMobileConnections[0];
-
-  ok(connection instanceof ifr.contentWindow.MozMobileConnection,
-     "connection is instanceof " + connection.constructor);
-
-  setTimeout(testChangeCallBarringPasswordWithFailure, 0);
-};
-document.body.appendChild(ifr);
-
-function testChangeCallBarringPasswordWithFailure() {
-  // Incorrect parameters, expect onerror callback.
-  let options = [
-    {pin: null, newPin: '0000'},
-    {pin: '0000', newPin: null},
-    {pin: null, newPin: null},
-    {pin: '000', newPin: '0000'},
-    {pin: '00000', newPin: '1111'},
-    {pin: 'abcd', newPin: 'efgh'},
-  ];
-
-  function do_test() {
-    for (let i = 0; i < options.length; i++) {
-      let request = connection.changeCallBarringPassword(options[i]);
-
-      request.onsuccess = function() {
-        ok(false, 'Unexpected result.');
-        setTimeout(cleanUp , 0);
-      };
-
-      request.onerror = function() {
-        ok(request.error.name === 'InvalidPassword', 'InvalidPassword');
-        if (i >= options.length) {
-          setTimeout(testChangeCallBarringPasswordWithSuccess, 0);
-        }
-      };
-    }
-  }
-
-  do_test();
+  return changeCallBarringPassword(aOptions)
+    .then(function resolve() {
+      ok(!aExpectedError, "changeCallBarringPassword success");
+    }, function reject(aError) {
+      is(aError.name, aExpectedError, "failed to changeCallBarringPassword");
+    });
 }
 
-function testChangeCallBarringPasswordWithSuccess() {
-  // TODO: Bug 906603 - B2G RIL: Support Change Call Barring Password on
-  // Emulator.
-  setTimeout(cleanUp , 0);
-}
+// Start tests
+startTestCommon(function() {
+  return Promise.resolve()
 
-function cleanUp() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+    // According to TS.22.004 clause 5.2, the password should consist of four
+    // digits in the range 0000 to 9999.
+
+    // Test passing an invalid pin.
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: null,
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "000",
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "00000",
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "abcd",
+      newPin: "0000"
+    }))
+
+    // Test passing an invalid newPin
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: null
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "00000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "abcd"
+    }))
+
+    // Test passing an incorrect password, where the default password is "0000".
+    .then(() => testChangeCallBarringPassword("IncorrectPassword", {
+      pin: "1111",
+      newPin: "2222"
+    }))
+
+    // Sucessful
+    .then(() => testChangeCallBarringPassword(null, {
+      pin: "0000",
+      newPin: "2222"
+    }))
+
+    .then(() => testChangeCallBarringPassword(null, {
+      pin: "2222",
+      newPin: "0000"
+    }));
+});

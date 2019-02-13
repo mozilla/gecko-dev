@@ -6,21 +6,23 @@
 
 // Test several types of rule-view property edition
 
-let test = asyncTest(function*() {
-  yield addTab("data:text/html;charset=utf-8,browser_ruleview_ui.js");
-  let {toolbox, inspector, view} = yield openRuleView();
+let TEST_URI = [
+  '<style type="text/css">',
+  '#testid {',
+  '  background-color: blue;',
+  '}',
+  '.testclass, .unmatched {',
+  '  background-color: green;',
+  '}',
+  '</style>',
+  '<div id="testid" class="testclass">Styled Node</div>',
+  '<div id="testid2">Styled Node</div>'
+].join("\n");
 
-  info("Creating the test document");
-  let style = "" +
-    "#testid {" +
-    "  background-color: blue;" +
-    "}" +
-    ".testclass, .unmatched {" +
-    "  background-color: green;" +
-    "}";
-  let styleNode = addStyle(content.document, style);
-  content.document.body.innerHTML = "<div id='testid' class='testclass'>Styled Node</div>" +
-                                    "<div id='testid2'>Styled Node</div>";
+add_task(function*() {
+  let tab = yield addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
+
+  let {toolbox, inspector, view} = yield openRuleView();
 
   yield selectNode("#testid", inspector);
   yield testEditProperty(inspector, view);
@@ -29,7 +31,7 @@ let test = asyncTest(function*() {
 });
 
 function* testEditProperty(inspector, ruleView) {
-  let idRuleEditor = ruleView.element.children[1]._ruleEditor;
+  let idRuleEditor = getRuleViewRuleEditor(ruleView, 1);
   let propEditor = idRuleEditor.rule.textProps[0].editor;
 
   let editor = yield focusEditableField(propEditor.nameSpan);
@@ -42,11 +44,9 @@ function* testEditProperty(inspector, ruleView) {
   EventUtils.synthesizeMouse(input, 1, 1, {}, ruleView.doc.defaultView);
   input.select();
 
-  info("Entering property name followed by a colon to focus the value");
+  info("Entering property name \"border-color\" followed by a colon to focus the value");
   let onFocus = once(idRuleEditor.element, "focus", true);
-  for (let ch of "border-color:") {
-    EventUtils.sendChar(ch, ruleView.doc.defaultView);
-  }
+  EventUtils.sendString("border-color:", ruleView.doc.defaultView);
   yield onFocus;
   yield idRuleEditor.rule._applyingModifications;
 
@@ -58,6 +58,7 @@ function* testEditProperty(inspector, ruleView) {
 
   info("Entering a value following by a semi-colon to commit it");
   let onBlur = once(editor.input, "blur");
+  // Use sendChar() to pass each character as a string so that we can test propEditor.warning.hidden after each character.
   for (let ch of "red;") {
     EventUtils.sendChar(ch, ruleView.doc.defaultView);
     is(propEditor.warning.hidden, true,
@@ -66,31 +67,59 @@ function* testEditProperty(inspector, ruleView) {
   yield onBlur;
   yield idRuleEditor.rule._applyingModifications;
 
-  is(idRuleEditor.rule.style._rawStyle().getPropertyValue("border-color"), "red",
-     "border-color should have been set.");
+  let newValue = yield executeInContent("Test:GetRulePropertyValue", {
+    styleSheetIndex: 0,
+    ruleIndex: 0,
+    name: "border-color"
+  });
+  is(newValue, "red", "border-color should have been set.");
+
+  info("Entering property name \"color\" followed by a colon to focus the value");
+  onFocus = once(idRuleEditor.element, "focus", true);
+  EventUtils.sendString("color:", ruleView.doc.defaultView);
+  yield onFocus;
+
+  info("Verifying that the focused field is the valueSpan");
+  editor = inplaceEditor(ruleView.doc.activeElement);
+
+  info("Entering a value following by a semi-colon to commit it");
+  onBlur = once(editor.input, "blur");
+  EventUtils.sendString("red;", ruleView.doc.defaultView);
+  yield onBlur;
+  yield idRuleEditor.rule._applyingModifications;
 
   let props = ruleView.element.querySelectorAll(".ruleview-property");
   for (let i = 0; i < props.length; i++) {
-    is(props[i].hasAttribute("dirty"), i <= 0,
+    is(props[i].hasAttribute("dirty"), i <= 1,
       "props[" + i + "] marked dirty as appropriate");
   }
 }
 
 function* testDisableProperty(inspector, ruleView) {
-  let idRuleEditor = ruleView.element.children[1]._ruleEditor;
+  let idRuleEditor = getRuleViewRuleEditor(ruleView, 1);
   let propEditor = idRuleEditor.rule.textProps[0].editor;
 
   info("Disabling a property");
   propEditor.enable.click();
   yield idRuleEditor.rule._applyingModifications;
-  is(idRuleEditor.rule.style._rawStyle().getPropertyValue("border-color"), "",
-    "Border-color should have been unset.");
+
+  let newValue = yield executeInContent("Test:GetRulePropertyValue", {
+    styleSheetIndex: 0,
+    ruleIndex: 0,
+    name: "border-color"
+  });
+  is(newValue, "", "Border-color should have been unset.");
 
   info("Enabling the property again");
   propEditor.enable.click();
   yield idRuleEditor.rule._applyingModifications;
-  is(idRuleEditor.rule.style._rawStyle().getPropertyValue("border-color"), "red",
-    "Border-color should have been reset.");
+
+  newValue = yield executeInContent("Test:GetRulePropertyValue", {
+    styleSheetIndex: 0,
+    ruleIndex: 0,
+    name: "border-color"
+  });
+  is(newValue, "red", "Border-color should have been reset.");
 }
 
 function* testPropertyStillMarkedDirty(inspector, ruleView) {
@@ -102,7 +131,7 @@ function* testPropertyStillMarkedDirty(inspector, ruleView) {
 
   let props = ruleView.element.querySelectorAll(".ruleview-property");
   for (let i = 0; i < props.length; i++) {
-    is(props[i].hasAttribute("dirty"), i <= 0,
+    is(props[i].hasAttribute("dirty"), i <= 1,
       "props[" + i + "] marked dirty as appropriate");
   }
 }

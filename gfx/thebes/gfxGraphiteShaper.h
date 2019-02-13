@@ -14,7 +14,7 @@ struct gr_segment;
 
 class gfxGraphiteShaper : public gfxFontShaper {
 public:
-    gfxGraphiteShaper(gfxFont *aFont);
+    explicit gfxGraphiteShaper(gfxFont *aFont);
     virtual ~gfxGraphiteShaper();
 
     virtual bool ShapeText(gfxContext      *aContext,
@@ -22,6 +22,7 @@ public:
                            uint32_t         aOffset,
                            uint32_t         aLength,
                            int32_t          aScript,
+                           bool             aVertical,
                            gfxShapedText   *aShapedText);
 
     static void Shutdown();
@@ -47,6 +48,7 @@ protected:
     };
 
     CallbackData mCallbackData;
+    bool mFallbackToSmallCaps; // special fallback for the petite-caps case
 
     // Convert HTML 'lang' (BCP47) to Graphite language code
     static uint32_t GetGraphiteTagForLang(const nsCString& aLang);

@@ -1,4 +1,4 @@
-/* -*- Mode: js2; js2-basic-offset: 2; indent-tabs-mode: nil; -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -73,7 +73,7 @@ Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 
 /* Helper functions */
 function createDOMError(aWindow, aEvent) {
-  return new aWindow.DOMError(aEvent.target.error.name);
+  return new aWindow.DOMError(aEvent);
 }
 
 /* DataStoreCursor object */
@@ -170,6 +170,12 @@ this.DataStoreCursor.prototype = {
     let self = this;
     let request = aRevisionStore.openCursor(null, 'prev');
     request.onsuccess = function(aEvent) {
+      if (aEvent.target.result === undefined) {
+        aReject(self._window.DOMError("InvalidRevision",
+                                      "The DataStore is corrupted"));
+        return;
+      }
+
       self._revision = aEvent.target.result.value;
       self._objectId = 0;
       self._state = STATE_SEND_ALL;

@@ -10,12 +10,19 @@
 #define mozilla_GuardObjects_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Move.h"
 #include "mozilla/Types.h"
 
 #ifdef __cplusplus
 
 #ifdef DEBUG
+
+/**
+ * A custom define is used rather than |mozPoisonValue()| due to cascading
+ * build failures relating to how mfbt is linked on different operating
+ * systems. See bug 1160253.
+ */
+#define MOZ_POISON uintptr_t(-1)
 
 namespace mozilla {
 namespace detail {
@@ -70,50 +77,58 @@ namespace detail {
  */
 class GuardObjectNotifier
 {
-  private:
-    bool* statementDone;
+private:
+  bool* mStatementDone;
 
-  public:
-    GuardObjectNotifier() : statementDone(nullptr) { }
+public:
+  GuardObjectNotifier()
+    : mStatementDone(reinterpret_cast<bool*>(MOZ_POISON))
+  {
+  }
 
-    ~GuardObjectNotifier() {
-      *statementDone = true;
-    }
+  ~GuardObjectNotifier()
+  {
+    // Assert that the GuardObjectNotifier has been properly initialized by
+    // using the |MOZ_GUARD_OBJECT_NOTIFIER_INIT| macro. A poison value is
+    // used rather than a null check to appease static analyzers that were
+    // (incorrectly) detecting null pointer dereferences.
+    MOZ_ASSERT(mStatementDone != reinterpret_cast<bool*>(MOZ_POISON));
+    *mStatementDone = true;
+  }
 
-    void setStatementDone(bool* statementIsDone) {
-      statementDone = statementIsDone;
-    }
+  void setStatementDone(bool* aStatementIsDone)
+  {
+    mStatementDone = aStatementIsDone;
+  }
 };
 
 class GuardObjectNotificationReceiver
 {
-  private:
-    bool statementDone;
+private:
+  bool mStatementDone;
 
-  public:
-    GuardObjectNotificationReceiver() : statementDone(false) { }
+public:
+  GuardObjectNotificationReceiver() : mStatementDone(false) { }
 
-    ~GuardObjectNotificationReceiver() {
-      /*
-       * Assert that the guard object was not used as a temporary.  (Note that
-       * this assert might also fire if init is not called because the guard
-       * object's implementation is not using the above macros correctly.)
-       */
-      MOZ_ASSERT(statementDone);
-    }
+  ~GuardObjectNotificationReceiver() {
+    /*
+     * Assert that the guard object was not used as a temporary.  (Note that
+     * this assert might also fire if init is not called because the guard
+     * object's implementation is not using the above macros correctly.)
+     */
+    MOZ_ASSERT(mStatementDone);
+  }
 
-    void init(const GuardObjectNotifier& constNotifier) {
-      /*
-       * constNotifier is passed as a const reference so that we can pass a
-       * temporary, but we really intend it as non-const.
-       */
-      GuardObjectNotifier& notifier = const_cast<GuardObjectNotifier&>(constNotifier);
-      notifier.setStatementDone(&statementDone);
-    }
+  void init(GuardObjectNotifier& aNotifier)
+  {
+    aNotifier.setStatementDone(&mStatementDone);
+  }
 };
 
 } /* namespace detail */
 } /* namespace mozilla */
+
+#undef MOZ_POISON
 
 #endif /* DEBUG */
 
@@ -121,19 +136,19 @@ class GuardObjectNotificationReceiver
 #  define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER \
      mozilla::detail::GuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
 #  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM \
-     , const mozilla::detail::GuardObjectNotifier& _notifier = \
+     , mozilla::detail::GuardObjectNotifier&& _notifier = \
          mozilla::detail::GuardObjectNotifier()
 #  define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM \
-     const mozilla::detail::GuardObjectNotifier& _notifier = \
+     mozilla::detail::GuardObjectNotifier&& _notifier = \
          mozilla::detail::GuardObjectNotifier()
 #  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL \
-     , const mozilla::detail::GuardObjectNotifier& _notifier
+     , mozilla::detail::GuardObjectNotifier&& _notifier
 #  define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL \
-     const mozilla::detail::GuardObjectNotifier& _notifier
+     mozilla::detail::GuardObjectNotifier&& _notifier
 #  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT \
-     , _notifier
+     , mozilla::Move(_notifier)
 #  define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_TO_PARENT \
-       _notifier
+       mozilla::Move(_notifier)
 #  define MOZ_GUARD_OBJECT_NOTIFIER_INIT \
      do { _mCheckNotUsedAsTemporary.init(_notifier); } while (0)
 #else

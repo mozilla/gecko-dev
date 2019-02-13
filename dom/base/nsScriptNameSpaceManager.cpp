@@ -99,9 +99,8 @@ GlobalNameHashClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
   memset(&e->mGlobalName, 0, sizeof(nsGlobalNameStruct));
 }
 
-static bool
-GlobalNameHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
-                        const void *key)
+static void
+GlobalNameHashInitEntry(PLDHashEntryHdr *entry, const void *key)
 {
   GlobalNameMapEntry *e = static_cast<GlobalNameMapEntry *>(entry);
   const nsAString *keyStr = static_cast<const nsAString *>(key);
@@ -112,7 +111,6 @@ GlobalNameHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
   // This will set e->mGlobalName.mType to
   // nsGlobalNameStruct::eTypeNotInitialized
   memset(&e->mGlobalName, 0, sizeof(nsGlobalNameStruct));
-  return true;
 }
 
 NS_IMPL_ISUPPORTS(
@@ -121,20 +119,29 @@ NS_IMPL_ISUPPORTS(
   nsISupportsWeakReference,
   nsIMemoryReporter)
 
+static const PLDHashTableOps hash_table_ops =
+{
+  GlobalNameHashHashKey,
+  GlobalNameHashMatchEntry,
+  PL_DHashMoveEntryStub,
+  GlobalNameHashClearEntry,
+  GlobalNameHashInitEntry
+};
+
+#define GLOBALNAME_HASHTABLE_INITIAL_LENGTH   512
+
 nsScriptNameSpaceManager::nsScriptNameSpaceManager()
-  : mIsInitialized(false)
+  : mGlobalNames(&hash_table_ops, sizeof(GlobalNameMapEntry),
+                 GLOBALNAME_HASHTABLE_INITIAL_LENGTH)
+  , mNavigatorNames(&hash_table_ops, sizeof(GlobalNameMapEntry),
+                    GLOBALNAME_HASHTABLE_INITIAL_LENGTH)
 {
   MOZ_COUNT_CTOR(nsScriptNameSpaceManager);
 }
 
 nsScriptNameSpaceManager::~nsScriptNameSpaceManager()
 {
-  if (mIsInitialized) {
-    UnregisterWeakMemoryReporter(this);
-    // Destroy the hash
-    PL_DHashTableFinish(&mGlobalNames);
-    PL_DHashTableFinish(&mNavigatorNames);
-  }
+  UnregisterWeakMemoryReporter(this);
   MOZ_COUNT_DTOR(nsScriptNameSpaceManager);
 }
 
@@ -142,9 +149,8 @@ nsGlobalNameStruct *
 nsScriptNameSpaceManager::AddToHash(PLDHashTable *aTable, const nsAString *aKey,
                                     const char16_t **aClassName)
 {
-  GlobalNameMapEntry *entry =
-    static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(aTable, aKey, PL_DHASH_ADD));
+  GlobalNameMapEntry *entry = static_cast<GlobalNameMapEntry *>
+    (PL_DHashTableAdd(aTable, aKey, fallible));
 
   if (!entry) {
     return nullptr;
@@ -161,7 +167,7 @@ void
 nsScriptNameSpaceManager::RemoveFromHash(PLDHashTable *aTable,
                                          const nsAString *aKey)
 {
-  PL_DHashTableOperate(aTable, aKey, PL_DHASH_REMOVE);
+  PL_DHashTableRemove(aTable, aKey);
 }
 
 nsGlobalNameStruct*
@@ -172,11 +178,9 @@ nsScriptNameSpaceManager::GetConstructorProto(const nsGlobalNameStruct* aStruct)
   if (!aStruct->mAlias->mProto) {
     GlobalNameMapEntry *proto =
       static_cast<GlobalNameMapEntry *>
-                 (PL_DHashTableOperate(&mGlobalNames,
-                                          &aStruct->mAlias->mProtoName,
-                                          PL_DHASH_LOOKUP));
-
-    if (PL_DHASH_ENTRY_IS_BUSY(proto)) {
+                 (PL_DHashTableSearch(&mGlobalNames,
+                                      &aStruct->mAlias->mProtoName));
+    if (proto) {
       aStruct->mAlias->mProto = &proto->mGlobalName;
     }
   }
@@ -314,39 +318,9 @@ nsScriptNameSpaceManager::RegisterInterface(const char* aIfName,
   return NS_OK;
 }
 
-#define GLOBALNAME_HASHTABLE_INITIAL_SIZE	1024
-
 nsresult
 nsScriptNameSpaceManager::Init()
 {
-  static const PLDHashTableOps hash_table_ops =
-  {
-    PL_DHashAllocTable,
-    PL_DHashFreeTable,
-    GlobalNameHashHashKey,
-    GlobalNameHashMatchEntry,
-    PL_DHashMoveEntryStub,
-    GlobalNameHashClearEntry,
-    PL_DHashFinalizeStub,
-    GlobalNameHashInitEntry
-  };
-
-  mIsInitialized = PL_DHashTableInit(&mGlobalNames, &hash_table_ops,
-                                     nullptr, sizeof(GlobalNameMapEntry),
-                                     GLOBALNAME_HASHTABLE_INITIAL_SIZE,
-                                     fallible_t());
-  NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_OUT_OF_MEMORY);
-
-  mIsInitialized = PL_DHashTableInit(&mNavigatorNames, &hash_table_ops,
-                                     nullptr, sizeof(GlobalNameMapEntry),
-                                     GLOBALNAME_HASHTABLE_INITIAL_SIZE,
-                                     fallible_t());
-  if (!mIsInitialized) {
-    PL_DHashTableFinish(&mGlobalNames);
-
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
   RegisterWeakMemoryReporter(this);
 
   nsresult rv = NS_OK;
@@ -389,10 +363,9 @@ nsScriptNameSpaceManager::LookupNameInternal(const nsAString& aName,
 {
   GlobalNameMapEntry *entry =
     static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(&mGlobalNames, &aName,
-                                        PL_DHASH_LOOKUP));
+               (PL_DHashTableSearch(&mGlobalNames, &aName));
 
-  if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
+  if (entry) {
     if (aClassName) {
       *aClassName = entry->mKey.get();
     }
@@ -410,14 +383,9 @@ nsScriptNameSpaceManager::LookupNavigatorName(const nsAString& aName)
 {
   GlobalNameMapEntry *entry =
     static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(&mNavigatorNames, &aName,
-                                     PL_DHASH_LOOKUP));
+               (PL_DHashTableSearch(&mNavigatorNames, &aName));
 
-  if (!PL_DHASH_ENTRY_IS_BUSY(entry)) {
-    return nullptr;
-  }
-
-  return &entry->mGlobalName;
+  return entry ? &entry->mGlobalName : nullptr;
 }
 
 nsresult
@@ -648,7 +616,7 @@ nsScriptNameSpaceManager::OperateCategoryEntryHash(nsICategoryManager* aCategory
   // Copy CID onto the stack, so we can free it right away and avoid having
   // to add cleanup code at every exit point from this function.
   nsCID cid = *cidPtr;
-  nsMemory::Free(cidPtr);
+  free(cidPtr);
 
   if (type == nsGlobalNameStruct::eTypeExternalConstructor) {
     nsXPIDLCString constructorProto;
@@ -816,7 +784,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF(ScriptNameSpaceManagerMallocSizeOf)
 
 NS_IMETHODIMP
 nsScriptNameSpaceManager::CollectReports(
-  nsIHandleReportCallback* aHandleReport, nsISupports* aData)
+  nsIHandleReportCallback* aHandleReport, nsISupports* aData, bool aAnonymize)
 {
   return MOZ_COLLECT_REPORT(
     "explicit/script-namespace-manager", KIND_HEAP, UNITS_BYTES,

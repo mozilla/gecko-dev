@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <fcntl.h>
 #include "ElfLoader.h"
+#include "BaseElf.h"
 #include "CustomElf.h"
 #include "Mappable.h"
 #include "Logging.h"
@@ -37,6 +38,10 @@ inline int sigaltstack(const stack_t *ss, stack_t *oss) {
 extern "C" MOZ_EXPORT const void *
 __gnu_Unwind_Find_exidx(void *pc, int *pcount) __attribute__((weak));
 #endif
+
+/* Pointer to the PT_DYNAMIC section of the executable or library
+ * containing this code. */
+extern "C" Elf::Dyn _DYNAMIC[];
 
 using namespace mozilla;
 
@@ -90,9 +95,11 @@ int
 __wrap_dladdr(void *addr, Dl_info *info)
 {
   RefPtr<LibHandle> handle = ElfLoader::Singleton.GetHandleByPtr(addr);
-  if (!handle)
-    return 0;
+  if (!handle) {
+    return dladdr(addr, info);
+  }
   info->dli_fname = handle->GetPath();
+  info->dli_fbase = handle->GetBase();
   return 1;
 }
 
@@ -261,7 +268,8 @@ SystemElf::Load(const char *path, int flags)
   if (handle) {
     SystemElf *elf = new SystemElf(path, handle);
     ElfLoader::Singleton.Register(elf);
-    return elf;
+    RefPtr<LibHandle> lib(elf);
+    return lib.forget();
   }
   return nullptr;
 }
@@ -329,12 +337,16 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
   /* Ensure logging is initialized or refresh if environment changed. */
   Logging::Init();
 
+  /* Ensure self_elf initialization. */
+  if (!self_elf)
+    Init();
+
   RefPtr<LibHandle> handle;
 
   /* Handle dlopen(nullptr) directly. */
   if (!path) {
     handle = SystemElf::Load(nullptr, flags);
-    return handle;
+    return handle.forget();
   }
 
   /* TODO: Handle relative paths correctly */
@@ -344,12 +356,16 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
    * path is not absolute, compare file names, otherwise compare full paths. */
   if (name == path) {
     for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it)
-      if ((*it)->GetName() && (strcmp((*it)->GetName(), name) == 0))
-        return *it;
+      if ((*it)->GetName() && (strcmp((*it)->GetName(), name) == 0)) {
+        handle = *it;
+        return handle.forget();
+      }
   } else {
     for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it)
-      if ((*it)->GetPath() && (strcmp((*it)->GetPath(), path) == 0))
-        return *it;
+      if ((*it)->GetPath() && (strcmp((*it)->GetPath(), path) == 0)) {
+        handle = *it;
+        return handle.forget();
+      }
   }
 
   char *abs_path = nullptr;
@@ -387,7 +403,7 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
             reinterpret_cast<void *>(parent), parent ? parent->GetPath() : "",
             static_cast<void *>(handle));
 
-  return handle;
+  return handle.forget();
 }
 
 mozilla::TemporaryRef<LibHandle>
@@ -395,8 +411,10 @@ ElfLoader::GetHandleByPtr(void *addr)
 {
   /* Scan the list of handles we already have for a match */
   for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it) {
-    if ((*it)->Contains(addr))
-      return *it;
+    if ((*it)->Contains(addr)) {
+      RefPtr<LibHandle> lib = *it;
+      return lib.forget();
+    }
   }
   return nullptr;
 }
@@ -441,8 +459,15 @@ void
 ElfLoader::Register(LibHandle *handle)
 {
   handles.push_back(handle);
-  if (dbg && !handle->IsSystemElf())
-    dbg.Add(static_cast<CustomElf *>(handle));
+}
+
+void
+ElfLoader::Register(CustomElf *handle)
+{
+  Register(static_cast<LibHandle *>(handle));
+  if (dbg) {
+    dbg.Add(handle);
+  }
 }
 
 void
@@ -455,8 +480,6 @@ ElfLoader::Forget(LibHandle *handle)
   if (it != handles.end()) {
     DEBUG_LOG("ElfLoader::Forget(%p [\"%s\"])", reinterpret_cast<void *>(handle),
                                                 handle->GetPath());
-    if (dbg && !handle->IsSystemElf())
-      dbg.Remove(static_cast<CustomElf *>(handle));
     handles.erase(it);
   } else {
     DEBUG_LOG("ElfLoader::Forget(%p [\"%s\"]): Handle not found",
@@ -464,9 +487,46 @@ ElfLoader::Forget(LibHandle *handle)
   }
 }
 
+void
+ElfLoader::Forget(CustomElf *handle)
+{
+  Forget(static_cast<LibHandle *>(handle));
+  if (dbg) {
+    dbg.Remove(handle);
+  }
+}
+
+void
+ElfLoader::Init()
+{
+  Dl_info info;
+  /* On Android < 4.1 can't reenter dl* functions. So when the library
+   * containing this code is dlopen()ed, it can't call dladdr from a
+   * static initializer. */
+  if (dladdr(_DYNAMIC, &info) != 0) {
+    self_elf = LoadedElf::Create(info.dli_fname, info.dli_fbase);
+  }
+#if defined(ANDROID)
+  if (dladdr(FunctionPtr(syscall), &info) != 0) {
+    libc = LoadedElf::Create(info.dli_fname, info.dli_fbase);
+  }
+#endif
+}
+
 ElfLoader::~ElfLoader()
 {
   LibHandleList list;
+
+  if (!Singleton.IsShutdownExpected()) {
+    MOZ_CRASH("Unexpected shutdown");
+  }
+
+  /* Release self_elf and libc */
+  self_elf = nullptr;
+#if defined(ANDROID)
+  libc = nullptr;
+#endif
+
   /* Build up a list of all library handles with direct (external) references.
    * We actually skip system library handles because we want to keep at least
    * some of these open. Most notably, Mozilla codebase keeps a few libgnome
@@ -475,8 +535,8 @@ ElfLoader::~ElfLoader()
   for (LibHandleList::reverse_iterator it = handles.rbegin();
        it < handles.rend(); ++it) {
     if ((*it)->DirectRefCount()) {
-      if ((*it)->IsSystemElf()) {
-        static_cast<SystemElf *>(*it)->Forget();
+      if (SystemElf *se = (*it)->AsSystemElf()) {
+        se->Forget();
       } else {
         list.push_back(*it);
       }
@@ -491,7 +551,7 @@ ElfLoader::~ElfLoader()
     list = handles;
     for (LibHandleList::reverse_iterator it = list.rbegin();
          it < list.rend(); ++it) {
-      if ((*it)->IsSystemElf()) {
+      if ((*it)->AsSystemElf()) {
         DEBUG_LOG("ElfLoader::~ElfLoader(): Remaining handle for \"%s\" "
                   "[%d direct refs, %d refs total]", (*it)->GetPath(),
                   (*it)->DirectRefCount(), (*it)->refCount());
@@ -510,10 +570,12 @@ ElfLoader::~ElfLoader()
 void
 ElfLoader::stats(const char *when)
 {
+  if (MOZ_LIKELY(!Logging::isVerbose()))
+    return;
+
   for (LibHandleList::iterator it = Singleton.handles.begin();
        it < Singleton.handles.end(); ++it)
-    if (!(*it)->IsSystemElf())
-      static_cast<CustomElf *>(*it)->stats(when);
+    (*it)->stats(when);
 }
 
 #ifdef __ARM_EABI__
@@ -561,7 +623,7 @@ ElfLoader::DestructorCaller::Call()
   }
 }
 
-ElfLoader::DebuggerHelper::DebuggerHelper(): dbg(nullptr)
+ElfLoader::DebuggerHelper::DebuggerHelper(): dbg(nullptr), firstAdded(nullptr)
 {
   /* Find ELF auxiliary vectors.
    *
@@ -834,16 +896,18 @@ ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
   dbg->r_brk();
   if (dbg->r_map == map)
     dbg->r_map = map->l_next;
-  else
+  else if (map->l_prev) {
     map->l_prev->l_next = map->l_next;
+  }
   if (map == firstAdded) {
     firstAdded = map->l_prev;
     /* When removing the first added library, its l_next is going to be
      * data handled by the system linker, and that data may be read-only */
     EnsureWritable w(&map->l_next->l_prev);
     map->l_next->l_prev = map->l_prev;
-  } else
+  } else if (map->l_next) {
     map->l_next->l_prev = map->l_prev;
+  }
   dbg->r_state = r_debug::RT_CONSISTENT;
   dbg->r_brk();
 }
@@ -965,18 +1029,24 @@ struct TmpData {
 };
 
 SEGVHandler::SEGVHandler()
-: registeredHandler(false), signalHandlingBroken(false)
-, signalHandlingSlow(false)
+: initialized(false), registeredHandler(false), signalHandlingBroken(true)
+, signalHandlingSlow(true)
 {
+  /* Ensure logging is initialized before the DEBUG_LOG in the test_handler.
+   * As this constructor runs before the ElfLoader constructor (by effect
+   * of ElfLoader inheriting from this class), this also initializes on behalf
+   * of ElfLoader and DebuggerHelper. */
+  Logging::Init();
+
   /* Initialize oldStack.ss_flags to an invalid value when used to set
    * an alternative stack, meaning we haven't got information about the
-   * original alternative stack and thus don't mean to restore it */
+   * original alternative stack and thus don't mean to restore it in
+   * the destructor. */
   oldStack.ss_flags = SS_ONSTACK;
-  if (!Divert(sigaction, __wrap_sigaction))
-    return;
 
   /* Get the current segfault signal handler. */
-  sys_sigaction(SIGSEGV, nullptr, &this->action);
+  struct sigaction old_action;
+  sys_sigaction(SIGSEGV, nullptr, &old_action);
 
   /* Some devices don't provide useful information to their SIGSEGV handlers,
    * making it impossible for on-demand decompression to work. To check if
@@ -1005,9 +1075,72 @@ SEGVHandler::SEGVHandler()
   mprotect(stackPtr, stackPtr.GetLength(), PROT_NONE);
   data->crash_int = 123;
   /* Restore the original segfault signal handler. */
-  sys_sigaction(SIGSEGV, &this->action, nullptr);
+  sys_sigaction(SIGSEGV, &old_action, nullptr);
   stackPtr.Assign(MAP_FAILED, 0);
+}
+
+void
+SEGVHandler::FinishInitialization()
+{
+  /* Ideally, we'd need some locking here, but in practice, we're not
+   * going to race with another thread. */
+  initialized = true;
+
   if (signalHandlingBroken || signalHandlingSlow)
+    return;
+
+  typedef int (*sigaction_func)(int, const struct sigaction *,
+                                struct sigaction *);
+
+  sigaction_func libc_sigaction;
+
+#if defined(ANDROID)
+  /* Android > 4.4 comes with a sigaction wrapper in a LD_PRELOADed library
+   * (libsigchain) for ART. That wrapper kind of does the same trick as we
+   * do, so we need extra care in handling it.
+   * - Divert the libc's sigaction, assuming the LD_PRELOADed library uses
+   *   it under the hood (which is more or less true according to the source
+   *   of that library, since it's doing a lookup in RTLD_NEXT)
+   * - With the LD_PRELOADed library in place, all calls to sigaction from
+   *   from system libraries will go to the LD_PRELOADed library.
+   * - The LD_PRELOADed library calls to sigaction go to our __wrap_sigaction.
+   * - The calls to sigaction from libraries faulty.lib loads are sent to
+   *   the LD_PRELOADed library.
+   * In practice, for signal handling, this means:
+   * - The signal handler registered to the kernel is ours.
+   * - Our handler redispatches to the LD_PRELOADed library's if there's a
+   *   segfault we don't handle.
+   * - The LD_PRELOADed library redispatches according to whatever system
+   *   library or faulty.lib-loaded library set with sigaction.
+   *
+   * When there is no sigaction wrapper in place:
+   * - Divert the libc's sigaction.
+   * - Calls to sigaction from system library and faulty.lib-loaded libraries
+   *   all go to the libc's sigaction, which end up in our __wrap_sigaction.
+   * - The signal handler registered to the kernel is ours.
+   * - Our handler redispatches according to whatever system library or
+   *   faulty.lib-loaded library set with sigaction.
+   */
+  void *libc = dlopen("libc.so", RTLD_GLOBAL | RTLD_LAZY);
+  if (libc) {
+    /*
+     * Lollipop bionic only has a small trampoline in sigaction, with the real
+     * work happening in __sigaction. Divert there instead of sigaction if it exists.
+     * Bug 1154803
+     */
+    libc_sigaction = reinterpret_cast<sigaction_func>(dlsym(libc, "__sigaction"));
+
+    if (!libc_sigaction) {
+      libc_sigaction =
+        reinterpret_cast<sigaction_func>(dlsym(libc, "sigaction"));
+    }
+  } else
+#endif
+  {
+    libc_sigaction = sigaction;
+  }
+
+  if (!Divert(libc_sigaction, __wrap_sigaction))
     return;
 
   /* Setup an alternative stack if the already existing one is not big
@@ -1033,7 +1166,7 @@ SEGVHandler::SEGVHandler()
    * SEGVHandler's struct sigaction member */
   action.sa_sigaction = &SEGVHandler::handler;
   action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
-  registeredHandler = !sys_sigaction(SIGSEGV, &action, nullptr);
+  registeredHandler = !sys_sigaction(SIGSEGV, &action, &this->action);
 }
 
 SEGVHandler::~SEGVHandler()
@@ -1053,18 +1186,18 @@ SEGVHandler::~SEGVHandler()
 void SEGVHandler::test_handler(int signum, siginfo_t *info, void *context)
 {
   SEGVHandler &that = ElfLoader::Singleton;
-  if (signum != SIGSEGV ||
-      info == nullptr || info->si_addr != that.stackPtr.get())
-    that.signalHandlingBroken = true;
+  if (signum == SIGSEGV && info &&
+      info->si_addr == that.stackPtr.get())
+    that.signalHandlingBroken = false;
   mprotect(that.stackPtr, that.stackPtr.GetLength(), PROT_READ | PROT_WRITE);
   TmpData *data = reinterpret_cast<TmpData*>(that.stackPtr.get());
   uint64_t latency = ProcessTimeStamp_Now() - data->crash_timestamp;
   DEBUG_LOG("SEGVHandler latency: %" PRIu64, latency);
   /* See bug 886736 for timings on different devices, 150 µs is reasonably above
-   * the latency on "working" devices and seems to be reasonably fast to incur
+   * the latency on "working" devices and seems to be short enough to not incur
    * a huge overhead to on-demand decompression. */
-  if (latency > 150000)
-    that.signalHandlingSlow = true;
+  if (latency <= 150000)
+    that.signalHandlingSlow = false;
 }
 
 /* TODO: "properly" handle signal masks and flags */
@@ -1078,11 +1211,12 @@ void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
   if (info->si_code == SEGV_ACCERR) {
     mozilla::RefPtr<LibHandle> handle =
       ElfLoader::Singleton.GetHandleByPtr(info->si_addr);
-    if (handle && !handle->IsSystemElf()) {
-      DEBUG_LOG("Within the address space of a CustomElf");
-      CustomElf *elf = static_cast<CustomElf *>(static_cast<LibHandle *>(handle));
-      if (elf->mappable->ensure(info->si_addr))
+    BaseElf *elf;
+    if (handle && (elf = handle->AsBaseElf())) {
+      DEBUG_LOG("Within the address space of %s", handle->GetPath());
+      if (elf->mappable && elf->mappable->ensure(info->si_addr)) {
         return;
+      }
     }
   }
 

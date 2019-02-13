@@ -7,21 +7,22 @@ package org.mozilla.gecko.home;
 
 import java.util.EnumSet;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
+import org.mozilla.gecko.db.BrowserContract.URLColumns;
 import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.BrowserDB.URLColumns;
+import org.mozilla.gecko.db.ReadingListAccessor;
+import org.mozilla.gecko.home.HomeContextMenuInfo.RemoveItemType;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
+import org.mozilla.gecko.util.HardwareUtils;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.CursorAdapter;
 import android.text.SpannableStringBuilder;
@@ -60,28 +61,6 @@ public class ReadingListPanel extends HomeFragment {
     // Callbacks used for the reading list and favicon cursor loaders
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
-    // On URL open listener
-    private OnUrlOpenListener mUrlOpenListener;
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-        try {
-            mUrlOpenListener = (OnUrlOpenListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement HomePager.OnUrlOpenListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-        mUrlOpenListener = null;
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.home_reading_list_panel, container, false);
@@ -107,7 +86,7 @@ public class ReadingListPanel extends HomeFragment {
                 String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
                 url = ReaderModeUtils.getAboutReaderForUrl(url);
 
-                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL);
+                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM);
 
                 // This item is a TwoLinePageRow, so we allow switch-to-tab.
                 mUrlOpenListener.onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
@@ -121,6 +100,7 @@ public class ReadingListPanel extends HomeFragment {
                 info.url = cursor.getString(cursor.getColumnIndexOrThrow(ReadingListItems.URL));
                 info.title = cursor.getString(cursor.getColumnIndexOrThrow(ReadingListItems.TITLE));
                 info.readingListItemId = cursor.getInt(cursor.getColumnIndexOrThrow(ReadingListItems._ID));
+                info.itemType = RemoveItemType.READING_LIST;
                 return info;
             }
         });
@@ -133,19 +113,6 @@ public class ReadingListPanel extends HomeFragment {
         mList = null;
         mTopView = null;
         mEmptyView = null;
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        // Detach and reattach the fragment as the layout changes.
-        if (isVisible()) {
-            getFragmentManager().beginTransaction()
-                                .detach(this)
-                                .attach(this)
-                                .commitAllowingStateLoss();
-        }
     }
 
     @Override
@@ -173,22 +140,26 @@ public class ReadingListPanel extends HomeFragment {
             mEmptyView = emptyViewStub.inflate();
 
             final TextView emptyHint = (TextView) mEmptyView.findViewById(R.id.home_empty_hint);
-            String readingListHint = emptyHint.getText().toString();
+            if (HardwareUtils.isLowMemoryPlatform()) {
+                emptyHint.setVisibility(View.GONE);
+            } else {
+                String readingListHint = emptyHint.getText().toString();
 
-            // Use an ImageSpan to include the reader icon in the "Tip".
-            int imageSpanIndex = readingListHint.indexOf(MATCH_STRING);
-            if (imageSpanIndex != -1) {
-                final ImageSpan readingListIcon = new ImageSpan(getActivity(), R.drawable.reader_cropped, ImageSpan.ALIGN_BOTTOM);
-                final SpannableStringBuilder hintBuilder = new SpannableStringBuilder(readingListHint);
+                // Use an ImageSpan to include the reader icon in the "Tip".
+                int imageSpanIndex = readingListHint.indexOf(MATCH_STRING);
+                if (imageSpanIndex != -1) {
+                    final ImageSpan readingListIcon = new ImageSpan(getActivity(), R.drawable.reader_cropped, ImageSpan.ALIGN_BOTTOM);
+                    final SpannableStringBuilder hintBuilder = new SpannableStringBuilder(readingListHint);
 
-                // Add additional spacing.
-                hintBuilder.insert(imageSpanIndex + MATCH_STRING.length(), " ");
-                hintBuilder.insert(imageSpanIndex, " ");
+                    // Add additional spacing.
+                    hintBuilder.insert(imageSpanIndex + MATCH_STRING.length(), " ");
+                    hintBuilder.insert(imageSpanIndex, " ");
 
-                // Add icon.
-                hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + MATCH_STRING.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    // Add icon.
+                    hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + MATCH_STRING.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
 
-                emptyHint.setText(hintBuilder, TextView.BufferType.SPANNABLE);
+                    emptyHint.setText(hintBuilder, TextView.BufferType.SPANNABLE);
+                }
             }
 
             mList.setEmptyView(mEmptyView);
@@ -199,13 +170,16 @@ public class ReadingListPanel extends HomeFragment {
      * Cursor loader for the list of reading list items.
      */
     private static class ReadingListLoader extends SimpleCursorLoader {
+        private final ReadingListAccessor accessor;
+
         public ReadingListLoader(Context context) {
             super(context);
+            accessor = GeckoProfile.get(context).getDB().getReadingListAccessor();
         }
 
         @Override
         public Cursor loadCursor() {
-            return BrowserDB.getReadingList(getContext().getContentResolver());
+            return accessor.getReadingList(getContext().getContentResolver());
         }
     }
 
@@ -232,20 +206,21 @@ public class ReadingListPanel extends HomeFragment {
     /**
      * LoaderCallbacks implementation that interacts with the LoaderManager.
      */
-    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+    private class CursorLoaderCallbacks extends TransitionAwareCursorLoaderCallbacks {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             return new ReadingListLoader(getActivity());
         }
 
         @Override
-        public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
+        public void onLoadFinishedAfterTransitions(Loader<Cursor> loader, Cursor c) {
             mAdapter.swapCursor(c);
             updateUiFromCursor(c);
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
+            super.onLoaderReset(loader);
             mAdapter.swapCursor(null);
         }
     }

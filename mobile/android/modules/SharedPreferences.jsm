@@ -1,4 +1,4 @@
-// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -61,7 +61,7 @@ let SharedPreferences = {
  */
 function SharedPreferencesImpl(options = {}) {
   if (!(this instanceof SharedPreferencesImpl)) {
-    return new SharedPreferencesImpl(level);
+    return new SharedPreferencesImpl(options);
   }
 
   if (options.scope == null || options.scope == undefined) {
@@ -76,7 +76,7 @@ function SharedPreferencesImpl(options = {}) {
 
 SharedPreferencesImpl.prototype = Object.freeze({
   _set: function _set(prefs) {
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "SharedPreferences:Set",
       preferences: prefs,
       scope: this._scope,
@@ -109,13 +109,13 @@ SharedPreferencesImpl.prototype = Object.freeze({
 
   _get: function _get(prefs, callback) {
     let result = null;
-    sendMessageToJava({
+    Messaging.sendRequestForResult({
       type: "SharedPreferences:Get",
       preferences: prefs,
       scope: this._scope,
       profileName: this._profileName,
       branch: this._branch,
-    }, (data) => {
+    }).then((data) => {
       result = data.values;
     });
 
@@ -206,7 +206,7 @@ SharedPreferencesImpl.prototype = Object.freeze({
     this._listening = true;
 
     Services.obs.addObserver(this, "SharedPreferences:Changed", false);
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "SharedPreferences:Observe",
       enable: true,
       scope: this._scope,
@@ -243,7 +243,7 @@ SharedPreferencesImpl.prototype = Object.freeze({
     this._listening = false;
 
     Services.obs.removeObserver(this, "SharedPreferences:Changed");
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "SharedPreferences:Observe",
       enable: false,
       scope: this._scope,

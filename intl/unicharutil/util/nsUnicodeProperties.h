@@ -49,6 +49,18 @@ inline nsCharType GetBidiCat(uint32_t aCh) {
   return nsCharType(GetCharProps2(aCh).mBidiCategory);
 }
 
+/* This MUST match the values assigned by genUnicodePropertyData.pl! */
+enum VerticalOrientation {
+  VERTICAL_ORIENTATION_U  = 0,
+  VERTICAL_ORIENTATION_R  = 1,
+  VERTICAL_ORIENTATION_Tu = 2,
+  VERTICAL_ORIENTATION_Tr = 3
+};
+
+inline VerticalOrientation GetVerticalOrientation(uint32_t aCh) {
+  return VerticalOrientation(GetCharProps2(aCh).mVertOrient);
+}
+
 enum XidmodType {
   XIDMOD_INCLUSION,
   XIDMOD_RECOMMENDED,
@@ -118,18 +130,6 @@ uint32_t GetUppercase(uint32_t aCh);
 uint32_t GetLowercase(uint32_t aCh);
 uint32_t GetTitlecaseForLower(uint32_t aCh); // maps LC to titlecase, UC unchanged
 uint32_t GetTitlecaseForAll(uint32_t aCh); // maps both UC and LC to titlecase
-
-enum ShapingType {
-  SHAPING_DEFAULT   = 0x0001,
-  SHAPING_ARABIC    = 0x0002,
-  SHAPING_HEBREW    = 0x0004,
-  SHAPING_HANGUL    = 0x0008,
-  SHAPING_MONGOLIAN = 0x0010,
-  SHAPING_INDIC     = 0x0020,
-  SHAPING_THAI      = 0x0040
-};
-
-int32_t ScriptShapingType(int32_t aScriptCode);
 
 // A simple iterator for a string of char16_t codepoints that advances
 // by Unicode grapheme clusters

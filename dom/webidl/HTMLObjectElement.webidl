@@ -13,7 +13,7 @@
  */
 
 // http://www.whatwg.org/specs/web-apps/current-work/#the-object-element
-[NeedNewResolve]
+[NeedResolve, UnsafeInPrerendering]
 interface HTMLObjectElement : HTMLElement {
   [Pure, SetterThrows]
            attribute DOMString data;
@@ -155,6 +155,13 @@ interface MozObjectLoadingContent {
   [ChromeOnly]
   unsigned long getContentTypeForMIMEType(DOMString aMimeType);
 
+
+  [ChromeOnly]
+  sequence<MozPluginParameter> getPluginAttributes();
+
+  [ChromeOnly]
+  sequence<MozPluginParameter> getPluginParameters();
+
   /**
    * This method will play a plugin that has been stopped by the
    * click-to-play plugins or play-preview features.
@@ -204,6 +211,18 @@ interface MozObjectLoadingContent {
    */
   [ChromeOnly, Throws]
   void cancelPlayPreview();
+
+  [ChromeOnly, Throws]
+  readonly attribute unsigned long runID;
+};
+
+/**
+ * Name:Value pair type used for passing parameters to NPAPI or javascript
+ * plugins.
+ */
+dictionary MozPluginParameter {
+  DOMString name = "";
+  DOMString value = "";
 };
 
 HTMLObjectElement implements MozImageLoadingContent;

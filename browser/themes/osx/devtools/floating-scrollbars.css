@@ -7,12 +7,13 @@ scrollbar {
   background-image: none;
   border: 0px solid transparent;
   z-index: 2147483647;
-  -moz-box-align: start;
   padding: 2px;
 }
 
+/* Scrollbar code will reset the margin to the correct side depending on
+   where layout actually puts the scrollbar */
 scrollbar[orient="vertical"] {
-  -moz-margin-start: -8px;
+  margin-left: -8px;
   min-width: 8px;
   max-width: 8px;
 }
@@ -21,6 +22,10 @@ scrollbar[orient="horizontal"] {
   margin-top: -8px;
   min-height: 8px;
   max-height: 8px;
+}
+
+slider {
+  -moz-appearance: none !important;
 }
 
 thumb {

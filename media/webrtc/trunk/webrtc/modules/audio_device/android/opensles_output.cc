@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <dlfcn.h>
 
+#include "OpenSLESProvider.h"
 #include "webrtc/modules/audio_device/android/opensles_common.h"
 #include "webrtc/modules/audio_device/android/fine_audio_buffer.h"
 #include "webrtc/modules/audio_device/android/single_rw_fifo.h"
@@ -116,12 +117,20 @@ int32_t OpenSlesOutput::Init() {
   }
 
   // Set up OpenSl engine.
+#ifndef MOZILLA_INTERNAL_API
   OPENSL_RETURN_ON_FAILURE(f_slCreateEngine(&sles_engine_, 1, kOption, 0,
                                             NULL, NULL),
                            -1);
+#else
+  OPENSL_RETURN_ON_FAILURE(mozilla_get_sles_engine(&sles_engine_, 1, kOption), -1);
+#endif
+#ifndef MOZILLA_INTERNAL_API
   OPENSL_RETURN_ON_FAILURE((*sles_engine_)->Realize(sles_engine_,
                                                     SL_BOOLEAN_FALSE),
                            -1);
+#else
+  OPENSL_RETURN_ON_FAILURE(mozilla_realize_sles_engine(sles_engine_), -1);
+#endif
   OPENSL_RETURN_ON_FAILURE((*sles_engine_)->GetInterface(sles_engine_,
                                                          SL_IID_ENGINE_,
                                                          &sles_engine_itf_),
@@ -151,7 +160,11 @@ int32_t OpenSlesOutput::Terminate() {
   // It is assumed that the caller has stopped recording before terminating.
   assert(!playing_);
   (*sles_output_mixer_)->Destroy(sles_output_mixer_);
+#ifndef MOZILLA_INTERNAL_API
   (*sles_engine_)->Destroy(sles_engine_);
+#else
+  mozilla_destroy_sles_engine(&sles_engine_);
+#endif
   initialized_ = false;
   speaker_initialized_ = false;
   play_initialized_ = false;
@@ -218,11 +231,6 @@ int32_t OpenSlesOutput::StopPlayout() {
   StopCbThreads();
   DestroyAudioPlayer();
   playing_ = false;
-  return 0;
-}
-
-int32_t OpenSlesOutput::SpeakerIsAvailable(bool& available) {  // NOLINT
-  available = true;
   return 0;
 }
 
@@ -382,7 +390,7 @@ void OpenSlesOutput::AllocateBuffers() {
   fifo_.reset(new SingleRwFifo(num_fifo_buffers_needed_));
 
   // Allocate the memory area to be used.
-  play_buf_.reset(new scoped_array<int8_t>[TotalBuffersUsed()]);
+  play_buf_.reset(new scoped_ptr<int8_t[]>[TotalBuffersUsed()]);
   int required_buffer_size = fine_buffer_->RequiredBufferSizeBytes();
   for (int i = 0; i < TotalBuffersUsed(); ++i) {
     play_buf_[i].reset(new int8_t[required_buffer_size]);
@@ -449,6 +457,24 @@ bool OpenSlesOutput::CreateAudioPlayer() {
                                              &audio_source, &audio_sink,
                                              kNumInterfaces, ids, req),
       false);
+
+  SLAndroidConfigurationItf player_config;
+  OPENSL_RETURN_ON_FAILURE(
+      (*sles_player_)->GetInterface(sles_player_,
+                                    SL_IID_ANDROIDCONFIGURATION_,
+                                    &player_config),
+      false);
+
+  // Set audio player configuration to SL_ANDROID_STREAM_VOICE which corresponds
+  // to android.media.AudioManager.STREAM_VOICE_CALL.
+  SLint32 stream_type = SL_ANDROID_STREAM_VOICE;
+  OPENSL_RETURN_ON_FAILURE(
+      (*player_config)->SetConfiguration(player_config,
+                                         SL_ANDROID_KEY_STREAM_TYPE,
+                                         &stream_type,
+                                         sizeof(SLint32)),
+      false);
+
   // Realize the player in synchronous mode.
   OPENSL_RETURN_ON_FAILURE((*sles_player_)->Realize(sles_player_,
                                                     SL_BOOLEAN_FALSE),

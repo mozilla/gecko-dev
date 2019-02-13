@@ -22,4 +22,6 @@ LOCAL_INCLUDES += [
     '/js/xpconnect/loader',
 ]
 
-FINAL_LIBRARY = 'toolkitcomps'
+FINAL_LIBRARY = 'xul'
+
+FAIL_ON_WARNINGS = True

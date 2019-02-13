@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import time
-from marionette_test import MarionetteTestCase
+from marionette import MarionetteTestCase
 
 class TestSwitchWindow(MarionetteTestCase):
     def open_new_window(self):
@@ -71,6 +71,7 @@ if (win != null)
                 self.fail("There were no windows that appeared when we clicked earlier")
             else:
                 time.sleep(1)
+            count += 1
 
         self.marionette.switch_to_window(window_handles[0])
         self.assertEqual(self.marionette.title, "We Arrive Here")

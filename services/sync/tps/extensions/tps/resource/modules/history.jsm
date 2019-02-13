@@ -71,8 +71,8 @@ var HistoryEntry = {
         "SELECT id " +
         "FROM moz_places " +
         "WHERE url = :url) " +
-      "ORDER BY date DESC LIMIT 10");
-    this.__defineGetter__("_visitStm", function() stm);
+      "ORDER BY date DESC LIMIT 20");
+    this.__defineGetter__("_visitStm", () => stm);
     return stm;
   },
 
@@ -198,4 +198,3 @@ var HistoryEntry = {
     }
   },
 };
-

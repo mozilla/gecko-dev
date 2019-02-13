@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,10 +12,9 @@
 #include "MutableFile.h"
 #include "nsError.h"
 #include "nsIEventTarget.h"
-#include "nsIObserverService.h"
-#include "nsIOfflineStorage.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
+#include "nsThreadPool.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -23,49 +22,70 @@ namespace dom {
 
 namespace {
 
-FileService* gInstance = nullptr;
+const uint32_t kThreadLimit = 5;
+const uint32_t kIdleThreadLimit = 1;
+const uint32_t kIdleThreadTimeoutMs = 30000;
+
+StaticAutoPtr<FileService> gInstance;
 bool gShutdown = false;
 
 } // anonymous namespace
 
 FileService::FileService()
 {
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!gInstance, "More than one instance!");
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!gInstance);
 }
 
 FileService::~FileService()
 {
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!gInstance, "More than one instance!");
+  MOZ_ASSERT(NS_IsMainThread());
 }
 
 nsresult
 FileService::Init()
 {
-  nsresult rv;
-  mStreamTransportTarget =
-    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
+  mThreadPool = new nsThreadPool();
 
-  return rv;
+  nsresult rv = mThreadPool->SetName(NS_LITERAL_CSTRING("FileHandleTrans"));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  rv = mThreadPool->SetThreadLimit(kThreadLimit);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  rv = mThreadPool->SetIdleThreadLimit(kIdleThreadLimit);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  rv = mThreadPool->SetIdleThreadTimeout(kIdleThreadTimeoutMs);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  return NS_OK;
 }
 
 nsresult
 FileService::Cleanup()
 {
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  MOZ_ASSERT(NS_IsMainThread());
 
   nsIThread* thread = NS_GetCurrentThread();
-  while (mStorageInfos.Count()) {
-    if (!NS_ProcessNextEvent(thread)) {
-      NS_ERROR("Failed to process next event!");
-      break;
-    }
+  MOZ_ASSERT(thread);
+
+  nsresult rv = mThreadPool->Shutdown();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
   // Make sure the service is still accessible while any generated callbacks
   // are processed.
-  nsresult rv = NS_ProcessPendingEvents(thread);
+  rv = NS_ProcessPendingEvents(thread);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!mCompleteCallbacks.IsEmpty()) {
@@ -95,20 +115,12 @@ FileService::GetOrCreate()
   }
 
   if (!gInstance) {
-    nsRefPtr<FileService> service(new FileService);
+    nsAutoPtr<FileService> service(new FileService());
 
     nsresult rv = service->Init();
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    nsCOMPtr<nsIObserverService> obs =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-
-    rv = obs->AddObserver(service, "profile-before-change", false);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-
-    // The observer service now owns us.
-    gInstance = service;
+    gInstance = service.forget();
   }
 
   return gInstance;
@@ -146,12 +158,12 @@ FileService::IsShuttingDown()
 }
 
 nsresult
-FileService::Enqueue(FileHandle* aFileHandle, FileHelper* aFileHelper)
+FileService::Enqueue(FileHandleBase* aFileHandle, FileHelper* aFileHelper)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
   MOZ_ASSERT(aFileHandle, "Null pointer!");
 
-  MutableFile* mutableFile = aFileHandle->mMutableFile;
+  MutableFileBase* mutableFile = aFileHandle->MutableFile();
 
   if (mutableFile->IsInvalid()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -221,12 +233,12 @@ FileService::Enqueue(FileHandle* aFileHandle, FileHelper* aFileHelper)
 }
 
 void
-FileService::NotifyFileHandleCompleted(FileHandle* aFileHandle)
+FileService::NotifyFileHandleCompleted(FileHandleBase* aFileHandle)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
   MOZ_ASSERT(aFileHandle, "Null pointer!");
 
-  MutableFile* mutableFile = aFileHandle->mMutableFile;
+  MutableFileBase* mutableFile = aFileHandle->MutableFile();
   const nsACString& storageId = mutableFile->mStorageId;
 
   StorageInfo* storageInfo;
@@ -254,69 +266,29 @@ FileService::NotifyFileHandleCompleted(FileHandle* aFileHandle)
 }
 
 void
-FileService::WaitForStoragesToComplete(
-                                 nsTArray<nsCOMPtr<nsIOfflineStorage> >& aStorages,
-                                 nsIRunnable* aCallback)
+FileService::WaitForStoragesToComplete(nsTArray<nsCString>& aStorageIds,
+                                       nsIRunnable* aCallback)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!aStorages.IsEmpty(), "No databases to wait on!");
-  NS_ASSERTION(aCallback, "Null pointer!");
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!aStorageIds.IsEmpty());
+  MOZ_ASSERT(aCallback);
 
   StoragesCompleteCallback* callback = mCompleteCallbacks.AppendElement();
   callback->mCallback = aCallback;
-  callback->mStorages.SwapElements(aStorages);
+  callback->mStorageIds.SwapElements(aStorageIds);
 
   if (MaybeFireCallback(*callback)) {
     mCompleteCallbacks.RemoveElementAt(mCompleteCallbacks.Length() - 1);
   }
 }
 
-void
-FileService::AbortFileHandlesForStorage(nsIOfflineStorage* aStorage)
+nsIEventTarget*
+FileService::ThreadPoolTarget() const
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
-  MOZ_ASSERT(aStorage, "Null pointer!");
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mThreadPool);
 
-  StorageInfo* storageInfo;
-  if (!mStorageInfos.Get(aStorage->Id(), &storageInfo)) {
-    return;
-  }
-
-  nsAutoTArray<nsRefPtr<FileHandle>, 10> fileHandles;
-  storageInfo->CollectRunningAndDelayedFileHandles(aStorage, fileHandles);
-
-  for (uint32_t index = 0; index < fileHandles.Length(); index++) {
-    ErrorResult ignored;
-    fileHandles[index]->Abort(ignored);
-  }
-}
-
-bool
-FileService::HasFileHandlesForStorage(nsIOfflineStorage* aStorage)
-{
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
-  MOZ_ASSERT(aStorage, "Null pointer!");
-
-  StorageInfo* storageInfo;
-  if (!mStorageInfos.Get(aStorage->Id(), &storageInfo)) {
-    return false;
-  }
-
-  return storageInfo->HasRunningFileHandles(aStorage);
-}
-
-NS_IMPL_ISUPPORTS(FileService, nsIObserver)
-
-NS_IMETHODIMP
-FileService::Observe(nsISupports* aSubject, const char*  aTopic,
-                     const char16_t* aData)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!strcmp(aTopic, "profile-before-change"), "Wrong topic!");
-
-  Shutdown();
-
-  return NS_OK;
+  return mThreadPool;
 }
 
 bool
@@ -324,8 +296,8 @@ FileService::MaybeFireCallback(StoragesCompleteCallback& aCallback)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  for (uint32_t index = 0; index < aCallback.mStorages.Length(); index++) {
-    if (mStorageInfos.Get(aCallback.mStorages[index]->Id(), nullptr)) {
+  for (uint32_t index = 0; index < aCallback.mStorageIds.Length(); index++) {
+    if (mStorageInfos.Get(aCallback.mStorageIds[index], nullptr)) {
       return false;
     }
   }
@@ -334,10 +306,14 @@ FileService::MaybeFireCallback(StoragesCompleteCallback& aCallback)
   return true;
 }
 
-FileService::FileHandleQueue::FileHandleQueue(FileHandle* aFileHandle)
+FileService::FileHandleQueue::FileHandleQueue(FileHandleBase* aFileHandle)
 : mFileHandle(aFileHandle)
 {
   MOZ_ASSERT(aFileHandle, "Null pointer!");
+}
+
+FileService::FileHandleQueue::~FileHandleQueue()
+{
 }
 
 NS_IMPL_ADDREF(FileService::FileHandleQueue)
@@ -349,7 +325,7 @@ FileService::FileHandleQueue::Enqueue(FileHelper* aFileHelper)
   mQueue.AppendElement(aFileHelper);
 
   nsresult rv;
-  if (mFileHandle->mRequestMode == FileHandle::PARALLEL) {
+  if (mFileHandle->mRequestMode == FileHandleBase::PARALLEL) {
     rv = aFileHelper->AsyncRun(this);
   }
   else {
@@ -364,7 +340,7 @@ void
 FileService::
 FileHandleQueue::OnFileHelperComplete(FileHelper* aFileHelper)
 {
-  if (mFileHandle->mRequestMode == FileHandle::PARALLEL) {
+  if (mFileHandle->mRequestMode == FileHandleBase::PARALLEL) {
     int32_t index = mQueue.IndexOf(aFileHelper);
     NS_ASSERTION(index != -1, "We don't know anything about this helper!");
 
@@ -407,7 +383,7 @@ FileService::DelayedEnqueueInfo::~DelayedEnqueueInfo()
 }
 
 FileService::FileHandleQueue*
-FileService::StorageInfo::CreateFileHandleQueue(FileHandle* aFileHandle)
+FileService::StorageInfo::CreateFileHandleQueue(FileHandleBase* aFileHandle)
 {
   nsRefPtr<FileHandleQueue>* fileHandleQueue =
     mFileHandleQueues.AppendElement();
@@ -416,7 +392,7 @@ FileService::StorageInfo::CreateFileHandleQueue(FileHandle* aFileHandle)
 }
 
 FileService::FileHandleQueue*
-FileService::StorageInfo::GetFileHandleQueue(FileHandle* aFileHandle)
+FileService::StorageInfo::GetFileHandleQueue(FileHandleBase* aFileHandle)
 {
   uint32_t count = mFileHandleQueues.Length();
   for (uint32_t index = 0; index < count; index++) {
@@ -429,7 +405,7 @@ FileService::StorageInfo::GetFileHandleQueue(FileHandle* aFileHandle)
 }
 
 void
-FileService::StorageInfo::RemoveFileHandleQueue(FileHandle* aFileHandle)
+FileService::StorageInfo::RemoveFileHandleQueue(FileHandleBase* aFileHandle)
 {
   for (uint32_t index = 0; index < mDelayedEnqueueInfos.Length(); index++) {
     if (mDelayedEnqueueInfos[index].mFileHandle == aFileHandle) {
@@ -449,7 +425,7 @@ FileService::StorageInfo::RemoveFileHandleQueue(FileHandle* aFileHandle)
   mFilesWriting.Clear();
 
   for (uint32_t index = 0, count = fileHandleCount; index < count; index++) {
-    FileHandle* fileHandle = mFileHandleQueues[index]->mFileHandle;
+    FileHandleBase* fileHandle = mFileHandleQueues[index]->mFileHandle;
     if (fileHandle == aFileHandle) {
       MOZ_ASSERT(count == fileHandleCount, "More than one match?!");
 
@@ -460,7 +436,7 @@ FileService::StorageInfo::RemoveFileHandleQueue(FileHandle* aFileHandle)
       continue;
     }
 
-    const nsAString& fileName = fileHandle->mMutableFile->mFileName;
+    const nsAString& fileName = fileHandle->MutableFile()->mFileName;
 
     if (fileHandle->mMode == FileMode::Readwrite) {
       if (!IsFileLockedForWriting(fileName)) {
@@ -489,46 +465,14 @@ FileService::StorageInfo::RemoveFileHandleQueue(FileHandle* aFileHandle)
   }
 }
 
-bool
-FileService::StorageInfo::HasRunningFileHandles(nsIOfflineStorage* aStorage)
-{
-  for (uint32_t index = 0; index < mFileHandleQueues.Length(); index++) {
-    FileHandle* fileHandle = mFileHandleQueues[index]->mFileHandle;
-    if (fileHandle->mMutableFile->Storage() == aStorage) {
-      return true;
-    }
-  }
-  return false;
-}
-
 FileService::DelayedEnqueueInfo*
-FileService::StorageInfo::CreateDelayedEnqueueInfo(FileHandle* aFileHandle,
+FileService::StorageInfo::CreateDelayedEnqueueInfo(FileHandleBase* aFileHandle,
                                                    FileHelper* aFileHelper)
 {
   DelayedEnqueueInfo* info = mDelayedEnqueueInfos.AppendElement();
   info->mFileHandle = aFileHandle;
   info->mFileHelper = aFileHelper;
   return info;
-}
-
-void
-FileService::StorageInfo::CollectRunningAndDelayedFileHandles(
-                                 nsIOfflineStorage* aStorage,
-                                 nsTArray<nsRefPtr<FileHandle>>& aFileHandles)
-{
-  for (uint32_t index = 0; index < mFileHandleQueues.Length(); index++) {
-    FileHandle* fileHandle = mFileHandleQueues[index]->mFileHandle;
-    if (fileHandle->mMutableFile->Storage() == aStorage) {
-      aFileHandles.AppendElement(fileHandle);
-    }
-  }
-
-  for (uint32_t index = 0; index < mDelayedEnqueueInfos.Length(); index++) {
-    FileHandle* fileHandle = mDelayedEnqueueInfos[index].mFileHandle;
-    if (fileHandle->mMutableFile->Storage() == aStorage) {
-      aFileHandles.AppendElement(fileHandle);
-    }
-  }
 }
 
 } // namespace dom

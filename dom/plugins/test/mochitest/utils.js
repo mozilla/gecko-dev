@@ -35,11 +35,19 @@ function getTestPlugin(pluginName) {
 // it will automatically be reset to it's previous value after the test
 // ends
 function setTestPluginEnabledState(newEnabledState, pluginName) {
+  var oldEnabledState = SpecialPowers.setTestPluginEnabledState(newEnabledState, pluginName);
+  if (!oldEnabledState) {
+    ok(false, "Cannot find plugin '" + plugin + "'");
+    return;
+  }
   var plugin = getTestPlugin(pluginName);
-  var oldEnabledState = plugin.enabledState;
-  plugin.enabledState = newEnabledState;
+  while (plugin.enabledState != newEnabledState) {
+    // Run a nested event loop to wait for the preference change to
+    // propagate to the child. Yuck!
+    SpecialPowers.Services.tm.currentThread.processNextEvent(true);
+  }
   SimpleTest.registerCleanupFunction(function() {
-    getTestPlugin(pluginName).enabledState = oldEnabledState;
+    SpecialPowers.setTestPluginEnabledState(oldEnabledState, pluginName);
   });
 }
 
@@ -69,7 +77,7 @@ function crashAndGetCrashServiceRecord(crashMethodName, callback) {
     // the new record.
     function tryGetCrash() {
       info("Waiting for getCrashes");
-      crashMan.getCrashes().then(function (crashes) {
+      crashMan.getCrashes().then(SpecialPowers.wrapCallback(function (crashes) {
         if (crashes.length) {
           is(crashes.length, 1, "There should be only one record");
           var crash = SpecialPowers.wrap(crashes[0]);
@@ -86,7 +94,7 @@ function crashAndGetCrashServiceRecord(crashMethodName, callback) {
         else {
           setTimeout(tryGetCrash, 1000);
         }
-      }, function (err) {
+      }), function (err) {
         ok(false, "Error getting crashes: " + err);
         SimpleTest.finish();
       });

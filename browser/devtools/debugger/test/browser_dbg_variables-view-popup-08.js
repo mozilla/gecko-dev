@@ -8,8 +8,8 @@
 const TAB_URL = EXAMPLE_URL + "doc_scope-variable.html";
 
 function test() {
-  Task.spawn(function() {
-    let [tab, debuggee, panel] = yield initDebugger(TAB_URL);
+  Task.spawn(function*() {
+    let [tab,, panel] = yield initDebugger(TAB_URL);
     let win = panel.panelWin;
     let events = win.EVENTS;
     let editor = win.DebuggerView.editor;
@@ -25,7 +25,7 @@ function test() {
 
       is(tooltip.querySelector(".devtools-tooltip-simple-text").textContent, textContent,
         "The inspected property's value is correct.");
-      ok(tooltip.querySelector(".devtools-tooltip-simple-text").className.contains(className),
+      ok(tooltip.querySelector(".devtools-tooltip-simple-text").className.includes(className),
         "The inspected property's value is colorized correctly.");
     }
 
@@ -40,8 +40,7 @@ function test() {
         "Editor caret location is correct.");
     }
 
-    // Allow this generator function to yield first.
-    executeSoon(() => debuggee.test());
+    callInTab(tab, "test");
     yield waitForSourceAndCaretAndScopes(panel, ".html", 20);
     checkView(0, 20);
 

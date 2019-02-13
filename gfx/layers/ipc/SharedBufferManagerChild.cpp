@@ -8,6 +8,7 @@
 #include "base/task.h"                  // for NewRunnableFunction, etc
 #include "base/thread.h"                // for Thread
 #include "base/tracked.h"               // for FROM_HERE
+#include "mozilla/gfx/Logging.h"        // for gfxDebug
 #include "mozilla/layers/SharedBufferManagerChild.h"
 #include "mozilla/layers/SharedBufferManagerParent.h"
 #include "mozilla/StaticPtr.h"          // for StaticRefPtr
@@ -37,7 +38,6 @@ SharedBufferManagerChild::SharedBufferManagerChild()
   : mBufferMutex("BufferMonitor")
 #endif
 {
-
 }
 
 static bool
@@ -52,8 +52,8 @@ DeleteSharedBufferManagerSync(ReentrantMonitor *aBarrier, bool *aDone)
 {
   ReentrantMonitorAutoEnter autoMon(*aBarrier);
 
-  NS_ABORT_IF_FALSE(InSharedBufferManagerChildThread(),
-                    "Should be in SharedBufferManagerChild thread.");
+  MOZ_ASSERT(InSharedBufferManagerChildThread(),
+             "Should be in SharedBufferManagerChild thread.");
   SharedBufferManagerChild::sSharedBufferManagerChildSingleton = nullptr;
   SharedBufferManagerChild::sSharedBufferManagerParentSingleton = nullptr;
   *aDone = true;
@@ -96,10 +96,11 @@ SharedBufferManagerChild::StartUp()
 
 static void
 ConnectSharedBufferManagerInChildProcess(mozilla::ipc::Transport* aTransport,
-                                         base::ProcessHandle aOtherProcess)
+                                         base::ProcessId aOtherPid)
 {
   // Bind the IPC channel to the shared buffer manager thread.
-  SharedBufferManagerChild::sSharedBufferManagerChildSingleton->Open(aTransport, aOtherProcess,
+  SharedBufferManagerChild::sSharedBufferManagerChildSingleton->Open(aTransport,
+                                                                     aOtherPid,
                                                                      XRE_GetIOMessageLoop(),
                                                                      ipc::ChildSide);
 
@@ -116,14 +117,9 @@ ConnectSharedBufferManagerInChildProcess(mozilla::ipc::Transport* aTransport,
 
 PSharedBufferManagerChild*
 SharedBufferManagerChild::StartUpInChildProcess(Transport* aTransport,
-                                                base::ProcessId aOtherProcess)
+                                                base::ProcessId aOtherPid)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on the main Thread!");
-
-  ProcessHandle processHandle;
-  if (!base::OpenProcessHandle(aOtherProcess, &processHandle)) {
-    return nullptr;
-  }
 
   sSharedBufferManagerChildThread = new base::Thread("BufferMgrChild");
   if (!sSharedBufferManagerChildThread->Start()) {
@@ -134,7 +130,7 @@ SharedBufferManagerChild::StartUpInChildProcess(Transport* aTransport,
   sSharedBufferManagerChildSingleton->GetMessageLoop()->PostTask(
     FROM_HERE,
     NewRunnableFunction(ConnectSharedBufferManagerInChildProcess,
-                        aTransport, processHandle));
+                        aTransport, aOtherPid));
 
   return sSharedBufferManagerChildSingleton;
 }
@@ -153,9 +149,10 @@ SharedBufferManagerChild::ShutDown()
 bool
 SharedBufferManagerChild::StartUpOnThread(base::Thread* aThread)
 {
-  NS_ABORT_IF_FALSE(aThread, "SharedBufferManager needs a thread.");
-  if (sSharedBufferManagerChildSingleton != nullptr)
+  MOZ_ASSERT(aThread, "SharedBufferManager needs a thread.");
+  if (sSharedBufferManagerChildSingleton != nullptr) {
     return false;
+  }
 
   sSharedBufferManagerChildThread = aThread;
   if (!aThread->IsRunning()) {
@@ -173,8 +170,8 @@ SharedBufferManagerChild::StartUpOnThread(base::Thread* aThread)
 void
 SharedBufferManagerChild::DestroyManager()
 {
-  NS_ABORT_IF_FALSE(!InSharedBufferManagerChildThread(),
-                    "This method must not be called in this thread.");
+  MOZ_ASSERT(!InSharedBufferManagerChildThread(),
+             "This method must not be called in this thread.");
   // ...because we are about to dispatch synchronous messages to the
   // BufferManagerChild thread.
 
@@ -239,6 +236,11 @@ SharedBufferManagerChild::AllocGrallocBuffer(const gfx::IntSize& aSize,
                                              const uint32_t& aUsage,
                                              mozilla::layers::MaybeMagicGrallocBufferHandle* aBuffer)
 {
+  if (aSize.width <= 0 || aSize.height <= 0) {
+    gfxDebug() << "Asking for gralloc of invalid size " << aSize.width << "x" << aSize.height;
+    return false;
+  }
+
   if (InSharedBufferManagerChildThread()) {
     return SharedBufferManagerChild::AllocGrallocBufferNow(aSize, aFormat, aUsage, aBuffer);
   }
@@ -264,9 +266,14 @@ SharedBufferManagerChild::AllocGrallocBufferNow(const IntSize& aSize,
                                                 const uint32_t& aUsage,
                                                 mozilla::layers::MaybeMagicGrallocBufferHandle* aHandle)
 {
+  // These are protected functions, we can just assert and ask the caller to test
+  MOZ_ASSERT(aSize.width >= 0 && aSize.height >= 0);
+
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   mozilla::layers::MaybeMagicGrallocBufferHandle handle;
-  SendAllocateGrallocBuffer(aSize, aFormat, aUsage, &handle);
+  if (!SendAllocateGrallocBuffer(aSize, aFormat, aUsage, &handle)) {
+    return false;
+  }
   if (handle.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle) {
     return false;
   }
@@ -274,6 +281,7 @@ SharedBufferManagerChild::AllocGrallocBufferNow(const IntSize& aSize,
 
   {
     MutexAutoLock lock(mBufferMutex);
+    MOZ_ASSERT(mBuffers.count(handle.get_MagicGrallocBufferHandle().mRef.mKey)==0);
     mBuffers[handle.get_MagicGrallocBufferHandle().mRef.mKey] = handle.get_MagicGrallocBufferHandle().mGraphicBuffer;
   }
   return true;
@@ -317,28 +325,41 @@ SharedBufferManagerChild::DeallocGrallocBufferNow(const mozilla::layers::MaybeMa
 #endif
 }
 
-bool SharedBufferManagerChild::RecvDropGrallocBuffer(const mozilla::layers::MaybeMagicGrallocBufferHandle& handle)
+void
+SharedBufferManagerChild::DropGrallocBuffer(const mozilla::layers::MaybeMagicGrallocBufferHandle& aHandle)
 {
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
-  NS_ASSERTION(handle.type() == mozilla::layers::MaybeMagicGrallocBufferHandle::TGrallocBufferRef, "shouldn't go this way");
-  int bufferKey = handle.get_GrallocBufferRef().mKey;
+  int64_t bufferKey = -1;
+  if (aHandle.type() == mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle) {
+    bufferKey = aHandle.get_MagicGrallocBufferHandle().mRef.mKey;
+  } else if (aHandle.type() == mozilla::layers::MaybeMagicGrallocBufferHandle::TGrallocBufferRef) {
+    bufferKey = aHandle.get_GrallocBufferRef().mKey;
+  } else {
+    return;
+  }
 
   {
     MutexAutoLock lock(mBufferMutex);
-    NS_ASSERTION(mBuffers.count(bufferKey) != 0, "No such buffer");
     mBuffers.erase(bufferKey);
   }
 #endif
+}
+
+bool SharedBufferManagerChild::RecvDropGrallocBuffer(const mozilla::layers::MaybeMagicGrallocBufferHandle& aHandle)
+{
+  DropGrallocBuffer(aHandle);
   return true;
 }
 
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 android::sp<android::GraphicBuffer>
-SharedBufferManagerChild::GetGraphicBuffer(int key)
+SharedBufferManagerChild::GetGraphicBuffer(int64_t key)
 {
   MutexAutoLock lock(mBufferMutex);
-  if (mBuffers.count(key) == 0)
+  if (mBuffers.count(key) == 0) {
+    printf_stderr("SharedBufferManagerChild::GetGraphicBuffer -- invalid key");
     return nullptr;
+  }
   return mBuffers[key];
 }
 #endif

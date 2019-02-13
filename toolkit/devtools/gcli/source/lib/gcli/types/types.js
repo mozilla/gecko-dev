@@ -946,9 +946,9 @@ function Type() {
 }
 
 /**
- * Get a JSONable data structure that entirely describes this type
- * @param commandName/paramName The names of the command and parameter which we
- * are remoting to help the server get back to the remoted action.
+ * Get a JSONable data structure that entirely describes this type.
+ * commandName and paramName are the names of the command and parameter which
+ * we are remoting to help the server get back to the remoted action.
  */
 Type.prototype.getSpec = function(commandName, paramName) {
   throw new Error('Not implemented');
@@ -995,18 +995,12 @@ Type.prototype.parseString = function(str, context) {
 Type.prototype.name = undefined;
 
 /**
- * If there is some concept of a higher value, return it,
+ * If there is some concept of a lower or higher value, return it,
  * otherwise return undefined.
+ * @param by number indicating how much to nudge by, usually +1 or -1 which is
+ * caused by the user pressing the UP/DOWN keys with the cursor in this type
  */
-Type.prototype.increment = function(value, context) {
-  return undefined;
-};
-
-/**
- * If there is some concept of a lower value, return it,
- * otherwise return undefined.
- */
-Type.prototype.decrement = function(value, context) {
+Type.prototype.nudge = function(value, by, context) {
   return undefined;
 };
 
@@ -1064,7 +1058,7 @@ Types.prototype.getTypeNames = function() {
  * #getType() is called with a 'name' that matches Type.prototype.name we will
  * pass the typeSpec into this constructor.
  */
-Types.prototype.addType = function(type) {
+Types.prototype.add = function(type) {
   if (typeof type === 'object') {
     if (!type.name) {
       throw new Error('All registered types must have a name');
@@ -1099,12 +1093,12 @@ Types.prototype.addType = function(type) {
 /**
  * Remove a type from the list available to the system
  */
-Types.prototype.removeType = function(type) {
+Types.prototype.remove = function(type) {
   delete this._registered[type.name];
 };
 
 /**
- * Find a type, previously registered using #addType()
+ * Find a previously registered type
  */
 Types.prototype.createType = function(typeSpec) {
   if (typeof typeSpec === 'string') {
@@ -1140,13 +1134,8 @@ Types.prototype.createType = function(typeSpec) {
   // Copy the properties of typeSpec onto the new type
   util.copyProperties(typeSpec, newType);
 
-  // Delegate and Array types need special powers to create types. Injecting
-  // ourselves at this point seems nasty, but better than the alternative of
-  // forcing all children of delegate types to require the full types API, and
-  // not know where to get it from
-  if (newType.name === 'delegate' || newType.name === 'array') {
-    newType.types = this;
-  }
+  // Several types need special powers to create child types
+  newType.types = this;
 
   if (typeof NewTypeCtor !== 'function') {
     if (typeof newType.constructor === 'function') {
@@ -1156,8 +1145,3 @@ Types.prototype.createType = function(typeSpec) {
 
   return newType;
 };
-
-/**
- * Create a central type repository to be used by default
- */
-exports.centralTypes = new Types();

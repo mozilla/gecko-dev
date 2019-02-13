@@ -4,7 +4,6 @@
 
 #include "domstubs.idl"
 
-interface mozIDOMApplication;
 interface mozIApplication;
 interface nsIURI;
 
@@ -17,7 +16,7 @@ interface nsIURI;
  * This service allows accessing some DOMApplicationRegistry methods from
  * non-javascript code.
  */
-[scriptable, uuid(2e884bbe-7a3d-4b01-ad92-fcd65a449043)]
+[scriptable, uuid(03f1e30e-a1aa-4e18-ab3f-cd04b3b35a54)]
 interface nsIAppsService : nsISupports
 {
   mozIApplication getAppByManifestURL(in DOMString manifestURL);
@@ -48,9 +47,14 @@ interface nsIAppsService : nsISupports
   DOMString getManifestURLByLocalId(in unsigned long localId);
 
   /**
-   * Returns the CSP associated to this localId.
+   * Returns the manifest CSP associated to this localId.
    */
-  DOMString getCSPByLocalId(in unsigned long localId);
+  DOMString getManifestCSPByLocalId(in unsigned long localId);
+
+  /**
+   * Returns the default CSP associated to this localId.
+   */
+  DOMString getDefaultCSPByLocalId(in unsigned long localId);
 
   /**
    * Returns the basepath for core apps
@@ -74,4 +78,9 @@ interface nsIAppsService : nsISupports
    * Returns the localId if the app was installed from a store
    */
   DOMString getAppLocalIdByStoreId(in DOMString storeID);
+
+  /**
+   * Returns the scope for app to use with service workers.
+   */
+  DOMString getScopeByLocalId(in unsigned long localId);
 };

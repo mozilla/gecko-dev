@@ -4,7 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/JSONWriter.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/nsMemoryInfoDumper.h"
+#include "mozilla/DebugOnly.h"
 #include "nsDumpUtils.h"
 
 #include "mozilla/unused.h"
@@ -24,7 +27,9 @@
 
 #ifdef XP_WIN
 #include <process.h>
+#ifndef getpid
 #define getpid _getpid
+#endif
 #else
 #include <unistd.h>
 #endif
@@ -56,8 +61,9 @@ class DumpMemoryInfoToTempDirRunnable : public nsRunnable
 {
 public:
   DumpMemoryInfoToTempDirRunnable(const nsAString& aIdentifier,
-                                  bool aMinimizeMemoryUsage)
+                                  bool aAnonymize, bool aMinimizeMemoryUsage)
     : mIdentifier(aIdentifier)
+    , mAnonymize(aAnonymize)
     , mMinimizeMemoryUsage(aMinimizeMemoryUsage)
   {
   }
@@ -66,16 +72,18 @@ public:
   {
     nsCOMPtr<nsIMemoryInfoDumper> dumper =
       do_GetService("@mozilla.org/memory-info-dumper;1");
-    dumper->DumpMemoryInfoToTempDir(mIdentifier, mMinimizeMemoryUsage);
+    dumper->DumpMemoryInfoToTempDir(mIdentifier, mAnonymize,
+                                    mMinimizeMemoryUsage);
     return NS_OK;
   }
 
 private:
   const nsString mIdentifier;
+  const bool mAnonymize;
   const bool mMinimizeMemoryUsage;
 };
 
-class GCAndCCLogDumpRunnable MOZ_FINAL
+class GCAndCCLogDumpRunnable final
   : public nsRunnable
   , public nsIDumpGCAndCCLogsCallback
 {
@@ -91,7 +99,7 @@ public:
   {
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  NS_IMETHOD Run() override
   {
     nsCOMPtr<nsIMemoryInfoDumper> dumper =
       do_GetService("@mozilla.org/memory-info-dumper;1");
@@ -101,23 +109,26 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD OnDump(nsIFile* aGCLog, nsIFile* aCCLog, bool aIsParent) MOZ_OVERRIDE
+  NS_IMETHOD OnDump(nsIFile* aGCLog, nsIFile* aCCLog, bool aIsParent) override
   {
     return NS_OK;
   }
 
-  NS_IMETHOD OnFinish() MOZ_OVERRIDE
+  NS_IMETHOD OnFinish() override
   {
     return NS_OK;
   }
 
 private:
+  ~GCAndCCLogDumpRunnable() {}
+
   const nsString mIdentifier;
   const bool mDumpAllTraces;
   const bool mDumpChildProcesses;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(GCAndCCLogDumpRunnable, nsRunnable, nsIDumpGCAndCCLogsCallback)
+NS_IMPL_ISUPPORTS_INHERITED(GCAndCCLogDumpRunnable, nsRunnable,
+                            nsIDumpGCAndCCLogsCallback)
 
 } // anonymous namespace
 
@@ -157,11 +168,12 @@ static uint8_t sGCAndCCDumpSignum;             // SIGRTMIN + 2
 void doMemoryReport(const uint8_t aRecvSig)
 {
   // Dump our memory reports (but run this on the main thread!).
-  bool doMMUFirst = aRecvSig == sDumpAboutMemoryAfterMMUSignum;
+  bool minimize = aRecvSig == sDumpAboutMemoryAfterMMUSignum;
   LOG("SignalWatcher(sig %d) dispatching memory report runnable.", aRecvSig);
   nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
     new DumpMemoryInfoToTempDirRunnable(/* identifier = */ EmptyString(),
-                                        doMMUFirst);
+                                        /* anonymize = */ false,
+                                        minimize);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -170,10 +182,9 @@ void doGCCCDump(const uint8_t aRecvSig)
   LOG("SignalWatcher(sig %d) dispatching GC/CC log runnable.", aRecvSig);
   // Dump GC and CC logs (from the main thread).
   nsRefPtr<GCAndCCLogDumpRunnable> runnable =
-    new GCAndCCLogDumpRunnable(
-      /* identifier = */ EmptyString(),
-      /* allTraces = */ true,
-      /* dumpChildProcesses = */ true);
+    new GCAndCCLogDumpRunnable(/* identifier = */ EmptyString(),
+                               /* allTraces = */ true,
+                               /* dumpChildProcesses = */ true);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -186,11 +197,13 @@ namespace {
 void
 doMemoryReport(const nsCString& aInputStr)
 {
-  bool doMMUMemoryReport = aInputStr.EqualsLiteral("minimize memory report");
-  LOG("FifoWatcher(command:%s) dispatching memory report runnable.", aInputStr.get());
+  bool minimize = aInputStr.EqualsLiteral("minimize memory report");
+  LOG("FifoWatcher(command:%s) dispatching memory report runnable.",
+      aInputStr.get());
   nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
     new DumpMemoryInfoToTempDirRunnable(/* identifier = */ EmptyString(),
-                                        doMMUMemoryReport);
+                                        /* anonymize = */ false,
+                                        minimize);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -209,7 +222,7 @@ doGCCCDump(const nsCString& aInputStr)
 bool
 SetupFifo()
 {
-  static bool fifoCallbacksRegistered = false;
+  static DebugOnly<bool> fifoCallbacksRegistered = false;
 
   if (!FifoWatcher::MaybeCreate()) {
     return false;
@@ -305,22 +318,23 @@ EnsureNonEmptyIdentifier(nsAString& aIdentifier)
 // Use XPCOM refcounting to fire |onFinish| when all reference-holders
 // (remote dump actors or the |DumpGCAndCCLogsToFile| activation itself)
 // have gone away.
-class nsDumpGCAndCCLogsCallbackHolder MOZ_FINAL : public nsIDumpGCAndCCLogsCallback
+class nsDumpGCAndCCLogsCallbackHolder final
+  : public nsIDumpGCAndCCLogsCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
-  nsDumpGCAndCCLogsCallbackHolder(nsIDumpGCAndCCLogsCallback* aCallback)
+  explicit nsDumpGCAndCCLogsCallbackHolder(nsIDumpGCAndCCLogsCallback* aCallback)
     : mCallback(aCallback)
   {
   }
 
-  NS_IMETHODIMP OnFinish()
+  NS_IMETHODIMP OnFinish() override
   {
     return NS_ERROR_UNEXPECTED;
   }
 
-  NS_IMETHODIMP OnDump(nsIFile* aGCLog, nsIFile* aCCLog, bool aIsParent)
+  NS_IMETHODIMP OnDump(nsIFile* aGCLog, nsIFile* aCCLog, bool aIsParent) override
   {
     return mCallback->OnDump(aGCLog, aCCLog, aIsParent);
   }
@@ -407,45 +421,69 @@ nsMemoryInfoDumper::DumpGCAndCCLogsToSink(bool aDumpAllTraces,
   return NS_OK;
 }
 
-namespace mozilla {
+static void
+MakeFilename(const char* aPrefix, const nsAString& aIdentifier,
+             int aPid, const char* aSuffix, nsACString& aResult)
+{
+  aResult = nsPrintfCString("%s-%s-%d.%s",
+                            aPrefix,
+                            NS_ConvertUTF16toUTF8(aIdentifier).get(),
+                            aPid, aSuffix);
+}
 
-#define DUMP(o, s) \
-  do { \
-    nsresult rv = (o)->Write(s); \
-    if (NS_WARN_IF(NS_FAILED(rv))) \
-      return rv; \
-  } while (0)
+// This class wraps GZFileWriter so it can be used with JSONWriter, overcoming
+// the following two problems:
+// - It provides a JSONWriterFunc::Write() that calls nsGZFileWriter::Write().
+// - It can be stored as a UniquePtr, whereas nsGZFileWriter is refcounted.
+class GZWriterWrapper : public JSONWriteFunc
+{
+public:
+  explicit GZWriterWrapper(nsGZFileWriter* aGZWriter)
+    : mGZWriter(aGZWriter)
+  {}
 
-class DumpReportCallback MOZ_FINAL : public nsIHandleReportCallback
+  void Write(const char* aStr)
+  {
+    (void)mGZWriter->Write(aStr);
+  }
+
+  nsresult Finish() { return mGZWriter->Finish(); }
+
+private:
+  nsRefPtr<nsGZFileWriter> mGZWriter;
+};
+
+// We need two callbacks: one that handles reports, and one that is called at
+// the end of reporting. Both the callbacks need access to the same JSONWriter,
+// so we implement both of them in this one class.
+class HandleReportAndFinishReportingCallbacks final
+  : public nsIHandleReportCallback, public nsIFinishReportingCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
-  DumpReportCallback(nsGZFileWriter* aWriter)
-    : mIsFirst(true)
-    , mWriter(aWriter)
+  HandleReportAndFinishReportingCallbacks(UniquePtr<JSONWriter> aWriter,
+                                          nsIFinishDumpingCallback* aFinishDumping,
+                                          nsISupports* aFinishDumpingData)
+    : mWriter(Move(aWriter))
+    , mFinishDumping(aFinishDumping)
+    , mFinishDumpingData(aFinishDumpingData)
   {
   }
 
+  // This is the callback for nsIHandleReportCallback.
   NS_IMETHOD Callback(const nsACString& aProcess, const nsACString& aPath,
                       int32_t aKind, int32_t aUnits, int64_t aAmount,
                       const nsACString& aDescription,
-                      nsISupports* aData)
+                      nsISupports* aData) override
   {
-    if (mIsFirst) {
-      DUMP(mWriter, "[");
-      mIsFirst = false;
-    } else {
-      DUMP(mWriter, ",");
-    }
-
     nsAutoCString process;
     if (aProcess.IsEmpty()) {
       // If the process is empty, the report originated with the process doing
-      // the dumping.  In that case, generate the process identifier, which is of
-      // the form "$PROCESS_NAME (pid $PID)", or just "(pid $PID)" if we don't
-      // have a process name.  If we're the main process, we let $PROCESS_NAME be
-      // "Main Process".
+      // the dumping.  In that case, generate the process identifier, which is
+      // of the form "$PROCESS_NAME (pid $PID)", or just "(pid $PID)" if we
+      // don't have a process name.  If we're the main process, we let
+      // $PROCESS_NAME be "Main Process".
       if (XRE_GetProcessType() == GeckoProcessType_Default) {
         // We're the main process.
         process.AssignLiteral("Main Process");
@@ -461,148 +499,226 @@ public:
       process = aProcess;
     }
 
-    DUMP(mWriter, "\n    {\"process\": \"");
-    DUMP(mWriter, process);
-
-    DUMP(mWriter, "\", \"path\": \"");
-    nsCString path(aPath);
-    path.ReplaceSubstring("\\", "\\\\");    /* <backslash> --> \\ */
-    path.ReplaceSubstring("\"", "\\\"");    // " --> \"
-    DUMP(mWriter, path);
-
-    DUMP(mWriter, "\", \"kind\": ");
-    DUMP(mWriter, nsPrintfCString("%d", aKind));
-
-    DUMP(mWriter, ", \"units\": ");
-    DUMP(mWriter, nsPrintfCString("%d", aUnits));
-
-    DUMP(mWriter, ", \"amount\": ");
-    DUMP(mWriter, nsPrintfCString("%lld", aAmount));
-
-    nsCString description(aDescription);
-    description.ReplaceSubstring("\\", "\\\\");    /* <backslash> --> \\ */
-    description.ReplaceSubstring("\"", "\\\"");    // " --> \"
-    description.ReplaceSubstring("\n", "\\n");     // <newline> --> \n
-    DUMP(mWriter, ", \"description\": \"");
-    DUMP(mWriter, description);
-    DUMP(mWriter, "\"}");
+    mWriter->StartObjectElement();
+    {
+      mWriter->StringProperty("process", process.get());
+      mWriter->StringProperty("path", PromiseFlatCString(aPath).get());
+      mWriter->IntProperty("kind", aKind);
+      mWriter->IntProperty("units", aUnits);
+      mWriter->IntProperty("amount", aAmount);
+      mWriter->StringProperty("description",
+                              PromiseFlatCString(aDescription).get());
+    }
+    mWriter->EndObject();
 
     return NS_OK;
   }
 
-private:
-  bool mIsFirst;
-  nsRefPtr<nsGZFileWriter> mWriter;
-};
-
-NS_IMPL_ISUPPORTS(DumpReportCallback, nsIHandleReportCallback)
-
-} // namespace mozilla
-
-static void
-MakeFilename(const char* aPrefix, const nsAString& aIdentifier,
-             const char* aSuffix, nsACString& aResult)
-{
-  aResult = nsPrintfCString("%s-%s-%d.%s",
-                            aPrefix,
-                            NS_ConvertUTF16toUTF8(aIdentifier).get(),
-                            getpid(), aSuffix);
-}
-
-#ifdef MOZ_DMD
-struct DMDWriteState
-{
-  static const size_t kBufSize = 4096;
-  char mBuf[kBufSize];
-  nsRefPtr<nsGZFileWriter> mGZWriter;
-
-  DMDWriteState(nsGZFileWriter* aGZWriter)
-    : mGZWriter(aGZWriter)
+  // This is the callback for nsIFinishReportingCallback.
+  NS_IMETHOD Callback(nsISupports* aData) override
   {
+    mWriter->EndArray();  // end of "reports" array
+    mWriter->End();
+
+    // The call to Finish() deallocates the memory allocated by the first Write
+    // call. Because that memory was live while the memory reporters ran and
+    // was measured by them -- by "heap-allocated" if nothing else -- we want
+    // DMD to see it as well. So we deliberately don't call Finish() until
+    // after DMD finishes.
+    nsresult rv = static_cast<GZWriterWrapper*>(mWriter->WriteFunc())->Finish();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!mFinishDumping) {
+      return NS_OK;
+    }
+
+    return mFinishDumping->Callback(mFinishDumpingData);
   }
+
+private:
+  ~HandleReportAndFinishReportingCallbacks() {}
+
+  UniquePtr<JSONWriter> mWriter;
+  nsCOMPtr<nsIFinishDumpingCallback> mFinishDumping;
+  nsCOMPtr<nsISupports> mFinishDumpingData;
 };
 
-static void
-DMDWrite(void* aState, const char* aFmt, va_list ap)
-{
-  DMDWriteState* state = (DMDWriteState*)aState;
-  vsnprintf(state->mBuf, state->kBufSize, aFmt, ap);
-  unused << state->mGZWriter->Write(state->mBuf);
-}
-#endif
+NS_IMPL_ISUPPORTS(HandleReportAndFinishReportingCallbacks,
+                  nsIHandleReportCallback, nsIFinishReportingCallback)
 
-static nsresult
-DumpHeader(nsIGZFileWriter* aWriter)
-{
-  // Increment this number if the format changes.
-  //
-  // This is the first write to the file, and it causes |aWriter| to allocate
-  // over 200 KiB of memory.
-  //
-  DUMP(aWriter, "{\n  \"version\": 1,\n");
-
-  DUMP(aWriter, "  \"hasMozMallocUsableSize\": ");
-
-  nsCOMPtr<nsIMemoryReporterManager> mgr =
-    do_GetService("@mozilla.org/memory-reporter-manager;1");
-  if (NS_WARN_IF(!mgr)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  DUMP(aWriter, mgr->GetHasMozMallocUsableSize() ? "true" : "false");
-  DUMP(aWriter, ",\n");
-  DUMP(aWriter, "  \"reports\": ");
-
-  return NS_OK;
-}
-
-static nsresult
-DumpFooter(nsIGZFileWriter* aWriter)
-{
-  DUMP(aWriter, "\n  ]\n}\n");
-
-  return NS_OK;
-}
-
-class TempDirMemoryFinishCallback MOZ_FINAL : public nsIFinishReportingCallback
+class TempDirFinishCallback final : public nsIFinishDumpingCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
-  TempDirMemoryFinishCallback(nsGZFileWriter* aWriter,
-                              nsIFile* aTmpFile,
-                              const nsCString& aFilename,
-                              const nsString& aIdentifier)
-    : mrWriter(aWriter)
-    , mrTmpFile(aTmpFile)
-    , mrFilename(aFilename)
-    , mIdentifier(aIdentifier)
+  TempDirFinishCallback(nsIFile* aReportsTmpFile,
+                        const nsCString& aReportsFinalFilename)
+    : mReportsTmpFile(aReportsTmpFile)
+    , mReportsFilename(aReportsFinalFilename)
   {
   }
 
-  NS_IMETHOD Callback(nsISupports* aData);
+  NS_IMETHOD Callback(nsISupports* aData) override
+  {
+    // Rename the memory reports file, now that we're done writing all the
+    // files. Its final name is "memory-report<-identifier>-<pid>.json.gz".
+
+    nsCOMPtr<nsIFile> reportsFinalFile;
+    nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR,
+                                         getter_AddRefs(reportsFinalFile));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+  #ifdef ANDROID
+    rv = reportsFinalFile->AppendNative(NS_LITERAL_CSTRING("memory-reports"));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  #endif
+
+    rv = reportsFinalFile->AppendNative(mReportsFilename);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = reportsFinalFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    nsAutoString reportsFinalFilename;
+    rv = reportsFinalFile->GetLeafName(reportsFinalFilename);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = mReportsTmpFile->MoveTo(/* directory */ nullptr,
+                                 reportsFinalFilename);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    // Write a message to the console.
+
+    nsCOMPtr<nsIConsoleService> cs =
+      do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    nsString path;
+    mReportsTmpFile->GetPath(path);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    nsString msg = NS_LITERAL_STRING("nsIMemoryInfoDumper dumped reports to ");
+    msg.Append(path);
+    return cs->LogStringMessage(msg.get());
+  }
 
 private:
-  nsRefPtr<nsGZFileWriter> mrWriter;
-  nsCOMPtr<nsIFile> mrTmpFile;
-  nsCString mrFilename;
-  nsString mIdentifier;
+  ~TempDirFinishCallback() {}
+
+  nsCOMPtr<nsIFile> mReportsTmpFile;
+  nsCString mReportsFilename;
 };
 
-NS_IMPL_ISUPPORTS(TempDirMemoryFinishCallback, nsIFinishReportingCallback)
+NS_IMPL_ISUPPORTS(TempDirFinishCallback, nsIFinishDumpingCallback)
+
+static nsresult
+DumpMemoryInfoToFile(
+  nsIFile* aReportsFile,
+  nsIFinishDumpingCallback* aFinishDumping,
+  nsISupports* aFinishDumpingData,
+  bool aAnonymize,
+  bool aMinimizeMemoryUsage,
+  nsAString& aDMDIdentifier)
+{
+  nsRefPtr<nsGZFileWriter> gzWriter = new nsGZFileWriter();
+  nsresult rv = gzWriter->Init(aReportsFile);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  auto jsonWriter =
+    MakeUnique<JSONWriter>(MakeUnique<GZWriterWrapper>(gzWriter));
+
+  nsCOMPtr<nsIMemoryReporterManager> mgr =
+    do_GetService("@mozilla.org/memory-reporter-manager;1");
+
+  // This is the first write to the file, and it causes |aWriter| to allocate
+  // over 200 KiB of memory.
+  jsonWriter->Start();
+  {
+    // Increment this number if the format changes.
+    jsonWriter->IntProperty("version", 1);
+    jsonWriter->BoolProperty("hasMozMallocUsableSize",
+                             mgr->GetHasMozMallocUsableSize());
+    jsonWriter->StartArrayProperty("reports");
+  }
+
+  nsRefPtr<HandleReportAndFinishReportingCallbacks>
+    handleReportAndFinishReporting =
+      new HandleReportAndFinishReportingCallbacks(Move(jsonWriter),
+                                                  aFinishDumping,
+                                                  aFinishDumpingData);
+  rv = mgr->GetReportsExtended(handleReportAndFinishReporting, nullptr,
+                               handleReportAndFinishReporting, nullptr,
+                               aAnonymize,
+                               aMinimizeMemoryUsage,
+                               aDMDIdentifier);
+  return rv;
+}
+
+NS_IMETHODIMP
+nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
+  const nsAString& aFilename,
+  nsIFinishDumpingCallback* aFinishDumping,
+  nsISupports* aFinishDumpingData,
+  bool aAnonymize)
+{
+  MOZ_ASSERT(!aFilename.IsEmpty());
+
+  // Create the file.
+
+  nsCOMPtr<nsIFile> reportsFile;
+  nsresult rv = NS_NewLocalFile(aFilename, false, getter_AddRefs(reportsFile));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  reportsFile->InitWithPath(aFilename);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  bool exists;
+  rv = reportsFile->Exists(&exists);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (!exists) {
+    rv = reportsFile->Create(nsIFile::NORMAL_FILE_TYPE, 0644);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+
+  nsString dmdIdent = EmptyString();
+  return DumpMemoryInfoToFile(reportsFile, aFinishDumping, aFinishDumpingData,
+                              aAnonymize, /* minimizeMemoryUsage = */ false,
+                              dmdIdent);
+}
 
 NS_IMETHODIMP
 nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
+                                            bool aAnonymize,
                                             bool aMinimizeMemoryUsage)
 {
   nsString identifier(aIdentifier);
   EnsureNonEmptyIdentifier(identifier);
-
-#ifdef MOZ_DMD
-  // Clear DMD's reportedness state before running the memory reporters, to
-  // avoid spurious twice-reported warnings.
-  dmd::ClearReports();
-#endif
 
   // Open a new file named something like
   //
@@ -615,74 +731,58 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
   // looking for memory report dumps to grab a file before we're finished
   // writing to it.
 
-  // Note that |mrFilename| is missing the "incomplete-" prefix; we'll tack
-  // that on in a moment.
-  nsCString mrFilename;
   // The "unified" indicates that we merge the memory reports from all
   // processes and write out one file, rather than a separate file for
   // each process as was the case before bug 946407.  This is so that
   // the get_about_memory.py script in the B2G repository can
   // determine when it's done waiting for files to appear.
-  MakeFilename("unified-memory-report", identifier, "json.gz", mrFilename);
+  nsCString reportsFinalFilename;
+  MakeFilename("unified-memory-report", identifier, getpid(), "json.gz",
+               reportsFinalFilename);
 
-  nsCOMPtr<nsIFile> mrTmpFile;
+  nsCOMPtr<nsIFile> reportsTmpFile;
   nsresult rv;
   // In Android case, this function will open a file named aFilename under
   // specific folder (/data/local/tmp/memory-reports). Otherwise, it will
   // open a file named aFilename under "NS_OS_TEMP_DIR".
   rv = nsDumpUtils::OpenTempFile(NS_LITERAL_CSTRING("incomplete-") +
-                                 mrFilename,
-                                 getter_AddRefs(mrTmpFile),
+                                 reportsFinalFilename,
+                                 getter_AddRefs(reportsTmpFile),
                                  NS_LITERAL_CSTRING("memory-reports"));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  nsRefPtr<nsGZFileWriter> mrWriter = new nsGZFileWriter();
-  rv = mrWriter->Init(mrTmpFile);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  nsRefPtr<TempDirFinishCallback> finishDumping =
+    new TempDirFinishCallback(reportsTmpFile, reportsFinalFilename);
 
-  // Dump the memory reports to the file.
-  rv = DumpHeader(mrWriter);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  // Process reporters.
-  nsCOMPtr<nsIMemoryReporterManager> mgr =
-    do_GetService("@mozilla.org/memory-reporter-manager;1");
-  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback(mrWriter);
-  nsRefPtr<nsIFinishReportingCallback> finishReport =
-    new TempDirMemoryFinishCallback(mrWriter, mrTmpFile, mrFilename, identifier);
-  rv = mgr->GetReportsExtended(dumpReport, nullptr,
-                               finishReport, nullptr,
-                               aMinimizeMemoryUsage,
-                               identifier);
-  return rv;
+  return DumpMemoryInfoToFile(reportsTmpFile, finishDumping, nullptr,
+                              aAnonymize, aMinimizeMemoryUsage, identifier);
 }
 
 #ifdef MOZ_DMD
+dmd::DMDFuncs::Singleton dmd::DMDFuncs::sSingleton;
+
 nsresult
-nsMemoryInfoDumper::DumpDMD(const nsAString& aIdentifier)
+nsMemoryInfoDumper::OpenDMDFile(const nsAString& aIdentifier, int aPid,
+                                FILE** aOutFile)
 {
   if (!dmd::IsRunning()) {
+    *aOutFile = nullptr;
     return NS_OK;
   }
 
-  nsresult rv;
-
-  // Create a filename like dmd-<identifier>-<pid>.txt.gz, which will be used
+  // Create a filename like dmd-<identifier>-<pid>.json.gz, which will be used
   // if DMD is enabled.
   nsCString dmdFilename;
-  MakeFilename("dmd", aIdentifier, "txt.gz", dmdFilename);
+  MakeFilename("dmd", aIdentifier, aPid, "json.gz", dmdFilename);
 
   // Open a new DMD file named |dmdFilename| in NS_OS_TEMP_DIR for writing,
   // and dump DMD output to it.  This must occur after the memory reporters
   // have been run (above), but before the memory-reports file has been
   // renamed (so scripts can detect the DMD file, if present).
 
+  nsresult rv;
   nsCOMPtr<nsIFile> dmdFile;
   rv = nsDumpUtils::OpenTempFile(dmdFilename,
                                  getter_AddRefs(dmdFile),
@@ -690,192 +790,35 @@ nsMemoryInfoDumper::DumpDMD(const nsAString& aIdentifier)
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+  rv = dmdFile->OpenANSIFileDesc("wb", aOutFile);
+  NS_WARN_IF(NS_FAILED(rv));
 
-  nsRefPtr<nsGZFileWriter> dmdWriter = new nsGZFileWriter();
-  rv = dmdWriter->Init(dmdFile);
+  // Print the path, because on some platforms (e.g. Mac) it's not obvious.
+  nsCString path;
+  rv = dmdFile->GetNativePath(path);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  dmd::StatusMsg("opened %s for writing\n", path.get());
+
+  return rv;
+}
+
+nsresult
+nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
+{
+  nsRefPtr<nsGZFileWriter> gzWriter = new nsGZFileWriter();
+  nsresult rv = gzWriter->InitANSIFileDesc(aFile);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  // Dump DMD output to the file.
+  // Dump DMD's memory reports analysis to the file.
+  dmd::Analyze(MakeUnique<GZWriterWrapper>(gzWriter));
 
-  DMDWriteState state(dmdWriter);
-  dmd::Writer w(DMDWrite, &state);
-  dmd::Dump(w);
-
-  rv = dmdWriter->Finish();
+  rv = gzWriter->Finish();
   NS_WARN_IF(NS_FAILED(rv));
   return rv;
 }
 #endif  // MOZ_DMD
 
-NS_IMETHODIMP
-TempDirMemoryFinishCallback::Callback(nsISupports* aData)
-{
-  nsresult rv = DumpFooter(mrWriter);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  // The call to Finish() deallocates the memory allocated by mrWriter's first
-  // DUMP() call (within DumpProcessMemoryReportsToGZFileWriter()).  Because
-  // that memory was live while the memory reporters ran and thus measured by
-  // them -- by "heap-allocated" if nothing else -- we want DMD to see it as
-  // well.  So we deliberately don't call Finish() until after DMD finishes.
-  rv = mrWriter->Finish();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  // Rename the memory reports file, now that we're done writing all the files.
-  // Its final name is "memory-report<-identifier>-<pid>.json.gz".
-
-  nsCOMPtr<nsIFile> mrFinalFile;
-  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(mrFinalFile));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-#ifdef ANDROID
-  rv = mrFinalFile->AppendNative(NS_LITERAL_CSTRING("memory-reports"));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-#endif
-
-  rv = mrFinalFile->AppendNative(mrFilename);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = mrFinalFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsAutoString mrActualFinalFilename;
-  rv = mrFinalFile->GetLeafName(mrActualFinalFilename);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = mrTmpFile->MoveTo(/* directory */ nullptr, mrActualFinalFilename);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  // Write a message to the console.
-
-  nsCOMPtr<nsIConsoleService> cs =
-    do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsString path;
-  mrTmpFile->GetPath(path);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsString msg = NS_LITERAL_STRING("nsIMemoryInfoDumper dumped reports to ");
-  msg.Append(path);
-  return cs->LogStringMessage(msg.get());
-}
-
-// This dumps the JSON footer and closes the file, and then calls the given
-// nsIFinishDumpingCallback.
-class FinishReportingCallback MOZ_FINAL : public nsIFinishReportingCallback
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  FinishReportingCallback(nsIFinishDumpingCallback* aFinishDumping,
-                          nsISupports* aFinishDumpingData)
-    : mFinishDumping(aFinishDumping)
-    , mFinishDumpingData(aFinishDumpingData)
-  {
-  }
-
-  NS_IMETHOD Callback(nsISupports* aData)
-  {
-    nsCOMPtr<nsIGZFileWriter> writer = do_QueryInterface(aData);
-    NS_ENSURE_TRUE(writer, NS_ERROR_FAILURE);
-
-    nsresult rv = DumpFooter(writer);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = writer->Finish();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!mFinishDumping) {
-      return NS_OK;
-    }
-
-    return mFinishDumping->Callback(mFinishDumpingData);
-  }
-
-private:
-  nsCOMPtr<nsIFinishDumpingCallback> mFinishDumping;
-  nsCOMPtr<nsISupports> mFinishDumpingData;
-};
-
-NS_IMPL_ISUPPORTS(FinishReportingCallback, nsIFinishReportingCallback)
-
-NS_IMETHODIMP
-nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
-  const nsAString& aFilename,
-  nsIFinishDumpingCallback* aFinishDumping,
-  nsISupports* aFinishDumpingData)
-{
-  MOZ_ASSERT(!aFilename.IsEmpty());
-
-  // Create the file.
-
-  nsCOMPtr<nsIFile> mrFile;
-  nsresult rv = NS_NewLocalFile(aFilename, false, getter_AddRefs(mrFile));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  mrFile->InitWithPath(aFilename);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  bool exists;
-  rv = mrFile->Exists(&exists);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  if (!exists) {
-    rv = mrFile->Create(nsIFile::NORMAL_FILE_TYPE, 0644);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-  }
-
-  // Write the memory reports to the file.
-
-  nsRefPtr<nsGZFileWriter> mrWriter = new nsGZFileWriter();
-  rv = mrWriter->Init(mrFile);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = DumpHeader(mrWriter);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  // Process reports and finish up.
-  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback(mrWriter);
-  nsRefPtr<FinishReportingCallback> finishReporting =
-    new FinishReportingCallback(aFinishDumping, aFinishDumpingData);
-  nsCOMPtr<nsIMemoryReporterManager> mgr =
-    do_GetService("@mozilla.org/memory-reporter-manager;1");
-  return mgr->GetReports(dumpReport, nullptr, finishReporting, mrWriter);
-}
-
-#undef DUMP

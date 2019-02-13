@@ -10,7 +10,128 @@
 #include <vector>
 #include <zlib.h>
 #include "Utils.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
+
+/**
+ * Helper class wrapping z_stream to avoid malloc() calls during
+ * inflate. Do not use for deflate.
+ * inflateInit allocates two buffers:
+ * - one for its internal state, which is "approximately 10K bytes" according
+ *   to inflate.h from zlib.
+ * - one for the compression window, which depends on the window size passed
+ *   to inflateInit2, but is never greater than 32K (1 << MAX_WBITS).
+ * Those buffers are created at instantiation time instead of when calling
+ * inflateInit2. When inflateInit2 is called, it will call zxx_stream::Alloc
+ * to get both these buffers. zxx_stream::Alloc will choose one of the
+ * pre-allocated buffers depending on the requested size.
+ */
+class zxx_stream: public z_stream
+{
+public:
+  /* Forward declaration */
+  class StaticAllocator;
+
+  explicit zxx_stream(StaticAllocator *allocator_=nullptr)
+  : allocator(allocator_)
+  {
+    memset(this, 0, sizeof(z_stream));
+    zalloc = Alloc;
+    zfree = Free;
+    opaque = this;
+  }
+
+private:
+  static void *Alloc(void *data, uInt items, uInt size)
+  {
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+    if (zStream->allocator) {
+      return zStream->allocator->Alloc(items, size);
+    }
+    size_t buf_size = items * size;
+    return ::operator new(buf_size);
+  }
+
+  static void Free(void *data, void *ptr)
+  {
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+    if (zStream->allocator) {
+      zStream->allocator->Free(ptr);
+    } else {
+      ::operator delete(ptr);
+    }
+  }
+
+  /**
+   * Helper class for each buffer in StaticAllocator.
+   */
+  template <size_t Size>
+  class ZStreamBuf
+  {
+  public:
+    ZStreamBuf() : inUse(false) { }
+
+    char *get()
+    {
+      if (!inUse) {
+        inUse = true;
+        return buf;
+      } else {
+        MOZ_CRASH("ZStreamBuf already in use");
+      }
+    }
+
+    void Release()
+    {
+      memset(buf, 0, Size);
+      inUse = false;
+    }
+
+    bool Equals(const void *other) { return other == buf; }
+
+    static const size_t size = Size;
+
+  private:
+    char buf[Size];
+    bool inUse;
+  };
+
+public:
+  /**
+   * Special allocator that uses static buffers to allocate from.
+   */
+  class StaticAllocator
+  {
+  public:
+    void *Alloc(uInt items, uInt size)
+    {
+      if (items == 1 && size <= stateBuf.size) {
+        return stateBuf.get();
+      } else if (items * size == windowBuf.size) {
+        return windowBuf.get();
+      } else {
+        MOZ_CRASH("No ZStreamBuf for allocation");
+      }
+    }
+
+    void Free(void *ptr)
+    {
+      if (stateBuf.Equals(ptr)) {
+        stateBuf.Release();
+      } else if (windowBuf.Equals(ptr)) {
+        windowBuf.Release();
+      } else {
+        MOZ_CRASH("Pointer doesn't match a ZStreamBuf");
+      }
+    }
+
+    ZStreamBuf<0x3000> stateBuf; // 0x3000 is an arbitrary size above 10K.
+    ZStreamBuf<1 << MAX_WBITS> windowBuf;
+  };
+
+private:
+  StaticAllocator *allocator;
+};
 
 /**
  * Forward declaration
@@ -87,14 +208,13 @@ public:
     Type GetType() { return type; }
 
     /**
-     * Returns a z_stream for use with inflate functions using the given
+     * Returns a zxx_stream for use with inflate functions using the given
      * buffer as inflate output. The caller is expected to allocate enough
      * memory for the Stream uncompressed size.
      */
-    z_stream GetZStream(void *buf)
+    zxx_stream GetZStream(void *buf)
     {
-      z_stream zStream;
-      memset(&zStream, 0, sizeof(zStream));
+      zxx_stream zStream;
       zStream.avail_in = compressedSize;
       zStream.next_in = reinterpret_cast<Bytef *>(
                         const_cast<void *>(compressedBuf));

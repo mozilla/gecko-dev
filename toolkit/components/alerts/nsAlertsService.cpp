@@ -11,7 +11,6 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
-using namespace mozilla::widget::android;
 #else
 
 #include "nsXPCOM.h"
@@ -69,7 +68,9 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
                                                      const nsAString & aAlertName,
                                                      const nsAString & aBidi,
                                                      const nsAString & aLang,
-                                                     nsIPrincipal * aPrincipal)
+                                                     const nsAString & aData,
+                                                     nsIPrincipal * aPrincipal,
+                                                     bool aInPrivateBrowsing)
 {
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     ContentChild* cpc = ContentChild::GetSingleton();
@@ -85,7 +86,9 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
                                    PromiseFlatString(aAlertName),
                                    PromiseFlatString(aBidi),
                                    PromiseFlatString(aLang),
-                                   IPC::Principal(aPrincipal));
+                                   PromiseFlatString(aData),
+                                   IPC::Principal(aPrincipal),
+                                   aInPrivateBrowsing);
     return NS_OK;
   }
 
@@ -98,9 +101,13 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
   nsCOMPtr<nsIAlertsService> sysAlerts(do_GetService(NS_SYSTEMALERTSERVICE_CONTRACTID));
   nsresult rv;
   if (sysAlerts) {
-    return sysAlerts->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertTextClickable,
-                                            aAlertCookie, aAlertListener, aAlertName,
-                                            aBidi, aLang, IPC::Principal(aPrincipal));
+    rv = sysAlerts->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertTextClickable,
+                                          aAlertCookie, aAlertListener, aAlertName,
+                                          aBidi, aLang, aData,
+                                          IPC::Principal(aPrincipal),
+                                          aInPrivateBrowsing);
+    if (NS_SUCCEEDED(rv))
+      return NS_OK;
   }
 
   if (!ShouldShowAlert()) {
@@ -113,7 +120,7 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
   // Use XUL notifications as a fallback if above methods have failed.
   rv = mXULAlerts.ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertTextClickable,
                                         aAlertCookie, aAlertListener, aAlertName,
-                                        aBidi, aLang);
+                                        aBidi, aLang, aInPrivateBrowsing);
   return rv;
 #endif // !MOZ_WIDGET_ANDROID
 }
@@ -128,7 +135,7 @@ NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,
   }
 
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::widget::android::GeckoAppShell::CloseNotification(aAlertName);
+  widget::GeckoAppShell::CloseNotification(aAlertName);
   return NS_OK;
 #else
 
@@ -149,9 +156,9 @@ NS_IMETHODIMP nsAlertsService::OnProgress(const nsAString & aAlertName,
                                           const nsAString & aAlertText)
 {
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::widget::android::GeckoAppShell::AlertsProgressListener_OnProgress(aAlertName,
-                                                                             aProgress, aProgressMax,
-                                                                             aAlertText);
+  widget::GeckoAppShell::AlertsProgressListener_OnProgress(aAlertName,
+                                                           aProgress, aProgressMax,
+                                                           aAlertText);
   return NS_OK;
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -161,7 +168,7 @@ NS_IMETHODIMP nsAlertsService::OnProgress(const nsAString & aAlertName,
 NS_IMETHODIMP nsAlertsService::OnCancel(const nsAString & aAlertName)
 {
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::widget::android::GeckoAppShell::CloseNotification(aAlertName);
+  widget::GeckoAppShell::CloseNotification(aAlertName);
   return NS_OK;
 #else
   return NS_ERROR_NOT_IMPLEMENTED;

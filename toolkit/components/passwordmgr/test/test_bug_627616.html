@@ -1,8 +1,9 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-  <title>Test bug 627616</title>
-  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
+  <meta charset="utf-8">
+  <title>Test bug 627616 related to proxy authentication</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="prompt_common.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
@@ -11,6 +12,8 @@
     SimpleTest.waitForExplicitFinish();
 
     var Cc = SpecialPowers.Cc;
+    var Ci = SpecialPowers.Ci;
+    var systemPrincipal = SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal();
 
     testNum = 1;
 
@@ -35,8 +38,15 @@
         var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
         var pps = Cc["@mozilla.org/network/protocol-proxy-service;1"].getService();
 
-        var uri = ios.newURI("http://example.com", null, null);
-        pps.asyncResolve(uri, 0, resolveCallback);
+        var channel = ios.newChannel2("http://example.com",
+                                      null,
+                                      null,
+                                      null,      // aLoadingNode
+                                      systemPrincipal,
+                                      null,      // aTriggeringPrincipal
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
+        pps.asyncResolve(channel, 0, resolveCallback);
     }
 
     function init2(proxyHost, proxyPort) {
@@ -105,7 +115,7 @@
       Cc["@mozilla.org/network/http-auth-manager;1"].getService(SpecialPowers.Ci.nsIHttpAuthManager).clearAll();
       if (pendingTests.length > 0) {
         ({expectedDialogs: gExpectedDialogs,
-          test: gCurrentTest}) = pendingTests.shift();
+          test: gCurrentTest} = pendingTests.shift());
         gCurrentTest.call(this);
       } else {
         cleanup();

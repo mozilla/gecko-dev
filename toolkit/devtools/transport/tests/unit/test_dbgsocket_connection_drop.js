@@ -13,16 +13,14 @@ Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
 const { RawPacket } = devtools.require("devtools/toolkit/transport/packets");
 
-let port = 2929;
-
 function run_test() {
   do_print("Starting test at " + new Date().toTimeString());
   initTestDebuggerServer();
 
-  add_test(test_socket_conn_drops_after_invalid_header);
-  add_test(test_socket_conn_drops_after_invalid_header_2);
-  add_test(test_socket_conn_drops_after_too_large_length);
-  add_test(test_socket_conn_drops_after_too_long_header);
+  add_task(test_socket_conn_drops_after_invalid_header);
+  add_task(test_socket_conn_drops_after_invalid_header_2);
+  add_task(test_socket_conn_drops_after_too_large_length);
+  add_task(test_socket_conn_drops_after_too_long_header);
   run_next_test();
 }
 
@@ -48,16 +46,29 @@ function test_socket_conn_drops_after_too_long_header() {
   return test_helper(rawPacket + ':');
 }
 
-function test_helper(payload) {
-  try_open_listener();
+let test_helper = Task.async(function*(payload) {
+  let AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
+  let authenticator = new AuthenticatorType.Server();
+  authenticator.allowConnection = () => {
+    return DebuggerServer.AuthenticationResult.ALLOW;
+  };
 
-  let transport = debuggerSocketConnect("127.0.0.1", port);
+  let listener = DebuggerServer.createListener();
+  listener.portOrPath = -1;
+  listener.authenticator = authenticator;
+  listener.open();
+
+  let transport = yield DebuggerClient.socketConnect({
+    host: "127.0.0.1",
+    port: listener.port
+  });
+  let closedDeferred = promise.defer();
   transport.hooks = {
     onPacket: function(aPacket) {
       this.onPacket = function(aPacket) {
         do_throw(new Error("This connection should be dropped."));
         transport.close();
-      }
+      };
 
       // Inject the payload directly into the stream.
       transport._outgoing.push(new RawPacket(transport, payload));
@@ -65,18 +76,9 @@ function test_helper(payload) {
     },
     onClosed: function(aStatus) {
       do_check_true(true);
-      run_next_test();
+      closedDeferred.resolve();
     },
   };
   transport.ready();
-}
-
-function try_open_listener() {
-  try {
-    do_check_true(DebuggerServer.openListener(port));
-  } catch (e) {
-    // In case the port is unavailable, pick a random one between 2000 and 65000.
-    port = Math.floor(Math.random() * (65000 - 2000 + 1)) + 2000;
-    try_open_listener();
-  }
-}
+  return closedDeferred.promise;
+});

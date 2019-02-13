@@ -5,9 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef MOZ_WIDGET_QT
-#include <QDesktopServices>
-#include <QUrl>
-#include <QString>
 #if (MOZ_ENABLE_CONTENTACTION)
 #include <contentaction/contentaction.h>
 #include "nsContentHandlerApp.h"
@@ -19,10 +16,12 @@
 #include "nsIGIOService.h"
 #include "nsNetCID.h"
 #include "nsIIOService.h"
-#include "nsIGnomeVFSService.h"
 #include "nsAutoPtr.h"
 #ifdef MOZ_ENABLE_DBUS
 #include "nsDBusHandlerApp.h"
+#endif
+#ifdef MOZ_WIDGET_QT
+#include "nsMIMEInfoQt.h"
 #endif
 
 nsresult
@@ -32,11 +31,7 @@ nsMIMEInfoUnix::LoadUriInternal(nsIURI * aURI)
 
 #ifdef MOZ_WIDGET_QT
   if (NS_FAILED(rv)) {
-    nsAutoCString spec;
-    aURI->GetAsciiSpec(spec);
-    if (QDesktopServices::openUrl(QUrl(spec.get()))) {
-      rv = NS_OK;
-    }
+    rv = nsMIMEInfoQt::LoadUriInternal(aURI);
   }
 #endif
 
@@ -54,7 +49,7 @@ nsMIMEInfoUnix::GetHasDefaultHandler(bool *_retval)
 
   *_retval = false;
 
-  if (mClass ==  eProtocolInfo) {
+  if (mClass == eProtocolInfo) {
     *_retval = nsGNOMERegistry::HandlerExists(mSchemeOrType.get());
   } else {
     nsRefPtr<nsMIMEInfoBase> mimeInfo = nsGNOMERegistry::GetFromType(mSchemeOrType);
@@ -108,51 +103,26 @@ nsMIMEInfoUnix::LaunchDefaultWithFile(nsIFile *aFile)
 #endif
 
   nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);
+  if (!giovfs) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // nsGIOMimeApp->Launch wants a URI string instead of local file
+  nsresult rv;
+  nsCOMPtr<nsIIOService> ioservice = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIURI> uri;
+  rv = ioservice->NewFileURI(aFile, getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
   nsAutoCString uriSpec;
-  if (giovfs) {
-    // nsGIOMimeApp->Launch wants a URI string instead of local file
-    nsresult rv;
-    nsCOMPtr<nsIIOService> ioservice = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<nsIURI> uri;
-    rv = ioservice->NewFileURI(aFile, getter_AddRefs(uri));
-    NS_ENSURE_SUCCESS(rv, rv);
-    uri->GetSpec(uriSpec);
-  }
+  uri->GetSpec(uriSpec);
 
-  nsCOMPtr<nsIGnomeVFSService> gnomevfs = do_GetService(NS_GNOMEVFSSERVICE_CONTRACTID);
-  if (giovfs) {
-    nsCOMPtr<nsIGIOMimeApp> app;
-    if (NS_SUCCEEDED(giovfs->GetAppForMimeType(mSchemeOrType, getter_AddRefs(app))) && app)
-      return app->Launch(uriSpec);
-  } else if (gnomevfs) {
-    /* Fallback to GnomeVFS */
-    nsCOMPtr<nsIGnomeVFSMimeApp> app;
-    if (NS_SUCCEEDED(gnomevfs->GetAppForMimeType(mSchemeOrType, getter_AddRefs(app))) && app)
-      return app->Launch(nativePath);
-  }
-
-  // If we haven't got an app we try to get a valid one by searching for the
-  // extension mapped type
-  nsRefPtr<nsMIMEInfoBase> mimeInfo = nsGNOMERegistry::GetFromExtension(nativePath);
-  if (mimeInfo) {
-    nsAutoCString type;
-    mimeInfo->GetType(type);
-    if (giovfs) {
-      nsCOMPtr<nsIGIOMimeApp> app;
-      if (NS_SUCCEEDED(giovfs->GetAppForMimeType(type, getter_AddRefs(app))) && app)
-        return app->Launch(uriSpec);
-    } else if (gnomevfs) {
-      nsCOMPtr<nsIGnomeVFSMimeApp> app;
-      if (NS_SUCCEEDED(gnomevfs->GetAppForMimeType(type, getter_AddRefs(app))) && app)
-        return app->Launch(nativePath);
-    }
-  }
-
-  if (!mDefaultApplication)
+  nsCOMPtr<nsIGIOMimeApp> app;
+  if (NS_FAILED(giovfs->GetAppForMimeType(mSchemeOrType, getter_AddRefs(app))) || !app) {
     return NS_ERROR_FILE_NOT_FOUND;
+  }
 
-  return LaunchWithIProcess(mDefaultApplication, nativePath);
+  return app->Launch(uriSpec);
 }
 
 #if defined(MOZ_ENABLE_CONTENTACTION)

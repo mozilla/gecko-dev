@@ -25,21 +25,19 @@
 // Classes
 class nsPagePrintTimer;
 class nsIDocShell;
-class nsDeviceContext;
 class nsIDocument;
 class nsIDocumentViewerPrint;
 class nsPrintObject;
 class nsIDocShell;
 class nsIPageSequenceFrame;
-class nsIWeakReference;
 
 //------------------------------------------------------------------------
 // nsPrintEngine Class
 //
 //------------------------------------------------------------------------
-class nsPrintEngine MOZ_FINAL : public nsIObserver,
-                                public nsIWebProgressListener,
-                                public nsSupportsWeakReference
+class nsPrintEngine final : public nsIObserver,
+                            public nsIWebProgressListener,
+                            public nsSupportsWeakReference
 {
 public:
   // nsISupports interface...
@@ -76,7 +74,6 @@ public:
   };
 
   nsPrintEngine();
-  ~nsPrintEngine();
 
   void Destroy();
   void DestroyPrintingData();
@@ -213,6 +210,7 @@ public:
   }
 
 protected:
+  ~nsPrintEngine();
 
   nsresult CommonPrint(bool aIsPrintPreview, nsIPrintSettings* aPrintSettings,
                        nsIWebProgressListener* aWebProgressListener,
@@ -307,7 +305,7 @@ protected:
   nsresult InitPrintDocConstruction(bool aHandleError);
   void FirePrintPreviewUpdateEvent();
 private:
-  nsPrintEngine& operator=(const nsPrintEngine& aOther) MOZ_DELETE;
+  nsPrintEngine& operator=(const nsPrintEngine& aOther) = delete;
 };
 
 #endif /* nsPrintEngine_h___ */

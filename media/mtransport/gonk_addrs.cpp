@@ -85,7 +85,7 @@ GetInterfaces(std::vector<NetworkInterface>* aInterfaces)
       }
     }
 
-    nsMemory::Free(prefixs);
+    free(prefixs);
     NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(count, ips);
 
     if (!isAddressGot) {
@@ -129,7 +129,7 @@ nr_stun_get_addrs(nr_local_addr aAddrs[], int aMaxAddrs,
   nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
   mozilla::SyncRunnable::DispatchToThread(
     mainThread.get(),
-    mozilla::WrapRunnableNMRet(&GetInterfaces, &interfaces, &rv),
+    mozilla::WrapRunnableNMRet(&rv, &GetInterfaces, &interfaces),
     false);
   if (NS_FAILED(rv)) {
     return R_FAILED;

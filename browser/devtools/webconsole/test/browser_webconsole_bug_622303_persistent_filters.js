@@ -1,11 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let prefs = {
+const prefs = {
   "net": [
     "network",
     "netwarn",
-    "networkinfo",
+    "netxhr",
+    "networkinfo"
   ],
   "css": [
     "csserror",
@@ -21,11 +22,14 @@ let prefs = {
      "error",
      "warn",
      "info",
-     "log"
+     "log",
+     "serviceworkers",
+     "sharedworkers",
+     "windowlessworkers"
   ]
 };
 
-function test() {
+let test = asyncTest(function* () {
   // Set all prefs to true
   for (let category in prefs) {
     prefs[category].forEach(function(pref) {
@@ -33,11 +37,25 @@ function test() {
     });
   }
 
-  addTab("about:blank");
-  openConsole(null, onConsoleOpen);
-}
+  yield loadTab("about:blank");
+
+  let hud = yield openConsole();
+
+  let hud2 = yield onConsoleOpen(hud);
+  let hud3 = yield onConsoleReopen1(hud2);
+  yield onConsoleReopen2(hud3);
+
+  // Clear prefs
+  for (let category in prefs) {
+    prefs[category].forEach(function(pref) {
+      Services.prefs.clearUserPref("devtools.webconsole.filter." + pref);
+    });
+  }
+});
 
 function onConsoleOpen(hud) {
+  let deferred = promise.defer();
+
   let hudBox = hud.ui.rootElement;
 
   // Check if the filters menuitems exists and are checked
@@ -60,12 +78,17 @@ function onConsoleOpen(hud) {
   }
 
   //Re-init the console
-  closeConsole(null, function() {
-    openConsole(null, onConsoleReopen1);
+  closeConsole().then(() => {
+    openConsole().then(deferred.resolve);
   });
+
+  return deferred.promise;
 }
 
 function onConsoleReopen1(hud) {
+  info("testing after reopening once");
+  let deferred = promise.defer();
+
   let hudBox = hud.ui.rootElement;
 
   // Check if the filter button and menuitems are unchecked
@@ -86,12 +109,16 @@ function onConsoleReopen1(hud) {
   }
 
   // Re-init the console
-  closeConsole(null, function() {
-    openConsole(null, onConsoleReopen2);
+  closeConsole().then(() => {
+    openConsole().then(deferred.resolve);
   });
+
+  return deferred.promise;
 }
 
 function onConsoleReopen2(hud) {
+  info("testing after reopening again");
+
   let hudBox = hud.ui.rootElement;
 
   // Check the main category button is checked and first menuitem is checked
@@ -104,16 +131,6 @@ function onConsoleReopen2(hud) {
     let menuitem = hudBox.querySelector("menuitem[prefKey=" + pref + "]");
     ok(isChecked(menuitem), "first " + category + " menuitem is checked");
   }
-
-  // Clear prefs
-  for (let category in prefs) {
-    prefs[category].forEach(function(pref) {
-      Services.prefs.clearUserPref("devtools.webconsole.filter." + pref);
-    });
-  }
-
-  prefs = null;
-  finishTest();
 }
 
 function isChecked(aNode) {

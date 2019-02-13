@@ -73,13 +73,19 @@ menulist:hover:active > .menulist-dropmarker {
 
 /* ..... focused state ..... */
 
-menulist:focus:not([open="true"]):not(.menulist-compact) > .menulist-label-box {
+menulist:focus:not([open="true"]) > .menulist-label-box {
   background-color: Highlight;
   color: HighlightText;
 }
 
 menulist:-moz-focusring:not([open="true"]) > .menulist-label-box {
-  border: 1px dotted #F5DB95;
+  border: 1px dotted ThreeDDarkShadow;
+}
+
+@media (-moz-os-version: windows-xp) {
+  menulist:-moz-focusring:not([open="true"]) > .menulist-label-box {
+    border: 1px dotted #F5DB95;
+  }
 }
 
 /* ..... disabled state ..... */
@@ -106,42 +112,32 @@ html|*.menulist-editable-input {
   font: inherit;
 }
 
-/* ::::: compact menulists ::::: */
+@media (-moz-windows-default-theme) {
+  @media not all and (-moz-os-version: windows-xp) {
+    .menulist-label-box {
+      background-color: transparent !important;
+      color: inherit !important;
+    }
 
-.menulist-compact {
-  -moz-appearance: none;
-  -moz-box-align: center;
-  -moz-box-pack: center;
-  margin: 0;
-  -moz-border-top-colors: ThreeDHighlight ThreeDLightShadow;
-  -moz-border-right-colors: ThreeDDarkShadow ThreeDShadow;
-  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDShadow;
-  -moz-border-left-colors: ThreeDHighlight ThreeDLightShadow;
-  background-color: ThreeDFace;
-  color: ButtonText;
-  list-style-image: url("chrome://global/skin/arrow/arrow-dn.gif");
-}
+    .menulist-label {
+      margin-top: -1px !important;
+      margin-bottom: -1px !important;
+      -moz-margin-start: 0 !important;
+    }
 
-.menulist-compact > .menulist-label-box > .menulist-label {
-  margin: 0 3px !important;
-  text-align: end;
-}  
+    .menulist-description {
+      -moz-margin-start: 1ex !important;
+    }
 
-.menulist-compact > .menulist-label-box > .menulist-icon {
-  -moz-margin-start: 2px;
-}
+    menulist:not([editable="true"]) > .menulist-dropmarker {
+      margin-top: -2px;
+      -moz-margin-start: 3px;
+      -moz-margin-end: -3px;
+    }
 
-.menulist-compact[open="true"] {
-  -moz-border-top-colors: ThreeDDarkShadow ThreeDShadow;
-  -moz-border-right-colors: ThreeDDarkShadow ThreeDHighlight;
-  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDHighlight;
-  -moz-border-left-colors: ThreeDDarkShadow ThreeDShadow;
-}
-
-.menulist-compact[disabled="true"] {
-  list-style-image: url("chrome://global/skin/arrow/arrow-dn-dis.gif");
-}
-
-.menulist-compact:-moz-focusring:not([open="true"]) > .menulist-label-box {
-  border: 1px dotted;
+    .menulist-icon {
+      margin-top: -1px;
+      margin-bottom: -1px;
+    }
+  }
 }

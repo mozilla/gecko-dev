@@ -21,6 +21,7 @@ XPIDL_SOURCES += [
     'nsINetworkService.idl',
     'nsINetworkWorker.idl',
     'nsISystemWorkerManager.idl',
+    'nsITetheringService.idl',
     'nsIVolume.idl',
     'nsIVolumeMountLock.idl',
     'nsIVolumeService.idl',
@@ -35,12 +36,16 @@ EXPORTS += [
     'nsVolume.h',
     'nsVolumeService.h',
 ]
-SOURCES += [
+UNIFIED_SOURCES += [
     'AudioChannelManager.cpp',
     'AudioManager.cpp',
     'AutoMounter.cpp',
     'AutoMounterSetting.cpp',
     'GonkGPSGeolocationProvider.cpp',
+    'MozMtpDatabase.cpp',
+    'MozMtpServer.cpp',
+    'MozMtpStorage.cpp',
+    'NetIdManager.cpp',
     'NetworkUtils.cpp',
     'NetworkWorker.cpp',
     'nsVolume.cpp',
@@ -57,18 +62,23 @@ SOURCES += [
     'VolumeServiceTest.cpp',
 ]
 
+if CONFIG['ANDROID_VERSION'] >= '17':
+    CXXFLAGS += ['-I%s/frameworks/av/media/mtp' % CONFIG['ANDROID_SOURCE']]
+else:
+    CXXFLAGS += ['-I%s/frameworks/base/media/mtp' % CONFIG['ANDROID_SOURCE']]
+
 if CONFIG['ENABLE_TESTS']:
     XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']
 
 EXTRA_COMPONENTS += [
     'NetworkInterfaceListService.js',
     'NetworkInterfaceListService.manifest',
+    'NetworkManager.js',
     'NetworkManager.manifest',
     'NetworkService.js',
     'NetworkService.manifest',
-]
-EXTRA_PP_COMPONENTS += [
-    'NetworkManager.js',
+    'TetheringService.js',
+    'TetheringService.manifest',
 ]
 EXTRA_JS_MODULES += [
     'systemlibs.js',
@@ -76,31 +86,33 @@ EXTRA_JS_MODULES += [
 
 if CONFIG['MOZ_B2G_RIL']:
     XPIDL_SOURCES += [
+        'nsIDataCallInterfaceService.idl',
+        'nsIDataCallManager.idl',
+        'nsIGonkDataCallInterfaceService.idl',
         'nsIRadioInterfaceLayer.idl',
     ]
     EXTRA_COMPONENTS += [
-        'RadioInterfaceLayer.js',
-        'RadioInterfaceLayer.manifest',
-        'RILContentHelper.js',
+        'DataCallManager.js',
+        'DataCallManager.manifest',
+        'RILContentHelper.js', # TODO: Bug 815526, deprecate RILContentHelper.
+        'RILContentHelper.manifest', # TODO: Bug 815526, deprecate RILContentHelper.
+        'RILSystemMessengerHelper.js',
+        'RILSystemMessengerHelper.manifest',
     ]
     EXTRA_JS_MODULES += [
         'ril_consts.js',
         'ril_worker.js',
+        'ril_worker_buf_object.js',
+        'ril_worker_telephony_request_queue.js',
+        'RILSystemMessenger.jsm',
     ]
-
-if CONFIG['MOZ_NFC']:
-    XPIDL_SOURCES += [
-        'nsINfcContentHelper.idl',
-    ]
-    EXTRA_COMPONENTS += [
-        'Nfc.js',
-        'Nfc.manifest',
-        'NfcContentHelper.js',
-    ]
-    EXTRA_JS_MODULES += [
-    'nfc_consts.js',
-    'nfc_worker.js',
-    ]
+    if not CONFIG['DISABLE_MOZ_RIL_GEOLOC']:
+        EXTRA_COMPONENTS += [
+            'DataCallInterfaceService.js',
+            'DataCallInterfaceService.manifest',
+            'RadioInterfaceLayer.js',
+            'RadioInterfaceLayer.manifest',
+        ]
 
 FAIL_ON_WARNINGS = True
 
@@ -109,9 +121,17 @@ include('/ipc/chromium/chromium-config.mozbuild')
 LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/bluetooth',
-    '/dom/nfc',
-    '/dom/src/geolocation',
+    '/dom/geolocation',
     '/dom/wifi',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+if CONFIG['MOZ_B2G_BT_API_V1']:
+    LOCAL_INCLUDES += [
+        '/dom/bluetooth/bluetooth1',
+    ]
+else:
+    LOCAL_INCLUDES += [
+        '/dom/bluetooth/bluetooth2',
+    ]
+
+FINAL_LIBRARY = 'xul'

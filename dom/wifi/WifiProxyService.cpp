@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +11,6 @@
 #include "mozilla/dom/ToJSValue.h"
 #include "nsXULAppAPI.h"
 #include "WifiUtils.h"
-#include "nsCxPusher.h"
 
 #ifdef MOZ_TASK_TRACER
 #include "GeckoTaskTracer.h"
@@ -72,7 +73,7 @@ public:
 #ifdef MOZ_TASK_TRACER
       // Make wifi initialization events to be the source events of TaskTracer,
       // and originate the rest correlation tasks from here.
-      AutoSourceEvent taskTracerEvent(SourceEventType::WIFI);
+      AutoSourceEvent taskTracerEvent(SourceEventType::Wifi);
       AddLabel("%s %s", mInterface.get(), NS_ConvertUTF16toUTF8(event).get());
 #endif
       nsCOMPtr<nsIRunnable> runnable = new WifiEventDispatcher(event, mInterface);
@@ -90,36 +91,10 @@ class WifiResultDispatcher : public nsRunnable
 {
 public:
   WifiResultDispatcher(WifiResultOptions& aResult, const nsACString& aInterface)
-    : mInterface(aInterface)
+    : mResult(aResult)
+    , mInterface(aInterface)
   {
     MOZ_ASSERT(!NS_IsMainThread());
-
-    // XXX: is there a better way to copy webidl dictionnaries?
-    // the copy constructor is private.
-#define COPY_FIELD(prop) mResult.prop = aResult.prop;
-
-    COPY_FIELD(mId)
-    COPY_FIELD(mStatus)
-    COPY_FIELD(mReply)
-    COPY_FIELD(mRoute)
-    COPY_FIELD(mError)
-    COPY_FIELD(mValue)
-    COPY_FIELD(mIpaddr_str)
-    COPY_FIELD(mGateway_str)
-    COPY_FIELD(mDns1_str)
-    COPY_FIELD(mDns2_str)
-    COPY_FIELD(mMask_str)
-    COPY_FIELD(mServer_str)
-    COPY_FIELD(mVendor_str)
-    COPY_FIELD(mLease)
-    COPY_FIELD(mMask)
-    COPY_FIELD(mIpaddr)
-    COPY_FIELD(mGateway)
-    COPY_FIELD(mDns1)
-    COPY_FIELD(mDns2)
-    COPY_FIELD(mServer)
-
-#undef COPY_FIELD
   }
 
   NS_IMETHOD Run()
@@ -201,6 +176,14 @@ WifiProxyService::Start(nsIWifiEventListener* aListener,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aListener);
 
+#if ANDROID_VERSION >= 19
+  // KK changes the way mux'ing/demux'ing different supplicant interfaces
+  // (e.g. wlan0/p2p0) from multi-sockets to single socket embedded with
+  // prefixed interface name (e.g. IFNAME=wlan0 xxxxxx). Therefore, we use
+  // the first given interface as the global interface for KK.
+  aNumOfInterfaces = 1;
+#endif
+
   nsresult rv;
 
   // Since EventRunnable runs in the manner of blocking, we have to
@@ -239,11 +222,16 @@ WifiProxyService::Shutdown()
       mEventThreadList[i].mThread = nullptr;
     }
   }
+
   mEventThreadList.Clear();
+
   if (mControlThread) {
     mControlThread->Shutdown();
     mControlThread = nullptr;
   }
+
+  mListener = nullptr;
+
   return NS_OK;
 }
 
@@ -272,6 +260,14 @@ WifiProxyService::WaitForEvent(const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+#if ANDROID_VERSION >= 19
+  // We will only have one global interface for KK.
+  if (!mEventThreadList.IsEmpty()) {
+    nsCOMPtr<nsIRunnable> runnable = new EventRunnable(aInterface);
+    mEventThreadList[0].mThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
+    return NS_OK;
+  }
+#else
   // Dispatch to the event thread which has the given interface name
   for (size_t i = 0; i < mEventThreadList.Length(); i++) {
     if (mEventThreadList[i].mInterface.Equals(aInterface)) {
@@ -280,6 +276,7 @@ WifiProxyService::WaitForEvent(const nsACString& aInterface)
       return NS_OK;
     }
   }
+#endif
 
   return NS_ERROR_FAILURE;
 }
@@ -304,16 +301,27 @@ void
 WifiProxyService::DispatchWifiEvent(const nsAString& aEvent, const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+#if ANDROID_VERSION < 19
+  mListener->OnWaitEvent(aEvent, aInterface);
+#else
+  // The interface might be embedded in the event string such as
+  // "IFNAME=wlan0 CTRL-EVENT-BSS-ADDED 65 3c:94:d5:7c:11:8b".
+  // Parse the interface name from the event string and use p2p0
+  // as the default interface if "IFNAME" is not found.
   nsAutoString event;
+  nsAutoString embeddedInterface(NS_LITERAL_STRING("p2p0"));
   if (StringBeginsWith(aEvent, NS_LITERAL_STRING("IFNAME"))) {
-    // Jump over IFNAME for gonk-kk.
+    int32_t ifnameFrom = aEvent.FindChar('=') + 1;
+    int32_t ifnameTo = aEvent.FindChar(' ') - 1;
+    embeddedInterface = Substring(aEvent, ifnameFrom, ifnameTo - ifnameFrom + 1);
     event = Substring(aEvent, aEvent.FindChar(' ') + 1);
   }
   else {
     event = aEvent;
   }
-  // Call the listener.
-  mListener->OnWaitEvent(event, aInterface);
+  mListener->OnWaitEvent(event, NS_ConvertUTF16toUTF8(embeddedInterface));
+#endif
 }
 
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(WifiProxyService,

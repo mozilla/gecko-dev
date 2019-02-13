@@ -1,14 +1,14 @@
+/* vim: set ts=4 sts=4 sw=4 et tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
@@ -16,6 +16,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
                                   "resource://gre/modules/FormHistory.jsm");
+
+function isAutocompleteDisabled(aField) {
+    if (aField.autocomplete !== "") {
+        return aField.autocomplete === "off";
+    }
+
+    return aField.form && aField.form.autocomplete === "off";
+}
 
 function FormAutoComplete() {
     this.init();
@@ -107,6 +115,11 @@ FormAutoComplete.prototype = {
         }
     },
 
+    // AutoCompleteE10S needs to be able to call autoCompleteSearchAsync without
+    // going through IDL in order to pass a mock DOM object field.
+    get wrappedJSObject() {
+        return this;
+    },
 
     /*
      * log
@@ -121,49 +134,44 @@ FormAutoComplete.prototype = {
         Services.console.logStringMessage("FormAutoComplete: " + message);
     },
 
-
-    autoCompleteSearch : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult) {
-      Deprecated.warning("nsIFormAutoComplete::autoCompleteSearch is deprecated", "https://bugzilla.mozilla.org/show_bug.cgi?id=697377");
-
-      let result = null;
-      let listener = {
-        onSearchCompletion: function (r) result = r
-      };
-      this._autoCompleteSearchShared(aInputName, aUntrimmedSearchString, aField, aPreviousResult, listener);
-
-      // Just wait for the result to to be available.
-      let thread = Components.classes["@mozilla.org/thread-manager;1"].getService().currentThread;
-      while (!result && this._pendingQuery) {
-        thread.processNextEvent(true);
-      }
-
-      return result;
-    },
-
-    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener) {
-      this._autoCompleteSearchShared(aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener);
-    },
-
     /*
-     * autoCompleteSearchShared
+     * autoCompleteSearchAsync
      *
      * aInputName    -- |name| attribute from the form input being autocompleted.
      * aUntrimmedSearchString -- current value of the input
      * aField -- nsIDOMHTMLInputElement being autocompleted (may be null if from chrome)
      * aPreviousResult -- previous search result, if any.
+     * aDatalistResult -- results from list=datalist for aField.
      * aListener -- nsIFormAutoCompleteObserver that listens for the nsIAutoCompleteResult
      *              that may be returned asynchronously.
      */
-    _autoCompleteSearchShared : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener) {
+    autoCompleteSearchAsync : function (aInputName,
+                                        aUntrimmedSearchString,
+                                        aField,
+                                        aPreviousResult,
+                                        aDatalistResult,
+                                        aListener) {
         function sortBytotalScore (a, b) {
             return b.totalScore - a.totalScore;
         }
 
-        let result = null;
+        // Guard against void DOM strings filtering into this code.
+        if (typeof aInputName === "object") {
+            aInputName = "";
+        }
+        if (typeof aUntrimmedSearchString === "object") {
+            aUntrimmedSearchString = "";
+        }
+
+        // If we have datalist results, they become our "empty" result.
+        let emptyResult = aDatalistResult ||
+                          new FormAutoCompleteResult(FormHistory, [],
+                                                     aInputName,
+                                                     aUntrimmedSearchString,
+                                                     null);
         if (!this._enabled) {
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(emptyResult);
             }
             return;
         }
@@ -171,9 +179,16 @@ FormAutoComplete.prototype = {
         // don't allow form inputs (aField != null) to get results from search bar history
         if (aInputName == 'searchbar-history' && aField) {
             this.log('autoCompleteSearch for input name "' + aInputName + '" is denied');
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(emptyResult);
+            }
+            return;
+        }
+
+        if (aField && isAutocompleteDisabled(aField)) {
+            this.log('autoCompleteSearch not allowed due to autcomplete=off');
+            if (aListener) {
+                aListener.onSearchCompletion(emptyResult);
             }
             return;
         }
@@ -187,13 +202,41 @@ FormAutoComplete.prototype = {
         if (aPreviousResult && aPreviousResult.searchString.trim().length > 1 &&
             searchString.indexOf(aPreviousResult.searchString.trim().toLowerCase()) >= 0) {
             this.log("Using previous autocomplete result");
-            result = aPreviousResult;
-            result.wrappedJSObject.searchString = aUntrimmedSearchString;
+            let result = aPreviousResult;
+            let wrappedResult = result.wrappedJSObject;
+            wrappedResult.searchString = aUntrimmedSearchString;
+
+            // Leaky abstraction alert: it would be great to be able to split
+            // this code between nsInputListAutoComplete and here but because of
+            // the way we abuse the formfill autocomplete API in e10s, we have
+            // to deal with the <datalist> results here as well (and down below
+            // in mergeResults).
+            // If there were datalist results result is a FormAutoCompleteResult
+            // as defined in nsFormAutoCompleteResult.jsm with the entire list
+            // of results in wrappedResult._values and only the results from
+            // form history in wrappedResults.entries.
+            // First, grab the entire list of old results.
+            let allResults = wrappedResult._labels;
+            let datalistResults, datalistLabels;
+            if (allResults) {
+                // We have datalist results, extract them from the values array.
+                datalistLabels = allResults.slice(wrappedResult.entries.length);
+                let filtered = [];
+                datalistResults = [];
+                for (let i = 0; i < datalistLabels.length; ++i) {
+                    if (datalistLabels[i].toLowerCase().includes(searchString)) {
+                        filtered.push(datalistLabels[i]);
+                        datalistResults.push(wrappedResult._values[i]);
+                    }
+                }
+
+                datalistLabels = filtered;
+            }
 
             let searchTokens = searchString.split(/\s+/);
             // We have a list of results for a shorter search string, so just
             // filter them further based on the new search string and add to a new array.
-            let entries = result.wrappedJSObject.entries;
+            let entries = wrappedResult.entries;
             let filteredEntries = [];
             for (let i = 0; i < entries.length; i++) {
                 let entry = entries[i];
@@ -207,32 +250,88 @@ FormAutoComplete.prototype = {
                 filteredEntries.push(entry);
             }
             filteredEntries.sort(sortBytotalScore);
-            result.wrappedJSObject.entries = filteredEntries;
+            wrappedResult.entries = filteredEntries;
+
+            // If we had datalistResults, re-merge them back into the filtered
+            // entries.
+            if (datalistResults) {
+                filteredEntries = filteredEntries.map(elt => elt.text);
+
+                let comments = new Array(filteredEntries.length + datalistResults.length).fill("");
+                comments[filteredEntries.length] = "separator";
+
+                datalistLabels = new Array(filteredEntries.length).fill("").concat(datalistLabels);
+                wrappedResult._values = filteredEntries.concat(datalistResults);
+                wrappedResult._labels = datalistLabels;
+                wrappedResult._comments = comments;
+            }
 
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(result);
             }
         } else {
             this.log("Creating new autocomplete search result.");
 
             // Start with an empty list.
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
+            let result = aDatalistResult ?
+                new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString, null) :
+                emptyResult;
 
-            let processEntry = function(aEntries) {
-              if (aField && aField.maxLength > -1) {
-                result.entries =
-                  aEntries.filter(function (el) { return el.text.length <= aField.maxLength; });
-              } else {
-                result.entries = aEntries;
-              }
+            let processEntry = (aEntries) => {
+                if (aField && aField.maxLength > -1) {
+                    result.entries =
+                        aEntries.filter(function (el) { return el.text.length <= aField.maxLength; });
+                } else {
+                    result.entries = aEntries;
+                }
 
-              if (aListener) {
-                aListener.onSearchCompletion(result);
-              }
+                if (aDatalistResult) {
+                    result = this.mergeResults(result, aDatalistResult);
+                }
+
+                if (aListener) {
+                    aListener.onSearchCompletion(result);
+                }
             }
 
             this.getAutoCompleteValues(aInputName, searchString, processEntry);
         }
+    },
+
+    mergeResults(historyResult, datalistResult) {
+        let values = datalistResult.wrappedJSObject._values;
+        let labels = datalistResult.wrappedJSObject._labels;
+        let comments = [];
+
+        // formHistoryResult will be null if form autocomplete is disabled. We
+        // still want the list values to display.
+        let entries = historyResult.wrappedJSObject.entries;
+        let historyResults = entries.map(function(entry) { return entry.text });
+        let historyComments = new Array(entries.length).fill("");
+
+        // fill out the comment column for the suggestions
+        // if we have any suggestions, put a label at the top
+        if (values.length) {
+            comments[0] = "separator";
+            comments.fill(1, "");
+        }
+
+        // now put the history results above the datalist suggestions
+        let finalValues = historyResults.concat(values);
+        let finalLabels = historyResults.concat(labels);
+        let finalComments = historyComments.concat(comments);
+
+        // This is ugly: there are two FormAutoCompleteResult classes in the
+        // tree, one in a module and one in this file. Datalist results need to
+        // use the one defined in the module but the rest of this file assumes
+        // that we use the one defined here. To get around that, we explicitly
+        // import the module here, out of the way of the other uses of
+        // FormAutoCompleteResult.
+        let {FormAutoCompleteResult} = Cu.import("resource://gre/modules/nsFormAutoCompleteResult.jsm", {});
+        return new FormAutoCompleteResult(datalistResult.searchString,
+                                          Ci.nsIAutoCompleteResult.RESULT_SUCCESS,
+                                          0, "", finalValues, finalLabels,
+                                          finalComments, historyResult);
     },
 
     stopAutoCompleteSearch : function () {
@@ -274,14 +373,20 @@ FormAutoComplete.prototype = {
             this.log("getAutocompleteValues failed: " + aError.message);
           },
           handleCompletion: aReason => {
-            this._pendingQuery = null;
-            if (!aReason) {
-              callback(results);
+            // Check that the current query is still the one we created. Our
+            // query might have been canceled shortly before completing, in
+            // that case we don't want to call the callback anymore.
+            if (query == this._pendingQuery) {
+              this._pendingQuery = null;
+              if (!aReason) {
+                callback(results);
+              }
             }
           }
         };
 
-        this._pendingQuery = FormHistory.getAutoCompleteResults(searchString, params, processResults);
+        let query = FormHistory.getAutoCompleteResults(searchString, params, processResults);
+        this._pendingQuery = query;
     },
 
     /*
@@ -329,6 +434,7 @@ FormAutoCompleteChild.prototype = {
 
     _debug: false,
     _enabled: true,
+    _pendingSearch: null,
 
     /*
      * init
@@ -354,18 +460,30 @@ FormAutoCompleteChild.prototype = {
       dump("FormAutoCompleteChild: " + message + "\n");
     },
 
-    autoCompleteSearch : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult) {
-      // This function is deprecated
-    },
-
-    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener) {
+    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString,
+                                        aField, aPreviousResult, aDatalistResult,
+                                        aListener) {
       this.log("autoCompleteSearchAsync");
 
-      this._pendingListener = aListener;
-
-      let rect = BrowserUtils.getElementBoundingScreenRect(aField);
+      if (this._pendingSearch) {
+        this.stopAutoCompleteSearch();
+      }
 
       let window = aField.ownerDocument.defaultView;
+
+      let rect = BrowserUtils.getElementBoundingScreenRect(aField);
+      let direction = window.getComputedStyle(aField).direction;
+      let mockField = {};
+      if (isAutocompleteDisabled(aField))
+          mockField.autocomplete = "off";
+      if (aField.maxLength > -1)
+          mockField.maxLength = aField.maxLength;
+
+      let datalistResult = aDatalistResult ?
+        { values: aDatalistResult.wrappedJSObject._values,
+          labels: aDatalistResult.wrappedJSObject._labels} :
+        null;
+
       let topLevelDocshell = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                    .getInterface(Ci.nsIDocShell)
                                    .sameTypeRootTreeItem
@@ -377,41 +495,59 @@ FormAutoCompleteChild.prototype = {
       mm.sendAsyncMessage("FormHistory:AutoCompleteSearchAsync", {
         inputName: aInputName,
         untrimmedSearchString: aUntrimmedSearchString,
+        mockField: mockField,
+        datalistResult: datalistResult,
         left: rect.left,
         top: rect.top,
         width: rect.width,
-        height: rect.height
+        height: rect.height,
+        direction: direction,
       });
 
-      mm.addMessageListener("FormAutoComplete:AutoCompleteSearchAsyncResult",
-        function searchFinished(message) {
-          mm.removeMessageListener("FormAutoComplete:AutoCompleteSearchAsyncResult", searchFinished);
-          let result = new FormAutoCompleteResult(
-            null,
-            [{text: res} for (res of message.data.results)],
-            null,
-            null
-          );
-          if (aListener) {
-            aListener.onSearchCompletion(result);
-          }
-        }
-      );
+      let search = this._pendingSearch = {};
+      let searchFinished = message => {
+        mm.removeMessageListener("FormAutoComplete:AutoCompleteSearchAsyncResult", searchFinished);
 
+        // Check whether stopAutoCompleteSearch() was called, i.e. the search
+        // was cancelled, while waiting for a result.
+        if (search != this._pendingSearch) {
+          return;
+        }
+        this._pendingSearch = null;
+
+        let result = new FormAutoCompleteResult(
+          null,
+          [for (res of message.data.results) {text: res}],
+          null,
+          null,
+          mm
+        );
+        if (aListener) {
+          aListener.onSearchCompletion(result);
+        }
+      }
+
+      mm.addMessageListener("FormAutoComplete:AutoCompleteSearchAsyncResult", searchFinished);
       this.log("autoCompleteSearchAsync message was sent");
     },
 
     stopAutoCompleteSearch : function () {
-       this.log("stopAutoCompleteSearch");
+      this.log("stopAutoCompleteSearch");
+      this._pendingSearch = null;
     },
 }; // end of FormAutoCompleteChild implementation
 
 // nsIAutoCompleteResult implementation
-function FormAutoCompleteResult (formHistory, entries, fieldName, searchString) {
+function FormAutoCompleteResult(formHistory,
+                                entries,
+                                fieldName,
+                                searchString,
+                                messageManager) {
     this.formHistory = formHistory;
     this.entries = entries;
     this.fieldName = fieldName;
     this.searchString = searchString;
+    this.messageManager = messageManager;
 }
 
 FormAutoCompleteResult.prototype = {
@@ -438,7 +574,7 @@ FormAutoCompleteResult.prototype = {
     searchString : null,
     errorDescription : "",
     get defaultIndex() {
-        if (entries.length == 0)
+        if (this.entries.length == 0)
             return -1;
         else
             return 0;
@@ -458,7 +594,7 @@ FormAutoCompleteResult.prototype = {
     },
 
     getLabelAt: function(index) {
-        return getValueAt(index);
+        return this.getValueAt(index);
     },
 
     getCommentAt : function (index) {
@@ -486,16 +622,21 @@ FormAutoCompleteResult.prototype = {
         let [removedEntry] = this.entries.splice(index, 1);
 
         if (removeFromDB) {
-          this.formHistory.update({ op: "remove",
-                                    fieldname: this.fieldName,
-                                    value: removedEntry.text });
+            if (this.formHistory) {
+                this.formHistory.update({ op: "remove",
+                                          fieldname: this.fieldName,
+                                          value: removedEntry.text });
+            } else {
+                this.messageManager.sendAsyncMessage("FormAutoComplete:RemoveEntry",
+                                                     { index });
+            }
         }
     }
 };
 
 
-let remote = Services.appinfo.browserTabsRemote;
-if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT && remote) {
+if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT &&
+    Services.prefs.getBoolPref("browser.tabs.remote.desktopbehavior", false)) {
   // Register the stub FormAutoComplete module in the child which will
   // forward messages to the parent through the process message manager.
   let component = [FormAutoCompleteChild];

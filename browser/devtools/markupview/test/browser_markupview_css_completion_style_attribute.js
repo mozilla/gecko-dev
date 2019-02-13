@@ -63,28 +63,27 @@ const TEST_DATA = [
   ['VK_RETURN', 'style="display:  inherit; color :chartreuse !important;"', -1, -1, false]
 ];
 
-let test = asyncTest(function*() {
+add_task(function*() {
   info("Opening the inspector on the test URL");
   let {inspector} = yield addTab(TEST_URL).then(openInspector);
 
   yield inspector.markup.expandAll();
 
-  let node = getContainerForRawNode("#node14", inspector).editor;
-  let attr = node.newAttr;
+  let nodeFront = yield getNodeFront("#node14", inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
+  let attr = container.editor.newAttr;
   attr.focus();
   EventUtils.sendKey("return", inspector.panelWin);
   let editor = inplaceEditor(attr);
 
   for (let i = 0; i < TEST_DATA.length; i ++) {
     yield enterData(i, editor, inspector);
-    checkData(i, editor, inspector);
+    yield checkData(i, editor, inspector);
   }
 
   while (inspector.markup.undo.canUndo()) {
     yield undoChange(inspector);
   }
-
-  yield inspector.once("inspector-updated");
 });
 
 function enterData(index, editor, inspector) {
@@ -122,7 +121,7 @@ function enterData(index, editor, inspector) {
   return def.promise;
 }
 
-function checkData(index, editor, inspector) {
+function* checkData(index, editor, inspector) {
   let [key, completion, selStart, selEnd, popupOpen] = TEST_DATA[index];
   info("Test data " + index + " entered. Checking state.");
 
@@ -137,8 +136,9 @@ function checkData(index, editor, inspector) {
         "Popup is closed");
     }
   } else {
-    let editor = getContainerForRawNode("#node14", inspector).editor;
-    let attr = editor.attrs["style"].querySelector(".editable");
+    let nodeFront = yield getNodeFront("#node14", inspector);
+    let editor = getContainerForNodeFront(nodeFront, inspector).editor;
+    let attr = editor.attrElements.get("style").querySelector(".editable");
     is(attr.textContent, completion, "Correct value is persisted after pressing Enter");
   }
 }

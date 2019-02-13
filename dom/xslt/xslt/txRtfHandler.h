@@ -14,7 +14,7 @@
 class txResultTreeFragment : public txAExprResult
 {
 public:
-    txResultTreeFragment(nsAutoPtr<txResultBuffer>&& aBuffer);
+    explicit txResultTreeFragment(nsAutoPtr<txResultBuffer>&& aBuffer);
 
     TX_DECL_EXPRRESULT
 
@@ -41,8 +41,8 @@ class txRtfHandler : public txBufferingHandler
 public:
     nsresult getAsRTF(txAExprResult** aResult);
 
-    nsresult endDocument(nsresult aResult) MOZ_OVERRIDE;
-    nsresult startDocument() MOZ_OVERRIDE;
+    nsresult endDocument(nsresult aResult) override;
+    nsresult startDocument() override;
 };
 
 #endif /* txRtfHandler_h___ */

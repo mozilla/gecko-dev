@@ -12,8 +12,14 @@
           <xul:image class="chat-status-icon" xbl:inherits="src=image"/>
           <xul:label class="chat-title" flex="1" xbl:inherits="value=label" crop="center"/>
         </xul:hbox>
+        <xul:toolbarbutton anonid="webRTC-shareScreen-icon"
+                           class="notification-anchor-icon chat-toolbarbutton"
+                           oncommand="document.getBindingParent(this).showNotifications(this); event.stopPropagation();"/>
+        <xul:toolbarbutton anonid="webRTC-sharingScreen-icon"
+                           class="notification-anchor-icon chat-toolbarbutton"
+                           oncommand="document.getBindingParent(this).showNotifications(this); event.stopPropagation();"/>
         <xul:toolbarbutton anonid="notification-icon" class="notification-anchor-icon chat-toolbarbutton"
-                           oncommand="document.getBindingParent(this).showNotifications(); event.stopPropagation();"/>
+                           oncommand="document.getBindingParent(this).showNotifications(this); event.stopPropagation();"/>
         <xul:toolbarbutton anonid="minimize" class="chat-minimize-button chat-toolbarbutton"
                            oncommand="document.getBindingParent(this).toggle();"/>
         <xul:toolbarbutton anonid="swap" class="chat-swap-button chat-toolbarbutton"
@@ -24,14 +30,28 @@
       <xul:browser anonid="content" class="chat-frame" flex="1"
                   context="contentAreaContextMenu"
                   disableglobalhistory="true"
+                  message="true"
+                  messagemanagergroup="social"
                   tooltip="aHTMLTooltip"
                   xbl:inherits="src,origin" type="content"/>
     </content>
 
     <implementation implements="nsIDOMEventListener">
       <constructor><![CDATA[
-        this.content.__defineGetter__("popupnotificationanchor",
-                                      () => document.getAnonymousElementByAttribute(this, "anonid", "notification-icon"));
+        const kAnchorMap = new Map([
+          ["", "notification-"],
+          ["webRTC-shareScreen-", ""],
+          ["webRTC-sharingScreen-", ""]
+        ]);
+        for (let [getterPrefix, idPrefix] of kAnchorMap) {
+          let getter = getterPrefix + "popupnotificationanchor";
+          let anonid = (idPrefix || getterPrefix) + "icon";
+          this.content.__defineGetter__(getter, () => {
+            delete this.content[getter];
+            return this.content[getter] = document.getAnonymousElementByAttribute(
+              this, "anonid", anonid);
+          });
+        }
 
         if (!this.chatbar) {
           document.getAnonymousElementByAttribute(this, "anonid", "minimize").hidden = true;
@@ -53,6 +73,7 @@
           this.isActive = !this.minimized;
           this._deferredChatLoaded.resolve(this);
         }, true);
+
         if (this.src)
           this.setAttribute("src", this.src);
       ]]></constructor>
@@ -115,10 +136,10 @@
 
       <property name="isActive">
         <getter>
-          return this.content.docShell.isActive;
+          return this.content.docShellIsActive;
         </getter>
         <setter>
-          this.content.docShell.isActive = !!val;
+          this.content.docShellIsActive = !!val;
 
           // let the chat frame know if it is being shown or hidden
           let evt = this.contentDocument.createEvent("CustomEvent");
@@ -128,8 +149,9 @@
       </property>
 
       <method name="showNotifications">
+        <parameter name="aAnchor"/>
         <body><![CDATA[
-        PopupNotifications._reshowNotifications(this.content.popupnotificationanchor,
+        PopupNotifications._reshowNotifications(aAnchor,
                                                 this.content);
         ]]></body>
       </method>
@@ -137,11 +159,22 @@
       <method name="swapDocShells">
         <parameter name="aTarget"/>
         <body><![CDATA[
-          aTarget.setAttribute('label', this.contentDocument.title);
+          aTarget.setAttribute("label", this.contentDocument.title);
+
           aTarget.src = this.src;
           aTarget.content.setAttribute("origin", this.content.getAttribute("origin"));
           aTarget.content.popupnotificationanchor.className = this.content.popupnotificationanchor.className;
-          this.content.swapDocShells(aTarget.content);
+          aTarget.content.swapDocShells(this.content);
+        ]]></body>
+      </method>
+
+      <method name="setDecorationAttributes">
+        <parameter name="aTarget"/>
+        <body><![CDATA[
+          for (let attr of ["dark", "customSize"]) {
+            if (this.hasAttribute(attr))
+              aTarget.setAttribute(attr, this.getAttribute(attr));
+          }
         ]]></body>
       </method>
 
@@ -187,9 +220,14 @@
           let chatbar = win.document.getElementById("pinnedchats");
           let origin = this.content.getAttribute("origin");
           let cb = chatbar.openChat(origin, title, "about:blank");
+          this.setDecorationAttributes(cb);
+
           cb.promiseChatLoaded.then(
             () => {
               this.swapDocShells(cb);
+
+              chatbar.focus();
+              this.close();
 
               // chatboxForURL is a map of URL -> chatbox used to avoid opening
               // duplicate chat windows. Ensure reattached chat windows aren't
@@ -198,8 +236,12 @@
               chatbar.chatboxForURL.delete("about:blank");
               chatbar.chatboxForURL.set(this.src, Cu.getWeakReference(cb));
 
-              chatbar.focus();
-              this.close();
+              let attachEvent = new cb.contentWindow.CustomEvent("socialFrameAttached", {
+                bubbles: true,
+                cancelable: true,
+              });
+              cb.contentDocument.dispatchEvent(attachEvent);
+
               deferred.resolve(cb);
             }
           );
@@ -432,8 +474,12 @@
           // These are from the CSS for the chatbox and must be kept in sync.
           // We can't use calcTotalWidthOf due to the transitions...
           const CHAT_WIDTH_OPEN = 260;
+          const CHAT_WIDTH_OPEN_ALT = 300;
           const CHAT_WIDTH_MINIMIZED = 160;
-          return aChatbox.minimized ? CHAT_WIDTH_MINIMIZED : CHAT_WIDTH_OPEN;
+          let openWidth = aChatbox.hasAttribute("customSize") ?
+            CHAT_WIDTH_OPEN_ALT : CHAT_WIDTH_OPEN;
+
+          return aChatbox.minimized ? CHAT_WIDTH_MINIMIZED : openWidth;
         ]]></body>
       </method>
 
@@ -523,9 +569,10 @@
         <parameter name="aCallback"/>
         <body><![CDATA[
           let cb = this.chatboxForURL.get(aURL);
-          if (cb) {
-            cb = cb.get();
-            if (cb.parentNode) {
+          if (cb && (cb = cb.get())) {
+            // A chatbox is still alive to us when it's parented and still has
+            // content.
+            if (cb.parentNode && cb.contentWindow) {
               this.showChat(cb, aMode);
               if (aCallback) {
                 if (cb._callbacks == null) {
@@ -644,6 +691,7 @@
         <parameter name="aOptions"/>
         <body><![CDATA[
           let deferred = Promise.defer();
+          let chatbar = this;
           let options = "";
           for (let name in aOptions)
             options += "," + name + "=" + aOptions[name];
@@ -655,10 +703,27 @@
             if (event.target != otherWin.document)
               return;
 
+            if (aChatbox.hasAttribute("customSize")) {
+              otherWin.document.getElementById("chat-window").
+                setAttribute("customSize", aChatbox.getAttribute("customSize"));
+            }
+
+            let document = aChatbox.contentDocument;
+            let detachEvent = new aChatbox.contentWindow.CustomEvent("socialFrameDetached", {
+              bubbles: true,
+              cancelable: true,
+            });
+
             otherWin.removeEventListener("load", _chatLoad, true);
             let otherChatbox = otherWin.document.getElementById("chatter");
+            aChatbox.setDecorationAttributes(otherChatbox);
             aChatbox.swapDocShells(otherChatbox);
             aChatbox.close();
+            chatbar.chatboxForURL.set(aChatbox.src, Cu.getWeakReference(otherChatbox));
+
+            // All processing is done, now we can fire the event.
+            document.dispatchEvent(detachEvent);
+
             deferred.resolve(otherChatbox);
           }, true);
           return deferred.promise;
@@ -705,7 +770,7 @@
         canvas.mozOpaque = true;
         canvas.width = 160 * scale;
         canvas.height = 90 * scale;
-        PageThumbs.captureToCanvas(chatbox.contentWindow, canvas);
+        PageThumbs.captureToCanvas(chatbox, canvas);
         dt.setDragImage(canvas, -16 * scale, -16 * scale);
 
         event.stopPropagation();

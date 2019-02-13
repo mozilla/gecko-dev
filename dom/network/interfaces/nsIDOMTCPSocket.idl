@@ -216,7 +216,7 @@ interface nsIDOMTCPSocket : nsISupports
  * Needed to account for multiple possible types that can be provided to
  * the socket callbacks as arguments.
  */
-[scriptable, uuid(017f130f-2477-4215-8783-57eada957699)]
+[scriptable, uuid(ac2c4b69-cb79-4767-b1ce-bcf62945cd39)]
 interface nsITCPSocketInternal : nsISupports {
   // Trigger the callback for |type| and provide a DOMError() object with the given data
   void callListenerError(in DOMString type, in DOMString name);
@@ -253,8 +253,11 @@ interface nsITCPSocketInternal : nsISupports {
   // @param binaryType
   //        "arraybuffer" to use ArrayBuffer instances 
   //        in the ondata callback and as the argument to send.
+  // @param window
+  //        An object to create ArrayBuffer for this window. See Bug 831107.
   nsIDOMTCPSocket createAcceptedParent(in nsISocketTransport transport,
-                                       in DOMString binaryType);
+                                       in DOMString binaryType,
+                                       in nsIDOMWindow window);
 
   // Create a DOM socket on the child side
   // This is called when the socket is accepted on the parent side.
@@ -272,6 +275,9 @@ interface nsITCPSocketInternal : nsISupports {
 
   // Set App ID.
   void setAppId(in unsigned long appId);
+
+  // Set inBrowser.
+  void setInBrowser(in boolean inBrowser);
 
   // Set a callback that handles the request from a TCP socket parent when that
   // socket parent wants to notify that its bufferedAmount is updated.

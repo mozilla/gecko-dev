@@ -49,7 +49,7 @@ SelectionField.claim = function(type, context) {
   if (context == null) {
     return Field.NO_MATCH;
   }
-  return type.getType(context).isSelection ? Field.MATCH : Field.NO_MATCH;
+  return type.getType(context).hasPredictions ? Field.DEFAULT : Field.NO_MATCH;
 };
 
 SelectionField.prototype.destroy = function() {
@@ -74,8 +74,10 @@ SelectionField.prototype.setConversion = function(conversion) {
           prediction.value :
           prediction;
     }, this);
-    this.menu.show(items, conversion.arg.text);
-  }.bind(this), util.errorHandler);
+    if (this.menu != null) {
+      this.menu.show(items, conversion.arg.text);
+    }
+  }.bind(this)).catch(util.errorHandler);
 };
 
 SelectionField.prototype.itemClicked = function(ev) {
@@ -85,7 +87,7 @@ SelectionField.prototype.itemClicked = function(ev) {
   this.type.parse(arg, context).then(function(conversion) {
     this.onFieldChange({ conversion: conversion });
     this.setMessage(conversion.message);
-  }.bind(this)).then(null, util.errorHandler);
+  }.bind(this)).catch(util.errorHandler);
 };
 
 SelectionField.prototype.getConversion = function() {

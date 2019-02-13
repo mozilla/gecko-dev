@@ -24,13 +24,13 @@ public class GeckoBatteryManager extends BroadcastReceiver {
     private final static double  kDefaultRemainingTime = 0.0;
     private final static double  kUnknownRemainingTime = -1.0;
 
-    private static long    sLastLevelChange            = 0;
-    private static boolean sNotificationsEnabled       = false;
+    private static long    sLastLevelChange;
+    private static boolean sNotificationsEnabled;
     private static double  sLevel                      = kDefaultLevel;
     private static boolean sCharging                   = kDefaultCharging;
     private static double  sRemainingTime              = kDefaultRemainingTime;
 
-    private static GeckoBatteryManager sInstance = new GeckoBatteryManager();
+    private static final GeckoBatteryManager sInstance = new GeckoBatteryManager();
 
     private final IntentFilter mFilter;
     private Context mApplicationContext;
@@ -84,7 +84,7 @@ public class GeckoBatteryManager extends BroadcastReceiver {
         // NOTE: it might not be common (in 2012) but technically, Android can run
         // on a device that has no battery so we want to make sure it's not the case
         // before bothering checking for battery state.
-        // However, the Galaxy Nexus phone advertizes itself as battery-less which
+        // However, the Galaxy Nexus phone advertises itself as battery-less which
         // force us to special-case the logic.
         // See the Google bug: https://code.google.com/p/android/issues/detail?id=22035
         if (intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false) ||
@@ -107,8 +107,8 @@ public class GeckoBatteryManager extends BroadcastReceiver {
             }
 
             // We need two doubles because sLevel is a double.
-            double current =  (double)intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            double max = (double)intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            double current = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            double max = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
             if (current == -1 || max == -1) {
                 Log.e(LOGTAG, "Failed to get battery level!");
                 sLevel = kDefaultLevel;

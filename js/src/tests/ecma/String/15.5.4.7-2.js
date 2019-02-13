@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -53,8 +53,6 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 
 new TestCase( SECTION, "String.prototype.lastIndexOf.length",           1,          String.prototype.lastIndexOf.length );
-new TestCase( SECTION, "delete String.prototype.lastIndexOf.length",    false,      delete String.prototype.lastIndexOf.length );
-new TestCase( SECTION, "delete String.prototype.lastIndexOf.length; String.prototype.lastIndexOf.length",   1,  eval("delete String.prototype.lastIndexOf.length; String.prototype.lastIndexOf.length" ) );
 
 new TestCase( SECTION, "var s = new String(''); s.lastIndexOf('', 0)",          LastIndexOf("","",0),  eval("var s = new String(''); s.lastIndexOf('', 0)") );
 new TestCase( SECTION, "var s = new String(''); s.lastIndexOf('')",             LastIndexOf("",""),  eval("var s = new String(''); s.lastIndexOf('')") );

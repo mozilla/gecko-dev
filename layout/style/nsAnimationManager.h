@@ -9,25 +9,28 @@
 #include "mozilla/ContentEvents.h"
 #include "AnimationCommon.h"
 #include "nsCSSPseudoElements.h"
+#include "mozilla/dom/Animation.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 
-class nsCSSKeyframesRule;
 class nsStyleContext;
 
 namespace mozilla {
 namespace css {
 class Declaration;
-}
-}
+} /* namespace css */
+namespace dom {
+class Promise;
+} /* namespace dom */
 
 struct AnimationEventInfo {
   nsRefPtr<mozilla::dom::Element> mElement;
   mozilla::InternalAnimationEvent mEvent;
 
   AnimationEventInfo(mozilla::dom::Element *aElement,
-                     const nsString& aAnimationName,
-                     uint32_t aMessage, mozilla::TimeDuration aElapsedTime,
+                     const nsSubstring& aAnimationName,
+                     uint32_t aMessage,
+                     const mozilla::StickyTimeDuration& aElapsedTime,
                      const nsAString& aPseudoElement)
     : mElement(aElement), mEvent(true, aMessage)
   {
@@ -48,118 +51,141 @@ struct AnimationEventInfo {
 
 typedef InfallibleTArray<AnimationEventInfo> EventArray;
 
-/**
- * Data about all of the animations running on an element.
- */
-struct ElementAnimations MOZ_FINAL
-  : public mozilla::css::CommonElementAnimationData
+class CSSAnimation final : public dom::Animation
 {
-  typedef mozilla::TimeStamp TimeStamp;
-  typedef mozilla::TimeDuration TimeDuration;
-
-  ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                    nsAnimationManager *aAnimationManager, TimeStamp aNow);
-
-  // After calling this, be sure to call CheckNeedsRefresh on the animation
-  // manager afterwards.
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
-  void GetEventsAt(TimeStamp aRefreshTime, EventArray &aEventsToDispatch);
-
-  bool IsForElement() const { // rather than for a pseudo-element
-    return mElementProperty == nsGkAtoms::animationsProperty;
-  }
-
-  nsString PseudoElement()
+public:
+ explicit CSSAnimation(dom::DocumentTimeline* aTimeline)
+    : dom::Animation(aTimeline)
+    , mIsStylePaused(false)
+    , mPauseShouldStick(false)
+    , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
   {
-    return mElementProperty == nsGkAtoms::animationsProperty ?
-             EmptyString() :
-             mElementProperty == nsGkAtoms::animationsOfBeforeProperty ?
-               NS_LITERAL_STRING("::before") :
-               NS_LITERAL_STRING("::after");
   }
 
-  void PostRestyleForAnimation(nsPresContext *aPresContext) {
-    nsRestyleHint styleHint = IsForElement() ? eRestyle_Self : eRestyle_Subtree;
-    aPresContext->PresShell()->RestyleForAnimation(mElement, styleHint);
-  }
+  virtual CSSAnimation* AsCSSAnimation() override { return this; }
 
-  // If aFlags contains CanAnimate_AllowPartial, returns whether the
-  // state of this element's animations at the current refresh driver
-  // time contains animation data that can be done on the compositor
-  // thread.  (This is useful for determining whether a layer should be
-  // active, or whether to send data to the layer.)
-  // If aFlags does not contain CanAnimate_AllowPartial, returns whether
-  // the state of this element's animations at the current refresh driver
-  // time can be fully represented by data sent to the compositor.
-  // (This is useful for determining whether throttle the animation
-  // (suppress main-thread style updates).)
-  // Note that when CanPerformOnCompositorThread returns true, it also,
-  // as a side-effect, notifies the ActiveLayerTracker.  FIXME:  This
-  // should probably move to the relevant callers.
-  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
+  virtual dom::Promise* GetReady(ErrorResult& aRv) override;
+  virtual void Play(ErrorResult& aRv, LimitBehavior aLimitBehavior) override;
+  virtual void Pause(ErrorResult& aRv) override;
 
-  virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
+  virtual dom::AnimationPlayState PlayStateFromJS() const override;
+  virtual void PlayFromJS(ErrorResult& aRv) override;
 
-  // False when we know that our current style rule is valid
-  // indefinitely into the future (because all of our animations are
-  // either completed or paused).  May be invalidated by a style change.
-  bool mNeedsRefreshes;
+  void PlayFromStyle();
+  void PauseFromStyle();
+
+  bool IsStylePaused() const { return mIsStylePaused; }
+
+  void QueueEvents(EventArray& aEventsToDispatch);
+
+  // Is this animation currently in effect for the purposes of computing
+  // mWinsInCascade.  (In general, this can be computed from the timing
+  // function.  This boolean remembers the state as of the last time we
+  // called UpdateCascadeResults so we know if it changes and we need to
+  // call UpdateCascadeResults again.)
+  bool mInEffectForCascadeResults;
+
+protected:
+  virtual ~CSSAnimation() { }
+  virtual css::CommonAnimationManager* GetAnimationManager() const override;
+
+  static nsString PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType);
+
+  // When combining animation-play-state with play() / pause() the following
+  // behavior applies:
+  // 1. pause() is sticky and always overrides the underlying
+  //    animation-play-state
+  // 2. If animation-play-state is 'paused', play() will temporarily override
+  //    it until animation-play-state next becomes 'running'.
+  // 3. Calls to play() trigger finishing behavior but setting the
+  //    animation-play-state to 'running' does not.
+  //
+  // This leads to five distinct states:
+  //
+  // A. Running
+  // B. Running and temporarily overriding animation-play-state: paused
+  // C. Paused and sticky overriding animation-play-state: running
+  // D. Paused and sticky overriding animation-play-state: paused
+  // E. Paused by animation-play-state
+  //
+  // C and D may seem redundant but they differ in how to respond to the
+  // sequence: call play(), set animation-play-state: paused.
+  //
+  // C will transition to A then E leaving the animation paused.
+  // D will transition to B then B leaving the animation running.
+  //
+  // A state transition chart is as follows:
+  //
+  //             A | B | C | D | E
+  //   ---------------------------
+  //   play()    A | B | A | B | B
+  //   pause()   C | D | C | D | D
+  //   'running' A | A | C | C | A
+  //   'paused'  E | B | D | D | E
+  //
+  // The base class, Animation already provides a boolean value,
+  // mIsPaused which gives us two states. To this we add a further two booleans
+  // to represent the states as follows.
+  //
+  // A. Running
+  //    (!mIsPaused; !mIsStylePaused; !mPauseShouldStick)
+  // B. Running and temporarily overriding animation-play-state: paused
+  //    (!mIsPaused; mIsStylePaused; !mPauseShouldStick)
+  // C. Paused and sticky overriding animation-play-state: running
+  //    (mIsPaused; !mIsStylePaused; mPauseShouldStick)
+  // D. Paused and sticky overriding animation-play-state: paused
+  //    (mIsPaused; mIsStylePaused; mPauseShouldStick)
+  // E. Paused by animation-play-state
+  //    (mIsPaused; mIsStylePaused; !mPauseShouldStick)
+  //
+  // (That leaves 3 combinations of the boolean values that we never set because
+  // they don't represent valid states.)
+  bool mIsStylePaused;
+  bool mPauseShouldStick;
+
+  enum {
+    PREVIOUS_PHASE_BEFORE = uint64_t(-1),
+    PREVIOUS_PHASE_AFTER = uint64_t(-2)
+  };
+  // One of the PREVIOUS_PHASE_* constants, or an integer for the iteration
+  // whose start we last notified on.
+  uint64_t mPreviousPhaseOrIteration;
 };
 
-class nsAnimationManager MOZ_FINAL
+} /* namespace mozilla */
+
+class nsAnimationManager final
   : public mozilla::css::CommonAnimationManager
 {
 public:
-  nsAnimationManager(nsPresContext *aPresContext)
+  explicit nsAnimationManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
-    , mObservingRefreshDriver(false)
   {
   }
 
-  static ElementAnimations* GetAnimationsForCompositor(nsIContent* aContent,
-                                                       nsCSSProperty aProperty)
+  static mozilla::AnimationCollection*
+  GetAnimationsForCompositor(nsIContent* aContent, nsCSSProperty aProperty)
   {
-    if (!aContent->MayHaveAnimations())
-      return nullptr;
-    ElementAnimations* animations = static_cast<ElementAnimations*>(
-      aContent->GetProperty(nsGkAtoms::animationsProperty));
-    if (!animations)
-      return nullptr;
-    bool propertyMatches = animations->HasAnimationOfProperty(aProperty);
-    return (propertyMatches &&
-            animations->CanPerformOnCompositorThread(
-              mozilla::css::CommonElementAnimationData::CanAnimate_AllowPartial))
-           ? animations
-           : nullptr;
+    return mozilla::css::CommonAnimationManager::GetAnimationsForCompositor(
+      aContent, nsGkAtoms::animationsProperty, aProperty);
   }
 
-  // Returns true if aContent or any of its ancestors has an animation.
-  static bool ContentOrAncestorHasAnimation(nsIContent* aContent) {
-    do {
-      if (aContent->GetProperty(nsGkAtoms::animationsProperty)) {
-        return true;
-      }
-    } while ((aContent = aContent->GetParent()));
+  void UpdateStyleAndEvents(mozilla::AnimationCollection* aEA,
+                            mozilla::TimeStamp aRefreshTime,
+                            mozilla::EnsureStyleRuleFlags aFlags);
+  void QueueEvents(mozilla::AnimationCollection* aEA,
+                   mozilla::EventArray &aEventsToDispatch);
 
-    return false;
-  }
-
-  void EnsureStyleRuleFor(ElementAnimations* aET);
+  void MaybeUpdateCascadeResults(mozilla::AnimationCollection* aCollection);
 
   // nsIStyleRuleProcessor (parts)
-  virtual void RulesMatching(ElementRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual void RulesMatching(PseudoElementRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual void RulesMatching(AnonBoxRuleProcessorData* aData) MOZ_OVERRIDE;
-#ifdef MOZ_XUL
-  virtual void RulesMatching(XULTreeRuleProcessorData* aData) MOZ_OVERRIDE;
-#endif
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
+    const MOZ_MUST_OVERRIDE override;
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
+    const MOZ_MUST_OVERRIDE override;
 
   // nsARefreshObserver
-  virtual void WillRefresh(mozilla::TimeStamp aTime) MOZ_OVERRIDE;
+  virtual void WillRefresh(mozilla::TimeStamp aTime) override;
 
   void FlushAnimations(FlushFlags aFlags);
 
@@ -191,51 +217,41 @@ public:
     }
   }
 
-  ElementAnimations* GetElementAnimations(mozilla::dom::Element *aElement,
-                                          nsCSSPseudoElements::Type aPseudoType,
-                                          bool aCreateIfNeeded);
-
-  // Updates styles on throttled animations. See note on nsTransitionManager
-  void UpdateAllThrottledStyles();
-
 protected:
-  virtual void ElementDataRemoved() MOZ_OVERRIDE
-  {
-    CheckNeedsRefresh();
+  virtual nsIAtom* GetAnimationsAtom() override {
+    return nsGkAtoms::animationsProperty;
   }
-  virtual void AddElementData(mozilla::css::CommonElementAnimationData* aData) MOZ_OVERRIDE;
-
-  /**
-   * Check to see if we should stop or start observing the refresh driver
-   */
-  void CheckNeedsRefresh();
+  virtual nsIAtom* GetAnimationsBeforeAtom() override {
+    return nsGkAtoms::animationsOfBeforeProperty;
+  }
+  virtual nsIAtom* GetAnimationsAfterAtom() override {
+    return nsGkAtoms::animationsOfAfterProperty;
+  }
+  virtual bool IsAnimationManager() override {
+    return true;
+  }
 
 private:
   void BuildAnimations(nsStyleContext* aStyleContext,
-                       mozilla::ElementAnimationPtrArray& aAnimations);
+                       mozilla::dom::Element* aTarget,
+                       mozilla::dom::DocumentTimeline* aTimeline,
+                       mozilla::AnimationPtrArray& aAnimations);
   bool BuildSegment(InfallibleTArray<mozilla::AnimationPropertySegment>&
                       aSegments,
-                    nsCSSProperty aProperty, const nsAnimation& aAnimation,
+                    nsCSSProperty aProperty,
+                    const mozilla::StyleAnimation& aAnimation,
                     float aFromKey, nsStyleContext* aFromContext,
                     mozilla::css::Declaration* aFromDeclaration,
                     float aToKey, nsStyleContext* aToContext);
-  nsIStyleRule* GetAnimationRule(mozilla::dom::Element* aElement,
-                                 nsCSSPseudoElements::Type aPseudoType);
 
-  // Update the animated styles of an element and its descendants.
-  // If the element has an animation, it is flushed back to its primary frame.
-  // If the element does not have an animation, then its style is reparented.
-  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
-  void UpdateAllThrottledStylesInternal();
+  static void UpdateCascadeResults(nsStyleContext* aStyleContext,
+                                   mozilla::AnimationCollection*
+                                     aElementAnimations);
 
   // The guts of DispatchEvents
   void DoDispatchEvents();
 
-  EventArray mPendingEvents;
-
-  bool mObservingRefreshDriver;
+  mozilla::EventArray mPendingEvents;
 };
 
 #endif /* !defined(nsAnimationManager_h_) */

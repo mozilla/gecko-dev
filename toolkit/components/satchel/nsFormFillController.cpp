@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -36,16 +35,28 @@
 #include "nsIDOMNSEditableElement.h"
 #include "nsContentUtils.h"
 #include "nsILoadContext.h"
+#include "nsIFrame.h"
 
 using namespace mozilla::dom;
 
-NS_IMPL_ISUPPORTS(nsFormFillController,
-                  nsIFormFillController,
-                  nsIAutoCompleteInput,
-                  nsIAutoCompleteSearch,
-                  nsIDOMEventListener,
-                  nsIFormAutoCompleteObserver,
-                  nsIMutationObserver)
+NS_IMPL_CYCLE_COLLECTION(nsFormFillController,
+                         mController, mLoginManager, mFocusedPopup, mDocShells,
+                         mPopups, mLastListener, mLastFormAutoComplete)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFormFillController)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIFormFillController)
+  NS_INTERFACE_MAP_ENTRY(nsIFormFillController)
+  NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteInput)
+  NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteSearch)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
+  NS_INTERFACE_MAP_ENTRY(nsIFormAutoCompleteObserver)
+  NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
+NS_INTERFACE_MAP_END
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsFormFillController)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsFormFillController)
+
+
 
 nsFormFillController::nsFormFillController() :
   mFocusedInput(nullptr),
@@ -61,6 +72,7 @@ nsFormFillController::nsFormFillController() :
   mSuppressOnInput(false)
 {
   mController = do_GetService("@mozilla.org/autocomplete/controller;1");
+  MOZ_ASSERT(mController);
 }
 
 struct PwmgrInputsEnumData
@@ -104,6 +116,21 @@ nsFormFillController::AttributeChanged(nsIDocument* aDocument,
                                        int32_t aNameSpaceID,
                                        nsIAtom* aAttribute, int32_t aModType)
 {
+  if ((aAttribute == nsGkAtoms::type || aAttribute == nsGkAtoms::readonly ||
+       aAttribute == nsGkAtoms::autocomplete) &&
+      aNameSpaceID == kNameSpaceID_None) {
+    nsCOMPtr<nsIDOMHTMLInputElement> focusedInput(mFocusedInput);
+    // Reset the current state of the controller, unconditionally.
+    StopControllingInput();
+    // Then restart based on the new values.  We have to delay this
+    // to avoid ending up in an endless loop due to re-registering our
+    // mutation observer (which would notify us again for *this* event).
+    nsCOMPtr<nsIRunnable> event =
+      NS_NewRunnableMethodWithArg<nsCOMPtr<nsIDOMHTMLInputElement>>
+      (this, &nsFormFillController::MaybeStartControllingInput, focusedInput);
+    NS_DispatchToCurrentThread(event);
+  }
+
   if (mListNode && mListNode->Contains(aElement)) {
     RevalidateDataList();
   }
@@ -188,8 +215,7 @@ nsFormFillController::MaybeRemoveMutationObserver(nsINode* aNode)
 {
   // Nodes being tracked in mPwmgrInputs will have their observers removed when
   // they stop being tracked. 
-  bool dummy;
-  if (!mPwmgrInputs.Get(aNode, &dummy)) {
+  if (!mPwmgrInputs.Get(aNode)) {
     aNode->RemoveMutationObserver(this);
   }
 }
@@ -590,6 +616,12 @@ nsFormFillController::GetInPrivateContext(bool *aInPrivateContext)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFormFillController::GetNoRollupOnCaretMove(bool *aNoRollupOnCaretMove)
+{
+  *aNoRollupOnCaretMove = false;
+  return NS_OK;
+}
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIAutoCompleteSearch
@@ -599,67 +631,60 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
                                   nsIAutoCompleteResult *aPreviousResult, nsIAutoCompleteObserver *aListener)
 {
   nsresult rv;
-  nsCOMPtr<nsIAutoCompleteResult> result;
 
   // If the login manager has indicated it's responsible for this field, let it
   // handle the autocomplete. Otherwise, handle with form history.
-  bool dummy;
-  if (mPwmgrInputs.Get(mFocusedInputNode, &dummy)) {
+  if (mPwmgrInputs.Get(mFocusedInputNode)) {
     // XXX aPreviousResult shouldn't ever be a historyResult type, since we're not letting
     // satchel manage the field?
-    rv = mLoginManager->AutoCompleteSearch(aSearchString,
-                                           aPreviousResult,
-                                           mFocusedInput,
-                                           getter_AddRefs(result));
+    mLastListener = aListener;
+    rv = mLoginManager->AutoCompleteSearchAsync(aSearchString,
+                                                aPreviousResult,
+                                                mFocusedInput,
+                                                this);
     NS_ENSURE_SUCCESS(rv, rv);
-    if (aListener) {
-      aListener->OnSearchResult(this, result);
-    }
   } else {
     mLastListener = aListener;
 
-    // It appears that mFocusedInput is always null when we are focusing a XUL
-    // element. Scary :)
-    if (!mFocusedInput || nsContentUtils::IsAutocompleteEnabled(mFocusedInput)) {
-      nsCOMPtr <nsIFormAutoComplete> formAutoComplete =
-        do_GetService("@mozilla.org/satchel/form-autocomplete;1", &rv);
+    nsCOMPtr<nsIAutoCompleteResult> datalistResult;
+    if (mFocusedInput) {
+      rv = PerformInputListAutoComplete(aSearchString,
+                                        getter_AddRefs(datalistResult));
       NS_ENSURE_SUCCESS(rv, rv);
-
-      formAutoComplete->AutoCompleteSearchAsync(aSearchParam,
-                                                aSearchString,
-                                                mFocusedInput,
-                                                aPreviousResult,
-                                                this);
-      mLastFormAutoComplete = formAutoComplete;
-    } else {
-      mLastSearchString = aSearchString;
-
-      // Even if autocomplete is disabled, handle the inputlist anyway as that was
-      // specifically requested by the page. This is so a field can have the default
-      // autocomplete disabled and replaced with a custom inputlist autocomplete.
-      return PerformInputListAutoComplete(aPreviousResult);
     }
+
+    nsCOMPtr <nsIFormAutoComplete> formAutoComplete =
+      do_GetService("@mozilla.org/satchel/form-autocomplete;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    formAutoComplete->AutoCompleteSearchAsync(aSearchParam,
+                                              aSearchString,
+                                              mFocusedInput,
+                                              aPreviousResult,
+                                              datalistResult,
+                                              this);
+    mLastFormAutoComplete = formAutoComplete;
   }
 
   return NS_OK;
 }
 
 nsresult
-nsFormFillController::PerformInputListAutoComplete(nsIAutoCompleteResult* aPreviousResult)
+nsFormFillController::PerformInputListAutoComplete(const nsAString& aSearch,
+                                                   nsIAutoCompleteResult** aResult)
 {
   // If an <input> is focused, check if it has a list="<datalist>" which can
   // provide the list of suggestions.
 
+  MOZ_ASSERT(!mPwmgrInputs.Get(mFocusedInputNode));
   nsresult rv;
-  nsCOMPtr<nsIAutoCompleteResult> result;
 
   nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
     do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = inputListAutoComplete->AutoCompleteSearch(aPreviousResult,
-                                                 mLastSearchString,
+  rv = inputListAutoComplete->AutoCompleteSearch(aSearch,
                                                  mFocusedInput,
-                                                 getter_AddRefs(result));
+                                                 aResult);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mFocusedInput) {
@@ -679,10 +704,6 @@ nsFormFillController::PerformInputListAutoComplete(nsIAutoCompleteResult* aPrevi
         mListNode = node;
       }
     }
-  }
-
-  if (mLastListener) {
-    mLastListener->OnSearchResult(this, result);
   }
 
   return NS_OK;
@@ -717,14 +738,24 @@ void nsFormFillController::RevalidateDataList()
   if (!mLastListener) {
     return;
   }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    nsCOMPtr<nsIAutoCompleteController> controller(do_QueryInterface(mLastListener));
+    if (!controller) {
+      return;
+    }
+
+    controller->StartSearch(mLastSearchString);
+    return;
+  }
+
   nsresult rv;
   nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
     do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
 
   nsCOMPtr<nsIAutoCompleteResult> result;
 
-  rv = inputListAutoComplete->AutoCompleteSearch(mLastSearchResult,
-                                                 mLastSearchString,
+  rv = inputListAutoComplete->AutoCompleteSearch(mLastSearchString,
                                                  mFocusedInput,
                                                  getter_AddRefs(result));
 
@@ -751,14 +782,16 @@ nsFormFillController::StopSearch()
 NS_IMETHODIMP
 nsFormFillController::OnSearchCompletion(nsIAutoCompleteResult *aResult)
 {
-  nsCOMPtr<nsIAutoCompleteResult> resultParam = do_QueryInterface(aResult);
-
   nsAutoString searchString;
-  resultParam->GetSearchString(searchString);
-  mLastSearchResult = aResult;
+  aResult->GetSearchString(searchString);
+
   mLastSearchString = searchString;
 
-  return PerformInputListAutoComplete(resultParam);
+  if (mLastListener) {
+    mLastListener->OnSearchResult(this, aResult);
+  }
+
+  return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -841,39 +874,43 @@ nsFormFillController::RemoveForDocumentEnumerator(const nsINode* aKey,
   return PL_DHASH_NEXT;
 }
 
+void
+nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
+{
+  nsCOMPtr<nsINode> inputNode = do_QueryInterface(aInput);
+  if (!inputNode)
+    return;
+
+  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aInput);
+  if (!formControl || !formControl->IsSingleLineTextControl(true))
+    return;
+
+  bool isReadOnly = false;
+  aInput->GetReadOnly(&isReadOnly);
+  if (isReadOnly)
+    return;
+
+  bool autocomplete = nsContentUtils::IsAutocompleteEnabled(aInput);
+
+  nsCOMPtr<nsIDOMHTMLElement> datalist;
+  aInput->GetList(getter_AddRefs(datalist));
+  bool hasList = datalist != nullptr;
+
+  bool isPwmgrInput = false;
+  if (mPwmgrInputs.Get(inputNode))
+      isPwmgrInput = true;
+
+  if (isPwmgrInput || hasList || autocomplete) {
+    StartControllingInput(aInput);
+  }
+}
+
 nsresult
 nsFormFillController::Focus(nsIDOMEvent* aEvent)
 {
   nsCOMPtr<nsIDOMHTMLInputElement> input = do_QueryInterface(
     aEvent->InternalDOMEvent()->GetTarget());
-  nsCOMPtr<nsINode> inputNode = do_QueryInterface(input);
-  if (!inputNode)
-    return NS_OK;
-
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(input);
-  if (!formControl || !formControl->IsSingleLineTextControl(true))
-    return NS_OK;
-
-  bool isReadOnly = false;
-  input->GetReadOnly(&isReadOnly);
-  if (isReadOnly)
-    return NS_OK;
-
-  bool autocomplete = nsContentUtils::IsAutocompleteEnabled(input);
-
-  nsCOMPtr<nsIDOMHTMLElement> datalist;
-  input->GetList(getter_AddRefs(datalist));
-  bool hasList = datalist != nullptr;
-
-  bool dummy;
-  bool isPwmgrInput = false;
-  if (mPwmgrInputs.Get(inputNode, &dummy))
-      isPwmgrInput = true;
-
-  if (isPwmgrInput || hasList || autocomplete) {
-    StartControllingInput(input);
-  }
-
+  MaybeStartControllingInput(input);
   return NS_OK;
 }
 
@@ -929,6 +966,36 @@ nsFormFillController::KeyPress(nsIDOMEvent* aEvent)
   case nsIDOMKeyEvent::DOM_VK_DOWN:
   case nsIDOMKeyEvent::DOM_VK_LEFT:
   case nsIDOMKeyEvent::DOM_VK_RIGHT:
+    {
+      // Get the writing-mode of the relevant input element,
+      // so that we can remap arrow keys if necessary.
+      mozilla::WritingMode wm;
+      if (mFocusedInputNode && mFocusedInputNode->IsElement()) {
+        mozilla::dom::Element *elem = mFocusedInputNode->AsElement();
+        nsIFrame *frame = elem->GetPrimaryFrame();
+        if (frame) {
+          wm = frame->GetWritingMode();
+        }
+      }
+      if (wm.IsVertical()) {
+        switch (k) {
+        case nsIDOMKeyEvent::DOM_VK_LEFT:
+          k = wm.IsVerticalLR() ? nsIDOMKeyEvent::DOM_VK_UP
+                                : nsIDOMKeyEvent::DOM_VK_DOWN;
+          break;
+        case nsIDOMKeyEvent::DOM_VK_RIGHT:
+          k = wm.IsVerticalLR() ? nsIDOMKeyEvent::DOM_VK_DOWN
+                                : nsIDOMKeyEvent::DOM_VK_UP;
+          break;
+        case nsIDOMKeyEvent::DOM_VK_UP:
+          k = nsIDOMKeyEvent::DOM_VK_LEFT;
+          break;
+        case nsIDOMKeyEvent::DOM_VK_DOWN:
+          k = nsIDOMKeyEvent::DOM_VK_RIGHT;
+          break;
+        }
+      }
+    }
     mController->HandleKeyNavigation(k, &cancel);
     break;
   case nsIDOMKeyEvent::DOM_VK_ESCAPE:
@@ -945,6 +1012,13 @@ nsFormFillController::KeyPress(nsIDOMEvent* aEvent)
 
   if (cancel) {
     aEvent->PreventDefault();
+    // Don't let the page see the RETURN event when the popup is open
+    // (indicated by cancel=true) so sites don't manually submit forms
+    // (e.g. via submit.click()) without the autocompleted value being filled.
+    // Bug 286933 will fix this for other key events.
+    if (k == nsIDOMKeyEvent::DOM_VK_RETURN) {
+      aEvent->StopPropagation();
+    }
   }
 
   return NS_OK;
@@ -1020,6 +1094,7 @@ nsFormFillController::AddWindowListeners(nsIDOMWindow *aWindow)
                            true, false);
   target->AddEventListener(NS_LITERAL_STRING("input"), this,
                            true, false);
+  target->AddEventListener(NS_LITERAL_STRING("keypress"), this, true, false);
   target->AddEventListener(NS_LITERAL_STRING("compositionstart"), this,
                            true, false);
   target->AddEventListener(NS_LITERAL_STRING("compositionend"), this,
@@ -1058,6 +1133,7 @@ nsFormFillController::RemoveWindowListeners(nsIDOMWindow *aWindow)
   target->RemoveEventListener(NS_LITERAL_STRING("pagehide"), this, true);
   target->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, true);
   target->RemoveEventListener(NS_LITERAL_STRING("input"), this, true);
+  target->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
   target->RemoveEventListener(NS_LITERAL_STRING("compositionstart"), this,
                               true);
   target->RemoveEventListener(NS_LITERAL_STRING("compositionend"), this,
@@ -1066,26 +1142,14 @@ nsFormFillController::RemoveWindowListeners(nsIDOMWindow *aWindow)
 }
 
 void
-nsFormFillController::AddKeyListener(nsINode* aInput)
-{
-  aInput->AddEventListener(NS_LITERAL_STRING("keypress"), this,
-                           true, false);
-}
-
-void
-nsFormFillController::RemoveKeyListener()
-{
-  if (!mFocusedInputNode)
-    return;
-
-  mFocusedInputNode->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
-}
-
-void
 nsFormFillController::StartControllingInput(nsIDOMHTMLInputElement *aInput)
 {
   // Make sure we're not still attached to an input
   StopControllingInput();
+
+  if (!mController) {
+    return;
+  }
 
   // Find the currently focused docShell
   nsCOMPtr<nsIDocShell> docShell = GetDocShellForInput(aInput);
@@ -1101,8 +1165,6 @@ nsFormFillController::StartControllingInput(nsIDOMHTMLInputElement *aInput)
     return;
   }
 
-  AddKeyListener(node);
-
   node->AddMutationObserverUnlessExists(this);
   mFocusedInputNode = node;
   mFocusedInput = aInput;
@@ -1115,27 +1177,26 @@ nsFormFillController::StartControllingInput(nsIDOMHTMLInputElement *aInput)
     mListNode = listNode;
   }
 
-  // Now we are the autocomplete controller's bitch
   mController->SetInput(this);
 }
 
 void
 nsFormFillController::StopControllingInput()
 {
-  RemoveKeyListener();
-
   if (mListNode) {
     mListNode->RemoveMutationObserver(this);
     mListNode = nullptr;
   }
 
-  // Reset the controller's input, but not if it has been switched
-  // to another input already, which might happen if the user switches
-  // focus by clicking another autocomplete textbox
-  nsCOMPtr<nsIAutoCompleteInput> input;
-  mController->GetInput(getter_AddRefs(input));
-  if (input == this)
-    mController->SetInput(nullptr);
+  if (mController) {
+    // Reset the controller's input, but not if it has been switched
+    // to another input already, which might happen if the user switches
+    // focus by clicking another autocomplete textbox
+    nsCOMPtr<nsIAutoCompleteInput> input;
+    mController->GetInput(getter_AddRefs(input));
+    if (input == this)
+      mController->SetInput(nullptr);
+  }
 
   if (mFocusedInputNode) {
     MaybeRemoveMutationObserver(mFocusedInputNode);

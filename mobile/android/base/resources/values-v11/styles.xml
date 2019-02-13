@@ -48,18 +48,19 @@
  
     <!-- GeckoPreferences ActionBar -->
     <style name="ActionBar.GeckoPreferences">
-         <item name="android:displayOptions">showHome|homeAsUp|showTitle</item>
+         <!-- Partially duplicated in GeckoPreferences.initActionBar - look there for more details. -->
+         <item name="android:displayOptions">showHome|homeAsUp|showTitle|useLogo</item>
     </style>
  
-    <!-- TabsTray ActionBar -->
-    <style name="ActionBar.TabsTray">
+    <!-- TabsLayout ActionBar -->
+    <style name="ActionBar.TabsLayout">
          <item name="android:visibility">gone</item>
     </style>
 
     <!-- DropDown List View -->
     <style name="DropDownListView" parent="@android:style/Widget.Holo.ListView.DropDown">
          <item name="android:listSelector">@drawable/action_bar_button</item>
-         <item name="android:divider">#FFD1D5DA</item>
+         <item name="android:divider">@color/divider_light</item>
          <item name="android:dividerHeight">1dp</item>
     </style>
 
@@ -77,10 +78,12 @@
     </style>
 
     <style name="GeckoActionBar" parent="@android:style/Widget.Holo.Light.ActionMode">
-        <item name="android:background">@drawable/ab_stacked_transparent_light_holo</item>
+        <item name="android:background">@drawable/ab_background</item>
     </style>
 
-    <style name="GeckoActionBar.Title" parent="@android:style/TextAppearance.Holo.Widget.ActionBar.Title">
+    <style name="TextAppearance.Widget.ActionBar.Title" parent="@android:style/TextAppearance.Medium"/>
+
+    <style name="GeckoActionBar.Title" parent="TextAppearance.Widget.ActionBar.Title">
         <item name="android:drawableLeft">@drawable/ab_done</item>
         <item name="android:background">@android:color/transparent</item>
         <item name="android:paddingLeft">15dp</item>

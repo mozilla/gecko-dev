@@ -6,6 +6,7 @@ package org.mozilla.gecko.db;
 
 import java.util.HashMap;
 
+import org.mozilla.gecko.CrashHandler;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
@@ -39,8 +40,8 @@ public class PasswordsProvider extends SQLiteBridgeContentProvider {
 
     private static final UriMatcher URI_MATCHER;
 
-    private static HashMap<String, String> PASSWORDS_PROJECTION_MAP;
-    private static HashMap<String, String> DELETED_PASSWORDS_PROJECTION_MAP;
+    private static final HashMap<String, String> PASSWORDS_PROJECTION_MAP;
+    private static final HashMap<String, String> DELETED_PASSWORDS_PROJECTION_MAP;
 
     // this should be kept in sync with the version in toolkit/components/passwordmgr/storage-mozStorage.js
     private static final int DB_VERSION = 5;
@@ -49,6 +50,8 @@ public class PasswordsProvider extends SQLiteBridgeContentProvider {
     private static final String WHERE_GUID_IS_VALUE = BrowserContract.DeletedPasswords.GUID + " = ?";
 
     private static final String LOG_TAG = "GeckPasswordsProvider";
+
+    private CrashHandler mCrashHandler;
 
     static {
         URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
@@ -78,14 +81,30 @@ public class PasswordsProvider extends SQLiteBridgeContentProvider {
         DELETED_PASSWORDS_PROJECTION_MAP.put(DeletedPasswords.ID, DeletedPasswords.ID);
         DELETED_PASSWORDS_PROJECTION_MAP.put(DeletedPasswords.GUID, DeletedPasswords.GUID);
         DELETED_PASSWORDS_PROJECTION_MAP.put(DeletedPasswords.TIME_DELETED, DeletedPasswords.TIME_DELETED);
-
-        // We don't use .loadMozGlue because we're in a different process,
-        // and we just want to reuse code rather than use the loader lock etc.
-        GeckoLoader.doLoadLibrary("mozglue");
     }
 
     public PasswordsProvider() {
         super(LOG_TAG);
+    }
+
+    @Override
+    public boolean onCreate() {
+        mCrashHandler = CrashHandler.createDefaultCrashHandler(getContext());
+
+        // We don't use .loadMozGlue because we're in a different process,
+        // and we just want to reuse code rather than use the loader lock etc.
+        GeckoLoader.doLoadLibrary(getContext(), "mozglue");
+        return super.onCreate();
+    }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+
+        if (mCrashHandler != null) {
+            mCrashHandler.unregister();
+            mCrashHandler = null;
+        }
     }
 
     @Override
@@ -176,7 +195,7 @@ public class PasswordsProvider extends SQLiteBridgeContentProvider {
                     String guid = Utils.generateGuid();
                     values.put(Passwords.GUID, guid);
                 }
-                String nowString = new Long(now).toString();
+                String nowString = Long.toString(now);
                 DBUtils.replaceKey(values, null, Passwords.HOSTNAME, "");
                 DBUtils.replaceKey(values, null, Passwords.HTTP_REALM, "");
                 DBUtils.replaceKey(values, null, Passwords.FORM_SUBMIT_URL, "");

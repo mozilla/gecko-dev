@@ -9,15 +9,15 @@
     </label>
     <hbox id="customization-empty" hidden="true">
       <label>&customizeMode.menuAndToolbars.empty;</label>
-      <label onclick="BrowserOpenAddonsMgr('addons://discovery/');"
-             onkeypress="BrowserOpenAddonsMgr('addons://discovery/');"
+      <label onclick="BrowserOpenAddonsMgr('addons://discover/');"
+             onkeypress="BrowserOpenAddonsMgr('addons://discover/');"
              id="customization-more-tools"
              class="text-link">
         &customizeMode.menuAndToolbars.emptyLink;
       </label>
     </hbox>
-    <vbox id="customization-palette" class="customization-palette" flex="1"/>
-    <spacer id="customization-spacer" flex="1"/>
+    <vbox id="customization-palette" class="customization-palette"/>
+    <spacer id="customization-spacer"/>
     <hbox id="customization-footer">
 #ifdef CAN_DRAW_IN_TITLEBAR
       <button id="customization-titlebar-visibility-button" class="customizationmode-button"
@@ -29,13 +29,40 @@
       <button id="customization-toolbar-visibility-button" label="&customizeMode.toolbars;" class="customizationmode-button" type="menu">
         <menupopup id="customization-toolbar-menu" onpopupshowing="onViewToolbarsPopupShowing(event)"/>
       </button>
-      <spacer flex="1"/>
+      <button id="customization-lwtheme-button" label="&customizeMode.lwthemes;" class="customizationmode-button" type="menu">
+        <panel type="arrow" id="customization-lwtheme-menu"
+               onpopupshowing="gCustomizeMode.onLWThemesMenuShowing(event);"
+               onpopuphidden="gCustomizeMode.onLWThemesMenuHidden(event);"
+               position="topcenter bottomleft"
+               flip="none"
+               role="menu">
+          <label id="customization-lwtheme-menu-header" value="&customizeMode.lwthemes.myThemes;"/>
+          <label id="customization-lwtheme-menu-recommended" value="&customizeMode.lwthemes.recommended;"/>
+          <hbox id="customization-lwtheme-menu-footer">
+            <toolbarbutton class="customization-lwtheme-menu-footeritem"
+                           label="&customizeMode.lwthemes.menuManage;"
+                           accesskey="&customizeMode.lwthemes.menuManage.accessKey;"
+                           tabindex="0"
+                           oncommand="gCustomizeMode.openAddonsManagerThemes(event);"/>
+            <toolbarbutton class="customization-lwtheme-menu-footeritem"
+                           label="&customizeMode.lwthemes.menuGetMore;"
+                           accesskey="&customizeMode.lwthemes.menuGetMore.accessKey;"
+                           tabindex="0"
+                           oncommand="gCustomizeMode.getMoreThemes(event);"/>
+          </hbox>
+        </panel>
+      </button>
+
+      <spacer id="customization-footer-spacer"/>
       <button id="customization-undo-reset-button"
               class="customizationmode-button"
               hidden="true"
               oncommand="gCustomizeMode.undoReset();"
               label="&undoCmd.label;"/>
-      <button id="customization-reset-button" oncommand="gCustomizeMode.reset();" label="&customizeMode.restoreDefaults;" class="customizationmode-button"/>
+      <button id="customization-reset-button"
+              oncommand="gCustomizeMode.reset();"
+              label="&customizeMode.restoreDefaults;"
+              class="customizationmode-button"/>
     </hbox>
   </vbox>
   <vbox id="customization-panel-container">

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,8 +19,8 @@ PointerEvent::PointerEvent(EventTarget* aOwner,
   : MouseEvent(aOwner, aPresContext,
                aEvent ? aEvent : new WidgetPointerEvent(false, 0, nullptr))
 {
-  NS_ASSERTION(mEvent->eventStructType == NS_POINTER_EVENT,
-               "event type mismatch NS_POINTER_EVENT");
+  NS_ASSERTION(mEvent->mClass == ePointerEventClass,
+               "event type mismatch ePointerEventClass");
 
   WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
   if (aEvent) {
@@ -48,6 +49,25 @@ ConvertStringToPointerType(const nsAString& aPointerTypeArg)
   return nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 }
 
+void
+ConvertPointerTypeToString(uint16_t aPointerTypeSrc, nsAString& aPointerTypeDest)
+{
+  switch (aPointerTypeSrc) {
+    case nsIDOMMouseEvent::MOZ_SOURCE_MOUSE:
+      aPointerTypeDest.AssignLiteral("mouse");
+      break;
+    case nsIDOMMouseEvent::MOZ_SOURCE_PEN:
+      aPointerTypeDest.AssignLiteral("pen");
+      break;
+    case nsIDOMMouseEvent::MOZ_SOURCE_TOUCH:
+      aPointerTypeDest.AssignLiteral("touch");
+      break;
+    default:
+      aPointerTypeDest.Truncate();
+      break;
+  }
+}
+
 // static
 already_AddRefed<PointerEvent>
 PointerEvent::Constructor(EventTarget* aOwner,
@@ -60,9 +80,9 @@ PointerEvent::Constructor(EventTarget* aOwner,
   e->InitMouseEvent(aType, aParam.mBubbles, aParam.mCancelable,
                     aParam.mView, aParam.mDetail, aParam.mScreenX,
                     aParam.mScreenY, aParam.mClientX, aParam.mClientY,
-                    aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey,
-                    aParam.mMetaKey, aParam.mButton,
+                    false, false, false, false, aParam.mButton,
                     aParam.mRelatedTarget);
+  e->InitializeExtraMouseEventDictionaryMembers(aParam);
 
   WidgetPointerEvent* widgetEvent = e->mEvent->AsPointerEvent();
   widgetEvent->pointerId = aParam.mPointerId;
@@ -93,20 +113,7 @@ PointerEvent::Constructor(const GlobalObject& aGlobal,
 void
 PointerEvent::GetPointerType(nsAString& aPointerType)
 {
-  switch (mEvent->AsPointerEvent()->inputSource) {
-    case nsIDOMMouseEvent::MOZ_SOURCE_MOUSE:
-      aPointerType.AssignLiteral("mouse");
-      break;
-    case nsIDOMMouseEvent::MOZ_SOURCE_PEN:
-      aPointerType.AssignLiteral("pen");
-      break;
-    case nsIDOMMouseEvent::MOZ_SOURCE_TOUCH:
-      aPointerType.AssignLiteral("touch");
-      break;
-    case nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN:
-      aPointerType.Truncate();
-      break;
-  }
+  ConvertPointerTypeToString(mEvent->AsPointerEvent()->inputSource, aPointerType);
 }
 
 int32_t

@@ -18,20 +18,22 @@ namespace layers {
 
 using namespace mozilla::gfx;
 
-class ClientColorLayer : public ColorLayer, 
+class ClientColorLayer : public ColorLayer,
                          public ClientLayer {
 public:
-  ClientColorLayer(ClientLayerManager* aLayerManager) :
-    ColorLayer(aLayerManager,
-               static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+  explicit ClientColorLayer(ClientLayerManager* aLayerManager) :
+    ColorLayer(aLayerManager, static_cast<ClientLayer*>(this))
   {
     MOZ_COUNT_CTOR(ClientColorLayer);
   }
+
+protected:
   virtual ~ClientColorLayer()
   {
     MOZ_COUNT_DTOR(ClientColorLayer);
   }
 
+public:
   virtual void SetVisibleRegion(const nsIntRegion& aRegion)
   {
     NS_ASSERTION(ClientManager()->InConstruction(),

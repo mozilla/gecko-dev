@@ -12,14 +12,15 @@ XPIDL_MODULE = 'widget_cocoa'
 
 EXPORTS += [
     'mozView.h',
+    'nsBidiKeyboard.h',
     'nsChangeObserver.h',
+    'nsCocoaDebugUtils.h',
     'nsCocoaFeatures.h',
     'nsCocoaUtils.h',
 ]
 
-LIBRARY_NAME = 'widget_mac'
-
 UNIFIED_SOURCES += [
+    'ComplexTextInputPanel.mm',
     'GfxInfo.mm',
     'NativeKeyBindings.mm',
     'nsAppShell.mm',
@@ -30,6 +31,7 @@ UNIFIED_SOURCES += [
     'nsColorPicker.mm',
     'nsCursorManager.mm',
     'nsDeviceContextSpecX.mm',
+    'nsDragService.mm',
     'nsFilePicker.mm',
     'nsIdleServiceX.mm',
     'nsLookAndFeel.mm',
@@ -50,35 +52,31 @@ UNIFIED_SOURCES += [
     'nsScreenManagerCocoa.mm',
     'nsSound.mm',
     'nsStandaloneNativeMenu.mm',
+    'nsSystemStatusBarCocoa.mm',
     'nsToolkit.mm',
     'nsWidgetFactory.mm',
     'nsWindowMap.mm',
     'OSXNotificationCenter.mm',
+    'TextInputHandler.mm',
+    'VibrancyManager.mm',
     'WidgetTraceEvent.mm',
 ]
 
-# These files cannot be built in unified mode because they force NSPR logging.
+# These files cannot be built in unified mode because they cause symbol conflicts
 SOURCES += [
     'nsChildView.mm',
     'nsClipboard.mm',
-    'nsDragService.mm',
-    'TextInputHandler.mm',
+    'nsCocoaDebugUtils.mm',
 ]
-
-if CONFIG['TARGET_CPU'] == 'x86_64':
-    UNIFIED_SOURCES += [
-        'ComplexTextInputPanel.mm',
-    ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../shared',
-    '../xpwidgets',
     '/layout/forms',
     '/layout/generic',
     '/layout/xul',
+    '/widget',
 ]
 
 RESOURCE_FILES.cursors += [
@@ -128,3 +126,4 @@ RESOURCE_FILES.__setattr__('MainMenu.nib', [
     'resources/MainMenu.nib/keyedobjects.nib',
 ])
 
+CXXFLAGS += CONFIG['TK_CFLAGS']

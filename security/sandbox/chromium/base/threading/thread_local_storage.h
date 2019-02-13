@@ -8,11 +8,70 @@
 #include "base/base_export.h"
 #include "base/basictypes.h"
 
-#if defined(OS_POSIX)
+#if defined(OS_WIN)
+#include <windows.h>
+#elif defined(OS_POSIX)
 #include <pthread.h>
 #endif
 
 namespace base {
+
+namespace internal {
+
+// WARNING: You should *NOT* be using this class directly.
+// PlatformThreadLocalStorage is low-level abstraction to the OS's TLS
+// interface, you should instead be using ThreadLocalStorage::StaticSlot/Slot.
+class BASE_EXPORT PlatformThreadLocalStorage {
+ public:
+
+#if defined(OS_WIN)
+  typedef unsigned long TLSKey;
+  enum { TLS_KEY_OUT_OF_INDEXES = TLS_OUT_OF_INDEXES };
+#elif defined(OS_POSIX)
+  typedef pthread_key_t TLSKey;
+  // The following is a "reserved key" which is used in our generic Chromium
+  // ThreadLocalStorage implementation.  We expect that an OS will not return
+  // such a key, but if it is returned (i.e., the OS tries to allocate it) we
+  // will just request another key.
+  enum { TLS_KEY_OUT_OF_INDEXES = 0x7FFFFFFF };
+#endif
+
+  // The following methods need to be supported on each OS platform, so that
+  // the Chromium ThreadLocalStore functionality can be constructed.
+  // Chromium will use these methods to acquire a single OS slot, and then use
+  // that to support a much larger number of Chromium slots (independent of the
+  // OS restrictions).
+  // The following returns true if it successfully is able to return an OS
+  // key in |key|.
+  static bool AllocTLS(TLSKey* key);
+  // Note: FreeTLS() doesn't have to be called, it is fine with this leak, OS
+  // might not reuse released slot, you might just reset the TLS value with
+  // SetTLSValue().
+  static void FreeTLS(TLSKey key);
+  static void SetTLSValue(TLSKey key, void* value);
+  static void* GetTLSValue(TLSKey key);
+
+  // Each platform (OS implementation) is required to call this method on each
+  // terminating thread when the thread is about to terminate.  This method
+  // will then call all registered destructors for slots in Chromium
+  // ThreadLocalStorage, until there are no slot values remaining as having
+  // been set on this thread.
+  // Destructors may end up being called multiple times on a terminating
+  // thread, as other destructors may re-set slots that were previously
+  // destroyed.
+#if defined(OS_WIN)
+  // Since Windows which doesn't support TLS destructor, the implementation
+  // should use GetTLSValue() to retrieve the value of TLS slot.
+  static void OnThreadExit();
+#elif defined(OS_POSIX)
+  // |Value| is the data stored in TLS slot, The implementation can't use
+  // GetTLSValue() to retrieve the value of slot as it has already been reset
+  // in Posix.
+  static void OnThreadExit(void* value);
+#endif
+};
+
+}  // namespace internal
 
 // Wrapper for thread local storage.  This class doesn't do much except provide
 // an API for portability.
@@ -60,12 +119,7 @@ class BASE_EXPORT ThreadLocalStorage {
 
     // The internals of this struct should be considered private.
     bool initialized_;
-#if defined(OS_WIN)
     int slot_;
-#elif defined(OS_POSIX)
-    pthread_key_t key_;
-#endif
-
   };
 
   // A convenience wrapper around StaticSlot with a constructor. Can be used
@@ -77,11 +131,8 @@ class BASE_EXPORT ThreadLocalStorage {
 
    private:
     using StaticSlot::initialized_;
-#if defined(OS_WIN)
     using StaticSlot::slot_;
-#elif defined(OS_POSIX)
-    using StaticSlot::key_;
-#endif
+
     DISALLOW_COPY_AND_ASSIGN(Slot);
   };
 

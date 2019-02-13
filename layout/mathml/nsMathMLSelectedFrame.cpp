@@ -6,6 +6,8 @@
 #include "nsMathMLSelectedFrame.h"
 #include "nsDisplayList.h"
 
+using namespace mozilla;
+
 nsMathMLSelectedFrame::~nsMathMLSelectedFrame()
 {
 }
@@ -96,6 +98,39 @@ nsMathMLSelectedFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 #endif
 }
 
+/* virtual */
+LogicalSize
+nsMathMLSelectedFrame::ComputeSize(nsRenderingContext *aRenderingContext,
+                                   WritingMode aWM,
+                                   const LogicalSize& aCBSize,
+                                   nscoord aAvailableISize,
+                                   const LogicalSize& aMargin,
+                                   const LogicalSize& aBorder,
+                                   const LogicalSize& aPadding,
+                                   ComputeSizeFlags aFlags)
+{
+  nsIFrame* childFrame = GetSelectedFrame();
+  if (childFrame) {
+    // Delegate size computation to the child frame.
+    // Try to account for border/padding/margin on this frame and the child,
+    // though we don't really support them during reflow anyway...
+    nscoord availableISize = aAvailableISize - aBorder.ISize(aWM) -
+        aPadding.ISize(aWM) - aMargin.ISize(aWM);
+    LogicalSize cbSize = aCBSize - aBorder - aPadding - aMargin;
+    nsCSSOffsetState offsetState(childFrame, aRenderingContext, aWM,
+                                 availableISize);
+    LogicalSize size =
+        childFrame->ComputeSize(aRenderingContext, aWM, cbSize,
+            availableISize, offsetState.ComputedLogicalMargin().Size(aWM),
+            offsetState.ComputedLogicalBorderPadding().Size(aWM) -
+            offsetState.ComputedLogicalPadding().Size(aWM),
+            offsetState.ComputedLogicalPadding().Size(aWM),
+            aFlags);
+    return size + offsetState.ComputedLogicalBorderPadding().Size(aWM);
+  }
+  return LogicalSize(aWM);
+}
+
 // Only reflow the selected child ...
 void
 nsMathMLSelectedFrame::Reflow(nsPresContext*          aPresContext,
@@ -103,13 +138,17 @@ nsMathMLSelectedFrame::Reflow(nsPresContext*          aPresContext,
                               const nsHTMLReflowState& aReflowState,
                               nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
+  mPresentationData.flags &= ~NS_MATHML_ERROR;
   aStatus = NS_FRAME_COMPLETE;
-  aDesiredSize.Width() = aDesiredSize.Height() = 0;
+  aDesiredSize.ClearSize();
   aDesiredSize.SetBlockStartAscent(0);
   mBoundingMetrics = nsBoundingMetrics();
   nsIFrame* childFrame = GetSelectedFrame();
   if (childFrame) {
-    nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
+    WritingMode wm = childFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
     ReflowChild(childFrame, aPresContext, aDesiredSize,
@@ -134,7 +173,7 @@ nsMathMLSelectedFrame::Place(nsRenderingContext& aRenderingContext,
     return ReflowError(aRenderingContext, aDesiredSize);
   }
 
-  aDesiredSize.Width() = aDesiredSize.Height() = 0;
+  aDesiredSize.ClearSize();
   aDesiredSize.SetBlockStartAscent(0);
   mBoundingMetrics = nsBoundingMetrics();
   if (childFrame) {

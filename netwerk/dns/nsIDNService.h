@@ -22,9 +22,9 @@ class nsIPrefBranch;
 
 #define kACEPrefixLen 4 
 
-class nsIDNService : public nsIIDNService,
-                     public nsIObserver,
-                     public nsSupportsWeakReference
+class nsIDNService final : public nsIIDNService,
+                           public nsIObserver,
+                           public nsSupportsWeakReference
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -32,9 +32,11 @@ public:
   NS_DECL_NSIOBSERVER
 
   nsIDNService();
-  virtual ~nsIDNService();
 
   nsresult Init();
+
+protected:
+  virtual ~nsIDNService();
 
 private:
   void normalizeFullStops(nsAString& s);

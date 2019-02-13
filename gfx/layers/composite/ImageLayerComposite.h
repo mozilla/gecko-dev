@@ -8,20 +8,18 @@
 
 #include "GLTextureImage.h"             // for TextureImage
 #include "ImageLayers.h"                // for ImageLayer
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/layers/LayerManagerComposite.h"  // for LayerComposite, etc
 #include "mozilla/layers/LayersTypes.h"  // for LayerRenderState, etc
 #include "nsISupportsImpl.h"            // for TextureImage::AddRef, etc
 #include "nscore.h"                     // for nsACString
-
-struct nsIntPoint;
-struct nsIntRect;
+#include "CompositableHost.h"           // for CompositableHost
 
 namespace mozilla {
 namespace layers {
 
-class CompositableHost;
 class ImageHost;
 class Layer;
 
@@ -31,32 +29,48 @@ class ImageLayerComposite : public ImageLayer,
   typedef gl::TextureImage TextureImage;
 
 public:
-  ImageLayerComposite(LayerManagerComposite* aManager);
-
-  virtual ~ImageLayerComposite();
-
-  virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
-
-  virtual void Disconnect() MOZ_OVERRIDE;
-
-  virtual bool SetCompositableHost(CompositableHost* aHost) MOZ_OVERRIDE;
-
-  virtual Layer* GetLayer() MOZ_OVERRIDE;
-
-  virtual void RenderLayer(const nsIntRect& aClipRect);
-
-  virtual void ComputeEffectiveTransforms(const mozilla::gfx::Matrix4x4& aTransformToSurface) MOZ_OVERRIDE;
-
-  virtual void CleanupResources() MOZ_OVERRIDE;
-
-  CompositableHost* GetCompositableHost() MOZ_OVERRIDE;
-
-  virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
-
-  virtual const char* Name() const { return "ImageLayerComposite"; }
+  explicit ImageLayerComposite(LayerManagerComposite* aManager);
 
 protected:
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix) MOZ_OVERRIDE;
+  virtual ~ImageLayerComposite();
+
+public:
+  virtual LayerRenderState GetRenderState() override;
+
+  virtual void Disconnect() override;
+
+  virtual bool SetCompositableHost(CompositableHost* aHost) override;
+
+  virtual Layer* GetLayer() override;
+
+  virtual void SetLayerManager(LayerManagerComposite* aManager) override
+  {
+    LayerComposite::SetLayerManager(aManager);
+    mManager = aManager;
+    if (mImageHost) {
+      mImageHost->SetCompositor(mCompositor);
+    }
+  }
+
+  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
+
+  virtual void ComputeEffectiveTransforms(const mozilla::gfx::Matrix4x4& aTransformToSurface) override;
+
+  virtual void CleanupResources() override;
+
+  CompositableHost* GetCompositableHost() override;
+
+  virtual void GenEffectChain(EffectChain& aEffect) override;
+
+  virtual LayerComposite* AsLayerComposite() override { return this; }
+
+  virtual const char* Name() const override { return "ImageLayerComposite"; }
+
+protected:
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
+
+private:
+  gfx::Filter GetEffectFilter();
 
 private:
   RefPtr<CompositableHost> mImageHost;

@@ -9,7 +9,11 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+
 #include "Mappable.h"
+
+#include "mozilla/UniquePtr.h"
+
 #ifdef ANDROID
 #include <linux/ashmem.h>
 #endif
@@ -18,6 +22,9 @@
 #include "ElfLoader.h"
 #include "SeekableZStream.h"
 #include "Logging.h"
+
+using mozilla::MakeUnique;
+using mozilla::UniquePtr;
 
 Mappable *
 MappableFile::Create(const char *path)
@@ -63,28 +70,27 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
         "not extracting");
     return nullptr;
   }
-  mozilla::ScopedDeleteArray<char> path;
-  path = new char[strlen(cachePath) + strlen(name) + 2];
-  sprintf(path, "%s/%s", cachePath, name);
+  UniquePtr<char[]> path =
+    MakeUnique<char[]>(strlen(cachePath) + strlen(name) + 2);
+  sprintf(path.get(), "%s/%s", cachePath, name);
   struct stat cacheStat;
-  if (stat(path, &cacheStat) == 0) {
+  if (stat(path.get(), &cacheStat) == 0) {
     struct stat zipStat;
     stat(zip->GetName(), &zipStat);
     if (cacheStat.st_mtime > zipStat.st_mtime) {
-      DEBUG_LOG("Reusing %s", static_cast<char *>(path));
-      return MappableFile::Create(path);
+      DEBUG_LOG("Reusing %s", static_cast<char *>(path.get()));
+      return MappableFile::Create(path.get());
     }
   }
-  DEBUG_LOG("Extracting to %s", static_cast<char *>(path));
+  DEBUG_LOG("Extracting to %s", static_cast<char *>(path.get()));
   AutoCloseFD fd;
-  fd = open(path, O_TRUNC | O_RDWR | O_CREAT | O_NOATIME,
-                  S_IRUSR | S_IWUSR);
+  fd = open(path.get(), O_TRUNC | O_RDWR | O_CREAT | O_NOATIME,
+                        S_IRUSR | S_IWUSR);
   if (fd == -1) {
     ERROR("Couldn't open %s to decompress library", path.get());
     return nullptr;
   }
-  AutoUnlinkFile file;
-  file = path.forget();
+  AutoUnlinkFile file(path.release());
   if (stream->GetType() == Zip::Stream::DEFLATE) {
     if (ftruncate(fd, stream->GetUncompressedSize()) == -1) {
       ERROR("Couldn't ftruncate %s to decompress library", file.get());
@@ -98,7 +104,7 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
       return nullptr;
     }
 
-    z_stream zStream = stream->GetZStream(buffer);
+    zxx_stream zStream = stream->GetZStream(buffer);
 
     /* Decompress */
     if (inflateInit2(&zStream, -MAX_WBITS) != Z_OK) {
@@ -143,7 +149,7 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
     return nullptr;
   }
 
-  return new MappableExtractFile(fd.forget(), file.forget());
+  return new MappableExtractFile(fd.forget(), Move(file));
 }
 
 MappableExtractFile::~MappableExtractFile()
@@ -153,7 +159,7 @@ MappableExtractFile::~MappableExtractFile()
    * doesn't really matter, it helps e.g. valgrind that the file is there.
    * The string still needs to be delete[]d, though */
   if (pid != getpid())
-    delete [] path.forget();
+    delete [] path.release();
 }
 
 /**
@@ -385,13 +391,12 @@ MappableSeekableZStream::Create(const char *name, Zip *zip,
   if (!mappable->zStream.Init(stream->GetBuffer(), stream->GetSize()))
     return nullptr;
 
-  mappable->buffer = _MappableBuffer::Create(name,
-                              mappable->zStream.GetUncompressedSize());
+  mappable->buffer.reset(_MappableBuffer::Create(name,
+                              mappable->zStream.GetUncompressedSize()));
   if (!mappable->buffer)
     return nullptr;
 
-  mappable->chunkAvail = new unsigned char[mappable->zStream.GetChunksNum()];
-  memset(mappable->chunkAvail, 0, mappable->zStream.GetChunksNum());
+  mappable->chunkAvail = MakeUnique<unsigned char[]>(mappable->zStream.GetChunksNum());
 
   return mappable.forget();
 }
@@ -575,8 +580,7 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
             name, when, static_cast<size_t>(chunkAvailNum), nEntries);
 
   size_t len = 64;
-  mozilla::ScopedDeleteArray<char> map;
-  map = new char[len + 3];
+  UniquePtr<char[]> map = MakeUnique<char[]>(len + 3);
   map[0] = '[';
 
   for (size_t i = 0, j = 1; i < nEntries; i++, j++) {
@@ -584,7 +588,7 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
     if ((j == len) || (i == nEntries - 1)) {
       map[j + 1] = ']';
       map[j + 2] = '\0';
-      DEBUG_LOG("%s", static_cast<char *>(map));
+      DEBUG_LOG("%s", static_cast<char *>(map.get()));
       j = 0;
     }
   }

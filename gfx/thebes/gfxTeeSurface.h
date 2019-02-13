@@ -23,10 +23,10 @@ template<class T> class nsRefPtr;
  */
 class gfxTeeSurface : public gfxASurface {
 public:
-    gfxTeeSurface(cairo_surface_t *csurf);
+    explicit gfxTeeSurface(cairo_surface_t *csurf);
     gfxTeeSurface(gfxASurface **aSurfaces, int32_t aSurfaceCount);
 
-    virtual const gfxIntSize GetSize() const;
+    virtual const mozilla::gfx::IntSize GetSize() const;
 
     /**
      * Returns the list of underlying surfaces.

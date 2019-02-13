@@ -529,9 +529,17 @@
           if (PlacesControllerDragHelper.disallowInsertion(container))
             return null;
 
+          // TODO (Bug 1160193): properly support dropping on a tag root.
+          let tagName = null;
+          if (PlacesUtils.nodeIsTagQuery(container)) {
+            tagName = container.title;
+            if (!tagName)
+              return null;
+          }
+
           return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
                                     index, orientation,
-                                    PlacesUtils.nodeIsTagQuery(container),
+                                    tagName,
                                     dropNearItemId);
         ]]></body>
       </method>
@@ -568,11 +576,11 @@
           // Array of nodes found by findNodes which should be opened
           var nodesToOpen = [];
 
-          // A set of URIs of container-nodes that were previously searched,
+          // A set of GUIDs of container-nodes that were previously searched,
           // and thus shouldn't be searched again. This is empty at the initial
           // start of the recursion and gets filled in as the recursion
           // progresses.
-          var nodesURIChecked = [];
+          var checkedGuidsSet = new Set();
 
           /**
            * Recursively search through a node's children for items
@@ -598,20 +606,18 @@
               ids.splice(index, 1);
             }
 
+            var concreteGuid = PlacesUtils.getConcreteItemGuid(node);
             if (ids.length == 0 || !PlacesUtils.nodeIsContainer(node) ||
-                nodesURIChecked.indexOf(node.uri) != -1)
+                checkedGuidsSet.has(concreteGuid))
               return foundOne;
 
-            // Don't try to open a query or a shurtcut, since it may return
-            // any duplicate data and be infinitely nested.  Though, if it has
-            // been explicitly opened by the caller, search into it.
-            let shouldOpen = aOpenContainers &&
-                             node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER;
+            // Only follow a query if it has been been explicitly opened by the caller.
+            let shouldOpen = aOpenContainers && PlacesUtils.nodeIsFolder(node);
             PlacesUtils.asContainer(node);
             if (!node.containerOpen && !shouldOpen)
               return foundOne;
 
-            nodesURIChecked.push(node.uri);
+            checkedGuidsSet.add(concreteGuid);
 
             // Remember the beginning state so that we can re-close
             // this node if we don't find any additional results here.
@@ -745,11 +751,9 @@
         if (event.target.localName != "treechildren")
           return;
 
-        let row = { }, col = { }, child = { };
-        this.treeBoxObject.getCellAt(event.clientX, event.clientY,
-                                     row, col, child);
-        let node = row.value != -1 ?
-                   this.view.nodeForTreeIndex(row.value) :
+        let cell = this.treeBoxObject.getCellAt(event.clientX, event.clientY);
+        let node = cell.row != -1 ?
+                   this.view.nodeForTreeIndex(cell.row) :
                    this.result.root;
         // cache the dropTarget for the view
         PlacesControllerDragHelper.currentDropTarget = node;
@@ -759,11 +763,11 @@
         let tbo = this.treeBoxObject;
         let rowHeight = tbo.rowHeight;
         let eventY = event.clientY - tbo.treeBody.boxObject.y -
-                     rowHeight * (row.value - tbo.getFirstVisibleRow());
+                     rowHeight * (cell.row - tbo.getFirstVisibleRow());
 
         let orientation = Ci.nsITreeView.DROP_BEFORE;
 
-        if (row.value == -1) {
+        if (cell.row == -1) {
           // If the row is not valid we try to insert inside the resultNode.
           orientation = Ci.nsITreeView.DROP_ON;
         }
@@ -780,7 +784,7 @@
           orientation = Ci.nsITreeView.DROP_ON;
         }
 
-        if (!this.view.canDrop(row.value, orientation, event.dataTransfer))
+        if (!this.view.canDrop(cell.row, orientation, event.dataTransfer))
           return;
 
         event.preventDefault();

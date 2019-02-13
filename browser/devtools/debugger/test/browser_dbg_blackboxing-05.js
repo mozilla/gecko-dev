@@ -8,13 +8,12 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_binary_search.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gDeck;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gDeck = gDebugger.document.getElementById("editor-deck");
@@ -43,14 +42,19 @@ function testBlackBoxMessageShown() {
 }
 
 function clickStopBlackBoxingButton() {
-  let finished = waitForThreadEvents(gPanel, "blackboxchange");
-  getEditorBlackboxMessageButton().click();
-  return finished;
+  // Give the test a chance to finish before triggering the click event.
+  executeSoon(() => getEditorBlackboxMessageButton().click());
+  return waitForThreadEvents(gPanel, "blackboxchange");
 }
 
 function testSourceEditorShownAgain() {
-  is(gDeck.selectedIndex, "0",
-    "The first item in the deck should be selected again (the source editor).");
+  // Wait a tick for the final check to make sure the frontend's click handlers
+  // have finished.
+  return new Promise(resolve => {
+    is(gDeck.selectedIndex, "0",
+      "The first item in the deck should be selected again (the source editor).");
+    resolve();
+  });
 }
 
 function getEditorBlackboxMessageButton() {
@@ -59,7 +63,6 @@ function getEditorBlackboxMessageButton() {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gDeck = null;

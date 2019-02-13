@@ -12,7 +12,6 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsXULAppAPI.h"
-#include "nsIJSRuntimeService.h"
 #include "nsIProfileSaveEvent.h"
 
 #ifdef XP_WIN
@@ -33,7 +32,7 @@ public:
   NS_IMETHOD Run();
 };
 
-class ProfileSaveEvent MOZ_FINAL : public nsIProfileSaveEvent {
+class ProfileSaveEvent final : public nsIProfileSaveEvent {
 public:
   typedef void (*AddSubProfileFunc)(const char* aProfile, void* aClosure);
   NS_DECL_ISUPPORTS
@@ -43,10 +42,10 @@ public:
     , mClosure(aClosure)
   {}
 
+  NS_IMETHOD AddSubProfile(const char* aProfile) override;
+private:
   ~ProfileSaveEvent() {}
 
-  NS_IMETHOD AddSubProfile(const char* aProfile);
-private:
   AddSubProfileFunc mFunc;
   void* mClosure;
 };

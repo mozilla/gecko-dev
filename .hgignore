@@ -11,6 +11,9 @@
 ^\.sw.$
 .[^/]*\.sw.$
 
+# Emacs directory variable files.
+\.dir-locals\.el
+
 # User files that may appear at the root
 ^\.mozconfig
 ^mozconfig*
@@ -71,3 +74,13 @@ GTAGS
 GRTAGS
 GSYMS
 GPATH
+
+# Unit tests for Loop
+^browser/components/loop/standalone/content/config\.js$
+^browser/components/loop/standalone/node_modules/
+
+# Git clone directory for updating web-platform-tests
+^testing/web-platform/sync/
+
+# Android Gradle artifacts.
+^mobile/android/gradle/.gradle

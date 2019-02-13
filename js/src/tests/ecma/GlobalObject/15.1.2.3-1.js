@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -54,8 +54,6 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 new TestCase( SECTION, "parseFloat.length",     1,              parseFloat.length );
 
 new TestCase( SECTION, "parseFloat.length = null; parseFloat.length",   1,      eval("parseFloat.length = null; parseFloat.length") );
-new TestCase( SECTION, "delete parseFloat.length",                      false,  delete parseFloat.length );
-new TestCase( SECTION, "delete parseFloat.length; parseFloat.length",   1,      eval("delete parseFloat.length; parseFloat.length") );
 new TestCase( SECTION, "var MYPROPS=''; for ( var p in parseFloat ) { MYPROPS += p }; MYPROPS", "", eval("var MYPROPS=''; for ( var p in parseFloat ) { MYPROPS += p }; MYPROPS") );
 
 new TestCase( SECTION, "parseFloat()",          Number.NaN,     parseFloat() );

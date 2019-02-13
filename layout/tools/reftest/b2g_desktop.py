@@ -3,17 +3,19 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 from __future__ import print_function, unicode_literals
 
-import json
 import os
 import signal
 import sys
-import threading
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 from runreftest import RefTest, ReftestOptions
 
-from marionette import Marionette
+from marionette_driver import expected
+from marionette_driver.by import By
+from marionette_driver.marionette import Marionette
+from marionette_driver.wait import Wait
+
 from mozprocess import ProcessHandler
 from mozrunner import FirefoxRunner
 import mozinfo
@@ -22,18 +24,25 @@ import mozlog
 log = mozlog.getLogger('REFTEST')
 
 class B2GDesktopReftest(RefTest):
-    def __init__(self, marionette):
+    build_type = "desktop"
+    marionette = None
+
+    def __init__(self, marionette_args):
         RefTest.__init__(self)
         self.last_test = os.path.basename(__file__)
-        self.marionette = marionette
+        self.marionette_args = marionette_args
         self.profile = None
         self.runner = None
         self.test_script = os.path.join(here, 'b2g_start_script.js')
         self.timeout = None
 
     def run_marionette_script(self):
+        self.marionette = Marionette(**self.marionette_args)
         assert(self.marionette.wait_for_port())
         self.marionette.start_session()
+        if self.build_type == "mulet":
+            self._wait_for_homescreen(timeout=300)
+            self._unlockScreen()
         self.marionette.set_context(self.marionette.CONTEXT_CHROME)
 
         if os.path.isfile(self.test_script):
@@ -71,8 +80,8 @@ class B2GDesktopReftest(RefTest):
                                     cmdargs=args,
                                     env=env,
                                     process_class=ProcessHandler,
-                                    symbols_path=options.symbolsPath,
-                                    kp_kwargs=kp_kwargs)
+                                    process_args=kp_kwargs,
+                                    symbols_path=options.symbolsPath)
 
         status = 0
         try:
@@ -105,9 +114,21 @@ class B2GDesktopReftest(RefTest):
         prefs = {}
         # Turn off the locale picker screen
         prefs["browser.firstrun.show.localepicker"] = False
-        prefs["b2g.system_startup_url"] = "app://test-container.gaiamobile.org/index.html"
-        prefs["b2g.system_manifest_url"] = "app://test-container.gaiamobile.org/manifest.webapp"
-        prefs["browser.tabs.remote"] = False
+        if not self.build_type == "mulet":
+            # FIXME: With Mulet we can't set this values since Gaia won't launch
+            prefs["b2g.system_startup_url"] = \
+                    "app://test-container.gaiamobile.org/index.html"
+            prefs["b2g.system_manifest_url"] = \
+                    "app://test-container.gaiamobile.org/manifest.webapp"
+        # Make sure we disable system updates
+        prefs["app.update.enabled"] = False
+        prefs["app.update.url"] = ""
+        prefs["app.update.url.override"] = ""
+        # Disable webapp updates
+        prefs["webapps.update.enabled"] = False
+        # Disable tiles also
+        prefs["browser.newtabpage.directory.source"] = ""
+        prefs["browser.newtabpage.directory.ping"] = ""
         prefs["dom.ipc.tabs.disabled"] = False
         prefs["dom.mozBrowserFramesEnabled"] = True
         prefs["font.size.inflation.emPerLine"] = 0
@@ -119,6 +140,8 @@ class B2GDesktopReftest(RefTest):
         # Set a future policy version to avoid the telemetry prompt.
         prefs["toolkit.telemetry.prompted"] = 999
         prefs["toolkit.telemetry.notifiedOptOut"] = 999
+        # Disable periodic updates of service workers
+        prefs["dom.serviceWorkers.periodic-updates.enabled"] = False
 
         # Set the extra prefs.
         profile.set_preferences(prefs)
@@ -134,10 +157,15 @@ class B2GDesktopReftest(RefTest):
 
         if not ignore_window_size:
             args.extend(['--screen', '800x1000'])
+
+        if self.build_type == "mulet":
+            args += ['-chrome', 'chrome://b2g/content/shell.html']
         return cmd, args
 
     def _on_output(self, line):
-        print(line)
+        sys.stdout.write("%s\n" % line)
+        sys.stdout.flush()
+
         # TODO use structured logging
         if "TEST-START" in line and "|" in line:
             self.last_test = line.split("|")[1].strip()
@@ -149,16 +177,32 @@ class B2GDesktopReftest(RefTest):
         # kill process to get a stack
         self.runner.stop(sig=signal.SIGABRT)
 
+class MuletReftest(B2GDesktopReftest):
+    build_type = "mulet"
+
+    def _unlockScreen(self):
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+        self.marionette.import_script(os.path.abspath(
+            os.path.join(__file__, os.path.pardir, "gaia_lock_screen.js")))
+        self.marionette.switch_to_frame()
+        self.marionette.execute_async_script('GaiaLockScreen.unlock()')
+
+    def _wait_for_homescreen(self, timeout):
+        log.info("Waiting for home screen to load")
+        Wait(self.marionette, timeout).until(expected.element_present(
+            By.CSS_SELECTOR, '#homescreen[loading-state=false]'))
 
 def run_desktop_reftests(parser, options, args):
-    kwargs = {}
+    marionette_args = {}
     if options.marionette:
         host, port = options.marionette.split(':')
-        kwargs['host'] = host
-        kwargs['port'] = int(port)
-    marionette = Marionette.getMarionetteOrExit(**kwargs)
+        marionette_args['host'] = host
+        marionette_args['port'] = int(port)
 
-    reftest = B2GDesktopReftest(marionette)
+    if options.mulet:
+        reftest = MuletReftest(marionette_args)
+    else:
+        reftest = B2GDesktopReftest(marionette_args)
 
     options = ReftestOptions.verifyCommonOptions(parser, options, reftest)
     if options == None:
@@ -168,6 +212,9 @@ def run_desktop_reftests(parser, options, args):
     if options.app[-4:] != '-bin':
         if os.path.isfile("%s-bin" % options.app):
             options.app = "%s-bin" % options.app
+
+    if options.xrePath is None:
+        options.xrePath = os.path.dirname(options.app)
 
     if options.desktop and not options.profile:
         raise Exception("must specify --profile when specifying --desktop")

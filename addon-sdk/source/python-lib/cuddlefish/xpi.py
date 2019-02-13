@@ -24,25 +24,24 @@ def mkzipdir(zf, path):
 def build_xpi(template_root_dir, manifest, xpi_path,
               harness_options, limit_to=None, extra_harness_options={},
               bundle_sdk=True, pkgdir=""):
-    IGNORED_FILES = [".hgignore", ".DS_Store", "install.rdf",
+    IGNORED_FILES = [".hgignore", ".DS_Store",
                      "application.ini", xpi_path]
+    IGNORED_TOP_LVL_FILES = ["install.rdf"]
 
     files_to_copy = {} # maps zipfile path to local-disk abspath
     dirs_to_create = set() # zipfile paths, no trailing slash
 
     zf = zipfile.ZipFile(xpi_path, "w", zipfile.ZIP_DEFLATED)
 
-    open('.install.rdf', 'w').write(str(manifest))
-    zf.write('.install.rdf', 'install.rdf')
-    os.remove('.install.rdf')
+    zf.writestr('install.rdf', str(manifest))
 
     # Handle add-on icon
     if 'icon' in harness_options:
-        zf.write(str(harness_options['icon']), 'icon.png')
+        zf.write(os.path.join(str(harness_options['icon'])), 'icon.png')
         del harness_options['icon']
 
     if 'icon64' in harness_options:
-        zf.write(str(harness_options['icon64']), 'icon64.png')
+        zf.write(os.path.join(str(harness_options['icon64'])), 'icon64.png')
         del harness_options['icon64']
 
     # chrome.manifest
@@ -71,6 +70,8 @@ def build_xpi(template_root_dir, manifest, xpi_path,
               files_to_copy[str(arcpath)] = str(abspath)
 
     for dirpath, dirnames, filenames in os.walk(template_root_dir):
+        if template_root_dir == dirpath:
+            filenames = list(filter_filenames(filenames, IGNORED_TOP_LVL_FILES))
         filenames = list(filter_filenames(filenames, IGNORED_FILES))
         dirnames[:] = filter_dirnames(dirnames)
         for dirname in dirnames:
@@ -86,8 +87,7 @@ def build_xpi(template_root_dir, manifest, xpi_path,
     # of all packages sections directories
     for packageName in harness_options['packages']:
       base_arcpath = ZIPSEP.join(['resources', packageName])
-      # Eventually strip sdk files. We need to do that in addition to the
-      # whilelist as the whitelist is only used for `cfx xpi`:
+      # Eventually strip sdk files.
       if not bundle_sdk and packageName == 'addon-sdk':
           continue
       # Always write the top directory, even if it contains no files, since
@@ -158,9 +158,7 @@ def build_xpi(template_root_dir, manifest, xpi_path,
         harness_options[key] = value
 
     # Write harness-options.json
-    open('.options.json', 'w').write(json.dumps(harness_options, indent=1,
-                                                sort_keys=True))
-    zf.write('.options.json', 'harness-options.json')
-    os.remove('.options.json')
+    zf.writestr('harness-options.json', json.dumps(harness_options, indent=1,
+                                                   sort_keys=True))
 
     zf.close()

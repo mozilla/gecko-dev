@@ -12,6 +12,7 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var server = new HttpServer();
 server.registerDirectory("/", do_get_file(''));
@@ -96,7 +97,7 @@ function checkSecondLoad()
   var listener = new ImageListener(checkClone, secondLoadDone);
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                 .createScriptedObserver(listener);
-  requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null));
+  requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null));
   listener.synchronous = false;
 }
 
@@ -140,7 +141,12 @@ function checkSecondChannelLoad()
   do_test_pending();
 
   var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);  
-  var channel = ioService.newChannelFromURI(uri);
+  var channel = ioService.newChannelFromURI2(uri,
+                                             null,      // aLoadingNode
+                                             Services.scriptSecurityManager.getSystemPrincipal(),
+                                             null,      // aTriggeringPrincipal
+                                             Ci.nsILoadInfo.SEC_NORMAL,
+                                             Ci.nsIContentPolicy.TYPE_OTHER);
   var channellistener = new ChannelListener();
   channel.asyncOpen(channellistener, null);
 
@@ -164,7 +170,12 @@ function run_loadImageWithChannel_tests()
   do_test_pending();
 
   var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);  
-  var channel = ioService.newChannelFromURI(uri);
+  var channel = ioService.newChannelFromURI2(uri,
+                                             null,      // aLoadingNode
+                                             Services.scriptSecurityManager.getSystemPrincipal(),
+                                             null,      // aTriggeringPrincipal
+                                             Ci.nsILoadInfo.SEC_NORMAL,
+                                             Ci.nsIContentPolicy.TYPE_OTHER);
   var channellistener = new ChannelListener();
   channel.asyncOpen(channellistener, null);
 
@@ -194,7 +205,7 @@ function startImageCallback(otherCb)
     var listener2 = new ImageListener(null, function(foo, bar) { do_test_finished(); });
     var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                   .createScriptedObserver(listener2);
-    requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null));
+    requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null));
     listener2.synchronous = false;
 
     // Now that we've started another load, chain to the callback.
@@ -221,7 +232,7 @@ function run_test()
   var listener = new ImageListener(startImageCallback(checkClone), firstLoadDone);
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                 .createScriptedObserver(listener);
-  var req = gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null);
+  var req = gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null);
   requests.push(req);
 
   // Ensure that we don't cause any mayhem when we lock an image.

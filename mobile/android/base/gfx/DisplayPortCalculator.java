@@ -13,7 +13,6 @@ import org.json.JSONArray;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
-import android.util.FloatMath;
 import android.util.Log;
 
 import java.util.HashMap;
@@ -75,7 +74,7 @@ final class DisplayPortCalculator {
                                  PREF_DISPLAYPORT_PB_VELOCITY_THRESHOLD };
 
         PrefsHelper.getPrefs(prefs, new PrefsHelper.PrefHandlerBase() {
-            private Map<String, Integer> mValues = new HashMap<String, Integer>();
+            private final Map<String, Integer> mValues = new HashMap<String, Integer>();
 
             @Override public void prefValue(String pref, int value) {
                 mValues.put(pref, value);
@@ -124,7 +123,7 @@ final class DisplayPortCalculator {
 
     private static float getFloatPref(Map<String, Integer> prefs, String prefName, int defaultValue) {
         Integer value = (prefs == null ? null : prefs.get(prefName));
-        return (float)(value == null || value < 0 ? defaultValue : value) / 1000f;
+        return (value == null || value < 0 ? defaultValue : value) / 1000f;
     }
 
     private static abstract class DisplayPortStrategy {
@@ -184,10 +183,10 @@ final class DisplayPortCalculator {
         float top = metrics.viewportRectTop - margins.top;
         float right = metrics.viewportRectRight + margins.right;
         float bottom = metrics.viewportRectBottom + margins.bottom;
-        left = Math.max(metrics.pageRectLeft, TILE_SIZE * FloatMath.floor(left / TILE_SIZE));
-        top = Math.max(metrics.pageRectTop, TILE_SIZE * FloatMath.floor(top / TILE_SIZE));
-        right = Math.min(metrics.pageRectRight, TILE_SIZE * FloatMath.ceil(right / TILE_SIZE));
-        bottom = Math.min(metrics.pageRectBottom, TILE_SIZE * FloatMath.ceil(bottom / TILE_SIZE));
+        left = (float) Math.max(metrics.pageRectLeft, TILE_SIZE * Math.floor(left / TILE_SIZE));
+        top = (float) Math.max(metrics.pageRectTop, TILE_SIZE * Math.floor(top / TILE_SIZE));
+        right = (float) Math.min(metrics.pageRectRight, TILE_SIZE * Math.ceil(right / TILE_SIZE));
+        bottom = (float) Math.min(metrics.pageRectBottom, TILE_SIZE * Math.ceil(bottom / TILE_SIZE));
         return new DisplayPortMetrics(left, top, right, bottom, zoom);
     }
 
@@ -746,8 +745,8 @@ final class DisplayPortCalculator {
         @Override
         public boolean drawTimeUpdate(long millis, int pixels) {
             // calculate the number of frames it took to draw a viewport-sized area
-            float normalizedTime = (float)mPixelArea * (float)millis / (float)pixels;
-            int normalizedFrames = (int)FloatMath.ceil(normalizedTime * 60f / 1000f);
+            float normalizedTime = (float)mPixelArea * millis / pixels;
+            int normalizedFrames = (int) Math.ceil(normalizedTime * 60f / 1000f);
             // broaden our range on how long it takes to draw if the draw falls outside
             // the range. this allows it to grow gradually. this heuristic may need to
             // be tweaked into more of a floating window average or something.

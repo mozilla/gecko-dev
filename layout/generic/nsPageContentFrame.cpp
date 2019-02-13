@@ -9,6 +9,9 @@
 #include "nsIPresShell.h"
 #include "nsSimplePageSequenceFrame.h"
 
+using mozilla::LogicalSize;
+using mozilla::WritingMode;
+
 nsPageContentFrame*
 NS_NewPageContentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -23,6 +26,7 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsPageContentFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   aStatus = NS_FRAME_COMPLETE;  // initialize out parameter
@@ -47,8 +51,11 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   // XXX Pay attention to the page's border and padding...
   if (mFrames.NotEmpty()) {
     nsIFrame* frame = mFrames.FirstChild();
-    nsHTMLReflowState kidReflowState(aPresContext, aReflowState, frame, maxSize);
-    kidReflowState.SetComputedHeight(maxSize.height);
+    WritingMode wm = frame->GetWritingMode();
+    LogicalSize logicalSize(wm, maxSize);
+    nsHTMLReflowState kidReflowState(aPresContext, aReflowState,
+                                     frame, logicalSize);
+    kidReflowState.SetComputedBSize(logicalSize.BSize(wm));
 
     // Reflow the page content area
     ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, 0, 0, 0, aStatus);
@@ -92,11 +99,11 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(NS_FRAME_IS_COMPLETE(fixedStatus), "fixed frames can be truncated, but not incomplete");
 
   // Return our desired size
-  aDesiredSize.Width() = aReflowState.ComputedWidth();
-  if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
-    aDesiredSize.Height() = aReflowState.ComputedHeight();
+  WritingMode wm = aReflowState.GetWritingMode();
+  aDesiredSize.ISize(wm) = aReflowState.ComputedISize();
+  if (aReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE) {
+    aDesiredSize.BSize(wm) = aReflowState.ComputedBSize();
   }
-
   FinishAndStoreOverflow(&aDesiredSize);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);

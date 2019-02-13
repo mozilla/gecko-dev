@@ -6,28 +6,33 @@
  * from the AudioNode actors.
  */
 
-function spawnTest() {
-  let [target, debuggee, front] = yield initBackend(SIMPLE_NODES_URL);
+add_task(function*() {
+  let { target, front } = yield initBackend(SIMPLE_NODES_URL);
   let [_, nodes] = yield Promise.all([
     front.setup({ reload: true }),
-    getN(front, "create-node", 14)
+    getN(front, "create-node", 15)
   ]);
+
+  yield loadFrameScripts();
 
   let allParams = yield Promise.all(nodes.map(node => node.getParams()));
   let types = [
     "AudioDestinationNode", "AudioBufferSourceNode", "ScriptProcessorNode",
     "AnalyserNode", "GainNode", "DelayNode", "BiquadFilterNode", "WaveShaperNode",
     "PannerNode", "ConvolverNode", "ChannelSplitterNode", "ChannelMergerNode",
-    "DynamicsCompressorNode", "OscillatorNode"
+    "DynamicsCompressorNode", "OscillatorNode", "StereoPannerNode"
   ];
 
+  let defaults = yield Promise.all(types.map(type => nodeDefaultValues(type)));
+
+  info(JSON.stringify(defaults));
+
   allParams.forEach((params, i) => {
-    compare(params, NODE_DEFAULT_VALUES[types[i]], types[i]);
+    compare(params, defaults[i], types[i]);
   });
 
   yield removeTab(target.tab);
-  finish();
-}
+});
 
 function compare (actual, expected, type) {
   actual.forEach(({ value, param }) => {
@@ -36,9 +41,11 @@ function compare (actual, expected, type) {
       ok(expected[param](value), type + " has a passing value for " + param);
     }
     else {
-      ise(value, expected[param], type + " has correct default value and type for " + param);
+      is(value, expected[param], type + " has correct default value and type for " + param);
     }
   });
+
+  info(Object.keys(expected).join(',') + " - " + JSON.stringify(expected));
 
   is(actual.length, Object.keys(expected).length,
     type + " has correct amount of properties.");

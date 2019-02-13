@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,8 +7,10 @@
 // Microsoft's API Name hackery sucks
 #undef CreateEvent
 
+#include "mozilla/AddonPathService.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #ifdef MOZ_B2G
@@ -25,9 +28,11 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
+#include "nsDocShell.h"
 #include "nsDOMCID.h"
 #include "nsError.h"
 #include "nsGkAtoms.h"
+#include "nsHtml5Atoms.h"
 #include "nsIContent.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIDocument.h"
@@ -96,6 +101,8 @@ EventListenerManager::EventListenerManager(EventTarget* aTarget)
   , mMayHaveTouchEventListener(false)
   , mMayHaveMouseEnterLeaveEventListener(false)
   , mMayHavePointerEnterLeaveEventListener(false)
+  , mMayHaveKeyEventListener(false)
+  , mMayHaveInputOrCompositionEventListener(false)
   , mClearingListeners(false)
   , mIsMainThreadELM(NS_IsMainThread())
   , mNoListenerForEvent(0)
@@ -327,8 +334,6 @@ EventListenerManager::AddEventListenerInternal(
   } else if (aTypeAtom == nsGkAtoms::ontouchstart ||
              aTypeAtom == nsGkAtoms::ontouchend ||
              aTypeAtom == nsGkAtoms::ontouchmove ||
-             aTypeAtom == nsGkAtoms::ontouchenter ||
-             aTypeAtom == nsGkAtoms::ontouchleave ||
              aTypeAtom == nsGkAtoms::ontouchcancel) {
     mMayHaveTouchEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
@@ -373,9 +378,27 @@ EventListenerManager::AddEventListenerInternal(
       window->SetHasGamepadEventListener();
     }
 #endif
+  } else if (aTypeAtom == nsGkAtoms::onkeydown ||
+             aTypeAtom == nsGkAtoms::onkeypress ||
+             aTypeAtom == nsGkAtoms::onkeyup) {
+    if (!aFlags.mInSystemGroup) {
+      mMayHaveKeyEventListener = true;
+    }
+  } else if (aTypeAtom == nsGkAtoms::oncompositionend ||
+             aTypeAtom == nsGkAtoms::oncompositionstart ||
+             aTypeAtom == nsGkAtoms::oncompositionupdate ||
+             aTypeAtom == nsGkAtoms::oninput) {
+    if (!aFlags.mInSystemGroup) {
+      mMayHaveInputOrCompositionEventListener = true;
+    }
   }
+
   if (aTypeAtom && mTarget) {
     mTarget->EventListenerAdded(aTypeAtom);
+  }
+
+  if (mIsMainThreadELM && mTarget) {
+    EventListenerService::NotifyAboutMainThreadListenerChange(mTarget);
   }
 }
 
@@ -493,6 +516,9 @@ EventListenerManager::RemoveEventListenerInternal(
         mNoListenerForEventAtom = nullptr;
         if (mTarget && aUserType) {
           mTarget->EventListenerRemoved(aUserType);
+        }
+        if (mIsMainThreadELM && mTarget) {
+          EventListenerService::NotifyAboutMainThreadListenerChange(mTarget);
         }
 
         if (!deviceType
@@ -627,6 +653,9 @@ EventListenerManager::SetEventHandlerInternal(
       mTarget->EventListenerRemoved(aName);
       mTarget->EventListenerAdded(aName);
     }
+    if (mIsMainThreadELM && mTarget) {
+      EventListenerService::NotifyAboutMainThreadListenerChange(mTarget);
+    }
   }
 
   // Set flag to indicate possible need for compilation later
@@ -754,6 +783,9 @@ EventListenerManager::RemoveEventHandler(nsIAtom* aName,
     if (mTarget && aName) {
       mTarget->EventListenerRemoved(aName);
     }
+    if (mIsMainThreadELM && mTarget) {
+      EventListenerService::NotifyAboutMainThreadListenerChange(mTarget);
+    }
   }
 }
 
@@ -774,12 +806,13 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
     GetScriptGlobalAndDocument(getter_AddRefs(doc));
   NS_ENSURE_STATE(global);
 
-  nsIScriptContext* context = global->GetScriptContext();
-  NS_ENSURE_STATE(context);
-
   // Activate JSAPI, and make sure that exceptions are reported on the right
   // Window.
-  AutoJSAPIWithErrorsReportedToWindow jsapi(context);
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(global))) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  jsapi.TakeOwnershipOfErrorReporting();
   JSContext* cx = jsapi.cx();
 
   nsCOMPtr<nsIAtom> typeAtom = aListener->mTypeAtom;
@@ -842,13 +875,15 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
                                    typeAtom, win,
                                    &argCount, &argNames);
 
+  JSAddonId *addonId = MapURIToAddonID(uri);
+
   // Wrap the event target, so that we can use it as the scope for the event
   // handler. Note that mTarget is different from aElement in the <body> case,
   // where mTarget is a Window.
   //
   // The wrapScope doesn't really matter here, because the target will create
   // its reflector in the proper scope, and then we'll enter that compartment.
-  JS::Rooted<JSObject*> wrapScope(cx, context->GetWindowProxy());
+  JS::Rooted<JSObject*> wrapScope(cx, global->GetGlobalJSObject());
   JS::Rooted<JS::Value> v(cx);
   {
     JSAutoCompartment ac(cx, wrapScope);
@@ -858,8 +893,33 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
       return rv;
     }
   }
+
+  if (addonId) {
+    JS::Rooted<JSObject*> vObj(cx, &v.toObject());
+    JS::Rooted<JSObject*> addonScope(cx, xpc::GetAddonScope(cx, vObj, addonId));
+    if (!addonScope) {
+      return NS_ERROR_FAILURE;
+    }
+    JSAutoCompartment ac(cx, addonScope);
+
+    // Wrap our event target into the addon scope, since that's where we want to
+    // do all our work.
+    if (!JS_WrapValue(cx, &v)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
   JS::Rooted<JSObject*> target(cx, &v.toObject());
   JSAutoCompartment ac(cx, target);
+
+  // Now that we've entered the compartment we actually care about, create our
+  // scope chain.  Note that we start with |element|, not aElement, because
+  // mTarget is different from aElement in the <body> case, where mTarget is a
+  // Window, and in that case we do not want the scope chain to include the body
+  // or the document.
+  JS::AutoObjectVector scopeChain(cx);
+  if (!nsJSUtils::GetScopeChainForElement(cx, element, scopeChain)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   nsDependentAtomString str(attrName);
   // Most of our names are short enough that we don't even have to malloc
@@ -871,7 +931,7 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
 
   // Get the reflector for |aElement|, so that we can pass to setElement.
-  if (NS_WARN_IF(!WrapNewBindingObject(cx, target, aElement, &v))) {
+  if (NS_WARN_IF(!GetOrCreateDOMReflector(cx, target, aElement, &v))) {
     return NS_ERROR_FAILURE;
   }
   JS::CompileOptions options(cx);
@@ -879,11 +939,10 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
          .setFileAndLine(url.get(), lineNo)
          .setVersion(JSVERSION_DEFAULT)
          .setElement(&v.toObject())
-         .setElementAttributeName(jsStr)
-         .setDefineOnScope(false);
+         .setElementAttributeName(jsStr);
 
   JS::Rooted<JSObject*> handler(cx);
-  result = nsJSUtils::CompileFunction(cx, target, options,
+  result = nsJSUtils::CompileFunction(jsapi, scopeChain, options,
                                       nsAtomCString(typeAtom),
                                       argCount, argNames, *body, handler.address());
   NS_ENSURE_SUCCESS(result, result);
@@ -931,7 +990,7 @@ EventListenerManager::HandleEventSubType(Listener* aListener,
       ErrorResult rv;
       listenerHolder.GetWebIDLCallback()->
         HandleEvent(aCurrentTarget, *(aDOMEvent->InternalDOMEvent()), rv);
-      result = rv.ErrorCode();
+      result = rv.StealNSResult();
     } else {
       result = listenerHolder.GetXPCOMCallback()->HandleEvent(aDOMEvent);
     }
@@ -942,6 +1001,70 @@ EventListenerManager::HandleEventSubType(Listener* aListener,
 
   return result;
 }
+
+nsIDocShell*
+EventListenerManager::GetDocShellForTarget()
+{
+  nsCOMPtr<nsINode> node(do_QueryInterface(mTarget));
+  nsIDocument* doc = nullptr;
+  nsIDocShell* docShell = nullptr;
+
+  if (node) {
+    doc = node->OwnerDoc();
+    if (!doc->GetDocShell()) {
+      bool ignore;
+      nsCOMPtr<nsPIDOMWindow> window =
+        do_QueryInterface(doc->GetScriptHandlingObject(ignore));
+      if (window) {
+        doc = window->GetExtantDoc();
+      }
+    }
+  } else {
+    nsCOMPtr<nsPIDOMWindow> window = GetTargetAsInnerWindow();
+    if (window) {
+      doc = window->GetExtantDoc();
+    }
+  }
+
+  if (!doc) {
+    nsCOMPtr<DOMEventTargetHelper> helper(do_QueryInterface(mTarget));
+    if (helper) {
+      nsPIDOMWindow* window = helper->GetOwner();
+      if (window) {
+        doc = window->GetExtantDoc();
+      }
+    }
+  }
+
+  if (doc) {
+    docShell = doc->GetDocShell();
+  }
+
+  return docShell;
+}
+
+class EventTimelineMarker : public TimelineMarker
+{
+public:
+  EventTimelineMarker(nsDocShell* aDocShell, TracingMetadata aMetaData,
+                      uint16_t aPhase, const nsAString& aCause)
+    : TimelineMarker(aDocShell, "DOMEvent", aMetaData, aCause)
+    , mPhase(aPhase)
+  {
+  }
+
+  virtual void AddDetails(JSContext* aCx,
+                          mozilla::dom::ProfileTimelineMarker& aMarker) override
+  {
+    if (GetMetaData() == TRACING_INTERVAL_START) {
+      aMarker.mType.Construct(GetCause());
+      aMarker.mEventPhase.Construct(mPhase);
+    }
+  }
+
+private:
+  uint16_t mPhase;
+};
 
 /**
 * Causes a check for event listeners and processing by them if they exist.
@@ -963,7 +1086,7 @@ EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
   nsAutoTObserverArray<Listener, 2>::EndLimitedIterator iter(mListeners);
   Maybe<nsAutoPopupStatePusher> popupStatePusher;
   if (mIsMainThreadELM) {
-    popupStatePusher.construct(Event::GetEventPopupControlState(aEvent));
+    popupStatePusher.emplace(Event::GetEventPopupControlState(aEvent, *aDOMEvent));
   }
 
   bool hasListener = false;
@@ -994,9 +1117,38 @@ EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
             }
           }
 
+          // Maybe add a marker to the docshell's timeline, but only
+          // bother with all the logic if some docshell is recording.
+          nsCOMPtr<nsIDocShell> docShell;
+          bool isTimelineRecording = false;
+          if (mIsMainThreadELM &&
+              nsDocShell::gProfileTimelineRecordingsCount > 0 &&
+              listener->mListenerType != Listener::eNativeListener) {
+            docShell = GetDocShellForTarget();
+            if (docShell) {
+              docShell->GetRecordProfileTimelineMarkers(&isTimelineRecording);
+            }
+            if (isTimelineRecording) {
+              nsDocShell* ds = static_cast<nsDocShell*>(docShell.get());
+              nsAutoString typeStr;
+              (*aDOMEvent)->GetType(typeStr);
+              uint16_t phase;
+              (*aDOMEvent)->GetEventPhase(&phase);
+              mozilla::UniquePtr<TimelineMarker> marker =
+                MakeUnique<EventTimelineMarker>(ds, TRACING_INTERVAL_START,
+                                                phase, typeStr);
+              ds->AddProfileTimelineMarker(Move(marker));
+            }
+          }
+
           if (NS_FAILED(HandleEventSubType(listener, *aDOMEvent,
                                            aCurrentTarget))) {
             aEvent->mFlags.mExceptionHasBeenRisen = true;
+          }
+
+          if (isTimelineRecording) {
+            nsDocShell* ds = static_cast<nsDocShell*>(docShell.get());
+            ds->AddProfileTimelineMarker("DOMEvent", TRACING_INTERVAL_END);
           }
         }
       }
@@ -1115,8 +1267,19 @@ EventListenerManager::MutationListenerBits()
 bool
 EventListenerManager::HasListenersFor(const nsAString& aEventName)
 {
-  nsCOMPtr<nsIAtom> atom = do_GetAtom(NS_LITERAL_STRING("on") + aEventName);
-  return HasListenersFor(atom);
+  if (mIsMainThreadELM) {
+    nsCOMPtr<nsIAtom> atom = do_GetAtom(NS_LITERAL_STRING("on") + aEventName);
+    return HasListenersFor(atom);
+  }
+
+  uint32_t count = mListeners.Length();
+  for (uint32_t i = 0; i < count; ++i) {
+    Listener* listener = &mListeners.ElementAt(i);
+    if (listener->mTypeString == aEventName) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool

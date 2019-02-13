@@ -9,13 +9,16 @@
 
 #include "nsStyleTransformMatrix.h"
 #include "nsCSSValue.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsRuleNode.h"
+#include "nsSVGUtils.h"
 #include "nsCSSKeywords.h"
-#include "nsStyleAnimation.h"
+#include "mozilla/StyleAnimationValue.h"
 #include "gfxMatrix.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 namespace nsStyleTransformMatrix {
 
@@ -24,6 +27,111 @@ namespace nsStyleTransformMatrix {
  * we get from the style system, but intermediate calculations
  * involving angles need to be done in 'double'.
  */
+
+
+// Define UNIFIED_CONTINUATIONS here and in nsDisplayList.cpp
+// to have the transform property try
+// to transform content with continuations as one unified block instead of
+// several smaller ones.  This is currently disabled because it doesn't work
+// correctly, since when the frames are initially being reflowed, their
+// continuations all compute their bounding rects independently of each other
+// and consequently get the wrong value.
+//#define UNIFIED_CONTINUATIONS
+
+void
+TransformReferenceBox::EnsureDimensionsAreCached()
+{
+  if (mIsCached) {
+    return;
+  }
+
+  MOZ_ASSERT(mFrame);
+
+  mIsCached = true;
+
+  if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    if (!nsLayoutUtils::SVGTransformOriginEnabled()) {
+      mX = -mFrame->GetPosition().x;
+      mY = -mFrame->GetPosition().y;
+      mWidth = 0;
+      mHeight = 0;
+    } else
+    if (mFrame->StyleDisplay()->mTransformBox ==
+          NS_STYLE_TRANSFORM_BOX_FILL_BOX) {
+      // Percentages in transforms resolve against the SVG bbox, and the
+      // transform is relative to the top-left of the SVG bbox.
+      gfxRect bbox = nsSVGUtils::GetBBox(const_cast<nsIFrame*>(mFrame));
+      nsRect bboxInAppUnits =
+        nsLayoutUtils::RoundGfxRectToAppRect(bbox,
+                                             mFrame->PresContext()->AppUnitsPerCSSPixel());
+      // The mRect of an SVG nsIFrame is its user space bounds *including*
+      // stroke and markers, whereas bboxInAppUnits is its user space bounds
+      // including fill only.  We need to note the offset of the reference box
+      // from the frame's mRect in mX/mY.
+      mX = bboxInAppUnits.x - mFrame->GetPosition().x;
+      mY = bboxInAppUnits.y - mFrame->GetPosition().y;
+      mWidth = bboxInAppUnits.width;
+      mHeight = bboxInAppUnits.height;
+    } else {
+      // The value 'border-box' is treated as 'view-box' for SVG content.
+      MOZ_ASSERT(mFrame->StyleDisplay()->mTransformBox ==
+                   NS_STYLE_TRANSFORM_BOX_VIEW_BOX ||
+                 mFrame->StyleDisplay()->mTransformBox ==
+                   NS_STYLE_TRANSFORM_BOX_BORDER_BOX,
+                 "Unexpected value for 'transform-box'");
+      // Percentages in transforms resolve against the width/height of the
+      // nearest viewport (or it's viewBox if one is applied), and the
+      // transform is relative to {0,0} in current user space.
+      mX = -mFrame->GetPosition().x;
+      mY = -mFrame->GetPosition().y;
+      Size contextSize = nsSVGUtils::GetContextSize(mFrame);
+      mWidth = nsPresContext::CSSPixelsToAppUnits(contextSize.width);
+      mHeight = nsPresContext::CSSPixelsToAppUnits(contextSize.height);
+    }
+    return;
+  }
+
+  // If UNIFIED_CONTINUATIONS is not defined, this is simply the frame's
+  // bounding rectangle, translated to the origin.  Otherwise, it is the
+  // smallest rectangle containing a frame and all of its continuations.  For
+  // example, if there is a <span> element with several continuations split
+  // over several lines, this function will return the rectangle containing all
+  // of those continuations.
+
+  nsRect rect;
+
+#ifndef UNIFIED_CONTINUATIONS
+  rect = mFrame->GetRect();
+#else
+  // Iterate the continuation list, unioning together the bounding rects:
+  for (const nsIFrame *currFrame = mFrame->FirstContinuation();
+       currFrame != nullptr;
+       currFrame = currFrame->GetNextContinuation())
+  {
+    // Get the frame rect in local coordinates, then translate back to the
+    // original coordinates:
+    rect.UnionRect(result, nsRect(currFrame->GetOffsetTo(mFrame),
+                                  currFrame->GetSize()));
+  }
+#endif
+
+  mX = 0;
+  mY = 0;
+  mWidth = rect.Width();
+  mHeight = rect.Height();
+}
+
+void
+TransformReferenceBox::Init(const nsSize& aDimensions)
+{
+  MOZ_ASSERT(!mFrame && !mIsCached);
+
+  mX = 0;
+  mY = 0;
+  mWidth = aDimensions.width;
+  mHeight = aDimensions.height;
+  mIsCached = true;
+}
 
 /* Force small values to zero.  We do this to avoid having sin(360deg)
  * evaluate to a tiny but nonzero value.
@@ -40,8 +148,9 @@ float
 ProcessTranslatePart(const nsCSSValue& aValue,
                      nsStyleContext* aContext,
                      nsPresContext* aPresContext,
-                     bool& aCanStoreInRuleTree,
-                     nscoord aSize)
+                     RuleNodeCacheConditions& aConditions,
+                     TransformReferenceBox* aRefBox,
+                     TransformReferenceBox::DimensionGetter aDimensionGetter)
 {
   nscoord offset = 0;
   float percent = 0.0f;
@@ -53,7 +162,7 @@ ProcessTranslatePart(const nsCSSValue& aValue,
     // Handle this here (even though nsRuleNode::CalcLength handles it
     // fine) so that callers are allowed to pass a null style context
     // and pres context to SetToTransformFunction if they know (as
-    // nsStyleAnimation does) that all lengths within the transform
+    // StyleAnimationValue does) that all lengths within the transform
     // function have already been computed to pixels and percents.
     //
     // Raw numbers are treated as being pixels.
@@ -63,16 +172,24 @@ ProcessTranslatePart(const nsCSSValue& aValue,
   } else if (aValue.IsCalcUnit()) {
     nsRuleNode::ComputedCalc result =
       nsRuleNode::SpecifiedCalcToComputedCalc(aValue, aContext, aPresContext,
-                                              aCanStoreInRuleTree);
+                                              aConditions);
     percent = result.mPercent;
     offset = result.mLength;
   } else {
     offset = nsRuleNode::CalcLength(aValue, aContext, aPresContext,
-                                    aCanStoreInRuleTree);
+                                    aConditions);
   }
 
-  return (percent * NSAppUnitsToFloatPixels(aSize, nsPresContext::AppUnitsPerCSSPixel())) +
-         NSAppUnitsToFloatPixels(offset, nsPresContext::AppUnitsPerCSSPixel());
+  float translation = NSAppUnitsToFloatPixels(offset,
+                                              nsPresContext::AppUnitsPerCSSPixel());
+  // We want to avoid calling aDimensionGetter if there's no percentage to be
+  // resolved (for performance reasons - see TransformReferenceBox).
+  if (percent != 0.0f && aRefBox) {
+    translation += percent *
+                     NSAppUnitsToFloatPixels((aRefBox->*aDimensionGetter)(),
+                                             nsPresContext::AppUnitsPerCSSPixel());
+  }
+  return translation;
 }
 
 /**
@@ -87,8 +204,8 @@ ProcessMatrix(gfx3DMatrix& aMatrix,
               const nsCSSValue::Array* aData,
               nsStyleContext* aContext,
               nsPresContext* aPresContext,
-              bool& aCanStoreInRuleTree,
-              nsRect& aBounds)
+              RuleNodeCacheConditions& aConditions,
+              TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 7, "Invalid array!");
 
@@ -106,11 +223,11 @@ ProcessMatrix(gfx3DMatrix& aMatrix,
    * and their percent parts stored in aX[0] and aY[1].
    */
   result._31 = ProcessTranslatePart(aData->Item(5),
-                                   aContext, aPresContext, aCanStoreInRuleTree,
-                                   aBounds.Width());
+                                   aContext, aPresContext, aConditions,
+                                   &aRefBox, &TransformReferenceBox::Width);
   result._32 = ProcessTranslatePart(aData->Item(6),
-                                   aContext, aPresContext, aCanStoreInRuleTree,
-                                   aBounds.Height());
+                                   aContext, aPresContext, aConditions,
+                                   &aRefBox, &TransformReferenceBox::Height);
 
   aMatrix.PreMultiply(result);
 }
@@ -120,8 +237,8 @@ ProcessMatrix3D(gfx3DMatrix& aMatrix,
                 const nsCSSValue::Array* aData,
                 nsStyleContext* aContext,
                 nsPresContext* aPresContext,
-                bool& aCanStoreInRuleTree,
-                nsRect& aBounds)
+                RuleNodeCacheConditions& aConditions,
+                TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 17, "Invalid array!");
 
@@ -142,14 +259,14 @@ ProcessMatrix3D(gfx3DMatrix& aMatrix,
   temp._44 = aData->Item(16).GetFloatValue();
 
   temp._41 = ProcessTranslatePart(aData->Item(13),
-                                  aContext, aPresContext, aCanStoreInRuleTree,
-                                  aBounds.Width());
+                                  aContext, aPresContext, aConditions,
+                                  &aRefBox, &TransformReferenceBox::Width);
   temp._42 = ProcessTranslatePart(aData->Item(14),
-                                  aContext, aPresContext, aCanStoreInRuleTree,
-                                  aBounds.Height());
+                                  aContext, aPresContext, aConditions,
+                                  &aRefBox, &TransformReferenceBox::Height);
   temp._43 = ProcessTranslatePart(aData->Item(15),
-                                  aContext, aPresContext, aCanStoreInRuleTree,
-                                  aBounds.Height());
+                                  aContext, aPresContext, aConditions,
+                                  nullptr);
 
   aMatrix.PreMultiply(temp);
 }
@@ -160,8 +277,8 @@ ProcessInterpolateMatrix(gfx3DMatrix& aMatrix,
                          const nsCSSValue::Array* aData,
                          nsStyleContext* aContext,
                          nsPresContext* aPresContext,
-                         bool& aCanStoreInRuleTree,
-                         nsRect& aBounds)
+                         RuleNodeCacheConditions& aConditions,
+                         TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 4, "Invalid array!");
 
@@ -169,36 +286,38 @@ ProcessInterpolateMatrix(gfx3DMatrix& aMatrix,
   if (aData->Item(1).GetUnit() == eCSSUnit_List) {
     matrix1 = nsStyleTransformMatrix::ReadTransforms(aData->Item(1).GetListValue(),
                              aContext, aPresContext,
-                             aCanStoreInRuleTree,
-                             aBounds, nsPresContext::AppUnitsPerCSSPixel());
+                             aConditions,
+                             aRefBox, nsPresContext::AppUnitsPerCSSPixel());
   }
   if (aData->Item(2).GetUnit() == eCSSUnit_List) {
     matrix2 = ReadTransforms(aData->Item(2).GetListValue(),
                              aContext, aPresContext,
-                             aCanStoreInRuleTree,
-                             aBounds, nsPresContext::AppUnitsPerCSSPixel());
+                             aConditions,
+                             aRefBox, nsPresContext::AppUnitsPerCSSPixel());
   }
   double progress = aData->Item(3).GetPercentValue();
 
-  aMatrix = nsStyleAnimation::InterpolateTransformMatrix(matrix1, matrix2, progress) * aMatrix;
+  aMatrix =
+    StyleAnimationValue::InterpolateTransformMatrix(matrix1, matrix2, progress)
+    * aMatrix;
 }
 
 /* Helper function to process a translatex function. */
 static void
-ProcessTranslateX(gfx3DMatrix& aMatrix, 
+ProcessTranslateX(gfx3DMatrix& aMatrix,
                   const nsCSSValue::Array* aData,
                   nsStyleContext* aContext,
                   nsPresContext* aPresContext,
-                  bool& aCanStoreInRuleTree,
-                  nsRect& aBounds)
+                  RuleNodeCacheConditions& aConditions,
+                  TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 2, "Invalid array!");
 
-  gfxPoint3D temp;
+  Point3D temp;
 
   temp.x = ProcessTranslatePart(aData->Item(1),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                aBounds.Width());
+                                aContext, aPresContext, aConditions,
+                                &aRefBox, &TransformReferenceBox::Width);
   aMatrix.Translate(temp);
 }
 
@@ -208,16 +327,16 @@ ProcessTranslateY(gfx3DMatrix& aMatrix,
                   const nsCSSValue::Array* aData,
                   nsStyleContext* aContext,
                   nsPresContext* aPresContext,
-                  bool& aCanStoreInRuleTree,
-                  nsRect& aBounds)
+                  RuleNodeCacheConditions& aConditions,
+                  TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 2, "Invalid array!");
 
-  gfxPoint3D temp;
+  Point3D temp;
 
   temp.y = ProcessTranslatePart(aData->Item(1),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                aBounds.Height());
+                                aContext, aPresContext, aConditions,
+                                &aRefBox, &TransformReferenceBox::Height);
   aMatrix.Translate(temp);
 }
 
@@ -226,14 +345,15 @@ ProcessTranslateZ(gfx3DMatrix& aMatrix,
                   const nsCSSValue::Array* aData,
                   nsStyleContext* aContext,
                   nsPresContext* aPresContext,
-                  bool& aCanStoreInRuleTree)
+                  RuleNodeCacheConditions& aConditions)
 {
   NS_PRECONDITION(aData->Count() == 2, "Invalid array!");
 
-  gfxPoint3D temp;
+  Point3D temp;
 
   temp.z = ProcessTranslatePart(aData->Item(1), aContext,
-                                aPresContext, aCanStoreInRuleTree, 0);
+                                aPresContext, aConditions,
+                                nullptr);
   aMatrix.Translate(temp);
 }
 
@@ -243,22 +363,22 @@ ProcessTranslate(gfx3DMatrix& aMatrix,
                  const nsCSSValue::Array* aData,
                  nsStyleContext* aContext,
                  nsPresContext* aPresContext,
-                 bool& aCanStoreInRuleTree,
-                 nsRect& aBounds)
+                 RuleNodeCacheConditions& aConditions,
+                 TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 2 || aData->Count() == 3, "Invalid array!");
 
-  gfxPoint3D temp;
+  Point3D temp;
 
   temp.x = ProcessTranslatePart(aData->Item(1),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                aBounds.Width());
+                                aContext, aPresContext, aConditions,
+                                &aRefBox, &TransformReferenceBox::Width);
 
   /* If we read in a Y component, set it appropriately */
   if (aData->Count() == 3) {
     temp.y = ProcessTranslatePart(aData->Item(2),
-                                  aContext, aPresContext, aCanStoreInRuleTree,
-                                  aBounds.Height());
+                                  aContext, aPresContext, aConditions,
+                                  &aRefBox, &TransformReferenceBox::Height);
   }
   aMatrix.Translate(temp);
 }
@@ -268,24 +388,24 @@ ProcessTranslate3D(gfx3DMatrix& aMatrix,
                    const nsCSSValue::Array* aData,
                    nsStyleContext* aContext,
                    nsPresContext* aPresContext,
-                   bool& aCanStoreInRuleTree,
-                   nsRect& aBounds)
+                   RuleNodeCacheConditions& aConditions,
+                   TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData->Count() == 4, "Invalid array!");
 
-  gfxPoint3D temp;
+  Point3D temp;
 
   temp.x = ProcessTranslatePart(aData->Item(1),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                aBounds.Width());
+                                aContext, aPresContext, aConditions,
+                                &aRefBox, &TransformReferenceBox::Width);
 
   temp.y = ProcessTranslatePart(aData->Item(2),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                aBounds.Height());
+                                aContext, aPresContext, aConditions,
+                                &aRefBox, &TransformReferenceBox::Height);
 
   temp.z = ProcessTranslatePart(aData->Item(3),
-                                aContext, aPresContext, aCanStoreInRuleTree,
-                                0);
+                                aContext, aPresContext, aConditions,
+                                nullptr);
 
   aMatrix.Translate(temp);
 }
@@ -435,33 +555,29 @@ ProcessRotate3D(gfx3DMatrix& aMatrix, const nsCSSValue::Array* aData)
   float cosTheta = FlushToZero(cos(theta));
   float sinTheta = FlushToZero(sin(theta));
 
-  float x = aData->Item(1).GetFloatValue();
-  float y = aData->Item(2).GetFloatValue();
-  float z = aData->Item(3).GetFloatValue();
+  Point3D vector(aData->Item(1).GetFloatValue(),
+                 aData->Item(2).GetFloatValue(),
+                 aData->Item(3).GetFloatValue());
 
-  /* Normalize [x,y,z] */
-  float length = sqrt(x*x + y*y + z*z);
-  if (length == 0.0) {
+  if (!vector.Length()) {
     return;
   }
-  x /= length;
-  y /= length;
-  z /= length;
+  vector.Normalize();
 
   gfx3DMatrix temp;
 
   /* Create our matrix */
-  temp._11 = 1 + (1 - cosTheta) * (x * x - 1);
-  temp._12 = -z * sinTheta + (1 - cosTheta) * x * y;
-  temp._13 = y * sinTheta + (1 - cosTheta) * x * z;
+  temp._11 = 1 + (1 - cosTheta) * (vector.x * vector.x - 1);
+  temp._12 = -vector.z * sinTheta + (1 - cosTheta) * vector.x * vector.y;
+  temp._13 = vector.y * sinTheta + (1 - cosTheta) * vector.x * vector.z;
   temp._14 = 0.0f;
-  temp._21 = z * sinTheta + (1 - cosTheta) * x * y;
-  temp._22 = 1 + (1 - cosTheta) * (y * y - 1);
-  temp._23 = -x * sinTheta + (1 - cosTheta) * y * z;
+  temp._21 = vector.z * sinTheta + (1 - cosTheta) * vector.x * vector.y;
+  temp._22 = 1 + (1 - cosTheta) * (vector.y * vector.y - 1);
+  temp._23 = -vector.x * sinTheta + (1 - cosTheta) * vector.y * vector.z;
   temp._24 = 0.0f;
-  temp._31 = -y * sinTheta + (1 - cosTheta) * x * z;
-  temp._32 = x * sinTheta + (1 - cosTheta) * y * z;
-  temp._33 = 1 + (1 - cosTheta) * (z * z - 1);
+  temp._31 = -vector.y * sinTheta + (1 - cosTheta) * vector.x * vector.z;
+  temp._32 = vector.x * sinTheta + (1 - cosTheta) * vector.y * vector.z;
+  temp._33 = 1 + (1 - cosTheta) * (vector.z * vector.z - 1);
   temp._34 = 0.0f;
   temp._41 = 0.0f;
   temp._42 = 0.0f;
@@ -476,13 +592,13 @@ ProcessPerspective(gfx3DMatrix& aMatrix,
                    const nsCSSValue::Array* aData,
                    nsStyleContext *aContext,
                    nsPresContext *aPresContext,
-                   bool &aCanStoreInRuleTree)
+                   RuleNodeCacheConditions& aConditions)
 {
   NS_PRECONDITION(aData->Count() == 2, "Invalid array!");
 
   float depth = ProcessTranslatePart(aData->Item(1), aContext,
-                                     aPresContext, aCanStoreInRuleTree,
-                                     0);
+                                     aPresContext, aConditions,
+                                     nullptr);
   aMatrix.Perspective(depth);
 }
 
@@ -496,36 +612,36 @@ MatrixForTransformFunction(gfx3DMatrix& aMatrix,
                            const nsCSSValue::Array * aData,
                            nsStyleContext* aContext,
                            nsPresContext* aPresContext,
-                           bool& aCanStoreInRuleTree,
-                           nsRect& aBounds)
+                           RuleNodeCacheConditions& aConditions,
+                           TransformReferenceBox& aRefBox)
 {
   NS_PRECONDITION(aData, "Why did you want to get data from a null array?");
   // It's OK if aContext and aPresContext are null if the caller already
   // knows that all length units have been converted to pixels (as
-  // nsStyleAnimation does).
+  // StyleAnimationValue does).
 
 
   /* Get the keyword for the transform. */
   switch (TransformFunctionOf(aData)) {
   case eCSSKeyword_translatex:
     ProcessTranslateX(aMatrix, aData, aContext, aPresContext,
-                      aCanStoreInRuleTree, aBounds);
+                      aConditions, aRefBox);
     break;
   case eCSSKeyword_translatey:
     ProcessTranslateY(aMatrix, aData, aContext, aPresContext,
-                      aCanStoreInRuleTree, aBounds);
+                      aConditions, aRefBox);
     break;
   case eCSSKeyword_translatez:
     ProcessTranslateZ(aMatrix, aData, aContext, aPresContext,
-                      aCanStoreInRuleTree);
+                      aConditions);
     break;
   case eCSSKeyword_translate:
     ProcessTranslate(aMatrix, aData, aContext, aPresContext,
-                     aCanStoreInRuleTree, aBounds);
+                     aConditions, aRefBox);
     break;
   case eCSSKeyword_translate3d:
     ProcessTranslate3D(aMatrix, aData, aContext, aPresContext,
-                       aCanStoreInRuleTree, aBounds);
+                       aConditions, aRefBox);
     break;
   case eCSSKeyword_scalex:
     ProcessScaleX(aMatrix, aData);
@@ -566,19 +682,19 @@ MatrixForTransformFunction(gfx3DMatrix& aMatrix,
     break;
   case eCSSKeyword_matrix:
     ProcessMatrix(aMatrix, aData, aContext, aPresContext,
-                  aCanStoreInRuleTree, aBounds);
+                  aConditions, aRefBox);
     break;
   case eCSSKeyword_matrix3d:
     ProcessMatrix3D(aMatrix, aData, aContext, aPresContext,
-                    aCanStoreInRuleTree, aBounds);
+                    aConditions, aRefBox);
     break;
   case eCSSKeyword_interpolatematrix:
     ProcessInterpolateMatrix(aMatrix, aData, aContext, aPresContext,
-                             aCanStoreInRuleTree, aBounds);
+                             aConditions, aRefBox);
     break;
   case eCSSKeyword_perspective:
     ProcessPerspective(aMatrix, aData, aContext, aPresContext, 
-                       aCanStoreInRuleTree);
+                       aConditions);
     break;
   default:
     NS_NOTREACHED("Unknown transform function!");
@@ -600,22 +716,27 @@ gfx3DMatrix
 ReadTransforms(const nsCSSValueList* aList,
                nsStyleContext* aContext,
                nsPresContext* aPresContext,
-               bool &aCanStoreInRuleTree,
-               nsRect& aBounds,
+               RuleNodeCacheConditions& aConditions,
+               TransformReferenceBox& aRefBox,
                float aAppUnitsPerMatrixUnit)
 {
   gfx3DMatrix result;
 
   for (const nsCSSValueList* curr = aList; curr != nullptr; curr = curr->mNext) {
     const nsCSSValue &currElem = curr->mValue;
-    NS_ASSERTION(currElem.GetUnit() == eCSSUnit_Function,
-                 "Stream should consist solely of functions!");
+    if (currElem.GetUnit() != eCSSUnit_Function) {
+      NS_ASSERTION(currElem.GetUnit() == eCSSUnit_None &&
+                   !aList->mNext,
+                   "stream should either be a list of functions or a "
+                   "lone None");
+      continue;
+    }
     NS_ASSERTION(currElem.GetArrayValue()->Count() >= 1,
                  "Incoming function is too short!");
 
     /* Read in a single transform matrix. */
     MatrixForTransformFunction(result, currElem.GetArrayValue(), aContext,
-                               aPresContext, aCanStoreInRuleTree, aBounds);
+                               aPresContext, aConditions, aRefBox);
   }
 
   float scale = float(nsPresContext::AppUnitsPerCSSPixel()) / aAppUnitsPerMatrixUnit;

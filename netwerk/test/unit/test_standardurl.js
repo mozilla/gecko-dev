@@ -208,6 +208,41 @@ function test_ipv6_fail()
   Assert.throws(() => { url.hostPort = "[2001::1]:bad"; }, "bad port number");
 }
 
+function test_clearedSpec()
+{
+  var url = stringToURL("http://example.com/path");
+  Assert.throws(() => { url.spec = "http: example"; }, "set bad spec");
+  Assert.throws(() => { url.spec = ""; }, "set empty spec");
+  do_check_eq(url.spec, "http://example.com/path");
+  url.host = "allizom.org";
+
+  var ref = stringToURL("http://allizom.org/path");
+  symmetricEquality(true, url, ref);
+}
+
+function test_escapeQueryBrackets()
+{
+  var url = stringToURL("http://example.com/?a[x]=1");
+  do_check_eq(url.spec, "http://example.com/?a[x]=1");
+
+  url = stringToURL("http://example.com/?a%5Bx%5D=1");
+  do_check_eq(url.spec, "http://example.com/?a%5Bx%5D=1");
+
+  url = stringToURL("http://[2001::1]/?a[x]=1");
+  do_check_eq(url.spec, "http://[2001::1]/?a[x]=1");
+
+  url = stringToURL("http://[2001::1]/?a%5Bx%5D=1");
+  do_check_eq(url.spec, "http://[2001::1]/?a%5Bx%5D=1");
+}
+
+function test_apostropheEncoding()
+{
+  // For now, single quote is escaped everywhere _except_ the path.
+  // This policy is controlled by the bitmask in nsEscape.cpp::EscapeChars[]
+  var url = stringToURL("http://example.com/dir'/file'.ext'");
+  do_check_eq(url.spec, "http://example.com/dir'/file'.ext'");
+}
+
 function run_test()
 {
   test_setEmptyPath();
@@ -215,4 +250,7 @@ function run_test()
   test_setRef();
   test_ipv6();
   test_ipv6_fail();
+  test_clearedSpec();
+  test_escapeQueryBrackets();
+  test_apostropheEncoding();
 }

@@ -74,6 +74,10 @@ setting[type="bool"][localized="true"] {
   -moz-binding: url("chrome://mozapps/content/extensions/setting.xml#setting-localized-bool");
 }
 
+setting[type="bool"]:not([learnmore]) .preferences-learnmore {
+  visibility: collapse;
+}
+
 setting[type="boolint"] {
   display: -moz-grid-line;
   -moz-binding: url("chrome://mozapps/content/extensions/setting.xml#setting-boolint");
@@ -239,7 +243,6 @@ richlistitem:not([selected]) * {
 .view-pane[type="experiment"] .addon:not([pending="uninstall"]) .pending,
 .view-pane[type="experiment"] .disabled-postfix,
 .view-pane[type="experiment"] .update-postfix,
-.view-pane[type="experiment"] .version,
 #detail-view[type="experiment"] .alert-container,
 #detail-view[type="experiment"] #detail-version,
 #detail-view[type="experiment"] #detail-creator {

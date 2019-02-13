@@ -5,9 +5,6 @@
 
 include $(topsrcdir)/config/config.mk
 
-vpath %.xml @srcdir@/en-US/searchplugins
-vpath %.xml $(LOCALE_SRCDIR)/searchplugins
-
 ifdef LOCALE_MERGEDIR
 vpath crashreporter%.ini $(LOCALE_MERGEDIR)/browser/crashreporter
 endif
@@ -44,7 +41,10 @@ RETRIEVE_WINDOWS_INSTALLER = 1
 
 MOZ_LANGPACK_EID=langpack-$(AB_CD)@firefox.mozilla.org
 
-PREF_JS_EXPORTS = $(call MERGE_FILE,firefox-l10n.js)
+L10N_PREF_JS_EXPORTS = $(call MERGE_FILE,firefox-l10n.js)
+L10N_PREF_JS_EXPORTS_PATH = $(FINAL_TARGET)/$(PREF_DIR)
+L10N_PREF_JS_EXPORTS_FLAGS = $(PREF_PPFLAGS) --silence-missing-directive-warnings
+PP_TARGETS += L10N_PREF_JS_EXPORTS
 
 ifneq (,$(filter cocoa,$(MOZ_WIDGET_TOOLKIT)))
 MOZ_PKG_MAC_DSSTORE=$(_ABS_DIST)/branding/dsstore
@@ -68,27 +68,33 @@ STUB_HOOK = $(NSINSTALL) -D '$(_ABS_DIST)/$(PKG_INST_PATH)'; \
     $(NULL)
 endif
 
-ifeq ($(MOZ_WIDGET_TOOLKIT) $(DIST_SUBDIR),windows metro)
-SEARCHPLUGINS_NAMES = $(shell cat $(call MERGE_FILE,/searchplugins/metrolist.txt))
-else
-SEARCHPLUGINS_NAMES = $(shell cat $(call MERGE_FILE,/searchplugins/list.txt))
-endif
-SEARCHPLUGINS_PATH := $(FINAL_TARGET)/searchplugins
-SEARCHPLUGINS := $(addsuffix .xml,$(SEARCHPLUGINS_NAMES))
+SEARCHPLUGINS_NAMES = $(shell cat $(call MERGE_FILE,/searchplugins/list.txt)) ddg
+SEARCHPLUGINS_FILENAMES = $(subst :hidden,,$(SEARCHPLUGINS_NAMES))
+SEARCHPLUGINS_PATH := .deps/generated_$(AB_CD)
+SEARCHPLUGINS_TARGET := libs searchplugins
+SEARCHPLUGINS := $(foreach plugin,$(addsuffix .xml,$(SEARCHPLUGINS_FILENAMES)),$(or $(wildcard $(call EN_US_OR_L10N_FILE,searchplugins/$(plugin))),$(info Missing searchplugin: $(plugin))))
+# Some locale-specific search plugins may have preprocessor directives, but the
+# default en-US ones do not.
+SEARCHPLUGINS_FLAGS := --silence-missing-directive-warnings
 PP_TARGETS += SEARCHPLUGINS
+
+list-txt = $(SEARCHPLUGINS_PATH)/list.txt
+GARBAGE += $(list-txt)
+
+libs:: searchplugins
 
 # Required for l10n.mk - defines a list of app sub dirs that should
 # be included in langpack xpis.
-ifdef MOZ_METRO
-# metro build, include both app folders
-DIST_SUBDIRS = browser metro
-else
 DIST_SUBDIRS = $(DIST_SUBDIR)
-endif
 
 include $(topsrcdir)/config/rules.mk
 
 include $(topsrcdir)/toolkit/locales/l10n.mk
+
+$(list-txt): $(call mkdir_deps,$(SEARCHPLUGINS_PATH)) $(if $(IS_LANGUAGE_REPACK),FORCE)
+	$(RM) $(list-txt)
+	$(foreach plugin,$(SEARCHPLUGINS_NAMES),printf '$(plugin)\n' >> $(list-txt);)
+searchplugins:: $(list-txt)
 
 $(STAGEDIST): $(DIST)/branding
 
@@ -119,10 +125,6 @@ libs:: $(addprefix generic/profile/,$(PROFILE_FILES))
 libs:: $(call MERGE_FILES,$(addprefix profile/chrome/,$(PROFILE_CHROME)))
 	$(SYSINSTALL) $(IFLAGS1) $^ $(FINAL_TARGET)/defaults/profile/chrome
 
-# metro build calls back here for search engine plugins
-searchplugins: $(addprefix $(FINAL_TARGET)/searchplugins/,$(SEARCHPLUGINS))
-.PHONY: searchplugins
-
 libs-%:
 	$(NSINSTALL) -D $(DIST)/install
 	@$(MAKE) -C ../../toolkit/locales libs-$*
@@ -132,10 +134,8 @@ ifdef MOZ_WEBAPP_RUNTIME
 endif
 	@$(MAKE) -C ../../extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../intl/locales AB_CD=$* XPI_NAME=locale-$*
+	@$(MAKE) -B searchplugins AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR)
-ifdef MOZ_METRO
-	@$(MAKE) -C ../metro/locales AB_CD=$* XPI_NAME=locale-$*
-endif
 	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$*
 
 repackage-win32-installer: WIN32_INSTALLER_OUT=$(_ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
@@ -167,8 +167,7 @@ clobber-zip:
 	  $(STAGEDIST)/webapprt/chrome/$(AB_CD).jar \
 	  $(STAGEDIST)/webapprt/chrome/$(AB_CD).manifest \
 	  $(STAGEDIST)/$(PREF_DIR)/firefox-l10n.js
-	$(RM) -rf  $(STAGEDIST)/searchplugins \
-	  $(STAGEDIST)/dictionaries \
+	$(RM) -rf  $(STAGEDIST)/dictionaries \
 	  $(STAGEDIST)/hyphenation \
 	  $(STAGEDIST)/defaults/profile \
 	  $(STAGEDIST)/chrome/$(AB_CD) \

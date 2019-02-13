@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.mozilla.gecko.background.common.GlobalConstants;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.sync.CommandProcessor;
 import org.mozilla.gecko.sync.CommandProcessor.Command;
@@ -359,7 +359,7 @@ public class SyncClientsEngineStage extends AbstractSessionManagingSyncStage {
   }
 
   protected String getLocalClientVersion() {
-    return GlobalConstants.MOZ_APP_VERSION;
+    return AppConstants.MOZ_APP_VERSION;
   }
 
   @SuppressWarnings("unchecked")
@@ -378,6 +378,13 @@ public class SyncClientsEngineStage extends AbstractSessionManagingSyncStage {
     r.name = ourName;
     r.version = getLocalClientVersion();
     r.protocols = getLocalClientProtocols();
+
+    r.os = "Android";
+    r.application = AppConstants.MOZ_APP_DISPLAYNAME;
+    r.appPackage = AppConstants.ANDROID_PACKAGE_NAME;
+    r.device = android.os.Build.MODEL;
+    r.formfactor = delegate.getFormFactor();
+
     return r;
   }
 

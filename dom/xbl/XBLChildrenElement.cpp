@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,18 +26,6 @@ NS_INTERFACE_MAP_END_INHERITING(Element)
 
 NS_IMPL_ELEMENT_CLONE(XBLChildrenElement)
 
-nsIAtom*
-XBLChildrenElement::GetIDAttributeName() const
-{
-  return nullptr;
-}
-
-nsIAtom*
-XBLChildrenElement::DoGetID() const
-{
-  return nullptr;
-}
-
 nsresult
 XBLChildrenElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                               bool aNotify)
@@ -62,8 +50,7 @@ XBLChildrenElement::ParseAttribute(int32_t aNamespaceID,
     nsCharSeparatedTokenizer tok(aValue, '|',
                                  nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
     while (tok.hasMoreTokens()) {
-      nsCOMPtr<nsIAtom> atom = do_GetAtom(tok.nextToken());
-      mIncludes.AppendElement(atom);
+      mIncludes.AppendElement(do_GetAtom(tok.nextToken()));
     }
   }
 
@@ -81,7 +68,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsAnonymousContentList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsAnonymousContentList)
 
 NS_INTERFACE_TABLE_HEAD(nsAnonymousContentList)
-  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_WRAPPERCACHE_INTERFACE_TABLE_ENTRY
   NS_INTERFACE_TABLE_INHERITED(nsAnonymousContentList, nsINodeList,
                                nsIDOMNodeList)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE
@@ -103,8 +90,8 @@ nsAnonymousContentList::GetLength(uint32_t* aLength)
        child = child->GetNextSibling()) {
     if (child->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
       XBLChildrenElement* point = static_cast<XBLChildrenElement*>(child);
-      if (!point->mInsertedChildren.IsEmpty()) {
-        count += point->mInsertedChildren.Length();
+      if (point->HasInsertedChildren()) {
+        count += point->InsertedChildrenLength();
       }
       else {
         count += point->GetChildCount();
@@ -144,11 +131,11 @@ nsAnonymousContentList::Item(uint32_t aIndex)
        child = child->GetNextSibling()) {
     if (child->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
       XBLChildrenElement* point = static_cast<XBLChildrenElement*>(child);
-      if (!point->mInsertedChildren.IsEmpty()) {
-        if (remIndex < point->mInsertedChildren.Length()) {
-          return point->mInsertedChildren[remIndex];
+      if (point->HasInsertedChildren()) {
+        if (remIndex < point->InsertedChildrenLength()) {
+          return point->InsertedChild(remIndex);
         }
-        remIndex -= point->mInsertedChildren.Length();
+        remIndex -= point->InsertedChildrenLength();
       }
       else {
         if (remIndex < point->GetChildCount()) {
@@ -179,23 +166,23 @@ nsAnonymousContentList::IndexOf(nsIContent* aContent)
     return -1;
   }
 
-  size_t index = 0;
+  int32_t index = 0;
   for (nsIContent* child = mParent->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
     if (child->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
       XBLChildrenElement* point = static_cast<XBLChildrenElement*>(child);
-      if (!point->mInsertedChildren.IsEmpty()) {
-        size_t insIndex = point->mInsertedChildren.IndexOf(aContent);
-        if (insIndex != point->mInsertedChildren.NoIndex) {
+      if (point->HasInsertedChildren()) {
+        int32_t insIndex = point->IndexOfInsertedChild(aContent);
+        if (insIndex != -1) {
           return index + insIndex;
         }
-        index += point->mInsertedChildren.Length();
+        index += point->InsertedChildrenLength();
       }
       else {
         int32_t insIndex = point->IndexOf(aContent);
         if (insIndex != -1) {
-          return index + (size_t)insIndex;
+          return index + insIndex;
         }
         index += point->GetChildCount();
       }
@@ -212,7 +199,7 @@ nsAnonymousContentList::IndexOf(nsIContent* aContent)
 }
 
 JSObject*
-nsAnonymousContentList::WrapObject(JSContext *cx)
+nsAnonymousContentList::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
 {
-  return mozilla::dom::NodeListBinding::Wrap(cx, this);
+  return mozilla::dom::NodeListBinding::Wrap(cx, this, aGivenProto);
 }

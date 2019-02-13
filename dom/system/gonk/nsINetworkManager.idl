@@ -4,8 +4,6 @@
 
 #include "nsISupports.idl"
 
-interface nsIWifiTetheringCallback;
-
 /**
  * Information about networks that is exposed to network manager API consumers.
  */
@@ -21,8 +19,8 @@ interface nsINetworkInterface : nsISupports
   /**
    * Current network state, one of the NETWORK_STATE_* constants.
    *
-   * When this changes, network interface implementations notify the
-   * 'network-interface-state-changed' observer notification.
+   * When this changes, network interface implementations notify with
+   * updateNetworkInterface() API.
    */
   readonly attribute long state;
 
@@ -97,7 +95,7 @@ interface nsINetworkInterface : nsISupports
 /**
  * Manage network interfaces.
  */
-[scriptable, uuid(3ea50550-4b3c-11e3-8f96-0800200c9a66)]
+[scriptable, uuid(b0ab71bf-4b38-4796-8a3c-4141255f4259)]
 interface nsINetworkManager : nsISupports
 {
   /**
@@ -112,6 +110,20 @@ interface nsINetworkManager : nsISupports
    *        Network interface to register.
    */
   void registerNetworkInterface(in nsINetworkInterface network);
+
+  /**
+   * Update the routes and DNSes according the state of the given network.
+   *
+   * Consumers will be notified with the 'network-connection-state-changed'
+   * observer notification.
+   *
+   * Throws an exception if the specified network interface object isn't
+   * registered.
+   *
+   * @param network
+   *        Network interface to update.
+   */
+  void updateNetworkInterface(in nsINetworkInterface network);
 
   /**
    * Unregister the given network interface from the network manager.
@@ -167,19 +179,32 @@ interface nsINetworkManager : nsISupports
   long overrideActive(in nsINetworkInterface network);
 
   /**
-   * Enable or disable Wifi Tethering
+   * Add host route to the specified network into routing table.
    *
-   * @param enabled
-   *        Boolean that indicates whether tethering should be enabled (true) or disabled (false).
    * @param network
-   *        The Wifi network interface with at least name of network interface.
-   * @param config
-   *        The Wifi Tethering configuration from settings db.
-   * @param callback
-   *        Callback function used to report status to WifiManager.
+   *        The network interface where the host to be routed to.
+   * @param host
+   *        The host to be added.
+   *        The host will be resolved in advance if it's not an ip-address.
+   *
+   * @return a Promise
+   *         resolved if added; rejected, otherwise.
    */
-  void setWifiTethering(in boolean enabled,
-                        in nsINetworkInterface networkInterface,
-                        in jsval config,
-                        in nsIWifiTetheringCallback callback);
+  jsval addHostRoute(in nsINetworkInterface network,
+                     in DOMString host);
+
+  /**
+   * Remove host route to the specified network from routing table.
+   *
+   * @param network
+   *        The network interface where the routing to be removed from.
+   * @param host
+   *        The host routed to the network.
+   *        The host will be resolved in advance if it's not an ip-address.
+   *
+   * @return a Promise
+   *         resolved if removed; rejected, otherwise.
+   */
+  jsval removeHostRoute(in nsINetworkInterface network,
+                        in DOMString host);
 };

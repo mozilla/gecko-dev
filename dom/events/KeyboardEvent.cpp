@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/KeyboardEvent.h"
 #include "mozilla/TextEvents.h"
-#include "nsIDocument.h"
 #include "prtime.h"
 
 namespace mozilla {
@@ -17,10 +17,8 @@ KeyboardEvent::KeyboardEvent(EventTarget* aOwner,
   : UIEvent(aOwner, aPresContext,
             aEvent ? aEvent : new WidgetKeyboardEvent(false, 0, nullptr))
   , mInitializedByCtor(false)
-  , mInitialzedWhichValue(0)
+  , mInitializedWhichValue(0)
 {
-  NS_ASSERTION(mEvent->eventStructType == NS_KEY_EVENT, "event type mismatch");
-
   if (aEvent) {
     mEventIsInternal = false;
   }
@@ -127,110 +125,7 @@ KeyboardEvent::GetModifierState(const nsAString& aKey,
 NS_IMETHODIMP
 KeyboardEvent::GetKey(nsAString& aKeyName)
 {
-  WidgetKeyboardEvent* keyboardEvent = mEvent->AsKeyboardEvent();
-  keyboardEvent->GetDOMKeyName(aKeyName);
-
-  nsIDocument::DeprecatedOperations deprecatedOperation;
-  switch (keyboardEvent->mKeyNameIndex) {
-    case KEY_NAME_INDEX_Down:
-      deprecatedOperation = nsIDocument::eKeyNameDown;
-      break;
-    case KEY_NAME_INDEX_Left:
-      deprecatedOperation = nsIDocument::eKeyNameLeft;
-      break;
-    case KEY_NAME_INDEX_Right:
-      deprecatedOperation = nsIDocument::eKeyNameRight;
-      break;
-    case KEY_NAME_INDEX_Up:
-      deprecatedOperation = nsIDocument::eKeyNameUp;
-      break;
-    case KEY_NAME_INDEX_Crsel:
-      deprecatedOperation = nsIDocument::eKeyNameCrsel;
-      break;
-    case KEY_NAME_INDEX_Del:
-      deprecatedOperation = nsIDocument::eKeyNameDel;
-      break;
-    case KEY_NAME_INDEX_Exsel:
-      deprecatedOperation = nsIDocument::eKeyNameExsel;
-      break;
-    case KEY_NAME_INDEX_Menu:
-      deprecatedOperation = nsIDocument::eKeyNameMenu;
-      break;
-    case KEY_NAME_INDEX_Esc:
-      deprecatedOperation = nsIDocument::eKeyNameEsc;
-      break;
-    case KEY_NAME_INDEX_Nonconvert:
-      deprecatedOperation = nsIDocument::eKeyNameNonconvert;
-      break;
-    case KEY_NAME_INDEX_HalfWidth:
-      deprecatedOperation = nsIDocument::eKeyNameHalfWidth;
-      break;
-    case KEY_NAME_INDEX_RomanCharacters:
-      deprecatedOperation = nsIDocument::eKeyNameRomanCharacters;
-      break;
-    case KEY_NAME_INDEX_FullWidth:
-      deprecatedOperation = nsIDocument::eKeyNameFullWidth;
-      break;
-    case KEY_NAME_INDEX_SelectMedia:
-      deprecatedOperation = nsIDocument::eKeyNameSelectMedia;
-      break;
-    case KEY_NAME_INDEX_MediaNextTrack:
-      deprecatedOperation = nsIDocument::eKeyNameMediaNextTrack;
-      break;
-    case KEY_NAME_INDEX_MediaPreviousTrack:
-      deprecatedOperation = nsIDocument::eKeyNameMediaPreviousTrack;
-      break;
-    case KEY_NAME_INDEX_Red:
-      deprecatedOperation = nsIDocument::eKeyNameRed;
-      break;
-    case KEY_NAME_INDEX_Green:
-      deprecatedOperation = nsIDocument::eKeyNameGreen;
-      break;
-    case KEY_NAME_INDEX_Yellow:
-      deprecatedOperation = nsIDocument::eKeyNameYellow;
-      break;
-    case KEY_NAME_INDEX_Blue:
-      deprecatedOperation = nsIDocument::eKeyNameBlue;
-      break;
-    case KEY_NAME_INDEX_Live:
-      deprecatedOperation = nsIDocument::eKeyNameLive;
-      break;
-    case KEY_NAME_INDEX_Apps:
-      deprecatedOperation = nsIDocument::eKeyNameApps;
-      break;
-    case KEY_NAME_INDEX_FastFwd:
-      deprecatedOperation = nsIDocument::eKeyNameFastFwd;
-      break;
-    case KEY_NAME_INDEX_Zoom:
-      deprecatedOperation = nsIDocument::eKeyNameZoom;
-      break;
-    case KEY_NAME_INDEX_DeadGrave:
-    case KEY_NAME_INDEX_DeadAcute:
-    case KEY_NAME_INDEX_DeadCircumflex:
-    case KEY_NAME_INDEX_DeadTilde:
-    case KEY_NAME_INDEX_DeadMacron:
-    case KEY_NAME_INDEX_DeadBreve:
-    case KEY_NAME_INDEX_DeadAboveDot:
-    case KEY_NAME_INDEX_DeadUmlaut:
-    case KEY_NAME_INDEX_DeadAboveRing:
-    case KEY_NAME_INDEX_DeadDoubleacute:
-    case KEY_NAME_INDEX_DeadCaron:
-    case KEY_NAME_INDEX_DeadCedilla:
-    case KEY_NAME_INDEX_DeadOgonek:
-    case KEY_NAME_INDEX_DeadIota:
-    case KEY_NAME_INDEX_DeadVoicedSound:
-    case KEY_NAME_INDEX_DeadSemivoicedSound:
-      deprecatedOperation = nsIDocument::eKeyNameDeadKeys;
-      break;
-    default:
-      return NS_OK;
-  }
-
-  nsIDocument* doc = mOwner ? mOwner->GetExtantDoc() : nullptr;
-  if (NS_WARN_IF(!doc)) {
-    return NS_OK;
-  }
-  doc->WarnOnceAbout(deprecatedOperation);
+  mEvent->AsKeyboardEvent()->GetDOMKeyName(aKeyName);
   return NS_OK;
 }
 
@@ -257,8 +152,12 @@ KeyboardEvent::CharCode()
   }
 
   switch (mEvent->message) {
-  case NS_KEY_UP:
+  case NS_KEY_BEFORE_DOWN:
   case NS_KEY_DOWN:
+  case NS_KEY_AFTER_DOWN:
+  case NS_KEY_BEFORE_UP:
+  case NS_KEY_UP:
+  case NS_KEY_AFTER_UP:
     return 0;
   case NS_KEY_PRESS:
     return mEvent->AsKeyboardEvent()->charCode;
@@ -282,10 +181,7 @@ KeyboardEvent::KeyCode()
     return mEvent->AsKeyboardEvent()->keyCode;
   }
 
-  switch (mEvent->message) {
-  case NS_KEY_UP:
-  case NS_KEY_PRESS:
-  case NS_KEY_DOWN:
+  if (mEvent->HasKeyEventMessage()) {
     return mEvent->AsKeyboardEvent()->keyCode;
   }
   return 0;
@@ -296,12 +192,16 @@ KeyboardEvent::Which()
 {
   // If this event is initialized with ctor, which can have independent value.
   if (mInitializedByCtor) {
-    return mInitialzedWhichValue;
+    return mInitializedWhichValue;
   }
 
   switch (mEvent->message) {
-    case NS_KEY_UP:
+    case NS_KEY_BEFORE_DOWN:
     case NS_KEY_DOWN:
+    case NS_KEY_AFTER_DOWN:
+    case NS_KEY_BEFORE_UP:
+    case NS_KEY_UP:
+    case NS_KEY_AFTER_UP:
       return KeyCode();
     case NS_KEY_PRESS:
       //Special case for 4xp bug 62878.  Try to make value of which
@@ -343,26 +243,41 @@ KeyboardEvent::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<EventTarget> target = do_QueryInterface(aGlobal.GetAsSupports());
   nsRefPtr<KeyboardEvent> newEvent =
     new KeyboardEvent(target, nullptr, nullptr);
-  bool trusted = newEvent->Init(target);
-  aRv = newEvent->InitKeyEvent(aType, aParam.mBubbles, aParam.mCancelable,
-                               aParam.mView, aParam.mCtrlKey, aParam.mAltKey,
-                               aParam.mShiftKey, aParam.mMetaKey,
-                               aParam.mKeyCode, aParam.mCharCode);
-  newEvent->SetTrusted(trusted);
-  newEvent->mDetail = aParam.mDetail;
-  newEvent->mInitializedByCtor = true;
-  newEvent->mInitialzedWhichValue = aParam.mWhich;
+  newEvent->InitWithKeyboardEventInit(target, aType, aParam, aRv);
 
-  WidgetKeyboardEvent* internalEvent = newEvent->mEvent->AsKeyboardEvent();
+  return newEvent.forget();
+}
+
+void
+KeyboardEvent::InitWithKeyboardEventInit(EventTarget* aOwner,
+                                         const nsAString& aType,
+                                         const KeyboardEventInit& aParam,
+                                         ErrorResult& aRv)
+{
+  bool trusted = Init(aOwner);
+  aRv = InitKeyEvent(aType, aParam.mBubbles, aParam.mCancelable,
+                     aParam.mView, false, false, false, false,
+                     aParam.mKeyCode, aParam.mCharCode);
+  InitModifiers(aParam);
+  SetTrusted(trusted);
+  mDetail = aParam.mDetail;
+  mInitializedByCtor = true;
+  mInitializedWhichValue = aParam.mWhich;
+
+  WidgetKeyboardEvent* internalEvent = mEvent->AsKeyboardEvent();
   internalEvent->location = aParam.mLocation;
   internalEvent->mIsRepeat = aParam.mRepeat;
   internalEvent->mIsComposing = aParam.mIsComposing;
-  internalEvent->mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
-  internalEvent->mKeyValue = aParam.mKey;
-  internalEvent->mCodeNameIndex = CODE_NAME_INDEX_USE_STRING;
-  internalEvent->mCodeValue = aParam.mCode;
-
-  return newEvent.forget();
+  internalEvent->mKeyNameIndex =
+    WidgetKeyboardEvent::GetKeyNameIndex(aParam.mKey);
+  if (internalEvent->mKeyNameIndex == KEY_NAME_INDEX_USE_STRING) {
+    internalEvent->mKeyValue = aParam.mKey;
+  }
+  internalEvent->mCodeNameIndex =
+    WidgetKeyboardEvent::GetCodeNameIndex(aParam.mCode);
+  if (internalEvent->mCodeNameIndex == CODE_NAME_INDEX_USE_STRING) {
+    internalEvent->mCodeValue = aParam.mCode;
+  }
 }
 
 NS_IMETHODIMP

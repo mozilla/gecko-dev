@@ -41,7 +41,7 @@ public:
 
   typedef enum {eIsPrinting, eIsPrintPreview } ePrintDataType;
 
-  nsPrintData(ePrintDataType aType);
+  explicit nsPrintData(ePrintDataType aType);
   ~nsPrintData(); // non-virtual
 
   // Listener Helper Methods
@@ -85,8 +85,8 @@ public:
   char16_t*            mBrandName; //  needed as a substitute name for a document
 
 private:
-  nsPrintData() MOZ_DELETE;
-  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
+  nsPrintData() = delete;
+  nsPrintData& operator=(const nsPrintData& aOther) = delete;
 
 };
 

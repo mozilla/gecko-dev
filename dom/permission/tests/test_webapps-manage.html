@@ -17,19 +17,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=815105
 <script type="application/javascript;version=1.8" src="file_framework.js"></script>
 <script type="application/javascript;version=1.8">
 function verifier(success, failure) {
-  try {
-    var req = window.navigator.mozApps.mgmt.getAll();
-    req.onsuccess = function() {
-      success("Got mgmt");
-    }
-    req.onerror = function() {
-      failure("Got error");
-    }
-  } catch (e) {
-    failure("Got exception " + e);
+  if (window.navigator.mozApps.mgmt) {
+    success("Got mozApps.mgmt object!");
+  } else {
+    failure("Failed to get mozApps.mgmt object!");
   }
 }
-
 var gData = [
   {
     perm: ["webapps-manage"],

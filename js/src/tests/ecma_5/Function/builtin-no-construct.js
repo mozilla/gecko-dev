@@ -8,7 +8,7 @@ function checkMethod(method) {
         new method();
         assertEq(0, 1, "not reached " + method);
     } catch (e) {
-        assertEq(e.message, "method is not a constructor");
+        assertEq(e.message.indexOf(" is not a constructor") === -1, false);
     }
 }
 
@@ -16,7 +16,7 @@ function checkMethods(proto) {
     var names = Object.getOwnPropertyNames(proto);
     for (var i = 0; i < names.length; i++) {
         var name = names[i];
-        if (name == "constructor")
+        if (["constructor", "arguments", "caller"].indexOf(name) >= 0)
             continue;
         var prop = proto[name];
         if (typeof prop === "function")

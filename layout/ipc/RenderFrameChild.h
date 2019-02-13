@@ -16,14 +16,15 @@ namespace layout {
 class RenderFrameChild : public PRenderFrameChild
 {
 public:
-  RenderFrameChild() {}
+  RenderFrameChild() : mWasDestroyed(false) {}
   virtual ~RenderFrameChild() {}
+
+  void ActorDestroy(ActorDestroyReason why) override;
 
   void Destroy();
 
-protected:
-  virtual PLayerTransactionChild* AllocPLayerTransactionChild() MOZ_OVERRIDE;
-  virtual bool DeallocPLayerTransactionChild(PLayerTransactionChild* aLayers) MOZ_OVERRIDE;
+private:
+  bool mWasDestroyed;
 };
 
 } // namespace layout

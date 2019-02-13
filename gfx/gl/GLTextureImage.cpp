@@ -9,7 +9,6 @@
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "gfx2DGlue.h"
-#include "gfxImageSurface.h"
 #include "mozilla/gfx/2D.h"
 #include "ScopedGLHelpers.h"
 #include "GLUploadHelpers.h"
@@ -47,7 +46,7 @@ CreateTextureImage(GLContext* gl,
 
 static already_AddRefed<TextureImage>
 TileGenFunc(GLContext* gl,
-            const nsIntSize& aSize,
+            const IntSize& aSize,
             TextureImage::ContentType aContentType,
             TextureImage::Flags aFlags,
             TextureImage::ImageFormat aImageFormat)
@@ -66,17 +65,6 @@ TileGenFunc(GLContext* gl,
 
 already_AddRefed<TextureImage>
 TextureImage::Create(GLContext* gl,
-                     const nsIntSize& size,
-                     TextureImage::ContentType contentType,
-                     GLenum wrapMode,
-                     TextureImage::Flags flags)
-{
-    return Create(gl, size.ToIntSize(), contentType, wrapMode, flags);
-}
-
-// Moz2D equivalent...
-already_AddRefed<TextureImage>
-TextureImage::Create(GLContext* gl,
                      const gfx::IntSize& size,
                      TextureImage::ContentType contentType,
                      GLenum wrapMode,
@@ -91,7 +79,7 @@ TextureImage::UpdateFromDataSource(gfx::DataSourceSurface *aSurface,
                                    const gfx::IntPoint* aSrcPoint)
 {
     nsIntRegion destRegion = aDestRegion ? *aDestRegion
-                                         : nsIntRect(0, 0,
+                                         : IntRect(0, 0,
                                                      aSurface->GetSize().width,
                                                      aSurface->GetSize().height);
     gfx::IntPoint srcPoint = aSrcPoint ? *aSrcPoint
@@ -132,13 +120,13 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     if (CanUploadSubTextures(mGLContext)) {
         GetUpdateRegion(aRegion);
     } else {
-        aRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+        aRegion = IntRect(IntPoint(0, 0), mSize);
     }
 
     mUpdateRegion = aRegion;
 
-    nsIntRect rgnSize = mUpdateRegion.GetBounds();
-    if (!nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize)).Contains(rgnSize)) {
+    IntRect rgnSize = mUpdateRegion.GetBounds();
+    if (!IntRect(IntPoint(0, 0), mSize).Contains(rgnSize)) {
         NS_ERROR("update outside of image");
         return nullptr;
     }
@@ -158,8 +146,9 @@ BasicTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
   // if the texture hasn't been initialized yet, or something important
   // changed, we need to recreate our backing surface and force the
   // client to paint everything
-  if (mTextureState != Valid)
-      aForRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+  if (mTextureState != Valid) {
+      aForRegion = IntRect(IntPoint(0, 0), mSize);
+  }
 }
 
 void
@@ -216,10 +205,10 @@ BasicTextureImage::FinishedSurfaceUpload()
 bool
 BasicTextureImage::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& aRegion, const gfx::IntPoint& aFrom /* = gfx::IntPoint(0, 0) */)
 {
-    nsIntRect bounds = aRegion.GetBounds();
+    IntRect bounds = aRegion.GetBounds();
     nsIntRegion region;
     if (mTextureState != Valid) {
-        bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        bounds = IntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
         region = aRegion;
@@ -231,7 +220,7 @@ BasicTextureImage::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion
                                region,
                                mTexture,
                                mTextureState == Created,
-                               bounds.TopLeft() + nsIntPoint(aFrom.x, aFrom.y),
+                               bounds.TopLeft() + IntPoint(aFrom.x, aFrom.y),
                                false);
     mTextureState = Valid;
     return true;
@@ -244,14 +233,27 @@ BasicTextureImage::Resize(const gfx::IntSize& aSize)
 
     mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
 
+    // This matches the logic in UploadImageDataToTexture so that
+    // we avoid mixing formats.
+    GLenum format;
+    GLenum type;
+    if (mGLContext->GetPreferredARGB32Format() == LOCAL_GL_BGRA) {
+        MOZ_ASSERT(!mGLContext->IsGLES());
+        format = LOCAL_GL_BGRA;
+        type = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
+    } else {
+        format = LOCAL_GL_RGBA;
+        type = LOCAL_GL_UNSIGNED_BYTE;
+    }
+
     mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
                             0,
                             LOCAL_GL_RGBA,
                             aSize.width,
                             aSize.height,
                             0,
-                            LOCAL_GL_RGBA,
-                            LOCAL_GL_UNSIGNED_BYTE,
+                            format,
+                            type,
                             nullptr);
 
     mTextureState = Allocated;
@@ -264,7 +266,7 @@ gfx::IntSize TextureImage::GetSize() const {
 
 TextureImage::TextureImage(const gfx::IntSize& aSize,
              GLenum aWrapMode, ContentType aContentType,
-             Flags aFlags)
+             Flags aFlags, ImageFormat aImageFormat)
     : mSize(aSize)
     , mWrapMode(aWrapMode)
     , mContentType(aContentType)
@@ -273,28 +275,13 @@ TextureImage::TextureImage(const gfx::IntSize& aSize,
 {}
 
 BasicTextureImage::BasicTextureImage(GLuint aTexture,
-                                     const nsIntSize& aSize,
-                                     GLenum aWrapMode,
-                                     ContentType aContentType,
-                                     GLContext* aContext,
-                                     TextureImage::Flags aFlags /* = TextureImage::NoFlags */,
-                                     TextureImage::ImageFormat aImageFormat /* = gfxImageFormat::Unknown */)
-    : TextureImage(aSize, aWrapMode, aContentType, aFlags, aImageFormat)
-    , mTexture(aTexture)
-    , mTextureState(Created)
-    , mGLContext(aContext)
-    , mUpdateOffset(0, 0)
-{
-}
-
-BasicTextureImage::BasicTextureImage(GLuint aTexture,
                   const gfx::IntSize& aSize,
                   GLenum aWrapMode,
                   ContentType aContentType,
                   GLContext* aContext,
                   TextureImage::Flags aFlags,
                   TextureImage::ImageFormat aImageFormat)
-  : TextureImage(ThebesIntSize(aSize), aWrapMode, aContentType, aFlags, aImageFormat)
+  : TextureImage(aSize, aWrapMode, aContentType, aFlags, aImageFormat)
   , mTexture(aTexture)
   , mTextureState(Created)
   , mGLContext(aContext)
@@ -358,7 +345,7 @@ TiledTextureImage::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion
     nsIntRegion region;
 
     if (mTextureState != Valid) {
-        nsIntRect bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        IntRect bounds = IntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
         region = aRegion;
@@ -368,7 +355,7 @@ TiledTextureImage::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion
     int oldCurrentImage = mCurrentImage;
     BeginBigImageIteration();
     do {
-        nsIntRect tileRect = ThebesIntRect(GetSrcTileRect());
+        IntRect tileRect = GetSrcTileRect();
         int xPos = tileRect.x;
         int yPos = tileRect.y;
 
@@ -413,7 +400,7 @@ TiledTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
         // if the texture hasn't been initialized yet, or something important
         // changed, we need to recreate our backing surface and force the
         // client to paint everything
-        aForRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+        aForRegion = IntRect(IntPoint(0, 0), mSize);
         return;
     }
 
@@ -424,8 +411,8 @@ TiledTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
     for (unsigned i = 0; i < mImages.Length(); i++) {
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
-        nsIntRect imageRect = nsIntRect(nsIntPoint(xPos,yPos),
-                                        ThebesIntSize(mImages[i]->GetSize()));
+        IntRect imageRect = IntRect(IntPoint(xPos,yPos),
+                                        mImages[i]->GetSize());
 
         if (aForRegion.Intersects(imageRect)) {
             // Make a copy of the region
@@ -459,17 +446,17 @@ TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
         // if the texture hasn't been initialized yet, or something important
         // changed, we need to recreate our backing surface and force the
         // client to paint everything
-        aRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+        aRegion = IntRect(IntPoint(0, 0), mSize);
     }
 
-    nsIntRect bounds = aRegion.GetBounds();
+    IntRect bounds = aRegion.GetBounds();
 
     for (unsigned i = 0; i < mImages.Length(); i++) {
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
         nsIntRegion imageRegion =
-          nsIntRegion(nsIntRect(nsIntPoint(xPos,yPos),
-                                ThebesIntSize(mImages[i]->GetSize())));
+          nsIntRegion(IntRect(IntPoint(xPos,yPos),
+                                mImages[i]->GetSize()));
 
         // a single Image can handle this update request
         if (imageRegion.Contains(aRegion)) {
@@ -498,7 +485,7 @@ TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
         (GetContentType() == gfxContentType::COLOR) ?
         gfx::SurfaceFormat::B8G8R8X8: gfx::SurfaceFormat::B8G8R8A8;
     mUpdateDrawTarget = gfx::Factory::CreateDrawTarget(gfx::BackendType::CAIRO,
-                                                       bounds.Size().ToIntSize(),
+                                                       bounds.Size(),
                                                        format);
 
     return mUpdateDrawTarget;;
@@ -523,8 +510,7 @@ TiledTextureImage::EndUpdate()
     for (unsigned i = 0; i < mImages.Length(); i++) {
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
-        nsIntRect imageRect = nsIntRect(nsIntPoint(xPos,yPos),
-                                        ThebesIntSize(mImages[i]->GetSize()));
+        IntRect imageRect = IntRect(IntPoint(xPos,yPos), mImages[i]->GetSize());
 
         nsIntRegion subregion;
         subregion.And(mUpdateRegion, imageRect);
@@ -533,7 +519,7 @@ TiledTextureImage::EndUpdate()
         subregion.MoveBy(-xPos, -yPos); // Tile-local space
         // copy tile from temp target
         gfx::DrawTarget* drawTarget = mImages[i]->BeginUpdate(subregion);
-        MOZ_ASSERT(drawTarget->GetType() == BackendType::CAIRO,
+        MOZ_ASSERT(drawTarget->GetBackendType() == BackendType::CAIRO,
                    "updateSnapshot should not have been converted to data");
         gfxUtils::ClipToRegion(drawTarget, subregion);
         Size size(updateData->GetSize().width,
@@ -596,9 +582,9 @@ gfx::IntRect TiledTextureImage::GetTileRect()
 gfx::IntRect TiledTextureImage::GetSrcTileRect()
 {
     gfx::IntRect rect = GetTileRect();
-    unsigned int srcY = mFlags & NeedsYFlip
-                        ? mSize.height - rect.height - rect.y
-                        : rect.y;
+    const bool needsYFlip = mFlags & OriginBottomLeft;
+    unsigned int srcY = needsYFlip ? mSize.height - rect.height - rect.y
+                                   : rect.y;
     return gfx::IntRect(rect.x, srcY, rect.width, rect.height);
 }
 
@@ -647,7 +633,7 @@ void TiledTextureImage::Resize(const gfx::IntSize& aSize)
 
         int col;
         for (col = 0; col < (int)columns; col++) {
-            nsIntSize size( // use tilesize first, then the remainder
+            IntSize size( // use tilesize first, then the remainder
                     (col+1) * mTileSize > (unsigned int)aSize.width  ? aSize.width  % mTileSize : mTileSize,
                     (row+1) * mTileSize > (unsigned int)aSize.height ? aSize.height % mTileSize : mTileSize);
 

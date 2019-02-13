@@ -52,13 +52,13 @@ WrapTexCoord(GLfloat v)
 }
 
 void
-DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
-                               const nsIntSize& aTexSize,
+DecomposeIntoNoRepeatTriangles(const gfx::IntRect& aTexCoordRect,
+                               const gfx::IntSize& aTexSize,
                                RectTriangles& aRects,
                                bool aFlipY /* = false */)
 {
     // normalize this
-    nsIntRect tcr(aTexCoordRect);
+    gfx::IntRect tcr(aTexCoordRect);
     while (tcr.x >= aTexSize.width)
         tcr.x -= aTexSize.width;
     while (tcr.y >= aTexSize.height)

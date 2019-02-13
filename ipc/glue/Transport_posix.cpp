@@ -14,27 +14,26 @@
 #include "mozilla/ipc/Transport.h"
 #include "mozilla/ipc/FileDescriptor.h"
 
-using namespace base;
 using namespace std;
+
+using base::ProcessHandle;
 
 namespace mozilla {
 namespace ipc {
 
-bool
-CreateTransport(ProcessHandle /*unused*/, ProcessHandle /*unused*/,
-                TransportDescriptor* aOne, TransportDescriptor* aTwo)
+nsresult
+CreateTransport(base::ProcessId aProcIdOne,
+                TransportDescriptor* aOne,
+                TransportDescriptor* aTwo)
 {
-  // Gecko doesn't care about this random ID, and the argument to this
-  // function isn't really necessary, it can be just any random
-  // pointer value
-  wstring id = ChildProcessInfo::GenerateRandomChannelID(aOne);
+  wstring id = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   // Use MODE_SERVER to force creation of the socketpair
   Transport t(id, Transport::MODE_SERVER, nullptr);
   int fd1 = t.GetFileDescriptor();
   int fd2, dontcare;
   t.GetClientFileDescriptorMapping(&fd2, &dontcare);
   if (fd1 < 0 || fd2 < 0) {
-    return false;
+    return NS_ERROR_TRANSPORT_INIT;
   }
 
   // The Transport closes these fds when it goes out of scope, so we
@@ -42,12 +41,12 @@ CreateTransport(ProcessHandle /*unused*/, ProcessHandle /*unused*/,
   fd1 = dup(fd1);
   fd2 = dup(fd2);
   if (fd1 < 0 || fd2 < 0) {
-    return false;
+    return NS_ERROR_DUPLICATE_HANDLE;
   }
 
   aOne->mFd = base::FileDescriptor(fd1, true/*close after sending*/);
   aTwo->mFd = base::FileDescriptor(fd2, true/*close after sending*/);
-  return true;
+  return NS_OK;
 }
 
 Transport*

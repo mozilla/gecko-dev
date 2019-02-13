@@ -18,7 +18,7 @@ function testSupported() {
   navigator.getFeature("hardware.memory").then(function(mem) {
 
     var isLinux = (navigator.platform.indexOf('Linux') != -1);
-    var isAndroid = !!navigator.userAgent.contains("Android");
+    var isAndroid = !!navigator.userAgent.includes("Android");
     var isB2G = !isAndroid && /Mobile|Tablet/.test(navigator.userAgent);
 
     if (isLinux) {
@@ -38,7 +38,7 @@ function testSupported() {
       ok(typeof mem === 'undefined', "hardware.memory is not support on this platform");
     }
 
-    SimpleTest.finish();
+    runNextTest();
 
   },function(mem) {
     ok(false, "The Promise should not be rejected");
@@ -49,17 +49,85 @@ function testNotSupported() {
   var tv;
   navigator.getFeature("hardware.tv").then(function(tv) {
     ok(typeof tv === 'undefined', "Resolve the Promise with undefined value (hardware.tv)");
-    testSupported();
+    runNextTest();
   },function(tv) {
-    ok(false, "The Promise should not be rejected")
+    ok(false, "The Promise should not be rejected");
   });
 }
+
+function testNotSupportedManifest() {
+  navigator.getFeature("manifest.origin").then(function(feature) {
+    ok(typeof feature == 'undefined', "manifest.* resolves with undefined on getFeature");
+    runNextTest();
+  }, function() {
+    ok(false, "The Promise should not be rejected");
+  });
+}
+
+function createManifestTest(aFeature) {
+  return function() {
+    var res;
+    navigator.hasFeature(aFeature).then(function(res) {
+      ok(res === true, "Resolve the Promise with 'true' for " + aFeature);
+      runNextTest();
+    }, function(tv) {
+      ok(false, "The Promise should not be rejected");
+    });
+  }
+}
+
+function testDevMode(aExpected) {
+  return function() {
+    navigator.getFeature("dom.apps.developer_mode").then(res => {
+      is(res, aExpected, "dom.apps.developer_mode is " + aExpected);
+      runNextTest();
+    }, function() {
+      ok(false, "The Promise should not be rejected");
+    });
+  }
+}
+
+function enableDevMode() {
+  SpecialPowers.pushPrefEnv({"set": [["dom.apps.developer_mode", true]]}, runNextTest);
+}
+
+var currentTest = -1;
+var tests = [
+  testNotSupported,
+  testNotSupportedManifest,
+  testSupported,
+  createManifestTest("manifest.origin"),
+  createManifestTest("manifest.redirects"),
+  testDevMode(false),
+  enableDevMode,
+  testDevMode(true)
+];
+
+function runNextTest() {
+  currentTest++;
+  if (currentTest < tests.length) {
+    tests[currentTest]();
+  } else {
+    SimpleTest.finish();
+  }
+}
+
+info("About to run " + tests.length + " tests");
 
 SpecialPowers.pushPermissions([
   {type: "feature-detection", allow: 1, context: document}
 ], function() {
   ok('getFeature' in navigator, "navigator.getFeature should exist");
-  testNotSupported();
+  ok('hasFeature' in navigator, "navigator.hasFeature should exist");
+  // B2G specific manifest features.
+  // Touching navigator before pushPermissions makes it fail.
+  if (!navigator.userAgent.includes("Android") &&
+        /Mobile|Tablet/.test(navigator.userAgent)) {
+    info("Adding B2G specific tests");
+    tests.push(createManifestTest("manifest.chrome.navigation"));
+    tests.push(createManifestTest("manifest.precompile"));
+  }
+  runNextTest();
   ok(true, "Test DONE");
 });
 

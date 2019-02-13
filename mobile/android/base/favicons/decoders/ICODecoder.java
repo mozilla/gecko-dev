@@ -84,7 +84,7 @@ public class ICODecoder implements Iterable<Bitmap> {
     private int offset;
     private int len;
 
-    private IconDirectoryEntry[] iconDirectory;
+    IconDirectoryEntry[] iconDirectory;
     private boolean isValid;
     private boolean hasDecoded;
 
@@ -293,10 +293,10 @@ public class ICODecoder implements Iterable<Bitmap> {
         System.arraycopy(decodand, offset + iconDirEntry.payloadOffset, decodeTarget, singlePayloadOffset, iconDirEntry.payloadSize);
 
         // Update the offset field of the ICONDIRENTRY to make the new ICO valid.
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 12] = (byte) singlePayloadOffset;
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 13] = (byte) (singlePayloadOffset >>> 8);
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 14] = (byte) (singlePayloadOffset >>> 16);
-        decodeTarget[ICO_HEADER_LENGTH_BYTES + 15] = (byte) (singlePayloadOffset >>> 24);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 12] = singlePayloadOffset;
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 13] = (singlePayloadOffset >>> 8);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 14] = (singlePayloadOffset >>> 16);
+        decodeTarget[ICO_HEADER_LENGTH_BYTES + 15] = (singlePayloadOffset >>> 24);
 
         // Decode the newly-constructed singleton-ICO.
         return BitmapUtils.decodeByteArray(decodeTarget);
@@ -351,7 +351,7 @@ public class ICODecoder implements Iterable<Bitmap> {
      * Inner class to iterate over the elements in the ICO represented by the enclosing instance.
      */
     private class ICOIterator implements Iterator<Bitmap> {
-        private int mIndex = 0;
+        private int mIndex;
 
         @Override
         public boolean hasNext() {

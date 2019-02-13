@@ -175,7 +175,7 @@ interface nsINavHistoryResultNode : nsISupports
  * Bookmark folders and places queries will be QueryResultNodes which extends
  * these items.
  */
-[scriptable, uuid(5bac9734-c0ff-44eb-8d19-da88462ff6da)]
+[scriptable, uuid(3E9CC95F-0D93-45F1-894F-908EEB9866D7)]
 interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
 {
 
@@ -256,15 +256,6 @@ interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
                                             in PRTime aTime,
                                             in long long aItemId,
                                             in boolean aRecursive);
-
-  /**
-   * Returns false if this node's list of children can be modified
-   * (adding or removing children, or reordering children), or true if
-   * the UI should not allow the list of children to be modified.
-   * This is false for bookmark folder nodes unless setFolderReadOnly() has
-   * been called to override it, and true for non-folder nodes.
-   */
-  readonly attribute boolean childrenReadOnly;
 };
 
 
@@ -275,7 +266,7 @@ interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
  * generated this node, this item will report it has no children and never try
  * to populate itself.
  */
-[scriptable, uuid(a4144c3e-8125-46d5-a719-831bec8095f4)]
+[scriptable, uuid(62817759-4FEE-44A3-B58C-3E2F5AFC9D0A)]
 interface nsINavHistoryQueryResultNode : nsINavHistoryContainerResultNode
 {
   /**
@@ -292,10 +283,18 @@ interface nsINavHistoryQueryResultNode : nsINavHistoryContainerResultNode
   readonly attribute nsINavHistoryQueryOptions queryOptions;
 
   /**
-   * For both simple folder nodes and simple-folder-query nodes, this is set
-   * to the concrete itemId of the folder. Otherwise, this is set to -1.
+   * For both simple folder queries and folder shortcut queries, this is set to
+   * the concrete itemId of the folder (i.e. for folder shortcuts it's the
+   * target folder id).  Otherwise, this is set to -1.
    */
   readonly attribute long long folderItemId;
+
+  /**
+   * For both simple folder queries and folder shortcut queries, this is set to
+   * the concrete guid of the folder (i.e. for folder shortcuts it's the target
+   * folder guid). Otherwise, this is set to an empty string.
+   */
+  readonly attribute ACString targetFolderGuid;
 };
 
 
@@ -1118,12 +1117,9 @@ interface nsINavHistoryQueryOptions : nsISupports
   attribute boolean excludeQueries;
 
   /**
-   * Set to true to exclude read-only folders from the query results. This is
-   * designed for cases where you want to give the user the option of filing
-   * something into a list of folders. It only affects cases where the actual
-   * folder result node would appear in its parent folder and filters it out.
-   * It doesn't affect the query at all, and doesn't affect more complex
-   * queries (such as "folders with annotation X").
+   * DO NOT USE THIS API. IT'LL BE REMOVED IN BUG 1072833.
+   *
+   * Set to true to exclude live bookmarks from the query results.
    */
   attribute boolean excludeReadOnlyFolders;
 
@@ -1188,7 +1184,7 @@ interface nsINavHistoryQueryOptions : nsISupports
   nsINavHistoryQueryOptions clone();
 };
 
-[scriptable, uuid(baebc597-9daf-4103-a325-e41ef9e7608a)]
+[scriptable, uuid(8a1f527e-c9d7-4a51-bf0c-d86f0379b701)]
 interface nsINavHistoryService : nsISupports
 {
   /**
@@ -1316,25 +1312,6 @@ interface nsINavHistoryService : nsISupports
   void markPageAsFollowedLink(in nsIURI aURI);
 
   /**
-   * Gets the stored character-set for an URI.
-   *
-   * @param aURI
-   *        URI to retrieve character-set for
-   * @return character-set, empty string if not found
-   */
-  AString getCharsetForURI(in nsIURI aURI);
-
-  /**
-   * Sets the character-set for an URI.
-   *
-   * @param aURI
-   *        URI to set the character-set for
-   * @param aCharset
-   *        character-set to be set
-   */
-  void setCharsetForURI(in nsIURI aURI, in AString aCharset);
-
-  /**
    * Returns true if this URI would be added to the history. You don't have to
    * worry about calling this, adding a visit will always check before
    * actually adding the page. This function is public because some components
@@ -1405,6 +1382,12 @@ interface nsINavHistoryService : nsISupports
   void removeObserver(in nsINavHistoryObserver observer);
 
   /**
+   * Gets an array of registered nsINavHistoryObserver objects.
+   */
+  void getObservers([optional] out unsigned long count,
+                    [retval, array, size_is(count)] out nsINavHistoryObserver observers);
+
+  /**
    * Runs the passed callback in batch mode. Use this when a lot of things
    * are about to change. Calls can be nested, observers will only be
    * notified when all batches begin/end.
@@ -1422,12 +1405,17 @@ interface nsINavHistoryService : nsISupports
    * history is disabled if the places.history.enabled pref is false.
    */
   readonly attribute boolean historyDisabled;
+
+  /**
+   * Clear all TRANSITION_EMBED visits.
+   */
+  void clearEmbedVisits();
 };
 
 /**
  * @see runInBatchMode of nsINavHistoryService/nsINavBookmarksService
  */
-[scriptable, uuid(5143f2bb-be0a-4faf-9acb-b0ed3f82952c)]
+[scriptable, function, uuid(5a5a9154-95ac-4e3d-90df-558816297407)]
 interface nsINavHistoryBatchCallback : nsISupports {
   void runBatched(in nsISupports aUserData);
 };

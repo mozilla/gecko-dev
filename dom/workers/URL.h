@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * url, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,6 +15,7 @@
 
 namespace mozilla {
 namespace dom {
+class Blob;
 struct objectURLOptions;
 }
 }
@@ -22,17 +23,19 @@ struct objectURLOptions;
 BEGIN_WORKERS_NAMESPACE
 
 class URLProxy;
+class ConstructorRunnable;
 
-class URL MOZ_FINAL : public mozilla::dom::URLSearchParamsObserver
+class URL final : public mozilla::dom::URLSearchParamsObserver
 {
   typedef mozilla::dom::URLSearchParams URLSearchParams;
+
+  ~URL();
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(URL)
 
   URL(WorkerPrivate* aWorkerPrivate, URLProxy* aURLProxy);
-  ~URL();
 
   nsISupports*
   GetParentObject() const
@@ -41,90 +44,91 @@ public:
     return nullptr;
   }
 
-  JSObject*
-  WrapObject(JSContext* aCx);
+  bool
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, JS::MutableHandle<JSObject*> aReflector);
 
   // Methods for WebIDL
 
-  static URL*
+  static already_AddRefed<URL>
   Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
               URL& aBase, ErrorResult& aRv);
-  static URL*
+  static already_AddRefed<URL>
+  Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
+              const Optional<nsAString>& aBase, ErrorResult& aRv);
+  static already_AddRefed<URL>
   Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
               const nsAString& aBase, ErrorResult& aRv);
 
   static void
   CreateObjectURL(const GlobalObject& aGlobal,
-                  JSObject* aArg, const objectURLOptions& aOptions,
-                  nsString& aResult, ErrorResult& aRv);
+                  Blob& aArg, const objectURLOptions& aOptions,
+                  nsAString& aResult, ErrorResult& aRv);
 
   static void
-  CreateObjectURL(const GlobalObject& aGlobal,
-                  JSObject& aArg, const objectURLOptions& aOptions,
-                  nsString& aResult, ErrorResult& aRv);
+  RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl,
+                  ErrorResult& aRv);
 
-  static void
-  RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl);
-
-  void GetHref(nsString& aHref) const;
+  void GetHref(nsAString& aHref, ErrorResult& aRv) const;
 
   void SetHref(const nsAString& aHref, ErrorResult& aRv);
 
-  void GetOrigin(nsString& aOrigin) const;
+  void GetOrigin(nsAString& aOrigin, ErrorResult& aRv) const;
 
-  void GetProtocol(nsString& aProtocol) const;
+  void GetProtocol(nsAString& aProtocol, ErrorResult& aRv) const;
 
-  void SetProtocol(const nsAString& aProtocol);
+  void SetProtocol(const nsAString& aProtocol, ErrorResult& aRv);
 
-  void GetUsername(nsString& aUsername) const;
+  void GetUsername(nsAString& aUsername, ErrorResult& aRv) const;
 
-  void SetUsername(const nsAString& aUsername);
+  void SetUsername(const nsAString& aUsername, ErrorResult& aRv);
 
-  void GetPassword(nsString& aPassword) const;
+  void GetPassword(nsAString& aPassword, ErrorResult& aRv) const;
 
-  void SetPassword(const nsAString& aPassword);
+  void SetPassword(const nsAString& aPassword, ErrorResult& aRv);
 
-  void GetHost(nsString& aHost) const;
+  void GetHost(nsAString& aHost, ErrorResult& aRv) const;
 
-  void SetHost(const nsAString& aHost);
+  void SetHost(const nsAString& aHost, ErrorResult& aRv);
 
-  void GetHostname(nsString& aHostname) const;
+  void GetHostname(nsAString& aHostname, ErrorResult& aRv) const;
 
-  void SetHostname(const nsAString& aHostname);
+  void SetHostname(const nsAString& aHostname, ErrorResult& aRv);
 
-  void GetPort(nsString& aPort) const;
+  void GetPort(nsAString& aPort, ErrorResult& aRv) const;
 
-  void SetPort(const nsAString& aPort);
+  void SetPort(const nsAString& aPort, ErrorResult& aRv);
 
-  void GetPathname(nsString& aPathname) const;
+  void GetPathname(nsAString& aPathname, ErrorResult& aRv) const;
 
-  void SetPathname(const nsAString& aPathname);
+  void SetPathname(const nsAString& aPathname, ErrorResult& aRv);
 
-  void GetSearch(nsString& aSearch) const;
+  void GetSearch(nsAString& aSearch, ErrorResult& aRv) const;
 
-  void SetSearch(const nsAString& aSearch);
+  void SetSearch(const nsAString& aSearch, ErrorResult& aRv);
 
   URLSearchParams* SearchParams();
 
-  void SetSearchParams(URLSearchParams& aSearchParams);
+  void GetHash(nsAString& aHost, ErrorResult& aRv) const;
 
-  void GetHash(nsString& aHost) const;
+  void SetHash(const nsAString& aHash, ErrorResult& aRv);
 
-  void SetHash(const nsAString& aHash);
-
-  void Stringify(nsString& aRetval) const
+  void Stringify(nsAString& aRetval, ErrorResult& aRv) const
   {
-    GetHref(aRetval);
+    GetHref(aRetval, aRv);
   }
 
   // IURLSearchParamsObserver
-  void URLSearchParamsUpdated() MOZ_OVERRIDE;
+  void URLSearchParamsUpdated(URLSearchParams* aSearchParams) override;
 
 private:
   URLProxy* GetURLProxy() const
   {
     return mURLProxy;
   }
+
+  static already_AddRefed<URL>
+  FinishConstructor(JSContext* aCx, WorkerPrivate* aPrivate,
+                    ConstructorRunnable* aRunnable, ErrorResult& aRv);
 
   void CreateSearchParamsIfNeeded();
 

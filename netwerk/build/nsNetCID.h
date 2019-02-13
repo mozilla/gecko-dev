@@ -317,12 +317,13 @@
 #define NS_SOCKETTRANSPORTSERVICE_CONTRACTID \
     "@mozilla.org/network/socket-transport-service;1"
 #define NS_SOCKETTRANSPORTSERVICE_CID                \
-{ /* c07e81e0-ef12-11d2-92b6-00105a1b0d64 */         \
-    0xc07e81e0,                                      \
-    0xef12,                                          \
-    0x11d2,                                          \
-    {0x92, 0xb6, 0x00, 0x10, 0x5a, 0x1b, 0x0d, 0x64} \
+{ /* ad56b25f-e6bb-4db3-9f7b-5b7db33fd2b1 */         \
+    0xad56b25f,                                      \
+    0xe6bb,                                          \
+    0x4db3,                                          \
+    {0x9f, 0x7b, 0x5b, 0x7d, 0xb3, 0x3f, 0xd2, 0xb1} \
 }
+
 
 // component implementing nsIServerSocket
 #define NS_SERVERSOCKET_CONTRACTID \
@@ -333,6 +334,17 @@
     0x3b35,                                          \
     0x48fa,                                          \
     {0xab, 0x1d, 0x5e, 0x68, 0xa9, 0xf4, 0x5f, 0x08} \
+}
+
+// component implementing nsITLSServerSocket
+#define NS_TLSSERVERSOCKET_CONTRACTID \
+    "@mozilla.org/network/tls-server-socket;1"
+#define NS_TLSSERVERSOCKET_CID                       \
+{ /* 1813cbb4-c98e-4622-8c7d-839167f3f272 */         \
+    0x1813cbb4,                                      \
+    0xc98e,                                          \
+    0x4622,                                          \
+    {0x8c, 0x7d, 0x83, 0x91, 0x67, 0xf3, 0xf2, 0x72} \
 }
 
 // component implementing nsIUDPSocket
@@ -567,6 +579,18 @@
     0x48b1,                                          \
     {0xb5, 0x27, 0x8a, 0x64, 0x30, 0x56, 0xab, 0xbd} \
 }
+
+// component implementing nsIHttpPushListener.
+#define NS_HTTPPUSHLISTENER_CONTRACTID \
+    "@mozilla.org/network/push-listener;1"
+#define NS_HTTPPUSHLISTENER_CID                      \
+{                                                    \
+    0x73cf4430,                                      \
+    0x5877,                                          \
+    0x4c6b,                                          \
+    {0xb8, 0x78, 0x3e, 0xde, 0x5b, 0xc8, 0xef, 0xf1} \
+}
+
 
 #define NS_HTTPACTIVITYDISTRIBUTOR_CONTRACTID \
     "@mozilla.org/network/http-activity-distributor;1"
@@ -842,6 +866,16 @@
     0x091a,                                            \
     0x45a6,                                            \
     { 0x85, 0x44, 0x5a, 0x8d, 0x1a, 0xb7, 0x95, 0x37 } \
+}
+
+#define NS_PACKAGEDAPPSERVICE_CONTRACTID \
+    "@mozilla.org/network/packaged-app-service;1"
+#define NS_PACKAGEDAPPSERVICE_CID                      \
+{   /* adef6762-41b9-4470-a06a-dc29cf8de381 */         \
+    0xadef6762,                                        \
+    0x41b9,                                            \
+    0x4470,                                            \
+  { 0xa0, 0x6a, 0xdc, 0x29, 0xcf, 0x8d, 0xe3, 0x81 }   \
 }
 
 

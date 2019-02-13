@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Build Config')
+
 # This cannot be named "build" because of bug 922191.
 SPHINX_TREES['buildsystem'] = 'docs'
 
@@ -27,7 +30,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
 
 for var in ('GRE_MILESTONE', 'MOZ_APP_VERSION', 'MOZ_APP_BASENAME',
             'MOZ_APP_VENDOR', 'MOZ_APP_ID', 'MAR_CHANNEL_ID',
-            'ACCEPTED_MAR_CHANNEL_IDS'):
+            'ACCEPTED_MAR_CHANNEL_IDS', 'MOZ_APP_REMOTINGNAME'):
     DEFINES[var] = CONFIG[var]
 
 if CONFIG['MOZ_APP_DISPLAYNAME'] != CONFIG['MOZ_APP_BASENAME']:
@@ -40,7 +43,35 @@ if CONFIG['MOZ_APP_PROFILE']:
     DEFINES['MOZ_APP_PROFILE'] = CONFIG['MOZ_APP_PROFILE']
 
 for var in ('MOZ_CRASHREPORTER', 'MOZ_PROFILE_MIGRATOR',
-            'MOZ_EXTENSION_MANAGER', 'MOZ_APP_STATIC_INI'):
+            'MOZ_APP_STATIC_INI'):
     if CONFIG[var]:
         DEFINES[var] = True
 
+if CONFIG['MOZ_BUILD_APP'] == 'browser':
+    PYTHON_UNIT_TESTS += [
+        'compare-mozconfig/compare-mozconfigs-wrapper.py',
+    ]
+
+if CONFIG['ENABLE_TESTS'] or CONFIG['MOZ_DMD']:
+    tools_dir = TOPSRCDIR + '/tools/rb/'
+    FINAL_TARGET_FILES += [tools_dir + 'fix_stack_using_bpsyms.py']
+    if CONFIG['OS_ARCH'] == 'Darwin':
+        FINAL_TARGET_FILES += [tools_dir + 'fix_macosx_stack.py']
+    if CONFIG['OS_ARCH'] == 'Linux':
+        FINAL_TARGET_FILES += [tools_dir + 'fix_linux_stack.py']
+
+if CONFIG['MOZ_DMD']:
+    FINAL_TARGET_FILES += [TOPSRCDIR + '/memory/replace/dmd/dmd.py']
+
+# Put a useful .gdbinit in the bin directory, to be picked up automatically
+# by GDB when we debug executables there.
+FINAL_TARGET_FILES += [TOPSRCDIR + '/.gdbinit']
+
+# Install the clang-cl runtime library for ASAN next to the binaries we produce.
+if CONFIG['MOZ_ASAN'] and CONFIG['CLANG_CL']:
+    FINAL_TARGET_FILES += [CONFIG['MOZ_CLANG_RT_ASAN_LIB_PATH']]
+
+if CONFIG['MOZ_APP_BASENAME']:
+    DIST_FILES += ['application.ini']
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android' and CONFIG['MOZ_UPDATER']:
+        DIST_FILES += ['update-settings.ini']

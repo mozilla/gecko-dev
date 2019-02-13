@@ -16,8 +16,9 @@ waitForExplicitFinish();
 
 const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/layoutview/test/";
 
-// Uncomment to log events
+// Uncomment this pref to dump all devtools emitted events to the console.
 // Services.prefs.setBoolPref("devtools.dump.emit", true);
+
 // Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 // Set the testing flag on gDevTools and reset it when the test ends
@@ -34,28 +35,20 @@ registerCleanupFunction(() => {
   Services.prefs.setCharPref("devtools.inspector.activeSidebar", "ruleview");
 });
 
-// Auto close the toolbox and close the test tabs when the test ends
-registerCleanupFunction(() => {
-  // For now, tests must call `yield destroyToolbox(inspector);` at the end.
-  // This should normally be handled automatically here but some tests
-  // are leaking when we do so (browser_editablemodel_border.js)
-  // try {
-  //   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  //   gDevTools.closeToolbox(target);
-  // } catch (ex) {
-  //   dump(ex);
-  // }
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+
+  // Move the mouse outside inspector. If the test happened fake a mouse event
+  // somewhere over inspector the pointer is considered to be there when the
+  // next test begins. This might cause unexpected events to be emitted when
+  // another test moves the mouse.
+  EventUtils.synthesizeMouseAtPoint(1, 1, {type: "mousemove"}, window);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
 });
-
-/**
- * Define an async test based on a generator function
- */
-function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
-}
 
 /**
  * Add a new test tab in the browser and load the given url.
@@ -79,17 +72,6 @@ function addTab(url) {
 }
 
 /**
- * Destroy the toolbox
- * @param {InspectorPanel}
- * @return a promise that resolves when destroyed
- */
-let destroyToolbox = Task.async(function*(inspector) {
-  let onDestroyed = gDevTools.once("toolbox-destroyed");
-  inspector._toolbox.destroy();
-  yield onDestroyed;
-});
-
-/**
  * Simple DOM node accesor function that takes either a node or a string css
  * selector as argument and returns the corresponding node
  * @param {String|DOMNode} nodeOrSelector
@@ -102,19 +84,39 @@ function getNode(nodeOrSelector) {
 }
 
 /**
+ * Highlight a node and set the inspector's current selection to the node or
+ * the first match of the given css selector.
+ * @param {String|DOMNode} nodeOrSelector
+ * @param {InspectorPanel} inspector
+ *        The instance of InspectorPanel currently loaded in the toolbox
+ * @return a promise that resolves when the inspector is updated with the new
+ * node
+ */
+function selectAndHighlightNode(nodeOrSelector, inspector) {
+  info("Highlighting and selecting the node " + nodeOrSelector);
+
+  let node = getNode(nodeOrSelector);
+  let updated = inspector.toolbox.once("highlighter-ready");
+  inspector.selection.setNode(node, "test-highlight");
+  return updated;
+
+}
+
+/**
  * Set the inspector's current selection to a node or to the first match of the
- * given css selector
- * @param {InspectorPanel} inspector The instance of InspectorPanel currently
- * loaded in the toolbox
- * @param {String} reason Defaults to "test" which instructs the inspector not
- * to highlight the node upon selection
- * @param {String} reason Defaults to "test" which instructs the inspector not
- * to highlight the node upon selection
+ * given css selector.
+ * @param {String|DOMNode} nodeOrSelector
+ * @param {InspectorPanel} inspector
+ *        The instance of InspectorPanel currently loaded in the toolbox
+ * @param {String} reason
+ *        Defaults to "test" which instructs the inspector not to highlight the
+ *        node upon selection
  * @return a promise that resolves when the inspector is updated with the new
  * node
  */
 function selectNode(nodeOrSelector, inspector, reason="test") {
   info("Selecting the node " + nodeOrSelector);
+
   let node = getNode(nodeOrSelector);
   let updated = inspector.once("inspector-updated");
   inspector.selection.setNode(node, reason);
@@ -131,6 +133,17 @@ let openInspector = Task.async(function*() {
 
   let inspector, toolbox;
 
+  // The actual highligher show/hide methods are mocked in layoutview tests.
+  // The highlighter is tested in devtools/inspector/test.
+  function mockHighlighter({highlighter}) {
+    highlighter.showBoxModel = function(nodeFront, options) {
+      return promise.resolve();
+    }
+    highlighter.hideBoxModel = function() {
+      return promise.resolve();
+    }
+  }
+
   // Checking if the toolbox and the inspector are already loaded
   // The inspector-updated event should only be waited for if the inspector
   // isn't loaded yet
@@ -139,6 +152,7 @@ let openInspector = Task.async(function*() {
     inspector = toolbox.getPanel("inspector");
     if (inspector) {
       info("Toolbox and inspector already open");
+      mockHighlighter(toolbox);
       return {
         toolbox: toolbox,
         inspector: inspector
@@ -154,6 +168,7 @@ let openInspector = Task.async(function*() {
   info("Waiting for the inspector to update");
   yield inspector.once("inspector-updated");
 
+  mockHighlighter(toolbox);
   return {
     toolbox: toolbox,
     inspector: inspector
@@ -209,7 +224,7 @@ let openLayoutView = Task.async(function*() {
 });
 
 /**
- * Wait for the layoutview-updated event
+ * Wait for the layoutview-updated event.
  * @return a promise
  */
 function waitForUpdate(inspector) {

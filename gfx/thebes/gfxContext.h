@@ -13,15 +13,22 @@
 #include "gfxRect.h"
 #include "gfxMatrix.h"
 #include "gfxPattern.h"
-#include "gfxPath.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 
 #include "mozilla/gfx/2D.h"
 
 typedef struct _cairo cairo_t;
-struct GlyphBufferAzure;
+class GlyphBufferAzure;
 template <typename T> class FallibleTArray;
+
+namespace mozilla {
+namespace gfx {
+struct RectCornerRadii;
+}
+}
+
+class ClipExporter;
 
 /**
  * This is the main class for doing actual drawing. It is initialized using
@@ -37,24 +44,26 @@ template <typename T> class FallibleTArray;
  * Note that the gfxContext takes coordinates in device pixels,
  * as opposed to app units.
  */
-class gfxContext {
+class gfxContext final {
+    typedef mozilla::gfx::CapStyle CapStyle;
+    typedef mozilla::gfx::JoinStyle JoinStyle;
+    typedef mozilla::gfx::FillRule FillRule;
+    typedef mozilla::gfx::Path Path;
+    typedef mozilla::gfx::Pattern Pattern;
+    typedef mozilla::gfx::Rect Rect;
+    typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
 public:
-    /**
-     * Initialize this context from a surface.
-     */
-    gfxContext(gfxASurface *surface);
 
     /**
      * Initialize this context from a DrawTarget.
      * Strips any transform from aTarget.
      * aTarget will be flushed in the gfxContext's destructor.
      */
-    gfxContext(mozilla::gfx::DrawTarget *aTarget,
-               const mozilla::gfx::Point& aDeviceOffset = mozilla::gfx::Point());
-
-    ~gfxContext();
+    explicit gfxContext(mozilla::gfx::DrawTarget *aTarget,
+                        const mozilla::gfx::Point& aDeviceOffset = mozilla::gfx::Point());
 
     /**
      * Create a new gfxContext wrapping aTarget and preserving aTarget's
@@ -62,11 +71,6 @@ public:
      * gfxContext, aTarget will no longer have its transform.
      */
     static already_AddRefed<gfxContext> ContextForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
-
-    /**
-     * Return the surface that this gfxContext was created with
-     */
-    gfxASurface *OriginalSurface();
 
     /**
      * Return the current transparency group target, if any, along
@@ -88,11 +92,6 @@ public:
     mozilla::gfx::DrawTarget *GetDrawTarget() { return mDT; }
 
     /**
-     * Returns true if the cairo context is in an error state.
-     */
-    bool HasError();
-
-    /**
      ** State
      **/
     // XXX document exactly what bits are saved
@@ -104,27 +103,12 @@ public:
      **/
 
     /**
-     * Stroke the current path using the current settings (such as line
-     * width and color).
-     * A path is set up using functions such as Line, Rectangle and Arc.
-     *
-     * Does not consume the current path.
-     */
-    void Stroke();
-    /**
      * Fill the current path according to the current settings.
      *
      * Does not consume the current path.
      */
     void Fill();
-
-    /**
-     * Fill the current path according to the current settings and
-     * with |aOpacity|.
-     *
-     * Does not consume the current path.
-     */
-    void FillWithOpacity(gfxFloat aOpacity);
+    void Fill(const Pattern& aPattern);
 
     /**
      * Forgets the current path.
@@ -139,25 +123,19 @@ public:
     void ClosePath();
 
     /**
-     * Copies the current path and returns the copy.
+     * Returns the current path.
      */
-    already_AddRefed<gfxPath> CopyPath();
+    mozilla::TemporaryRef<Path> GetPath();
 
     /**
-     * Appends the given path to the current path.
+     * Sets the given path as the current path.
      */
-    void SetPath(gfxPath* path);
+    void SetPath(Path* path);
 
     /**
      * Moves the pen to a new point without drawing a line.
      */
     void MoveTo(const gfxPoint& pt);
-
-    /**
-     * Creates a new subpath starting at the current point.
-     * Equivalent to MoveTo(CurrentPoint()).
-     */
-    void NewSubPath();
 
     /**
      * Returns the current point in the current path.
@@ -170,37 +148,6 @@ public:
      * @see MoveTo
      */
     void LineTo(const gfxPoint& pt);
-
-    /**
-     * Draws a cubic Bézier curve with control points pt1, pt2 and pt3.
-     */
-    void CurveTo(const gfxPoint& pt1, const gfxPoint& pt2, const gfxPoint& pt3);
-
-    /**
-     * Draws a quadratic Bézier curve with control points pt1, pt2 and pt3.
-     */
-    void QuadraticCurveTo(const gfxPoint& pt1, const gfxPoint& pt2);
-
-    /**
-     * Draws a clockwise arc (i.e. a circle segment).
-     * @param center The center of the circle
-     * @param radius The radius of the circle
-     * @param angle1 Starting angle for the segment
-     * @param angle2 Ending angle
-     */
-    void Arc(const gfxPoint& center, gfxFloat radius,
-             gfxFloat angle1, gfxFloat angle2);
-
-    /**
-     * Draws a counter-clockwise arc (i.e. a circle segment).
-     * @param center The center of the circle
-     * @param radius The radius of the circle
-     * @param angle1 Starting angle for the segment
-     * @param angle2 Ending angle
-     */
-
-    void NegativeArc(const gfxPoint& center, gfxFloat radius,
-                     gfxFloat angle1, gfxFloat angle2);
 
     // path helpers
     /**
@@ -216,53 +163,8 @@ public:
     void SnappedRectangle(const gfxRect& rect) { return Rectangle(rect, true); }
 
     /**
-     * Draw an ellipse at the center corner with the given dimensions.
-     * It extends dimensions.width / 2.0 in the horizontal direction
-     * from the center, and dimensions.height / 2.0 in the vertical
-     * direction.
-     */
-    void Ellipse(const gfxPoint& center, const gfxSize& dimensions);
-
-    /**
-     * Draw a polygon from the given points
-     */
-    void Polygon(const gfxPoint *points, uint32_t numPoints);
-
-    /*
-     * Draw a rounded rectangle, with the given outer rect and
-     * corners.  The corners specify the radii of the two axes of an
-     * ellipse (the horizontal and vertical directions given by the
-     * width and height, respectively).  By default the ellipse is
-     * drawn in a clockwise direction; if draw_clockwise is false,
-     * then it's drawn counterclockwise.
-     */
-    void RoundedRectangle(const gfxRect& rect,
-                          const gfxCornerSizes& corners,
-                          bool draw_clockwise = true);
-
-    /**
      ** Transformation Matrix manipulation
      **/
-
-    /**
-     * Adds a translation to the current matrix. This translation takes place
-     * before the previously set transformations.
-     */
-    void Translate(const gfxPoint& pt);
-
-    /**
-     * Adds a scale to the current matrix. This scaling takes place before the
-     * previously set transformations.
-     */
-    void Scale(gfxFloat x, gfxFloat y);
-
-    /**
-     * Adds a rotation around the origin to the current matrix. This rotation
-     * takes place before the previously set transformations.
-     *
-     * @param angle The angle in radians.
-     */
-    void Rotate(gfxFloat angle);
 
     /**
      * Post-multiplies 'other' onto the current CTM, i.e. this
@@ -270,12 +172,6 @@ public:
      * transformations.
      */
     void Multiply(const gfxMatrix& other);
-    /**
-     * As "Multiply", but also nudges any entries in the resulting matrix that
-     * are close to an integer to that integer, to correct for
-     * compounded rounding errors.
-     */
-    void MultiplyAndNudgeToIntegers(const gfxMatrix& other);
 
     /**
      * Replaces the current transformation matrix with matrix.
@@ -283,21 +179,9 @@ public:
     void SetMatrix(const gfxMatrix& matrix);
 
     /**
-     * Sets the transformation matrix to the identity matrix.
-     */
-    void IdentityMatrix();
-
-    /**
      * Returns the current transformation matrix.
      */
     gfxMatrix CurrentMatrix() const;
-
-    /**
-     * Snap components of the current matrix that are close to integers
-     * to integers. In particular, components that are integral when
-     * converted to single precision are set to those integers.
-     */
-    void NudgeCurrentMatrixToIntegers();
 
     /**
      * Converts a point from device to user coordinates using the inverse
@@ -364,15 +248,6 @@ public:
     bool UserToDevicePixelSnapped(gfxPoint& pt, bool ignoreScale = false) const;
 
     /**
-     * Attempts to pixel snap the rectangle, add it to the current
-     * path, and to set pattern as the current painting source.  This
-     * should be used for drawing filled pixel-snapped rectangles (like
-     * images), because the CTM at the time of the SetPattern call needs
-     * to have a snapped translation, or you get smeared images.
-     */
-    void PixelSnappedRectangleAndSetPattern(const gfxRect& rect, gfxPattern *pattern);
-
-    /**
      ** Painting sources
      **/
 
@@ -411,6 +286,13 @@ public:
     void SetPattern(gfxPattern *pattern);
 
     /**
+     * Set the color that text drawn on top of transparent pixels should be
+     * anti-aliased into.
+     */
+    void SetFontSmoothingBackgroundColor(const mozilla::gfx::Color& aColor);
+    mozilla::gfx::Color GetFontSmoothingBackgroundColor();
+
+    /**
      * Get the source pattern (solid color, normal pattern, surface, etc)
      */
     already_AddRefed<gfxPattern> GetPattern();
@@ -431,7 +313,7 @@ public:
      * Like Paint, except that it only draws the source where pattern is
      * non-transparent.
      */
-    void Mask(gfxPattern *pattern);
+    void Mask(mozilla::gfx::SourceSurface *aSurface, const mozilla::gfx::Matrix& aTransform);
 
     /**
      * Shorthand for creating a pattern and calling the pattern-taking
@@ -439,29 +321,12 @@ public:
      */
     void Mask(gfxASurface *surface, const gfxPoint& offset = gfxPoint(0.0, 0.0));
 
-    void Mask(mozilla::gfx::SourceSurface *surface, const mozilla::gfx::Point& offset = mozilla::gfx::Point());
-
-    /**
-     ** Shortcuts
-     **/
-
-    /**
-     * Creates a new path with a rectangle from 0,0 to size.w,size.h
-     * and calls cairo_fill.
-     */
-    void DrawSurface(gfxASurface *surface, const gfxSize& size);
+    void Mask(mozilla::gfx::SourceSurface *surface, float alpha = 1.0f, const mozilla::gfx::Point& offset = mozilla::gfx::Point());
 
     /**
      ** Line Properties
      **/
 
-    typedef enum {
-        gfxLineSolid,
-        gfxLineDashed,
-        gfxLineDotted
-    } gfxLineType;
-
-    void SetDash(gfxLineType ltype);
     void SetDash(gfxFloat *dashes, int ndash, gfxFloat offset);
     // Return true if dashing is set, false if it's not enabled or the
     // context is in an error state.  |offset| can be nullptr to mean
@@ -482,28 +347,18 @@ public:
      */
     gfxFloat CurrentLineWidth() const;
 
-    enum GraphicsLineCap {
-        LINE_CAP_BUTT,
-        LINE_CAP_ROUND,
-        LINE_CAP_SQUARE
-    };
     /**
      * Sets the line caps, i.e. how line endings are drawn.
      */
-    void SetLineCap(GraphicsLineCap cap);
-    GraphicsLineCap CurrentLineCap() const;
+    void SetLineCap(CapStyle cap);
+    CapStyle CurrentLineCap() const;
 
-    enum GraphicsLineJoin {
-        LINE_JOIN_MITER,
-        LINE_JOIN_ROUND,
-        LINE_JOIN_BEVEL
-    };
     /**
      * Sets the line join, i.e. how the connection between two lines is
      * drawn.
      */
-    void SetLineJoin(GraphicsLineJoin join);
-    GraphicsLineJoin CurrentLineJoin() const;
+    void SetLineJoin(JoinStyle join);
+    JoinStyle CurrentLineJoin() const;
 
     void SetMiterLimit(gfxFloat limit);
     gfxFloat CurrentMiterLimit() const;
@@ -512,10 +367,6 @@ public:
      ** Fill Properties
      **/
 
-    enum FillRule {
-        FILL_RULE_WINDING,
-        FILL_RULE_EVEN_ODD
-    };
     void SetFillRule(FillRule rule);
     FillRule CurrentFillRule() const;
 
@@ -525,7 +376,6 @@ public:
 
     // define enum for operators (clear, src, dst, etc)
     enum GraphicsOperator {
-        OPERATOR_CLEAR,
         OPERATOR_SOURCE,
 
         OPERATOR_OVER,
@@ -564,25 +414,12 @@ public:
      * how drawing something will modify the destination. For example, the
      * OVER operator will do alpha blending of source and destination, while
      * SOURCE will replace the destination with the source.
-     *
-     * Note that if the flag FLAG_SIMPLIFY_OPERATORS is set on this
-     * gfxContext, the actual operator set might change for optimization
-     * purposes.  Check the comments below around that flag.
      */
     void SetOperator(GraphicsOperator op);
     GraphicsOperator CurrentOperator() const;
 
-    /**
-     * MODE_ALIASED means that only pixels whose centers are in the drawn area
-     * should be modified, and they should be modified to take the value drawn
-     * at the pixel center.
-     */
-    enum AntialiasMode {
-        MODE_ALIASED,
-        MODE_COVERAGE
-    };
-    void SetAntialiasMode(AntialiasMode mode);
-    AntialiasMode CurrentAntialiasMode() const;
+    void SetAntialiasMode(mozilla::gfx::AntialiasMode mode);
+    mozilla::gfx::AntialiasMode CurrentAntialiasMode() const;
 
     /**
      ** Clipping
@@ -595,22 +432,14 @@ public:
     void Clip();
 
     /**
-     * Undoes any clipping. Further drawings will only be restricted by the
-     * surface dimensions.
-     */
-    void ResetClip();
-
-    /**
      * Helper functions that will create a rect path and call Clip().
      * Any current path will be destroyed by these functions!
      */
+    void Clip(const Rect& rect);
     void Clip(const gfxRect& rect); // will clip to a rect
+    void Clip(Path* aPath);
 
-    /**
-     * This will ensure that the surface actually has its clip set.
-     * Useful if you are doing native drawing.
-     */
-    void UpdateSurfaceClip();
+    void PopClip();
 
     /**
      * This will return the current bounds of the clip region in user
@@ -619,11 +448,21 @@ public:
     gfxRect GetClipExtents();
 
     /**
+     * Whether the current clip is not a simple rectangle.
+     */
+    bool HasComplexClip() const;
+
+    /**
      * Returns true if the given rectangle is fully contained in the current clip. 
      * This is conservative; it may return false even when the given rectangle is 
      * fully contained by the current clip.
      */
     bool ClipContainsRect(const gfxRect& aRect);
+
+     /**
+      * Exports the current clip using the provided exporter.
+      */
+    bool ExportClip(ClipExporter& aExporter);
 
     /**
      * Groups
@@ -644,54 +483,10 @@ public:
     already_AddRefed<gfxPattern> PopGroup();
     void PopGroupToSource();
 
-    /**
-     ** Hit Testing - check if given point is in the current path
-     **/
-    bool PointInFill(const gfxPoint& pt);
-    bool PointInStroke(const gfxPoint& pt);
-
-    /**
-     ** Extents - returns user space extent of current path
-     **/
-    gfxRect GetUserPathExtent();
-    gfxRect GetUserFillExtent();
-    gfxRect GetUserStrokeExtent();
+    mozilla::TemporaryRef<mozilla::gfx::SourceSurface>
+    PopGroupToSurface(mozilla::gfx::Matrix* aMatrix);
 
     mozilla::gfx::Point GetDeviceOffset() const;
-
-    /**
-     ** Flags
-     **/
-
-    enum {
-        /* If this flag is set, operators other than CLEAR, SOURCE, or
-         * OVER will be converted to OVER before being sent to cairo.
-         *
-         * This is most useful with a printing surface, where
-         * operators such as ADD are used to avoid seams for on-screen
-         * display, but where such errors aren't noticeable in print.
-         * This approach is currently used in border rendering.
-         *
-         * However, when printing complex renderings such as SVG,
-         * care should be taken to clear this flag.
-         */
-        FLAG_SIMPLIFY_OPERATORS = (1 << 0),
-        /**
-         * When this flag is set, snapping to device pixels is disabled.
-         * It simply never does anything.
-         */
-        FLAG_DISABLE_SNAPPING = (1 << 1),
-        /**
-         * Disable copying of backgrounds in PushGroupAndCopyBackground.
-         */
-        FLAG_DISABLE_COPY_BACKGROUND = (1 << 2)
-    };
-
-    void SetFlag(int32_t aFlag) { mFlags |= aFlag; }
-    void ClearFlag(int32_t aFlag) { mFlags &= ~aFlag; }
-    int32_t GetFlags() const { return mFlags; }
-
-    bool IsCairo() const { return !mDT; }
 
     // Work out whether cairo will snap inter-glyph spacing to pixels.
     void GetRoundOffsetsToPixels(bool *aRoundX, bool *aRoundY);
@@ -709,35 +504,34 @@ public:
     /**
      * Write as a PNG encoded Data URL to stdout.
      */
-    void DumpAsDataURL();
+    void DumpAsDataURI();
 
     /**
      * Copy a PNG encoded Data URL to the clipboard.
      */
-    void CopyAsDataURL();
+    void CopyAsDataURI();
 #endif
 
     static mozilla::gfx::UserDataKey sDontUseAsSourceKey;
 
 private:
-  friend class GeneralPattern;
-  friend struct GlyphBufferAzure;
+    ~gfxContext();
+
+  friend class PatternFromState;
+  friend class GlyphBufferAzure;
 
   typedef mozilla::gfx::Matrix Matrix;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Color Color;
   typedef mozilla::gfx::StrokeOptions StrokeOptions;
   typedef mozilla::gfx::Float Float;
-  typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::CompositionOp CompositionOp;
-  typedef mozilla::gfx::Path Path;
   typedef mozilla::gfx::PathBuilder PathBuilder;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   
   struct AzureState {
     AzureState()
       : op(mozilla::gfx::CompositionOp::OP_OVER)
-      , opIsClear(false)
       , color(0, 0, 0, 1.0f)
       , clipWasReset(false)
       , fillRule(mozilla::gfx::FillRule::FILL_WINDING)
@@ -746,7 +540,6 @@ private:
     {}
 
     mozilla::gfx::CompositionOp op;
-    bool opIsClear;
     Color color;
     nsRefPtr<gfxPattern> pattern;
     nsRefPtr<gfxASurface> sourceSurfCairo;
@@ -769,6 +562,7 @@ private:
     mozilla::gfx::AntialiasMode aaMode;
     bool patternTransformChanged;
     Matrix patternTransform;
+    Color fontSmoothingBackgroundColor;
     // This is used solely for using minimal intermediate surface size.
     mozilla::gfx::Point deviceOffset;
   };
@@ -777,7 +571,7 @@ private:
   void EnsurePath();
   // This ensures mPathBuilder contains a valid PathBuilder (in user space!)
   void EnsurePathBuilder();
-  void FillAzure(mozilla::gfx::Float aOpacity);
+  void FillAzure(const Pattern& aPattern, mozilla::gfx::Float aOpacity);
   void PushClipsToDT(mozilla::gfx::DrawTarget *aDT);
   CompositionOp GetOp();
   void ChangeTransform(const mozilla::gfx::Matrix &aNewMatrix, bool aUpdatePatternTransform = true);
@@ -798,10 +592,7 @@ private:
   AzureState &CurrentState() { return mStateStack[mStateStack.Length() - 1]; }
   const AzureState &CurrentState() const { return mStateStack[mStateStack.Length() - 1]; }
 
-  cairo_t *mCairo;
   cairo_t *mRefCairo;
-  nsRefPtr<gfxASurface> mSurface;
-  int32_t mFlags;
 
   mozilla::RefPtr<DrawTarget> mDT;
   mozilla::RefPtr<DrawTarget> mOriginalDT;
@@ -817,7 +608,7 @@ class gfxContextAutoSaveRestore
 public:
   gfxContextAutoSaveRestore() : mContext(nullptr) {}
 
-  gfxContextAutoSaveRestore(gfxContext *aContext) : mContext(aContext) {
+  explicit gfxContextAutoSaveRestore(gfxContext *aContext) : mContext(aContext) {
     mContext->Save();
   }
 
@@ -852,65 +643,6 @@ private:
 
 /**
  * Sentry helper class for functions with multiple return points that need to
- * back up the current path of a context and have it automatically restored
- * before they return. This class assumes that the transformation matrix will
- * be the same when Save and Restore are called. The calling function must
- * ensure that this is the case or the path will be copied incorrectly.
- */
-class gfxContextPathAutoSaveRestore
-{
-public:
-    gfxContextPathAutoSaveRestore() : mContext(nullptr) {}
-
-    gfxContextPathAutoSaveRestore(gfxContext *aContext, bool aSave = true) : mContext(aContext)
-    {
-        if (aSave)
-            Save();       
-    }
-
-    ~gfxContextPathAutoSaveRestore()
-    {
-        Restore();
-    }
-
-    void SetContext(gfxContext *aContext, bool aSave = true)
-    {
-        mContext = aContext;
-        if (aSave)
-            Save();
-    }
-
-    /**
-     * If a path is already saved, does nothing. Else copies the current path
-     * so that it may be restored.
-     */
-    void Save()
-    {
-        if (!mPath && mContext) {
-            mPath = mContext->CopyPath();
-        }
-    }
-
-    /**
-     * If no path is saved, does nothing. Else replaces the context's path with
-     * a copy of the saved one, and clears the saved path.
-     */
-    void Restore()
-    {
-        if (mPath) {
-            mContext->SetPath(mPath);
-            mPath = nullptr;
-        }
-    }
-
-private:
-    gfxContext *mContext;
-
-    nsRefPtr<gfxPath> mPath;
-};
-
-/**
- * Sentry helper class for functions with multiple return points that need to
  * back up the current matrix of a context and have it automatically restored
  * before they return.
  */
@@ -922,7 +654,7 @@ public:
     {
     }
 
-    gfxContextMatrixAutoSaveRestore(gfxContext *aContext) :
+    explicit gfxContextMatrixAutoSaveRestore(gfxContext *aContext) :
         mContext(aContext), mMatrix(aContext->CurrentMatrix())
     {
     }
@@ -965,34 +697,50 @@ public:
     gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, bool aDisable)
     {
         if (aDisable) {
-            if (aContext->IsCairo()) {
-                mSurface = aContext->CurrentSurface();
-                if (!mSurface) {
-                  return;
-                }
-                mSubpixelAntialiasingEnabled = mSurface->GetSubpixelAntialiasingEnabled();
-                mSurface->SetSubpixelAntialiasingEnabled(false);
-            } else {
-                mDT = aContext->GetDrawTarget();
-
-                mSubpixelAntialiasingEnabled = mDT->GetPermitSubpixelAA();
-                mDT->SetPermitSubpixelAA(false);
-            }
+            mDT = aContext->GetDrawTarget();
+            mSubpixelAntialiasingEnabled = mDT->GetPermitSubpixelAA();
+            mDT->SetPermitSubpixelAA(false);
         }
     }
     ~gfxContextAutoDisableSubpixelAntialiasing()
     {
-        if (mSurface) {
-            mSurface->SetSubpixelAntialiasingEnabled(mSubpixelAntialiasingEnabled);
-        } else if (mDT) {
+        if (mDT) {
             mDT->SetPermitSubpixelAA(mSubpixelAntialiasingEnabled);
         }
     }
 
 private:
-    nsRefPtr<gfxASurface> mSurface;
     mozilla::RefPtr<mozilla::gfx::DrawTarget> mDT;
     bool mSubpixelAntialiasingEnabled;
+};
+
+/* This class lives on the stack and allows gfxContext users to easily, and
+ * performantly get a gfx::Pattern to use for drawing in their current context.
+ */
+class PatternFromState
+{
+public:
+  explicit PatternFromState(gfxContext *aContext) : mContext(aContext), mPattern(nullptr) {}
+  ~PatternFromState() { if (mPattern) { mPattern->~Pattern(); } }
+
+  operator mozilla::gfx::Pattern&();
+
+private:
+  union {
+    mozilla::AlignedStorage2<mozilla::gfx::ColorPattern> mColorPattern;
+    mozilla::AlignedStorage2<mozilla::gfx::SurfacePattern> mSurfacePattern;
+  };
+
+  gfxContext *mContext;
+  mozilla::gfx::Pattern *mPattern;
+};
+
+/* This interface should be implemented to handle exporting the clip from a context.
+ */
+class ClipExporter : public mozilla::gfx::PathSink {
+public:
+  virtual void BeginClip(const mozilla::gfx::Matrix& aMatrix) = 0;
+  virtual void EndClip() = 0;
 };
 
 #endif /* GFX_CONTEXT_H */

@@ -34,14 +34,14 @@ public:
     ALL_ENTRIES
   };
 
-  CacheEntryTable(EType aType) : mType(aType) { }
+  explicit CacheEntryTable(EType aType) : mType(aType) { }
   EType Type() const
   {
     return mType;
   }
 private:
   EType const mType;
-  CacheEntryTable() MOZ_DELETE;
+  CacheEntryTable() = delete;
 };
 
 class CacheStorage : public nsICacheStorage

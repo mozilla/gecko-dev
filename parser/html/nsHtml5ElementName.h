@@ -74,7 +74,7 @@ class nsHtml5ElementName
     static int32_t bufToHash(char16_t* buf, int32_t len);
     nsHtml5ElementName(nsIAtom* name, nsIAtom* camelCaseName, int32_t flags);
   protected:
-    nsHtml5ElementName(nsIAtom* name);
+    explicit nsHtml5ElementName(nsIAtom* name);
   public:
     virtual void release();
     virtual ~nsHtml5ElementName();
@@ -115,6 +115,7 @@ class nsHtml5ElementName
     static nsHtml5ElementName* ELT_OL;
     static nsHtml5ElementName* ELT_OR;
     static nsHtml5ElementName* ELT_PI;
+    static nsHtml5ElementName* ELT_RB;
     static nsHtml5ElementName* ELT_RP;
     static nsHtml5ElementName* ELT_RT;
     static nsHtml5ElementName* ELT_TD;
@@ -154,6 +155,7 @@ class nsHtml5ElementName
     static nsHtml5ElementName* ELT_NOT;
     static nsHtml5ElementName* ELT_NAV;
     static nsHtml5ElementName* ELT_PRE;
+    static nsHtml5ElementName* ELT_RTC;
     static nsHtml5ElementName* ELT_REM;
     static nsHtml5ElementName* ELT_SUB;
     static nsHtml5ElementName* ELT_SEC;
@@ -359,6 +361,7 @@ class nsHtml5ElementName
     static nsHtml5ElementName* ELT_NOEMBED;
     static nsHtml5ElementName* ELT_POLYGON;
     static nsHtml5ElementName* ELT_PATTERN;
+    static nsHtml5ElementName* ELT_PICTURE;
     static nsHtml5ElementName* ELT_PRODUCT;
     static nsHtml5ElementName* ELT_SETDIFF;
     static nsHtml5ElementName* ELT_SECTION;

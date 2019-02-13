@@ -7,12 +7,11 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_binary_search.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
 
@@ -39,13 +38,15 @@ function testBlackBoxSource() {
 function testBlackBoxReload() {
   return reloadActiveTab(gPanel, gDebugger.EVENTS.SOURCE_SHOWN).then(() => {
     const bbButton = getBlackBoxButton(gPanel);
+    const selectedSource = getSelectedSourceElement(gPanel);
     ok(bbButton.checked, "Should still be black boxed.");
+    ok(selectedSource.classList.contains("black-boxed"),
+      "'black-boxed' class should still be applied");
   });
 }
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
 });

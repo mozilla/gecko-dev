@@ -16,7 +16,7 @@ using mozilla::hal::WakeLockControl from "mozilla/HalTypes.h";
 using mozilla::hal::SwitchState from "mozilla/HalTypes.h";
 using mozilla::hal::SwitchDevice from "mozilla/HalTypes.h";
 using mozilla::hal::ProcessPriority from "mozilla/HalTypes.h";
-using struct nsIntRect from "nsRect.h";
+using nsIntRect from "nsRect.h";
 using PRTime from "prtime.h";
 using mozilla::hal::FMRadioCountry from "mozilla/HalTypes.h";
 using mozilla::hal::FMRadioOperation from "mozilla/HalTypes.h";
@@ -69,6 +69,13 @@ struct FMRadioOperationInformation {
   uint32_t frequency;
 };
 
+struct FMRadioRDSGroup {
+  uint16_t blockA;
+  uint16_t blockB;
+  uint16_t blockC;
+  uint16_t blockD;
+};
+
 struct FMRadioSettings {
   FMRadioCountry country;
   uint32_t upperLimit;
@@ -88,7 +95,7 @@ struct SystemTimezoneChangeInformation {
 
 namespace hal_sandbox {
 
-sync protocol PHal {
+prio(normal upto urgent) sync protocol PHal {
     manager PContent;
 
 child:
@@ -148,7 +155,7 @@ parent:
 
     EnableScreenConfigurationNotifications();
     DisableScreenConfigurationNotifications();
-    sync GetCurrentScreenConfiguration()
+    prio(urgent) sync GetCurrentScreenConfiguration()
       returns (ScreenConfiguration aScreenConfiguration);
     sync LockScreenOrientation(ScreenOrientation aOrientation)
       returns (bool allowed);
@@ -159,7 +166,7 @@ parent:
     sync GetCurrentSwitchState(SwitchDevice aDevice)
       returns (SwitchState aState);
 
-    FactoryReset();
+    FactoryReset(nsString aReason);
 
 child:
     NotifySensorChange(SensorData aSensorData);

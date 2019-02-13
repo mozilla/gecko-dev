@@ -9,7 +9,6 @@
 
 #include "nsHttpConnectionMgr.h"
 #include "nsHttpConnection.h"
-#include "SpdySession3.h"
 #include "SpdySession31.h"
 #include "Http2Session.h"
 #include "nsHttpHandler.h"
@@ -58,7 +57,7 @@ nsHttpConnectionMgr::PrintDiagnosticsCB(const nsACString &key,
   uint32_t i;
 
   self->mLogData.AppendPrintf(" ent host = %s hashkey = %s\n",
-                              ent->mConnInfo->Host(), ent->mConnInfo->HashKey().get());
+                              ent->mConnInfo->Origin(), ent->mConnInfo->HashKey().get());
   self->mLogData.AppendPrintf("   AtActiveConnectionLimit = %d\n",
                               self->AtActiveConnectionLimit(ent, NS_HTTP_ALLOW_KEEPALIVE));
   self->mLogData.AppendPrintf("   RestrictConnections = %d\n",
@@ -71,10 +70,10 @@ nsHttpConnectionMgr::PrintDiagnosticsCB(const nsACString &key,
                               ent->mIdleConns.Length());
   self->mLogData.AppendPrintf("   Half Opens Length = %u\n",
                               ent->mHalfOpens.Length());
-  self->mLogData.AppendPrintf("   Coalescing Key = %s\n",
-                              ent->mCoalescingKey.get());
+  self->mLogData.AppendPrintf("   Coalescing Keys Length = %u\n",
+                              ent->mCoalescingKeys.Length());
   self->mLogData.AppendPrintf("   Spdy using = %d, tested = %d, preferred = %d\n",
-                              ent->mUsingSpdy, ent->mTestedSpdy, ent->mSpdyPreferred);
+                              ent->mUsingSpdy, ent->mTestedSpdy, ent->mInPreferredHash);
   self->mLogData.AppendPrintf("   pipelinestate = %d penalty = %d\n",
                               ent->mPipelineState, ent->mPipeliningPenalty);
   for (i = 0; i < nsAHttpTransaction::CLASS_MAX; ++i) {
@@ -97,7 +96,10 @@ nsHttpConnectionMgr::PrintDiagnosticsCB(const nsACString &key,
     self->mLogData.AppendPrintf("   :: Pending Transaction #%u\n", i);
     ent->mPendingQ[i]->PrintDiagnostics(self->mLogData);
   }
-
+  for (i = 0; i < ent->mCoalescingKeys.Length(); ++i) {
+    self->mLogData.AppendPrintf("   :: Coalescing Key #%u %s\n",
+                                i, ent->mCoalescingKeys[i].get());
+  }
   return PL_DHASH_NEXT;
 }
 
@@ -159,44 +161,6 @@ nsHttpConnection::PrintDiagnostics(nsCString &log)
 
   if (mSpdySession)
     mSpdySession->PrintDiagnostics(log);
-}
-
-
-void
-SpdySession3::PrintDiagnostics(nsCString &log)
-{
-  log.AppendPrintf("     ::: SPDY VERSION 3\n");
-  log.AppendPrintf("     shouldgoaway = %d mClosed = %d CanReuse = %d nextID=0x%X\n",
-                   mShouldGoAway, mClosed, CanReuse(), mNextStreamID);
-
-  log.AppendPrintf("     concurrent = %d maxconcurrent = %d\n",
-                   mConcurrent, mMaxConcurrent);
-
-  log.AppendPrintf("     roomformorestreams = %d roomformoreconcurrent = %d\n",
-                   RoomForMoreStreams(), RoomForMoreConcurrent());
-
-  log.AppendPrintf("     transactionHashCount = %d streamIDHashCount = %d\n",
-                   mStreamTransactionHash.Count(),
-                   mStreamIDHash.Count());
-
-  log.AppendPrintf("     Queued Stream Size = %d\n", mQueuedStreams.GetSize());
-
-  PRIntervalTime now = PR_IntervalNow();
-  log.AppendPrintf("     Ping Threshold = %ums next ping id = 0x%X\n",
-                   PR_IntervalToMilliseconds(mPingThreshold),
-                   mNextPingID);
-  log.AppendPrintf("     Ping Timeout = %ums\n",
-                   PR_IntervalToMilliseconds(gHttpHandler->SpdyPingTimeout()));
-  log.AppendPrintf("     Idle for Any Activity (ping) = %ums\n",
-                   PR_IntervalToMilliseconds(now - mLastReadEpoch));
-  log.AppendPrintf("     Idle for Data Activity = %ums\n",
-                   PR_IntervalToMilliseconds(now - mLastDataReadEpoch));
-  if (mPingSentEpoch)
-    log.AppendPrintf("     Ping Outstanding (ping) = %ums, expired = %d\n",
-                     PR_IntervalToMilliseconds(now - mPingSentEpoch),
-                     now - mPingSentEpoch >= gHttpHandler->SpdyPingTimeout());
-  else
-    log.AppendPrintf("     No Ping Outstanding\n");
 }
 
 void

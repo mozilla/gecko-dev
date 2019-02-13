@@ -105,7 +105,7 @@ PathBuilderSkia::CurrentPoint() const
 TemporaryRef<Path>
 PathBuilderSkia::Finish()
 {
-  return new PathSkia(mPath, mFillRule);
+  return MakeAndAddRef<PathSkia>(mPath, mFillRule);
 }
 
 void
@@ -123,7 +123,7 @@ PathSkia::CopyToBuilder(FillRule aFillRule) const
 TemporaryRef<PathBuilder>
 PathSkia::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule) const
 {
-  return new PathBuilderSkia(aTransform, mPath, aFillRule);
+  return MakeAndAddRef<PathBuilderSkia>(aTransform, mPath, aFillRule);
 }
 
 bool
@@ -141,10 +141,10 @@ PathSkia::ContainsPoint(const Point &aPoint, const Matrix &aTransform) const
   }
 
   SkRegion pointRect;
-  pointRect.setRect(int32_t(SkFloatToScalar(transformed.x - 1)),
-                    int32_t(SkFloatToScalar(transformed.y - 1)),
-                    int32_t(SkFloatToScalar(transformed.x + 1)),
-                    int32_t(SkFloatToScalar(transformed.y + 1)));
+  pointRect.setRect(int32_t(SkFloatToScalar(transformed.x - 1.f)),
+                    int32_t(SkFloatToScalar(transformed.y - 1.f)),
+                    int32_t(SkFloatToScalar(transformed.x + 1.f)),
+                    int32_t(SkFloatToScalar(transformed.y + 1.f)));
 
   SkRegion pathRegion;
   
@@ -174,10 +174,10 @@ PathSkia::StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
   }
 
   SkRegion pointRect;
-  pointRect.setRect(int32_t(SkFloatToScalar(transformed.x - 1)),
-                    int32_t(SkFloatToScalar(transformed.y - 1)),
-                    int32_t(SkFloatToScalar(transformed.x + 1)),
-                    int32_t(SkFloatToScalar(transformed.y + 1)));
+  pointRect.setRect(int32_t(SkFloatToScalar(transformed.x - 1.f)),
+                    int32_t(SkFloatToScalar(transformed.y - 1.f)),
+                    int32_t(SkFloatToScalar(transformed.x + 1.f)),
+                    int32_t(SkFloatToScalar(transformed.y + 1.f)));
 
   SkRegion pathRegion;
   

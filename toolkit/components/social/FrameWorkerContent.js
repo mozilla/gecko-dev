@@ -1,4 +1,4 @@
-/* -*- Mode: JavaScript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -97,7 +97,7 @@ FrameWorker.prototype = {
 
     // Bug 798660 - XHR, WebSocket and Worker have issues in a sandbox and need
     // to be unwrapped to work
-    let needsWaive = ['XMLHttpRequest', 'WebSocket', 'Worker'];
+    let needsWaive = ['XMLHttpRequest', 'WebSocket', 'Worker' ];
     // Methods need to be bound with the proper |this|.
     let needsBind = ['atob', 'btoa', 'dump', 'setInterval', 'clearInterval',
                      'setTimeout', 'clearTimeout'];
@@ -116,22 +116,17 @@ FrameWorker.prototype = {
     });
     // the "navigator" object in a worker is a subset of the full navigator;
     // specifically, just the interfaces 'NavigatorID' and 'NavigatorOnLine'
-    let navigator = {
-      __exposedProps__: {
-        "appName": "r",
-        "appVersion": "r",
-        "platform": "r",
-        "userAgent": "r",
-        "onLine": "r"
-      },
+    let navigator = Cu.cloneInto({
       // interface NavigatorID
       appName: workerWindow.navigator.appName,
       appVersion: workerWindow.navigator.appVersion,
       platform: workerWindow.navigator.platform,
       userAgent: workerWindow.navigator.userAgent,
-      // interface NavigatorOnLine
-      get onLine() workerWindow.navigator.onLine
-    };
+    }, sandbox);
+    Object.defineProperty(Cu.waiveXrays(navigator), 'onLine', {
+      configurable: true, enumerable: true,
+      get: Cu.exportFunction(() => workerWindow.navigator.onLine, sandbox)
+    });
     sandbox.navigator = navigator;
 
     // Our importScripts function needs to 'eval' the script code from inside

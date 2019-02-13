@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,28 +20,33 @@
  * @param Class the class-type being wrapped
  * @see nsInterfaceHashtable, nsClassHashtable
  */
-template<class KeyClass,class T>
-class nsClassHashtable :
-  public nsBaseHashtable< KeyClass, nsAutoPtr<T>, T* >
+template<class KeyClass, class T>
+class nsClassHashtable
+  : public nsBaseHashtable<KeyClass, nsAutoPtr<T>, T*>
 {
 public:
   typedef typename KeyClass::KeyType KeyType;
   typedef T* UserDataType;
-  typedef nsBaseHashtable< KeyClass, nsAutoPtr<T>, T* > base_type;
+  typedef nsBaseHashtable<KeyClass, nsAutoPtr<T>, T*> base_type;
 
-  nsClassHashtable()
-  {
-  }
-  explicit nsClassHashtable(uint32_t aInitSize)
-    : nsBaseHashtable<KeyClass,nsAutoPtr<T>,T*>(aInitSize)
+  nsClassHashtable() {}
+  explicit nsClassHashtable(uint32_t aInitLength)
+    : nsBaseHashtable<KeyClass, nsAutoPtr<T>, T*>(aInitLength)
   {
   }
 
   /**
-   * @copydoc nsBaseHashtable::Get
-   * @param pData if the key doesn't exist, pData will be set to nullptr.
+   * Looks up aKey in the hash table. If it doesn't exist a new object of
+   * KeyClass will be created (using its default constructor) and then
+   * returned.
    */
-  bool Get(KeyType aKey, UserDataType* pData) const;
+  UserDataType LookupOrAdd(KeyType aKey);
+
+  /**
+   * @copydoc nsBaseHashtable::Get
+   * @param aData if the key doesn't exist, pData will be set to nullptr.
+   */
+  bool Get(KeyType aKey, UserDataType* aData) const;
 
   /**
    * @copydoc nsBaseHashtable::Get
@@ -59,55 +65,67 @@ public:
    *
    * @param aKey the key to get and remove from the hashtable
    */
-  void RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut);
+  void RemoveAndForget(KeyType aKey, nsAutoPtr<T>& aOut);
 };
 
 //
 // nsClassHashtable definitions
 //
 
-template<class KeyClass,class T>
+template<class KeyClass, class T>
+T*
+nsClassHashtable<KeyClass, T>::LookupOrAdd(KeyType aKey)
+{
+  typename base_type::EntryType* ent = this->PutEntry(aKey);
+  if (!ent->mData) {
+    ent->mData = new T();
+  }
+  return ent->mData;
+}
+
+template<class KeyClass, class T>
 bool
-nsClassHashtable<KeyClass,T>::Get(KeyType aKey, T** retVal) const
+nsClassHashtable<KeyClass, T>::Get(KeyType aKey, T** aRetVal) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
-  if (ent)
-  {
-    if (retVal)
-      *retVal = ent->mData;
+  if (ent) {
+    if (aRetVal) {
+      *aRetVal = ent->mData;
+    }
 
     return true;
   }
 
-  if (retVal)
-    *retVal = nullptr;
+  if (aRetVal) {
+    *aRetVal = nullptr;
+  }
 
   return false;
 }
 
-template<class KeyClass,class T>
+template<class KeyClass, class T>
 T*
-nsClassHashtable<KeyClass,T>::Get(KeyType aKey) const
+nsClassHashtable<KeyClass, T>::Get(KeyType aKey) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
-
-  if (!ent)
+  if (!ent) {
     return nullptr;
+  }
 
   return ent->mData;
 }
 
-template<class KeyClass,class T>
+template<class KeyClass, class T>
 void
-nsClassHashtable<KeyClass,T>::RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut)
+nsClassHashtable<KeyClass, T>::RemoveAndForget(KeyType aKey, nsAutoPtr<T>& aOut)
 {
   aOut = nullptr;
-  nsAutoPtr<T> ptr;
 
-  typename base_type::EntryType *ent = this->GetEntry(aKey);
-  if (!ent)
+  typename base_type::EntryType* ent = this->GetEntry(aKey);
+  if (!ent) {
     return;
+  }
 
   // Transfer ownership from ent->mData into aOut.
   aOut = mozilla::Move(ent->mData);

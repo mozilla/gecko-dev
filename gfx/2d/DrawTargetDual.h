@@ -18,9 +18,9 @@ namespace mozilla {
 namespace gfx {
      
 #define FORWARD_FUNCTION(funcName) \
-  virtual void funcName() { mA->funcName(); mB->funcName(); }
+  virtual void funcName() override { mA->funcName(); mB->funcName(); }
 #define FORWARD_FUNCTION1(funcName, var1Type, var1Name) \
-  virtual void funcName(var1Type var1Name) { mA->funcName(var1Name); mB->funcName(var1Name); }
+  virtual void funcName(var1Type var1Name) override { mA->funcName(var1Name); mB->funcName(var1Name); }
 
 /* This is a special type of DrawTarget. It duplicates all drawing calls
  * accross two drawtargets. An exception to this is when a snapshot of another
@@ -35,7 +35,7 @@ namespace gfx {
 class DrawTargetDual : public DrawTarget
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetDual)
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTargetDual, override)
   DrawTargetDual(DrawTarget *aA, DrawTarget *aB)
     : mA(aA)
     , mB(aB)
@@ -43,9 +43,12 @@ public:
     mFormat = aA->GetFormat();
   }
      
-  virtual BackendType GetType() const { return mA->GetType(); }
-  virtual TemporaryRef<SourceSurface> Snapshot() { return new SourceSurfaceDual(mA, mB); }
-  virtual IntSize GetSize() { return mA->GetSize(); }
+  virtual DrawTargetType GetType() const override { return mA->GetType(); }
+  virtual BackendType GetBackendType() const override { return mA->GetBackendType(); }
+  virtual TemporaryRef<SourceSurface> Snapshot() override {
+    return MakeAndAddRef<SourceSurfaceDual>(mA, mB);
+  }
+  virtual IntSize GetSize() override { return mA->GetSize(); }
      
   FORWARD_FUNCTION(Flush)
   FORWARD_FUNCTION1(PushClip, const Path *, aPath)
@@ -53,19 +56,19 @@ public:
   FORWARD_FUNCTION(PopClip)
   FORWARD_FUNCTION1(ClearRect, const Rect &, aRect)
 
-  virtual void SetTransform(const Matrix &aTransform) {
+  virtual void SetTransform(const Matrix &aTransform) override {
     mTransform = aTransform;
     mA->SetTransform(aTransform);
     mB->SetTransform(aTransform);
   }
 
   virtual void DrawSurface(SourceSurface *aSurface, const Rect &aDest, const Rect & aSource,
-                           const DrawSurfaceOptions &aSurfOptions, const DrawOptions &aOptions);
+                           const DrawSurfaceOptions &aSurfOptions, const DrawOptions &aOptions) override;
 
   virtual void DrawFilter(FilterNode *aNode,
                           const Rect &aSourceRect,
                           const Point &aDestPoint,
-                          const DrawOptions &aOptions = DrawOptions())
+                          const DrawOptions &aOptions = DrawOptions()) override
   {
     mA->DrawFilter(aNode, aSourceRect, aDestPoint, aOptions);
     mB->DrawFilter(aNode, aSourceRect, aDestPoint, aOptions);
@@ -74,58 +77,58 @@ public:
   virtual void MaskSurface(const Pattern &aSource,
                            SourceSurface *aMask,
                            Point aOffset,
-                           const DrawOptions &aOptions = DrawOptions());
+                           const DrawOptions &aOptions = DrawOptions()) override;
 
   virtual void DrawSurfaceWithShadow(SourceSurface *aSurface, const Point &aDest,
                                      const Color &aColor, const Point &aOffset,
-                                     Float aSigma, CompositionOp aOp);
+                                     Float aSigma, CompositionOp aOp) override;
 
   virtual void CopySurface(SourceSurface *aSurface, const IntRect &aSourceRect,
-                           const IntPoint &aDestination);
+                           const IntPoint &aDestination) override;
 
-  virtual void FillRect(const Rect &aRect, const Pattern &aPattern, const DrawOptions &aOptions);
+  virtual void FillRect(const Rect &aRect, const Pattern &aPattern, const DrawOptions &aOptions) override;
 
   virtual void StrokeRect(const Rect &aRect, const Pattern &aPattern,
-                          const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions);
+                          const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions) override;
 
   virtual void StrokeLine(const Point &aStart, const Point &aEnd, const Pattern &aPattern,
-                          const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions);
+                          const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions) override;
 
   virtual void Stroke(const Path *aPath, const Pattern &aPattern,
-                      const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions);
+                      const StrokeOptions &aStrokeOptions, const DrawOptions &aOptions) override;
 
-  virtual void Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions &aOptions);
+  virtual void Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions &aOptions) override;
 
   virtual void FillGlyphs(ScaledFont *aScaledFont, const GlyphBuffer &aBuffer,
                           const Pattern &aPattern, const DrawOptions &aOptions,
-                          const GlyphRenderingOptions *aRenderingOptions);
+                          const GlyphRenderingOptions *aRenderingOptions) override;
   
-  virtual void Mask(const Pattern &aSource, const Pattern &aMask, const DrawOptions &aOptions);
+  virtual void Mask(const Pattern &aSource, const Pattern &aMask, const DrawOptions &aOptions) override;
      
   virtual TemporaryRef<SourceSurface>
     CreateSourceSurfaceFromData(unsigned char *aData,
                                 const IntSize &aSize,
                                 int32_t aStride,
-                                SurfaceFormat aFormat) const
+                                SurfaceFormat aFormat) const override
   {
     return mA->CreateSourceSurfaceFromData(aData, aSize, aStride, aFormat);
   }
      
-  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const
+  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override
   {
     return mA->OptimizeSourceSurface(aSurface);
   }
      
   virtual TemporaryRef<SourceSurface>
-    CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const
+    CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const override
   {
     return mA->CreateSourceSurfaceFromNativeSurface(aSurface);
   }
      
   virtual TemporaryRef<DrawTarget>
-    CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const;
+    CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const override;
      
-  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const
+  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const override
   {
     return mA->CreatePathBuilder(aFillRule);
   }
@@ -133,22 +136,22 @@ public:
   virtual TemporaryRef<GradientStops>
     CreateGradientStops(GradientStop *aStops,
                         uint32_t aNumStops,
-                        ExtendMode aExtendMode = ExtendMode::CLAMP) const
+                        ExtendMode aExtendMode = ExtendMode::CLAMP) const override
   {
     return mA->CreateGradientStops(aStops, aNumStops, aExtendMode);
   }
 
-  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType)
+  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) override
   {
     return mA->CreateFilter(aType);
   }
 
-  virtual void *GetNativeSurface(NativeSurfaceType aType)
+  virtual void *GetNativeSurface(NativeSurfaceType aType) override
   {
     return nullptr;
   }
 
-  virtual bool IsDualDrawTarget()
+  virtual bool IsDualDrawTarget() const override
   {
     return true;
   }

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,7 +22,7 @@ function test()
   printStatus (summary);
 
 // crash [@ js_Interpret]
-  (eval("(function(){ this.watch(\"x\", function () { new function ()y } ); const y });"))();
+  (eval("(function(){ this.watch(\"x\", function () { new function ()y } ); const y = undefined });"))();
   x = NaN;
   reportCompare(expect, actual, summary + ': 2');
 

@@ -3,26 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-ifdef XPI_NAME
-NO_JS_MANIFEST = 1
-DIST_FILES = install.rdf
-
-ifeq ($(MOZ_BUILD_APP),mobile/android)
-DEFINES += -DBOOTSTRAP
-DIST_FILES += bootstrap.js
-endif
-
-ifeq ($(MOZ_BUILD_APP),b2g)
-DEFINES += -DBOOTSTRAP
-DEFINES += -DREFTEST_B2G
-endif
-
-# Used in install.rdf
-USE_EXTENSION_MANIFEST=1
-else
-EXTRA_COMPONENTS += reftest-cmdline.manifest
-endif
-
 _DEST_DIR = $(DEPTH)/_tests/reftest
 
 _HARNESS_FILES = \
@@ -30,6 +10,7 @@ _HARNESS_FILES = \
   $(srcdir)/remotereftest.py \
   $(srcdir)/runreftestb2g.py \
   $(srcdir)/b2g_desktop.py \
+  $(srcdir)/gaia_lock_screen.js \
   automation.py \
   $(topsrcdir)/testing/mozbase/mozdevice/mozdevice/devicemanager.py \
   $(topsrcdir)/testing/mozbase/mozdevice/mozdevice/devicemanagerADB.py \
@@ -56,23 +37,15 @@ include $(topsrcdir)/config/rules.mk
 TARGET_DEPTH = ../..
 include $(topsrcdir)/build/automation-build.mk
 
-# We want to get an extension-packaged version of reftest as well, 
-# so this seems to be the simplest way to make that happen.
-ifndef XPI_NAME
-make-xpi:
-	+$(MAKE) -C $(DEPTH)/netwerk/test/httpserver libs XPI_NAME=reftest
-	+$(MAKE) libs XPI_NAME=reftest
-copy-harness: make-xpi
-libs:: copy-harness
-endif
-
 $(_DEST_DIR):
 	$(NSINSTALL) -D $@
 
 $(_HARNESS_FILES): $(_DEST_DIR)
 
 # copy harness and the reftest extension bits to $(_DEST_DIR)
-copy-harness: $(_HARNESS_FILES) $(addprefix $(_DEST_DIR)/,$(_HARNESS_PP_FILES))
+# This needs to happen after jar.mn handling from rules.mk included above.
+# The order of the :: rules ensures that.
+libs:: $(_HARNESS_FILES) $(addprefix $(_DEST_DIR)/,$(_HARNESS_PP_FILES))
 	$(INSTALL) $(_HARNESS_FILES) $(_DEST_DIR)
 	(cd $(DIST)/xpi-stage && tar $(TAR_CREATE_FLAGS) - reftest) | (cd $(_DEST_DIR) && tar -xf -)
 
@@ -82,6 +55,7 @@ PKG_STAGE = $(DIST)/test-stage
 stage-package:
 	$(NSINSTALL) -D $(PKG_STAGE)/reftest && $(NSINSTALL) -D $(PKG_STAGE)/reftest/tests
 	(cd $(DEPTH)/_tests/reftest/ && tar $(TAR_CREATE_FLAGS) - *) | (cd $(PKG_STAGE)/reftest && tar -xf -)
+	@cp $(DEPTH)/mozinfo.json $(PKG_STAGE)/reftest
 	$(PYTHON) $(topsrcdir)/layout/tools/reftest/print-manifest-dirs.py \
           $(topsrcdir) \
           $(topsrcdir)/layout/reftests/reftest.list \

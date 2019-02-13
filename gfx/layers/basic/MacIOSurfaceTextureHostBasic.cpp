@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MacIOSurfaceTextureHostBasic.h"
-#include "mozilla/layers/BasicCompositor.h"
 #include "mozilla/gfx/MacIOSurface.h"
 
 namespace mozilla {
@@ -40,9 +39,9 @@ MacIOSurfaceTextureHostBasic::MacIOSurfaceTextureHostBasic(
 )
   : TextureHost(aFlags)
 {
-  mSurface = MacIOSurface::LookupSurface(aDescriptor.surface(),
+  mSurface = MacIOSurface::LookupSurface(aDescriptor.surfaceId(),
                                          aDescriptor.scaleFactor(),
-                                         aDescriptor.hasAlpha());
+                                         !aDescriptor.isOpaque());
 }
 
 gfx::SourceSurface*

@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,10 +7,12 @@
 #include "RemoveTask.h"
 
 #include "DOMError.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Promise.h"
-#include "nsIDOMFile.h"
+#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/BlobParent.h"
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
@@ -19,12 +21,13 @@ namespace dom {
 
 RemoveTask::RemoveTask(FileSystemBase* aFileSystem,
                        const nsAString& aDirPath,
-                       nsIDOMFile* aTargetFile,
+                       BlobImpl* aTargetBlob,
                        const nsAString& aTargetPath,
-                       bool aRecursive)
+                       bool aRecursive,
+                       ErrorResult& aRv)
   : FileSystemTaskBase(aFileSystem)
   , mDirRealPath(aDirPath)
-  , mTargetFile(aTargetFile)
+  , mTargetBlobImpl(aTargetBlob)
   , mTargetRealPath(aTargetPath)
   , mRecursive(aRecursive)
   , mReturnValue(false)
@@ -36,7 +39,7 @@ RemoveTask::RemoveTask(FileSystemBase* aFileSystem,
   if (!globalObject) {
     return;
   }
-  mPromise = new Promise(globalObject);
+  mPromise = Promise::Create(globalObject, aRv);
 }
 
 RemoveTask::RemoveTask(FileSystemBase* aFileSystem,
@@ -63,9 +66,8 @@ RemoveTask::RemoveTask(FileSystemBase* aFileSystem,
   }
 
   BlobParent* bp = static_cast<BlobParent*>(static_cast<PBlobParent*>(target));
-  nsCOMPtr<nsIDOMBlob> blob = bp->GetBlob();
-  mTargetFile = do_QueryInterface(blob);
-  MOZ_ASSERT(mTargetFile, "mTargetFile should not be null.");
+  mTargetBlobImpl = bp->GetBlobImpl();
+  MOZ_ASSERT(mTargetBlobImpl);
 }
 
 RemoveTask::~RemoveTask()
@@ -89,9 +91,11 @@ RemoveTask::GetRequestParams(const nsString& aFileSystem) const
   param.filesystem() = aFileSystem;
   param.directory() = mDirRealPath;
   param.recursive() = mRecursive;
-  if (mTargetFile) {
+  if (mTargetBlobImpl) {
+    nsRefPtr<Blob> blob = Blob::Create(mFileSystem->GetWindow(),
+                                       mTargetBlobImpl);
     BlobChild* actor
-      = ContentChild::GetSingleton()->GetOrCreateActorForBlob(mTargetFile);
+      = ContentChild::GetSingleton()->GetOrCreateActorForBlob(blob);
     if (actor) {
       param.target() = actor;
     }
@@ -127,9 +131,9 @@ RemoveTask::Work()
     return NS_ERROR_FAILURE;
   }
 
-  // Get the DOM path if a DOMFile is passed as the target.
-  if (mTargetFile) {
-    if (!mFileSystem->GetRealPath(mTargetFile, mTargetRealPath)) {
+  // Get the DOM path if a File is passed as the target.
+  if (mTargetBlobImpl) {
+    if (!mFileSystem->GetRealPath(mTargetBlobImpl, mTargetRealPath)) {
       return NS_ERROR_DOM_SECURITY_ERR;
     }
     if (!FileSystemUtils::IsDescendantPath(mDirRealPath, mTargetRealPath)) {

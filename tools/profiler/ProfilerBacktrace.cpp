@@ -4,27 +4,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "JSStreamWriter.h"
 #include "ProfilerBacktrace.h"
-#include "SyncProfile.h"
 
+#include "ProfileJSONWriter.h"
+#include "SyncProfile.h"
 
 ProfilerBacktrace::ProfilerBacktrace(SyncProfile* aProfile)
   : mProfile(aProfile)
 {
+  MOZ_COUNT_CTOR(ProfilerBacktrace);
   MOZ_ASSERT(aProfile);
 }
 
 ProfilerBacktrace::~ProfilerBacktrace()
 {
+  MOZ_COUNT_DTOR(ProfilerBacktrace);
   if (mProfile->ShouldDestroy()) {
     delete mProfile;
   }
 }
 
 void
-ProfilerBacktrace::StreamJSObject(JSStreamWriter& b)
+ProfilerBacktrace::StreamJSON(SpliceableJSONWriter& aWriter,
+                              UniqueStacks& aUniqueStacks)
 {
-  mozilla::MutexAutoLock lock(*mProfile->GetMutex());
-  mProfile->StreamJSObject(b);
+  ::MutexAutoLock lock(mProfile->GetMutex());
+  mProfile->StreamJSON(aWriter, aUniqueStacks);
 }

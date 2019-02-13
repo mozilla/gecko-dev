@@ -6,8 +6,8 @@
  * on a function call item.
  */
 
-function ifTestingSupported() {
-  let [target, debuggee, panel] = yield initCanavsDebuggerFrontend(SIMPLE_CANVAS_DEEP_STACK_URL);
+function* ifTestingSupported() {
+  let { target, panel } = yield initCanvasDebuggerFrontend(SIMPLE_CANVAS_DEEP_STACK_URL);
   let { window, $, $all, EVENTS, SnapshotsListView, CallsListView } = panel.panelWin;
 
   yield reload(target);

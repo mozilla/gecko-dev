@@ -109,23 +109,13 @@ exports.TargetFactory = {
  * The 'version' property allows the developer tools equivalent of browser
  * detection. Browser detection is evil, however while we don't know what we
  * will need to detect in the future, it is an easy way to postpone work.
- * We should be looking to use 'supports()' in place of version where
- * possible.
+ * We should be looking to use the support features added in bug 1069673
+ * in place of version where possible.
  */
 function getVersion() {
   // FIXME: return something better
   return 20;
 }
-
-/**
- * A better way to support feature detection, but we're not yet at a place
- * where we have the features well enough defined for this to make lots of
- * sense.
- */
-function supports(feature) {
-  // FIXME: return something better
-  return false;
-};
 
 /**
  * A Target represents something that we can debug. Targets are generally
@@ -151,12 +141,6 @@ function supports(feature) {
  * - hidden: The target is not visible anymore (for TargetTab, another tab is selected)
  * - visible: The target is visible (for TargetTab, tab is selected)
  *
- * Target also supports 2 functions to help allow 2 different versions of
- * Firefox debug each other. The 'version' property is the equivalent of
- * browser detection - simple and easy to implement but gets fragile when things
- * are not quite what they seem. The 'supports' property is the equivalent of
- * feature detection - harder to setup, but more robust long-term.
- *
  * Comparing Targets: 2 instances of a Target object can point at the same
  * thing, so t1 !== t2 and t1 != t2 even when they represent the same object.
  * To compare to targets use 't1.equals(t2)'.
@@ -181,6 +165,7 @@ function TabTarget(tab) {
   this._handleThreadState = this._handleThreadState.bind(this);
   this.on("thread-resumed", this._handleThreadState);
   this.on("thread-paused", this._handleThreadState);
+  this.activeTab = this.activeConsole = null;
   // Only real tabs need initialization here. Placeholder objects for remote
   // targets will be initialized after a makeRemote method call.
   if (tab && !["client", "form", "chrome"].every(tab.hasOwnProperty, tab)) {
@@ -191,12 +176,130 @@ function TabTarget(tab) {
     this._client = tab.client;
     this._chrome = tab.chrome;
   }
+  // Default isTabActor to true if not explicitely specified
+  this._isTabActor = typeof(tab.isTabActor) == "boolean" ? tab.isTabActor : true;
 }
 
 TabTarget.prototype = {
   _webProgressListener: null,
 
-  supports: supports,
+  /**
+   * Returns a promise for the protocol description from the root actor.
+   * Used internally with `target.actorHasMethod`. Takes advantage of
+   * caching if definition was fetched previously with the corresponding
+   * actor information. Actors are lazily loaded, so not only must the tool using
+   * a specific actor be in use, the actors are only registered after invoking
+   * a method (for performance reasons, added in bug 988237), so to use these actor
+   * detection methods, one must already be communicating with a specific actor of
+   * that type.
+   *
+   * Must be a remote target.
+   *
+   * @return {Promise}
+   * {
+   *   "category": "actor",
+   *   "typeName": "longstractor",
+   *   "methods": [{
+   *     "name": "substring",
+   *     "request": {
+   *       "type": "substring",
+   *       "start": {
+   *         "_arg": 0,
+   *         "type": "primitive"
+   *       },
+   *       "end": {
+   *         "_arg": 1,
+   *         "type": "primitive"
+   *       }
+   *     },
+   *     "response": {
+   *       "substring": {
+   *         "_retval": "primitive"
+   *       }
+   *     }
+   *   }],
+   *  "events": {}
+   * }
+   */
+  getActorDescription: function (actorName) {
+    if (!this.client) {
+      throw new Error("TabTarget#getActorDescription() can only be called on remote tabs.");
+    }
+
+    let deferred = promise.defer();
+
+    if (this._protocolDescription && this._protocolDescription.types[actorName]) {
+      deferred.resolve(this._protocolDescription.types[actorName]);
+    } else {
+      this.client.mainRoot.protocolDescription(description => {
+        this._protocolDescription = description;
+        deferred.resolve(description.types[actorName]);
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  /**
+   * Returns a boolean indicating whether or not the specific actor
+   * type exists. Must be a remote target.
+   *
+   * @param {String} actorName
+   * @return {Boolean}
+   */
+  hasActor: function (actorName) {
+    if (!this.client) {
+      throw new Error("TabTarget#hasActor() can only be called on remote tabs.");
+    }
+    if (this.form) {
+      return !!this.form[actorName + "Actor"];
+    }
+    return false;
+  },
+
+  /**
+   * Queries the protocol description to see if an actor has
+   * an available method. The actor must already be lazily-loaded (read
+   * the restrictions in the `getActorDescription` comments),
+   * so this is for use inside of tool. Returns a promise that
+   * resolves to a boolean. Must be a remote target.
+   *
+   * @param {String} actorName
+   * @param {String} methodName
+   * @return {Promise}
+   */
+  actorHasMethod: function (actorName, methodName) {
+    if (!this.client) {
+      throw new Error("TabTarget#actorHasMethod() can only be called on remote tabs.");
+    }
+    return this.getActorDescription(actorName).then(desc => {
+      if (desc && desc.methods) {
+        return !!desc.methods.find(method => method.name === methodName);
+      }
+      return false;
+    });
+  },
+
+  /**
+   * Returns a trait from the root actor.
+   *
+   * @param {String} traitName
+   * @return {Mixed}
+   */
+  getTrait: function (traitName) {
+    if (!this.client) {
+      throw new Error("TabTarget#getTrait() can only be called on remote tabs.");
+    }
+
+    // If the targeted actor exposes traits and has a defined value for this traits,
+    // override the root actor traits
+    if (this.form.traits && traitName in this.form.traits) {
+      return this.form.traits[traitName];
+    }
+
+    return this.client.traits[traitName];
+  },
+
   get version() { return getVersion(); },
 
   get tab() {
@@ -215,11 +318,30 @@ TabTarget.prototype = {
     return this._client;
   },
 
+  // Tells us if we are debugging content document
+  // or if we are debugging chrome stuff.
+  // Allows to controls which features are available against
+  // a chrome or a content document.
   get chrome() {
     return this._chrome;
   },
 
+  // Tells us if the related actor implements TabActor interface
+  // and requires to call `attach` request before being used
+  // and `detach` during cleanup
+  get isTabActor() {
+    return this._isTabActor;
+  },
+
   get window() {
+    // XXX - this is a footgun for e10s - there .contentWindow will be null,
+    // and even though .contentWindowAsCPOW *might* work, it will not work
+    // in all contexts.  Consumers of .window need to be refactored to not
+    // rely on this.
+    if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      Cu.reportError("The .window getter on devtools' |target| object isn't e10s friendly!\n"
+                     + Error().stack);
+    }
     // Be extra careful here, since this may be called by HS_getHudByWindow
     // during shutdown.
     if (this._tab && this._tab.linkedBrowser) {
@@ -229,12 +351,17 @@ TabTarget.prototype = {
   },
 
   get name() {
-    return this._tab ? this._tab.linkedBrowser.contentDocument.title :
-                       this._form.title;
+    if (this._tab && this._tab.linkedBrowser.contentDocument) {
+      return this._tab.linkedBrowser.contentDocument.title
+    } else if (this.isAddon) {
+      return this._form.name;
+    } else {
+      return this._form.title;
+    }
   },
 
   get url() {
-    return this._tab ? this._tab.linkedBrowser.contentDocument.location.href :
+    return this._tab ? this._tab.linkedBrowser.currentURI.spec :
                        this._form.url;
   },
 
@@ -243,11 +370,16 @@ TabTarget.prototype = {
   },
 
   get isAddon() {
-    return !!(this._form && this._form.addonActor);
+    return !!(this._form && this._form.actor &&
+              this._form.actor.match(/conn\d+\.addon\d+/));
   },
 
   get isLocalTab() {
     return !!this._tab;
+  },
+
+  get isMultiProcess() {
+    return !this.window;
   },
 
   get isThreadPaused() {
@@ -289,39 +421,39 @@ TabTarget.prototype = {
         }
         this.activeTab = aTabClient;
         this.threadActor = aResponse.threadActor;
+        attachConsole();
+      });
+    };
+
+    let attachConsole = () => {
+      this._client.attachConsole(this._form.consoleActor,
+                                 [ "NetworkActivity" ],
+                                 (aResponse, aWebConsoleClient) => {
+        if (!aWebConsoleClient) {
+          this._remote.reject("Unable to attach to the console");
+          return;
+        }
+        this.activeConsole = aWebConsoleClient;
         this._remote.resolve(null);
       });
     };
 
     if (this.isLocalTab) {
       this._client.connect((aType, aTraits) => {
-        this._client.listTabs(aResponse => {
-          this._root = aResponse;
-
-          let windowUtils = this.window
-            .QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils);
-          let outerWindow = windowUtils.outerWindowID;
-          aResponse.tabs.some((tab) => {
-            if (tab.outerWindowID === outerWindow) {
-              this._form = tab;
-              return true;
-            }
-            return false;
-          });
-          if (!this._form) {
-            this._form = aResponse.tabs[aResponse.selected];
-          }
+        this._client.getTab({ tab: this.tab })
+            .then(aResponse => {
+          this._form = aResponse.tab;
           attachTab();
         });
       });
-    } else if (!this.chrome) {
+    } else if (this.isTabActor) {
       // In the remote debugging case, the protocol connection will have been
       // already initialized in the connection screen code.
       attachTab();
     } else {
-      // Remote chrome debugging doesn't need anything at this point.
-      this._remote.resolve(null);
+      // AddonActor and chrome debugging on RootActor doesn't inherits from TabActor and
+      // doesn't need to be attached.
+      attachConsole();
     }
 
     return this._remote.promise;
@@ -370,6 +502,7 @@ TabTarget.prototype = {
       event.url = aPacket.url;
       event.title = aPacket.title;
       event.nativeConsoleAPI = aPacket.nativeConsoleAPI;
+      event.isFrameSwitching = aPacket.isFrameSwitching;
       // Send any stored event payload (DOMWindow or nsIRequest) for backwards
       // compatibility with non-remotable tools.
       if (aPacket.state == "start") {
@@ -383,6 +516,11 @@ TabTarget.prototype = {
       }
     };
     this.client.addListener("tabNavigated", this._onTabNavigated);
+
+    this._onFrameUpdate = (aType, aPacket) => {
+      this.emit("frame-update", aPacket);
+    };
+    this.client.addListener("frameUpdate", this._onFrameUpdate);
   },
 
   /**
@@ -392,6 +530,7 @@ TabTarget.prototype = {
     this.client.removeListener("closed", this.destroy);
     this.client.removeListener("tabNavigated", this._onTabNavigated);
     this.client.removeListener("tabDetached", this._onTabDetached);
+    this.client.removeListener("frameUpdate", this._onFrameUpdate);
   },
 
   /**
@@ -468,14 +607,15 @@ TabTarget.prototype = {
         // We started with a local tab and created the client ourselves, so we
         // should close it.
         this._client.close(cleanupAndResolve);
-      } else {
+      } else if (this.activeTab) {
         // The client was handed to us, so we are not responsible for closing
         // it. We just need to detach from the tab, if already attached.
-        if (this.activeTab) {
-          this.activeTab.detach(cleanupAndResolve);
-        } else {
-          cleanupAndResolve();
-        }
+        // |detach| may fail if the connection is already dead, so proceed with
+        // cleanup directly after this.
+        this.activeTab.detach();
+        cleanupAndResolve();
+      } else {
+        cleanupAndResolve();
       }
     }
 
@@ -492,6 +632,7 @@ TabTarget.prototype = {
       promiseTargets.delete(this._form);
     }
     this.activeTab = null;
+    this.activeConsole = null;
     this._client = null;
     this._tab = null;
     this._form = null;
@@ -531,7 +672,7 @@ TabWebProgressListener.prototype = {
     }
 
     // emit event if the top frame is navigating
-    if (this.target && this.target.window == progress.DOMWindow) {
+    if (progress.isTopLevel) {
       // Emit the event if the target is not remoted or store the payload for
       // later emission otherwise.
       if (this.target._client) {
@@ -590,7 +731,6 @@ function WindowTarget(window) {
 }
 
 WindowTarget.prototype = {
-  supports: supports,
   get version() { return getVersion(); },
 
   get window() {

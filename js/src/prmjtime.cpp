@@ -23,26 +23,18 @@
 #ifdef XP_WIN
 #include <windef.h>
 #include <winbase.h>
-#include <mmsystem.h> /* for timeBegin/EndPeriod */
-/* VC++ 8.0 or later */
-#if _MSC_VER >= 1400
-#define NS_HAVE_INVALID_PARAMETER_HANDLER 1
-#endif
-#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 #include <crtdbg.h>   /* for _CrtSetReportMode */
+#include <mmsystem.h> /* for timeBegin/EndPeriod */
 #include <stdlib.h>   /* for _set_invalid_parameter_handler */
-#endif
 
-#ifdef JS_THREADSAFE
 #include "prinit.h"
-#endif
 
 #endif
 
 #ifdef XP_UNIX
 
 #ifdef _SVID_GETTOD   /* Defined only on Solaris, see Solaris <sys/types.h> */
-extern int gettimeofday(struct timeval *tv);
+extern int gettimeofday(struct timeval* tv);
 #endif
 
 #include <sys/time.h>
@@ -70,7 +62,7 @@ PRMJ_Now()
 
 // Returns the number of microseconds since the Unix epoch.
 static double
-FileTimeToUnixMicroseconds(const FILETIME &ft)
+FileTimeToUnixMicroseconds(const FILETIME& ft)
 {
     // Get the time in 100ns intervals.
     int64_t t = (int64_t(ft.dwHighDateTime) << 32) | int64_t(ft.dwLowDateTime);
@@ -91,9 +83,7 @@ struct CalibrationData {
 
     bool calibrated;
 
-#ifdef JS_THREADSAFE
     CRITICAL_SECTION data_lock;
-#endif
 };
 
 static CalibrationData calibration = { 0 };
@@ -123,7 +113,7 @@ NowCalibrate()
 
 static const unsigned DataLockSpinCount = 4096;
 
-static void (WINAPI *pGetSystemTimePreciseAsFileTime)(LPFILETIME) = nullptr;
+static void (WINAPI* pGetSystemTimePreciseAsFileTime)(LPFILETIME) = nullptr;
 
 void
 PRMJ_NowInit()
@@ -140,18 +130,15 @@ PRMJ_NowInit()
     calibration.freq = double(liFreq.QuadPart);
     MOZ_ASSERT(calibration.freq > 0.0);
 
-#ifdef JS_THREADSAFE
     InitializeCriticalSectionAndSpinCount(&calibration.data_lock, DataLockSpinCount);
-#endif
 
     // Windows 8 has a new API function we can use.
     if (HMODULE h = GetModuleHandle("kernel32.dll")) {
         pGetSystemTimePreciseAsFileTime =
-            (void (WINAPI *)(LPFILETIME))GetProcAddress(h, "GetSystemTimePreciseAsFileTime");
+            (void (WINAPI*)(LPFILETIME))GetProcAddress(h, "GetSystemTimePreciseAsFileTime");
     }
 }
 
-#ifdef JS_THREADSAFE
 void
 PRMJ_NowShutdown()
 {
@@ -161,14 +148,6 @@ PRMJ_NowShutdown()
 #define MUTEX_LOCK(m) EnterCriticalSection(m)
 #define MUTEX_UNLOCK(m) LeaveCriticalSection(m)
 #define MUTEX_SETSPINCOUNT(m, c) SetCriticalSectionSpinCount((m),(c))
-
-#else
-
-#define MUTEX_LOCK(m)
-#define MUTEX_UNLOCK(m)
-#define MUTEX_SETSPINCOUNT(m, c)
-
-#endif
 
 // Please see bug 363258 for why the win32 timing code is so complex.
 int64_t
@@ -265,16 +244,14 @@ PRMJ_Now()
         // well.
         needsCalibration = true;
     }
-
-    MOZ_ASSUME_UNREACHABLE("Shouldn't get here");
 }
 #endif
 
-#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
+#ifdef XP_WIN
 static void
-PRMJ_InvalidParameterHandler(const wchar_t *expression,
-                             const wchar_t *function,
-                             const wchar_t *file,
+PRMJ_InvalidParameterHandler(const wchar_t* expression,
+                             const wchar_t* function,
+                             const wchar_t* file,
                              unsigned int   line,
                              uintptr_t      pReserved)
 {
@@ -284,13 +261,13 @@ PRMJ_InvalidParameterHandler(const wchar_t *expression,
 
 /* Format a time value into a buffer. Same semantics as strftime() */
 size_t
-PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
+PRMJ_FormatTime(char* buf, int buflen, const char* fmt, PRMJTime* prtm)
 {
     size_t result = 0;
 #if defined(XP_UNIX) || defined(XP_WIN)
     struct tm a;
     int fake_tm_year = 0;
-#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
+#ifdef XP_WIN
     _invalid_parameter_handler oldHandler;
     int oldReportMode;
 #endif
@@ -364,14 +341,14 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
      * changeover time.)
      */
 
-#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
+#ifdef XP_WIN
     oldHandler = _set_invalid_parameter_handler(PRMJ_InvalidParameterHandler);
     oldReportMode = _CrtSetReportMode(_CRT_ASSERT, 0);
 #endif
 
     result = strftime(buf, buflen, fmt, &a);
 
-#ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
+#ifdef XP_WIN
     _set_invalid_parameter_handler(oldHandler);
     _CrtSetReportMode(_CRT_ASSERT, oldReportMode);
 #endif

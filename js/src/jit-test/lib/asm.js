@@ -11,7 +11,9 @@ const HEAP_IMPORTS = "const i8=new glob.Int8Array(b);var u8=new glob.Uint8Array(
                      "const i16=new glob.Int16Array(b);var u16=new glob.Uint16Array(b);"+
                      "const i32=new glob.Int32Array(b);var u32=new glob.Uint32Array(b);"+
                      "const f32=new glob.Float32Array(b);var f64=new glob.Float64Array(b);";
-const BUF_64KB = new ArrayBuffer(64 * 1024);
+const BUF_MIN = 64 * 1024;
+const BUF_CHANGE_MIN = 16 * 1024 * 1024;
+const BUF_64KB = new ArrayBuffer(BUF_MIN);
 
 function asmCompile()
 {
@@ -34,8 +36,8 @@ function asmCompileCached()
     var quotedArgs = [];
     for (var i = 0; i < arguments.length; i++)
         quotedArgs.push("'" + arguments[i] + "'");
-    var code = "var f = new Function(" + quotedArgs.join(',') + ");assertEq(isAsmJSModule(f), true);";
-    nestedShell("--js-cache", "--execute=" + code);
+    var code = "setCachingEnabled(true); var f = new Function(" + quotedArgs.join(',') + ");assertEq(isAsmJSModule(f), true);";
+    nestedShell("--js-cache", "--no-js-cache-per-process", "--execute=" + code);
 
     var f = Function.apply(null, arguments);
     assertEq(isAsmJSModuleLoadedFromCache(f), true);
@@ -107,8 +109,8 @@ function assertAsmLinkFail(f)
 
     assertEq(isAsmJSFunction(ret), false);
     if (typeof ret === 'object')
-        for (f of ret)
-            assertEq(isAsmJSFunction(f), false);
+        for (var i in ret)
+            assertEq(isAsmJSFunction(ret[i]), false);
 
     // Turn on warnings-as-errors
     var oldOpts = options("werror");
@@ -151,6 +153,34 @@ function assertAsmLinkAlwaysFail(f)
     try {
         f.apply(null, Array.slice(arguments, 1));
     } catch (e) {
+        caught = true;
+    }
+    if (!caught)
+        throw new Error("Didn't catch the link failure error");
+
+    // Turn warnings-as-errors back off
+    options("werror");
+}
+
+function assertAsmLinkDeprecated(f)
+{
+    if (!isAsmJSCompilationAvailable())
+        return;
+
+    // Verify no error is thrown with warnings off
+    f.apply(null, Array.slice(arguments, 1));
+
+    // Turn on warnings-as-errors
+    var oldOpts = options("werror");
+    assertEq(oldOpts.indexOf("werror"), -1);
+
+    // Verify an error is thrown
+    var caught = false;
+    try {
+        f.apply(null, Array.slice(arguments, 1));
+    } catch (e) {
+        // Arbitrary code an run in the GetProperty, so don't assert any
+        // particular string
         caught = true;
     }
     if (!caught)

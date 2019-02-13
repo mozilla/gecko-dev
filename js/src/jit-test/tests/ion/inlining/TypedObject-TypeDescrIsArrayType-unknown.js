@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- tab-width: 8; indent-tabs-mode: nil; js-indent-level: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -29,15 +29,22 @@ if (!this.TypedObject) {
 }
 
 var T = TypedObject;
-var AT = new T.ArrayType(T.int32);
+var AT = new T.ArrayType(T.int32, 100);
 
 function check(v) {
     return v.map(x => x+1);
 }
 
+function Array_build(n, f) {
+  var a = new Array(n);
+  for ( var i=0 ; i < n ; i++ )
+    a[i] = f(i);
+  return a;
+}
+
 function test() {
-    var w1 = AT.build(100, x => x+1);
-    var w2 = Array.build(100, x => x+1);
+    var w1 = AT.build(x => x+1);
+    var w2 = Array_build(100, x => x+1);
     w2.map = w1.map;
     var a = [ w1, w2 ];
     for ( var i=0 ; i < 2000 ; i++ )

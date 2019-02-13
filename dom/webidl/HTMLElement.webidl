@@ -76,10 +76,6 @@ interface HTMLElement : Element {
   readonly attribute CSSStyleDeclaration style;
 
   // Mozilla specific stuff
-  // FIXME Bug 810677 Move className from HTMLElement to Element
-  [Pure]
-           attribute DOMString className;
-
            attribute EventHandler oncopy;
            attribute EventHandler oncut;
            attribute EventHandler onpaste;
@@ -110,10 +106,6 @@ interface TouchEventHandlers {
            attribute EventHandler ontouchend;
   [Func="nsGenericHTMLElement::TouchEventsEnabled"]
            attribute EventHandler ontouchmove;
-  [Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchenter;
-  [Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchleave;
   [Func="nsGenericHTMLElement::TouchEventsEnabled"]
            attribute EventHandler ontouchcancel;
 };

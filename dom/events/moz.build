@@ -32,10 +32,12 @@ EXPORTS.mozilla += [
 
 EXPORTS.mozilla.dom += [
     'AnimationEvent.h',
+    'BeforeAfterKeyboardEvent.h',
     'BeforeUnloadEvent.h',
     'ClipboardEvent.h',
     'CommandEvent.h',
     'CompositionEvent.h',
+    'CustomEvent.h',
     'DataContainerEvent.h',
     'DataTransfer.h',
     'DeviceMotionEvent.h',
@@ -43,6 +45,7 @@ EXPORTS.mozilla.dom += [
     'Event.h',
     'EventTarget.h',
     'FocusEvent.h',
+    'ImageCaptureError.h',
     'InputEvent.h',
     'KeyboardEvent.h',
     'MessageEvent.h',
@@ -69,6 +72,7 @@ if CONFIG['MOZ_WEBSPEECH']:
 UNIFIED_SOURCES += [
     'AnimationEvent.cpp',
     'AsyncEventDispatcher.cpp',
+    'BeforeAfterKeyboardEvent.cpp',
     'BeforeUnloadEvent.cpp',
     'ClipboardEvent.cpp',
     'CommandEvent.cpp',
@@ -85,6 +89,7 @@ UNIFIED_SOURCES += [
     'EventListenerService.cpp',
     'EventTarget.cpp',
     'FocusEvent.cpp',
+    'ImageCaptureError.cpp',
     'IMEContentObserver.cpp',
     'IMEStateManager.cpp',
     'InputEvent.cpp',
@@ -112,6 +117,7 @@ UNIFIED_SOURCES += [
 
 # nsEventStateManager.cpp should be built separately because of Mac OS X headers.
 SOURCES += [
+    'CustomEvent.cpp',
     'EventStateManager.cpp',
 ]
 
@@ -120,20 +126,18 @@ if CONFIG['MOZ_WEBSPEECH']:
 
 FAIL_ON_WARNINGS = True
 
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/content/base/src',
-    '/content/html/content/src',
-    '/content/xml/content/src',
-    '/content/xul/content/src',
+    '/docshell/base',
     '/dom/base',
+    '/dom/html',
     '/dom/settings',
-    '/dom/src/storage',
+    '/dom/storage',
     '/dom/workers',
+    '/dom/xml',
+    '/dom/xul',
     '/js/xpconnect/wrappers',
     '/layout/generic',
     '/layout/xul',
@@ -144,6 +148,3 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     LOCAL_INCLUDES += [
         '/dom/wifi',
     ]
-
-if CONFIG['MOZ_JSDEBUGGER']:
-    DEFINES['MOZ_JSDEBUGGER'] = True

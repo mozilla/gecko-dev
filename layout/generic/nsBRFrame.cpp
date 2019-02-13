@@ -6,6 +6,7 @@
 /* rendering object for HTML <br> elements */
 
 #include "nsCOMPtr.h"
+#include "nsFontMetrics.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
 #include "nsLineLayout.h"
@@ -26,40 +27,40 @@ public:
 
   friend nsIFrame* NS_NewBRFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-  virtual ContentOffsets CalcContentOffsetsFromFramePoint(nsPoint aPoint) MOZ_OVERRIDE;
+  virtual ContentOffsets CalcContentOffsetsFromFramePoint(nsPoint aPoint) override;
 
-  virtual FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) MOZ_OVERRIDE;
+  virtual FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) override;
   virtual FrameSearchResult PeekOffsetCharacter(bool aForward, int32_t* aOffset,
-                                     bool aRespectClusters = true) MOZ_OVERRIDE;
+                                     bool aRespectClusters = true) override;
   virtual FrameSearchResult PeekOffsetWord(bool aForward, bool aWordSelectEatSpace,
                               bool aIsKeyboardSelect, int32_t* aOffset,
-                              PeekWordState* aState) MOZ_OVERRIDE;
+                              PeekWordState* aState) override;
 
   virtual void Reflow(nsPresContext* aPresContext,
                           nsHTMLReflowMetrics& aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus& aStatus) MOZ_OVERRIDE;
-  virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                                 InlineMinWidthData *aData) MOZ_OVERRIDE;
-  virtual void AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                                  InlinePrefWidthData *aData) MOZ_OVERRIDE;
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
+                          nsReflowStatus& aStatus) override;
+  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                 InlineMinISizeData *aData) override;
+  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                  InlinePrefISizeData *aData) override;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
+  virtual nsIAtom* GetType() const override;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced |
                                              nsIFrame::eLineParticipant));
   }
 
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
 protected:
-  BRFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
+  explicit BRFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
   virtual ~BRFrame();
 
   nscoord mAscent;
@@ -83,18 +84,25 @@ BRFrame::Reflow(nsPresContext* aPresContext,
                 const nsHTMLReflowState& aReflowState,
                 nsReflowStatus& aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("BRFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
-  aMetrics.Height() = 0; // BR frames with height 0 are ignored in quirks
-                       // mode by nsLineLayout::VerticalAlignFrames .
-                       // However, it's not always 0.  See below.
-  aMetrics.Width() = 0;
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalSize finalSize(wm);
+  finalSize.BSize(wm) = 0; // BR frames with block size 0 are ignored in quirks
+                           // mode by nsLineLayout::VerticalAlignFrames .
+                           // However, it's not always 0.  See below.
+  finalSize.ISize(wm) = 0;
   aMetrics.SetBlockStartAscent(0);
 
   // Only when the BR is operating in a line-layout situation will it
-  // behave like a BR.
+  // behave like a BR. Additionally, we suppress breaks from BR inside
+  // of ruby frames. To determine if we're inside ruby, we have to rely
+  // on the *parent's* ShouldSuppressLineBreak() method, instead of our
+  // own, because we may have custom "display" value that makes our
+  // ShouldSuppressLineBreak() return false.
   nsLineLayout* ll = aReflowState.mLineLayout;
-  if (ll) {
+  if (ll && !GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
     // Note that the compatibility mode check excludes AlmostStandards
     // mode, since this is the inline box model.  See bug 161691.
     if ( ll->LineIsEmpty() ||
@@ -116,14 +124,14 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       nsRefPtr<nsFontMetrics> fm;
       nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
         nsLayoutUtils::FontSizeInflationFor(this));
-      aReflowState.rendContext->SetFont(fm); // FIXME: maybe not needed?
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
-        aMetrics.Height() = logicalHeight;
-        aMetrics.SetBlockStartAscent(nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight));
+        finalSize.BSize(wm) = logicalHeight;
+        aMetrics.SetBlockStartAscent(nsLayoutUtils::GetCenteredFontBaseline(
+                                       fm, logicalHeight, wm.IsLineInverted()));
       }
       else {
-        aMetrics.SetBlockStartAscent(aMetrics.Height() = 0);
+        aMetrics.SetBlockStartAscent(aMetrics.BSize(wm) = 0);
       }
 
       // XXX temporary until I figure out a better solution; see the
@@ -132,7 +140,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       // XXX This also fixes bug 10036!
       // Warning: nsTextControlFrame::CalculateSizeStandard depends on
       // the following line, see bug 228752.
-      aMetrics.Width() = 1;
+      finalSize.ISize(wm) = 1;
     }
 
     // Return our reflow status
@@ -149,6 +157,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
     aStatus = NS_FRAME_COMPLETE;
   }
 
+  aMetrics.SetSize(wm, finalSize);
   aMetrics.SetOverflowAreasToDesiredBounds();
 
   mAscent = aMetrics.BlockStartAscent();
@@ -157,21 +166,25 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 }
 
 /* virtual */ void
-BRFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                           nsIFrame::InlineMinWidthData *aData)
+BRFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                           nsIFrame::InlineMinISizeData *aData)
 {
-  aData->ForceBreak(aRenderingContext);
+  if (!GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
+    aData->ForceBreak(aRenderingContext);
+  }
 }
 
 /* virtual */ void
-BRFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                            nsIFrame::InlinePrefWidthData *aData)
+BRFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                            nsIFrame::InlinePrefISizeData *aData)
 {
-  aData->ForceBreak(aRenderingContext);
+  if (!GetParent()->StyleContext()->ShouldSuppressLineBreak()) {
+    aData->ForceBreak(aRenderingContext);
+  }
 }
 
 /* virtual */ nscoord
-BRFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+BRFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result = 0;
   DISPLAY_MIN_WIDTH(this, result);
@@ -179,7 +192,7 @@ BRFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
 /* virtual */ nscoord
-BRFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+BRFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result = 0;
   DISPLAY_PREF_WIDTH(this, result);
@@ -205,7 +218,7 @@ nsIFrame::ContentOffsets BRFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoin
   if (offsets.content) {
     offsets.offset = offsets.content->IndexOf(mContent);
     offsets.secondaryOffset = offsets.offset;
-    offsets.associateWithNext = true;
+    offsets.associate = CARET_ASSOCIATE_AFTER;
   }
   return offsets;
 }

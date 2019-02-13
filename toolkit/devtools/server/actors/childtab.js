@@ -21,50 +21,49 @@ let { TabActor } = require("devtools/server/actors/webbrowser");
  *        The conection to the client.
  * @param chromeGlobal
  *        The content script global holding |content| and |docShell| properties for a tab.
+ * @param prefix
+ *        the prefix used in protocol to create IDs for each actor.
+ *        Used as ID identifying this particular TabActor from the parent process.
  */
-function ContentActor(connection, chromeGlobal)
+function ContentActor(connection, chromeGlobal, prefix)
 {
   this._chromeGlobal = chromeGlobal;
+  this._prefix = prefix;
   TabActor.call(this, connection, chromeGlobal);
   this.traits.reconfigure = false;
+  this._sendForm = this._sendForm.bind(this);
+  this._chromeGlobal.addMessageListener("debug:form", this._sendForm);
+
+  Object.defineProperty(this, "docShell", {
+    value: this._chromeGlobal.docShell,
+    configurable: true
+  });
 }
 
 ContentActor.prototype = Object.create(TabActor.prototype);
 
 ContentActor.prototype.constructor = ContentActor;
 
-Object.defineProperty(ContentActor.prototype, "docShell", {
+Object.defineProperty(ContentActor.prototype, "title", {
   get: function() {
-    return this._chromeGlobal.docShell;
+    return this.window.document.title;
   },
   enumerable: true,
-  configurable: false
+  configurable: true
 });
 
 ContentActor.prototype.exit = function() {
-  TabActor.prototype.exit.call(this);
-};
-
-// Override grip just to rename this._tabActorPool to this._tabActorPool2
-// in order to prevent it to be cleaned on detach.
-// We have to keep tab actors alive as we keep the ContentActor
-// alive after detach and reuse it for multiple debug sessions.
-ContentActor.prototype.grip = function () {
-  let response = {
-    'actor': this.actorID,
-    'title': this.title,
-    'url': this.url
-  };
-
-  // Walk over tab actors added by extensions and add them to a new ActorPool.
-  let actorPool = new ActorPool(this.conn);
-  this._createExtraActors(DebuggerServer.tabActorFactories, actorPool);
-  if (!actorPool.isEmpty()) {
-    this._tabActorPool2 = actorPool;
-    this.conn.addActorPool(this._tabActorPool2);
+  if (this._sendForm) {
+    this._chromeGlobal.removeMessageListener("debug:form", this._sendForm);
+    this._sendForm = null;
   }
-
-  this._appendExtraActors(response);
-  return response;
+  return TabActor.prototype.exit.call(this);
 };
 
+/**
+ * On navigation events, our URL and/or title may change, so we update our
+ * counterpart in the parent process that participates in the tab list.
+ */
+ContentActor.prototype._sendForm = function() {
+  this._chromeGlobal.sendAsyncMessage("debug:form", this.form());
+};

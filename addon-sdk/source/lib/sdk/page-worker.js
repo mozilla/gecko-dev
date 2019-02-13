@@ -11,7 +11,7 @@ const { Class } = require('./core/heritage');
 const { on, emit, off, setListeners } = require('./event/core');
 const { filter, pipe, map, merge: streamMerge, stripListeners } = require('./event/utils');
 const { detach, attach, destroy, WorkerHost } = require('./content/utils');
-const { Worker } = require('./content/worker');
+const { Worker } = require('./deprecated/sync-worker');
 const { Disposable } = require('./core/disposable');
 const { WeakReference } = require('./core/reference');
 const { EventTarget } = require('./event/target');
@@ -26,10 +26,12 @@ const { contract: loaderContract } = require('./content/loader');
 const { has } = require('./util/array');
 const { Rules } = require('./util/rules');
 const { merge } = require('./util/object');
+const { data } = require('./self');
+const { getActiveView } = require("./view/core");
 
-const views = WeakMap();
-const workers = WeakMap();
-const pages = WeakMap();
+const views = new WeakMap();
+const workers = new WeakMap();
+const pages = new WeakMap();
 
 const readyEventNames = [
   'DOMContentLoaded',
@@ -51,7 +53,7 @@ let pageContract = contract(merge({
     is: ['function', 'undefined']
   },
   include: {
-    is: ['string', 'array', 'undefined']
+    is: ['string', 'array', 'regexp', 'undefined']
   },
   contentScriptWhen: {
     is: ['string', 'undefined']
@@ -92,14 +94,18 @@ const Page = Class({
   setup: function Page(options) {
     let page = this;
     options = pageContract(options);
+
+    let uri = options.contentURL;
+
     let view = makeFrame(window.document, {
       nodeName: 'iframe',
       type: 'content',
-      uri: options.contentURL,
+      uri: uri ? data.url(uri) : '',
       allowJavascript: options.allow.script,
       allowPlugins: true,
       allowAuth: true
     });
+    view.setAttribute('data-src', uri);
 
     ['contentScriptFile', 'contentScript', 'contentScriptWhen']
       .forEach(prop => page[prop] = options[prop]);
@@ -124,12 +130,19 @@ const Page = Class({
     let allowJavascript = pageContract({ allow: value }).allow.script;
     return allowJavascript ? enableScript(this) : disableScript(this);
   },
-  get contentURL() { return viewFor(this).getAttribute('src'); },
+  get contentURL() { return viewFor(this).getAttribute("data-src") },
   set contentURL(value) {
     if (!isValidURL(this, value)) return;
     let view = viewFor(this);
     let contentURL = pageContract({ contentURL: value }).contentURL;
-    view.setAttribute('src', contentURL);
+
+    // page-worker doesn't have a model like other APIs, so to be consitent
+    // with the behavior "what you set is what you get", we need to store
+    // the original `contentURL` given.
+    // Even if XUL elements doesn't support `dataset`, properties, to
+    // indicate that is a custom attribute the syntax "data-*" is used.
+    view.setAttribute('data-src', contentURL);
+    view.setAttribute('src', data.url(contentURL));
   },
   dispose: function () {
     if (isDisposed(this)) return;
@@ -170,3 +183,5 @@ function pageFromDoc(doc) {
       return page;
   return null;
 }
+
+getActiveView.define(Page, viewFor);

@@ -18,14 +18,19 @@
 
 struct BidiParagraphData;
 struct BidiLineData;
+class nsFontMetrics;
 class nsIFrame;
 class nsBlockFrame;
 class nsPresContext;
 class nsRenderingContext;
 class nsBlockInFlowLineIterator;
 class nsStyleContext;
+struct nsSize;
 template<class T> class nsTHashtable;
-namespace mozilla { class WritingMode; }
+namespace mozilla {
+  class WritingMode;
+  class LogicalMargin;
+}
 
 /**
  * A structure representing some continuation state for each frame on the line,
@@ -34,7 +39,7 @@ namespace mozilla { class WritingMode; }
  */
 struct nsFrameContinuationState : public nsVoidPtrHashKey
 {
-  nsFrameContinuationState(const void *aFrame) : nsVoidPtrHashKey(aFrame) {}
+  explicit nsFrameContinuationState(const void *aFrame) : nsVoidPtrHashKey(aFrame) {}
 
   /**
    * The first visual frame in the continuation chain containing this frame, or
@@ -106,15 +111,15 @@ public:
      * @remark The reason that the function gives a string instead of an index
      *  is that ProcessText copies and modifies the string passed to it, so
      *  passing an index would be impossible.
-     * 
+     *
      * @param aText The string of text.
      * @param aLength The length of the string of text.
      * @param aDirection The direction of the text. The string will never have
      *  mixed direction.
      */
     virtual void SetText(const char16_t*   aText,
-                         int32_t            aLength,
-                         nsBidiDirection    aDirection) = 0;
+                         int32_t           aLength,
+                         nsBidiDirection   aDirection) = 0;
 
     /**
      * Returns the measured width of the text given in SetText. If SetText was
@@ -154,13 +159,16 @@ public:
   /**
    * Reorder this line using Bidi engine.
    * Update frame array, following the new visual sequence.
+   *
+   * @return total inline size
    * 
    * @lina 05/02/2000
    */
-  static void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
-                            int32_t              aNumFramesOnLine,
-                            mozilla::WritingMode aLineWM,
-                            nscoord&             aLineWidth);
+  static nscoord ReorderFrames(nsIFrame* aFirstFrameOnLine,
+                               int32_t aNumFramesOnLine,
+                               mozilla::WritingMode aLineWM,
+                               const nsSize& aContainerSize,
+                               nscoord aStart);
 
   /**
    * Format Unicode text, taking into account bidi capabilities
@@ -169,11 +177,11 @@ public:
    *
    * @lina 06/18/2000 
    */
-  static nsresult FormatUnicodeText(nsPresContext* aPresContext,
-                                    char16_t*      aText,
+  static nsresult FormatUnicodeText(nsPresContext*  aPresContext,
+                                    char16_t*       aText,
                                     int32_t&        aTextLength,
                                     nsCharType      aCharType,
-                                    bool            aIsOddLevel);
+                                    nsBidiDirection aDir);
 
   /**
    * Reorder plain text using the Unicode Bidi algorithm and send it to
@@ -205,24 +213,29 @@ public:
                              nsPresContext*         aPresContext,
                              nsRenderingContext&    aRenderingContext,
                              nsRenderingContext&    aTextRunConstructionContext,
+                             nsFontMetrics&         aFontMetrics,
                              nscoord                aX,
                              nscoord                aY,
                              nsBidiPositionResolve* aPosResolve = nullptr,
                              int32_t                aPosResolveCount = 0)
   {
     return ProcessTextForRenderingContext(aText, aLength, aBaseLevel, aPresContext, aRenderingContext,
-                                          aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nullptr);
+                                          aTextRunConstructionContext,
+                                          aFontMetrics,
+                                          MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nullptr);
   }
   
   static nscoord MeasureTextWidth(const char16_t*     aText,
                                   int32_t              aLength,
                                   nsBidiLevel          aBaseLevel,
                                   nsPresContext*       aPresContext,
-                                  nsRenderingContext&  aRenderingContext)
+                                  nsRenderingContext&  aRenderingContext,
+                                  nsFontMetrics&       aFontMetrics)
   {
     nscoord length;
     nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseLevel, aPresContext,
                                                  aRenderingContext, aRenderingContext,
+                                                 aFontMetrics,
                                                  MODE_MEASURE, 0, 0, nullptr, 0, &length);
     return NS_SUCCEEDED(rv) ? length : 0;
   }
@@ -279,6 +292,30 @@ public:
    */
   static nsBidiLevel GetFrameBaseLevel(nsIFrame* aFrame);
 
+  /**
+   * Get an nsBidiDirection representing the direction implied by the
+   * bidi base level of the frame.
+   * @return NSBIDI_LTR (left-to-right) or NSBIDI_RTL (right-to-left)
+   *  NSBIDI_MIXED will never be returned.
+   */
+  static nsBidiDirection ParagraphDirection(nsIFrame* aFrame) {
+    return DIRECTION_FROM_LEVEL(GetFrameBaseLevel(aFrame));
+  }
+
+  /**
+   * Get an nsBidiDirection representing the direction implied by the
+   * bidi embedding level of the frame.
+   * @return NSBIDI_LTR (left-to-right) or NSBIDI_RTL (right-to-left)
+   *  NSBIDI_MIXED will never be returned.
+   */
+  static nsBidiDirection FrameDirection(nsIFrame* aFrame) {
+    return DIRECTION_FROM_LEVEL(GetFrameEmbeddingLevel(aFrame));
+  }
+
+  static bool IsFrameInParagraphDirection(nsIFrame* aFrame) {
+    return ParagraphDirection(aFrame) == FrameDirection(aFrame);
+  }
+
   enum Mode { MODE_DRAW, MODE_MEASURE };
 
   /**
@@ -320,24 +357,6 @@ public:
                               nsBidi*                aBidiEngine);
 
   /**
-   * Make a copy of a string, converting from logical to visual order
-   *
-   * @param aSource the source string
-   * @param aDest the destination string
-   * @param aBaseDirection the base direction of the string
-   *       (NSBIDI_LTR or NSBIDI_RTL to force the base direction;
-   *        NSBIDI_DEFAULT_LTR or NSBIDI_DEFAULT_RTL to let the bidi engine
-   *        determine the direction from rules P2 and P3 of the bidi algorithm.
-   *  @see nsBidi::GetPara
-   * @param aOverride if TRUE, the text has a bidi override, according to
-   *                    the direction in aDir
-   */
-  static void CopyLogicalToVisual(const nsAString& aSource,
-                                  nsAString& aDest,
-                                  nsBidiLevel aBaseDirection,
-                                  bool aOverride);
-
-  /**
    * Use style attributes to determine the base paragraph level to pass to the
    * bidi algorithm.
    *
@@ -359,6 +378,7 @@ private:
                                  nsPresContext*         aPresContext,
                                  nsRenderingContext&    aRenderingContext,
                                  nsRenderingContext&    aTextRunConstructionContext,
+                                 nsFontMetrics&         aFontMetrics,
                                  Mode                   aMode,
                                  nscoord                aX, // DRAW only
                                  nscoord                aY, // DRAW only
@@ -379,6 +399,23 @@ private:
                              nsIFrame*                  aCurrentFrame,
                              BidiParagraphData*         aBpd);
 
+  /**
+   * Position ruby content frames (ruby base/text frame).
+   * Called from RepositionRubyFrame.
+   */
+  static void RepositionRubyContentFrame(
+    nsIFrame* aFrame, mozilla::WritingMode aFrameWM,
+    const mozilla::LogicalMargin& aBorderPadding);
+
+  /*
+   * Position ruby frames. Called from RepositionFrame.
+   */
+  static nscoord RepositionRubyFrame(
+    nsIFrame* aFrame,
+    const nsContinuationStates* aContinuationStates,
+    const mozilla::WritingMode aContainerWM,
+    const mozilla::LogicalMargin& aBorderPadding);
+
   /*
    * Position aFrame and its descendants to their visual places. Also if aFrame
    * is not leaf, resize it to embrace its children.
@@ -387,18 +424,21 @@ private:
    *                             going to be repositioned
    * @param aIsEvenLevel         TRUE means the embedding level of this frame
    *                             is even (LTR)
-   * @param[in,out] aStart       IN value is the starting position of aFrame
-   *                             (without considering its inline-start margin)
-   *                             OUT value will be the ending position of aFrame
-   *                             (after adding its inline-end margin)
+   * @param aStartOrEnd          The distance to the start or the end of aFrame
+   *                             without considering its inline margin. If the
+   *                             container is reordering frames in reverse
+   *                             direction, it's the distance to the end,
+   *                             otherwise, it's the distance to the start.
    * @param aContinuationStates  A map from nsIFrame* to nsFrameContinuationState
+   * @return                     The isize aFrame takes, including margins.
    */
-  static void RepositionFrame(nsIFrame*              aFrame,
-                              bool                   aIsEvenLevel,
-                              nscoord&               aStart,
-                              nsContinuationStates*  aContinuationStates,
-                              mozilla::WritingMode   aLineWM,
-                              nscoord&               aLineWidth);
+  static nscoord RepositionFrame(nsIFrame* aFrame,
+                                 bool aIsEvenLevel,
+                                 nscoord aStartOrEnd,
+                                 const nsContinuationStates* aContinuationStates,
+                                 mozilla::WritingMode aContainerWM,
+                                 bool aContainerReverseOrder,
+                                 const nsSize& aContainerSize);
 
   /*
    * Initialize the continuation state(nsFrameContinuationState) to
@@ -412,36 +452,48 @@ private:
                                      nsContinuationStates*  aContinuationStates);
 
   /*
-   * Determine if aFrame is leftmost or rightmost, and set aIsLeftMost and
-   * aIsRightMost values. Also set continuation states of aContinuationStates.
+   * Determine if aFrame is first or last, and set aIsFirst and
+   * aIsLast values. Also set continuation states of
+   * aContinuationStates.
    *
-   * A frame is leftmost if it's the first appearance of its continuation chain
-   * on the line and the chain is on its first line if it's LTR or the chain is
-   * on its last line if it's RTL.
-   * A frame is rightmost if it's the last appearance of its continuation chain
-   * on the line and the chain is on its first line if it's RTL or the chain is
-   * on its last line if it's LTR.
+   * A frame is first if it's the first appearance of its continuation
+   * chain on the line and the chain is on its first line.
+   * A frame is last if it's the last appearance of its continuation
+   * chain on the line and the chain is on its last line.
    *
-   * @param aContinuationStates  A map from nsIFrame* to nsFrameContinuationState
-   * @param[out] aIsLeftMost     TRUE means aFrame is leftmost frame or continuation
-   * @param[out] aIsRightMost    TRUE means aFrame is rightmost frame or continuation
+   * N.B: "First appearance" and "Last appearance" in the previous
+   * paragraph refer to the frame's inline direction, not necessarily
+   * the line's.
+   *
+   * @param aContinuationStates        A map from nsIFrame* to
+   *                                    nsFrameContinuationState
+   * @param[in] aSpanDirMatchesLineDir TRUE means that the inline
+   *                                    direction of aFrame is the same
+   *                                    as its container
+   * @param[out] aIsFirst              TRUE means aFrame is first frame
+   *                                    or continuation
+   * @param[out] aIsLast               TRUE means aFrame is last frame
+   *                                    or continuation
    */
-   static void IsFirstOrLast(nsIFrame*              aFrame,
-                             nsContinuationStates*  aContinuationStates,
-                             bool&                  aIsFirst /* out */,
-                             bool&                  aIsLast /* out */);
+   static void IsFirstOrLast(nsIFrame* aFrame,
+                             const nsContinuationStates* aContinuationStates,
+                             bool aSpanInLineOrder /* in */,
+                             bool& aIsFirst /* out */,
+                             bool& aIsLast /* out */);
 
   /**
    *  Adjust frame positions following their visual order
    *
    *  @param aFirstChild the first kid
+   *  @return total inline size
    *
    *  @lina 04/11/2000
    */
-  static void RepositionInlineFrames(BidiLineData* aBld,
-                                     nsIFrame* aFirstChild,
-                                     mozilla::WritingMode aLineWM,
-                                     nscoord& aLineWidth);
+  static nscoord RepositionInlineFrames(BidiLineData* aBld,
+                                        nsIFrame* aFirstChild,
+                                        mozilla::WritingMode aLineWM,
+                                        const nsSize& aContainerSize,
+                                        nscoord aStart);
   
   /**
    * Helper method for Resolve()
@@ -498,16 +550,6 @@ private:
   
   static void StripBidiControlCharacters(char16_t* aText,
                                          int32_t&   aTextLength);
-
-  static bool WriteLogicalToVisual(const char16_t* aSrc,
-                                     uint32_t aSrcLength,
-                                     char16_t* aDest,
-                                     nsBidiLevel aBaseDirection,
-                                     nsBidi* aBidiEngine);
-
-  static void WriteReverse(const char16_t* aSrc,
-                           uint32_t aSrcLength,
-                           char16_t* aDest);
 };
 
 #endif /* nsBidiPresUtils_h___ */

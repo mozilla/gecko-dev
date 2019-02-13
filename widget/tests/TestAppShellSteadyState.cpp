@@ -40,7 +40,7 @@ class ExitAppShellRunnable : public nsRunnable
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  ExitAppShellRunnable(nsIAppShell* aAppShell)
+  explicit ExitAppShellRunnable(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
@@ -70,7 +70,7 @@ class CheckStableStateRunnable : public nsRunnable
   bool mShouldHaveRun;
 
 public:
-  CheckStableStateRunnable(bool aShouldHaveRun)
+  explicit CheckStableStateRunnable(bool aShouldHaveRun)
   : mShouldHaveRun(aShouldHaveRun)
   { }
 
@@ -93,7 +93,7 @@ protected:
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  ScheduleStableStateRunnable(nsIAppShell* aAppShell)
+  explicit ScheduleStableStateRunnable(nsIAppShell* aAppShell)
   : CheckStableStateRunnable(false), mAppShell(aAppShell)
   { }
 
@@ -117,7 +117,7 @@ class NextTestRunnable : public nsRunnable
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  NextTestRunnable(nsIAppShell* aAppShell)
+  explicit NextTestRunnable(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
@@ -127,7 +127,7 @@ public:
 class ScheduleNestedStableStateRunnable : public ScheduleStableStateRunnable
 {
 public:
-  ScheduleNestedStableStateRunnable(nsIAppShell* aAppShell)
+  explicit ScheduleNestedStableStateRunnable(nsIAppShell* aAppShell)
   : ScheduleStableStateRunnable(aAppShell)
   { }
 
@@ -159,22 +159,24 @@ public:
   }
 };
 
-class EventListener MOZ_FINAL : public nsIDOMEventListener
+class EventListener final : public nsIDOMEventListener
 {
   nsCOMPtr<nsIAppShell> mAppShell;
 
   static nsIDOMWindowUtils* sWindowUtils;
   static nsIAppShell* sAppShell;
 
+  ~EventListener() {}
+
 public:
   NS_DECL_ISUPPORTS
 
-  EventListener(nsIAppShell* aAppShell)
+  explicit EventListener(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
   NS_IMETHOD
-  HandleEvent(nsIDOMEvent* aEvent)
+  HandleEvent(nsIDOMEvent* aEvent) override
   {
     nsString type;
     if (NS_FAILED(aEvent->GetType(type))) {
@@ -251,7 +253,7 @@ public:
       int32_t keyCode = 0x41; // VK_A
       NS_NAMED_LITERAL_STRING(a, "a");
 
-      if (NS_FAILED(utils->SendNativeKeyEvent(layout, keyCode, 0, a, a))) {
+      if (NS_FAILED(utils->SendNativeKeyEvent(layout, keyCode, 0, a, a, nullptr))) {
         fail("Failed to synthesize native event");
       }
 

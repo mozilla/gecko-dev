@@ -5,9 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBrowser;
-
-
-using mozilla::layout::ScrollingBehavior from "mozilla/layout/RenderFrameUtils.h";
+include PBrowserOrId;
 
 namespace mozilla {
 namespace dom {
@@ -27,7 +25,7 @@ namespace dom {
 // it.
 struct PopupIPCTabContext
 {
-  PBrowser opener;
+  PBrowserOrId opener;
   bool isBrowserElement;
 };
 
@@ -70,7 +68,6 @@ union IPCTabAppBrowserContext
 
 struct IPCTabContext {
   IPCTabAppBrowserContext appBrowserContext;
-  ScrollingBehavior scrollingBehavior;
 };
 
 }

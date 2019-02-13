@@ -40,8 +40,8 @@
 #include "nsIPrincipal.h"
 #include "nsWildCard.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
-
+#include "mozilla/dom/ScriptSettings.h"
+#include "nsIXULRuntime.h"
 #include "nsIXPConnect.h"
 
 #include "nsIObserverService.h"
@@ -52,6 +52,7 @@
 #include <ApplicationServices/ApplicationServices.h>
 #include <OpenGL/OpenGL.h>
 #include "nsCocoaFeatures.h"
+#include "PluginUtilsOSX.h"
 #endif
 
 // needed for nppdf plugin
@@ -80,7 +81,8 @@ using mozilla::PluginLibrary;
 using mozilla::PluginPRLibrary;
 
 #include "mozilla/plugins/PluginModuleParent.h"
-using mozilla::plugins::PluginModuleParent;
+using mozilla::plugins::PluginModuleChromeParent;
+using mozilla::plugins::PluginModuleContentParent;
 
 #ifdef MOZ_X11
 #include "mozilla/X11Util.h"
@@ -164,10 +166,7 @@ static NPNetscapeFuncs sBrowserFuncs = {
   _convertpoint,
   nullptr, // handleevent, unimplemented
   nullptr, // unfocusinstance, unimplemented
-  _urlredirectresponse,
-  _initasyncsurface,
-  _finalizeasyncsurface,
-  _setcurrentasyncsurface
+  _urlredirectresponse
 };
 
 static Mutex *sPluginThreadAsyncCallLock = nullptr;
@@ -250,6 +249,10 @@ nsNPAPIPlugin::PluginCrashed(const nsAString& pluginDumpID,
 bool
 nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    return true;
+  }
+
 #if (MOZ_WIDGET_GTK == 3)
   // We force OOP on Linux/GTK3 because some plugins use GTK2 and both GTK
   // libraries can't be loaded in the same process.
@@ -319,11 +322,21 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     prefGroupKey.AssignLiteral("dom.ipc.plugins.enabled.a11y.");
 #endif
 
-  // Java plugins include a number of different file names,
-  // so use the mime type (mIsJavaPlugin) and a special pref.
-  if (aPluginTag->mIsJavaPlugin &&
-      !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
-    return false;
+  if (BrowserTabsRemoteAutostart()) {
+    // dom.ipc.plugins.java.enabled is obsolete in Nightly w/e10s, we've
+    // flipped the default to ON and now have a force-disable pref. This
+    // way we don't break non-e10s browsers.
+    if (aPluginTag->mIsJavaPlugin &&
+        Preferences::GetBool("dom.ipc.plugins.java.force-disable", false)) {
+      return false;
+    }
+  } else {
+    // Java plugins include a number of different file names,
+    // so use the mime type (mIsJavaPlugin) and a special pref.
+    if (aPluginTag->mIsJavaPlugin &&
+        !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
+      return false;
+    }
   }
 
   uint32_t prefCount;
@@ -391,8 +404,12 @@ GetNewPluginLibrary(nsPluginTag *aPluginTag)
     return nullptr;
   }
 
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    return PluginModuleContentParent::LoadModule(aPluginTag->mId, aPluginTag);
+  }
+
   if (nsNPAPIPlugin::RunPluginOOP(aPluginTag)) {
-    return PluginModuleParent::LoadModule(aPluginTag->mFullPath.get());
+    return PluginModuleChromeParent::LoadModule(aPluginTag->mFullPath.get(), aPluginTag->mId, aPluginTag);
   }
   return new PluginPRLibrary(aPluginTag->mFullPath.get(), aPluginTag->mLibrary);
 }
@@ -410,8 +427,6 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
   CheckClassInitialized();
 
   nsRefPtr<nsNPAPIPlugin> plugin = new nsNPAPIPlugin();
-  if (!plugin)
-    return NS_ERROR_OUT_OF_MEMORY;
 
   PluginLibrary* pluginLib = GetNewPluginLibrary(aPluginTag);
   if (!pluginLib) {
@@ -421,6 +436,7 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
 #if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
   if (!pluginLib->HasRequiredFunctions()) {
     NS_WARNING("Not all necessary functions exposed by plugin, it will not load.");
+    delete pluginLib;
     return NS_ERROR_FAILURE;
   }
 #endif
@@ -428,13 +444,11 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
   plugin->mLibrary = pluginLib;
   pluginLib->SetPlugin(plugin);
 
-  NPError pluginCallError;
-  nsresult rv;
-
 // Exchange NPAPI entry points.
 #if defined(XP_WIN)
   // NP_GetEntryPoints must be called before NP_Initialize on Windows.
-  rv = pluginLib->NP_GetEntryPoints(&plugin->mPluginFuncs, &pluginCallError);
+  NPError pluginCallError;
+  nsresult rv = pluginLib->NP_GetEntryPoints(&plugin->mPluginFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
   }
@@ -447,7 +461,8 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
 #elif defined(XP_MACOSX)
   // NP_Initialize must be called before NP_GetEntryPoints on Mac OS X.
   // We need to match WebKit's behavior.
-  rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
+  NPError pluginCallError;
+  nsresult rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
   }
@@ -458,7 +473,8 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
   }
 #elif defined(MOZ_WIDGET_GONK)
 #else
-  rv = pluginLib->NP_Initialize(&sBrowserFuncs, &plugin->mPluginFuncs, &pluginCallError);
+  NPError pluginCallError;
+  nsresult rv = pluginLib->NP_Initialize(&sBrowserFuncs, &plugin->mPluginFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
   }
@@ -641,27 +657,6 @@ GetDocumentFromNPP(NPP npp)
   owner->GetDocument(getter_AddRefs(doc));
 
   return doc;
-}
-
-static JSContext *
-GetJSContextFromDoc(nsIDocument *doc)
-{
-  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(doc->GetWindow());
-  NS_ENSURE_TRUE(sgo, nullptr);
-
-  nsIScriptContext *scx = sgo->GetContext();
-  NS_ENSURE_TRUE(scx, nullptr);
-
-  return scx->GetNativeContext();
-}
-
-static JSContext *
-GetJSContextFromNPP(NPP npp)
-{
-  nsIDocument *doc = GetDocumentFromNPP(npp);
-  NS_ENSURE_TRUE(doc, nullptr);
-
-  return GetJSContextFromDoc(doc);
 }
 
 static already_AddRefed<nsIChannel>
@@ -887,7 +882,7 @@ _geturl(NPP npp, const char* relativeURL, const char* target)
       (strncmp(relativeURL, "ftp:", 4) != 0)) {
     nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *) npp->ndata;
 
-    
+
     const char *name = nullptr;
     nsRefPtr<nsPluginHost> host = nsPluginHost::GetInst();
     host->GetPluginName(inst, &name);
@@ -1071,7 +1066,7 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
     // the reference until it is to be deleted here. Deleting the wrapper will
     // release the wrapped nsIOutputStream.
     //
-    // The NPStream the plugin references should always be a sub-object of it's own
+    // The NPStream the plugin references should always be a sub-object of its own
     // 'ndata', which is our nsNPAPIStramWrapper. See bug 548441.
     NS_ASSERTION((char*)streamWrapper <= (char*)pstream &&
                  ((char*)pstream) + sizeof(*pstream)
@@ -1089,23 +1084,7 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
 void
 _status(NPP npp, const char *message)
 {
-  if (!NS_IsMainThread()) {
-    NPN_PLUGIN_LOG(PLUGIN_LOG_ALWAYS,("NPN_status called from the wrong thread\n"));
-    return;
-  }
-  NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_Status: npp=%p, message=%s\n",
-                                     (void*)npp, message));
-
-  if (!npp || !npp->ndata) {
-    NS_WARNING("_status: npp or npp->ndata == 0");
-    return;
-  }
-
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance*)npp->ndata;
-
-  PluginDestructionGuard guard(inst);
-
-  inst->ShowStatus(message);
+  // NPN_Status is no longer supported.
 }
 
 void
@@ -1117,7 +1096,7 @@ _memfree (void *ptr)
   NPN_PLUGIN_LOG(PLUGIN_LOG_NOISY, ("NPN_MemFree: ptr=%p\n", ptr));
 
   if (ptr)
-    nsMemory::Free(ptr);
+    free(ptr);
 }
 
 uint32_t
@@ -1239,9 +1218,16 @@ _getpluginelement(NPP npp)
   if (!element)
     return nullptr;
 
-  AutoPushJSContext cx(GetJSContextFromNPP(npp));
-  NS_ENSURE_TRUE(cx, nullptr);
-  JSAutoRequest ar(cx); // Unnecessary once bug 868130 lands.
+  nsIDocument *doc = GetDocumentFromNPP(npp);
+  if (NS_WARN_IF(!doc)) {
+    return nullptr;
+  }
+
+  dom::AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(doc->GetInnerWindow()))) {
+    return nullptr;
+  }
+  JSContext* cx = jsapi.cx();
 
   nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID()));
   NS_ENSURE_TRUE(xpc, nullptr);
@@ -1316,10 +1302,10 @@ _utf8fromidentifier(NPIdentifier id)
   }
 
   JSString *str = NPIdentifierToString(id);
+  nsAutoString autoStr;
+  AssignJSFlatString(autoStr, JS_ASSERT_STRING_IS_FLAT(str));
 
-  return
-    ToNewUTF8String(nsDependentString(::JS_GetInternedStringChars(str),
-                                      ::JS_GetStringLength(str)));
+  return ToNewUTF8String(autoStr);
 }
 
 int32_t
@@ -1496,8 +1482,10 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
     return false;
   }
 
-  AutoSafeJSContext cx;
-  JSAutoCompartment ac(cx, win->FastGetGlobalJSObject());
+  nsAutoMicroTask mt;
+  dom::AutoEntryScript aes(win, "NPAPI NPN_evaluate");
+  aes.TakeOwnershipOfErrorReporting();
+  JSContext* cx = aes.cx();
 
   JS::Rooted<JSObject*> obj(cx, nsNPObjWrapper::GetNewOrUsed(npp, cx, npobj));
 
@@ -1506,8 +1494,9 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
   }
 
   obj = JS_ObjectToInnerObject(cx, obj);
-  NS_ABORT_IF_FALSE(obj,
-    "JS_ObjectToInnerObject should never return null with non-null input.");
+  MOZ_ASSERT(obj,
+             "JS_ObjectToInnerObject should never return null with non-null "
+             "input.");
 
   if (result) {
     // Initialize the out param to void
@@ -1562,7 +1551,12 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
   options.setFileAndLine(spec, 0)
          .setVersion(JSVERSION_DEFAULT);
   JS::Rooted<JS::Value> rval(cx);
-  nsJSUtils::EvaluateOptions evalOptions;
+  nsJSUtils::EvaluateOptions evalOptions(cx);
+  if (obj != js::GetGlobalForObjectCrossCompartment(obj) &&
+      !evalOptions.scopeChain.append(obj)) {
+    return false;
+  }
+  obj = js::GetGlobalForObjectCrossCompartment(obj);
   nsresult rv = nsJSUtils::EvaluateString(cx, utf16script, obj, options,
                                           evalOptions, &rval);
 
@@ -1840,7 +1834,7 @@ _releasevariantvalue(NPVariant* variant)
           }
         }
 #else
-        NS_Free((void *)s->UTF8Characters);
+        free((void *)s->UTF8Characters);
 #endif
       }
       break;
@@ -1894,7 +1888,10 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
   PluginDestructionGuard guard(npp);
 
-  switch(variable) {
+  // Cast NPNVariable enum to int to avoid warnings about including switch
+  // cases for android_npapi.h's non-standard ANPInterface values.
+  switch (static_cast<int>(variable)) {
+
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
   case NPNVxDisplay : {
 #if defined(MOZ_X11)
@@ -1943,7 +1940,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     return NPERR_GENERIC_ERROR;
 #endif
 
-#if defined(XP_WIN) || (MOZ_WIDGET_GTK == 2) || defined(MOZ_WIDGET_QT)
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
   case NPNVnetscapeWindow: {
     if (!npp || !npp->ndata)
       return NPERR_INVALID_INSTANCE_ERROR;
@@ -2110,25 +2107,25 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 #ifndef NP_NO_QUICKDRAW
   case NPNVsupportsQuickDrawBool: {
     *(NPBool*)result = false;
-    
+
     return NPERR_NO_ERROR;
   }
 #endif
 
   case NPNVsupportsCoreGraphicsBool: {
     *(NPBool*)result = true;
-    
+
     return NPERR_NO_ERROR;
   }
 
   case NPNVsupportsCoreAnimationBool: {
-    *(NPBool*)result = nsCocoaFeatures::SupportCoreAnimationPlugins();
+    *(NPBool*)result = true;
 
     return NPERR_NO_ERROR;
   }
 
   case NPNVsupportsInvalidatingCoreAnimationBool: {
-    *(NPBool*)result = nsCocoaFeatures::SupportCoreAnimationPlugins();
+    *(NPBool*)result = true;
 
     return NPERR_NO_ERROR;
   }
@@ -2187,14 +2184,14 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       InitMatrixInterface(i);
       return NPERR_NO_ERROR;
     }
-      
+
     case kPathInterfaceV0_ANPGetValue: {
       LOG("get path interface");
       ANPPathInterfaceV0 *i = (ANPPathInterfaceV0 *) result;
       InitPathInterface(i);
       return NPERR_NO_ERROR;
     }
-      
+
     case kTypefaceInterfaceV0_ANPGetValue: {
       LOG("get typeface interface");
       ANPTypefaceInterfaceV0 *i = (ANPTypefaceInterfaceV0 *) result;
@@ -2250,7 +2247,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       InitSurfaceInterface(i);
       return NPERR_NO_ERROR;
     }
-      
+
     case kSupportedDrawingModel_ANPGetValue: {
       LOG("get supported drawing model");
       uint32_t* bits = reinterpret_cast<uint32_t*>(result);
@@ -2259,12 +2256,11 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     }
 
     case kJavaContext_ANPGetValue: {
-      jobject ret = mozilla::widget::android::GeckoAppShell::GetContext();
+      auto ret = widget::GeckoAppShell::GetContext();
       if (!ret)
         return NPERR_GENERIC_ERROR;
 
-      int32_t* i  = reinterpret_cast<int32_t*>(result);
-      *i = reinterpret_cast<int32_t>(ret);
+      *static_cast<jobject*>(result) = ret.Forget();
       return NPERR_NO_ERROR;
     }
 
@@ -2317,7 +2313,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       return NPERR_NO_ERROR;
     }
 
-
     case kSystemInterfaceV1_ANPGetValue: {
       LOG("get system interface v1");
       ANPSystemInterfaceV1* i = reinterpret_cast<ANPSystemInterfaceV1*>(result);
@@ -2331,7 +2326,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       InitSystemInterfaceV2(i);
       return NPERR_NO_ERROR;
     }
-
 #endif
 
   // we no longer hand out any XPCOM objects
@@ -2372,7 +2366,9 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
 
   PluginDestructionGuard guard(inst);
 
-  switch (variable) {
+  // Cast NPNVariable enum to int to avoid warnings about including switch
+  // cases for android_npapi.h's non-standard ANPInterface values.
+  switch (static_cast<int>(variable)) {
 
     // we should keep backward compatibility with NPAPI where the
     // actual pointer value is checked rather than its content
@@ -2458,10 +2454,10 @@ _requestread(NPStream *pstream, NPByteRange *rangeList)
 
 #ifdef PLUGIN_LOGGING
   for(NPByteRange * range = rangeList; range != nullptr; range = range->next)
-    PR_LOG(nsPluginLogging::gNPNLog,PLUGIN_LOG_NOISY,
+    MOZ_LOG(nsPluginLogging::gNPNLog,PLUGIN_LOG_NOISY,
     ("%i-%i", range->offset, range->offset + range->length - 1));
 
-  PR_LOG(nsPluginLogging::gNPNLog,PLUGIN_LOG_NOISY, ("\n\n"));
+  MOZ_LOG(nsPluginLogging::gNPNLog,PLUGIN_LOG_NOISY, ("\n\n"));
   PR_LogFlush();
 #endif
 
@@ -2529,7 +2525,7 @@ _memalloc (uint32_t size)
     NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL,("NPN_memalloc called from the wrong thread\n"));
   }
   NPN_PLUGIN_LOG(PLUGIN_LOG_NOISY, ("NPN_MemAlloc: size=%d\n", size));
-  return nsMemory::Alloc(size);
+  return moz_xmalloc(size);
 }
 
 // Deprecated, only stubbed out
@@ -2785,41 +2781,50 @@ _unscheduletimer(NPP instance, uint32_t timerID)
 NPError
 _popupcontextmenu(NPP instance, NPMenu* menu)
 {
+#ifdef MOZ_WIDGET_COCOA
   nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
-  if (!inst)
+
+  double pluginX, pluginY;
+  double screenX, screenY;
+
+  const NPCocoaEvent* currentEvent = static_cast<NPCocoaEvent*>(inst->GetCurrentEvent());
+  if (!currentEvent) {
+    return NPERR_GENERIC_ERROR;
+  }
+
+  // Ensure that the events has an x/y value.
+  if (currentEvent->type != NPCocoaEventMouseDown    &&
+      currentEvent->type != NPCocoaEventMouseUp      &&
+      currentEvent->type != NPCocoaEventMouseMoved   &&
+      currentEvent->type != NPCocoaEventMouseEntered &&
+      currentEvent->type != NPCocoaEventMouseExited  &&
+      currentEvent->type != NPCocoaEventMouseDragged) {
+      return NPERR_GENERIC_ERROR;
+  }
+
+  pluginX = currentEvent->data.mouse.pluginX;
+  pluginY = currentEvent->data.mouse.pluginY;
+
+  if ((pluginX < 0.0) || (pluginY < 0.0))
     return NPERR_GENERIC_ERROR;
 
-  return inst->PopUpContextMenu(menu);
-}
+  NPBool success = _convertpoint(instance,
+                                 pluginX,  pluginY, NPCoordinateSpacePlugin,
+                                 &screenX, &screenY, NPCoordinateSpaceScreen);
 
-NPError
-_initasyncsurface(NPP instance, NPSize *size, NPImageFormat format, void *initData, NPAsyncSurface *surface)
-{
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
-  if (!inst)
+  if (success) {
+    return mozilla::plugins::PluginUtilsOSX::ShowCocoaContextMenu(menu,
+                                    screenX, screenY,
+                                    nullptr,
+                                    nullptr);
+  } else {
+    NS_WARNING("Convertpoint failed, could not created contextmenu.");
     return NPERR_GENERIC_ERROR;
-
-  return inst->InitAsyncSurface(size, format, initData, surface);
-}
-
-NPError
-_finalizeasyncsurface(NPP instance, NPAsyncSurface *surface)
-{
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
-  if (!inst)
+  }
+#else
+    NS_WARNING("Not supported on this platform!");
     return NPERR_GENERIC_ERROR;
-
-  return inst->FinalizeAsyncSurface(surface);
-}
-
-void
-_setcurrentasyncsurface(NPP instance, NPAsyncSurface *surface, NPRect *changed)
-{
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
-  if (!inst)
-    return;
-
-  inst->SetCurrentAsyncSurface(surface, changed);
+#endif
 }
 
 NPBool

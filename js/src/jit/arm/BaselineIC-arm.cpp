@@ -5,10 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/BaselineCompiler.h"
-#include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
-#include "jit/IonLinker.h"
+#include "jit/Linker.h"
+#include "jit/SharedICHelpers.h"
 
 using namespace js;
 using namespace js::jit;
@@ -19,7 +19,7 @@ namespace jit {
 // ICCompare_Int32
 
 bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
@@ -29,14 +29,14 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     // Compare payload regs of R0 and R1.
     Assembler::Condition cond = JSOpToCondition(op, /* signed = */true);
     masm.cmp32(R0.payloadReg(), R1.payloadReg());
-    masm.ma_mov(Imm32(1), R0.payloadReg(), NoSetCond, cond);
-    masm.ma_mov(Imm32(0), R0.payloadReg(), NoSetCond, Assembler::InvertCondition(cond));
+    masm.ma_mov(Imm32(1), R0.payloadReg(), LeaveCC, cond);
+    masm.ma_mov(Imm32(0), R0.payloadReg(), LeaveCC, Assembler::InvertCondition(cond));
 
     // Result is implicitly boxed already.
     masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.payloadReg(), R0);
     EmitReturnFromIC(masm);
 
-    // Failure case - jump to next stub
+    // Failure case - jump to next stub.
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
 
@@ -44,7 +44,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Double::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure, isNaN;
     masm.ensureDouble(R0, FloatReg0, &failure);
@@ -57,12 +57,12 @@ ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
 
     masm.compareDouble(FloatReg0, FloatReg1);
     masm.ma_mov(Imm32(0), dest);
-    masm.ma_mov(Imm32(1), dest, NoSetCond, cond);
+    masm.ma_mov(Imm32(1), dest, LeaveCC, cond);
 
     masm.tagValue(JSVAL_TYPE_BOOLEAN, dest, R0);
     EmitReturnFromIC(masm);
 
-    // Failure case - jump to next stub
+    // Failure case - jump to next stub.
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
     return true;
@@ -75,36 +75,36 @@ extern "C" {
 }
 
 bool
-ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     // Guard that R0 is an integer and R1 is an integer.
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
-    // Add R0 and R1.  Don't need to explicitly unbox, just use R2's payloadReg.
+    // Add R0 and R1. Don't need to explicitly unbox, just use R2's payloadReg.
     Register scratchReg = R2.payloadReg();
 
     // DIV and MOD need an extra non-volatile ValueOperand to hold R0.
-    GeneralRegisterSet savedRegs = availableGeneralRegs(2);
-    savedRegs = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs);
+    AllocatableGeneralRegisterSet savedRegs(availableGeneralRegs(2));
+    savedRegs.set() = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs.set());
     ValueOperand savedValue = savedRegs.takeAnyValue();
 
     Label maybeNegZero, revertRegister;
     switch(op_) {
       case JSOP_ADD:
-        masm.ma_add(R0.payloadReg(), R1.payloadReg(), scratchReg, SetCond);
+        masm.ma_add(R0.payloadReg(), R1.payloadReg(), scratchReg, SetCC);
 
-        // Just jump to failure on overflow.  R0 and R1 are preserved, so we can just jump to
-        // the next stub.
+        // Just jump to failure on overflow. R0 and R1 are preserved, so we can
+        // just jump to the next stub.
         masm.j(Assembler::Overflow, &failure);
 
-        // Box the result and return.  We know R0.typeReg() already contains the integer
-        // tag, so we just need to move the result value into place.
+        // Box the result and return. We know R0.typeReg() already contains the
+        // integer tag, so we just need to move the result value into place.
         masm.mov(scratchReg, R0.payloadReg());
         break;
       case JSOP_SUB:
-        masm.ma_sub(R0.payloadReg(), R1.payloadReg(), scratchReg, SetCond);
+        masm.ma_sub(R0.payloadReg(), R1.payloadReg(), scratchReg, SetCC);
         masm.j(Assembler::Overflow, &failure);
         masm.mov(scratchReg, R0.payloadReg());
         break;
@@ -131,15 +131,16 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.ma_cmp(R0.payloadReg(), Imm32(0), Assembler::LessThan);
         masm.j(Assembler::Equal, &failure);
 
-        // The call will preserve registers r4-r11. Save R0 and the link register.
-        JS_ASSERT(R1 == ValueOperand(r5, r4));
-        JS_ASSERT(R0 == ValueOperand(r3, r2));
+        // The call will preserve registers r4-r11. Save R0 and the link
+        // register.
+        MOZ_ASSERT(R1 == ValueOperand(r5, r4));
+        MOZ_ASSERT(R0 == ValueOperand(r3, r2));
         masm.moveValue(R0, savedValue);
 
         masm.setupAlignedABICall(2);
         masm.passABIArg(R0.payloadReg());
         masm.passABIArg(R1.payloadReg());
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod));
 
         // idivmod returns the quotient in r0, and the remainder in r1.
         if (op_ == JSOP_DIV) {
@@ -187,8 +188,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
             EmitReturnFromIC(masm);
 
             masm.bind(&toUint);
-            masm.convertUInt32ToDouble(scratchReg, ScratchFloatReg);
-            masm.boxDouble(ScratchFloatReg, R0);
+            masm.convertUInt32ToDouble(scratchReg, ScratchDoubleReg);
+            masm.boxDouble(ScratchDoubleReg, R0);
         } else {
             masm.j(Assembler::LessThan, &failure);
             // Move result for return.
@@ -196,7 +197,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         }
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unhandled op for BinaryArith_Int32.");
+        MOZ_CRASH("Unhandled op for BinaryArith_Int32.");
     }
 
     EmitReturnFromIC(masm);
@@ -222,7 +223,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         break;
     }
 
-    // Failure case - jump to next stub
+    // Failure case - jump to next stub.
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
 
@@ -230,7 +231,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
@@ -247,7 +248,7 @@ ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.ma_rsb(R0.payloadReg(), Imm32(0), R0.payloadReg());
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected op");
+        MOZ_CRASH("Unexpected op");
     }
 
     EmitReturnFromIC(masm);

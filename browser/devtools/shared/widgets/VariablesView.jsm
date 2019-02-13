@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,6 @@ const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const LAZY_EMPTY_DELAY = 150; // ms
 const LAZY_EXPAND_DELAY = 50; // ms
 const SCROLL_PAGE_SIZE_DEFAULT = 0;
-const APPEND_PAGE_SIZE_DEFAULT = 500;
 const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
 const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 300; // ms
@@ -247,12 +246,6 @@ VariablesView.prototype = {
   scrollPageSize: SCROLL_PAGE_SIZE_DEFAULT,
 
   /**
-   * The maximum number of elements allowed in a scope, variable or property
-   * that allows pagination when appending children.
-   */
-  appendPageSize: APPEND_PAGE_SIZE_DEFAULT,
-
-  /**
    * Function called each time a variable or property's value is changed via
    * user interaction. If null, then value changes are disabled.
    *
@@ -460,7 +453,7 @@ VariablesView.prototype = {
     searchbox.setAttribute("placeholder", this._searchboxPlaceholder);
     searchbox.setAttribute("type", "search");
     searchbox.setAttribute("flex", "1");
-    searchbox.addEventListener("input", this._onSearchboxInput, false);
+    searchbox.addEventListener("command", this._onSearchboxInput, false);
     searchbox.addEventListener("keypress", this._onSearchboxKeyPress, false);
 
     container.appendChild(searchbox);
@@ -477,7 +470,7 @@ VariablesView.prototype = {
       return;
     }
     this._searchboxContainer.remove();
-    this._searchboxNode.removeEventListener("input", this._onSearchboxInput, false);
+    this._searchboxNode.removeEventListener("command", this._onSearchboxInput, false);
     this._searchboxNode.removeEventListener("keypress", this._onSearchboxKeyPress, false);
 
     this._searchboxContainer = null;
@@ -556,6 +549,25 @@ VariablesView.prototype = {
    *        The variable or property to search for.
    */
   _doSearch: function(aToken) {
+    if (this.controller && this.controller.supportsSearch()) {
+      // Retrieve the main Scope in which we add attributes
+      let scope = this._store[0]._store.get("");
+      if (!aToken) {
+        // Prune the view from old previous content
+        // so that we delete the intermediate search results
+        // we created in previous searches
+        for (let property of scope._store.values()) {
+          property.remove();
+        }
+      }
+      // Retrieve new attributes eventually hidden in splits
+      this.controller.performSearch(scope, aToken);
+      // Filter already displayed attributes
+      if (aToken) {
+        scope._performSearch(aToken.toLowerCase());
+      }
+      return;
+    }
     for (let scope of this._store) {
       switch (aToken) {
         case "":
@@ -987,7 +999,7 @@ VariablesView.prototype = {
    * Gets the parent node holding this view.
    * @return nsIDOMNode
    */
-  get boxObject() this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject),
+  get boxObject() this._list.boxObject,
 
   /**
    * Gets the parent node holding this view.
@@ -1066,7 +1078,7 @@ VariablesView.isSortable = function(aClassName) {
  *         The string to be evaluated.
  */
 VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString, aPrefix = "") {
-  return aPrefix + aItem._symbolicName + "=" + aCurrentString;
+  return aPrefix + aItem.symbolicName + "=" + aCurrentString;
 };
 
 /**
@@ -1084,7 +1096,7 @@ VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString, aPrefix = "
  */
 VariablesView.overrideValueEvalMacro = function(aItem, aCurrentString, aPrefix = "") {
   let property = "\"" + aItem._nameString + "\"";
-  let parent = aPrefix + aItem.ownerView._symbolicName || "this";
+  let parent = aPrefix + aItem.ownerView.symbolicName || "this";
 
   return "Object.defineProperty(" + parent + "," + property + "," +
     "{ value: " + aCurrentString +
@@ -1111,7 +1123,7 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString, aPrefix 
   let propertyObject = aItem.ownerView;
   let parentObject = propertyObject.ownerView;
   let property = "\"" + propertyObject._nameString + "\"";
-  let parent = aPrefix + parentObject._symbolicName || "this";
+  let parent = aPrefix + parentObject.symbolicName || "this";
 
   switch (aCurrentString) {
     case "":
@@ -1150,7 +1162,7 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString, aPrefix 
         let body = "";
         // If there's a return statement explicitly written, always use the
         // standard function definition syntax
-        if (aCurrentString.contains("return ")) {
+        if (aCurrentString.includes("return ")) {
           body = "{" + aCurrentString + "}";
         }
         // If block syntax is used, use the whole string as the function body.
@@ -1214,7 +1226,6 @@ function Scope(aView, aName, aFlags = {}) {
   // Inherit properties and flags from the parent view. You can override
   // each of these directly onto any scope, variable or property instance.
   this.scrollPageSize = aView.scrollPageSize;
-  this.appendPageSize = aView.appendPageSize;
   this.eval = aView.eval;
   this.switch = aView.switch;
   this.delete = aView.delete;
@@ -1288,13 +1299,13 @@ Scope.prototype = {
    */
   addItem: function(aName = "", aDescriptor = {}, aRelaxed = false) {
     if (this._store.has(aName) && !aRelaxed) {
-      return null;
+      return this._store.get(aName);
     }
 
     let child = this._createChild(aName, aDescriptor);
     this._store.set(aName, child);
     this._variablesView._itemsByElement.set(child._target, child);
-    this._variablesView._currHierarchy.set(child._absoluteName, child);
+    this._variablesView._currHierarchy.set(child.absoluteName, child);
     child.header = !!aName;
 
     return child;
@@ -1320,82 +1331,13 @@ Scope.prototype = {
    *        Additional options for adding the properties. Supported options:
    *        - sorted: true to sort all the properties before adding them
    *        - callback: function invoked after each item is added
-   * @param string aKeysType [optional]
-   *        Helper argument in the case of paginated items. Can be either
-   *        "just-strings" or "just-numbers". Humans shouldn't use this argument.
    */
-  addItems: function(aItems, aOptions = {}, aKeysType = "") {
+  addItems: function(aItems, aOptions = {}) {
     let names = Object.keys(aItems);
 
-    // Building the view when inspecting an object with a very large number of
-    // properties may take a long time. To avoid blocking the UI, group
-    // the items into several lazily populated pseudo-items.
-    let exceedsThreshold = names.length >= this.appendPageSize;
-    let shouldPaginate = exceedsThreshold && aKeysType != "just-strings";
-    if (shouldPaginate && this.allowPaginate) {
-      // Group the items to append into two separate arrays, one containing
-      // number-like keys, the other one containing string keys.
-      if (aKeysType == "just-numbers") {
-        var numberKeys = names;
-        var stringKeys = [];
-      } else {
-        var numberKeys = [];
-        var stringKeys = [];
-        for (let name of names) {
-          // Be very careful. Avoid Infinity, NaN and non Natural number keys.
-          let coerced = +name;
-          if (Number.isInteger(coerced) && coerced > -1) {
-            numberKeys.push(name);
-          } else {
-            stringKeys.push(name);
-          }
-        }
-      }
-
-      // This object contains a very large number of properties, but they're
-      // almost all strings that can't be coerced to numbers. Don't paginate.
-      if (numberKeys.length < this.appendPageSize) {
-        this.addItems(aItems, aOptions, "just-strings");
-        return;
-      }
-
-      // Slices a section of the { name: descriptor } data properties.
-      let paginate = (aArray, aBegin = 0, aEnd = aArray.length) => {
-        let store = {}
-        for (let i = aBegin; i < aEnd; i++) {
-          let name = aArray[i];
-          store[name] = aItems[name];
-        }
-        return store;
-      };
-
-      // Creates a pseudo-item that populates itself with the data properties
-      // from the corresponding page range.
-      let createRangeExpander = (aArray, aBegin, aEnd, aOptions, aKeyTypes) => {
-        let rangeVar = this.addItem(aArray[aBegin] + Scope.ellipsis + aArray[aEnd - 1]);
-        rangeVar.onexpand = () => {
-          let pageItems = paginate(aArray, aBegin, aEnd);
-          rangeVar.addItems(pageItems, aOptions, aKeyTypes);
-        }
-        rangeVar.showArrow();
-        rangeVar.target.setAttribute("pseudo-item", "");
-      };
-
-      // Divide the number keys into quarters.
-      let page = +Math.round(numberKeys.length / 4).toPrecision(1);
-      createRangeExpander(numberKeys, 0, page, aOptions, "just-numbers");
-      createRangeExpander(numberKeys, page, page * 2, aOptions, "just-numbers");
-      createRangeExpander(numberKeys, page * 2, page * 3, aOptions, "just-numbers");
-      createRangeExpander(numberKeys, page * 3, numberKeys.length, aOptions, "just-numbers");
-
-      // Append all the string keys together.
-      this.addItems(paginate(stringKeys), aOptions, "just-strings");
-      return;
-    }
-
     // Sort all of the properties before adding them, if preferred.
-    if (aOptions.sorted && aKeysType != "just-numbers") {
-      names.sort();
+    if (aOptions.sorted) {
+      names.sort(this._naturalSort);
     }
 
     // Add the properties to the current scope.
@@ -1536,7 +1478,11 @@ Scope.prototype = {
     this._isExpanded = true;
 
     if (this.onexpand) {
-      this.onexpand(this);
+      // We return onexpand as it sometimes returns a promise
+      // (up to the user of VariableView to do it)
+      // that can indicate when the view is done expanding
+      // and attributes are available. (Mostly used for tests)
+      return this.onexpand(this);
     }
   },
 
@@ -1600,6 +1546,22 @@ Scope.prototype = {
     this._target.setAttribute("untitled", "");
     this._isHeaderVisible = false;
   },
+
+  /**
+   * Sort in ascending order
+   * This only needs to compare non-numbers since it is dealing with an array
+   * which numeric-based indices are placed in order.
+   *
+   * @param string a
+   * @param string b
+   * @return number
+   *         -1 if a is less than b, 0 if no change in order, +1 if a is greater than 0
+   */
+  _naturalSort: function(a,b) {
+    if (isNaN(parseFloat(a)) && isNaN(parseFloat(b))) {
+      return a < b ? -1 : 1;
+    }
+   },
 
   /**
    * Shows the scope's expand/collapse arrow.
@@ -1909,8 +1871,8 @@ Scope.prototype = {
       let lowerCaseValue = variable._valueString.toLowerCase();
 
       // Non-matched variables or properties require a corresponding attribute.
-      if (!lowerCaseName.contains(aLowerCaseQuery) &&
-          !lowerCaseValue.contains(aLowerCaseQuery)) {
+      if (!lowerCaseName.includes(aLowerCaseQuery) &&
+          !lowerCaseValue.includes(aLowerCaseQuery)) {
         variable._matched = false;
       }
       // Variable or property is matched.
@@ -2048,7 +2010,7 @@ Scope.prototype = {
     let parentView = self.ownerView;
     let topView;
 
-    while (topView = parentView.ownerView) {
+    while ((topView = parentView.ownerView)) {
       parentView = topView;
     }
     return parentView;
@@ -2116,7 +2078,7 @@ Scope.prototype = {
 // Creating maps and arrays thousands of times for variables or properties
 // with a large number of children fills up a lot of memory. Make sure
 // these are instantiated only if needed.
-DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_store", Map);
+DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_store", () => new Map());
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_enumItems", Array);
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_nonEnumItems", Array);
 
@@ -2152,8 +2114,6 @@ function Variable(aScope, aName, aDescriptor) {
 
   Scope.call(this, aScope, aName, this._initialDescriptor = aDescriptor);
   this.setGrip(aDescriptor.value);
-  this._symbolicName = aName;
-  this._absoluteName = aScope.name + "[\"" + aName + "\"]";
 }
 
 Variable.prototype = Heritage.extend(Scope.prototype, {
@@ -2203,7 +2163,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     this.ownerView._store.delete(this._nameString);
     this._variablesView._itemsByElement.delete(this._target);
-    this._variablesView._currHierarchy.delete(this._absoluteName);
+    this._variablesView._currHierarchy.delete(this.absoluteName);
 
     this._target.remove();
 
@@ -2234,8 +2194,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     // Sort all of the properties before adding them, if preferred.
     if (aOptions.sorted) {
-      propertyNames.sort();
+      propertyNames.sort(this._naturalSort);
     }
+
     // Add all the variable properties.
     for (let name of propertyNames) {
       let descriptor = Object.getOwnPropertyDescriptor(aObject, name);
@@ -2324,7 +2285,22 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
    * For example, a symbolic name may look like "arguments['0']['foo']['bar']".
    * @return string
    */
-  get symbolicName() this._symbolicName,
+  get symbolicName() {
+    return this._nameString;
+  },
+
+  /**
+   * Gets full path to this variable, including name of the scope.
+   * @return string
+   */
+  get absoluteName() {
+    if (this._absoluteName) {
+      return this._absoluteName;
+    }
+
+    this._absoluteName = this.ownerView._nameString + "[\"" + this._nameString + "\"]";
+    return this._absoluteName;
+  },
 
   /**
    * Gets this variable's symbolic path to the topmost scope.
@@ -2406,10 +2382,27 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
       this._valueLabel.classList.remove(VariablesView.getClass(prevGrip));
     }
     this._valueGrip = aGrip;
-    this._valueString = VariablesView.getString(aGrip, {
-      concise: true,
-      noEllipsis: true,
-    });
+
+    if(aGrip && (aGrip.optimizedOut || aGrip.uninitialized || aGrip.missingArguments)) {
+      if(aGrip.optimizedOut) {
+        this._valueString = STR.GetStringFromName("variablesViewOptimizedOut")
+      }
+      else if(aGrip.uninitialized) {
+        this._valueString = STR.GetStringFromName("variablesViewUninitialized")
+      }
+      else if(aGrip.missingArguments) {
+        this._valueString = STR.GetStringFromName("variablesViewMissingArgs")
+      }
+      this.eval = null;
+    }
+    else {
+      this._valueString = VariablesView.getString(aGrip, {
+        concise: true,
+        noEllipsis: true,
+      });
+      this.eval = this.ownerView.eval;
+    }
+
     this._valueClassName = VariablesView.getClass(aGrip);
 
     this._valueLabel.classList.add(this._valueClassName);
@@ -2446,10 +2439,10 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     let fadeInDelay = this._variablesView.lazyEmptyDelay + 1;
     let fadeOutDelay = fadeInDelay + aDuration;
 
-    setNamedTimeout("vview-flash-in" + this._absoluteName,
+    setNamedTimeout("vview-flash-in" + this.absoluteName,
       fadeInDelay, () => this._target.setAttribute("changed", ""));
 
-    setNamedTimeout("vview-flash-out" + this._absoluteName,
+    setNamedTimeout("vview-flash-out" + this.absoluteName,
       fadeOutDelay, () => this._target.removeAttribute("changed"));
   },
 
@@ -2974,9 +2967,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     }, e);
   },
 
-  _symbolicName: "",
+  _symbolicName: null,
   _symbolicPath: null,
-  _absoluteName: "",
+  _absoluteName: null,
   _initialDescriptor: null,
   _separatorLabel: null,
   _valueLabel: null,
@@ -3005,24 +2998,48 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
  */
 function Property(aVar, aName, aDescriptor) {
   Variable.call(this, aVar, aName, aDescriptor);
-  this._symbolicName = aVar._symbolicName + "[\"" + aName + "\"]";
-  this._absoluteName = aVar._absoluteName + "[\"" + aName + "\"]";
 }
 
 Property.prototype = Heritage.extend(Variable.prototype, {
   /**
    * The class name applied to this property's target element.
    */
-  targetClassName: "variables-view-property variable-or-property"
+  targetClassName: "variables-view-property variable-or-property",
+
+  /**
+   * @see Variable.symbolicName
+   * @return string
+   */
+  get symbolicName() {
+    if (this._symbolicName) {
+      return this._symbolicName;
+    }
+
+    this._symbolicName = this.ownerView.symbolicName + "[\"" + this._nameString + "\"]";
+    return this._symbolicName;
+  },
+
+  /**
+   * @see Variable.absoluteName
+   * @return string
+   */
+  get absoluteName() {
+    if (this._absoluteName) {
+      return this._absoluteName;
+    }
+
+    this._absoluteName = this.ownerView.absoluteName + "[\"" + this._nameString + "\"]";
+    return this._absoluteName;
+  }
 });
 
 /**
  * A generator-iterator over the VariablesView, Scopes, Variables and Properties.
  */
-VariablesView.prototype["@@iterator"] =
-Scope.prototype["@@iterator"] =
-Variable.prototype["@@iterator"] =
-Property.prototype["@@iterator"] = function*() {
+VariablesView.prototype[Symbol.iterator] =
+Scope.prototype[Symbol.iterator] =
+Variable.prototype[Symbol.iterator] =
+Property.prototype[Symbol.iterator] = function*() {
   yield* this._store;
 };
 
@@ -3089,7 +3106,7 @@ VariablesView.prototype.wasExpanded = function(aItem) {
   if (!(aItem instanceof Scope)) {
     return false;
   }
-  let prevItem = this._prevHierarchy.get(aItem._absoluteName || aItem._nameString);
+  let prevItem = this._prevHierarchy.get(aItem.absoluteName || aItem._nameString);
   return prevItem ? prevItem._isExpanded : false;
 };
 
@@ -3109,7 +3126,7 @@ VariablesView.prototype.hasChanged = function(aItem) {
   if (!(aItem instanceof Variable)) {
     return false;
   }
-  let prevItem = this._prevHierarchy.get(aItem._absoluteName);
+  let prevItem = this._prevHierarchy.get(aItem.absoluteName);
   return prevItem ? prevItem._valueString != aItem._valueString : false;
 };
 
@@ -3172,6 +3189,7 @@ VariablesView.isPrimitive = function(aDescriptor) {
       type == "-Infinity" ||
       type == "NaN" ||
       type == "-0" ||
+      type == "symbol" ||
       type == "longString") {
     return true;
   }
@@ -3389,6 +3407,11 @@ VariablesView.stringifiers.byType = {
     }
     return null;
   },
+
+  symbol: function(aGrip, aOptions) {
+    const name = aGrip.name || "";
+    return "Symbol(" + name + ")";
+  },
 }; // VariablesView.stringifiers.byType
 
 VariablesView.stringifiers.byObjectClass = {
@@ -3532,6 +3555,17 @@ VariablesView.stringifiers.byObjectKind = {
 
     let {preview} = aGrip;
     let props = [];
+
+    if (aGrip.class == "Promise" && aGrip.promiseState) {
+      let { state, value, reason } = aGrip.promiseState;
+      props.push("<state>: " + VariablesView.getString(state));
+      if (state == "fulfilled") {
+        props.push("<value>: " + VariablesView.getString(value, { concise: true }));
+      } else if (state == "rejected") {
+        props.push("<reason>: " + VariablesView.getString(reason, { concise: true }));
+      }
+    }
+
     for (let key of Object.keys(preview.ownProperties || {})) {
       let value = preview.ownProperties[key];
       let valueString = "";
@@ -3643,9 +3677,14 @@ VariablesView.stringifiers.byObjectKind = {
 
     switch (preview.nodeType) {
       case Ci.nsIDOMNode.DOCUMENT_NODE: {
-        let location = WebConsoleUtils.abbreviateSourceURL(preview.location,
-                                                           { onlyCropQuery: !concise });
-        return aGrip.class + " \u2192 " + location;
+        let result = aGrip.class;
+        if (preview.location) {
+          let location = WebConsoleUtils.abbreviateSourceURL(preview.location,
+                                                            { onlyCropQuery: !concise });
+          result += " \u2192 " + location;
+        }
+
+        return result;
       }
 
       case Ci.nsIDOMNode.ATTRIBUTE_NODE: {

@@ -5,20 +5,6 @@
 
 package org.mozilla.gecko.home;
 
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoEvent;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.util.ThreadUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.content.Context;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.text.TextUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -28,6 +14,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.util.ThreadUtils;
+
+import android.content.Context;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.text.TextUtils;
+
 public final class HomeConfig {
     /**
      * Used to determine what type of HomeFragment subclass to use when creating
@@ -35,11 +35,14 @@ public final class HomeConfig {
      * to a default set of built-in panels. The DYNAMIC panel type is used by
      * third-party services to create panels with varying types of content.
      */
+    @RobocopTarget
     public static enum PanelType implements Parcelable {
         TOP_SITES("top_sites", TopSitesPanel.class),
         BOOKMARKS("bookmarks", BookmarksPanel.class),
         HISTORY("history", HistoryPanel.class),
+        REMOTE_TABS("remote_tabs", RemoteTabsPanel.class),
         READING_LIST("reading_list", ReadingListPanel.class),
+        RECENT_TABS("recent_tabs", RecentTabsPanel.class),
         DYNAMIC("dynamic", DynamicPanel.class);
 
         private final String mId;
@@ -104,15 +107,17 @@ public final class HomeConfig {
         private final List<ViewConfig> mViews;
         private final AuthConfig mAuthConfig;
         private final EnumSet<Flags> mFlags;
+        private final int mPosition;
 
-        private static final String JSON_KEY_TYPE = "type";
-        private static final String JSON_KEY_TITLE = "title";
-        private static final String JSON_KEY_ID = "id";
-        private static final String JSON_KEY_LAYOUT = "layout";
-        private static final String JSON_KEY_VIEWS = "views";
-        private static final String JSON_KEY_AUTH_CONFIG = "authConfig";
-        private static final String JSON_KEY_DEFAULT = "default";
-        private static final String JSON_KEY_DISABLED = "disabled";
+        static final String JSON_KEY_TYPE = "type";
+        static final String JSON_KEY_TITLE = "title";
+        static final String JSON_KEY_ID = "id";
+        static final String JSON_KEY_LAYOUT = "layout";
+        static final String JSON_KEY_VIEWS = "views";
+        static final String JSON_KEY_AUTH_CONFIG = "authConfig";
+        static final String JSON_KEY_DEFAULT = "default";
+        static final String JSON_KEY_DISABLED = "disabled";
+        static final String JSON_KEY_POSITION = "position";
 
         public enum Flags {
             DEFAULT_PANEL,
@@ -168,6 +173,8 @@ public final class HomeConfig {
                 mFlags.add(Flags.DISABLED_PANEL);
             }
 
+            mPosition = json.optInt(JSON_KEY_POSITION, -1);
+
             validate();
         }
 
@@ -184,6 +191,7 @@ public final class HomeConfig {
             mAuthConfig = (AuthConfig) in.readParcelable(getClass().getClassLoader());
 
             mFlags = (EnumSet<Flags>) in.readSerializable();
+            mPosition = in.readInt();
 
             validate();
         }
@@ -204,6 +212,7 @@ public final class HomeConfig {
 
             mAuthConfig = panelConfig.mAuthConfig;
             mFlags = panelConfig.mFlags.clone();
+            mPosition = panelConfig.mPosition;
 
             validate();
         }
@@ -213,11 +222,11 @@ public final class HomeConfig {
         }
 
         public PanelConfig(PanelType type, String title, String id, EnumSet<Flags> flags) {
-            this(type, title, id, null, null, null, flags);
+            this(type, title, id, null, null, null, flags, -1);
         }
 
         public PanelConfig(PanelType type, String title, String id, LayoutType layoutType,
-                List<ViewConfig> views, AuthConfig authConfig, EnumSet<Flags> flags) {
+                List<ViewConfig> views, AuthConfig authConfig, EnumSet<Flags> flags, int position) {
             mType = type;
             mTitle = title;
             mId = id;
@@ -225,6 +234,7 @@ public final class HomeConfig {
             mViews = views;
             mAuthConfig = authConfig;
             mFlags = flags;
+            mPosition = position;
 
             validate();
         }
@@ -311,6 +321,10 @@ public final class HomeConfig {
             return mAuthConfig;
         }
 
+        public int getPosition() {
+            return mPosition;
+        }
+
         public JSONObject toJSON() throws JSONException {
             final JSONObject json = new JSONObject();
 
@@ -347,6 +361,8 @@ public final class HomeConfig {
                 json.put(JSON_KEY_DISABLED, true);
             }
 
+            json.put(JSON_KEY_POSITION, mPosition);
+
             return json;
         }
 
@@ -369,6 +385,11 @@ public final class HomeConfig {
         }
 
         @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
+
+        @Override
         public int describeContents() {
             return 0;
         }
@@ -382,6 +403,7 @@ public final class HomeConfig {
             dest.writeTypedList(mViews);
             dest.writeParcelable(mAuthConfig, 0);
             dest.writeSerializable(mFlags);
+            dest.writeInt(mPosition);
         }
 
         public static final Creator<PanelConfig> CREATOR = new Creator<PanelConfig>() {
@@ -502,7 +524,8 @@ public final class HomeConfig {
 
     public static enum ItemType implements Parcelable {
         ARTICLE("article"),
-        IMAGE("image");
+        IMAGE("image"),
+        ICON("icon");
 
         private final String mId;
 
@@ -615,14 +638,14 @@ public final class HomeConfig {
         private final EmptyViewConfig mEmptyViewConfig;
         private final EnumSet<Flags> mFlags;
 
-        private static final String JSON_KEY_TYPE = "type";
-        private static final String JSON_KEY_DATASET = "dataset";
-        private static final String JSON_KEY_ITEM_TYPE = "itemType";
-        private static final String JSON_KEY_ITEM_HANDLER = "itemHandler";
-        private static final String JSON_KEY_BACK_IMAGE_URL = "backImageUrl";
-        private static final String JSON_KEY_FILTER = "filter";
-        private static final String JSON_KEY_EMPTY = "empty";
-        private static final String JSON_KEY_REFRESH_ENABLED = "refreshEnabled";
+        static final String JSON_KEY_TYPE = "type";
+        static final String JSON_KEY_DATASET = "dataset";
+        static final String JSON_KEY_ITEM_TYPE = "itemType";
+        static final String JSON_KEY_ITEM_HANDLER = "itemHandler";
+        static final String JSON_KEY_BACK_IMAGE_URL = "backImageUrl";
+        static final String JSON_KEY_FILTER = "filter";
+        static final String JSON_KEY_EMPTY = "empty";
+        static final String JSON_KEY_REFRESH_ENABLED = "refreshEnabled";
 
         public enum Flags {
             REFRESH_ENABLED
@@ -817,15 +840,14 @@ public final class HomeConfig {
         private final String mText;
         private final String mImageUrl;
 
-        private static final String JSON_KEY_TEXT = "text";
-        private static final String JSON_KEY_IMAGE_URL = "imageUrl";
+        static final String JSON_KEY_TEXT = "text";
+        static final String JSON_KEY_IMAGE_URL = "imageUrl";
 
         public EmptyViewConfig(JSONObject json) throws JSONException, IllegalArgumentException {
             mText = json.optString(JSON_KEY_TEXT, null);
             mImageUrl = json.optString(JSON_KEY_IMAGE_URL, null);
         }
 
-        @SuppressWarnings("unchecked")
         public EmptyViewConfig(Parcel in) {
             mText = in.readString();
             mImageUrl = in.readString();
@@ -887,9 +909,9 @@ public final class HomeConfig {
         private final String mButtonText;
         private final String mImageUrl;
 
-        private static final String JSON_KEY_MESSAGE_TEXT = "messageText";
-        private static final String JSON_KEY_BUTTON_TEXT = "buttonText";
-        private static final String JSON_KEY_IMAGE_URL = "imageUrl";
+        static final String JSON_KEY_MESSAGE_TEXT = "messageText";
+        static final String JSON_KEY_BUTTON_TEXT = "buttonText";
+        static final String JSON_KEY_IMAGE_URL = "imageUrl";
 
         public AuthConfig(JSONObject json) throws JSONException, IllegalArgumentException {
             mMessageText = json.optString(JSON_KEY_MESSAGE_TEXT);
@@ -897,7 +919,6 @@ public final class HomeConfig {
             mImageUrl = json.optString(JSON_KEY_IMAGE_URL, null);
         }
 
-        @SuppressWarnings("unchecked")
         public AuthConfig(Parcel in) {
             mMessageText = in.readString();
             mButtonText = in.readString();
@@ -1071,9 +1092,7 @@ public final class HomeConfig {
             mConfigMap = new HashMap<String, PanelConfig>();
             mConfigOrder = new LinkedList<String>();
             mEventQueue = new LinkedList<GeckoEvent>();
-            mEnabledCount = 0;
 
-            mHasChanged = false;
             mIsFromDefault = configState.isDefault();
 
             initFromState(configState);
@@ -1268,7 +1287,13 @@ public final class HomeConfig {
             final String id = panelConfig.getId();
             if (!mConfigMap.containsKey(id)) {
                 mConfigMap.put(id, panelConfig);
-                mConfigOrder.add(id);
+
+                final int position = panelConfig.getPosition();
+                if (position < 0 || position >= mConfigOrder.size()) {
+                    mConfigOrder.add(id);
+                } else {
+                    mConfigOrder.add(position, id);
+                }
 
                 mEnabledCount++;
                 if (mEnabledCount == 1 || panelConfig.isDefault()) {
@@ -1277,7 +1302,7 @@ public final class HomeConfig {
 
                 installed = true;
 
-                // Add an event to the queue if a new panel is sucessfully installed.
+                // Add an event to the queue if a new panel is successfully installed.
                 mEventQueue.add(GeckoEvent.createBroadcastEvent("HomePanels:Installed", panelConfig.getId()));
             }
 
@@ -1313,7 +1338,7 @@ public final class HomeConfig {
                 findNewDefault();
             }
 
-            // Add an event to the queue if a panel is succesfully uninstalled.
+            // Add an event to the queue if a panel is successfully uninstalled.
             mEventQueue.add(GeckoEvent.createBroadcastEvent("HomePanels:Uninstalled", panelId));
 
             mHasChanged = true;
@@ -1490,11 +1515,18 @@ public final class HomeConfig {
         public void setOnReloadListener(OnReloadListener listener);
     }
 
-    // UUIDs used to create PanelConfigs for default built-in panels
+    // UUIDs used to create PanelConfigs for default built-in panels. These are
+    // public because they can be used in "about:home?panel=UUID" query strings
+    // to open specific panels without querying the active Home Panel
+    // configuration. Because they don't consider the active configuration, it
+    // is only sensible to do this for built-in panels (and not for dynamic
+    // panels).
     private static final String TOP_SITES_PANEL_ID = "4becc86b-41eb-429a-a042-88fe8b5a094e";
     private static final String BOOKMARKS_PANEL_ID = "7f6d419a-cd6c-4e34-b26f-f68b1b551907";
     private static final String READING_LIST_PANEL_ID = "20f4549a-64ad-4c32-93e4-1dcef792733b";
     private static final String HISTORY_PANEL_ID = "f134bf20-11f7-4867-ab8b-e8e705d7fbe8";
+    private static final String RECENT_TABS_PANEL_ID = "5c2601a5-eedc-4477-b297-ce4cef52adf8";
+    private static final String REMOTE_TABS_PANEL_ID = "72429afd-8d8b-43d8-9189-14b779c563d0";
 
     private final HomeConfigBackend mBackend;
 
@@ -1525,34 +1557,59 @@ public final class HomeConfig {
         return createBuiltinPanelConfig(context, panelType, EnumSet.noneOf(PanelConfig.Flags.class));
     }
 
-    public static PanelConfig createBuiltinPanelConfig(Context context, PanelType panelType, EnumSet<PanelConfig.Flags> flags) {
-        int titleId = 0;
-        String id = null;
-
+    public static int getTitleResourceIdForBuiltinPanelType(PanelType panelType) {
         switch(panelType) {
-            case TOP_SITES:
-                titleId = R.string.home_top_sites_title;
-                id = TOP_SITES_PANEL_ID;
-                break;
+        case TOP_SITES:
+            return R.string.home_top_sites_title;
 
-            case BOOKMARKS:
-                titleId = R.string.bookmarks_title;
-                id = BOOKMARKS_PANEL_ID;
-                break;
+        case BOOKMARKS:
+            return R.string.bookmarks_title;
 
-            case HISTORY:
-                titleId = R.string.home_history_title;
-                id = HISTORY_PANEL_ID;
-                break;
+        case HISTORY:
+            return R.string.home_history_title;
 
-            case READING_LIST:
-                titleId = R.string.reading_list_title;
-                id = READING_LIST_PANEL_ID;
-                break;
+        case REMOTE_TABS:
+            return R.string.home_remote_tabs_title;
 
-            case DYNAMIC:
-                throw new IllegalArgumentException("createBuiltinPanelConfig() is only for built-in panels");
+        case READING_LIST:
+            return R.string.reading_list_title;
+
+        case RECENT_TABS:
+            return R.string.recent_tabs_title;
+
+        default:
+            throw new IllegalArgumentException("Only for built-in panel types: " + panelType);
         }
+    }
+
+    public static String getIdForBuiltinPanelType(PanelType panelType) {
+        switch(panelType) {
+        case TOP_SITES:
+            return TOP_SITES_PANEL_ID;
+
+        case BOOKMARKS:
+            return BOOKMARKS_PANEL_ID;
+
+        case HISTORY:
+            return HISTORY_PANEL_ID;
+
+        case REMOTE_TABS:
+            return REMOTE_TABS_PANEL_ID;
+
+        case READING_LIST:
+            return READING_LIST_PANEL_ID;
+
+        case RECENT_TABS:
+            return RECENT_TABS_PANEL_ID;
+
+        default:
+            throw new IllegalArgumentException("Only for built-in panel types: " + panelType);
+        }
+    }
+
+    public static PanelConfig createBuiltinPanelConfig(Context context, PanelType panelType, EnumSet<PanelConfig.Flags> flags) {
+        final int titleId = getTitleResourceIdForBuiltinPanelType(panelType);
+        final String id = getIdForBuiltinPanelType(panelType);
 
         return new PanelConfig(panelType, context.getString(titleId), id, flags);
     }

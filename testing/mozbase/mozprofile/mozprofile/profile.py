@@ -7,7 +7,6 @@ __all__ = ['Profile',
            'MetroFirefoxProfile',
            'ThunderbirdProfile']
 
-import json
 import os
 import time
 import tempfile
@@ -27,6 +26,23 @@ class Profile(object):
 
     Creating new profiles, installing add-ons, setting preferences and
     handling cleanup.
+
+    The files associated with the profile will be removed automatically after
+    the object is garbage collected: ::
+
+      profile = Profile()
+      print profile.profile  # this is the path to the created profile
+      del profile
+      # the profile path has been removed from disk
+
+    :meth:`cleanup` is called under the hood to remove the profile files. You
+    can ensure this method is called (even in the case of exception) by using
+    the profile as a context manager: ::
+
+      with Profile() as profile:
+          # do things with the profile
+          pass
+      # profile.cleanup() has been called here
     """
 
     def __init__(self, profile=None, addons=None, addon_manifests=None, apps=None,
@@ -105,8 +121,14 @@ class Profile(object):
         self.webapps = WebappCollection(profile=self.profile, apps=self._apps)
         self.webapps.update_manifests()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.cleanup()
+
     def __del__(self):
-      self.cleanup()
+        self.cleanup()
 
     ### cleanup
 
@@ -158,16 +180,8 @@ class Profile(object):
             path_to = tempdir
         copytree(path_from, path_to)
 
-        def cleanup_clone(fn):
-            """Deletes a cloned profile when restore is True"""
-            def wrapped(self):
-                fn(self)
-                if self.restore and os.path.exists(self.profile):
-                    mozfile.remove(self.profile)
-            return wrapped
-
         c = cls(path_to, **kwargs)
-        c.__del__ = c.cleanup = types.MethodType(cleanup_clone(cls.cleanup), c)
+        c.create_new = True  # deletes a cloned profile when restore is True
         return c
 
     def exists(self):
@@ -198,6 +212,25 @@ class Profile(object):
             f.write('%s\n' % self.delimeters[1])
 
         f.close()
+
+    def set_persistent_preferences(self, preferences):
+        """
+        Adds preferences dict to profile preferences and save them during a
+        profile reset
+        """
+
+        # this is a dict sometimes, convert
+        if isinstance(preferences, dict):
+            preferences = preferences.items()
+
+        # add new prefs to preserve them during reset
+        for new_pref in preferences:
+            # if dupe remove item from original list
+            self._preferences = [
+                pref for pref in self._preferences if not new_pref[0] == pref[0]]
+            self._preferences.append(new_pref)
+
+        self.set_preferences(preferences, filename='user.js')
 
     def pop_preferences(self, filename):
         """
@@ -349,6 +382,14 @@ class FirefoxProfile(Profile):
                    'toolkit.startup.max_resumed_crashes' : -1,
                    # Don't report telemetry information
                    'toolkit.telemetry.enabled' : False,
+                   # Don't send Telemetry reports to the production server. This is
+                   # needed as Telemetry sends pings also if FHR upload is enabled.
+                   'toolkit.telemetry.server' : 'http://%(server)s/telemetry-dummy/',
+                   # Our current tests expect the unified Telemetry feature to be opt-out,
+                   # which is not true while we hold back shipping it.
+                   'toolkit.telemetry.unifiedIsOptIn': True,
+                   # Disable periodic updates of service workers
+                   'dom.serviceWorkers.periodic-updates.enabled': False,
                    }
 
 class MetroFirefoxProfile(Profile):
@@ -392,6 +433,11 @@ class MetroFirefoxProfile(Profile):
                    'toolkit.startup.max_resumed_crashes' : -1,
                    # Don't report telemetry information
                    'toolkit.telemetry.enabled' : False,
+                   # Don't send Telemetry reports to the production server. This is
+                   # needed as Telemetry sends pings also if FHR upload is enabled.
+                   'toolkit.telemetry.server' : 'http://%(server)s/telemetry-dummy/',
+                   # Disable periodic updates of service workers
+                   'dom.serviceWorkers.periodic-updates.enabled': False,
                    }
 
 class ThunderbirdProfile(Profile):

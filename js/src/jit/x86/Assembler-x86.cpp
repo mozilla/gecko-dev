@@ -19,34 +19,46 @@ ABIArgGenerator::ABIArgGenerator()
 ABIArg
 ABIArgGenerator::next(MIRType type)
 {
-    current_ = ABIArg(stackOffset_);
     switch (type) {
       case MIRType_Int32:
       case MIRType_Pointer:
+        current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint32_t);
         break;
       case MIRType_Float32: // Float32 moves are actually double moves
       case MIRType_Double:
+        current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint64_t);
         break;
+      case MIRType_Int32x4:
+      case MIRType_Float32x4:
+        // SIMD values aren't passed in or out of C++, so we can make up
+        // whatever internal ABI we like. visitAsmJSPassArg assumes
+        // SimdMemoryAlignment.
+        stackOffset_ = AlignBytes(stackOffset_, SimdMemoryAlignment);
+        current_ = ABIArg(stackOffset_);
+        stackOffset_ += Simd128DataSize;
+        break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected argument type");
+        MOZ_CRASH("Unexpected argument type");
     }
     return current_;
 }
 
-const Register ABIArgGenerator::NonArgReturnVolatileReg0 = ecx;
-const Register ABIArgGenerator::NonArgReturnVolatileReg1 = edx;
+const Register ABIArgGenerator::NonArgReturnReg0 = ecx;
+const Register ABIArgGenerator::NonArgReturnReg1 = edx;
 const Register ABIArgGenerator::NonVolatileReg = ebx;
+const Register ABIArgGenerator::NonArg_VolatileReg = eax;
+const Register ABIArgGenerator::NonReturn_VolatileReg0 = ecx;
 
 void
-Assembler::executableCopy(uint8_t *buffer)
+Assembler::executableCopy(uint8_t* buffer)
 {
     AssemblerX86Shared::executableCopy(buffer);
 
     for (size_t i = 0; i < jumps_.length(); i++) {
-        RelativePatch &rp = jumps_[i];
-        JSC::X86Assembler::setRel32(buffer + rp.offset, rp.target);
+        RelativePatch& rp = jumps_[i];
+        X86Encoding::SetRel32(buffer + rp.offset, rp.target);
     }
 }
 
@@ -56,7 +68,7 @@ class RelocationIterator
     uint32_t offset_;
 
   public:
-    RelocationIterator(CompactBufferReader &reader)
+    RelocationIterator(CompactBufferReader& reader)
       : reader_(reader)
     { }
 
@@ -72,21 +84,20 @@ class RelocationIterator
     }
 };
 
-static inline JitCode *
-CodeFromJump(uint8_t *jump)
+static inline JitCode*
+CodeFromJump(uint8_t* jump)
 {
-    uint8_t *target = (uint8_t *)JSC::X86Assembler::getRel32Target(jump);
+    uint8_t* target = (uint8_t*)X86Encoding::GetRel32Target(jump);
     return JitCode::FromExecutable(target);
 }
 
 void
-Assembler::TraceJumpRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader)
+Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     RelocationIterator iter(reader);
     while (iter.read()) {
-        JitCode *child = CodeFromJump(code->raw() + iter.offset());
-        MarkJitCodeUnbarriered(trc, &child, "rel32");
-        JS_ASSERT(child == CodeFromJump(code->raw() + iter.offset()));
+        JitCode* child = CodeFromJump(code->raw() + iter.offset());
+        TraceManuallyBarrieredEdge(trc, &child, "rel32");
+        MOZ_ASSERT(child == CodeFromJump(code->raw() + iter.offset()));
     }
 }
-

@@ -19,11 +19,36 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageBroadcaster");
 
+XPCOMUtils.defineLazyServiceGetter(this, "dataStoreService",
+                                   "@mozilla.org/datastore-service;1",
+                                   "nsIDataStoreService");
+
+XPCOMUtils.defineLazyServiceGetter(this, "systemMessenger",
+                                   "@mozilla.org/system-message-internal;1",
+                                   "nsISystemMessagesInternal");
+
+var kSysMsgOnChangeShortTimeoutSec =
+    Services.prefs.getIntPref("dom.datastore.sysMsgOnChangeShortTimeoutSec");
+var kSysMsgOnChangeLongTimeoutSec =
+    Services.prefs.getIntPref("dom.datastore.sysMsgOnChangeLongTimeoutSec");
+
 this.DataStoreChangeNotifier = {
   children: [],
   messages: [ "DataStore:Changed", "DataStore:RegisterForMessages",
               "DataStore:UnregisterForMessages",
               "child-process-shutdown" ],
+
+  // These hashes are used for storing the mapping between the datastore
+  // identifiers (name | owner manifest URL) and their correspondent timers. 
+  // The object literal is defined as below:
+  //
+  // {
+  //   "datastore name 1|owner manifest URL 1": timer1,
+  //   "datastore name 2|owner manifest URL 2": timer2,
+  //   ...
+  // }
+  sysMsgOnChangeShortTimers: {},
+  sysMsgOnChangeLongTimers: {},
 
   init: function() {
     debug("init");
@@ -55,7 +80,8 @@ this.DataStoreChangeNotifier = {
   },
 
   broadcastMessage: function broadcastMessage(aData) {
-    debug("Broadast");
+    debug("broadcast");
+
     this.children.forEach(function(obj) {
       if (obj.store == aData.store && obj.owner == aData.owner) {
         obj.mm.sendAsyncMessage("DataStore:Changed:Return:OK", aData);
@@ -63,24 +89,75 @@ this.DataStoreChangeNotifier = {
     });
   },
 
+  broadcastSystemMessage: function(aStore, aOwner) {
+    debug("broadcastSystemMessage");
+
+    // Clear relevant timers.
+    var storeKey = aStore + "|" + aOwner;
+    var shortTimer = this.sysMsgOnChangeShortTimers[storeKey];
+    if (shortTimer) {
+      shortTimer.cancel();
+      delete this.sysMsgOnChangeShortTimers[storeKey];
+    }
+    var longTimer = this.sysMsgOnChangeLongTimers[storeKey];
+    if (longTimer) {
+      longTimer.cancel();
+      delete this.sysMsgOnChangeLongTimers[storeKey];
+    }
+
+    systemMessenger.broadcastMessage("datastore-update-" + aStore,
+                                     { owner: aOwner });
+  },
+
+  // Use the following logic to broadcast system messages in a moderate pattern.
+  // 1. When an entry is changed, start a short timer and a long timer.
+  // 2. If an entry is changed while the short timer is running, reset it.
+  //    Do not reset the long timer.
+  // 3. Once either fires, broadcast the system message and cancel both timers.
+  setSystemMessageTimeout: function(aStore, aOwner) {
+    debug("setSystemMessageTimeout");
+
+    var storeKey = aStore + "|" + aOwner;
+
+    // Reset the short timer.
+    var shortTimer = this.sysMsgOnChangeShortTimers[storeKey];
+    if (!shortTimer) {
+      shortTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this.sysMsgOnChangeShortTimers[storeKey] = shortTimer;
+    } else {
+      shortTimer.cancel();
+    }
+    shortTimer.initWithCallback({ notify: this.broadcastSystemMessage.bind(this, aStore, aOwner) },
+                                kSysMsgOnChangeShortTimeoutSec * 1000,
+                                Ci.nsITimer.TYPE_ONE_SHOT);
+
+    // Set the long timer if necessary.
+    if (!this.sysMsgOnChangeLongTimers[storeKey]) {
+      var longTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this.sysMsgOnChangeLongTimers[storeKey] = longTimer;
+      longTimer.initWithCallback({ notify: this.broadcastSystemMessage.bind(this, aStore, aOwner) },
+                                 kSysMsgOnChangeLongTimeoutSec * 1000,
+                                 Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+  },
 
   receiveMessage: function(aMessage) {
-    debug("receiveMessage");
+    debug("receiveMessage ");
 
-    // No check has to be done when the message is 'child-process-shutdown'
-    // because at this point the target is already disconnected from
-    // nsFrameMessageManager, so that assertAppHasStatus will always fail.
-    let prefName = 'dom.testing.datastore_enabled_for_hosted_apps';
-    if (aMessage.name != 'child-process-shutdown' &&
-        (Services.prefs.getPrefType(prefName) == Services.prefs.PREF_INVALID ||
-         !Services.prefs.getBoolPref(prefName)) &&
-        !aMessage.target.assertAppHasStatus(Ci.nsIPrincipal.APP_STATUS_CERTIFIED)) {
-      return;
+    // No check has to be done when the message is 'child-process-shutdown'.
+    if (aMessage.name != "child-process-shutdown") {
+      let principal = aMessage.principal;
+      if (!principal || !dataStoreService.checkPermission(principal)) {
+        return;
+      }
     }
 
     switch (aMessage.name) {
       case "DataStore:Changed":
         this.broadcastMessage(aMessage.data);
+        if (Services.prefs.getBoolPref("dom.sysmsg.enabled")) {
+          this.setSystemMessageTimeout(aMessage.data.store, aMessage.data.owner);
+        }
         break;
 
       case "DataStore:RegisterForMessages":

@@ -17,26 +17,28 @@
 
 #include <stdint.h>                     // for uint64_t
 #include "Layers.h"                     // for Layer
-#include "ShadowLayersManager.h"        // for ShadowLayersManager
 #include "base/basictypes.h"            // for DISALLOW_EVIL_CONSTRUCTORS
 #include "base/platform_thread.h"       // for PlatformThreadId
+#include "base/thread.h"                // for Thread
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/Monitor.h"            // for Monitor
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/TimeStamp.h"          // for TimeStamp
+#include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/LayersMessages.h"  // for TargetConfig
 #include "mozilla/layers/PCompositorParent.h"
+#include "mozilla/layers/ShadowLayersManager.h" // for ShadowLayersManager
 #include "mozilla/layers/APZTestData.h"
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsISupportsImpl.h"
-#include "nsSize.h"                     // for nsIntSize
+#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+#include "mozilla/VsyncDispatcher.h"
 
 class CancelableTask;
 class MessageLoop;
-class gfxContext;
 class nsIWidget;
 
 namespace mozilla {
@@ -49,6 +51,7 @@ namespace layers {
 class APZCTreeManager;
 class AsyncCompositionManager;
 class Compositor;
+class CompositorParent;
 class LayerManagerComposite;
 class LayerTransactionParent;
 
@@ -63,51 +66,217 @@ private:
   uint64_t mLayersId;
 };
 
-class CompositorParent : public PCompositorParent,
-                         public ShadowLayersManager
+class CompositorThreadHolder final
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorThreadHolder)
 
 public:
-  CompositorParent(nsIWidget* aWidget,
-                   bool aUseExternalSurfaceSize = false,
-                   int aSurfaceWidth = -1, int aSurfaceHeight = -1);
+  CompositorThreadHolder();
+
+  base::Thread* GetCompositorThread() const {
+    return mCompositorThread;
+  }
+
+private:
+  ~CompositorThreadHolder();
+
+  base::Thread* const mCompositorThread;
+
+  static base::Thread* CreateCompositorThread();
+  static void DestroyCompositorThread(base::Thread* aCompositorThread);
+
+  friend class CompositorParent;
+};
+
+class CompositorScheduler
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorScheduler)
+  explicit CompositorScheduler(CompositorParent* aCompositorParent);
+
+  virtual void ScheduleComposition() = 0;
+  virtual void CancelCurrentCompositeTask();
+  virtual bool NeedsComposite() = 0;
+  virtual void Composite(TimeStamp aTimestamp) = 0;
+  virtual void ScheduleTask(CancelableTask*, int);
+  virtual void ResumeComposition();
+  virtual void ForceComposeToTarget(gfx::DrawTarget* aTarget, const gfx::IntRect* aRect);
+  virtual void ComposeToTarget(gfx::DrawTarget* aTarget, const gfx::IntRect* aRect = nullptr);
+  virtual void Destroy();
+
+  const TimeStamp& GetLastComposeTime()
+  {
+    return mLastCompose;
+  }
+
+#ifdef COMPOSITOR_PERFORMANCE_WARNING
+  const TimeStamp& GetExpectedComposeStartTime()
+  {
+    return mExpectedComposeStartTime;
+  }
+#endif
+
+protected:
+  virtual ~CompositorScheduler();
+
+  CompositorParent* mCompositorParent;
+  TimeStamp mLastCompose;
+  CancelableTask* mCurrentCompositeTask;
+
+#ifdef COMPOSITOR_PERFORMANCE_WARNING
+  TimeStamp mExpectedComposeStartTime;
+#endif
+};
+
+class CompositorSoftwareTimerScheduler final : public CompositorScheduler
+{
+public:
+  explicit CompositorSoftwareTimerScheduler(CompositorParent* aCompositorParent);
+
+  // from CompositorScheduler
+  virtual void ScheduleComposition() override;
+  virtual bool NeedsComposite() override;
+  virtual void Composite(TimeStamp aTimestamp) override;
+
+  void CallComposite();
+private:
+  virtual ~CompositorSoftwareTimerScheduler();
+};
+
+/**
+ * Manages the vsync (de)registration and tracking on behalf of the
+ * compositor when it need to paint.
+ * Turns vsync notifications into scheduled composites.
+ **/
+
+class CompositorVsyncScheduler final : public CompositorScheduler
+{
+public:
+  explicit CompositorVsyncScheduler(CompositorParent* aCompositorParent, nsIWidget* aWidget);
+  bool NotifyVsync(TimeStamp aVsyncTimestamp);
+  void SetNeedsComposite(bool aSchedule);
+  void OnForceComposeToTarget();
+
+  // from CompositorScheduler
+  virtual void ScheduleComposition() override;
+  virtual void CancelCurrentCompositeTask() override;
+  virtual bool NeedsComposite() override;
+  virtual void Composite(TimeStamp aVsyncTimestamp) override;
+  virtual void ForceComposeToTarget(gfx::DrawTarget* aTarget, const gfx::IntRect* aRect) override;
+  virtual void Destroy() override;
+
+private:
+  virtual ~CompositorVsyncScheduler();
+
+  void NotifyCompositeTaskExecuted();
+  void ObserveVsync();
+  void UnobserveVsync();
+  void DispatchTouchEvents(TimeStamp aVsyncTimestamp);
+  void CancelCurrentSetNeedsCompositeTask();
+
+  class Observer final : public VsyncObserver
+  {
+  public:
+    explicit Observer(CompositorVsyncScheduler* aOwner);
+    virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) override;
+    void Destroy();
+  private:
+    virtual ~Observer();
+
+    Mutex mMutex;
+    // Hold raw pointer to avoid mutual reference.
+    CompositorVsyncScheduler* mOwner;
+  };
+
+  bool mNeedsComposite;
+  bool mIsObservingVsync;
+  int32_t mVsyncNotificationsSkipped;
+  CompositorParent* mCompositorParent;
+  nsRefPtr<CompositorVsyncDispatcher> mCompositorVsyncDispatcher;
+  nsRefPtr<CompositorVsyncScheduler::Observer> mVsyncObserver;
+
+  mozilla::Monitor mCurrentCompositeTaskMonitor;
+
+  mozilla::Monitor mSetNeedsCompositeMonitor;
+  CancelableTask* mSetNeedsCompositeTask;
+};
+
+class CompositorUpdateObserver
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorUpdateObserver);
+
+  virtual void ObserveUpdate(uint64_t aLayersId, bool aActive) = 0;
+
+protected:
+  virtual ~CompositorUpdateObserver() {}
+};
+
+class CompositorParent final : public PCompositorParent,
+                               public ShadowLayersManager
+{
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorParent)
+  friend class CompositorScheduler;
+
+public:
+  explicit CompositorParent(nsIWidget* aWidget,
+                            bool aUseExternalSurfaceSize = false,
+                            int aSurfaceWidth = -1, int aSurfaceHeight = -1);
 
   // IToplevelProtocol::CloneToplevel()
   virtual IToplevelProtocol*
   CloneToplevel(const InfallibleTArray<mozilla::ipc::ProtocolFdMapping>& aFds,
                 base::ProcessHandle aPeerProcess,
-                mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
+                mozilla::ipc::ProtocolCloneContext* aCtx) override;
 
-  virtual bool RecvRequestOverfill() MOZ_OVERRIDE;
-  virtual bool RecvWillStop() MOZ_OVERRIDE;
-  virtual bool RecvStop() MOZ_OVERRIDE;
-  virtual bool RecvPause() MOZ_OVERRIDE;
-  virtual bool RecvResume() MOZ_OVERRIDE;
-  virtual bool RecvNotifyChildCreated(const uint64_t& child) MOZ_OVERRIDE;
+  virtual bool RecvGetFrameUniformity(FrameUniformityData* aOutData) override;
+  virtual bool RecvRequestOverfill() override;
+  virtual bool RecvWillStop() override;
+  virtual bool RecvStop() override;
+  virtual bool RecvPause() override;
+  virtual bool RecvResume() override;
+  virtual bool RecvNotifyHidden(const uint64_t& id) override { return true; }
+  virtual bool RecvNotifyVisible(const uint64_t& id) override { return true; }
+  virtual bool RecvNotifyChildCreated(const uint64_t& child) override;
+  virtual bool RecvAdoptChild(const uint64_t& child) override;
   virtual bool RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
-                                const nsIntRect& aRect) MOZ_OVERRIDE;
-  virtual bool RecvFlushRendering() MOZ_OVERRIDE;
+                                const gfx::IntRect& aRect) override;
+  virtual bool RecvMakeWidgetSnapshot(const SurfaceDescriptor& aInSnapshot) override;
+  virtual bool RecvFlushRendering() override;
 
-  virtual bool RecvNotifyRegionInvalidated(const nsIntRegion& aRegion) MOZ_OVERRIDE;
-  virtual bool RecvStartFrameTimeRecording(const int32_t& aBufferSize, uint32_t* aOutStartIndex) MOZ_OVERRIDE;
-  virtual bool RecvStopFrameTimeRecording(const uint32_t& aStartIndex, InfallibleTArray<float>* intervals) MOZ_OVERRIDE;
+  virtual bool RecvGetTileSize(int32_t* aWidth, int32_t* aHeight) override;
 
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual bool RecvNotifyRegionInvalidated(const nsIntRegion& aRegion) override;
+  virtual bool RecvStartFrameTimeRecording(const int32_t& aBufferSize, uint32_t* aOutStartIndex) override;
+  virtual bool RecvStopFrameTimeRecording(const uint32_t& aStartIndex, InfallibleTArray<float>* intervals) override;
+
+  // Unused for chrome <-> compositor communication (which this class does).
+  // @see CrossProcessCompositorParent::RecvRequestNotifyAfterRemotePaint
+  virtual bool RecvRequestNotifyAfterRemotePaint() override { return true; };
+
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
   virtual void ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
                                    const uint64_t& aTransactionId,
                                    const TargetConfig& aTargetConfig,
+                                   const InfallibleTArray<PluginWindowData>& aPlugins,
                                    bool aIsFirstPaint,
                                    bool aScheduleComposite,
-                                   uint32_t aPaintSequenceNumber) MOZ_OVERRIDE;
-  virtual void ForceComposite(LayerTransactionParent* aLayerTree) MOZ_OVERRIDE;
+                                   uint32_t aPaintSequenceNumber,
+                                   bool aIsRepeatTransaction) override;
+  virtual void ForceComposite(LayerTransactionParent* aLayerTree) override;
   virtual bool SetTestSampleTime(LayerTransactionParent* aLayerTree,
-                                 const TimeStamp& aTime) MOZ_OVERRIDE;
-  virtual void LeaveTestMode(LayerTransactionParent* aLayerTree) MOZ_OVERRIDE;
+                                 const TimeStamp& aTime) override;
+  virtual void LeaveTestMode(LayerTransactionParent* aLayerTree) override;
+  virtual void ApplyAsyncProperties(LayerTransactionParent* aLayerTree)
+               override;
+  virtual void FlushApzRepaints(const LayerTransactionParent* aLayerTree) override;
   virtual void GetAPZTestData(const LayerTransactionParent* aLayerTree,
-                              APZTestData* aOutData) MOZ_OVERRIDE;
-  virtual AsyncCompositionManager* GetCompositionManager(LayerTransactionParent* aLayerTree) MOZ_OVERRIDE { return mCompositionManager; }
+                              APZTestData* aOutData) override;
+  virtual void SetConfirmedTargetAPZC(const LayerTransactionParent* aLayerTree,
+                                      const uint64_t& aInputBlockId,
+                                      const nsTArray<ScrollableLayerGuid>& aTargets) override;
+  virtual AsyncCompositionManager* GetCompositionManager(LayerTransactionParent* aLayerTree) override { return mCompositionManager; }
 
   /**
    * This forces the is-first-paint flag to true. This is intended to
@@ -118,6 +287,8 @@ public:
    */
   void ForceIsFirstPaint();
   void Destroy();
+
+  static void SetShadowProperties(Layer* aLayer);
 
   void NotifyChildCreated(const uint64_t& aChild);
 
@@ -130,11 +301,13 @@ public:
    * Returns true if a surface was obtained and the resume succeeded; false
    * otherwise.
    */
+  bool ScheduleResumeOnCompositorThread();
   bool ScheduleResumeOnCompositorThread(int width, int height);
 
   virtual void ScheduleComposition();
   void NotifyShadowTreeTransaction(uint64_t aId, bool aIsFirstPaint,
-      bool aScheduleComposite, uint32_t aPaintSequenceNumber);
+      bool aScheduleComposite, uint32_t aPaintSequenceNumber,
+      bool aIsRepeatTransaction);
 
   /**
    * Check rotation info and schedule a rendering task if needed.
@@ -166,7 +339,10 @@ public:
   static void StartUp();
 
   /**
-   * Destroys the compositor thread and the global compositor map.
+   * Waits for all [CrossProcess]CompositorParent's to be gone,
+   * and destroys the compositor thread and global compositor map.
+   *
+   * Does not return until all of that has completed.
    */
   static void ShutDown();
 
@@ -208,6 +384,7 @@ public:
 
   struct LayerTreeState {
     LayerTreeState();
+    ~LayerTreeState();
     nsRefPtr<Layer> mRoot;
     nsRefPtr<GeckoContentController> mController;
     CompositorParent* mParent;
@@ -219,6 +396,10 @@ public:
     TargetConfig mTargetConfig;
     APZTestData mApzTestData;
     LayerTransactionParent* mLayerTree;
+    nsTArray<PluginWindowData> mPluginData;
+    bool mUpdatedPluginDataAvailable;
+    nsRefPtr<CompositorUpdateObserver> mLayerTreeReadyObserver;
+    nsRefPtr<CompositorUpdateObserver> mLayerTreeClearedObserver;
   };
 
   /**
@@ -228,6 +409,15 @@ public:
    */
   static LayerTreeState* GetIndirectShadowTree(uint64_t aId);
 
+  /**
+   * Used by the profiler to denote when a vsync occured
+   */
+  static void PostInsertVsyncProfilerMarker(mozilla::TimeStamp aVsyncTimestamp);
+
+  static void RequestNotifyLayerTreeReady(uint64_t aLayersId, CompositorUpdateObserver* aObserver);
+  static void RequestNotifyLayerTreeCleared(uint64_t aLayersId, CompositorUpdateObserver* aObserver);
+  static void SwapLayerTreeObservers(uint64_t aLayer, uint64_t aOtherLayer);
+
   float ComputeRenderIntegrity();
 
   /**
@@ -235,20 +425,23 @@ public:
    */
   static bool IsInCompositorThread();
 
+  nsIWidget* GetWidget() { return mWidget; }
+
 protected:
   // Protected destructor, to discourage deletion outside of Release():
   virtual ~CompositorParent();
+
+  void DeferredDestroy();
 
   virtual PLayerTransactionParent*
     AllocPLayerTransactionParent(const nsTArray<LayersBackend>& aBackendHints,
                                  const uint64_t& aId,
                                  TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                                 bool* aSuccess) MOZ_OVERRIDE;
-  virtual bool DeallocPLayerTransactionParent(PLayerTransactionParent* aLayers) MOZ_OVERRIDE;
+                                 bool* aSuccess) override;
+  virtual bool DeallocPLayerTransactionParent(PLayerTransactionParent* aLayers) override;
   virtual void ScheduleTask(CancelableTask*, int);
-  void CompositeCallback();
-  void CompositeToTarget(gfx::DrawTarget* aTarget, const nsIntRect* aRect = nullptr);
-  void ForceComposeToTarget(gfx::DrawTarget* aTarget, const nsIntRect* aRect = nullptr);
+  void CompositeToTarget(gfx::DrawTarget* aTarget, const gfx::IntRect* aRect = nullptr);
+  void ForceComposeToTarget(gfx::DrawTarget* aTarget, const gfx::IntRect* aRect = nullptr);
 
   void SetEGLSurfaceSize(int width, int height);
 
@@ -258,36 +451,6 @@ protected:
   void ResumeCompositionAndResize(int width, int height);
   void ForceComposition();
   void CancelCurrentCompositeTask();
-
-  /**
-   * Creates a global map referencing each compositor by ID.
-   *
-   * This map is used by the ImageBridge protocol to trigger
-   * compositions without having to keep references to the
-   * compositor
-   */
-  static void CreateCompositorMap();
-  static void DestroyCompositorMap();
-
-  /**
-   * Creates the compositor thread.
-   *
-   * All compositors live on the same thread.
-   * The thread is not lazily created on first access to avoid dealing with
-   * thread safety. Therefore it's best to create and destroy the thread when
-   * we know we areb't using it (So creating/destroying along with gfxPlatform
-   * looks like a good place).
-   */
-  static bool CreateThread();
-
-  /**
-   * Destroys the compositor thread.
-   *
-   * It is safe to call this fucntion more than once, although the second call
-   * will have no effect.
-   * This function is not thread-safe.
-   */
-  static void DestroyThread();
 
   /**
    * Add a compositor to the global compositor map.
@@ -310,20 +473,15 @@ protected:
   nsRefPtr<Compositor> mCompositor;
   RefPtr<AsyncCompositionManager> mCompositionManager;
   nsIWidget* mWidget;
-  CancelableTask *mCurrentCompositeTask;
-  TimeStamp mLastCompose;
   TimeStamp mTestTime;
   bool mIsTesting;
-#ifdef COMPOSITOR_PERFORMANCE_WARNING
-  TimeStamp mExpectedComposeStartTime;
-#endif
 
   uint64_t mPendingTransaction;
 
   bool mPaused;
 
   bool mUseExternalSurfaceSize;
-  nsIntSize mEGLSurfaceSize;
+  gfx::IntSize mEGLSurfaceSize;
 
   mozilla::Monitor mPauseCompositionMonitor;
   mozilla::Monitor mResumeCompositionMonitor;
@@ -335,6 +493,9 @@ protected:
   CancelableTask* mForceCompositionTask;
 
   nsRefPtr<APZCTreeManager> mApzcTreeManager;
+
+  nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
+  nsRefPtr<CompositorScheduler> mCompositorScheduler;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };

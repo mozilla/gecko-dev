@@ -5,11 +5,11 @@
  * Test AudioNode#getParamFlags()
  */
 
-function spawnTest () {
-  let [target, debuggee, front] = yield initBackend(SIMPLE_NODES_URL);
+add_task(function*() {
+  let { target, front } = yield initBackend(SIMPLE_NODES_URL);
   let [_, nodes] = yield Promise.all([
     front.setup({ reload: true }),
-    getN(front, "create-node", 14)
+    getN(front, "create-node", 15)
   ]);
 
   let allNodeParams = yield Promise.all(nodes.map(node => node.getParams()));
@@ -17,15 +17,19 @@ function spawnTest () {
     "AudioDestinationNode",
     "AudioBufferSourceNode", "ScriptProcessorNode", "AnalyserNode", "GainNode",
     "DelayNode", "BiquadFilterNode", "WaveShaperNode", "PannerNode", "ConvolverNode",
-    "ChannelSplitterNode", "ChannelMergerNode", "DynamicsCompressorNode", "OscillatorNode"
+    "ChannelSplitterNode", "ChannelMergerNode", "DynamicsCompressorNode", "OscillatorNode",
+    "StereoPannerNode"
   ];
 
-  nodeTypes.forEach(function (type, i) {
+  // For some reason nodeTypes.forEach and params.forEach fail here so we use
+  // simple for loops.
+  for (let i = 0; i < nodeTypes.length; i++) {
+    let type = nodeTypes[i];
     let params = allNodeParams[i];
-    params.forEach(function ({param, value, flags}) {
 
-      let testFlags = yield nodes[i].getParamFlag(param);
-      ok(typeof testFlags === "object", type + " has flags from #getParamFlag(" + param + ")");
+    for (let {param, value, flags} of params) {
+      let testFlags = yield nodes[i].getParamFlags(param);
+      ok(typeof testFlags === "object", type + " has flags from #getParamFlags(" + param + ")");
 
       if (param === "buffer") {
         is(flags.Buffer, true, "`buffer` params have Buffer flag");
@@ -35,12 +39,9 @@ function spawnTest () {
       }
       else if (param === "curve") {
         is(flags["Float32Array"], true, "`curve` param has Float32Array flag");
-      } else {
-        is(Object.keys(flags), 0, type + "-" + param + " has no flags set")
       }
-    });
-  });
+    }
+  }
 
   yield removeTab(target.tab);
-  finish();
-}
+});

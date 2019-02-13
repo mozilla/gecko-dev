@@ -11,7 +11,7 @@
 #include "nsIObserverService.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
-#include "nsIFile.h"
+#include "nsIInputStream.h"
 #include "nsTHashtable.h"
 #include "nsTArray.h"
 #include "nsString.h"
@@ -28,21 +28,23 @@ class mozIStorageAsyncStatement;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class nsPermissionManager : public nsIPermissionManager,
-                            public nsIObserver,
-                            public nsSupportsWeakReference
+class nsPermissionManager final : public nsIPermissionManager,
+                                  public nsIObserver,
+                                  public nsSupportsWeakReference
 {
 public:
   class PermissionEntry
   {
   public:
     PermissionEntry(int64_t aID, uint32_t aType, uint32_t aPermission,
-                    uint32_t aExpireType, int64_t aExpireTime)
+                    uint32_t aExpireType, int64_t aExpireTime,
+                    int64_t aModificationTime)
      : mID(aID)
      , mType(aType)
      , mPermission(aPermission)
      , mExpireType(aExpireType)
      , mExpireTime(aExpireTime)
+     , mModificationTime(aModificationTime)
      , mNonSessionPermission(aPermission)
      , mNonSessionExpireType(aExpireType)
      , mNonSessionExpireTime(aExpireTime)
@@ -53,6 +55,7 @@ public:
     uint32_t mPermission;
     uint32_t mExpireType;
     int64_t  mExpireTime;
+    int64_t  mModificationTime;
     uint32_t mNonSessionPermission;
     uint32_t mNonSessionExpireType;
     uint32_t mNonSessionExpireTime;
@@ -67,7 +70,7 @@ public:
   class PermissionKey
   {
   public:
-    PermissionKey(nsIPrincipal* aPrincipal);
+    explicit PermissionKey(nsIPrincipal* aPrincipal);
     PermissionKey(const nsACString& aHost,
                   uint32_t aAppId,
                   bool aIsInBrowserElement)
@@ -100,7 +103,7 @@ public:
 
   private:
     // Default ctor shouldn't be used.
-    PermissionKey() MOZ_DELETE;
+    PermissionKey() = delete;
 
     // Dtor shouldn't be used outside of the class.
     ~PermissionKey() {};
@@ -109,7 +112,7 @@ public:
   class PermissionHashKey : public nsRefPtrHashKey<PermissionKey>
   {
   public:
-    PermissionHashKey(const PermissionKey* aPermissionKey)
+    explicit PermissionHashKey(const PermissionKey* aPermissionKey)
       : nsRefPtrHashKey<PermissionKey>(aPermissionKey)
     {}
 
@@ -152,9 +155,9 @@ public:
         if (mPermissions[i].mType == aType)
           return mPermissions[i];
 
-      // unknown permission... return relevant data 
+      // unknown permission... return relevant data
       return PermissionEntry(-1, aType, nsIPermissionManager::UNKNOWN_ACTION,
-                             nsIPermissionManager::EXPIRE_NEVER, 0);
+                             nsIPermissionManager::EXPIRE_NEVER, 0, 0);
     }
 
   private:
@@ -167,7 +170,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   nsPermissionManager();
-  virtual ~nsPermissionManager();
   static nsIPermissionManager* GetXPCOMSingleton();
   nsresult Init();
 
@@ -176,7 +178,8 @@ public:
     eOperationNone,
     eOperationAdding,
     eOperationRemoving,
-    eOperationChanging
+    eOperationChanging,
+    eOperationReplacingDefault
   };
 
   enum DBOperationType {
@@ -189,14 +192,21 @@ public:
     eNotify
   };
 
+  // A special value for a permission ID that indicates the ID was loaded as
+  // a default value.  These will never be written to the database, but may
+  // be overridden with an explicit permission (including UNKNOWN_ACTION)
+  static const int64_t cIDPermissionIsDefault = -1;
+
   nsresult AddInternal(nsIPrincipal* aPrincipal,
                        const nsAFlatCString &aType,
                        uint32_t aPermission,
                        int64_t aID,
                        uint32_t aExpireType,
                        int64_t  aExpireTime,
+                       int64_t aModificationTime,
                        NotifyOperationType aNotifyOperation,
-                       DBOperationType aDBOperation);
+                       DBOperationType aDBOperation,
+                       const bool aIgnoreSessionPermissions = false);
 
   /**
    * Initialize the "webapp-uninstall" observing.
@@ -207,6 +217,8 @@ public:
   static void AppClearDataObserverInit();
 
 private:
+  virtual ~nsPermissionManager();
+
   int32_t GetTypeIndex(const char *aTypeString,
                        bool        aAdd);
 
@@ -222,9 +234,12 @@ private:
                                 bool        aExactHostMatch,
                                 bool        aIncludingSession);
 
+  nsresult OpenDatabase(nsIFile* permissionsFile);
   nsresult InitDB(bool aRemoveFile);
   nsresult CreateTable();
   nsresult Import();
+  nsresult ImportDefaults();
+  nsresult _DoImport(nsIInputStream *inputStream, mozIStorageConnection *aConn);
   nsresult Read();
   void     NotifyObserversWithPermission(const nsACString &aHost,
                                          uint32_t          aAppId,
@@ -251,6 +266,7 @@ private:
                        uint32_t aPermission,
                        uint32_t aExpireType,
                        int64_t aExpireTime,
+                       int64_t aModificationTime,
                        uint32_t aAppId,
                        bool aIsInBrowserElement);
 
@@ -268,7 +284,7 @@ private:
     bool                      browserOnly;
     nsCOMArray<nsIPermission> permissions;
 
-    GetPermissionsForAppStruct() MOZ_DELETE;
+    GetPermissionsForAppStruct() = delete;
     GetPermissionsForAppStruct(uint32_t aAppId, bool aBrowserOnly)
       : appId(aAppId)
       , browserOnly(aBrowserOnly)
@@ -290,6 +306,19 @@ private:
   RemoveExpiredPermissionsForAppEnumerator(PermissionHashKey* entry,
                                            void* nonused);
 
+
+  /**
+   * This method removes all permissions modified after the specified time.
+   */
+  nsresult
+  RemoveAllModifiedSince(int64_t aModificationTime);
+
+  /**
+   * Retrieve permissions from chrome process.
+   */
+  nsresult
+  FetchPermissions();
+
   nsCOMPtr<nsIObserverService> mObserverService;
   nsCOMPtr<nsIIDNService>      mIDNService;
 
@@ -297,6 +326,8 @@ private:
   nsCOMPtr<mozIStorageAsyncStatement> mStmtInsert;
   nsCOMPtr<mozIStorageAsyncStatement> mStmtDelete;
   nsCOMPtr<mozIStorageAsyncStatement> mStmtUpdate;
+
+  bool mMemoryOnlyDB;
 
   nsTHashtable<PermissionHashKey> mPermissionTable;
   // a unique, monotonically increasing id used to identify each database entry

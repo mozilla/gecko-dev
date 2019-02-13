@@ -9,7 +9,7 @@ const IGNORE = ["escapeAddonURI", "shouldAutoUpdate", "getStartupChanges",
                 "addAddonListener", "removeAddonListener",
                 "addInstallListener", "removeInstallListener",
                 "addManagerListener", "removeManagerListener",
-                "mapURIToAddonID"];
+                "mapURIToAddonID", "shutdown"];
 
 const IGNORE_PRIVATE = ["AddonAuthor", "AddonCompatibilityOverride",
                         "AddonScreenshot", "AddonType", "startup", "shutdown",
@@ -18,18 +18,34 @@ const IGNORE_PRIVATE = ["AddonAuthor", "AddonCompatibilityOverride",
                         "recordTimestamp", "recordSimpleMeasure",
                         "recordException", "getSimpleMeasures", "simpleTimer",
                         "setTelemetryDetails", "getTelemetryDetails",
-                        "callNoUpdateListeners"];
+                        "callNoUpdateListeners", "backgroundUpdateTimerHandler"];
 
 function test_functions() {
   for (let prop in AddonManager) {
-    if (typeof AddonManager[prop] != "function")
-      continue;
     if (IGNORE.indexOf(prop) != -1)
       continue;
+    if (typeof AddonManager[prop] != "function")
+      continue;
+
+    let args = [];
+
+    // Getter functions need a callback and in some cases not having one will
+    // throw before checking if the add-ons manager is initialized so pass in
+    // an empty one.
+    if (prop.startsWith("get")) {
+      // For now all getter functions with more than one argument take the
+      // callback in the second argument.
+      if (AddonManager[prop].length > 1) {
+        args.push(undefined, () => {});
+      }
+      else {
+        args.push(() => {});
+      }
+    }
 
     try {
       do_print("AddonManager." + prop);
-      AddonManager[prop]();
+      AddonManager[prop](...args);
       do_throw(prop + " did not throw an exception");
     }
     catch (e) {

@@ -22,9 +22,7 @@
     var img = document.getElementById('victim');
     var observer = new ImageDecoderObserverStub();
     observer.discard = function() {
-      SpecialPowers.clearUserPref('min_discard_timeout_ms');
-      imgLoadingContent.removeObserver(gObserver);
-      setTimeout("document.documentElement.className = '';", 0);
+      cleanupAndFinish();
     }
     observer = SpecialPowers.wrapCallbackObject(observer);
     var gObserver = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
@@ -32,17 +30,20 @@
     var imgLoadingContent =
       SpecialPowers.wrap(img).QueryInterface(Ci.nsIImageLoadingContent);
     imgLoadingContent.addObserver(gObserver);
-
-    SpecialPowers.setBoolPref('min_discard_timeout_ms', 1);
-
     function initCF() {
       setTimeout(function() { document.adoptNode(tCF0); }, 0);
     }
     document.addEventListener("DOMContentLoaded", initCF, false);
-    function finish() {
-      setTimeout("document.documentElement.className = '';", 30000);
+
+    function cleanupAndFinish() {
+      imgLoadingContent.removeObserver(gObserver);
+      setTimeout("document.documentElement.className = '';", 0);
     }
-    window.addEventListener("load", finish, false);
+    function loadhandler() {
+      setTimeout("cleanupAndFinish();", 30000);
+    }
+    window.addEventListener("load", function() {
+      SpecialPowers.pushPrefEnv({"set":[["min_discard_timeout_ms", 1]]}, loadhandler)}, false);
   </script>
 </body>
 </html>

@@ -10,32 +10,42 @@
 
 const TEST_URL = TEST_URL_ROOT + "doc_markup_search.html";
 
-let test = asyncTest(function*() {
-  let {inspector, toolbox} = yield addTab(TEST_URL).then(openInspector);
+add_task(function*() {
+  let {inspector} = yield addTab(TEST_URL).then(openInspector);
 
-  ok(!getContainerForRawNode("em", inspector),
-    "The <em> tag isn't present yet in the markup-view");
+  let container = yield getContainerForSelector("em", inspector);
+  ok(!container, "The <em> tag isn't present yet in the markup-view");
 
   // Searching for the innermost element first makes sure that the inspector
   // back-end is able to attach the resulting node to the tree it knows at the
   // moment. When the inspector is started, the <body> is the default selected
-  // node, and only the parents up to the ROOT are known, and its direct children
+  // node, and only the parents up to the ROOT are known, and its direct
+  // children.
   info("searching for the innermost child: <em>");
-  let updated = inspector.once("inspector-updated");
-  searchUsingSelectorSearch("em", inspector);
-  yield updated;
+  yield searchFor("em", inspector);
 
-  ok(getContainerForRawNode("em", inspector),
-    "The <em> tag is now imported in the markup-view");
-  is(inspector.selection.node, getNode("em"),
+  container = yield getContainerForSelector("em", inspector);
+  ok(container, "The <em> tag is now imported in the markup-view");
+
+  let nodeFront = yield getNodeFront("em", inspector);
+  is(inspector.selection.nodeFront, nodeFront,
     "The <em> tag is the currently selected node");
 
   info("searching for other nodes too");
   for (let node of ["span", "li", "ul"]) {
-    let updated = inspector.once("inspector-updated");
-    searchUsingSelectorSearch(node, inspector);
-    yield updated;
-    is(inspector.selection.node, getNode(node),
+    yield searchFor(node, inspector);
+
+    nodeFront = yield getNodeFront(node, inspector);
+    is(inspector.selection.nodeFront, nodeFront,
       "The <" + node + "> tag is the currently selected node");
   }
 });
+
+function* searchFor(selector, inspector) {
+  let onNewNodeFront = inspector.selection.once("new-node-front");
+
+  searchUsingSelectorSearch(selector, inspector);
+
+  yield onNewNodeFront;
+  yield inspector.once("inspector-updated");
+}

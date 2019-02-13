@@ -8,11 +8,15 @@
   padding: 4px;
 }
 
+#toggle-raw-headers {
+  padding: 4px;
+}
+
 .requests-menu-status-and-method {
   width: 9em;
 }
 
-.requests-menu-domain {
+.requests-menu-security-and-domain {
   width: 16vw;
 }
 

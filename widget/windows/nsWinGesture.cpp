@@ -20,9 +20,7 @@
 using namespace mozilla;
 using namespace mozilla::widget;
 
-#ifdef PR_LOGGING
 extern PRLogModuleInfo* gWindowsLog;
-#endif
 
 const wchar_t nsWinGesture::kGestureLibraryName[] =  L"user32.dll";
 HMODULE nsWinGesture::sLibraryHandle = nullptr;
@@ -457,7 +455,7 @@ nsWinGesture::ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam)
 #ifdef DBG_jimm
         int32_t deltaX = mPanIntermediate.x - coord.x;
         int32_t deltaY = mPanIntermediate.y - coord.y;
-        PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
+        MOZ_LOG(gWindowsLog, LogLevel::Info, 
                ("coordX=%d coordY=%d deltaX=%d deltaY=%d x:%d y:%d\n", coord.x,
                 coord.y, deltaX, deltaY, mXAxisFeedback, mYAxisFeedback));
 #endif
@@ -576,7 +574,7 @@ nsWinGesture::PanDeltaToPixelScroll(WidgetWheelEvent& aWheelEvent)
   aWheelEvent.refPoint.y = mPanRefPoint.y;
   aWheelEvent.deltaMode = nsIDOMWheelEvent::DOM_DELTA_PIXEL;
   aWheelEvent.scrollType = WidgetWheelEvent::SCROLL_SYNCHRONOUSLY;
-  aWheelEvent.isPixelOnlyDevice = true;
+  aWheelEvent.mIsNoLineOrPageDelta = true;
 
   aWheelEvent.overflowDeltaX = 0.0;
   aWheelEvent.overflowDeltaY = 0.0;

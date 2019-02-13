@@ -1,16 +1,22 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * To keep the global namespace safe, don't define global variables and 
+ * To keep the global namespace safe, don't define global variables and
  * functions in this file.
  *
  * This file silently depends on contentAreaUtils.js for
  * getDefaultFileName, getNormalizedLeafName and getDefaultExtension
  */
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ViewSourceBrowser",
+  "resource://gre/modules/ViewSourceBrowser.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+  "resource://gre/modules/Deprecated.jsm");
 
 var gViewSourceUtils = {
 
@@ -18,26 +24,121 @@ var gViewSourceUtils = {
   mnsIWebProgress: Components.interfaces.nsIWebProgress,
   mnsIWebPageDescriptor: Components.interfaces.nsIWebPageDescriptor,
 
-  // Opens view source
-  viewSource: function(aURL, aPageDescriptor, aDocument, aLineNumber)
+  /**
+   * Opens the view source window.
+   *
+   * @param aArgsOrURL (required)
+   *        This is either an Object containing parameters, or a string
+   *        URL for the page we want to view the source of. In the latter
+   *        case we will be paying attention to the other parameters, as
+   *        we will be supporting the old API for this method.
+   *        If aArgsOrURL is an Object, the other parameters will be ignored.
+   *        aArgsOrURL as an Object can include the following properties:
+   *
+   *        URL (required):
+   *          A string URL for the page we'd like to view the source of.
+   *        browser (optional):
+   *          The browser containing the document that we would like to view the
+   *          source of. This is required if outerWindowID is passed.
+   *        outerWindowID (optional):
+   *          The outerWindowID of the content window containing the document that
+   *          we want to view the source of. Pass this if you want to attempt to
+   *          load the document source out of the network cache.
+   *        lineNumber (optional):
+   *          The line number to focus on once the source is loaded.
+   *
+   * @param aPageDescriptor (deprecated, optional)
+   *        Accepted for compatibility reasons, but is otherwise ignored.
+   * @param aDocument (deprecated, optional)
+   *        The content document we would like to view the source of. This
+   *        function will throw if aDocument is a CPOW.
+   * @param aLineNumber (deprecated, optional)
+   *        The line number to focus on once the source is loaded.
+   */
+  viewSource: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                           .getService(Components.interfaces.nsIPrefBranch);
-    if (prefs.getBoolPref("view_source.editor.external"))
-      this.openInExternalEditor(aURL, aPageDescriptor, aDocument, aLineNumber);
-    else
-      this.openInInternalViewer(aURL, aPageDescriptor, aDocument, aLineNumber);
+    if (prefs.getBoolPref("view_source.editor.external")) {
+      this.openInExternalEditor(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
+    } else {
+      this._openInInternalViewer(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
+    }
+  },
+
+  /**
+   * Displays view source in the provided <browser>.  This allows for non-window
+   * display methods, such as a tab from Firefox.
+   *
+   * @param aArgs
+   *        An object with the following properties:
+   *
+   *        URL (required):
+   *          A string URL for the page we'd like to view the source of.
+   *        viewSourceBrowser (required):
+   *          The browser to display the view source in.
+   *        browser (optional):
+   *          The browser containing the document that we would like to view the
+   *          source of. This is required if outerWindowID is passed.
+   *        outerWindowID (optional):
+   *          The outerWindowID of the content window containing the document that
+   *          we want to view the source of. Pass this if you want to attempt to
+   *          load the document source out of the network cache.
+   *        lineNumber (optional):
+   *          The line number to focus on once the source is loaded.
+   */
+  viewSourceInBrowser: function(aArgs) {
+    let viewSourceBrowser = new ViewSourceBrowser(aArgs.viewSourceBrowser);
+    viewSourceBrowser.loadViewSource(aArgs);
+  },
+
+  /**
+   * Displays view source for a selection from some document in the provided
+   * <browser>.  This allows for non-window display methods, such as a tab from
+   * Firefox.
+   *
+   * @param aSelection
+   *        A Selection object for the content of interest.
+   * @param aViewSourceInBrowser
+   *        The browser to display the view source in.
+   */
+  viewSourceFromSelectionInBrowser: function(aSelection, aViewSourceInBrowser) {
+    let viewSourceBrowser = new ViewSourceBrowser(aViewSourceInBrowser);
+    viewSourceBrowser.loadViewSourceFromSelection(aSelection);
+  },
+
+  /**
+   * Displays view source for a MathML fragment from some document in the
+   * provided <browser>.  This allows for non-window display methods,  such as a
+   * tab from Firefox.
+   *
+   * @param aNode
+   *        Some element within the fragment of interest.
+   * @param aContext
+   *        A string denoting the type of fragment.  Currently, "mathml" is the
+   *        only accepted value.
+   * @param aViewSourceInBrowser
+   *        The browser to display the view source in.
+   */
+  viewSourceFromFragmentInBrowser: function(aNode, aContext,
+                                            aViewSourceInBrowser) {
+    let viewSourceBrowser = new ViewSourceBrowser(aViewSourceInBrowser);
+    viewSourceBrowser.loadViewSourceFromFragment(aNode, aContext);
   },
 
   // Opens the interval view source viewer
-  openInInternalViewer: function(aURL, aPageDescriptor, aDocument, aLineNumber)
+  _openInInternalViewer: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
     // try to open a view-source window while inheriting the charset (if any)
     var charset = null;
     var isForcedCharset = false;
     if (aDocument) {
+      if (Components.utils.isCrossProcessWrapper(aDocument)) {
+        throw new Error("View Source cannot accept a CPOW as a document.");
+      }
+
       charset = "charset=" + aDocument.characterSet;
-      try { 
+      try {
         isForcedCharset =
           aDocument.defaultView
                    .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -49,7 +150,7 @@ var gViewSourceUtils = {
     openDialog("chrome://global/content/viewSource.xul",
                "_blank",
                "all,dialog=no",
-               aURL, charset, aPageDescriptor, aLineNumber, isForcedCharset);
+               aArgsOrURL, charset, aPageDescriptor, aLineNumber, isForcedCharset);
   },
 
   buildEditorArgs: function(aPath, aLineNumber) {
@@ -71,15 +172,67 @@ var gViewSourceUtils = {
     return editorArgs;
   },
 
-  // aCallBack is a function accepting two arguments - result (true=success) and a data object
-  // It defaults to openInInternalViewer if undefined.
-  openInExternalEditor: function(aURL, aPageDescriptor, aDocument, aLineNumber, aCallBack)
-  {
-    var data = {url: aURL, pageDescriptor: aPageDescriptor, doc: aDocument,
-                lineNumber: aLineNumber};
+  /**
+   * Opens an external editor with the view source content.
+   *
+   * @param aArgsOrURL (required)
+   *        This is either an Object containing parameters, or a string
+   *        URL for the page we want to view the source of. In the latter
+   *        case we will be paying attention to the other parameters, as
+   *        we will be supporting the old API for this method.
+   *        If aArgsOrURL is an Object, the other parameters will be ignored.
+   *        aArgsOrURL as an Object can include the following properties:
+   *
+   *        URL (required):
+   *          A string URL for the page we'd like to view the source of.
+   *        browser (optional):
+   *          The browser containing the document that we would like to view the
+   *          source of. This is required if outerWindowID is passed.
+   *        outerWindowID (optional):
+   *          The outerWindowID of the content window containing the document that
+   *          we want to view the source of. Pass this if you want to attempt to
+   *          load the document source out of the network cache.
+   *        lineNumber (optional):
+   *          The line number to focus on once the source is loaded.
+   *
+   * @param aPageDescriptor (deprecated, optional)
+   *        Accepted for compatibility reasons, but is otherwise ignored.
+   * @param aDocument (deprecated, optional)
+   *        The content document we would like to view the source of. This
+   *        function will throw if aDocument is a CPOW.
+   * @param aLineNumber (deprecated, optional)
+   *        The line number to focus on once the source is loaded.
+   * @param aCallBack
+   *        A function accepting two arguments:
+   *          * result (true = success)
+   *          * data object
+   *        The function defaults to opening an internal viewer if external
+   *        viewing fails.
+   */
+  openInExternalEditor: function(aArgsOrURL, aPageDescriptor, aDocument,
+                                 aLineNumber, aCallBack) {
+    let data;
+    if (typeof aArgsOrURL == "string") {
+      Deprecated.warning("The arguments you're passing to " +
+                         "openInExternalEditor are using an out-of-date API.",
+                         "https://developer.mozilla.org/en-US/Add-ons/" +
+                         "Code_snippets/View_Source_for_XUL_Applications");
+      data = {
+        url: aArgsOrURL,
+        pageDescriptor: aPageDescriptor,
+        doc: aDocument,
+        lineNumber: aLineNumber
+      };
+    } else {
+      let { URL, outerWindowID, lineNumber } = aArgsOrURL;
+      data = {
+        url: URL,
+        lineNumber
+      };
+    }
 
     try {
-      var editor = this.getExternalViewSourceEditor();    
+      var editor = this.getExternalViewSourceEditor();
       if (!editor) {
         this.handleCallBack(aCallBack, false, data);
         return;
@@ -89,12 +242,12 @@ var gViewSourceUtils = {
       var ios = Components.classes["@mozilla.org/network/io-service;1"]
                           .getService(Components.interfaces.nsIIOService);
       var charset = aDocument ? aDocument.characterSet : null;
-      var uri = ios.newURI(aURL, charset, null);
+      var uri = ios.newURI(data.url, charset, null);
       data.uri = uri;
 
       var path;
       var contentType = aDocument ? aDocument.contentType : null;
-      if (uri.scheme == "file") {    
+      if (uri.scheme == "file") {
         // it's a local file; we can open it directly
         path = uri.QueryInterface(Components.interfaces.nsIFileURL).file.path;
 
@@ -103,9 +256,10 @@ var gViewSourceUtils = {
         this.handleCallBack(aCallBack, true, data);
       } else {
         // set up the progress listener with what we know so far
+        this.viewSourceProgressListener.contentLoaded = false;
         this.viewSourceProgressListener.editor = editor;
         this.viewSourceProgressListener.callBack = aCallBack;
-        this.viewSourceProgressListener.data = data;      
+        this.viewSourceProgressListener.data = data;
         if (!aPageDescriptor) {
           // without a page descriptor, loadPage has no chance of working. download the file.
           var file = this.getTemporaryFile(uri, aDocument, contentType);
@@ -130,7 +284,8 @@ var gViewSourceUtils = {
           // the default setting is to not decode. we need to decode.
           webBrowserPersist.persistFlags = this.mnsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
           webBrowserPersist.progressListener = this.viewSourceProgressListener;
-          webBrowserPersist.savePrivacyAwareURI(uri, null, null, null, null, file, fromPrivateWindow);
+          let referrerPolicy = Components.interfaces.nsIHttpChannel.REFERRER_POLICY_NO_REFERRER;
+          webBrowserPersist.savePrivacyAwareURI(uri, null, null, referrerPolicy, null, null, file, fromPrivateWindow);
 
           let helperService = Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
                                         .getService(Components.interfaces.nsPIExternalAppLauncher);
@@ -153,7 +308,7 @@ var gViewSourceUtils = {
           var progress = webShell.QueryInterface(this.mnsIWebProgress);
           progress.addProgressListener(this.viewSourceProgressListener,
                                        this.mnsIWebProgress.NOTIFY_STATE_DOCUMENT);
-          var pageLoader = webShell.QueryInterface(this.mnsIWebPageDescriptor);    
+          var pageLoader = webShell.QueryInterface(this.mnsIWebPageDescriptor);
           pageLoader.loadPage(aPageDescriptor, this.mnsIWebPageDescriptor.DISPLAY_AS_SOURCE);
         }
       }
@@ -169,7 +324,7 @@ var gViewSourceUtils = {
   internalViewerFallback: function(result, data)
   {
     if (!result) {
-      this.openInInternalViewer(data.url, data.pageDescriptor, data.doc, data.lineNumber);
+      this._openInInternalViewer(data.url, data.pageDescriptor, data.doc, data.lineNumber);
     }
   },
 
@@ -254,13 +409,18 @@ var gViewSourceUtils = {
     },
 
     onContentLoaded: function() {
+      // The progress listener may call this multiple times, so be sure we only
+      // run once.
+      if (this.contentLoaded) {
+        return;
+      }
       try {
         if (!this.file) {
           // it's not saved to file yet, it's in the webshell
 
           // get a temporary filename using the attributes from the data object that
           // openInExternalEditor gave us
-          this.file = gViewSourceUtils.getTemporaryFile(this.data.uri, this.data.doc, 
+          this.file = gViewSourceUtils.getTemporaryFile(this.data.uri, this.data.doc,
                                                         this.data.doc.contentType);
 
           // we have to convert from the source charset.
@@ -274,7 +434,7 @@ var gViewSourceUtils = {
 
           // write the source to the file
           coStream.writeString(webNavigation.document.body.textContent);
-          
+
           // clean up
           coStream.close();
           foStream.close();
@@ -301,6 +461,7 @@ var gViewSourceUtils = {
                                                           this.data.lineNumber);
         this.editor.runw(false, editorArgs, editorArgs.length);
 
+        this.contentLoaded = true;
         gViewSourceUtils.handleCallBack(this.callBack, true, this.data);
       } catch (ex) {
         // we failed loading it with the external editor.

@@ -97,7 +97,6 @@ static const char kPrintingPromptService[] = "@mozilla.org/embedcomp/printingpro
 #include "nsIURL.h"
 #include "nsIContentViewerEdit.h"
 #include "nsIContentViewerFile.h"
-#include "nsIMarkupDocumentViewer.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDocShellTreeOwner.h"
@@ -128,13 +127,7 @@ using namespace mozilla::dom;
 
 //-----------------------------------------------------
 // PR LOGGING
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG /* Allow logging in the release build */
-#endif
-
-#include "prlog.h"
-
-#ifdef PR_LOGGING
+#include "mozilla/Logging.h"
 
 #ifdef DEBUG
 // PR_LOGGING is force to always be on (even in release builds)
@@ -153,7 +146,7 @@ GetPrintingLog()
     sLog = PR_NewLogModule("printing");
   return sLog;
 }
-#define PR_PL(_p1)  PR_LOG(GetPrintingLog(), PR_LOG_DEBUG, _p1);
+#define PR_PL(_p1)  MOZ_LOG(GetPrintingLog(), mozilla::LogLevel::Debug, _p1);
 #endif
 
 #ifdef EXTENDED_DEBUG_PRINTING
@@ -166,10 +159,6 @@ static const char * gFrameTypesStr[]       = {"eDoc", "eFrame", "eIFrame", "eFra
 static const char * gPrintFrameTypeStr[]   = {"kNoFrames", "kFramesAsIs", "kSelectedFrame", "kEachFrameSep"};
 static const char * gFrameHowToEnableStr[] = {"kFrameEnableNone", "kFrameEnableAll", "kFrameEnableAsIsAndEach"};
 static const char * gPrintRangeStr[]       = {"kRangeAllPages", "kRangeSpecifiedPageRange", "kRangeSelection", "kRangeFocusFrame"};
-#else
-#define PRT_YESNO(_p)
-#define PR_PL(_p1)
-#endif
 
 #ifdef EXTENDED_DEBUG_PRINTING
 // Forward Declarations
@@ -189,7 +178,7 @@ static void DumpPrintObjectsTreeLayout(nsPrintObject * aPO,nsDeviceContext * aDC
 class nsScriptSuppressor
 {
 public:
-  nsScriptSuppressor(nsPrintEngine* aPrintEngine)
+  explicit nsScriptSuppressor(nsPrintEngine* aPrintEngine)
   : mPrintEngine(aPrintEngine), mSuppressed(false) {}
 
   ~nsScriptSuppressor() { Unsuppress(); }
@@ -371,16 +360,10 @@ nsPrintEngine::GetSeqFrameAndCountPagesInternal(nsPrintObject*  aPO,
     return NS_ERROR_FAILURE;
   }
 
-  // first count the total number of pages
-  aCount = 0;
-  nsIFrame* pageFrame = aSeqFrame->GetFirstPrincipalChild();
-  while (pageFrame != nullptr) {
-    aCount++;
-    pageFrame = pageFrame->GetNextSibling();
-  }
+  // count the total number of pages
+  aCount = aSeqFrame->PrincipalChildList().GetLength();
 
   return NS_OK;
-
 }
 
 //-----------------------------------------------------------------
@@ -497,7 +480,7 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
   if (aIsPrintPreview) {
     SetIsCreatingPrintPreview(true);
     SetIsPrintPreview(true);
-    nsCOMPtr<nsIMarkupDocumentViewer> viewer =
+    nsCOMPtr<nsIContentViewer> viewer =
       do_QueryInterface(mDocViewerPrint);
     if (viewer) {
       viewer->SetTextZoom(1.0f);
@@ -904,7 +887,7 @@ nsPrintEngine::EnumerateDocumentNames(uint32_t* aCount,
   *aResult = nullptr;
 
   int32_t     numDocs = mPrt->mPrintDocList.Length();
-  char16_t** array   = (char16_t**) nsMemory::Alloc(numDocs * sizeof(char16_t*));
+  char16_t** array   = (char16_t**) moz_xmalloc(numDocs * sizeof(char16_t*));
   if (!array)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1110,7 +1093,7 @@ nsPrintEngine::IsThereARangeSelection(nsIDOMWindow* aDOMWin)
     return false;
   }
 
-  int32_t rangeCount = selection->GetRangeCount();
+  int32_t rangeCount = selection->RangeCount();
   if (!rangeCount) {
     return false;
   }
@@ -1327,7 +1310,7 @@ nsPrintEngine::MapContentForPO(nsPrintObject*   aPO,
 {
   NS_PRECONDITION(aPO && aContent, "Null argument");
 
-  nsIDocument* doc = aContent->GetDocument();
+  nsIDocument* doc = aContent->GetComposedDoc();
 
   NS_ASSERTION(doc, "Content without a document from a document tree?");
 
@@ -1458,8 +1441,8 @@ nsPrintEngine::GetDisplayTitleAndURL(nsPrintObject*   aPO,
       aURLStr = docURLStrPS;
     }
 
-    nsMemory::Free(docTitleStrPS);
-    nsMemory::Free(docURLStrPS);
+    free(docTitleStrPS);
+    free(docURLStrPS);
   }
 
   nsAutoString docTitle;
@@ -1718,23 +1701,23 @@ nsPrintEngine::SetupToPrintContent()
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-#ifdef PR_LOGGING
-    float calcRatio = 0.0f;
-    if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
-      nsPrintObject* smallestPO = FindSmallestSTF();
-      NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
-      if (smallestPO) {
-        // Calc the shrinkage based on the entire content area
-        calcRatio = smallestPO->mShrinkRatio;
+    if (MOZ_LOG_TEST(GetPrintingLog(), LogLevel::Debug)) {
+      float calcRatio = 0.0f;
+      if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
+        nsPrintObject* smallestPO = FindSmallestSTF();
+        NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
+        if (smallestPO) {
+          // Calc the shrinkage based on the entire content area
+          calcRatio = smallestPO->mShrinkRatio;
+        }
+      } else {
+        // Single document so use the Shrink as calculated for the PO
+        calcRatio = mPrt->mPrintObject->mShrinkRatio;
       }
-    } else {
-      // Single document so use the Shrink as calculated for the PO
-      calcRatio = mPrt->mPrintObject->mShrinkRatio;
+      PR_PL(("**************************************************************************\n"));
+      PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
+      PR_PL(("**************************************************************************\n"));
     }
-    PR_PL(("**************************************************************************\n"));
-    PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
-    PR_PL(("**************************************************************************\n"));
-#endif
   }
   
   // If the frames got reconstructed and reflowed the number of pages might
@@ -2019,7 +2002,7 @@ nsPrintEngine::UpdateSelectionAndShrinkPrintObject(nsPrintObject* aPO,
     selectionPS->RemoveAllRanges();
   }
   if (selection && selectionPS) {
-    int32_t cnt = selection->GetRangeCount();
+    int32_t cnt = selection->RangeCount();
     int32_t inx;
     for (inx = 0; inx < cnt; ++inx) {
         selectionPS->AddRange(selection->GetRangeAt(inx));
@@ -2269,8 +2252,8 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
         fprintf(fd, "Title: %s\n", docStr.get());
         fprintf(fd, "URL:   %s\n", urlStr.get());
         fprintf(fd, "--------------- Frames ----------------\n");
-        nsRefPtr<nsRenderingContext> renderingContext =
-          mPrt->mPrintDocDC->CreateRenderingContext();
+        //nsRefPtr<gfxContext> renderingContext =
+        //  mPrt->mPrintDocDC->CreateRenderingContext();
         RootFrameList(aPO->mPresContext, fd, 0);
         //DumpFrames(fd, aPO->mPresContext, renderingContext, theRootFrame, 0);
         fprintf(fd, "---------------------------------------\n\n");
@@ -2433,7 +2416,7 @@ static nsresult CloneSelection(nsIDocument* aOrigDoc, nsIDocument* aDoc)
     shell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
   NS_ENSURE_STATE(origSelection && selection);
 
-  int32_t rangeCount = origSelection->GetRangeCount();
+  int32_t rangeCount = origSelection->RangeCount();
   for (int32_t i = 0; i < rangeCount; ++i) {
       CloneRangeToSelection(origSelection->GetRangeAt(i), aDoc, selection);
   }
@@ -2509,8 +2492,8 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
         poPresContext->SetIsRenderingOnlySelection(true);
         // temporarily creating rendering context
         // which is needed to find the selection frames
-        nsRefPtr<nsRenderingContext> rc =
-          mPrt->mPrintDC->CreateRenderingContext();
+        // mPrintDC must have positive width and height for this call
+        nsRenderingContext rc(mPrt->mPrintDC->CreateRenderingContext());
 
         // find the starting and ending page numbers
         // via the selection
@@ -2524,7 +2507,7 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
         nsRefPtr<Selection> selectionPS =
           poPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
 
-        rv = GetPageRangeForSelection(poPresShell, poPresContext, *rc, selectionPS, pageSequence,
+        rv = GetPageRangeForSelection(poPresShell, poPresContext, rc, selectionPS, pageSequence,
                                       &startFrame, startPageNum, startRect,
                                       &endFrame, endPageNum, endRect);
         if (NS_SUCCEEDED(rv)) {
@@ -3028,9 +3011,9 @@ void
 nsPrintEngine::CleanupDocTitleArray(char16_t**& aArray, int32_t& aCount)
 {
   for (int32_t i = aCount - 1; i >= 0; i--) {
-    nsMemory::Free(aArray[i]);
+    free(aArray[i]);
   }
-  nsMemory::Free(aArray);
+  free(aArray);
   aArray = nullptr;
   aCount = 0;
 }
@@ -3047,7 +3030,7 @@ bool nsPrintEngine::HasFramesetChild(nsIContent* aContent)
   for (nsIContent* child = aContent->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-    if (child->IsHTML(nsGkAtoms::frameset)) {
+    if (child->IsHTMLElement(nsGkAtoms::frameset)) {
       return true;
     }
   }
@@ -3602,12 +3585,12 @@ nsPrintEngine::Observe(nsISupports *aSubject, const char *aTopic, const char16_t
 //---------------------------------------------------------------
 class nsPrintCompletionEvent : public nsRunnable {
 public:
-  nsPrintCompletionEvent(nsIDocumentViewerPrint *docViewerPrint)
+  explicit nsPrintCompletionEvent(nsIDocumentViewerPrint *docViewerPrint)
     : mDocViewerPrint(docViewerPrint) {
     NS_ASSERTION(mDocViewerPrint, "mDocViewerPrint is null.");
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE {
+  NS_IMETHOD Run() override {
     if (mDocViewerPrint)
       mDocViewerPrint->OnDonePrinting();
     return NS_OK;
@@ -3815,8 +3798,8 @@ void DumpLayoutData(char*              aTitleStr,
     fprintf(fd, "URL:   %s\n", aURLStr?aURLStr:"");
     fprintf(fd, "--------------- Frames ----------------\n");
     fprintf(fd, "--------------- Frames ----------------\n");
-    nsRefPtr<nsRenderingContext> renderingContext =
-      aDC->CreateRenderingContext();
+    //nsRefPtr<gfxContext> renderingContext =
+    //  aDC->CreateRenderingContext();
     RootFrameList(aPresContext, fd, 0);
     //DumpFrames(fd, aPresContext, renderingContext, aRootFrame, 0);
     fprintf(fd, "---------------------------------------\n\n");

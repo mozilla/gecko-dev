@@ -15,12 +15,12 @@ function testSteps()
   // Sanity checks
   ok(request instanceof IDBRequest, "Request should be an IDBRequest");
   ok(request instanceof IDBOpenDBRequest, "Request should be an IDBOpenDBRequest");
-  //ok(request instanceof EventTarget, "Request should be an EventTarget");
+  ok(request instanceof EventTarget, "Request should be an EventTarget");
   is(request.source, null, "Request should have no source");
   try {
     request.result;
     ok(false, "Getter should have thrown!");
-  } catch (e if e.result == 0x80660006 /* NS_ERROR_DOM_INDEXEDDB_NOTALLOWED_ERR */) {
+  } catch (e if e.result == 0x8053000b /* NS_ERROR_DOM_INVALID_STATE_ERR */) {
     ok(true, "Getter threw the right exception");
   }
 
@@ -35,7 +35,7 @@ function testSteps()
   db1.addEventListener("versionchange", function(event) {
     ok(true, "Got version change event");
     ok(event instanceof IDBVersionChangeEvent, "Event is of the right type");
-    is(event.target.source, null, "Correct source");
+    is("source" in event.target, false, "Correct source");
     is(event.target, db1, "Correct target");
     is(event.target.version, 1, "Correct db version");
     is(event.oldVersion, 1, "Correct event oldVersion");
@@ -49,12 +49,8 @@ function testSteps()
   request.onerror = errorHandler;
   request.onsuccess = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
-  if (SpecialPowers.isMainProcess()) {
-    request.onblocked = errorHandler;
-  }
-  else {
-    todo(false, "Need to fix blocked events in child processes!");
-  }
+  request.onblocked = errorHandler;
+
   event = yield undefined;
 
   // Test the upgradeneeded event.
@@ -74,7 +70,7 @@ function testSteps()
   db2.addEventListener("versionchange", function(event) {
     ok(true, "Got version change event");
     ok(event instanceof IDBVersionChangeEvent, "Event is of the right type");
-    is(event.target.source, null, "Correct source");
+    is("source" in event.target, false, "Correct source");
     is(event.target, db2, "Correct target");
     is(event.target.version, 2, "Correct db version");
     is(event.oldVersion, 2, "Correct event oldVersion");
@@ -86,12 +82,8 @@ function testSteps()
   request = indexedDB.open(name, 2);
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
-  if (SpecialPowers.isMainProcess()) {
-    request.onblocked = errorHandler;
-  }
-  else {
-    todo(false, "Need to fix blocked events in child processes!");
-  }
+  request.onblocked = errorHandler;
+
   event = yield undefined;
 
   db3 = event.target.result;
@@ -130,12 +122,7 @@ function testSteps()
   request.onerror = errorHandler;
   request.onsuccess = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
-  if (SpecialPowers.isMainProcess()) {
-    request.onblocked = errorHandler;
-  }
-  else {
-    todo(false, "Need to fix blocked events in child processes!");
-  }
+  request.onblocked = errorHandler;
 
   event = yield undefined;
 

@@ -22,9 +22,9 @@ import java.util.ArrayList;
 public final class PrefsHelper {
     private static final String LOGTAG = "GeckoPrefsHelper";
 
-    private static boolean sRegistered = false;
-    private static final SparseArray<PrefHandler> sCallbacks = new SparseArray<PrefHandler>();
+    private static boolean sRegistered;
     private static int sUniqueRequestId = 1;
+    static final SparseArray<PrefHandler> sCallbacks = new SparseArray<PrefHandler>();
 
     public static int getPref(String prefName, PrefHandler callback) {
         return getPrefsInternal(new String[] { prefName }, callback);
@@ -63,8 +63,9 @@ public final class PrefsHelper {
             return;
         }
 
-        EventDispatcher.getInstance().registerGeckoThreadListener(new GeckoEventListener() {
-            @Override public void handleMessage(String event, JSONObject message) {
+        GeckoEventListener listener = new GeckoEventListener() {
+            @Override
+            public void handleMessage(String event, JSONObject message) {
                 try {
                     PrefHandler callback;
                     synchronized (PrefsHelper.class) {
@@ -78,6 +79,7 @@ public final class PrefsHelper {
                             callback = null;
                         }
                     }
+
                     if (callback == null) {
                         Log.d(LOGTAG, "Preferences:Data message had an unknown requestId; ignoring");
                         return;
@@ -107,11 +109,16 @@ public final class PrefsHelper {
                     Log.e(LOGTAG, "Error handling Preferences:Data message", e);
                 }
             }
-        }, "Preferences:Data");
+        };
+        EventDispatcher.getInstance().registerGeckoThreadListener(listener, "Preferences:Data");
         sRegistered = true;
     }
 
     public static void setPref(String pref, Object value) {
+        setPref(pref, value, false);
+    }
+
+    public static void setPref(String pref, Object value, boolean flush) {
         if (pref == null || pref.length() == 0) {
             throw new IllegalArgumentException("Pref name must be non-empty");
         }
@@ -119,6 +126,8 @@ public final class PrefsHelper {
         try {
             JSONObject jsonPref = new JSONObject();
             jsonPref.put("name", pref);
+            jsonPref.put("flush", flush);
+
             if (value instanceof Boolean) {
                 jsonPref.put("type", "bool");
                 jsonPref.put("value", ((Boolean)value).booleanValue());

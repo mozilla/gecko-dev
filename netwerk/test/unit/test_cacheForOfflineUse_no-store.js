@@ -2,6 +2,7 @@
 // https://bugzilla.mozilla.org/show_bug.cgi?id=760955
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var httpServer = null;
 const testFileName = "test_nsHttpChannel_CacheForOfflineUse-no-store";
@@ -21,7 +22,14 @@ var appCache = null;
 function make_channel_for_offline_use(url, callback, ctx) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, "", null);
+  var chan = ios.newChannel2(url,
+                             "",
+                             null,
+                             null,      // aLoadingNode
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      // aTriggeringPrincipal
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER);
   
   var cacheService = Components.classes["@mozilla.org/network/application-cache-service;1"].
                      getService(Components.interfaces.nsIApplicationCacheService);
@@ -37,17 +45,6 @@ function make_uri(url) {
             getService(Ci.nsIIOService);
   return ios.newURI(url, null, null);
 }
-
-function CacheListener() { }
-CacheListener.prototype = {
-  QueryInterface : function(iid)
-  {
-    if (iid.equals(Components.interfaces.nsICacheListener))
-      return this;
-    throw Components.results.NS_NOINTERFACE;
-  },
-};
-
 
 const responseBody = "response body";
 

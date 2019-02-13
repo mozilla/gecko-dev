@@ -1,12 +1,14 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsThread.h"
 
+#if !defined(MOZILLA_XPCOMRT_API)
 #include "base/message_loop.h"
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
 // Chromium's logging can sometimes leak through...
 #ifdef LOG
@@ -17,17 +19,26 @@
 #include "nsMemoryPressure.h"
 #include "nsThreadManager.h"
 #include "nsIClassInfoImpl.h"
-#include "nsIProgrammingLanguage.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "pratom.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIObserverService.h"
+#if !defined(MOZILLA_XPCOMRT_API)
 #include "mozilla/HangMonitor.h"
 #include "mozilla/IOInterposer.h"
+#include "mozilla/ipc/MessageChannel.h"
+#include "mozilla/ipc/BackgroundChild.h"
+#endif // defined(MOZILLA_XPCOMRT_API)
 #include "mozilla/Services.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/ChaosMode.h"
+#include "mozilla/TimeStamp.h"
+
+#ifdef MOZ_CRASHREPORTER
+#include "nsServiceManagerUtils.h"
+#include "nsICrashReporter.h"
+#endif
 
 #ifdef XP_LINUX
 #include <sys/time.h>
@@ -53,7 +64,7 @@
 
 #if defined(NS_FUNCTION_TIMER) && defined(_MSC_VER)
 #include "nsTimerImpl.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #endif
 #ifdef NS_FUNCTION_TIMER
 #include "nsCRT.h"
@@ -61,12 +72,12 @@
 
 #ifdef MOZ_TASK_TRACER
 #include "GeckoTaskTracer.h"
+#include "TracedTaskCommon.h"
 using namespace mozilla::tasktracer;
 #endif
 
 using namespace mozilla;
 
-#ifdef PR_LOGGING
 static PRLogModuleInfo*
 GetThreadLog()
 {
@@ -76,11 +87,10 @@ GetThreadLog()
   }
   return sLog;
 }
-#endif
 #ifdef LOG
 #undef LOG
 #endif
-#define LOG(args) PR_LOG(GetThreadLog(), PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(GetThreadLog(), mozilla::LogLevel::Debug, args)
 
 NS_DECL_CI_INTERFACE_GETTER(nsThread)
 
@@ -120,7 +130,7 @@ nsThreadClassInfo::GetInterfaces(uint32_t* aCount, nsIID*** aArray)
 }
 
 NS_IMETHODIMP
-nsThreadClassInfo::GetHelperForLanguage(uint32_t aLang, nsISupports** aResult)
+nsThreadClassInfo::GetScriptableHelper(nsIXPCScriptable** aResult)
 {
   *aResult = nullptr;
   return NS_OK;
@@ -144,13 +154,6 @@ NS_IMETHODIMP
 nsThreadClassInfo::GetClassID(nsCID** aResult)
 {
   *aResult = nullptr;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThreadClassInfo::GetImplementationLanguage(uint32_t* aResult)
-{
-  *aResult = nsIProgrammingLanguage::CPLUSPLUS;
   return NS_OK;
 }
 
@@ -213,9 +216,7 @@ public:
 
   // This method needs to be public to support older compilers (xlC_r on AIX).
   // It should be called directly as this class type is reference counted.
-  virtual ~nsThreadStartupEvent()
-  {
-  }
+  virtual ~nsThreadStartupEvent() {}
 
 private:
   NS_IMETHOD Run()
@@ -243,7 +244,7 @@ struct nsThreadShutdownContext
 class nsThreadShutdownAckEvent : public nsRunnable
 {
 public:
-  nsThreadShutdownAckEvent(nsThreadShutdownContext* aCtx)
+  explicit nsThreadShutdownAckEvent(nsThreadShutdownContext* aCtx)
     : mShutdownContext(aCtx)
   {
   }
@@ -268,7 +269,9 @@ public:
   NS_IMETHOD Run()
   {
     mThread->mShutdownContext = mShutdownContext;
+#if !defined(MOZILLA_XPCOMRT_API)
     MessageLoop::current()->Quit();
+#endif // !defined(MOZILLA_XPCOMRT_API)
     return NS_OK;
   }
 private:
@@ -281,7 +284,7 @@ private:
 static void
 SetupCurrentThreadForChaosMode()
 {
-  if (!ChaosMode::isActive()) {
+  if (!ChaosMode::isActive(ChaosMode::ThreadScheduling)) {
     return;
   }
 
@@ -319,6 +322,10 @@ SetupCurrentThreadForChaosMode()
 /*static*/ void
 nsThread::ThreadFunc(void* aArg)
 {
+#if !defined(MOZILLA_XPCOMRT_API)
+  using mozilla::ipc::BackgroundChild;
+#endif // !defined(MOZILLA_XPCOMRT_API)
+
   nsThread* self = static_cast<nsThread*>(aArg);  // strong reference
   self->mThread = PR_GetCurrentThread();
   SetupCurrentThreadForChaosMode();
@@ -326,7 +333,9 @@ nsThread::ThreadFunc(void* aArg)
   // Inform the ThreadManager
   nsThreadManager::get()->RegisterCurrentThread(self);
 
+#if !defined(MOZILLA_XPCOMRT_API)
   mozilla::IOInterposer::RegisterCurrentThread();
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
   // Wait for and process startup event
   nsCOMPtr<nsIRunnable> event;
@@ -338,12 +347,20 @@ nsThread::ThreadFunc(void* aArg)
   event = nullptr;
 
   {
+#if defined(MOZILLA_XPCOMRT_API)
+    while(!self->mShutdownContext) {
+      NS_ProcessNextEvent();
+    }
+#else
     // Scope for MessageLoop.
     nsAutoPtr<MessageLoop> loop(
       new MessageLoop(MessageLoop::TYPE_MOZILLA_NONMAINTHREAD));
 
     // Now, process incoming events...
     loop->Run();
+
+    BackgroundChild::CloseForCurrentThread();
+#endif // defined(MOZILLA_XPCOMRT_API)
 
     // Do NS_ProcessPendingEvents but with special handling to set
     // mEventsAreDoomed atomically with the removal of the last event. The key
@@ -366,7 +383,9 @@ nsThread::ThreadFunc(void* aArg)
     }
   }
 
+#if !defined(MOZILLA_XPCOMRT_API)
   mozilla::IOInterposer::UnregisterCurrentThread();
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
   // Inform the threadmanager that this thread is going away
   nsThreadManager::get()->UnregisterCurrentThread(self);
@@ -387,6 +406,34 @@ nsThread::ThreadFunc(void* aArg)
 
 //-----------------------------------------------------------------------------
 
+#ifdef MOZ_CRASHREPORTER
+// Tell the crash reporter to save a memory report if our heuristics determine
+// that an OOM failure is likely to occur soon.
+static bool SaveMemoryReportNearOOM()
+{
+  bool needMemoryReport = false;
+
+#ifdef XP_WIN // XXX implement on other platforms as needed
+  const size_t LOWMEM_THRESHOLD_VIRTUAL = 200 * 1024 * 1024;
+  MEMORYSTATUSEX statex;
+  statex.dwLength = sizeof(statex);
+  if (GlobalMemoryStatusEx(&statex)) {
+    if (statex.ullAvailVirtual < LOWMEM_THRESHOLD_VIRTUAL) {
+      needMemoryReport = true;
+    }
+  }
+#endif
+
+  if (needMemoryReport) {
+    nsCOMPtr<nsICrashReporter> cr =
+      do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+    cr->SaveMemoryReport();
+  }
+
+  return needMemoryReport;
+}
+#endif
+
 #ifdef MOZ_CANARY
 int sCanaryOutputFD = -1;
 #endif
@@ -396,7 +443,7 @@ nsThread::nsThread(MainThreadFlag aMainThread, uint32_t aStackSize)
   , mEvents(&mEventsRoot)
   , mPriority(PRIORITY_NORMAL)
   , mThread(nullptr)
-  , mRunningEvent(0)
+  , mNestedEventLoopDepth(0)
   , mStackSize(aStackSize)
   , mShutdownContext(nullptr)
   , mShutdownRequired(false)
@@ -455,6 +502,8 @@ nsThread::InitCurrentThread()
 nsresult
 nsThread::PutEvent(nsIRunnable* aEvent, nsNestedEventTarget* aTarget)
 {
+  nsCOMPtr<nsIThreadObserver> obs;
+
   {
     MutexAutoLock lock(mLock);
     nsChainedEventQueue* queue = aTarget ? aTarget->mQueue : &mEventsRoot;
@@ -463,9 +512,14 @@ nsThread::PutEvent(nsIRunnable* aEvent, nsNestedEventTarget* aTarget)
       return NS_ERROR_UNEXPECTED;
     }
     queue->PutEvent(aEvent);
+
+    // Make sure to grab the observer before dropping the lock, otherwise the
+    // event that we just placed into the queue could run and eventually delete
+    // this nsThread before the calling thread is scheduled again. We would then
+    // crash while trying to access a dead nsThread.
+    obs = mObserver;
   }
 
-  nsCOMPtr<nsIThreadObserver> obs = GetObserver();
   if (obs) {
     obs->OnDispatchedEvent(this);
   }
@@ -486,7 +540,8 @@ nsThread::DispatchInternal(nsIRunnable* aEvent, uint32_t aFlags,
   }
 
 #ifdef MOZ_TASK_TRACER
-  nsRefPtr<nsIRunnable> tracedRunnable = CreateTracedRunnable(aEvent);
+  nsCOMPtr<nsIRunnable> tracedRunnable = CreateTracedRunnable(aEvent);
+  (static_cast<TracedRunnable*>(tracedRunnable.get()))->DispatchTask();
   aEvent = tracedRunnable;
 #endif
 
@@ -502,9 +557,6 @@ nsThread::DispatchInternal(nsIRunnable* aEvent, uint32_t aFlags,
 
     nsRefPtr<nsThreadSyncDispatch> wrapper =
       new nsThreadSyncDispatch(thread, aEvent);
-    if (!wrapper) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
     nsresult rv = PutEvent(wrapper, aTarget);
     // Don't wait for the event to finish if we didn't dispatch it...
     if (NS_FAILED(rv)) {
@@ -582,9 +634,6 @@ nsThread::Shutdown()
   // Set mShutdownContext and wake up the thread in case it is waiting for
   // events to process.
   nsCOMPtr<nsIRunnable> event = new nsThreadShutdownEvent(this, &context);
-  if (!event) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
   // XXXroc What if posting the event fails due to OOM?
   PutEvent(event, nullptr);
 
@@ -684,7 +733,15 @@ void canary_alarm_handler(int signum)
 NS_IMETHODIMP
 nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
 {
-  LOG(("THRD(%p) ProcessNextEvent [%u %u]\n", this, aMayWait, mRunningEvent));
+  LOG(("THRD(%p) ProcessNextEvent [%u %u]\n", this, aMayWait,
+       mNestedEventLoopDepth));
+
+#if !defined(MOZILLA_XPCOMRT_API)
+  // If we're on the main thread, we shouldn't be dispatching CPOWs.
+  if (mIsMainThread == MAIN_THREAD) {
+    ipc::CancelCPOWs();
+  }
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
   if (NS_WARN_IF(PR_GetCurrentThread() != mThread)) {
     return NS_ERROR_NOT_SAME_THREAD;
@@ -698,11 +755,13 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
   // to block even if something has requested shutdown of the thread. Otherwise
   // we'll just busywait as we endlessly look for an event, fail to find one,
   // and repeat the nested event loop since its state change hasn't happened yet.
-  bool reallyWait = aMayWait && (mRunningEvent > 0 || !ShuttingDown());
+  bool reallyWait = aMayWait && (mNestedEventLoopDepth > 0 || !ShuttingDown());
 
+#if !defined(MOZILLA_XPCOMRT_API)
   if (MAIN_THREAD == mIsMainThread && reallyWait) {
     HangMonitor::Suspend();
   }
+#endif // !defined(MOZILLA_XPCOMRT_API)
 
   // Fire a memory pressure notification, if we're the main thread and one is
   // pending.
@@ -726,21 +785,43 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
     }
   }
 
+#ifdef MOZ_CRASHREPORTER
+  if (MAIN_THREAD == mIsMainThread && !ShuttingDown()) {
+    // Keep an eye on memory usage (cheap, ~7ms) somewhat frequently,
+    // but save memory reports (expensive, ~75ms) less frequently.
+    const size_t LOW_MEMORY_CHECK_SECONDS = 30;
+    const size_t LOW_MEMORY_SAVE_SECONDS = 3 * 60;
+
+    static TimeStamp nextCheck = TimeStamp::NowLoRes()
+      + TimeDuration::FromSeconds(LOW_MEMORY_CHECK_SECONDS);
+    
+    TimeStamp now = TimeStamp::NowLoRes();
+    if (now >= nextCheck) {
+      if (SaveMemoryReportNearOOM()) {
+        nextCheck = now + TimeDuration::FromSeconds(LOW_MEMORY_SAVE_SECONDS);
+      } else {
+        nextCheck = now + TimeDuration::FromSeconds(LOW_MEMORY_CHECK_SECONDS);
+      }
+    }
+  }
+#endif
+
   bool notifyMainThreadObserver =
     (MAIN_THREAD == mIsMainThread) && sMainThreadObserver;
   if (notifyMainThreadObserver) {
-    sMainThreadObserver->OnProcessNextEvent(this, reallyWait, mRunningEvent);
+    sMainThreadObserver->OnProcessNextEvent(this, reallyWait,
+                                            mNestedEventLoopDepth);
   }
 
   nsCOMPtr<nsIThreadObserver> obs = mObserver;
   if (obs) {
-    obs->OnProcessNextEvent(this, reallyWait, mRunningEvent);
+    obs->OnProcessNextEvent(this, reallyWait, mNestedEventLoopDepth);
   }
 
   NOTIFY_EVENT_OBSERVERS(OnProcessNextEvent,
-                         (this, reallyWait, mRunningEvent));
+                         (this, reallyWait, mNestedEventLoopDepth));
 
-  ++mRunningEvent;
+  ++mNestedEventLoopDepth;
 
 #ifdef MOZ_CANARY
   Canary canary;
@@ -749,7 +830,7 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
 
   {
     // Scope for |event| to make sure that its destructor fires while
-    // mRunningEvent has been incremented, since that destructor can
+    // mNestedEventLoopDepth has been incremented, since that destructor can
     // also do work.
 
     // If we are shutting down, then do not wait for new events.
@@ -760,9 +841,11 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
 
     if (event) {
       LOG(("THRD(%p) running [%p]\n", this, event.get()));
+#if !defined(MOZILLA_XPCOMRT_API)
       if (MAIN_THREAD == mIsMainThread) {
         HangMonitor::NotifyActivity();
       }
+#endif // !defined(MOZILLA_XPCOMRT_API)
       event->Run();
     } else if (aMayWait) {
       MOZ_ASSERT(ShuttingDown(),
@@ -771,17 +854,18 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
     }
   }
 
-  --mRunningEvent;
+  --mNestedEventLoopDepth;
 
   NOTIFY_EVENT_OBSERVERS(AfterProcessNextEvent,
-                         (this, mRunningEvent, *aResult));
+                         (this, mNestedEventLoopDepth, *aResult));
 
   if (obs) {
-    obs->AfterProcessNextEvent(this, mRunningEvent, *aResult);
+    obs->AfterProcessNextEvent(this, mNestedEventLoopDepth, *aResult);
   }
 
   if (notifyMainThreadObserver && sMainThreadObserver) {
-    sMainThreadObserver->AfterProcessNextEvent(this, mRunningEvent, *aResult);
+    sMainThreadObserver->AfterProcessNextEvent(this, mNestedEventLoopDepth,
+                                               *aResult);
   }
 
   return rv;
@@ -824,7 +908,7 @@ nsThread::SetPriority(int32_t aPriority)
     pri = PR_PRIORITY_NORMAL;
   }
   // If chaos mode is active, retain the randomly chosen priority
-  if (!ChaosMode::isActive()) {
+  if (!ChaosMode::isActive(ChaosMode::ThreadScheduling)) {
     PR_SetThreadPriority(mThread, pri);
   }
 
@@ -867,7 +951,7 @@ nsThread::GetRecursionDepth(uint32_t* aDepth)
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  *aDepth = mRunningEvent;
+  *aDepth = mNestedEventLoopDepth;
   return NS_OK;
 }
 

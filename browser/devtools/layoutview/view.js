@@ -1,25 +1,25 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* globals ViewHelpers, window, document */
 
 "use strict";
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
-const Cc = Components.classes;
+const {utils: Cu, interfaces: Ci, classes: Cc} = Components;
 
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 Cu.import("resource://gre/modules/devtools/Console.jsm");
+Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-const {InplaceEditor, editableItem} = devtools.require("devtools/shared/inplace-editor");
-const {parseDeclarations} = devtools.require("devtools/styleinspector/css-parsing-utils");
-const {ReflowFront} = devtools.require("devtools/server/actors/layout");
+const {require} = devtools;
+const {InplaceEditor, editableItem} = require("devtools/shared/inplace-editor");
+const {ReflowFront} = require("devtools/server/actors/layout");
 
+const STRINGS_URI = "chrome://browser/locale/devtools/shared.properties";
+const SHARED_L10N = new ViewHelpers.L10N(STRINGS_URI);
 const NUMERIC = /^-?[\d\.]+$/;
 const LONG_TEXT_ROTATE_LIMIT = 3;
 
@@ -174,17 +174,11 @@ LayoutView.prototype = {
       marginBottom: {selector: ".margin.bottom > span",
                   property: "margin-bottom",
                   value: undefined},
-      // margin-left is a shorthand for some internal properties,
-      // margin-left-ltr-source and margin-left-rtl-source for example. The
-      // real margin value we want is in margin-left-value
       marginLeft: {selector: ".margin.left > span",
                   property: "margin-left",
-                  realProperty: "margin-left-value",
                   value: undefined},
-      // margin-right behaves the same as margin-left
       marginRight: {selector: ".margin.right > span",
                   property: "margin-right",
-                  realProperty: "margin-right-value",
                   value: undefined},
       paddingTop: {selector: ".padding.top > span",
                   property: "padding-top",
@@ -192,15 +186,11 @@ LayoutView.prototype = {
       paddingBottom: {selector: ".padding.bottom > span",
                   property: "padding-bottom",
                   value: undefined},
-      // padding-left behaves the same as margin-left
       paddingLeft: {selector: ".padding.left > span",
                   property: "padding-left",
-                  realProperty: "padding-left-value",
                   value: undefined},
-      // padding-right behaves the same as margin-left
       paddingRight: {selector: ".padding.right > span",
                   property: "padding-right",
-                  realProperty: "padding-right-value",
                   value: undefined},
       borderTop: {selector: ".border.top > span",
                   property: "border-top-width",
@@ -213,13 +203,14 @@ LayoutView.prototype = {
                   value: undefined},
       borderRight: {selector: ".border.right > span",
                   property: "border-right-width",
-                  value: undefined},
+                  value: undefined}
     };
 
     // Make each element the dimensions editable
     for (let i in this.map) {
-      if (i == "position")
+      if (i == "position") {
         continue;
+      }
 
       let dimension = this.map[i];
       editableItem({
@@ -239,7 +230,8 @@ LayoutView.prototype = {
     if (!this.reflowFront) {
       let toolbox = this.inspector.toolbox;
       if (toolbox.target.form.reflowActor) {
-        this.reflowFront = ReflowFront(toolbox.target.client, toolbox.target.form);
+        this.reflowFront = ReflowFront(toolbox.target.client,
+                                       toolbox.target.form);
       } else {
         return;
       }
@@ -265,21 +257,19 @@ LayoutView.prototype = {
    * Called when the user clicks on one of the editable values in the layoutview
    */
   initEditor: function(element, event, dimension) {
-    let { property, realProperty } = dimension;
-    if (!realProperty)
-      realProperty = property;
+    let { property } = dimension;
     let session = new EditingSession(document, this.elementRules);
-    let initialValue = session.getProperty(realProperty);
+    let initialValue = session.getProperty(property);
 
     let editor = new InplaceEditor({
       element: element,
       initial: initialValue,
 
-      start: (editor) => {
+      start: editor => {
         editor.elt.parentNode.classList.add("editing");
       },
 
-      change: (value) => {
+      change: value => {
         if (NUMERIC.test(value)) {
           value += "px";
         }
@@ -310,11 +300,23 @@ LayoutView.prototype = {
   },
 
   /**
-   * Is the layoutview visible in the sidebar?
+   * Is the layoutview visible in the sidebar.
+   * @return {Boolean}
    */
-  isActive: function() {
+  isViewVisible: function() {
     return this.inspector &&
            this.inspector.sidebar.getCurrentTabID() == "layoutview";
+  },
+
+  /**
+   * Is the layoutview visible in the sidebar and is the current node valid to
+   * be displayed in the view.
+   * @return {Boolean}
+   */
+  isViewVisibleAndNodeValid: function() {
+    return this.isViewVisible() &&
+           this.inspector.selection.isConnected() &&
+           this.inspector.selection.isElementNode();
   },
 
   /**
@@ -338,9 +340,7 @@ LayoutView.prototype = {
   },
 
   onSidebarSelect: function(e, sidebar) {
-    if (sidebar !== "layoutview") {
-      this.dim();
-    }
+    this.setActive(sidebar === "layoutview");
   },
 
   /**
@@ -348,42 +348,37 @@ LayoutView.prototype = {
    */
   onNewSelection: function() {
     let done = this.inspector.updating("layoutview");
-    this.onNewNode().then(done, (err) => { console.error(err); done() });
+    this.onNewNode().then(done, err => {
+      console.error(err);
+      done();
+    });
   },
 
   /**
    * @return a promise that resolves when the view has been updated
    */
   onNewNode: function() {
-    if (this.isActive() &&
-        this.inspector.selection.isConnected() &&
-        this.inspector.selection.isElementNode()) {
-      this.undim();
-    } else {
-      this.dim();
-    }
-
+    this.setActive(this.isViewVisibleAndNodeValid());
     return this.update();
   },
 
   /**
-   * Hide the layout boxes and stop refreshing on reflows. No node is selected
-   * or the layout-view sidebar is inactive.
+   * Stop tracking reflows and hide all values when no node is selected or the
+   * layout-view is hidden, otherwise track reflows and show values.
+   * @param {Boolean} isActive
    */
-  dim: function() {
-    this.untrackReflows();
-    this.doc.body.classList.add("dim");
-    this.dimmed = true;
-  },
+  setActive: function(isActive) {
+    if (isActive === this.isActive) {
+      return;
+    }
+    this.isActive = isActive;
 
-  /**
-   * Show the layout boxes and start refreshing on reflows. A node is selected
-   * and the layout-view side is active.
-   */
-  undim: function() {
-    this.trackReflows();
-    this.doc.body.classList.remove("dim");
-    this.dimmed = false;
+    this.doc.body.classList.toggle("inactive", !isActive);
+    if (isActive) {
+      this.trackReflows();
+    } else {
+      this.untrackReflows();
+    }
   },
 
   /**
@@ -393,15 +388,13 @@ LayoutView.prototype = {
    */
   update: function() {
     let lastRequest = Task.spawn((function*() {
-      if (!this.isActive() ||
-          !this.inspector.selection.isConnected() ||
-          !this.inspector.selection.isElementNode()) {
+      if (!this.isViewVisibleAndNodeValid()) {
         return;
       }
 
       let node = this.inspector.selection.nodeFront;
       let layout = yield this.inspector.pageStyle.getLayout(node, {
-        autoMargins: !this.dimmed
+        autoMargins: this.isActive
       });
       let styleEntries = yield this.inspector.pageStyle.getApplied(node, {});
 
@@ -413,13 +406,14 @@ LayoutView.prototype = {
       this._lastRequest = null;
       let width = layout.width;
       let height = layout.height;
-      let newLabel = width + "x" + height;
+      let newLabel = SHARED_L10N.getFormatStr("dimensions", width, height);
+
       if (this.sizeHeadingLabel.textContent != newLabel) {
         this.sizeHeadingLabel.textContent = newLabel;
       }
 
-      // If the view is dimmed, no need to do anything more.
-      if (this.dimmed) {
+      // If the view isn't active, no need to do anything more.
+      if (!this.isActive) {
         this.inspector.emit("layoutview-updated");
         return null;
       }
@@ -431,7 +425,7 @@ LayoutView.prototype = {
           // might be missing.
           continue;
         }
-        let parsedValue = parseInt(layout[property]);
+        let parsedValue = parseFloat(layout[property]);
         if (Number.isNaN(parsedValue)) {
           // Not a number. We use the raw string.
           // Useful for "position" for example.
@@ -442,14 +436,23 @@ LayoutView.prototype = {
       }
 
       let margins = layout.autoMargins;
-      if ("top" in margins) this.map.marginTop.value = "auto";
-      if ("right" in margins) this.map.marginRight.value = "auto";
-      if ("bottom" in margins) this.map.marginBottom.value = "auto";
-      if ("left" in margins) this.map.marginLeft.value = "auto";
+      if ("top" in margins) {
+        this.map.marginTop.value = "auto";
+      }
+      if ("right" in margins) {
+        this.map.marginRight.value = "auto";
+      }
+      if ("bottom" in margins) {
+        this.map.marginBottom.value = "auto";
+      }
+      if ("left" in margins) {
+        this.map.marginLeft.value = "auto";
+      }
 
       for (let i in this.map) {
         let selector = this.map[i].selector;
         let span = this.doc.querySelector(selector);
+        this.updateSourceRuleTooltip(span, this.map[i].property, styleEntries);
         if (span.textContent.length > 0 &&
             span.textContent == this.map[i].value) {
           continue;
@@ -460,21 +463,56 @@ LayoutView.prototype = {
 
       width -= this.map.borderLeft.value + this.map.borderRight.value +
                this.map.paddingLeft.value + this.map.paddingRight.value;
-
+      width = parseFloat(width.toPrecision(6));
       height -= this.map.borderTop.value + this.map.borderBottom.value +
                 this.map.paddingTop.value + this.map.paddingBottom.value;
+      height = parseFloat(height.toPrecision(6));
 
-      let newValue = width + "x" + height;
+      let newValue = width + "\u00D7" + height;
       if (this.sizeLabel.textContent != newValue) {
         this.sizeLabel.textContent = newValue;
       }
 
-      this.elementRules = [e.rule for (e of styleEntries)];
+      this.elementRules = styleEntries.map(e => e.rule);
 
       this.inspector.emit("layoutview-updated");
     }).bind(this)).then(null, console.error);
 
     return this._lastRequest = lastRequest;
+  },
+
+  /**
+   * Update the text in the tooltip shown when hovering over a value to provide
+   * information about the source CSS rule that sets this value.
+   * @param {DOMNode} el The element that will receive the tooltip.
+   * @param {String} property The name of the CSS property for the tooltip.
+   * @param {Array} rules An array of applied rules retrieved by
+   * styleActor.getApplied.
+   */
+  updateSourceRuleTooltip: function(el, property, rules) {
+    // Dummy element used to parse the cssText of applied rules.
+    let dummyEl = this.doc.createElement("div");
+
+    // Rules are in order of priority so iterate until we find the first that
+    // defines a value for the property.
+    let sourceRule, value;
+    for (let {rule} of rules) {
+      dummyEl.style.cssText = rule.cssText;
+      value = dummyEl.style.getPropertyValue(property);
+      if (value !== "") {
+        sourceRule = rule;
+        break;
+      }
+    }
+
+    let title = property;
+    if (sourceRule && sourceRule.selectors) {
+      title += "\n" + sourceRule.selectors.join(", ");
+    }
+    if (sourceRule && sourceRule.parentStyleSheet) {
+      title += "\n" + sourceRule.parentStyleSheet.href + ":" + sourceRule.line;
+    }
+    el.setAttribute("title", title);
   },
 
   /**
@@ -508,30 +546,32 @@ LayoutView.prototype = {
 };
 
 let elts;
-let tooltip;
 
 let onmouseover = function(e) {
   let region = e.target.getAttribute("data-box");
+  if (!region) {
+    return false;
+  }
 
-  tooltip.textContent = e.target.getAttribute("tooltip");
-  this.layoutview.showBoxModel({region: region});
+  this.layoutview.showBoxModel({
+    region,
+    showOnly: region,
+    onlyRegionArea: true
+  });
 
   return false;
 }.bind(window);
 
-let onmouseout = function(e) {
-  tooltip.textContent = "";
+let onmouseout = function() {
   this.layoutview.hideBoxModel();
-
   return false;
 }.bind(window);
 
 window.setPanel = function(panel) {
   this.layoutview = new LayoutView(panel, window);
 
-  // Tooltip mechanism
-  elts = document.querySelectorAll("*[tooltip]");
-  tooltip = document.querySelector(".tooltip");
+  // Box model highlighter mechanism
+  elts = document.querySelectorAll("*[title]");
   for (let i = 0; i < elts.length; i++) {
     let elt = elts[i];
     elt.addEventListener("mouseover", onmouseover, true);
@@ -539,8 +579,8 @@ window.setPanel = function(panel) {
   }
 
   // Mark document as RTL or LTR:
-  let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"].
-    getService(Ci.nsIXULChromeRegistry);
+  let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                  .getService(Ci.nsIXULChromeRegistry);
   let dir = chromeReg.isLocaleRTL("global");
   document.body.setAttribute("dir", dir ? "rtl" : "ltr");
 
@@ -548,7 +588,9 @@ window.setPanel = function(panel) {
 };
 
 window.onunload = function() {
-  this.layoutview.destroy();
+  if (this.layoutview) {
+    this.layoutview.destroy();
+  }
   if (elts) {
     for (let i = 0; i < elts.length; i++) {
       let elt = elts[i];

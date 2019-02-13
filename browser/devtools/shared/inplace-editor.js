@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 
 /**
@@ -11,7 +11,7 @@
  *
  * editableField({
  *   element: spanToEdit,
- *   done: function(value, commit) {
+ *   done: function(value, commit, direction) {
  *     if (commit) {
  *       spanToEdit.textContent = value;
  *     }
@@ -62,24 +62,44 @@ Cu.import("resource://gre/modules/devtools/event-emitter.js");
  *       with the current value of the text input.
  *    {function} done:
  *       Called when input is committed or blurred.  Called with
- *       current value and a boolean telling the caller whether to
- *       commit the change.  This function is called before the editor
- *       has been torn down.
+ *       current value, a boolean telling the caller whether to
+ *       commit the change, and the direction of the next element to be
+ *       selected. Direction may be one of nsIFocusManager.MOVEFOCUS_FORWARD,
+ *       nsIFocusManager.MOVEFOCUS_BACKWARD, or null (no movement).
+ *       This function is called before the editor has been torn down.
  *    {function} destroy:
  *       Called when the editor is destroyed and has been torn down.
- *    {string} advanceChars:
- *       If any characters in advanceChars are typed, focus will advance
- *       to the next element.
+ *    {object} advanceChars:
+ *       This can be either a string or a function.
+ *       If it is a string, then if any characters in it are typed,
+ *       focus will advance to the next element.
+ *       Otherwise, if it is a function, then the function will
+ *       be called with three arguments: a key code, the current text,
+ *       and the insertion point.  If the function returns true,
+ *       then the focus advance takes place.  If it returns false,
+ *       then the character is inserted instead.
  *    {boolean} stopOnReturn:
  *       If true, the return key will not advance the editor to the next
  *       focusable element.
+ *    {boolean} stopOnTab:
+ *       If true, the tab key will not advance the editor to the next
+ *       focusable element.
+ *    {boolean} stopOnShiftTab:
+ *       If true, shift tab will not advance the editor to the previous
+ *       focusable element.
  *    {string} trigger: The DOM event that should trigger editing,
  *      defaults to "click"
+ *    {boolean} multiline: Should the editor be a multiline textarea?
+ *      defaults to false
+ *    {boolean} trimOutput: Should the returned string be trimmed?
+ *      defaults to true
  */
 function editableField(aOptions)
 {
   return editableItem(aOptions, function(aElement, aEvent) {
-    new InplaceEditor(aOptions, aEvent);
+    if (!aOptions.element.inplaceEditor) {
+      new InplaceEditor(aOptions, aEvent);
+    }
   });
 }
 
@@ -97,6 +117,7 @@ exports.editableField = editableField;
  *      defaults to "click"
  * @param {function} aCallback
  *        Called when the editor is activated.
+ * @return {function} function which calls aCallback
  */
 function editableItem(aOptions, aCallback)
 {
@@ -142,6 +163,13 @@ function editableItem(aOptions, aCallback)
   // Mark the element editable field for tab
   // navigation while editing.
   element._editable = true;
+
+  // Save the trigger type so we can dispatch this later
+  element._trigger = trigger;
+
+  return function turnOnEditMode() {
+    aCallback(element);
+  }
 }
 
 exports.editableItem = this.editableItem;
@@ -171,6 +199,9 @@ function InplaceEditor(aOptions, aEvent)
   this.destroy = aOptions.destroy;
   this.initial = aOptions.initial ? aOptions.initial : this.elt.textContent;
   this.multiline = aOptions.multiline || false;
+  this.trimOutput = aOptions.trimOutput === undefined ? true : !!aOptions.trimOutput;
+  this.stopOnShiftTab = !!aOptions.stopOnShiftTab;
+  this.stopOnTab = !!aOptions.stopOnTab;
   this.stopOnReturn = !!aOptions.stopOnReturn;
   this.contentType = aOptions.contentType || CONTENT_TYPES.PLAIN_TEXT;
   this.property = aOptions.property;
@@ -187,10 +218,15 @@ function InplaceEditor(aOptions, aEvent)
 
   // Pull out character codes for advanceChars, listing the
   // characters that should trigger a blur.
-  this._advanceCharCodes = {};
-  let advanceChars = aOptions.advanceChars || '';
-  for (let i = 0; i < advanceChars.length; i++) {
-    this._advanceCharCodes[advanceChars.charCodeAt(i)] = true;
+  if (typeof(aOptions.advanceChars) === "function") {
+    this._advanceChars = aOptions.advanceChars;
+  } else {
+    let advanceCharcodes = {};
+    let advanceChars = aOptions.advanceChars || '';
+    for (let i = 0; i < advanceChars.length; i++) {
+      advanceCharcodes[advanceChars.charCodeAt(i)] = true;
+    }
+    this._advanceChars = aCharCode => aCharCode in advanceCharcodes;
   }
 
   // Hide the provided element and add our editor.
@@ -198,10 +234,11 @@ function InplaceEditor(aOptions, aEvent)
   this.elt.style.display = "none";
   this.elt.parentNode.insertBefore(this.input, this.elt);
 
+  this.input.focus();
+
   if (typeof(aOptions.selectAll) == "undefined" || aOptions.selectAll) {
     this.input.select();
   }
-  this.input.focus();
 
   if (this.contentType == CONTENT_TYPES.CSS_VALUE && this.input.value == "") {
     this._maybeSuggestCompletion(true);
@@ -222,6 +259,8 @@ function InplaceEditor(aOptions, aEvent)
     this.input.addEventListener("keyup", this._onKeyup, false);
   }
 
+  this._updateSize();
+
   if (aOptions.start) {
     aOptions.start(this, aEvent);
   }
@@ -234,6 +273,12 @@ exports.InplaceEditor = InplaceEditor;
 InplaceEditor.CONTENT_TYPES = CONTENT_TYPES;
 
 InplaceEditor.prototype = {
+
+  get currentInputValue() {
+    let val = this.trimOutput ? this.input.value.trim() : this.input.value;
+    return val;
+  },
+
   _createInput: function InplaceEditor_createEditor()
   {
     this.input =
@@ -264,7 +309,7 @@ InplaceEditor.prototype = {
     this.elt.style.display = this.originalDisplay;
     this.elt.focus();
 
-    this.elt.parentNode.removeChild(this.input);
+    this.input.remove();
     this.input = null;
 
     delete this.elt.inplaceEditor;
@@ -309,7 +354,7 @@ InplaceEditor.prototype = {
     if (!this._measurement) {
       return;
     }
-    this._measurement.parentNode.removeChild(this._measurement);
+    this._measurement.remove();
     delete this._measurement;
   },
 
@@ -333,7 +378,6 @@ InplaceEditor.prototype = {
       // account for the fact that after adding a newline the <pre> doesn't grow
       // unless there's text content on the line.
       width += 15;
-      this._measurement.textContent += "M";
       this.input.style.height = this._measurement.offsetHeight + "px";
     }
 
@@ -378,7 +422,7 @@ InplaceEditor.prototype = {
 
     // Call the user's change handler if available.
     if (this.change) {
-      this.change(this.input.value.trim());
+      this.change(this.currentInputValue);
     }
 
     return true;
@@ -470,7 +514,7 @@ InplaceEditor.prototype = {
    */
    _parseCSSValue: function InplaceEditor_parseCSSValue(value, offset)
   {
-    const reSplitCSS = /(url\("?[^"\)]+"?\)?)|(rgba?\([^)]*\)?)|(hsla?\([^)]*\)?)|(#[\dA-Fa-f]+)|(-?\d+(\.\d+)?(%|[a-z]{1,4})?)|"([^"]*)"?|'([^']*)'?|([^,\s\/!\(\)]+)|(!(.*)?)/;
+    const reSplitCSS = /(url\("?[^"\)]+"?\)?)|(rgba?\([^)]*\)?)|(hsla?\([^)]*\)?)|(#[\dA-Fa-f]+)|(-?\d*\.?\d+(%|[a-z]{1,4})?)|"([^"]*)"?|'([^']*)'?|([^,\s\/!\(\)]+)|(!(.*)?)/;
     let start = 0;
     let m;
 
@@ -761,7 +805,7 @@ InplaceEditor.prototype = {
   /**
    * Call the client's done handler and clear out.
    */
-  _apply: function InplaceEditor_apply(aEvent)
+  _apply: function InplaceEditor_apply(aEvent, direction)
   {
     if (this._applied) {
       return;
@@ -770,8 +814,8 @@ InplaceEditor.prototype = {
     this._applied = true;
 
     if (this.done) {
-      let val = this.input.value.trim();
-      return this.done(this.cancelled ? this.initial : val, !this.cancelled);
+      let val = this.cancelled ? this.initial : this.currentInputValue;
+      return this.done(val, !this.cancelled, direction);
     }
 
     return null;
@@ -786,10 +830,10 @@ InplaceEditor.prototype = {
         this.popup.selectedIndex >= 0) {
       let label, preLabel;
       if (this._selectedIndex === undefined) {
-        ({label, preLabel}) = this.popup.getItemAtIndex(this.popup.selectedIndex);
+        ({label, preLabel} = this.popup.getItemAtIndex(this.popup.selectedIndex));
       }
       else {
-        ({label, preLabel}) = this.popup.getItemAtIndex(this._selectedIndex);
+        ({label, preLabel} = this.popup.getItemAtIndex(this._selectedIndex));
       }
       let input = this.input;
       let pre = "";
@@ -864,6 +908,14 @@ InplaceEditor.prototype = {
       increment *= smallIncrement;
     }
 
+    // Use default cursor movement rather than providing auto-suggestions.
+    if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_HOME
+        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_END
+        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP
+        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN) {
+      this._preventSuggestions = true;
+    }
+
     let cycling = false;
     if (increment && this._incrementValue(increment) ) {
       this._updateSize();
@@ -891,7 +943,8 @@ InplaceEditor.prototype = {
         aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN &&
         aEvent.shiftKey) {
       prevent = false;
-    } else if (aEvent.charCode in this._advanceCharCodes
+    } else if (this._advanceChars(aEvent.charCode, this.input.value,
+                                 this.input.selectionStart)
        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN
        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_TAB) {
       prevent = true;
@@ -899,9 +952,16 @@ InplaceEditor.prototype = {
       let direction = FOCUS_FORWARD;
       if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_TAB &&
           aEvent.shiftKey) {
-        direction = FOCUS_BACKWARD;
+        if (this.stopOnShiftTab) {
+          direction = null;
+        } else {
+          direction = FOCUS_BACKWARD;
+        }
       }
-      if (this.stopOnReturn && aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN) {
+      if ((this.stopOnReturn &&
+           aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN) ||
+          (this.stopOnTab && aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_TAB &&
+           !aEvent.shiftKey)) {
         direction = null;
       }
 
@@ -931,7 +991,7 @@ InplaceEditor.prototype = {
         }
       }
 
-      this._apply();
+      this._apply(aEvent, direction);
 
       // Close the popup if open
       if (this.popup && this.popup.isOpen) {
@@ -944,9 +1004,11 @@ InplaceEditor.prototype = {
         let next = moveFocus(this.doc.defaultView, direction);
 
         // If the next node to be focused has been tagged as an editable
-        // node, send it a click event to trigger
+        // node, trigger editing using the configured event
         if (next && next.ownerDocument === this.doc && next._editable) {
-          next.click();
+          let e = this.doc.createEvent('Event');
+          e.initEvent(next._trigger, true, true);
+          next.dispatchEvent(e);
         }
       }
 
@@ -998,7 +1060,7 @@ InplaceEditor.prototype = {
 
     // Call the user's change handler if available.
     if (this.change) {
-      this.change(this.input.value.trim());
+      this.change(this.currentInputValue);
     }
   },
 

@@ -58,40 +58,40 @@ Java_org_mozilla_gecko_ANRReporter_releaseNativeStack(JNIEnv * arg0, jclass arg1
 
 #ifdef JNI_STUBS
 
-typedef void (*Java_org_mozilla_gecko_GeckoAppShell_nativeInit_t)(JNIEnv *, jclass);
+typedef void (*Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread_t)(JNIEnv *, jclass);
+static Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread_t f_Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread;
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread(JNIEnv * arg0, jclass arg1) {
+    if (!f_Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread) {
+        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
+                       "JNI Function called before it was loaded");
+        return ;
+    }
+     f_Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread(arg0, arg1);
+}
+#endif
+
+#ifdef JNI_BINDINGS
+  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread", &f_Java_org_mozilla_gecko_GeckoAppShell_registerJavaUiThread);
+#endif
+
+#ifdef JNI_STUBS
+
+typedef void (*Java_org_mozilla_gecko_GeckoAppShell_nativeInit_t)(JNIEnv *, jclass, jobject, jobject);
 static Java_org_mozilla_gecko_GeckoAppShell_nativeInit_t f_Java_org_mozilla_gecko_GeckoAppShell_nativeInit;
 extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_nativeInit(JNIEnv * arg0, jclass arg1) {
+Java_org_mozilla_gecko_GeckoAppShell_nativeInit(JNIEnv * arg0, jclass arg1, jobject arg2, jobject arg3) {
     if (!f_Java_org_mozilla_gecko_GeckoAppShell_nativeInit) {
         arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
                        "JNI Function called before it was loaded");
         return ;
     }
-     f_Java_org_mozilla_gecko_GeckoAppShell_nativeInit(arg0, arg1);
+     f_Java_org_mozilla_gecko_GeckoAppShell_nativeInit(arg0, arg1, arg2, arg3);
 }
 #endif
 
 #ifdef JNI_BINDINGS
   xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_nativeInit", &f_Java_org_mozilla_gecko_GeckoAppShell_nativeInit);
-#endif
-
-#ifdef JNI_STUBS
-
-typedef void (*Java_org_mozilla_gecko_GeckoAppShell_setLayerClient_t)(JNIEnv *, jclass, jobject);
-static Java_org_mozilla_gecko_GeckoAppShell_setLayerClient_t f_Java_org_mozilla_gecko_GeckoAppShell_setLayerClient;
-extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_setLayerClient(JNIEnv * arg0, jclass arg1, jobject arg2) {
-    if (!f_Java_org_mozilla_gecko_GeckoAppShell_setLayerClient) {
-        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
-                       "JNI Function called before it was loaded");
-        return ;
-    }
-     f_Java_org_mozilla_gecko_GeckoAppShell_setLayerClient(arg0, arg1, arg2);
-}
-#endif
-
-#ifdef JNI_BINDINGS
-  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_setLayerClient", &f_Java_org_mozilla_gecko_GeckoAppShell_setLayerClient);
 #endif
 
 #ifdef JNI_STUBS
@@ -111,25 +111,6 @@ Java_org_mozilla_gecko_GeckoAppShell_onResume(JNIEnv * arg0, jclass arg1) {
 
 #ifdef JNI_BINDINGS
   xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_onResume", &f_Java_org_mozilla_gecko_GeckoAppShell_onResume);
-#endif
-
-#ifdef JNI_STUBS
-
-typedef jobject (*Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue_t)(JNIEnv *, jclass, jobject);
-static Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue_t f_Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue;
-extern "C" NS_EXPORT jobject JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue(JNIEnv * arg0, jclass arg1, jobject arg2) {
-    if (!f_Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue) {
-        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
-                       "JNI Function called before it was loaded");
-        return nullptr;
-    }
-    return f_Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue(arg0, arg1, arg2);
-}
-#endif
-
-#ifdef JNI_BINDINGS
-  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue", &f_Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue);
 #endif
 
 #ifdef JNI_STUBS
@@ -305,6 +286,44 @@ Java_org_mozilla_gecko_GeckoAppShell_getSurfaceBits(JNIEnv * arg0, jclass arg1, 
 
 #ifdef JNI_STUBS
 
+typedef void (*Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface_t)(JNIEnv *, jclass, jobject);
+static Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface_t f_Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface;
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface(JNIEnv * arg0, jclass arg1, jobject arg2) {
+    if (!f_Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface) {
+        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
+                       "JNI Function called before it was loaded");
+        return ;
+    }
+     f_Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface(arg0, arg1, arg2);
+}
+#endif
+
+#ifdef JNI_BINDINGS
+  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface", &f_Java_org_mozilla_gecko_GeckoAppShell_addPresentationSurface);
+#endif
+
+#ifdef JNI_STUBS
+
+typedef void (*Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface_t)(JNIEnv *, jclass, jobject);
+static Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface_t f_Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface;
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface(JNIEnv * arg0, jclass arg1, jobject arg2) {
+    if (!f_Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface) {
+        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
+                       "JNI Function called before it was loaded");
+        return ;
+    }
+     f_Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface(arg0, arg1, arg2);
+}
+#endif
+
+#ifdef JNI_BINDINGS
+  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface", &f_Java_org_mozilla_gecko_GeckoAppShell_removePresentationSurface);
+#endif
+
+#ifdef JNI_STUBS
+
 typedef void (*Java_org_mozilla_gecko_GeckoAppShell_onFullScreenPluginHidden_t)(JNIEnv *, jclass, jobject);
 static Java_org_mozilla_gecko_GeckoAppShell_onFullScreenPluginHidden_t f_Java_org_mozilla_gecko_GeckoAppShell_onFullScreenPluginHidden;
 extern "C" NS_EXPORT void JNICALL
@@ -339,6 +358,44 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent(JNIEnv * arg0, jclass ar
 
 #ifdef JNI_BINDINGS
   xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent", &f_Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent);
+#endif
+
+#ifdef JNI_STUBS
+
+typedef void (*Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers_t)(JNIEnv *, jclass, jstring, jstring);
+static Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers_t f_Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers;
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers(JNIEnv * arg0, jclass arg1, jstring arg2, jstring arg3) {
+    if (!f_Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers) {
+        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
+                       "JNI Function called before it was loaded");
+        return ;
+    }
+     f_Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers(arg0, arg1, arg2, arg3);
+}
+#endif
+
+#ifdef JNI_BINDINGS
+  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers", &f_Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers);
+#endif
+
+#ifdef JNI_STUBS
+
+typedef jlong (*Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback_t)(JNIEnv *, jclass);
+static Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback_t f_Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback;
+extern "C" NS_EXPORT jlong JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback(JNIEnv * arg0, jclass arg1) {
+    if (!f_Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback) {
+        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
+                       "JNI Function called before it was loaded");
+        return 0;
+    }
+    return f_Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback(arg0, arg1);
+}
+#endif
+
+#ifdef JNI_BINDINGS
+  xul_dlsym("Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback", &f_Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback);
 #endif
 
 #ifdef JNI_STUBS
@@ -419,16 +476,16 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_init(JNIEnv * arg0, jobject a
 
 #ifdef JNI_STUBS
 
-typedef void (*Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent_t)(JNIEnv *, jobject, jobject);
+typedef jboolean (*Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent_t)(JNIEnv *, jobject, jobject);
 static Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent_t f_Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent;
-extern "C" NS_EXPORT void JNICALL
+extern "C" NS_EXPORT jboolean JNICALL
 Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(JNIEnv * arg0, jobject arg1, jobject arg2) {
     if (!f_Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent) {
         arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
                        "JNI Function called before it was loaded");
-        return ;
+        return false;
     }
-     f_Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(arg0, arg1, arg2);
+    return f_Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(arg0, arg1, arg2);
 }
 #endif
 
@@ -457,25 +514,6 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_handleMotionEvent(JNIEnv * ar
 
 #ifdef JNI_STUBS
 
-typedef jlong (*Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback_t)(JNIEnv *, jobject);
-static Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback_t f_Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback;
-extern "C" NS_EXPORT jlong JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback(JNIEnv * arg0, jobject arg1) {
-    if (!f_Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback) {
-        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
-                       "JNI Function called before it was loaded");
-        return 0;
-    }
-    return f_Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback(arg0, arg1);
-}
-#endif
-
-#ifdef JNI_BINDINGS
-  xul_dlsym("Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback", &f_Java_org_mozilla_gecko_gfx_NativePanZoomController_runDelayedCallback);
-#endif
-
-#ifdef JNI_STUBS
-
 typedef void (*Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy_t)(JNIEnv *, jobject);
 static Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy_t f_Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy;
 extern "C" NS_EXPORT void JNICALL
@@ -491,25 +529,6 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy(JNIEnv * arg0, jobjec
 
 #ifdef JNI_BINDINGS
   xul_dlsym("Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy", &f_Java_org_mozilla_gecko_gfx_NativePanZoomController_destroy);
-#endif
-
-#ifdef JNI_STUBS
-
-typedef void (*Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented_t)(JNIEnv *, jobject, jboolean);
-static Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented_t f_Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented;
-extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented(JNIEnv * arg0, jobject arg1, jboolean arg2) {
-    if (!f_Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented) {
-        arg0->ThrowNew(arg0->FindClass("java/lang/UnsupportedOperationException"),
-                       "JNI Function called before it was loaded");
-        return ;
-    }
-     f_Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented(arg0, arg1, arg2);
-}
-#endif
-
-#ifdef JNI_BINDINGS
-  xul_dlsym("Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented", &f_Java_org_mozilla_gecko_gfx_NativePanZoomController_notifyDefaultActionPrevented);
 #endif
 
 #ifdef JNI_STUBS

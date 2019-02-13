@@ -90,13 +90,12 @@ UNIFIED_SOURCES += [
     'nsParserUtils.cpp',
 ]
 
-MSVC_ENABLE_PGO = True
-
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 # DEFINES['ENABLE_VOID_MENUITEM'] = True
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
+    '/dom/base',
 ]
 
+FAIL_ON_WARNINGS = True

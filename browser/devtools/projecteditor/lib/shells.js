@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,6 +10,7 @@ const { EventTarget } = require("sdk/event/target");
 const { emit } = require("sdk/event/core");
 const { EditorTypeForResource } = require("projecteditor/editors");
 const NetworkHelper = require("devtools/toolkit/webconsole/network-helper");
+const promise = require("promise");
 
 /**
  * The Shell is the object that manages the editor for a single resource.
@@ -32,21 +33,18 @@ var Shell = Class({
     this.doc = host.document;
     this.resource = resource;
     this.elt = this.doc.createElement("vbox");
+    this.elt.classList.add("view-project-detail");
     this.elt.shell = this;
 
     let constructor = this._editorTypeForResource();
 
-    this.editor = constructor(this.doc, this.host);
+    this.editor = constructor(this.host);
     this.editor.shell = this;
     this.editorAppended = this.editor.appended;
 
-    let loadDefer = promise.defer();
     this.editor.on("load", () => {
-      loadDefer.resolve();
+      this.editorDeferred.resolve();
     });
-
-    this.editorLoaded = loadDefer.promise;
-
     this.elt.appendChild(this.editor.elt);
   },
 
@@ -56,6 +54,8 @@ var Shell = Class({
    * need to be added before calling this.
    */
   load: function() {
+    this.editorDeferred = promise.defer();
+    this.editorLoaded = this.editorDeferred.promise;
     this.editor.load(this.resource);
   },
 
@@ -193,6 +193,11 @@ var ShellDeck = Class({
       }
       this.deck.selectedPanel = shell.elt;
       this._activeShell = shell;
+
+      // Only reload the shell if the editor doesn't have local changes.
+      if (shell.editor.isClean()) {
+        shell.load();
+      }
       shell.editorLoaded.then(() => {
         // Handle case where another shell has been requested before this
         // one is finished loading.

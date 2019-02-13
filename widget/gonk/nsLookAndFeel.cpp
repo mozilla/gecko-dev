@@ -92,12 +92,19 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = TEXT_NORMAL_COLOR;
         break;
     case eColorID_TextSelectBackground:
+        aColor = NS_RGBA(0x33,0xb5,0xe5,0x66);
+        break;
     case eColorID_IMESelectedRawTextBackground:
     case eColorID_IMESelectedConvertedTextBackground:
         // still used
         aColor = BASE_SELECTED_COLOR;
         break;
+    case eColorID_TextSelectForegroundCustom:
+        aColor = NS_RGB(0x4d,0x4d,0x4d);
+        break;
     case eColorID_TextSelectForeground:
+        aColor = NS_CHANGE_COLOR_IF_SAME_AS_BG;
+        break;
     case eColorID_IMESelectedRawTextForeground:
     case eColorID_IMESelectedConvertedTextForeground:
         // still used
@@ -422,7 +429,7 @@ nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
                            gfxFontStyle& aFontStyle,
                            float aDevPixPerCSSPixel)
 {
-    aFontName.AssignLiteral("\"Fira Sans OT\"");
+    aFontName.AssignLiteral("\"Fira Sans\"");
     aFontStyle.style = NS_FONT_STYLE_NORMAL;
     aFontStyle.weight = NS_FONT_WEIGHT_NORMAL;
     aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;

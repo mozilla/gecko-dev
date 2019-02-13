@@ -24,6 +24,8 @@
 #include "nsArenaMemoryStats.h"
 #include "nsPrintfCString.h"
 
+#include <inttypes.h>
+
 // Size to use for PLArena block allocations.
 static const size_t ARENA_PAGE_SIZE = 8192;
 
@@ -43,7 +45,7 @@ nsPresArena::~nsPresArena()
 void*
 nsPresArena::Allocate(uint32_t aCode, size_t aSize)
 {
-  NS_ABORT_IF_FALSE(aSize > 0, "PresArena cannot allocate zero bytes");
+  MOZ_ASSERT(aSize > 0, "PresArena cannot allocate zero bytes");
 
   // We only hand out aligned sizes
   aSize = PL_ARENA_ALIGN(&mPool, aSize);
@@ -54,11 +56,11 @@ nsPresArena::Allocate(uint32_t aCode, size_t aSize)
 
   nsTArray<void*>::index_type len = list->mEntries.Length();
   if (list->mEntrySize == 0) {
-    NS_ABORT_IF_FALSE(len == 0, "list with entries but no recorded size");
+    MOZ_ASSERT(len == 0, "list with entries but no recorded size");
     list->mEntrySize = aSize;
   } else {
-    NS_ABORT_IF_FALSE(list->mEntrySize == aSize,
-                      "different sizes for same object type code");
+    MOZ_ASSERT(list->mEntrySize == aSize,
+               "different sizes for same object type code");
   }
 
   void* result;
@@ -73,15 +75,18 @@ nsPresArena::Allocate(uint32_t aCode, size_t aSize)
       char* limit = p + list->mEntrySize;
       for (; p < limit; p += sizeof(uintptr_t)) {
         uintptr_t val = *reinterpret_cast<uintptr_t*>(p);
-        NS_ABORT_IF_FALSE(val == mozPoisonValue(),
-                          nsPrintfCString("PresArena: poison overwritten; "
-                                          "wanted %.16llx "
-                                          "found %.16llx "
-                                          "errors in bits %.16llx",
-                                          uint64_t(mozPoisonValue()),
-                                          uint64_t(val),
-                                          uint64_t(mozPoisonValue() ^ val)
-                                          ).get());
+        if (val != mozPoisonValue()) {
+          MOZ_ReportAssertionFailure(
+            nsPrintfCString("PresArena: poison overwritten; "
+                            "wanted %.16" PRIx64 " "
+                            "found %.16" PRIx64 " "
+                            "errors in bits %.16" PRIx64 " ",
+                            uint64_t(mozPoisonValue()),
+                            uint64_t(val),
+                            uint64_t(mozPoisonValue() ^ val)).get(),
+            __FILE__, __LINE__);
+          MOZ_CRASH();
+        }
       }
     }
 #endif
@@ -93,7 +98,7 @@ nsPresArena::Allocate(uint32_t aCode, size_t aSize)
   list->mEntriesEverAllocated++;
   PL_ARENA_ALLOCATE(result, &mPool, aSize);
   if (!result) {
-    NS_RUNTIMEABORT("out of memory");
+    NS_ABORT_OOM(aSize);
   }
   return result;
 }
@@ -103,20 +108,13 @@ nsPresArena::Free(uint32_t aCode, void* aPtr)
 {
   // Try to recycle this entry.
   FreeList* list = mFreeLists.GetEntry(aCode);
-  NS_ABORT_IF_FALSE(list, "no free list for pres arena object");
-  NS_ABORT_IF_FALSE(list->mEntrySize > 0, "PresArena cannot free zero bytes");
+  MOZ_ASSERT(list, "no free list for pres arena object");
+  MOZ_ASSERT(list->mEntrySize > 0, "PresArena cannot free zero bytes");
 
   mozWritePoison(aPtr, list->mEntrySize);
 
   MOZ_MAKE_MEM_NOACCESS(aPtr, list->mEntrySize);
   list->mEntries.AppendElement(aPtr);
-}
-
-/* static */ size_t
-nsPresArena::SizeOfFreeListEntryExcludingThis(
-  FreeList* aEntry, mozilla::MallocSizeOf aMallocSizeOf, void*)
-{
-  return aEntry->mEntries.SizeOfExcludingThis(aMallocSizeOf);
 }
 
 struct EnumerateData {
@@ -166,6 +164,12 @@ nsPresArena::FreeListEnumerator(FreeList* aEntry, void* aData)
   case nsStyleContext_id:
     p = &data->stats->mStyleContexts;
     break;
+#define STYLE_STRUCT(name_, checkdata_cb_) \
+  case nsStyle##name_##_id:
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+    p = &data->stats->mStyleStructs;
+    break;
   default:
     return PL_DHASH_NEXT;
   }
@@ -192,8 +196,7 @@ nsPresArena::AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
   // we've not measured explicitly.
 
   size_t mallocSize = PL_SizeOfArenaPoolExcludingPool(&mPool, aMallocSizeOf);
-  mallocSize += mFreeLists.SizeOfExcludingThis(SizeOfFreeListEntryExcludingThis,
-                                               aMallocSizeOf);
+  mallocSize += mFreeLists.SizeOfExcludingThis(aMallocSizeOf);
 
   EnumerateData data = { aArenaStats, 0 };
   mFreeLists.EnumerateEntries(FreeListEnumerator, &data);

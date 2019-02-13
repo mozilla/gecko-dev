@@ -2,19 +2,20 @@
 #include "TestCommon.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Attributes.h"
+#include "nsIScriptSecurityManager.h"
 
-#if defined(PR_LOGGING)
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
-class MyStreamLoaderObserver MOZ_FINAL : public nsIStreamLoaderObserver
+class MyStreamLoaderObserver final : public nsIStreamLoaderObserver
 {
+  ~MyStreamLoaderObserver() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISTREAMLOADEROBSERVER
@@ -49,9 +50,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-#if defined(PR_LOGGING)
   gTestLog = PR_NewLogModule("Test");
-#endif
 
   nsresult rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
   if (NS_FAILED(rv))
@@ -63,8 +62,20 @@ int main(int argc, char **argv)
     if (NS_FAILED(rv))
       return -1;
 
+    nsCOMPtr<nsIScriptSecurityManager> secman =
+      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, -1);
+       nsCOMPtr<nsIPrincipal> systemPrincipal;
+    rv = secman->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+    NS_ENSURE_SUCCESS(rv, -1);
+
     nsCOMPtr<nsIChannel> chan;
-    rv = NS_NewChannel(getter_AddRefs(chan), uri);
+    rv = NS_NewChannel(getter_AddRefs(chan),
+                       uri,
+                       systemPrincipal,
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER);
+
     if (NS_FAILED(rv))
       return -1;
 

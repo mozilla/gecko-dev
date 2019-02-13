@@ -12,12 +12,13 @@
 
 #include "mozilla/Scoped.h"
 #include "mozilla/Services.h"
-#include "mozilla/NullPtr.h"
 #include "nsIObserverService.h"
 #include "nsThreadUtils.h"
 
 
 // Implementation of nsIFinalizationWitnessService
+
+static bool gShuttingDown = false;
 
 namespace mozilla {
 
@@ -31,11 +32,11 @@ namespace {
  * Important note: we maintain the invariant that these private data
  * slots are already addrefed.
  */
-class FinalizationEvent MOZ_FINAL: public nsRunnable
+class FinalizationEvent final: public nsRunnable
 {
 public:
   FinalizationEvent(const char* aTopic,
-                  const jschar* aValue)
+                  const char16_t* aValue)
     : mTopic(aTopic)
     , mValue(aValue)
   { }
@@ -100,8 +101,8 @@ ExtractFinalizationEvent(JSObject *objSelf)
 void Finalize(JSFreeOp *fop, JSObject *objSelf)
 {
   nsRefPtr<FinalizationEvent> event = ExtractFinalizationEvent(objSelf);
-  if (event == nullptr) {
-    // Forget() has been called
+  if (event == nullptr || gShuttingDown) {
+    // NB: event will be null if Forget() has been called
     return;
   }
 
@@ -115,13 +116,14 @@ void Finalize(JSFreeOp *fop, JSObject *objSelf)
 static const JSClass sWitnessClass = {
   "FinalizationWitness",
   JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS),
-  JS_PropertyStub /* addProperty */,
-  JS_DeletePropertyStub /* delProperty */,
-  JS_PropertyStub /* getProperty */,
-  JS_StrictPropertyStub /* setProperty */,
-  JS_EnumerateStub /* enumerate */,
-  JS_ResolveStub /* resolve */,
-  JS_ConvertStub /* convert */,
+  nullptr /* addProperty */,
+  nullptr /* delProperty */,
+  nullptr /* getProperty */,
+  nullptr /* setProperty */,
+  nullptr /* enumerate */,
+  nullptr /* resolve */,
+  nullptr /* mayResolve */,
+  nullptr /* convert */,
   Finalize /* finalize */
 };
 
@@ -171,7 +173,7 @@ static const JSFunctionSpec sWitnessClassFunctions[] = {
 
 }
 
-NS_IMPL_ISUPPORTS(FinalizationWitnessService, nsIFinalizationWitnessService)
+NS_IMPL_ISUPPORTS(FinalizationWitnessService, nsIFinalizationWitnessService, nsIObserver)
 
 /**
  * Create a new Finalization Witness.
@@ -191,8 +193,7 @@ FinalizationWitnessService::Make(const char* aTopic,
                                  JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aRetval)
 {
-  JS::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass, JS::NullPtr(),
-                                                    JS::NullPtr()));
+  JS::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass));
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -208,6 +209,32 @@ FinalizationWitnessService::Make(const char* aTopic,
 
   aRetval.setObject(*objResult);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+FinalizationWitnessService::Observe(nsISupports* aSubject,
+                                    const char* aTopic,
+                                    const char16_t* aValue)
+{
+  MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
+  gShuttingDown = true;
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (obs) {
+    obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+FinalizationWitnessService::Init()
+{
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (!obs) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 }
 
 } // namespace mozilla

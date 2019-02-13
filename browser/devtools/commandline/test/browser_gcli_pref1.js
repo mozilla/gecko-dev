@@ -15,37 +15,22 @@
  */
 
 'use strict';
-// <INJECTED SOURCE:START>
 
 // THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+// PLEASE TALK TO SOMEONE IN DEVELOPER TOOLS BEFORE EDITING IT
 
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testPref1.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_pref1.js");
 }
-
-// <INJECTED SOURCE:END>
 
 // var helpers = require('./helpers');
 
 exports.testPrefShowStatus = function(options) {
   return helpers.audit(options, [
     {
-      skipRemainingIf: options.requisition.canon.getCommand('pref') == null,
+      skipRemainingIf: options.requisition.system.commands.get('pref') == null,
       setup:    'pref s',
       check: {
         typed:  'pref s',
@@ -67,7 +52,7 @@ exports.testPrefShowStatus = function(options) {
       setup:    'pref show ',
       check: {
         typed:  'pref show ',
-        hints:            'allowSet',
+        hints:            'eagerHelper',
         markup: 'VVVVVVVVVV',
         status: 'ERROR'
       }
@@ -114,7 +99,7 @@ exports.testPrefShowStatus = function(options) {
 exports.testPrefSetStatus = function(options) {
   return helpers.audit(options, [
     {
-      skipRemainingIf: options.requisition.canon.getCommand('pref') == null,
+      skipRemainingIf: options.requisition.system.commands.get('pref') == null,
       setup:    'pref s',
       check: {
         typed:  'pref s',
@@ -144,7 +129,7 @@ exports.testPrefSetStatus = function(options) {
       setup:    'pref set ',
       check: {
         typed:  'pref set ',
-        hints:           'allowSet <value>',
+        hints:           'eagerHelper <value>',
         markup: 'VVVVVVVVV',
         status: 'ERROR'
       }
@@ -159,6 +144,7 @@ exports.testPrefSetStatus = function(options) {
       }
     },
     {
+      skipIf: options.isRemote,
       setup:    'pref set tempTBool 4',
       check: {
         typed:  'pref set tempTBool 4',

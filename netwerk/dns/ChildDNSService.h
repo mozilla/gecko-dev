@@ -11,11 +11,15 @@
 #include "nsPIDNSService.h"
 #include "nsIObserver.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Mutex.h"
+#include "DNSRequestChild.h"
+#include "nsHashKeys.h"
+#include "nsClassHashtable.h"
 
 namespace mozilla {
 namespace net {
 
-class ChildDNSService MOZ_FINAL
+class ChildDNSService final
   : public nsPIDNSService
   , public nsIObserver
 {
@@ -27,14 +31,26 @@ public:
   NS_DECL_NSIOBSERVER
 
   ChildDNSService();
-  virtual ~ChildDNSService();
 
   static ChildDNSService* GetSingleton();
 
+  void NotifyRequestDone(DNSRequestChild *aDnsRequest);
 private:
+  virtual ~ChildDNSService();
+
+  void MOZ_ALWAYS_INLINE GetDNSRecordHashKey(const nsACString &aHost,
+                                             uint32_t aFlags,
+                                             const nsACString &aNetworkInterface,
+                                             nsIDNSListener* aListener,
+                                             nsACString &aHashKey);
+
   bool mFirstTime;
   bool mOffline;
   bool mDisablePrefetch;
+
+  // We need to remember pending dns requests to be able to cancel them.
+  nsClassHashtable<nsCStringHashKey, nsTArray<nsRefPtr<DNSRequestChild>>> mPendingRequests;
+  Mutex mPendingRequestsLock;
 };
 
 } // namespace net

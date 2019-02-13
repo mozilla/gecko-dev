@@ -9,12 +9,14 @@
 #define __mozilla_widget_GfxInfo_h__
 
 #include "GfxInfoBase.h"
+#include "nsIGfxInfo2.h"
 
 namespace mozilla {
 namespace widget {
 
 class GfxInfo : public GfxInfoBase
 {
+  ~GfxInfo() {}
 public:
   GfxInfo();
 
@@ -28,6 +30,7 @@ public:
   NS_IMETHOD GetAdapterDriver(nsAString & aAdapterDriver);
   NS_IMETHOD GetAdapterVendorID(nsAString & aAdapterVendorID);
   NS_IMETHOD GetAdapterDeviceID(nsAString & aAdapterDeviceID);
+  NS_IMETHOD GetAdapterSubsysID(nsAString & aAdapterSubsysID);
   NS_IMETHOD GetAdapterRAM(nsAString & aAdapterRAM);
   NS_IMETHOD GetAdapterDriverVersion(nsAString & aAdapterDriverVersion);
   NS_IMETHOD GetAdapterDriverDate(nsAString & aAdapterDriverDate);
@@ -35,6 +38,7 @@ public:
   NS_IMETHOD GetAdapterDriver2(nsAString & aAdapterDriver);
   NS_IMETHOD GetAdapterVendorID2(nsAString & aAdapterVendorID);
   NS_IMETHOD GetAdapterDeviceID2(nsAString & aAdapterDeviceID);
+  NS_IMETHOD GetAdapterSubsysID2(nsAString & aAdapterSubsysID);
   NS_IMETHOD GetAdapterRAM2(nsAString & aAdapterRAM);
   NS_IMETHOD GetAdapterDriverVersion2(nsAString & aAdapterDriverVersion);
   NS_IMETHOD GetAdapterDriverDate2(nsAString & aAdapterDriverDate);
@@ -45,12 +49,15 @@ public:
 
   virtual nsresult Init();
 
-  virtual uint32_t OperatingSystemVersion() MOZ_OVERRIDE { return mWindowsVersion; }
+  virtual uint32_t OperatingSystemVersion() override { return mWindowsVersion; }
 
-#ifdef DEBUG
+  nsresult FindMonitors(JSContext* cx, JS::HandleObject array) override;
+
   NS_DECL_ISUPPORTS_INHERITED
+#ifdef DEBUG
   NS_DECL_NSIGFXINFODEBUG
 #endif
+  NS_DECL_NSIGFXINFO2
 
 protected:
 
@@ -64,6 +71,9 @@ protected:
 private:
 
   void AddCrashReportAnnotations();
+  void GetCountryCode();
+
+  nsString mCountryCode;
   nsString mDeviceString;
   nsString mDeviceID;
   nsString mDriverVersion;
@@ -72,7 +82,7 @@ private:
   nsString mDeviceKeyDebug;
   nsString mAdapterVendorID;
   nsString mAdapterDeviceID;
-  uint32_t mAdapterSubsysID;
+  nsString mAdapterSubsysID;
   nsString mDeviceString2;
   nsString mDriverVersion2;
   nsString mDeviceID2;
@@ -80,7 +90,7 @@ private:
   nsString mDeviceKey2;
   nsString mAdapterVendorID2;
   nsString mAdapterDeviceID2;
-  uint32_t mAdapterSubsysID2;
+  nsString mAdapterSubsysID2;
   uint32_t mWindowsVersion;
   bool mHasDualGPU;
   bool mIsGPU2Active;

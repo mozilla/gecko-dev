@@ -56,7 +56,7 @@ libc.declareLazy(Scope, "FormatMessage",
                  /*source*/ ctypes.voidptr_t,
                  /*msgid*/  ctypes.uint32_t,
                  /*langid*/ ctypes.uint32_t,
-                 /*buf*/    ctypes.jschar.ptr,
+                 /*buf*/    ctypes.char16_t.ptr,
                  /*size*/   ctypes.uint32_t,
                  /*Arguments*/ctypes.voidptr_t);
 
@@ -93,7 +93,7 @@ let OSError = function OSError(operation = "unknown operation",
 };
 OSError.prototype = Object.create(SharedAll.OSError.prototype);
 OSError.prototype.toString = function toString() {
-  let buf = new (ctypes.ArrayType(ctypes.jschar, 1024))();
+  let buf = new (ctypes.ArrayType(ctypes.char16_t, 1024))();
   let result = Scope.FormatMessage(
     Const.FORMAT_MESSAGE_FROM_SYSTEM |
     Const.FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -112,6 +112,9 @@ OSError.prototype.toString = function toString() {
   return "Win error " + this.winLastError + " during operation "
     + this.operation + (this.path? " on file " + this.path : "") +
     " (" + buf.readString() + ")";
+};
+OSError.prototype.toMsg = function toMsg() {
+  return OSError.toMsg(this);
 };
 
 /**
@@ -178,6 +181,10 @@ Object.defineProperty(OSError.prototype, "becauseInvalidArgument", {
  */
 OSError.toMsg = function toMsg(error) {
   return {
+    exn: "OS.File.Error",
+    fileName: error.moduleName,
+    lineNumber: error.lineNumber,
+    stack: error.moduleStack,
     operation: error.operation,
     winLastError: error.winLastError,
     path: error.path
@@ -188,7 +195,11 @@ OSError.toMsg = function toMsg(error) {
  * Deserialize a message back to an instance of OSError
  */
 OSError.fromMsg = function fromMsg(msg) {
-  return new OSError(msg.operation, msg.winLastError, msg.path);
+  let error = new OSError(msg.operation, msg.winLastError, msg.path);
+  error.stack = msg.stack;
+  error.fileName = msg.fileName;
+  error.lineNumber = msg.lineNumber;
+  return error;
 };
 exports.Error = OSError;
 
@@ -199,7 +210,8 @@ exports.Error = OSError;
  */
 let AbstractInfo = function AbstractInfo(path, isDir, isSymLink, size,
                                          winBirthDate,
-                                         lastAccessDate, lastWriteDate) {
+                                         lastAccessDate, lastWriteDate,
+                                         winAttributes) {
   this._path = path;
   this._isDir = isDir;
   this._isSymLink = isSymLink;
@@ -207,6 +219,7 @@ let AbstractInfo = function AbstractInfo(path, isDir, isSymLink, size,
   this._winBirthDate = winBirthDate;
   this._lastAccessDate = lastAccessDate;
   this._lastModificationDate = lastWriteDate;
+  this._winAttributes = winAttributes;
 };
 
 AbstractInfo.prototype = {
@@ -274,6 +287,15 @@ AbstractInfo.prototype = {
    */
   get lastModificationDate() {
     return this._lastModificationDate;
+  },
+  /**
+   * The Object with following boolean properties of this file.
+   * {readOnly, system, hidden}
+   *
+   * @type {object}
+   */
+  get winAttributes() {
+    return this._winAttributes;
   }
 };
 exports.AbstractInfo = AbstractInfo;

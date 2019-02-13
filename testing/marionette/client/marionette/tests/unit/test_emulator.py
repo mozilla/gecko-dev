@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from marionette import JavascriptException, MarionetteException
+from marionette import MarionetteTestCase
+from marionette_driver.errors import MarionetteException
 
 
 class TestEmulatorContent(MarionetteTestCase):
@@ -19,7 +19,7 @@ class TestEmulatorContent(MarionetteTestCase):
 
     def test_emulator_shell(self):
         self.marionette.set_script_timeout(10000)
-        expected = ["Hello World!", ""]
+        expected = ["Hello World!"]
         result = self.marionette.execute_async_script("""
         runEmulatorShell(["echo", "Hello World!"], marionetteScriptFinished)
         """);

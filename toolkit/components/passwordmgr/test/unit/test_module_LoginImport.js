@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -206,7 +206,7 @@ add_task(function test_import_downgraded()
   // Verify that the missing metadata was generated correctly.
   let loginItem = store.data.logins[0];
   let creationTime = loginItem.timeCreated;
-  LoginTest.assertTimeIsAboutNow(creationTime);
+  LoginTestUtils.assertTimeIsAboutNow(creationTime);
   do_check_eq(loginItem.timeLastUsed, creationTime);
   do_check_eq(loginItem.timePasswordChanged, creationTime);
   do_check_eq(loginItem.timesUsed, 1);

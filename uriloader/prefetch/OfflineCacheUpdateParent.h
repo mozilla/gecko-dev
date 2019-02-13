@@ -14,10 +14,6 @@
 
 namespace mozilla {
 
-namespace dom {
-class TabParent;
-}
-
 namespace ipc {
 class URIParams;
 } // namespace ipc
@@ -47,11 +43,12 @@ public:
     }
 
     OfflineCacheUpdateParent(uint32_t aAppId, bool aIsInBrowser);
-    ~OfflineCacheUpdateParent();
 
-    virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+    virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
 private:
+    ~OfflineCacheUpdateParent();
+
     bool mIPCClosed;
 
     bool     mIsInBrowserElement;

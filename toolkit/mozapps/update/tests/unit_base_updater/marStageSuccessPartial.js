@@ -13,48 +13,31 @@ function run_test() {
   gTestFiles[gTestFiles.length - 2].compareContents = "FromPartial\n";
   gTestFiles[gTestFiles.length - 2].comparePerms = 0o644;
   gTestDirs = gTestDirsPartialSuccess;
-  setupUpdaterTest(FILE_PARTIAL_MAR, false, false);
+  preventDistributionFiles();
+  setupUpdaterTest(FILE_PARTIAL_MAR);
+  if (IS_MACOSX) {
+    // Create files in the old distribution directory location to verify that
+    // the directory and its contents are moved to the new location on update.
+    let testFile = getApplyDirFile(DIR_MACOS + "distribution/testFile", true);
+    writeFile(testFile, "test\n");
+    testFile = getApplyDirFile(DIR_MACOS + "distribution/test/testFile", true);
+    writeFile(testFile, "test\n");
+  }
 
   createUpdaterINI(false);
-
-  // For Mac OS X set the last modified time for the root directory to a date in
-  // the past to test that the last modified time is updated on all updates since
-  // the precomplete file in the root of the bundle is renamed, etc. (bug 600098).
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile();
-    applyToDir.lastModifiedTime = yesterday;
-  }
+  setAppBundleModTime();
 
   runUpdate(0, STATE_APPLIED, null);
 
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
-  }
-
-  checkFilesAfterUpdateSuccess();
-  // Sorting on Linux is different so skip this check for now.
-  if (!IS_UNIX) {
-    checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
-  }
-
-  if (IS_MACOSX || IS_WIN) {
-    // Check that the post update process was not launched when staging an
-    // update.
-    do_check_false(getPostUpdateFile(".running").exists());
-  }
+  checkFilesAfterUpdateSuccess(getStageDirFile, true, false);
+  checkUpdateLogContents(LOG_PARTIAL_SUCCESS, true);
+  checkPostUpdateRunningFile(false);
 
   // Switch the application to the staged application that was updated.
   gStageUpdate = false;
   gSwitchApp = true;
   do_timeout(TEST_CHECK_TIMEOUT, function() {
-    runUpdate(0, STATE_SUCCEEDED);
+    runUpdate(0, STATE_SUCCEEDED, checkUpdateApplied);
   });
 }
 
@@ -63,7 +46,7 @@ function run_test() {
  * support launching post update process.
  */
 function checkUpdateApplied() {
-  if (IS_MACOSX || IS_WIN) {
+  if (IS_WIN || IS_MACOSX) {
     gCheckFunc = finishCheckUpdateApplied;
     checkPostUpdateAppLog();
   } else {
@@ -76,20 +59,31 @@ function checkUpdateApplied() {
  * the test.
  */
 function finishCheckUpdateApplied() {
+  checkPostUpdateRunningFile(true);
+
+  let distributionDir = getApplyDirFile(DIR_RESOURCES + "distribution", true);
   if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+    Assert.ok(distributionDir.exists(), MSG_SHOULD_EXIST);
+
+    let testFile = getApplyDirFile(DIR_RESOURCES + "distribution/testFile", true);
+    Assert.ok(testFile.exists(), MSG_SHOULD_EXIST);
+
+    testFile = getApplyDirFile(DIR_RESOURCES + "distribution/test/testFile", true);
+    Assert.ok(testFile.exists(), MSG_SHOULD_EXIST);
+
+    distributionDir = getApplyDirFile(DIR_MACOS + "distribution", true);
+    Assert.ok(!distributionDir.exists(), MSG_SHOULD_NOT_EXIST);
+
+    checkUpdateLogContains("Moving old distribution directory to new location");
+  } else {
+    debugDump("testing that files aren't added with an add-if instruction " +
+              "when the file's destination directory doesn't exist");
+    Assert.ok(!distributionDir.exists(), MSG_SHOULD_NOT_EXIST);
   }
 
-  checkFilesAfterUpdateSuccess();
-  // Sorting on Linux is different so skip this check for now.
-  if (!IS_UNIX) {
-    checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
-  }
-
+  checkAppBundleModTime();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  checkUpdateLogContents(LOG_PARTIAL_SUCCESS, true);
+  standardInit();
   checkCallbackAppLog();
 }

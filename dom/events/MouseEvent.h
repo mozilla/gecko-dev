@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,13 +31,13 @@ public:
   // Forward to base class
   NS_FORWARD_TO_UIEVENT
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return MouseEventBinding::Wrap(aCx, this);
+    return MouseEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   // Web IDL binding methods
-  virtual uint32_t Which() MOZ_OVERRIDE
+  virtual uint32_t Which() override
   {
     return Button() + 1;
   }
@@ -45,6 +46,8 @@ public:
   int32_t ScreenY();
   int32_t ClientX();
   int32_t ClientY();
+  int32_t OffsetX();
+  int32_t OffsetY();
   bool CtrlKey();
   bool ShiftKey();
   bool AltKey();
@@ -66,6 +69,9 @@ public:
                          aShiftKey, aMetaKey, aButton,
                          aRelatedTarget);
   }
+
+  void InitializeExtraMouseEventDictionaryMembers(const MouseEventInit& aParam);
+
   bool GetModifierState(const nsAString& aKeyArg)
   {
     return GetModifierStateInternal(aKeyArg);
@@ -74,15 +80,16 @@ public:
                                                   const nsAString& aType,
                                                   const MouseEventInit& aParam,
                                                   ErrorResult& aRv);
-  int32_t MozMovementX()
+  int32_t MovementX()
   {
     return GetMovementPoint().x;
   }
-  int32_t MozMovementY()
+  int32_t MovementY()
   {
     return GetMovementPoint().y;
   }
   float MozPressure() const;
+  bool HitCluster() const;
   uint16_t MozInputSource() const;
   void InitNSMouseEvent(const nsAString& aType,
                         bool aCanBubble, bool aCancelable,
@@ -102,6 +109,8 @@ public:
   }
 
 protected:
+  ~MouseEvent() {}
+
   nsresult InitMouseEvent(const nsAString& aType,
                           bool aCanBubble,
                           bool aCancelable,

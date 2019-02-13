@@ -7,11 +7,10 @@
 // Test that the layout-view continues to work after a page navigation and that
 // it also works after going back
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(TEST_URL_ROOT + "doc_layoutview_iframe1.html");
   let {toolbox, inspector, view} = yield openLayoutView();
   yield runTests(inspector, view);
-  yield destroyToolbox(inspector);
 });
 
 addTest("Test that the layout-view works on the first page",
@@ -46,7 +45,7 @@ function*(inspector, view) {
 
   info("Checking that the layout-view shows the right value");
   let sizeElt = view.doc.querySelector(".size > span");
-  is(sizeElt.textContent, "100x100");
+  is(sizeElt.textContent, "100" + "\u00D7" + "100");
 
   info("Listening for layout-view changes and modifying the size");
   let onUpdated = waitForUpdate(inspector);
@@ -55,7 +54,7 @@ function*(inspector, view) {
   ok(true, "Layout-view got updated");
 
   info("Checking that the layout-view shows the right value after update");
-  is(sizeElt.textContent, "200x100");
+  is(sizeElt.textContent, "200" + "\u00D7" + "100");
 });
 
 addTest("Go back to the first page",

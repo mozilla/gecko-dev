@@ -12,7 +12,8 @@ typedef (DOMString or unsigned long) DataStoreKey;
 //                   JS codes implemented by the DataStoreImpl WebIDL.
 
 [Func="Navigator::HasDataStoreSupport",
- ChromeConstructor]
+ ChromeConstructor,
+ Exposed=(Window,Worker)]
 interface DataStore : EventTarget {
   // Returns the label of the DataSource.
   [GetterThrows]
@@ -27,42 +28,36 @@ interface DataStore : EventTarget {
   [GetterThrows]
   readonly attribute boolean readOnly;
 
-  // Promise<any>
   [Throws]
-  Promise get(DataStoreKey... id);
+  Promise<any> get(DataStoreKey... id);
 
-  // Promise<void>
   [Throws]
-  Promise put(any obj, DataStoreKey id, optional DOMString revisionId = "");
+  Promise<void> put(any obj, DataStoreKey id, optional DOMString revisionId = "");
 
-  // Promise<DataStoreKey>
   [Throws]
-  Promise add(any obj, optional DataStoreKey id,
-              optional DOMString revisionId = "");
+  Promise<DataStoreKey> add(any obj, optional DataStoreKey id,
+                            optional DOMString revisionId = "");
 
-  // Promise<boolean>
   [Throws]
-  Promise remove(DataStoreKey id, optional DOMString revisionId = "");
+  Promise<boolean> remove(DataStoreKey id, optional DOMString revisionId = "");
 
-  // Promise<void>
   [Throws]
-  Promise clear(optional DOMString revisionId = "");
+  Promise<void> clear(optional DOMString revisionId = "");
 
   [GetterThrows]
   readonly attribute DOMString revisionId;
 
   attribute EventHandler onchange;
 
-  // Promise<unsigned long>
   [Throws]
-  Promise getLength();
+  Promise<unsigned long> getLength();
 
   [NewObject, Throws]
   DataStoreCursor sync(optional DOMString revisionId = "");
 };
 
 partial interface DataStore {
-  [ChromeOnly, Throws]
+  [ChromeOnly, Throws, Exposed=Window]
   void setDataStoreImpl(DataStoreImpl store);
 };
 
@@ -71,23 +66,23 @@ partial interface DataStore {
 //                   which currently plays a role of C++ proxy directing to the
 //                   JS codes implemented by the DataStoreCursorImpl WebIDL.
 
-[Pref="dom.datastore.enabled",
- ChromeConstructor]
+[Func="Navigator::HasDataStoreSupport",
+ ChromeConstructor,
+ Exposed=(Window,Worker)]
 interface DataStoreCursor {
   // the DataStore
   [GetterThrows]
   readonly attribute DataStore store;
 
-  // Promise<DataStoreTask>
   [Throws]
-  Promise next();
+  Promise<DataStoreTask> next();
 
   [Throws]
   void close();
 };
 
 partial interface DataStoreCursor {
-  [ChromeOnly]
+  [ChromeOnly, Exposed=Window]
   void setDataStoreCursorImpl(DataStoreCursorImpl cursor);
 };
 

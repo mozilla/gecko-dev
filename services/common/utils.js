@@ -83,10 +83,10 @@ this.CommonUtils = {
    *        to true for historical reasons.
    */
   encodeBase64URL: function encodeBase64URL(bytes, pad=true) {
-    let s = btoa(bytes).replace("+", "-", "g").replace("/", "_", "g");
+    let s = btoa(bytes).replace(/\+/g, "-").replace(/\//g, "_");
 
     if (!pad) {
-      s = s.replace("=", "", "g");
+      return s.replace(/=+$/, "");
     }
 
     return s;
@@ -398,9 +398,8 @@ this.CommonUtils = {
    * @return a promise, as produced by OS.File.writeAtomic.
    */
   writeJSON: function(contents, path) {
-    let encoder = new TextEncoder();
-    let array = encoder.encode(JSON.stringify(contents));
-    return OS.File.writeAtomic(path, array, {tmpPath: path + ".tmp"});
+    let data = JSON.stringify(contents);
+    return OS.File.writeAtomic(path, data, {encoding: "utf-8", tmpPath: path + ".tmp"});
   },
 
 

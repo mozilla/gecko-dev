@@ -26,7 +26,7 @@ add_task(function test_scroll() {
 
   // Scroll down a little.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: SCROLL_X, y: SCROLL_Y});
-  checkScroll(tab, {scroll: SCROLL_STR}, "scroll is fine");
+  yield checkScroll(tab, {scroll: SCROLL_STR}, "scroll is fine");
 
   // Duplicate and check that the scroll position is restored.
   let tab2 = ss.duplicateTab(window, tab);
@@ -40,22 +40,22 @@ add_task(function test_scroll() {
   // Check that reloading retains the scroll positions.
   browser2.reload();
   yield promiseBrowserLoaded(browser2);
-  checkScroll(tab2, {scroll: SCROLL_STR}, "reloading retains scroll positions");
+  yield checkScroll(tab2, {scroll: SCROLL_STR}, "reloading retains scroll positions");
 
   // Check that a force-reload resets scroll positions.
   browser2.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
   yield promiseBrowserLoaded(browser2);
-  checkScroll(tab2, null, "force-reload resets scroll positions");
+  yield checkScroll(tab2, null, "force-reload resets scroll positions");
 
   // Scroll back to the top and check that the position has been reset. We
   // expect the scroll position to be "null" here because there is no data to
   // be stored if the frame is in its default scroll position.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: 0, y: 0});
-  checkScroll(tab, null, "no scroll stored");
+  yield checkScroll(tab, null, "no scroll stored");
 
   // Cleanup.
-  gBrowser.removeTab(tab);
-  gBrowser.removeTab(tab2);
+  yield promiseRemoveTab(tab);
+  yield promiseRemoveTab(tab2);
 });
 
 /**
@@ -69,11 +69,11 @@ add_task(function test_scroll_nested() {
 
   // Scroll the first child frame down a little.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: SCROLL_X, y: SCROLL_Y, frame: 0});
-  checkScroll(tab, {children: [{scroll: SCROLL_STR}]}, "scroll is fine");
+  yield checkScroll(tab, {children: [{scroll: SCROLL_STR}]}, "scroll is fine");
 
   // Scroll the second child frame down a little.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: SCROLL2_X, y: SCROLL2_Y, frame: 1});
-  checkScroll(tab, {children: [{scroll: SCROLL_STR}, {scroll: SCROLL2_STR}]}, "scroll is fine");
+  yield checkScroll(tab, {children: [{scroll: SCROLL_STR}, {scroll: SCROLL2_STR}]}, "scroll is fine");
 
   // Duplicate and check that the scroll position is restored.
   let tab2 = ss.duplicateTab(window, tab);
@@ -91,45 +91,20 @@ add_task(function test_scroll_nested() {
   // Check that resetting one frame's scroll position removes it from the
   // serialized value.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: 0, y: 0, frame: 0});
-  checkScroll(tab, {children: [null, {scroll: SCROLL2_STR}]}, "scroll is fine");
+  yield checkScroll(tab, {children: [null, {scroll: SCROLL2_STR}]}, "scroll is fine");
 
   // Check the resetting all frames' scroll positions nulls the stored value.
   yield sendMessage(browser, "ss-test:setScrollPosition", {x: 0, y: 0, frame: 1});
-  checkScroll(tab, null, "no scroll stored");
+  yield checkScroll(tab, null, "no scroll stored");
 
   // Cleanup.
-  gBrowser.removeTab(tab);
-  gBrowser.removeTab(tab2);
+  yield promiseRemoveTab(tab);
+  yield promiseRemoveTab(tab2);
 });
 
-/**
- * This test ensures that by moving scroll positions out of tabData.entries[]
- * we still support the old scroll data format stored per shistory entry.
- */
-add_task(function test_scroll_old_format() {
-  const TAB_STATE = { entries: [{url: URL, scroll: SCROLL_STR}] };
-
-  // Add a blank tab.
-  let tab = gBrowser.addTab("about:blank");
+function* checkScroll(tab, expected, msg) {
   let browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
-
-  // Apply the tab state with the old format.
-  ss.setTabState(tab, JSON.stringify(TAB_STATE));
-  yield promiseTabRestored(tab);
-
-  // Check that the scroll positions has been applied.
-  let scroll = yield sendMessage(browser, "ss-test:getScrollPosition");
-  is(JSON.stringify(scroll), JSON.stringify({x: SCROLL_X, y: SCROLL_Y}),
-    "scroll position has been restored correctly");
-
-  // Cleanup.
-  gBrowser.removeTab(tab);
-});
-
-function checkScroll(tab, expected, msg) {
-  let browser = tab.linkedBrowser;
-  SyncHandlers.get(browser).flush();
+  yield TabStateFlusher.flush(browser);
 
   let scroll = JSON.parse(ss.getTabState(tab)).scroll || null;
   is(JSON.stringify(scroll), JSON.stringify(expected), msg);

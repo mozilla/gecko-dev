@@ -9,6 +9,12 @@ XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function () {
   return Components.utils.import("resource://gre/modules/FxAccountsCommon.js", {});
 });
 
+XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
+  "resource://gre/modules/FxAccounts.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "fxaMigrator",
+  "resource://services-sync/FxaMigrator.jsm");
+
 const PAGE_NO_ACCOUNT = 0;
 const PAGE_HAS_ACCOUNT = 1;
 const PAGE_NEEDS_UPDATE = 2;
@@ -25,7 +31,6 @@ const FXA_LOGIN_UNVERIFIED = 1;
 const FXA_LOGIN_FAILED = 2;
 
 let gSyncPane = {
-  _stringBundle: null,
   prefArray: ["engine.bookmarks", "engine.passwords", "engine.prefs",
               "engine.tabs", "engine.history"],
 
@@ -49,6 +54,26 @@ let gSyncPane = {
   },
 
   init: function () {
+    // We use a preference observer to notice changes to the Sync engines
+    // enabled state - other techniques are problematic due to the window
+    // being instant-apply on Mac etc but modal on Windows.
+    let prefObserver = () => {
+      // If all our Sync engines are disabled we flip the "master" Sync-enabled pref.
+      let prefElts = document.querySelectorAll("#syncEnginePrefs > preference");
+      let syncEnabled = false;
+      for (let elt of prefElts) {
+        if (elt.name.startsWith("services.sync.") && elt.value) {
+          syncEnabled = true;
+          break;
+        }
+      }
+      Services.prefs.setBoolPref("services.sync.enabled", syncEnabled);
+    }
+    Services.prefs.addObserver("services.sync.engine.", prefObserver, false);
+    window.addEventListener("unload", () => {
+      Services.prefs.removeObserver("services.sync.engine.", prefObserver);
+    }, false);
+
     // If the Service hasn't finished initializing, wait for it.
     let xps = Components.classes["@mozilla.org/weave/service;1"]
                                 .getService(Components.interfaces.nsISupports)
@@ -89,6 +114,7 @@ let gSyncPane = {
                   "weave:service:setup-complete",
                   "weave:service:logout:finish",
                   FxAccountsCommon.ONVERIFIED_NOTIFICATION];
+    let migrateTopic = "fxa-migration:state-changed";
 
     // Add the observers now and remove them on unload
     //XXXzpao This should use Services.obs.* but Weave's Obs does nice handling
@@ -96,27 +122,47 @@ let gSyncPane = {
     topics.forEach(function (topic) {
       Weave.Svc.Obs.add(topic, this.updateWeavePrefs, this);
     }, this);
-    window.addEventListener("unload", function() {
-      topics.forEach(function (topic) {
-        Weave.Svc.Obs.remove(topic, this.updateWeavePrefs, this);
-      }, gSyncPane);
-    }, false);
+    // The FxA migration observer is a special case.
+    Weave.Svc.Obs.add(migrateTopic, this.updateMigrationState, this);
 
-    this._stringBundle =
-      Services.strings.createBundle("chrome://browser/locale/preferences/preferences.properties");
+    window.addEventListener("unload", function() {
+      topics.forEach(topic => {
+        Weave.Svc.Obs.remove(topic, this.updateWeavePrefs, this);
+      });
+      Weave.Svc.Obs.remove(migrateTopic, this.updateMigrationState, this);
+    }.bind(this), false);
+
+    XPCOMUtils.defineLazyGetter(this, '_stringBundle', () => {
+      return Services.strings.createBundle("chrome://browser/locale/preferences/preferences.properties");
+    });
+
+    XPCOMUtils.defineLazyGetter(this, '_accountsStringBundle', () => {
+      return Services.strings.createBundle("chrome://browser/locale/accounts.properties");
+    });
+
     this.updateWeavePrefs();
   },
 
   updateWeavePrefs: function () {
+    // ask the migration module to broadcast its current state (and nothing will
+    // happen if it's not loaded - which is good, as that means no migration
+    // is pending/necessary) - we don't want to suck that module in just to
+    // find there's nothing to do.
+    Services.obs.notifyObservers(null, "fxa-migration:state-request", null);
+
     let service = Components.classes["@mozilla.org/weave/service;1"]
                   .getService(Components.interfaces.nsISupports)
                   .wrappedJSObject;
     // service.fxAccountsEnabled is false iff sync is already configured for
     // the legacy provider.
     if (service.fxAccountsEnabled) {
+      // unhide the reading-list engine if readinglist is enabled (note we do
+      // it here as it must remain disabled for legacy sync users)
+      if (Services.prefs.getBoolPref("browser.readinglist.enabled")) {
+        document.getElementById("readinglist-engine").removeAttribute("hidden");
+      }
       // determine the fxa status...
       this.page = PAGE_PLEASE_WAIT;
-      Components.utils.import("resource://gre/modules/FxAccounts.jsm");
       fxAccounts.getSignedInUser().then(data => {
         if (!data) {
           this.page = FXA_PAGE_LOGGED_OUT;
@@ -154,17 +200,6 @@ let gSyncPane = {
         for (let checkbox of engines.querySelectorAll("checkbox")) {
           checkbox.disabled = enginesListDisabled;
         }
-
-        let checkbox = document.getElementById("fxa-pweng-chk");
-        let help = document.getElementById("fxa-pweng-help");
-        let allowPasswordsEngine = service.allowPasswordsEngine;
-
-        if (!allowPasswordsEngine) {
-          checkbox.checked = false;
-        }
-
-        checkbox.disabled = !allowPasswordsEngine || enginesListDisabled;
-        help.hidden = allowPasswordsEngine || enginesListDisabled;
       });
     // If fxAccountEnabled is false and we are in a "not configured" state,
     // then fxAccounts is probably fully disabled rather than just unconfigured,
@@ -182,7 +217,89 @@ let gSyncPane = {
       this.page = PAGE_HAS_ACCOUNT;
       document.getElementById("accountName").value = Weave.Service.identity.account;
       document.getElementById("syncComputerName").value = Weave.Service.clientsEngine.localName;
-      document.getElementById("tosPP").hidden = this._usingCustomServer;
+      document.getElementById("tosPP-normal").hidden = this._usingCustomServer;
+    }
+  },
+
+  updateMigrationState: function(subject, state) {
+    let selIndex;
+    let container = document.getElementById("sync-migration");
+    switch (state) {
+      case fxaMigrator.STATE_USER_FXA: {
+        let sb = this._accountsStringBundle;
+        // There are 2 cases here - no email address means it is an offer on
+        // the first device (so the user is prompted to create an account).
+        // If there is an email address it is the "join the party" flow, so the
+        // user is prompted to sign in with the address they previously used.
+        let email = subject ? subject.QueryInterface(Components.interfaces.nsISupportsString).data : null;
+        let elt = document.getElementById("sync-migrate-upgrade-description");
+        elt.textContent = email ?
+                          sb.formatStringFromName("signInAfterUpgradeOnOtherDevice.description",
+                                                  [email], 1) :
+                          sb.GetStringFromName("needUserLong");
+
+        // The "Learn more" link.
+        if (!email) {
+          let learnMoreLink = document.createElement("label");
+          learnMoreLink.className = "text-link";
+          let { text, href } = fxaMigrator.learnMoreLink;
+          learnMoreLink.setAttribute("value", text);
+          learnMoreLink.href = href;
+          elt.appendChild(learnMoreLink);
+        }
+
+        // The "upgrade" button.
+        let button = document.getElementById("sync-migrate-upgrade");
+        button.setAttribute("label",
+                            sb.GetStringFromName(email
+                                                 ? "signInAfterUpgradeOnOtherDevice.label"
+                                                 : "upgradeToFxA.label"));
+        button.setAttribute("accesskey",
+                            sb.GetStringFromName(email
+                                                 ? "signInAfterUpgradeOnOtherDevice.accessKey"
+                                                 : "upgradeToFxA.accessKey"));
+        // The "unlink" button - this is only shown for first migration
+        button = document.getElementById("sync-migrate-unlink");
+        if (email) {
+          button.hidden = true;
+        } else {
+          button.setAttribute("label", sb.GetStringFromName("unlinkMigration.label"));
+          button.setAttribute("accesskey", sb.GetStringFromName("unlinkMigration.accessKey"));
+        }
+        selIndex = 0;
+        break;
+      }
+      case fxaMigrator.STATE_USER_FXA_VERIFIED: {
+        let sb = this._accountsStringBundle;
+        let email = subject.QueryInterface(Components.interfaces.nsISupportsString).data;
+        let label = sb.formatStringFromName("needVerifiedUserLong", [email], 1);
+        let elt = document.getElementById("sync-migrate-verify-description");
+        elt.textContent = label;
+        // The "resend" button.
+        let button = document.getElementById("sync-migrate-resend");
+        button.setAttribute("label", sb.GetStringFromName("resendVerificationEmail.label"));
+        button.setAttribute("accesskey", sb.GetStringFromName("resendVerificationEmail.accessKey"));
+        // The "forget" button.
+        button = document.getElementById("sync-migrate-forget");
+        button.setAttribute("label", sb.GetStringFromName("forgetMigration.label"));
+        button.setAttribute("accesskey", sb.GetStringFromName("forgetMigration.accessKey"));
+        selIndex = 1;
+        break;
+      }
+      default:
+        if (state) { // |null| is expected, but everything else is not.
+          Cu.reportError("updateMigrationState has unknown state: " + state);
+        }
+        if (!container.hidden) {
+          window.innerHeight -= container.clientHeight;
+          container.hidden = true;
+        }
+        return;
+    }
+    document.getElementById("sync-migration-deck").selectedIndex = selIndex;
+    if (container.hidden) {
+      container.hidden = false;
+      window.innerHeight += container.clientHeight;
     }
   },
 
@@ -240,7 +357,9 @@ let gSyncPane = {
                   .wrappedJSObject;
 
     if (service.fxAccountsEnabled) {
-      this.openContentInBrowser("about:accounts");
+      this.openContentInBrowser("about:accounts?entrypoint=preferences", {
+        replaceQueryString: true
+      });
     } else {
       let win = Services.wm.getMostRecentWindow("Weave:AccountSetup");
       if (win) {
@@ -253,7 +372,7 @@ let gSyncPane = {
     }
   },
 
-  openContentInBrowser: function(url) {
+  openContentInBrowser: function(url, options) {
     let win = Services.wm.getMostRecentWindow("navigator:browser");
     if (!win) {
       // no window to use, so use _openLink to create a new one.  We don't
@@ -262,37 +381,46 @@ let gSyncPane = {
       gSyncUtils._openLink(url);
       return;
     }
-    win.switchToTabHavingURI(url, true);
+    win.switchToTabHavingURI(url, true, options);
     // seeing as we are doing this in a tab we close the prefs dialog.
     window.close();
   },
 
   signUp: function() {
-    this.openContentInBrowser("about:accounts?action=signup");
+    this.openContentInBrowser("about:accounts?action=signup&entrypoint=preferences", {
+      replaceQueryString: true
+    });
   },
 
   signIn: function() {
-    this.openContentInBrowser("about:accounts?action=signin");
+    this.openContentInBrowser("about:accounts?action=signin&entrypoint=preferences", {
+      replaceQueryString: true
+    });
   },
 
   reSignIn: function() {
-    this.openContentInBrowser("about:accounts?action=reauth");
+    this.openContentInBrowser("about:accounts?action=reauth&entrypoint=preferences", {
+      replaceQueryString: true
+    });
   },
 
   manageFirefoxAccount: function() {
-    let url = Services.prefs.getCharPref("identity.fxaccounts.settings.uri");
-    this.openContentInBrowser(url);
+    fxAccounts.promiseAccountsManageURI()
+      .then(url => {
+        this.openContentInBrowser(url, {
+          replaceQueryString: true
+        });
+      });
   },
 
   verifyFirefoxAccount: function() {
-    Components.utils.import("resource://gre/modules/FxAccounts.jsm");
     fxAccounts.resendVerificationEmail().then(() => {
       fxAccounts.getSignedInUser().then(data => {
-        let sb = this._stringBundle;
-        let title = sb.GetStringFromName("firefoxAccountsVerificationSentTitle");
-        let heading = sb.formatStringFromName("firefoxAccountsVerificationSentHeading",
+        let sb = Services.strings.createBundle("chrome://browser/locale/accounts.properties");
+        let title = sb.GetStringFromName("verificationSentTitle");
+        let heading = sb.formatStringFromName("verificationSentHeading",
                                               [data.email], 1);
-        let description = sb.GetStringFromName("firefoxAccountVerificationSentDescription");
+        let description = sb.GetStringFromName("verificationSentDescription");
 
         Services.prompt.alert(window, title, heading + "\n\n" + description);
       });
@@ -326,7 +454,6 @@ let gSyncPane = {
         return;
       }
     }
-    Components.utils.import('resource://gre/modules/FxAccounts.jsm');
     fxAccounts.signOut().then(() => {
       this.updateWeavePrefs();
     });
@@ -358,6 +485,44 @@ let gSyncPane = {
 
   resetSync: function () {
     this.openSetup("reset");
+  },
+
+  // click handlers for the FxA migration.
+  migrateUpgrade: function() {
+    fxaMigrator.getFxAccountCreationOptions().then(({url, options}) => {
+      this.openContentInBrowser(url, options);
+    });
+  },
+
+  migrateForget: function() {
+    fxaMigrator.forgetFxAccount();
+  },
+
+  migrateResend: function() {
+    fxaMigrator.resendVerificationMail(window);
+  },
+
+  // When the "Unlink" button in the migration header is selected we display
+  // a slightly different message.
+  startOverMigration: function () {
+    let flags = Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
+                Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_CANCEL +
+                Services.prompt.BUTTON_POS_1_DEFAULT;
+    let sb = this._accountsStringBundle;
+    let buttonChoice =
+      Services.prompt.confirmEx(window,
+                                sb.GetStringFromName("unlinkVerificationTitle"),
+                                sb.GetStringFromName("unlinkVerificationDescription"),
+                                flags,
+                                sb.GetStringFromName("unlinkVerificationConfirm"),
+                                null, null, null, {});
+
+    // If the user selects cancel, just bail
+    if (buttonChoice == 1)
+      return;
+
+    Weave.Service.startOver();
+    this.updateWeavePrefs();
   },
 };
 

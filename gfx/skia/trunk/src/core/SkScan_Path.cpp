@@ -432,7 +432,7 @@ static SkEdge* sort_edges(SkEdge* list[], int count, SkEdge** last) {
 void sk_fill_path(const SkPath& path, const SkIRect* clipRect, SkBlitter* blitter,
                   int start_y, int stop_y, int shiftEdgesUp,
                   const SkRegion& clipRgn) {
-    SkASSERT(&path && blitter);
+    SkASSERT(blitter);
 
     SkEdgeBuilder   builder;
 
@@ -602,7 +602,11 @@ void SkScan::FillPath(const SkPath& path, const SkRegion& origClip,
         // don't reference "origClip" any more, just use clipPtr
 
     SkIRect ir;
-    path.getBounds().roundOut(&ir);
+    // We deliberately call dround() instead of round(), since we can't afford to generate a
+    // bounds that is tighter than the corresponding SkEdges. The edge code basically converts
+    // the floats to fixed, and then "rounds". If we called round() instead of dround() here,
+    // we could generate the wrong ir for values like 0.4999997.
+    path.getBounds().dround(&ir);
     if (ir.isEmpty()) {
         if (path.isInverseFillType()) {
             blitter->blitRegion(*clipPtr);

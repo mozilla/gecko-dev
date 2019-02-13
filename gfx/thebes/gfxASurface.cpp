@@ -12,6 +12,8 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
+#include "mozilla/gfx/HelpersCairo.h"
 #include "gfx2DGlue.h"
 
 #include "gfxASurface.h"
@@ -155,7 +157,7 @@ gfxASurface::SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf)
 }
 
 already_AddRefed<gfxASurface>
-gfxASurface::Wrap (cairo_surface_t *csurf, const gfxIntSize& aSize)
+gfxASurface::Wrap (cairo_surface_t *csurf, const IntSize& aSize)
 {
     nsRefPtr<gfxASurface> result;
 
@@ -217,6 +219,9 @@ gfxASurface::Init(cairo_surface_t* surface, bool existingSurface)
 
     mSurface = surface;
     mSurfaceValid = surface && !cairo_surface_status(surface);
+    if (!mSurfaceValid) {
+        gfxWarning() << "ASurface Init failed with Cairo status " << cairo_surface_status(surface) << " on " << hexa(surface);
+    }
 
     if (existingSurface || !mSurfaceValid) {
         mFloatingRefs = 0;
@@ -323,7 +328,7 @@ gfxASurface::Finish()
 
 already_AddRefed<gfxASurface>
 gfxASurface::CreateSimilarSurface(gfxContentType aContent,
-                                  const nsIntSize& aSize)
+                                  const IntSize& aSize)
 {
     if (!mSurface || !mSurfaceValid) {
       return nullptr;
@@ -359,7 +364,7 @@ gfxASurface::CopyToARGB32ImageSurface()
       return nullptr;
     }
 
-    const nsIntSize size = GetSize();
+    const IntSize size = GetSize();
     nsRefPtr<gfxImageSurface> imgSurface =
         new gfxImageSurface(size, gfxImageFormat::ARGB32);
 
@@ -382,7 +387,7 @@ gfxASurface::CairoStatus()
 
 /* static */
 bool
-gfxASurface::CheckSurfaceSize(const nsIntSize& sz, int32_t limit)
+gfxASurface::CheckSurfaceSize(const IntSize& sz, int32_t limit)
 {
     if (sz.width < 0 || sz.height < 0) {
         NS_WARNING("Surface width or height < 0!");
@@ -580,13 +585,15 @@ PR_STATIC_ASSERT(uint32_t(CAIRO_SURFACE_TYPE_SKIA) ==
 
 static int64_t gSurfaceMemoryUsed[size_t(gfxSurfaceType::Max)] = { 0 };
 
-class SurfaceMemoryReporter MOZ_FINAL : public nsIMemoryReporter
+class SurfaceMemoryReporter final : public nsIMemoryReporter
 {
+    ~SurfaceMemoryReporter() {}
+
 public:
     NS_DECL_ISUPPORTS
 
     NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCb,
-                              nsISupports *aClosure)
+                              nsISupports *aClosure, bool aAnonymize) override
     {
         const size_t len = ArrayLength(sSurfaceMemoryReporterAttrs);
         for (size_t i = 0; i < len; i++) {
@@ -682,179 +689,6 @@ gfxASurface::BytesPerPixel(gfxImageFormat aImageFormat)
 }
 
 void
-gfxASurface::WriteAsPNG(const char* aFile)
-{
-    FILE *file = fopen(aFile, "wb");
-    if (file) {
-      WriteAsPNG_internal(file, true);
-      fclose(file);
-    } else {
-      NS_WARNING("Failed to create file!\n");
-    }
-}
-
-void
-gfxASurface::DumpAsDataURL(FILE* aOutput)
-{
-  WriteAsPNG_internal(aOutput, false);
-}
-
-void
-gfxASurface::CopyAsDataURL()
-{
-  WriteAsPNG_internal(nullptr, false);
-}
-
-/**
- * Write to a PNG file. If aBinary is true, then it is written
- * as binary, otherwise as a data URL. If no file is specified then
- * data is copied to the clipboard (must not be binary!).
- */
-void
-gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
-{
-  nsRefPtr<gfxImageSurface> imgsurf = GetAsImageSurface();
-  nsIntSize size;
-
-  // FIXME/bug 831898: hack r5g6b5 for now.
-  if (!imgsurf || imgsurf->Format() == gfxImageFormat::RGB16_565) {
-    size = GetSize();
-    if (size.width == -1 && size.height == -1) {
-      printf("Could not determine surface size\n");
-      return;
-    }
-
-    imgsurf =
-      new gfxImageSurface(nsIntSize(size.width, size.height),
-                          gfxImageFormat::ARGB32);
-
-    if (!imgsurf || imgsurf->CairoStatus()) {
-      printf("Could not allocate image surface\n");
-      return;
-    }
-
-    nsRefPtr<gfxContext> ctx = new gfxContext(imgsurf);
-    if (!ctx || ctx->HasError()) {
-      printf("Could not allocate image context\n");
-      return;
-    }
-
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->SetSource(this, gfxPoint(0, 0));
-    ctx->Paint();
-  }
-  size = imgsurf->GetSize();
-
-  nsCOMPtr<imgIEncoder> encoder =
-    do_CreateInstance("@mozilla.org/image/encoder;2?type=image/png");
-  if (!encoder) {
-    int32_t w = std::min(size.width, 8);
-    int32_t h = std::min(size.height, 8);
-    printf("Could not create encoder. Printing %dx%d pixels.\n", w, h);
-    for (int32_t y = 0; y < h; ++y) {
-      for (int32_t x = 0; x < w; ++x) {
-        printf("%x ", reinterpret_cast<uint32_t*>(imgsurf->Data())[y*imgsurf->Stride()+ x]);
-      }
-    }
-    return;
-  }
-
-  nsresult rv = encoder->InitFromData(imgsurf->Data(),
-                                      size.width * size.height * 4,
-                                      size.width,
-                                      size.height,
-                                      imgsurf->Stride(),
-                                      imgIEncoder::INPUT_FORMAT_HOSTARGB,
-                                      NS_LITERAL_STRING(""));
-  if (NS_FAILED(rv))
-    return;
-
-  nsCOMPtr<nsIInputStream> imgStream;
-  CallQueryInterface(encoder.get(), getter_AddRefs(imgStream));
-  if (!imgStream)
-    return;
-
-  uint64_t bufSize64;
-  rv = imgStream->Available(&bufSize64);
-  if (NS_FAILED(rv))
-    return;
-
-  if (bufSize64 > UINT32_MAX - 16)
-    return;
-
-  uint32_t bufSize = (uint32_t)bufSize64;
-
-  // ...leave a little extra room so we can call read again and make sure we
-  // got everything. 16 bytes for better padding (maybe)
-  bufSize += 16;
-  uint32_t imgSize = 0;
-  char* imgData = (char*)moz_malloc(bufSize);
-  if (!imgData)
-    return;
-  uint32_t numReadThisTime = 0;
-  while ((rv = imgStream->Read(&imgData[imgSize],
-                               bufSize - imgSize,
-                               &numReadThisTime)) == NS_OK && numReadThisTime > 0)
-  {
-    imgSize += numReadThisTime;
-    if (imgSize == bufSize) {
-      // need a bigger buffer, just double
-      bufSize *= 2;
-      char* newImgData = (char*)moz_realloc(imgData, bufSize);
-      if (!newImgData) {
-        moz_free(imgData);
-        return;
-      }
-      imgData = newImgData;
-    }
-  }
-
-  if (aBinary) {
-    if (aFile) {
-      fwrite(imgData, 1, imgSize, aFile);
-    } else {
-      NS_WARNING("Can't write binary image data without a file!");
-    }
-    return;
-  }
-
-  // base 64, result will be null-terminated
-  nsCString encodedImg;
-  rv = Base64Encode(Substring(imgData, imgSize), encodedImg);
-  moz_free(imgData);
-  if (NS_FAILED(rv)) // not sure why this would fail
-    return;
-
-  nsCString string("data:image/png;base64,");
-  string.Append(encodedImg);
-
-  if (aFile) {
-#ifdef ANDROID
-     if (aFile == stdout || aFile == stderr) {
-       // ADB logcat cuts off long strings so we will break it down
-       const char* cStr = string.BeginReading();
-       size_t len = strlen(cStr);
-       while (true) {
-         printf_stderr("IMG: %.140s\n", cStr);
-         if (len <= 140)
-           break;
-         len -= 140;
-         cStr += 140;
-       }
-     }
-#endif
-    fprintf_stderr(aFile, "%s", string.BeginReading());
-  } else {
-    nsCOMPtr<nsIClipboardHelper> clipboard(do_GetService("@mozilla.org/widget/clipboardhelper;1", &rv));
-    if (clipboard) {
-      clipboard->CopyString(NS_ConvertASCIItoUTF16(string), nullptr);
-    }
-  }
-
-  return;
-}
-
-void
 gfxASurface::SetOpaqueRect(const gfxRect& aRect)
 {
     if (aRect.IsEmpty()) {
@@ -862,7 +696,7 @@ gfxASurface::SetOpaqueRect(const gfxRect& aRect)
     } else if (!!mOpaqueRect) {
         *mOpaqueRect = aRect;
     } else {
-        mOpaqueRect = new gfxRect(aRect);
+        mOpaqueRect = MakeUnique<gfxRect>(aRect);
     }
 }
 
@@ -873,10 +707,19 @@ gfxASurface::GetEmptyOpaqueRect()
   return empty;
 }
 
-const nsIntSize
+const IntSize
 gfxASurface::GetSize() const
 {
-  return nsIntSize(-1, -1);
+  return IntSize(-1, -1);
+}
+
+SurfaceFormat
+gfxASurface::GetSurfaceFormat() const
+{
+    if (!mSurfaceValid) {
+      return SurfaceFormat::UNKNOWN;
+    }
+    return GfxFormatForCairoSurface(mSurface);
 }
 
 already_AddRefed<gfxImageSurface>

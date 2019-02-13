@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,7 @@
 class nsIContent;
 class nsIDocShellTreeItem;
 class nsPIDOMWindow;
+class nsIMessageBroadcaster;
 
 struct nsDelayedBlurOrFocusEvent;
 
@@ -30,9 +32,9 @@ struct nsDelayedBlurOrFocusEvent;
  * which receives key events.
  */
 
-class nsFocusManager MOZ_FINAL : public nsIFocusManager,
-                                 public nsIObserver,
-                                 public nsSupportsWeakReference
+class nsFocusManager final : public nsIFocusManager,
+                             public nsIObserver,
+                             public nsSupportsWeakReference
 {
   typedef mozilla::widget::InputContextAction InputContextAction;
 
@@ -133,6 +135,17 @@ protected:
    * focused at the widget level.
    */
   void EnsureCurrentWidgetFocused();
+
+  /**
+   * Iterate over the children of the message broadcaster and notify them
+   * of the activation change.
+   */
+  void ActivateOrDeactivateChildren(nsIMessageBroadcaster* aManager, bool aActive);
+
+  /**
+   * Activate or deactivate the window and send the activate/deactivate events.
+   */
+  void ActivateOrDeactivate(nsPIDOMWindow* aWindow, bool aActive);
 
   /**
    * Blur whatever is currently focused and focus aNewContent. aFlags is a

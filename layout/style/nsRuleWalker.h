@@ -14,6 +14,7 @@
 #include "nsRuleNode.h"
 #include "nsIStyleRule.h"
 #include "StyleRule.h"
+#include "nsQueryObject.h"
 
 class nsRuleWalker {
 public:
@@ -22,6 +23,8 @@ public:
     NS_ASSERTION(aNode, "Must have node here!");
     mCurrent = aNode;
   }
+
+  nsPresContext* PresContext() const { return mRoot->PresContext(); }
 
 protected:
   void DoForward(nsIStyleRule* aRule) {

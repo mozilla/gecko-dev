@@ -4,5 +4,37 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['public', 'src', 'tools']
+Library('xpt')
 
+DIRS += ['tools']
+
+UNIFIED_SOURCES += [
+    'xpt_arena.cpp',
+    'xpt_struct.cpp',
+    'xpt_xdr.cpp',
+]
+
+EXPORTS += [
+    'xpt_arena.h',
+    'xpt_struct.h',
+    'xpt_xdr.h',
+]
+
+FINAL_LIBRARY = 'xul'
+
+GENERATED_INCLUDES += ['/xpcom/base']
+LOCAL_INCLUDES += ['/xpcom/base']
+
+FAIL_ON_WARNINGS = True
+
+if CONFIG['_MSC_VER']:
+    CFLAGS += ['-Zl']
+
+# Code with FINAL_LIBRARY = 'xul' shouldn't do this, but the code
+# here doesn't use malloc functions anyways, while not setting
+# MOZ_NO_MOZALLOC makes the code include mozalloc.h, which includes
+# inline operator new definitions that MSVC linker doesn't strip
+# when linking the xpt tests.
+DEFINES['MOZ_NO_MOZALLOC'] = True
+
+DIST_INSTALL = True

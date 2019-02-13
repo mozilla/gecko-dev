@@ -52,13 +52,16 @@ const TMP_DIR = OS.Constants.Path.tmpDir;
  *
  */
 function CommonNativeApp(aApp, aManifest, aCategories, aRegistryDir) {
-  let manifest = new ManifestHelper(aManifest, aApp.origin);
-
-  aApp.name = manifest.name;
+  // Set the name property of the app object, otherwise
+  // WebappOSUtils::getUniqueName won't work.
+  aApp.name = aManifest.name;
   this.uniqueName = WebappOSUtils.getUniqueName(aApp);
 
-  this.appName = sanitize(manifest.name);
-  this.appNameAsFilename = stripStringForFilename(this.appName);
+  let localeManifest =
+    new ManifestHelper(aManifest, aApp.origin, aApp.manifestURL);
+
+  this.appLocalizedName = localeManifest.name;
+  this.appNameAsFilename = stripStringForFilename(aApp.name);
 
   if (aApp.updateManifest) {
     this.isPackaged = true;
@@ -67,8 +70,6 @@ function CommonNativeApp(aApp, aManifest, aCategories, aRegistryDir) {
   this.categories = aCategories.slice(0);
 
   this.registryDir = aRegistryDir || OS.Constants.Path.profileDir;
-
-  this.app = aApp;
 
   this._dryRun = false;
   try {
@@ -80,7 +81,7 @@ function CommonNativeApp(aApp, aManifest, aCategories, aRegistryDir) {
 
 CommonNativeApp.prototype = {
   uniqueName: null,
-  appName: null,
+  appLocalizedName: null,
   appNameAsFilename: null,
   iconURI: null,
   developerName: null,
@@ -98,16 +99,22 @@ CommonNativeApp.prototype = {
    * @param aManifest {Object} the manifest data provided by the web app
    *
    */
-  _setData: function(aManifest) {
-    let manifest = new ManifestHelper(aManifest, this.app.origin);
-    let origin = Services.io.newURI(this.app.origin, null, null);
+  _setData: function(aApp, aManifest) {
+    let manifest = new ManifestHelper(aManifest, aApp.origin, aApp.manifestURL);
+    let origin = Services.io.newURI(aApp.origin, null, null);
 
-    this.iconURI = Services.io.newURI(manifest.biggestIconURL || DEFAULT_ICON_URL,
-                                      null, null);
+#ifdef XP_WIN
+    let biggestIconURL = manifest.biggestIconURL(v => v <= 256);
+#else
+    let biggestIconURL = manifest.biggestIconURL();
+#endif
+
+    this.iconURI = Services.io.newURI(biggestIconURL || DEFAULT_ICON_URL, null,
+                                      null);
 
     if (manifest.developer) {
       if (manifest.developer.name) {
-        let devName = sanitize(manifest.developer.name.substr(0, 128));
+        let devName = manifest.developer.name.substr(0, 128);
         if (devName) {
           this.developerName = devName;
         }
@@ -123,9 +130,9 @@ CommonNativeApp.prototype = {
       let shortDesc = firstLine.length <= 256
                       ? firstLine
                       : firstLine.substr(0, 253) + "…";
-      this.shortDescription = sanitize(shortDesc);
+      this.shortDescription = shortDesc;
     } else {
-      this.shortDescription = this.appName;
+      this.shortDescription = this.appLocalizedName;
     }
 
     if (manifest.version) {
@@ -138,25 +145,25 @@ CommonNativeApp.prototype = {
       "registryDir": this.registryDir,
       "app": {
         "manifest": aManifest,
-        "origin": this.app.origin,
-        "manifestURL": this.app.manifestURL,
-        "installOrigin": this.app.installOrigin,
+        "origin": aApp.origin,
+        "manifestURL": aApp.manifestURL,
+        "installOrigin": aApp.installOrigin,
         "categories": this.categories,
-        "receipts": this.app.receipts,
-        "installTime": this.app.installTime,
+        "receipts": aApp.receipts,
+        "installTime": aApp.installTime,
       }
     };
 
-    if (this.app.etag) {
-      this.webappJson.app.etag = this.app.etag;
+    if (aApp.etag) {
+      this.webappJson.app.etag = aApp.etag;
     }
 
-    if (this.app.packageEtag) {
-      this.webappJson.app.packageEtag = this.app.packageEtag;
+    if (aApp.packageEtag) {
+      this.webappJson.app.packageEtag = aApp.packageEtag;
     }
 
-    if (this.app.updateManifest) {
-      this.webappJson.app.updateManifest = this.app.updateManifest;
+    if (aApp.updateManifest) {
+      this.webappJson.app.updateManifest = aApp.updateManifest;
     }
 
     this.runtimeFolder = OS.Constants.Path.libDir;
@@ -255,14 +262,6 @@ function writeToFile(aPath, aData) {
       yield file.close();
     }
   });
-}
-
-/**
- * Removes unprintable characters from a string.
- */
-function sanitize(aStr) {
-  let unprintableRE = new RegExp("[\\x00-\\x1F\\x7F]" ,"gi");
-  return aStr.replace(unprintableRE, "");
 }
 
 /**
@@ -453,7 +452,20 @@ function downloadIcon(aIconURI) {
     });
 #endif
 
-    let channel = NetUtil.newChannel(aIconURI);
+    // If not fetching an icon from chrome:// then we should create a
+    // NoAppCodeBasePrincipal. Note, that we are still in the process of
+    // installing the app, hence app.origin is not available yet and
+    // therefore we can not call getAppCodebasePrincipal.
+    let principal =
+      aIconURI.schemeIs("chrome") ? Services.scriptSecurityManager
+                                            .getSystemPrincipal()
+                                  : Services.scriptSecurityManager
+                                            .getNoAppCodebasePrincipal(aIconURI);
+
+    let channel = NetUtil.newChannel({
+      uri: aIconURI,
+      loadingPrincipal: principal,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_IMAGE});
     let { BadCertHandler } = Cu.import("resource://gre/modules/CertUtils.jsm", {});
     // Pass true to avoid optional redirect-cert-checking behavior.
     channel.notificationCallbacks = new BadCertHandler(true);

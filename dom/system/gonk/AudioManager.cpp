@@ -15,6 +15,7 @@
 
 #include <android/log.h>
 #include <cutils/properties.h>
+#include <binder/IServiceManager.h>
 
 #include "AudioChannelService.h"
 #include "AudioManager.h"
@@ -30,17 +31,19 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "base/message_loop.h"
 
 #include "BluetoothCommon.h"
 #include "BluetoothHfpManagerBase.h"
 
 #include "nsJSUtils.h"
-#include "nsCxPusher.h"
 #include "nsThreadUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsXULAppAPI.h"
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/SettingChangeNotificationBinding.h"
 
 using namespace mozilla::dom::gonk;
 using namespace android;
@@ -48,6 +51,7 @@ using namespace mozilla::hal;
 using namespace mozilla;
 using namespace mozilla::dom::bluetooth;
 
+#undef LOG
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "AudioManager" , ## args)
 
 #define HEADPHONES_STATUS_HEADSET     MOZ_UTF16("headset")
@@ -57,6 +61,7 @@ using namespace mozilla::dom::bluetooth;
 #define HEADPHONES_STATUS_CHANGED     "headphones-status-changed"
 #define MOZ_SETTINGS_CHANGE_ID        "mozsettings-changed"
 #define AUDIO_CHANNEL_PROCESS_CHANGED "audio-channel-process-changed"
+#define AUDIO_POLICY_SERVICE_NAME     "media.audio_policy"
 
 static void BinderDeadCallback(status_t aErr);
 static void InternalSetAudioRoutes(SwitchState aState);
@@ -76,8 +81,14 @@ static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
 };
 // A bitwise variable for recording what kind of headset is attached.
 static int sHeadsetState;
+#if defined(MOZ_B2G_BT) || ANDROID_VERSION >= 17
+static bool sBluetoothA2dpEnabled;
+#endif
 static const int kBtSampleRate = 8000;
 static bool sSwitchDone = true;
+#ifdef MOZ_B2G_BT
+static bool sA2dpSwitchDone = true;
+#endif
 
 namespace mozilla {
 namespace dom {
@@ -90,6 +101,19 @@ public:
     nsCOMPtr<nsIAudioManager> amService = do_GetService(NS_AUDIOMANAGER_CONTRACTID);
     NS_ENSURE_TRUE(amService, NS_OK);
     AudioManager *am = static_cast<AudioManager *>(amService.get());
+
+    int attempt;
+    for (attempt = 0; attempt < 50; attempt++) {
+      if (defaultServiceManager()->checkService(String16(AUDIO_POLICY_SERVICE_NAME)) != 0) {
+        break;
+      }
+
+      LOG("AudioPolicyService is dead! attempt=%d", attempt);
+      usleep(1000 * 200);
+    }
+
+    MOZ_RELEASE_ASSERT(attempt < 50);
+
     for (int loop = 0; loop < AUDIO_STREAM_CNT; loop++) {
       AudioSystem::initStreamVolume(static_cast<audio_stream_type_t>(loop), 0,
                                    sMaxStreamVolumeTbl[loop]);
@@ -118,7 +142,7 @@ public:
   }
 };
 
-class AudioChannelVolInitCallback MOZ_FINAL : public nsISettingsServiceCallback
+class AudioChannelVolInitCallback final : public nsISettingsServiceCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -161,6 +185,9 @@ public:
       NS_ConvertUTF16toUTF8(aName).get());
     return NS_OK;
   }
+
+protected:
+  ~AudioChannelVolInitCallback() {}
 };
 
 NS_IMPL_ISUPPORTS(AudioChannelVolInitCallback, nsISettingsServiceCallback)
@@ -196,6 +223,21 @@ static void ProcessDelayedAudioRoute(SwitchState aState)
   sSwitchDone = true;
 }
 
+#ifdef MOZ_B2G_BT
+static void ProcessDelayedA2dpRoute(audio_policy_dev_state_t aState, const nsCString aAddress)
+{
+  if (sA2dpSwitchDone)
+    return;
+  AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP,
+                                        aState, aAddress.get());
+  String8 cmd("bluetooth_enabled=false");
+  AudioSystem::setParameters(0, cmd);
+  cmd.setTo("A2dpSuspended=true");
+  AudioSystem::setParameters(0, cmd);
+  sA2dpSwitchDone = true;
+}
+#endif
+
 NS_IMPL_ISUPPORTS(AudioManager, nsIAudioManager, nsIObserver)
 
 static void
@@ -210,8 +252,14 @@ InternalSetAudioRoutesICS(SwitchState aState)
                                           AUDIO_POLICY_DEVICE_STATE_AVAILABLE, "");
     sHeadsetState |= AUDIO_DEVICE_OUT_WIRED_HEADPHONE;
   } else if (aState == SWITCH_STATE_OFF) {
-    AudioSystem::setDeviceConnectionState(static_cast<audio_devices_t>(sHeadsetState),
-                                          AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
+    if (sHeadsetState & AUDIO_DEVICE_OUT_WIRED_HEADSET) {
+      AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_WIRED_HEADSET,
+                                            AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
+    }
+    if (sHeadsetState & AUDIO_DEVICE_OUT_WIRED_HEADPHONE) {
+      AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_WIRED_HEADPHONE,
+                                            AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
+    }
     sHeadsetState = 0;
   }
 }
@@ -262,19 +310,25 @@ AudioManager::HandleBluetoothStatusChanged(nsISupports* aSubject,
         SetForceForUse(nsIAudioManager::USE_COMMUNICATION, nsIAudioManager::FORCE_NONE);
     }
   } else if (!strcmp(aTopic, BLUETOOTH_A2DP_STATUS_CHANGED_ID)) {
-    AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP,
-                                          audioState, aAddress.get());
-    if (audioState == AUDIO_POLICY_DEVICE_STATE_AVAILABLE) {
+    if (audioState == AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE && sA2dpSwitchDone) {
+      MessageLoop::current()->PostDelayedTask(
+        FROM_HERE, NewRunnableFunction(&ProcessDelayedA2dpRoute, audioState, aAddress), 1000);
+      sA2dpSwitchDone = false;
+    } else {
+      AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP,
+                                            audioState, aAddress.get());
       String8 cmd("bluetooth_enabled=true");
       AudioSystem::setParameters(0, cmd);
       cmd.setTo("A2dpSuspended=false");
       AudioSystem::setParameters(0, cmd);
-    } else {
-      String8 cmd("bluetooth_enabled=false");
-      AudioSystem::setParameters(0, cmd);
-      cmd.setTo("A2dpSuspended=true");
-      AudioSystem::setParameters(0, cmd);
+      sA2dpSwitchDone = true;
+#if ANDROID_VERSION >= 17
+      if (AudioSystem::getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_NO_BT_A2DP) {
+        SetForceForUse(AUDIO_POLICY_FORCE_FOR_MEDIA, AUDIO_POLICY_FORCE_NONE);
+      }
+#endif
     }
+    sBluetoothA2dpEnabled = audioState == AUDIO_POLICY_DEVICE_STATE_AVAILABLE;
   } else if (!strcmp(aTopic, BLUETOOTH_HFP_STATUS_CHANGED_ID)) {
     AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET,
                                           audioState, aAddress.get());
@@ -302,8 +356,8 @@ AudioManager::HandleAudioChannelProcessChanged()
     return;
   }
 
-  AudioChannelService *service = AudioChannelService::GetAudioChannelService();
-  NS_ENSURE_TRUE_VOID(service);
+  AudioChannelService *service = AudioChannelService::GetOrCreateAudioChannelService();
+  MOZ_ASSERT(service);
 
   bool telephonyChannelIsActive = service->TelephonyChannelIsActive();
   telephonyChannelIsActive ? SetPhoneState(PHONE_STATE_IN_COMMUNICATION) :
@@ -336,36 +390,18 @@ AudioManager::Observe(nsISupports* aSubject,
   // To process the volume control on each audio channel according to
   // change of settings
   else if (!strcmp(aTopic, MOZ_SETTINGS_CHANGE_ID)) {
-    AutoSafeJSContext cx;
-    nsDependentString dataStr(aData);
-    JS::Rooted<JS::Value> val(cx);
-    if (!JS_ParseJSON(cx, dataStr.get(), dataStr.Length(), &val) ||
-        !val.isObject()) {
+    RootedDictionary<dom::SettingChangeNotification> setting(nsContentUtils::RootingCxForThread());
+    if (!WrappedJSToDictionary(aSubject, setting)) {
+      return NS_OK;
+    }
+    if (!setting.mKey.EqualsASCII("audio.volume.bt_sco")) {
+      return NS_OK;
+    }
+    if (!setting.mValue.isNumber()) {
       return NS_OK;
     }
 
-    JS::Rooted<JSObject*> obj(cx, &val.toObject());
-    JS::Rooted<JS::Value> key(cx);
-    if (!JS_GetProperty(cx, obj, "key", &key) ||
-        !key.isString()) {
-      return NS_OK;
-    }
-
-    JS::Rooted<JSString*> jsKey(cx, JS::ToString(cx, key));
-    if (!jsKey) {
-      return NS_OK;
-    }
-    nsDependentJSString keyStr;
-    if (!keyStr.init(cx, jsKey) || !keyStr.EqualsLiteral("audio.volume.bt_sco")) {
-      return NS_OK;
-    }
-
-    JS::Rooted<JS::Value> value(cx);
-    if (!JS_GetProperty(cx, obj, "value", &value) || !value.isInt32()) {
-      return NS_OK;
-    }
-
-    int32_t index = value.toInt32();
+    int32_t index = setting.mValue.toNumber();
     SetStreamVolumeIndex(AUDIO_STREAM_BLUETOOTH_SCO, index);
 
     return NS_OK;
@@ -395,6 +431,8 @@ NotifyHeadphonesStatus(SwitchState aState)
 class HeadphoneSwitchObserver : public SwitchObserver
 {
 public:
+  HeadphoneSwitchObserver(AudioManager* aAudioManager)
+  : mAudioManager(aAudioManager) { }
   void Notify(const SwitchEvent& aEvent) {
     NotifyHeadphonesStatus(aEvent.status());
     // When user pulled out the headset, a delay of routing here can avoid the leakage of audio from speaker.
@@ -406,12 +444,24 @@ public:
       InternalSetAudioRoutes(aEvent.status());
       sSwitchDone = true;
     }
+    // Handle the coexistence of a2dp / headset device, latest one wins.
+#if ANDROID_VERSION >= 17
+    int32_t forceUse = 0;
+    mAudioManager->GetForceForUse(AUDIO_POLICY_FORCE_FOR_MEDIA, &forceUse);
+    if (aEvent.status() != SWITCH_STATE_OFF && sBluetoothA2dpEnabled) {
+      mAudioManager->SetForceForUse(AUDIO_POLICY_FORCE_FOR_MEDIA, AUDIO_POLICY_FORCE_NO_BT_A2DP);
+    } else if (forceUse == AUDIO_POLICY_FORCE_NO_BT_A2DP) {
+      mAudioManager->SetForceForUse(AUDIO_POLICY_FORCE_FOR_MEDIA, AUDIO_POLICY_FORCE_NONE);
+    }
+#endif
   }
+private:
+  AudioManager* mAudioManager;
 };
 
 AudioManager::AudioManager()
   : mPhoneState(PHONE_STATE_CURRENT)
-  , mObserver(new HeadphoneSwitchObserver())
+  , mObserver(new HeadphoneSwitchObserver(this))
 #ifdef MOZ_B2G_RIL
   , mMuteCallToRIL(false)
 #endif
@@ -649,23 +699,17 @@ AudioManager::GetFmRadioAudioEnabled(bool *aFmRadioAudioEnabled)
 NS_IMETHODIMP
 AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
 {
-  if (static_cast<
-      status_t (*) (AudioSystem::audio_devices, AudioSystem::device_connection_state, const char *)
-      >(AudioSystem::setDeviceConnectionState)) {
-    AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_FM,
-      aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
-      AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
-    InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
-    // sync volume with music after powering on fm radio
-    if (aFmRadioAudioEnabled) {
-      int32_t volIndex = mCurrentStreamVolumeTbl[AUDIO_STREAM_MUSIC];
-      SetStreamVolumeIndex(AUDIO_STREAM_FM, volIndex);
-      mCurrentStreamVolumeTbl[AUDIO_STREAM_FM] = volIndex;
-    }
-    return NS_OK;
-  } else {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_FM,
+    aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
+    AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
+  InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
+  // sync volume with music after powering on fm radio
+  if (aFmRadioAudioEnabled) {
+    int32_t volIndex = mCurrentStreamVolumeTbl[AUDIO_STREAM_MUSIC];
+    SetStreamVolumeIndex(AUDIO_STREAM_FM, volIndex);
+    mCurrentStreamVolumeTbl[AUDIO_STREAM_FM] = volIndex;
   }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -813,6 +857,11 @@ AudioManager::SetStreamVolumeIndex(int32_t aStream, int32_t aIndex) {
               static_cast<audio_stream_type_t>(aStream),
               aIndex,
               AUDIO_DEVICE_OUT_EARPIECE);
+  status += AudioSystem::setStreamVolumeIndex(
+              static_cast<audio_stream_type_t>(aStream),
+              aIndex,
+              AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET);
+
   return status ? NS_ERROR_FAILURE : NS_OK;
 #endif
 }

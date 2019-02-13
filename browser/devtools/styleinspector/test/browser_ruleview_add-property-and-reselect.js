@@ -9,27 +9,23 @@
 
 const TEST_URI = TEST_URL_ROOT + "doc_content_stylesheet.html";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(TEST_URI);
 
   let target = getNode("#target");
 
   let {toolbox, inspector, view} = yield openRuleView();
-  yield selectNode(target, inspector);
+  yield selectNode("#target", inspector);
 
   info("Setting a font-weight property on all rules");
   setPropertyOnAllRules(view);
 
   info("Reselecting the element");
-  yield reselectElement(target, inspector);
+  yield selectNode("body", inspector);
+  yield selectNode("#target", inspector);
 
   checkPropertyOnAllRules(view);
 });
-
-function* reselectElement(node, inspector) {
-  yield selectNode(node.parentNode, inspector);
-  yield selectNode(node, inspector);
-}
 
 function setPropertyOnAllRules(view) {
   for (let rule of view._elementStyle.rules) {

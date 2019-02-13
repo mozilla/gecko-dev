@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -45,6 +45,13 @@ const TEST_DATA = [
     input: "\"content!important\"",
     expected: {
       value: "\"content!important\"",
+      priority: ""
+    }
+  },
+  {
+    input: "\"all the \\\"'\\\\ special characters\"",
+    expected: {
+      value: "\"all the \\\"'\\\\ special characters\"",
       priority: ""
     }
   }

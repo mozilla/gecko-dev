@@ -9,7 +9,7 @@ function run_test() {
   setupTestCommon();
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
+  setupUpdaterTest(FILE_COMPLETE_MAR);
 
   gCallbackBinFile = "exe0.exe";
 
@@ -18,10 +18,11 @@ function run_test() {
   // Switch the application to the staged application that was updated.
   gStageUpdate = false;
   gSwitchApp = true;
-  runUpdate(0, STATE_SUCCEEDED);
+  runUpdate(0, STATE_SUCCEEDED, checkUpdateApplied);
 }
 
 function checkUpdateApplied() {
-  checkFilesAfterUpdateSuccess();
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  standardInit();
   checkCallbackAppLog();
 }

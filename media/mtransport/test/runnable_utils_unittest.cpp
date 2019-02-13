@@ -38,12 +38,13 @@ MtransportTestUtils *test_utils;
 namespace {
 
 class Destructor {
- public:
-  Destructor(bool* destroyed) : destroyed_(destroyed) {}
+ private:
   ~Destructor() {
     std::cerr << "Destructor called" << std::endl;
     *destroyed_ = true;
   }
+ public:
+  explicit Destructor(bool* destroyed) : destroyed_(destroyed) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Destructor)
 
@@ -53,7 +54,7 @@ class Destructor {
 
 class TargetClass {
  public:
-  TargetClass(int *ran) : ran_(ran) {}
+  explicit TargetClass(int *ran) : ran_(ran) {}
 
   void m1(int x) {
     std::cerr << __FUNCTION__ << " " << x << std::endl;
@@ -137,7 +138,7 @@ class DispatchTest : public ::testing::Test {
     int z;
     int x = 10;
 
-    target_->Dispatch(WrapRunnableRet(&cl_, &TargetClass::return_int, x, &z),
+    target_->Dispatch(WrapRunnableRet(&z, &cl_, &TargetClass::return_int, x),
                       NS_DISPATCH_SYNC);
     ASSERT_EQ(10, z);
   }
@@ -194,7 +195,7 @@ TEST_F(DispatchTest, TestNonMethodRet) {
   int z;
 
   test_utils->sts_target()->Dispatch(
-      WrapRunnableNMRet(SetNonMethodRet, &cl_, 10, &z), NS_DISPATCH_SYNC);
+      WrapRunnableNMRet(&z, SetNonMethodRet, &cl_, 10), NS_DISPATCH_SYNC);
 
   ASSERT_EQ(1, ran_);
   ASSERT_EQ(10, z);

@@ -23,11 +23,9 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/GuardObjects.h"
 
-class nsAttrValue;
 class nsIAtom;
 class nsIContent;
 class nsICSSPseudoComparator;
-class nsIStyleSheet;
 struct TreeMatchContext;
 
 /**
@@ -229,8 +227,8 @@ struct MOZ_STACK_CLASS TreeMatchContext {
   /* Helper class for maintaining the ancestor state */
   class MOZ_STACK_CLASS AutoAncestorPusher {
   public:
-    AutoAncestorPusher(TreeMatchContext& aTreeMatchContext
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoAncestorPusher(TreeMatchContext& aTreeMatchContext
+                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : mPushedAncestor(false)
       , mPushedStyleScope(false)
       , mTreeMatchContext(aTreeMatchContext)
@@ -299,9 +297,9 @@ struct MOZ_STACK_CLASS TreeMatchContext {
    */
   class MOZ_STACK_CLASS AutoParentDisplayBasedStyleFixupSkipper {
   public:
-    AutoParentDisplayBasedStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
-                                     bool aSkipParentDisplayBasedStyleFixup = true
-                                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoParentDisplayBasedStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
+                                                     bool aSkipParentDisplayBasedStyleFixup = true
+                                                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : mAutoRestorer(aTreeMatchContext.mSkippingParentDisplayBasedStyleFixup)
     {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -397,7 +395,7 @@ struct MOZ_STACK_CLASS TreeMatchContext {
     , mVisitedHandling(aVisitedHandling)
     , mDocument(aDocument)
     , mScopedRoot(nullptr)
-    , mIsHTMLDocument(aDocument->IsHTML())
+    , mIsHTMLDocument(aDocument->IsHTMLDocument())
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
     , mSkippingParentDisplayBasedStyleFixup(false)

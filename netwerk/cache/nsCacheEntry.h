@@ -238,16 +238,17 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEENTRYINFO
 
-    nsCacheEntryInfo(nsCacheEntry* entry)
+    explicit nsCacheEntryInfo(nsCacheEntry* entry)
         :   mCacheEntry(entry)
     {
     }
 
-    virtual ~nsCacheEntryInfo() {}
     void    DetachEntry() { mCacheEntry = nullptr; }
-    
+
 private:
     nsCacheEntry * mCacheEntry;
+
+    virtual ~nsCacheEntryInfo() {}
 };
 
 
@@ -266,13 +267,13 @@ public:
     nsCacheEntryHashTable();
     ~nsCacheEntryHashTable();
 
-    nsresult      Init();
+    void          Init();
     void          Shutdown();
 
     nsCacheEntry *GetEntry( const nsCString * key);
     nsresult      AddEntry( nsCacheEntry *entry);
     void          RemoveEntry( nsCacheEntry *entry);
-    
+
     void          VisitEntries( PLDHashEnumerator etor, void *arg);
 
 private:
@@ -301,11 +302,13 @@ private:
                                      PLDHashEntryHdr *      hdr,
                                      uint32_t               number,
                                      void *                 arg);
-                                     
+
     // member variables
     static const PLDHashTableOps ops;
     PLDHashTable                 table;
     bool                         initialized;
+
+    static const uint32_t kInitialTableLength = 256;
 };
 
 #endif // _nsCacheEntry_h_

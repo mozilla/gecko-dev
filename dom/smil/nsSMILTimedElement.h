@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -660,5 +661,20 @@ protected:
   uint8_t              mUpdateIntervalRecursionDepth;
   static const uint8_t sMaxUpdateIntervalRecursionDepth;
 };
+
+inline void
+ImplCycleCollectionUnlink(nsSMILTimedElement& aField)
+{
+  aField.Unlink();
+}
+
+inline void
+ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
+                            nsSMILTimedElement& aField,
+                            const char* aName,
+                            uint32_t aFlags = 0)
+{
+  aField.Traverse(&aCallback);
+}
 
 #endif // NS_SMILTIMEDELEMENT_H_

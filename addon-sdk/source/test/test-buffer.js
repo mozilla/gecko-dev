@@ -60,7 +60,7 @@ exports.testBufferMain = function (assert) {
   // invalid encoding for Buffer.toString
   assert.throws(() => {
     b.toString('invalid');
-  }, TypeError, 'invalid encoding for Buffer.toString');
+  }, RangeError, 'invalid encoding for Buffer.toString');
 
   // try to toString() a 0-length slice of a buffer, both within and without the
   // valid buffer range
@@ -248,7 +248,7 @@ exports.testBufferWrite = function (assert) {
 
   assert.throws(() => {
     b.write('test string', 0, 5, 'invalid');
-  }, TypeError, 'invalid encoding with buffer write throws');
+  }, RangeError, 'invalid encoding with buffer write throws');
   // try to write a 0-length string beyond the end of b
   assert.throws(function() {
     b.write('', 2048);
@@ -391,7 +391,7 @@ exports.testBufferSlice = function (assert) {
   assert.equal(buf.slice(0, 65536), '0123456789', 'buffer slice range correct');
   assert.equal(buf.slice(65536, 0), '', 'buffer slice range correct');
 
-  let sliceTest = true;
+  sliceTest = true;
   for (var i = 0, s = buf.toString(); i < buf.length; ++i) {
     if (buf.slice(-i) != s.slice(-i)) sliceTest = false;
     if (buf.slice(0, -i) != s.slice(0, -i)) sliceTest = false;
@@ -463,7 +463,7 @@ exports.testBufferConcat = function (assert) {
   assert.equal(flatZero.length, 0);
   assert.equal(flatOne.toString(), 'asdf');
   assert.equal(flatOne, one[0]);
-  assert.ok(flatLong.toString(), (new Array(10+1).join('asdf')));
+  assert.equal(flatLong.toString(), (new Array(10+1).join('asdf')));
   assert.equal(flatLongLen.toString(), (new Array(10+1).join('asdf')));
 };
 

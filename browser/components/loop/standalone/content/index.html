@@ -5,43 +5,166 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Loop</title>
+    <meta name="locales" content="en-US" />
+    <meta name="default_locale" content="en-US" />
+    <meta name="referrer" content="origin" />
+
+    <link rel="shortcut icon" href="favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="shared/css/reset.css">
     <link rel="stylesheet" type="text/css" href="shared/css/common.css">
     <link rel="stylesheet" type="text/css" href="shared/css/conversation.css">
     <link rel="stylesheet" type="text/css" href="css/webapp.css">
-    <link rel="prefetch" type="application/l10n" href="l10n/data.ini">
+    <link rel="localization" href="l10n/{locale}/loop.properties">
+
+    <script>
+      (function() {
+        function insertScript(url) {
+          var node = document.createElement("script");
+          var sibling = document.getElementsByTagName("script")[0];
+          node.async = 1;
+          node.src = url;
+          sibling.parentNode.insertBefore(node, sibling);
+        }
+
+        // window.navigator.doNotTrack "yes" is for old versions of FF
+        // window.navigator.doNotTrack "1" is for current versions of FF + Chrome + Opera
+        // window.doNotTrack is safari
+        // window.navigator.msDoNotTrack
+        if (window.navigator.doNotTrack !== "yes" &&
+            window.navigator.doNotTrack !== "1" &&
+            window.doNotTrack !== "1" &&
+            window.navigator.msDoNotTrack !== "1") {
+
+          insertScript("//cdn.optimizely.com/js/2768540301.js");
+
+          // This is an unfolded, readable version of the official GA inclusion
+          // script.
+          window.GoogleAnalyticsObject = "ga";
+          window.ga = window.ga || function() {
+            (window.ga.q = window.ga.q || []).push(arguments);
+          };
+          window.ga.l = 1 * new Date();
+
+          insertScript("//www.google-analytics.com/analytics.js");
+
+          window.ga("create", "UA-36116321-15", "auto");
+          window.ga("set", "anonymizeIp", true);
+          window.ga("send", "pageview");
+        }
+      })();
+    </script>
+
   </head>
-  <body onload="loop.webapp.init();">
-
-    <header>
-      <h1>Loop</h1>
-    </header>
-
-    <div id="messages"></div>
+  <body class="standalone">
 
     <div id="main"></div>
 
     <!-- libs -->
-    <script src="https://static.opentok.com/webrtc/v2.2/js/opentok.min.js"></script>
-    <script type="text/javascript" src="libs/webl10n-20130617.js"></script>
-    <script type="text/javascript" src="shared/libs/jquery-2.1.0.js"></script>
+    <script>
+      // IE9, 10, and 11 lack the window.CustomEvent constructor. IE11 has the
+      // window.CustomEvent object, but it throws when new CustomEvent(...) is
+      // called, with the exception of "Object doesn't support this action". IE9
+      // introduced document.createEvent. Nothing we can do for IE8 here.
+      var customEventCtorWorks;
+      try {
+        if (window.CustomEvent) {
+          customEventCtorWorks = new CustomEvent("test", {"detail":{"sampleProperty":true}});
+        }
+      } catch (ex) {}
+      var basicCustomEvent = document.createEvent("CustomEvent");
+      if (!customEventCtorWorks && basicCustomEvent && basicCustomEvent.initCustomEvent) {
+        function myCustomEvent(event, params) {
+          params = params || {bubbles: false, cancelable: false, detail: undefined};
+          var evt = document.createEvent("CustomEvent");
+          evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+          return evt;
+        }
+
+        myCustomEvent.prototype = window.Event.prototype;
+        window.CustomEvent = myCustomEvent;
+      }
+
+      // To support IE for the l10n-gaia library on IE <= 10.
+      if (!("language" in navigator)) {
+        navigator.language = navigator.browserLanguage;
+      }
+
+      // To support IE <= 10.
+      if (!window.MutationObserver) {
+        // Define a dummy MutationObserver object if one doesn't exist
+        // This could later be extended to use Mutation events but for
+        // now this will simply result in no-ops.
+        function myMutationObserver() {}
+        myMutationObserver.prototype = {
+          disconnect: function() {},
+          observe: function () {},
+          takeRecords: function() {}
+        };
+        window.MutationObserver = myMutationObserver;
+      }
+
+      window.OTProperties = {
+        cdnURL: "shared/libs/"
+      };
+      window.OTProperties.assetURL = window.OTProperties.cdnURL + "sdk-content/";
+      window.OTProperties.configURL = window.OTProperties.assetURL + "js/dynamic_config.min.js";
+    </script>
+    <script type="text/javascript" src="js/multiplexGum.js"></script>
+    <script type="text/javascript" src="shared/libs/sdk.js"></script>
+    <script>
+      // multiplexGum needs evaluation before sdk.js, but TBPlugin is not
+      // defined until after sdk.js has been evaluated. This updates the
+      // navigator object to reference TBPlugin if it was defined by sdk.js.
+      if (!navigator.originalGum) {
+        navigator.originalGum = (window.TBPlugin && window.TBPlugin.getUserMedia);
+      }
+    </script>
+    <script type="text/javascript" src="libs/l10n-gaia-02ca67948fe8.js"></script>
+    <script type="text/javascript" src="shared/libs/react-0.12.2.js"></script>
+    <script type="text/javascript" src="shared/libs/jquery-2.1.4.js"></script>
     <script type="text/javascript" src="shared/libs/lodash-2.4.1.js"></script>
     <script type="text/javascript" src="shared/libs/backbone-1.1.2.js"></script>
 
     <!-- app scripts -->
     <script type="text/javascript" src="config.js"></script>
-    <script type="text/javascript" src="shared/js/client.js"></script>
+    <script type="text/javascript" src="shared/js/utils.js"></script>
+    <script type="text/javascript" src="shared/js/crypto.js"></script>
     <script type="text/javascript" src="shared/js/models.js"></script>
+    <script type="text/javascript" src="shared/js/mixins.js"></script>
+    <script type="text/javascript" src="shared/js/feedbackApiClient.js"></script>
+    <script type="text/javascript" src="shared/js/actions.js"></script>
+    <script type="text/javascript" src="shared/js/validate.js"></script>
+    <script type="text/javascript" src="shared/js/dispatcher.js"></script>
+    <script type="text/javascript" src="shared/js/websocket.js"></script>
+    <script type="text/javascript" src="shared/js/otSdkDriver.js"></script>
+    <script type="text/javascript" src="shared/js/store.js"></script>
+    <script type="text/javascript" src="shared/js/roomStates.js"></script>
+    <script type="text/javascript" src="shared/js/fxOSActiveRoomStore.js"></script>
+    <script type="text/javascript" src="shared/js/activeRoomStore.js"></script>
+    <script type="text/javascript" src="shared/js/feedbackStore.js"></script>
     <script type="text/javascript" src="shared/js/views.js"></script>
-    <script type="text/javascript" src="shared/js/router.js"></script>
+    <script type="text/javascript" src="shared/js/textChatStore.js"></script>
+    <script type="text/javascript" src="shared/js/textChatView.js"></script>
+    <script type="text/javascript" src="shared/js/urlRegExps.js"></script>
+    <script type="text/javascript" src="shared/js/linkifiedTextView.js"></script>
+    <script type="text/javascript" src="js/standaloneAppStore.js"></script>
+    <script type="text/javascript" src="js/standaloneClient.js"></script>
+    <script type="text/javascript" src="js/standaloneMozLoop.js"></script>
+    <script type="text/javascript" src="js/fxOSMarketplace.js"></script>
+    <script type="text/javascript" src="js/standaloneRoomViews.js"></script>
+    <script type="text/javascript" src="js/standaloneMetricsStore.js"></script>
     <script type="text/javascript" src="js/webapp.js"></script>
 
     <script>
-    // Set the 'lang' and 'dir' attributes to <html> when the page is translated
-    window.addEventListener('localized', function() {
-      document.documentElement.lang = document.webL10n.getLanguage();
-      document.documentElement.dir = document.webL10n.getDirection();
-    }, false);
+      // Wait for all the localization notes to load
+      window.addEventListener("localized", function() {
+        loop.webapp.init();
+      }, false);
     </script>
+
+    <noscript>
+      <img src="img/logo.png" border="0" alt="Logo"/>
+    </noscript>
   </body>
 </html>

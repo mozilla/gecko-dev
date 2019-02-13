@@ -11,17 +11,19 @@
 #include "gfxRect.h"
 #include "nsAutoPtr.h"
 
+class gfxContext;
 class gfxDrawable;
 class nsDisplayList;
 class nsDisplayListBuilder;
 class nsIFrame;
-class nsRenderingContext;
 class nsIntRegion;
 
 struct nsRect;
-struct nsIntRect;
 
 namespace mozilla {
+namespace gfx {
+class DrawTarget;
+}
 namespace layers {
 class LayerManager;
 }
@@ -34,8 +36,10 @@ struct nsSize;
  * Integration of SVG effects (clipPath clipping, masking and filters) into
  * regular display list based painting and hit-testing.
  */
-class nsSVGIntegrationUtils MOZ_FINAL
+class nsSVGIntegrationUtils final
 {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+
 public:
   /**
    * Returns true if SVG effects are currently applied to this frame.
@@ -124,7 +128,7 @@ public:
    * Paint non-SVG frame with SVG effects.
    */
   static void
-  PaintFramesWithEffects(nsRenderingContext* aCtx,
+  PaintFramesWithEffects(gfxContext& aCtx,
                          nsIFrame* aFrame, const nsRect& aDirtyRect,
                          nsDisplayListBuilder* aBuilder,
                          mozilla::layers::LayerManager* aManager);
@@ -166,6 +170,7 @@ public:
                           nsIFrame*         aTarget,
                           const nsSize&     aPaintServerSize,
                           const gfxIntSize& aRenderSize,
+                          const DrawTarget* aDrawTarget,
                           const gfxMatrix&  aContextMatrix,
                           uint32_t          aFlags);
 };

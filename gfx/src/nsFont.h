@@ -52,11 +52,7 @@ struct NS_GFX nsFont {
   // the name is the same as a CSS generic font family.
   bool systemFont;
 
-  // The variant of the font (normal, small-caps)
-  uint8_t variant;
-
   // Variant subproperties
-  // (currently -moz- versions, will replace variant above eventually)
   uint8_t variantCaps;
   uint8_t variantNumeric;
   uint8_t variantPosition;
@@ -96,8 +92,8 @@ struct NS_GFX nsFont {
 
   // The aspect-value (ie., the ratio actualsize:actualxheight) that any
   // actual physical font created from this font structure must have when
-  // rendering or measuring a string. A value of 0 means no adjustment
-  // needs to be done.
+  // rendering or measuring a string. A value of -1.0 means no adjustment
+  // needs to be done; otherwise the value must be nonnegative.
   float sizeAdjust;
 
   // -- list of value tags for font-specific alternate features
@@ -116,11 +112,11 @@ struct NS_GFX nsFont {
 
   // initialize the font with a fontlist
   nsFont(const mozilla::FontFamilyList& aFontlist, uint8_t aStyle,
-         uint8_t aVariant, uint16_t aWeight, int16_t aStretch,
+         uint16_t aWeight, int16_t aStretch,
          uint8_t aDecoration, nscoord aSize);
 
   // initialize the font with a single generic
-  nsFont(mozilla::FontFamilyType aGenericType, uint8_t aStyle, uint8_t aVariant,
+  nsFont(mozilla::FontFamilyType aGenericType, uint8_t aStyle,
          uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
          nscoord aSize);
 

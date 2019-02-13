@@ -8,7 +8,6 @@
 
 #include "nsINavHistoryService.h"
 #include "nsPIPlacesDatabase.h"
-#include "nsPIPlacesHistoryListenersNotifier.h"
 #include "nsIBrowserHistory.h"
 #include "nsINavBookmarksService.h"
 #include "nsIFaviconService.h"
@@ -52,7 +51,6 @@
 // Fired after frecency has been updated.
 #define TOPIC_FRECENCY_UPDATED "places-frecency-updated"
 
-class mozIAnnotationService;
 class nsNavHistory;
 class QueryKeyValuePair;
 class nsIEffectiveTLDService;
@@ -62,13 +60,12 @@ class nsIAutoCompleteController;
 
 // nsNavHistory
 
-class nsNavHistory MOZ_FINAL : public nsSupportsWeakReference
-                             , public nsINavHistoryService
-                             , public nsIObserver
-                             , public nsIBrowserHistory
-                             , public nsPIPlacesDatabase
-                             , public nsPIPlacesHistoryListenersNotifier
-                             , public mozIStorageVacuumParticipant
+class nsNavHistory final : public nsSupportsWeakReference
+                         , public nsINavHistoryService
+                         , public nsIObserver
+                         , public nsIBrowserHistory
+                         , public nsPIPlacesDatabase
+                         , public mozIStorageVacuumParticipant
 {
   friend class PlacesSQLQueryBuilder;
 
@@ -80,7 +77,6 @@ public:
   NS_DECL_NSIBROWSERHISTORY
   NS_DECL_NSIOBSERVER
   NS_DECL_NSPIPLACESDATABASE
-  NS_DECL_NSPIPLACESHISTORYLISTENERSNOTIFIER
   NS_DECL_MOZISTORAGEVACUUMPARTICIPANT
 
   /**
@@ -184,6 +180,29 @@ public:
   nsresult invalidateFrecencies(const nsCString& aPlaceIdsQueryString);
 
   /**
+   * Calls onDeleteVisits and onDeleteURI notifications on registered listeners
+   * with the history service.
+   *
+   * @param aURI
+   *        The nsIURI object representing the URI of the page being expired.
+   * @param aVisitTime
+   *        The time, in microseconds, that the page being expired was visited.
+   * @param aWholeEntry
+   *        Indicates if this is the last visit for this URI.
+   * @param aGUID
+   *        The unique ID associated with the page.
+   * @param aReason
+   *        Indicates the reason for the removal.
+   *        See nsINavHistoryObserver::REASON_* constants.
+   * @param aTransitionType
+   *        If it's a valid TRANSITION_* value, all visits of the specified type
+   *        have been removed.
+   */
+  nsresult NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
+                               bool aWholeEntry, const nsACString& aGUID,
+                               uint16_t aReason, uint32_t aTransitionType);
+
+  /**
    * These functions return non-owning references to the locale-specific
    * objects for places components.
    */
@@ -232,7 +251,9 @@ public:
   nsresult RowToResult(mozIStorageValueArray* aRow,
                        nsNavHistoryQueryOptions* aOptions,
                        nsNavHistoryResultNode** aResult);
-  nsresult QueryRowToResult(int64_t aItemId, const nsACString& aURI,
+  nsresult QueryRowToResult(int64_t aItemId,
+                            const nsACString& aBookmarkGuid,
+                            const nsACString& aURI,
                             const nsACString& aTitle,
                             uint32_t aAccessCount, PRTime aTime,
                             const nsACString& aFavicon,
@@ -537,7 +558,7 @@ protected:
   class VisitHashKey : public nsURIHashKey
   {
   public:
-    VisitHashKey(const nsIURI* aURI)
+    explicit VisitHashKey(const nsIURI* aURI)
     : nsURIHashKey(aURI)
     {
     }

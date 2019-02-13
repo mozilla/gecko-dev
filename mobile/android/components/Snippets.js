@@ -173,7 +173,7 @@ var gMessageIds = [];
  *     - text (string): Text to show as banner message
  *     - url (string): URL to open when banner is clicked
  *     - icon (data URI): Icon to appear in banner
- *     - target_geo (string): Country code for where this message should be shown (e.g. "US")
+ *     - countries (list of strings): Country codes for where this message should be shown (e.g. ["US", "GR"])
  */
 function updateBanner(messages) {
   // Remove the current messages, if there are any.
@@ -194,9 +194,10 @@ function updateBanner(messages) {
 
   messages.forEach(function(message) {
     // Don't add this message to the banner if it's not supposed to be shown in this country.
-    if ("target_geo" in message && message.target_geo != gCountryCode) {
+    if ("countries" in message && message.countries.indexOf(gCountryCode) === -1) {
       return;
     }
+
     let id = Home.banner.add({
       text: message.text,
       icon: message.icon,
@@ -377,6 +378,30 @@ function loadSyncPromoBanner() {
   );
 }
 
+function loadHomePanelsBanner() {
+  let stringBundle = Services.strings.createBundle("chrome://browser/locale/aboutHome.properties");
+  let text = stringBundle.GetStringFromName("banner.firstrunHomepage.text");
+
+  let id = Home.banner.add({
+    text: text,
+    icon: "drawable://homepage_banner_firstrun",
+    onclick: function() {
+      // Remove the message, so that it won't show again for the rest of the app lifetime.
+      Home.banner.remove(id);
+      // User has interacted with this snippet so don't show it again.
+      Services.prefs.setBoolPref("browser.snippets.firstrunHomepage.enabled", false);
+
+      UITelemetry.addEvent("action.1", "banner", null, "firstrun-homepage");
+    },
+    ondismiss: function() {
+      Home.banner.remove(id);
+      Services.prefs.setBoolPref("browser.snippets.firstrunHomepage.enabled", false);
+
+      UITelemetry.addEvent("cancel.1", "banner", null, "firstrun-homepage");
+    }
+  });
+}
+
 function Snippets() {}
 
 Snippets.prototype = {
@@ -385,11 +410,12 @@ Snippets.prototype = {
 
   observe: function(subject, topic, data) {
     switch(topic) {
-      case "profile-after-change":
-        Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
-        break;
       case "browser-delayed-startup-finished":
-        Services.obs.removeObserver(this, "browser-delayed-startup-finished", false);
+        // Add snippets to be cycled through.
+        if (Services.prefs.getBoolPref("browser.snippets.firstrunHomepage.enabled")) {
+          loadHomePanelsBanner();
+        }
+
         if (Services.prefs.getBoolPref("browser.snippets.syncPromo.enabled")) {
           loadSyncPromoBanner();
         }

@@ -5,20 +5,50 @@
 #
 # Copyright © 2013 Deutsche Telekom, Inc.
 
+XPIDL_MODULE = 'dom_nfc'
+
 if CONFIG['MOZ_NFC']:
+    XPIDL_SOURCES += [
+        'nsINfcContentHelper.idl',
+    ]
     EXPORTS.mozilla.dom += [
+        'MozIsoDepTech.h',
         'MozNDEFRecord.h',
     ]
-    SOURCES += [
+    UNIFIED_SOURCES += [
+        'MozIsoDepTech.cpp',
         'MozNDEFRecord.cpp',
     ]
     EXTRA_COMPONENTS += [
-      'nsNfc.js',
-      'nsNfc.manifest',
+        'NfcContentHelper.js',
+        'NfcContentHelper.manifest',
+        'nsNfc.js',
+        'nsNfc.manifest',
     ]
 
-TEST_DIRS += ['tests']
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_NFC']:
+    UNIFIED_SOURCES += [
+        'gonk/NfcMessageHandler.cpp',
+        'gonk/NfcService.cpp',
+    ]
+    XPIDL_SOURCES += [
+        'gonk/nsINfcService.idl',
+        'gonk/nsINfcSystemMessage.idl',
+    ]
+    EXTRA_COMPONENTS += [
+        'gonk/Nfc.js',
+        'gonk/Nfc.manifest',
+        'messages/HCIEventTransactionSystemMessage.manifest',
+        'messages/HCIEventTransactionSystemMessageConfigurator.js',
+    ]
+    EXTRA_JS_MODULES += [
+        'gonk/nfc_consts.js',
+    ]
+    XPCSHELL_TESTS_MANIFESTS += [
+        'tests/unit/xpcshell.ini'
+    ]
 
 FAIL_ON_WARNINGS = True
+include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'

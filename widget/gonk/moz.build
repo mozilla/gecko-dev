@@ -15,6 +15,7 @@
 # limitations under the License.
 
 EXPORTS += [
+    'GeckoTouchDispatcher.h',
     'GonkPermission.h',
     'OrientationObserver.h',
 ]
@@ -36,6 +37,7 @@ SOURCES += ['libui/' + src for src in [
     'KeyCharacterMap.cpp',
     'KeyLayoutMap.cpp',
     'PointerController.cpp',
+    'sha1.c',
     'SpriteController.cpp',
     'Tokenizer.cpp',
     'VelocityControl.cpp',
@@ -43,8 +45,18 @@ SOURCES += ['libui/' + src for src in [
     'VirtualKeyMap.cpp',
 ]]
 
+# HwcHAL files
+if CONFIG['ANDROID_VERSION'] >= '17':
+    SOURCES += [
+        'hwchal/HwcHAL.cpp',
+    ]
+elif CONFIG['ANDROID_VERSION'] == '15':
+    SOURCES += [
+        'hwchal/HwcICS.cpp',
+    ]
+
 SOURCES += [
-    'Framebuffer.cpp',
+    'GeckoTouchDispatcher.cpp',
     'GfxInfo.cpp',
     'GonkMemoryPressureMonitoring.cpp',
     'GonkPermission.cpp',
@@ -54,31 +66,31 @@ SOURCES += [
     'nsClipboard.cpp',
     'nsIdleServiceGonk.cpp',
     'nsLookAndFeel.cpp',
+    'nsScreenManagerGonk.cpp',
     'nsWidgetFactory.cpp',
     'nsWindow.cpp',
     'OrientationObserver.cpp',
-    'ParentProcessController.cpp',
     'ProcessOrientation.cpp',
     'WidgetTraceEvent.cpp'
 ]
-
-LIBRARY_NAME = 'widget_gonk'
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '/content/media/omx/mediaresourcemanager',
+    '/dom/media/omx/mediaresourcemanager',
     '/dom/system/android',
     '/gfx/skia/trunk/include/config',
     '/gfx/skia/trunk/include/core',
-    '/widget/shared',
-    '/widget/xpwidgets',
+    '/widget',
 ]
 
 DEFINES['HAVE_OFF64_T'] = True
 DEFINES['SK_BUILD_FOR_ANDROID_NDK'] = True
+
+if CONFIG['ANDROID_VERSION'] != '15':
+    DEFINES['HAVE_POSIX_CLOCKS'] = True
 
 if CONFIG['MOZ_OMX_DECODER']:
     DEFINES['MOZ_OMX_DECODER'] = True

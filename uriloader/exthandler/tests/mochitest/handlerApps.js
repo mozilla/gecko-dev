@@ -9,14 +9,6 @@ const Cc = SpecialPowers.Cc;
 
 function test() {
 
-  const isOSXMtnLion = navigator.userAgent.indexOf("Mac OS X 10.8") != -1;
-  const isOSXMavericks = navigator.userAgent.indexOf("Mac OS X 10.9") != -1;
-  if (isOSXMtnLion || isOSXMavericks) {
-    todo(false, "This test fails on OS X 10.8 and 10.9, see bug 786938");
-    SimpleTest.finish();
-    return;
-  }
-
   // set up the web handler object
   var webHandler = Cc["@mozilla.org/uriloader/web-handler-app;1"].
     createInstance(SpecialPowers.Ci.nsIWebHandlerApp);
@@ -37,7 +29,7 @@ function test() {
     getInterface(SpecialPowers.Ci.nsIWebNavigation).
     QueryInterface(SpecialPowers.Ci.nsIDocShell);
  
-  webHandler.launchWithURI(uri, windowContext); 
+  webHandler.launchWithURI(uri, windowContext);
 
   // if we get this far without an exception, we've at least partly passed
   // (remaining check in handlerApp.xhtml)

@@ -19,6 +19,7 @@
 
 #define NS_FONT_WEIGHT_NORMAL           400
 #define NS_FONT_WEIGHT_BOLD             700
+#define NS_FONT_WEIGHT_THIN             100
 
 #define NS_FONT_STRETCH_ULTRA_CONDENSED (-4)
 #define NS_FONT_STRETCH_EXTRA_CONDENSED (-3)
@@ -195,5 +196,18 @@ enum {
 #define NS_FONT_VARIANT_POSITION_NORMAL             0
 #define NS_FONT_VARIANT_POSITION_SUPER              1
 #define NS_FONT_VARIANT_POSITION_SUB                2
+
+// based on fixed offset values used within WebKit
+#define NS_FONT_SUBSCRIPT_OFFSET_RATIO     (0.20)
+#define NS_FONT_SUPERSCRIPT_OFFSET_RATIO   (0.34)
+
+// this roughly corresponds to font-size: smaller behavior
+// at smaller sizes <20px the ratio is closer to 0.8 while at
+// larger sizes >45px the ratio is closer to 0.667 and in between
+// a blend of values is used
+#define NS_FONT_SUB_SUPER_SIZE_RATIO_SMALL       (0.82)
+#define NS_FONT_SUB_SUPER_SIZE_RATIO_LARGE       (0.667)
+#define NS_FONT_SUB_SUPER_SMALL_SIZE             (20.0)
+#define NS_FONT_SUB_SUPER_LARGE_SIZE             (45.0)
 
 #endif

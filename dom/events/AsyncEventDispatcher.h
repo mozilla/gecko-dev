@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,9 +11,10 @@
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
 #include "nsIDOMEvent.h"
-#include "nsINode.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
+
+class nsINode;
 
 namespace mozilla {
 
@@ -26,12 +28,18 @@ namespace mozilla {
 class AsyncEventDispatcher : public nsRunnable
 {
 public:
+  /**
+   * If aOnlyChromeDispatch is true, the event is dispatched to only
+   * chrome node. In that case, if aTarget is already a chrome node,
+   * the event is dispatched to it, otherwise the dispatch path starts
+   * at the first chrome ancestor of that target.
+   */
   AsyncEventDispatcher(nsINode* aTarget, const nsAString& aEventType,
-                       bool aBubbles, bool aDispatchChromeOnly)
+                       bool aBubbles, bool aOnlyChromeDispatch)
     : mTarget(aTarget)
     , mEventType(aEventType)
     , mBubbles(aBubbles)
-    , mDispatchChromeOnly(aDispatchChromeOnly)
+    , mOnlyChromeDispatch(aOnlyChromeDispatch)
   {
   }
 
@@ -40,20 +48,20 @@ public:
     : mTarget(aTarget)
     , mEventType(aEventType)
     , mBubbles(aBubbles)
-    , mDispatchChromeOnly(false)
+    , mOnlyChromeDispatch(false)
   {
   }
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, nsIDOMEvent* aEvent)
     : mTarget(aTarget)
     , mEvent(aEvent)
-    , mDispatchChromeOnly(false)
+    , mOnlyChromeDispatch(false)
   {
   }
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, WidgetEvent& aEvent);
 
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
   nsresult PostDOMEvent();
   void RunDOMEventWhenSafe();
 
@@ -61,10 +69,10 @@ public:
   nsCOMPtr<nsIDOMEvent> mEvent;
   nsString              mEventType;
   bool                  mBubbles;
-  bool                  mDispatchChromeOnly;
+  bool                  mOnlyChromeDispatch;
 };
 
-class LoadBlockingAsyncEventDispatcher MOZ_FINAL : public AsyncEventDispatcher
+class LoadBlockingAsyncEventDispatcher final : public AsyncEventDispatcher
 {
 public:
   LoadBlockingAsyncEventDispatcher(nsINode* aEventNode,

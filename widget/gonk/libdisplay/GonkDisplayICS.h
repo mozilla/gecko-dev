@@ -23,6 +23,10 @@
 #include "hardware/hwcomposer.h"
 #include "utils/RefBase.h"
 
+namespace android {
+class IGraphicBufferProducer;
+}
+
 namespace mozilla {
 
 class MOZ_EXPORT GonkDisplayICS : public GonkDisplay {
@@ -30,15 +34,11 @@ public:
     GonkDisplayICS();
     ~GonkDisplayICS();
 
-    virtual ANativeWindow* GetNativeWindow();
-
     virtual void SetEnabled(bool enabled);
 
     virtual void OnEnabled(OnEnabledCallbackType callback);
 
     virtual void* GetHWCDevice();
-
-    virtual void* GetFBSurface();
 
     virtual bool SwapBuffers(EGLDisplay dpy, EGLSurface sur);
 
@@ -46,14 +46,20 @@ public:
 
     virtual bool QueueBuffer(ANativeWindowBuffer* handle);
 
-    virtual void UpdateFBSurface(EGLDisplay dpy, EGLSurface sur);
+    virtual void UpdateDispSurface(EGLDisplay dpy, EGLSurface sur);
 
-    virtual void SetFBReleaseFd(int fd);
+    virtual void SetDispReleaseFd(int fd);
 
-    virtual int GetPrevFBAcquireFd()
+    virtual int GetPrevDispAcquireFd()
     {
         return -1;
     }
+
+    virtual NativeData GetNativeData(
+        GonkDisplay::DisplayType aDisplayType,
+        android::IGraphicBufferProducer* aProducer = nullptr);
+
+    virtual void NotifyBootAnimationStopped() {}
 
 private:
     hw_module_t const*        mModule;

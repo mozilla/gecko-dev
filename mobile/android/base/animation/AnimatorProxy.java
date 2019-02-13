@@ -5,17 +5,18 @@
 
 package org.mozilla.gecko.animation;
 
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
+
+import org.mozilla.gecko.AppConstants.Versions;
+
 import android.graphics.Matrix;
 import android.graphics.RectF;
-import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Transformation;
-
-import java.lang.ref.WeakReference;
-import java.util.WeakHashMap;
 
 class AnimatorProxy {
     private static final WeakHashMap<View, AnimatorProxy> PROXIES =
@@ -34,7 +35,7 @@ class AnimatorProxy {
         public View getView();
     }
 
-    private AnimatorProxyImpl mImpl;
+    private final AnimatorProxyImpl mImpl;
 
     private AnimatorProxy(AnimatorProxyImpl impl) {
         mImpl = impl;
@@ -42,7 +43,7 @@ class AnimatorProxy {
 
     public static AnimatorProxy create(View view) {
         AnimatorProxy proxy = PROXIES.get(view);
-        boolean needsAnimationProxy = (Build.VERSION.SDK_INT < 11);
+        final boolean needsAnimationProxy = Versions.preHC;
 
         // If the view's animation proxy has been overridden from somewhere else, we need to
         // create a new AnimatorProxy for the view.
@@ -145,7 +146,7 @@ class AnimatorProxy {
      * the NineOldAndroids library under the Apache License 2.0.
      */
     private static class AnimatorProxyPreHC extends Animation implements AnimatorProxyImpl {
-        private WeakReference<View> mViewRef;
+        private final WeakReference<View> mViewRef;
 
         private final RectF mBefore;
         private final RectF mAfter;
@@ -161,8 +162,6 @@ class AnimatorProxy {
             mTempMatrix = new Matrix();
 
             mAlpha = 1;
-            mTranslationX = 0;
-            mTranslationY = 0;
 
             loadCurrentTransformation(view);
 
@@ -292,7 +291,7 @@ class AnimatorProxy {
     }
 
     private static class AnimatorProxyPostHC implements AnimatorProxyImpl {
-        private WeakReference<View> mViewRef;
+        private final WeakReference<View> mViewRef;
 
         public AnimatorProxyPostHC(View view) {
             mViewRef = new WeakReference<View>(view);

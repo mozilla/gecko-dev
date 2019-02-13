@@ -7,6 +7,7 @@
 #include "mozilla/SystemMemoryReporter.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/LinuxUtils.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TaggedAnonymousMemory.h"
@@ -45,6 +46,26 @@ namespace SystemMemoryReporter {
 #if !defined(XP_LINUX)
 #error "This won't work if we're not on Linux."
 #endif
+
+/**
+ * RAII helper that will close an open DIR handle.
+ */
+struct MOZ_STACK_CLASS AutoDir
+{
+  explicit AutoDir(DIR* aDir) : mDir(aDir) {}
+  ~AutoDir() { if (mDir) closedir(mDir); };
+  DIR* mDir;
+};
+
+/**
+ * RAII helper that will close an open FILE handle.
+ */
+struct MOZ_STACK_CLASS AutoFile
+{
+  explicit AutoFile(FILE* aFile) : mFile(aFile) {}
+  ~AutoFile() { if (mFile) fclose(mFile); }
+  FILE* mFile;
+};
 
 static bool
 EndsWithLiteral(const nsCString& aHaystack, const char* aNeedle)
@@ -102,18 +123,20 @@ IsNumeric(const char* aStr)
 static bool
 IsAnonymous(const nsACString& aName)
 {
-  // Recent kernels (e.g. 3.5) have multiple [stack:nnnn] entries, where |nnnn|
-  // is a thread ID.  However, [stack:nnnn] entries count both stack memory
-  // *and* anonymous memory because the kernel only knows about the start of
-  // each thread stack, not its end.  So we treat such entries as anonymous
-  // memory instead of stack.  This is consistent with older kernels that don't
-  // even show [stack:nnnn] entries.
+  // Recent kernels have multiple [stack:nnnn] entries, where |nnnn| is a
+  // thread ID.  However, the entire virtual memory area containing a thread's
+  // stack pointer is considered the stack for that thread, even if it was
+  // merged with an adjacent area containing non-stack data.  So we treat them
+  // as regular anonymous memory.  However, see below about tagged anonymous
+  // memory.
   return aName.IsEmpty() ||
          StringBeginsWith(aName, NS_LITERAL_CSTRING("[stack:"));
 }
 
-class SystemReporter MOZ_FINAL : public nsIMemoryReporter
+class SystemReporter final : public nsIMemoryReporter
 {
+  ~SystemReporter() {}
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -136,8 +159,14 @@ public:
   REPORT_WITH_CLEANUP(_path, UNITS_BYTES, _amount, _desc, (void)0)
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize) override
   {
+    // There is lots of privacy-sensitive data in /proc. Just skip this
+    // reporter entirely when anonymization is required.
+    if (aAnonymize) {
+      return NS_OK;
+    }
+
     if (!Preferences::GetBool("memory.system_memory_reporter")) {
       return NS_OK;
     }
@@ -169,6 +198,14 @@ public:
     rv = CollectZramReports(aHandleReport, aData);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    // Report kgsl graphics memory usage.
+    rv = CollectKgslReports(aHandleReport, aData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // Report ION memory usage.
+    rv = CollectIonReports(aHandleReport, aData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     return rv;
   }
 
@@ -177,12 +214,12 @@ private:
   class ProcessSizes
   {
   public:
-    void Add(const nsACString &aKey, size_t aSize)
+    void Add(const nsACString& aKey, size_t aSize)
     {
       mTagged.Put(aKey, mTagged.Get(aKey) + aSize);
     }
 
-    void Report(nsIHandleReportCallback *aHandleReport, nsISupports *aData)
+    void Report(nsIHandleReportCallback* aHandleReport, nsISupports* aData)
     {
       EnumArgs env = { aHandleReport, aData };
       mTagged.EnumerateRead(ReportSizes, &env);
@@ -191,16 +228,17 @@ private:
   private:
     nsDataHashtable<nsCStringHashKey, size_t> mTagged;
 
-    struct EnumArgs {
+    struct EnumArgs
+    {
       nsIHandleReportCallback* mHandleReport;
       nsISupports* mData;
     };
 
     static PLDHashOperator ReportSizes(nsCStringHashKey::KeyType aKey,
                                        size_t aAmount,
-                                       void *aUserArg)
+                                       void* aUserArg)
     {
-      const EnumArgs *envp = reinterpret_cast<const EnumArgs*>(aUserArg);
+      const EnumArgs* envp = reinterpret_cast<const EnumArgs*>(aUserArg);
 
       nsAutoCString path("processes/");
       path.Append(aKey);
@@ -299,8 +337,8 @@ private:
 
         // Report the open file descriptors for this process.
         nsPrintfCString procFdPath("/proc/%s/fd", pidStr);
-        rv = CollectOpenFileReports(
-                  aHandleReport, aData, procFdPath, processName);
+        rv = CollectOpenFileReports(aHandleReport, aData, procFdPath,
+                                    processName);
         if (NS_FAILED(rv)) {
           break;
         }
@@ -393,7 +431,7 @@ private:
         *aTotalPss += pss;
       }
 
-      // Now that we've seen the PSS, we're done wit hthis entry.
+      // Now that we've seen the PSS, we're done with this entry.
       path.SetIsVoid(true);
     }
     return NS_OK;
@@ -425,11 +463,37 @@ private:
         "This corresponds to '[heap]' in /proc/<pid>/smaps.");
       aTag = aName;
     } else if (absPath.EqualsLiteral("[stack]")) {
-      aName.AppendLiteral("main-thread-stack");
-      aDesc.AppendLiteral(
+      aName.AppendLiteral("stack/main-thread");
+      aDesc.AppendPrintf(
         "The stack size of the process's main thread.  This corresponds to "
         "'[stack]' in /proc/<pid>/smaps.");
       aTag = aName;
+    } else if (MozTaggedMemoryIsSupported() &&
+               StringBeginsWith(absPath, NS_LITERAL_CSTRING("[stack:"))) {
+      // If tagged memory is supported, we can be reasonably sure that
+      // the virtual memory area containing the stack hasn't been
+      // merged with unrelated heap memory.  (This prevents the
+      // "[stack:" entries from reaching the IsAnonymous case below.)
+      pid_t tid = atoi(absPath.get() + 7);
+      nsAutoCString threadName, escapedThreadName;
+      LinuxUtils::GetThreadName(tid, threadName);
+      if (threadName.IsEmpty()) {
+        threadName.AssignLiteral("<unknown>");
+      }
+      escapedThreadName.Assign(threadName);
+      escapedThreadName.StripChars("()");
+      escapedThreadName.ReplaceChar('/', '\\');
+
+      aName.AppendLiteral("stack/non-main-thread");
+      aName.AppendLiteral("/name(");
+      aName.Append(escapedThreadName);
+      aName.Append(')');
+      aTag = aName;
+      aName.AppendPrintf("/thread(%d)", tid);
+
+      aDesc.AppendPrintf("The stack size of a non-main thread named '%s' with "
+                         "thread ID %d.  This corresponds to '[stack:%d]' "
+                         "in /proc/%d/smaps.", threadName.get(), tid, tid);
     } else if (absPath.EqualsLiteral("[vdso]")) {
       aName.AppendLiteral("vdso");
       aDesc.AppendLiteral(
@@ -479,6 +543,8 @@ private:
           aName.AppendLiteral("/extensions");
         } else if (dirname.Find("/fontconfig") != -1) {
           aName.AppendLiteral("/fontconfig");
+        } else {
+          aName.AppendLiteral("/misc");
         }
         aTag = aName;
         aName.Append('/');
@@ -553,10 +619,10 @@ private:
         continue;
       }
       scanned = fscanf(sizeFile, "%" SCNu64, &size);
+      fclose(sizeFile);
       if (NS_WARN_IF(scanned != 1)) {
         continue;
       }
-      fclose(sizeFile);
 
       // Read mapped regions; format described below.
       uint64_t freeSize = size;
@@ -612,6 +678,106 @@ private:
     return NS_OK;
   }
 
+  nsresult
+  CollectIonReports(nsIHandleReportCallback* aHandleReport,
+                    nsISupports* aData)
+  {
+    // ION is a replacement for PMEM (and other similar allocators).
+    //
+    // More details from http://lwn.net/Articles/480055/
+    //  "Like its PMEM-like predecessors, ION manages one or more memory pools,
+    //   some of which are set aside at boot time to combat fragmentation or to
+    //   serve special hardware needs. GPUs, display controllers, and cameras
+    //   are some of the hardware blocks that may have special memory
+    //   requirements."
+    //
+    // The file format starts as follows:
+    //     client              pid             size
+    //     ----------------------------------------------------
+    //     adsprpc-smd                1             4096
+    //     fd900000.qcom,mdss_mdp     1          1658880
+    //     ----------------------------------------------------
+    //     orphaned allocations (info is from last known client):
+    //     Homescreen            24100           294912 0 1
+    //     b2g                   23987          1658880 0 1
+    //     mdss_fb0                401          1658880 0 1
+    //     b2g                   23987             4096 0 1
+    //     Built-in Keyboa       24205            61440 0 1
+    //     ----------------------------------------------------
+    //     <other stuff>
+    //
+    // For our purposes we only care about the first portion of the file noted
+    // above which contains memory alloations (both sections). The term
+    // "orphaned" is misleading, it appears that every allocation not by the
+    // first process is considered orphaned on FxOS devices.
+
+    // The first three fields of each entry interest us:
+    //   1) client - Essentially the process name. We limit client names to 63
+    //               characters, in theory they should never be greater than 15
+    //               due to thread name length limitations.
+    //   2) pid    - The ID of the allocating process, read as a uint32_t.
+    //   3) size   - The size of the allocation in bytes, read as as a uint64_t.
+    const char* const kFormatString = "%63s %" SCNu32 " %" SCNu64;
+    const int kNumFields = 3;
+    const size_t kStringSize = 64;
+    const char* const kIonIommuPath = "/sys/kernel/debug/ion/iommu";
+
+    FILE* iommu = fopen(kIonIommuPath, "r");
+    if (!iommu) {
+      if (NS_WARN_IF(errno != ENOENT)) {
+        return NS_ERROR_FAILURE;
+      }
+      // If ENOENT, system doesn't use ION.
+      return NS_OK;
+    }
+
+    AutoFile iommuGuard(iommu);
+
+    const size_t kBufferLen = 256;
+    char buffer[kBufferLen];
+    char client[kStringSize];
+    uint32_t pid;
+    uint64_t size;
+
+    // Ignore the header line.
+    unused << fgets(buffer, kBufferLen, iommu);
+
+    // Ignore the separator line.
+    unused << fgets(buffer, kBufferLen, iommu);
+
+    const char* const kSep = "----";
+    const size_t kSepLen = 4;
+
+    // Read non-orphaned entries.
+    while (fgets(buffer, kBufferLen, iommu) &&
+           strncmp(kSep, buffer, kSepLen) != 0) {
+      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
+        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
+      }
+    }
+
+    // Ignore the orphaned header.
+    unused << fgets(buffer, kBufferLen, iommu);
+
+    // Read orphaned entries.
+    while (fgets(buffer, kBufferLen, iommu) &&
+           strncmp(kSep, buffer, kSepLen) != 0) {
+      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
+        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
+      }
+    }
+
+    // Ignore the rest of the file.
+
+    return NS_OK;
+  }
+
   uint64_t
   ReadSizeFromFile(const char* aFilename)
   {
@@ -621,7 +787,7 @@ private:
     }
 
     uint64_t size = 0;
-    fscanf(sizeFile, "%" SCNu64, &size);
+    unused << fscanf(sizeFile, "%" SCNu64, &size);
     fclose(sizeFile);
 
     return size;
@@ -785,16 +951,95 @@ private:
 #undef CHECK_PREFIX
 
         const nsCString processName(aProcessName);
-        nsPrintfCString entryPath(
-            "open-fds/%s/%s%s/%s", processName.get(), category, linkPath, fd);
-        nsPrintfCString entryDescription(
-            "%s file descriptor opened by the process", descriptionPrefix);
-        REPORT_WITH_CLEANUP(
-            entryPath, UNITS_COUNT, 1, entryDescription, closedir(d));
+        nsPrintfCString entryPath("open-fds/%s/%s%s/%s",
+                                  processName.get(), category, linkPath, fd);
+        nsPrintfCString entryDescription("%s file descriptor opened by the process",
+                                         descriptionPrefix);
+        REPORT_WITH_CLEANUP(entryPath, UNITS_COUNT, 1, entryDescription,
+                            closedir(d));
       }
     }
 
     closedir(d);
+    return NS_OK;
+  }
+
+  nsresult
+  CollectKgslReports(nsIHandleReportCallback* aHandleReport,
+                     nsISupports* aData)
+  {
+    // Each process that uses kgsl memory will have an entry under
+    // /sys/kernel/debug/kgsl/proc/<pid>/mem. This file format includes a
+    // header and then entries with types as follows:
+    //   gpuaddr useraddr size id  flags type usage sglen
+    //   hexaddr hexaddr  int  int str   str  str   int
+    // We care primarily about the usage and size.
+
+    // For simplicity numbers will be uint64_t, strings 63 chars max.
+    const char* const kScanFormat =
+      "%" SCNx64 " %" SCNx64 " %" SCNu64 " %" SCNu64
+      " %63s %63s %63s %" SCNu64;
+    const int kNumFields = 8;
+    const size_t kStringSize = 64;
+
+    DIR* d = opendir("/sys/kernel/debug/kgsl/proc/");
+    if (!d) {
+      if (NS_WARN_IF(errno != ENOENT && errno != EACCES)) {
+        return NS_ERROR_FAILURE;
+      }
+      return NS_OK;
+    }
+
+    AutoDir dirGuard(d);
+
+    struct dirent* ent;
+    while ((ent = readdir(d))) {
+      const char* pid = ent->d_name;
+
+      // Skip "." and ".." (and any other dotfiles).
+      if (pid[0] == '.') {
+        continue;
+      }
+
+      nsPrintfCString memPath("/sys/kernel/debug/kgsl/proc/%s/mem", pid);
+      FILE* memFile = fopen(memPath.get(), "r");
+      if (NS_WARN_IF(!memFile)) {
+        continue;
+      }
+
+      AutoFile fileGuard(memFile);
+
+      // Attempt to map the pid to a more useful name.
+      nsAutoCString procName;
+      LinuxUtils::GetThreadName(atoi(pid), procName);
+
+      if (procName.IsEmpty()) {
+        procName.Append("pid=");
+        procName.Append(pid);
+      } else {
+        procName.Append(" (pid=");
+        procName.Append(pid);
+        procName.Append(")");
+      }
+
+      uint64_t gpuaddr, useraddr, size, id, sglen;
+      char flags[kStringSize];
+      char type[kStringSize];
+      char usage[kStringSize];
+
+      // Bypass the header line.
+      char buff[1024];
+      unused << fgets(buff, 1024, memFile);
+
+      while (fscanf(memFile, kScanFormat, &gpuaddr, &useraddr, &size, &id,
+                    flags, type, usage, &sglen) == kNumFields) {
+        nsPrintfCString entryPath("kgsl-memory/%s/%s", procName.get(), usage);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("A kgsl graphics memory allocation."));
+      }
+    }
+
     return NS_OK;
   }
 

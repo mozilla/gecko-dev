@@ -8,25 +8,35 @@
 #define GECKO_TASK_TRACER_IMPL_H
 
 #include "GeckoTaskTracer.h"
+#include "mozilla/Mutex.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 namespace tasktracer {
 
+typedef nsTArray<nsCString> TraceInfoLogsType;
+
 struct TraceInfo
 {
-  TraceInfo(uint32_t aThreadId) : mCurTraceSourceId(0)
-                                , mCurTaskId(0)
-                                , mSavedCurTraceSourceId(0)
-                                , mSavedCurTaskId(0)
-                                , mCurTraceSourceType(UNKNOWN)
-                                , mSavedCurTraceSourceType(UNKNOWN)
-                                , mThreadId(aThreadId)
-                                , mLastUniqueTaskId(0)
+  TraceInfo(uint32_t aThreadId)
+    : mCurTraceSourceId(0)
+    , mCurTaskId(0)
+    , mSavedCurTraceSourceId(0)
+    , mSavedCurTaskId(0)
+    , mCurTraceSourceType(Unknown)
+    , mSavedCurTraceSourceType(Unknown)
+    , mThreadId(aThreadId)
+    , mLastUniqueTaskId(0)
+    , mObsolete(false)
+    , mLogsMutex("TraceInfoMutex")
   {
     MOZ_COUNT_CTOR(TraceInfo);
   }
 
   ~TraceInfo() { MOZ_COUNT_DTOR(TraceInfo); }
+
+  nsCString* AppendLog();
+  void MoveLogsInto(TraceInfoLogsType& aResult);
 
   uint64_t mCurTraceSourceId;
   uint64_t mCurTaskId;
@@ -36,10 +46,13 @@ struct TraceInfo
   SourceEventType mSavedCurTraceSourceType;
   uint32_t mThreadId;
   uint32_t mLastUniqueTaskId;
-};
+  mozilla::Atomic<bool> mObsolete;
 
-void InitTaskTracer();
-void ShutdownTaskTracer();
+  // This mutex protects the following log array because MoveLogsInto() might
+  // be called on another thread.
+  mozilla::Mutex mLogsMutex;
+  TraceInfoLogsType mLogs;
+};
 
 // Return the TraceInfo of current thread, allocate a new one if not exit.
 TraceInfo* GetOrCreateTraceInfo();
@@ -72,6 +85,10 @@ enum ActionType {
 
 void LogDispatch(uint64_t aTaskId, uint64_t aParentTaskId,
                  uint64_t aSourceEventId, SourceEventType aSourceEventType);
+
+void LogDispatch(uint64_t aTaskId, uint64_t aParentTaskId,
+                 uint64_t aSourceEventId, SourceEventType aSourceEventType,
+                 int aDelayTimeMs);
 
 void LogBegin(uint64_t aTaskId, uint64_t aSourceEventId);
 

@@ -37,7 +37,7 @@ nsMathMLmmultiscriptsFrame::ScriptIncrement(nsIFrame* aFrame)
     return 0;
   if (mFrames.ContainsFrame(aFrame)) {
     if (mFrames.FirstChild() == aFrame ||
-        aFrame->GetContent()->Tag() == nsGkAtoms::mprescripts_) {
+        aFrame->GetContent()->IsMathMLElement(nsGkAtoms::mprescripts_)) {
       return 0; // No script increment for base frames or prescript markers
     }
     return 1;
@@ -57,12 +57,12 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   // the compression flag in them.
 
   int32_t count = 0;
-  bool isSubScript = mContent->Tag() != nsGkAtoms::msup_;
+  bool isSubScript = !mContent->IsMathMLElement(nsGkAtoms::msup_);
 
   nsAutoTArray<nsIFrame*, 8> subScriptFrames;
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
-    if (childFrame->GetContent()->Tag() == nsGkAtoms::mprescripts_) {
+    if (childFrame->GetContent()->IsMathMLElement(nsGkAtoms::mprescripts_)) {
       // mprescripts frame
     } else if (0 == count) {
       // base frame
@@ -96,7 +96,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
 {
   nscoord subScriptShift = 0;
   nscoord supScriptShift = 0;
-  nsIAtom* tag = mContent->Tag();
+  float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
 
   // subscriptshift
   //
@@ -110,11 +110,11 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   // As a minimum, negative values can be ignored.
   //
   nsAutoString value;
-  if (tag != nsGkAtoms::msup_) {
+  if (!mContent->IsMathMLElement(nsGkAtoms::msup_)) {
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::subscriptshift_, value);
     if (!value.IsEmpty()) {
       ParseNumericValue(value, &subScriptShift, 0, PresContext(),
-                        mStyleContext);
+                        mStyleContext, fontSizeInflation);
     }
   }
   // superscriptshift
@@ -128,20 +128,16 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   // We use 0 as the default value so unitless values can be ignored.
   // As a minimum, negative values can be ignored.
   //
-  if (tag != nsGkAtoms::msub_) {
+  if (!mContent->IsMathMLElement(nsGkAtoms::msub_)) {
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::superscriptshift_, value);
     if (!value.IsEmpty()) {
       ParseNumericValue(value, &supScriptShift, 0, PresContext(),
-                        mStyleContext);
+                        mStyleContext, fontSizeInflation);
     }
   }
-  // scriptspace from TeX for extra spacing after sup/subscript 
-  // (0.5pt in plain TeX)
-  nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
-
   return PlaceMultiScript(PresContext(), aRenderingContext, aPlaceOrigin,
                           aDesiredSize, this, subScriptShift, supScriptShift,
-                          scriptSpace);
+                          fontSizeInflation);
 }
 
 // exported routine that both munderover and mmultiscripts share.
@@ -154,18 +150,18 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
                                         nsMathMLContainerFrame* aFrame,
                                         nscoord              aUserSubScriptShift,
                                         nscoord              aUserSupScriptShift,
-                                        nscoord              aScriptSpace)
+                                        float                aFontSizeInflation)
 {
-  nsIAtom* tag = aFrame->GetContent()->Tag();
+  nsIAtom* tag = aFrame->GetContent()->NodeInfo()->NameAtom();
 
   // This function deals with both munderover etc. as well as msubsup etc.
   // As the former behaves identically to the later, we treat it as such
   // to avoid additional checks later.
-  if (tag == nsGkAtoms::mover_)
+  if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::mover_))
     tag = nsGkAtoms::msup_;
-  else if (tag == nsGkAtoms::munder_)
+  else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munder_))
     tag = nsGkAtoms::msub_;
-  else if (tag  == nsGkAtoms::munderover_)
+  else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munderover_))
     tag = nsGkAtoms::msubsup_;
 
   nsBoundingMetrics bmFrame;
@@ -187,39 +183,54 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
     return aFrame->ReflowError(aRenderingContext, aDesiredSize);
   }
 
-
   // get x-height (an ex)
   const nsStyleFont* font = aFrame->StyleFont();
   nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(baseFrame, getter_AddRefs(fm));
-  aRenderingContext.SetFont(fm);
+  nsLayoutUtils::GetFontMetricsForFrame(baseFrame, getter_AddRefs(fm),
+                                        aFontSizeInflation);
 
   nscoord xHeight = fm->XHeight();
 
-  nscoord ruleSize;
-  GetRuleThickness (aRenderingContext, fm, ruleSize);
+  nscoord oneDevPixel = fm->AppUnitsPerDevPixel();
+  gfxFont* mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
+  // scriptspace from TeX for extra spacing after sup/subscript
+  nscoord scriptSpace;
+  if (mathFont) {
+    scriptSpace =
+      mathFont->GetMathConstant(gfxFontEntry::SpaceAfterScript, oneDevPixel);
+  } else {
+    // (0.5pt in plain TeX)
+    scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
+  }
 
   // force the scriptSpace to be at least 1 pixel
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-  aScriptSpace = std::max(onePixel, aScriptSpace);
+  scriptSpace = std::max(onePixel, scriptSpace);
 
   /////////////////////////////////////
   // first the shift for the subscript
 
-  // subScriptShift{1,2}
-  // = minimum amount to shift the subscript down
-  // = sub{1,2} in TeXbook
-  // subScriptShift1 = subscriptshift attribute * x-height
-  nscoord subScriptShift1, subScriptShift2;
-
-  // Get subScriptShift{1,2} default from font
-  GetSubScriptShifts (fm, subScriptShift1, subScriptShift2);
   nscoord subScriptShift;
-  if (tag == nsGkAtoms::msub_) {
-    subScriptShift = subScriptShift1;
+  if (mathFont) {
+    // Try and get the sub script shift from the MATH table. Note that contrary
+    // to TeX we only have one parameter.
+    subScriptShift =
+      mathFont->GetMathConstant(gfxFontEntry::SubscriptShiftDown, oneDevPixel);
   } else {
-    subScriptShift = std::max(subScriptShift1, subScriptShift2);
+    // subScriptShift{1,2}
+    // = minimum amount to shift the subscript down
+    // = sub{1,2} in TeXbook
+    // subScriptShift1 = subscriptshift attribute * x-height
+    nscoord subScriptShift1, subScriptShift2;
+    // Get subScriptShift{1,2} default from font
+    GetSubScriptShifts (fm, subScriptShift1, subScriptShift2);
+    if (tag == nsGkAtoms::msub_) {
+      subScriptShift = subScriptShift1;
+    } else {
+      subScriptShift = std::max(subScriptShift1, subScriptShift2);
+    }
   }
+
   if (0 < aUserSubScriptShift) {
     // the user has set the subscriptshift attribute
     subScriptShift = std::max(subScriptShift, aUserSubScriptShift);
@@ -228,32 +239,42 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
   /////////////////////////////////////
   // next the shift for the superscript
 
-  // supScriptShift{1,2,3}
-  // = minimum amount to shift the supscript up
-  // = sup{1,2,3} in TeX
-  // supScriptShift1 = superscriptshift attribute * x-height
-  // Note that there are THREE values for supscript shifts depending
-  // on the current style
-  nscoord supScriptShift1, supScriptShift2, supScriptShift3;
-  // Set supScriptShift{1,2,3} default from font
-  GetSupScriptShifts (fm, supScriptShift1, supScriptShift2, supScriptShift3);
-
-  // get sup script shift depending on current script level and display style
-  // Rule 18c, App. G, TeXbook
+  nscoord supScriptShift;
   nsPresentationData presentationData;
   aFrame->GetPresentationData(presentationData);
-  nscoord supScriptShift;
-  if (font->mScriptLevel == 0 &&
-      font->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
-      !NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
-    // Style D in TeXbook
-    supScriptShift = supScriptShift1;
-  } else if (NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
-    // Style C' in TeXbook = D',T',S',SS'
-    supScriptShift = supScriptShift3;
+  if (mathFont) {
+    // Try and get the super script shift from the MATH table. Note that
+    // contrary to TeX we only have two parameters.
+    supScriptShift = mathFont->
+      GetMathConstant(NS_MATHML_IS_COMPRESSED(presentationData.flags) ?
+                      gfxFontEntry::SuperscriptShiftUpCramped :
+                      gfxFontEntry::SuperscriptShiftUp,
+                      oneDevPixel);
   } else {
-    // everything else = T,S,SS
-    supScriptShift = supScriptShift2;
+    // supScriptShift{1,2,3}
+    // = minimum amount to shift the supscript up
+    // = sup{1,2,3} in TeX
+    // supScriptShift1 = superscriptshift attribute * x-height
+    // Note that there are THREE values for supscript shifts depending
+    // on the current style
+    nscoord supScriptShift1, supScriptShift2, supScriptShift3;
+    // Set supScriptShift{1,2,3} default from font
+    GetSupScriptShifts (fm, supScriptShift1, supScriptShift2, supScriptShift3);
+
+    // get sup script shift depending on current script level and display style
+    // Rule 18c, App. G, TeXbook
+    if (font->mScriptLevel == 0 &&
+        font->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
+        !NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
+      // Style D in TeXbook
+      supScriptShift = supScriptShift1;
+    } else if (NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
+      // Style C' in TeXbook = D',T',S',SS'
+      supScriptShift = supScriptShift3;
+    } else {
+      // everything else = T,S,SS
+      supScriptShift = supScriptShift2;
+    }
   }
 
   if (0 < aUserSupScriptShift) {
@@ -303,11 +324,10 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
   nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
   while (childFrame) {
-    nsIAtom* childTag = childFrame->GetContent()->Tag();
-    if (childTag == nsGkAtoms::mprescripts_) {
+    if (childFrame->GetContent()->IsMathMLElement(nsGkAtoms::mprescripts_)) {
       if (tag != nsGkAtoms::mmultiscripts_) {
         if (aPlaceOrigin) {
-          aFrame->ReportInvalidChildError(childTag);
+          aFrame->ReportInvalidChildError(nsGkAtoms::mprescripts_);
         }
         return aFrame->ReflowError(aRenderingContext, aDesiredSize);
       }
@@ -331,7 +351,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
     } else if (0 == count) {
       // base
 
-      if (childTag == nsGkAtoms::none) {
+      if (childFrame->GetContent()->IsMathMLElement(nsGkAtoms::none)) {
         if (tag == nsGkAtoms::mmultiscripts_) {
           if (aPlaceOrigin) {
             aFrame->ReportErrorToConsole("NoBase");
@@ -362,7 +382,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
       boundingMetrics.leftBearing = bmBase.leftBearing; // until overwritten
     } else {
       // super/subscript block
-      if ( childTag == nsGkAtoms::none) {
+      if (childFrame->GetContent()->IsMathMLElement(nsGkAtoms::none)) {
         foundNoneTag = true;
       }
 
@@ -371,7 +391,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
         subScriptFrame = childFrame;
         GetReflowAndBoundingMetricsFor(subScriptFrame, subScriptSize, bmSubScript);
         // get the subdrop from the subscript font
-        GetSubDropFromChild (subScriptFrame, subDrop);
+        GetSubDropFromChild (subScriptFrame, subDrop, aFontSizeInflation);
         // parameter v, Rule 18a, App. G, TeXbook
         minSubScriptShift = bmBase.descent + subDrop;
         trySubScriptShift = std::max(minSubScriptShift,subScriptShift);
@@ -384,17 +404,24 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
           std::max(multiSubSize.Height(),
                    subScriptSize.Height() - subScriptSize.BlockStartAscent());
         if (bmSubScript.width)
-          width = bmSubScript.width + aScriptSpace;
+          width = bmSubScript.width + scriptSpace;
         rightBearing = bmSubScript.rightBearing;
 
         if (tag == nsGkAtoms::msub_) {
           boundingMetrics.rightBearing = boundingMetrics.width + rightBearing;
           boundingMetrics.width += width;
 
-          // get min subscript shift limit from x-height
-          // = h(x) - 4/5 * sigma_5, Rule 18b, App. G, TeXbook
-          nscoord minShiftFromXHeight = (nscoord) 
-            (bmSubScript.ascent - (4.0f/5.0f) * xHeight);
+          nscoord subscriptTopMax;
+          if (mathFont) {
+            subscriptTopMax =
+              mathFont->GetMathConstant(gfxFontEntry::SubscriptTopMax,
+                                        oneDevPixel);
+          } else {
+            // get min subscript shift limit from x-height
+            // = h(x) - 4/5 * sigma_5, Rule 18b, App. G, TeXbook
+            subscriptTopMax = NSToCoordRound((4.0f/5.0f) * xHeight);
+          }
+          nscoord minShiftFromXHeight = bmSubScript.ascent - subscriptTopMax;
           maxSubScriptShift = std::max(trySubScriptShift,minShiftFromXHeight);
 
           maxSubScriptShift = std::max(maxSubScriptShift, trySubScriptShift);
@@ -405,13 +432,20 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
         supScriptFrame = childFrame;
         GetReflowAndBoundingMetricsFor(supScriptFrame, supScriptSize, bmSupScript);
         // get the supdrop from the supscript font
-        GetSupDropFromChild (supScriptFrame, supDrop);
+        GetSupDropFromChild (supScriptFrame, supDrop, aFontSizeInflation);
         // parameter u, Rule 18a, App. G, TeXbook
         minSupScriptShift = bmBase.ascent - supDrop;
-        // get min supscript shift limit from x-height
-        // = d(x) + 1/4 * sigma_5, Rule 18c, App. G, TeXbook
-        minShiftFromXHeight = NSToCoordRound
-          ((bmSupScript.descent + (1.0f/4.0f) * xHeight));
+        nscoord superscriptBottomMin;
+        if (mathFont) {
+          superscriptBottomMin =
+            mathFont->GetMathConstant(gfxFontEntry::SuperscriptBottomMin,
+                                      oneDevPixel);
+        } else {
+          // get min supscript shift limit from x-height
+          // = d(x) + 1/4 * sigma_5, Rule 18c, App. G, TeXbook
+          superscriptBottomMin = NSToCoordRound((1.0f / 4.0f) * xHeight);
+        }
+        minShiftFromXHeight = bmSupScript.descent + superscriptBottomMin;
         trySupScriptShift = std::max(minSupScriptShift,
                                      std::max(minShiftFromXHeight,
                                               supScriptShift));
@@ -425,7 +459,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
                    supScriptSize.Height() - supScriptSize.BlockStartAscent());
 
         if (bmSupScript.width)
-          width = std::max(width, bmSupScript.width + aScriptSpace);
+          width = std::max(width, bmSupScript.width + scriptSpace);
 
         if (!prescriptsFrame) { // we are still looping over base & postscripts
           rightBearing = std::max(rightBearing,
@@ -447,18 +481,37 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
         // Rule 18e, App. G, TeXbook
         if (tag == nsGkAtoms::mmultiscripts_ || 
             tag == nsGkAtoms::msubsup_) {
+          nscoord subSuperscriptGapMin;
+          if (mathFont) {
+            subSuperscriptGapMin =
+              mathFont->GetMathConstant(gfxFontEntry::SubSuperscriptGapMin,
+                                        oneDevPixel);
+          } else {
+            nscoord ruleSize;
+            GetRuleThickness(aRenderingContext, fm, ruleSize);
+            subSuperscriptGapMin = 4 * ruleSize;
+          }
           nscoord gap =
             (trySupScriptShift - bmSupScript.descent) -
             (bmSubScript.ascent - trySubScriptShift);
-          if (gap < 4.0f * ruleSize) {
-            // adjust trySubScriptShift to get a gap of (4.0 * ruleSize)
-            trySubScriptShift += NSToCoordRound ((4.0f * ruleSize) - gap);
+          if (gap < subSuperscriptGapMin) {
+            // adjust trySubScriptShift to get a gap of subSuperscriptGapMin
+            trySubScriptShift += subSuperscriptGapMin - gap;
           }
 
           // next we want to ensure that the bottom of the superscript
-          // will be > (4/5) * x-height above baseline
-          gap = NSToCoordRound ((4.0f/5.0f) * xHeight -
-                  (trySupScriptShift - bmSupScript.descent));
+          // will be > superscriptBottomMaxWithSubscript
+          nscoord superscriptBottomMaxWithSubscript;
+          if (mathFont) {
+            superscriptBottomMaxWithSubscript = mathFont->
+              GetMathConstant(gfxFontEntry::SuperscriptBottomMaxWithSubscript,
+                              oneDevPixel);
+          } else {
+            superscriptBottomMaxWithSubscript =
+              NSToCoordRound((4.0f / 5.0f) * xHeight);
+          }
+          gap = superscriptBottomMaxWithSubscript -
+            (trySupScriptShift - bmSupScript.descent);
           if (gap > 0) {
             trySupScriptShift += gap;
             trySubScriptShift -= gap;
@@ -628,7 +681,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
                                                    x),
                                dy, 0);
           }
-          dx += width + aScriptSpace;
+          dx += width + scriptSpace;
         }
       }
       childFrame = childFrame->GetNextSibling();

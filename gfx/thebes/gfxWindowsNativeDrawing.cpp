@@ -12,6 +12,10 @@
 #include "gfxAlphaRecovery.h"
 #include "gfxPattern.h"
 #include "mozilla/gfx/2D.h"
+#include "gfx2DGlue.h"
+
+using namespace mozilla;
+using namespace mozilla::gfx;
 
 enum {
     RENDER_STATE_INIT,
@@ -113,7 +117,7 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 // There's probably a better fix, but I haven't figured out
                 // the root cause of the problem.
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() + 1),
+                    IntSize((int32_t) ceil(mNativeRect.Width() + 1),
                                (int32_t) ceil(mNativeRect.Height() + 1));
             } else {
                 // figure out the scale factors
@@ -128,7 +132,7 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
                 // See comment above about "+1"
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
+                    IntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
                                (int32_t) ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
@@ -183,9 +187,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 bool
 gfxWindowsNativeDrawing::IsDoublePass()
 {
-    if (!mContext->IsCairo() &&
-        (mContext->GetDrawTarget()->GetType() != mozilla::gfx::BackendType::CAIRO ||
-         mContext->GetDrawTarget()->IsDualDrawTarget())) {
+    if (mContext->GetDrawTarget()->GetBackendType() != mozilla::gfx::BackendType::CAIRO ||
+        mContext->GetDrawTarget()->IsDualDrawTarget()) {
       return true;
     }
 
@@ -194,7 +197,7 @@ gfxWindowsNativeDrawing::IsDoublePass()
         return false;
     if (surf->GetType() != gfxSurfaceType::Win32 &&
         surf->GetType() != gfxSurfaceType::Win32Printing) {
-	return true;
+        return true;
     }
     if ((surf->GetContentType() != gfxContentType::COLOR ||
          (surf->GetContentType() == gfxContentType::COLOR_ALPHA &&
@@ -266,17 +269,19 @@ gfxWindowsNativeDrawing::PaintToContext()
             NS_ERROR("Alpha recovery failure");
             return;
         }
-        nsRefPtr<gfxImageSurface> alphaSurface =
-            new gfxImageSurface(black->Data(), black->GetSize(),
-                                black->Stride(),
-                                gfxImageFormat::ARGB32);
+        RefPtr<DataSourceSurface> source =
+            Factory::CreateWrappingDataSourceSurface(black->Data(),
+                                                     black->Stride(),
+                                                     black->GetSize(),
+                                                     SurfaceFormat::B8G8R8A8);
 
         mContext->Save();
-        mContext->Translate(mNativeRect.TopLeft());
+        mContext->SetMatrix(
+          mContext->CurrentMatrix().Translate(mNativeRect.TopLeft()));
         mContext->NewPath();
         mContext->Rectangle(gfxRect(gfxPoint(0.0, 0.0), mNativeRect.Size()));
 
-        nsRefPtr<gfxPattern> pat = new gfxPattern(alphaSurface);
+        nsRefPtr<gfxPattern> pat = new gfxPattern(source, Matrix());
 
         gfxMatrix m;
         m.Scale(mScale.width, mScale.height);

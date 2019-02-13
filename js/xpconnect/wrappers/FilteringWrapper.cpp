@@ -16,25 +16,15 @@ using namespace js;
 
 namespace xpc {
 
-template <typename Base, typename Policy>
-FilteringWrapper<Base, Policy>::FilteringWrapper(unsigned flags) : Base(flags)
-{
-}
-
-template <typename Base, typename Policy>
-FilteringWrapper<Base, Policy>::~FilteringWrapper()
-{
-}
-
 template <typename Policy>
 static bool
-Filter(JSContext *cx, HandleObject wrapper, AutoIdVector &props)
+Filter(JSContext* cx, HandleObject wrapper, AutoIdVector& props)
 {
     size_t w = 0;
     RootedId id(cx);
     for (size_t n = 0; n < props.length(); ++n) {
         id = props[n];
-        if (Policy::check(cx, wrapper, id, Wrapper::GET))
+        if (Policy::check(cx, wrapper, id, Wrapper::GET) || Policy::check(cx, wrapper, id, Wrapper::SET))
             props[w++].set(id);
         else if (JS_IsExceptionPending(cx))
             return false;
@@ -45,88 +35,119 @@ Filter(JSContext *cx, HandleObject wrapper, AutoIdVector &props)
 
 template <typename Policy>
 static bool
-FilterSetter(JSContext *cx, JSObject *wrapper, jsid id, JS::MutableHandle<JSPropertyDescriptor> desc)
+FilterPropertyDescriptor(JSContext* cx, HandleObject wrapper, HandleId id, JS::MutableHandle<JSPropertyDescriptor> desc)
 {
+    MOZ_ASSERT(!JS_IsExceptionPending(cx));
+    bool getAllowed = Policy::check(cx, wrapper, id, Wrapper::GET);
+    if (JS_IsExceptionPending(cx))
+        return false;
     bool setAllowed = Policy::check(cx, wrapper, id, Wrapper::SET);
-    if (!setAllowed) {
-        if (JS_IsExceptionPending(cx))
-            return false;
-        desc.setSetter(nullptr);
+    if (JS_IsExceptionPending(cx))
+        return false;
+
+    MOZ_ASSERT(getAllowed || setAllowed,
+               "Filtering policy should not allow GET_PROPERTY_DESCRIPTOR in this case");
+
+    if (!desc.hasGetterOrSetter()) {
+        // Handle value properties.
+        if (!getAllowed)
+            desc.value().setUndefined();
+    } else {
+        // Handle accessor properties.
+        MOZ_ASSERT(desc.value().isUndefined());
+        if (!getAllowed)
+            desc.setGetter(nullptr);
+        if (!setAllowed)
+            desc.setSetter(nullptr);
     }
+
     return true;
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext *cx, HandleObject wrapper,
+FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext* cx, HandleObject wrapper,
                                                       HandleId id,
-                                                      JS::MutableHandle<JSPropertyDescriptor> desc)
+                                                      JS::MutableHandle<JSPropertyDescriptor> desc) const
 {
-    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
+    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET |
+                                         BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
     if (!Base::getPropertyDescriptor(cx, wrapper, id, desc))
         return false;
-    return FilterSetter<Policy>(cx, wrapper, id, desc);
+    return FilterPropertyDescriptor<Policy>(cx, wrapper, id, desc);
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext *cx, HandleObject wrapper,
+FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext* cx, HandleObject wrapper,
                                                          HandleId id,
-                                                         JS::MutableHandle<JSPropertyDescriptor> desc)
+                                                         JS::MutableHandle<JSPropertyDescriptor> desc) const
 {
-    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
+    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET |
+                                         BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
     if (!Base::getOwnPropertyDescriptor(cx, wrapper, id, desc))
         return false;
-    return FilterSetter<Policy>(cx, wrapper, id, desc);
+    return FilterPropertyDescriptor<Policy>(cx, wrapper, id, desc);
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getOwnPropertyNames(JSContext *cx, HandleObject wrapper,
-                                                    AutoIdVector &props)
+FilteringWrapper<Base, Policy>::ownPropertyKeys(JSContext* cx, HandleObject wrapper,
+                                                AutoIdVector& props) const
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
-    return Base::getOwnPropertyNames(cx, wrapper, props) &&
+    return Base::ownPropertyKeys(cx, wrapper, props) &&
            Filter<Policy>(cx, wrapper, props);
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::enumerate(JSContext *cx, HandleObject wrapper,
-                                          AutoIdVector &props)
+FilteringWrapper<Base, Policy>::getOwnEnumerablePropertyKeys(JSContext* cx,
+                                                             HandleObject wrapper,
+                                                             AutoIdVector& props) const
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
-    return Base::enumerate(cx, wrapper, props) &&
+    return Base::getOwnEnumerablePropertyKeys(cx, wrapper, props) &&
            Filter<Policy>(cx, wrapper, props);
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::keys(JSContext *cx, HandleObject wrapper,
-                                     AutoIdVector &props)
+FilteringWrapper<Base, Policy>::enumerate(JSContext* cx, HandleObject wrapper,
+                                          MutableHandleObject objp) const
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
-    return Base::keys(cx, wrapper, props) &&
-           Filter<Policy>(cx, wrapper, props);
-}
-
-template <typename Base, typename Policy>
-bool
-FilteringWrapper<Base, Policy>::iterate(JSContext *cx, HandleObject wrapper,
-                                        unsigned flags, MutableHandleValue vp)
-{
-    assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
-    // We refuse to trigger the iterator hook across chrome wrappers because
+    // We refuse to trigger the enumerate hook across chrome wrappers because
     // we don't know how to censor custom iterator objects. Instead we trigger
-    // the default proxy iterate trap, which will ask enumerate() for the list
-    // of (censored) ids.
-    return js::BaseProxyHandler::iterate(cx, wrapper, flags, vp);
+    // the default proxy enumerate trap, which will use js::GetPropertyKeys
+    // for the list of (censored) ids.
+    return js::BaseProxyHandler::enumerate(cx, wrapper, objp);
 }
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::nativeCall(JSContext *cx, JS::IsAcceptableThis test,
-                                           JS::NativeImpl impl, JS::CallArgs args)
+FilteringWrapper<Base, Policy>::call(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                    const JS::CallArgs& args) const
+{
+    if (!Policy::checkCall(cx, wrapper, args))
+        return false;
+    return Base::call(cx, wrapper, args);
+}
+
+template <typename Base, typename Policy>
+bool
+FilteringWrapper<Base, Policy>::construct(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                          const JS::CallArgs& args) const
+{
+    if (!Policy::checkCall(cx, wrapper, args))
+        return false;
+    return Base::construct(cx, wrapper, args);
+}
+
+template <typename Base, typename Policy>
+bool
+FilteringWrapper<Base, Policy>::nativeCall(JSContext* cx, JS::IsAcceptableThis test,
+                                           JS::NativeImpl impl, JS::CallArgs args) const
 {
     if (Policy::allowNativeCall(cx, test, impl))
         return Base::Permissive::nativeCall(cx, test, impl, args);
@@ -135,49 +156,27 @@ FilteringWrapper<Base, Policy>::nativeCall(JSContext *cx, JS::IsAcceptableThis t
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::defaultValue(JSContext *cx, HandleObject obj,
-                                             JSType hint, MutableHandleValue vp)
+FilteringWrapper<Base, Policy>::defaultValue(JSContext* cx, HandleObject obj,
+                                             JSType hint, MutableHandleValue vp) const
 {
     return Base::defaultValue(cx, obj, hint, vp);
 }
 
-// With our entirely-opaque wrapper, the DefaultValue algorithm throws,
-// causing spurious exceptions. Manually implement something benign.
-template<>
+template <typename Base, typename Policy>
 bool
-FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>
-                ::defaultValue(JSContext *cx, HandleObject obj,
-                               JSType hint, MutableHandleValue vp)
+FilteringWrapper<Base, Policy>::getPrototype(JSContext* cx, JS::HandleObject wrapper,
+                                             JS::MutableHandleObject protop) const
 {
-    JSString *str = JS_NewStringCopyZ(cx, "[Opaque]");
-    if (!str)
-        return false;
-    vp.set(JS::StringValue(str));
+    // Filtering wrappers do not allow access to the prototype.
+    protop.set(nullptr);
     return true;
 }
 
-
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
-                                      HandleId id, Wrapper::Action act, bool *bp)
+FilteringWrapper<Base, Policy>::enter(JSContext* cx, HandleObject wrapper,
+                                      HandleId id, Wrapper::Action act, bool* bp) const
 {
-    // This is a super ugly hacky to get around Xray Resolve wonkiness.
-    //
-    // Basically, XPCWN Xrays sometimes call into the Resolve hook of the
-    // scriptable helper, and pass the wrapper itself as the object upon which
-    // the resolve is happening. Then, special handling happens in
-    // XrayWrapper::defineProperty to detect the resolve and redefine the
-    // property on the holder. Really, we should just pass the holder itself to
-    // NewResolve, but there's too much code in nsDOMClassInfo that assumes this
-    // isn't the case (in particular, code expects to be able to look up
-    // properties on the object, which doesn't work for the holder). Given that
-    // these hooks are going away eventually with the new DOM bindings, let's
-    // just hack around this for now.
-    if (XrayUtils::IsXrayResolving(cx, wrapper, id)) {
-        *bp = true;
-        return true;
-    }
     if (!Policy::check(cx, wrapper, id, act)) {
         *bp = JS_IsExceptionPending(cx) ? false : Policy::deny(act, id);
         return false;
@@ -186,22 +185,80 @@ FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
     return true;
 }
 
-#define XOW FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>
-#define DXOW   FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>
+CrossOriginXrayWrapper::CrossOriginXrayWrapper(unsigned flags) : SecurityXrayDOM(flags)
+{
+}
+
+bool
+CrossOriginXrayWrapper::getPropertyDescriptor(JSContext* cx,
+                                              JS::Handle<JSObject*> wrapper,
+                                              JS::Handle<jsid> id,
+                                              JS::MutableHandle<JSPropertyDescriptor> desc) const
+{
+    if (!SecurityXrayDOM::getPropertyDescriptor(cx, wrapper, id, desc))
+        return false;
+    if (desc.object()) {
+        // All properties on cross-origin DOM objects are |own|.
+        desc.object().set(wrapper);
+
+        // All properties on cross-origin DOM objects are non-enumerable and
+        // "configurable". Any value attributes are read-only.
+        desc.attributesRef() &= ~JSPROP_ENUMERATE;
+        desc.attributesRef() &= ~JSPROP_PERMANENT;
+        if (!desc.getter() && !desc.setter())
+            desc.attributesRef() |= JSPROP_READONLY;
+    }
+    return true;
+}
+
+bool
+CrossOriginXrayWrapper::getOwnPropertyDescriptor(JSContext* cx,
+                                                 JS::Handle<JSObject*> wrapper,
+                                                 JS::Handle<jsid> id,
+                                                 JS::MutableHandle<JSPropertyDescriptor> desc) const
+{
+    // All properties on cross-origin DOM objects are |own|.
+    return getPropertyDescriptor(cx, wrapper, id, desc);
+}
+
+bool
+CrossOriginXrayWrapper::ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                        JS::AutoIdVector& props) const
+{
+    // All properties on cross-origin objects are supposed |own|, despite what
+    // the underlying native object may report. Override the inherited trap to
+    // avoid passing JSITER_OWNONLY as a flag.
+    return SecurityXrayDOM::getPropertyKeys(cx, wrapper, JSITER_HIDDEN, props);
+}
+
+bool
+CrossOriginXrayWrapper::defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                       JS::Handle<jsid> id,
+                                       JS::Handle<JSPropertyDescriptor> desc,
+                                       JS::ObjectOpResult& result) const
+{
+    JS_ReportError(cx, "Permission denied to define property on cross-origin object");
+    return false;
+}
+
+bool
+CrossOriginXrayWrapper::delete_(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                JS::Handle<jsid> id, JS::ObjectOpResult& result) const
+{
+    JS_ReportError(cx, "Permission denied to delete property on cross-origin object");
+    return false;
+}
+
+#define XOW FilteringWrapper<CrossOriginXrayWrapper, CrossOriginAccessiblePropertiesOnly>
 #define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>
 #define NNXOWC FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>
-#define GO FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>
-template<> XOW XOW::singleton(0);
-template<> DXOW DXOW::singleton(0);
-template<> NNXOW NNXOW::singleton(0);
-template<> NNXOWC NNXOWC::singleton(0);
 
-template<> GO GO::singleton(0);
+template<> const XOW XOW::singleton(0);
+template<> const NNXOW NNXOW::singleton(0);
+template<> const NNXOWC NNXOWC::singleton(0);
 
 template class XOW;
-template class DXOW;
 template class NNXOW;
 template class NNXOWC;
 template class ChromeObjectWrapperBase;
-template class GO;
 }

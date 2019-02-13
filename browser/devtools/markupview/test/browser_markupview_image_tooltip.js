@@ -16,13 +16,13 @@ const PAGE_CONTENT = [
 ].join("\n");
 
 const TEST_NODES = [
-  {selector: "img.local", size: "192 x 192"},
-  {selector: "img.data", size: "64 x 64"},
-  {selector: "img.remote", size: "22 x 23"},
-  {selector: ".canvas", size: "600 x 600"}
+  {selector: "img.local", size: "192" + " \u00D7 " + "192"},
+  {selector: "img.data", size: "64" + " \u00D7 " + "64"},
+  {selector: "img.remote", size: "22" + " \u00D7 " + "23"},
+  {selector: ".canvas", size: "600" + " \u00D7 " + "600"}
 ];
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html,markup view tooltip test");
   createPage();
 
@@ -32,7 +32,7 @@ let test = asyncTest(function*() {
   yield selectNode("img", inspector);
 
   for (let testNode of TEST_NODES) {
-    let target = getImageTooltipTarget(testNode, inspector);
+    let target = yield getImageTooltipTarget(testNode, inspector);
     yield assertTooltipShownOn(target, inspector);
     checkImageTooltip(testNode, inspector);
   }
@@ -55,25 +55,23 @@ function createPage() {
   context.fill();
 }
 
-function getImageTooltipTarget({selector}, inspector) {
-  let node = getNode(selector);
-  let isImg = node.tagName.toLowerCase() === "img";
+function* getImageTooltipTarget({selector}, inspector) {
+  let nodeFront = yield getNodeFront(selector, inspector);
+  let isImg = nodeFront.tagName.toLowerCase() === "img";
 
-  let container = getContainerForRawNode(node, inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
 
-   let target = container.editor.tag;
-   if (isImg) {
-     target = container.editor.getAttributeElement("src");
-   }
+  let target = container.editor.tag;
+  if (isImg) {
+    target = container.editor.getAttributeElement("src").querySelector(".link");
+  }
   return target;
 }
 
-function assertTooltipShownOn(element, {markup}) {
-  return Task.spawn(function*() {
-    info("Is the element a valid hover target");
-    let isValid = yield markup.tooltip.isValidHoverTarget(element);
-    ok(isValid, "The element is a valid hover target for the image tooltip");
-  });
+function* assertTooltipShownOn(element, {markup}) {
+  info("Is the element a valid hover target");
+  let isValid = yield markup.tooltip.isValidHoverTarget(element);
+  ok(isValid, "The element is a valid hover target for the image tooltip");
 }
 
 function checkImageTooltip({selector, size}, {markup}) {

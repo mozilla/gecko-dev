@@ -7,8 +7,11 @@
 %{C++
 
 namespace mozilla {
-// Simple C++ getter for nsIXULRuntime::browserTabsRemote
-bool BrowserTabsRemote();
+// Simple C++ getter for nsIXULRuntime::browserTabsRemoteAutostart
+// This getter is a temporary function that checks for special
+// conditions in which e10s support is not great yet, and should
+// therefore be disabled. Bug 1065561 tracks its removal.
+bool BrowserTabsRemoteAutostart();
 }
 
 %}
@@ -20,7 +23,7 @@ bool BrowserTabsRemote();
  *                    stable/frozen, please contact Benjamin Smedberg.
  */
 
-[scriptable, uuid(e080b1f6-8452-4bde-9368-c795808b86d1)]
+[scriptable, uuid(ce9d05f4-0c20-4f52-87e1-3a425e61e2f3)]
 interface nsIXULRuntime : nsISupports
 {
   /**
@@ -83,10 +86,26 @@ interface nsIXULRuntime : nsISupports
   readonly attribute unsigned long processID;
 
   /**
-   * If true, browser tabs may be opened in a different process from the main
-   * browser UI.
+   * If true, browser tabs may be opened by default in a different process
+   * from the main browser UI.
    */
-  readonly attribute boolean browserTabsRemote;
+  readonly attribute boolean browserTabsRemoteAutostart;
+
+  /**
+   * If true, the accessibility service is running.
+   */
+  readonly attribute boolean accessibilityEnabled;
+
+  /**
+   * Indicates if the active accessibility client is blacklisted for e10s.
+   * DO NOT USE! This is temporary and will be removed.
+   */
+  readonly attribute boolean accessibilityIsBlacklistedForE10S;
+
+  /**
+   * Indicates whether the current Firefox build is 64-bit.
+   */
+  readonly attribute boolean is64Bit;
 
   /**
    * Signal the apprunner to invalidate caches on the next restart.
@@ -136,4 +155,9 @@ interface nsIXULRuntime : nsISupports
    * The distribution ID for this build (MOZ_DISTRIBUTION_ID).
    */
   readonly attribute AUTF8String distributionID;
+
+  /**
+   * True if this is an official build (MOZILLA_OFFICIAL).
+   */
+  readonly attribute boolean isOfficial;
 };

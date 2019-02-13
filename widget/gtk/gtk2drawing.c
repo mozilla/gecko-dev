@@ -12,7 +12,7 @@
 #include <gdk/gdkprivate.h>
 #include <string.h>
 #include "gtkdrawing.h"
-#include "nsDebug.h"
+#include "mozilla/Assertions.h"
 #include "prinrval.h"
 
 #include <math.h>
@@ -831,7 +831,7 @@ moz_gtk_get_focus_outline_size(gint* focus_h_width, gint* focus_v_width)
     return MOZ_GTK_SUCCESS;
 }
 
-gint
+static gint
 moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
                          gint* focus_width, gint* focus_pad) 
 {
@@ -928,7 +928,7 @@ moz_gtk_splitter_get_metrics(gint orientation, gint* size)
     return MOZ_GTK_SUCCESS;
 }
 
-gint
+static gint
 moz_gtk_button_get_inner_border(GtkWidget* widget, GtkBorder* inner_border)
 {
     static const GtkBorder default_inner_border = { 1, 1, 1, 1 };
@@ -1069,8 +1069,8 @@ moz_gtk_toggle_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
     // XXX we should assert rect->height >= indicator_size too
     // after bug 369581 is fixed.
-    NS_ASSERTION(rect->width >= indicator_size,
-                 "GetMinimumWidgetSize was ignored");
+    MOZ_ASSERT(rect->width >= indicator_size,
+               "GetMinimumWidgetSize was ignored");
 
     // Paint it center aligned in the rect.
     x = rect->x + (rect->width - indicator_size) / 2;
@@ -3013,6 +3013,24 @@ moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top,
 }
 
 gint
+moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom, 
+                       GtkTextDirection direction, GtkTabFlags flags)
+{
+    moz_gtk_get_widget_border(MOZ_GTK_TAB, left, top,
+                              right, bottom, direction,
+                              FALSE);
+
+    // Top tabs have no bottom border, bottom tabs have no top border
+    if (flags & MOZ_GTK_TAB_BOTTOM) {
+      *top = 0;
+    } else {
+      *bottom = 0;
+    }
+
+    return MOZ_GTK_SUCCESS;
+}
+
+gint
 moz_gtk_get_combo_box_entry_button_size(gint* width, gint* height)
 {
     /*
@@ -3386,9 +3404,23 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
 
 GtkWidget* moz_gtk_get_scrollbar_widget(void)
 {
-    NS_ASSERTION(is_initialized, "Forgot to call moz_gtk_init()");
+    MOZ_ASSERT(is_initialized, "Forgot to call moz_gtk_init()");
     ensure_scrollbar_widget();
     return gHorizScrollbarWidget;
+}
+
+gboolean moz_gtk_has_scrollbar_buttons(void)
+{
+    gboolean backward, forward, secondary_backward, secondary_forward;
+    MOZ_ASSERT(is_initialized, "Forgot to call moz_gtk_init()");
+    ensure_scrollbar_widget();
+    gtk_widget_style_get (gHorizScrollbarWidget,
+                          "has-backward-stepper", &backward,
+                          "has-forward-stepper", &forward,
+                          "has-secondary-backward-stepper", &secondary_backward,
+                          "has-secondary-forward-stepper", &secondary_forward,
+                          NULL);
+    return backward | forward | secondary_forward | secondary_forward;
 }
 
 gint

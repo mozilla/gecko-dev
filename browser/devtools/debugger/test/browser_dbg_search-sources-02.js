@@ -7,21 +7,20 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_editor-mode.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gPanel, gDebugger;
 let gSources, gSourceUtils, gSearchView, gSearchBox;
 
 function test() {
   // Debug test slaves are a bit slow at this test.
   requestLongerTimeout(3);
 
-  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
+  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
     gTab = aTab;
-    gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
     gSources = gDebugger.DebuggerView.Sources;
     gSourceUtils = gDebugger.SourceUtils;
-    gSearchView = gDebugger.DebuggerView.FilteredSources;
+    gSearchView = gDebugger.DebuggerView.Filtering.FilteredSources;
     gSearchBox = gDebugger.DebuggerView.Filtering._searchbox;
 
     waitForSourceShown(gPanel, "-01.js")
@@ -268,7 +267,6 @@ function verifyContents(aMatches) {
 
 registerCleanupFunction(function() {
   gTab = null;
-  gDebuggee = null;
   gPanel = null;
   gDebugger = null;
   gSources = null;
