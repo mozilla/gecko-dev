@@ -304,9 +304,18 @@ EnterprisePoliciesManager.prototype = {
   isAllowed: function BG_sanitize(feature) {
     return !(feature in DisallowedFeatures);
   },
+
+  setSupportMenu(supportMenu) {
+    SupportMenu = supportMenu;
+  },
+
+  getSupportMenu() {
+    return SupportMenu;
+  },
 };
 
 let DisallowedFeatures = {};
+let SupportMenu = null;
 
 /**
  * areEnterpriseOnlyPoliciesAllowed
