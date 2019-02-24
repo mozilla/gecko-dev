@@ -90,6 +90,7 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: static-analysis
         run:
             using: mozharness
+            actions: [build, check-test]
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:
@@ -119,6 +120,7 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: static-analysis
         run:
             using: mozharness
+            actions: [build, check-test]
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:
@@ -148,6 +150,7 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: static-analysis
         run:
             using: mozharness
+            actions: [build, check-test]
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:
@@ -177,6 +180,7 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: static-analysis
         run:
             using: mozharness
+            actions: [build, check-test]
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:
