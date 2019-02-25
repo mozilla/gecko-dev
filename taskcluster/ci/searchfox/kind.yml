@@ -98,7 +98,6 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
         run:
             using: mozharness
-            actions: [build]
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:

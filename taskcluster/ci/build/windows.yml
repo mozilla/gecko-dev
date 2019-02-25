@@ -18,7 +18,6 @@ win32/debug:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -50,7 +49,6 @@ win32/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -80,7 +78,6 @@ win32-dmd/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -114,7 +111,6 @@ win32/pgo:
         using: mozharness
         options: [enable-pgo, append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -144,7 +140,6 @@ win64/debug:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
-        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config:
@@ -178,7 +173,6 @@ win64/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -206,10 +200,9 @@ win64-dmd/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets, build]
+        actions: [build]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -252,9 +245,9 @@ win32-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/releng.manifest"
     run:
         using: mozharness
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -289,9 +282,9 @@ win64-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -324,7 +317,6 @@ win64/pgo:
         using: mozharness
         options: [enable-pgo, append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -354,7 +346,6 @@ win32-add-on-devel/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: "mozharness/scripts/fx_desktop_build.py"
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -386,7 +377,6 @@ win64-add-on-devel/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: "mozharness/scripts/fx_desktop_build.py"
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -418,7 +408,6 @@ win64-noopt/debug:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -449,7 +438,6 @@ win32-noopt/debug:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -481,7 +469,6 @@ win32-rusttests/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -513,10 +500,8 @@ win64-rusttests/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets, build]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -547,7 +532,6 @@ win64-ccov/debug:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -579,7 +563,6 @@ win64-asan/debug:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -611,7 +594,6 @@ win64-asan/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -655,7 +637,6 @@ win32-devedition-nightly/opt:
     run:
         using: mozharness
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         options: [enable-pgo, append-env-variables-from-configs]
         config:
             - builds/releng_base_firefox.py
@@ -695,7 +676,6 @@ win64-devedition-nightly/opt:
         using: mozharness
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
@@ -729,7 +709,6 @@ win32-mingw32/opt:
         using: mozharness
         actions: [build]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
@@ -763,7 +742,6 @@ win32-mingw32/debug:
         using: mozharness
         actions: [build]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
@@ -797,7 +775,6 @@ win64-mingw32/opt:
         using: mozharness
         actions: [build]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
@@ -831,7 +808,6 @@ win64-mingw32/debug:
         using: mozharness
         actions: [build]
         script: mozharness/scripts/fx_desktop_build.py
-        secrets: true
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
