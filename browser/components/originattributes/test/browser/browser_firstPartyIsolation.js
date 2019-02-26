@@ -14,6 +14,11 @@ add_task(async function setup() {
  * firstPartyDomain attribute.
  */
 add_task(async function principal_test() {
+  Services.prefs.setCharPref("network.proxy.no_proxies_on", "");
+  registerCleanupFunction(function() {
+    Services.prefs.clearUserPref("network.proxy.no_proxies_on");
+  });
+
   let tab = BrowserTestUtils.addTab(gBrowser, BASE_URL + "test_firstParty.html");
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser, true, function(url) {
     return url == BASE_URL + "test_firstParty.html";
