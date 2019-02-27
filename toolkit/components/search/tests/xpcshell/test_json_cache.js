@@ -7,6 +7,9 @@
 
 "use strict";
 
+ChromeUtils.defineModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
+
 var cacheTemplate, appPluginsPath, profPlugins;
 
 /**
@@ -38,6 +41,22 @@ function run_test() {
   let searchSettings = JSON.parse(list);
 
   cacheTemplate.visibleDefaultEngines = searchSettings.default.visibleDefaultEngines;
+
+  // Since the above code is querying directly from list.json,
+  // we need to override the values in the esr case.
+  if (AppConstants.MOZ_APP_VERSION_DISPLAY.endsWith("esr")) {
+    let esrOverrides = {
+      "google-b-d": "google-b-e",
+      "google-b-1-d": "google-b-1-e",
+    };
+
+    for (let engine in esrOverrides) {
+      let index = cacheTemplate.visibleDefaultEngines.indexOf(engine);
+      if (index > -1) {
+        cacheTemplate.visibleDefaultEngines[index] = esrOverrides[engine];
+      }
+    }
+  }
 
   run_next_test();
 }

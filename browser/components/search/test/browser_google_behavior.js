@@ -25,13 +25,25 @@ let countryCode = Services.prefs.getCharPref("browser.search.countryCode");
 let code = "";
 switch (countryCode) {
   case "US":
-    code = "firefox-b-1";
+    if (AppConstants.MOZ_APP_VERSION_DISPLAY.endsWith("esr")) {
+      code = "firefox-b-1-e";
+    } else {
+      code = "firefox-b-1-d";
+    }
     break;
   case "DE":
-    code = "firefox-b";
+    if (AppConstants.MOZ_APP_VERSION_DISPLAY.endsWith("esr")) {
+      code = "firefox-b-e";
+    } else {
+      code = "firefox-b-d";
+    }
     break;
   case "RU":
-    // Covered by test but doesn't use a code
+    if (AppConstants.MOZ_APP_VERSION_DISPLAY.endsWith("esr")) {
+      code = "firefox-b-e";
+    } else {
+      code = "firefox-b-d";
+    }
     break;
 }
 
@@ -41,7 +53,7 @@ if (code) {
   codes.context = suffix;
   codes.newTab = suffix;
   codes.submission = suffix;
-  codes.keyword = `${suffix}-ab`;
+  codes.keyword = suffix;
 }
 
 function promiseContentSearchReady(browser) {
