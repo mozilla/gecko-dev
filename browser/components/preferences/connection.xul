@@ -137,9 +137,6 @@
               </radiogroup>
               </box>
             </row>
-            <label accesskey="&noproxy2.accesskey;" control="networkProxyNone">&noproxy2.label;</label>
-            <textbox id="networkProxyNone" preference="network.proxy.no_proxies_on" multiline="true" rows="2"/>
-            <label control="networkProxyNone">&noproxyExplain.label;</label>
           </rows>
         </grid>
         <radio value="2" label="&autoTypeRadio2.label;" accesskey="&autoTypeRadio2.accesskey;"/>
@@ -154,6 +151,9 @@
       </radiogroup>
     </groupbox>
     <separator class="thin"/>
+    <label accesskey="&noproxy2.accesskey;" control="networkProxyNone">&noproxy2.label;</label>
+    <textbox id="networkProxyNone" preference="network.proxy.no_proxies_on" multiline="true" rows="2"/>
+    <label control="networkProxyNone">&noproxyExplain.label;</label>
     <checkbox id="autologinProxy"
               label="&autologinproxy.label;"
               accesskey="&autologinproxy.accesskey;"

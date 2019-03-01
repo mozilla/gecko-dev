@@ -39,7 +39,7 @@
 <!ENTITY  SSLport.accesskey             "o">
 <!ENTITY  FTPport.accesskey             "r">
 <!ENTITY  SOCKSport.accesskey           "t">
-<!ENTITY  noproxy2.label                "No Proxy for">
+<!ENTITY  noproxy2.label                "No proxy for">
 <!ENTITY  noproxy2.accesskey            "n">
 <!ENTITY  noproxyExplain.label          "Example: .mozilla.org, .net.nz, 192.168.1.0/24">
 <!ENTITY  shareproxy.label              "Use this proxy server for all protocols">
