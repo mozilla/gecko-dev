@@ -587,7 +587,7 @@ class MOZ_NON_PARAM alignas(8) Value {
     if (!isMagic()) {
       return false;
     }
-    MOZ_RELEASE_ASSERT(data.s_.payload_.why_ == why);
+    MOZ_RELEASE_ASSERT(data.s.payload.why == why);
     return true;
   }
 
