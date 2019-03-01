@@ -139,6 +139,7 @@ const char* mozilla::dom::ContentPrefs::gEarlyPrefs[] = {
     "javascript.options.strict.debug",
     "javascript.options.throw_on_asmjs_validation_failure",
     "javascript.options.throw_on_debuggee_would_run",
+    "javascript.options.unboxed_objects",
     "javascript.options.wasm",
     "javascript.options.wasm_baselinejit",
     "javascript.options.wasm_ionjit",
