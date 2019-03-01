@@ -58,6 +58,7 @@ class nsBaseHashtable
 
   using nsTHashtable<EntryType>::Contains;
   using nsTHashtable<EntryType>::GetGeneration;
+  using nsTHashtable<EntryType>::IsEmpty;
 
   nsBaseHashtable() {}
   explicit nsBaseHashtable(uint32_t aInitLength)
