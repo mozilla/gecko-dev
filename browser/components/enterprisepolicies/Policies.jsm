@@ -540,6 +540,7 @@ var Policies = {
                 },
                 onInstallEnded: () => {
                   install.removeListener(listener);
+                  install.addon.userDisabled = false;
                   log.debug(`Installation succeeded - ${location}`);
                 }
               };
