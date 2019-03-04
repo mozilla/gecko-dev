@@ -12,7 +12,7 @@ const { startProfiling, endProfiling, assertEqPreciseStacks, isSingleStepProfili
 let e = wasmEvalText(`(module
     (gc_feature_opt_in 3)
     (global $g (mut anyref) (ref.null))
-    (func (export "set") (param anyref) get_local 0 set_global $g)
+    (func (export "set") (param anyref) local.get 0 global.set $g)
 )`).exports;
 
 let obj = { field: null };

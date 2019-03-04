@@ -114,7 +114,7 @@ assert_return(() => call($1, "as-local.set-value", []));
 assert_return(() => call($1, "as-local.tee-value", [0]), 1);
 
 // local_tee.wast:329
-assert_return(() => call($1, "as-set_global-value", []));
+assert_return(() => call($1, "as-global.set-value", []));
 
 // local_tee.wast:331
 assert_return(() => call($1, "as-load-address", [0]), 0);
