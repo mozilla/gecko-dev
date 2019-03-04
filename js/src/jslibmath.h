@@ -66,7 +66,16 @@ inline double NumberDiv(double a, double b) {
 inline double NumberMod(double a, double b) {
   AutoUnsafeCallWithABI unsafe;
   if (b == 0) return JS::GenericNaN();
-  return js_fmod(a, b);
+  double r = fmod(a, b);
+#if defined(XP_WIN)
+  // Some versions of Windows (Win 10 v1803, v1809) miscompute the sign of zero
+  // results from fmod. The sign should match the sign of the LHS. This bug
+  // only affects 64-bit builds. See bug 1527007.
+  if (mozilla::IsPositiveZero(r) && mozilla::IsNegative(a)) {
+    return -0.0;
+  }
+#endif
+  return r;
 }
 
 }  // namespace js
