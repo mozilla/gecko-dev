@@ -1597,6 +1597,11 @@ mozilla::ipc::IPCResult TabParent::RecvSetCustomCursor(
     const nsCString& aCursorData, const uint32_t& aWidth,
     const uint32_t& aHeight, const uint32_t& aStride, const uint8_t& aFormat,
     const uint32_t& aHotspotX, const uint32_t& aHotspotY, const bool& aForce) {
+  if (aHeight * aStride != aCursorData.Length() ||
+      aStride < aWidth * gfx::BytesPerPixel(aFormat)) {
+    return IPC_FAIL(this, "Invalid custom cursor data");
+  }
+
   mCursor = eCursorInvalid;
 
   nsCOMPtr<nsIWidget> widget = GetWidget();
