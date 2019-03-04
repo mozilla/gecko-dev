@@ -14,7 +14,9 @@
 <!ENTITY downloads.width                  "70ch">
 
 <!ENTITY cmd.pause.label                  "Pause">
-<!ENTITY cmd.pause.accesskey              "P">
+<!ENTITY cmd.pause.
+
+"P">
 <!ENTITY cmd.resume.label                 "Resume">
 <!ENTITY cmd.resume.accesskey             "R">
 <!ENTITY cmd.cancel.label                 "Cancel">
@@ -120,6 +122,7 @@
 
 <!ENTITY clearDownloadsButton.label       "Clear Downloads">
 <!ENTITY clearDownloadsButton.tooltip     "Clears completed, canceled and failed downloads">
+<!ENTITY clearDownloadsButton.accesskey   "D">
 
 <!-- LOCALIZATION NOTE (downloadsListEmpty.label):
      This string is shown when there are no items in the Downloads view, when it
