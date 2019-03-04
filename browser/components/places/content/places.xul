@@ -348,7 +348,9 @@
       <toolbarbutton id="clearDownloadsButton"
 #ifdef XP_MACOSX
                      class="tabbable"
-#endif
+#endif                 
+                     accesskey="&clearDownloadsButton.accesskey;"
+                     tabindex="2"
                      insertbefore="libraryToolbarSpacer"
                      label="&clearDownloadsButton.label;"
                      command="downloadsCmd_clearDownloads"
