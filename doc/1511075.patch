@@ -1,0 +1,23 @@
+diff -r 06f0c5e35c3a -r 95747d93ace8 browser/components/places/content/places.xul
+--- a/browser/components/places/content/places.xul	Sat Mar 02 15:32:15 2019 +0000
++++ b/browser/components/places/content/places.xul	Sun Mar 03 21:46:45 2019 -0500
+@@ -349,6 +349,8 @@
+ #ifdef XP_MACOSX
+                      class="tabbable"
+ #endif
++                     accesskey="&clearDownloadsButton.accesskey;"
++		     tabindex="2"
+                      insertbefore="libraryToolbarSpacer"
+                      label="&clearDownloadsButton.label;"
+                      command="downloadsCmd_clearDownloads"
+diff -r 06f0c5e35c3a -r 95747d93ace8 browser/locales/en-US/chrome/browser/downloads/downloads.dtd
+--- a/browser/locales/en-US/chrome/browser/downloads/downloads.dtd	Sat Mar 02 15:32:15 2019 +0000
++++ b/browser/locales/en-US/chrome/browser/downloads/downloads.dtd	Sun Mar 03 21:46:45 2019 -0500
+@@ -119,6 +119,7 @@
+ <!ENTITY openDownloadsFolder.label        "Open Downloads Folder">
+ 
+ <!ENTITY clearDownloadsButton.label       "Clear Downloads">
++<!ENTITY clearDownloadsButton.accesskey   "C">
+ <!ENTITY clearDownloadsButton.tooltip     "Clears completed, canceled and failed downloads">
+ 
+ <!-- LOCALIZATION NOTE (downloadsListEmpty.label):
