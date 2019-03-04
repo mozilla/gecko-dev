@@ -545,7 +545,6 @@ var Policies = {
               };
               install.addListener(listener);
               install.install();
-              install.addon.userDisabled = false;
             });
           }
         });
