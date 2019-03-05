@@ -1216,6 +1216,11 @@ already_AddRefed<layers::Layer> WebGLContext::GetCanvasLayer(
   CanvasRenderer* canvasRenderer = canvasLayer->CreateOrGetCanvasRenderer();
   if (!InitializeCanvasRenderer(builder, canvasRenderer)) return nullptr;
 
+  if (!gl) {
+    NS_WARNING("GLContext is null!");
+    return nullptr;
+  }
+
   uint32_t flags = gl->Caps().alpha ? 0 : Layer::CONTENT_OPAQUE;
   canvasLayer->SetContentFlags(flags);
 
@@ -1268,10 +1273,10 @@ bool WebGLContext::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
     data.mDidTransCallbackData = this;
   }
 
-  data.mGLContext = gl;
   data.mSize = DrawingBufferSize("InitializeCanvasRenderer");
   data.mHasAlpha = mOptions.alpha;
   data.mIsGLAlphaPremult = IsPremultAlpha() || !data.mHasAlpha;
+  data.mGLContext = gl;
 
   aRenderer->Initialize(data);
   aRenderer->SetDirty();
