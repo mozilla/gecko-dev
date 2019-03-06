@@ -126,6 +126,11 @@ struct AutoSignalHandler {
 #define EPC_sig(p) ((p)->sc_pc)
 #define RFP_sig(p) ((p)->sc_regs[30])
 #endif
+#if defined(__ppc64__) || defined(__PPC64__) || defined(__ppc64le__) || \
+    defined(__PPC64LE__)
+#define R01_sig(p) ((p)->sc_frame.fixreg[1])
+#define R32_sig(p) ((p)->sc_frame.srr0)
+#endif
 #elif defined(__linux__) || defined(__sun)
 #if defined(__linux__)
 #define XMM_sig(p, i) ((p)->uc_mcontext.fpregs->_xmm[i])
@@ -218,6 +223,11 @@ struct AutoSignalHandler {
 #define EPC_sig(p) ((p)->uc_mcontext.__gregs[_REG_EPC])
 #define RFP_sig(p) ((p)->uc_mcontext.__gregs[_REG_S8])
 #endif
+#if defined(__ppc64__) || defined(__PPC64__) || defined(__ppc64le__) || \
+    defined(__PPC64LE__)
+#define R01_sig(p) ((p)->uc_mcontext.__gregs[_REG_R1])
+#define R32_sig(p) ((p)->uc_mcontext.__gregs[_REG_PC])
+#endif
 #elif defined(__DragonFly__) || defined(__FreeBSD__) || \
     defined(__FreeBSD_kernel__)
 #if defined(__DragonFly__)
@@ -263,6 +273,11 @@ struct AutoSignalHandler {
 #if defined(__FreeBSD__) && defined(__mips__)
 #define EPC_sig(p) ((p)->uc_mcontext.mc_pc)
 #define RFP_sig(p) ((p)->uc_mcontext.mc_regs[30])
+#endif
+#if defined(__FreeBSD__) && (defined(__ppc64__) || defined(__PPC64__) || \
+                             defined(__ppc64le__) || defined(__PPC64LE__))
+#define R01_sig(p) ((p)->uc_mcontext.mc_gpr[1])
+#define R32_sig(p) ((p)->uc_mcontext.mc_srr0)
 #endif
 #elif defined(XP_DARWIN)
 #define EIP_sig(p) ((p)->uc_mcontext->__ss.__eip)
