@@ -79,6 +79,7 @@ class JSTerm extends Component {
       autocompleteUpdate: PropTypes.func.isRequired,
       // Data to be displayed in the autocomplete popup.
       autocompleteData: PropTypes.object.isRequired,
+      editorMode: PropTypes.bool,
     };
   }
 
@@ -189,7 +190,7 @@ class JSTerm extends Component {
           autofocus: true,
           enableCodeFolding: false,
           autoCloseBrackets: false,
-          gutters: [],
+          lineNumbers: this.props.editorMode,
           lineWrapping: true,
           mode: Editor.modes.js,
           styleActiveLine: false,
@@ -1608,6 +1609,7 @@ function mapStateToProps(state) {
     history: getHistory(state),
     getValueFromHistory: (direction) => getHistoryValue(state, direction),
     autocompleteData: getAutocompleteState(state),
+    editorMode: state.ui.editor,
   };
 }
 
