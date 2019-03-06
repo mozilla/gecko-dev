@@ -1,0 +1,32 @@
+diff --git a/browser/components/search/content/search.xml b/browser/components/search/content/search.xml
+--- a/browser/components/search/content/search.xml
++++ b/browser/components/search/content/search.xml
+@@ -434,7 +434,7 @@
+                            aEvent.ctrlKey;
+             if (where == "tab" && (aEvent instanceof MouseEvent) &&
+                 (aEvent.button == 1 || modifier))
+-              params.inBackground = true;
++              params.inBackground = false;
+ 
+             // leave the popup open for background tab loads
+             if (!(where == "tab" && params.inBackground)) {
+diff --git a/browser/components/search/content/searchbar.js b/browser/components/search/content/searchbar.js
+--- a/browser/components/search/content/searchbar.js
++++ b/browser/components/search/content/searchbar.js
+@@ -275,11 +275,12 @@ class MozSearchbar extends MozXULElement
+     } else {
+       let newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
+       if (((aEvent instanceof KeyboardEvent && aEvent.altKey) ^ newTabPref) &&
+-        !gBrowser.selectedTab.isEmpty) {
+-        where = "tab";
++        !gBrowser.selectedTab.isEmpty){
++            where = "tab";
+       }
+-      if ((aEvent instanceof MouseEvent) &&
+-        (aEvent.button == 1 || aEvent.getModifierState("Accel"))) {
++      
++      if (((aEvent instanceof MouseEvent) && (aEvent.button == 1 || aEvent.getModifierState("Accel")) ^ newTabPref) &&
++        !gBrowser.selectedTab.isEmpty){
+         where = "tab";
+         params = {
+           inBackground: true,
