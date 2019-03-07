@@ -212,7 +212,7 @@ void nsSMILAnimationController::Unlink() { mLastCompositorTable = nullptr; }
 
 void nsSMILAnimationController::NotifyRefreshDriverCreated(
     nsRefreshDriver* aRefreshDriver) {
-  if (!mPauseState) {
+  if (!mPauseState && mChildContainerTable.Count()) {
     MaybeStartSampling(aRefreshDriver);
   }
 }
