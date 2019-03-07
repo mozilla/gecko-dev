@@ -777,9 +777,6 @@ static void ReloadPrefsCallback(const char* pref, void* data) {
   bool spectreJitToCxxCalls =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "spectre.jit_to_C++_calls");
 
-  bool unboxedObjects =
-      Preferences::GetBool(JS_OPTIONS_DOT_STR "unboxed_objects");
-
   sSharedMemoryEnabled =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "shared_memory");
 
@@ -858,9 +855,6 @@ static void ReloadPrefsCallback(const char* pref, void* data) {
                                 spectreValueMasking);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_SPECTRE_JIT_TO_CXX_CALLS,
                                 spectreJitToCxxCalls);
-
-  JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_UNBOXED_OBJECTS,
-                                unboxedObjects);
 }
 
 XPCJSContext::~XPCJSContext() {
