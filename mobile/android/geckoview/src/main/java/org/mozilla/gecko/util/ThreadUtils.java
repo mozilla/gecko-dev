@@ -21,7 +21,7 @@ public final class ThreadUtils {
      * Controls the action taken when a method like
      * {@link ThreadUtils#assertOnUiThread(AssertBehavior)} detects a problem.
      */
-    public static enum AssertBehavior {
+    public enum AssertBehavior {
         NONE,
         THROW,
     }

@@ -71,9 +71,9 @@ public class GeckoSession implements Parcelable {
         INITIAL(0),
         READY(1);
 
-        private final int mRank;
+        final int mRank;
 
-        private State(int rank) {
+        State(int rank) {
             mRank = rank;
         }
 

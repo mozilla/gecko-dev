@@ -23,8 +23,8 @@ public final class GeckoHLSDemuxerWrapper {
         AUDIO(1),
         VIDEO(2),
         TEXT(3);
-        private int mType;
-        private TrackType(int type) {
+        int mType;
+        TrackType(int type) {
             mType = type;
         }
         public int value() {

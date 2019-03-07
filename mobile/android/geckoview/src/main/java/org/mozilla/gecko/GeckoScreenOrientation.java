@@ -41,11 +41,11 @@ public class GeckoScreenOrientation {
 
         public final short value;
 
-        private ScreenOrientation(int value) {
+        ScreenOrientation(int value) {
             this.value = (short)value;
         }
 
-        private final static ScreenOrientation[] sValues = ScreenOrientation.values();
+        final static ScreenOrientation[] sValues = ScreenOrientation.values();
 
         public static ScreenOrientation get(int value) {
             for (ScreenOrientation orient: sValues) {

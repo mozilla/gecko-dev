@@ -21,7 +21,7 @@ public interface BaseHlsPlayer {
         PLAYER(-102),
         UNSUPPORTED(-103);
 
-        private int mNumVal;
+        int mNumVal;
         private ResourceError(int numVal) {
             mNumVal = numVal;
         }
@@ -36,8 +36,8 @@ public interface BaseHlsPlayer {
         PLAYER(-202),
         UNSUPPORTED(-203);
 
-        private int mNumVal;
-        private DemuxerError(int numVal) {
+        int mNumVal;
+        DemuxerError(int numVal) {
             mNumVal = numVal;
         }
         public int code() {

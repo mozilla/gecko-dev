@@ -69,9 +69,9 @@ public class GeckoThread extends Thread {
          * components are shut down and become unavailable. EXITING has the same rank as
          * LIBS_READY because both states have a similar amount of components available.
          */
-        private final int rank;
+        final int rank;
 
-        private State(int rank) {
+        State(int rank) {
             this.rank = rank;
         }
 

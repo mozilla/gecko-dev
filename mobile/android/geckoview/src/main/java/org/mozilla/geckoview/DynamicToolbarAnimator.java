@@ -22,7 +22,7 @@ public final class DynamicToolbarAnimator {
     private static final String LOGTAG = "GeckoDynamicToolbarAnimator";
 
     @AnyThread
-    public static enum PinReason {
+    public enum PinReason {
         DISABLED(0),
         RELAYOUT(1),
         ACTION_MODE(2),

@@ -28,7 +28,7 @@ public class AndroidGamepadManager {
     private static final float TRIGGER_PRESSED_THRESHOLD = 0.25f;
     private static final long POLL_TIMER_PERIOD = 1000; // milliseconds
 
-    private static enum Axis {
+    private enum Axis {
         X(MotionEvent.AXIS_X),
         Y(MotionEvent.AXIS_Y),
         Z(MotionEvent.AXIS_Z),
@@ -36,20 +36,20 @@ public class AndroidGamepadManager {
 
         public final int axis;
 
-        private Axis(int axis) {
+        Axis(int axis) {
             this.axis = axis;
         }
     }
 
     // A list of gamepad button mappings. Axes are determined at
     // runtime, as they vary by Android version.
-    private static enum Trigger {
+    private enum Trigger {
         Left(6),
         Right(7);
 
         public final int button;
 
-        private Trigger(int button) {
+        Trigger(int button) {
             this.button = button;
         }
     }
@@ -57,7 +57,7 @@ public class AndroidGamepadManager {
     private static final int FIRST_DPAD_BUTTON = 12;
     // A list of axis number, gamepad button mappings for negative, positive.
     // Button mappings are added to FIRST_DPAD_BUTTON.
-    private static enum DpadAxis {
+    private enum DpadAxis {
         UpDown(MotionEvent.AXIS_HAT_Y, 0, 1),
         LeftRight(MotionEvent.AXIS_HAT_X, 2, 3);
 
@@ -92,7 +92,7 @@ public class AndroidGamepadManager {
 
         public final int button;
 
-        private Button(int button) {
+        Button(int button) {
             this.button = button;
         }
     }
