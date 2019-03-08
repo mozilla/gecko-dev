@@ -73,6 +73,7 @@ class RequestListContent extends Component {
     this.isScrolledToBottom = this.isScrolledToBottom.bind(this);
     this.onHover = this.onHover.bind(this);
     this.onScroll = this.onScroll.bind(this);
+    this.resizeThrottler = this.resizeThrottler.bind(this);
     this.onResize = this.onResize.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onContextMenu = this.onContextMenu.bind(this);
@@ -120,7 +121,21 @@ class RequestListContent extends Component {
 
     // Uninstall the tooltip event handler
     this.tooltip.stopTogglingOnHover();
-    window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("resize", this.resizeThrottler);
+  }
+
+  resizeThrottler() {
+    var resizeTimeout;
+    // ignore resize events as long as an actualResizeHandler execution is in the queue
+    if ( !resizeTimeout ) {
+      resizeTimeout = setTimeout(function() {
+        resizeTimeout = null;
+        // actualResizeHandler here
+        onResize();
+     
+       // The actualResizeHandler will execute at a rate of 15fps
+       }, 66);
+    }
   }
 
   onResize() {
