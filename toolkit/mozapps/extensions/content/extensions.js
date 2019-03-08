@@ -933,7 +933,13 @@ var gViewController = {
 
     cmd_toggleAutoUpdateDefault: {
       isEnabled() {
-        return true;
+        if (!Services.io.offline){
+          return true;
+        }
+        else {
+           console.log("Offline mode activated, cannot update currently");
+           return false;
+        }
       },
       doCommand() {
         if (!AddonManager.updateEnabled || !AddonManager.autoUpdateDefault) {
@@ -2725,7 +2731,7 @@ var gDetailView = {
     }
 
     document.getElementById("detail-rating-row").hidden = !aAddon.averageRating && !aAddon.reviewURL;
-
+if (!Services.io.offline){//HERE
     var canUpdate = !aIsRemote && hasPermission(aAddon, "upgrade");
     document.getElementById("detail-updates-row").hidden = !canUpdate;
 
@@ -2738,7 +2744,9 @@ var gDetailView = {
       this._autoUpdate.hidden = true;
       document.getElementById("detail-findUpdates-btn").hidden = false;
     }
-
+}else{
+  console.log("Offline mode activated, cannot update currently")
+}
     document.getElementById("detail-prefs-btn").hidden = !aIsRemote &&
       !gViewController.commands.cmd_showItemPreferences.isEnabled(aAddon);
 

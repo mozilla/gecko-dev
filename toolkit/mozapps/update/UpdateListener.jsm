@@ -23,10 +23,9 @@ var UpdateListener = {
   get badgeWaitTime() {
     return Services.prefs.getIntPref("app.update.badgeWaitTime", 4 * 24 * 3600); // 4 days
   },
-
-  init() {
-  },
-
+    init() {
+    },
+  
   uninit() {
     this.reset();
   },

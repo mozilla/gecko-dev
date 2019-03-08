@@ -6487,6 +6487,7 @@ var BrowserOffline = {
     this._updateOfflineUI(Services.io.offline);
 
     this._inited = true;
+    console.log("Offline mode activated, cannot update currently");
   },
 
   uninit() {
