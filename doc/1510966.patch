@@ -1,0 +1,689 @@
+From bcebacb2bf654701aa7f731b9e4523cfd5d88793 Mon Sep 17 00:00:00 2001
+From: frantzke <lukas.frantzke@mail.utoronto.ca>
+Date: Thu, 7 Mar 2019 17:43:06 -0500
+Subject: [PATCH 1/2] Removed redundant static and private modifiers from enums
+
+---
+ .../org/mozilla/gecko/AndroidGamepadManager.java     | 12 ++++++------
+ .../org/mozilla/gecko/GeckoScreenOrientation.java    |  4 ++--
+ .../src/main/java/org/mozilla/gecko/GeckoThread.java |  4 ++--
+ .../java/org/mozilla/gecko/media/BaseHlsPlayer.java  |  6 +++---
+ .../mozilla/gecko/media/GeckoHLSDemuxerWrapper.java  |  4 ++--
+ .../java/org/mozilla/gecko/util/ThreadUtils.java     |  2 +-
+ .../mozilla/geckoview/DynamicToolbarAnimator.java    |  2 +-
+ .../java/org/mozilla/geckoview/GeckoSession.java     |  4 ++--
+ 8 files changed, 19 insertions(+), 19 deletions(-)
+
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/AndroidGamepadManager.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/AndroidGamepadManager.java
+index a65c98245d949..498c52b41c91e 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/AndroidGamepadManager.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/AndroidGamepadManager.java
+@@ -28,7 +28,7 @@
+     private static final float TRIGGER_PRESSED_THRESHOLD = 0.25f;
+     private static final long POLL_TIMER_PERIOD = 1000; // milliseconds
+ 
+-    private static enum Axis {
++    private enum Axis {
+         X(MotionEvent.AXIS_X),
+         Y(MotionEvent.AXIS_Y),
+         Z(MotionEvent.AXIS_Z),
+@@ -36,20 +36,20 @@
+ 
+         public final int axis;
+ 
+-        private Axis(int axis) {
++        Axis(int axis) {
+             this.axis = axis;
+         }
+     }
+ 
+     // A list of gamepad button mappings. Axes are determined at
+     // runtime, as they vary by Android version.
+-    private static enum Trigger {
++    private enum Trigger {
+         Left(6),
+         Right(7);
+ 
+         public final int button;
+ 
+-        private Trigger(int button) {
++        Trigger(int button) {
+             this.button = button;
+         }
+     }
+@@ -57,7 +57,7 @@ private Trigger(int button) {
+     private static final int FIRST_DPAD_BUTTON = 12;
+     // A list of axis number, gamepad button mappings for negative, positive.
+     // Button mappings are added to FIRST_DPAD_BUTTON.
+-    private static enum DpadAxis {
++    private enum DpadAxis {
+         UpDown(MotionEvent.AXIS_HAT_Y, 0, 1),
+         LeftRight(MotionEvent.AXIS_HAT_X, 2, 3);
+ 
+@@ -92,7 +92,7 @@ private DpadAxis(int axis, int negativeButton, int positiveButton) {
+ 
+         public final int button;
+ 
+-        private Button(int button) {
++        Button(int button) {
+             this.button = button;
+         }
+     }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
+index 365124ce45f12..71f5a6b4cb250 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
+@@ -41,11 +41,11 @@
+ 
+         public final short value;
+ 
+-        private ScreenOrientation(int value) {
++        ScreenOrientation(int value) {
+             this.value = (short)value;
+         }
+ 
+-        private final static ScreenOrientation[] sValues = ScreenOrientation.values();
++        final static ScreenOrientation[] sValues = ScreenOrientation.values();
+ 
+         public static ScreenOrientation get(int value) {
+             for (ScreenOrientation orient: sValues) {
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
+index 94e1e7cc632ac..3123451af5e4b 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
+@@ -69,9 +69,9 @@
+          * components are shut down and become unavailable. EXITING has the same rank as
+          * LIBS_READY because both states have a similar amount of components available.
+          */
+-        private final int rank;
++        final int rank;
+ 
+-        private State(int rank) {
++        State(int rank) {
+             this.rank = rank;
+         }
+ 
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
+index 29d472a2c2765..9133447d0863f 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
+@@ -21,7 +21,7 @@
+         PLAYER(-102),
+         UNSUPPORTED(-103);
+ 
+-        private int mNumVal;
++        int mNumVal;
+         private ResourceError(int numVal) {
+             mNumVal = numVal;
+         }
+@@ -36,8 +36,8 @@ public int code() {
+         PLAYER(-202),
+         UNSUPPORTED(-203);
+ 
+-        private int mNumVal;
+-        private DemuxerError(int numVal) {
++        int mNumVal;
++        DemuxerError(int numVal) {
+             mNumVal = numVal;
+         }
+         public int code() {
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoHLSDemuxerWrapper.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoHLSDemuxerWrapper.java
+index 43487ba28f590..c508af373c81c 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoHLSDemuxerWrapper.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoHLSDemuxerWrapper.java
+@@ -23,8 +23,8 @@
+         AUDIO(1),
+         VIDEO(2),
+         TEXT(3);
+-        private int mType;
+-        private TrackType(int type) {
++        int mType;
++        TrackType(int type) {
+             mType = type;
+         }
+         public int value() {
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/ThreadUtils.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/ThreadUtils.java
+index 188bdb3425bc6..50c817c1928af 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/ThreadUtils.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/ThreadUtils.java
+@@ -21,7 +21,7 @@
+      * Controls the action taken when a method like
+      * {@link ThreadUtils#assertOnUiThread(AssertBehavior)} detects a problem.
+      */
+-    public static enum AssertBehavior {
++    public enum AssertBehavior {
+         NONE,
+         THROW,
+     }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
+index e38dc1779ae13..e1f9c91bfc02f 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
+@@ -22,7 +22,7 @@
+     private static final String LOGTAG = "GeckoDynamicToolbarAnimator";
+ 
+     @AnyThread
+-    public static enum PinReason {
++    public enum PinReason {
+         DISABLED(0),
+         RELAYOUT(1),
+         ACTION_MODE(2),
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+index fb9e98e030fc2..46e94f7a5b4ac 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+@@ -71,9 +71,9 @@
+         INITIAL(0),
+         READY(1);
+ 
+-        private final int mRank;
++        final int mRank;
+ 
+-        private State(int rank) {
++        State(int rank) {
+             mRank = rank;
+         }
+ 
+
+From 0ebd3cdfd8bb8efe28efbe4898231d1ca2c013d4 Mon Sep 17 00:00:00 2001
+From: frantzke <lukas.frantzke@mail.utoronto.ca>
+Date: Fri, 8 Mar 2019 14:16:02 -0500
+Subject: [PATCH 2/2] Remove unnessary interface modifiers: public, abstract,
+ static, and final
+
+---
+ .../java/org/mozilla/gecko/GeckoAppShell.java |  6 +-
+ .../gecko/GeckoProfileDirectories.java        |  4 +-
+ .../mozilla/gecko/TouchEventInterceptor.java  |  2 +-
+ .../org/mozilla/gecko/WakeLockDelegate.java   | 16 ++---
+ .../org/mozilla/gecko/media/AsyncCodec.java   | 30 ++++-----
+ .../mozilla/gecko/media/BaseHlsPlayer.java    | 32 ++++-----
+ .../gecko/mozglue/NativeReference.java        |  4 +-
+ .../org/mozilla/gecko/util/EventCallback.java |  4 +-
+ .../geckoview/DynamicToolbarAnimator.java     |  6 +-
+ .../org/mozilla/geckoview/GeckoSession.java   | 66 +++++++++----------
+ .../mozilla/geckoview/SessionTextInput.java   |  8 +--
+ 11 files changed, 89 insertions(+), 89 deletions(-)
+
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoAppShell.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoAppShell.java
+index 03b0a0f3bdab6..6a8cd2ba4b2a4 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoAppShell.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoAppShell.java
+@@ -1501,10 +1501,10 @@ public static void setApplicationContext(final Context context) {
+     }
+ 
+     public interface GeckoInterface {
+-        public boolean openUriExternal(String targetURI, String mimeType, String packageName, String className, String action, String title);
++        boolean openUriExternal(String targetURI, String mimeType, String packageName, String className, String action, String title);
+ 
+-        public String[] getHandlersForMimeType(String mimeType, String action);
+-        public String[] getHandlersForURL(String url, String action);
++        String[] getHandlersForMimeType(String mimeType, String action);
++        String[] getHandlersForURL(String url, String action);
+     };
+ 
+     private static GeckoInterface sGeckoInterface;
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoProfileDirectories.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoProfileDirectories.java
+index 2afb54bc4dd2c..e7e642fe7c3aa 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoProfileDirectories.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoProfileDirectories.java
+@@ -20,7 +20,7 @@
+  * names to salted profile directory paths, as well as the default profile name.
+  *
+  * This class will eventually come to encapsulate the remaining logic embedded
+- * in profiles.ini; for now it's a read-only wrapper.
++ * in profiles.ini; for nzow it's a read-only wrapper.
+  */
+ public class GeckoProfileDirectories {
+     @SuppressWarnings("serial")
+@@ -50,7 +50,7 @@ public NoSuchProfileException(String detailMessage) {
+     }
+ 
+     private interface INISectionPredicate {
+-        public boolean matches(INISection section);
++        boolean matches(INISection section);
+     }
+ 
+     private static final String MOZILLA_DIR_NAME = "mozilla";
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/TouchEventInterceptor.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/TouchEventInterceptor.java
+index 41a71dfa5f88d..c1593a62157b0 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/TouchEventInterceptor.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/TouchEventInterceptor.java
+@@ -10,5 +10,5 @@
+ 
+ public interface TouchEventInterceptor extends View.OnTouchListener {
+     /** Override this method for a chance to consume events before the view or its children */
+-    public boolean onInterceptTouchEvent(View view, MotionEvent event);
++    boolean onInterceptTouchEvent(View view, MotionEvent event);
+ }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/WakeLockDelegate.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/WakeLockDelegate.java
+index 7088124a16fc9..3ae40cae47b45 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/WakeLockDelegate.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/WakeLockDelegate.java
+@@ -12,34 +12,34 @@
+     /**
+      * Wake-lock for the CPU.
+      */
+-    final String LOCK_CPU = "cpu";
++    String LOCK_CPU = "cpu";
+     /**
+      * Wake-lock for the screen.
+      */
+-    final String LOCK_SCREEN = "screen";
++    String LOCK_SCREEN = "screen";
+     /**
+      * Wake-lock for the audio-playing, eqaul to LOCK_CPU.
+      */
+-    final String LOCK_AUDIO_PLAYING = "audio-playing";
++    String LOCK_AUDIO_PLAYING = "audio-playing";
+     /**
+      * Wake-lock for the video-playing, eqaul to LOCK_SCREEN..
+      */
+-    final String LOCK_VIDEO_PLAYING = "video-playing";
++    String LOCK_VIDEO_PLAYING = "video-playing";
+ 
+-    final int LOCKS_COUNT = 2;
++    int LOCKS_COUNT = 2;
+ 
+     /**
+      * No one holds the wake-lock.
+      */
+-    final int STATE_UNLOCKED = 0;
++    int STATE_UNLOCKED = 0;
+     /**
+      * The wake-lock is held by a foreground window.
+      */
+-    final int STATE_LOCKED_FOREGROUND = 1;
++    int STATE_LOCKED_FOREGROUND = 1;
+     /**
+      * The wake-lock is held by a background window.
+      */
+-    final int STATE_LOCKED_BACKGROUND = 2;
++    int STATE_LOCKED_BACKGROUND = 2;
+ 
+     /**
+      * Set a wake-lock to a specified state. Called from the Gecko thread.
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/AsyncCodec.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/AsyncCodec.java
+index 5eb2a293feb02..5b1975a3bf7cc 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/AsyncCodec.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/AsyncCodec.java
+@@ -23,20 +23,20 @@
+         void onOutputFormatChanged(AsyncCodec codec, MediaFormat format);
+     }
+ 
+-    public abstract void setCallbacks(Callbacks callbacks, Handler handler);
+-    public abstract void configure(MediaFormat format, Surface surface, MediaCrypto crypto, int flags);
+-    public abstract boolean isAdaptivePlaybackSupported(String mimeType);
+-    public abstract boolean isTunneledPlaybackSupported(final String mimeType);
+-    public abstract void start();
+-    public abstract void stop();
+-    public abstract void flush();
++    void setCallbacks(Callbacks callbacks, Handler handler);
++    void configure(MediaFormat format, Surface surface, MediaCrypto crypto, int flags);
++    boolean isAdaptivePlaybackSupported(String mimeType);
++    boolean isTunneledPlaybackSupported(final String mimeType);
++    void start();
++    void stop();
++    void flush();
+     // Must be called after flush().
+-    public abstract void resumeReceivingInputs();
+-    public abstract void release();
+-    public abstract ByteBuffer getInputBuffer(int index);
+-    public abstract ByteBuffer getOutputBuffer(int index);
+-    public abstract void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags);
+-    public abstract void setRates(int newBitRate);
+-    public abstract void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags);
+-    public abstract void releaseOutputBuffer(int index, boolean render);
++    void resumeReceivingInputs();
++    void release();
++    ByteBuffer getInputBuffer(int index);
++    ByteBuffer getOutputBuffer(int index);
++    void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags);
++    void setRates(int newBitRate);
++    void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags);
++    void releaseOutputBuffer(int index, boolean render);
+ }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
+index 9133447d0863f..bffa8a4a9bb0e 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/BaseHlsPlayer.java
+@@ -56,41 +56,41 @@ public int code() {
+     }
+ 
+     // Used to identify player instance.
+-    public int getId();
++    int getId();
+ 
+     // =======================================================================
+     // API for GeckoHLSResourceWrapper
+     // =======================================================================
+-    public void init(String url, ResourceCallbacks callback);
++    void init(String url, ResourceCallbacks callback);
+ 
+-    public boolean isLiveStream();
++    boolean isLiveStream();
+ 
+     // =======================================================================
+     // API for GeckoHLSDemuxerWrapper
+     // =======================================================================
+-    public void addDemuxerWrapperCallbackListener(DemuxerCallbacks callback);
++    void addDemuxerWrapperCallbackListener(DemuxerCallbacks callback);
+ 
+-    public ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType, int number);
++    ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType, int number);
+ 
+-    public long getBufferedPosition();
++    long getBufferedPosition();
+ 
+-    public int getNumberOfTracks(TrackType trackType);
++    int getNumberOfTracks(TrackType trackType);
+ 
+-    public GeckoVideoInfo getVideoInfo(int index);
++    GeckoVideoInfo getVideoInfo(int index);
+ 
+-    public GeckoAudioInfo getAudioInfo(int index);
++    GeckoAudioInfo getAudioInfo(int index);
+ 
+-    public boolean seek(long positionUs);
++    boolean seek(long positionUs);
+ 
+-    public long getNextKeyFrameTime();
++    long getNextKeyFrameTime();
+ 
+-    public void suspend();
++    void suspend();
+ 
+-    public void resume();
++    void resume();
+ 
+-    public void play();
++    void play();
+ 
+-    public void pause();
++    void pause();
+ 
+-    public void release();
++    void release();
+ }
+\ No newline at end of file
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/mozglue/NativeReference.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/mozglue/NativeReference.java
+index 9d897d3842b48..207d7d054d15a 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/mozglue/NativeReference.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/mozglue/NativeReference.java
+@@ -7,7 +7,7 @@
+ 
+ public interface NativeReference
+ {
+-    public void release();
++    void release();
+ 
+-    public boolean isReleased();
++    boolean isReleased();
+ }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/EventCallback.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/EventCallback.java
+index 0b01c28a9b3b3..4d5d573b48b54 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/EventCallback.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/EventCallback.java
+@@ -19,7 +19,7 @@
+      * @param response The response data to send to Gecko. Can be any of the types accepted by
+      *                 JSONObject#put(String, Object).
+      */
+-    public void sendSuccess(Object response);
++    void sendSuccess(Object response);
+ 
+     /**
+      * Sends an error response with the given data.
+@@ -27,5 +27,5 @@
+      * @param response The response data to send to Gecko. Can be any of the types accepted by
+      *                 JSONObject#put(String, Object).
+      */
+-    public void sendError(Object response);
++    void sendError(Object response);
+ }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
+index e1f9c91bfc02f..6e4399d6c41aa 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/DynamicToolbarAnimator.java
+@@ -40,11 +40,11 @@
+ 
+     public interface ToolbarChromeProxy {
+         @UiThread
+-        public @Nullable Bitmap getBitmapOfToolbarChrome();
++        @Nullable Bitmap getBitmapOfToolbarChrome();
+         @UiThread
+-        public boolean isToolbarChromeVisible();
++        boolean isToolbarChromeVisible();
+         @UiThread
+-        public void toggleToolbarChrome(boolean aShow);
++        void toggleToolbarChrome(boolean aShow);
+     }
+ 
+     private final Set<PinReason> mPinFlags = EnumSet.noneOf(PinReason.class);
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+index 46e94f7a5b4ac..55a3ee5445019 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+@@ -2767,16 +2767,16 @@ void onContextMenu(@NonNull GeckoSession session,
+         /**
+          * The selection is collapsed at a single position.
+          */
+-        final int FLAG_IS_COLLAPSED = 1;
++        int FLAG_IS_COLLAPSED = 1;
+         /**
+          * The selection is inside editable content such as an input element or
+          * contentEditable node.
+          */
+-        final int FLAG_IS_EDITABLE = 2;
++        int FLAG_IS_EDITABLE = 2;
+         /**
+          * The selection is inside a password field.
+          */
+-        final int FLAG_IS_PASSWORD = 4;
++        int FLAG_IS_PASSWORD = 4;
+ 
+         @Retention(RetentionPolicy.SOURCE)
+         @StringDef({ACTION_HIDE,
+@@ -2793,43 +2793,43 @@ void onContextMenu(@NonNull GeckoSession session,
+         /**
+          * Hide selection actions and cause {@link #onHideAction} to be called.
+          */
+-        final String ACTION_HIDE = "org.mozilla.geckoview.HIDE";
++        String ACTION_HIDE = "org.mozilla.geckoview.HIDE";
+         /**
+          * Copy onto the clipboard then delete the selected content. Selection
+          * must be editable.
+          */
+-        final String ACTION_CUT = "org.mozilla.geckoview.CUT";
++        String ACTION_CUT = "org.mozilla.geckoview.CUT";
+         /**
+          * Copy the selected content onto the clipboard.
+          */
+-        final String ACTION_COPY = "org.mozilla.geckoview.COPY";
++        String ACTION_COPY = "org.mozilla.geckoview.COPY";
+         /**
+          * Delete the selected content. Selection must be editable.
+          */
+-        final String ACTION_DELETE = "org.mozilla.geckoview.DELETE";
++        String ACTION_DELETE = "org.mozilla.geckoview.DELETE";
+         /**
+          * Replace the selected content with the clipboard content. Selection
+          * must be editable.
+          */
+-        final String ACTION_PASTE = "org.mozilla.geckoview.PASTE";
++        String ACTION_PASTE = "org.mozilla.geckoview.PASTE";
+         /**
+          * Select the entire content of the document or editor.
+          */
+-        final String ACTION_SELECT_ALL = "org.mozilla.geckoview.SELECT_ALL";
++        String ACTION_SELECT_ALL = "org.mozilla.geckoview.SELECT_ALL";
+         /**
+          * Clear the current selection. Selection must not be editable.
+          */
+-        final String ACTION_UNSELECT = "org.mozilla.geckoview.UNSELECT";
++        String ACTION_UNSELECT = "org.mozilla.geckoview.UNSELECT";
+         /**
+          * Collapse the current selection to its start position.
+          * Selection must be editable.
+          */
+-        final String ACTION_COLLAPSE_TO_START = "org.mozilla.geckoview.COLLAPSE_TO_START";
++        String ACTION_COLLAPSE_TO_START = "org.mozilla.geckoview.COLLAPSE_TO_START";
+         /**
+          * Collapse the current selection to its end position.
+          * Selection must be editable.
+          */
+-        final String ACTION_COLLAPSE_TO_END = "org.mozilla.geckoview.COLLAPSE_TO_END";
++        String ACTION_COLLAPSE_TO_END = "org.mozilla.geckoview.COLLAPSE_TO_END";
+ 
+         /**
+          * Represents attributes of a selection.
+@@ -2921,25 +2921,25 @@ void onShowActionRequest(@NonNull GeckoSession session, @NonNull Selection selec
+         /**
+          * Actions are no longer available due to the user clearing the selection.
+          */
+-        final int HIDE_REASON_NO_SELECTION = 0;
++        int HIDE_REASON_NO_SELECTION = 0;
+         /**
+          * Actions are no longer available due to the user moving the selection out of view.
+          * Previous actions are still available after a callback with this reason.
+          */
+-        final int HIDE_REASON_INVISIBLE_SELECTION = 1;
++        int HIDE_REASON_INVISIBLE_SELECTION = 1;
+         /**
+          * Actions are no longer available due to the user actively changing the
+          * selection. {@link #onShowActionRequest} may be called again once the user has
+          * set a selection, if the new selection has available actions.
+          */
+-        final int HIDE_REASON_ACTIVE_SELECTION = 2;
++        int HIDE_REASON_ACTIVE_SELECTION = 2;
+         /**
+          * Actions are no longer available due to the user actively scrolling the page.
+          * {@link #onShowActionRequest} may be called again once the user has stopped
+          * scrolling the page, if the selection is still visible. Until then, previous
+          * actions are still available after a callback with this reason.
+          */
+-        final int HIDE_REASON_ACTIVE_SCROLL = 3;
++        int HIDE_REASON_ACTIVE_SCROLL = 3;
+ 
+         /**
+          * Previous actions are no longer available due to the user interacting with the
+@@ -2981,15 +2981,15 @@ void onShowActionRequest(@NonNull GeckoSession session, @NonNull Selection selec
+         @Retention(RetentionPolicy.SOURCE)
+         @IntDef({TARGET_WINDOW_NONE, TARGET_WINDOW_CURRENT, TARGET_WINDOW_NEW})
+         /* package */ @interface TargetWindow {}
+-        public static final int TARGET_WINDOW_NONE = 0;
+-        public static final int TARGET_WINDOW_CURRENT = 1;
+-        public static final int TARGET_WINDOW_NEW = 2;
++        int TARGET_WINDOW_NONE = 0;
++        int TARGET_WINDOW_CURRENT = 1;
++        int TARGET_WINDOW_NEW = 2;
+ 
+         // Match with nsIWebNavigation.idl.
+         /**
+          * The load request was triggered by an HTTP redirect.
+          */
+-        static final int LOAD_REQUEST_IS_REDIRECT = 0x800000;
++        int LOAD_REQUEST_IS_REDIRECT = 0x800000;
+ 
+         /**
+          * Load request details.
+@@ -3177,9 +3177,9 @@ void onAlert(@NonNull GeckoSession session, @Nullable String title, @Nullable St
+             void confirm(int button);
+         }
+ 
+-        static final int BUTTON_TYPE_POSITIVE = 0;
+-        static final int BUTTON_TYPE_NEUTRAL = 1;
+-        static final int BUTTON_TYPE_NEGATIVE = 2;
++        int BUTTON_TYPE_POSITIVE = 0;
++        int BUTTON_TYPE_NEUTRAL = 1;
++        int BUTTON_TYPE_NEGATIVE = 2;
+ 
+         /**
+          * Display a prompt with up to three buttons.
+@@ -3529,27 +3529,27 @@ void onColorPrompt(@NonNull GeckoSession session, @Nullable String title,
+         /**
+          * Prompt for year, month, and day.
+          */
+-        static final int DATETIME_TYPE_DATE = 1;
++        int DATETIME_TYPE_DATE = 1;
+ 
+         /**
+          * Prompt for year and month.
+          */
+-        static final int DATETIME_TYPE_MONTH = 2;
++        int DATETIME_TYPE_MONTH = 2;
+ 
+         /**
+          * Prompt for year and week.
+          */
+-        static final int DATETIME_TYPE_WEEK = 3;
++        int DATETIME_TYPE_WEEK = 3;
+ 
+         /**
+          * Prompt for hour and minute.
+          */
+-        static final int DATETIME_TYPE_TIME = 4;
++        int DATETIME_TYPE_TIME = 4;
+ 
+         /**
+          * Prompt for year, month, day, hour, and minute, without timezone.
+          */
+-        static final int DATETIME_TYPE_DATETIME_LOCAL = 5;
++        int DATETIME_TYPE_DATETIME_LOCAL = 5;
+ 
+         /**
+          * Display a date/time prompt.
+@@ -3596,8 +3596,8 @@ void onDateTimePrompt(@NonNull GeckoSession session, @Nullable String title,
+         @Retention(RetentionPolicy.SOURCE)
+         @IntDef({FILE_TYPE_SINGLE, FILE_TYPE_MULTIPLE})
+         /* package */ @interface FileType {}
+-        static final int FILE_TYPE_SINGLE = 1;
+-        static final int FILE_TYPE_MULTIPLE = 2;
++        int FILE_TYPE_SINGLE = 1;
++        int FILE_TYPE_MULTIPLE = 2;
+ 
+         /**
+          * Display a file prompt.
+@@ -3643,7 +3643,7 @@ void onFilePrompt(@NonNull GeckoSession session, @Nullable String title, @FileTy
+         * @param scrollY The new vertical scroll position in pixels.
+         */
+         @UiThread
+-        public void onScrollChanged(@NonNull GeckoSession session, int scrollX, int scrollY);
++        void onScrollChanged(@NonNull GeckoSession session, int scrollX, int scrollY);
+     }
+ 
+     /**
+@@ -3822,13 +3822,13 @@ public void getSurfaceBounds(@NonNull final Rect rect) {
+          * Permission for using the geolocation API.
+          * See: https://developer.mozilla.org/en-US/docs/Web/API/Geolocation
+          */
+-        public static final int PERMISSION_GEOLOCATION = 0;
++        int PERMISSION_GEOLOCATION = 0;
+ 
+         /**
+          * Permission for using the notifications API.
+          * See: https://developer.mozilla.org/en-US/docs/Web/API/notification
+          */
+-        public static final int PERMISSION_DESKTOP_NOTIFICATION = 1;
++        int PERMISSION_DESKTOP_NOTIFICATION = 1;
+ 
+         /**
+          * Callback interface for notifying the result of a permission request.
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionTextInput.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionTextInput.java
+index b37c7ae288699..4122cdd542a2d 100644
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionTextInput.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionTextInput.java
+@@ -99,10 +99,10 @@
+         @WrapForJNI final int NOTIFY_IME_TO_CANCEL_COMPOSITION = 9;
+ 
+         // IME enabled state for notifyIMEContext().
+-        final int IME_STATE_UNKNOWN = -1;
+-        final int IME_STATE_DISABLED = 0;
+-        final int IME_STATE_ENABLED = 1;
+-        final int IME_STATE_PASSWORD = 2;
++        int IME_STATE_UNKNOWN = -1;
++        int IME_STATE_DISABLED = 0;
++        int IME_STATE_ENABLED = 1;
++        int IME_STATE_PASSWORD = 2;
+ 
+         // Flags for notifyIMEContext().
+         @WrapForJNI final int IME_FLAG_PRIVATE_BROWSING = 1;
