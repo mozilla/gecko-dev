@@ -63,6 +63,8 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
           }],
         [["--activity"],
          {"dest": "activity",
+          # According to code below, these are the only available choices
+          "choices": ['GeckoViewActivity', 'BrowserTestActivity'], # Bug 1529075
           "help": "name of the android activity used to launch the android app"
           }],
         [["--is-release-build"],
@@ -148,6 +150,26 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
 
     ] + testing_config_options + copy.deepcopy(code_coverage_config_options)
 
+    # Start: Bug 1529075
+    raptor_args_parser = argparse.ArgumentParser(
+        description="PRocess command line args when raptor is initiated locally")
+
+    for config in config_options:
+        exec_str = ''
+        exec_str += 'raptor_args_parser.add_argument('
+        exec_str += '\'' + config[0][0] + '\'' + ', '
+        exec_str += ', '.join("{!s}={!r}".format(key, val)
+                              for (key, val) in config[1].items())
+        exec_str += ')'
+        # type is passed in as a str, need to remove quotes
+        exec_str = exec_str.replace("type=u'int'", "type=int")
+        exec_str = exec_str.replace(
+            "type='choice'", "type=str")  # testbase.py:95
+        # extend is not a valid argparse action, use append
+        exec_str = exec_str.replace("'extend'", "'append'")
+        exec(exec_str)
+    # Stop: Bug 1529075
+
     def __init__(self, **kwargs):
         kwargs.setdefault('config_options', self.config_options)
         kwargs.setdefault('all_actions', ['clobber',
@@ -184,17 +206,29 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             # check each cmd line arg individually
             self.app = "firefox"
             if 'raptor_cmd_line_args' in self.config:
-                for app in ['chrome', 'geckoview', 'fennec', 'refbrow', 'fenix']:
-                    for next_arg in self.config['raptor_cmd_line_args']:
-                        if app in next_arg:
-                            self.app = app
-                            break
+                # Start: Bug 1529075
+                raptor_cmd_line_args = list(
+                    self.config['raptor_cmd_line_args'])
+                parsed_raptor_cmd_line_args = self.raptor_args_parser.parse_args(
+                    raptor_cmd_line_args)
+
+                # get 'app' argument
+                self.app = parsed_raptor_cmd_line_args.app
+                # for app in ['chrome', 'geckoview', 'fennec', 'refbrow', 'fenix']:
+                #     for next_arg in self.config['raptor_cmd_line_args']:
+                #         if app in next_arg:
+                #             self.app = app
+                #             break
+
                 # repeat and get 'activity' argument
-                for activity in ['GeckoViewActivity', 'BrowserTestActivity']:
-                    for next_arg in self.config['raptor_cmd_line_args']:
-                        if activity in next_arg:
-                            self.activity = activity
-                            break
+                self.activity = parsed_raptor_cmd_line_args.activity
+                # for activity in ['GeckoViewActivity', 'BrowserTestActivity']:
+                #     for next_arg in self.config['raptor_cmd_line_args']:
+                #         if activity in next_arg:
+                #             self.activity = activity
+                #             break
+
+                # Stop: Bug 1529075
         else:
             # raptor initiated in production via mozharness
             self.test = self.config['test']
