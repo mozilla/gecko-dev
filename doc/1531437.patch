@@ -1,0 +1,29 @@
+# HG changeset patch
+# User Andrew Law <andrewcylaw@hotmail.com>
+Bug 1531437 - Remove compatibility workaround for validating property names.
+
+
+diff --git a/devtools/client/inspector/rules/models/text-property.js b/devtools/client/inspector/rules/models/text-property.js
+index f554e83c960b..7ed83268cf25 100644
+--- a/devtools/client/inspector/rules/models/text-property.js
++++ b/devtools/client/inspector/rules/models/text-property.js
+@@ -244,17 +244,14 @@ class TextProperty {
+     // created right away before the rule gets updated on the server, so we're
+     // not going to find the corresponding declaration object yet. Default to
+     // true.
+     if (!this.rule.domRule.declarations[selfIndex]) {
+       return true;
+     }
+ 
+     // Starting with FF61, StyleRuleActor provides an accessor to signal if the property
+-    // name is valid. If we don't have this, assume the name is valid. In use, rely on
+-    // isValid() as a guard against false positives.
+-    return (this.rule.domRule.declarations[selfIndex].isNameValid !== undefined)
+-      ? this.rule.domRule.declarations[selfIndex].isNameValid
+-      : true;
++    // name is valid. In use, rely on isValid() as a guard against false positives.
++    return this.rule.domRule.declarations[selfIndex].isNameValid;
+   }
+ }
+ 
+ module.exports = TextProperty;
