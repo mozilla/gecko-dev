@@ -1,0 +1,81 @@
+From 86877401a3d457c09c8866cad4e334b549ee082d Mon Sep 17 00:00:00 2001
+From: Muhtasim <sakibkabbo@gmail.com>
+Date: Fri, 8 Mar 2019 16:18:59 -0500
+Subject: [PATCH] Adding the debugging changes
+
+---
+ browser/base/content/browser.js                  |  1 +
+ toolkit/mozapps/extensions/content/extensions.js | 14 +++++++++++---
+ toolkit/mozapps/update/UpdateListener.jsm        |  7 +++----
+ 3 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
+index 2bbae7036d57b..977c7e45f5fe3 100644
+--- a/browser/base/content/browser.js
++++ b/browser/base/content/browser.js
+@@ -6487,6 +6487,7 @@ var BrowserOffline = {
+     this._updateOfflineUI(Services.io.offline);
+ 
+     this._inited = true;
++    console.log("Offline mode activated, cannot update currently");
+   },
+ 
+   uninit() {
+diff --git a/toolkit/mozapps/extensions/content/extensions.js b/toolkit/mozapps/extensions/content/extensions.js
+index 588088b45616c..566ca0e4da8a3 100644
+--- a/toolkit/mozapps/extensions/content/extensions.js
++++ b/toolkit/mozapps/extensions/content/extensions.js
+@@ -933,7 +933,13 @@ var gViewController = {
+ 
+     cmd_toggleAutoUpdateDefault: {
+       isEnabled() {
+-        return true;
++        if (!Services.io.offline){
++          return true;
++        }
++        else {
++           console.log("Offline mode activated, cannot update currently");
++           return false;
++        }
+       },
+       doCommand() {
+         if (!AddonManager.updateEnabled || !AddonManager.autoUpdateDefault) {
+@@ -2725,7 +2731,7 @@ var gDetailView = {
+     }
+ 
+     document.getElementById("detail-rating-row").hidden = !aAddon.averageRating && !aAddon.reviewURL;
+-
++if (!Services.io.offline){//HERE
+     var canUpdate = !aIsRemote && hasPermission(aAddon, "upgrade");
+     document.getElementById("detail-updates-row").hidden = !canUpdate;
+ 
+@@ -2738,7 +2744,9 @@ var gDetailView = {
+       this._autoUpdate.hidden = true;
+       document.getElementById("detail-findUpdates-btn").hidden = false;
+     }
+-
++}else{
++  console.log("Offline mode activated, cannot update currently")
++}
+     document.getElementById("detail-prefs-btn").hidden = !aIsRemote &&
+       !gViewController.commands.cmd_showItemPreferences.isEnabled(aAddon);
+ 
+diff --git a/toolkit/mozapps/update/UpdateListener.jsm b/toolkit/mozapps/update/UpdateListener.jsm
+index 800f27b309349..025ecd4f7e77e 100644
+--- a/toolkit/mozapps/update/UpdateListener.jsm
++++ b/toolkit/mozapps/update/UpdateListener.jsm
+@@ -23,10 +23,9 @@ var UpdateListener = {
+   get badgeWaitTime() {
+     return Services.prefs.getIntPref("app.update.badgeWaitTime", 4 * 24 * 3600); // 4 days
+   },
+-
+-  init() {
+-  },
+-
++    init() {
++    },
++  
+   uninit() {
+     this.reset();
+   },
+
