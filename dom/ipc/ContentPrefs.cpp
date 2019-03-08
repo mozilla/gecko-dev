@@ -113,7 +113,6 @@ const char* mozilla::dom::ContentPrefs::gEarlyPrefs[] = {
     "javascript.options.array_prototype_values",
     "javascript.options.asmjs",
     "javascript.options.asyncstack",
-    "javascript.options.unboxed_objects",
     "javascript.options.baselinejit",
     "javascript.options.baselinejit.threshold",
     "javascript.options.baselinejit.unsafe_eager_compilation",

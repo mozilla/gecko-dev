@@ -6321,9 +6321,6 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
       }
       jit::JitOptions.jumpThreshold = value;
       break;
-    case JSJITCOMPILER_UNBOXED_OBJECTS:
-      jit::JitOptions.disableUnboxedObjects = !value;
-      break;
     case JSJITCOMPILER_SIMULATOR_ALWAYS_INTERRUPT:
       jit::JitOptions.simulatorAlwaysInterrupt = !!value;
       break;
