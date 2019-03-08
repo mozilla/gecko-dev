@@ -1,0 +1,75 @@
+From 299d82dfa16934be54e0cc4d93a9befa5ea006c6 Mon Sep 17 00:00:00 2001
+From: Marco Yeung <ballchy@gmail.com>
+Date: Fri, 8 Mar 2019 16:28:27 -0500
+Subject: [PATCH 1/1] Attempt to add an event throuttler
+
+---
+ .../src/components/RequestListContent.js      | 17 +++++++++++++++-
+ doc/a3.md                                     | 20 +++++++++++++++++++
+ 2 files changed, 36 insertions(+), 1 deletion(-)
+ create mode 100644 doc/a3.md
+
+diff --git a/devtools/client/netmonitor/src/components/RequestListContent.js b/devtools/client/netmonitor/src/components/RequestListContent.js
+index cbff1c44975a..c5ba3dae701b 100644
+--- a/devtools/client/netmonitor/src/components/RequestListContent.js
++++ b/devtools/client/netmonitor/src/components/RequestListContent.js
+@@ -73,6 +73,7 @@ class RequestListContent extends Component {
+     this.isScrolledToBottom = this.isScrolledToBottom.bind(this);
+     this.onHover = this.onHover.bind(this);
+     this.onScroll = this.onScroll.bind(this);
++    this.resizeThrottler = this.resizeThrottler.bind(this);
+     this.onResize = this.onResize.bind(this);
+     this.onKeyDown = this.onKeyDown.bind(this);
+     this.onContextMenu = this.onContextMenu.bind(this);
+@@ -120,7 +121,21 @@ class RequestListContent extends Component {
+ 
+     // Uninstall the tooltip event handler
+     this.tooltip.stopTogglingOnHover();
+-    window.removeEventListener("resize", this.onResize);
++    window.removeEventListener("resize", this.resizeThrottler);
++  }
++
++  resizeThrottler() {
++    var resizeTimeout;
++    // ignore resize events as long as an actualResizeHandler execution is in the queue
++    if ( !resizeTimeout ) {
++      resizeTimeout = setTimeout(function() {
++        resizeTimeout = null;
++        // actualResizeHandler here
++        onResize();
++     
++       // The actualResizeHandler will execute at a rate of 15fps
++       }, 66);
++    }
+   }
+ 
+   onResize() {
+diff --git a/doc/a3.md b/doc/a3.md
+new file mode 100644
+index 000000000000..df948b2ef3c9
+--- /dev/null
++++ b/doc/a3.md
+@@ -0,0 +1,20 @@
++https://bugzilla.mozilla.org/show_bug.cgi?id=1532914
++
++# Diagnosis
++
++According to the MDN web doc of [the resize event](https://developer.mozilla.org/en-US/docs/Web/Events/resize), "Since resize events can fire at a high rate, the event handler shouldn't execute computationally expensive operations such as DOM modifications." In RequestListContent.js, the onResize function is directly change window size. This is not recommended since it will force the window to repaint every time we resize the window. 
++
++# Solution proposal
++
++At first, I think we can at least take advantage of the React JS's virtual DOM. But while I was searching for an solution for this, I found out that the resize should not have any modificiations in it because the resize event can happen very often. The proposed solution is that we use a throuttler instead to handle the resize event. It is recommended on the MDN web doc. 
++
++The idea is that we disallow any unnessary repaints by limiting the numbers of onResize that can be called. The throuttler does this by using the setTimeout function and put it in the JS queue. As long as the setTimeout is still in queue, we ignore any additional calls to the onResize/resizeThrottler.
++
++Although DOM modification is still a concern. We improve the proformace by preventing this expensive operation happen unnecessarily.
++
++# Testing process
++
++We can test this fix by tracking the number of resize event that is fired using the DevTools (how ironic!). Using an event observer, we can see how many times the resize is fired before and after we install the throuttler.
++
++
++
+-- 
+2.19.1.windows.1
+
