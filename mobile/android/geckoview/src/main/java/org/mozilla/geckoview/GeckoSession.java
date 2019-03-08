@@ -2767,16 +2767,16 @@ public class GeckoSession implements Parcelable {
         /**
          * The selection is collapsed at a single position.
          */
-        final int FLAG_IS_COLLAPSED = 1;
+        int FLAG_IS_COLLAPSED = 1;
         /**
          * The selection is inside editable content such as an input element or
          * contentEditable node.
          */
-        final int FLAG_IS_EDITABLE = 2;
+        int FLAG_IS_EDITABLE = 2;
         /**
          * The selection is inside a password field.
          */
-        final int FLAG_IS_PASSWORD = 4;
+        int FLAG_IS_PASSWORD = 4;
 
         @Retention(RetentionPolicy.SOURCE)
         @StringDef({ACTION_HIDE,
@@ -2793,43 +2793,43 @@ public class GeckoSession implements Parcelable {
         /**
          * Hide selection actions and cause {@link #onHideAction} to be called.
          */
-        final String ACTION_HIDE = "org.mozilla.geckoview.HIDE";
+        String ACTION_HIDE = "org.mozilla.geckoview.HIDE";
         /**
          * Copy onto the clipboard then delete the selected content. Selection
          * must be editable.
          */
-        final String ACTION_CUT = "org.mozilla.geckoview.CUT";
+        String ACTION_CUT = "org.mozilla.geckoview.CUT";
         /**
          * Copy the selected content onto the clipboard.
          */
-        final String ACTION_COPY = "org.mozilla.geckoview.COPY";
+        String ACTION_COPY = "org.mozilla.geckoview.COPY";
         /**
          * Delete the selected content. Selection must be editable.
          */
-        final String ACTION_DELETE = "org.mozilla.geckoview.DELETE";
+        String ACTION_DELETE = "org.mozilla.geckoview.DELETE";
         /**
          * Replace the selected content with the clipboard content. Selection
          * must be editable.
          */
-        final String ACTION_PASTE = "org.mozilla.geckoview.PASTE";
+        String ACTION_PASTE = "org.mozilla.geckoview.PASTE";
         /**
          * Select the entire content of the document or editor.
          */
-        final String ACTION_SELECT_ALL = "org.mozilla.geckoview.SELECT_ALL";
+        String ACTION_SELECT_ALL = "org.mozilla.geckoview.SELECT_ALL";
         /**
          * Clear the current selection. Selection must not be editable.
          */
-        final String ACTION_UNSELECT = "org.mozilla.geckoview.UNSELECT";
+        String ACTION_UNSELECT = "org.mozilla.geckoview.UNSELECT";
         /**
          * Collapse the current selection to its start position.
          * Selection must be editable.
          */
-        final String ACTION_COLLAPSE_TO_START = "org.mozilla.geckoview.COLLAPSE_TO_START";
+        String ACTION_COLLAPSE_TO_START = "org.mozilla.geckoview.COLLAPSE_TO_START";
         /**
          * Collapse the current selection to its end position.
          * Selection must be editable.
          */
-        final String ACTION_COLLAPSE_TO_END = "org.mozilla.geckoview.COLLAPSE_TO_END";
+        String ACTION_COLLAPSE_TO_END = "org.mozilla.geckoview.COLLAPSE_TO_END";
 
         /**
          * Represents attributes of a selection.
@@ -2921,25 +2921,25 @@ public class GeckoSession implements Parcelable {
         /**
          * Actions are no longer available due to the user clearing the selection.
          */
-        final int HIDE_REASON_NO_SELECTION = 0;
+        int HIDE_REASON_NO_SELECTION = 0;
         /**
          * Actions are no longer available due to the user moving the selection out of view.
          * Previous actions are still available after a callback with this reason.
          */
-        final int HIDE_REASON_INVISIBLE_SELECTION = 1;
+        int HIDE_REASON_INVISIBLE_SELECTION = 1;
         /**
          * Actions are no longer available due to the user actively changing the
          * selection. {@link #onShowActionRequest} may be called again once the user has
          * set a selection, if the new selection has available actions.
          */
-        final int HIDE_REASON_ACTIVE_SELECTION = 2;
+        int HIDE_REASON_ACTIVE_SELECTION = 2;
         /**
          * Actions are no longer available due to the user actively scrolling the page.
          * {@link #onShowActionRequest} may be called again once the user has stopped
          * scrolling the page, if the selection is still visible. Until then, previous
          * actions are still available after a callback with this reason.
          */
-        final int HIDE_REASON_ACTIVE_SCROLL = 3;
+        int HIDE_REASON_ACTIVE_SCROLL = 3;
 
         /**
          * Previous actions are no longer available due to the user interacting with the
@@ -2981,15 +2981,15 @@ public class GeckoSession implements Parcelable {
         @Retention(RetentionPolicy.SOURCE)
         @IntDef({TARGET_WINDOW_NONE, TARGET_WINDOW_CURRENT, TARGET_WINDOW_NEW})
         /* package */ @interface TargetWindow {}
-        public static final int TARGET_WINDOW_NONE = 0;
-        public static final int TARGET_WINDOW_CURRENT = 1;
-        public static final int TARGET_WINDOW_NEW = 2;
+        int TARGET_WINDOW_NONE = 0;
+        int TARGET_WINDOW_CURRENT = 1;
+        int TARGET_WINDOW_NEW = 2;
 
         // Match with nsIWebNavigation.idl.
         /**
          * The load request was triggered by an HTTP redirect.
          */
-        static final int LOAD_REQUEST_IS_REDIRECT = 0x800000;
+        int LOAD_REQUEST_IS_REDIRECT = 0x800000;
 
         /**
          * Load request details.
@@ -3177,9 +3177,9 @@ public class GeckoSession implements Parcelable {
             void confirm(int button);
         }
 
-        static final int BUTTON_TYPE_POSITIVE = 0;
-        static final int BUTTON_TYPE_NEUTRAL = 1;
-        static final int BUTTON_TYPE_NEGATIVE = 2;
+        int BUTTON_TYPE_POSITIVE = 0;
+        int BUTTON_TYPE_NEUTRAL = 1;
+        int BUTTON_TYPE_NEGATIVE = 2;
 
         /**
          * Display a prompt with up to three buttons.
@@ -3529,27 +3529,27 @@ public class GeckoSession implements Parcelable {
         /**
          * Prompt for year, month, and day.
          */
-        static final int DATETIME_TYPE_DATE = 1;
+        int DATETIME_TYPE_DATE = 1;
 
         /**
          * Prompt for year and month.
          */
-        static final int DATETIME_TYPE_MONTH = 2;
+        int DATETIME_TYPE_MONTH = 2;
 
         /**
          * Prompt for year and week.
          */
-        static final int DATETIME_TYPE_WEEK = 3;
+        int DATETIME_TYPE_WEEK = 3;
 
         /**
          * Prompt for hour and minute.
          */
-        static final int DATETIME_TYPE_TIME = 4;
+        int DATETIME_TYPE_TIME = 4;
 
         /**
          * Prompt for year, month, day, hour, and minute, without timezone.
          */
-        static final int DATETIME_TYPE_DATETIME_LOCAL = 5;
+        int DATETIME_TYPE_DATETIME_LOCAL = 5;
 
         /**
          * Display a date/time prompt.
@@ -3596,8 +3596,8 @@ public class GeckoSession implements Parcelable {
         @Retention(RetentionPolicy.SOURCE)
         @IntDef({FILE_TYPE_SINGLE, FILE_TYPE_MULTIPLE})
         /* package */ @interface FileType {}
-        static final int FILE_TYPE_SINGLE = 1;
-        static final int FILE_TYPE_MULTIPLE = 2;
+        int FILE_TYPE_SINGLE = 1;
+        int FILE_TYPE_MULTIPLE = 2;
 
         /**
          * Display a file prompt.
@@ -3643,7 +3643,7 @@ public class GeckoSession implements Parcelable {
         * @param scrollY The new vertical scroll position in pixels.
         */
         @UiThread
-        public void onScrollChanged(@NonNull GeckoSession session, int scrollX, int scrollY);
+        void onScrollChanged(@NonNull GeckoSession session, int scrollX, int scrollY);
     }
 
     /**
@@ -3822,13 +3822,13 @@ public class GeckoSession implements Parcelable {
          * Permission for using the geolocation API.
          * See: https://developer.mozilla.org/en-US/docs/Web/API/Geolocation
          */
-        public static final int PERMISSION_GEOLOCATION = 0;
+        int PERMISSION_GEOLOCATION = 0;
 
         /**
          * Permission for using the notifications API.
          * See: https://developer.mozilla.org/en-US/docs/Web/API/notification
          */
-        public static final int PERMISSION_DESKTOP_NOTIFICATION = 1;
+        int PERMISSION_DESKTOP_NOTIFICATION = 1;
 
         /**
          * Callback interface for notifying the result of a permission request.

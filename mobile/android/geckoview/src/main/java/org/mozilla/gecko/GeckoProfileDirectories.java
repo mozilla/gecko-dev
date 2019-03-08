@@ -20,7 +20,7 @@ import android.content.Context;
  * names to salted profile directory paths, as well as the default profile name.
  *
  * This class will eventually come to encapsulate the remaining logic embedded
- * in profiles.ini; for now it's a read-only wrapper.
+ * in profiles.ini; for nzow it's a read-only wrapper.
  */
 public class GeckoProfileDirectories {
     @SuppressWarnings("serial")
@@ -50,7 +50,7 @@ public class GeckoProfileDirectories {
     }
 
     private interface INISectionPredicate {
-        public boolean matches(INISection section);
+        boolean matches(INISection section);
     }
 
     private static final String MOZILLA_DIR_NAME = "mozilla";

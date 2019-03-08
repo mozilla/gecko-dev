@@ -1501,10 +1501,10 @@ public class GeckoAppShell
     }
 
     public interface GeckoInterface {
-        public boolean openUriExternal(String targetURI, String mimeType, String packageName, String className, String action, String title);
+        boolean openUriExternal(String targetURI, String mimeType, String packageName, String className, String action, String title);
 
-        public String[] getHandlersForMimeType(String mimeType, String action);
-        public String[] getHandlersForURL(String url, String action);
+        String[] getHandlersForMimeType(String mimeType, String action);
+        String[] getHandlersForURL(String url, String action);
     };
 
     private static GeckoInterface sGeckoInterface;

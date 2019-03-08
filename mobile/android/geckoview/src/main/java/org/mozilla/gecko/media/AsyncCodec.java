@@ -23,20 +23,20 @@ public interface AsyncCodec {
         void onOutputFormatChanged(AsyncCodec codec, MediaFormat format);
     }
 
-    public abstract void setCallbacks(Callbacks callbacks, Handler handler);
-    public abstract void configure(MediaFormat format, Surface surface, MediaCrypto crypto, int flags);
-    public abstract boolean isAdaptivePlaybackSupported(String mimeType);
-    public abstract boolean isTunneledPlaybackSupported(final String mimeType);
-    public abstract void start();
-    public abstract void stop();
-    public abstract void flush();
+    void setCallbacks(Callbacks callbacks, Handler handler);
+    void configure(MediaFormat format, Surface surface, MediaCrypto crypto, int flags);
+    boolean isAdaptivePlaybackSupported(String mimeType);
+    boolean isTunneledPlaybackSupported(final String mimeType);
+    void start();
+    void stop();
+    void flush();
     // Must be called after flush().
-    public abstract void resumeReceivingInputs();
-    public abstract void release();
-    public abstract ByteBuffer getInputBuffer(int index);
-    public abstract ByteBuffer getOutputBuffer(int index);
-    public abstract void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags);
-    public abstract void setRates(int newBitRate);
-    public abstract void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags);
-    public abstract void releaseOutputBuffer(int index, boolean render);
+    void resumeReceivingInputs();
+    void release();
+    ByteBuffer getInputBuffer(int index);
+    ByteBuffer getOutputBuffer(int index);
+    void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags);
+    void setRates(int newBitRate);
+    void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags);
+    void releaseOutputBuffer(int index, boolean render);
 }
