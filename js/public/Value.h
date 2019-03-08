@@ -584,8 +584,11 @@ class MOZ_NON_PARAM alignas(8) Value {
   bool isMagic() const { return toTag() == JSVAL_TAG_MAGIC; }
 
   bool isMagic(JSWhyMagic why) const {
-    MOZ_ASSERT_IF(isMagic(), data.s.payload.why == why);
-    return isMagic();
+    if (!isMagic()) {
+      return false;
+    }
+    MOZ_RELEASE_ASSERT(data.s_.payload_.why_ == why);
+    return true;
   }
 
   JS::TraceKind traceKind() const {
