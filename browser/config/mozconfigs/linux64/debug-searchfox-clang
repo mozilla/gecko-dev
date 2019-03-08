@@ -17,7 +17,7 @@ export CXX="$topsrcdir/clang/bin/clang++"
 export RUSTFLAGS="-Zsave-analysis"
 
 # Add the static checker
-ac_add_options --enable-clang-plugin
+ac_add_options --enable-clang-static-analyzer
 ac_add_options --enable-mozsearch-plugin
 
 . "$topsrcdir/build/unix/mozconfig.stdcxx"

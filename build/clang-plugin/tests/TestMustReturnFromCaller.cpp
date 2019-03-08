@@ -12,7 +12,7 @@ bool Condition();
 
 // It might be nicer to #include "mozilla/ScopeExit.h" and use that here -- but
 // doing so also will #define the two attribute-macros defined above, running a
-// risk of redefinition errors.  Just stick to the normal clang-plugin test
+// risk of redefinition errors.  Just stick to the normal clang-static-analyzer test
 // style and use as little external code as possible.
 
 template<typename Func>

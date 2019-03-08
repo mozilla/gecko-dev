@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TOOLS_CLANG_PLUGINS_CHROMECLASSTESTER_H_
-#define TOOLS_CLANG_PLUGINS_CHROMECLASSTESTER_H_
+#ifndef TOOLS_CLANG_STATIC_ANALYZERS_CHROMECLASSTESTER_H_
+#define TOOLS_CLANG_STATIC_ANALYZERS_CHROMECLASSTESTER_H_
 
 #include <set>
 #include <vector>
@@ -81,4 +81,4 @@ class ChromeClassTester : public clang::ASTConsumer {
   std::vector<clang::TagDecl*> pending_class_decls_;
 };
 
-#endif  // TOOLS_CLANG_PLUGINS_CHROMECLASSTESTER_H_
+#endif  // TOOLS_CLANG_STATIC_ANALYZERS_CHROMECLASSTESTER_H_

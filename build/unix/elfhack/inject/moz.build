@@ -26,7 +26,7 @@ SOURCES += [
 
 NO_PGO = True
 
-for v in ('OS_CPPFLAGS', 'OS_CFLAGS', 'DEBUG', 'CLANG_PLUGIN', 'OPTIMIZE',
+for v in ('OS_CPPFLAGS', 'OS_CFLAGS', 'DEBUG', 'CLANG_STATIC_ANALYZER', 'OPTIMIZE',
           'FRAMEPTR'):
     flags = []
     idx = 0

@@ -4,7 +4,7 @@ are referenced by the input file. The data is eventually consumed by
 Searchfox. See https://github.com/mozsearch/mozsearch for more
 information.
 
-This plugin is enabled with the --enable-clang-plugin and
+This plugin is enabled with the --enable-clang-static-analyzer and
 --enable-mozsearch-plugin mozconfig options. The output of the plugin
 is stored in $OBJDIR/mozsearch_index.
 

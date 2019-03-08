@@ -6,4 +6,4 @@ mk_add_options MOZ_MAKE_FLAGS=--output-sync=line
 
 . "$topsrcdir/browser/config/mozconfigs/linux64/debug"
 
-unset ENABLE_CLANG_PLUGIN
+unset ENABLE_CLANG_STATIC_ANALYZER

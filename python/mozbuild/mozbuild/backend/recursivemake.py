@@ -1410,7 +1410,7 @@ class RecursiveMakeBackend(CommonBackend):
                                         for o in profile_gen_objs)
         # Don't bother with a list file if we're only linking objects built
         # in this directory or building a real static library. This
-        # accommodates clang-plugin, where we would otherwise pass an
+        # accommodates clang-static-analyzer, where we would otherwise pass an
         # incorrect list file format to the host compiler as well as when
         # creating an archive with AR, which doesn't understand list files.
         if (objs == obj.objs and not isinstance(obj, (HostLibrary, StaticLibrary)) or

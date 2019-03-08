@@ -2,9 +2,9 @@ dnl This Source Code Form is subject to the terms of the Mozilla Public
 dnl License, v. 2.0. If a copy of the MPL was not distributed with this
 dnl file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-AC_DEFUN([MOZ_CONFIG_CLANG_PLUGIN], [
+AC_DEFUN([MOZ_CONFIG_CLANG_STATIC_ANALYZER], [
 
-if test -n "$ENABLE_CLANG_PLUGIN"; then
+if test -n "$ENABLE_CLANG_STATIC_ANALYZER"; then
     if test -z "${CLANG_CC}${CLANG_CL}"; then
         AC_MSG_ERROR([Can't use clang plugin without clang.])
     fi
@@ -157,36 +157,36 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
       LLVM_CXXFLAGS="$LLVM_CXXFLAGS -DHAS_ACCEPTS_IGNORINGPARENIMPCASTS"
     fi
 
-    CLANG_PLUGIN_FLAGS="-Xclang -load -Xclang $CLANG_PLUGIN -Xclang -add-plugin -Xclang moz-check"
+    CLANG_STATIC_ANALYZER_FLAGS="-Xclang -load -Xclang $CLANG_STATIC_ANALYZER -Xclang -add-plugin -Xclang moz-check"
 
-    AC_DEFINE(MOZ_CLANG_PLUGIN)
+    AC_DEFINE(MOZ_CLANG_STATIC_ANALYZER)
 fi
 
 if test -n "$ENABLE_MOZSEARCH_PLUGIN"; then
-    if test -z "${ENABLE_CLANG_PLUGIN}"; then
-        AC_MSG_ERROR([Can't use mozsearch plugin without --enable-clang-plugin.])
+    if test -z "${ENABLE_CLANG_STATIC_ANALYZER}"; then
+        AC_MSG_ERROR([Can't use mozsearch plugin without --enable-clang-static-analyzer.])
     fi
 
     dnl We use this construct rather than $_objdir to avoid getting /js/src in the
     dnl path when compiling JS code.
-    OBJDIR="$(dirname $(dirname $(dirname $CLANG_PLUGIN)))"
+    OBJDIR="$(dirname $(dirname $(dirname $CLANG_STATIC_ANALYZER)))"
 
-    CLANG_PLUGIN_FLAGS="$CLANG_PLUGIN_FLAGS -Xclang -add-plugin -Xclang mozsearch-index"
+    CLANG_STATIC_ANALYZER_FLAGS="$CLANG_STATIC_ANALYZER_FLAGS -Xclang -add-plugin -Xclang mozsearch-index"
 
     dnl Parameters are: srcdir, outdir (path where output JSON is stored), objdir.
-    CLANG_PLUGIN_FLAGS="$CLANG_PLUGIN_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $_topsrcdir"
-    CLANG_PLUGIN_FLAGS="$CLANG_PLUGIN_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $OBJDIR/mozsearch_index"
-    CLANG_PLUGIN_FLAGS="$CLANG_PLUGIN_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $OBJDIR"
+    CLANG_STATIC_ANALYZER_FLAGS="$CLANG_STATIC_ANALYZER_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $_topsrcdir"
+    CLANG_STATIC_ANALYZER_FLAGS="$CLANG_STATIC_ANALYZER_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $OBJDIR/mozsearch_index"
+    CLANG_STATIC_ANALYZER_FLAGS="$CLANG_STATIC_ANALYZER_FLAGS -Xclang -plugin-arg-mozsearch-index -Xclang $OBJDIR"
 
     AC_DEFINE(MOZ_MOZSEARCH_PLUGIN)
 fi
 
-AC_SUBST_LIST(CLANG_PLUGIN_FLAGS)
+AC_SUBST_LIST(CLANG_STATIC_ANALYZER_FLAGS)
 AC_SUBST_LIST(LLVM_CXXFLAGS)
 AC_SUBST_LIST(LLVM_LDFLAGS)
 AC_SUBST_LIST(CLANG_LDFLAGS)
 
-AC_SUBST(ENABLE_CLANG_PLUGIN)
+AC_SUBST(ENABLE_CLANG_STATIC_ANALYZER)
 AC_SUBST(ENABLE_MOZSEARCH_PLUGIN)
 
 ])

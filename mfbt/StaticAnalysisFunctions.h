@@ -18,10 +18,10 @@
 /*
  * Functions that are used as markers in Gecko code for static analysis. Their
  * purpose is to have different AST nodes generated during compile time and to
- * match them based on different checkers implemented in build/clang-plugin
+ * match them based on different checkers implemented in build/clang-static-analyzer
  */
 
-#ifdef MOZ_CLANG_PLUGIN
+#ifdef MOZ_CLANG_STATIC_ANALYZER
 
 #  ifdef __cplusplus
 /**
@@ -65,5 +65,5 @@ static MOZ_ALWAYS_INLINE MOZ_CONSTEXPR bool MOZ_AssertAssignmentTest(
 #  define MOZ_CHECK_ASSERT_ASSIGNMENT(expr) (!!(expr))
 #  define MOZ_KnownLive(expr) (expr)
 
-#endif /* MOZ_CLANG_PLUGIN */
+#endif /* MOZ_CLANG_STATIC_ANALYZER */
 #endif /* StaticAnalysisFunctions_h */

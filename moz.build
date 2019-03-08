@@ -84,8 +84,8 @@ CONFIGURE_SUBST_FILES += [
     'config/emptyvars.mk',
 ]
 
-if CONFIG['ENABLE_CLANG_PLUGIN']:
-    DIRS += ['build/clang-plugin']
+if CONFIG['ENABLE_CLANG_STATIC_ANALYZER']:
+    DIRS += ['build/clang-static-analyzer']
 
 DIRS += [
     'config',

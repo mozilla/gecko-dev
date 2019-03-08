@@ -5,7 +5,7 @@
 # The entire tree should be subject to static analysis using the XPCOM
 # script. Additional scripts may be added by specific subdirectories.
 
-ifdef ENABLE_CLANG_PLUGIN
+ifdef ENABLE_CLANG_STATIC_ANALYZER
 # Replace "clang-cl.exe" to "clang.exe --driver-mode=cl" to avoid loading the
 # module clang.exe again when load the plugin dll, which links to the import
 # library of clang.exe.

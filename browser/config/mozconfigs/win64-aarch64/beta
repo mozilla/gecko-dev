@@ -7,6 +7,6 @@ ac_add_options --enable-verify-mar
 
 export MOZ_LTO=1
 
-unset ENABLE_CLANG_PLUGIN
+unset ENABLE_CLANG_STATIC_ANALYZER
 
 . "$topsrcdir/build/mozconfig.common.override"

@@ -745,7 +745,7 @@
 #    pragma GCC diagnostic ignored "-Wattributes"
 #  endif
 
-#  if defined(MOZ_CLANG_PLUGIN) || defined(XGILL_PLUGIN)
+#  if defined(MOZ_CLANG_STATIC_ANALYZER) || defined(XGILL_PLUGIN)
 #    define MOZ_CAN_RUN_SCRIPT __attribute__((annotate("moz_can_run_script")))
 #    define MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION \
       __attribute__((annotate("moz_can_run_script")))
@@ -854,7 +854,7 @@
 #    define MOZ_REQUIRED_BASE_METHOD                        /* nothing */
 #    define MOZ_MUST_RETURN_FROM_CALLER                     /* nothing */
 #    define MOZ_MAY_CALL_AFTER_MUST_RETURN                  /* nothing */
-#  endif /* defined(MOZ_CLANG_PLUGIN) || defined(XGILL_PLUGIN) */
+#  endif /* defined(MOZ_CLANG_STATIC_ANALYZER) || defined(XGILL_PLUGIN) */
 
 #  define MOZ_RAII MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS
 

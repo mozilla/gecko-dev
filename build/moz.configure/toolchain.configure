@@ -2151,11 +2151,11 @@ set_config('ASOUTOPTION', as_outoption)
 # clang plugin handling
 # ==============================================================
 
-js_option('--enable-clang-plugin', env='ENABLE_CLANG_PLUGIN',
+js_option('--enable-clang-static-analyzer', env='ENABLE_CLANG_STATIC_ANALYZER',
           help="Enable building with the mozilla clang plugin")
 
-add_old_configure_assignment('ENABLE_CLANG_PLUGIN',
-                             depends_if('--enable-clang-plugin')(lambda _: True))
+add_old_configure_assignment('ENABLE_CLANG_STATIC_ANALYZER',
+                             depends_if('--enable-clang-static-analyzer')(lambda _: True))
 
 js_option('--enable-mozsearch-plugin', env='ENABLE_MOZSEARCH_PLUGIN',
           help="Enable building with the mozsearch indexer plugin")

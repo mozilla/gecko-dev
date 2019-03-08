@@ -1,5 +1,5 @@
 # Uses the LLVM coding style
-build/clang-plugin/.*
+build/clang-static-analyzer/.*
 # The two templates cannot be formatted
 config/gcc-stl-wrapper.template.h
 config/msvc-stl-wrapper.template.h

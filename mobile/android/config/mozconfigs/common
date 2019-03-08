@@ -31,7 +31,7 @@ if [ -z "$NO_NDK" -a -z "$USE_ARTIFACT" ]; then
     CXX="$topsrcdir/clang/bin/clang++"
     ac_add_options --with-android-ndk="$topsrcdir/android-ndk"
     # Enable static analysis plugin
-    export ENABLE_CLANG_PLUGIN=1
+    export ENABLE_CLANG_STATIC_ANALYZER=1
 fi
 
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}

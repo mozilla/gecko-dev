@@ -145,7 +145,7 @@
 #define SK_SUPPORT_DEPRECATED_CLIPOPS
 
 #ifndef MOZ_IMPLICIT
-#  ifdef MOZ_CLANG_PLUGIN
+#  ifdef MOZ_CLANG_STATIC_ANALYZER
 #    define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
 #  else
 #    define MOZ_IMPLICIT

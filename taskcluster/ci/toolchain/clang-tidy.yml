@@ -12,12 +12,12 @@ job-defaults:
     run:
         toolchain-artifact: public/build/clang-tidy.tar.xz
         resources:
-            - 'build/clang-plugin/**/*.cpp'
-            - 'build/clang-plugin/**/*.h'
-            - 'build/clang-plugin/*.inc'
-            - 'build/clang-plugin/*.py'
-            - 'build/clang-plugin/moz.build'
-            - 'build/clang-plugin/Makefile.in'
+            - 'build/clang-static-analyzer/**/*.cpp'
+            - 'build/clang-static-analyzer/**/*.h'
+            - 'build/clang-static-analyzer/*.inc'
+            - 'build/clang-static-analyzer/*.py'
+            - 'build/clang-static-analyzer/moz.build'
+            - 'build/clang-static-analyzer/Makefile.in'
             - 'build/build-clang/build-clang.py'
     run-on-projects:
         - trunk

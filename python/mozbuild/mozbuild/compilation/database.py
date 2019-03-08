@@ -49,8 +49,8 @@ class CompileDBBackend(CommonBackend):
         if obj.relsrcdir in (
                 'build/unix/elfhack',
                 'build/unix/elfhack/inject',
-                'build/clang-plugin',
-                'build/clang-plugin/tests'):
+                'build/clang-static-analyzer',
+                'build/clang-static-analyzer/tests'):
             return True
 
         consumed = CommonBackend.consume_object(self, obj)

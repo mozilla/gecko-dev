@@ -459,7 +459,7 @@ class CompileFlags(BaseCompileFlags):
              ('CXXFLAGS', 'CXX_LDFLAGS')),
             ('DEBUG', self._debug_flags(),
              ('CFLAGS', 'CXXFLAGS', 'CXX_LDFLAGS', 'C_LDFLAGS')),
-            ('CLANG_PLUGIN', context.config.substs.get('CLANG_PLUGIN_FLAGS'),
+            ('CLANG_STATIC_ANALYZER', context.config.substs.get('CLANG_STATIC_ANALYZER_FLAGS'),
              ('CFLAGS', 'CXXFLAGS', 'CXX_LDFLAGS', 'C_LDFLAGS')),
             ('OPTIMIZE', self._optimize_flags(),
              ('CFLAGS', 'CXXFLAGS', 'CXX_LDFLAGS', 'C_LDFLAGS')),

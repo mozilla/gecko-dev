@@ -181,9 +181,9 @@ xpcom/xpidl/export: xpcom/idl-parser/xpidl/export
 # CSS2Properties.webidl needs ServoCSSPropList.py from layout/style
 dom/bindings/export: layout/style/export
 
-ifdef ENABLE_CLANG_PLUGIN
-$(filter-out config/host build/unix/stdc++compat/% build/clang-plugin/%,$(compile_targets)): build/clang-plugin/host build/clang-plugin/tests/target
-build/clang-plugin/tests/target: build/clang-plugin/host
+ifdef ENABLE_CLANG_STATIC_ANALYZER
+$(filter-out config/host build/unix/stdc++compat/% build/clang-static-analyzer/%,$(compile_targets)): build/clang-static-analyzer/host build/clang-static-analyzer/tests/target
+build/clang-static-analyzer/tests/target: build/clang-static-analyzer/host
 endif
 
 # Interdependencies that moz.build world don't know about yet for compilation.
@@ -198,4 +198,4 @@ endif
 endif
 # Most things are built during compile (target/host), but some things happen during export
 # Those need to depend on config/export for system wrappers.
-$(addprefix build/unix/stdc++compat/,target host) build/clang-plugin/host: config/export
+$(addprefix build/unix/stdc++compat/,target host) build/clang-static-analyzer/host: config/export

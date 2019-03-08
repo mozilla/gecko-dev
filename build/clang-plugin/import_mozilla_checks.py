@@ -129,7 +129,7 @@ static int LLVM_ATTRIBUTE_UNUSED MozillaModuleAnchorDestination =
 def main():
     if len(sys.argv) != 3:
         print("""\
-Usage: import_mozilla_checks.py <mozilla-clang-plugin-path> <clang-tidy-path>
+Usage: import_mozilla_checks.py <mozilla-clang-static-analyzer-path> <clang-tidy-path>
 Imports the Mozilla static analysis checks into a clang-tidy source tree.
 """)
 

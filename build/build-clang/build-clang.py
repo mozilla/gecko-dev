@@ -53,7 +53,7 @@ def patch(patch, srcdir):
 
 def import_clang_tidy(source_dir):
     clang_plugin_path = os.path.join(os.path.dirname(sys.argv[0]),
-                                     '..', 'clang-plugin')
+                                     '..', 'clang-static-analyzer')
     clang_tidy_path = os.path.join(source_dir,
                                    'tools/clang/tools/extra/clang-tidy')
     sys.path.append(clang_plugin_path)

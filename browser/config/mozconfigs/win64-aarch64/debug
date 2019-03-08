@@ -22,6 +22,6 @@ ac_add_options --with-branding=browser/branding/nightly
 
 . $topsrcdir/build/win64-aarch64/mozconfig.vs-latest
 
-unset ENABLE_CLANG_PLUGIN
+unset ENABLE_CLANG_STATIC_ANALYZER
 
 . "$topsrcdir/build/mozconfig.common.override"

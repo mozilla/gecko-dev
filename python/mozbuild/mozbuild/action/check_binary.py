@@ -355,9 +355,9 @@ def check_networking(binary):
     return retcode
 
 def checks(target, binary):
-    # The clang-plugin is built as target but is really a host binary.
+    # The clang-static-analyzer is built as target but is really a host binary.
     # Cheat and pretend we were passed the right argument.
-    if 'clang-plugin' in binary:
+    if 'clang-static-analyzer' in binary:
         target = HOST
     checks = []
     if target['MOZ_LIBSTDCXX_VERSION']:

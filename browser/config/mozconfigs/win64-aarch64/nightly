@@ -8,6 +8,6 @@ export MOZ_LTO=1
 
 ac_add_options --with-branding=browser/branding/nightly
 
-unset ENABLE_CLANG_PLUGIN
+unset ENABLE_CLANG_STATIC_ANALYZER
 
 . "$topsrcdir/build/mozconfig.common.override"

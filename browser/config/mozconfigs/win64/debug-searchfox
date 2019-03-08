@@ -13,7 +13,7 @@ ac_add_options --enable-debug
 # which is done in the taskcluster task definition via RUSTC_BOOTSTRAP)
 export RUSTFLAGS="-Zsave-analysis"
 
-ac_add_options --enable-clang-plugin
+ac_add_options --enable-clang-static-analyzer
 ac_add_options --enable-mozsearch-plugin
 
 . $topsrcdir/build/win64/mozconfig.vs-latest

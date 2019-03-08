@@ -12,7 +12,7 @@ if [ -n "$FORCE_GCC" ]; then
 else
     CC="$TOOLTOOL_DIR/clang/bin/clang"
     CXX="$TOOLTOOL_DIR/clang/bin/clang++"
-    export ENABLE_CLANG_PLUGIN=1
+    export ENABLE_CLANG_STATIC_ANALYZER=1
     case "$PERFHERDER_EXTRA_OPTIONS" in
     base-toolchains*)
       # Clang versions < 7.0 don't support the -fcrash-diagnostics-dir flag.
