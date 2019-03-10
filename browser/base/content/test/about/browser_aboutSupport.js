@@ -13,13 +13,21 @@ add_task(async function() {
     let allowedStates = [strings.GetStringFromName("found"),
                          strings.GetStringFromName("missing")];
 
-    let keyGoogleStatus = await ContentTask.spawn(browser, null, async function() {
-      let textBox = content.document.getElementById("key-google-box");
+    let keyLocationServiceGoogleStatus = await ContentTask.spawn(browser, null, async function() {
+      let textBox = content.document.getElementById("key-location-service-google-box");
       await ContentTaskUtils.waitForCondition(() => textBox.textContent.trim(),
-        "Google API key status loaded");
+        "Google location service API key status loaded");
       return textBox.textContent;
     });
-    ok(allowedStates.includes(keyGoogleStatus), "Google API key status shown");
+    ok(allowedStates.includes(keyLocationServiceGoogleStatus), "Google location service API key status shown");
+
+    let keySafebrowsingGoogleStatus = await ContentTask.spawn(browser, null, async function() {
+      let textBox = content.document.getElementById("key-safebrowsing-google-box");
+      await ContentTaskUtils.waitForCondition(() => textBox.textContent.trim(),
+        "Google Safebrowsing API key status loaded");
+      return textBox.textContent;
+    });
+    ok(allowedStates.includes(keySafebrowsingGoogleStatus), "Google Safebrowsing API key status shown");
 
     let keyMozillaStatus = await ContentTask.spawn(browser, null, async function() {
       let textBox = content.document.getElementById("key-mozilla-box");
