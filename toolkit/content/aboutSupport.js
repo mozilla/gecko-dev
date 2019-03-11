@@ -122,10 +122,10 @@ var snapshotFormatters = {
     }
 
     let keyLocationServiceGoogleFound = data.keyLocationServiceGoogleFound ? "found" : "missing";
-    $("key-location-service-google-box").textContent = keyLocationServiceGoogleFound;
+    $("key-location-service-google-box").textContent = strings.GetStringFromName(keyLocationServiceGoogleFound);
 
     let keySafebrowsingGoogleFound = data.keySafebrowsingGoogleFound ? "found" : "missing";
-    $("key-safebrowsing-google-box").textContent = keySafebrowsingGoogleFound;
+    $("key-safebrowsing-google-box").textContent = strings.GetStringFromName(keySafebrowsingGoogleFound);
 
     let keyMozillaFound = data.keyMozillaFound ? "found" : "missing";
     $("key-mozilla-box").textContent = strings.GetStringFromName(keyMozillaFound);
