@@ -3728,6 +3728,13 @@ NSEvent* gLastDragMouseDownEvent = nil;
 
 - (void)drawRect:(NSRect)aRect inContext:(CGContextRef)aContext
 {
+  if (!NS_IsMainThread()) {
+    // In the presence of CoreAnimation, this method can sometimes be called on
+    // a non-main thread. Ignore those calls because Gecko can only react to
+    // them on the main thread.
+    return;
+  }
+
   if (!mGeckoChild || !mGeckoChild->IsVisible())
     return;
 
@@ -3977,6 +3984,13 @@ NSEvent* gLastDragMouseDownEvent = nil;
 
 - (void)viewWillDraw
 {
+  if (!NS_IsMainThread()) {
+    // In the presence of CoreAnimation, this method can sometimes be called on
+    // a non-main thread. Ignore those calls because Gecko can only react to
+    // them on the main thread.
+    return;
+  }
+
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
 
   if (mGeckoChild) {
