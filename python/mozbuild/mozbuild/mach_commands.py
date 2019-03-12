@@ -1315,20 +1315,10 @@ class PackageFrontend(MachCommandBase):
         class ArtifactRecord(DownloadRecord):
             def __init__(self, task_id, artifact_name):
                 cot = cache._download_manager.session.get(
-                    get_artifact_url(task_id, 'public/chainOfTrust.json.asc'))
+                    get_artifact_url(task_id, 'public/chain-of-trust.json'))
                 cot.raise_for_status()
                 digest = algorithm = None
-                data = {}
-                # The file is GPG-signed, but we don't care about validating
-                # that. Instead of parsing the PGP signature, we just take
-                # the one line we're interested in, which starts with a `{`.
-                for l in cot.content.splitlines():
-                    if l.startswith('{'):
-                        try:
-                            data = json.loads(l)
-                            break
-                        except Exception:
-                            pass
+                data = json.loads(cot.content)
                 for algorithm, digest in (data.get('artifacts', {})
                                               .get(artifact_name, {}).items()):
                     pass
