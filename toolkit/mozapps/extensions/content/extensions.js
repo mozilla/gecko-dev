@@ -1819,6 +1819,11 @@ var gCategories = {
       this.node.value = gViewDefault;
     }
 
+    // If the previous node is the discover panel which has since been disabled set to default
+    if (this.node.value == "addons://discover/" && !isDiscoverEnabled()) {
+      this.node.value = gViewDefault;
+    }
+
     this.node.addEventListener("select", () => {
       gViewController.loadView(this.node.selectedItem.value);
     });
