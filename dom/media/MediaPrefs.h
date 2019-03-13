@@ -154,7 +154,6 @@ class MediaPrefs final {
   DECL_MEDIA_PREF("media.wmf.skip-blacklist", PDMWMFSkipBlacklist, bool, false);
   DECL_MEDIA_PREF("media.decoder-doctor.wmf-disabled-is-failure",
                   DecoderDoctorWMFDisabledIsFailure, bool, false);
-  DECL_MEDIA_PREF("media.wmf.vp9.enabled", PDMWMFVP9DecoderEnabled, bool, true);
 #endif
   DECL_MEDIA_PREF("media.decoder.recycle.enabled", MediaDecoderCheckRecycling,
                   bool, false);

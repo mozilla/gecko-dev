@@ -710,6 +710,7 @@ class gfxPrefs final {
   DECL_GFX_PREF(Live, "media.wmf.amd.vp9.enabled", PDMWMFAMDVP9DecoderEnabled, bool, false);
   DECL_GFX_PREF(Live, "media.wmf.amd.highres.enabled", PDMWMFAMDHighResEnabled, bool, true);
   DECL_GFX_PREF(Live, "media.wmf.allow-unsupported-resolutions",  PDMWMFAllowUnsupportedResolutions, bool, false);
+  DECL_GFX_PREF(Once, "media.wmf.vp9.enabled", PDMWMFVP9DecoderEnabled, bool, true);
 #endif
 
   // These affect how line scrolls from wheel events will be accelerated.
