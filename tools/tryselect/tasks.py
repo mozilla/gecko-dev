@@ -50,8 +50,6 @@ def invalidate(cache, root):
 
 
 def generate_tasks(params, full, root):
-    params = params or "project=mozilla-central"
-
     cache_dir = os.path.join(get_state_dir()[0], 'cache', 'taskgraph')
 
     # Cleanup old cache files
