@@ -1023,6 +1023,8 @@ void FetchBody<Derived>::SetBodyUsed(JSContext* aCx, ErrorResult& aRv) {
   // If we already have a ReadableStreamBody and it has been created by DOM, we
   // have to lock it now because it can have been shared with other objects.
   if (mReadableStreamBody) {
+    JSAutoCompartment ac(aCx, mOwner->GetGlobalJSObject());
+
     JS::Rooted<JSObject*> readableStreamObj(aCx, mReadableStreamBody);
     if (JS::ReadableStreamGetMode(readableStreamObj) ==
         JS::ReadableStreamMode::ExternalSource) {
@@ -1231,6 +1233,8 @@ void FetchBody<Derived>::MaybeTeeReadableStreamBody(
   if (!mReadableStreamBody) {
     return;
   }
+
+  JSAutoCompartment ac(aCx, mOwner->GetGlobalJSObject());
 
   JS::Rooted<JSObject*> stream(aCx, mReadableStreamBody);
 
