@@ -316,7 +316,6 @@ nsDocShell::nsDocShell()
       mForcedCharset(nullptr),
       mParentCharset(nullptr),
       mTreeOwner(nullptr),
-      mChromeEventHandler(nullptr),
       mDefaultScrollbarPref(Scrollbar_Auto, Scrollbar_Auto),
       mCharsetReloadState(eCharsetReloadInit),
       mOrientationLock(eScreenOrientation_None),
@@ -492,7 +491,7 @@ void nsDocShell::DestroyChildren() {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(nsDocShell, nsDocLoader,
                                    mSessionStorageManager, mScriptGlobal,
-                                   mInitialClientSource)
+                                   mInitialClientSource, mChromeEventHandler)
 
 NS_IMPL_ADDREF_INHERITED(nsDocShell, nsDocLoader)
 NS_IMPL_RELEASE_INHERITED(nsDocShell, nsDocLoader)
@@ -1343,9 +1342,7 @@ nsDocShell::GetContentViewer(nsIContentViewer** aContentViewer) {
 
 NS_IMETHODIMP
 nsDocShell::SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler) {
-  // Weak reference. Don't addref.
-  nsCOMPtr<EventTarget> handler = do_QueryInterface(aChromeEventHandler);
-  mChromeEventHandler = handler.get();
+  mChromeEventHandler = do_QueryInterface(aChromeEventHandler);
 
   if (mScriptGlobal) {
     mScriptGlobal->SetChromeEventHandler(mChromeEventHandler);
@@ -5301,6 +5298,8 @@ nsDocShell::Destroy() {
   }
 
   SetTreeOwner(nullptr);
+
+  mChromeEventHandler = nullptr;
 
   mOnePermittedSandboxedNavigator = nullptr;
 
