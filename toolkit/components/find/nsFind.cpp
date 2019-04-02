@@ -874,10 +874,6 @@ nsFind::Find(const char16_t* aPatText, nsIDOMRange* aSearchRange,
   NS_ENSURE_ARG_POINTER(aRangeRet);
   *aRangeRet = 0;
 
-  if (!aPatText) {
-    return NS_ERROR_NULL_POINTER;
-  }
-
   ResetAll();
 
   nsAutoString patAutoStr(aPatText);
