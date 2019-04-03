@@ -25,7 +25,8 @@ function waitForClear() {
 add_task(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.webapi.testing", true],
-          ["extensions.install.requireBuiltInCerts", false]],
+          ["extensions.install.requireBuiltInCerts", false],
+          ["xpinstall.customConfirmationUI", true]],
   });
   info("added preferences");
 });
@@ -197,10 +198,12 @@ function makeRegularTest(options, what) {
       },
     ];
 
+    let installPromptPromise = promiseNotification("addon-install-confirmation");
     let promptPromise = promiseNotification("addon-installed");
 
     await testInstall(browser, options, steps, what);
 
+    await installPromptPromise;
     await promptPromise;
 
     let version = Services.prefs.getIntPref("webapitest.active_version");
