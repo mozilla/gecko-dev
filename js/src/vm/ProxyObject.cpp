@@ -103,8 +103,16 @@ static gc::AllocKind GetProxyGCObjectKind(const Class* clasp,
   else
     proxy->setSameCompartmentPrivate(priv);
 
+  if (newKind == SingletonObject) {
+    Rooted<ProxyObject*> rootedProxy(cx, proxy);
+    if (!JSObject::setSingleton(cx, rootedProxy)) {
+      return nullptr;
+    }
+    return rootedProxy;
+  }
+
   /* Don't track types of properties of non-DOM and non-singleton proxies. */
-  if (newKind != SingletonObject && !clasp->isDOMClass())
+  if (!clasp->isDOMClass())
     MarkObjectGroupUnknownProperties(cx, proxy->group());
 
   return proxy;
@@ -183,12 +191,6 @@ void ProxyObject::nuke() {
   cx->compartment()->setObjectPendingMetadata(cx, pobj);
 
   js::gc::TraceCreateObject(pobj);
-
-  if (newKind == SingletonObject) {
-    Rooted<ProxyObject*> pobjRoot(cx, pobj);
-    if (!JSObject::setSingleton(cx, pobjRoot)) return cx->alreadyReportedOOM();
-    pobj = pobjRoot;
-  }
 
   return pobj;
 }
