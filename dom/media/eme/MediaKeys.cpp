@@ -307,7 +307,7 @@ class MediaKeysGMPCrashHelper : public GMPCrashHelper {
 };
 
 already_AddRefed<CDMProxy> MediaKeys::CreateCDMProxy(
-    nsIEventTarget* aMainThread) {
+    nsISerialEventTarget* aMainThread) {
   RefPtr<CDMProxy> proxy;
 #ifdef MOZ_WIDGET_ANDROID
   if (IsWidevineKeySystem(mKeySystem)) {
