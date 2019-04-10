@@ -3472,6 +3472,8 @@ SearchService.prototype = {
   },
 
   _parseListJSON: function SRCH_SVC_parseListJSON(list, uris) {
+    let searchRegion =  Services.prefs.getCharPref("browser.search.region", null);
+
     let searchSettings;
     try {
       searchSettings = JSON.parse(list);
@@ -3495,6 +3497,12 @@ SearchService.prototype = {
         }
         for (let engine of searchSettings[region].visibleDefaultEngines) {
           jarNames.add(engine);
+        }
+        if ("regionOverrides" in searchSettings &&
+            searchRegion in searchSettings.regionOverrides) {
+          for (let engine in searchSettings.regionOverrides[searchRegion]) {
+            jarNames.add(searchSettings.regionOverrides[searchRegion][engine]);
+          }
         }
       }
 
@@ -3521,14 +3529,12 @@ SearchService.prototype = {
 
     // Fallback to building a list based on the regions in the JSON
     if (!engineNames || !engineNames.length) {
-      let region;
-      if (Services.prefs.prefHasUserValue("browser.search.region")) {
-        region = Services.prefs.getCharPref("browser.search.region");
+      if (searchRegion && searchRegion in searchSettings &&
+        "visibleDefaultEngines" in searchSettings[searchRegion]) {
+        engineNames = searchSettings[searchRegion].visibleDefaultEngines;
+      } else {
+        engineNames = searchSettings.default.visibleDefaultEngines;
       }
-      if (!region || !(region in searchSettings)) {
-        region = "default";
-      }
-      engineNames = searchSettings[region].visibleDefaultEngines;
     }
 
     // Remove any engine names that are supposed to be ignored.
