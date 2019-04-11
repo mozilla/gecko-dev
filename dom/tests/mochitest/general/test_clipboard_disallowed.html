@@ -48,6 +48,21 @@ function checkAllowed(event)
 
   exception = null;
   try {
+    clipboardData.mozSetDataAt("text/x-moz-place", "Test", 0);
+  } catch(ex) {
+    exception = ex;
+  }
+  is(String(exception).indexOf("SecurityError"), 0, "Cannot set place");
+  exception = null;
+  try {
+    clipboardData.mozSetDataAt("text/x-moz-place-container", "Test", 0);
+  } catch(ex) {
+    exception = ex;
+  }
+  is(String(exception).indexOf("SecurityError"), 0, "Cannot set place container");
+
+  exception = null;
+  try {
     clipboardData.mozSetDataAt("application/something", "This is data", 0);
   } catch(ex) {
     exception = ex;

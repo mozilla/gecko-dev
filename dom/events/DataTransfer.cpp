@@ -39,6 +39,7 @@
 #include "mozilla/dom/OSFileSystem.h"
 #include "mozilla/dom/Promise.h"
 #include "nsNetUtil.h"
+#include "nsReadableUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -644,7 +645,18 @@ void DataTransfer::MozGetDataAt(JSContext* aCx, const nsAString& aFormat,
           "DataTransfer");
       return false;
     }
+
+    // Disallow content from creating x-moz-place flavors, so that it cannot
+    // create fake Places smart queries exposing user data, but give a free
+    // pass to WebExtensions.
+    auto principal = BasePrincipal::Cast(aPrincipal);
+    if (!principal->AddonPolicy() &&
+        StringBeginsWith(aType, NS_LITERAL_STRING("text/x-moz-place"))) {
+      NS_WARNING("Disallowing adding moz-place types to DataTransfer");
+      return false;
+    }
   }
+
   return true;
 }
 
