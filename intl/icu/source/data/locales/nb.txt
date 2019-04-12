@@ -5483,6 +5483,7 @@ nb{
                     "Taishō",
                     "Shōwa",
                     "Heisei",
+                    "Reiwa",
                 }
                 narrow{
                     "Taika (645–650)",
@@ -5721,6 +5722,7 @@ nb{
                     "T",
                     "S",
                     "H",
+                    "R",
                 }
                 wide{
                     "Taika (645–650)",
@@ -5959,6 +5961,7 @@ nb{
                     "Taishō",
                     "Shōwa",
                     "Heisei",
+                    "Reiwa",
                 }
             }
             intervalFormats{
