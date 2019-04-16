@@ -269,3 +269,8 @@ attribute.
 update-channel
 ==============
 The update channel the build is configured to use.
+
+
+retrigger
+=========
+Whether the task can be retriggered, or if it needs to be re-run.
