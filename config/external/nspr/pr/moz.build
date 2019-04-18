@@ -40,6 +40,8 @@ elif CONFIG['OS_TARGET'] in ('FreeBSD', 'OpenBSD', 'NetBSD'):
     SOURCES += ['/nsprpub/pr/src/md/unix/%s.c' % CONFIG['OS_TARGET'].lower()]
 elif CONFIG['OS_TARGET'] == 'Darwin':
     OS_LIBS += ['-framework CoreServices']
+    DEFINES['FD_SETSIZE'] = 10240
+    DEFINES['_DARWIN_UNLIMITED_SELECT'] = True
     if not CONFIG['HOST_MAJOR_VERSION']:
         DEFINES.update(
             HAS_CONNECTX=True,
