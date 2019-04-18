@@ -941,9 +941,8 @@ class nsDocShell final : public nsDocLoader,
   // Note these are intentionally not addrefd. Doing so will create a cycle.
   // For that reasons don't use nsCOMPtr.
 
-  nsIDocShellTreeOwner* mTreeOwner;  // Weak Reference
-
-  RefPtr<mozilla::dom::EventTarget> mChromeEventHandler;
+  nsIDocShellTreeOwner* mTreeOwner;                // Weak Reference
+  mozilla::dom::EventTarget* mChromeEventHandler;  // Weak Reference
 
   nsIntPoint mDefaultScrollbarPref;  // persistent across doc loads
 

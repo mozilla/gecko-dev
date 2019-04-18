@@ -316,6 +316,7 @@ nsDocShell::nsDocShell()
       mForcedCharset(nullptr),
       mParentCharset(nullptr),
       mTreeOwner(nullptr),
+      mChromeEventHandler(nullptr),
       mDefaultScrollbarPref(Scrollbar_Auto, Scrollbar_Auto),
       mCharsetReloadState(eCharsetReloadInit),
       mOrientationLock(eScreenOrientation_None),
@@ -491,7 +492,7 @@ void nsDocShell::DestroyChildren() {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(nsDocShell, nsDocLoader,
                                    mSessionStorageManager, mScriptGlobal,
-                                   mInitialClientSource, mChromeEventHandler)
+                                   mInitialClientSource)
 
 NS_IMPL_ADDREF_INHERITED(nsDocShell, nsDocLoader)
 NS_IMPL_RELEASE_INHERITED(nsDocShell, nsDocLoader)
@@ -1342,7 +1343,9 @@ nsDocShell::GetContentViewer(nsIContentViewer** aContentViewer) {
 
 NS_IMETHODIMP
 nsDocShell::SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler) {
-  mChromeEventHandler = do_QueryInterface(aChromeEventHandler);
+  // Weak reference. Don't addref.
+  nsCOMPtr<EventTarget> handler = do_QueryInterface(aChromeEventHandler);
+  mChromeEventHandler = handler.get();
 
   if (mScriptGlobal) {
     mScriptGlobal->SetChromeEventHandler(mChromeEventHandler);
@@ -1354,7 +1357,7 @@ nsDocShell::SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler) {
 NS_IMETHODIMP
 nsDocShell::GetChromeEventHandler(nsIDOMEventTarget** aChromeEventHandler) {
   NS_ENSURE_ARG_POINTER(aChromeEventHandler);
-  RefPtr<EventTarget> handler = mChromeEventHandler;
+  nsCOMPtr<EventTarget> handler = mChromeEventHandler;
   handler.forget(aChromeEventHandler);
   return NS_OK;
 }
@@ -4517,7 +4520,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
     errorPage.AssignLiteral("tabcrashed");
     error = "tabcrashed";
 
-    RefPtr<EventTarget> handler = mChromeEventHandler;
+    nsCOMPtr<EventTarget> handler = mChromeEventHandler;
     if (handler) {
       nsCOMPtr<Element> element = do_QueryInterface(handler);
       element->GetAttribute(NS_LITERAL_STRING("crashedPageTitle"), messageStr);
@@ -5298,8 +5301,6 @@ nsDocShell::Destroy() {
   }
 
   SetTreeOwner(nullptr);
-
-  mChromeEventHandler = nullptr;
 
   mOnePermittedSandboxedNavigator = nullptr;
 
