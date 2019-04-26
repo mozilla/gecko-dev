@@ -389,7 +389,7 @@ void IDBCursor::Continue(JSContext* aCx, JS::Handle<JS::Value> aKey,
   }
 
   Key key;
-  aRv = key.SetFromJSVal(aCx, aKey);
+  key.SetFromJSVal(aCx, aKey, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -487,7 +487,7 @@ void IDBCursor::ContinuePrimaryKey(JSContext* aCx, JS::Handle<JS::Value> aKey,
   }
 
   Key key;
-  aRv = key.SetFromJSVal(aCx, aKey);
+  key.SetFromJSVal(aCx, aKey, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -509,7 +509,7 @@ void IDBCursor::ContinuePrimaryKey(JSContext* aCx, JS::Handle<JS::Value> aKey,
   }
 
   Key primaryKey;
-  aRv = primaryKey.SetFromJSVal(aCx, aPrimaryKey);
+  primaryKey.SetFromJSVal(aCx, aPrimaryKey, aRv);
   if (aRv.Failed()) {
     return;
   }
