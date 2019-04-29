@@ -104,6 +104,9 @@ struct CGYieldAndAwaitOffsetList {
   void finish(YieldAndAwaitOffsetArray& array, uint32_t prologueLength);
 };
 
+static constexpr size_t MaxBytecodeLength = INT32_MAX;
+static constexpr size_t MaxSrcNotesLength = INT32_MAX;
+
 // Have a few inline elements, so as to avoid heap allocation for tiny
 // sequences.  See bug 1390526.
 typedef Vector<jsbytecode, 64> BytecodeVector;
