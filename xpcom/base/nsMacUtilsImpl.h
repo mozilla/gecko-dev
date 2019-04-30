@@ -9,7 +9,10 @@
 
 #include "nsIMacUtils.h"
 #include "nsString.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+
+using mozilla::Atomic;
 
 class nsMacUtilsImpl final : public nsIMacUtils {
  public:
@@ -17,6 +20,8 @@ class nsMacUtilsImpl final : public nsIMacUtils {
   NS_DECL_NSIMACUTILS
 
   nsMacUtilsImpl() {}
+
+  static void EnableTCSMIfAvailable();
 
  private:
   ~nsMacUtilsImpl() {}
@@ -26,6 +31,15 @@ class nsMacUtilsImpl final : public nsIMacUtils {
   // A string containing a "-" delimited list of architectures
   // in our binary.
   nsString mBinaryArchs;
+
+  enum TCSMStatus { TCSM_Unknown = 0, TCSM_Available, TCSM_Unavailable };
+  static mozilla::Atomic<nsMacUtilsImpl::TCSMStatus> sTCSMStatus;
+
+  static bool IsTCSMAvailable();
+  static nsresult EnableTCSM();
+#if defined(DEBUG)
+  static bool IsTCSMEnabled();
+#endif
 };
 
 // Global singleton service
