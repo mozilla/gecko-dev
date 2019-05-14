@@ -12,7 +12,6 @@
 #include "GLBlitHelper.h"
 #include "GLContext.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageData.h"
@@ -223,12 +222,7 @@ static UniquePtr<webgl::TexUnpackBytes> FromPboOffset(
 static UniquePtr<webgl::TexUnpackBlob> FromImageBitmap(
     WebGLContext* webgl, const char* funcName, TexImageTarget target,
     uint32_t width, uint32_t height, uint32_t depth,
-    const dom::ImageBitmap& imageBitmap, ErrorResult* aRv) {
-    if (imageBitmap.IsWriteOnly()) {
-        aRv->Throw(NS_ERROR_DOM_SECURITY_ERR);
-        return nullptr;
-    }
-
+    const dom::ImageBitmap& imageBitmap) {
   UniquePtr<dom::ImageBitmapCloneData> cloneData =
       Move(imageBitmap.ToCloneData());
   const RefPtr<gfx::DataSourceSurface> surf = cloneData->mSurface;
@@ -300,14 +294,6 @@ UniquePtr<webgl::TexUnpackBlob> WebGLContext::FromDomElem(
     const char* funcName, TexImageTarget target, uint32_t width,
     uint32_t height, uint32_t depth, const dom::Element& elem,
     ErrorResult* const out_error) {
-    if (elem.IsHTMLElement(nsGkAtoms::canvas)) {
-        const dom::HTMLCanvasElement* canvas = static_cast<const dom::HTMLCanvasElement*>(&elem);
-        if (canvas->IsWriteOnly()) {
-            out_error->Throw(NS_ERROR_DOM_SECURITY_ERR);
-            return nullptr;
-        }
-    }
-
   // The canvas spec says that drawImage should draw the first frame of
   // animated images. The webgl spec doesn't mention the issue, so we do the
   // same as drawImage.
@@ -428,7 +414,7 @@ UniquePtr<webgl::TexUnpackBlob> WebGLContext::From(
 
   if (src.mImageBitmap) {
     return FromImageBitmap(this, funcName, target, width, height, depth,
-                           *(src.mImageBitmap), src.mOut_error);
+                           *(src.mImageBitmap));
   }
 
   if (src.mImageData) {

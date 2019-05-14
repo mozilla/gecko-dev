@@ -1080,8 +1080,7 @@ CanvasRenderingContext2D::CanvasRenderingContext2D(
       mPredictManyRedrawCalls(false),
       mIsCapturedFrameInvalid(false),
       mPathTransformWillUpdate(false),
-      mInvalidateCount(0),
-      mWriteOnly(false) {
+      mInvalidateCount(0) {
   if (!sMaxContextsInitialized) {
     sMaxContexts = gfxPrefs::CanvasAzureAcceleratedLimit();
     sMaxContextsInitialized = true;
@@ -2347,11 +2346,7 @@ void CanvasRenderingContext2D::SetStyleFromUnion(
   }
 
   if (aValue.IsCanvasPattern()) {
-    CanvasPattern& pattern = aValue.GetAsCanvasPattern();
-    SetStyleFromPattern(pattern, aWhichStyle);
-    if (pattern.mForceWriteOnly) {
-      SetWriteOnly();
-    }
+    SetStyleFromPattern(aValue.GetAsCanvasPattern(), aWhichStyle);
     return;
   }
 
@@ -2502,7 +2497,7 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
     // nullptr and set CORSUsed to true for passing the security check in
     // CanvasUtils::DoDrawImageSecurityCheck().
     RefPtr<CanvasPattern> pat =
-      new CanvasPattern(this, srcSurf, repeatMode, nullptr, imgBitmap.IsWriteOnly(), true);
+        new CanvasPattern(this, srcSurf, repeatMode, nullptr, false, true);
 
     return pat.forget();
   }
@@ -2519,14 +2514,13 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
       nsLayoutUtils::SurfaceFromElement(
           element, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE, mTarget);
 
-  RefPtr<SourceSurface> surface = res.GetSourceSurface();
-  if (!surface) {
+  if (!res.GetSourceSurface()) {
     return nullptr;
   }
 
   RefPtr<CanvasPattern> pat =
-      new CanvasPattern(this, surface, repeatMode, res.mPrincipal,
-                        res.mIsWriteOnly, res.mCORSUsed);
+      new CanvasPattern(this, res.GetSourceSurface(), repeatMode,
+                        res.mPrincipal, res.mIsWriteOnly, res.mCORSUsed);
   return pat.forget();
 }
 
@@ -4854,8 +4848,8 @@ CanvasRenderingContext2D::CachedSurfaceFromElement(Element* aElement) {
 
   res.mSize = res.mSourceSurface->GetSize();
   res.mPrincipal = principal.forget();
+  res.mIsWriteOnly = false;
   res.mImageRequest = imgRequest.forget();
-  res.mIsWriteOnly = CheckWriteOnlySecurity(res.mCORSUsed, res.mPrincipal);
 
   return res;
 }
@@ -4914,20 +4908,12 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
       aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return;
     }
-
-    if (canvas->IsWriteOnly()) {
-      SetWriteOnly();
-    }
   } else if (aImage.IsImageBitmap()) {
     ImageBitmap& imageBitmap = aImage.GetAsImageBitmap();
     srcSurf = imageBitmap.PrepareForDrawTarget(mTarget);
 
     if (!srcSurf) {
       return;
-    }
-
-    if (imageBitmap.IsWriteOnly()) {
-      SetWriteOnly();
     }
 
     imgSize = gfx::IntSize(imageBitmap.Width(), imageBitmap.Height());
@@ -5435,8 +5421,13 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
 
   // Check only if we have a canvas element; if we were created with a docshell,
   // then it's special internal use.
-  if (IsWriteOnly() ||
-      (mCanvasElement && !mCanvasElement->CallerCanRead(aCx))) {
+  if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
+      // We could ask bindings for the caller type, but they already hand us a
+      // JSContext, and we're at least _somewhat_ perf-sensitive (so may not
+      // want to compute the caller type in the common non-write-only case), so
+      // let's just use what we have.
+      !nsContentUtils::CallerHasPermission(aCx,
+                                           nsGkAtoms::all_urlsPermission)) {
     // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
@@ -6036,13 +6027,6 @@ bool CanvasRenderingContext2D::IsContextCleanForFrameCapture() {
 bool CanvasRenderingContext2D::ShouldForceInactiveLayer(
     LayerManager* aManager) {
   return !aManager->CanUseCanvasLayerForSize(GetSize());
-}
-
-void CanvasRenderingContext2D::SetWriteOnly() {
-  mWriteOnly = true;
-  if (mCanvasElement) {
-    mCanvasElement->SetWriteOnly();
-  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(CanvasPath, AddRef)

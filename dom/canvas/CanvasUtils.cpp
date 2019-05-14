@@ -236,9 +236,7 @@ void DoDrawImageSecurityCheck(dom::HTMLCanvasElement* aCanvasElement,
     return;
   }
 
-  if (aCanvasElement->IsWriteOnly() && !aCanvasElement->mExpandedReader) {
-    return;
-  }
+  if (aCanvasElement->IsWriteOnly()) return;
 
   // If we explicitly set WriteOnly just do it and get out
   if (forceWriteOnly) {
@@ -255,25 +253,6 @@ void DoDrawImageSecurityCheck(dom::HTMLCanvasElement* aCanvasElement,
     // This canvas has access to that image anyway
     return;
   }
-
-    if (BasePrincipal::Cast(aPrincipal)->AddonPolicy()) {
-        // This is a resource from an extension content script principal.
-
-        if (aCanvasElement->mExpandedReader &&
-            aCanvasElement->mExpandedReader->Subsumes(aPrincipal)) {
-            // This canvas already allows reading from this principal.
-            return;
-        }
-
-        if (!aCanvasElement->mExpandedReader) {
-            // Allow future reads from this same princial only.
-            aCanvasElement->SetWriteOnly(aPrincipal);
-            return;
-        }
-
-        // If we got here, this must be the *second* extension tainting
-        // the canvas.  Fall through to mark it WriteOnly for everyone.
-    }
 
   aCanvasElement->SetWriteOnly();
 }
@@ -294,26 +273,6 @@ bool CoerceDouble(const JS::Value& v, double* d) {
 bool HasDrawWindowPrivilege(JSContext* aCx, JSObject* /* unused */) {
   return nsContentUtils::CallerHasPermission(aCx,
                                              nsGkAtoms::all_urlsPermission);
-}
-
-bool CheckWriteOnlySecurity(bool aCORSUsed, nsIPrincipal* aPrincipal) {
-  if (!aPrincipal) {
-    return true;
-  }
-
-  if (!aCORSUsed) {
-    nsIGlobalObject* incumbentSettingsObject = dom::GetIncumbentGlobal();
-    if (NS_WARN_IF(!incumbentSettingsObject)) {
-      return true;
-    }
-
-    nsIPrincipal* principal = incumbentSettingsObject->PrincipalOrNull();
-    if (NS_WARN_IF(!principal) || !(principal->Subsumes(aPrincipal))) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 }  // namespace CanvasUtils

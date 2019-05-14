@@ -60,10 +60,6 @@ void ImageBitmapRenderingContext::TransferFromImageBitmap(
     return;
   }
 
-  if (aImageBitmap.IsWriteOnly() && mCanvasElement) {
-    mCanvasElement->SetWriteOnly();
-  }
-
   Redraw(gfxRect(0, 0, mWidth, mHeight));
 }
 
