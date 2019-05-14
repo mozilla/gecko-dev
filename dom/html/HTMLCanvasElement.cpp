@@ -586,9 +586,8 @@ bool HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
 void HTMLCanvasElement::ToDataURL(JSContext* aCx, const nsAString& aType,
                                   JS::Handle<JS::Value> aParams,
                                   nsAString& aDataURL, ErrorResult& aRv) {
-  // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !nsContentUtils::CallerHasPermission(
-                        aCx, nsGkAtoms::all_urlsPermission)) {
+  // mWriteOnly check is redundant, but optimizes for the common case.
+  if (mWriteOnly && !CallerCanRead(aCx)) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -761,9 +760,8 @@ void HTMLCanvasElement::ToBlob(JSContext* aCx, BlobCallback& aCallback,
                                const nsAString& aType,
                                JS::Handle<JS::Value> aParams,
                                ErrorResult& aRv) {
-  // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !nsContentUtils::CallerHasPermission(
-                        aCx, nsGkAtoms::all_urlsPermission)) {
+  // mWriteOnly check is redundant, but optimizes for the common case.
+  if (mWriteOnly && !CallerCanRead(aCx)) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -941,7 +939,36 @@ nsIntSize HTMLCanvasElement::GetSize() { return GetWidthHeight(); }
 
 bool HTMLCanvasElement::IsWriteOnly() { return mWriteOnly; }
 
-void HTMLCanvasElement::SetWriteOnly() { mWriteOnly = true; }
+void HTMLCanvasElement::SetWriteOnly() { 
+  mExpandedReader = nullptr;
+  mWriteOnly = true;
+}
+
+void
+HTMLCanvasElement::SetWriteOnly(nsIPrincipal* aExpandedReader)
+{
+  mExpandedReader = aExpandedReader;
+  mWriteOnly = true;
+}
+
+bool
+HTMLCanvasElement::CallerCanRead(JSContext* aCx)
+{
+  if (!mWriteOnly) {
+    return true;
+  }
+
+  nsIPrincipal* prin = nsContentUtils::SubjectPrincipal(aCx);
+
+  // If mExpandedReader is set, this canvas was tainted only by
+  // mExpandedReader's resources. So allow reading if the subject
+  // principal subsumes mExpandedReader.
+  if (mExpandedReader && prin->Subsumes(mExpandedReader)) {
+    return true;
+  }
+
+  return nsContentUtils::PrincipalHasPermission(prin, nsGkAtoms::all_urlsPermission);
+}
 
 void HTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect) {
   // We don't need to flush anything here; if there's no frame or if
