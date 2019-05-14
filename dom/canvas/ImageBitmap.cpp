@@ -407,49 +407,17 @@ class CreateImageFromRawDataInMainThreadSyncTask final
   const Maybe<IntRect>& mCropRect;
 };
 
-static bool CheckSecurityForHTMLElements(bool aIsWriteOnly, bool aCORSUsed,
-                                         nsIPrincipal* aPrincipal) {
-  if (aIsWriteOnly || !aPrincipal) {
-    return false;
-  }
-
-  if (!aCORSUsed) {
-    nsIGlobalObject* incumbentSettingsObject = GetIncumbentGlobal();
-    if (NS_WARN_IF(!incumbentSettingsObject)) {
-      return false;
-    }
-
-    nsIPrincipal* principal = incumbentSettingsObject->PrincipalOrNull();
-    if (NS_WARN_IF(!principal) || !(principal->Subsumes(aPrincipal))) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-static bool CheckSecurityForHTMLElements(
-    const nsLayoutUtils::SurfaceFromElementResult& aRes) {
-  return CheckSecurityForHTMLElements(aRes.mIsWriteOnly, aRes.mCORSUsed,
-                                      aRes.mPrincipal);
-}
-
 /*
  * A wrapper to the nsLayoutUtils::SurfaceFromElement() function followed by the
  * security checking.
  */
-template <class HTMLElementType>
+template <class ElementType>
 static already_AddRefed<SourceSurface> GetSurfaceFromElement(
-    nsIGlobalObject* aGlobal, HTMLElementType& aElement, ErrorResult& aRv) {
+    nsIGlobalObject* aGlobal, ElementType& aElement, bool* aWriteOnly,
+    ErrorResult& aRv) {
   nsLayoutUtils::SurfaceFromElementResult res =
       nsLayoutUtils::SurfaceFromElement(
           &aElement, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
-
-  // check origin-clean
-  if (!CheckSecurityForHTMLElements(res)) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return nullptr;
-  }
 
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
 
@@ -457,6 +425,8 @@ static already_AddRefed<SourceSurface> GetSurfaceFromElement(
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
     return nullptr;
   }
+
+  *aWriteOnly = res.mIsWriteOnly;
 
   return surface.forget();
 }
@@ -485,7 +455,7 @@ static bool HasRasterImage(HTMLImageElement& aImageEl) {
 }
 
 ImageBitmap::ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
-                         gfxAlphaType aAlphaType)
+                         bool aWriteOnly, gfxAlphaType aAlphaType)
     : mParent(aGlobal),
       mData(aData),
       mSurface(nullptr),
@@ -493,7 +463,8 @@ ImageBitmap::ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
       mPictureRect(0, 0, aData->GetSize().width, aData->GetSize().height),
       mAlphaType(aAlphaType),
       mIsCroppingAreaOutSideOfSourceImage(false),
-      mAllocatedImageData(false) {
+      mAllocatedImageData(false),
+      mWriteOnly(aWriteOnly) {
   MOZ_ASSERT(aData, "aData is null in ImageBitmap constructor.");
 
   mShutdownObserver = new ImageBitmapShutdownObserver(this);
@@ -751,6 +722,7 @@ UniquePtr<ImageBitmapCloneData> ImageBitmap::ToCloneData() const {
   RefPtr<SourceSurface> surface = mData->GetAsSourceSurface();
   result->mSurface = surface->GetDataSurface();
   MOZ_ASSERT(result->mSurface);
+  result->mWriteOnly = mWriteOnly;
 
   return Move(result);
 }
@@ -759,7 +731,8 @@ UniquePtr<ImageBitmapCloneData> ImageBitmap::ToCloneData() const {
     nsIGlobalObject* aGlobal, ImageBitmapCloneData* aData) {
   RefPtr<layers::Image> data = CreateImageFromSurface(aData->mSurface);
 
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, aData->mAlphaType);
+  RefPtr<ImageBitmap> ret =
+    new ImageBitmap(aGlobal, data, aData->mWriteOnly, aData->mAlphaType);
 
   ret->mAllocatedImageData = true;
 
@@ -775,11 +748,8 @@ UniquePtr<ImageBitmapCloneData> ImageBitmap::ToCloneData() const {
 ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
                                        OffscreenCanvas& aOffscreenCanvas,
                                        ErrorResult& aRv) {
-  // Check origin-clean.
-  if (aOffscreenCanvas.IsWriteOnly()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return nullptr;
-  }
+  // Check write-only mode.
+  bool writeOnly = aOffscreenCanvas.IsWriteOnly();
 
   nsLayoutUtils::SurfaceFromElementResult res =
       nsLayoutUtils::SurfaceFromOffscreenCanvas(
@@ -794,7 +764,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
 
   RefPtr<layers::Image> data = CreateImageFromSurface(surface);
 
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   ret->mAllocatedImageData = true;
 
@@ -816,9 +786,12 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
+  bool writeOnly = true;
+
   // Get the SourceSurface out from the image element and then do security
   // checking.
-  RefPtr<SourceSurface> surface = GetSurfaceFromElement(aGlobal, aImageEl, aRv);
+  RefPtr<SourceSurface> surface = GetSurfaceFromElement(aGlobal, aImageEl,
+                                                        &writeOnly, aRv);
 
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -832,7 +805,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   // Set the picture rectangle.
   if (ret && aCropRect.isSome()) {
@@ -868,10 +841,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
   // Check security.
   nsCOMPtr<nsIPrincipal> principal = aVideoEl.GetCurrentVideoPrincipal();
   bool CORSUsed = aVideoEl.GetCORSMode() != CORS_NONE;
-  if (!CheckSecurityForHTMLElements(false, CORSUsed, principal)) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return nullptr;
-  }
+  bool writeOnly = CheckWriteOnlySecurity(CORSUsed, principal);
 
   // Create ImageBitmap.
   RefPtr<layers::Image> data = aVideoEl.GetCurrentImage();
@@ -879,7 +849,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
     return nullptr;
   }
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   // Set the picture rectangle.
   if (ret && aCropRect.isSome()) {
@@ -900,11 +870,16 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
-  RefPtr<SourceSurface> surface =
-      GetSurfaceFromElement(aGlobal, aCanvasEl, aRv);
+  bool writeOnly = true;
+  RefPtr<SourceSurface> surface = GetSurfaceFromElement(aGlobal, aCanvasEl,
+                                                        &writeOnly, aRv);
 
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
+  }
+
+  if (!writeOnly) {
+    writeOnly = aCanvasEl.IsWriteOnly();
   }
 
   // Crop the source surface if needed.
@@ -939,7 +914,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   if (needToReportMemoryAllocation) {
     ret->mAllocatedImageData = true;
@@ -1001,7 +976,8 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
   }
 
   // Create an ImageBimtap.
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, alphaType);
+  RefPtr<ImageBitmap> ret =
+    new ImageBitmap(aGlobal, data, false /* write-only */, alphaType);
 
   ret->mAllocatedImageData = true;
 
@@ -1017,11 +993,9 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
 /* static */ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
     nsIGlobalObject* aGlobal, CanvasRenderingContext2D& aCanvasCtx,
     const Maybe<IntRect>& aCropRect, ErrorResult& aRv) {
-  // Check origin-clean.
-  if (aCanvasCtx.GetCanvas()->IsWriteOnly()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return nullptr;
-  }
+  // Check write-only mode.
+  bool writeOnly =
+      aCanvasCtx.GetCanvas()->IsWriteOnly() || aCanvasCtx.IsWriteOnly();
 
   RefPtr<SourceSurface> surface = aCanvasCtx.GetSurfaceSnapshot();
 
@@ -1043,7 +1017,8 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
-  RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+  RefPtr<ImageBitmap> ret =
+    new ImageBitmap(aGlobal, data, writeOnly);
 
   ret->mAllocatedImageData = true;
 
@@ -1068,7 +1043,8 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
 
   RefPtr<layers::Image> data = aImageBitmap.mData;
   RefPtr<ImageBitmap> ret =
-      new ImageBitmap(aGlobal, data, aImageBitmap.mAlphaType);
+      new ImageBitmap(aGlobal, data, aImageBitmap.mWriteOnly,
+                      aImageBitmap.mAlphaType);
 
   // Set the picture rectangle.
   if (ret && aCropRect.isSome()) {
@@ -1384,13 +1360,18 @@ static void AsyncCreateImageBitmapFromBlob(Promise* aPromise,
   uint32_t picRectHeight_;
   uint32_t alphaType_;
   uint32_t isCroppingAreaOutSideOfSourceImage_;
+  uint32_t writeOnly;
+  uint32_t dummy;
 
   if (!JS_ReadUint32Pair(aReader, &picRectX_, &picRectY_) ||
       !JS_ReadUint32Pair(aReader, &picRectWidth_, &picRectHeight_) ||
       !JS_ReadUint32Pair(aReader, &alphaType_,
-                         &isCroppingAreaOutSideOfSourceImage_)) {
+                         &isCroppingAreaOutSideOfSourceImage_) ||
+      !JS_ReadUint32Pair(aReader, &writeOnly, &dummy)) {
     return nullptr;
   }
+
+  MOZ_ASSERT(dummy == 0);
 
   int32_t picRectX = BitwiseCast<int32_t>(picRectX_);
   int32_t picRectY = BitwiseCast<int32_t>(picRectY_);
@@ -1415,7 +1396,7 @@ static void AsyncCreateImageBitmapFromBlob(Promise* aPromise,
     }
 #endif
     RefPtr<layers::Image> img = CreateImageFromSurface(aClonedSurfaces[aIndex]);
-    RefPtr<ImageBitmap> imageBitmap = new ImageBitmap(aParent, img, alphaType);
+    RefPtr<ImageBitmap> imageBitmap = new ImageBitmap(aParent, img, !!writeOnly, alphaType);
 
     imageBitmap->mIsCroppingAreaOutSideOfSourceImage =
         isCroppingAreaOutSideOfSourceImage_;
@@ -1462,7 +1443,8 @@ static void AsyncCreateImageBitmapFromBlob(Promise* aPromise,
       NS_WARN_IF(!JS_WriteUint32Pair(aWriter, picRectX, picRectY)) ||
       NS_WARN_IF(!JS_WriteUint32Pair(aWriter, picRectWidth, picRectHeight)) ||
       NS_WARN_IF(!JS_WriteUint32Pair(aWriter, alphaType,
-                                     isCroppingAreaOutSideOfSourceImage))) {
+                                     isCroppingAreaOutSideOfSourceImage)) ||
+      NS_WARN_IF(!JS_WriteUint32Pair(aWriter, aImageBitmap->mWriteOnly, 0))) {
     return false;
   }
 
@@ -2003,7 +1985,8 @@ class CreateImageFromBufferSourceRawDataInMainThreadSyncTask final
   // Create an ImageBimtap.
   // Assume the data from an external buffer is not alpha-premultiplied.
   RefPtr<ImageBitmap> imageBitmap =
-      new ImageBitmap(aGlobal, data, gfxAlphaType::NonPremult);
+      new ImageBitmap(aGlobal, data, false /* write-only */,
+                      gfxAlphaType::NonPremult);
 
   imageBitmap->mAllocatedImageData = true;
 
@@ -2239,7 +2222,8 @@ void CreateImageBitmapFromBlob::DecodeAndCropBlobCompletedOwningThread(
   }
 
   // Create ImageBitmap object.
-  RefPtr<ImageBitmap> imageBitmap = new ImageBitmap(mGlobalObject, aImage);
+  RefPtr<ImageBitmap> imageBitmap = new ImageBitmap(mGlobalObject, aImage,
+                                                    false /* write-only */);
 
   // Set mIsCroppingAreaOutSideOfSourceImage.
   imageBitmap->SetIsCroppingAreaOutSideOfSourceImage(mSourceSize,

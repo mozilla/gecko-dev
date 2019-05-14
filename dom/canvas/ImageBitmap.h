@@ -63,6 +63,7 @@ struct ImageBitmapCloneData final {
   gfx::IntRect mPictureRect;
   gfxAlphaType mAlphaType;
   bool mIsCroppingAreaOutSideOfSourceImage;
+  bool mWriteOnly;
 };
 
 /*
@@ -160,6 +161,11 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
 
   void OnShutdown();
 
+  bool IsWriteOnly() const
+  {
+    return mWriteOnly;
+  }
+
  protected:
   /*
    * The default value of aIsPremultipliedAlpha is TRUE because that the
@@ -181,6 +187,7 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
    * CreateInternal(from ImageData) method.
    */
   ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
+              bool aWriteOnly,
               gfxAlphaType aAlphaType = gfxAlphaType::Premult);
 
   virtual ~ImageBitmap();
@@ -271,6 +278,13 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
    * Whether this object allocated allocated and owns the image data.
    */
   bool mAllocatedImageData;
+
+  /*
+   * Write-Only flag is set to true if this image has been generated from a
+   * cross-origin source. This is the opposite of what is called 'origin-clean'
+   * in the spec.
+   */
+  bool mWriteOnly;
 };
 
 }  // namespace dom
