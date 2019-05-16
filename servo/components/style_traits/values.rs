@@ -135,7 +135,6 @@ where
     }
 }
 
-/*
 #[macro_export]
 macro_rules! serialize_function {
     ($dest: expr, $name: ident($( $arg: expr, )+)) => {
@@ -153,7 +152,6 @@ macro_rules! serialize_function {
         }
     }
 }
-*/
 
 /// Convenience wrapper to serialise CSS values separated by a given string.
 pub struct SequenceWriter<'a, 'b: 'a, W: 'b> {
@@ -406,7 +404,6 @@ impl_to_css_for_predefined_type!(::cssparser::RGBA);
 impl_to_css_for_predefined_type!(::cssparser::Color);
 impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 
-/// Define an enum type with unit variants that each correspond to a CSS keyword.
 #[macro_export]
 macro_rules! define_css_keyword_enum {
     (pub enum $name:ident { $($variant:ident = $css:expr,)+ }) => {
