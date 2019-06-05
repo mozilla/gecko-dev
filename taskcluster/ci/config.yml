@@ -221,3 +221,12 @@ partner-urls:
                         by-release-level:
                             production: 'git@github.com:mozilla-partners/mozilla-EME-free-manifest.git'
                             staging: 'git@github.com:moz-releng-automation-stage/mozilla-EME-free-manifest.git'
+
+mac-notarization:
+    mac-behavior:
+        by-release-type:
+            nightly.*: mac_notarize
+            beta.*: mac_notarize
+            esr.*: mac_notarize
+            release.*: mac_notarize
+            default: mac_sign_and_pkg

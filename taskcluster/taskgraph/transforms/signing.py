@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
+from taskgraph.util.keyed_by import evaluate_keyed_by
 from taskgraph.util.schema import taskref_or_string
 from taskgraph.util.scriptworker import (
     add_scope_prefix,
@@ -64,6 +65,13 @@ signing_description_schema = schema.extend({
     Optional('max-run-time'): int,
     Optional('extra'): {basestring: object},
 })
+
+esr_worker_type_map = {
+    'scriptworker-prov-v1/signing-linux-v1': 'scriptworker-prov-v1/signing-mac-v1',
+    'scriptworker-prov-v1/depsigning': 'scriptworker-prov-v1/depsigning-mac-v1',
+    'scriptworker-prov-v1/tb-signing-v1': 'scriptworker-prov-v1/tb-signing-mac-v1',
+    'scriptworker-prov-v1/tb-depsigning': 'scriptworker-prov-v1/tb-depsigning-mac-v1',
+}
 
 
 @transforms.add
@@ -131,7 +139,7 @@ def make_task_description(config, jobs):
         signing_cert_scope = get_signing_cert_scope_per_platform(
             dep_job.attributes.get('build_platform'), is_nightly, config
         )
-
+        mac_behavior = None
         task = {
             'label': label,
             'description': description,
@@ -148,6 +156,25 @@ def make_task_description(config, jobs):
             'shipping-product': job.get('shipping-product'),
             'shipping-phase': job.get('shipping-phase'),
         }
+
+        build_platform = dep_job.attributes.get('build_platform', '')
+        if 'macosx' in build_platform:
+            assert task['worker-type'] in esr_worker_type_map, \
+                (
+                    "Make sure to adjust the esr_worker_type_map for "
+                    "mac if you change the signing workerTypes!"
+                )
+            task['worker-type'] = esr_worker_type_map[task['worker-type']]
+            mac_behavior = evaluate_keyed_by(
+                config.graph_config['mac-notarization']['mac-behavior'],
+                'mac behavior',
+                {
+                    'release-type': config.params['release_type'],
+                    'platform': build_platform,
+                },
+            )
+            task['worker']['mac-behavior'] = mac_behavior
+
         if treeherder:
             task['treeherder'] = treeherder
         if job.get('extra'):
