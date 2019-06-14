@@ -131,6 +131,11 @@ void WebGLBuffer::BufferData(GLenum target, size_t size, const void* data,
       MOZ_ASSERT(error == LOCAL_GL_OUT_OF_MEMORY);
       mContext->ErrorOutOfMemory("%s: Error from driver: 0x%04x", funcName,
                                  error);
+
+      // Truncate
+      mByteLength = 0;
+      mFetchInvalidator.InvalidateCaches();
+      mIndexCache = nullptr;
       return;
     }
   } else {

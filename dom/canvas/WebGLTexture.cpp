@@ -44,8 +44,6 @@ void WebGLTexture::ImageInfo::Clear(const char* funcName) {
 }
 
 void WebGLTexture::ImageInfo::Set(const char* funcName, const ImageInfo& a) {
-  MOZ_ASSERT(a.IsDefined());
-
   Mutable(mFormat) = a.mFormat;
   Mutable(mWidth) = a.mWidth;
   Mutable(mHeight) = a.mHeight;
@@ -1165,6 +1163,12 @@ void WebGLTexture::TexParameter(TexTarget texTarget, GLenum pname,
     mContext->gl->fTexParameteri(texTarget.get(), pname, clamped.i);
   else
     mContext->gl->fTexParameterf(texTarget.get(), pname, clamped.f);
+}
+
+void WebGLTexture::Truncate() {
+  for (auto& cur : mImageInfoArr) {
+    SetImageInfo("OUT_OF_MEMORY", &cur, ImageInfo());
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

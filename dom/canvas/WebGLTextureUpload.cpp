@@ -1148,6 +1148,7 @@ void WebGLTexture::TexStorage(const char* funcName, TexTarget target,
   if (error == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory(
         "%s: Ran out of memory during texture allocation.", funcName);
+    Truncate();
     return;
   }
   if (error) {
@@ -1277,6 +1278,7 @@ void WebGLTexture::TexImage(const char* funcName, TexImageTarget target,
   if (glError == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory("%s: Driver ran out of memory during upload.",
                                funcName);
+    Truncate();
     return;
   }
 
@@ -1364,6 +1366,7 @@ void WebGLTexture::TexSubImage(const char* funcName, TexImageTarget target,
   if (glError == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory("%s: Driver ran out of memory during upload.",
                                funcName);
+    Truncate();
     return;
   }
 
@@ -1478,6 +1481,7 @@ void WebGLTexture::CompressedTexImage(const char* funcName,
   if (error == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory("%s: Ran out of memory during upload.",
                                funcName);
+    Truncate();
     return;
   }
   if (error) {
@@ -1632,6 +1636,7 @@ void WebGLTexture::CompressedTexSubImage(
   if (error == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory("%s: Ran out of memory during upload.",
                                funcName);
+    Truncate();
     return;
   }
   if (error) {
@@ -1996,7 +2001,7 @@ bool WebGLTexture::ValidateCopyTexImageForFeedback(const char* funcName,
 }
 
 static bool DoCopyTexOrSubImage(WebGLContext* webgl, const char* funcName,
-                                bool isSubImage, const WebGLTexture* tex,
+                                bool isSubImage, WebGLTexture* tex,
                                 TexImageTarget target, GLint level,
                                 GLint xWithinSrc, GLint yWithinSrc,
                                 uint32_t srcTotalWidth, uint32_t srcTotalHeight,
@@ -2073,6 +2078,7 @@ static bool DoCopyTexOrSubImage(WebGLContext* webgl, const char* funcName,
   if (error == LOCAL_GL_OUT_OF_MEMORY) {
     webgl->ErrorOutOfMemory("%s: Ran out of memory during texture copy.",
                             funcName);
+    tex->Truncate();
     return false;
   }
 

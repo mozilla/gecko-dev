@@ -117,6 +117,7 @@ class WebGLTexture final : public nsWrapperCache,
                                                    uint32_t level,
                                                    const ImageInfo& newInfo);
 
+
    public:
     static const ImageInfo kUndefined;
 
@@ -389,6 +390,7 @@ class WebGLTexture final : public nsWrapperCache,
                   const char** const out_reason, bool* const out_initFailed);
 
   bool IsMipmapCubeComplete() const;
+  void Truncate();
 
   bool IsCubeMap() const { return (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP); }
 
