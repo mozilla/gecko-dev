@@ -673,9 +673,10 @@ IonBuilder::InliningResult IonBuilder::inlineArrayPopShift(
     return InliningStatus_NotInlined;
   }
 
+  // Watch out for extra indexed properties on the object or its prototype.
   bool hasIndexedProperty;
   MOZ_TRY_VAR(hasIndexedProperty,
-              ArrayPrototypeHasIndexedProperty(this, script()));
+              ElementAccessHasExtraIndexedProperty(this, obj));
   if (hasIndexedProperty) {
     trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
     return InliningStatus_NotInlined;
@@ -775,16 +776,10 @@ IonBuilder::InliningResult IonBuilder::inlineArrayPush(CallInfo& callInfo) {
   if (!thisTypes) return InliningStatus_NotInlined;
   const Class* clasp = thisTypes->getKnownClass(constraints());
   if (clasp != &ArrayObject::class_) return InliningStatus_NotInlined;
-  if (thisTypes->hasObjectFlags(
-          constraints(),
-          OBJECT_FLAG_SPARSE_INDEXES | OBJECT_FLAG_LENGTH_OVERFLOW)) {
-    trackOptimizationOutcome(TrackedOutcome::ArrayBadFlags);
-    return InliningStatus_NotInlined;
-  }
 
   bool hasIndexedProperty;
   MOZ_TRY_VAR(hasIndexedProperty,
-              ArrayPrototypeHasIndexedProperty(this, script()));
+              ElementAccessHasExtraIndexedProperty(this, obj));
   if (hasIndexedProperty) {
     trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
     return InliningStatus_NotInlined;
@@ -903,17 +898,11 @@ IonBuilder::InliningResult IonBuilder::inlineArraySlice(CallInfo& callInfo) {
 
   const Class* clasp = thisTypes->getKnownClass(constraints());
   if (clasp != &ArrayObject::class_) return InliningStatus_NotInlined;
-  if (thisTypes->hasObjectFlags(
-          constraints(),
-          OBJECT_FLAG_SPARSE_INDEXES | OBJECT_FLAG_LENGTH_OVERFLOW)) {
-    trackOptimizationOutcome(TrackedOutcome::ArrayBadFlags);
-    return InliningStatus_NotInlined;
-  }
 
-  // Watch out for indexed properties on the prototype.
+  // Watch out for extra indexed properties on the object or its prototype.
   bool hasIndexedProperty;
   MOZ_TRY_VAR(hasIndexedProperty,
-              ArrayPrototypeHasIndexedProperty(this, script()));
+              ElementAccessHasExtraIndexedProperty(this, obj));
   if (hasIndexedProperty) {
     trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
     return InliningStatus_NotInlined;
