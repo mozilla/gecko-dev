@@ -22,15 +22,7 @@ WebGLExtensionDebugShaders::~WebGLExtensionDebugShaders() {}
 void WebGLExtensionDebugShaders::GetTranslatedShaderSource(
     const WebGLShader& shader, nsAString& retval) const {
   retval.SetIsVoid(true);
-
-  if (mIsLost) {
-    mContext->ErrorInvalidOperation("%s: Extension is lost.",
-                                    "getTranslatedShaderSource");
-    return;
-  }
-
-  if (mContext->IsContextLost()) return;
-
+  if (mIsLost || !mContext) return;
   if (!mContext->ValidateObject("getShaderTranslatedSource: shader", shader))
     return;
 

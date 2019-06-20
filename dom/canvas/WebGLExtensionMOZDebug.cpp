@@ -20,6 +20,8 @@ WebGLExtensionMOZDebug::~WebGLExtensionMOZDebug() {}
 void WebGLExtensionMOZDebug::GetParameter(JSContext* cx, GLenum pname,
                                           JS::MutableHandle<JS::Value> retval,
                                           ErrorResult& er) const {
+  if (mIsLost || !mContext) return;
+
   const auto& gl = mContext->gl;
 
   switch (pname) {

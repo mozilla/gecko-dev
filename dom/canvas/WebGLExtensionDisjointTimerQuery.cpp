@@ -34,7 +34,7 @@ already_AddRefed<WebGLQuery> WebGLExtensionDisjointTimerQuery::CreateQueryEXT()
 
 void WebGLExtensionDisjointTimerQuery::DeleteQueryEXT(WebGLQuery* query) const {
   const char funcName[] = "deleteQueryEXT";
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   mContext->DeleteQuery(query, funcName);
 }
@@ -42,7 +42,7 @@ void WebGLExtensionDisjointTimerQuery::DeleteQueryEXT(WebGLQuery* query) const {
 bool WebGLExtensionDisjointTimerQuery::IsQueryEXT(
     const WebGLQuery* query) const {
   const char funcName[] = "isQueryEXT";
-  if (mIsLost) return false;
+  if (mIsLost || !mContext) return false;
 
   return mContext->IsQuery(query, funcName);
 }
@@ -50,14 +50,14 @@ bool WebGLExtensionDisjointTimerQuery::IsQueryEXT(
 void WebGLExtensionDisjointTimerQuery::BeginQueryEXT(GLenum target,
                                                      WebGLQuery& query) const {
   const char funcName[] = "beginQueryEXT";
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   mContext->BeginQuery(target, query, funcName);
 }
 
 void WebGLExtensionDisjointTimerQuery::EndQueryEXT(GLenum target) const {
   const char funcName[] = "endQueryEXT";
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   mContext->EndQuery(target, funcName);
 }
@@ -65,7 +65,7 @@ void WebGLExtensionDisjointTimerQuery::EndQueryEXT(GLenum target) const {
 void WebGLExtensionDisjointTimerQuery::QueryCounterEXT(WebGLQuery& query,
                                                        GLenum target) const {
   const char funcName[] = "queryCounterEXT";
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   if (!mContext->ValidateObject(funcName, query)) return;
 
@@ -77,7 +77,7 @@ void WebGLExtensionDisjointTimerQuery::GetQueryEXT(
     JS::MutableHandleValue retval) const {
   const char funcName[] = "getQueryEXT";
   retval.setNull();
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   mContext->GetQuery(cx, target, pname, retval, funcName);
 }
@@ -87,7 +87,7 @@ void WebGLExtensionDisjointTimerQuery::GetQueryObjectEXT(
     JS::MutableHandleValue retval) const {
   const char funcName[] = "getQueryObjectEXT";
   retval.setNull();
-  if (mIsLost) return;
+  if (mIsLost || !mContext) return;
 
   mContext->GetQueryParameter(cx, query, pname, retval, funcName);
 }
