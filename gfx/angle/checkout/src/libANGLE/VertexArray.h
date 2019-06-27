@@ -91,7 +91,9 @@ class VertexArray final : public LabeledObject
         return mState.getBindingFromAttribIndex(attribIndex);
     }
 
-    void detachBuffer(const Context *context, GLuint bufferName);
+    // Returns true if the function finds and detaches a bound buffer.
+    bool detachBuffer(const Context *context, GLuint bufferName);
+
     void setVertexAttribDivisor(const Context *context, size_t index, GLuint divisor);
     void enableAttribute(size_t attribIndex, bool enabledState);
     void setVertexAttribPointer(const Context *context,

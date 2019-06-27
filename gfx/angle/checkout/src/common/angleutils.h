@@ -19,6 +19,10 @@
 #include <sstream>
 #include <vector>
 
+#ifndef constexpr14
+#define constexpr14
+#endif
+
 // A helper class to disallow copy and assignment operators
 namespace angle
 {

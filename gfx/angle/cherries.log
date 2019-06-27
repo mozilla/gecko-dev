@@ -1,3 +1,63 @@
+commit ed76a1a5ec3ec8ba97e200a115e2c0346e1719d3
+Author: Jamie Madill <jmadill@chromium.org>
+Date:   Wed Mar 27 12:56:51 2019 -0400
+
+    Fix deleting a buffer not updating VAO validation.
+    
+    Deleting a buffer that is bound to a VAO should act as if
+    the application unbound the buffer. Unbinding the buffer
+    should update relevant validation caches. But we were
+    missing the logic that updates the validation caches.
+    
+    This CL adds the necessary cache updates. It does not include a
+    regression test. The test was causing an unrelated regression that is
+    going to be a bit longer. It should not block this fix.
+    
+    Bug: chromium:943538
+    Change-Id: Ib073cd07a230ca073a5b14bc054e961158a0097d
+    Reviewed-on: https://chromium-review.googlesource.com/c/angle/angle/+/1536491
+    Commit-Queue: Jamie Madill <jmadill@chromium.org>
+    Reviewed-by: Geoff Lang <geofflang@chromium.org>
+
+commit 987fa5718280368f78b1051283f6a44b06a5f749
+Author: Jamie Madill <jmadill@chromium.org>
+Date:   Wed Apr 3 13:15:17 2019 -0400
+
+    Fix OOB access for dynamic attribs with offsets.
+    
+    We were not properly adding the offset to compute the right bounds.
+    
+    Bug: chromium:943709
+    Change-Id: I93e714b46dd366d5833fffa858ea3ab0322ffa92
+    Reviewed-on: https://chromium-review.googlesource.com/c/angle/angle/+/1548441
+    Commit-Queue: Jamie Madill <jmadill@chromium.org>
+    Reviewed-by: Jonah Ryan-Davis <jonahr@google.com>
+
+commit 0986b93fb1ac07a282d5dbb07e0f86b4b83a5564
+Author: Jamie Madill <jmadill@chromium.org>
+Date:   Wed Mar 20 10:35:11 2019 -0400
+
+    Work around line loop streaming bug.
+    
+    This forces a hard limit on the buffer size we allocate from D3D11. It
+    can work around a D3D11 driver bug on NVIDIA where we would get an
+    invalid map pointer. This seemed to happen when the buffer sizes were
+    close to MAX_UINT.
+    
+    Bug: chromium:943087
+    Change-Id: I64aa9c55cbb82015101262c19c72741c140964a5
+    Reviewed-on: https://chromium-review.googlesource.com/c/angle/angle/+/1531374
+    Commit-Queue: Jamie Madill <jmadill@chromium.org>
+    Reviewed-by: Shahbaz Youssefi <syoussefi@chromium.org>
+
+commit 7678bc88c73f47d2abd177e0eb4bf72598de1c35
+Author: Jeff Gilbert <jgilbert@mozilla.com>
+Date:   Mon Jun 24 19:26:07 2019 -0700
+
+    Default to `#define constexpr=`.
+    
+    Change-Id: I681f71b6dd4c8cb1430a92cc15e73f70c7abe0ca
+
 commit f474fbb607e046d66d56b497b93151de61cbefab
 Author: Jeff Gilbert <jgilbert@mozilla.com>
 Date:   Thu Oct 25 14:00:07 2018 -0700

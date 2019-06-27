@@ -1362,7 +1362,10 @@ void State::detachBuffer(const Context *context, GLuint bufferName)
         curTransformFeedback->detachBuffer(context, bufferName);
     }
 
-    getVertexArray()->detachBuffer(context, bufferName);
+    if (getVertexArray()->detachBuffer(context, bufferName))
+    {
+        mDirtyObjects.set(DIRTY_OBJECT_VERTEX_ARRAY);
+    }
 }
 
 void State::setEnableVertexAttribArray(unsigned int attribNum, bool enabled)

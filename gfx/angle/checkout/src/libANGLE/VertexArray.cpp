@@ -72,20 +72,28 @@ const std::string &VertexArray::getLabel() const
     return mState.mLabel;
 }
 
-void VertexArray::detachBuffer(const Context *context, GLuint bufferName)
+bool VertexArray::detachBuffer(const Context *context, GLuint bufferName)
 {
-    for (auto &binding : mState.mVertexBindings)
+    bool anyBufferDetached = false;
+    for (size_t bindingIndex = 0; bindingIndex < gl::MAX_VERTEX_ATTRIB_BINDINGS; ++bindingIndex)
     {
+        VertexBinding &binding = mState.mVertexBindings[bindingIndex];
         if (binding.getBuffer().id() == bufferName)
         {
             binding.setBuffer(context, nullptr);
+
+            anyBufferDetached = true;
         }
     }
 
     if (mState.mElementArrayBuffer.id() == bufferName)
     {
         mState.mElementArrayBuffer.set(context, nullptr);
+        mDirtyBits.set(DIRTY_BIT_ELEMENT_ARRAY_BUFFER);
+        anyBufferDetached = true;
     }
+
+    return anyBufferDetached;
 }
 
 const VertexAttribute &VertexArray::getVertexAttribute(size_t attribIndex) const
