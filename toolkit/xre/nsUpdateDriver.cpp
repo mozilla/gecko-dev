@@ -290,10 +290,12 @@ static bool CopyFileIntoUpdateDir(nsIFile *parentDir, const nsACString &leaf,
   if (NS_FAILED(rv)) return false;
   file->Remove(true);
 
+#if defined(XP_MACOSX)
   // Destination path
   nsCString targetFilePath;
   rv = file->GetNativePath(targetFilePath);
   if (NS_FAILED(rv)) return false;
+#endif
 
   // Now, copy into the target location.
   rv = parentDir->Clone(getter_AddRefs(file));
@@ -303,6 +305,7 @@ static bool CopyFileIntoUpdateDir(nsIFile *parentDir, const nsACString &leaf,
   rv = file->CopyToNative(updateDir, EmptyCString());
   if (NS_FAILED(rv)) return false;
 
+#if defined(XP_MACOSX)
   // Remove the quarantine attribute. Starting with macOS 10.15, if the
   // updater is quarantined, it will trigger a GateKeeper dialog when
   // launched and fail to run. Firefox is configured to quarantine all
@@ -322,6 +325,7 @@ static bool CopyFileIntoUpdateDir(nsIFile *parentDir, const nsACString &leaf,
     LOG(("Destination file %s is%s quarantined", targetFilePath.get(),
          isQuarantined ? "" : " not"));
   }
+#endif
 
   return true;
 }
