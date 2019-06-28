@@ -28,6 +28,7 @@ class MozFindbar extends XULElement {
     }, true);
 
     this.content = MozXULElement.parseXULToFragment(`
+      <toolbarbutton anonid="find-closebutton" class="findbar-closebutton close-icon" data-l10n-id="findbar-find-button-close" oncommand="close();" />
       <hbox anonid="findbar-container" class="findbar-container" flex="1" align="center">
         <hbox anonid="findbar-textbox-wrapper" align="stretch">
           <html:input anonid="findbar-textbox" class="findbar-textbox findbar-find-fast" />
@@ -43,7 +44,6 @@ class MozFindbar extends XULElement {
         <image anonid="find-status-icon" class="findbar-find-fast find-status-icon" />
         <description anonid="find-status" control="findbar-textbox" class="findbar-find-fast findbar-find-status" />
       </hbox>
-      <toolbarbutton anonid="find-closebutton" class="findbar-closebutton close-icon" data-l10n-id="findbar-find-button-close" oncommand="close();" />
     `);
   }
 
