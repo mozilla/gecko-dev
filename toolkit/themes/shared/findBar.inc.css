@@ -35,6 +35,7 @@ findbar[noanim] {
 
 .findbar-closebutton {
   padding: 0 8px;
+  -moz-box-ordinal-group: 0 !important;
 }
 
 /* Search field */
