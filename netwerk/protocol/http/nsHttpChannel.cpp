@@ -6972,7 +6972,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
       if (mListener) {
         MOZ_ASSERT(!mOnStartRequestCalled,
                    "We should not call OnStartRequest twice.");
-        mListener->OnStartRequest(this, mListenerContext);
+        nsCOMPtr<nsIStreamListener> listener(mListener);
+        listener->OnStartRequest(this, mListenerContext);
         mOnStartRequestCalled = true;
       } else {
         NS_WARNING("OnStartRequest skipped because of null listener");

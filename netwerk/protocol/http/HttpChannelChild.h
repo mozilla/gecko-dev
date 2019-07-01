@@ -429,6 +429,8 @@ class HttpChannelChild final : public PHttpChannelChild,
                       const uint64_t& channelId);
   bool Redirect3Complete(OverrideRunnable* aRunnable);
   void DeleteSelf();
+  void DoNotifyListener();
+  void ContinueDoNotifyListener();
 
   // Create a a new channel to be used in a redirection, based on the provided
   // response headers.
@@ -473,6 +475,7 @@ class HttpChannelChild final : public PHttpChannelChild,
   friend class SyntheticDiversionListener;
   friend class HttpBackgroundChannelChild;
   friend class NeckoTargetChannelEvent<HttpChannelChild>;
+  friend class ContinueDoNotifyListenerEvent;
 };
 
 // A stream listener interposed between the nsInputStreamPump used for
