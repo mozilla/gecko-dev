@@ -14,8 +14,12 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 const A11Y_INIT_OR_SHUTDOWN = "a11y-init-or-shutdown";
 
 const PREF_BROWSER_TABS_REMOTE_FORCE_DISABLE = "browser.tabs.remote.force-disable";
+const PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP = "accessibility.clients.oldjaws.timestamp";
 
 const CONFIRM_RESTART_PROMPT_RESTART_NOW = 0;
+
+const TIMESPAN_WEEK = 7 * 24 * 60 * 60 * 1000;
+let gTimer = null;
 
 XPCOMUtils.defineLazyGetter(this, "jawsesrStrings", () =>
   Services.strings.createBundle("chrome://jaws-esr/locale/jaws-esr.properties"));
@@ -26,37 +30,45 @@ XPCOMUtils.defineLazyGetter(this, "updates", () =>
 
 const observer = {
   observe(subject, topic, data) {
-    if (topic === "a11y-init-or-shutdown" && data === "1") {
-      checkVersionPromptAndDisableE10S(); // eslint-disable-line no-use-before-define
+    if (topic === "a11y-init-or-shutdown") {
+      if (data === "1") {
+        checkEnvironmentAndUpdateSettings(); // eslint-disable-line no-use-before-define
+      } else if (gTimer) {
+        // If there's a timer for a timestamp update, cancel it and update the
+        // timestamp.
+        gTimer.cancel();
+        gTimer = null;
+        updateTimestamp(); // eslint-disable-line no-use-before-define
+      }
     }
   }
 };
 
-function removeA11yInitOrShutdownObserver() {
-  try {
-    Services.obs.removeObserver(observer, A11Y_INIT_OR_SHUTDOWN);
-  } catch (e) {
-    // Accessibility init or shutdown event observer might not have been initialized if:
-    // * A11y service was never used
-    // * A11y service was enabled at startup
-    // * Observer was already removed on a11y service init.
-    console.log("Accessibility service init or shutdown observer does not exist.");
-  }
+function updateTimestamp() {
+  Services.prefs.setIntPref(PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP,
+    // We need to store seconds in order to fit within int prefs.
+    Math.floor(Date.now() / 1000));
 }
 
-function checkVersionPromptAndDisableE10S() {
-  // User is assumed to not use OLDJAWS or e10s is already disabled.
-  if (!Services.appinfo.shouldBlockIncompatJaws ||
-      !Services.appinfo.browserTabsRemoteAutostart) {
-    return;
-  }
+function setUpdateTimestampTimer() {
+  gTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  gTimer.initWithCallback(() => {
+    gTimer = null;
+    // If OLDJAWS is in use, update the timestamp and reset the timer.
+    if (Services.appinfo.shouldBlockIncompatJaws) {
+      updateTimestamp();
+      setUpdateTimestampTimer();
+    }
+  }, TIMESPAN_WEEK, Ci.nsITimer.TYPE_ONE_SHOT);
+}
 
-  removeA11yInitOrShutdownObserver();
-
+function promptAndToggleE10S(e10sOff) {
   const brandShortName = brandBundle.GetStringFromName("brandShortName");
   const restartFirefoxText = updates.formatStringFromName("restartNowButton",
     [brandShortName], 1);
-  const msg = jawsesrStrings.formatStringFromName("jawsesr.dialog.msg",
+
+  const msg = jawsesrStrings.formatStringFromName(
+    e10sOff ? "jawsesr.dialog.msg" : "jawsesr.dialog.msg.e10sOn",
     [brandShortName, brandShortName], 2);
 
   let buttonFlags = (Services.prompt.BUTTON_POS_0 *
@@ -68,9 +80,45 @@ function checkVersionPromptAndDisableE10S() {
     buttonFlags, restartFirefoxText, null, null, null, {});
 
   if (buttonIndex === CONFIRM_RESTART_PROMPT_RESTART_NOW) {
-    Services.prefs.setBoolPref(PREF_BROWSER_TABS_REMOTE_FORCE_DISABLE, true);
+    Services.prefs.setBoolPref(PREF_BROWSER_TABS_REMOTE_FORCE_DISABLE, e10sOff);
     Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
   }
+}
+
+function checkEnvironmentAndUpdateSettings() {
+  if (Services.appinfo.shouldBlockIncompatJaws) {
+    // Set a preference that sets the last time the OLDJAWS screen reader was
+    // used. This will be used when deciding whether to update the users from
+    // ESR60 to ESR68.
+    updateTimestamp();
+    setUpdateTimestampTimer();
+
+    if (Services.appinfo.browserTabsRemoteAutostart) {
+      // Broken configuration, suggest restarting the browser with e10s
+      // disabled.
+      promptAndToggleE10S(true);
+    }
+
+    // We are done, users with OLDJAWS will not be updated to ESR68 because of
+    // the PREF_BROWSER_TABS_REMOTE_FORCE_DISABLE pref set to true.
+    return;
+  }
+
+  // If there's a timer for a timestamp update, cancel it.
+  if (gTimer) {
+    gTimer.cancel();
+    gTimer = null;
+  }
+
+  if (Services.appinfo.browserTabsRemoteAutostart) {
+    // User using a client other than OLDJAWS with e10s enabled. This is supported
+    // configuration, nothing to do here.
+    return;
+  }
+
+  // User is using a non-OLDJAWS client with e10s disabled. Suggest enabling
+  // e10s and restarting.
+  promptAndToggleE10S(false);
 }
 
 function install() {}
@@ -78,18 +126,35 @@ function install() {}
 function uninstall() {}
 
 function startup() {
-  // Do nothing if we are not on Windows or if e10s is disabled.
-  if (AppConstants.platform !== "win" || !Services.appinfo.browserTabsRemoteAutostart) {
+  // Do nothing if we are not on Windows.
+  if (AppConstants.platform !== "win") {
     return;
   }
 
   if (Services.appinfo.accessibilityEnabled) {
-    checkVersionPromptAndDisableE10S();
+    checkEnvironmentAndUpdateSettings();
   } else {
     Services.obs.addObserver(observer, A11Y_INIT_OR_SHUTDOWN);
   }
 }
 
 function shutdown() {
-  removeA11yInitOrShutdownObserver();
+  // If there's a timer for a timestamp update, cancel it.
+  if (gTimer) {
+    gTimer.cancel();
+    gTimer = null;
+  }
+  // If OLDJAWS is in use, set/update the timestamp.
+  if (Services.appinfo.shouldBlockIncompatJaws) {
+    updateTimestamp();
+  }
+
+  try {
+    Services.obs.removeObserver(observer, A11Y_INIT_OR_SHUTDOWN);
+  } catch (e) {
+    // Accessibility init or shutdown event observer might not have been initialized if:
+    // * A11y service was never used
+    // * A11y service was enabled at startup
+    // * Observer was already removed on a11y service init.
+  }
 }
