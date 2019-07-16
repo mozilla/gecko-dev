@@ -71,7 +71,7 @@ graph_config_schema = Schema({
             optionally_keyed_by('platform', 'release-type',
                                 Any('mac_notarize', 'mac_pkg', 'mac_sign', 'mac_sign_and_pkg')),
         Required('mac-entitlements'):
-            optionally_keyed_by('platform', 'project', text_type),
+            optionally_keyed_by('platform', 'release-level', basestring),
     },
 })
 
