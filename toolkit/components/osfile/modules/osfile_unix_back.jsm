@@ -453,6 +453,20 @@
                       /* return*/Type.null_or_dirent_ptr, Type.DIR.in_ptr); // Other Unices
        }
 
+       if (OS.Constants.Sys.Name == "Darwin") {
+        // At the time of writing we only need this on MacOS.
+         libc.declareLazyFFI(
+           SysFile,
+           "removexattr",
+           "removexattr",
+           ctypes.default_abi,
+           /* return*/ Type.negativeone_or_nothing,
+           Type.path,
+           Type.cstring,
+           Type.int
+         );
+       }
+
        libc.declareLazyFFI(SysFile, "rename",
                                "rename", ctypes.default_abi,
                     /* return*/ Type.negativeone_or_nothing, Type.path, Type.path);
