@@ -362,6 +362,24 @@
                              SysFile.free
                            ), Type.void_t.out_ptr);
 
+       if (OS.Constants.Sys.Name == "Darwin") {
+         // At the time of writing we only need this on MacOS. If we generalize
+         // this, be sure to do so with the other xattr functions also.
+         libc.declareLazyFFI(
+           SysFile,
+           "getxattr",
+           "getxattr",
+           ctypes.default_abi,
+           /* return*/ Type.int,
+           Type.path,
+           Type.cstring,
+           Type.void_t.out_ptr,
+           Type.size_t,
+           Type.uint32_t,
+           Type.int
+         );
+       }
+
        libc.declareLazyFFI(SysFile, "fdatasync",
                            "fdatasync", ctypes.default_abi,
                            /* return*/ Type.negativeone_or_nothing, Type.fd); // Note: MacOS/BSD-specific
@@ -454,7 +472,8 @@
        }
 
        if (OS.Constants.Sys.Name == "Darwin") {
-        // At the time of writing we only need this on MacOS.
+         // At the time of writing we only need this on MacOS. If we generalize
+         // this, be sure to do so with the other xattr functions also.
          libc.declareLazyFFI(
            SysFile,
            "removexattr",
@@ -474,6 +493,24 @@
        libc.declareLazyFFI(SysFile, "rmdir",
                                "rmdir", ctypes.default_abi,
                     /* return*/ Type.int, Type.path);
+
+       if (OS.Constants.Sys.Name == "Darwin") {
+         // At the time of writing we only need this on MacOS. If we generalize
+         // this, be sure to do so with the other xattr functions also.
+         libc.declareLazyFFI(
+           SysFile,
+           "setxattr",
+           "setxattr",
+           ctypes.default_abi,
+           /* return*/ Type.negativeone_or_nothing,
+           Type.path,
+           Type.cstring,
+           Type.void_t.in_ptr,
+           Type.size_t,
+           Type.uint32_t,
+           Type.int
+         );
+       }
 
        libc.declareLazyFFI(SysFile, "splice",
                                "splice", ctypes.default_abi,
