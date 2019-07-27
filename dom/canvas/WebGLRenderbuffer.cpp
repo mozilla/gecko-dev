@@ -194,7 +194,7 @@ void WebGLRenderbuffer::RenderbufferStorage(const char* funcName,
   if (error) {
     const char* errorName = mContext->ErrorName(error);
     mContext->GenerateWarning("%s generated error %s", funcName, errorName);
-    if (error != LOCAL_GL_OUT_OF_MEMORY) {
+    if (error == LOCAL_GL_OUT_OF_MEMORY) {
       // Truncate.
       mSamples = 0;
       mFormat = nullptr;
