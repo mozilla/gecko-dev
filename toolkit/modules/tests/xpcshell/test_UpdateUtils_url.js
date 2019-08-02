@@ -17,13 +17,10 @@ const PREF_APP_UPDATE_CHANNEL     = "app.update.channel";
 const PREF_APP_PARTNER_BRANCH     = "app.partner.";
 const PREF_DISTRIBUTION_ID        = "distribution.id";
 const PREF_DISTRIBUTION_VERSION   = "distribution.version";
-const PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP = "accessibility.clients.oldjaws.timestamp";
 
 const URL_PREFIX = "http://localhost/";
 
 const MSG_SHOULD_EQUAL = " should equal the expected value";
-
-const TIMESPAN_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 updateAppInfo();
 const gAppInfo = getAppInfo();
@@ -336,48 +333,8 @@ add_task(async function test_custom() {
 
 // url constructed with %SYSTEM_CAPABILITIES%
 add_task(async function test_systemCapabilities() {
-  const url = URL_PREFIX + "%SYSTEM_CAPABILITIES%/";
+  let url = URL_PREFIX + "%SYSTEM_CAPABILITIES%/";
   let systemCapabilities = "ISET:" + getInstructionSet() + ",MEM:" + getMemoryMB();
-  const msg = "the url param for %SYSTEM_CAPABILITIES%" + MSG_SHOULD_EQUAL;
-  if (AppConstants.platform == "win") {
-    const tests = [{
-      desc: "The default value of shouldBlockIncompatJaws in the mock Services.appinfo " +
-            "is false so the value should be JAWS:0",
-      setup: () => {
-        updateAppInfo();
-      },
-      expected: systemCapabilities + ",JAWS:0"
-    }, {
-      desc: "When the value of shouldBlockIncompatJaws in the mock Services.appinfo " +
-            "is false and the PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP is older " +
-            "than 1 week the value should be JAWS:0",
-      setup: () => {
-        updateAppInfo();
-        Services.prefs.setIntPref(
-          PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP,
-          new Date(Date.now() - TIMESPAN_WEEK * 2).getTime() / 1000);
-      },
-      expected: systemCapabilities + ",JAWS:0"
-    }, {
-      desc: "When the value of shouldBlockIncompatJaws in the mock Services.appinfo " +
-            "is false and the PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP is newer " +
-            "than 1 week the value should be JAWS:1",
-      setup: () => {
-        updateAppInfo();
-        Services.prefs.setIntPref(
-          PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP,
-          new Date(Date.now() - TIMESPAN_WEEK / 2).getTime() / 1000);
-      },
-      expected: systemCapabilities + ",JAWS:1"
-    }];
-
-    for (const { desc, setup, expected } of tests) {
-      info(desc);
-      setup();
-      Assert.equal(await getResult(url), expected, msg);
-      Services.prefs.clearUserPref(PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP);
-    }
-  } else {
-    Assert.equal(await getResult(url), systemCapabilities, msg);
-  }
+  Assert.equal(await getResult(url), systemCapabilities,
+               "the url param for %SYSTEM_CAPABILITIES%" + MSG_SHOULD_EQUAL);
 });
