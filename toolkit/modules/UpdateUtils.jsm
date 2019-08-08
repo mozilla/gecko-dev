@@ -18,12 +18,6 @@ const PREF_APP_DISTRIBUTION               = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION       = "distribution.version";
 const PREF_APP_UPDATE_CUSTOM              = "app.update.custom";
 
-/**
- * Pref that stores the time of the last use of OLDJAWS screen reader.
- */
-const PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP = "accessibility.clients.oldjaws.timestamp";
-
-const TIMESPAN_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 var UpdateUtils = {
   _locale: undefined,
@@ -142,33 +136,7 @@ function getDistributionPrefValue(aPrefName) {
 }
 
 function getSystemCapabilities() {
-  return "ISET:" + gInstructionSet + ",MEM:" + getMemoryMB() + getJAWS();
-}
-
-/**
- * Gets the appropriate update url string for whether a JAWS screen reader that
- * is incompatible with e10s is or was recently present on Windows. For
- * platforms other than Windows this returns an empty string which is easier for
- * balrog to detect.
- */
-function getJAWS() {
-  if (AppConstants.platform != "win") {
-    return "";
-  }
-
-  let oldjaws = false;
-  if (Services.appinfo.shouldBlockIncompatJaws) {
-    // User is using old JAWS screen reader right now.
-    oldjaws = true;
-  } else {
-    // We stored seconds in order to fit within int prefs.
-    const timestamp = Services.prefs.getIntPref(
-      PREF_ACCESSIBILITY_CLIENTS_OLDJAWS_TIMESTAMP, 0) * 1000;
-    // User was using old JAWS screen reader less than a week ago.
-    oldjaws = Date.now() - timestamp < TIMESPAN_WEEK;
-  }
-
-  return ",JAWS:" + (oldjaws ? "1" : "0");
+  return "ISET:" + gInstructionSet + ",MEM:" + getMemoryMB();
 }
 
 /**
