@@ -316,7 +316,8 @@ class nsHtml5Tokenizer {
   void setInterner(nsHtml5AtomTable* interner);
   void initLocation(nsHtml5String newPublicId, nsHtml5String newSystemId);
   bool isViewingXmlSource();
-  void setState(int32_t specialTokenizerState);
+  void setStateAndEndTagExpectation(int32_t specialTokenizerState,
+                                    nsAtom* endTagExpectation);
   void setStateAndEndTagExpectation(int32_t specialTokenizerState,
                                     nsHtml5ElementName* endTagExpectation);
 
