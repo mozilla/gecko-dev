@@ -1268,9 +1268,12 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     updateInfo->indexId() = aIndexID;
     updateInfo->value() = key;
     if (localeAware) {
-      aRv = key.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale);
-      if (NS_WARN_IF(aRv.Failed())) {
-        aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+      auto result =
+          key.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale, aRv);
+      if (NS_WARN_IF(!result.Is(Ok, aRv))) {
+        if (result.Is(Invalid, aRv)) {
+          aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+        }
         return;
       }
     }
@@ -1307,8 +1310,8 @@ void IDBObjectStore::AppendIndexUpdateInfo(
       }
 
       Key value;
-      value.SetFromJSVal(aCx, arrayItem, aRv);
-      if (aRv.Failed() || value.IsUnset()) {
+      auto result = value.SetFromJSVal(aCx, arrayItem, aRv);
+      if (!result.Is(Ok, aRv) || value.IsUnset()) {
         // Not a value we can do anything with, ignore it.
         aRv.SuppressException();
         continue;
@@ -1318,17 +1321,20 @@ void IDBObjectStore::AppendIndexUpdateInfo(
       updateInfo->indexId() = aIndexID;
       updateInfo->value() = value;
       if (localeAware) {
-        aRv = value.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale);
-        if (NS_WARN_IF(aRv.Failed())) {
-          aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+        auto result =
+            value.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale, aRv);
+        if (NS_WARN_IF(!result.Is(Ok, aRv))) {
+          if (result.Is(Invalid, aRv)) {
+            aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+          }
           return;
         }
       }
     }
   } else {
     Key value;
-    value.SetFromJSVal(aCx, val, aRv);
-    if (aRv.Failed() || value.IsUnset()) {
+    auto result = value.SetFromJSVal(aCx, val, aRv);
+    if (!result.Is(Ok, aRv) || value.IsUnset()) {
       // Not a value we can do anything with, ignore it.
       aRv.SuppressException();
       return;
@@ -1338,9 +1344,12 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     updateInfo->indexId() = aIndexID;
     updateInfo->value() = value;
     if (localeAware) {
-      aRv = value.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale);
-      if (NS_WARN_IF(aRv.Failed())) {
-        aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+      auto result =
+          value.ToLocaleBasedKey(updateInfo->localizedValue(), aLocale, aRv);
+      if (NS_WARN_IF(!result.Is(Ok, aRv))) {
+        if (result.Is(Invalid, aRv)) {
+          aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+        }
         return;
       }
     }
@@ -1736,8 +1745,11 @@ void IDBObjectStore::GetAddInfo(JSContext* aCx, ValueWrapper& aValueWrapper,
 
   if (!HasValidKeyPath()) {
     // Out-of-line keys must be passed in.
-    aKey.SetFromJSVal(aCx, aKeyVal, aRv);
-    if (aRv.Failed()) {
+    auto result = aKey.SetFromJSVal(aCx, aKeyVal, aRv);
+    if (!result.Is(Ok, aRv)) {
+      if (result.Is(Invalid, aRv)) {
+        aRv.Throw(NS_ERROR_DOM_INDEXEDDB_DATA_ERR);
+      }
       return;
     }
   } else if (!isAutoIncrement) {
