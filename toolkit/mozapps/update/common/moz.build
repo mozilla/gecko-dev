@@ -12,16 +12,13 @@ EXPORTS += [
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXPORTS += [
+        'certificatecheck.h',
         'pathhash.h',
+        'registrycertificates.h',
         'uachelper.h',
         'updatehelper.cpp',
         'updatehelper.h',
     ]
-    if CONFIG['MOZ_MAINTENANCE_SERVICE']:
-        EXPORTS += [
-            'certificatecheck.h',
-            'registrycertificates.h',
-        ]
 
 Library('updatecommon')
 
@@ -30,22 +27,17 @@ USE_STATIC_LIBS = True
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     SOURCES += [
+        'certificatecheck.cpp',
         'pathhash.cpp',
+        'registrycertificates.cpp',
         'uachelper.cpp',
         'updatehelper.cpp',
     ]
     OS_LIBS += [
+        'crypt32',
         'rpcrt4',
+        'wintrust',
     ]
-    if CONFIG['MOZ_MAINTENANCE_SERVICE']:
-        SOURCES += [
-            'certificatecheck.cpp',
-            'registrycertificates.cpp',
-        ]
-        OS_LIBS += [
-            'crypt32',
-            'wintrust',
-        ]
 
 SOURCES += [
     'readstrings.cpp',
