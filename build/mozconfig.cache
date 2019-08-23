@@ -67,6 +67,8 @@ fi
 
 if test -n "$bucket"; then
     mk_add_options "export SCCACHE_BUCKET=$bucket"
+    # instruct sccache to fetch the credentials from the Auth service's awsS3Credentials endpoint, via the Taskcluster proxy.
+    mk_add_options "export AWS_IAM_CREDENTIALS_URL=http://taskcluster/auth/v1/aws/s3/read-write/${bucket}/?format=iam-role-compat"
     case "$master" in
     *us[ew][12].mozilla.com*|*euc1.mozilla.com*)
         mk_add_options "export SCCACHE_NAMESERVER=169.254.169.253"

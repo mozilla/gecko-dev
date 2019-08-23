@@ -754,6 +754,7 @@ def build_docker_worker_payload(config, task, task_def):
 })
 def build_generic_worker_payload(config, task, task_def):
     worker = task['worker']
+    features = {}
 
     task_def['payload'] = {
         'command': worker['command'],
@@ -768,6 +769,12 @@ def build_generic_worker_payload(config, task, task_def):
     env['TASKCLUSTER_ROOT_URL'] = get_root_url()
 
     if task.get('needs-sccache'):
+        features['taskclusterProxy'] = True
+        task_def['scopes'].append(
+            'assume:project:taskcluster:{trust_domain}:level-{level}-sccache-buckets'.format(
+                trust_domain=config.graph_config['trust-domain'],
+                level=config.params['level'])
+        )
         env['USE_SCCACHE'] = '1'
         # Disable sccache idle shutdown.
         env['SCCACHE_IDLE_TIMEOUT'] = '0'
@@ -813,8 +820,6 @@ def build_generic_worker_payload(config, task, task_def):
 
     if worker.get('os-groups', []):
         task_def['payload']['osGroups'] = worker['os-groups']
-
-    features = {}
 
     if worker.get('chain-of-trust'):
         features['chainOfTrust'] = True
