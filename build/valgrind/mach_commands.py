@@ -94,8 +94,6 @@ class MachCommands(MachCommandBase):
             env['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
             env['XPCOM_DEBUG_BREAK'] = 'warn'
 
-            env.update(self.extra_environment_variables)
-
             outputHandler = OutputHandler(self.log)
             kp_kwargs = {'processOutputLine': [outputHandler]}
 
