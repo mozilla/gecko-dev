@@ -53,21 +53,6 @@ add_task(async function preferred_API() {
         false,
         gBrowser.contentPrincipal
       );
-      await ContentTask.spawn(gBrowser.selectedBrowser, null, async () => {
-        let channel = docShell.currentDocumentChannel;
-        if (channel) {
-          todo(
-            channel.QueryInterface(Ci.nsIHttpChannelInternal)
-              .channelIsForDownload
-          );
-
-          // Throttleable is the only class flag assigned to downloads.
-          todo(
-            channel.QueryInterface(Ci.nsIClassOfService).classFlags ==
-              Ci.nsIClassOfService.Throttleable
-          );
-        }
-      });
       await filePickerPromise;
     }
   );
@@ -98,21 +83,6 @@ add_task(async function deprecated_API() {
       // pass the XUL document instead to test this interface.
       let doc = document;
 
-      await ContentTask.spawn(gBrowser.selectedBrowser, null, async () => {
-        let channel = docShell.currentDocumentChannel;
-        if (channel) {
-          todo(
-            channel.QueryInterface(Ci.nsIHttpChannelInternal)
-              .channelIsForDownload
-          );
-
-          // Throttleable is the only class flag assigned to downloads.
-          todo(
-            channel.QueryInterface(Ci.nsIClassOfService).classFlags ==
-              Ci.nsIClassOfService.Throttleable
-          );
-        }
-      });
       let filePickerPromise = waitForFilePicker();
       saveImageURL(url, "image.jpg", null, true, false, null, doc, null, null);
       await filePickerPromise;
