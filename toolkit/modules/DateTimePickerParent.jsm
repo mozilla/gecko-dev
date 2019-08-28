@@ -117,7 +117,9 @@ var DateTimePickerParent = {
 
     this._anchor = aBrowser.popupAnchor;
     if (!this._anchor) {
-      throw new Error("No popup anchor for this browser, cannot show date picker");
+      throw new Error(
+        "No popup anchor for this browser, cannot show date picker"
+      );
     }
 
     this._anchor.left = rect.left;
