@@ -1473,91 +1473,6 @@ static nsresult AttemptToRenameBothPKCS11ModuleDBVersions(
   return AttemptToRenamePKCS11ModuleDB(profilePath, sqlModuleDBFilename);
 }
 
-// Helper function to take a path and a file name and create a handle for the
-// file in that location, if it exists.
-static nsresult GetFileIfExists(const nsACString& path,
-                                const nsACString& filename,
-                                /* out */ nsIFile** result) {
-  MOZ_ASSERT(result);
-  if (!result) {
-    return NS_ERROR_INVALID_ARG;
-  }
-  *result = nullptr;
-  nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
-  if (!file) {
-    return NS_ERROR_FAILURE;
-  }
-  nsresult rv = file->InitWithNativePath(path);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = file->AppendNative(filename);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  bool exists;
-  rv = file->Exists(&exists);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (exists) {
-    file.forget(result);
-  }
-  return NS_OK;
-}
-
-// When we changed from the old dbm database format to the newer sqlite
-// implementation, the upgrade process left behind the existing files. Suppose a
-// user had not set a password for the old key3.db (which is about 99% of
-// users). After upgrading, both the old database and the new database are
-// unprotected. If the user then sets a password for the new database, the old
-// one will not be protected. In this scenario, we should probably just remove
-// the old database (it would only be relevant if the user downgraded to a
-// version of Firefox before 58, but we have to trade this off against the
-// user's old private keys being unexpectedly unprotected after setting a
-// password).
-// This was never an issue on Android because we always used the new
-// implementation.
-static void MaybeCleanUpOldNSSFiles(const nsACString& profilePath) {
-  UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
-  if (!slot) {
-    return;
-  }
-  // Unfortunately we can't now tell the difference between "there already was a
-  // password when the upgrade happened" and "there was not a password but then
-  // the user added one after upgrading".
-  bool hasPassword =
-      PK11_NeedLogin(slot.get()) && !PK11_NeedUserInit(slot.get());
-  if (!hasPassword) {
-    return;
-  }
-  NS_NAMED_LITERAL_CSTRING(newKeyDBFilename, "key4.db");
-  nsCOMPtr<nsIFile> newDBFile;
-  nsresult rv =
-      GetFileIfExists(profilePath, newKeyDBFilename, getter_AddRefs(newDBFile));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-  // If the new key DB file doesn't exist, we don't want to remove the old DB
-  // file. This can happen if the system is configured to use the old DB format
-  // even though we're a version of Firefox that expects to use the new format.
-  if (!newDBFile) {
-    return;
-  }
-  NS_NAMED_LITERAL_CSTRING(oldKeyDBFilename, "key3.db");
-  nsCOMPtr<nsIFile> oldDBFile;
-  rv =
-      GetFileIfExists(profilePath, oldKeyDBFilename, getter_AddRefs(oldDBFile));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-  if (!oldDBFile) {
-    return;
-  }
-  // Since this isn't a directory, the `recursive` argument to `Remove` is
-  // irrelevant.
-  Unused << oldDBFile->Remove(false);
-}
 #endif  // ifndef ANDROID
 
 // Given a profile directory, attempt to initialize NSS. If nocertdb is true,
@@ -1592,9 +1507,6 @@ static nsresult InitializeNSSWithFallbacks(const nsACString& profilePath,
   SECStatus srv = ::mozilla::psm::InitializeNSS(profilePath, false, !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r/w mode"));
-#ifndef ANDROID
-    MaybeCleanUpOldNSSFiles(profilePath);
-#endif  // ifndef ANDROID
     return NS_OK;
   }
 #ifndef ANDROID

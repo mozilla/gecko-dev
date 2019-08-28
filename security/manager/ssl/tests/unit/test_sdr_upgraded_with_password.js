@@ -136,14 +136,4 @@ function run_test() {
     1,
     "Should have been prompted for a password once"
   );
-
-  // NSS does not close the old database when performing an upgrade. Thus, on
-  // Windows, we can't delete the old database file on the run that we perform
-  // an upgrade. However, we can delete it on subsequent runs.
-  let key3DBInProfile = do_get_profile();
-  key3DBInProfile.append("key3.db");
-  ok(
-    !key3DBInProfile.exists(),
-    "key3.db should not exist after running with key4.db with a password"
-  );
 }
