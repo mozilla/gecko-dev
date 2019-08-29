@@ -175,7 +175,7 @@ class MozTranslationNotification extends MozElements.Notification {
     let engineIndex = Object.keys(Translation.supportedEngines).indexOf(
       Translation.translationEngine
     );
-    // We currently only have attribution for the Bing and Yandex engines.
+    // We currently only have attribution for the Bergamot, Bing, and Yandex engines.
     if (engineIndex >= 0) {
       --engineIndex;
     }

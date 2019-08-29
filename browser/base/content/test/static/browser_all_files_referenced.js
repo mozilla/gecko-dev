@@ -159,6 +159,7 @@ var whitelist = [
   { file: "resource://pdf.js/web/debugger.js" },
 
   // resource://app/modules/translation/TranslationContentHandler.jsm
+  { file: "resource://app/modules/translation/BergamotTranslator.jsm" },
   { file: "resource://app/modules/translation/BingTranslator.jsm" },
   { file: "resource://app/modules/translation/GoogleTranslator.jsm" },
   { file: "resource://app/modules/translation/YandexTranslator.jsm" },

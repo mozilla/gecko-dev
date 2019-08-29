@@ -10,6 +10,7 @@ with Files("**"):
     BUG_COMPONENT = ("Firefox", "Translation")
 
 EXTRA_JS_MODULES.translation = [
+    'BergamotTranslator.jsm',
     'BingTranslator.jsm',
     'cld2/cld-worker.js',
     'cld2/cld-worker.js.mem',
