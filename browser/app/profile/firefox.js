@@ -1531,8 +1531,8 @@ pref("browser.translation.detectLanguage", false);
 pref("browser.translation.neverForLanguages", "");
 // Show the translation UI bits, like the info bar, notification icon and preferences.
 pref("browser.translation.ui.show", false);
-// Allows to define the translation engine. Google is default, Bing or Yandex are other options.
-pref("browser.translation.engine", "Google");
+// Allows to define the translation engine. Bergamot is default, Google, Bing, or Yandex are other options.
+pref("browser.translation.engine", "Bergamot");
 
 // Telemetry settings.
 // Determines if Telemetry pings can be archived locally.

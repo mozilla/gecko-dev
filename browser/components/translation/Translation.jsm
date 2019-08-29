@@ -123,15 +123,16 @@ var Translation = {
    */
   supportedEngines: {
     Google: "",
+    Bergamot: "https://browser.mt/",
     Bing: "http://aka.ms/MicrosoftTranslatorAttribution",
     Yandex: "http://translate.yandex.com/",
   },
 
   /**
-   * Fallback engine (currently Google) if the preferences seem confusing.
+   * Fallback engine (currently Bergamot) if the preferences seem confusing.
    */
   get defaultEngine() {
-    return Object.keys(this.supportedEngines)[0];
+    return Object.keys(this.supportedEngines)[1];
   },
 
   /**
