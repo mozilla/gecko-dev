@@ -21,15 +21,15 @@ const MAX_REQUEST_DATA = 5000; // XXX This is the Bing value
 
 // The maximum number of chunks allowed to be translated in a single
 // request.
-const MAX_REQUEST_CHUNKS = 1; // Undocumented, but the de facto upper limit.
+const MAX_REQUEST_CHUNKS = 128; // TODO: Determine the real value for this
 
 // Self-imposed limit of 1920 requests. This means that a page that would need
 // to be broken in more than 1920 requests won't be fully translated.
 // The maximum amount of data that we will translate for a single page
 // is MAX_REQUESTS * MAX_REQUEST_DATA.
-const MAX_REQUESTS = 1920;
+const MAX_REQUESTS = 15;
 
-const URL = "http://demo.statmt.org/api/elg/v1";
+const URL = "http://demo.statmt.org/api/bergamot/v1";
 
 /**
  * Translates a webpage using Bergamot's Translation API.
@@ -173,23 +173,29 @@ this.BergamotTranslator.prototype = {
     } catch (e) {
       return false;
     }
-    if (results.failure) {
+    let len = results.text.length;
+    if (len != bergamotRequest.translationData.length) {
+      // This should never happen, but if the service returns a different number
+      // of items (from the number of items submitted), we can't use this chunk
+      // because all items would be paired incorrectly.
       return false;
     }
 
     let error = false;
-    try {
-      let result = results.response.texts[0]["text"];
-      let root = bergamotRequest.translationData[0][0];
-      if (root.isSimpleRoot && result.includes("&")) {
-        // If the result contains HTML entities, we need to convert them as
-        // simple roots expect a plain text result.
-        let doc = new DOMParser().parseFromString(result, "text/html");
-        result = doc.body.firstChild.nodeValue;
+    for (let i = 0; i < len; i++) {
+      try {
+        let result = results.text[i];
+        let root = bergamotRequest.translationData[i][0];
+        if (root.isSimpleRoot && result.includes("&")) {
+          // If the result contains HTML entities, we need to convert them as
+          // simple roots expect a plain text result.
+          let doc = new DOMParser().parseFromString(result, "text/html");
+          result = doc.body.firstChild.nodeValue;
+        }
+        root.parseResult(result);
+      } catch (e) {
+        error = true;
       }
-      root.parseResult(result);
-    } catch (e) {
-      error = true;
     }
 
     return !error;
@@ -272,12 +278,7 @@ BergamotRequest.prototype = {
 
     // Prepare the post data
     let postData = {
-      "metadata" : { "id": 0 },
-      "request"  : {
-        "type" : "text",
-        "mimeType" : "text/plain",
-        "characterEncoding" : "UTF-8",
-      }
+      "text"  : []
     };
 
     // Prepare the content of the post
@@ -291,8 +292,8 @@ BergamotRequest.prototype = {
       // replace them as it doesn't know how to insert them in to
       // the translated result. So as a hack we just remove the
       // tags and hope the formatting is not too bad.
-      text = text.replace(/<[^>]*>?/gm, '');
-      postData["request"]["content"] = text;
+      text = text.replace(/<[^>]*>?/gm, ' ');
+      postData["text"].push(text);
       this.characterCount += text.length;
     }
 
