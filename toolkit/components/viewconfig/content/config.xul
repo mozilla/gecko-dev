@@ -25,6 +25,8 @@
 </linkset>
 
 <script src="chrome://global/content/config.js"/>
+<script src="chrome://global/content/editMenuOverlay.js"/>
+<script src="chrome://global/content/globalOverlay.js"/>
 
 <menupopup id="configContext" onpopupshowing="if (event.target == this) updateContextMenu();">
   <menuitem id="toggleSelected" data-l10n-id="config-toggle" default="true"
