@@ -10,7 +10,7 @@ package org.mozilla.gecko.firstrun;
  */
 public class PanelConfig {
     public enum TYPE {
-        WELCOME, PRIVACY, LAST_PRIVACY, CUSTOMIZE, LAST_CUSTOMIZE, SYNC
+        WELCOME, PRIVACY, LAST_PRIVACY, CUSTOMIZE, LAST_CUSTOMIZE, SYNC, SEND_TAB
     }
 
     private final TYPE type;
@@ -19,6 +19,7 @@ public class PanelConfig {
     private final String message;
     private final String text;
     private final int image;
+    private String entrypoint;
 
     public PanelConfig(TYPE type, boolean useLocalValues, String title, String message, String text, int image) {
         this.type = type;
@@ -29,17 +30,28 @@ public class PanelConfig {
         this.image = image;
     }
 
+    public PanelConfig(TYPE type, boolean useLocalValues, String title, String message, String text, int image, String entrypoint) {
+        this.type = type;
+        this.useLocalValues = useLocalValues;
+        this.title = title;
+        this.message = message;
+        this.text = text;
+        this.image = image;
+        this.entrypoint = entrypoint;
+    }
+
     public String getClassName() {
         switch (type) {
             case WELCOME:
             case PRIVACY:
+            case SYNC:
             case CUSTOMIZE:
                 return FirstrunPanel.class.getName();
             case LAST_PRIVACY:
             case LAST_CUSTOMIZE:
                 return LastPanel.class.getName();
-            case SYNC:
-                return SyncPanel.class.getName();
+            case SEND_TAB:
+                return SendTabPanel.class.getName();
             default:    // Return the default Panel, same as for "WELCOME"
                 return FirstrunPanel.class.getName();
         }
@@ -67,5 +79,9 @@ public class PanelConfig {
 
     public int getImage() {
         return image;
+    }
+
+    public String getEntrypoint() {
+        return entrypoint;
     }
 }

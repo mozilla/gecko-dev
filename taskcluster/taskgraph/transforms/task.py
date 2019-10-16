@@ -232,7 +232,10 @@ task_description_schema = Schema({
     'worker': {
         Required('implementation'): basestring,
         Extra: object,
-    }
+    },
+
+    # Override the default priority for the project
+    Optional('priority'): basestring,
 })
 
 TC_TREEHERDER_SCHEMA_URL = 'https://github.com/taskcluster/taskcluster-treeherder/' \
@@ -764,6 +767,7 @@ def build_docker_worker_payload(config, task, task_def):
 })
 def build_generic_worker_payload(config, task, task_def):
     worker = task['worker']
+    features = {}
 
     task_def['payload'] = {
         'command': worker['command'],
@@ -783,6 +787,12 @@ def build_generic_worker_payload(config, task, task_def):
     env = worker.get('env', {})
 
     if task.get('needs-sccache'):
+        features['taskclusterProxy'] = True
+        task_def['scopes'].append(
+            'assume:project:taskcluster:{trust_domain}:level-{level}-sccache-buckets'.format(
+                trust_domain=config.graph_config['trust-domain'],
+                level=config.params['level'])
+        )
         env['USE_SCCACHE'] = '1'
         # Disable sccache idle shutdown.
         env['SCCACHE_IDLE_TIMEOUT'] = '0'
@@ -837,8 +847,6 @@ def build_generic_worker_payload(config, task, task_def):
                 task['worker-type'],
                 group
             ) for group in worker['os-groups']])
-
-    features = {}
 
     if worker.get('chain-of-trust'):
         features['chainOfTrust'] = True

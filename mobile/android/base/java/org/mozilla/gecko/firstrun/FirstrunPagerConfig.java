@@ -20,28 +20,16 @@ class FirstrunPagerConfig {
     static final String KEY_IMAGE = "panelImage";
     static final String KEY_MESSAGE = "panelMessage";
     static final String KEY_SUBTEXT = "panelDescription";
+    static final String KEY_ENTRYPOINT = "panelFxaEntrypoint";
 
     static List<FirstrunPanelConfig> getDefault(Context context, final boolean useLocalValues) {
         final List<FirstrunPanelConfig> panels = new LinkedList<>();
         panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.WELCOME, useLocalValues));
-        panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.PRIVACY, useLocalValues));
         if (!OnboardingResources.getInstance(context).useNewOnboarding()) {
             panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.CUSTOMIZE, useLocalValues));
         }
         panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.SYNC, useLocalValues));
-
-        return panels;
-    }
-
-    static List<FirstrunPanelConfig> forFxAUser(Context context, final boolean useLocalValues) {
-        final List<FirstrunPanelConfig> panels = new LinkedList<>();
-        panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.WELCOME, useLocalValues));
-        if (OnboardingResources.getInstance(context).useNewOnboarding()) {
-            panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.LAST_PRIVACY, useLocalValues));
-        } else {
-            panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.PRIVACY, useLocalValues));
-            panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.LAST_CUSTOMIZE, useLocalValues));
-        }
+        panels.add(FirstrunPanelConfig.getConfiguredPanel(context, PanelConfig.TYPE.SEND_TAB, useLocalValues));
 
         return panels;
     }
@@ -59,11 +47,11 @@ class FirstrunPagerConfig {
         private Bundle args;
 
         FirstrunPanelConfig(String resource, String title) {
-            this(resource, title, -1, null, null, true);
+            this(resource, title, -1, null, null, true, null);
         }
 
         private FirstrunPanelConfig(String classname, String title, int image, String message,
-                                    String subtext, boolean isCustom) {
+                                    String subtext, boolean isCustom, String entrypoint) {
             this.classname = classname;
             this.title = title;
 
@@ -72,6 +60,9 @@ class FirstrunPagerConfig {
                 args.putInt(KEY_IMAGE, image);
                 args.putString(KEY_MESSAGE, message);
                 args.putString(KEY_SUBTEXT, subtext);
+                if (entrypoint != null) {
+                    args.putString(KEY_ENTRYPOINT, entrypoint);
+                }
             }
         }
 
@@ -85,7 +76,8 @@ class FirstrunPagerConfig {
                 panelConfig = new RemoteFirstRunPanelConfig().getPanelConfig(context, wantedPanelConfig, useLocalValues);
             }
             return new FirstrunPanelConfig(panelConfig.getClassName(), panelConfig.getTitle(),
-                    panelConfig.getImage(), panelConfig.getMessage(), panelConfig.getText(), false);
+                    panelConfig.getImage(), panelConfig.getMessage(), panelConfig.getText(), false,
+                    panelConfig.getEntrypoint());
         }
 
 

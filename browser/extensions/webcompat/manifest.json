@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compat",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "5.0.2",
+  "version": "6.3.0",
 
   "applications": {
     "gecko": {
@@ -27,10 +27,26 @@
         "script": "about-compat/aboutPage.js",
         "events": ["startup"]
       }
+    },
+    "experiments": {
+      "schema": "experiment-apis/experiments.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiment-apis/experiments.js",
+        "paths": [["experiments"]]
+      }
+    },
+    "sharedPreferences": {
+      "schema": "experiment-apis/sharedPreferences.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiment-apis/sharedPreferences.js",
+        "paths": [["sharedPreferences"]]
+      }
     }
   },
 
-  "content_security_policy": "script-src 'self' 'sha256-MmZkN2QaIHhfRWPZ8TVRjijTn5Ci1iEabtTEWrt9CCo='; default-src 'self'; base-uri moz-extension://*;",
+  "content_security_policy": "script-src 'self' 'sha256-MmZkN2QaIHhfRWPZ8TVRjijTn5Ci1iEabtTEWrt9CCo='; default-src 'self'; base-uri moz-extension://*; object-src 'none'",
 
   "permissions": [
     "webRequest",
@@ -41,9 +57,11 @@
   "background": {
     "scripts": [
       "lib/module_shim.js",
+      "lib/google.js",
       "data/injections.js",
       "data/ua_overrides.js",
       "lib/about_compat_broker.js",
+      "lib/custom_functions.js",
       "lib/injections.js",
       "lib/ua_overrides.js",
       "run.js"

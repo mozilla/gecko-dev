@@ -104,16 +104,30 @@ var Policies = {
         );
       }
       if ("AllowNonFQDN" in param) {
-        if (param.AllowNonFQDN.NTLM) {
+        if ("NTLM" in param.AllowNonFQDN) {
           setAndLockPref(
             "network.automatic-ntlm-auth.allow-non-fqdn",
             param.AllowNonFQDN.NTLM
           );
         }
-        if (param.AllowNonFQDN.SPNEGO) {
+        if ("SPNEGO" in param.AllowNonFQDN) {
           setAndLockPref(
             "network.negotiate-auth.allow-non-fqdn",
             param.AllowNonFQDN.SPNEGO
+          );
+        }
+      }
+      if ("AllowProxies" in param) {
+        if ("NTLM" in param.AllowProxies) {
+          setAndLockPref(
+            "network.automatic-ntlm-auth.allow-proxies",
+            param.AllowProxies.NTLM
+          );
+        }
+        if ("SPNEGO" in param.AllowProxies) {
+          setAndLockPref(
+            "network.negotiate-auth.allow-proxies",
+            param.AllowProxies.SPNEGO
           );
         }
       }
@@ -610,6 +624,20 @@ var Policies = {
         setAndLockPref("privacy.trackingprotection.enabled", false);
         setAndLockPref("privacy.trackingprotection.pbmode.enabled", false);
       }
+      if ("Cryptomining" in param) {
+        setDefaultPref(
+          "privacy.trackingprotection.cryptomining.enabled",
+          param.Cryptomining,
+          param.Locked
+        );
+      }
+      if ("Fingerprinting" in param) {
+        setDefaultPref(
+          "privacy.trackingprotection.fingerprinting.enabled",
+          param.Fingerprinting,
+          param.Locked
+        );
+      }
     },
   },
 
@@ -920,6 +948,10 @@ var Policies = {
     },
   },
 
+  LegacyProfiles: {
+    // Handled in nsToolkitProfileService.cpp (Windows only)
+  },
+
   LocalFileLinks: {
     onBeforeAddons(manager, param) {
       // If there are existing capabilities, lock them with the policy pref.
@@ -966,6 +998,12 @@ var Policies = {
     },
   },
 
+  OfferToSaveLoginsDefault: {
+    onBeforeUIStartup(manager, param) {
+      setDefaultPref("signon.rememberSignons", param);
+    },
+  },
+
   OverrideFirstRunPage: {
     onProfileAfterChange(manager, param) {
       let url = param ? param.href : "";
@@ -981,6 +1019,18 @@ var Policies = {
       // as a fallback when the update.xml file hasn't provided
       // a specific post-update URL.
       manager.disallowFeature("postUpdateCustomPage");
+    },
+  },
+
+  PasswordManagerEnabled: {
+    onBeforeUIStartup(manager, param) {
+      if (!param) {
+        // Passing no pages simply initializes the blocker
+        blockAboutPage(manager);
+        gBlockedChromePages.push("passwordManager.xul");
+        setAndLockPref("pref.privacy.disable_button.view_passwords", true);
+      }
+      setAndLockPref("signon.rememberSignons", param);
     },
   },
 
@@ -1613,6 +1663,9 @@ let gBlockedChromePages = [];
 function blockAboutPage(manager, feature, neededOnContentProcess = false) {
   if (!gBlockedChromePages.length) {
     addChromeURLBlocker();
+  }
+  if (!feature) {
+    return;
   }
   manager.disallowFeature(feature, neededOnContentProcess);
   let splitURL = Services.io
