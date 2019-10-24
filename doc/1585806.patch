@@ -1,0 +1,496 @@
+# HG changeset patch
+# User james <james.hooks@mail.utoronto.ca>
+# Date 1571938573 14400
+#      Thu Oct 24 13:36:13 2019 -0400
+# Node ID 7eba53915606281264c09404d4c113425e248226
+# Parent  acc4d98d2da4b0b375447f89d64fb61ecaafc149
+Bug 1585806 - Make SideBits an enum class, add casting where necessary. r=botond
+
+diff --git a/gfx/2d/BaseMargin.h b/gfx/2d/BaseMargin.h
+--- a/gfx/2d/BaseMargin.h
++++ b/gfx/2d/BaseMargin.h
+@@ -19,17 +19,28 @@ namespace mozilla {
+ struct Sides final {
+   Sides() : mBits(0) {}
+   explicit Sides(SideBits aSideBits) {
+-    MOZ_ASSERT((aSideBits & ~eSideBitsAll) == 0, "illegal side bits");
+-    mBits = aSideBits;
++    MOZ_ASSERT((aSideBits & ~static_cast<uint8_t>(SideBits::eAll)) == 0,
++               "illegal side bits");
++    mBits = static_cast<uint8_t>(aSideBits);
+   }
+   bool IsEmpty() const { return mBits == 0; }
+-  bool Top() const { return (mBits & eSideBitsTop) != 0; }
+-  bool Right() const { return (mBits & eSideBitsRight) != 0; }
+-  bool Bottom() const { return (mBits & eSideBitsBottom) != 0; }
+-  bool Left() const { return (mBits & eSideBitsLeft) != 0; }
++  bool Top() const {
++    return (mBits & static_cast<uint8_t>(SideBits::eTop)) != 0;
++  }
++  bool Right() const {
++    return (mBits & static_cast<uint8_t>(SideBits::eRight)) != 0;
++  }
++  bool Bottom() const {
++    return (mBits & static_cast<uint8_t>(SideBits::eBottom)) != 0;
++  }
++  bool Left() const {
++    return (mBits & static_cast<uint8_t>(SideBits::eLeft)) != 0;
++  }
+   bool Contains(SideBits aSideBits) const {
+-    MOZ_ASSERT((aSideBits & ~eSideBitsAll) == 0, "illegal side bits");
+-    return (mBits & aSideBits) == aSideBits;
++    MOZ_ASSERT((aSideBits & ~static_cast<uint8_t>(SideBits::eAll)) == 0,
++               "illegal side bits");
++    return (mBits & static_cast<uint8_t>(aSideBits)) ==
++           static_cast<uint8_t>(aSideBits);
+   }
+   Sides operator|(Sides aOther) const {
+     return Sides(SideBits(mBits | aOther.mBits));
+diff --git a/gfx/2d/Types.h b/gfx/2d/Types.h
+--- a/gfx/2d/Types.h
++++ b/gfx/2d/Types.h
+@@ -471,23 +471,17 @@ namespace mozilla {
+ // Side constants for use in various places.
+ enum Side { eSideTop, eSideRight, eSideBottom, eSideLeft };
+ 
+-enum SideBits {
+-  eSideBitsNone = 0,
+-  eSideBitsTop = 1 << eSideTop,
+-  eSideBitsRight = 1 << eSideRight,
+-  eSideBitsBottom = 1 << eSideBottom,
+-  eSideBitsLeft = 1 << eSideLeft,
+-  eSideBitsTopBottom = eSideBitsTop | eSideBitsBottom,
+-  eSideBitsLeftRight = eSideBitsLeft | eSideBitsRight,
+-  eSideBitsAll = eSideBitsTopBottom | eSideBitsLeftRight
++enum class SideBits {
++  eNone = 0,
++  eTop = 1 << eSideTop,
++  eRight = 1 << eSideRight,
++  eBottom = 1 << eSideBottom,
++  eLeft = 1 << eSideLeft,
++  eTopBottom = SideBits::eTop | SideBits::eBottom,
++  eLeftRight = SideBits::eLeft | SideBits::eRight,
++  eAll = SideBits::eTopBottom | SideBits::eLeftRight
+ };
+ 
+-// Even though SideBits isn't an enum class, bitwise operators for it are
+-// necessary for things like `a = a | b` to compile. This is because non-class
+-// enums will implicitly convert to int (causing the right hand side to match
+-// the built-in `operator|(int, int)` and have result type int), but int will
+-// not implicitly convert back to the enum type.
+-// TODO: Make SideBits an enum class.
+ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(SideBits)
+ 
+ // Creates a for loop that walks over the four mozilla::Side values.
+diff --git a/gfx/layers/LayerAttributes.h b/gfx/layers/LayerAttributes.h
+--- a/gfx/layers/LayerAttributes.h
++++ b/gfx/layers/LayerAttributes.h
+@@ -327,7 +327,7 @@ class SimpleLayerAttributes final {
+   }
+ 
+   SideBits GetFixedPositionSides() const {
+-    return mFixedPositionData ? mFixedPositionData->mSides : eSideBitsNone;
++    return mFixedPositionData ? mFixedPositionData->mSides : SideBits::eNone;
+   }
+ 
+   bool IsStickyPosition() const { return !!mStickyPositionData; }
+diff --git a/gfx/layers/composite/AsyncCompositionManager.cpp b/gfx/layers/composite/AsyncCompositionManager.cpp
+--- a/gfx/layers/composite/AsyncCompositionManager.cpp
++++ b/gfx/layers/composite/AsyncCompositionManager.cpp
+@@ -290,19 +290,19 @@ static LayerPoint GetLayerFixedMarginsOf
+   LayerPoint translation;
+   SideBits sides = aLayer->GetFixedPositionSides();
+ 
+-  if ((sides & eSideBitsLeftRight) == eSideBitsLeftRight) {
++  if ((sides & SideBits::eLeftRight) == SideBits::eLeftRight) {
+     translation.x += (aFixedLayerMargins.left - aFixedLayerMargins.right) / 2;
+-  } else if (sides & eSideBitsRight) {
++  } else if (sides & SideBits::eRight) {
+     translation.x -= aFixedLayerMargins.right;
+-  } else if (sides & eSideBitsLeft) {
++  } else if (sides & SideBits::eLeft) {
+     translation.x += aFixedLayerMargins.left;
+   }
+ 
+-  if ((sides & eSideBitsTopBottom) == eSideBitsTopBottom) {
++  if ((sides & SideBits::eTopBottom) == SideBits::eTopBottom) {
+     translation.y += (aFixedLayerMargins.top - aFixedLayerMargins.bottom) / 2;
+-  } else if (sides & eSideBitsBottom) {
++  } else if (sides & SideBits::eBottom) {
+     translation.y -= aFixedLayerMargins.bottom;
+-  } else if (sides & eSideBitsTop) {
++  } else if (sides & SideBits::eTop) {
+     translation.y += aFixedLayerMargins.top;
+   }
+ 
+diff --git a/layout/base/nsLayoutUtils.cpp b/layout/base/nsLayoutUtils.cpp
+--- a/layout/base/nsLayoutUtils.cpp
++++ b/layout/base/nsLayoutUtils.cpp
+@@ -1859,30 +1859,30 @@ void nsLayoutUtils::SetFixedPositionLaye
+   // defaulting to top-left.
+   LayerPoint anchor(anchorRect.x, anchorRect.y);
+ 
+-  SideBits sides = eSideBitsNone;
++  SideBits sides = SideBits::eNone;
+   if (aFixedPosFrame != aViewportFrame) {
+     const nsStylePosition* position = aFixedPosFrame->StylePosition();
+     if (!position->mOffset.Get(eSideRight).IsAuto()) {
+-      sides |= eSideBitsRight;
++      sides |= SideBits::eRight;
+       if (!position->mOffset.Get(eSideLeft).IsAuto()) {
+-        sides |= eSideBitsLeft;
++        sides |= SideBits::eLeft;
+         anchor.x = anchorRect.x + anchorRect.width / 2.f;
+       } else {
+         anchor.x = anchorRect.XMost();
+       }
+     } else if (!position->mOffset.Get(eSideLeft).IsAuto()) {
+-      sides |= eSideBitsLeft;
++      sides |= SideBits::eLeft;
+     }
+     if (!position->mOffset.Get(eSideBottom).IsAuto()) {
+-      sides |= eSideBitsBottom;
++      sides |= SideBits::eBottom;
+       if (!position->mOffset.Get(eSideTop).IsAuto()) {
+-        sides |= eSideBitsTop;
++        sides |= SideBits::eTop;
+         anchor.y = anchorRect.y + anchorRect.height / 2.f;
+       } else {
+         anchor.y = anchorRect.YMost();
+       }
+     } else if (!position->mOffset.Get(eSideTop).IsAuto()) {
+-      sides |= eSideBitsTop;
++      sides |= SideBits::eTop;
+     }
+   }
+ 
+diff --git a/layout/generic/nsColumnSetFrame.cpp b/layout/generic/nsColumnSetFrame.cpp
+--- a/layout/generic/nsColumnSetFrame.cpp
++++ b/layout/generic/nsColumnSetFrame.cpp
+@@ -214,14 +214,14 @@ void nsColumnSetFrame::CreateBorderRende
+     border.SetBorderWidth(eSideTop, ruleWidth);
+     border.SetBorderStyle(eSideTop, ruleStyle);
+     border.mBorderTopColor = StyleColor::FromColor(ruleColor);
+-    skipSides |= mozilla::eSideBitsLeftRight;
+-    skipSides |= mozilla::eSideBitsBottom;
++    skipSides |= mozilla::SideBits::eLeftRight;
++    skipSides |= mozilla::SideBits::eBottom;
+   } else {
+     border.SetBorderWidth(eSideLeft, ruleWidth);
+     border.SetBorderStyle(eSideLeft, ruleStyle);
+     border.mBorderLeftColor = StyleColor::FromColor(ruleColor);
+-    skipSides |= mozilla::eSideBitsTopBottom;
+-    skipSides |= mozilla::eSideBitsRight;
++    skipSides |= mozilla::SideBits::eTopBottom;
++    skipSides |= mozilla::SideBits::eRight;
+   }
+   // If we use box-decoration-break: slice (the default), the border
+   // renderers will require clipping if we have continuations (see the
+diff --git a/layout/generic/nsFrame.cpp b/layout/generic/nsFrame.cpp
+--- a/layout/generic/nsFrame.cpp
++++ b/layout/generic/nsFrame.cpp
+@@ -1581,33 +1581,33 @@ nsIFrame::Sides nsIFrame::GetSkipSides(c
+ 
+   if (logicalSkip.BStart()) {
+     if (writingMode.IsVertical()) {
+-      skip |= writingMode.IsVerticalLR() ? eSideBitsLeft : eSideBitsRight;
++      skip |= writingMode.IsVerticalLR() ? SideBits::eLeft : SideBits::eRight;
+     } else {
+-      skip |= eSideBitsTop;
++      skip |= SideBits::eTop;
+     }
+   }
+ 
+   if (logicalSkip.BEnd()) {
+     if (writingMode.IsVertical()) {
+-      skip |= writingMode.IsVerticalLR() ? eSideBitsRight : eSideBitsLeft;
++      skip |= writingMode.IsVerticalLR() ? SideBits::eRight : SideBits::eLeft;
+     } else {
+-      skip |= eSideBitsBottom;
++      skip |= SideBits::eBottom;
+     }
+   }
+ 
+   if (logicalSkip.IStart()) {
+     if (writingMode.IsVertical()) {
+-      skip |= eSideBitsTop;
++      skip |= SideBits::eTop;
+     } else {
+-      skip |= writingMode.IsBidiLTR() ? eSideBitsLeft : eSideBitsRight;
++      skip |= writingMode.IsBidiLTR() ? SideBits::eLeft : SideBits::eRight;
+     }
+   }
+ 
+   if (logicalSkip.IEnd()) {
+     if (writingMode.IsVertical()) {
+-      skip |= eSideBitsBottom;
++      skip |= SideBits::eBottom;
+     } else {
+-      skip |= writingMode.IsBidiLTR() ? eSideBitsRight : eSideBitsLeft;
++      skip |= writingMode.IsBidiLTR() ? SideBits::eRight : SideBits::eLeft;
+     }
+   }
+   return skip;
+diff --git a/layout/generic/nsIFrame.h b/layout/generic/nsIFrame.h
+--- a/layout/generic/nsIFrame.h
++++ b/layout/generic/nsIFrame.h
+@@ -1380,7 +1380,7 @@ class nsIFrame : public nsQueryFrame {
+   /**
+    * Fill in border radii for this frame.  Return whether any are nonzero.
+    * Indices into aRadii are the enum HalfCorner constants in gfx/2d/Types.h
+-   * aSkipSides is a union of eSideBitsLeft/Right/Top/Bottom bits that says
++   * aSkipSides is a union of SideBits::eLeft/Right/Top/Bottom bits that says
+    * which side(s) to skip.
+    *
+    * Note: GetMarginBoxBorderRadii() and GetShapeBoxBorderRadii() work only
+diff --git a/layout/painting/nsCSSRenderingBorders.cpp b/layout/painting/nsCSSRenderingBorders.cpp
+--- a/layout/painting/nsCSSRenderingBorders.cpp
++++ b/layout/painting/nsCSSRenderingBorders.cpp
+@@ -125,8 +125,10 @@ static Corner GetCWCorner(mozilla::Side 
+ static Corner GetCCWCorner(mozilla::Side aSide) { return Corner(aSide); }
+ 
+ static bool IsSingleSide(int aSides) {
+-  return aSides == eSideBitsTop || aSides == eSideBitsRight ||
+-         aSides == eSideBitsBottom || aSides == eSideBitsLeft;
++  return aSides == static_cast<uint8_t>(SideBits::eTop) ||
++         aSides == static_cast<uint8_t>(SideBits::eRight) ||
++         aSides == static_cast<uint8_t>(SideBits::eBottom) ||
++         aSides == static_cast<uint8_t>(SideBits::eLeft);
+ }
+ 
+ static bool IsHorizontalSide(mozilla::Side aSide) {
+@@ -177,7 +179,8 @@ nsCSSBorderRenderer::nsCSSBorderRenderer
+ 
+   mOneUnitBorder = CheckFourFloatsEqual(mBorderWidths, 1.0);
+   mNoBorderRadius = AllCornersZeroSize(mBorderRadii);
+-  mAllBordersSameStyle = AreBorderSideFinalStylesSame(eSideBitsAll);
++  mAllBordersSameStyle =
++      AreBorderSideFinalStylesSame(static_cast<uint8_t>(SideBits::eAll));
+   mAllBordersSameWidth = AllBordersSameWidth();
+   mAvoidStroke = false;
+ }
+@@ -278,8 +281,9 @@ void nsCSSBorderRenderer::ComputeOuterRa
+ }
+ 
+ bool nsCSSBorderRenderer::AreBorderSideFinalStylesSame(uint8_t aSides) {
+-  NS_ASSERTION(aSides != 0 && (aSides & ~eSideBitsAll) == 0,
+-               "AreBorderSidesSame: invalid whichSides!");
++  NS_ASSERTION(
++      aSides != 0 && (aSides & ~(static_cast<uint8_t>(SideBits::eAll))) == 0,
++      "AreBorderSidesSame: invalid whichSides!");
+ 
+   /* First check if the specified styles and colors are the same for all sides
+    */
+@@ -309,8 +313,10 @@ bool nsCSSBorderRenderer::AreBorderSideF
+     case StyleBorderStyle::Ridge:
+     case StyleBorderStyle::Inset:
+     case StyleBorderStyle::Outset:
+-      return ((aSides & ~(eSideBitsTop | eSideBitsLeft)) == 0 ||
+-              (aSides & ~(eSideBitsBottom | eSideBitsRight)) == 0);
++      return ((aSides &
++               ~static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft)) == 0 ||
++              (aSides & ~static_cast<uint8_t>(SideBits::eBottom |
++                                              SideBits::eRight)) == 0);
+     default:
+       return true;
+   }
+@@ -1118,7 +1124,7 @@ void nsCSSBorderRenderer::FillSolidBorde
+   // sides is probably second in the list -- there are a bunch of
+   // common border styles, such as inset and outset, that are
+   // top-left/bottom-right split.
+-  if (aSides == eSideBitsAll &&
++  if (aSides == static_cast<uint8_t>(SideBits::eAll) &&
+       CheckFourFloatsEqual(aBorderSizes, aBorderSizes[0]) && !mAvoidStroke) {
+     Float strokeWidth = aBorderSizes[0];
+     Rect r(aOuterRect);
+@@ -1134,23 +1140,23 @@ void nsCSSBorderRenderer::FillSolidBorde
+   Rect r[4];
+ 
+   // compute base rects for each side
+-  if (aSides & eSideBitsTop) {
++  if (aSides & static_cast<uint8_t>(SideBits::eTop)) {
+     r[eSideTop] = Rect(aOuterRect.X(), aOuterRect.Y(), aOuterRect.Width(),
+                        aBorderSizes[eSideTop]);
+   }
+ 
+-  if (aSides & eSideBitsBottom) {
++  if (aSides & static_cast<uint8_t>(SideBits::eBottom)) {
+     r[eSideBottom] =
+         Rect(aOuterRect.X(), aOuterRect.YMost() - aBorderSizes[eSideBottom],
+              aOuterRect.Width(), aBorderSizes[eSideBottom]);
+   }
+ 
+-  if (aSides & eSideBitsLeft) {
++  if (aSides & static_cast<uint8_t>(SideBits::eLeft)) {
+     r[eSideLeft] = Rect(aOuterRect.X(), aOuterRect.Y(), aBorderSizes[eSideLeft],
+                         aOuterRect.Height());
+   }
+ 
+-  if (aSides & eSideBitsRight) {
++  if (aSides & static_cast<uint8_t>(SideBits::eRight)) {
+     r[eSideRight] =
+         Rect(aOuterRect.XMost() - aBorderSizes[eSideRight], aOuterRect.Y(),
+              aBorderSizes[eSideRight], aOuterRect.Height());
+@@ -1161,27 +1167,27 @@ void nsCSSBorderRenderer::FillSolidBorde
+   // This is especially important in the case of colors with
+   // an alpha channel.
+ 
+-  if ((aSides & (eSideBitsTop | eSideBitsLeft)) ==
+-      (eSideBitsTop | eSideBitsLeft)) {
++  if ((aSides & static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft)) ==
++      static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft)) {
+     // adjust the left's top down a bit
+     r[eSideLeft].y += aBorderSizes[eSideTop];
+     r[eSideLeft].height -= aBorderSizes[eSideTop];
+   }
+ 
+-  if ((aSides & (eSideBitsTop | eSideBitsRight)) ==
+-      (eSideBitsTop | eSideBitsRight)) {
++  if ((aSides & static_cast<uint8_t>(SideBits::eTop | SideBits::eRight)) ==
++      static_cast<uint8_t>(SideBits::eTop | SideBits::eRight)) {
+     // adjust the top's left a bit
+     r[eSideTop].width -= aBorderSizes[eSideRight];
+   }
+ 
+-  if ((aSides & (eSideBitsBottom | eSideBitsRight)) ==
+-      (eSideBitsBottom | eSideBitsRight)) {
++  if ((aSides & static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight)) ==
++      static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight)) {
+     // adjust the right's bottom a bit
+     r[eSideRight].height -= aBorderSizes[eSideBottom];
+   }
+ 
+-  if ((aSides & (eSideBitsBottom | eSideBitsLeft)) ==
+-      (eSideBitsBottom | eSideBitsLeft)) {
++  if ((aSides & static_cast<uint8_t>(SideBits::eBottom | SideBits::eLeft)) ==
++      static_cast<uint8_t>(SideBits::eBottom | SideBits::eLeft)) {
+     // adjust the bottom's left a bit
+     r[eSideBottom].x += aBorderSizes[eSideLeft];
+     r[eSideBottom].width -= aBorderSizes[eSideLeft];
+@@ -1227,7 +1233,7 @@ Color ComputeColorForLine(uint32_t aLine
+ }
+ 
+ void nsCSSBorderRenderer::DrawBorderSides(int aSides) {
+-  if (aSides == 0 || (aSides & ~eSideBitsAll) != 0) {
++  if (aSides == 0 || (aSides & ~static_cast<uint8_t>(SideBits::eAll)) != 0) {
+     NS_WARNING("DrawBorderSides: invalid sides!");
+     return;
+   }
+@@ -1256,27 +1262,27 @@ void nsCSSBorderRenderer::DrawBorderSide
+   if (borderRenderStyle == StyleBorderStyle::Dashed ||
+       borderRenderStyle == StyleBorderStyle::Dotted) {
+     // Draw each corner separately, with the given side's color.
+-    if (aSides & eSideBitsTop) {
++    if (aSides & static_cast<uint8_t>(SideBits::eTop)) {
+       DrawDashedOrDottedCorner(eSideTop, C_TL);
+-    } else if (aSides & eSideBitsLeft) {
++    } else if (aSides & static_cast<uint8_t>(SideBits::eLeft)) {
+       DrawDashedOrDottedCorner(eSideLeft, C_TL);
+     }
+ 
+-    if (aSides & eSideBitsTop) {
++    if (aSides & static_cast<uint8_t>(SideBits::eTop)) {
+       DrawDashedOrDottedCorner(eSideTop, C_TR);
+-    } else if (aSides & eSideBitsRight) {
++    } else if (aSides & static_cast<uint8_t>(SideBits::eRight)) {
+       DrawDashedOrDottedCorner(eSideRight, C_TR);
+     }
+ 
+-    if (aSides & eSideBitsBottom) {
++    if (aSides & static_cast<uint8_t>(SideBits::eBottom)) {
+       DrawDashedOrDottedCorner(eSideBottom, C_BL);
+-    } else if (aSides & eSideBitsLeft) {
++    } else if (aSides & static_cast<uint8_t>(SideBits::eLeft)) {
+       DrawDashedOrDottedCorner(eSideLeft, C_BL);
+     }
+ 
+-    if (aSides & eSideBitsBottom) {
++    if (aSides & static_cast<uint8_t>(SideBits::eBottom)) {
+       DrawDashedOrDottedCorner(eSideBottom, C_BR);
+-    } else if (aSides & eSideBitsRight) {
++    } else if (aSides & static_cast<uint8_t>(SideBits::eRight)) {
+       DrawDashedOrDottedCorner(eSideRight, C_BR);
+     }
+     return;
+@@ -1363,7 +1369,7 @@ void nsCSSBorderRenderer::DrawBorderSide
+   // The caller should never give us anything with a mix
+   // of TL/BR if the border style would require a
+   // TL/BR split.
+-  if (aSides & (eSideBitsBottom | eSideBitsRight)) {
++  if (aSides & static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight)) {
+     borderColorStyle = borderColorStyleBottomRight;
+   } else {
+     borderColorStyle = borderColorStyleTopLeft;
+@@ -1434,7 +1440,7 @@ void nsCSSBorderRenderer::DrawBorderSide
+ 
+   // If there is at least one dotted side, every side is rendered separately.
+   if (IsSingleSide(aSides)) {
+-    if (aSides == eSideBitsTop) {
++    if (aSides == static_cast<uint8_t>(SideBits::eTop)) {
+       if (mBorderStyles[eSideRight] == StyleBorderStyle::Dotted &&
+           IsZeroSize(mBorderRadii[C_TR])) {
+         noMarginRight = true;
+@@ -1443,7 +1449,7 @@ void nsCSSBorderRenderer::DrawBorderSide
+           IsZeroSize(mBorderRadii[C_TL])) {
+         noMarginLeft = true;
+       }
+-    } else if (aSides == eSideBitsRight) {
++    } else if (aSides == static_cast<uint8_t>(SideBits::eRight)) {
+       if (mBorderStyles[eSideTop] == StyleBorderStyle::Dotted &&
+           IsZeroSize(mBorderRadii[C_TR])) {
+         noMarginTop = true;
+@@ -1452,7 +1458,7 @@ void nsCSSBorderRenderer::DrawBorderSide
+           IsZeroSize(mBorderRadii[C_BR])) {
+         noMarginBottom = true;
+       }
+-    } else if (aSides == eSideBitsBottom) {
++    } else if (aSides == static_cast<uint8_t>(SideBits::eBottom)) {
+       if (mBorderStyles[eSideRight] == StyleBorderStyle::Dotted &&
+           IsZeroSize(mBorderRadii[C_BR])) {
+         noMarginRight = true;
+@@ -3108,7 +3114,7 @@ void nsCSSBorderRenderer::DrawBorders() 
+ 
+   if (mAllBordersSameStyle && !forceSeparateCorners) {
+     /* Draw everything in one go */
+-    DrawBorderSides(eSideBitsAll);
++    DrawBorderSides(static_cast<uint8_t>(SideBits::eAll));
+     PrintAsStringNewline("---------------- (1)");
+   } else {
+     AUTO_PROFILER_LABEL("nsCSSBorderRenderer::DrawBorders:multipass", GRAPHICS);
+@@ -3263,21 +3269,26 @@ void nsCSSBorderRenderer::DrawBorders() 
+     // and expects there to be a clip in place.
+     int alreadyDrawnSides = 0;
+     if (mOneUnitBorder && mNoBorderRadius &&
+-        (dashedSides & (eSideBitsTop | eSideBitsLeft)) == 0) {
+-      bool tlBordersSameStyle =
+-          AreBorderSideFinalStylesSame(eSideBitsTop | eSideBitsLeft);
+-      bool brBordersSameStyle =
+-          AreBorderSideFinalStylesSame(eSideBitsBottom | eSideBitsRight);
++        (dashedSides &
++         static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft)) == 0) {
++      bool tlBordersSameStyle = AreBorderSideFinalStylesSame(
++          static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft));
++      bool brBordersSameStyle = AreBorderSideFinalStylesSame(
++          static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight));
+ 
+       if (tlBordersSameStyle) {
+-        DrawBorderSides(eSideBitsTop | eSideBitsLeft);
+-        alreadyDrawnSides |= (eSideBitsTop | eSideBitsLeft);
++        DrawBorderSides(static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft));
++        alreadyDrawnSides |=
++            static_cast<uint8_t>(SideBits::eTop | SideBits::eLeft);
+       }
+ 
+       if (brBordersSameStyle &&
+-          (dashedSides & (eSideBitsBottom | eSideBitsRight)) == 0) {
+-        DrawBorderSides(eSideBitsBottom | eSideBitsRight);
+-        alreadyDrawnSides |= (eSideBitsBottom | eSideBitsRight);
++          (dashedSides &
++           static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight)) == 0) {
++        DrawBorderSides(
++            static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight));
++        alreadyDrawnSides |=
++            static_cast<uint8_t>(SideBits::eBottom | SideBits::eRight);
+       }
+     }
+ 

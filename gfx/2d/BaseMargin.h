@@ -19,17 +19,28 @@ namespace mozilla {
 struct Sides final {
   Sides() : mBits(0) {}
   explicit Sides(SideBits aSideBits) {
-    MOZ_ASSERT((aSideBits & ~eSideBitsAll) == 0, "illegal side bits");
-    mBits = aSideBits;
+    MOZ_ASSERT((aSideBits & ~static_cast<uint8_t>(SideBits::eAll)) == 0,
+               "illegal side bits");
+    mBits = static_cast<uint8_t>(aSideBits);
   }
   bool IsEmpty() const { return mBits == 0; }
-  bool Top() const { return (mBits & eSideBitsTop) != 0; }
-  bool Right() const { return (mBits & eSideBitsRight) != 0; }
-  bool Bottom() const { return (mBits & eSideBitsBottom) != 0; }
-  bool Left() const { return (mBits & eSideBitsLeft) != 0; }
+  bool Top() const {
+    return (mBits & static_cast<uint8_t>(SideBits::eTop)) != 0;
+  }
+  bool Right() const {
+    return (mBits & static_cast<uint8_t>(SideBits::eRight)) != 0;
+  }
+  bool Bottom() const {
+    return (mBits & static_cast<uint8_t>(SideBits::eBottom)) != 0;
+  }
+  bool Left() const {
+    return (mBits & static_cast<uint8_t>(SideBits::eLeft)) != 0;
+  }
   bool Contains(SideBits aSideBits) const {
-    MOZ_ASSERT((aSideBits & ~eSideBitsAll) == 0, "illegal side bits");
-    return (mBits & aSideBits) == aSideBits;
+    MOZ_ASSERT((aSideBits & ~static_cast<uint8_t>(SideBits::eAll)) == 0,
+               "illegal side bits");
+    return (mBits & static_cast<uint8_t>(aSideBits)) ==
+           static_cast<uint8_t>(aSideBits);
   }
   Sides operator|(Sides aOther) const {
     return Sides(SideBits(mBits | aOther.mBits));

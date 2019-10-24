@@ -327,7 +327,7 @@ class SimpleLayerAttributes final {
   }
 
   SideBits GetFixedPositionSides() const {
-    return mFixedPositionData ? mFixedPositionData->mSides : eSideBitsNone;
+    return mFixedPositionData ? mFixedPositionData->mSides : SideBits::eNone;
   }
 
   bool IsStickyPosition() const { return !!mStickyPositionData; }
