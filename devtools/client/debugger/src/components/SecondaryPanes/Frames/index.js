@@ -29,6 +29,10 @@ import "./Frames.css";
 
 const NUM_FRAMES_SHOWN = 7;
 
+type OwnProps = {|
+  getFrameTitle?: string => string,
+  selectable?: boolean,
+|};
 type Props = {
   cx: ThreadContext,
   frames: Array<Frame>,
@@ -219,17 +223,17 @@ const mapStateToProps = state => ({
   frames: getCallStackFrames(state),
   frameworkGroupingOn: getFrameworkGroupingState(state),
   selectedFrame: getSelectedFrame(state, getCurrentThread(state)),
+  disableFrameTruncate: false,
+  disableContextMenu: false,
+  displayFullUrl: false,
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectFrame: actions.selectFrame,
     toggleBlackBox: actions.toggleBlackBox,
     toggleFrameworkGrouping: actions.toggleFrameworkGrouping,
-    disableFrameTruncate: false,
-    disableContextMenu: false,
-    displayFullUrl: false,
   }
 )(Frames);
 

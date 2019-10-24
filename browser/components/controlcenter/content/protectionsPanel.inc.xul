@@ -62,7 +62,7 @@
       <vbox id="tracking-protection-container" class="protections-popup-section">
         <description id="protections-popup-no-trackers-found-description">&protections.noTrackersFound.description;</description>
         <tooltip id="protections-popup-not-blocking-why-etp-on-tooltip">&protections.notBlocking.why.etpOn.tooltip;</tooltip>
-        <tooltip id="protections-popup-not-blocking-why-etp-off-tooltip">&protections.notBlocking.why.etpOff.tooltip;</tooltip>
+        <tooltip id="protections-popup-not-blocking-why-etp-off-tooltip">&protections.notBlocking.why.etpOff2.tooltip;</tooltip>
         <vbox id="protections-popup-content" flex="1">
           <vbox id="protections-popup-category-list">
             <!-- wrap=true is needed for descriptionheightworkaround, see bug 1564077 -->
@@ -88,11 +88,8 @@
                            class="protections-popup-category" align="center"
                            wrap="true">
               <image class="protections-popup-category-icon thirdpartycookies-icon"/>
-              <label flex="1" id="protections-popup-cookies-category-label-disabled"
-                     class="protections-popup-category-label">&contentBlocking.cookies2.label;</label>
-              <label flex="1" id="protections-popup-cookies-category-label-enabled"
-                     class="protections-popup-category-label"
-                     hidden="true"></label>
+              <label flex="1" id="protections-popup-cookies-category-label"
+                     class="protections-popup-category-label"/>
             </toolbarbutton>
             <!-- wrap=true is needed for descriptionheightworkaround, see bug 1564077 -->
             <toolbarbutton id="protections-popup-category-cryptominers"
@@ -155,6 +152,18 @@
           </hbox>
         </stack>
       </vbox>
+
+      <hbox id="protections-popup-milestones" class="protections-popup-section">
+        <!-- wrap=true is needed for descriptionheightworkaround, see bug 1564077 -->
+        <toolbarbutton id="protections-popup-milestones-content"
+                       flex="1"
+                       wrap="true"
+                       oncommand="gProtectionsHandler.openProtections(true);">
+          <description id="protections-popup-milestones-text" flex="1"
+                       role="heading" aria-level="2"/>
+          <image id="protections-popup-milestones-illustration"/>
+        </toolbarbutton>
+      </hbox>
     </panelview>
 
     <!-- Site Not Working? SubView -->

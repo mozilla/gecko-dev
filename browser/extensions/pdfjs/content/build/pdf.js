@@ -123,8 +123,8 @@ return /******/ (function(modules) { // webpackBootstrap
 "use strict";
 
 
-var pdfjsVersion = '2.3.194';
-var pdfjsBuild = 'cd909c53';
+var pdfjsVersion = '2.4.71';
+var pdfjsBuild = 'd7f651aa';
 
 var pdfjsSharedUtil = __w_pdfjs_require__(1);
 
@@ -226,7 +226,7 @@ Object.defineProperty(exports, "ReadableStream", {
     return _streams_polyfill.ReadableStream;
   }
 });
-exports.createObjectURL = exports.FormatError = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.TextRenderingMode = exports.StreamType = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.NativeImageDecoding = exports.MissingPDFException = exports.InvalidPDFException = exports.AbortException = exports.CMapCompressionType = exports.ImageKind = exports.FontType = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationBorderStyleType = exports.UNSUPPORTED_FEATURES = exports.VerbosityLevel = exports.OPS = exports.IDENTITY_MATRIX = exports.FONT_IDENTITY_MATRIX = void 0;
+exports.createObjectURL = exports.FormatError = exports.Util = exports.UnknownErrorException = exports.UnexpectedResponseException = exports.TextRenderingMode = exports.StreamType = exports.PermissionFlag = exports.PasswordResponses = exports.PasswordException = exports.NativeImageDecoding = exports.MissingPDFException = exports.InvalidPDFException = exports.AbortException = exports.CMapCompressionType = exports.ImageKind = exports.FontType = exports.AnnotationType = exports.AnnotationStateModelType = exports.AnnotationReviewState = exports.AnnotationReplyType = exports.AnnotationMarkedState = exports.AnnotationFlag = exports.AnnotationFieldFlag = exports.AnnotationBorderStyleType = exports.UNSUPPORTED_FEATURES = exports.VerbosityLevel = exports.OPS = exports.IDENTITY_MATRIX = exports.FONT_IDENTITY_MATRIX = exports.BaseException = void 0;
 
 __w_pdfjs_require__(2);
 
@@ -609,97 +609,66 @@ function shadow(obj, prop, value) {
   return value;
 }
 
-const PasswordException = function PasswordExceptionClosure() {
-  function PasswordException(msg, code) {
-    this.name = 'PasswordException';
-    this.message = msg;
+const BaseException = function BaseExceptionClosure() {
+  function BaseException(message) {
+    if (this.constructor === BaseException) {
+      unreachable('Cannot initialize BaseException.');
+    }
+
+    this.message = message;
+    this.name = this.constructor.name;
+  }
+
+  BaseException.prototype = new Error();
+  BaseException.constructor = BaseException;
+  return BaseException;
+}();
+
+exports.BaseException = BaseException;
+
+class PasswordException extends BaseException {
+  constructor(msg, code) {
+    super(msg);
     this.code = code;
   }
 
-  PasswordException.prototype = new Error();
-  PasswordException.constructor = PasswordException;
-  return PasswordException;
-}();
+}
 
 exports.PasswordException = PasswordException;
 
-const UnknownErrorException = function UnknownErrorExceptionClosure() {
-  function UnknownErrorException(msg, details) {
-    this.name = 'UnknownErrorException';
-    this.message = msg;
+class UnknownErrorException extends BaseException {
+  constructor(msg, details) {
+    super(msg);
     this.details = details;
   }
 
-  UnknownErrorException.prototype = new Error();
-  UnknownErrorException.constructor = UnknownErrorException;
-  return UnknownErrorException;
-}();
+}
 
 exports.UnknownErrorException = UnknownErrorException;
 
-const InvalidPDFException = function InvalidPDFExceptionClosure() {
-  function InvalidPDFException(msg) {
-    this.name = 'InvalidPDFException';
-    this.message = msg;
-  }
-
-  InvalidPDFException.prototype = new Error();
-  InvalidPDFException.constructor = InvalidPDFException;
-  return InvalidPDFException;
-}();
+class InvalidPDFException extends BaseException {}
 
 exports.InvalidPDFException = InvalidPDFException;
 
-const MissingPDFException = function MissingPDFExceptionClosure() {
-  function MissingPDFException(msg) {
-    this.name = 'MissingPDFException';
-    this.message = msg;
-  }
-
-  MissingPDFException.prototype = new Error();
-  MissingPDFException.constructor = MissingPDFException;
-  return MissingPDFException;
-}();
+class MissingPDFException extends BaseException {}
 
 exports.MissingPDFException = MissingPDFException;
 
-const UnexpectedResponseException = function UnexpectedResponseExceptionClosure() {
-  function UnexpectedResponseException(msg, status) {
-    this.name = 'UnexpectedResponseException';
-    this.message = msg;
+class UnexpectedResponseException extends BaseException {
+  constructor(msg, status) {
+    super(msg);
     this.status = status;
   }
 
-  UnexpectedResponseException.prototype = new Error();
-  UnexpectedResponseException.constructor = UnexpectedResponseException;
-  return UnexpectedResponseException;
-}();
+}
 
 exports.UnexpectedResponseException = UnexpectedResponseException;
 
-const FormatError = function FormatErrorClosure() {
-  function FormatError(msg) {
-    this.message = msg;
-  }
-
-  FormatError.prototype = new Error();
-  FormatError.prototype.name = 'FormatError';
-  FormatError.constructor = FormatError;
-  return FormatError;
-}();
+class FormatError extends BaseException {}
 
 exports.FormatError = FormatError;
 
-const AbortException = function AbortExceptionClosure() {
-  function AbortException(msg) {
-    this.name = 'AbortException';
-    this.message = msg;
-  }
-
-  AbortException.prototype = new Error();
-  AbortException.constructor = AbortException;
-  return AbortException;
-}();
+class AbortException extends BaseException {}
 
 exports.AbortException = AbortException;
 const NullCharactersRegExp = /\x00/g;
@@ -1302,7 +1271,7 @@ function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
 
   return worker.messageHandler.sendWithPromise('GetDocRequest', {
     docId,
-    apiVersion: '2.3.194',
+    apiVersion: '2.4.71',
     source: {
       data: source.data,
       url: source.url,
@@ -1362,8 +1331,7 @@ const PDFDocumentLoadingTask = function PDFDocumentLoadingTaskClosure() {
     }
 
     then(onFulfilled, onRejected) {
-      (0, _display_utils.deprecated)('PDFDocumentLoadingTask.then method, ' + 'use the `promise` getter instead.');
-      return this.promise.then.apply(this.promise, arguments);
+      throw new Error('Removed API method: ' + 'PDFDocumentLoadingTask.then, use the `promise` getter instead.');
     }
 
   }
@@ -2053,7 +2021,15 @@ class LoopbackPort {
           p = Object.getPrototypeOf(p);
         }
 
-        if (typeof desc.value === 'undefined' || typeof desc.value === 'function') {
+        if (typeof desc.value === 'undefined') {
+          continue;
+        }
+
+        if (typeof desc.value === 'function') {
+          if (value.hasOwnProperty && value.hasOwnProperty(i)) {
+            throw new Error(`LoopbackPort.postMessage - cannot clone: ${value[i]}`);
+          }
+
           continue;
         }
 
@@ -2538,6 +2514,33 @@ class WorkerTransport {
 
       loadingTask._capability.resolve(new PDFDocumentProxy(pdfInfo, this));
     });
+    messageHandler.on('DocException', function (ex) {
+      let reason;
+
+      switch (ex.name) {
+        case 'PasswordException':
+          reason = new _util.PasswordException(ex.message, ex.code);
+          break;
+
+        case 'InvalidPDFException':
+          reason = new _util.InvalidPDFException(ex.message);
+          break;
+
+        case 'MissingPDFException':
+          reason = new _util.MissingPDFException(ex.message);
+          break;
+
+        case 'UnexpectedResponseException':
+          reason = new _util.UnexpectedResponseException(ex.message, ex.status);
+          break;
+
+        case 'UnknownErrorException':
+          reason = new _util.UnknownErrorException(ex.message, ex.details);
+          break;
+      }
+
+      loadingTask._capability.reject(reason);
+    });
     messageHandler.on('PasswordRequest', exception => {
       this._passwordCapability = (0, _util.createPromiseCapability)();
 
@@ -2558,21 +2561,6 @@ class WorkerTransport {
       }
 
       return this._passwordCapability.promise;
-    });
-    messageHandler.on('PasswordException', function (exception) {
-      loadingTask._capability.reject(new _util.PasswordException(exception.message, exception.code));
-    });
-    messageHandler.on('InvalidPDF', function (exception) {
-      loadingTask._capability.reject(new _util.InvalidPDFException(exception.message));
-    });
-    messageHandler.on('MissingPDF', function (exception) {
-      loadingTask._capability.reject(new _util.MissingPDFException(exception.message));
-    });
-    messageHandler.on('UnexpectedResponse', function (exception) {
-      loadingTask._capability.reject(new _util.UnexpectedResponseException(exception.message, exception.status));
-    });
-    messageHandler.on('UnknownError', function (exception) {
-      loadingTask._capability.reject(new _util.UnknownErrorException(exception.message, exception.details));
     });
     messageHandler.on('DataLoaded', data => {
       if (loadingTask.onProgress) {
@@ -3027,8 +3015,7 @@ class RenderTask {
   }
 
   then(onFulfilled, onRejected) {
-    (0, _display_utils.deprecated)('RenderTask.then method, use the `promise` getter instead.');
-    return this.promise.then.apply(this.promise, arguments);
+    throw new Error('Removed API method: ' + 'RenderTask.then, use the `promise` getter instead.');
   }
 
 }
@@ -3199,9 +3186,9 @@ const InternalRenderTask = function InternalRenderTaskClosure() {
   return InternalRenderTask;
 }();
 
-const version = '2.3.194';
+const version = '2.4.71';
 exports.version = version;
-const build = 'cd909c53';
+const build = 'd7f651aa';
 exports.build = build;
 
 /***/ }),
@@ -3452,17 +3439,13 @@ class PageViewport {
 
 exports.PageViewport = PageViewport;
 
-const RenderingCancelledException = function RenderingCancelledException() {
-  function RenderingCancelledException(msg, type) {
-    this.message = msg;
+class RenderingCancelledException extends _util.BaseException {
+  constructor(msg, type) {
+    super(msg);
     this.type = type;
   }
 
-  RenderingCancelledException.prototype = new Error();
-  RenderingCancelledException.prototype.name = 'RenderingCancelledException';
-  RenderingCancelledException.constructor = RenderingCancelledException;
-  return RenderingCancelledException;
-}();
+}
 
 exports.RenderingCancelledException = RenderingCancelledException;
 const LinkTarget = {
@@ -6501,7 +6484,7 @@ const StreamKind = {
 };
 
 function wrapReason(reason) {
-  if (typeof reason !== 'object') {
+  if (typeof reason !== 'object' || reason === null) {
     return reason;
   }
 
@@ -6792,14 +6775,6 @@ MessageHandler.prototype = {
     const streamId = data.streamId;
     const comObj = this.comObj;
 
-    let deleteStreamController = () => {
-      Promise.all([this.streamControllers[streamId].startCall, this.streamControllers[streamId].pullCall, this.streamControllers[streamId].cancelCall].map(function (capability) {
-        return capability && capability.promise.catch(function () {});
-      })).then(() => {
-        delete this.streamControllers[streamId];
-      });
-    };
-
     switch (data.stream) {
       case StreamKind.START_COMPLETE:
         if (data.success) {
@@ -6879,13 +6854,17 @@ MessageHandler.prototype = {
 
         this.streamControllers[streamId].isClosed = true;
         this.streamControllers[streamId].controller.close();
-        deleteStreamController();
+
+        this._deleteStreamController(streamId);
+
         break;
 
       case StreamKind.ERROR:
         (0, _util.assert)(this.streamControllers[streamId], 'error should have stream controller');
         this.streamControllers[streamId].controller.error(wrapReason(data.reason));
-        deleteStreamController();
+
+        this._deleteStreamController(streamId);
+
         break;
 
       case StreamKind.CANCEL_COMPLETE:
@@ -6895,7 +6874,8 @@ MessageHandler.prototype = {
           this.streamControllers[streamId].cancelCall.reject(wrapReason(data.reason));
         }
 
-        deleteStreamController();
+        this._deleteStreamController(streamId);
+
         break;
 
       case StreamKind.CANCEL:
@@ -6933,6 +6913,13 @@ MessageHandler.prototype = {
       default:
         throw new Error('Unexpected stream case');
     }
+  },
+
+  async _deleteStreamController(streamId) {
+    await Promise.all([this.streamControllers[streamId].startCall, this.streamControllers[streamId].pullCall, this.streamControllers[streamId].cancelCall].map(function (capability) {
+      return capability && capability.promise.catch(function () {});
+    }));
+    delete this.streamControllers[streamId];
   },
 
   postMessage(message, transfers) {

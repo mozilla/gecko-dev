@@ -44,6 +44,7 @@ class AlignStateAtSelection;
 class AutoSelectionSetterAfterTableEdit;
 class AutoSetTemporaryAncestorLimiter;
 class EditActionResult;
+class EditResult;
 class EmptyEditableFunctor;
 class ListElementSelectionState;
 class ListItemElementSelectionState;
@@ -51,6 +52,7 @@ class MoveNodeResult;
 class ParagraphStateAtSelection;
 class ResizerSelectionListener;
 class SplitRangeOffFromNodeResult;
+class SplitRangeOffResult;
 class WSRunObject;
 enum class EditSubAction : int32_t;
 struct PropItem;
@@ -977,15 +979,62 @@ class HTMLEditor final : public TextEditor,
   nsresult SetInlinePropertyOnNode(nsIContent& aNode, nsAtom& aProperty,
                                    nsAtom* aAttribute, const nsAString& aValue);
 
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SplitStyleAbovePoint(nsCOMPtr<nsINode>* aNode, int32_t* aOffset,
-                                nsAtom* aProperty, nsAtom* aAttribute,
-                                nsIContent** aOutLeftNode = nullptr,
-                                nsIContent** aOutRightNode = nullptr);
+  /**
+   * SplitAncestorStyledInlineElementsAtRangeEdges() splits all ancestor inline
+   * elements in the block at both aStartPoint and aEndPoint if given style
+   * matches with some of them.
+   *
+   * @param aStartPoint Start of range to split ancestor inline elements.
+   * @param aEndPoint   End of range to split ancestor inline elements.
+   * @param aProperty   The style tag name which you want to split.  Set
+   *                    nullptr if you want to split any styled elements.
+   * @param aAttribute  Attribute name if aProperty has some styles like
+   *                    nsGkAtoms::font.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE SplitRangeOffResult
+  SplitAncestorStyledInlineElementsAtRangeEdges(
+      const EditorDOMPoint& aStartPoint, const EditorDOMPoint& aEndPoint,
+      nsAtom* aProperty, nsAtom* aAttribute);
 
-  nsIContent* GetPriorHTMLSibling(nsINode* aNode);
+  /**
+   * SplitAncestorStyledInlineElementsAt() splits ancestor inline elements at
+   * aPointToSplit if specified style matches with them.
+   *
+   * @param aPointToSplit       The point to split style at.
+   * @param aProperty           The style tag name which you want to split.
+   *                            Set nullptr if you want to split any styled
+   *                            elements.
+   * @param aAttribute          Attribute name if aProperty has some styles
+   *                            like nsGkAtoms::font.
+   * @return                    The result of SplitNodeDeepWithTransaction()
+   *                            with topmost split element.  If this didn't
+   *                            find inline elements to be split, Handled()
+   *                            returns false.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE SplitNodeResult
+  SplitAncestorStyledInlineElementsAt(const EditorDOMPoint& aPointToSplit,
+                                      nsAtom* aProperty, nsAtom* aAttribute);
 
-  nsIContent* GetNextHTMLSibling(nsINode* aNode);
+  /**
+   * GetPriorHTMLSibling() returns the previous editable sibling, if there is
+   * one within the parent, optionally skipping text nodes that are only
+   * whitespace.
+   */
+  enum class SkipWhitespace { Yes, No };
+  nsIContent* GetPriorHTMLSibling(nsINode* aNode, SkipWhitespace = SkipWhitespace::No);
+
+  /**
+   * GetNextHTMLSibling() returns the next editable sibling, if there is
+   * one within the parent, optionally skipping text nodes that are only
+   * whitespace.
+   */
+  nsIContent* GetNextHTMLSibling(nsINode* aNode, SkipWhitespace = SkipWhitespace::No);
+
+  // Helper for GetPriorHTMLSibling/GetNextHTMLSibling.
+  static bool SkippableWhitespace(nsINode* aNode, SkipWhitespace aSkipWS) {
+    return aSkipWS == SkipWhitespace::Yes &&
+      aNode->IsText() && aNode->AsText()->TextIsOnlyWhitespace();
+  }
 
   /**
    * GetPreviousHTMLElementOrText*() methods are similar to
@@ -1138,9 +1187,20 @@ class HTMLEditor final : public TextEditor,
                                  bool* aAny, bool* aAll,
                                  nsAString* outValue) const;
 
-  MOZ_CAN_RUN_SCRIPT
-  nsresult ClearStyle(nsCOMPtr<nsINode>* aNode, int32_t* aOffset,
-                      nsAtom* aProperty, nsAtom* aAttribute);
+  /**
+   * ClearStyleAt() splits parent elements to remove the specified style.
+   * If this splits some parent elements at near their start or end, such
+   * empty elements will be removed.  Then, remove the specified style
+   * from the point and returns DOM point to put caret.
+   *
+   * @param aPoint      The point to clear style at.
+   * @param aProperty   An HTML tag name which represents a style.
+   *                    Set nullptr if you want to clear all styles.
+   * @param aAttribute  Attribute name if aProperty has some styles like
+   *                    nsGkAtoms::font.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE EditResult ClearStyleAt(
+      const EditorDOMPoint& aPoint, nsAtom* aProperty, nsAtom* aAttribute);
 
   MOZ_CAN_RUN_SCRIPT nsresult SetPositionToAbsolute(Element& aElement);
   MOZ_CAN_RUN_SCRIPT nsresult SetPositionToStatic(Element& aElement);
@@ -3912,29 +3972,46 @@ class HTMLEditor final : public TextEditor,
   /**
    * Helper routines for inline style.
    */
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SetInlinePropertyOnTextNode(Text& aData, int32_t aStartOffset,
-                                       int32_t aEndOffset, nsAtom& aProperty,
-                                       nsAtom* aAttribute,
-                                       const nsAString& aValue);
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult SetInlinePropertyOnTextNode(
+      Text& aData, uint32_t aStartOffset, uint32_t aEndOffset,
+      nsAtom& aProperty, nsAtom* aAttribute, const nsAString& aValue);
 
   nsresult PromoteInlineRange(nsRange& aRange);
   nsresult PromoteRangeIfStartsOrEndsInNamedAnchor(nsRange& aRange);
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SplitStyleAboveRange(nsRange* aRange, nsAtom* aProperty,
-                                nsAtom* aAttribute);
-  MOZ_CAN_RUN_SCRIPT
-  nsresult RemoveStyleInside(nsIContent& aNode, nsAtom* aProperty,
-                             nsAtom* aAttribute,
-                             const bool aChildrenOnly = false);
+
+  /**
+   * RemoveStyleInside() removes elements which represent aProperty/aAttribute
+   * and removes CSS style.  This handles aElement and all its descendants
+   * (including leaf text nodes) recursively.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
+  RemoveStyleInside(Element& aElement, nsAtom* aProperty, nsAtom* aAttribute);
+
+  /**
+   * CollectEditableLeafTextNodes() collects text nodes in aElement.
+   */
+  void CollectEditableLeafTextNodes(
+      Element& aElement, nsTArray<OwningNonNull<Text>>& aLeafTextNodes) const;
+
+  /**
+   * IsRemovableParentStyleWithNewSpanElement() checks whether
+   * aProperty/aAttribute of parent block can be removed from aContent with
+   * creating `<span>` element.  Note that this does NOT check whether the
+   * specified style comes from parent block or not.
+   */
+  static bool IsRemovableParentStyleWithNewSpanElement(nsIContent& aContent,
+                                                       nsAtom* aProperty,
+                                                       nsAtom* aAttribute);
 
   bool IsAtFrontOfNode(nsINode& aNode, int32_t aOffset);
   bool IsAtEndOfNode(nsINode& aNode, int32_t aOffset);
   bool IsOnlyAttribute(const Element* aElement, nsAtom* aAttribute);
 
-  bool HasStyleOrIdOrClass(Element* aElement);
-  MOZ_CAN_RUN_SCRIPT
-  nsresult RemoveElementIfNoStyleOrIdOrClass(Element& aElement);
+  /**
+   * HasStyleOrIdOrClassAttribute() returns true when at least one of
+   * `style`, `id` or `class` attribute value of aElement is not empty.
+   */
+  static bool HasStyleOrIdOrClassAttribute(Element& aElement);
 
   /**
    * Whether the outer window of the DOM event target has focus or not.
@@ -4251,6 +4328,12 @@ class HTMLEditor final : public TextEditor,
   }
 
  protected:
+  // Helper for Handle[CSS|HTML]IndentAtSelectionInternal
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
+  IndentListChild(RefPtr<Element>* aCurList,
+                  const EditorDOMPoint& aCurPoint,
+                  OwningNonNull<nsINode>& aCurNode);
+
   RefPtr<TypeInState> mTypeInState;
   RefPtr<ComposerCommandsUpdater> mComposerCommandsUpdater;
 

@@ -248,35 +248,23 @@
   padding: var(--vertical-section-padding) var(--horizontal-padding);
 }
 
-#protections-popup > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow {
+#protections-popup::part(arrow) {
   transition-property: fill;
   transition-timing-function: var(--animation-easing-function);
   transition-duration: var(--panelui-subview-transition-duration);
 }
 
-#protections-popup[mainviewshowing] > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow {
+#protections-popup[mainviewshowing][side=top]::part(arrow) {
   fill: #0A51BF;
-}
-
-:root[lwt-popup-brighttext] #protections-popup[mainviewshowing] > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow {
-  fill: #0CB0F5;
 }
 
 #protections-popup-mainView-panel-header-section {
   color: white;
-  background: radial-gradient(circle at top right, #9059FF, #0250BB);
+  background: radial-gradient(circle farthest-side at top right, #9059FF, #0250BB);
 }
 
 #protections-popup-mainView-panel-header-section:-moz-locale-dir(rtl) {
-  background: radial-gradient(circle at top left, #9059FF, #0250BB);
-}
-
-:root[lwt-popup-brighttext] #protections-popup-mainView-panel-header-section {
-  background: radial-gradient(circle at top right, #C689FF, #00B3F4);
-}
-
-:root[lwt-popup-brighttext] #protections-popup-mainView-panel-header-section:-moz-locale-dir(rtl) {
-  background: radial-gradient(circle at top left, #C689FF, #00B3F4);
+  background: radial-gradient(circle farthest-side at top left, #9059FF, #0250BB);
 }
 
 #identity-popup-mainView-panel-header-span,
@@ -1118,4 +1106,75 @@ description#identity-popup-content-verifier,
 
 .protections-popup-description > description {
   margin: 10px 24px;
+}
+
+#protections-popup:not([milestone]) #protections-popup-milestones {
+  display: none;
+}
+
+#protections-popup-milestones {
+  margin: 0 calc(var(--horizontal-padding) * 0.5) var(--vertical-section-padding);
+  /* Override .protections-popup-section */
+  border-top: none;
+  background-color: var(--arrowpanel-dimmed);
+}
+
+#protections-popup-milestones-content {
+  padding: var(--vertical-section-padding) calc(var(--horizontal-padding) * 0.5);
+  margin: 0;
+}
+
+#protections-popup-milestones-content:hover {
+  background-color: var(--arrowpanel-dimmed);
+}
+
+#protections-popup-milestones-content:hover:active {
+  background-color: var(--arrowpanel-dimmed-further);
+}
+
+#protections-popup-milestones-text {
+  font-size: 1.23em;
+  margin: 0;
+}
+
+#protections-popup-milestones-illustration {
+  list-style-image: url(chrome://browser/skin/controlcenter/etp-milestone.svg);
+  -moz-context-properties: fill, stroke;
+  margin-inline-start: var(--horizontal-padding);
+  margin-inline-end: 4px;
+}
+
+#protections-popup[milestone] #protections-popup-milestones-illustration {
+  fill: #45278d;
+  stroke: #321c64;
+}
+
+#protections-popup[milestone="5000"] #protections-popup-milestones-illustration {
+  fill: #5a29cb;
+  stroke: #45278d;
+}
+
+#protections-popup[milestone="10000"] #protections-popup-milestones-illustration {
+  fill: #7641e5;
+  stroke: #5a29cb;
+}
+
+#protections-popup[milestone="25000"] #protections-popup-milestones-illustration {
+  fill: #e31587;
+  stroke: #c60084;
+}
+
+#protections-popup[milestone="50000"] #protections-popup-milestones-illustration {
+  fill: #ff298a;
+  stroke: #e31587;
+}
+
+#protections-popup[milestone="100000"] #protections-popup-milestones-illustration {
+  fill: #ffa436;
+  stroke: #e27f2e;
+}
+
+#protections-popup[milestone="500000"] #protections-popup-milestones-illustration {
+  fill: #ffd567;
+  stroke: #ffbd4f;
 }

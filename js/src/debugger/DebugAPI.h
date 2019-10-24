@@ -10,6 +10,7 @@
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
+#include "vm/Realm.h"
 
 namespace js {
 
@@ -76,6 +77,23 @@ class DebugAPI {
   /*** Methods for interaction with the GC. ***********************************/
 
   /*
+   * Trace (inferred) owning edges from stack frames to Debugger.Frames, as part
+   * of root marking.
+   *
+   * Even if a Debugger.Frame for a live stack frame is entirely unreachable
+   * from JS, if it has onStep or onPop hooks set, then collecting it would have
+   * observable side effects - namely, the hooks would fail to run. The effect
+   * is the same as if the stack frame held an owning edge to its
+   * Debugger.Frame.
+   *
+   * Debugger.Frames must also be retained if the Debugger to which they belong
+   * is reachable, even if they have no hooks set, but we handle that elsewhere;
+   * this function is only concerned with the inferred roots from stack frames
+   * to Debugger.Frames that have hooks set.
+   */
+  static void traceFramesWithLiveHooks(JSTracer* tracer);
+
+  /*
    * A Debugger object is live if:
    *   * the Debugger JSObject is live (Debugger::trace handles this case); OR
    *   * it is in the middle of dispatching an event (the event dispatching
@@ -98,6 +116,9 @@ class DebugAPI {
   // Trace all debugger-owned GC things unconditionally, during a moving GC.
   static void traceAllForMovingGC(JSTracer* trc);
 
+  // Trace debugging information for a JSScript.
+  static void traceDebugScript(JSTracer* trc, JSScript* script);
+
   // The garbage collector calls this after everything has been marked, but
   // before anything has been finalized. We use this to clear Debugger /
   // debuggee edges at a point where the parties concerned are all still
@@ -106,9 +127,6 @@ class DebugAPI {
 
   // Add sweep group edges due to the presence of any debuggers.
   static MOZ_MUST_USE bool findSweepGroupEdges(JSRuntime* rt);
-
-  // Sweep breakpoints in a script associated with any debugger.
-  static inline void sweepBreakpoints(JSFreeOp* fop, JSScript* script);
 
   // Destroy the debugging information associated with a script.
   static void destroyDebugScript(JSFreeOp* fop, JSScript* script);
@@ -337,13 +355,6 @@ class DebugAPI {
   static inline void notifyParticipatesInGC(GlobalObject* global,
                                             uint64_t majorGCNumber);
 
-  // Allocate an object which holds a GlobalObject::DebuggerVector.
-  static JSObject* newGlobalDebuggersHolder(JSContext* cx);
-
-  // Get the GlobalObject::DebuggerVector for an object allocated by
-  // newGlobalDebuggersObject.
-  static GlobalObject::DebuggerVector* getGlobalDebuggers(JSObject* holder);
-
   /*
    * Get any instrumentation ID which has been associated with a script using
    * the specified debugger object.
@@ -355,15 +366,14 @@ class DebugAPI {
  private:
   static bool stepModeEnabledSlow(JSScript* script);
   static bool hasBreakpointsAtSlow(JSScript* script, jsbytecode* pc);
-  static void sweepBreakpointsSlow(JSFreeOp* fop, JSScript* script);
   static void slowPathOnNewScript(JSContext* cx, HandleScript script);
   static void slowPathOnNewGlobalObject(JSContext* cx,
                                         Handle<GlobalObject*> global);
-  static void slowPathNotifyParticipatesInGC(
-      uint64_t majorGCNumber, GlobalObject::DebuggerVector& dbgs);
+  static void slowPathNotifyParticipatesInGC(uint64_t majorGCNumber,
+                                             JS::Realm::DebuggerVector& dbgs);
   static MOZ_MUST_USE bool slowPathOnLogAllocationSite(
       JSContext* cx, HandleObject obj, HandleSavedFrame frame,
-      mozilla::TimeStamp when, GlobalObject::DebuggerVector& dbgs);
+      mozilla::TimeStamp when, JS::Realm::DebuggerVector& dbgs);
   static MOZ_MUST_USE bool slowPathOnLeaveFrame(JSContext* cx,
                                                 AbstractFramePtr frame,
                                                 jsbytecode* pc, bool ok);

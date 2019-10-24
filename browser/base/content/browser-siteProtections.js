@@ -606,55 +606,44 @@ var ThirdPartyCookies = {
     this.updateCategoryItem();
   },
 
-  get disabledCategoryLabel() {
-    delete this.disabledCategoryLabel;
-    return (this.disabledCategoryLabel = document.getElementById(
-      "protections-popup-cookies-category-label-disabled"
-    ));
-  },
-
-  get enabledCategoryLabel() {
-    delete this.enabledCategoryLabel;
-    return (this.enabledCategoryLabel = document.getElementById(
-      "protections-popup-cookies-category-label-enabled"
+  get categoryLabel() {
+    delete this.categoryLabel;
+    return (this.categoryLabel = document.getElementById(
+      "protections-popup-cookies-category-label"
     ));
   },
 
   updateCategoryItem() {
     this.categoryItem.classList.toggle("blocked", this.enabled);
 
-    if (!this.enabled) {
-      this.disabledCategoryLabel.hidden = false;
-      this.enabledCategoryLabel.hidden = true;
-      return;
-    }
-
     let label;
-    switch (this.behaviorPref) {
-      case Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN:
-        label = "contentBlocking.cookies.blocking3rdParty2.label";
-        break;
-      case Ci.nsICookieService.BEHAVIOR_REJECT:
-        label = "contentBlocking.cookies.blockingAll2.label";
-        break;
-      case Ci.nsICookieService.BEHAVIOR_LIMIT_FOREIGN:
-        label = "contentBlocking.cookies.blockingUnvisited2.label";
-        break;
-      case Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER:
-        label = "contentBlocking.cookies.blockingTrackers3.label";
-        break;
-      default:
-        Cu.reportError(
-          `Error: Unknown cookieBehavior pref observed: ${this.behaviorPref}`
-        );
-        break;
+
+    if (!this.enabled) {
+      label = "contentBlocking.cookies.blockingTrackers3.label";
+    } else {
+      switch (this.behaviorPref) {
+        case Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN:
+          label = "contentBlocking.cookies.blocking3rdParty2.label";
+          break;
+        case Ci.nsICookieService.BEHAVIOR_REJECT:
+          label = "contentBlocking.cookies.blockingAll2.label";
+          break;
+        case Ci.nsICookieService.BEHAVIOR_LIMIT_FOREIGN:
+          label = "contentBlocking.cookies.blockingUnvisited2.label";
+          break;
+        case Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER:
+          label = "contentBlocking.cookies.blockingTrackers3.label";
+          break;
+        default:
+          Cu.reportError(
+            `Error: Unknown cookieBehavior pref observed: ${this.behaviorPref}`
+          );
+          break;
+      }
     }
-    this.enabledCategoryLabel.textContent = label
+    this.categoryLabel.textContent = label
       ? gNavigatorBundle.getString(label)
       : "";
-
-    this.disabledCategoryLabel.hidden = true;
-    this.enabledCategoryLabel.hidden = false;
   },
 
   get enabled() {
@@ -1264,6 +1253,13 @@ var gProtectionsHandler = {
     ));
   },
 
+  get _protectionsPopupMilestonesText() {
+    delete this._protectionsPopupMilestonesText;
+    return (this._protectionsPopupMilestonesText = document.getElementById(
+      "protections-popup-milestones-text"
+    ));
+  },
+
   get _notBlockingWhyLink() {
     delete this._notBlockingWhyLink;
     return (this._notBlockingWhyLink = document.getElementById(
@@ -1337,6 +1333,42 @@ var gProtectionsHandler = {
       3000
     );
 
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "milestoneListPref",
+      "browser.contentblocking.cfr-milestone.milestones",
+      [],
+      () => this.maybeSetMilestoneCounterText(),
+      val => JSON.parse(val)
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "milestonePref",
+      "browser.contentblocking.cfr-milestone.milestone-achieved",
+      0,
+      () => this.maybeSetMilestoneCounterText()
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "milestoneTimestampPref",
+      "browser.contentblocking.cfr-milestone.milestone-shown-time",
+      0,
+      null,
+      val => parseInt(val)
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "milestonesEnabledPref",
+      "browser.contentblocking.cfr-milestone.enabled",
+      false,
+      () => this.maybeSetMilestoneCounterText()
+    );
+
+    this.maybeSetMilestoneCounterText();
+
     for (let blocker of this.blockers) {
       if (blocker.init) {
         blocker.init();
@@ -1383,6 +1415,11 @@ var gProtectionsHandler = {
       relatedToCurrent,
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
+
+    // Don't show the milestones section anymore.
+    Services.prefs.clearUserPref(
+      "browser.contentblocking.cfr-milestone.milestone-shown-time"
+    );
   },
 
   async showTrackersSubview(event) {
@@ -1788,6 +1825,16 @@ var gProtectionsHandler = {
 
     // Update the tooltip of the blocked tracker counter.
     this.maybeUpdateEarliestRecordedDateTooltip();
+
+    let today = Date.now();
+    let threeDaysMillis = 72 * 60 * 60 * 1000;
+    let expired = today - this.milestoneTimestampPref > threeDaysMillis;
+
+    if (this._milestoneTextSet && !expired) {
+      this._protectionsPopup.setAttribute("milestone", this.milestonePref);
+    } else {
+      this._protectionsPopup.removeAttribute("milestone");
+    }
   },
 
   /*
@@ -1950,6 +1997,46 @@ var gProtectionsHandler = {
       "showing",
       trackerCount != 0
     );
+  },
+
+  // Whenever one of the milestone prefs are changed, we attempt to update
+  // the milestone section string. This requires us to fetch the earliest
+  // recorded date from the Tracking DB, hence this process is async.
+  // When completed, we set _milestoneSetText to signal that the section
+  // is populated and ready to be shown - which happens next time we call
+  // refreshProtectionsPopup.
+  _milestoneTextSet: false,
+  async maybeSetMilestoneCounterText() {
+    let trackerCount = this.milestonePref;
+    if (
+      !this.milestonesEnabledPref ||
+      !trackerCount ||
+      !this.milestoneListPref.includes(trackerCount)
+    ) {
+      this._milestoneTextSet = false;
+      return;
+    }
+
+    let date = await TrackingDBService.getEarliestRecordedDate();
+    let dateLocaleStr = new Date(date).toLocaleDateString("default", {
+      month: "short",
+      year: "numeric",
+    });
+
+    let desc = PluralForm.get(
+      trackerCount,
+      gNavigatorBundle.getString("protections.milestone.description")
+    );
+
+    this._protectionsPopupMilestonesText.textContent = desc
+      .replace("#1", gBrandBundle.GetStringFromName("brandShortName"))
+      .replace(
+        "#2",
+        trackerCount.toLocaleString(Services.locale.appLocalesAsBCP47)
+      )
+      .replace("#3", dateLocaleStr);
+
+    this._milestoneTextSet = true;
   },
 
   showDisabledTooltipForTPIcon() {

@@ -321,7 +321,6 @@
 @RESPATH@/res/grabber.gif
 #ifdef XP_MACOSX
 @RESPATH@/res/cursors/*
-@RESPATH@/res/touchbar/*
 #endif
 @RESPATH@/res/fonts/*
 @RESPATH@/res/dtd/*
@@ -371,6 +370,10 @@ bin/libfreebl_64int_3.so
 #endif
 @RESPATH@/chrome/pippki@JAREXT@
 @RESPATH@/chrome/pippki.manifest
+
+#if defined(XP_WIN) && !defined(_ARM64_)
+@BINPATH@/@DLL_PREFIX@osclientcerts@DLL_SUFFIX@
+#endif
 
 ; For process sandboxing
 #if defined(MOZ_SANDBOX)

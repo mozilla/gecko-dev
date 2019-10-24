@@ -147,6 +147,11 @@ const featureCheckboxes = [
       "useful on platforms that do not support stack walking.",
   },
   {
+    name: "No Periodic Sampling",
+    value: "nostacksampling",
+    title: "Disable interval-based stack sampling",
+  },
+  {
     name: "Main Thread IO",
     value: "mainthreadio",
     title: "Record main thread I/O markers.",
@@ -185,6 +190,11 @@ const featureCheckboxes = [
     name: "Preference Read",
     value: "preferencereads",
     title: "Track Preference Reads",
+  },
+  {
+    name: "IPC Messages",
+    value: "ipcmessages",
+    title: "Track IPC messages.",
   },
   {
     name: "JS Allocations",

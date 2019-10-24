@@ -212,10 +212,10 @@ async function setDefaultEngine(
 
   const popup = defaultEngineSelector.menupopup;
   const popupShown = BrowserTestUtils.waitForEvent(popup, "popupshown");
-  BrowserTestUtils.synthesizeMouseAtCenter(
+  EventUtils.synthesizeMouseAtCenter(
     defaultEngineSelector,
     {},
-    gBrowser.selectedBrowser
+    defaultEngineSelector.ownerGlobal
   );
   await popupShown;
 
@@ -228,13 +228,10 @@ async function setDefaultEngine(
     testPrivate ? "engine-default-private" : "engine-default",
     "browser-search-engine-modified"
   );
-  const popupHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
-  BrowserTestUtils.synthesizeMouseAtCenter(
-    engine2Item,
-    {},
-    gBrowser.selectedBrowser
-  );
-  await popupHidden;
+  // Waiting for popupHiding here seemed to cause a race condition, however
+  // as we're really just interested in the notification, we'll just use
+  // that here.
+  EventUtils.synthesizeMouseAtCenter(engine2Item, {}, engine2Item.ownerGlobal);
   await defaultChanged;
 
   const newDefault = testPrivate

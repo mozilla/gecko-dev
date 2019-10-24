@@ -43,6 +43,20 @@ DebugState::DebugState(const Code& code, const Module& module)
   MOZ_ASSERT(code.metadata().debugEnabled);
 }
 
+void DebugState::trace(JSTracer* trc) {
+  for (auto iter = breakpointSites_.iter(); !iter.done(); iter.next()) {
+    WasmBreakpointSite* site = iter.get().value();
+    site->trace(trc);
+  }
+}
+
+void DebugState::finalize(JSFreeOp* fop) {
+  for (auto iter = breakpointSites_.iter(); !iter.done(); iter.next()) {
+    WasmBreakpointSite* site = iter.get().value();
+    site->delete_(fop);
+  }
+}
+
 static const uint32_t DefaultBinarySourceColumnNumber = 1;
 
 static const CallSite* SlowCallSiteSearchByOffset(const MetadataTier& metadata,
@@ -198,7 +212,7 @@ WasmBreakpointSite* DebugState::getOrCreateBreakpointSite(JSContext* cx,
 
   WasmBreakpointSiteMap::AddPtr p = breakpointSites_.lookupForAdd(offset);
   if (!p) {
-    site = cx->new_<WasmBreakpointSite>(instance, offset);
+    site = cx->new_<WasmBreakpointSite>(instance->object(), offset);
     if (!site) {
       return nullptr;
     }
@@ -211,6 +225,8 @@ WasmBreakpointSite* DebugState::getOrCreateBreakpointSite(JSContext* cx,
 
     AddCellMemory(instance->object(), sizeof(WasmBreakpointSite),
                   MemoryUse::BreakpointSite);
+
+    toggleBreakpointTrap(cx->runtime(), offset, true);
   } else {
     site = p->value();
   }
@@ -228,11 +244,17 @@ void DebugState::destroyBreakpointSite(JSFreeOp* fop, Instance* instance,
   fop->delete_(instance->objectUnbarriered(), p->value(),
                MemoryUse::BreakpointSite);
   breakpointSites_.remove(p);
+  toggleBreakpointTrap(fop->runtime(), offset, false);
 }
 
 void DebugState::clearBreakpointsIn(JSFreeOp* fop, WasmInstanceObject* instance,
                                     js::Debugger* dbg, JSObject* handler) {
   MOZ_ASSERT(instance);
+
+  // Breakpoints hold wrappers in the instance's compartment for the handler.
+  // Make sure we don't try to search for the unwrapped handler.
+  MOZ_ASSERT_IF(handler, instance->compartment() == handler->compartment());
+
   if (breakpointSites_.empty()) {
     return;
   }
@@ -242,10 +264,10 @@ void DebugState::clearBreakpointsIn(JSFreeOp* fop, WasmInstanceObject* instance,
     Breakpoint* nextbp;
     for (Breakpoint* bp = site->firstBreakpoint(); bp; bp = nextbp) {
       nextbp = bp->nextInSite();
-      if (bp->asWasm()->wasmInstance == instance &&
+      if (bp->site->asWasm()->instanceObject == instance &&
           (!dbg || bp->debugger == dbg) &&
           (!handler || bp->getHandler() == handler)) {
-        bp->destroy(fop, Breakpoint::MayDestroySite::False);
+        bp->delete_(fop);
       }
     }
     if (site->isEmpty()) {

@@ -5,6 +5,7 @@
 
 #include "nsICaptivePortalService.h"
 #include "nsIParentalControlsService.h"
+#include "nsINetworkLinkService.h"
 #include "nsIObserverService.h"
 #include "nsIURIMutator.h"
 #include "nsNetUtil.h"
@@ -70,6 +71,7 @@ nsresult TRRService::Init() {
     observerService->AddObserver(this, kOpenCaptivePortalLoginEvent, true);
     observerService->AddObserver(this, kClearPrivateData, true);
     observerService->AddObserver(this, kPurge, true);
+    observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, true);
   }
   nsCOMPtr<nsIPrefBranch> prefBranch;
   GetPrefBranch(getter_AddRefs(prefBranch));
@@ -140,6 +142,11 @@ void TRRService::GetPrefBranch(nsIPrefBranch** result) {
 
 nsresult TRRService::ReadPrefs(const char* name) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
+
+  // Whenever a pref change occurs that would cause us to clear the cache
+  // we set this to true then do it at the end of the method.
+  bool clearEntireCache = false;
+
   if (!name || !strcmp(name, TRR_PREF("mode"))) {
     // 0 - off, 1 - reserved, 2 - TRR first, 3 - TRR only, 4 - reserved,
     // 5 - explicit off
@@ -208,6 +215,7 @@ nsresult TRRService::ReadPrefs(const char* name) {
     if (!old.IsEmpty() && !mPrivateURI.Equals(old)) {
       mClearTRRBLStorage = true;
       LOG(("TRRService clearing blacklist because of change is uri service\n"));
+      clearEntireCache = true;
     }
   }
   if (!name || !strcmp(name, TRR_PREF("credentials"))) {
@@ -227,6 +235,7 @@ nsresult TRRService::ReadPrefs(const char* name) {
   if (!name || !strcmp(name, TRR_PREF("bootstrapAddress"))) {
     MutexAutoLock lock(mLock);
     Preferences::GetCString(TRR_PREF("bootstrapAddress"), mBootstrapAddr);
+    clearEntireCache = true;
   }
   if (!name || !strcmp(name, TRR_PREF("wait-for-portal"))) {
     // Wait for captive portal?
@@ -317,6 +326,7 @@ nsresult TRRService::ReadPrefs(const char* name) {
 
     parseExcludedDomains(TRR_PREF("excluded-domains"));
     parseExcludedDomains(TRR_PREF("builtin-excluded-domains"));
+    clearEntireCache = true;
 
     nsAutoCString canonicalSiteURL;
     Preferences::GetCString(kCaptivedetectCanonicalURL, canonicalSiteURL);
@@ -327,9 +337,22 @@ nsresult TRRService::ReadPrefs(const char* name) {
     if (NS_SUCCEEDED(rv)) {
       nsAutoCString host;
       uri->GetHost(host);
-      LOG(("TRRService::ReadPrefs captive portal URL:[%s]\n",
-           host.get()));
+      LOG(("TRRService::ReadPrefs captive portal URL:[%s]\n", host.get()));
       mExcludedDomains.PutEntry(host);
+    }
+  }
+
+  // if name is null, then we're just now initializing. In that case we don't
+  // need to clear the cache.
+  if (name && clearEntireCache) {
+    bool tmp;
+    if (NS_SUCCEEDED(Preferences::GetBool(
+            TRR_PREF("clear-cache-on-pref-change"), &tmp)) &&
+        tmp) {
+      nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+      if (dns) {
+        dns->ClearCache(true);
+      }
     }
   }
 
@@ -427,6 +450,21 @@ TRRService::Observe(nsISupports* aSubject, const char* aTopic,
     if (mTRRBLStorage) {
       mTRRBLStorage->Clear();
     }
+  } else if (!strcmp(aTopic, NS_NETWORK_LINK_TOPIC)) {
+    mDNSSuffixDomains.Clear();
+    nsAutoCString data = NS_ConvertUTF16toUTF8(aData);
+    if (data.EqualsLiteral(NS_NETWORK_LINK_DATA_CHANGED)) {
+      nsCOMPtr<nsINetworkLinkService> link = do_QueryInterface(aSubject);
+      // The network link service notification normally passes itself as the
+      // subject, but some unit tests will sometimes pass a null subject.
+      if (link) {
+        nsTArray<nsCString> suffixList;
+        link->GetDnsSuffixList(suffixList);
+        for (const auto& item : suffixList) {
+          mDNSSuffixDomains.PutEntry(item);
+        }
+      }
+    }
   }
   return NS_OK;
 }
@@ -515,6 +553,10 @@ bool TRRService::IsTRRBlacklisted(const nsACString& aHost,
     LOG(("Host [%s] is TRR blacklisted via pref\n", aHost.BeginReading()));
     return true;
   }
+  if (mDNSSuffixDomains.GetEntry(aHost)) {
+    LOG(("Host [%s] is TRR blacklisted dns suffix\n", aHost.BeginReading()));
+    return true;
+  }
 
   if (!Enabled()) {
     return true;
@@ -580,6 +622,11 @@ bool TRRService::IsExcludedFromTRR(const nsACString& aHost) {
         Substring(aHost, dot, aHost.Length() - dot);
 
     if (mExcludedDomains.GetEntry(subdomain)) {
+      LOG(("Subdomain [%s] of host [%s] Is Excluded From TRR via pref\n",
+           subdomain.BeginReading(), aHost.BeginReading()));
+      return true;
+    }
+    if (mDNSSuffixDomains.GetEntry(subdomain)) {
       LOG(("Subdomain [%s] of host [%s] Is Excluded From TRR via pref\n",
            subdomain.BeginReading(), aHost.BeginReading()));
       return true;

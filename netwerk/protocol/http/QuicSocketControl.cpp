@@ -64,9 +64,16 @@ void QuicSocketControl::HandshakeCompleted() {
   uint32_t state = nsIWebProgressListener::STATE_IS_SECURE;
 
   bool distrustImminent;
-  nsresult srv =
-      IsCertificateDistrustImminent(mSucceededCertChain, distrustImminent);
-  if (NS_SUCCEEDED(srv) && distrustImminent) {
+  nsCOMPtr<nsIX509CertList> succeededCertChain;
+  nsresult rv = TransportSecurityInfo::ConvertCertArrayToCertList(
+      mSucceededCertChain, getter_AddRefs(succeededCertChain));
+
+  nsresult srv;
+  if (NS_SUCCEEDED(rv)) {
+    srv = IsCertificateDistrustImminent(succeededCertChain, distrustImminent);
+  }
+
+  if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(srv) && distrustImminent) {
     state |= nsIWebProgressListener::STATE_CERT_DISTRUST_IMMINENT;
   }
 
@@ -86,9 +93,8 @@ void QuicSocketControl::SetNegotiatedNPN(const nsACString& aValue) {
 }
 
 void QuicSocketControl::SetInfo(uint16_t aCipherSuite,
-                                         uint16_t aProtocolVersion,
-                                         uint16_t aKeaGroup,
-                                   uint16_t aSignatureScheme) {
+                                uint16_t aProtocolVersion, uint16_t aKeaGroup,
+                                uint16_t aSignatureScheme) {
   SSLCipherSuiteInfo cipherInfo;
   if (SSL_GetCipherSuiteInfo(aCipherSuite, &cipherInfo, sizeof cipherInfo) ==
       SECSuccess) {

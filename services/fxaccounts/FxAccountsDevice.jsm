@@ -16,14 +16,11 @@ const {
   ON_NEW_DEVICE_ID,
   ON_DEVICE_CONNECTED_NOTIFICATION,
   ON_DEVICE_DISCONNECTED_NOTIFICATION,
+  PREF_ACCOUNT_ROOT,
 } = ChromeUtils.import("resource://gre/modules/FxAccountsCommon.js");
 
 const { DEVICE_TYPE_DESKTOP } = ChromeUtils.import(
   "resource://services-sync/constants.js"
-);
-
-const { PREF_ACCOUNT_ROOT } = ChromeUtils.import(
-  "resource://gre/modules/FxAccountsCommon.js"
 );
 
 ChromeUtils.defineModuleGetter(
@@ -253,9 +250,16 @@ class FxAccountsDevice {
           "device",
         ]);
 
-        let devices = await this._fxai.fxAccountsClient.getDeviceList(
-          accountData.sessionToken
-        );
+        let devices;
+        try {
+          devices = await this._fxai.fxAccountsClient.getDeviceList(
+            accountData.sessionToken
+          );
+        } catch (err) {
+          await this._fxai._handleTokenError(err);
+          // _handleTokenError always re-throws.
+          throw new Error("not reached!");
+        }
         if (generation != this._generation) {
           throw new Error("Another user has signed in");
         }

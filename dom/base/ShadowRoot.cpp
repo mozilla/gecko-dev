@@ -12,7 +12,9 @@
 #include "nsContentUtils.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsWindowSizes.h"
-#include "nsXBLPrototypeBinding.h"
+#ifdef MOZ_XBL
+#  include "nsXBLPrototypeBinding.h"
+#endif
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLSlotElement.h"
@@ -92,8 +94,8 @@ void ShadowRoot::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
       ShadowRootAuthorStylesMallocEnclosingSizeOf, mServoStyles.get());
 }
 
-JSObject* ShadowRoot::WrapObject(JSContext* aCx,
-                                 JS::Handle<JSObject*> aGivenProto) {
+JSObject* ShadowRoot::WrapNode(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::ShadowRoot_Binding::Wrap(aCx, this, aGivenProto);
 }
 

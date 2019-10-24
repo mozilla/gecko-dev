@@ -37,10 +37,13 @@ type CursorPosition = {
   column: number,
 };
 
+type OwnProps = {|
+  horizontal: boolean,
+|};
 type Props = {
   cx: Context,
   selectedSource: ?SourceWithContent,
-  mappedSource: Source,
+  mappedSource: ?Source,
   endPanelCollapsed: boolean,
   horizontal: boolean,
   canPrettyPrint: boolean,
@@ -99,8 +102,8 @@ class SourceFooter extends PureComponent<Props, State> {
 
     if (!selectedSource.content && selectedSource.isPrettyPrinted) {
       return (
-        <div className="loader" key="pretty-loader">
-          <AccessibleImage className="loader" />
+        <div className="action" key="pretty-loader">
+          <AccessibleImage className="loader spin" />
         </div>
       );
     }
@@ -154,7 +157,7 @@ class SourceFooter extends PureComponent<Props, State> {
         onClick={() => toggleBlackBox(cx, selectedSource)}
         className={classnames("action", type, {
           active: sourceLoaded,
-          blackboxed: blackboxed,
+          blackboxed,
         })}
         key={type}
         title={tooltip}
@@ -223,7 +226,7 @@ class SourceFooter extends PureComponent<Props, State> {
     );
   }
 
-  onCursorChange = event => {
+  onCursorChange = (event: any) => {
     const { line, ch } = event.doc.getCursor();
     this.setState({ cursorPosition: { line, column: ch } });
   };
@@ -284,7 +287,7 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     togglePrettyPrint: actions.togglePrettyPrint,

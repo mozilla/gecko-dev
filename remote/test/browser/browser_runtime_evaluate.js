@@ -7,24 +7,8 @@
 
 const TEST_DOC = toDataURL("default-test-page");
 
-add_task(async function() {
-  // Open a test page, to prevent debugging the random default page
-  await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_DOC);
-
-  // Start the CDP server
-  await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
-
-  // Retrieve the chrome-remote-interface library object
-  const CDP = await getCDP();
-
-  // Connect to the server
-  const client = await CDP({
-    target(list) {
-      // Ensure debugging the right target, i.e. the one for our test tab.
-      return list.find(target => target.url == TEST_DOC);
-    },
-  });
-  ok(true, "CDP client has been instantiated");
+add_task(async function(client) {
+  await loadURL(TEST_DOC);
 
   const firstContext = await testRuntimeEnable(client);
   const contextId = firstContext.id;
@@ -95,13 +79,6 @@ add_task(async function() {
       await testJSError(fun);
     }
   }
-
-  await client.close();
-  ok(true, "The client is closed");
-
-  BrowserTestUtils.removeTab(gBrowser.selectedTab);
-
-  await RemoteAgent.close();
 });
 
 async function testRuntimeEnable({ Runtime }) {

@@ -250,15 +250,7 @@ void PrependString(JSContext* cx, StringBuilder<char16_t, N>& v,
   memmove(v.begin() + alen, v.begin(), vlen * sizeof(char16_t));
 
   // Copy data to insert.
-  JS::AutoCheckCannotGC nogc;
-  if (linear->hasLatin1Chars()) {
-    const Latin1Char* chars = linear->latin1Chars(nogc);
-    for (size_t i = 0; i < alen; i++) {
-      v[i] = chars[i];
-    }
-  } else {
-    memcpy(v.begin(), linear->twoByteChars(nogc), alen * sizeof(char16_t));
-  }
+  CopyChars(v.begin(), *linear);
 }
 
 MOZ_MUST_USE bool ReportErrorIfUnpairedSurrogatePresent(JSContext* cx,
@@ -325,39 +317,18 @@ static_assert(sizeof(UnbarrieredFieldInfo) == sizeof(FieldInfo),
               "unbarriered mType");
 
 // Hash policy for FieldInfos.
-struct FieldHashPolicy : DefaultHasher<JSFlatString*> {
-  typedef JSFlatString* Key;
-  typedef Key Lookup;
+struct FieldHashPolicy {
+  using Key = JSLinearString*;
+  using Lookup = Key;
 
-  template <typename CharT>
-  static uint32_t hash(const CharT* s, size_t n) {
-    uint32_t hash = 0;
-    for (; n > 0; s++, n--) {
-      hash = hash * 33 + *s;
-    }
-    return hash;
-  }
-
-  static uint32_t hash(const Lookup& l) {
-    JS::AutoCheckCannotGC nogc;
-    return l->hasLatin1Chars() ? hash(l->latin1Chars(nogc), l->length())
-                               : hash(l->twoByteChars(nogc), l->length());
-  }
+  static HashNumber hash(const Lookup& l) { return js::HashStringChars(l); }
 
   static bool match(const Key& k, const Lookup& l) {
-    if (k == l) {
-      return true;
-    }
-
-    if (k->length() != l->length()) {
-      return false;
-    }
-
-    return EqualChars(k, l);
+    return js::EqualStrings(k, l);
   }
 };
 
-using FieldInfoHash = GCHashMap<js::HeapPtr<JSFlatString*>, FieldInfo,
+using FieldInfoHash = GCHashMap<js::HeapPtr<JSLinearString*>, FieldInfo,
                                 FieldHashPolicy, ZoneAllocPolicy>;
 
 // Descriptor of ABI, return type, argument types, and variadicity for a
@@ -567,7 +538,8 @@ MOZ_MUST_USE bool DefineInternal(JSContext* cx, JSObject* typeObj,
                                  JSObject* fieldsObj);
 
 const FieldInfoHash* GetFieldInfo(JSObject* obj);
-const FieldInfo* LookupField(JSContext* cx, JSObject* obj, JSFlatString* name);
+const FieldInfo* LookupField(JSContext* cx, JSObject* obj,
+                             JSLinearString* name);
 JSObject* BuildFieldsArray(JSContext* cx, JSObject* obj);
 UniquePtrFFIType BuildFFIType(JSContext* cx, JSObject* obj);
 }  // namespace StructType

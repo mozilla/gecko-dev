@@ -6,10 +6,11 @@
 
 %filter substitution
 %define urlbarViewPadding 4px
-%define urlbarViewIconMarginEnd 8px
+%define urlbarViewIconMarginEnd (@identityBoxPaddingInline@ + @identityBoxMarginInlineEnd@)
 %define urlbarViewFaviconOffset (@urlbarViewPadding@ + 16px /* type icon width */ + @urlbarViewIconMarginEnd@)
-%define urlbarViewInlineStartPadding (@urlbarBreakoutHorizontalExtend@ - 16px /* type icon width */ - @urlbarViewIconMarginEnd@ - 1px /* border */)
-%define urlbarViewHorizontalMargin 6px
+%define urlbarViewMarginInline 5px
+%define urlbarViewPaddingInline 30px
+%define urlbarViewItemPaddingStart (@urlbarViewPaddingInline@ - (/* type icon: */ 16px + @urlbarViewIconMarginEnd@))
 
 :root {
   --autocomplete-popup-background: var(--arrowpanel-background);
@@ -44,11 +45,14 @@
   /* Don't handle window drag events in case we are overlapping a toolbar */
   -moz-window-dragging: no-drag;
   text-shadow: none;
+  overflow: -moz-hidden-unscrollable;
 }
 
 .urlbarView.megabar {
-  margin-inline: @urlbarViewHorizontalMargin@;
-  width: calc(100% - 2 * @urlbarViewHorizontalMargin@);
+  margin-inline: @urlbarViewMarginInline@;
+  width: calc(100% - 2 * @urlbarViewMarginInline@);
+  /* Match urlbar-background's border. */
+  border-inline: 1px solid transparent;
 }
 
 .urlbarView:not([hidden]) {
@@ -76,8 +80,8 @@
   display: flex;
   padding-top: 24px;
   padding-bottom: 24px;
-  padding-inline-start: calc(@urlbarViewInlineStartPadding@);
-  padding-inline-end: calc(@urlbarBreakoutHorizontalExtend@ - @urlbarViewHorizontalMargin@);
+  padding-inline-start: calc(@urlbarViewItemPaddingStart@);
+  padding-inline-end: @urlbarViewPaddingInline@;
 }
 
 .urlbarView:not(.megabar) #urlbar-contextual-tip {
@@ -128,10 +132,8 @@
   border-radius: 2px;
   fill: currentColor;
   fill-opacity: .6;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-inline-start: calc(@urlbarViewInlineStartPadding@);
-  padding-inline-end: calc(@urlbarBreakoutHorizontalExtend@ - @urlbarViewHorizontalMargin@);
+  padding-block: 6px;
+  padding-inline-start: calc(@urlbarViewItemPaddingStart@);
 }
 
 .urlbarView:not(.megabar) .urlbarView-row {
@@ -140,8 +142,7 @@
 }
 
 :root[uidensity=touch] .urlbarView-row {
-  padding-top: 11px;
-  padding-bottom: 11px;
+  padding-block: 11px;
 }
 
 .urlbarView-row-inner {
@@ -179,7 +180,7 @@
 .urlbarView-favicon {
   min-width: 16px;
   height: 16px;
-  margin-inline-end: @urlbarViewIconMarginEnd@;
+  margin-inline-end: calc(@urlbarViewIconMarginEnd@);
   background-repeat: no-repeat;
   background-size: contain;
   -moz-context-properties: fill, fill-opacity;
@@ -219,7 +220,7 @@
 #urlbar-contextual-tip-icon {
   min-width: 24px;
   height: 24px;
-  margin-inline-end: @urlbarViewIconMarginEnd@;
+  margin-inline-end: calc(@urlbarViewIconMarginEnd@);
   background-repeat: no-repeat;
   background-size: contain;
   -moz-context-properties: fill, fill-opacity;
@@ -244,8 +245,9 @@
 
 .urlbarView-row[type=tip] {
   border-bottom: 1px solid var(--panel-separator-color);
-  padding-block: 24px;
   margin-bottom: 4px;
+  padding-block: 24px;
+  padding-inline-end: @urlbarViewPaddingInline@;
 }
 
 .urlbarView-row[type=tip]:not(:first-child) {
@@ -382,11 +384,11 @@
   display: flex;
   align-items: start;
   padding-block: 16px;
+  flex-wrap: wrap;
 }
 
 .urlbarView.megabar .search-one-offs {
-  padding-inline-start: @urlbarBreakoutHorizontalExtend@;
-  padding-inline-end: calc(@urlbarBreakoutHorizontalExtend@ - @urlbarViewHorizontalMargin@);
+  padding-inline: @urlbarViewPaddingInline@;
 }
 
 #urlbar:not(.megabar) .search-one-offs {
@@ -394,11 +396,9 @@
   padding-inline-end: var(--item-padding-end, 5px);
 }
 
-#urlbar .search-panel-one-offs {
-  padding-inline-start: 12px;
-  /* Make sure we can fit at least three buttons horizontally. */
-  min-width: 120px;
-  box-sizing: content-box;
+#urlbar .search-panel-one-offs-container {
+  /* Make sure horizontally we can fit three buttons, empty space, settings. */
+  min-width: 200px;
 }
 
 #urlbar .search-panel-header {
@@ -410,6 +410,8 @@
 }
 
 #urlbar .search-panel-one-offs-header-label {
+  white-space: nowrap;
+  padding-inline-end: 12px;
   margin: 0;
 }
 

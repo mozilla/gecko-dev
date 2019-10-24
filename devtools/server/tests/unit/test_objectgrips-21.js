@@ -94,7 +94,7 @@ const systemPrincipalTests = [
     var trapDidRun = false;
     var obj = new Proxy(function(){}, new Proxy({}, {get: (_, trap) => {
       trapDidRun = true;
-      throw new Error("proxy trap '" + trap + "' was called.");
+      throw new Error("proxy trap '" + trap + "' was called.(function)");
     }}));
   `,
     afterTest: "trapDidRun === false",
@@ -246,11 +246,11 @@ async function test_unsafe_grips(
           response = await objClient.enumProperties({
             ignoreIndexedProperties: true,
           });
-          slice = await response.iterator.slice(0, response.iterator.count);
+          slice = await response.slice(0, response.count);
           check_properties(slice.ownProperties, data, isUnsafe);
 
           response = await objClient.enumProperties({});
-          slice = await response.iterator.slice(0, response.iterator.count);
+          slice = await response.slice(0, response.count);
           check_properties(slice.ownProperties, data, isUnsafe);
 
           response = await objClient.getOwnPropertyNames();
@@ -260,7 +260,7 @@ async function test_unsafe_grips(
           check_property(response.descriptor, data, isUnsafe);
 
           response = await objClient.enumSymbols();
-          slice = await response.iterator.slice(0, response.iterator.count);
+          slice = await response.slice(0, response.count);
           check_symbol_names(slice.ownSymbols, data, isUnsafe);
 
           response = await objClient.getProperty(Symbol.for("x"));
@@ -273,7 +273,7 @@ async function test_unsafe_grips(
           check_display_string(response.displayString, data, isUnsafe);
 
           if (data.isFunction && isUnsafe) {
-            // For function-related methods, object-client.js checks that the class
+            // For function-related methods, the object front checks that the class
             // of the grip is "Function", and if it's not, the method in object.js
             // is not called. But some tests have a grip with a class that is not
             // "Function" (e.g. it's "Proxy") but the DebuggerObject has a "Function"

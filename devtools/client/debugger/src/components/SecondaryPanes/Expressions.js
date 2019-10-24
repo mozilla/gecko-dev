@@ -19,7 +19,7 @@ import {
   getThreadContext,
 } from "../../selectors";
 import { getValue } from "../../utils/expressions";
-import { createObjectClient } from "../../client/firefox";
+import { createObjectFront } from "../../client/firefox";
 
 import { CloseButton } from "../shared/Button";
 import { debounce } from "lodash";
@@ -38,12 +38,16 @@ type State = {
   focused: boolean,
 };
 
+type OwnProps = {|
+  showInput: boolean,
+  onExpressionAdded: () => void,
+|};
 type Props = {
   cx: ThreadContext,
   expressions: List<Expression>,
   expressionError: boolean,
   showInput: boolean,
-  autocompleteMatches: string[],
+  autocompleteMatches: ?(string[]),
   onExpressionAdded: () => void,
   autocomplete: typeof actions.autocomplete,
   clearAutocomplete: typeof actions.clearAutocomplete,
@@ -97,13 +101,13 @@ class Expressions extends Component<Props, State> {
     });
   };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (this.state.editing && !nextProps.expressionError) {
       this.clear();
     }
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     const { editing, inputValue, focused } = this.state;
     const {
       expressions,
@@ -123,7 +127,7 @@ class Expressions extends Component<Props, State> {
     );
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const input = this._input;
 
     if (!input) {
@@ -156,17 +160,20 @@ class Expressions extends Component<Props, State> {
   }
 
   handleChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
-    const target = e.target;
+    const { target } = e;
     if (features.autocompleteExpression) {
       this.findAutocompleteMatches(target.value, target.selectionStart);
     }
     this.setState({ inputValue: target.value });
   };
 
-  findAutocompleteMatches = debounce((value, selectionStart) => {
-    const { autocomplete } = this.props;
-    autocomplete(this.props.cx, value, selectionStart);
-  }, 250);
+  findAutocompleteMatches = debounce(
+    (value: string, selectionStart: number) => {
+      const { autocomplete } = this.props;
+      autocomplete(this.props.cx, value, selectionStart);
+    },
+    250
+  );
 
   handleKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
@@ -267,7 +274,7 @@ class Expressions extends Component<Props, State> {
             autoExpandDepth={0}
             disableWrap={true}
             openLink={openLink}
-            createObjectClient={grip => createObjectClient(grip)}
+            createObjectFront={grip => createObjectFront(grip)}
             onDOMNodeClick={grip => openElementInInspector(grip)}
             onInspectIconClick={grip => openElementInInspector(grip)}
             onDOMNodeMouseOver={grip => highlightDomElement(grip)}
@@ -385,12 +392,12 @@ class Expressions extends Component<Props, State> {
 
 const mapStateToProps = state => ({
   cx: getThreadContext(state),
-  autocompleteMatches: getAutocompleteMatchset(state),
+  autocompleteMatches: (getAutocompleteMatchset(state): ?(string[])),
   expressions: getExpressions(state),
   expressionError: getExpressionError(state),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     autocomplete: actions.autocomplete,

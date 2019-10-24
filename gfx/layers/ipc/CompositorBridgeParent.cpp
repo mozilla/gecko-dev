@@ -1436,6 +1436,20 @@ void CompositorBridgeParent::SetConfirmedTargetAPZC(
   mApzUpdater->RunOnControllerThread(selector, task.forget());
 }
 
+void CompositorBridgeParent::SetFixedLayerMargins(ScreenIntCoord aTop,
+                                                  ScreenIntCoord aBottom) {
+  if (AsyncCompositionManager* manager = GetCompositionManager(nullptr)) {
+    manager->SetFixedLayerMargins(aTop, aBottom);
+  }
+
+  if (mApzcTreeManager) {
+    mApzcTreeManager->SetFixedLayerMargins(aTop, aBottom);
+  }
+
+  Invalidate();
+  ScheduleComposition();
+}
+
 void CompositorBridgeParent::InitializeLayerManager(
     const nsTArray<LayersBackend>& aBackendHints) {
   NS_ASSERTION(!mLayerManager, "Already initialised mLayerManager");
@@ -1842,7 +1856,12 @@ PWebRenderBridgeParent* CompositorBridgeParent::AllocPWebRenderBridgeParent(
     clonedApis.AppendElement(api->Clone());
   }
 
-  mAsyncImageManager = new AsyncImagePipelineManager(std::move(clonedApis));
+  bool useCompositorWnd = false;
+#ifdef XP_WIN
+  useCompositorWnd = !!mWidget->AsWindows()->GetCompositorHwnd();
+#endif
+  mAsyncImageManager =
+      new AsyncImagePipelineManager(std::move(clonedApis), useCompositorWnd);
   RefPtr<AsyncImagePipelineManager> asyncMgr = mAsyncImageManager;
   RefPtr<CompositorAnimationStorage> animStorage = GetAnimationStorage();
   mWrBridge = new WebRenderBridgeParent(this, aPipelineId, mWidget, nullptr,

@@ -187,9 +187,9 @@ class SpecialPowersChild extends JSWindowActorChild {
     this._extensionListeners = null;
   }
 
-  handleEvent(aEvent) {
-    // We don't actually care much about the "DOMWindowCreated" event.
-    // We only listen to it to force creation of the actor.
+  observe(aSubject, aTopic, aData) {
+    // Ignore the "{chrome/content}-document-global-created" event. It
+    // is only observed to force creation of the actor.
   }
 
   actorCreated() {
@@ -1251,13 +1251,13 @@ class SpecialPowersChild extends JSWindowActorChild {
     );
   }
   attachFormFillControllerTo(window) {
-    this.getFormFillController().attachPopupElementToBrowser(
-      window.docShell,
+    this.getFormFillController().attachPopupElementToDocument(
+      window.document,
       this._getAutoCompletePopup(window)
     );
   }
   detachFormFillControllerFrom(window) {
-    this.getFormFillController().detachFromBrowser(window.docShell);
+    this.getFormFillController().detachFromDocument(window.document);
   }
   isBackButtonEnabled(window) {
     return !this._getTopChromeWindow(window)
@@ -1668,7 +1668,7 @@ class SpecialPowersChild extends JSWindowActorChild {
       browsingContext,
       args,
       task: String(task),
-      caller: SpecialPowersSandbox.getCallerInfo(Components.stack.caller),
+      caller: Cu.getFunctionSourceLocation(task),
       hasHarness: typeof this.SimpleTest === "object",
     });
   }
@@ -2254,6 +2254,25 @@ SpecialPowersChild.prototype._proxiedObservers = {
 
   "specialpowers-service-worker-shutdown": function(aMessage) {
     Services.obs.notifyObservers(null, "specialpowers-service-worker-shutdown");
+  },
+
+  "specialpowers-csp-on-violate-policy": function(aMessage) {
+    let subject = null;
+
+    try {
+      subject = Services.io.newURI(aMessage.data.subject);
+    } catch (ex) {
+      // if it's not a valid URI it must be an nsISupportsCString
+      subject = Cc["@mozilla.org/supports-cstring;1"].createInstance(
+        Ci.nsISupportsCString
+      );
+      subject.data = aMessage.data.subject;
+    }
+    Services.obs.notifyObservers(
+      subject,
+      "specialpowers-csp-on-violate-policy",
+      aMessage.data.data
+    );
   },
 };
 

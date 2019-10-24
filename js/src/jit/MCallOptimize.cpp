@@ -12,7 +12,7 @@
 #ifdef ENABLE_INTL_API
 #  include "builtin/intl/Collator.h"
 #  include "builtin/intl/DateTimeFormat.h"
-#  include "builtin/intl/Locale.h"
+#  include "builtin/intl/ListFormat.h"
 #  include "builtin/intl/NumberFormat.h"
 #  include "builtin/intl/PluralRules.h"
 #  include "builtin/intl/RelativeTimeFormat.h"
@@ -111,7 +111,7 @@ static bool CanInlineCrossRealm(InlinableNative native) {
 
     case InlinableNative::IntlGuardToCollator:
     case InlinableNative::IntlGuardToDateTimeFormat:
-    case InlinableNative::IntlGuardToLocale:
+    case InlinableNative::IntlGuardToListFormat:
     case InlinableNative::IntlGuardToNumberFormat:
     case InlinableNative::IntlGuardToPluralRules:
     case InlinableNative::IntlGuardToRelativeTimeFormat:
@@ -138,7 +138,7 @@ static bool CanInlineCrossRealm(InlinableNative native) {
     case InlinableNative::IntrinsicToObject:
     case InlinableNative::IntrinsicIsObject:
     case InlinableNative::IntrinsicIsCrossRealmArrayConstructor:
-    case InlinableNative::IntrinsicToInteger:
+    case InlinableNative::IntrinsicToIntegerPositiveZero:
     case InlinableNative::IntrinsicToString:
     case InlinableNative::IntrinsicIsConstructing:
     case InlinableNative::IntrinsicSubstringKernel:
@@ -319,8 +319,8 @@ IonBuilder::InliningResult IonBuilder::inlineNativeCall(CallInfo& callInfo,
       return inlineGuardToClass(callInfo, &CollatorObject::class_);
     case InlinableNative::IntlGuardToDateTimeFormat:
       return inlineGuardToClass(callInfo, &DateTimeFormatObject::class_);
-    case InlinableNative::IntlGuardToLocale:
-      return inlineGuardToClass(callInfo, &LocaleObject::class_);
+    case InlinableNative::IntlGuardToListFormat:
+      return inlineGuardToClass(callInfo, &ListFormatObject::class_);
     case InlinableNative::IntlGuardToNumberFormat:
       return inlineGuardToClass(callInfo, &NumberFormatObject::class_);
     case InlinableNative::IntlGuardToPluralRules:
@@ -330,7 +330,7 @@ IonBuilder::InliningResult IonBuilder::inlineNativeCall(CallInfo& callInfo,
 #else
     case InlinableNative::IntlGuardToCollator:
     case InlinableNative::IntlGuardToDateTimeFormat:
-    case InlinableNative::IntlGuardToLocale:
+    case InlinableNative::IntlGuardToListFormat:
     case InlinableNative::IntlGuardToNumberFormat:
     case InlinableNative::IntlGuardToPluralRules:
     case InlinableNative::IntlGuardToRelativeTimeFormat:
@@ -498,8 +498,8 @@ IonBuilder::InliningResult IonBuilder::inlineNativeCall(CallInfo& callInfo,
       return inlineIsObject(callInfo);
     case InlinableNative::IntrinsicIsCrossRealmArrayConstructor:
       return inlineIsCrossRealmArrayConstructor(callInfo);
-    case InlinableNative::IntrinsicToInteger:
-      return inlineToInteger(callInfo);
+    case InlinableNative::IntrinsicToIntegerPositiveZero:
+      return inlineToIntegerPositiveZero(callInfo);
     case InlinableNative::IntrinsicToString:
       return inlineToString(callInfo);
     case InlinableNative::IntrinsicIsConstructing:
@@ -2153,7 +2153,7 @@ IonBuilder::InliningResult IonBuilder::inlineStrCharCodeAt(CallInfo& callInfo) {
 
   callInfo.setImplicitlyUsedUnchecked();
 
-  MInstruction* index = MToNumberInt32::New(alloc(), callInfo.getArg(0));
+  MInstruction* index = MToIntegerInt32::New(alloc(), callInfo.getArg(0));
   current->add(index);
 
   MStringLength* length = MStringLength::New(alloc(), callInfo.thisArg());
@@ -2282,7 +2282,7 @@ IonBuilder::InliningResult IonBuilder::inlineStrCharAt(CallInfo& callInfo) {
 
   callInfo.setImplicitlyUsedUnchecked();
 
-  MInstruction* index = MToNumberInt32::New(alloc(), callInfo.getArg(0));
+  MInstruction* index = MToIntegerInt32::New(alloc(), callInfo.getArg(0));
   current->add(index);
 
   MStringLength* length = MStringLength::New(alloc(), callInfo.thisArg());
@@ -3661,35 +3661,53 @@ IonBuilder::InliningResult IonBuilder::inlineIsCrossRealmArrayConstructor(
   return InliningStatus_Inlined;
 }
 
-IonBuilder::InliningResult IonBuilder::inlineToInteger(CallInfo& callInfo) {
+IonBuilder::InliningResult IonBuilder::inlineToIntegerPositiveZero(
+    CallInfo& callInfo) {
   MOZ_ASSERT(!callInfo.constructing());
   MOZ_ASSERT(callInfo.argc() == 1);
 
   MDefinition* input = callInfo.getArg(0);
 
-  // Only optimize cases where input contains only number, null or boolean
+  // Only optimize cases where |input| contains only number, null, undefined, or
+  // boolean.
   if (input->mightBeType(MIRType::Object) ||
       input->mightBeType(MIRType::String) ||
       input->mightBeType(MIRType::Symbol) ||
-      input->mightBeType(MIRType::BigInt) ||
-      input->mightBeType(MIRType::Undefined) || input->mightBeMagicType()) {
+      input->mightBeType(MIRType::BigInt) || input->mightBeMagicType()) {
     return InliningStatus_NotInlined;
   }
 
   MOZ_ASSERT(input->type() == MIRType::Value ||
              input->type() == MIRType::Null ||
+             input->type() == MIRType::Undefined ||
              input->type() == MIRType::Boolean || IsNumberType(input->type()));
 
-  // Only optimize cases where output is int32
-  if (getInlineReturnType() != MIRType::Int32) {
+  // Only optimize cases where the output is int32 or double.
+  MIRType returnType = getInlineReturnType();
+  if (returnType != MIRType::Int32 && returnType != MIRType::Double) {
     return InliningStatus_NotInlined;
   }
 
-  callInfo.setImplicitlyUsedUnchecked();
+  if (returnType == MIRType::Int32) {
+    auto* toInt32 = MToIntegerInt32::New(alloc(), input);
+    current->add(toInt32);
+    current->push(toInt32);
+  } else {
+    MInstruction* ins;
+    if (MNearbyInt::HasAssemblerSupport(RoundingMode::TowardsZero)) {
+      ins = MNearbyInt::New(alloc(), input, MIRType::Double,
+                            RoundingMode::TowardsZero);
+    } else {
+      ins = MMathFunction::New(alloc(), input, MMathFunction::Trunc);
+    }
+    current->add(ins);
 
-  auto* toInt32 = MToNumberInt32::New(alloc(), callInfo.getArg(0));
-  current->add(toInt32);
-  current->push(toInt32);
+    auto* nanToZero = MNaNToZero::New(alloc(), ins);
+    current->add(nanToZero);
+    current->push(nanToZero);
+  }
+
+  callInfo.setImplicitlyUsedUnchecked();
   return InliningStatus_Inlined;
 }
 

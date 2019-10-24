@@ -57,8 +57,6 @@ class Instance {
   const UniqueDebugState maybeDebug_;
   StructTypeDescrVector structTypeDescrs_;
 
-  friend void Zone::sweepBreakpoints(JSFreeOp*);
-
   // Internal helpers:
   const void** addressOfFuncTypeId(const FuncTypeIdDesc& funcTypeId) const;
   FuncImportTls& funcImportTls(const FuncImport& fi);
@@ -162,8 +160,9 @@ class Instance {
   // Called to apply a single ElemSegment at a given offset, assuming
   // that all bounds validation has already been performed.
 
-  void initElems(uint32_t tableIndex, const ElemSegment& seg,
-                 uint32_t dstOffset, uint32_t srcOffset, uint32_t len);
+  MOZ_MUST_USE bool initElems(uint32_t tableIndex, const ElemSegment& seg,
+                              uint32_t dstOffset, uint32_t srcOffset,
+                              uint32_t len);
 
   // Debugger support:
 

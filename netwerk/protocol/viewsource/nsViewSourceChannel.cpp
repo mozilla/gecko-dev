@@ -696,42 +696,6 @@ nsViewSourceChannel::SetTopLevelOuterContentWindowId(uint64_t aWindowId) {
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::IsTrackingResource(bool* aIsTrackingResource) {
-  return !mHttpChannel ? NS_ERROR_NULL_POINTER
-                       : mHttpChannel->IsTrackingResource(aIsTrackingResource);
-}
-
-NS_IMETHODIMP
-nsViewSourceChannel::IsThirdPartyTrackingResource(bool* aIsTrackingResource) {
-  return !mHttpChannel
-             ? NS_ERROR_NULL_POINTER
-             : mHttpChannel->IsThirdPartyTrackingResource(aIsTrackingResource);
-}
-
-NS_IMETHODIMP
-nsViewSourceChannel::GetClassificationFlags(uint32_t* aClassificationFlags) {
-  return !mHttpChannel
-             ? NS_ERROR_NULL_POINTER
-             : mHttpChannel->GetClassificationFlags(aClassificationFlags);
-}
-
-NS_IMETHODIMP
-nsViewSourceChannel::GetFirstPartyClassificationFlags(
-    uint32_t* aClassificationFlags) {
-  return !mHttpChannel ? NS_ERROR_NULL_POINTER
-                       : mHttpChannel->GetFirstPartyClassificationFlags(
-                             aClassificationFlags);
-}
-
-NS_IMETHODIMP
-nsViewSourceChannel::GetThirdPartyClassificationFlags(
-    uint32_t* aClassificationFlags) {
-  return !mHttpChannel ? NS_ERROR_NULL_POINTER
-                       : mHttpChannel->GetThirdPartyClassificationFlags(
-                             aClassificationFlags);
-}
-
-NS_IMETHODIMP
 nsViewSourceChannel::GetFlashPluginState(
     nsIHttpChannel::FlashPluginState* aResult) {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER
@@ -1026,17 +990,17 @@ void nsViewSourceChannel::SetIPv6Disabled() {
   }
 }
 
-bool nsViewSourceChannel::GetHasSandboxedAuxiliaryNavigations() {
+bool nsViewSourceChannel::GetHasNonEmptySandboxingFlag() {
   if (mHttpChannelInternal) {
-    return mHttpChannelInternal->GetHasSandboxedAuxiliaryNavigations();
+    return mHttpChannelInternal->GetHasNonEmptySandboxingFlag();
   }
   return false;
 }
 
-void nsViewSourceChannel::SetHasSandboxedAuxiliaryNavigations(
-    bool aHasSandboxedAuxiliaryNavigations) {
+void nsViewSourceChannel::SetHasNonEmptySandboxingFlag(
+    bool aHasNonEmptySandboxingFlag) {
   if (mHttpChannelInternal) {
-    mHttpChannelInternal->SetHasSandboxedAuxiliaryNavigations(
-        aHasSandboxedAuxiliaryNavigations);
+    mHttpChannelInternal->SetHasNonEmptySandboxingFlag(
+        aHasNonEmptySandboxingFlag);
   }
 }

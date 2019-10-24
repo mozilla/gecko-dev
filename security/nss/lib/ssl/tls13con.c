@@ -914,7 +914,7 @@ SECStatus
 tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     if (ss->sec.isServer && ss->ssl3.hs.zeroRttIgnore != ssl_0rtt_ignore_none) {
-        SSL_TRC(3, ("%d: TLS13[%d]: %s successfully decrypted handshake after"
+        SSL_TRC(3, ("%d: TLS13[%d]: successfully decrypted handshake after "
                     "failed 0-RTT",
                     SSL_GETPID(), ss->fd));
         ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_none;
@@ -1731,18 +1731,10 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         ss->ssl3.hs.zeroRttState = ssl_0rtt_sent;
     }
 
-#ifndef PARANOID
-    /* Look for a matching cipher suite. */
-    if (ssl3_config_match_init(ss) == 0) { /* no ciphers are working/supported by PK11 */
-        FATAL_ERROR(ss, PORT_GetError(), internal_error);
-        goto loser;
-    }
-#endif
-
     /* Negotiate cipher suite. */
     rv = ssl3_NegotiateCipherSuite(ss, suites, PR_FALSE);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SSL_ERROR_NO_CYPHER_OVERLAP, handshake_failure);
+        FATAL_ERROR(ss, PORT_GetError(), handshake_failure);
         goto loser;
     }
 

@@ -11,17 +11,6 @@
  */
 var numberFormatInternalProperties = {
     localeData: numberFormatLocaleData,
-    _availableLocales: null,
-    availableLocales: function() // eslint-disable-line object-shorthand
-    {
-        var locales = this._availableLocales;
-        if (locales)
-            return locales;
-
-        locales = intl_NumberFormat_availableLocales();
-        addSpecialMissingLanguageTags(locales);
-        return (this._availableLocales = locales);
-    },
     relevantExtensionKeys: ["nu"],
 };
 
@@ -41,7 +30,7 @@ function resolveNumberFormatInternals(lazyNumberFormatData) {
     var localeData = NumberFormat.localeData;
 
     // Step 8.
-    var r = ResolveLocale(callFunction(NumberFormat.availableLocales, NumberFormat),
+    var r = ResolveLocale("NumberFormat",
                           lazyNumberFormatData.requestedLocales,
                           lazyNumberFormatData.opt,
                           NumberFormat.relevantExtensionKeys,
@@ -136,7 +125,7 @@ function UnwrapNumberFormat(nf) {
     if (IsObject(nf) &&
         GuardToNumberFormat(nf) === null &&
         !IsWrappedNumberFormat(nf) &&
-        nf instanceof GetNumberFormatConstructor())
+        nf instanceof GetBuiltinConstructor("NumberFormat"))
     {
         nf = nf[intlFallbackSymbol()];
     }
@@ -594,7 +583,7 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
     // TODO: spec issue - The current spec doesn't have the IsObject check,
     // which means |Intl.NumberFormat.call(null)| is supposed to throw here.
     if (numberFormat !== thisValue && IsObject(thisValue) &&
-        thisValue instanceof GetNumberFormatConstructor())
+        thisValue instanceof GetBuiltinConstructor("NumberFormat"))
     {
         _DefineDataProperty(thisValue, intlFallbackSymbol(), numberFormat,
                             ATTR_NONENUMERABLE | ATTR_NONCONFIGURABLE | ATTR_NONWRITABLE);
@@ -632,8 +621,7 @@ function Intl_NumberFormat_supportedLocalesOf(locales /*, options*/) {
     var options = arguments.length > 1 ? arguments[1] : undefined;
 
     // Step 1.
-    var availableLocales = callFunction(numberFormatInternalProperties.availableLocales,
-                                        numberFormatInternalProperties);
+    var availableLocales = "NumberFormat";
 
     // Step 2.
     var requestedLocales = CanonicalizeLocaleList(locales);

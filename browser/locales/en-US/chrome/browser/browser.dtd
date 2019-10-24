@@ -390,22 +390,6 @@ convenience of Safari and Chrome users on macOS. See bug 1398988. -->
 <!ENTITY searchInput.placeholder      "Search">
 <!ENTITY searchIcon.tooltip           "Search">
 
-<!-- LOCALIZATION NOTE (searchWithDesc.label):
-     This string prompts the user to use the list of one-click search engines in
-     the Urlbar and searchbar. -->
-<!ENTITY searchWithDesc.label         "This time, search with:">
-
-<!-- LOCALIZATION NOTE (changeSearchSettings.button):
-     This string won't wrap, so if the translated string is longer,
-     consider translating it as if it said only "Search Settings". -->
-<!ENTITY changeSearchSettings.button  "Change Search Settings">
-<!ENTITY changeSearchSettings.tooltip "Change search settings">
-
-<!ENTITY searchInNewTab.label         "Search in New Tab">
-<!ENTITY searchInNewTab.accesskey     "T">
-<!ENTITY searchSetAsDefault.label     "Set As Default Search Engine">
-<!ENTITY searchSetAsDefault.accesskey "D">
-
 <!ENTITY openLinkCmdInTab.label       "Open Link in New Tab">
 <!ENTITY openLinkCmdInTab.accesskey   "T">
 <!ENTITY openLinkCmd.label            "Open Link in New Window">
@@ -712,7 +696,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
      a tooltip explaining why these items were not blocked in the page. -->
 <!ENTITY protections.notBlocking.why.label "Why?">
 <!ENTITY protections.notBlocking.why.etpOn.tooltip "Blocking these could break elements of some websites. Without trackers, some buttons, forms, and login fields might not work.">
-<!ENTITY protections.notBlocking.why.etpOff.tooltip "Turning off protections will allow all trackers on this site. It may also improve some website functionality.">
+<!ENTITY protections.notBlocking.why.etpOff2.tooltip "All trackers on this site have been loaded because protections are turned off.">
 <!ENTITY protections.noTrackersFound.description "No trackers known to &brandShortName; were detected on this page.">
 
 <!ENTITY protections.crossSiteTrackingCookies.description "These cookies follow you from site to site to gather data about what you do online. They are set by third parties such as advertisers and analytics companies.">
@@ -729,10 +713,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!ENTITY syncBrand.shortName.label    "Sync">
 
-<!ENTITY syncSyncNowItem.label        "Sync Now">
-<!ENTITY syncSyncNowItemSyncing.label "Syncing…">
-<!ENTITY syncSyncNowItem.accesskey    "S">
-
 <!ENTITY customizeMode.autoHideDownloadsButton.label "Auto-hide">
 
 <!ENTITY getUserMedia.selectCamera.label "Camera to share:">
@@ -747,8 +727,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contentBlocking.manageSettings2.accesskey "M">
 
 <!ENTITY contentBlocking.socialblock.label "Social Media Trackers">
-
-<!ENTITY contentBlocking.cookies2.label "Cross-Site Tracking Cookies">
 
 <!ENTITY contentBlocking.cryptominers.label "Cryptominers">
 

@@ -332,8 +332,6 @@ class nsPermissionManager final : public nsIPermissionManager,
 
   PermissionHashKey* GetPermissionHashKey(nsIPrincipal* aPrincipal,
                                           uint32_t aType, bool aExactHostMatch);
-  PermissionHashKey* GetPermissionHashKey(nsIURI* aURI, uint32_t aType,
-                                          bool aExactHostMatch);
   PermissionHashKey* GetPermissionHashKey(
       nsIURI* aURI, const mozilla::OriginAttributes* aOriginAttributes,
       uint32_t aType, bool aExactHostMatch);
@@ -529,7 +527,8 @@ class nsPermissionManager final : public nsIPermissionManager,
    */
   bool PermissionAvailable(nsIPrincipal* aPrincipal, const nsACString& aType);
 
-  nsRefPtrHashtable<nsCStringHashKey, mozilla::GenericPromise::Private>
+  nsRefPtrHashtable<nsCStringHashKey,
+                    mozilla::GenericNonExclusivePromise::Private>
       mPermissionKeyPromiseMap;
 
   nsCOMPtr<mozIStorageConnection> mDBConn;

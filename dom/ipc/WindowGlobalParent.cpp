@@ -31,6 +31,10 @@
 #include "nsFrameLoaderOwner.h"
 #include "nsSerializationHelper.h"
 #include "nsITransportSecurityInfo.h"
+#include "nsISharePicker.h"
+
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/DOMExceptionBinding.h"
 
 #include "mozilla/dom/JSWindowActorBinding.h"
 #include "mozilla/dom/JSWindowActorParent.h"
@@ -175,7 +179,8 @@ bool WindowGlobalParent::IsProcessRoot() {
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvLoadURI(
-    dom::BrowsingContext* aTargetBC, nsDocShellLoadState* aLoadState) {
+    dom::BrowsingContext* aTargetBC, nsDocShellLoadState* aLoadState,
+    bool aSetNavigating) {
   if (!aTargetBC || aTargetBC->IsDiscarded()) {
     MOZ_LOG(
         BrowsingContext::GetLog(), LogLevel::Debug,
@@ -200,7 +205,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvLoadURI(
     return IPC_OK();
   }
 
-  Unused << wgp->SendLoadURIInChild(aLoadState);
+  Unused << wgp->SendLoadURIInChild(aLoadState, aSetNavigating);
   return IPC_OK();
 }
 
@@ -302,71 +307,88 @@ bool WindowGlobalParent::IsCurrentGlobal() {
   return CanSend() && mBrowsingContext->GetCurrentWindowGlobal() == this;
 }
 
-already_AddRefed<Promise> WindowGlobalParent::ChangeFrameRemoteness(
-    dom::BrowsingContext* aBc, const nsAString& aRemoteType,
-    uint64_t aPendingSwitchId, ErrorResult& aRv) {
-  RefPtr<BrowserParent> embedderBrowserParent = GetBrowserParent();
-  if (NS_WARN_IF(!embedderBrowserParent)) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
+namespace {
+
+class ShareHandler final : public PromiseNativeHandler {
+ public:
+  explicit ShareHandler(
+      mozilla::dom::WindowGlobalParent::ShareResolver&& aResolver)
+      : mResolver(std::move(aResolver)) {}
+
+  NS_DECL_ISUPPORTS
+
+ public:
+  virtual void ResolvedCallback(JSContext* aCx,
+                                JS::Handle<JS::Value> aValue) override {
+    mResolver(NS_OK);
   }
 
-  nsIGlobalObject* global = GetParentObject();
-  RefPtr<Promise> promise = Promise::Create(global, aRv);
-  if (aRv.Failed()) {
-    return nullptr;
+  virtual void RejectedCallback(JSContext* aCx,
+                                JS::Handle<JS::Value> aValue) override {
+    if (NS_WARN_IF(!aValue.isObject())) {
+      mResolver(NS_ERROR_FAILURE);
+      return;
+    }
+
+    // nsresult is stored as Exception internally in Promise
+    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    RefPtr<DOMException> unwrapped;
+    nsresult rv = UNWRAP_OBJECT(DOMException, &obj, unwrapped);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mResolver(NS_ERROR_FAILURE);
+      return;
+    }
+
+    mResolver(unwrapped->GetResult());
   }
 
-  RefPtr<CanonicalBrowsingContext> browsingContext =
-      CanonicalBrowsingContext::Cast(aBc);
+ private:
+  ~ShareHandler() = default;
 
-  // When the reply comes back from content, either resolve or reject.
-  auto resolve =
-      [=](mozilla::Tuple<nsresult, PBrowserBridgeParent*>&& aResult) {
-        nsresult rv = Get<0>(aResult);
-        RefPtr<BrowserBridgeParent> bridge =
-            static_cast<BrowserBridgeParent*>(Get<1>(aResult));
-        if (NS_FAILED(rv)) {
-          promise->MaybeReject(rv);
-          return;
-        }
+  mozilla::dom::WindowGlobalParent::ShareResolver mResolver;
+};
 
-        // If we got a `BrowserBridgeParent`, the frame is out-of-process, so we
-        // can get the target off of it. Otherwise, it's an in-process frame, so
-        // we can use the embedder `BrowserParent`.
-        RefPtr<BrowserParent> browserParent;
-        if (bridge) {
-          browserParent = bridge->GetBrowserParent();
-        } else {
-          browserParent = embedderBrowserParent;
-        }
-        MOZ_ASSERT(browserParent);
+NS_IMPL_ISUPPORTS0(ShareHandler)
 
-        if (!browserParent || !browserParent->CanSend()) {
-          promise->MaybeReject(NS_ERROR_FAILURE);
-          return;
-        }
+}  // namespace
 
-        // Update our BrowsingContext to its new owner, if it hasn't been
-        // updated yet. This can happen when switching from a out-of-process to
-        // in-process frame. For remote frames, the BrowserBridgeParent::Init
-        // method should've already set up the OwnerProcessId.
-        uint64_t childId = browserParent->Manager()->ChildID();
-        MOZ_ASSERT_IF(bridge,
-                      browsingContext == browserParent->GetBrowsingContext());
-        MOZ_ASSERT_IF(bridge, browsingContext->IsOwnedByProcess(childId));
-        browsingContext->SetOwnerProcessId(childId);
+mozilla::ipc::IPCResult WindowGlobalParent::RecvShare(
+    IPCWebShareData&& aData, WindowGlobalParent::ShareResolver&& aResolver) {
+  // Widget Layer handoff...
+  nsCOMPtr<nsISharePicker> sharePicker =
+      do_GetService("@mozilla.org/sharepicker;1");
+  if (!sharePicker) {
+    aResolver(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return IPC_OK();
+  }
 
-        promise->MaybeResolve(childId);
-      };
+  // Initialize the ShareWidget
+  RefPtr<BrowserParent> parent = GetBrowserParent();
+  if (NS_WARN_IF(!parent)) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
+  nsCOMPtr<mozIDOMWindowProxy> openerWindow = parent->GetParentWindowOuter();
+  if (!openerWindow) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
+  sharePicker->Init(openerWindow);
 
-  auto reject = [=](ResponseRejectReason aReason) {
-    promise->MaybeReject(NS_ERROR_FAILURE);
-  };
+  // And finally share the data...
+  RefPtr<Promise> promise;
+  nsresult rv = sharePicker->Share(aData.title(), aData.text(), aData.url(),
+                                   getter_AddRefs(promise));
+  if (NS_FAILED(rv)) {
+    aResolver(rv);
+    return IPC_OK();
+  }
 
-  SendChangeFrameRemoteness(aBc, PromiseFlatString(aRemoteType),
-                            aPendingSwitchId, resolve, reject);
-  return promise.forget();
+  // Handler finally awaits response...
+  RefPtr<ShareHandler> handler = new ShareHandler(std::move(aResolver));
+  promise->AppendNativeHandler(handler);
+
+  return IPC_OK();
 }
 
 already_AddRefed<mozilla::dom::Promise> WindowGlobalParent::DrawSnapshot(

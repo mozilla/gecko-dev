@@ -633,9 +633,8 @@ void RespondWithHandler::ResolvedCallback(JSContext* aCx,
 
   if (response->Type() == ResponseType::Opaque &&
       mRequestMode != RequestMode::No_cors) {
-    uint32_t mode = static_cast<uint32_t>(mRequestMode);
-    NS_ConvertASCIItoUTF16 modeString(RequestModeValues::strings[mode].value,
-                                      RequestModeValues::strings[mode].length);
+    NS_ConvertASCIItoUTF16 modeString(
+        RequestModeValues::GetString(mRequestMode));
 
     autoCancel.SetCancelMessage(
         NS_LITERAL_CSTRING("BadOpaqueInterceptionRequestModeWithURL"),
@@ -1051,7 +1050,7 @@ nsresult ExtractBytesFromData(
 }
 }  // namespace
 
-PushMessageData::PushMessageData(nsISupports* aOwner,
+PushMessageData::PushMessageData(nsIGlobalObject* aOwner,
                                  nsTArray<uint8_t>&& aBytes)
     : mOwner(aOwner), mBytes(std::move(aBytes)) {}
 
@@ -1149,7 +1148,7 @@ already_AddRefed<PushEvent> PushEvent::Constructor(
       aRv.Throw(rv);
       return nullptr;
     }
-    e->mData = new PushMessageData(aOwner, std::move(bytes));
+    e->mData = new PushMessageData(aOwner->GetOwnerGlobal(), std::move(bytes));
   }
   return e.forget();
 }

@@ -10,11 +10,6 @@ ChromeUtils.defineModuleGetter(
   "AppConstants",
   "resource://gre/modules/AppConstants.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm"
-);
 
 // NB: Eagerly load modules that will be loaded/constructed/initialized in the
 // common case to avoid the overhead of wrapping and detecting lazy loading.
@@ -468,6 +463,14 @@ const PREFS_CONFIG = new Map([
   ],
   // See browser/app/profile/firefox.js for other ASR preferences. They must be defined there to enable roll-outs.
   [
+    "discoverystream.campaign.blocks",
+    {
+      title: "Track campaign blocks",
+      skipBroadcast: true,
+      value: "{}",
+    },
+  ],
+  [
     "discoverystream.config",
     {
       title: "Configuration for the new pocket new tab",
@@ -659,10 +662,7 @@ this.ActivityStream = class ActivityStream {
         this.feeds,
         ac.BroadcastToContent({
           type: at.INIT,
-          data: {
-            permanentPrivateBrowsing:
-              PrivateBrowsingUtils.permanentPrivateBrowsing,
-          },
+          data: {},
         }),
         { type: at.UNINIT }
       );

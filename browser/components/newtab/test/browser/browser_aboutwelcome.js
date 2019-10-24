@@ -103,6 +103,43 @@ add_task(async function test_trailhead_branches() {
   );
 
   await test_trailhead_branch(
+    "modal_variant_f-supercharge",
+    // Expected selectors:
+    [
+      ".trailhead.joinCohort",
+      "h3[data-l10n-id=onboarding-welcome-form-header]",
+      "p[data-l10n-id=onboarding-benefit-products-text]",
+      "p[data-l10n-id=onboarding-benefit-knowledge-text]",
+      "p[data-l10n-id=onboarding-benefit-privacy-text]",
+    ]
+  );
+
+  await test_trailhead_branch(
+    "full_page_d-supercharge",
+    // Expected selectors:
+    [
+      ".trailhead-fullpage",
+      ".trailheadCard",
+      "p[data-l10n-id=onboarding-benefit-products-text]",
+      "button[data-l10n-id=onboarding-join-form-continue]",
+      "button[data-l10n-id=onboarding-join-form-signin]",
+    ]
+  );
+
+  await test_trailhead_branch(
+    "full_page_e-supercharge",
+    // Expected selectors:
+    [
+      ".fullPageCardsAtTop",
+      ".trailhead-fullpage",
+      ".trailheadCard",
+      "p[data-l10n-id=onboarding-benefit-products-text]",
+      "button[data-l10n-id=onboarding-join-form-continue]",
+      "button[data-l10n-id=onboarding-join-form-signin]",
+    ]
+  );
+
+  await test_trailhead_branch(
     "cards-multidevice",
     // Expected selectors:
     [

@@ -55,10 +55,9 @@ class BinASTParserPerTokenizer : public BinASTParserBase,
 
   using AutoList = typename Tokenizer::AutoList;
   using AutoTaggedTuple = typename Tokenizer::AutoTaggedTuple;
-  using BinASTFields = typename Tokenizer::BinASTFields;
   using Chars = typename Tokenizer::Chars;
   using RootContext = BinASTTokenReaderBase::RootContext;
-  using Context = BinASTTokenReaderBase::Context;
+  using FieldOrRootContext = BinASTTokenReaderBase::FieldOrRootContext;
 
  public:
   // Auto-generated types.
@@ -142,9 +141,9 @@ class BinASTParserPerTokenizer : public BinASTParserBase,
                                             FunctionSyntaxKind syntax,
                                             ParseNode* name);
 
-  JS::Result<FunctionNode*> makeEmptyFunctionNode(const size_t start,
-                                                  const BinASTKind kind,
-                                                  FunctionBox* funbox);
+  JS::Result<FunctionNode*> makeEmptyFunctionNode(
+      const size_t start, const FunctionSyntaxKind syntaxKind,
+      FunctionBox* funbox);
   MOZ_MUST_USE JS::Result<Ok> setFunctionParametersAndBody(FunctionNode* fun,
                                                            ListNode* params,
                                                            ParseNode* body);
@@ -200,6 +199,16 @@ class BinASTParserPerTokenizer : public BinASTParserBase,
   // a strict directive.
   void forceStrictIfNecessary(SharedContext* sc, ListNode* directives);
 
+  // Whether invalid BinASTKind/BinASTVariant can be encoded in the file.
+  // This is used to avoid generating unnecessary branches for more
+  // optimized format.
+  static constexpr bool isInvalidKindPossible() {
+    return mozilla::IsSame<Tok, BinASTTokenReaderMultipart>::value;
+  }
+  static constexpr bool isInvalidVariantPossible() {
+    return mozilla::IsSame<Tok, BinASTTokenReaderMultipart>::value;
+  }
+
  protected:
   // Implement ErrorReportMixin.
   const JS::ReadOnlyCompileOptions& options_;
@@ -231,7 +240,7 @@ class BinASTParserPerTokenizer : public BinASTParserBase,
      */
 
     ObjectBox* objbox = alloc_.new_<ObjectBox>(obj, traceListHead_);
-    if (!objbox) {
+    if (MOZ_UNLIKELY(!objbox)) {
       ReportOutOfMemory(cx_);
       return nullptr;
     }

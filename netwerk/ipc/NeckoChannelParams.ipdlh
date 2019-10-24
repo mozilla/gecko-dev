@@ -284,7 +284,7 @@ struct HttpChannelOpenArgs
   TimeStamp                   handleFetchEventEnd;
   bool                        forceMainDocumentChannel;
   TimeStamp                   navigationStartTimeStamp;
-  bool                        hasSandboxedAuxiliaryNavigations;
+  bool                        hasNonEmptySandboxingFlag;
 };
 
 struct HttpChannelConnectArgs
@@ -365,6 +365,7 @@ struct DocumentChannelCreationArgs {
   uint32_t cacheKey;
   bool isActive;
   bool isTopLevelDoc;
+  bool hasNonEmptySandboxingFlags;
 };
 
 

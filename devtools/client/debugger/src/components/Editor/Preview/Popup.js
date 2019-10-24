@@ -21,17 +21,22 @@ const {
 } = utils;
 
 import actions from "../../../actions";
-import { getThreadContext, getPreview } from "../../../selectors";
+import { getThreadContext } from "../../../selectors";
 import Popover from "../../shared/Popover";
 import PreviewFunction from "../../shared/PreviewFunction";
 
-import { createObjectClient } from "../../../client/firefox";
+import { createObjectFront } from "../../../client/firefox";
 
 import "./Popup.css";
 
 import type { ThreadContext } from "../../../types";
 import type { Preview } from "../../../reducers/types";
 
+type OwnProps = {|
+  editor: any,
+  preview: Preview,
+  editorRef: ?HTMLDivElement,
+|};
 type Props = {
   cx: ThreadContext,
   preview: Preview,
@@ -135,7 +140,7 @@ export class Popup extends Component<Props> {
           disableWrap={true}
           focusable={false}
           openLink={openLink}
-          createObjectClient={grip => createObjectClient(grip)}
+          createObjectFront={grip => createObjectFront(grip)}
           onDOMNodeClick={grip => openElementInInspector(grip)}
           onInspectIconClick={grip => openElementInInspector(grip)}
           onDOMNodeMouseOver={grip => highlightDomElement(grip)}
@@ -296,7 +301,6 @@ export function removeHighlightForTargetSiblings(target: Element) {
 
 const mapStateToProps = state => ({
   cx: getThreadContext(state),
-  preview: getPreview(state),
 });
 
 const {
@@ -319,7 +323,7 @@ const mapDispatchToProps = {
   clearPreview,
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   mapDispatchToProps
 )(Popup);

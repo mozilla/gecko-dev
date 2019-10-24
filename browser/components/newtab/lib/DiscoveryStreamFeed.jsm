@@ -62,10 +62,10 @@ const PREF_TOPSTORIES = "feeds.section.topstories";
 const PREF_SPOCS_CLEAR_ENDPOINT = "discoverystream.endpointSpocsClear";
 const PREF_SHOW_SPONSORED = "showSponsored";
 const PREF_SPOC_IMPRESSIONS = "discoverystream.spoc.impressions";
+const PREF_CAMPAIGN_BLOCKS = "discoverystream.campaign.blocks";
 const PREF_REC_IMPRESSIONS = "discoverystream.rec.impressions";
 
-let defaultLayoutResp;
-let basicLayoutResp;
+let getHardcodedLayout;
 
 this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   constructor() {
@@ -356,29 +356,18 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
 
   async loadLayout(sendUpdate, isStartup) {
     let layoutResp = {};
+    let url = "";
     if (!this.config.hardcoded_layout) {
       layoutResp = await this.fetchLayout(isStartup);
     }
 
     if (!layoutResp || !layoutResp.layout) {
-      if (
+      // Set a hardcoded layout if one is needed.
+      // Changing values in this layout in memory object is unnecessary.
+      layoutResp = getHardcodedLayout(
         this.config.hardcoded_basic_layout ||
-        this.store.getState().Prefs.values[PREF_HARDCODED_BASIC_LAYOUT]
-      ) {
-        layoutResp = { lastUpdate: Date.now(), ...basicLayoutResp };
-      } else {
-        layoutResp = { lastUpdate: Date.now(), ...defaultLayoutResp };
-      }
-    }
-
-    if (
-      layoutResp.spocs &&
-      (this.store.getState().Prefs.values[PREF_SPOCS_ENDPOINT] ||
-        this.config.spocs_endpoint)
-    ) {
-      layoutResp.spocs.url =
-        this.store.getState().Prefs.values[PREF_SPOCS_ENDPOINT] ||
-        this.config.spocs_endpoint;
+          this.store.getState().Prefs.values[PREF_HARDCODED_BASIC_LAYOUT]
+      );
     }
 
     sendUpdate({
@@ -386,17 +375,24 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       data: layoutResp,
     });
 
-    if (
-      layoutResp.spocs &&
-      layoutResp.spocs.url &&
-      layoutResp.spocs.url !==
-        this.store.getState().DiscoveryStream.spocs.spocs_endpoint
-    ) {
-      sendUpdate({
-        type: at.DISCOVERY_STREAM_SPOCS_ENDPOINT,
-        data: layoutResp.spocs,
-      });
-      this.updatePlacements(sendUpdate, layoutResp.layout);
+    if (layoutResp.spocs) {
+      url =
+        this.store.getState().Prefs.values[PREF_SPOCS_ENDPOINT] ||
+        this.config.spocs_endpoint ||
+        layoutResp.spocs.url;
+
+      if (
+        url &&
+        url !== this.store.getState().DiscoveryStream.spocs.spocs_endpoint
+      ) {
+        sendUpdate({
+          type: at.DISCOVERY_STREAM_SPOCS_ENDPOINT,
+          data: {
+            url,
+            spocs_per_domain: layoutResp.spocs.spocs_per_domain,
+          },
+        });
+      }
     }
   }
 
@@ -773,8 +769,11 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   filterBlocked(data) {
     const filtered = [];
     if (data && data.length) {
+      let campaigns = this.readDataPref(PREF_CAMPAIGN_BLOCKS);
       const filteredItems = data.filter(item => {
-        const blocked = NewTabUtils.blockedLinks.isBlocked({ url: item.url });
+        const blocked =
+          NewTabUtils.blockedLinks.isBlocked({ url: item.url }) ||
+          campaigns[item.campaign_id];
         if (blocked) {
           filtered.push(item);
         }
@@ -838,7 +837,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   //                   `filterItems` as the frequency capped items.
   frequencyCapSpocs(spocs) {
     if (spocs && spocs.length) {
-      const impressions = this.readImpressionsPref(PREF_SPOC_IMPRESSIONS);
+      const impressions = this.readDataPref(PREF_SPOC_IMPRESSIONS);
       const caps = [];
       const result = spocs.filter(s => {
         const isBelow = this.isBelowFrequencyCap(impressions, s);
@@ -1009,7 +1008,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       recsExpireTime * 1000 || DEFAULT_RECS_EXPIRE_TIME,
       DEFAULT_RECS_EXPIRE_TIME
     );
-    const impressions = this.readImpressionsPref(PREF_REC_IMPRESSIONS);
+    const impressions = this.readDataPref(PREF_REC_IMPRESSIONS);
     const expired = [];
     const active = [];
     for (const item of recommendations) {
@@ -1122,7 +1121,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   }
 
   async reset() {
-    this.resetImpressionPrefs();
+    this.resetDataPrefs();
     await this.resetCache();
     if (this.loaded) {
       Services.obs.removeObserver(this, "idle-daily");
@@ -1137,9 +1136,10 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     await this.cache.set("affinities", {});
   }
 
-  resetImpressionPrefs() {
-    this.writeImpressionsPref(PREF_SPOC_IMPRESSIONS, {});
-    this.writeImpressionsPref(PREF_REC_IMPRESSIONS, {});
+  resetDataPrefs() {
+    this.writeDataPref(PREF_SPOC_IMPRESSIONS, {});
+    this.writeDataPref(PREF_REC_IMPRESSIONS, {});
+    this.writeDataPref(PREF_CAMPAIGN_BLOCKS, {});
   }
 
   resetState() {
@@ -1164,20 +1164,28 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   }
 
   recordCampaignImpression(campaignId) {
-    let impressions = this.readImpressionsPref(PREF_SPOC_IMPRESSIONS);
+    let impressions = this.readDataPref(PREF_SPOC_IMPRESSIONS);
 
     const timeStamps = impressions[campaignId] || [];
     timeStamps.push(Date.now());
     impressions = { ...impressions, [campaignId]: timeStamps };
 
-    this.writeImpressionsPref(PREF_SPOC_IMPRESSIONS, impressions);
+    this.writeDataPref(PREF_SPOC_IMPRESSIONS, impressions);
   }
 
   recordTopRecImpressions(recId) {
-    let impressions = this.readImpressionsPref(PREF_REC_IMPRESSIONS);
+    let impressions = this.readDataPref(PREF_REC_IMPRESSIONS);
     if (!impressions[recId]) {
       impressions = { ...impressions, [recId]: Date.now() };
-      this.writeImpressionsPref(PREF_REC_IMPRESSIONS, impressions);
+      this.writeDataPref(PREF_REC_IMPRESSIONS, impressions);
+    }
+  }
+
+  recordBlockCampaignId(campaignId) {
+    const campaigns = this.readDataPref(PREF_CAMPAIGN_BLOCKS);
+    if (!campaigns[campaignId]) {
+      campaigns[campaignId] = 1;
+      this.writeDataPref(PREF_CAMPAIGN_BLOCKS, campaigns);
     }
   }
 
@@ -1214,17 +1222,17 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     );
   }
 
-  writeImpressionsPref(pref, impressions) {
+  writeDataPref(pref, impressions) {
     this.store.dispatch(ac.SetPref(pref, JSON.stringify(impressions)));
   }
 
-  readImpressionsPref(pref) {
+  readDataPref(pref) {
     const prefVal = this.store.getState().Prefs.values[pref];
     return prefVal ? JSON.parse(prefVal) : {};
   }
 
   cleanUpImpressionPref(isExpired, pref) {
-    const impressions = this.readImpressionsPref(pref);
+    const impressions = this.readDataPref(pref);
     let changed = false;
 
     Object.keys(impressions).forEach(id => {
@@ -1235,7 +1243,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     });
 
     if (changed) {
-      this.writeImpressionsPref(pref, impressions);
+      this.writeDataPref(pref, impressions);
     }
   }
 
@@ -1331,6 +1339,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
           }
         }
         break;
+      // This is fired from the browser, it has no concept of spocs, campaign or pocket.
+      // We match the blocked url with our available spoc urls to see if there is a match.
+      // I suspect we *could* instead do this in BLOCK_URL but I'm not sure.
       case at.PLACES_LINK_BLOCKED:
         if (this.showSpocs) {
           const spocsState = this.store.getState().DiscoveryStream.spocs;
@@ -1346,6 +1357,8 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
             this._sendSpocsFill({ blocked_by_user: filtered }, false);
 
             // If we're blocking a spoc, we want a slightly different treatment for open tabs.
+            // AlsoToPreloaded updates the source data and preloaded tabs with a new spoc.
+            // BroadcastToContent updates open tabs with a non spoc instead of a new spoc.
             this.store.dispatch(
               ac.AlsoToPreloaded({
                 type: at.DISCOVERY_STREAM_LINK_BLOCKED,
@@ -1372,6 +1385,16 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
         // When this feed is shutting down:
         this.uninitPrefs();
         break;
+      case at.BLOCK_URL: {
+        // If we block a story that also has a campaign_id
+        // we want to record that as blocked too.
+        // This is because a single campaign might have slightly different urls.
+        const { campaign_id } = action.data;
+        if (campaign_id) {
+          this.recordBlockCampaignId(campaign_id);
+        }
+        break;
+      }
       case at.PREF_CHANGED:
         switch (action.data.name) {
           case PREF_CONFIG:
@@ -1409,212 +1432,225 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
   }
 };
 
-// Hardcoded version of layout_variant `3-col-7-row-octr`
-defaultLayoutResp = {
-  spocs: {
-    url: "https://spocs.getpocket.com/spocs",
-    spocs_per_domain: 1,
-  },
-  layout: [
-    {
-      width: 12,
-      components: [
+// This function generates a hardcoded layout each call.
+// This is because modifying the original object would
+// persist across pref changes and system_tick updates.
+getHardcodedLayout = basic => {
+  if (basic) {
+    // Hardcoded version of layout_variant `basic`
+    return {
+      lastUpdate: Date.now(),
+      spocs: {
+        url: "https://spocs.getpocket.com/spocs",
+        spocs_per_domain: 1,
+      },
+      layout: [
         {
-          type: "TopSites",
-          header: {
-            title: "Top Sites",
-          },
-        },
-      ],
-    },
-    {
-      width: 12,
-      components: [
-        {
-          type: "Message",
-          header: {
-            title: "Recommended by Pocket",
-            subtitle: "",
-            link_text: "How it works",
-            link_url: "https://getpocket.com/firefox/new_tab_learn_more",
-            icon:
-              "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
-          },
-          properties: {},
-          styles: {
-            ".ds-message": "margin-bottom: -20px",
-          },
-        },
-      ],
-    },
-    {
-      width: 12,
-      components: [
-        {
-          type: "CardGrid",
-          properties: {
-            items: 21,
-          },
-          header: {
-            title: "",
-          },
-          feed: {
-            embed_reference: null,
-            url:
-              "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=en-US&count=30",
-          },
-          spocs: {
-            probability: 1,
-            positions: [
-              {
-                index: 2,
+          width: 12,
+          components: [
+            {
+              type: "TopSites",
+              header: {
+                title: "Top Sites",
               },
-              {
-                index: 4,
+              properties: {},
+            },
+            {
+              type: "Message",
+              header: {
+                title: "Recommended by Pocket",
+                subtitle: "",
+                link_text: "How it works",
+                link_url: "https://getpocket.com/firefox/new_tab_learn_more",
+                icon:
+                  "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
               },
-              {
-                index: 11,
+              properties: {},
+              styles: {
+                ".ds-message": "margin-bottom: -20px",
               },
-              {
-                index: 20,
+            },
+            {
+              type: "CardGrid",
+              properties: {
+                items: 3,
               },
-            ],
-          },
-        },
-        {
-          type: "Navigation",
-          properties: {
-            alignment: "left-align",
-            links: [
-              {
-                name: "Must Reads",
-                url: "https://getpocket.com/explore/must-reads?src=fx_new_tab",
+              header: {
+                title: "",
               },
-              {
-                name: "Productivity",
+              feed: {
+                embed_reference: null,
                 url:
-                  "https://getpocket.com/explore/productivity?src=fx_new_tab",
+                  "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=en-US&feed_variant=default_spocs_on",
               },
-              {
-                name: "Health",
-                url: "https://getpocket.com/explore/health?src=fx_new_tab",
+              spocs: {
+                probability: 1,
+                positions: [
+                  {
+                    index: 2,
+                  },
+                ],
               },
-              {
-                name: "Finance",
-                url: "https://getpocket.com/explore/finance?src=fx_new_tab",
+            },
+            {
+              type: "Navigation",
+              properties: {
+                alignment: "left-align",
+                links: [
+                  {
+                    name: "Must Reads",
+                    url:
+                      "https://getpocket.com/explore/must-reads?src=fx_new_tab",
+                  },
+                  {
+                    name: "Productivity",
+                    url:
+                      "https://getpocket.com/explore/productivity?src=fx_new_tab",
+                  },
+                  {
+                    name: "Health",
+                    url: "https://getpocket.com/explore/health?src=fx_new_tab",
+                  },
+                  {
+                    name: "Finance",
+                    url: "https://getpocket.com/explore/finance?src=fx_new_tab",
+                  },
+                  {
+                    name: "Technology",
+                    url:
+                      "https://getpocket.com/explore/technology?src=fx_new_tab",
+                  },
+                  {
+                    name: "More Recommendations ›",
+                    url:
+                      "https://getpocket.com/explore/trending?src=fx_new_tab",
+                  },
+                ],
               },
-              {
-                name: "Technology",
-                url: "https://getpocket.com/explore/technology?src=fx_new_tab",
-              },
-              {
-                name: "More Recommendations ›",
-                url: "https://getpocket.com/explore/trending?src=fx_new_tab",
-              },
-            ],
-          },
-          header: {
-            title: "Popular Topics",
-          },
-          styles: {
-            ".ds-navigation": "margin-top: -10px;",
-          },
+            },
+          ],
         },
       ],
+    };
+  }
+  // Hardcoded version of layout_variant `3-col-7-row-octr`
+  return {
+    lastUpdate: Date.now(),
+    spocs: {
+      url: "https://spocs.getpocket.com/spocs",
+      spocs_per_domain: 1,
     },
-  ],
-};
-
-// Hardcoded version of layout_variant `basic`
-basicLayoutResp = {
-  spocs: {
-    url: "https://spocs.getpocket.com/spocs",
-    spocs_per_domain: 1,
-  },
-  layout: [
-    {
-      width: 12,
-      components: [
-        {
-          type: "TopSites",
-          header: {
-            title: "Top Sites",
+    layout: [
+      {
+        width: 12,
+        components: [
+          {
+            type: "TopSites",
+            header: {
+              title: "Top Sites",
+            },
           },
-          properties: {},
-        },
-        {
-          type: "Message",
-          header: {
-            title: "Recommended by Pocket",
-            subtitle: "",
-            link_text: "How it works",
-            link_url: "https://getpocket.com/firefox/new_tab_learn_more",
-            icon:
-              "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        ],
+      },
+      {
+        width: 12,
+        components: [
+          {
+            type: "Message",
+            header: {
+              title: "Recommended by Pocket",
+              subtitle: "",
+              link_text: "How it works",
+              link_url: "https://getpocket.com/firefox/new_tab_learn_more",
+              icon:
+                "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+            },
+            properties: {},
+            styles: {
+              ".ds-message": "margin-bottom: -20px",
+            },
           },
-          properties: {},
-          styles: {
-            ".ds-message": "margin-bottom: -20px",
+        ],
+      },
+      {
+        width: 12,
+        components: [
+          {
+            type: "CardGrid",
+            properties: {
+              items: 21,
+            },
+            header: {
+              title: "",
+            },
+            feed: {
+              embed_reference: null,
+              url:
+                "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=en-US&count=30",
+            },
+            spocs: {
+              probability: 1,
+              positions: [
+                {
+                  index: 2,
+                },
+                {
+                  index: 4,
+                },
+                {
+                  index: 11,
+                },
+                {
+                  index: 20,
+                },
+              ],
+            },
           },
-        },
-        {
-          type: "CardGrid",
-          properties: {
-            items: 3,
+          {
+            type: "Navigation",
+            properties: {
+              alignment: "left-align",
+              links: [
+                {
+                  name: "Must Reads",
+                  url:
+                    "https://getpocket.com/explore/must-reads?src=fx_new_tab",
+                },
+                {
+                  name: "Productivity",
+                  url:
+                    "https://getpocket.com/explore/productivity?src=fx_new_tab",
+                },
+                {
+                  name: "Health",
+                  url: "https://getpocket.com/explore/health?src=fx_new_tab",
+                },
+                {
+                  name: "Finance",
+                  url: "https://getpocket.com/explore/finance?src=fx_new_tab",
+                },
+                {
+                  name: "Technology",
+                  url:
+                    "https://getpocket.com/explore/technology?src=fx_new_tab",
+                },
+                {
+                  name: "More Recommendations ›",
+                  url: "https://getpocket.com/explore/trending?src=fx_new_tab",
+                },
+              ],
+            },
+            header: {
+              title: "Popular Topics",
+            },
+            styles: {
+              ".ds-navigation": "margin-top: -10px;",
+            },
           },
-          header: {
-            title: "",
-          },
-          feed: {
-            embed_reference: null,
-            url:
-              "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=en-US&feed_variant=default_spocs_on",
-          },
-          spocs: {
-            probability: 1,
-            positions: [
-              {
-                index: 2,
-              },
-            ],
-          },
-        },
-        {
-          type: "Navigation",
-          properties: {
-            alignment: "left-align",
-            links: [
-              {
-                name: "Must Reads",
-                url: "https://getpocket.com/explore/must-reads?src=fx_new_tab",
-              },
-              {
-                name: "Productivity",
-                url:
-                  "https://getpocket.com/explore/productivity?src=fx_new_tab",
-              },
-              {
-                name: "Health",
-                url: "https://getpocket.com/explore/health?src=fx_new_tab",
-              },
-              {
-                name: "Finance",
-                url: "https://getpocket.com/explore/finance?src=fx_new_tab",
-              },
-              {
-                name: "Technology",
-                url: "https://getpocket.com/explore/technology?src=fx_new_tab",
-              },
-              {
-                name: "More Recommendations ›",
-                url: "https://getpocket.com/explore/trending?src=fx_new_tab",
-              },
-            ],
-          },
-        },
-      ],
-    },
-  ],
+        ],
+      },
+    ],
+  };
 };
 
 const EXPORTED_SYMBOLS = ["DiscoveryStreamFeed"];

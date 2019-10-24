@@ -108,21 +108,6 @@ NativeObject* DebuggerScript::initClass(JSContext* cx,
                    methods_, nullptr, nullptr);
 }
 
-class DebuggerScript::SetPrivateMatcher {
-  DebuggerScript* obj_;
-
- public:
-  explicit SetPrivateMatcher(DebuggerScript* obj) : obj_(obj) {}
-  using ReturnType = void;
-  ReturnType match(HandleScript script) { obj_->setPrivateGCThing(script); }
-  ReturnType match(Handle<LazyScript*> lazyScript) {
-    obj_->setPrivateGCThing(lazyScript);
-  }
-  ReturnType match(Handle<WasmInstanceObject*> instance) {
-    obj_->setPrivateGCThing(instance);
-  }
-};
-
 /* static */
 DebuggerScript* DebuggerScript::create(JSContext* cx, HandleObject proto,
                                        Handle<DebuggerScriptReferent> referent,
@@ -135,8 +120,8 @@ DebuggerScript* DebuggerScript::create(JSContext* cx, HandleObject proto,
 
   scriptobj->setReservedSlot(DebuggerScript::OWNER_SLOT,
                              ObjectValue(*debugger));
-  SetPrivateMatcher matcher(scriptobj);
-  referent.match(matcher);
+  referent.get().match(
+      [&](auto& scriptHandle) { scriptobj->setPrivateGCThing(scriptHandle); });
 
   return scriptobj;
 }
@@ -213,7 +198,10 @@ struct MOZ_STACK_CLASS DebuggerScript::CallData {
   RootedScript script;
 
   CallData(JSContext* cx, const CallArgs& args, HandleDebuggerScript obj)
-      : cx(cx), args(args), obj(obj), referent(cx, obj->getReferent()),
+      : cx(cx),
+        args(args),
+        obj(obj),
+        referent(cx, obj->getReferent()),
         script(cx) {}
 
   MOZ_MUST_USE bool ensureScriptMaybeLazy() {
@@ -283,7 +271,8 @@ struct MOZ_STACK_CLASS DebuggerScript::CallData {
 
 template <DebuggerScript::CallData::Method MyMethod>
 /* static */
-bool DebuggerScript::CallData::ToNative(JSContext* cx, unsigned argc, Value* vp) {
+bool DebuggerScript::CallData::ToNative(JSContext* cx, unsigned argc,
+                                        Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   RootedDebuggerScript obj(cx, DebuggerScript::check(cx, args.thisv()));
@@ -403,35 +392,19 @@ bool DebuggerScript::CallData::getUrl() {
   return getUrlImpl<LazyScript>(cx, args, lazyScript);
 }
 
-struct DebuggerScript::GetStartLineMatcher {
-  using ReturnType = uint32_t;
-
-  ReturnType match(HandleScript script) { return script->lineno(); }
-  ReturnType match(Handle<LazyScript*> lazyScript) {
-    return lazyScript->lineno();
-  }
-  ReturnType match(Handle<WasmInstanceObject*> wasmInstance) { return 1; }
-};
-
 bool DebuggerScript::CallData::getStartLine() {
-  GetStartLineMatcher matcher;
-  args.rval().setNumber(referent.match(matcher));
+  args.rval().setNumber(
+      referent.get().match([](JSScript*& s) { return s->lineno(); },
+                           [](LazyScript*& s) { return s->lineno(); },
+                           [](WasmInstanceObject*&) { return (uint32_t)1; }));
   return true;
 }
 
-struct DebuggerScript::GetStartColumnMatcher {
-  using ReturnType = uint32_t;
-
-  ReturnType match(HandleScript script) { return script->column(); }
-  ReturnType match(Handle<LazyScript*> lazyScript) {
-    return lazyScript->column();
-  }
-  ReturnType match(Handle<WasmInstanceObject*> wasmInstance) { return 0; }
-};
-
 bool DebuggerScript::CallData::getStartColumn() {
-  GetStartColumnMatcher matcher;
-  args.rval().setNumber(referent.match(matcher));
+  args.rval().setNumber(
+      referent.get().match([](JSScript*& s) { return s->column(); },
+                           [](LazyScript*& s) { return s->column(); },
+                           [](WasmInstanceObject*&) { return (uint32_t)0; }));
   return true;
 }
 
@@ -552,22 +525,11 @@ bool DebuggerScript::CallData::getGlobal() {
   return true;
 }
 
-class DebuggerScript::GetFormatMatcher {
-  const JSAtomState& names_;
-
- public:
-  explicit GetFormatMatcher(const JSAtomState& names) : names_(names) {}
-  using ReturnType = JSAtom*;
-  ReturnType match(HandleScript script) { return names_.js; }
-  ReturnType match(Handle<LazyScript*> lazyScript) { return names_.js; }
-  ReturnType match(Handle<WasmInstanceObject*> wasmInstance) {
-    return names_.wasm;
-  }
-};
-
 bool DebuggerScript::CallData::getFormat() {
-  GetFormatMatcher matcher(cx->names());
-  args.rval().setString(referent.match(matcher));
+  args.rval().setString(referent.get().match(
+      [=](JSScript*&) { return cx->names().js.get(); },
+      [=](LazyScript*&) { return cx->names().js.get(); },
+      [=](WasmInstanceObject*&) { return cx->names().wasm.get(); }));
   return true;
 }
 
@@ -2083,11 +2045,16 @@ struct DebuggerScript::SetBreakpointMatcher {
   Debugger* dbg_;
   size_t offset_;
   RootedObject handler_;
+  RootedObject debuggerObject_;
 
  public:
   explicit SetBreakpointMatcher(JSContext* cx, Debugger* dbg, size_t offset,
                                 HandleObject handler)
-      : cx_(cx), dbg_(dbg), offset_(offset), handler_(cx, handler) {}
+      : cx_(cx),
+        dbg_(dbg),
+        offset_(offset),
+        handler_(cx, handler),
+        debuggerObject_(cx_, dbg_->toJSObject()) {}
 
   using ReturnType = bool;
 
@@ -2110,20 +2077,28 @@ struct DebuggerScript::SetBreakpointMatcher {
       return false;
     }
 
+    // A Breakpoint belongs logically to its script's compartment, so its
+    // references to its Debugger and handler must be properly wrapped.
+    AutoRealm ar(cx_, script);
+    if (!cx_->compartment()->wrap(cx_, &handler_) ||
+        !cx_->compartment()->wrap(cx_, &debuggerObject_)) {
+      return false;
+    }
+
     jsbytecode* pc = script->offsetToPC(offset_);
-    BreakpointSite* site =
+    JSBreakpointSite* site =
         DebugScript::getOrCreateBreakpointSite(cx_, script, pc);
     if (!site) {
       return false;
     }
-    site->inc(cx_->runtime()->defaultFreeOp());
-    if (cx_->zone()->new_<Breakpoint>(dbg_, site, handler_)) {
-      AddCellMemory(script, sizeof(Breakpoint), MemoryUse::Breakpoint);
-      return true;
+
+    if (!cx_->zone()->new_<Breakpoint>(dbg_, debuggerObject_, site, handler_)) {
+      site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
+      return false;
     }
-    site->dec(cx_->runtime()->defaultFreeOp());
-    site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
-    return false;
+    AddCellMemory(script, sizeof(Breakpoint), MemoryUse::Breakpoint);
+
+    return true;
   }
   ReturnType match(Handle<LazyScript*> lazyScript) {
     RootedScript script(cx_, DelazifyScript(cx_, lazyScript));
@@ -2140,20 +2115,27 @@ struct DebuggerScript::SetBreakpointMatcher {
                                 JSMSG_DEBUG_BAD_OFFSET);
       return false;
     }
+
+    // A Breakpoint belongs logically to its Instance's compartment, so its
+    // references to its Debugger and handler must be properly wrapped.
+    AutoRealm ar(cx_, wasmInstance);
+    if (!cx_->compartment()->wrap(cx_, &handler_) ||
+        !cx_->compartment()->wrap(cx_, &debuggerObject_)) {
+      return false;
+    }
+
     WasmBreakpointSite* site = instance.getOrCreateBreakpointSite(cx_, offset_);
     if (!site) {
       return false;
     }
-    site->inc(cx_->runtime()->defaultFreeOp());
-    if (cx_->zone()->new_<WasmBreakpoint>(dbg_, site, handler_,
-                                          instance.object())) {
-      AddCellMemory(wasmInstance, sizeof(WasmBreakpoint),
-                    MemoryUse::Breakpoint);
-      return true;
+
+    if (!cx_->zone()->new_<Breakpoint>(dbg_, debuggerObject_, site, handler_)) {
+      site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
+      return false;
     }
-    site->dec(cx_->runtime()->defaultFreeOp());
-    site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
-    return false;
+    AddCellMemory(wasmInstance, sizeof(Breakpoint), MemoryUse::Breakpoint);
+
+    return true;
   }
 };
 
@@ -2205,7 +2187,7 @@ bool DebuggerScript::CallData::getBreakpoints() {
   }
 
   for (unsigned i = 0; i < script->length(); i++) {
-    BreakpointSite* site =
+    JSBreakpointSite* site =
         DebugScript::getBreakpointSite(script, script->offsetToPC(i));
     if (!site) {
       continue;
@@ -2214,9 +2196,12 @@ bool DebuggerScript::CallData::getBreakpoints() {
     if (!pc || site->asJS()->pc == pc) {
       for (Breakpoint* bp = site->firstBreakpoint(); bp;
            bp = bp->nextInSite()) {
-        if (bp->debugger == dbg &&
-            !NewbornArrayPush(cx, arr, ObjectValue(*bp->getHandler()))) {
-          return false;
+        if (bp->debugger == dbg) {
+          RootedObject handler(cx, bp->getHandler());
+          if (!cx->compartment()->wrap(cx, &handler) ||
+              !NewbornArrayPush(cx, arr, ObjectValue(*handler))) {
+            return false;
+          }
         }
       }
     }
@@ -2228,14 +2213,24 @@ bool DebuggerScript::CallData::getBreakpoints() {
 class DebuggerScript::ClearBreakpointMatcher {
   JSContext* cx_;
   Debugger* dbg_;
-  JSObject* handler_;
+  RootedObject handler_;
 
  public:
   ClearBreakpointMatcher(JSContext* cx, Debugger* dbg, JSObject* handler)
-      : cx_(cx), dbg_(dbg), handler_(handler) {}
+      : cx_(cx), dbg_(dbg), handler_(cx, handler) {}
   using ReturnType = bool;
 
   ReturnType match(HandleScript script) {
+    // A Breakpoint belongs logically to its script's compartment, so it holds
+    // its handler via a cross-compartment wrapper. But the handler passed to
+    // `clearBreakpoint` is same-compartment with the Debugger. Wrap it here, so
+    // that `DebugScript::clearBreakpointsIn` gets the right value to search
+    // for.
+    AutoRealm ar(cx_, script);
+    if (!cx_->compartment()->wrap(cx_, &handler_)) {
+      return false;
+    }
+
     DebugScript::clearBreakpointsIn(cx_->runtime()->defaultFreeOp(), script,
                                     dbg_, handler_);
     return true;
@@ -2252,6 +2247,16 @@ class DebuggerScript::ClearBreakpointMatcher {
     if (!instance.debugEnabled()) {
       return true;
     }
+
+    // A Breakpoint belongs logically to its instance's compartment, so it holds
+    // its handler via a cross-compartment wrapper. But the handler passed to
+    // `clearBreakpoint` is same-compartment with the Debugger. Wrap it here, so
+    // that `DebugState::clearBreakpointsIn` gets the right value to search for.
+    AutoRealm ar(cx_, instanceObj);
+    if (!cx_->compartment()->wrap(cx_, &handler_)) {
+      return false;
+    }
+
     instance.debug().clearBreakpointsIn(cx_->runtime()->defaultFreeOp(),
                                         instanceObj, dbg_, handler_);
     return true;
@@ -2462,7 +2467,7 @@ bool DebuggerScript::construct(JSContext* cx, unsigned argc, Value* vp) {
 const JSPropertySpec DebuggerScript::properties_[] = {
     JS_DEBUG_PSG("isGeneratorFunction", getIsGeneratorFunction),
     JS_DEBUG_PSG("isAsyncFunction", getIsAsyncFunction),
-    JS_DEBUG_PSG("isFunction",  getIsFunction),
+    JS_DEBUG_PSG("isFunction", getIsFunction),
     JS_DEBUG_PSG("isModule", getIsModule),
     JS_DEBUG_PSG("displayName", getDisplayName),
     JS_DEBUG_PSG("url", getUrl),
@@ -2480,7 +2485,8 @@ const JSPropertySpec DebuggerScript::properties_[] = {
 const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("getChildScripts", getChildScripts, 0),
     JS_DEBUG_FN("getPossibleBreakpoints", getPossibleBreakpoints, 0),
-    JS_DEBUG_FN("getPossibleBreakpointOffsets", getPossibleBreakpointOffsets, 0),
+    JS_DEBUG_FN("getPossibleBreakpointOffsets", getPossibleBreakpointOffsets,
+                0),
     JS_DEBUG_FN("setBreakpoint", setBreakpoint, 2),
     JS_DEBUG_FN("getBreakpoints", getBreakpoints, 1),
     JS_DEBUG_FN("clearBreakpoint", clearBreakpoint, 1),
@@ -2488,8 +2494,8 @@ const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("isInCatchScope", isInCatchScope, 1),
     JS_DEBUG_FN("getOffsetMetadata", getOffsetMetadata, 1),
     JS_DEBUG_FN("getOffsetsCoverage", getOffsetsCoverage, 0),
-    JS_DEBUG_FN("getSuccessorOffsets",
-                getSuccessorOrPredecessorOffsets<true>, 1),
+    JS_DEBUG_FN("getSuccessorOffsets", getSuccessorOrPredecessorOffsets<true>,
+                1),
     JS_DEBUG_FN("getPredecessorOffsets",
                 getSuccessorOrPredecessorOffsets<false>, 1),
     JS_DEBUG_FN("getEffectfulOffsets", getEffectfulOffsets, 1),

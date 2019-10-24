@@ -18,7 +18,9 @@ import {
 import AccessibleImage from "../shared/AccessibleImage";
 
 import type {
+  EventListenerEvent,
   EventListenerActiveList,
+  EventListenerCategory,
   EventListenerCategoryList,
   EventListenerExpandedList,
 } from "../../actions/types";
@@ -30,6 +32,7 @@ type State = {
   focused: boolean,
 };
 
+type OwnProps = {||};
 type Props = {
   categories: EventListenerCategoryList,
   expandedCategories: EventListenerExpandedList,
@@ -46,7 +49,7 @@ class EventListeners extends Component<Props, State> {
     focused: false,
   };
 
-  hasMatch(eventOrCategoryName, searchText) {
+  hasMatch(eventOrCategoryName: string, searchText: string) {
     const lowercaseEventOrCategoryName = eventOrCategoryName.toLowerCase();
     const lowercaseSearchText = searchText.toLowerCase();
 
@@ -73,7 +76,7 @@ class EventListeners extends Component<Props, State> {
     return searchResults;
   }
 
-  onCategoryToggle(category) {
+  onCategoryToggle(category: string) {
     const {
       expandedCategories,
       removeEventListenerExpanded,
@@ -87,7 +90,7 @@ class EventListeners extends Component<Props, State> {
     }
   }
 
-  onCategoryClick(category, isChecked) {
+  onCategoryClick(category: EventListenerCategory, isChecked: boolean) {
     const { addEventListeners, removeEventListeners } = this.props;
     const eventsIds = category.events.map(event => event.id);
 
@@ -98,7 +101,7 @@ class EventListeners extends Component<Props, State> {
     }
   }
 
-  onEventTypeClick(eventId, isChecked) {
+  onEventTypeClick(eventId: string, isChecked: boolean) {
     const { addEventListeners, removeEventListeners } = this.props;
     if (isChecked) {
       addEventListeners([eventId]);
@@ -107,21 +110,21 @@ class EventListeners extends Component<Props, State> {
     }
   }
 
-  onInputChange = event => {
-    this.setState({ searchText: event.target.value });
+  onInputChange = (event: SyntheticEvent<HTMLInputElement>) => {
+    this.setState({ searchText: event.currentTarget.value });
   };
 
-  onKeyDown = event => {
+  onKeyDown = (event: SyntheticKeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       this.setState({ searchText: "" });
     }
   };
 
-  onFocus = event => {
+  onFocus = (event: SyntheticEvent<>) => {
     this.setState({ focused: true });
   };
 
-  onBlur = event => {
+  onBlur = (event: SyntheticEvent<>) => {
     this.setState({ focused: false });
   };
 
@@ -190,7 +193,7 @@ class EventListeners extends Component<Props, State> {
     );
   }
 
-  renderCategoryHeading(category) {
+  renderCategoryHeading(category: EventListenerCategory) {
     const { activeEventListeners, expandedCategories } = this.props;
     const { events } = category;
 
@@ -228,7 +231,7 @@ class EventListeners extends Component<Props, State> {
     );
   }
 
-  renderCategoryListing(category) {
+  renderCategoryListing(category: EventListenerCategory) {
     const { expandedCategories } = this.props;
 
     const expanded = expandedCategories.includes(category.name);
@@ -239,17 +242,17 @@ class EventListeners extends Component<Props, State> {
     return (
       <ul>
         {category.events.map(event => {
-          return this.renderListenerEvent(event, category);
+          return this.renderListenerEvent(event, category.name);
         })}
       </ul>
     );
   }
 
-  renderCategory(category) {
-    return <span className="category-label">{category.toString()} ▸ </span>;
+  renderCategory(category: string) {
+    return <span className="category-label">{category} ▸ </span>;
   }
 
-  renderListenerEvent(event, category) {
+  renderListenerEvent(event: EventListenerEvent, category: string) {
     const { activeEventListeners } = this.props;
     const { searchText } = this.state;
 
@@ -296,7 +299,7 @@ const mapStateToProps = state => ({
   expandedCategories: getEventListenerExpanded(state),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     addEventListeners: actions.addEventListenerBreakpoints,

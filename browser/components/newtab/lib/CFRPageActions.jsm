@@ -25,6 +25,12 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/L10nRegistry.jsm"
 );
 ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "TrackingDBService",
+  "@mozilla.org/tracking-db-service;1",
+  "nsITrackingDBService"
+);
 
 const POPUP_NOTIFICATION_ID = "contextual-feature-recommendation";
 const ANIMATION_BUTTON_ID = "cfr-notification-footer-animation-button";
@@ -47,6 +53,8 @@ const CATEGORY_ICONS = {
  * profile directory.
  */
 const RS_DOWNLOADED_FILE_SUBDIR = "settings/main/ms-language-packs";
+const USE_REMOTE_L10N_PREF =
+  "browser.newtabpage.activity-stream.asrouter.useRemoteL10n";
 
 /**
  * A WeakMap from browsers to {host, recommendation} pairs. Recommendations are
@@ -70,6 +78,10 @@ class PageAction {
   constructor(win, dispatchToASRouter) {
     this.window = win;
     this.urlbar = win.document.getElementById("urlbar");
+    // `this.urlbar` is the larger container that holds both the urlbar input
+    // and the page action buttons. The focus event will be triggered by the
+    // `urlbar-input`.
+    this.urlbarinput = win.document.getElementById("urlbar-input");
     this.container = win.document.getElementById(
       "contextual-feature-recommendation"
     );
@@ -118,8 +130,10 @@ class PageAction {
 
   /**
    * Creates a new DOMLocalization instance with the Fluent file from Remote Settings.
-   * Note that it still uses the packaged Fluent file as the fallback if the remote one
-   * is not available.
+   *
+   * Note: it will use the local Fluent file in any of following cases:
+   *   * the remote Fluent file is not available
+   *   * it was told to use the local Fluent file
    */
   _createDOML10n() {
     async function* generateBundles(resourceIds) {
@@ -133,22 +147,19 @@ class PageAction {
       // In the case that the Fluent file has not been downloaded from Remote Settings,
       // `fetchFile` will return `false` and fall back to the packaged Fluent file.
       const resource = await fs.fetchFile(appLocale, "asrouter.ftl");
-      if (resource) {
-        // Skip the local `asrouter.ftl` (i.e. the first resource) to favor the remote one.
-        // Other resources such as `branding.ftl`, `sync-brand.ftl`, and `branding/brand.ftl`
-        // still need to be packed into this bundle because, otherwise, we can't reference
-        // them across different Fluent bundles.
-        for await (let bundle of L10nRegistry.generateBundles(
-          [appLocale],
-          resourceIds.slice(1)
-        )) {
-          // Override the old string ID if any as it's the last resource.
-          bundle.addResource(resource, true);
-          yield bundle;
+      for await (let bundle of L10nRegistry.generateBundles(
+        appLocales.slice(0, 1),
+        resourceIds
+      )) {
+        // Override built-in messages with the resource loaded from remote settings for
+        // the app locale, i.e. the first item of `appLocales`.
+        if (resource) {
+          bundle.addResource(resource, { allowOverrides: true });
         }
-      } else {
-        yield* L10nRegistry.generateBundles(appLocales, resourceIds);
+        yield bundle;
       }
+      // Now generating bundles for the rest of locales of `appLocales`.
+      yield* L10nRegistry.generateBundles(appLocales.slice(1), resourceIds);
     }
 
     return new DOMLocalization(
@@ -158,21 +169,34 @@ class PageAction {
         "browser/branding/sync-brand.ftl",
         "branding/brand.ftl",
       ],
-      generateBundles
+      Services.prefs.getBoolPref(USE_REMOTE_L10N_PREF, true)
+        ? generateBundles
+        : undefined
     );
+  }
+
+  reloadL10n() {
+    this._l10n = this._createDOML10n();
   }
 
   async showAddressBarNotifier(recommendation, shouldExpand = false) {
     this.container.hidden = false;
 
-    this.label.value = await this.getStrings(
+    let notificationText = await this.getStrings(
       recommendation.content.notification_text
     );
-
-    this.button.setAttribute(
-      "tooltiptext",
-      await this.getStrings(recommendation.content.notification_text)
-    );
+    this.label.value = notificationText;
+    if (notificationText.attributes) {
+      this.button.setAttribute(
+        "tooltiptext",
+        notificationText.attributes.tooltiptext
+      );
+      // For a11y, we want the more descriptive text.
+      this.container.setAttribute(
+        "aria-label",
+        notificationText.attributes.tooltiptext
+      );
+    }
     this.button.setAttribute(
       "data-cfr-icon",
       CATEGORY_ICONS[recommendation.content.category]
@@ -189,7 +213,7 @@ class PageAction {
     this.container.addEventListener("click", this._showPopupOnClick);
     // Collapse the recommendation on url bar focus in order to free up more
     // space to display and edit the url
-    this.urlbar.addEventListener("focus", this._collapse);
+    this.urlbarinput.addEventListener("focus", this._collapse);
 
     if (shouldExpand) {
       this._clearScheduledStateChanges();
@@ -198,6 +222,13 @@ class PageAction {
       this._expand(DELAY_BEFORE_EXPAND_MS);
 
       this.addImpression(recommendation);
+    }
+
+    if (notificationText.attributes) {
+      this.window.A11yUtils.announce({
+        raw: notificationText.attributes["a11y-announcement"],
+        source: this.container,
+      });
     }
   }
 
@@ -266,7 +297,14 @@ class PageAction {
   // This is called when the popup closes as a result of interaction _outside_
   // the popup, e.g. by hitting <esc>
   _popupStateChange(state) {
-    if (["dismissed", "removed"].includes(state)) {
+    if (state === "shown") {
+      if (this._autoFocus) {
+        this.window.document.commandDispatcher.advanceFocusIntoSubtree(
+          this.currentNotification.owner.panel
+        );
+        this._autoFocus = false;
+      }
+    } else if (["dismissed", "removed"].includes(state)) {
       this._collapse();
       if (this.currentNotification) {
         this.window.PopupNotifications.remove(this.currentNotification);
@@ -500,6 +538,104 @@ class PageAction {
     }
   }
 
+  async _renderMilestonePopup(message, browser, cfrMilestonePref) {
+    let { content } = message;
+    let { primary } = content.buttons;
+
+    let dateFormat = new Services.intl.DateTimeFormat(
+      this.window.gBrowser.ownerGlobal.navigator.language,
+      {
+        month: "long",
+        year: "numeric",
+      }
+    ).format;
+
+    let earliestDate = await TrackingDBService.getEarliestRecordedDate();
+    let monthName = dateFormat(new Date(earliestDate));
+    let panelTitle = "";
+    let headerLabel = this.window.document.getElementById(
+      "cfr-notification-header-label"
+    );
+    if (typeof message.content.heading_text === "string") {
+      // This is a test environment.
+      panelTitle = message.content.heading_text;
+      headerLabel.value = panelTitle;
+    } else {
+      this._l10n.setAttributes(headerLabel, content.heading_text.string_id, {
+        blockedCount: cfrMilestonePref,
+        date: monthName,
+      });
+      await this._l10n.translateElements([headerLabel]);
+    }
+
+    // Use the message layout as a CSS selector to hide different parts of the
+    // notification template markup
+    this.window.document
+      .getElementById("contextual-feature-recommendation-notification")
+      .setAttribute("data-notification-category", content.layout);
+    this.window.document
+      .getElementById("contextual-feature-recommendation-notification")
+      .setAttribute("data-notification-bucket", content.bucket_id);
+    let notification = this.window.document.getElementById(
+      "notification-popup"
+    );
+
+    let primaryBtnString = await this.getStrings(primary.label);
+    let primaryActionCallback = () => {
+      this.dispatchUserAction(primary.action);
+      RecommendationMap.delete(browser);
+
+      // Invalidate the pref after the user interacts with the button.
+      // We don't need to show the illustration in the privacy panel.
+      Services.prefs.clearUserPref(
+        "browser.contentblocking.cfr-milestone.milestone-shown-time"
+      );
+    };
+    let mainAction = {
+      label: primaryBtnString,
+      accessKey: primaryBtnString.attributes.accesskey,
+      callback: primaryActionCallback,
+    };
+
+    let style = this.window.document.createElement("style");
+    style.textContent = `
+      .cfr-notification-milestone .panel-arrow {
+        fill: #0250BB !important;
+      }
+    `;
+
+    let arrow;
+    let manageClass = event => {
+      if (event === "dismissed" || event === "removed") {
+        notification.shadowRoot.removeChild(style);
+        arrow.classList.remove("cfr-notification-milestone");
+      } else if (event === "showing") {
+        notification.shadowRoot.appendChild(style);
+        arrow = notification.shadowRoot.querySelector(".panel-arrowcontainer");
+        arrow.classList.add("cfr-notification-milestone");
+      }
+    };
+
+    // Actually show the notification
+    this.currentNotification = this.window.PopupNotifications.show(
+      browser,
+      POPUP_NOTIFICATION_ID,
+      panelTitle,
+      "cfr",
+      mainAction,
+      null,
+      {
+        hideClose: true,
+        eventCallback: manageClass,
+      }
+    );
+
+    Services.prefs.setStringPref(
+      "browser.contentblocking.cfr-milestone.milestone-shown-time",
+      Date.now().toString()
+    );
+  }
+
   // eslint-disable-next-line max-statements
   async _renderPopup(message, browser) {
     const { id, content } = message;
@@ -703,6 +839,15 @@ class PageAction {
       })
     );
 
+    // If the recommendation button is focused, it was probably activated via
+    // the keyboard. Therefore, focus the first element in the notification when
+    // it appears.
+    // We don't use the autofocus option provided by PopupNotifications.show
+    // because it doesn't focus the first element; i.e. the user still has to
+    // press tab once. That's not good enough, especially for screen reader
+    // users. Instead, we handle this ourselves in _popupStateChange.
+    this._autoFocus = this.window.document.activeElement === this.container;
+
     // Actually show the notification
     this.currentNotification = this.window.PopupNotifications.show(
       browser,
@@ -756,6 +901,20 @@ class PageAction {
       event: "CLICK_DOORHANGER",
     });
     await this._renderPopup(message, browser);
+  }
+
+  async showMilestonePopup(cfrMilestonePref) {
+    const browser = this.window.gBrowser.selectedBrowser;
+    const message = RecommendationMap.get(browser);
+    const { content } = message;
+
+    // A hacky way of setting the popup anchor outside the usual url bar icon box
+    // See https://searchfox.org/mozilla-central/rev/847b64cc28b74b44c379f9bff4f415b97da1c6d7/toolkit/modules/PopupNotifications.jsm#42
+    browser.cfrpopupnotificationanchor =
+      this.window.document.getElementById(content.anchor_id) || this.container;
+
+    await this._renderMilestonePopup(message, browser, cfrMilestonePref);
+    return true;
   }
 }
 
@@ -831,6 +990,47 @@ const CFRPageActions = {
       );
     }
     return url;
+  },
+
+  /**
+   * Show Milestone notification.
+   * @param browser                 The browser for the recommendation
+   * @param recommendation          The recommendation to show
+   * @param dispatchToASRouter      A function to dispatch resulting actions to
+   * @return                        Did adding the recommendation succeed?
+   */
+  async showMilestone(browser, message, dispatchToASRouter, options = {}) {
+    let win = null;
+    const { id, content } = message;
+    let cfrMilestonePref = Services.prefs.getIntPref(
+      "browser.contentblocking.cfr-milestone.milestone-achieved",
+      0
+    );
+
+    // If we are forcing via the Admin page, the browser comes in a different format
+    if (options.force) {
+      win = browser.browser.ownerGlobal;
+      RecommendationMap.set(browser.browser, { id, retain: true, content });
+    } else {
+      win = browser.ownerGlobal;
+      RecommendationMap.set(browser, { id, retain: true, content });
+      if (!cfrMilestonePref) {
+        return false;
+      }
+    }
+
+    if (!PageActionMap.has(win)) {
+      PageActionMap.set(win, new PageAction(win, dispatchToASRouter));
+    }
+
+    let successfullyShown = await PageActionMap.get(win).showMilestonePopup(
+      cfrMilestonePref
+    );
+    if (successfullyShown) {
+      PageActionMap.get(win).addImpression(message);
+    }
+
+    return successfullyShown;
   },
 
   /**
@@ -913,6 +1113,18 @@ const CFRPageActions = {
     RecommendationMap = new WeakMap();
     this.PageActionMap = PageActionMap;
     this.RecommendationMap = RecommendationMap;
+  },
+
+  /**
+   * Reload the l10n Fluent files for all PageActions
+   */
+  reloadL10n() {
+    for (const win of Services.wm.getEnumerator("navigator:browser")) {
+      if (win.closed || !PageActionMap.has(win)) {
+        continue;
+      }
+      PageActionMap.get(win).reloadL10n();
+    }
   },
 };
 

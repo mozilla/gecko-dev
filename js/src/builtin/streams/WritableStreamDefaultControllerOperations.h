@@ -51,11 +51,15 @@ extern MOZ_MUST_USE bool SetUpWritableStreamDefaultControllerFromUnderlyingSink(
     JS::Handle<JS::Value> underlyingSink, double highWaterMark,
     JS::Handle<JS::Value> sizeAlgorithm);
 
+extern MOZ_MUST_USE bool WritableStreamDefaultControllerClose(
+    JSContext* cx,
+    JS::Handle<WritableStreamDefaultController*> unwrappedController);
+
 extern double WritableStreamDefaultControllerGetDesiredSize(
     const WritableStreamDefaultController* controller);
 
 extern bool WritableStreamDefaultControllerGetBackpressure(
-    const WritableStreamDefaultController* controller);
+    const WritableStreamDefaultController* unwrappedController);
 
 }  // namespace js
 

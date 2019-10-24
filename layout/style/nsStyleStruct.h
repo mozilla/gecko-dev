@@ -1033,7 +1033,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   uint8_t mJustifyItems;
   uint8_t mJustifySelf;
   mozilla::StyleFlexDirection mFlexDirection;
-  uint8_t mFlexWrap;   // NS_STYLE_FLEX_WRAP_*
+  mozilla::StyleFlexWrap mFlexWrap;
   uint8_t mObjectFit;  // NS_STYLE_OBJECT_FIT_*
   int32_t mOrder;
   float mFlexGrow;
@@ -1629,6 +1629,15 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
     return !!(uint16_t(aDisplay) & mozilla::STYLE_DISPLAY_LIST_ITEM_BIT);
   }
   bool IsListItem() const { return IsListItem(mDisplay); }
+
+  // Whether display is `inline` or `inline list-item`.
+  static bool IsInlineFlow(mozilla::StyleDisplay aDisplay) {
+    return DisplayInside(aDisplay) == mozilla::StyleDisplayInside::Inline;
+  }
+
+  bool IsInlineFlow() const {
+    return IsInlineFlow(mDisplay);
+  }
 
   bool IsInlineInsideStyle() const {
     auto inside = DisplayInside();

@@ -10,6 +10,7 @@ activity_stream:
       "BOOKMARK_ADD",
       "BOOKMARK_DELETE",
       "CLICK",
+      "CLICK_PRIVACY_INFO",
       "CLOSE_NEWTAB_PREFS",
       "DELETE",
       "DELETE_FROM_POCKET",
@@ -31,6 +32,7 @@ activity_stream:
       "SEARCH_EDIT_CLOSE",
       "SEARCH_EDIT_DELETE",
       "SEARCH_HANDOFF",
+      "SHOW_PRIVACY_INFO",
       "SKIPPED_SIGNIN",
       "SUBMIT_EMAIL",
       "DISCLAIMER_ACKED",
@@ -251,15 +253,18 @@ addonsManager:
       An abuse report submitted by a user for a given extension. The object of the event
       represent the report entry point, the value is the id of the addon being reported.
     objects:
+      - amo
       - menu
       - toolbar_context_menu
       - uninstall
     extra_keys:
-      addon_type: The type of the add-on being reported (missing on ERROR_ADDON_NOT_FOUND).
+      addon_type: >
+        The type of the add-on being reported (missing on ERROR_ADDON_NOT_FOUND, ERROR_AMODETAILS_NOTFOUND
+        and ERROR_AMODETAILS_FAILURE).
       error_type: >
         AbuseReport Error Type (included in case of submission failures). The error types include
         ERROR_ABORTED_SUBMIT, ERROR_ADDON_NOT_FOUND, ERROR_CLIENT, ERROR_NETWORK, ERROR_UNKNOWN,
-        ERROR_RECENT_SUBMIT, ERROR_SERVER
+        ERROR_RECENT_SUBMIT, ERROR_SERVER, ERROR_AMODETAILS_NOTFOUND, ERROR_AMODETAILS_FAILURE.
     notification_emails: ["addons-dev-internal@mozilla.com"]
     expiry_version: "73"
     products:
@@ -268,7 +273,7 @@ addonsManager:
       - "geckoview"
       - "thunderbird"
     record_in_processes: ["main"]
-    bug_numbers: [1544927]
+    bug_numbers: [1544927, 1580561]
     release_channel_collection: opt-out
   blocklistUpdateError:
     description: >
@@ -675,9 +680,9 @@ fxa_avatar_menu:
       - "geckoview"
     record_in_processes: ["main"]
     description: This is recorded on interactions with the FxA avatar menu on the toolbar
-    bug_numbers: [1524665]
+    bug_numbers: [1524665, 1585459]
     notification_emails: ["vbudhram@mozilla.com", "loines@mozilla.com"]
-    expiry_version: "71"
+    expiry_version: "74"
     extra_keys:
       fxa_status: >
         The current state of the user. Possible states are "not_configured", "unverified",
@@ -1706,6 +1711,8 @@ security:
         otherextension - Another extension not from Mozilla
         suspectedUserChromeJS - A filepath ending in .uc.js
         other - Unknown
+        other-on-worker - We cannot do a regex; it is not chromeuri or resourceuri, but
+                          could be any other.
         regexfailure - Our Regex Matching code threw an error
       The fileinfo key may contain additional information about the file that caused the eval()
       depending on the above value. Resource, Chrome, and SingleString will contain the full value.

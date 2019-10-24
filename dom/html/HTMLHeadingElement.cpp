@@ -8,6 +8,7 @@
 #include "mozilla/dom/HTMLHeadingElementBinding.h"
 
 #include "mozilla/MappedDeclarations.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"

@@ -97,6 +97,7 @@
 #include "mozilla/WebBrowserPersistDocumentChild.h"
 #include "mozilla/HangDetails.h"
 #include "mozilla/LoadInfo.h"
+#include "mozilla/UnderrunHandler.h"
 #include "nsIChildProcessChannelListener.h"
 #include "mozilla/net/HttpChannelChild.h"
 #include "nsQueryObject.h"
@@ -108,6 +109,7 @@
 #include "nsGeolocation.h"
 #include "audio_thread_priority.h"
 #include "nsIConsoleService.h"
+#include "audio_thread_priority.h"
 
 #if !defined(XP_WIN)
 #  include "mozilla/Omnijar.h"
@@ -129,6 +131,9 @@
 #    include "mozilla/Sandbox.h"
 #  elif defined(__OpenBSD__)
 #    include <unistd.h>
+#  endif
+#  if defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
+#    include "mozilla/SandboxTestingChild.h"
 #  endif
 #endif
 
@@ -885,10 +890,16 @@ nsresult ContentChild::ProvideWindowCommon(
     sNoopenerNewProcessInited = true;
   }
 
-  // Check if we should load in a different process. We always want to load in a
+  bool useRemoteSubframes =
+      aChromeFlags & nsIWebBrowserChrome::CHROME_FISSION_WINDOW;
+
+  // Check if we should load in a different process. Under Fission, we never
+  // want to do this, since the Fission process selection logic will handle
+  // everything for us. Outside of Fission, we always want to load in a
   // different process if we have noopener set, but we also might if we can't
   // load in the current process.
-  bool loadInDifferentProcess = aForceNoOpener && sNoopenerNewProcess;
+  bool loadInDifferentProcess =
+      aForceNoOpener && sNoopenerNewProcess && !useRemoteSubframes;
   if (aTabOpener && !loadInDifferentProcess && aURI) {
     nsCOMPtr<nsILoadContext> context;
     if (aParent) {
@@ -1132,10 +1143,6 @@ nsresult ContentChild::ProvideWindowCommon(
                                           info.runInGlobalScope())) {
         MOZ_CRASH();
       }
-    }
-
-    if (!urlToLoad.IsEmpty()) {
-      newChild->RecvLoadURL(urlToLoad, showInfo);
     }
 
     if (xpc::IsInAutomation()) {
@@ -1774,14 +1781,14 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
     sandboxEnabled = false;
   } else {
     // Pre-start audio before sandboxing; see bug 1443612.
-    if (!Preferences::GetBool("media.cubeb.sandbox")) {
+    if (Preferences::GetBool("media.cubeb.sandbox")) {
+      if (atp_set_real_time_limit(0, 48000)) {
+        NS_WARNING("could not set real-time limit at process startup");
+      }
+      InstallSoftRealTimeLimitHandler();
+    } else {
       Unused << CubebUtils::GetCubebContext();
     }
-#    if defined(XP_LINUX)
-    else {
-      CubebUtils::InitAudioThreads();
-    }
-#    endif
   }
 
   if (sandboxEnabled) {
@@ -2120,32 +2127,13 @@ already_AddRefed<RemoteBrowser> ContentChild::CreateBrowser(
 
   TabId tabId(nsContentUtils::GenerateTabId());
   RefPtr<BrowserBridgeChild> browserBridge =
-      new BrowserBridgeChild(aFrameLoader, aBrowsingContext, tabId);
-
-  nsDocShell::Cast(docShell)->OOPChildLoadStarted(browserBridge);
+      new BrowserBridgeChild(aBrowsingContext, tabId);
 
   browserChild->SendPBrowserBridgeConstructor(
       browserBridge, PromiseFlatString(aContext.PresentationURL()), aRemoteType,
       aBrowsingContext, chromeFlags, tabId);
-  browserBridge->mIPCOpen = true;
 
-#if defined(ACCESSIBILITY)
-  a11y::DocAccessible* docAcc =
-      a11y::GetExistingDocAccessible(owner->OwnerDoc());
-  if (docAcc) {
-    a11y::Accessible* ownerAcc = docAcc->GetAccessible(owner);
-    if (ownerAcc) {
-      a11y::OuterDocAccessible* outerAcc = ownerAcc->AsOuterDoc();
-      if (outerAcc) {
-        outerAcc->SendEmbedderAccessible(browserBridge);
-      }
-    }
-  }
-#endif  // defined(ACCESSIBILITY)
-
-  RefPtr<BrowserBridgeHost> browserBridgeHost =
-      new BrowserBridgeHost(browserBridge);
-  return browserBridgeHost.forget();
+  return browserBridge->FinishInit(aFrameLoader);
 }
 
 PScriptCacheChild* ContentChild::AllocPScriptCacheChild(
@@ -4071,6 +4059,17 @@ mozilla::ipc::IPCResult ContentChild::RecvScriptError(
 
   return IPC_OK();
 }
+
+#if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
+mozilla::ipc::IPCResult ContentChild::RecvInitSandboxTesting(
+    Endpoint<PSandboxTestingChild>&& aEndpoint) {
+  if (!SandboxTestingChild::Initialize(std::move(aEndpoint))) {
+    return IPC_FAIL(
+        this, "InitSandboxTesting failed to initialise the child process.");
+  }
+  return IPC_OK();
+}
+#endif
 
 }  // namespace dom
 

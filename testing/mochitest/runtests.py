@@ -1437,17 +1437,7 @@ toolbar#nav-bar {
 
             info = mozinfo.info
 
-            # Bug 1089034 - imptest failure expectations are encoded as
-            # test manifests, even though they aren't tests. This gross
-            # hack causes several problems in automation including
-            # throwing off the chunking numbers. Remove them manually
-            # until bug 1089034 is fixed.
-            def remove_imptest_failure_expectations(tests, values):
-                return (t for t in tests
-                        if 'imptests/failures' not in t['path'])
-
             filters = [
-                remove_imptest_failure_expectations,
                 subsuite(options.subsuite),
             ]
 
@@ -1638,21 +1628,15 @@ toolbar#nav-bar {
     def buildBrowserEnv(self, options, debugger=False, env=None):
         """build the environment variables for the specific test and operating system"""
         if mozinfo.info["asan"] and mozinfo.isLinux and mozinfo.bits == 64:
-            lsanPath = SCRIPT_DIR
+            useLSan = True
         else:
-            lsanPath = None
-
-        if mozinfo.info["ubsan"]:
-            ubsanPath = SCRIPT_DIR
-        else:
-            ubsanPath = None
+            useLSan = False
 
         browserEnv = self.environment(
             xrePath=options.xrePath,
             env=env,
             debugger=debugger,
-            lsanPath=lsanPath,
-            ubsanPath=ubsanPath)
+            useLSan=useLSan)
 
         if hasattr(options, "topsrcdir"):
             browserEnv["MOZ_DEVELOPER_REPO_DIR"] = options.topsrcdir
@@ -2606,8 +2590,17 @@ toolbar#nav-bar {
             "e10s": options.e10s,
             "fission": self.extraPrefs.get('fission.autostart', False),
             "headless": options.headless,
+
+            # Until the test harness can understand default pref values,
+            # (https://bugzilla.mozilla.org/show_bug.cgi?id=1577912) this value
+            # should by synchronized with the default pref value indicated in
+            # StaticPrefList.yaml.
+            #
+            # Currently for automation, the pref defaults to true in nightly
+            # builds and false otherwise (but can be overridden with --setpref).
             "serviceworker_e10s": self.extraPrefs.get(
-                'dom.serviceWorkers.parent_intercept', False),
+                'dom.serviceWorkers.parent_intercept', mozinfo.info['nightly_build']),
+
             "socketprocess_e10s": self.extraPrefs.get(
                 'network.process.enabled', False),
             "verify": options.verify,
@@ -2819,8 +2812,11 @@ toolbar#nav-bar {
             # code coverage is not enabled.
             detectShutdownLeaks = False
             if options.jscov_dir_prefix is None:
-                detectShutdownLeaks = mozinfo.info[
-                    "debug"] and options.flavor == 'browser'
+                detectShutdownLeaks = (
+                    mozinfo.info['debug'] and
+                    options.flavor == 'browser' and
+                    options.subsuite != 'thunderbird'
+                )
 
             self.start_script_kwargs['flavor'] = self.normflavor(options.flavor)
             marionette_args = {

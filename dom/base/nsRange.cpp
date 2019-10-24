@@ -20,6 +20,8 @@
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
 #include "nsTextFrame.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/ContentIterator.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/DocumentFragment.h"
@@ -457,8 +459,8 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
           "only a split can start before the end");
       NS_ASSERTION(mStart.Offset() <= aInfo.mChangeEnd + 1,
                    "mStart.Offset() is beyond the end of this node");
-      int32_t newStartOffset = mStart.Offset() - aInfo.mChangeStart;
-      newStart.Set(aInfo.mDetails->mNextSibling, newStartOffset);
+      const uint32_t newStartOffset = mStart.Offset() - aInfo.mChangeStart;
+      newStart = {aInfo.mDetails->mNextSibling, newStartOffset};
       if (MOZ_UNLIKELY(aContent == mRoot)) {
         newRoot = RangeUtils::ComputeRootNode(newStart.Container());
       }
@@ -477,12 +479,18 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
     } else {
       // If boundary is inside changed text, position it before change
       // else adjust start offset for the change in length.
-      int32_t newStartOffset = mStart.Offset() <= aInfo.mChangeEnd
-                                   ? aInfo.mChangeStart
-                                   : mStart.Offset() + aInfo.mChangeStart -
-                                         aInfo.mChangeEnd +
-                                         aInfo.mReplaceLength;
-      newStart.Set(mStart.Container(), newStartOffset);
+      CheckedUint32 newStartOffset{0};
+      if (mStart.Offset() <= aInfo.mChangeEnd) {
+        newStartOffset = aInfo.mChangeStart;
+      } else {
+        newStartOffset = mStart.Offset();
+        newStartOffset -= aInfo.LengthOfRemovedText();
+        newStartOffset += aInfo.mReplaceLength;
+      }
+
+      // newStartOffset.isValid() isn't checked explicitly here, because
+      // newStartOffset.value() contains an assertion.
+      newStart = {mStart.Container(), newStartOffset.value()};
     }
   }
 
@@ -495,10 +503,11 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
       NS_ASSERTION(
           aInfo.mDetails->mType == CharacterDataChangeInfo::Details::eSplit,
           "only a split can start before the end");
-      NS_ASSERTION(mEnd.Offset() <= aInfo.mChangeEnd + 1,
-                   "mEnd.Offset() is beyond the end of this node");
-      newEnd.Set(aInfo.mDetails->mNextSibling,
-                 mEnd.Offset() - aInfo.mChangeStart);
+      MOZ_ASSERT(mEnd.Offset() <= aInfo.mChangeEnd + 1,
+                 "mEnd.Offset() is beyond the end of this node");
+
+      const uint32_t newEndOffset{mEnd.Offset() - aInfo.mChangeStart};
+      newEnd = {aInfo.mDetails->mNextSibling, newEndOffset};
 
       bool isCommonAncestor =
           IsInSelection() && mStart.Container() == mEnd.Container();
@@ -512,11 +521,18 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
         newEnd.Container()->SetDescendantOfCommonAncestorForRangeInSelection();
       }
     } else {
-      int32_t newEndOffset = mEnd.Offset() <= aInfo.mChangeEnd
-                                 ? aInfo.mChangeStart
-                                 : mEnd.Offset() + aInfo.mChangeStart -
-                                       aInfo.mChangeEnd + aInfo.mReplaceLength;
-      newEnd.Set(mEnd.Container(), newEndOffset);
+      CheckedUint32 newEndOffset{0};
+      if (mEnd.Offset() <= aInfo.mChangeEnd) {
+        newEndOffset = aInfo.mChangeStart;
+      } else {
+        newEndOffset = mEnd.Offset();
+        newEndOffset -= aInfo.LengthOfRemovedText();
+        newEndOffset += aInfo.mReplaceLength;
+      }
+
+      // newEndOffset.isValid() isn't checked explicitly here, because
+      // newEndOffset.value() contains an assertion.
+      newEnd = {mEnd.Container(), newEndOffset.value()};
     }
   }
 
@@ -526,13 +542,23 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
     // that will be removed
     nsIContent* removed = aInfo.mDetails->mNextSibling;
     if (removed == mStart.Container()) {
-      newStart.Set(aContent, mStart.Offset() + aInfo.mChangeStart);
+      CheckedUint32 newStartOffset{mStart.Offset()};
+      newStartOffset += aInfo.mChangeStart;
+
+      // newStartOffset.isValid() isn't checked explicitly here, because
+      // newStartOffset.value() contains an assertion.
+      newStart = {aContent, newStartOffset.value()};
       if (MOZ_UNLIKELY(removed == mRoot)) {
         newRoot = RangeUtils::ComputeRootNode(newStart.Container());
       }
     }
     if (removed == mEnd.Container()) {
-      newEnd.Set(aContent, mEnd.Offset() + aInfo.mChangeStart);
+      CheckedUint32 newEndOffset{mEnd.Offset()};
+      newEndOffset += aInfo.mChangeStart;
+
+      // newEndOffset.isValid() isn't checked explicitly here, because
+      // newEndOffset.value() contains an assertion.
+      newEnd = {aContent, newEndOffset.value()};
       if (MOZ_UNLIKELY(removed == mRoot)) {
         newRoot = RangeUtils::ComputeRootNode(newEnd.Container());
       }
@@ -547,12 +573,12 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
     if (parentNode == mStart.Container() && mStart.Offset() > 0 &&
         mStart.Offset() < parentNode->GetChildCount() &&
         removed == mStart.GetChildAtOffset()) {
-      newStart.Set(aContent, aInfo.mChangeStart);
+      newStart = {aContent, aInfo.mChangeStart};
     }
     if (parentNode == mEnd.Container() && mEnd.Offset() > 0 &&
         mEnd.Offset() < parentNode->GetChildCount() &&
         removed == mEnd.GetChildAtOffset()) {
-      newEnd.Set(aContent, aInfo.mChangeEnd);
+      newEnd = {aContent, aInfo.mChangeEnd};
     }
   }
 
@@ -594,12 +620,12 @@ void nsRange::ContentAppended(nsIContent* aFirstNewContent) {
     // A splitText has occurred, if any mNext*Ref was set, we need to adjust
     // the range boundaries.
     if (mNextStartRef) {
-      mStart.SetAfterRef(mStart.Container(), mNextStartRef);
+      mStart = {mStart.Container(), mNextStartRef};
       MOZ_ASSERT(mNextStartRef == aFirstNewContent);
       mNextStartRef = nullptr;
     }
     if (mNextEndRef) {
-      mEnd.SetAfterRef(mEnd.Container(), mNextEndRef);
+      mEnd = {mEnd.Container(), mNextEndRef};
       MOZ_ASSERT(mNextEndRef == aFirstNewContent);
       mNextEndRef = nullptr;
     }
@@ -642,12 +668,12 @@ void nsRange::ContentInserted(nsIContent* aChild) {
 
   if (mNextStartRef || mNextEndRef) {
     if (mNextStartRef) {
-      newStart.SetAfterRef(mStart.Container(), mNextStartRef);
+      newStart = {mStart.Container(), mNextStartRef};
       MOZ_ASSERT(mNextStartRef == aChild);
       mNextStartRef = nullptr;
     }
     if (mNextEndRef) {
-      newEnd.SetAfterRef(mEnd.Container(), mNextEndRef);
+      newEnd = {mEnd.Container(), mNextEndRef};
       MOZ_ASSERT(mNextEndRef == aChild);
       mNextEndRef = nullptr;
     }
@@ -681,7 +707,7 @@ void nsRange::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling) {
     // We're only interested if our boundary reference was removed, otherwise
     // we can just invalidate the offset.
     if (aChild == mStart.Ref()) {
-      newStart.SetAfterRef(container, aPreviousSibling);
+      newStart = {container, aPreviousSibling};
     } else {
       newStart = mStart;
       newStart.InvalidateOffset();
@@ -689,14 +715,14 @@ void nsRange::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling) {
   } else {
     gravitateStart = Some(mStart.Container()->IsInclusiveDescendantOf(aChild));
     if (gravitateStart.value()) {
-      newStart.SetAfterRef(container, aPreviousSibling);
+      newStart = {container, aPreviousSibling};
     }
   }
 
   // Do same thing for end boundry.
   if (container == mEnd.Container()) {
     if (aChild == mEnd.Ref()) {
-      newEnd.SetAfterRef(container, aPreviousSibling);
+      newEnd = {container, aPreviousSibling};
     } else {
       newEnd = mEnd;
       newEnd.InvalidateOffset();
@@ -708,7 +734,7 @@ void nsRange::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling) {
       gravitateEnd = mEnd.Container()->IsInclusiveDescendantOf(aChild);
     }
     if (gravitateEnd) {
-      newEnd.SetAfterRef(container, aPreviousSibling);
+      newEnd = {container, aPreviousSibling};
     }
   }
 
@@ -1251,7 +1277,7 @@ void nsRange::SelectNodeContents(nsINode& aNode, ErrorResult& aRv) {
   }
 
   AutoInvalidateSelection atEndOfBlock(this);
-  DoSetRange(RawRangeBoundary(&aNode, 0),
+  DoSetRange(RawRangeBoundary(&aNode, 0u),
              RawRangeBoundary(&aNode, aNode.Length()), newRoot);
 }
 

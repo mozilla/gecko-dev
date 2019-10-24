@@ -28,14 +28,41 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-ChromeUtils.defineModuleGetter(
+XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "AsyncShutdown",
-  "resource://gre/modules/AsyncShutdown.jsm"
+  "milestoneMessagingEnabled",
+  "browser.contentblocking.cfr-milestone.enabled",
+  false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "milestones",
+  "browser.contentblocking.cfr-milestone.milestones",
+  "[]",
+  null,
+  JSON.parse
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "oldMilestone",
+  "browser.contentblocking.cfr-milestone.milestone-achieved",
+  0
+);
+
+// How often we check if the user is eligible for seeing a "milestone"
+// doorhanger. 24 hours by default.
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "MILESTONE_UPDATE_INTERVAL",
+  "browser.contentblocking.cfr-milestone.update-interval",
+  24 * 60 * 60 * 1000
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   readAsyncStream: "resource://gre/modules/AsyncStreamReader.jsm",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
 });
 
 /**
@@ -254,6 +281,50 @@ TrackingDBService.prototype = {
       });
     } catch (e) {
       Cu.reportError(e);
+    }
+
+    // If milestone CFR messaging is not enabled we don't need to update the milestone pref or send the event.
+    // We don't do this check too frequently, for performance reasons.
+    if (
+      !milestoneMessagingEnabled ||
+      (this.lastChecked &&
+        Date.now() - this.lastChecked < MILESTONE_UPDATE_INTERVAL)
+    ) {
+      return;
+    }
+    this.lastChecked = Date.now();
+    let totalSaved = await this.sumAllEvents();
+
+    let reachedMilestone = null;
+    let nextMilestone = null;
+    for (let [index, milestone] of milestones.entries()) {
+      if (totalSaved >= milestone) {
+        reachedMilestone = milestone;
+        nextMilestone = milestones[index + 1];
+      } else {
+        break;
+      }
+    }
+
+    // Show the milestone message if the user is not too close to the next milestone.
+    // Or if there is no next milestone.
+    if (
+      reachedMilestone &&
+      (!nextMilestone || nextMilestone - totalSaved > 3000) &&
+      (!oldMilestone || oldMilestone < reachedMilestone)
+    ) {
+      Services.prefs.setIntPref(
+        "browser.contentblocking.cfr-milestone.milestone-achieved",
+        reachedMilestone
+      );
+      Services.obs.notifyObservers(
+        {
+          wrappedJSObject: {
+            event: "ContentBlockingMilestone",
+          },
+        },
+        "SiteProtection:ContentBlockingMilestone"
+      );
     }
   },
 

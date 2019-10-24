@@ -9006,10 +9006,8 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
     }
 
     metadata.SetSnapInfo(scrollableFrame->GetScrollSnapInfo());
-
-    ScrollStyles scrollStyles = scrollableFrame->GetScrollStyles();
-    metadata.SetOverscrollBehavior(OverscrollBehaviorInfo::FromStyleConstants(
-        scrollStyles.mOverscrollBehaviorX, scrollStyles.mOverscrollBehaviorY));
+    metadata.SetOverscrollBehavior(
+        scrollableFrame->GetOverscrollBehaviorInfo());
   }
 
   // If we have the scrollparent being the same as the scroll id, the
@@ -9227,15 +9225,15 @@ Maybe<ScrollMetadata> nsLayoutUtils::GetRootMetadata(
 
   // There is one case where we want the root container layer to have metrics.
   // If the parent process is using XUL windows, there is no root scrollframe,
-  // and without explicitly creating metrics there will be no guaranteed top-level
-  // APZC.
+  // and without explicitly creating metrics there will be no guaranteed
+  // top-level APZC.
   bool addMetrics = XRE_IsParentProcess() && !presShell->GetRootScrollFrame();
 
   // Add metrics if there are none in the layer tree with the id (create an id
   // if there isn't one already) of the root scroll frame/root content.
-  bool ensureMetricsForRootId =
-      nsLayoutUtils::AsyncPanZoomEnabled(frame) &&
-      aBuilder->IsPaintingToWindow() && !presContext->GetParentPresContext();
+  bool ensureMetricsForRootId = nsLayoutUtils::AsyncPanZoomEnabled(frame) &&
+                                aBuilder->IsPaintingToWindow() &&
+                                !presContext->GetParentPresContext();
 
   nsIContent* content = nullptr;
   nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
@@ -9257,7 +9255,7 @@ Maybe<ScrollMetadata> nsLayoutUtils::GetRootMetadata(
   }
 
   if (addMetrics || ensureMetricsForRootId) {
-    bool isRootContent = presContext->IsRootContentDocument();
+    bool isRootContent = presContext->IsRootContentDocumentCrossProcess();
 
     nsRect viewport(aBuilder->ToReferenceFrame(frame), frame->GetSize());
     if (isRootContent && rootScrollFrame) {

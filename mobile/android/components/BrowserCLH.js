@@ -73,25 +73,6 @@ BrowserCLH.prototype = {
           "invalidformsubmit"
         );
 
-        GeckoViewUtils.addLazyGetter(this, "LoginManagerParent", {
-          module: "resource://gre/modules/LoginManagerParent.jsm",
-          mm: [
-            // PLEASE KEEP THIS LIST IN SYNC WITH THE DESKTOP LIST IN
-            // BrowserGlue.jsm
-            "PasswordManager:findLogins",
-            "PasswordManager:findRecipes",
-            "PasswordManager:onFormSubmit",
-            "PasswordManager:autoCompleteLogins",
-            "PasswordManager:removeLogin",
-            "PasswordManager:insecureLoginFormPresent",
-            // PLEASE KEEP THIS LIST IN SYNC WITH THE DESKTOP LIST IN
-            // BrowserGlue.jsm
-          ],
-        });
-        GeckoViewUtils.addLazyGetter(this, "LoginManagerContent", {
-          module: "resource://gre/modules/LoginManagerContent.jsm",
-        });
-
         GeckoViewUtils.addLazyGetter(this, "ActionBarHandler", {
           module: "resource://gre/modules/ActionBarHandler.jsm",
         });
@@ -153,8 +134,6 @@ BrowserCLH.prototype = {
           }
         );
 
-        this._initLoginManagerEvents(win);
-
         GeckoViewUtils.registerLazyWindowEventListener(
           win,
           ["TextSelection:Get", "TextSelection:Action", "TextSelection:End"],
@@ -203,69 +182,6 @@ BrowserCLH.prototype = {
         break;
       }
     }
-  },
-
-  _initLoginManagerEvents: function(aWindow) {
-    if (Services.prefs.getBoolPref("reftest.remote", false)) {
-      // XXX known incompatibility between reftest harness and form-fill.
-      return;
-    }
-
-    function shouldIgnoreLoginManagerEvent(event) {
-      let nodePrincipal = event.target.nodePrincipal;
-      // If we have a null principal then prevent any more password manager code from running and
-      // incorrectly using the document `location`. Also skip password manager for about: pages.
-      return nodePrincipal.isNullPrincipal || nodePrincipal.schemeIs("about");
-    }
-
-    let options = {
-      capture: true,
-      mozSystemGroup: true,
-    };
-
-    // NOTE: Much of this logic is duplicated in browser/base/content/content.js
-    // for desktop.
-    aWindow.addEventListener("DOMFormBeforeSubmit", event => {
-      if (shouldIgnoreLoginManagerEvent(event)) {
-        return;
-      }
-      this.LoginManagerContent.onDOMFormBeforeSubmit(event);
-    });
-    aWindow.addEventListener(
-      "DOMFormHasPassword",
-      event => {
-        if (shouldIgnoreLoginManagerEvent(event)) {
-          return;
-        }
-        this.LoginManagerContent.onDOMFormHasPassword(event);
-      },
-      options
-    );
-
-    aWindow.addEventListener(
-      "DOMInputPasswordAdded",
-      event => {
-        if (shouldIgnoreLoginManagerEvent(event)) {
-          return;
-        }
-        this.LoginManagerContent.onDOMInputPasswordAdded(
-          event,
-          event.target.ownerGlobal.top
-        );
-      },
-      options
-    );
-
-    aWindow.addEventListener(
-      "pageshow",
-      event => {
-        // XXXbz what about non-HTML documents??
-        if (ChromeUtils.getClassName(event.target) == "HTMLDocument") {
-          this.LoginManagerContent.onPageShow(event);
-        }
-      },
-      options
-    );
   },
 
   // QI

@@ -61,12 +61,13 @@ type State = {
   focusedItem: ?Item,
 };
 
+type OwnProps = {||};
 type Props = {
   cx: Context,
   query: string,
   results: List<Result>,
   status: StatusType,
-  activeSearch: ActiveSearchType,
+  activeSearch: ?ActiveSearchType,
   closeProjectSearch: typeof actions.closeProjectSearch,
   searchSources: typeof actions.searchSources,
   clearSearch: typeof actions.clearSearch,
@@ -345,7 +346,7 @@ const mapStateToProps = state => ({
   status: getTextSearchStatus(state),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     closeProjectSearch: actions.closeProjectSearch,

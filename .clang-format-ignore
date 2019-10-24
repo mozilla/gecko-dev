@@ -4,6 +4,7 @@ build/clang-plugin/.*
 config/gcc-stl-wrapper.template.h
 config/msvc-stl-wrapper.template.h
 # Generated code
+js/src/builtin/intl/LanguageTagGenerated.cpp
 js/src/builtin/intl/TimeZoneDataGenerated.h
 
 # Don't want to reformat irregexp. bug 1510128
@@ -52,6 +53,9 @@ config/windows-h-.*.h
 # Exclude tools/clang-tidy/test from automatic reformatting, since it can
 # break some of the tests in that directory.
 tools/clang-tidy/test/.*
+
+# We are testing the incorrect formatting.
+tools/lint/test/files/file-whitespace/
 
 # The XPTCall stubs files have some inline assembly macros
 # that get reformatted badly. See bug 1510781.

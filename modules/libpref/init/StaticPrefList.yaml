@@ -800,7 +800,7 @@
 #   (2) browser.display.document_color_use set to 2 (always)
 - name: browser.display.permit_backplate
   type: RelaxedAtomicBool
-  value: @EARLY_BETA_OR_EARLIER@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
   rust: true
 
@@ -925,7 +925,11 @@
 # If set, use DocumentChannel with nsDocShell in place of HttpChannel.
 - name: browser.tabs.documentchannel
   type: bool
-  value: false
+#if !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false  # See bug 1589982.
+#endif
   mirror: always
 
 - name: browser.tabs.remote.desktopbehavior
@@ -961,11 +965,15 @@
   value: false
   mirror: always
 
+# The percentage of the screen that needs to be scrolled before toolbar
+# manipulation is allowed.
 - name: browser.ui.scroll-toolbar-threshold
   type: RelaxedAtomicInt32
   value: 10
   mirror: always
 
+# When true, zooming will be enabled on all sites, even ones that declare
+# user-scalable=no.
 - name: browser.ui.zoom.force-user-scalable
   type: RelaxedAtomicBool
   value: false
@@ -1307,6 +1315,13 @@
   value: true
   mirror: always
 
+# The maximum number of popup that is allowed to be opened. Set to -1 for no
+# limit.
+- name: dom.popup_maximum
+  type: int32_t
+  value: 20
+  mirror: always
+
 # Whether window.location.reload() and window.history.go(0) should be blocked
 # if called directly from a window resize event handler.
 #
@@ -1422,13 +1437,6 @@
 - name: dom.event.clipboardevents.enabled
   type: bool
   value: true
-  mirror: always
-
-# Time limit, in milliseconds, for EventStateManager::IsHandlingUserInput().
-# Used to detect long running handlers of user-generated events.
-- name: dom.event.handling-user-input-time-limit
-  type: uint32_t
-  value: 1000
   mirror: always
 
 # Enable clipboard readText() and writeText() by default
@@ -1749,6 +1757,12 @@
   value: false
   mirror: always
 
+# Media Session API
+- name: dom.media.mediasession.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Enable meta-viewport support in remote APZ-enabled frames.
 - name: dom.meta-viewport.enabled
   type: RelaxedAtomicBool
@@ -1770,6 +1784,12 @@
 - name: dom.min_background_timeout_value
   type: int32_t
   value: 1000
+  mirror: always
+
+# Are missing-property use counters for certain DOM attributes enabled?
+- name: dom.missing_prop_counters.enabled
+  type: bool
+  value: false
   mirror: always
 
 # Is support for module scripts (<script type="module">) enabled for content?
@@ -1888,6 +1908,12 @@
 
 # re-SAB; Whether allow postMessage a sharedArrayBuffer
 - name: dom.postMessage.sharedArrayBuffer.withCOOP_COEP
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Overridden in all.js on RELEASE_OR_BETA in order to add the locked attribute.
+- name: dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -2128,7 +2154,7 @@
 # Note, this is not currently safe to use for normal browsing yet.
 - name: dom.serviceWorkers.parent_intercept
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: never
 
 - name: dom.serviceWorkers.testing.enabled
@@ -2671,18 +2697,6 @@
   value: true
   mirror: always
 
-# Is support for XMLDocument.async enabled?
-- name: dom.xmldocument.async.enabled
-  type: bool
-  value: false
-  mirror: always
-
-# Is support for XMLDocument.load enabled?
-- name: dom.xmldocument.load.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # When this pref is set, parent documents may consider child iframes have
 # loaded while they are still loading.
 - name: dom.cross_origin_iframes_loaded_in_background
@@ -2698,6 +2712,12 @@
 - name: dom.webidl.test2
   type: bool
   value: true
+  mirror: always
+
+# WebShare API - exposes navigator.share()
+- name: dom.webshare.enabled
+  type: bool
+  value: false
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -3111,6 +3131,7 @@
   value: true
   mirror: once
 
+# Allow 24-bit colour when the hardware supports it.
 - name: gfx.android.rgb16.force
   type: bool
   value: false
@@ -3453,6 +3474,7 @@
   value: false
   mirror: once
 
+# Use SurfaceTextures as preferred backend for TextureClient/Host.
 - name: gfx.use-surfacetexture-textures
   type: bool
   value: false
@@ -3544,6 +3566,21 @@
   # Keep this pref hidden on non-nightly builds to avoid people accidentally
   # turning it on.
 -   name: gfx.webrender.start-debug-server
+    type: RelaxedAtomicBool
+    value: false
+    mirror: always
+#endif
+
+#ifdef XP_WIN
+  # Enables display of performance debugging counters when DirectComposition
+  # is used.
+  # Performance counters are displayed on the top-right corner of the screen.
+-   name: gfx.webrender.debug.dcomp-counter
+    type: RelaxedAtomicBool
+    value: false
+    mirror: always
+  # Enables highlighting redraw regions of DCompositionVisual
+-   name: gfx.webrender.debug.dcomp-redraw-regions
     type: RelaxedAtomicBool
     value: false
     mirror: always
@@ -4668,7 +4705,7 @@
 # Is support for CSS column-span enabled?
 - name: layout.css.column-span.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Is support for CSS backdrop-filter enabled?
@@ -4748,14 +4785,14 @@
 # Is support for CSS "grid-template-{columns,rows}: subgrid X" enabled?
 - name: layout.css.grid-template-subgrid-value.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
 # Is support for CSS individual transform enabled?
 - name: layout.css.individual-transform.enabled
   type: bool
-  value: false
+  value: @IS_NOT_RELEASE_OR_BETA@
   mirror: always
 
 # Is support for CSS initial-letter property enabled?
@@ -4782,6 +4819,13 @@
   type: bool
   value: false
   mirror: always
+
+# Expose the media query -moz-touch-enabled to web content.
+- name: layout.css.moz-touch-enabled.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NOT_NIGHTLY_BUILD@
+  mirror: always
+  rust: true
 
 # Pref to control whether the ::marker property restrictions defined in [1]
 # apply.
@@ -4868,13 +4912,6 @@
   type: bool
   value: true
   mirror: always
-
-# Are "-webkit-{min|max}-device-pixel-ratio" media queries supported?
-- name: layout.css.prefixes.device-pixel-ratio-webkit
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
 
 # Is support for -moz-prefixed font feature properties enabled?
 - name: layout.css.prefixes.font-features
@@ -5226,19 +5263,6 @@
   value: false
   mirror: always
 
-# Is the CSS Scroll Snap Module Level 1 enabled?
-- name: layout.css.scroll-snap-v1.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
-# Is support for the old unspecced scroll-snap enabled?
-# E.g. scroll-snap-points-{x,y}, scroll-snap-coordinate, etc.
-- name: layout.css.scroll-snap.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # Are shared memory User Agent style sheets enabled?
 - name: layout.css.shared-memory-ua-sheets.enabled
   type: bool
@@ -5303,7 +5327,7 @@
 # contain any contents in the area.
 - name: layout.viewport_contains_no_contents_area
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -5344,6 +5368,18 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# Whether to disable the mfrac bevelled  attribute.
+- name: mathml.mfrac_bevelled_attribute.disabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Whether to disable the mfenced element.
+- name: mathml.mfenced_element.disabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Whether to disable legacy names "thin", "thick" and "medium" for the
 # linethickness attribute of the mfrac element.
 - name: mathml.mfrac_linethickness_names.disabled
@@ -5359,6 +5395,18 @@
 
 # Whether to disable deprecated numalign/denomalign/align attributes
 - name: mathml.deprecated_alignment_attributes.disabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Whether to disable subscriptshift and superscriptshift attributes.
+- name: mathml.script_shift_attributes.disabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Whether to disable support for XLink on MathML elements.
+- name: mathml.xlink.disabled
   type: bool
   value: @IS_NIGHTLY_BUILD@
   mirror: always
@@ -6127,10 +6175,9 @@
 
   # Use MediaDataDecoder API for VP8/VP9 in WebRTC. This includes hardware
   # acceleration for decoding.
-  # disable on android bug 1509316
 -   name: media.navigator.mediadatadecoder_vpx_enabled
     type: RelaxedAtomicBool
-  #if defined(NIGHTLY_BUILD) && !defined(ANDROID)
+  #if defined(NIGHTLY_BUILD)
     value: true
   #else
     value: false
@@ -6138,12 +6185,10 @@
     mirror: always
 
   # Use MediaDataDecoder API for H264 in WebRTC. This includes hardware
-  # acceleration for decoding. False on Android due to bug 1509316.
+  # acceleration for decoding.
 -   name: media.navigator.mediadatadecoder_h264_enabled
     type: RelaxedAtomicBool
-  #if defined(ANDROID)
-    value: false
-  #elif defined(_ARM64_) && defined(XP_WIN)
+  #if defined(_ARM64_) && defined(XP_WIN)
     value: false
   #else
     value: true
@@ -6191,7 +6236,11 @@
 
 - name: media.audioFocus.management
   type: bool
+#if defined(MOZ_WIDGET_ANDROID) && defined(NIGHTLY_BUILD)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
 - name: media.hardwaremediakeys.enabled
@@ -6211,6 +6260,11 @@
 #else
   value: false
 #endif
+  mirror: always
+
+- name: media.webrtc.hw.h264.enabled
+  type: bool
+  value: false
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -6278,7 +6332,7 @@
 
 # Force less-secure NTLMv1 when needed (NTLMv2 is the default).
 - name: network.auth.force-generic-ntlm-v1
-  type: bool
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 
@@ -6526,6 +6580,12 @@
 # endif
   mirror: always
 
+# Whether to check the dnsSuffix on network changes
+- name: network.notify.dnsSuffixList
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # IP addresses that are used by netlink service to check whether default route
 # is used for outgoing traffic. They are used just to check routing rules,
 # no packets are sent to those hosts. Initially, addresses of host
@@ -6732,6 +6792,9 @@
 
 # Whether to spoof user locale to English (used as part of Resist
 # Fingerprinting).
+# 0 - will prompt
+# 1 - don't spoof
+# 2 - spoof
 - name: privacy.spoof_english
   type: RelaxedAtomicUint32
   value: 0
@@ -6908,14 +6971,14 @@
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
 # not allowed for Firefox Desktop in firefox.js
 - name: security.allow_eval_with_system_principal
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
 # not allowed for Firefox Desktop in firefox.js
 - name: security.allow_eval_in_parent_process
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
@@ -7429,6 +7492,16 @@
 
 # Global user preference for disabling native theme. Used in NativeWindowTheme.
 - name: widget.disable-native-theme
+  type: bool
+  value: false
+  mirror: always
+
+# Preference to disable dark scrollbar implementation.
+# This is mainly for testing because dark scrollbars have to be semi-
+# transparent, but many reftests expect scrollbars to look identical
+# among different backgrounds.
+# However, some users may want to disable this as well.
+- name: widget.disable-dark-scrollbar
   type: bool
   value: false
   mirror: always

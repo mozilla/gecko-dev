@@ -14,6 +14,7 @@ namespace mozilla {
 class ErrorResult;
 namespace dom {
 class BrowsingContext;
+class BrowserBridgeChild;
 struct RemotenessOptions;
 }  // namespace dom
 }  // namespace mozilla
@@ -52,10 +53,17 @@ class nsFrameLoaderOwner : public nsISupports {
   void ChangeRemoteness(const mozilla::dom::RemotenessOptions& aOptions,
                         mozilla::ErrorResult& rv);
 
+  void ChangeRemotenessWithBridge(mozilla::dom::BrowserBridgeChild* aBridge,
+                                  mozilla::ErrorResult& rv);
+
  private:
   bool UseRemoteSubframes();
   bool ShouldPreserveBrowsingContext(
       const mozilla::dom::RemotenessOptions& aOptions);
+  void ChangeRemotenessCommon(bool aPreserveContext,
+                              const nsAString& aRemoteType,
+                              std::function<void()>& aFrameLoaderInit,
+                              mozilla::ErrorResult& aRv);
 
  protected:
   virtual ~nsFrameLoaderOwner() = default;

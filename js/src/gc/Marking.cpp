@@ -164,9 +164,6 @@ bool js::IsTracerKind(JSTracer* trc, JS::CallbackTracer::TracerKind kind) {
 bool ThingIsPermanentAtomOrWellKnownSymbol(JSString* str) {
   return str->isPermanentAtom();
 }
-bool ThingIsPermanentAtomOrWellKnownSymbol(JSFlatString* str) {
-  return str->isPermanentAtom();
-}
 bool ThingIsPermanentAtomOrWellKnownSymbol(JSLinearString* str) {
   return str->isPermanentAtom();
 }
@@ -222,9 +219,20 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
   Zone* zone = thing->zoneFromAnyThread();
   JSRuntime* rt = trc->runtime();
 
-  if (!IsTracerKind(trc, JS::CallbackTracer::TracerKind::Moving) &&
-      !IsTracerKind(trc, JS::CallbackTracer::TracerKind::GrayBuffering) &&
-      !IsTracerKind(trc, JS::CallbackTracer::TracerKind::ClearEdges)) {
+  bool isGcMarkingTracer = trc->isMarkingTracer();
+  bool isUnmarkGray =
+      IsTracerKind(trc, JS::CallbackTracer::TracerKind::UnmarkGray);
+  if (isUnmarkGray || isGcMarkingTracer) {
+    bool isMainThread = TlsContext.get()->isMainThreadContext();
+    MOZ_ASSERT_IF(isMainThread, CurrentThreadCanAccessZone(zone));
+    MOZ_ASSERT_IF(isMainThread, CurrentThreadCanAccessRuntime(rt));
+    MOZ_ASSERT_IF(!isMainThread, CurrentThreadIsPerformingGC());
+    MOZ_ASSERT_IF(isGcMarkingTracer, zone->shouldMarkInZone());
+  } else if (!IsTracerKind(trc, JS::CallbackTracer::TracerKind::Moving) &&
+             !IsTracerKind(trc,
+                           JS::CallbackTracer::TracerKind::GrayBuffering) &&
+             !IsTracerKind(trc, JS::CallbackTracer::TracerKind::ClearEdges) &&
+             !IsTracerKind(trc, JS::CallbackTracer::TracerKind::Sweeping)) {
     MOZ_ASSERT(CurrentThreadCanAccessZone(zone));
     MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
   }
@@ -241,8 +249,6 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
       MapTypeToTraceKind<typename mozilla::RemovePointer<T>::Type>::kind ==
       thing->getTraceKind());
 
-  bool isGcMarkingTracer = trc->isMarkingTracer();
-
   MOZ_ASSERT_IF(
       zone->requireGCTracer(),
       isGcMarkingTracer ||
@@ -254,7 +260,7 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
   if (isGcMarkingTracer) {
     GCMarker* gcMarker = GCMarker::fromTracer(trc);
     MOZ_ASSERT_IF(gcMarker->shouldCheckCompartments(),
-                  zone->isCollecting() || zone->isAtomsZone());
+                  zone->isCollectingFromAnyThread() || zone->isAtomsZone());
 
     MOZ_ASSERT_IF(gcMarker->markColor() == MarkColor::Gray,
                   !zone->isGCMarkingBlackOnly() || zone->isAtomsZone());
@@ -2732,7 +2738,8 @@ void gc::PushArena(GCMarker* gcmarker, Arena* arena) {
 void GCMarker::checkZone(void* p) {
   MOZ_ASSERT(started);
   DebugOnly<Cell*> cell = static_cast<Cell*>(p);
-  MOZ_ASSERT_IF(cell->isTenured(), cell->asTenured().zone()->isCollecting());
+  MOZ_ASSERT_IF(cell->isTenured(),
+                cell->asTenured().zone()->isCollectingFromAnyThread());
 }
 #endif
 
@@ -3266,15 +3273,10 @@ size_t js::TenuringTracer::moveStringToTenured(JSString* dst, JSString* src,
   MOZ_ASSERT(OffsetToChunkEnd(src) >= ptrdiff_t(size));
   js_memcpy(dst, src, size);
 
-  if (!src->isInline() && src->isLinear()) {
-    if (src->isUndepended() || !src->hasBase()) {
-      void* chars = src->asLinear().nonInlineCharsRaw();
-      nursery().removeMallocedBuffer(chars);
-    }
-  }
-
-  if (dst->isFlat() && !dst->isInline()) {
-    AddCellMemory(dst, dst->asFlat().allocSize(), MemoryUse::StringContents);
+  if (src->ownsMallocedChars()) {
+    void* chars = src->asLinear().nonInlineCharsRaw();
+    nursery().removeMallocedBuffer(chars);
+    AddCellMemory(dst, dst->asLinear().allocSize(), MemoryUse::StringContents);
   }
 
   return size;
@@ -3293,12 +3295,27 @@ static inline void CheckIsMarkedThing(T* thingp) {
 #ifdef DEBUG
   MOZ_ASSERT(thingp);
   MOZ_ASSERT(*thingp);
-  JSRuntime* rt = (*thingp)->runtimeFromAnyThread();
-  MOZ_ASSERT_IF(
-      !ThingIsPermanentAtomOrWellKnownSymbol(*thingp),
-      CurrentThreadCanAccessRuntime(rt) ||
-          CurrentThreadCanAccessZone((*thingp)->zoneFromAnyThread()) ||
-          (JS::RuntimeHeapIsCollecting() && rt->gc.state() == State::Sweep));
+
+  // Allow any thread access to uncollected things.
+  T thing = *thingp;
+  if (ThingIsPermanentAtomOrWellKnownSymbol(thing)) {
+    return;
+  }
+
+  // Allow the current thread access if it is sweeping or in sweep-marking, but
+  // try to check the zone. Some threads have access to all zones when sweeping.
+  JSContext* cx = TlsContext.get();
+  if (cx->gcSweeping || cx->gcMarking) {
+    Zone* zone = thing->zoneFromAnyThread();
+    MOZ_ASSERT_IF(cx->gcSweepingZone,
+                  cx->gcSweepingZone == zone || zone->isAtomsZone());
+    return;
+  }
+
+  // Otherwise only allow access from the main thread or this zone's associated
+  // thread.
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(thing->runtimeFromAnyThread()) ||
+             CurrentThreadCanAccessZone(thing->zoneFromAnyThread()));
 #endif
 }
 
@@ -3448,9 +3465,12 @@ inline bool SweepingTracer::sweepEdge(T** thingp) {
     return true;
   }
 
+  // TODO: We should assert the zone of the tenured cell is in Sweeping state,
+  // however we need to fix atoms and JitcodeGlobalTable first.
+  // Bug 1501334 : IsAboutToBeFinalized doesn't work for atoms
+  // Bug 1071218 : Refactor Debugger::sweepAll and
+  //               JitRuntime::SweepJitcodeGlobalTable to work per sweep group
   TenuredCell& tenured = thing->asTenured();
-  MOZ_ASSERT(tenured.zoneFromAnyThread()->isGCSweeping(),
-             "Should be called during Sweeping.");
   if (!tenured.isMarkedAny()) {
     *thingp = nullptr;
     return false;
@@ -3473,9 +3493,15 @@ bool SweepingTracer::onLazyScriptEdge(LazyScript** lazyp) {
 bool SweepingTracer::onBaseShapeEdge(BaseShape** basep) {
   return sweepEdge(basep);
 }
+bool SweepingTracer::onJitCodeEdge(jit::JitCode** jitp) {
+  return sweepEdge(jitp);
+}
 bool SweepingTracer::onScopeEdge(Scope** scopep) { return sweepEdge(scopep); }
 bool SweepingTracer::onRegExpSharedEdge(RegExpShared** sharedp) {
   return sweepEdge(sharedp);
+}
+bool SweepingTracer::onObjectGroupEdge(ObjectGroup** groupp) {
+  return sweepEdge(groupp);
 }
 bool SweepingTracer::onBigIntEdge(BigInt** bip) { return sweepEdge(bip); }
 
@@ -3514,6 +3540,10 @@ FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_INTERNAL_MARKING_FUNCTIONS)
 
 #undef INSTANTIATE_INTERNAL_MARKING_FUNCTIONS_FROM_TRACEKIND
 #undef INSTANTIATE_INTERNAL_MARKING_FUNCTIONS
+
+#ifdef DEBUG
+bool CurrentThreadIsGCMarking() { return TlsContext.get()->gcMarking; }
+#endif  // DEBUG
 
 } /* namespace gc */
 } /* namespace js */
@@ -3667,12 +3697,13 @@ static bool UnmarkGrayGCThing(JSRuntime* rt, JS::GCCellPtr thing) {
   // replay, so disallow recorded events from occurring in the tracer.
   mozilla::recordreplay::AutoDisallowThreadEvents d;
 
-  AutoGeckoProfilerEntry profilingStackFrame(rt->mainContextFromOwnThread(),
-                                             "UnmarkGrayGCThing",
-                                             JS::ProfilingCategoryPair::GCCC);
+  AutoGeckoProfilerEntry profilingStackFrame(
+      TlsContext.get(), "UnmarkGrayGCThing", JS::ProfilingCategoryPair::GCCC);
 
   UnmarkGrayTracer unmarker(rt);
-  gcstats::AutoPhase innerPhase(rt->gc.stats(),
+  // We don't record phaseTimes when we're running on a helper thread.
+  bool enable = TlsContext.get()->isMainThreadContext();
+  gcstats::AutoPhase innerPhase(rt->gc.stats(), enable,
                                 gcstats::PhaseKind::UNMARK_GRAY);
   unmarker.unmark(thing);
   return unmarker.unmarkedAny;

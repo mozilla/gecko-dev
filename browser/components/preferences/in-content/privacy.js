@@ -419,8 +419,8 @@ var gPrivacyPane = {
       gPrivacyPane.networkCookieBehaviorReadPrefs.bind(gPrivacyPane)
     );
 
-    setEventListener("a11yPrivacyCheckbox", "command", function() {
-      return gPrivacyPane.updateA11yPrefs(this.checked);
+    setEventListener("a11yPrivacyCheckbox", "command", ev => {
+      this.updateA11yPrefs(ev.target.checked);
     });
 
     setEventListener(
@@ -1903,12 +1903,10 @@ var gPrivacyPane = {
    */
   showPasswords() {
     if (LoginHelper.managementURI) {
-      window.docShell.messageManager.sendAsyncMessage(
-        "PasswordManager:OpenPreferences",
-        {
-          entryPoint: "preferences",
-        }
-      );
+      let loginManager = window.getWindowGlobalChild().getActor("LoginManager");
+      loginManager.sendAsyncMessage("PasswordManager:OpenPreferences", {
+        entryPoint: "preferences",
+      });
       return;
     }
     Services.telemetry.recordEvent("pwmgr", "open_management", "preferences");

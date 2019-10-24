@@ -7,18 +7,6 @@ const { UrlbarTestUtils } = ChromeUtils.import(
 );
 
 /**
- * Opens a new private window and loads "about:privatebrowsing" there.
- */
-async function openAboutPrivateBrowsing() {
-  let win = await BrowserTestUtils.openNewBrowserWindow({
-    private: true,
-    waitForTabURL: "about:privatebrowsing",
-  });
-  let tab = win.gBrowser.selectedBrowser;
-  return { win, tab };
-}
-
-/**
  * Clicks the given link and checks this opens the given URI in the same tab.
  *
  * This function does not return to the previous page.
@@ -78,17 +66,11 @@ add_task(async function test_myths_link() {
 });
 
 function urlBarHasHiddenFocus(win) {
-  return (
-    win.gURLBar.hasAttribute("focused") &&
-    win.gURLBar.textbox.classList.contains("hidden-focus")
-  );
+  return win.gURLBar.focused && !win.gURLBar.hasAttribute("focused");
 }
 
 function urlBarHasNormalFocus(win) {
-  return (
-    win.gURLBar.hasAttribute("focused") &&
-    !win.gURLBar.textbox.classList.contains("hidden-focus")
-  );
+  return win.gURLBar.hasAttribute("focused");
 }
 
 /**

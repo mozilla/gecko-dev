@@ -6,7 +6,11 @@
 import React, { Component } from "react";
 import Breakpoint from "./Breakpoint";
 
-import { getSelectedSource, getFirstVisibleBreakpoints } from "../../selectors";
+import {
+  getSelectedSource,
+  getFirstVisibleBreakpoints,
+  getCanRewind,
+} from "../../selectors";
 import { makeBreakpointId } from "../../utils/breakpoint";
 import { connect } from "../../utils/connect";
 import { breakpointItemActions } from "./menus/breakpoints";
@@ -20,13 +24,18 @@ import type {
   ThreadContext,
 } from "../../types";
 
+type OwnProps = {|
+  cx: ThreadContext,
+  editor: Object,
+|};
 type Props = {
   cx: ThreadContext,
-  selectedSource: Source,
+  selectedSource: ?Source,
   breakpoints: BreakpointType[],
   editor: Object,
   breakpointActions: BreakpointItemActions,
   editorActions: EditorItemActions,
+  canRewind: boolean,
 };
 
 class Breakpoints extends Component<Props> {
@@ -38,9 +47,10 @@ class Breakpoints extends Component<Props> {
       editor,
       breakpointActions,
       editorActions,
+      canRewind,
     } = this.props;
 
-    if (!breakpoints || selectedSource.isBlackBoxed) {
+    if (!selectedSource || !breakpoints || selectedSource.isBlackBoxed) {
       return null;
     }
 
@@ -56,6 +66,7 @@ class Breakpoints extends Component<Props> {
               editor={editor}
               breakpointActions={breakpointActions}
               editorActions={editorActions}
+              canRewind={canRewind}
             />
           );
         })}
@@ -64,12 +75,13 @@ class Breakpoints extends Component<Props> {
   }
 }
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   state => ({
     // Retrieves only the first breakpoint per line so that the
     // breakpoint marker represents only the first breakpoint
     breakpoints: getFirstVisibleBreakpoints(state),
     selectedSource: getSelectedSource(state),
+    canRewind: getCanRewind(state),
   }),
   dispatch => ({
     breakpointActions: breakpointItemActions(dispatch),

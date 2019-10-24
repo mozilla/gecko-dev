@@ -58,17 +58,17 @@ struct NativeIterator;
 class DtoaCache {
   double d;
   int base;
-  JSFlatString* s;  // if s==nullptr, d and base are not valid
+  JSLinearString* s;  // if s==nullptr, d and base are not valid
 
  public:
   DtoaCache() : s(nullptr) {}
   void purge() { s = nullptr; }
 
-  JSFlatString* lookup(int base, double d) {
+  JSLinearString* lookup(int base, double d) {
     return this->s && base == this->base && d == this->d ? this->s : nullptr;
   }
 
-  void cache(int base, double d, JSFlatString* s) {
+  void cache(int base, double d, JSLinearString* s) {
     this->base = base;
     this->d = d;
     this->s = s;
@@ -272,7 +272,7 @@ class ObjectRealm {
   void finishRoots();
   void trace(JSTracer* trc);
   void sweepAfterMinorGC();
-  void sweepNativeIterators();
+  void traceWeakNativeIterators(JSTracer* trc);
 
   void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                               size_t* innerViewsArg,
@@ -334,7 +334,8 @@ class JS::Realm : public JS::shadow::Realm {
   // Names are only removed from this list by a |delete IdentifierReference|
   // that successfully removes that global property.
   using VarNamesSet =
-      JS::GCHashSet<JSAtom*, js::DefaultHasher<JSAtom*>, js::ZoneAllocPolicy>;
+      GCHashSet<js::HeapPtr<JSAtom*>, js::DefaultHasher<JSAtom*>,
+                js::ZoneAllocPolicy>;
   VarNamesSet varNames_;
 
   friend class js::AutoSetNewObjectMetadata;
@@ -388,6 +389,13 @@ class JS::Realm : public JS::shadow::Realm {
   // This lets us set Compartment::hasEnteredRealm without walking the
   // stack.
   unsigned enterRealmDepthIgnoringJit_ = 0;
+
+ public:
+  using DebuggerVector =
+      js::Vector<js::WeakHeapPtr<js::Debugger*>, 0, js::ZoneAllocPolicy>;
+
+ private:
+  DebuggerVector debuggers_;
 
   enum {
     IsDebuggee = 1 << 0,
@@ -506,7 +514,9 @@ class JS::Realm : public JS::shadow::Realm {
   inline js::GlobalObject* maybeGlobal() const;
 
   /* An unbarriered getter for use while tracing. */
-  inline js::GlobalObject* unsafeUnbarrieredMaybeGlobal() const;
+  js::GlobalObject* unsafeUnbarrieredMaybeGlobal() const {
+    return global_.unbarrieredGet();
+  }
 
   inline js::LexicalEnvironmentObject* unbarrieredLexicalEnvironment() const;
 
@@ -525,7 +535,7 @@ class JS::Realm : public JS::shadow::Realm {
    */
   void traceGlobal(JSTracer* trc);
 
-  void sweepGlobalObject();
+  void traceWeakObjects(JSTracer* trc);
   void fixupGlobal();
 
   /*
@@ -541,12 +551,12 @@ class JS::Realm : public JS::shadow::Realm {
 
   void sweepAfterMinorGC();
   void sweepDebugEnvironments();
-  void sweepObjectRealm();
-  void sweepRegExps();
-  void sweepSelfHostingScriptSource();
-  void sweepTemplateObjects();
+  void traceWeakObjectRealm(JSTracer* trc);
+  void traceWeakRegExps(JSTracer* trc);
+  void traceWeakSelfHostingScriptSource(JSTracer* trc);
+  void traceWeakTemplateObjects(JSTracer* trc);
 
-  void sweepObjectGroups() { objectGroups_.sweep(); }
+  void traceWeakObjectGroups(JSTracer* trc) { objectGroups_.traceWeak(trc); }
 
   void clearScriptCounts();
   void clearScriptLCov();
@@ -563,7 +573,7 @@ class JS::Realm : public JS::shadow::Realm {
 
   // Add a name to [[VarNames]].  Reports OOM on failure.
   MOZ_MUST_USE bool addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name);
-  void sweepVarNames();
+  void tracekWeakVarNames(JSTracer* trc);
 
   void removeFromVarNames(JS::Handle<JSAtom*> name) { varNames_.remove(name); }
 
@@ -705,6 +715,8 @@ class JS::Realm : public JS::shadow::Realm {
   void setIsDebuggee();
   void unsetIsDebuggee();
 
+  DebuggerVector& getDebuggers() { return debuggers_; };
+
   // True if this compartment's global is a debuggee of some Debugger
   // object with a live hook that observes all execution; e.g.,
   // onEnterFrame.
@@ -779,7 +791,7 @@ class JS::Realm : public JS::shadow::Realm {
   void setValidAccessPtr(bool* accessp) { validAccessPtr_ = accessp; }
 
   bool ensureJitRealmExists(JSContext* cx);
-  void sweepJitRealm();
+  void traceWeakEdgesInJitRealm(JSTracer* trc);
 
   js::jit::JitRealm* jitRealm() { return jitRealm_.get(); }
 
@@ -797,7 +809,7 @@ class JS::Realm : public JS::shadow::Realm {
     savedStacks_.chooseSamplingProbability(this);
   }
 
-  void sweepSavedStacks();
+  void traceWeakSavedStacks(JSTracer* trc);
 
   static constexpr size_t offsetOfCompartment() {
     return offsetof(JS::Realm, compartment_);

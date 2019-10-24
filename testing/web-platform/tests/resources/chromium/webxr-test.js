@@ -89,7 +89,7 @@ class MockVRService {
     this.runtimes_ = [];
 
     this.interceptor_ =
-        new MojoInterfaceInterceptor(device.mojom.VRService.name);
+        new MojoInterfaceInterceptor(device.mojom.VRService.name, "context", true);
     this.interceptor_.oninterfacerequest = e =>
         this.bindingSet_.addBinding(this, e.handle);
     this.interceptor_.start();
@@ -187,6 +187,15 @@ class MockVRService {
 // Implements XRFrameDataProvider and XRPresentationProvider. Maintains a mock
 // for XRPresentationProvider.
 class MockRuntime {
+  // Mapping from string feature names to the corresponding mojo types.
+  // This is exposed as a member for extensibility.
+  static featureToMojoMap = {
+    "viewer": device.mojom.XRSessionFeature.REF_SPACE_VIEWER,
+    "local": device.mojom.XRSessionFeature.REF_SPACE_LOCAL,
+    "local-floor": device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR,
+    "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
+    "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED };
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -268,6 +277,7 @@ class MockRuntime {
     this.pose_ = {
       orientation: { x: q[0], y: q[1], z: q[2], w: q[3] },
       position: { x: p[0], y: p[1], z: p[2] },
+      emulatedPosition: emulatedPosition,
       angularVelocity: null,
       linearVelocity: null,
       angularAcceleration: null,
@@ -455,19 +465,10 @@ class MockRuntime {
 
   setFeatures(supportedFeatures) {
     function convertFeatureToMojom(feature) {
-      switch (feature) {
-        case "viewer":
-          return device.mojom.XRSessionFeature.REF_SPACE_VIEWER;
-        case "local":
-          return device.mojom.XRSessionFeature.REF_SPACE_LOCAL;
-        case "local-floor":
-          return device.mojom.XRSessionFeature.REF_SPACE_LOCAL_FLOOR;
-        case "bounded-floor":
-          return device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR;
-        case "unbounded":
-          return device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED;
-        default:
-          return device.mojom.XRSessionFeature.INVALID;
+      if (feature in MockRuntime.featureToMojoMap) {
+        return MockRuntime.featureToMojoMap[feature];
+      } else {
+        return device.mojom.XRSessionFeature.INVALID;
       }
     }
 
@@ -573,7 +574,7 @@ class MockRuntime {
       let submit_frame_sink;
       if (result.supportsSession) {
         submit_frame_sink = {
-          clientRequest: this.presentation_provider_.getClientRequest(),
+          clientReceiver: this.presentation_provider_.getClientReceiver(),
           provider: this.presentation_provider_.bindProvider(sessionOptions),
           transportOptions: options
         };
@@ -583,7 +584,7 @@ class MockRuntime {
         this.dataProviderBinding_ = new mojo.Binding(
             device.mojom.XRFrameDataProvider, this, dataProviderRequest);
 
-        let clientRequest = mojo.makeRequest(this.sessionClient_);
+        let clientReceiver = mojo.makeRequest(this.sessionClient_);
 
         let enabled_features = [];
         for(let i = 0; i < sessionOptions.requiredFeatures.length; i++) {
@@ -604,7 +605,7 @@ class MockRuntime {
           session: {
             submitFrameSink: submit_frame_sink,
             dataProvider: dataProviderPtr,
-            clientRequest: clientRequest,
+            clientReceiver: clientReceiver,
             displayInfo: this.displayInfo_,
             enabledFeatures: enabled_features,
           }
@@ -691,6 +692,7 @@ class MockXRInputSource {
     this.desc_dirty_ = true;
     this.pointer_offset_ = new gfx.mojom.Transform();
     this.pointer_offset_.matrix = getMatrixFromTransform(transform);
+    this.emulated_position_ = emulatedPosition;
   }
 
   disconnect() {
@@ -812,10 +814,10 @@ class MockXRInputSource {
 
     input_state.gamepad = this.gamepad_;
 
+    input_state.emulatedPosition = this.emulated_position_;
+
     if (this.desc_dirty_) {
       let input_desc = new device.mojom.XRInputSourceDescription();
-
-      input_desc.emulatedPosition = this.emulated_position_;
 
       switch (this.target_ray_mode_) {
         case 'gaze':
@@ -955,7 +957,7 @@ class MockXRPresentationProvider {
     return providerPtr;
   }
 
-  getClientRequest() {
+  getClientReceiver() {
     this.submitFrameClient_ = new device.mojom.XRPresentationClientPtr();
     return mojo.makeRequest(this.submitFrameClient_);
   }

@@ -105,8 +105,7 @@ CONFIGURE_DEFINE_FILES += [
 ]
 
 if CONFIG['HAVE_DTRACE']:
-    GENERATED_FILES += ['javascript-trace.h']
-
+    GeneratedFile('javascript-trace.h')
     EXPORTS += ['!javascript-trace.h']
 
 # Changes to internal header files, used externally, massively slow down
@@ -242,6 +241,7 @@ UNIFIED_SOURCES += [
     'builtin/streams/WritableStreamDefaultControllerOperations.cpp',
     'builtin/streams/WritableStreamDefaultWriter.cpp',
     'builtin/streams/WritableStreamOperations.cpp',
+    'builtin/streams/WritableStreamWriterOperations.cpp',
     'builtin/String.cpp',
     'builtin/Symbol.cpp',
     'builtin/TestingFunctions.cpp',
@@ -381,6 +381,9 @@ if CONFIG['ENABLE_INTL_API']:
         'builtin/intl/CommonFunctions.cpp',
         'builtin/intl/DateTimeFormat.cpp',
         'builtin/intl/IntlObject.cpp',
+        'builtin/intl/LanguageTag.cpp',
+        'builtin/intl/LanguageTagGenerated.cpp',
+        'builtin/intl/ListFormat.cpp',
         'builtin/intl/Locale.cpp',
         'builtin/intl/NumberFormat.cpp',
         'builtin/intl/PluralRules.cpp',
@@ -437,16 +440,14 @@ DIRS += [
     'gc',
     'jit',
     'wasm',
-    'zydis',
 ]
+
+if CONFIG['JS_JITSPEW']:
+    DIRS += ['zydis']
 
 FINAL_LIBRARY = 'js'
 
-# Prepare self-hosted JS code for embedding
-GENERATED_FILES += [('selfhosted.out.h', 'selfhosted.js')]
-selfhosted = GENERATED_FILES[('selfhosted.out.h', 'selfhosted.js')]
-selfhosted.script = 'builtin/embedjs.py:generate_selfhosted'
-selfhosted.inputs = [
+selfhosted_inputs = [
     'js.msg',
     'builtin/TypedObjectConstants.h',
     'builtin/SelfHostingDefines.h',
@@ -477,22 +478,23 @@ selfhosted.inputs = [
     'builtin/TypedObject.js',
     'builtin/WeakMap.js',
     'builtin/WeakSet.js'
-]
+] + ([
+    'builtin/intl/Collator.js',
+    'builtin/intl/CommonFunctions.js',
+    'builtin/intl/CurrencyDataGenerated.js',
+    'builtin/intl/DateTimeFormat.js',
+    'builtin/intl/IntlObject.js',
+    'builtin/intl/ListFormat.js',
+    'builtin/intl/NumberFormat.js',
+    'builtin/intl/PluralRules.js',
+    'builtin/intl/RelativeTimeFormat.js',
+] if CONFIG['ENABLE_INTL_API'] else [])
 
-if CONFIG['ENABLE_INTL_API']:
-    selfhosted.inputs += [
-        'builtin/intl/Collator.js',
-        'builtin/intl/CommonFunctions.js',
-        'builtin/intl/CurrencyDataGenerated.js',
-        'builtin/intl/DateTimeFormat.js',
-        'builtin/intl/IntlObject.js',
-        'builtin/intl/LangTagMappingsGenerated.js',
-        'builtin/intl/Locale.js',
-        'builtin/intl/NumberFormat.js',
-        'builtin/intl/PluralRules.js',
-        'builtin/intl/RelativeTimeFormat.js',
-        'builtin/intl/UnicodeExtensionsGenerated.js',
-    ]
+# Prepare self-hosted JS code for embedding
+GeneratedFile('selfhosted.out.h', 'selfhosted.js',
+              script='builtin/embedjs.py',
+              entry_point='generate_selfhosted',
+              inputs=selfhosted_inputs)
 
 if CONFIG['JS_HAS_CTYPES']:
     if CONFIG['MOZ_SYSTEM_FFI']:

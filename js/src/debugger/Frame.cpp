@@ -354,6 +354,15 @@ bool DebuggerFrame::setGenerator(JSContext* cx,
 
   {
     AutoRealm ar(cx, script);
+
+    // All frames running a debuggee script must themselves be marked as
+    // debuggee frames. Bumping a script's generator observer count makes it a
+    // debuggee, so we need to mark all frames on the stack running it as
+    // debuggees as well, not just this one. This call takes care of all that.
+    if (!Debugger::ensureExecutionObservabilityOfScript(cx, script)) {
+      return false;
+    }
+
     if (!DebugScript::incrementGeneratorObserverCount(cx, script)) {
       return false;
     }
@@ -957,6 +966,10 @@ Result<Completion> DebuggerFrame::eval(JSContext* cx, HandleDebuggerFrame frame,
 /* static */
 bool DebuggerFrame::isLive() const { return !!getPrivate(); }
 
+bool DebuggerFrame::isLiveMaybeForwarded() const {
+  return !!getPrivate(numFixedSlotsMaybeForwarded());
+}
+
 OnStepHandler* DebuggerFrame::onStepHandler() const {
   Value value = getReservedSlot(ONSTEP_HANDLER_SLOT);
   return value.isUndefined() ? nullptr
@@ -1069,6 +1082,7 @@ void DebuggerFrame::maybeDecrementFrameScriptStepperCount(
 /* static */
 void DebuggerFrame::finalize(JSFreeOp* fop, JSObject* obj) {
   MOZ_ASSERT(fop->onMainThread());
+
   DebuggerFrame& frameobj = obj->as<DebuggerFrame>();
 
   // Connections between dying Debugger.Frames and their
@@ -1181,8 +1195,8 @@ bool DebuggerFrame::CallData::ToNative(JSContext* cx, unsigned argc,
   // All accessors/methods require a live frame, except for the live getter.
   bool checkLive = MyMethod != &CallData::liveGetter;
 
-  RootedDebuggerFrame frame(cx, DebuggerFrame::check(cx, args.thisv(),
-                                                     checkLive));
+  RootedDebuggerFrame frame(cx,
+                            DebuggerFrame::check(cx, args.thisv(), checkLive));
   if (!frame) {
     return false;
   }
@@ -1317,8 +1331,8 @@ static bool DebuggerArguments_getArg(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedValue framev(cx,
-      argsobj->as<NativeObject>().getReservedSlot(JSSLOT_DEBUGARGUMENTS_FRAME));
+  RootedValue framev(cx, argsobj->as<NativeObject>().getReservedSlot(
+                             JSSLOT_DEBUGARGUMENTS_FRAME));
   RootedDebuggerFrame thisobj(cx, DebuggerFrame::check(cx, framev, true));
   if (!thisobj) {
     return false;
@@ -1615,8 +1629,7 @@ const JSPropertySpec DebuggerFrame::properties_[] = {
 
 const JSFunctionSpec DebuggerFrame::methods_[] = {
     JS_DEBUG_FN("eval", evalMethod, 1),
-    JS_DEBUG_FN("evalWithBindings", evalWithBindingsMethod, 1),
-    JS_FS_END};
+    JS_DEBUG_FN("evalWithBindings", evalWithBindingsMethod, 1), JS_FS_END};
 
 JSObject* js::IdVectorToArray(JSContext* cx, Handle<IdVector> ids) {
   Rooted<ValueVector> vals(cx, ValueVector(cx));

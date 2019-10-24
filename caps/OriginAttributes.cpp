@@ -13,6 +13,9 @@
 #include "nsIURI.h"
 #include "nsURLHelper.h"
 
+static const char kSourceChar = ':';
+static const char kSanitizedChar = '+';
+
 namespace mozilla {
 
 using dom::URLParams;
@@ -74,6 +77,13 @@ void OriginAttributes::SetFirstPartyDomain(const bool aIsTopLevelDocument,
     }
   }
 
+  // Add-on principals should never get any first-party domain
+  // attributes in order to guarantee their storage integrity when switching
+  // FPI on and off.
+  if (scheme.EqualsLiteral("moz-extension")) {
+    return;
+  }
+
   nsCOMPtr<nsIPrincipal> blobPrincipal;
   if (aURI && dom::BlobURLProtocolHandler::GetBlobURLPrincipal(
                   aURI, getter_AddRefs(blobPrincipal))) {
@@ -133,8 +143,7 @@ void OriginAttributes::CreateSuffix(nsACString& aStr) const {
 
   if (!mFirstPartyDomain.IsEmpty()) {
     nsAutoString sanitizedFirstPartyDomain(mFirstPartyDomain);
-    sanitizedFirstPartyDomain.ReplaceChar(
-        dom::quota::QuotaManager::kReplaceChars, '+');
+    sanitizedFirstPartyDomain.ReplaceChar(kSourceChar, kSanitizedChar);
 
     params.Set(NS_LITERAL_STRING("firstPartyDomain"),
                sanitizedFirstPartyDomain);
@@ -143,7 +152,7 @@ void OriginAttributes::CreateSuffix(nsACString& aStr) const {
   if (!mGeckoViewSessionContextId.IsEmpty()) {
     nsAutoString sanitizedGeckoViewUserContextId(mGeckoViewSessionContextId);
     sanitizedGeckoViewUserContextId.ReplaceChar(
-        dom::quota::QuotaManager::kReplaceChars, '+');
+        dom::quota::QuotaManager::kReplaceChars, kSanitizedChar);
 
     params.Set(NS_LITERAL_STRING("geckoViewUserContextId"),
                sanitizedGeckoViewUserContextId);
@@ -230,7 +239,9 @@ class MOZ_STACK_CLASS PopulateFromSuffixIterator final
 
     if (aName.EqualsLiteral("firstPartyDomain")) {
       MOZ_RELEASE_ASSERT(mOriginAttributes->mFirstPartyDomain.IsEmpty());
-      mOriginAttributes->mFirstPartyDomain.Assign(aValue);
+      nsAutoString firstPartyDomain(aValue);
+      firstPartyDomain.ReplaceChar(kSanitizedChar, kSourceChar);
+      mOriginAttributes->mFirstPartyDomain.Assign(firstPartyDomain);
       return true;
     }
 

@@ -101,6 +101,20 @@ body {
   min-height: 19px;
 }
 
+/* webconsole.css | chrome://devtools/skin/webconsole.css */
+.webconsole-filteringbar-wrapper .devtools-toolbar {
+  padding-inline-end: 0;
+}
+
+.devtools-button.webconsole-console-settings-menu-button {
+  height: 100%;
+  margin: 0;
+}
+
+.webconsole-console-settings-menu-button::before {
+  background-image: url("chrome://devtools/skin/images/settings.svg");
+}
+
 .webconsole-app .jsterm-input-container {
   min-height: 28px;
   padding-block-start: 2px;
@@ -132,6 +146,7 @@ body {
   grid-column: 1 / 2;
   grid-row: -1 / -2;
   border-top: 1px solid var(--theme-splitter-color);
+  border-inline-end: 1px solid var(--theme-splitter-color);
 }
 
 .sidebar {
@@ -139,6 +154,7 @@ body {
   grid-row: 1 / -1;
   grid-column: -1 / -2;
   grid-template-rows: subgrid;
+  border-inline-start: 1px solid var(--theme-splitter-color);
   background-color: var(--theme-sidebar-background);
   width: 200px;
   min-width: 150px;
@@ -146,7 +162,6 @@ body {
 }
 
 .sidebar-resizer {
-  /* We want the splitter to cover the whole column (minus self-xss message) */
   grid-row: 1 / -1;
   grid-column: -1 / -2;
 }
@@ -170,7 +185,7 @@ body {
 }
 
 .sidebar-close-button::before {
-  background-image: url(chrome://devtools/skin/images/close.svg);
+  background-image: url("chrome://devtools/skin/images/close.svg");
 }
 
 .sidebar-contents .object-inspector {
@@ -230,6 +245,7 @@ body {
 .jsterm-editor .webconsole-editor-toolbar {
   grid-column: 1 / 2;
   grid-row: 2 / 3;
+  border-inline-end: 1px solid var(--theme-splitter-color);
   display: grid;
   align-items: center;
   /*
@@ -239,9 +255,9 @@ body {
      *   - A separator
      *   - The close button
      *
-     * +------------------------------------------+
-     * | ▶︎ Run                          ˄ ˅ 🔍 | ✖️ |
-     * +------------------------------------------+
+     * +-------------------------------------------+
+     * | ▶︎ Run                          ˄ ˅ 🔍 | ✕ |
+     * +-------------------------------------------+
      *
      */
   grid-template-columns: auto 1fr auto auto auto auto auto;
@@ -249,16 +265,24 @@ body {
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-executeButton {
-  background-image: url(chrome://devtools/skin/images/webconsole/run.svg);
-  -moz-context-properties: fill;
-  fill: currentColor;
-  padding-inline-start: 22px;
-  background-repeat: no-repeat;
-  background-position: 4px center;
-  padding-inline-end: 8px;
+  padding-inline: 4px 8px;
   height: 20px;
   margin-inline-start: 5px;
-  background-size: 16px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-executeButton::before {
+  content: url("chrome://devtools/skin/images/webconsole/run.svg");
+  height: 16px;
+  width: 16px;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  margin-inline-end: 2px;
+}
+
+[dir="rtl"] .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-executeButton::before {
+  transform: rotate(180deg);
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-history-prevExpressionButton {
@@ -282,22 +306,22 @@ body {
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-history-prevExpressionButton::before {
-  background-image: url(chrome://devtools/skin/images/arrowhead-up.svg);
+  background-image: url("chrome://devtools/skin/images/arrowhead-up.svg");
   background-size: 16px;
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-history-nextExpressionButton::before {
-  background-image: url(chrome://devtools/skin/images/arrowhead-down.svg);
+  background-image: url("chrome://devtools/skin/images/arrowhead-down.svg");
   background-size: 16px;
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-reverseSearchButton::before {
-  background-image: url(chrome://devtools/skin/images/webconsole/reverse-search.svg);
+  background-image: url("chrome://devtools/skin/images/webconsole/reverse-search.svg");
   background-size: 14px;
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-closeButton::before {
-  background-image: url(chrome://devtools/skin/images/close.svg);
+  background-image: url("chrome://devtools/skin/images/close.svg");
 }
 
 .jsterm-editor .webconsole-input-openEditorButton {
@@ -313,8 +337,10 @@ body {
   grid-column: 1 / 2;
   grid-row: 3 / 5;
   width: 30vw;
-  min-width: 150px;
+  /* Don't allow the input to be narrower than the grid-column it's in  */
+  min-width: 100%;
   border-top: none;
+  border-inline-end: 1px solid var(--theme-splitter-color);
   padding: 0;
   /* Needed as we might have the onboarding UI displayed */
   display: flex;
@@ -322,13 +348,15 @@ body {
 }
 
 .jsterm-editor #webconsole-notificationbox {
-  grid-row: 1 / 2;
   grid-column: -1 / 1;
+  grid-row: 1 / 2;
 }
 
 .jsterm-editor .jsterm-input-container > .CodeMirror {
   flex: 1;
   padding-inline-start: 0;
+  font-size: var(--theme-code-font-size);
+  line-height: var(--theme-code-line-height);
   background-image: none;
 }
 
@@ -355,7 +383,7 @@ body {
 .jsterm-editor .editor-onboarding {
   display: grid;
   /**
-   * Here's the design we want: 
+   * Here's the design we want:
    * ┌──────┬────────────────────────┐
    * │ Icon │    Onboarding text     │
    * ├──────┼────────────────────────┤

@@ -240,6 +240,7 @@ class nsJSUtils {
       JSContext* aCx, mozilla::dom::Element* aElement,
       JS::MutableHandleVector<JSObject*> aScopeChain);
 
+#ifdef MOZ_XBL
   // Returns a scope chain suitable for XBL execution.
   //
   // This is by default GetScopeChainForElemenet, but will be different if the
@@ -250,6 +251,7 @@ class nsJSUtils {
       JSContext* aCx, mozilla::dom::Element* aBoundElement,
       const nsXBLPrototypeBinding& aProtoBinding,
       JS::MutableHandleVector<JSObject*> aScopeChain);
+#endif
 
   static void ResetTimeZone();
 
@@ -268,12 +270,12 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   return js::CopyStringChars(cx, dest.BeginWriting(), s, len);
 }
 
-inline void AssignJSFlatString(nsAString& dest, JSFlatString* s) {
-  size_t len = js::GetFlatStringLength(s);
+inline void AssignJSLinearString(nsAString& dest, JSLinearString* s) {
+  size_t len = js::GetLinearStringLength(s);
   static_assert(js::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
   dest.SetLength(len);
-  js::CopyFlatStringChars(dest.BeginWriting(), s, len);
+  js::CopyLinearStringChars(dest.BeginWriting(), s, len);
 }
 
 class nsAutoJSString : public nsAutoString {

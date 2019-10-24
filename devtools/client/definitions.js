@@ -107,6 +107,18 @@ loader.lazyImporter(
   "resource://devtools/client/scratchpad/scratchpad-manager.jsm"
 );
 
+loader.lazyRequireGetter(
+  this,
+  "AppConstants",
+  "resource://gre/modules/AppConstants.jsm",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "DevToolsFissionPrefs",
+  "devtools/client/devtools-fission-prefs"
+);
+
 const { MultiLocalizationHelper } = require("devtools/shared/l10n");
 const L10N = new MultiLocalizationHelper(
   "devtools/client/locales/startup.properties",
@@ -226,7 +238,7 @@ Tools.jsdebugger = {
     return l10n(
       "ToolboxDebugger.tooltip4",
       (osString == "Darwin" ? "Cmd+Opt+" : "Ctrl+Shift+") +
-        l10n("jsdebugger.commandkey")
+        l10n("jsdebugger.commandkey2")
     );
   },
   inMenu: true,
@@ -556,16 +568,31 @@ exports.ToolboxButtons = [
   {
     id: "command-button-replay",
     description: l10n("toolbox.buttons.replay"),
-    isTargetSupported: target => !target.canRewind && target.isLocalTab,
+    isTargetSupported: target =>
+      Services.prefs.getBoolPref("devtools.recordreplay.enabled") &&
+      !target.canRewind &&
+      target.isLocalTab,
     onClick: () => reloadAndRecordTab(),
     isChecked: () => false,
+    experimentalURL:
+      "https://developer.mozilla.org/en-US/docs/Mozilla/Projects/WebReplay",
   },
   {
     id: "command-button-stop-replay",
     description: l10n("toolbox.buttons.stopReplay"),
-    isTargetSupported: target => target.canRewind && target.isLocalTab,
+    isTargetSupported: target =>
+      Services.prefs.getBoolPref("devtools.recordreplay.enabled") &&
+      target.canRewind &&
+      target.isLocalTab,
     onClick: () => reloadAndStopRecordingTab(),
     isChecked: () => true,
+  },
+  {
+    id: "command-button-fission-prefs",
+    description: "DevTools Fission preferences",
+    isTargetSupported: target => !AppConstants.MOZILLA_OFFICIAL,
+    onClick: (event, toolbox) => DevToolsFissionPrefs.showTooltip(toolbox),
+    isChecked: () => DevToolsFissionPrefs.isAnyPreferenceEnabled(),
   },
   {
     id: "command-button-responsive",

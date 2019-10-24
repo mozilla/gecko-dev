@@ -108,7 +108,7 @@ async function makeSureProfilerPopupIsEnabled() {
 
   info("> Load the profiler menu button.");
   const { ProfilerMenuButton } = ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/menu-button.jsm"
+    "resource://devtools/client/performance-new/popup/menu-button.jsm.js"
   );
 
   if (!ProfilerMenuButton.isEnabled()) {
@@ -178,7 +178,7 @@ function setProfilerFrontendUrl(url) {
  * test harness. This function runs in a loop every requestAnimationFrame, and
  * checks for a sucess title. In addition, an "initialTitle" and "errorTitle"
  * can be specified for nicer test output.
- * @param {Object}
+ * @param {object}
  *   {
  *     initialTitle: string,
  *     successTitle: string,

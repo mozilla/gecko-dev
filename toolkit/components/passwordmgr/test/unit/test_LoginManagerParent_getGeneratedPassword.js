@@ -5,7 +5,7 @@
 "use strict";
 
 const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { LoginManagerParent: LMP } = ChromeUtils.import(
+const { LoginManagerParent } = ChromeUtils.import(
   "resource://gre/modules/LoginManagerParent.jsm"
 );
 
@@ -14,23 +14,29 @@ add_task(async function test_getGeneratedPassword() {
   Services.prefs.setBoolPref("signon.generation.available", true);
   Services.prefs.setBoolPref("signon.generation.enabled", true);
 
+  let LMP = new LoginManagerParent();
+  LMP.useBrowsingContext(99);
+
   ok(LMP.getGeneratedPassword, "LMP.getGeneratedPassword exists");
   equal(
-    LMP._generatedPasswordsByPrincipalOrigin.size,
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().size,
     0,
     "Empty cache to start"
   );
 
-  equal(LMP.getGeneratedPassword(99), null, "Null with no BrowsingContext");
+  equal(LMP.getGeneratedPassword(), null, "Null with no BrowsingContext");
 
-  ok(LMP._browsingContextGlobal, "Check _browsingContextGlobal exists");
   ok(
-    !LMP._browsingContextGlobal.get(99),
+    LoginManagerParent._browsingContextGlobal,
+    "Check _browsingContextGlobal exists"
+  );
+  ok(
+    !LoginManagerParent._browsingContextGlobal.get(99),
     "BrowsingContext 99 shouldn't exist yet"
   );
   info("Stubbing BrowsingContext.get(99)");
   sinon
-    .stub(LMP._browsingContextGlobal, "get")
+    .stub(LoginManagerParent._browsingContextGlobal, "get")
     .withArgs(99)
     .callsFake(() => {
       return {
@@ -42,26 +48,30 @@ add_task(async function test_getGeneratedPassword() {
       };
     });
   ok(
-    LMP._browsingContextGlobal.get(99),
+    LoginManagerParent._browsingContextGlobal.get(99),
     "Checking BrowsingContext.get(99) stub"
   );
 
-  let password1 = LMP.getGeneratedPassword(99);
+  let password1 = LMP.getGeneratedPassword();
   notEqual(password1, null, "Check password was returned");
   equal(
     password1.length,
     LoginTestUtils.generation.LENGTH,
     "Check password length"
   );
-  equal(LMP._generatedPasswordsByPrincipalOrigin.size, 1, "1 added to cache");
   equal(
-    LMP._generatedPasswordsByPrincipalOrigin.get(
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().size,
+    1,
+    "1 added to cache"
+  );
+  equal(
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
       "https://www.example.com^userContextId=6"
     ).value,
     password1,
     "Cache key and value"
   );
-  let password2 = LMP.getGeneratedPassword(99);
+  let password2 = LMP.getGeneratedPassword();
   equal(
     password1,
     password2,
@@ -69,9 +79,9 @@ add_task(async function test_getGeneratedPassword() {
   );
 
   info("Changing the documentPrincipal to simulate a navigation in the frame");
-  LMP._browsingContextGlobal.get.restore();
+  LoginManagerParent._browsingContextGlobal.get.restore();
   sinon
-    .stub(LMP._browsingContextGlobal, "get")
+    .stub(LoginManagerParent._browsingContextGlobal, "get")
     .withArgs(99)
     .callsFake(() => {
       return {
@@ -82,7 +92,7 @@ add_task(async function test_getGeneratedPassword() {
         },
       };
     });
-  let password3 = LMP.getGeneratedPassword(99);
+  let password3 = LMP.getGeneratedPassword();
   notEqual(
     password2,
     password3,
@@ -97,19 +107,20 @@ add_task(async function test_getGeneratedPassword() {
   info("Now checks cases where null should be returned");
 
   Services.prefs.setBoolPref("signon.rememberSignons", false);
-  equal(LMP.getGeneratedPassword(99), null, "Prevented when pwmgr disabled");
+  equal(LMP.getGeneratedPassword(), null, "Prevented when pwmgr disabled");
   Services.prefs.setBoolPref("signon.rememberSignons", true);
 
   Services.prefs.setBoolPref("signon.generation.available", false);
-  equal(LMP.getGeneratedPassword(99), null, "Prevented when unavailable");
+  equal(LMP.getGeneratedPassword(), null, "Prevented when unavailable");
   Services.prefs.setBoolPref("signon.generation.available", true);
 
   Services.prefs.setBoolPref("signon.generation.enabled", false);
-  equal(LMP.getGeneratedPassword(99), null, "Prevented when disabled");
+  equal(LMP.getGeneratedPassword(), null, "Prevented when disabled");
   Services.prefs.setBoolPref("signon.generation.enabled", true);
 
+  LMP.useBrowsingContext(123);
   equal(
-    LMP.getGeneratedPassword(123),
+    LMP.getGeneratedPassword(),
     null,
     "Prevented when browsingContext is missing"
   );

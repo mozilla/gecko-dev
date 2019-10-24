@@ -237,6 +237,10 @@ class ResponsiveUI {
     this.browserContainerEl = gBrowser.getBrowserContainer(
       gBrowser.getBrowserForTab(this.tab)
     );
+    this.browserStackEl = this.browserContainerEl.querySelector(
+      ".browserStack"
+    );
+
     this.browserContainerEl.classList.add("responsive-mode");
 
     // Prepend the RDM iframe inside of the current tab's browser container.
@@ -304,6 +308,8 @@ class ResponsiveUI {
       this.rdmFrame.remove();
 
       this.browserContainerEl.classList.remove("responsive-mode");
+      this.browserStackEl.style.maxWidth = this.browserStackEl.style.minWidth = null;
+      this.browserStackEl.style.maxHeight = this.browserStackEl.style.minHeight = null;
     }
 
     if (!this.isBrowserUIEnabled && !isTabContentDestroying) {
@@ -330,6 +336,7 @@ class ResponsiveUI {
     // Destroy local state
     const swap = this.swap;
     this.browserContainerEl = null;
+    this.browserStackEl = null;
     this.browserWindow = null;
     this.tab = null;
     this.inited = null;
@@ -535,6 +542,7 @@ class ResponsiveUI {
 
   onResizeViewport(event) {
     const { width, height } = event.data;
+    this.updateViewportSize(width, height);
     this.emit("viewport-resize", {
       width,
       height,
@@ -601,6 +609,7 @@ class ResponsiveUI {
       height,
     });
 
+    this.updateViewportSize(width, height);
     await this.updateDPPX(pixelRatio);
     await this.updateScreenOrientation(type, angle);
 
@@ -738,6 +747,23 @@ class ResponsiveUI {
     if (!isViewportRotated) {
       this.emit("only-viewport-orientation-changed");
     }
+  }
+
+  /**
+   * Sets the browser element to be the given width and height.
+   *
+   * @param {Number} width
+   *        The viewport's width.
+   * @param {Number} height
+   *        The viewport's height.
+   */
+  updateViewportSize(width, height) {
+    if (!this.isBrowserUIEnabled) {
+      return;
+    }
+
+    this.browserStackEl.style.maxWidth = this.browserStackEl.style.minWidth = `${width}px`;
+    this.browserStackEl.style.maxHeight = this.browserStackEl.style.minHeight = `${height}px`;
   }
 
   /**

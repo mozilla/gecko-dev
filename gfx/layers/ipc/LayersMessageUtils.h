@@ -322,10 +322,6 @@ struct ParamTraits<mozilla::layers::ScrollSnapInfo> {
   static void Write(Message* aMsg, const paramType& aParam) {
     WriteParam(aMsg, aParam.mScrollSnapStrictnessX);
     WriteParam(aMsg, aParam.mScrollSnapStrictnessY);
-    WriteParam(aMsg, aParam.mScrollSnapIntervalX);
-    WriteParam(aMsg, aParam.mScrollSnapIntervalY);
-    WriteParam(aMsg, aParam.mScrollSnapDestination);
-    WriteParam(aMsg, aParam.mScrollSnapCoordinates);
     WriteParam(aMsg, aParam.mSnapPositionX);
     WriteParam(aMsg, aParam.mSnapPositionY);
     WriteParam(aMsg, aParam.mXRangeWiderThanSnapport);
@@ -337,10 +333,6 @@ struct ParamTraits<mozilla::layers::ScrollSnapInfo> {
                    paramType* aResult) {
     return (ReadParam(aMsg, aIter, &aResult->mScrollSnapStrictnessX) &&
             ReadParam(aMsg, aIter, &aResult->mScrollSnapStrictnessY) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollSnapIntervalX) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollSnapIntervalY) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollSnapDestination) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollSnapCoordinates) &&
             ReadParam(aMsg, aIter, &aResult->mSnapPositionX) &&
             ReadParam(aMsg, aIter, &aResult->mSnapPositionY) &&
             ReadParam(aMsg, aIter, &aResult->mXRangeWiderThanSnapport) &&
@@ -453,6 +445,7 @@ struct ParamTraits<mozilla::layers::TextureFactoryIdentifier> {
     WriteParam(aMsg, aParam.mSupportsTextureDirectMapping);
     WriteParam(aMsg, aParam.mCompositorUseANGLE);
     WriteParam(aMsg, aParam.mCompositorUseDComp);
+    WriteParam(aMsg, aParam.mUseCompositorWnd);
     WriteParam(aMsg, aParam.mSupportsTextureBlitting);
     WriteParam(aMsg, aParam.mSupportsPartialUploads);
     WriteParam(aMsg, aParam.mSupportsComponentAlpha);
@@ -469,6 +462,7 @@ struct ParamTraits<mozilla::layers::TextureFactoryIdentifier> {
         ReadParam(aMsg, aIter, &aResult->mSupportsTextureDirectMapping) &&
         ReadParam(aMsg, aIter, &aResult->mCompositorUseANGLE) &&
         ReadParam(aMsg, aIter, &aResult->mCompositorUseDComp) &&
+        ReadParam(aMsg, aIter, &aResult->mUseCompositorWnd) &&
         ReadParam(aMsg, aIter, &aResult->mSupportsTextureBlitting) &&
         ReadParam(aMsg, aIter, &aResult->mSupportsPartialUploads) &&
         ReadParam(aMsg, aIter, &aResult->mSupportsComponentAlpha) &&

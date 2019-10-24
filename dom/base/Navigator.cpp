@@ -41,6 +41,7 @@
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/GamepadServiceTest.h"
 #include "mozilla/dom/MediaCapabilities.h"
+#include "mozilla/dom/MediaSession.h"
 #include "mozilla/dom/WakeLock.h"
 #include "mozilla/dom/power/PowerManagerService.h"
 #include "mozilla/dom/MIDIAccessManager.h"
@@ -106,6 +107,7 @@
 #include "mozilla/Unused.h"
 
 #include "mozilla/webgpu/Instance.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 
 namespace mozilla {
 namespace dom {
@@ -142,6 +144,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(Navigator)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Navigator)
   tmp->Invalidate();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSharePromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -158,6 +161,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaDevices)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mServiceWorkerContainer)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaCapabilities)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaSession)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAddonManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebGpu)
 
@@ -167,6 +171,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGamepadServiceTest)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVRGetDisplaysPromises)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVRServiceTest)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSharePromise)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(Navigator)
@@ -230,10 +235,13 @@ void Navigator::Invalidate() {
   }
 
   mMediaCapabilities = nullptr;
+  mMediaSession = nullptr;
 
   mAddonManager = nullptr;
 
   mWebGpu = nullptr;
+
+  mSharePromise = nullptr;
 }
 
 void Navigator::GetUserAgent(nsAString& aUserAgent, CallerType aCallerType,
@@ -825,6 +833,7 @@ void Navigator::RegisterContentHandler(const nsAString& aMIMEType,
 
 // This list should be kept up-to-date with the spec:
 // https://html.spec.whatwg.org/multipage/system-state.html#custom-handlers
+// If you change this list, please also update the copy in E10SUtils.jsm.
 static const char* const kSafeSchemes[] = {
     "bitcoin", "geo",  "im",   "irc",         "ircs", "magnet", "mailto",
     "mms",     "news", "nntp", "openpgp4fpr", "sip",  "sms",    "smsto",
@@ -1331,6 +1340,110 @@ Promise* Navigator::GetBattery(ErrorResult& aRv) {
   return mBatteryPromise;
 }
 
+//*****************************************************************************
+//    Navigator::Share() - Web Share API
+//*****************************************************************************
+
+Promise* Navigator::Share(const ShareData& aData, ErrorResult& aRv) {
+  if (NS_WARN_IF(!mWindow || !mWindow->GetDocShell() ||
+                 !mWindow->GetExtantDoc())) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+
+  if (mSharePromise) {
+    NS_WARNING("Only one share picker at a time per navigator instance");
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return nullptr;
+  }
+
+  // If none of data's members title, text, or url are present, reject p with
+  // TypeError, and abort these steps.
+  bool someMemberPassed = aData.mTitle.WasPassed() || aData.mText.WasPassed() ||
+                          aData.mUrl.WasPassed();
+  if (!someMemberPassed) {
+    nsAutoString message;
+    nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
+                                       "WebShareAPI_NeedOneMember", message);
+    aRv.ThrowTypeError<MSG_MISSING_REQUIRED_DICTIONARY_MEMBER>(message);
+    return nullptr;
+  }
+
+  // null checked above
+  auto doc = mWindow->GetExtantDoc();
+
+  // If data's url member is present, try to resolve it...
+  nsCOMPtr<nsIURI> url;
+  if (aData.mUrl.WasPassed()) {
+    auto result = doc->ResolveWithBaseURI(aData.mUrl.Value());
+    if (NS_WARN_IF(result.isErr())) {
+      aRv.ThrowTypeError<MSG_INVALID_URL>(aData.mUrl.Value());
+      return nullptr;
+    }
+    url = result.unwrap();
+  }
+
+  // Process the title member...
+  nsCString title;
+  if (aData.mTitle.WasPassed()) {
+    title.Assign(NS_ConvertUTF16toUTF8(aData.mTitle.Value()));
+  } else {
+    title.SetIsVoid(true);
+  }
+
+  // Process the text member...
+  nsCString text;
+  if (aData.mText.WasPassed()) {
+    text.Assign(NS_ConvertUTF16toUTF8(aData.mText.Value()));
+  } else {
+    text.SetIsVoid(true);
+  }
+
+  // The spec does the "triggered by user activation" after the data checks.
+  // Unfortunately, both Chrome and Safari behave this way, so interop wins.
+  // https://github.com/w3c/web-share/pull/118
+  if (!UserActivation::IsHandlingUserInput()) {
+    NS_WARNING("Attempt to share not triggered by user activation");
+    aRv.Throw(NS_ERROR_DOM_NOT_ALLOWED_ERR);
+    return nullptr;
+  }
+
+  // Let mSharePromise be a new promise.
+  mSharePromise = Promise::Create(mWindow->AsGlobal(), aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  IPCWebShareData data(title, text, url);
+  auto wgc = mWindow->GetWindowGlobalChild();
+  if (!wgc) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  auto shareResolver = [self = RefPtr<Navigator>(this)](nsresult aResult) {
+    MOZ_ASSERT(self->mSharePromise);
+    if (NS_SUCCEEDED(aResult)) {
+      self->mSharePromise->MaybeResolveWithUndefined();
+    } else {
+      self->mSharePromise->MaybeReject(aResult);
+    }
+    self->mSharePromise = nullptr;
+  };
+
+  auto shareRejector = [self = RefPtr<Navigator>(this)](
+                           mozilla::ipc::ResponseRejectReason&& aReason) {
+    // IPC died or maybe page navigated...
+    if (self->mSharePromise) {
+      self->mSharePromise = nullptr;
+    }
+  };
+
+  // Do the share
+  wgc->SendShare(data, shareResolver, shareRejector);
+  return mSharePromise;
+}
+
 already_AddRefed<LegacyMozTCPSocket> Navigator::MozTCPSocket() {
   RefPtr<LegacyMozTCPSocket> socket = new LegacyMozTCPSocket(GetWindow());
   return socket.forget();
@@ -1826,6 +1939,13 @@ dom::MediaCapabilities* Navigator::MediaCapabilities() {
     mMediaCapabilities = new dom::MediaCapabilities(GetWindow()->AsGlobal());
   }
   return mMediaCapabilities;
+}
+
+dom::MediaSession* Navigator::MediaSession() {
+  if (!mMediaSession) {
+    mMediaSession = new dom::MediaSession(GetWindow());
+  }
+  return mMediaSession;
 }
 
 Clipboard* Navigator::Clipboard() {

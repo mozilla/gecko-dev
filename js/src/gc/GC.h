@@ -56,6 +56,9 @@ FOR_EACH_NONOBJECT_ALLOCKIND(EXPAND_MAPTYPETOFINALIZEKIND)
 
 extern void TraceRuntime(JSTracer* trc);
 
+// Trace roots but don't evict the nursery first; used from DumpHeap.
+extern void TraceRuntimeWithoutEviction(JSTracer* trc);
+
 extern void ReleaseAllJITCode(JSFreeOp* op);
 
 extern void PrepareForDebugGC(JSRuntime* rt);
@@ -74,8 +77,8 @@ typedef void (*IterateZoneCallback)(JSRuntime* rt, void* data, JS::Zone* zone);
 typedef void (*IterateArenaCallback)(JSRuntime* rt, void* data,
                                      gc::Arena* arena, JS::TraceKind traceKind,
                                      size_t thingSize);
-typedef void (*IterateCellCallback)(JSRuntime* rt, void* data, void* thing,
-                                    JS::TraceKind traceKind, size_t thingSize);
+typedef void (*IterateCellCallback)(JSRuntime* rt, void* data,
+                                    JS::GCCellPtr cellptr, size_t thingSize);
 
 /*
  * This function calls |zoneCallback| on every zone, |realmCallback| on

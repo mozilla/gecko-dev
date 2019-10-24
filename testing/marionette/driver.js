@@ -2660,7 +2660,7 @@ GeckoDriver.prototype.clearElement = async function(cmd) {
     case Context.Chrome:
       // the selenium atom doesn't work here
       let el = this.curBrowser.seenEls.get(webEl);
-      if (el.nodeName == "textbox") {
+      if (el.nodeName == "input" && el.type == "text") {
         el.value = "";
       } else if (el.nodeName == "checkbox") {
         el.checked = false;
@@ -3019,6 +3019,7 @@ GeckoDriver.prototype.deleteSession = function() {
  */
 GeckoDriver.prototype.takeScreenshot = async function(cmd) {
   let win = assert.open(this.getCurrentWindow());
+  await this._handleUserPrompts();
 
   let { id, full, hash, scroll } = cmd.parameters;
   let format = hash ? capture.Format.Hash : capture.Format.Base64;

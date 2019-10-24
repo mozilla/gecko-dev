@@ -36,8 +36,7 @@ using namespace mozilla::a11y;
 
 XULMenuitemAccessible::XULMenuitemAccessible(nsIContent* aContent,
                                              DocAccessible* aDoc)
-    : AccessibleWrap(aContent, aDoc) {
-}
+    : AccessibleWrap(aContent, aDoc) {}
 
 uint64_t XULMenuitemAccessible::NativeState() const {
   uint64_t state = Accessible::NativeState();
@@ -221,8 +220,10 @@ role XULMenuitemAccessible::NativeRole() const {
   nsCOMPtr<nsIDOMXULContainerElement> xulContainer = Elm()->AsXULContainer();
   if (xulContainer) return roles::PARENT_MENUITEM;
 
-  if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
+  Accessible* widget = ContainerWidget();
+  if (widget && widget->Role() == roles::COMBOBOX_LIST) {
     return roles::COMBOBOX_OPTION;
+  }
 
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                          nsGkAtoms::radio, eCaseMatters))
@@ -287,11 +288,21 @@ Accessible* XULMenuitemAccessible::ContainerWidget() const {
   if (menuFrame) {
     nsMenuParent* menuParent = menuFrame->GetMenuParent();
     if (menuParent) {
-      if (menuParent->IsMenuBar())  // menubar menu
-        return mParent;
-
-      // a menupoup or parent menu item
-      if (menuParent->IsMenu()) return mParent;
+      nsBoxFrame* frame = nullptr;
+      if (menuParent->IsMenuBar()) {  // menubar menu
+        frame = static_cast<nsMenuBarFrame*>(menuParent);
+      } else if (menuParent->IsMenu()) {  // a menupopup or parent menu item
+        frame = static_cast<nsMenuPopupFrame*>(menuParent);
+      }
+      if (frame) {
+        nsIContent* content = frame->GetContent();
+        if (content) {
+          MOZ_ASSERT(mDoc);
+          // We use GetAccessibleOrContainer instead of just GetAccessible
+          // because we strip menupopups from the tree for ATK.
+          return mDoc->GetAccessibleOrContainer(content);
+        }
+      }
 
       // otherwise it's different kind of popups (like panel or tooltip), it
       // shouldn't be a real case.
@@ -391,8 +402,11 @@ ENameValueFlag XULMenupopupAccessible::NativeName(nsString& aName) const {
 }
 
 role XULMenupopupAccessible::NativeRole() const {
-  // If accessible is not bound to the tree (this happens while children are
-  // cached) return general role.
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  if (menuPopupFrame && menuPopupFrame->IsContextMenu()) {
+    return roles::MENUPOPUP;
+  }
+
   if (mParent) {
     if (mParent->IsCombobox() || mParent->IsAutoComplete())
       return roles::COMBOBOX_LIST;
@@ -405,6 +419,8 @@ role XULMenupopupAccessible::NativeRole() const {
     }
   }
 
+  // If accessible is not bound to the tree (this happens while children are
+  // cached) return general role.
   return roles::MENUPOPUP;
 }
 

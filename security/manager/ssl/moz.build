@@ -4,6 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# osclientcerts is currently only implemented for Windows
+# osclientcerts transitively depends on winapi 0.2.8, which doesn't work with
+# AArch64
+if CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['CPU_ARCH'] != 'aarch64':
+    DIRS += [ 'osclientcerts' ]
+
 TEST_DIRS += [ 'tests' ]
 
 XPIDL_SOURCES += [
@@ -219,12 +225,9 @@ LOCAL_INCLUDES += [
     '!/dist/public/nss',
 ]
 
-GENERATED_FILES = [
-    'nsSTSPreloadList.h',
-]
-dafsa_data = GENERATED_FILES['nsSTSPreloadList.h']
-dafsa_data.script = '../../../xpcom/ds/tools/make_dafsa.py'
-dafsa_data.inputs = ['nsSTSPreloadList.inc']
+GeneratedFile('nsSTSPreloadList.h',
+              script='../../../xpcom/ds/tools/make_dafsa.py',
+              inputs=['nsSTSPreloadList.inc'])
 
 if CONFIG['NSS_DISABLE_DBM']:
     DEFINES['NSS_DISABLE_DBM'] = '1'

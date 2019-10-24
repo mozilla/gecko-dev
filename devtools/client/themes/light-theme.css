@@ -195,7 +195,7 @@ body {
 }
 
 .cm-s-mozilla .CodeMirror-selected { /* selected text (unfocused) */
-  background: rgb(176, 176, 176);
+  background: rgb(210, 210, 210);
 }
 
 .cm-s-mozilla .CodeMirror-activeline-background { /* selected color with alpha */
@@ -232,11 +232,6 @@ div.CodeMirror span.eval-text {
 .cm-s-mozilla .CodeMirror-gutters { /* vertical line next to line numbers */
   border-right-color: var(--theme-splitter-color);
   background-color: var(--theme-sidebar-background);
-}
-
-.cm-s-markup-view pre {
-  line-height: 1.4em;
-  min-height: 1.4em;
 }
 
 .CodeMirror-hints,

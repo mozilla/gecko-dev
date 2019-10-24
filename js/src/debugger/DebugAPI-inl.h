@@ -58,9 +58,9 @@ void DebugAPI::onNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global) {
 /* static */
 void DebugAPI::notifyParticipatesInGC(GlobalObject* global,
                                       uint64_t majorGCNumber) {
-  GlobalObject::DebuggerVector* dbgs = global->getDebuggers();
-  if (dbgs && !dbgs->empty()) {
-    slowPathNotifyParticipatesInGC(majorGCNumber, *dbgs);
+  Realm::DebuggerVector& dbgs = global->getDebuggers();
+  if (!dbgs.empty()) {
+    slowPathNotifyParticipatesInGC(majorGCNumber, dbgs);
   }
 }
 
@@ -68,12 +68,12 @@ void DebugAPI::notifyParticipatesInGC(GlobalObject* global,
 bool DebugAPI::onLogAllocationSite(JSContext* cx, JSObject* obj,
                                    HandleSavedFrame frame,
                                    mozilla::TimeStamp when) {
-  GlobalObject::DebuggerVector* dbgs = cx->global()->getDebuggers();
-  if (!dbgs || dbgs->empty()) {
+  Realm::DebuggerVector& dbgs = cx->global()->getDebuggers();
+  if (dbgs.empty()) {
     return true;
   }
   RootedObject hobj(cx, obj);
-  return slowPathOnLogAllocationSite(cx, hobj, frame, when, *dbgs);
+  return slowPathOnLogAllocationSite(cx, hobj, frame, when, dbgs);
 }
 
 /* static */
@@ -176,13 +176,6 @@ void DebugAPI::onNewPromise(JSContext* cx, Handle<PromiseObject*> promise) {
 void DebugAPI::onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise) {
   if (MOZ_UNLIKELY(promise->realm()->isDebuggee())) {
     slowPathOnPromiseSettled(cx, promise);
-  }
-}
-
-/* static */
-void DebugAPI::sweepBreakpoints(JSFreeOp* fop, JSScript* script) {
-  if (script->hasDebugScript()) {
-    sweepBreakpointsSlow(fop, script);
   }
 }
 

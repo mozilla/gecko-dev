@@ -14,64 +14,73 @@ const createDummyRecommendation = ({
   heading_text,
   layout,
   skip_address_bar_notifier,
-}) => ({
-  content: {
-    layout: layout || "addon_recommendation",
-    category,
-    anchor_id: "page-action-buttons",
-    skip_address_bar_notifier,
-    notification_text: "Mochitest",
-    heading_text: heading_text || "Mochitest",
-    info_icon: {
-      label: { attributes: { tooltiptext: "Why am I seeing this" } },
-      sumo_path: "extensionrecommendations",
-    },
-    icon: "foo",
-    icon_dark_theme: "bar",
-    learn_more: "extensionrecommendations",
-    addon: {
-      id: "addon-id",
-      title: "Addon name",
-      icon: "foo",
-      author: "Author name",
-      amo_url: "https://example.com",
-    },
-    descriptionDetails: { steps: [] },
-    text: "Mochitest",
-    buttons: {
-      primary: {
-        label: {
-          value: "OK",
-          attributes: { accesskey: "O" },
-        },
-        action: {
-          type: action.type,
-          data: {},
-        },
+  template,
+}) => {
+  let recommendation = {
+    template,
+    content: {
+      layout: layout || "addon_recommendation",
+      category,
+      anchor_id: "page-action-buttons",
+      skip_address_bar_notifier,
+      heading_text: heading_text || "Mochitest",
+      info_icon: {
+        label: { attributes: { tooltiptext: "Why am I seeing this" } },
+        sumo_path: "extensionrecommendations",
       },
-      secondary: [
-        {
+      icon: "foo",
+      icon_dark_theme: "bar",
+      learn_more: "extensionrecommendations",
+      addon: {
+        id: "addon-id",
+        title: "Addon name",
+        icon: "foo",
+        author: "Author name",
+        amo_url: "https://example.com",
+      },
+      descriptionDetails: { steps: [] },
+      text: "Mochitest",
+      buttons: {
+        primary: {
           label: {
-            value: "Cancel",
-            attributes: { accesskey: "C" },
+            value: "OK",
+            attributes: { accesskey: "O" },
+          },
+          action: {
+            type: action.type,
+            data: {},
           },
         },
-        {
-          label: {
-            value: "Cancel 1",
-            attributes: { accesskey: "A" },
+        secondary: [
+          {
+            label: {
+              value: "Cancel",
+              attributes: { accesskey: "C" },
+            },
           },
-        },
-        {
-          label: {
-            value: "Cancel 2",
-            attributes: { accesskey: "B" },
+          {
+            label: {
+              value: "Cancel 1",
+              attributes: { accesskey: "A" },
+            },
           },
-        },
-      ],
+          {
+            label: {
+              value: "Cancel 2",
+              attributes: { accesskey: "B" },
+            },
+          },
+        ],
+      },
     },
-  },
-});
+  };
+  recommendation.content.notification_text = new String("Mochitest"); // eslint-disable-line
+  recommendation.content.notification_text.attributes = {
+    tooltiptext: "Mochitest tooltip",
+    "a11y-announcement": "Mochitest announcement",
+  };
+  return recommendation;
+};
 
 function checkCFRFeaturesElements(notification) {
   Assert.ok(notification.hidden === false, "Panel should be visible");
@@ -126,6 +135,14 @@ function checkCFRSocialTrackingProtection(notification) {
   );
 }
 
+function checkCFRTrackingProtectionMilestone(notification) {
+  Assert.ok(notification.hidden === false, "Panel should be visible");
+  Assert.ok(
+    notification.getAttribute("data-notification-category") === "short_message",
+    "Panel have correct data attribute"
+  );
+}
+
 function clearNotifications() {
   for (let notification of PopupNotifications._currentNotifications) {
     notification.remove();
@@ -149,6 +166,7 @@ function trigger_cfr_panel(
     layout,
     skip_address_bar_notifier = false,
     use_single_secondary_button = false,
+    template = "cfr_doorhanger",
   } = {}
 ) {
   // a fake action type will result in the action being ignored
@@ -158,6 +176,7 @@ function trigger_cfr_panel(
     heading_text,
     layout,
     skip_address_bar_notifier,
+    template,
   });
   if (category !== "cfrAddons") {
     delete recommendation.content.addon;
@@ -169,7 +188,14 @@ function trigger_cfr_panel(
   }
 
   clearNotifications();
-
+  if (recommendation.template === "milestone_message") {
+    return CFRPageActions.showMilestone(
+      browser,
+      recommendation,
+      // Use the real AS dispatch method to trigger real notifications
+      ASRouter.dispatch
+    );
+  }
   return CFRPageActions.addRecommendation(
     browser,
     trigger,
@@ -202,6 +228,7 @@ add_task(async function test_cfr_notification_show() {
     "Should return true if addRecommendation checks were successful"
   );
 
+  const oldFocus = document.activeElement;
   const showPanel = BrowserTestUtils.waitForEvent(
     PopupNotifications.panel,
     "popupshown"
@@ -214,6 +241,11 @@ add_task(async function test_cfr_notification_show() {
     document.getElementById("contextual-feature-recommendation-notification")
       .hidden === false,
     "Panel should be visible"
+  );
+  Assert.equal(
+    document.activeElement,
+    oldFocus,
+    "Focus didn't move when panel was shown"
   );
 
   // Check there is a primary button and click it. It will trigger the callback.
@@ -466,6 +498,62 @@ add_task(
     document
       .getElementById("contextual-feature-recommendation-notification")
       .button.click();
+    await hidePanel;
+  }
+);
+
+add_task(
+  async function test_cfr_tracking_protection_milestone_notification_show() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.contentblocking.cfr-milestone.milestone-achieved", 1000],
+        [
+          "browser.newtabpage.activity-stream.asrouter.providers.cfr",
+          `{"id":"cfr","enabled":true,"type":"local","localProvider":"CFRMessageProvider","frequency":{"custom":[{"period":"daily","cap":10}]},"categories":["cfrAddons","cfrFeatures"],"updateCycleInMs":3600000}`,
+        ],
+      ],
+    });
+
+    // addRecommendation checks that scheme starts with http and host matches
+    let browser = gBrowser.selectedBrowser;
+    await BrowserTestUtils.loadURI(browser, "http://example.com/");
+    await BrowserTestUtils.browserLoaded(browser, false, "http://example.com/");
+
+    const showPanel = BrowserTestUtils.waitForEvent(
+      PopupNotifications.panel,
+      "popupshown"
+    );
+
+    const response = await trigger_cfr_panel(browser, "example.com", {
+      action: { type: "OPEN_PROTECTION_REPORT" },
+      category: "cfrFeatures",
+      layout: "short_message",
+      skip_address_bar_notifier: true,
+      heading_text: "Test Milestone Message",
+      template: "milestone_message",
+    });
+    Assert.ok(
+      response,
+      "Should return true if addRecommendation checks were successful"
+    );
+    await showPanel;
+
+    const notification = document.getElementById(
+      "contextual-feature-recommendation-notification"
+    );
+    // checkCFRSocialTrackingProtection(notification);
+    checkCFRTrackingProtectionMilestone(notification);
+
+    // Check there is a primary button and click it. It will trigger the callback.
+    Assert.ok(notification.button);
+    let hidePanel = BrowserTestUtils.waitForEvent(
+      PopupNotifications.panel,
+      "popuphidden"
+    );
+    document
+      .getElementById("contextual-feature-recommendation-notification")
+      .button.click();
+    await BrowserTestUtils.removeTab(gBrowser.selectedTab);
     await hidePanel;
   }
 );
@@ -757,4 +845,42 @@ add_task(async function test_providerNames() {
       );
     }
   }
+});
+
+add_task(async function test_cfr_notification_keyboard() {
+  // addRecommendation checks that scheme starts with http and host matches
+  const browser = gBrowser.selectedBrowser;
+  await BrowserTestUtils.loadURI(browser, "http://example.com/");
+  await BrowserTestUtils.browserLoaded(browser, false, "http://example.com/");
+
+  const response = await trigger_cfr_panel(browser, "example.com");
+  Assert.ok(
+    response,
+    "Should return true if addRecommendation checks were successful"
+  );
+
+  // Open the panel with the keyboard.
+  // Toolbar buttons aren't always focusable; toolbar keyboard navigation
+  // makes them focusable on demand. Therefore, we must force focus.
+  const button = document.getElementById("contextual-feature-recommendation");
+  button.setAttribute("tabindex", "-1");
+  button.focus();
+  button.removeAttribute("tabindex");
+
+  let focused = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "focus",
+    true
+  );
+  EventUtils.synthesizeKey(" ");
+  await focused;
+  Assert.ok(true, "Focus inside panel after button pressed");
+
+  let hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await hidden;
+  Assert.ok(true, "Panel hidden after Escape pressed");
 });

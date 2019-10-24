@@ -578,13 +578,13 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
                               &nothing));
       }
       case uint16_t(Op::Block):
-        CHECK(iter.readBlock());
+        CHECK(iter.readBlock(&unusedType));
       case uint16_t(Op::Loop):
-        CHECK(iter.readLoop());
+        CHECK(iter.readLoop(&unusedType));
       case uint16_t(Op::If):
-        CHECK(iter.readIf(&nothing));
+        CHECK(iter.readIf(&unusedType, &nothing));
       case uint16_t(Op::Else):
-        CHECK(iter.readElse(&unusedType, &nothings));
+        CHECK(iter.readElse(&unusedType, &unusedType, &nothings));
       case uint16_t(Op::I32Clz):
       case uint16_t(Op::I32Ctz):
       case uint16_t(Op::I32Popcnt):
@@ -2295,7 +2295,7 @@ static inline ElemSegment::Kind NormalizeElemSegmentKind(
     ElemSegmentKind decodedKind) {
   switch (decodedKind) {
     case ElemSegmentKind::Active:
-    case ElemSegmentKind::ActiveWithIndex: {
+    case ElemSegmentKind::ActiveWithTableIndex: {
       return ElemSegment::Kind::Active;
     }
     case ElemSegmentKind::Passive: {
@@ -2350,21 +2350,18 @@ static bool DecodeElemSection(Decoder& d, ModuleEnvironment* env) {
     seg->kind = NormalizeElemSegmentKind(kind);
 
     if (kind == ElemSegmentKind::Active ||
-        kind == ElemSegmentKind::ActiveWithIndex) {
+        kind == ElemSegmentKind::ActiveWithTableIndex) {
       if (env->tables.length() == 0) {
         return d.fail("active elem segment requires a table");
       }
 
       uint32_t tableIndex = 0;
-      if (kind == ElemSegmentKind::ActiveWithIndex &&
+      if (kind == ElemSegmentKind::ActiveWithTableIndex &&
           !d.readVarU32(&tableIndex)) {
         return d.fail("expected table index");
       }
       if (tableIndex >= env->tables.length()) {
         return d.fail("table index out of range for element segment");
-      }
-      if (env->tables[tableIndex].kind != TableKind::FuncRef) {
-        return d.fail("only tables of 'funcref' may have element segments");
       }
       seg->tableIndex = tableIndex;
 
@@ -2383,11 +2380,14 @@ static bool DecodeElemSection(Decoder& d, ModuleEnvironment* env) {
     }
 
     ElemSegmentPayload payload = flags->payload();
+    ValType elemType;
 
-    // `ActiveWithIndex`, `Declared`, and `Passive` element segments encode the
-    // type or definition kind of the payload. `Active` element segments are
+    // `ActiveWithTableIndex`, `Declared`, and `Passive` element segments encode
+    // the type or definition kind of the payload. `Active` element segments are
     // restricted to MVP behavior, which assumes only function indices.
-    if (kind != ElemSegmentKind::Active) {
+    if (kind == ElemSegmentKind::Active) {
+      elemType = ValType::FuncRef;
+    } else {
       uint8_t form;
       if (!d.readFixedU8(&form)) {
         return d.fail("expected type or extern kind");
@@ -2395,10 +2395,23 @@ static bool DecodeElemSection(Decoder& d, ModuleEnvironment* env) {
 
       switch (payload) {
         case ElemSegmentPayload::ElemExpression: {
-          if (form != uint8_t(TypeCode::FuncRef)) {
-            return d.fail(
-                "segments with element expressions can only contain function "
-                "references");
+          switch (form) {
+            case uint8_t(TypeCode::FuncRef):
+              // Below we must in principle check every element expression to
+              // ensure that it is a subtype of FuncRef.  However, the only
+              // reference expressions allowed are ref.null and ref.func, and
+              // they both pass that test, and so no additional check is needed
+              // at this time.
+              elemType = ValType::FuncRef;
+              break;
+            case uint8_t(TypeCode::AnyRef):
+              // Ditto, for AnyRef, just even more trivial.
+              elemType = ValType::AnyRef;
+              break;
+            default:
+              return d.fail(
+                  "segments with element expressions can only contain "
+                  "references");
           }
           break;
         }
@@ -2408,9 +2421,39 @@ static bool DecodeElemSection(Decoder& d, ModuleEnvironment* env) {
                 "segments with extern indices can only contain function "
                 "references");
           }
+          elemType = ValType::FuncRef;
         }
       }
     }
+
+    // Check constraints on the element type.
+    switch (kind) {
+      case ElemSegmentKind::Declared: {
+        if (!(elemType.isReference() &&
+              env->isRefSubtypeOf(elemType, ValType::FuncRef))) {
+          return d.fail(
+              "declared segment's element type must be subtype of funcref");
+        }
+        break;
+      }
+      case ElemSegmentKind::Active:
+      case ElemSegmentKind::ActiveWithTableIndex: {
+        ValType tblElemType = ToElemValType(env->tables[seg->tableIndex].kind);
+        if (!(elemType == tblElemType ||
+              (elemType.isReference() && tblElemType.isReference() &&
+               env->isRefSubtypeOf(elemType, tblElemType)))) {
+          return d.fail(
+              "segment's element type must be subtype of table's element type");
+        }
+        break;
+      }
+      case ElemSegmentKind::Passive: {
+        // By construction, above.
+        MOZ_ASSERT(elemType.isReference());
+        break;
+      }
+    }
+    seg->elementType = elemType;
 
     uint32_t numElems;
     if (!d.readVarU32(&numElems)) {
@@ -2702,7 +2745,7 @@ static bool DecodeDataSection(Decoder& d, ModuleEnvironment* env) {
     switch (initializerKindVal) {
       case uint32_t(DataSegmentKind::Active):
       case uint32_t(DataSegmentKind::Passive):
-      case uint32_t(DataSegmentKind::ActiveWithIndex):
+      case uint32_t(DataSegmentKind::ActiveWithMemoryIndex):
         break;
       default:
         return d.fail("invalid data initializer-kind field");
@@ -2715,7 +2758,7 @@ static bool DecodeDataSection(Decoder& d, ModuleEnvironment* env) {
     }
 
     uint32_t memIndex = 0;
-    if (initializerKind == DataSegmentKind::ActiveWithIndex) {
+    if (initializerKind == DataSegmentKind::ActiveWithMemoryIndex) {
       if (!d.readVarU32(&memIndex)) {
         return d.fail("expected memory index");
       }
@@ -2726,7 +2769,7 @@ static bool DecodeDataSection(Decoder& d, ModuleEnvironment* env) {
 
     DataSegmentEnv seg;
     if (initializerKind == DataSegmentKind::Active ||
-        initializerKind == DataSegmentKind::ActiveWithIndex) {
+        initializerKind == DataSegmentKind::ActiveWithMemoryIndex) {
       InitExpr segOffset;
       if (!DecodeInitializerExpression(d, env, ValType::I32, &segOffset)) {
         return false;

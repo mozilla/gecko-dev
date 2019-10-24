@@ -1276,6 +1276,10 @@ static bool AddIntlExtras(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  if (!js::AddListFormatConstructor(cx, intl)) {
+    return false;
+  }
+
   args.rval().setUndefined();
   return true;
 }
@@ -1675,16 +1679,16 @@ static bool Options(JSContext* cx, unsigned argc, Value* vp) {
     } else if (StringEqualsLiteral(opt, "strict_mode")) {
       JS::ContextOptionsRef(cx).toggleStrictMode();
     } else {
-      UniqueChars optChars = JS_EncodeStringToUTF8(cx, opt);
+      UniqueChars optChars = QuoteString(cx, opt, '"');
       if (!optChars) {
         return false;
       }
 
-      JS_ReportErrorUTF8(cx,
-                         "unknown option name '%s'."
-                         " The valid names are strict,"
-                         " werror, and strict_mode.",
-                         optChars.get());
+      JS_ReportErrorASCII(cx,
+                          "unknown option name %s."
+                          " The valid names are strict,"
+                          " werror, and strict_mode.",
+                          optChars.get());
       return false;
     }
   }
@@ -2243,34 +2247,20 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     if (displayURL && !script->scriptSource()->hasDisplayURL()) {
-      JSFlatString* flat = displayURL->ensureFlat(cx);
-      if (!flat) {
+      UniqueTwoByteChars chars = JS_CopyStringCharsZ(cx, displayURL);
+      if (!chars) {
         return false;
       }
-
-      AutoStableStringChars chars(cx);
-      if (!chars.initTwoByte(cx, flat)) {
-        return false;
-      }
-
-      const char16_t* durl = chars.twoByteRange().begin().get();
-      if (!script->scriptSource()->setDisplayURL(cx, durl)) {
+      if (!script->scriptSource()->setDisplayURL(cx, std::move(chars))) {
         return false;
       }
     }
     if (sourceMapURL && !script->scriptSource()->hasSourceMapURL()) {
-      JSFlatString* flat = sourceMapURL->ensureFlat(cx);
-      if (!flat) {
+      UniqueTwoByteChars chars = JS_CopyStringCharsZ(cx, sourceMapURL);
+      if (!chars) {
         return false;
       }
-
-      AutoStableStringChars chars(cx);
-      if (!chars.initTwoByte(cx, flat)) {
-        return false;
-      }
-
-      const char16_t* smurl = chars.twoByteRange().begin().get();
-      if (!script->scriptSource()->setSourceMapURL(cx, smurl)) {
+      if (!script->scriptSource()->setSourceMapURL(cx, std::move(chars))) {
         return false;
       }
     }
@@ -2851,7 +2841,7 @@ static bool AssertEq(JSContext* cx, unsigned argc, Value* vp) {
                                JSSMSG_ASSERT_EQ_FAILED, actual, expected);
     } else {
       RootedString message(cx, args[2].toString());
-      UniqueChars bytes2 = JS_EncodeStringToUTF8(cx, message);
+      UniqueChars bytes2 = QuoteString(cx, message);
       if (!bytes2) {
         return false;
       }
@@ -3358,15 +3348,15 @@ struct DisassembleOptionParser {
     /* Read options off early arguments */
     while (argc > 0 && argv[0].isString()) {
       JSString* str = argv[0].toString();
-      JSFlatString* flatStr = JS_FlattenString(cx, str);
-      if (!flatStr) {
+      JSLinearString* linearStr = JS_EnsureLinearString(cx, str);
+      if (!linearStr) {
         return false;
       }
-      if (JS_FlatStringEqualsLiteral(flatStr, "-l")) {
+      if (JS_LinearStringEqualsLiteral(linearStr, "-l")) {
         lines = true;
-      } else if (JS_FlatStringEqualsLiteral(flatStr, "-r")) {
+      } else if (JS_LinearStringEqualsLiteral(linearStr, "-r")) {
         recursive = true;
-      } else if (JS_FlatStringEqualsLiteral(flatStr, "-S")) {
+      } else if (JS_LinearStringEqualsLiteral(linearStr, "-S")) {
         sourceNotes = false;
       } else {
         break;
@@ -4542,13 +4532,13 @@ static bool SetJitCompilerOption(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JSFlatString* strArg = JS_FlattenString(cx, args[0].toString());
+  JSLinearString* strArg = JS_EnsureLinearString(cx, args[0].toString());
   if (!strArg) {
     return false;
   }
 
-#define JIT_COMPILER_MATCH(key, string)                      \
-  else if (JS_FlatStringEqualsLiteral(strArg, string)) opt = \
+#define JIT_COMPILER_MATCH(key, string)                        \
+  else if (JS_LinearStringEqualsLiteral(strArg, string)) opt = \
       JSJITCOMPILER_##key;
 
   JSJitCompilerOption opt = JSJITCOMPILER_NOT_AN_OPTION;
@@ -4723,10 +4713,7 @@ static bool Compile(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-  JSFlatString* scriptContents = args[0].toString()->ensureFlat(cx);
-  if (!scriptContents) {
-    return false;
-  }
+  JSString* scriptContents = args[0].toString();
 
   AutoStableStringChars stableChars(cx);
   if (!stableChars.initTwoByte(cx, scriptContents)) {
@@ -4777,10 +4764,7 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JSFlatString* scriptContents = args[0].toString()->ensureFlat(cx);
-  if (!scriptContents) {
-    return false;
-  }
+  JSString* scriptContents = args[0].toString();
 
   UniqueChars filename;
   CompileOptions options(cx);
@@ -5163,12 +5147,12 @@ static bool BinParse(JSContext* cx, unsigned argc, Value* vp) {
       } else if (StringEqualsLiteral(linearFormat, "context")) {
         mode = Context;
       } else {
-        UniqueChars printable = JS_EncodeStringToUTF8(cx, linearFormat);
+        UniqueChars printable = QuoteString(cx, linearFormat, '\'');
         if (!printable) {
           return false;
         }
 
-        JS_ReportErrorUTF8(
+        JS_ReportErrorASCII(
             cx,
             "Unknown value for option `format`, expected 'multipart', got %s",
             printable.get());
@@ -5254,10 +5238,7 @@ static bool Parse(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  JSFlatString* scriptContents = args[0].toString()->ensureFlat(cx);
-  if (!scriptContents) {
-    return false;
-  }
+  JSString* scriptContents = args[0].toString();
 
   AutoStableStringChars stableChars(cx);
   if (!stableChars.initTwoByte(cx, scriptContents)) {
@@ -5335,10 +5316,8 @@ static bool SyntaxParse(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JSFlatString* scriptContents = args[0].toString()->ensureFlat(cx);
-  if (!scriptContents) {
-    return false;
-  }
+  JSString* scriptContents = args[0].toString();
+
   CompileOptions options(cx);
   options.setIntroductionType("js shell syntaxParse")
       .setFileAndLine("<string>", 1);
@@ -6507,24 +6486,24 @@ class ShellSourceHook : public SourceHook {
       return false;
     }
 
-    Rooted<JSFlatString*> flat(cx, str->ensureFlat(cx));
-    if (!flat) {
+    Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
+    if (!linear) {
       return false;
     }
 
     if (twoByteSource) {
-      *length = JS_GetStringLength(flat);
+      *length = JS_GetStringLength(linear);
 
       *twoByteSource = cx->pod_malloc<char16_t>(*length);
       if (!*twoByteSource) {
         return false;
       }
 
-      CopyChars(*twoByteSource, *flat);
+      CopyChars(*twoByteSource, *linear);
     } else {
       MOZ_ASSERT(utf8Source != nullptr);
 
-      *length = JS::GetDeflatedUTF8StringLength(flat);
+      *length = JS::GetDeflatedUTF8StringLength(linear);
 
       *utf8Source = cx->pod_malloc<char>(*length);
       if (!*utf8Source) {
@@ -6532,7 +6511,7 @@ class ShellSourceHook : public SourceHook {
       }
 
       mozilla::DebugOnly<size_t> dstLen = JS::DeflateStringToUTF8Buffer(
-          flat, mozilla::MakeSpan(*utf8Source, *length));
+          linear, mozilla::MakeSpan(*utf8Source, *length));
       MOZ_ASSERT(dstLen == *length);
     }
 
@@ -7287,11 +7266,10 @@ done:
   }
 }
 
-static bool EnsureLatin1CharsLinearString(
-    JSContext* cx, HandleValue value,
-    JS::MutableHandle<JSLinearString*> result) {
+static bool EnsureLatin1CharsLinearString(JSContext* cx, HandleValue value,
+                                          UniqueChars* result) {
   if (!value.isString()) {
-    result.set(nullptr);
+    result->reset(nullptr);
     return true;
   }
   RootedString str(cx, value.toString());
@@ -7300,9 +7278,10 @@ static bool EnsureLatin1CharsLinearString(
                         "only latin1 chars and linear strings are expected");
     return false;
   }
-  result.set(&str->asLinear());
-  MOZ_ASSERT(result->hasLatin1Chars());
-  return true;
+
+  // Use JS_EncodeStringToLatin1 to null-terminate.
+  *result = JS_EncodeStringToLatin1(cx, str);
+  return !!*result;
 }
 
 static bool ConsumeBufferSource(JSContext* cx, JS::HandleObject obj,
@@ -7312,8 +7291,8 @@ static bool ConsumeBufferSource(JSContext* cx, JS::HandleObject obj,
     if (!JS_GetProperty(cx, obj, "url", &url)) {
       return false;
     }
-    RootedLinearString urlStr(cx);
-    if (!EnsureLatin1CharsLinearString(cx, url, &urlStr)) {
+    UniqueChars urlChars;
+    if (!EnsureLatin1CharsLinearString(cx, url, &urlChars)) {
       return false;
     }
 
@@ -7321,17 +7300,12 @@ static bool ConsumeBufferSource(JSContext* cx, JS::HandleObject obj,
     if (!JS_GetProperty(cx, obj, "sourceMappingURL", &mapUrl)) {
       return false;
     }
-    RootedLinearString mapUrlStr(cx);
-    if (!EnsureLatin1CharsLinearString(cx, mapUrl, &mapUrlStr)) {
+    UniqueChars mapUrlChars;
+    if (!EnsureLatin1CharsLinearString(cx, mapUrl, &mapUrlChars)) {
       return false;
     }
 
-    JS::AutoCheckCannotGC nogc;
-    consumer->noteResponseURLs(
-        urlStr ? reinterpret_cast<const char*>(urlStr->latin1Chars(nogc))
-               : nullptr,
-        mapUrlStr ? reinterpret_cast<const char*>(mapUrlStr->latin1Chars(nogc))
-                  : nullptr);
+    consumer->noteResponseURLs(urlChars.get(), mapUrlChars.get());
   }
 
   UniquePtr<BufferStreamJob> job;
@@ -8083,7 +8057,7 @@ static bool EntryPoints(JSContext* cx, unsigned argc, Value* vp) {
     }
     if (!code.isUndefined()) {
       RootedString codeString(cx, ToString(cx, code));
-      if (!codeString || !codeString->ensureFlat(cx)) {
+      if (!codeString) {
         return false;
       }
 
@@ -9281,26 +9255,15 @@ bool DefineConsole(JSContext* cx, HandleObject global) {
 #undef EXTERNAL_FUNCTION_COUNT
 
 static bool PrintHelpString(JSContext* cx, HandleValue v) {
-  JSString* str = v.toString();
+  RootedString str(cx, v.toString());
   MOZ_ASSERT(gOutFile->isOpen());
 
-  JSLinearString* linear = str->ensureLinear(cx);
-  if (!linear) {
+  UniqueChars bytes = JS_EncodeStringToUTF8(cx, str);
+  if (!bytes) {
     return false;
   }
 
-  JS::AutoCheckCannotGC nogc;
-  if (linear->hasLatin1Chars()) {
-    for (const Latin1Char* p = linear->latin1Chars(nogc); *p; p++) {
-      fprintf(gOutFile->fp, "%c", char(*p));
-    }
-  } else {
-    for (const char16_t* p = linear->twoByteChars(nogc); *p; p++) {
-      fprintf(gOutFile->fp, "%c", char(*p));
-    }
-  }
-  fprintf(gOutFile->fp, "\n");
-
+  fprintf(gOutFile->fp, "%s\n", bytes.get());
   return true;
 }
 

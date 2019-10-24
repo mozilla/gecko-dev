@@ -119,7 +119,7 @@ iris-2.0:
     fetch:
         type: git
         repo: https://github.com/mozilla/iris_firefox
-        revision: db45d30941a6f0a81ba369b89cf66ebd9a6ba393
+        revision: 614bf07e14769552a533798fb3ccf8a7c1e7f23d
 
 isl-0.15:
     description: ISL 0.15 source code
@@ -340,8 +340,8 @@ sccache:
     fetch:
         type: git
         repo: https://github.com/mozilla/sccache
-        # 0.2.11 release
-        revision: d5b98e7e4b6d75c98d1e275c75922e22e28cf829
+        # 0.2.12 release + a handful of fixes
+        revision: b63b5fe6c90f9443a2dbe9a06824a92b138e5365
 
 openssl-1.1.0g:
     description: openssl 1.1.0g source code
@@ -406,6 +406,13 @@ clang-8:
         type: git
         repo: https://github.com/llvm/llvm-project
         revision: 19a71f6bdf2dddb10764939e7f0ec2b98dba76c9
+
+clang-9:
+    description: clang 9.0.0 source code
+    fetch:
+        type: git
+        repo: https://github.com/llvm/llvm-project
+        revision: 0399d5a9682b3cef71c653373e38890c63c4c365
 
 ninja:
     description: ninja 1.9.0

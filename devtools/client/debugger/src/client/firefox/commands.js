@@ -32,7 +32,7 @@ import type {
   DebuggerClient,
   Grip,
   ThreadFront,
-  ObjectClient,
+  ObjectFront,
   SourcesPacket,
 } from "./types";
 
@@ -48,38 +48,32 @@ let debuggerClient: DebuggerClient;
 let sourceActors: { [ActorId]: SourceId };
 let breakpoints: { [string]: Object };
 let eventBreakpoints: ?EventListenerActiveList;
-let supportsWasm: boolean;
 
 type Dependencies = {
   threadFront: ThreadFront,
   tabTarget: Target,
   debuggerClient: DebuggerClient,
-  supportsWasm: boolean,
 };
 
 function setupCommands(dependencies: Dependencies) {
   currentThreadFront = dependencies.threadFront;
   currentTarget = dependencies.tabTarget;
   debuggerClient = dependencies.debuggerClient;
-  supportsWasm = dependencies.supportsWasm;
   targets = { worker: {}, contentProcess: {} };
   sourceActors = {};
   breakpoints = {};
 }
 
-function hasWasmSupport() {
-  return supportsWasm;
-}
-
-function createObjectClient(grip: Grip) {
-  return debuggerClient.createObjectClient(grip);
+function createObjectFront(grip: Grip) {
+  return debuggerClient.createObjectFront(grip);
 }
 
 async function loadObjectProperties(root: Node) {
   const utils = Reps.objectInspector.utils;
-  const properties = await utils.loadProperties.loadItemProperties(root, {
-    createObjectClient,
-  });
+  const properties = await utils.loadProperties.loadItemProperties(
+    root,
+    debuggerClient
+  );
   return utils.node.getChildren({
     item: root,
     loadedProperties: new Map([[root.path, properties]]),
@@ -91,7 +85,11 @@ function releaseActor(actor: String) {
     return;
   }
 
-  return debuggerClient.release(actor);
+  const objFront = debuggerClient.getFrontByID(actor);
+
+  if (objFront) {
+    return objFront.release().catch(() => {});
+  }
 }
 
 function sendPacket(packet: Object) {
@@ -195,15 +193,15 @@ function addWatchpoint(
   watchpointType: string
 ) {
   if (currentTarget.traits.watchpoints) {
-    const objectClient = createObjectClient(object);
-    return objectClient.addWatchpoint(property, label, watchpointType);
+    const objectFront = createObjectFront(object);
+    return objectFront.addWatchpoint(property, label, watchpointType);
   }
 }
 
 function removeWatchpoint(object: Grip, property: string) {
   if (currentTarget.traits.watchpoints) {
-    const objectClient = createObjectClient(object);
-    return objectClient.removeWatchpoint(property);
+    const objectFront = createObjectFront(object);
+    return objectFront.removeWatchpoint(property);
   }
 }
 
@@ -403,7 +401,7 @@ async function getEventListenerBreakpointTypes(): Promise<EventListenerCategoryL
   return categories || [];
 }
 
-function pauseGrip(thread: string, func: Function): ObjectClient {
+function pauseGrip(thread: string, func: Function): ObjectFront {
   return lookupThreadFront(thread).pauseGrip(func);
 }
 
@@ -543,10 +541,14 @@ async function getSourceActorBreakableLines({
   return actorLines;
 }
 
+function getFrontByID(actorID: String) {
+  return debuggerClient.getFrontByID(actorID);
+}
+
 const clientCommands = {
   autocomplete,
   blackBox,
-  createObjectClient,
+  createObjectFront,
   loadObjectProperties,
   releaseActor,
   interrupt,
@@ -588,8 +590,8 @@ const clientCommands = {
   setEventListenerBreakpoints,
   getEventListenerBreakpointTypes,
   detachWorkers,
-  hasWasmSupport,
   lookupTarget,
+  getFrontByID,
 };
 
 export { setupCommands, clientCommands };

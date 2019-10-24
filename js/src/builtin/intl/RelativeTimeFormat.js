@@ -9,17 +9,6 @@
  */
 var relativeTimeFormatInternalProperties = {
     localeData: relativeTimeFormatLocaleData,
-    _availableLocales: null,
-    availableLocales: function() // eslint-disable-line object-shorthand
-    {
-        var locales = this._availableLocales;
-        if (locales)
-            return locales;
-
-        locales = intl_RelativeTimeFormat_availableLocales();
-        addSpecialMissingLanguageTags(locales);
-        return (this._availableLocales = locales);
-    },
     relevantExtensionKeys: ["nu"],
 };
 
@@ -43,7 +32,7 @@ function resolveRelativeTimeFormatInternals(lazyRelativeTimeFormatData) {
     var RelativeTimeFormat = relativeTimeFormatInternalProperties;
 
     // Steps 7-8.
-    const r = ResolveLocale(callFunction(RelativeTimeFormat.availableLocales, RelativeTimeFormat),
+    const r = ResolveLocale("RelativeTimeFormat",
                             lazyRelativeTimeFormatData.requestedLocales,
                             lazyRelativeTimeFormatData.opt,
                             RelativeTimeFormat.relevantExtensionKeys,
@@ -69,10 +58,9 @@ function resolveRelativeTimeFormatInternals(lazyRelativeTimeFormatData) {
 }
 
 /**
- * Returns an object containing the RelativeTimeFormat internal properties of |obj|,
- * or throws a TypeError if |obj| isn't RelativeTimeFormat-initialized.
+ * Returns an object containing the RelativeTimeFormat internal properties of |obj|.
  */
-function getRelativeTimeFormatInternals(obj, methodName) {
+function getRelativeTimeFormatInternals(obj) {
     assert(IsObject(obj), "getRelativeTimeFormatInternals called with non-object");
     assert(GuardToRelativeTimeFormat(obj) !== null, "getRelativeTimeFormatInternals called with non-RelativeTimeFormat");
 
@@ -164,8 +152,8 @@ function Intl_RelativeTimeFormat_supportedLocalesOf(locales /*, options*/) {
     var options = arguments.length > 1 ? arguments[1] : undefined;
 
     // Step 1.
-    var availableLocales = callFunction(relativeTimeFormatInternalProperties.availableLocales,
-                                        relativeTimeFormatInternalProperties);
+    var availableLocales = "RelativeTimeFormat";
+
     // Step 2.
     let requestedLocales = CanonicalizeLocaleList(locales);
 
@@ -256,7 +244,7 @@ function Intl_RelativeTimeFormat_resolvedOptions() {
                             "Intl_RelativeTimeFormat_resolvedOptions");
     }
 
-    var internals = getRelativeTimeFormatInternals(relativeTimeFormat, "resolvedOptions");
+    var internals = getRelativeTimeFormatInternals(relativeTimeFormat);
 
     // Steps 4-5.
     var result = {

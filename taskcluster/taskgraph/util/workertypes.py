@@ -24,7 +24,8 @@ WORKER_TYPES = {
     "scriptworker-prov-v1/signing-linux-v1": ('scriptworker-signing', None),
     "scriptworker-k8s/gecko-3-shipit": ('shipit', None),
     "scriptworker-k8s/gecko-1-shipit": ('shipit', None),
-    "scriptworker-prov-v1/treescript-v1": ('treescript', None),
+    "scriptworker-k8s/gecko-3-tree": ('treescript', None),
+    "scriptworker-k8s/gecko-1-tree": ('treescript', None),
     'terraform-packet/gecko-t-linux': ('docker-worker', 'linux'),
     'releng-hardware/gecko-t-osx-1014': ('generic-worker', 'macosx'),
     'releng-hardware/gecko-t-osx-1014-power': ('generic-worker', 'macosx'),
@@ -62,6 +63,10 @@ def _get(graph_config, alias, level):
         raise KeyError("No matches for worker-type alias " + alias)
     worker_config = matches[0].copy()
 
+    worker_config['provisioner'] = evaluate_keyed_by(
+        worker_config['provisioner'],
+        "worker-type alias {} field provisioner".format(alias),
+        {"level": level}).format(level=level, alias=alias)
     worker_config['worker-type'] = evaluate_keyed_by(
         worker_config['worker-type'],
         "worker-type alias {} field worker-type".format(alias),

@@ -14,7 +14,7 @@
 #include "js/TraceKind.h"
 #include "js/Utility.h"
 
-struct JSStringFinalizer;
+struct JSExternalStringCallbacks;
 
 /* These values are private to the JS engine. */
 namespace js {
@@ -104,6 +104,46 @@ MOZ_ALWAYS_INLINE bool IsInsideNursery(const js::gc::Cell* cell);
 } /* namespace js */
 
 namespace JS {
+
+enum class HeapState {
+  Idle,             // doing nothing with the GC heap
+  Tracing,          // tracing the GC heap without collecting, e.g.
+                    // IterateCompartments()
+  MajorCollecting,  // doing a GC of the major heap
+  MinorCollecting,  // doing a GC of the minor heap (nursery)
+  CycleCollecting   // in the "Unlink" phase of cycle collection
+};
+
+JS_PUBLIC_API HeapState RuntimeHeapState();
+
+static inline bool RuntimeHeapIsBusy() {
+  return RuntimeHeapState() != HeapState::Idle;
+}
+
+static inline bool RuntimeHeapIsTracing() {
+  return RuntimeHeapState() == HeapState::Tracing;
+}
+
+static inline bool RuntimeHeapIsMajorCollecting() {
+  return RuntimeHeapState() == HeapState::MajorCollecting;
+}
+
+static inline bool RuntimeHeapIsMinorCollecting() {
+  return RuntimeHeapState() == HeapState::MinorCollecting;
+}
+
+static inline bool RuntimeHeapIsCollecting(HeapState state) {
+  return state == HeapState::MajorCollecting ||
+         state == HeapState::MinorCollecting;
+}
+
+static inline bool RuntimeHeapIsCollecting() {
+  return RuntimeHeapIsCollecting(RuntimeHeapState());
+}
+
+static inline bool RuntimeHeapIsCycleCollecting() {
+  return RuntimeHeapState() == HeapState::CycleCollecting;
+}
 
 /*
  * This list enumerates the different types of conceptual stacks we have in
@@ -209,7 +249,7 @@ struct String {
     JS::Latin1Char inlineStorageLatin1[1];
     char16_t inlineStorageTwoByte[1];
   };
-  const JSStringFinalizer* externalFinalizer;
+  const JSExternalStringCallbacks* externalCallbacks;
 
   inline uint32_t flags() const { return uint32_t(flags_); }
   inline uint32_t length() const {
@@ -263,8 +303,6 @@ class JS_FRIEND_API GCCellPtr {
       : ptr(checkedCast(p, JS::MapTypeToTraceKind<T>::kind)) {}
   explicit GCCellPtr(JSFunction* p)
       : ptr(checkedCast(p, JS::TraceKind::Object)) {}
-  explicit GCCellPtr(JSFlatString* str)
-      : ptr(checkedCast(str, JS::TraceKind::String)) {}
   explicit GCCellPtr(const Value& v);
 
   JS::TraceKind kind() const {

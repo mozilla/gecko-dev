@@ -1076,6 +1076,11 @@ pub enum DrawTarget {
         fbo: FBOId,
         size: FramebufferIntSize,
     },
+    /// An OS compositor surface
+    NativeSurface {
+        offset: DeviceIntPoint,
+        dimensions: DeviceIntSize,
+    },
 }
 
 impl DrawTarget {
@@ -1123,6 +1128,7 @@ impl DrawTarget {
             DrawTarget::Default { total_size, .. } => DeviceIntSize::from_untyped(total_size.to_untyped()),
             DrawTarget::Texture { dimensions, .. } => dimensions,
             DrawTarget::External { size, .. } => DeviceIntSize::from_untyped(size.to_untyped()),
+            DrawTarget::NativeSurface { dimensions, .. } => dimensions,
         }
     }
 
@@ -1135,6 +1141,9 @@ impl DrawTarget {
                 fb_rect.origin.x += rect.origin.x;
             }
             DrawTarget::Texture { .. } | DrawTarget::External { .. } => (),
+            DrawTarget::NativeSurface { .. } => {
+                panic!("bug: is this ever used for native surfaces?");
+            }
         }
         fb_rect
     }
@@ -1155,6 +1164,9 @@ impl DrawTarget {
                     self.to_framebuffer_rect(scissor_rect.translate(-content_origin.to_vector()))
                         .intersection(rect)
                         .unwrap_or_else(FramebufferIntRect::zero)
+                }
+                DrawTarget::NativeSurface { offset, .. } => {
+                    FramebufferIntRect::from_untyped(&scissor_rect.translate(offset.to_vector()).to_untyped())
                 }
                 DrawTarget::Texture { .. } | DrawTarget::External { .. } => {
                     FramebufferIntRect::from_untyped(&scissor_rect.to_untyped())
@@ -1201,6 +1213,9 @@ impl From<DrawTarget> for ReadTarget {
     fn from(t: DrawTarget) -> Self {
         match t {
             DrawTarget::Default { .. } => ReadTarget::Default,
+            DrawTarget::NativeSurface { .. } => {
+                unreachable!("bug: native surfaces cannot be read targets");
+            }
             DrawTarget::Texture { fbo_id, .. } =>
                 ReadTarget::Texture { fbo_id },
             DrawTarget::External { fbo, .. } =>
@@ -1375,12 +1390,14 @@ impl Device {
             ext_framebuffer_fetch &&
             ext_pixel_local_storage;
 
+        let is_adreno = renderer_name.starts_with("Adreno");
+
         // KHR_blend_equation_advanced renders incorrectly on Adreno
         // devices. This has only been confirmed up to Adreno 5xx, and has been
         // fixed for Android 9, so this condition could be made more specific.
         let supports_advanced_blend_equation =
             supports_extension(&extensions, "GL_KHR_blend_equation_advanced") &&
-            !renderer_name.starts_with("Adreno");
+            !is_adreno;
 
         let supports_texture_swizzle = allow_texture_swizzling &&
             (gl.get_type() == gl::GlType::Gles || supports_extension(&extensions, "GL_ARB_texture_storage"));
@@ -1390,7 +1407,8 @@ impl Device {
         // Other platforms may have similar requirements and should be added
         // here.
         // The default value should be 4.
-        let optimal_pbo_stride = if renderer_name.contains("Adreno") {
+        let is_amd_macos = cfg!(target_os = "macos") && renderer_name.starts_with("AMD");
+        let optimal_pbo_stride = if is_adreno || is_amd_macos {
             NonZeroUsize::new(256).unwrap()
         } else {
             NonZeroUsize::new(4).unwrap()
@@ -1489,7 +1507,7 @@ impl Device {
         }
     }
 
-    pub fn get_optimal_pbo_stride(&self) -> NonZeroUsize {
+    pub fn optimal_pbo_stride(&self) -> NonZeroUsize {
         self.optimal_pbo_stride
     }
 
@@ -1701,19 +1719,35 @@ impl Device {
         target: DrawTarget,
     ) {
         let (fbo_id, rect, depth_available) = match target {
-            DrawTarget::Default { rect, .. } => (self.default_draw_fbo, rect, true),
+            DrawTarget::Default { rect, .. } => {
+                (Some(self.default_draw_fbo), rect, true)
+            }
             DrawTarget::Texture { dimensions, fbo_id, with_depth, .. } => {
                 let rect = FramebufferIntRect::new(
                     FramebufferIntPoint::zero(),
                     FramebufferIntSize::from_untyped(dimensions.to_untyped()),
                 );
-                (fbo_id, rect, with_depth)
+                (Some(fbo_id), rect, with_depth)
             },
-            DrawTarget::External { fbo, size } => (fbo, size.into(), false),
+            DrawTarget::External { fbo, size } => {
+                (Some(fbo), size.into(), false)
+            }
+            DrawTarget::NativeSurface { offset, dimensions, .. } => {
+                (
+                    None,
+                    FramebufferIntRect::new(
+                        FramebufferIntPoint::from_untyped(offset.to_untyped()),
+                        FramebufferIntSize::from_untyped(dimensions.to_untyped()),
+                    ),
+                    true
+                )
+            }
         };
 
         self.depth_available = depth_available;
-        self.bind_draw_target_impl(fbo_id);
+        if let Some(fbo_id) = fbo_id {
+            self.bind_draw_target_impl(fbo_id);
+        }
         self.gl.viewport(
             rect.origin.x,
             rect.origin.y,
@@ -3493,7 +3527,10 @@ impl<'a, T> TextureUploader<'a, T> {
         // for optimal PBO texture uploads the stride of the data in
         // the buffer may have to be a multiple of a certain value.
         let dst_stride = round_up_to_multiple(src_stride, self.target.optimal_pbo_stride);
-        let dst_size = (rect.size.height as usize - 1) * dst_stride + width_bytes;
+        // The size of the PBO should only need to be (height - 1) * dst_stride + width_bytes,
+        // however, the android emulator will error unless it is height * dst_stride.
+        // See bug 1587047 for details.
+        let dst_size = rect.size.height as usize * dst_stride;
 
         match self.buffer {
             Some(ref mut buffer) => {

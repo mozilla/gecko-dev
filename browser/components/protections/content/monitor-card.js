@@ -22,14 +22,9 @@ export default class MonitorClass {
   }
 
   init() {
-    const monitorLinkTag = this.doc.getElementById("monitor-inline-link");
-    monitorLinkTag.href = MONITOR_URL;
-
-    RPMAddMessageListener("SendUserLoginsData", ({ data }) => {
-      // Wait for monitor data and display the card.
-      this.getMonitorData(data);
-      RPMSendAsyncMessage("FetchMonitorData");
-    });
+    // Wait for monitor data and display the card.
+    this.getMonitorData();
+    RPMSendAsyncMessage("FetchMonitorData");
 
     let monitorReportLink = this.doc.getElementById("full-report-link");
     monitorReportLink.addEventListener("click", () => {
@@ -53,14 +48,11 @@ export default class MonitorClass {
   /**
    * Adds a listener for receiving the monitor data. Once received then display this data
    * in the card.
-   *
-   * @param {Object}  loginData
-   *        Login data received from the Logins service.
-   */
-  getMonitorData(loginData) {
+   **/
+  getMonitorData() {
     RPMAddMessageListener("SendMonitorData", ({ data: monitorData }) => {
       // Once data for the user is retrieved, display the monitor card.
-      this.buildContent(loginData, monitorData);
+      this.buildContent(monitorData);
 
       // Show the Monitor card.
       const monitorUI = this.doc.querySelector(".card.monitor-card.loading");
@@ -68,19 +60,18 @@ export default class MonitorClass {
     });
   }
 
-  buildContent(loginData, monitorData) {
-    const { numLogins } = loginData;
+  buildContent(monitorData) {
     const headerContent = this.doc.querySelector(
       "#monitor-header-content span"
     );
     const monitorCard = this.doc.querySelector(".card.monitor-card");
-    if (numLogins > 0 && !monitorData.error) {
+    if (!monitorData.error) {
       monitorCard.classList.add("has-logins");
       headerContent.setAttribute(
         "data-l10n-id",
         "monitor-header-content-signed-in"
       );
-      this.renderContentForUserWithLogins(monitorData);
+      this.renderContentForUserWithAccount(monitorData);
     } else {
       monitorCard.classList.add("no-logins");
       const signUpForMonitorLink = this.doc.getElementById(
@@ -109,14 +100,19 @@ export default class MonitorClass {
    * @return URL to Monitor website.
    */
   buildMonitorUrl(email = null) {
-    return email ? `${MONITOR_SIGN_IN_URL}${email}` : MONITOR_URL;
+    return email
+      ? `${MONITOR_SIGN_IN_URL}${encodeURIComponent(email)}`
+      : MONITOR_URL;
   }
 
-  renderContentForUserWithLogins(monitorData) {
+  renderContentForUserWithAccount(monitorData) {
     const monitorCardBody = this.doc.querySelector(
       ".card.monitor-card .card-body"
     );
     monitorCardBody.classList.remove("hidden");
+
+    const monitorLinkTag = this.doc.getElementById("monitor-inline-link");
+    monitorLinkTag.href = this.buildMonitorUrl(monitorData.userEmail);
 
     const howItWorksLink = this.doc.getElementById("monitor-link");
     howItWorksLink.href = HOW_IT_WORKS_URL_PREF;

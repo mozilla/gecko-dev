@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const Services = require("Services");
 const {
   createElement,
   createFactory,
@@ -13,7 +12,6 @@ const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
 const actions = require("devtools/client/webconsole/actions/index");
 const { configureStore } = require("devtools/client/webconsole/store");
-const { PREFS } = require("devtools/client/webconsole/constants");
 
 const {
   isPacketPrivate,
@@ -73,13 +71,13 @@ class WebConsoleWrapper {
     const { webConsoleUI } = this;
     const debuggerClient = this.hud.currentTarget.client;
 
-    const webConsoleClient = await this.hud.currentTarget.getFront("console");
+    const webConsoleFront = await this.hud.currentTarget.getFront("console");
 
     this.networkDataProvider = new DataProvider({
       actions: {
         updateRequest: (id, data) => this.batchedRequestUpdates({ id, data }),
       },
-      webConsoleClient,
+      webConsoleFront,
     });
 
     return new Promise(resolve => {
@@ -115,24 +113,6 @@ class WebConsoleWrapper {
 
       const { prefs } = store.getState();
       const autocomplete = prefs.autocomplete;
-      const editorFeatureEnabled = prefs.editor;
-
-      this.prefsObservers = new Map();
-      this.prefsObservers.set(PREFS.UI.MESSAGE_TIMESTAMP, () => {
-        const enabled = Services.prefs.getBoolPref(PREFS.UI.MESSAGE_TIMESTAMP);
-        store.dispatch(actions.timestampsToggle(enabled));
-      });
-
-      this.prefsObservers.set(PREFS.FEATURES.GROUP_WARNINGS, () => {
-        const enabled = Services.prefs.getBoolPref(
-          PREFS.FEATURES.GROUP_WARNINGS
-        );
-        store.dispatch(actions.warningGroupsToggle(enabled));
-      });
-
-      for (const [pref, observer] of this.prefsObservers) {
-        Services.prefs.addObserver(pref, observer);
-      }
 
       const app = App({
         serviceContainer,
@@ -140,7 +120,6 @@ class WebConsoleWrapper {
         onFirstMeaningfulPaint: resolve,
         closeSplitConsole: this.closeSplitConsole.bind(this),
         autocomplete,
-        editorFeatureEnabled,
         hidePersistLogsCheckbox:
           webConsoleUI.isBrowserConsole || webConsoleUI.isBrowserToolboxConsole,
         hideShowContentMessagesCheckbox:
@@ -454,14 +433,6 @@ class WebConsoleWrapper {
   // Called by pushing close button.
   closeSplitConsole() {
     this.toolbox.closeSplitConsole();
-  }
-
-  destroy() {
-    if (this.prefsObservers) {
-      for (const [pref, observer] of this.prefsObservers) {
-        Services.prefs.removeObserver(pref, observer);
-      }
-    }
   }
 }
 

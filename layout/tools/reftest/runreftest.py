@@ -48,9 +48,9 @@ try:
     from marionette_harness import Marionette
 except ImportError as e:  # noqa
     # Defer ImportError until attempt to use Marionette
-    def reraise(*args, **kwargs):
+    def reraise_(*args, **kwargs):
         raise(e)  # noqa
-    Marionette = reraise
+    Marionette = reraise_
 
 from output import OutputHandler, ReftestFormatter
 import reftestcommandline
@@ -362,6 +362,8 @@ class RefTest(object):
         prefs['reftest.logLevel'] = options.log_tbpl_level or 'info'
         prefs['reftest.suite'] = options.suite
         prefs['gfx.font_rendering.ahem_antialias_none'] = True
+        # Disable dark scrollbars because it's semi-transparent.
+        prefs['widget.disable-dark-scrollbar'] = True
 
         # Set tests to run or manifests to parse.
         if tests:

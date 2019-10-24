@@ -26,6 +26,7 @@ struct JSContext;
 
 namespace js {
 
+class PromiseObject;
 class WritableStreamDefaultController;
 class WritableStreamDefaultWriter;
 
@@ -46,14 +47,31 @@ class WritableStream : public NativeObject {
      * stream's constructor and thus cannot be in a different compartment.
      */
     Slot_Controller,
+
+    /**
+     * Either |undefined| if no writer has been created yet for |this|, or a
+     * |WritableStreamDefaultWriter| object that writes to this.  Writers are
+     * created under |WritableStream.prototype.getWriter|, which may not be
+     * same-compartment with |this|, so this object may be a wrapper.
+     */
     Slot_Writer,
+
     Slot_State,
+
+    /**
+     * Either |undefined| if this stream hasn't yet started erroring, or an
+     * arbitrary value indicating the reason for the error (e.g. the
+     * reason-value passed to a related |abort(reason)| or |error(e)| function).
+     *
+     * This value can be an arbitrary user-provided value, so it might be a
+     * cross-comaprtment wrapper.
+     */
     Slot_StoredError,
 
     /**
-     * A ListObject consisting of the value of the [[inFlightWriteRequest]] spec
-     * field (if it is not |undefined|) followed by the elements of the
-     * [[queue]] List.
+     * A |ListObject| consisting of the value of the [[inFlightWriteRequest]]
+     * spec field (if it is not |undefined|) followed by the elements of the
+     * [[queue]] List.  |this| and the |ListObject| are same-compartment.
      *
      * If the |HaveInFlightWriteRequest| flag is set, the first element of this
      * List is the non-|undefined| value of [[inFlightWriteRequest]].  If it is
@@ -62,7 +80,9 @@ class WritableStream : public NativeObject {
     Slot_WriteRequests,
 
     /**
-     * A slot storing both [[closeRequest]] and [[inFlightCloseRequest]].
+     * A slot storing both [[closeRequest]] and [[inFlightCloseRequest]].  This
+     * value is created under |WritableStreamDefaultWriterClose|, so it may be a
+     * wrapper around a promise rather than directly a |PromiseObject|.
      *
      * If this slot has the value |undefined|, then [[inFlightCloseRequest]]
      * and [[closeRequest]] are both |undefined|.  Otherwise one field has the
@@ -185,6 +205,7 @@ class WritableStream : public NativeObject {
   bool writable() const { return state() == Writable; }
 
   bool closed() const { return state() == Closed; }
+  void setClosed() { setState(Closed); }
 
   bool erroring() const { return state() == Erroring; }
   void setErroring() { setState(Erroring); }
@@ -211,13 +232,19 @@ class WritableStream : public NativeObject {
   }
 
   bool hasWriter() const { return !getFixedSlot(Slot_Writer).isUndefined(); }
-  inline WritableStreamDefaultWriter* writer() const;
-  inline void setWriter(WritableStreamDefaultWriter* writer);
+  bool isLocked() const { return hasWriter(); }
+  void setWriter(JSObject* writer) {
+    MOZ_ASSERT(!hasWriter());
+    setFixedSlot(Slot_Writer, JS::ObjectValue(*writer));
+  }
   void clearWriter() { setFixedSlot(Slot_Writer, JS::UndefinedValue()); }
 
   JS::Value storedError() const { return getFixedSlot(Slot_StoredError); }
   void setStoredError(JS::Handle<JS::Value> value) {
     setFixedSlot(Slot_StoredError, value);
+  }
+  void clearStoredError() {
+    setFixedSlot(Slot_StoredError, JS::UndefinedValue());
   }
 
   JS::Value inFlightWriteRequest() const {
@@ -254,6 +281,12 @@ class WritableStream : public NativeObject {
     return JS::UndefinedValue();
   }
 
+  void setCloseRequest(JSObject* closeRequest) {
+    MOZ_ASSERT(!haveCloseRequestOrInFlightCloseRequest());
+    setFixedSlot(Slot_CloseRequest, JS::ObjectValue(*closeRequest));
+    MOZ_ASSERT(!haveInFlightCloseRequest());
+  }
+
   JS::Value inFlightCloseRequest() const {
     JS::Value v = getFixedSlot(Slot_CloseRequest);
     if (v.isUndefined()) {
@@ -271,6 +304,39 @@ class WritableStream : public NativeObject {
     }
 
     return JS::UndefinedValue();
+  }
+
+  bool haveCloseRequestOrInFlightCloseRequest() const {
+    // Slot_CloseRequest suffices to store both [[closeRequest]] and
+    // [[inFlightCloseRequest]], with the precisely-set field determined by
+    // |haveInFlightCloseRequest()|.  If both are undefined, then per above, for
+    // extra implementation rigor, |haveInFlightCloseRequest()| will be false,
+    // so additionally assert that.
+    if (getFixedSlot(Slot_CloseRequest).isUndefined()) {
+      MOZ_ASSERT(!haveInFlightCloseRequest());
+      return false;
+    }
+
+    return true;
+  }
+
+  void convertCloseRequestToInFlightCloseRequest() {
+    MOZ_ASSERT(stateIsInitialized());
+    MOZ_ASSERT(!haveInFlightCloseRequest());
+    setFlag(HaveInFlightCloseRequest, true);
+    MOZ_ASSERT(haveInFlightCloseRequest());
+  }
+
+  void clearInFlightCloseRequest() {
+    MOZ_ASSERT(stateIsInitialized());
+    MOZ_ASSERT(haveInFlightCloseRequest());
+    MOZ_ASSERT(!getFixedSlot(Slot_CloseRequest).isUndefined());
+
+    // As noted above, for greater rigor we require HaveInFlightCloseRequest be
+    // unset when [[closeRequest]] and [[inFlightCloseRequest]] are both
+    // undefined.
+    setFlag(HaveInFlightCloseRequest, false);
+    setFixedSlot(Slot_CloseRequest, JS::UndefinedValue());
   }
 
   ListObject* writeRequests() const {
@@ -299,6 +365,16 @@ class WritableStream : public NativeObject {
   bool pendingAbortRequestWasAlreadyErroring() const {
     MOZ_ASSERT(hasPendingAbortRequest());
     return flags() & PendingAbortRequestWasAlreadyErroring;
+  }
+
+  void clearPendingAbortRequest() {
+    MOZ_ASSERT(stateIsInitialized());
+    MOZ_ASSERT(hasPendingAbortRequest());
+
+    // [[pendingAbortRequest]] is { [[promise]], [[reason]] } in the spec but
+    // separate slots in our implementation, so both must be cleared.
+    setFixedSlot(Slot_PendingAbortRequestPromise, JS::UndefinedValue());
+    setFixedSlot(Slot_PendingAbortRequestReason, JS::UndefinedValue());
   }
 
   static MOZ_MUST_USE WritableStream* create(

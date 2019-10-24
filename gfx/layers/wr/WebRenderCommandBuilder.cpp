@@ -86,15 +86,12 @@ struct BlobItemData {
   UniquePtr<nsDisplayItemGeometry> mGeometry;
   DisplayItemClip mClip;
   bool mUsed;  // initialized near construction
+  // XXX: only used for debugging
+  bool mInvalid;
 
   // a weak pointer to the group that owns this item
   // we use this to track whether group for a particular item has changed
   struct DIGroup* mGroup;
-
-  // XXX: only used for debugging
-  bool mInvalid;
-  bool mInvalidRegion;
-  bool mEmpty;
 
   // properties that are used to emulate layer tree invalidation
   Matrix mMatrix;  // updated to track the current transform to device space
@@ -106,13 +103,10 @@ struct BlobItemData {
   std::vector<RefPtr<SourceSurface>> mExternalSurfaces;
 
   IntRect mImageRect;
-  LayerIntPoint mGroupOffset;
 
   BlobItemData(DIGroup* aGroup, nsDisplayItem* aItem)
       : mUsed(false), mGroup(aGroup) {
     mInvalid = false;
-    mInvalidRegion = false;
-    mEmpty = false;
     mDisplayItemKey = aItem->GetPerFrameKey();
     AddFrame(aItem->Frame());
   }
@@ -303,14 +297,16 @@ struct DIGroup {
   // This is the intersection of mVisibleRect and mLastVisibleRect
   // we ensure that mInvalidRect is contained in mPreservedRect
   IntRect mPreservedRect;
+  IntRect mActualBounds;
   int32_t mAppUnitsPerDevPixel;
   gfx::Size mScale;
   ScrollableLayerGuid::ViewID mScrollId;
   LayerPoint mResidualOffset;
-  LayerIntRect mLayerBounds; // mGroupBounds converted to Layer space
+  LayerIntRect mLayerBounds;  // mGroupBounds converted to Layer space
   // mLayerBounds clipped to the container/parent of the
   // current item being processed.
-  IntRect mClippedImageBounds; // mLayerBounds with the clipping of any containers applied
+  IntRect mClippedImageBounds;  // mLayerBounds with the clipping of any
+                                // containers applied
   Maybe<mozilla::Pair<wr::RenderRoot, wr::BlobImageKey>> mKey;
   std::vector<RefPtr<ScaledFont>> mFonts;
 
@@ -382,7 +378,6 @@ struct DIGroup {
     /*if (aItem->IsReused() && aData->mGeometry) {
       return;
     }*/
-    aData->mInvalidRegion = false;
 
     GP("pre mInvalidRect: %s %p-%d - inv: %d %d %d %d\n", aItem->Name(),
        aItem->Frame(), aItem->GetPerFrameKey(), mInvalidRect.x, mInvalidRect.y,
@@ -441,8 +436,8 @@ struct DIGroup {
       if (!combined.IsEmpty()) {
         // There might be no point in doing this elaborate tracking here to get
         // smaller areas
-        InvalidateRect(aData->mRect);  // invalidate the old area -- in theory combined
-                             // should take care of this
+        InvalidateRect(aData->mRect);  // invalidate the old area -- in theory
+                                       // combined should take care of this
         UniquePtr<nsDisplayItemGeometry> geometry(
             aItem->AllocateGeometry(aBuilder));
         // invalidate the invalidated area.
@@ -457,7 +452,6 @@ struct DIGroup {
         InvalidateRect(aData->mRect);
 
         aData->mInvalid = true;
-        aData->mInvalidRegion = true;
       } else {
         if (aData->mClip != clip) {
           UniquePtr<nsDisplayItemGeometry> geometry(
@@ -540,8 +534,8 @@ struct DIGroup {
               InvalidateRect(aData->mRect);
             } else {
               GP("Layer NoChange: %s %d %d %d %d\n", aItem->Name(),
-               aData->mRect.x, aData->mRect.y, aData->mRect.XMost(),
-               aData->mRect.YMost());
+                 aData->mRect.x, aData->mRect.y, aData->mRect.XMost(),
+                 aData->mRect.YMost());
             }
           }
         } else {
@@ -559,13 +553,13 @@ struct DIGroup {
             aData->mRect = rect;
             InvalidateRect(aData->mRect);
           } else {
-            GP("NoChange: %s %d %d %d %d\n", aItem->Name(),
-               aData->mRect.x, aData->mRect.y, aData->mRect.XMost(),
-               aData->mRect.YMost());
+            GP("NoChange: %s %d %d %d %d\n", aItem->Name(), aData->mRect.x,
+               aData->mRect.y, aData->mRect.XMost(), aData->mRect.YMost());
           }
         }
       }
     }
+    mActualBounds.OrWith(aData->mRect);
     aData->mClip = clip;
     aData->mMatrix = aMatrix;
     aData->mImageRect = mClippedImageBounds;
@@ -580,6 +574,9 @@ struct DIGroup {
                 nsDisplayItem* aStartItem, nsDisplayItem* aEndItem) {
     GP("\n\n");
     GP("Begin EndGroup\n");
+
+    mVisibleRect = mVisibleRect.Intersect(ViewAs<LayerPixel>(
+        mActualBounds, PixelCastJustification::LayerIsImage));
 
     if (mVisibleRect.IsEmpty()) {
       return;
@@ -725,7 +722,6 @@ struct DIGroup {
       }
     }
     mFonts = std::move(fonts);
-    mInvalidRect.SetEmpty();
     aResources.SetBlobImageVisibleArea(
         mKey.value().second(),
         ViewAs<ImagePixel>(mVisibleRect, PixelCastJustification::LayerIsImage));
@@ -788,22 +784,8 @@ struct DIGroup {
         dirty = false;
         BlobItemData* data = GetBlobItemData(item);
         if (data->mInvalid) {
-          if (item->GetType() == DisplayItemType::TYPE_TRANSFORM) {
-            nsDisplayTransform* transformItem =
-                static_cast<nsDisplayTransform*>(item);
-            const Matrix4x4Flagged& t = transformItem->GetTransform();
-            Matrix t2d;
-            bool is2D = t.Is2D(&t2d);
-            gfxCriticalError()
-                << "DIT-" << is2D << "-r-" << data->mInvalidRegion << "-"
-                << bounds.x << "-" << bounds.y << "-" << bounds.width << "-"
-                << bounds.height << "," << mInvalidRect.x << "-"
-                << mInvalidRect.y << "-" << mInvalidRect.width << "-"
-                << mInvalidRect.height << "-sbi";
-          } else {
-            gfxCriticalError() << "DisplayItem" << item->Name() << "-region-"
-                               << data->mInvalidRegion << "-should be invalid";
-          }
+          gfxCriticalError()
+              << "DisplayItem" << item->Name() << "-should be invalid";
         }
         // if the item is invalid it needs to be fully contained
         MOZ_RELEASE_ASSERT(!data->mInvalid);
@@ -1211,6 +1193,8 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
           aCommandBuilder->CreateOrRecycleWebRenderUserData<WebRenderGroupData>(
               item, aBuilder.GetRenderRoot());
 
+      groupData->mFollowingGroup.mInvalidRect.SetEmpty();
+
       // Initialize groupData->mFollowingGroup with data from currentGroup.
       // We want to copy out this information before calling EndGroup because
       // EndGroup will set mLastVisibleRect depending on whether
@@ -1249,7 +1233,10 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
           currentGroup->mResidualOffset;
       groupData->mFollowingGroup.mVisibleRect = currentGroup->mVisibleRect;
       groupData->mFollowingGroup.mPreservedRect =
-        groupData->mFollowingGroup.mVisibleRect.Intersect(groupData->mFollowingGroup.mLastVisibleRect).ToUnknownRect();
+          groupData->mFollowingGroup.mVisibleRect
+              .Intersect(groupData->mFollowingGroup.mLastVisibleRect)
+              .ToUnknownRect();
+      groupData->mFollowingGroup.mActualBounds = IntRect();
 
       currentGroup->EndGroup(aCommandBuilder->mManager, aDisplayListBuilder,
                              aBuilder, aResources, this, startOfCurrentGroup,
@@ -1455,12 +1442,13 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
       ScaleToOutsidePixelsOffset(groupBounds, scale.width, scale.height,
                                  appUnitsPerDevPixel, residualOffset));
 
-  const nsRect& untransformedPaintRect = aWrappingItem->GetUntransformedPaintRect();
+  const nsRect& untransformedPaintRect =
+      aWrappingItem->GetUntransformedPaintRect();
 
   auto visibleRect = LayerIntRect::FromUnknownRect(
                          ScaleToOutsidePixelsOffset(
-                             untransformedPaintRect, scale.width,
-                             scale.height, appUnitsPerDevPixel, residualOffset))
+                             untransformedPaintRect, scale.width, scale.height,
+                             appUnitsPerDevPixel, residualOffset))
                          .Intersect(layerBounds);
 
   GP("LayerBounds: %d %d %d %d\n", layerBounds.x, layerBounds.y,
@@ -1471,6 +1459,8 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
   GP("Inherrited scale %f %f\n", scale.width, scale.height);
   GP("Bounds: %d %d %d %d vs %d %d %d %d\n", p.x, p.y, p.width, p.height, q.x,
      q.y, q.width, q.height);
+
+  group.mInvalidRect.SetEmpty();
   if (group.mAppUnitsPerDevPixel != appUnitsPerDevPixel ||
       group.mScale != scale || group.mResidualOffset != residualOffset) {
     GP("Property change. Deleting blob\n");
@@ -1513,7 +1503,9 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
   group.mGroupBounds = groupBounds;
   group.mLayerBounds = layerBounds;
   group.mVisibleRect = visibleRect;
-  group.mPreservedRect = group.mVisibleRect.Intersect(group.mLastVisibleRect).ToUnknownRect();
+  group.mActualBounds = IntRect();
+  group.mPreservedRect =
+      group.mVisibleRect.Intersect(group.mLastVisibleRect).ToUnknownRect();
   group.mAppUnitsPerDevPixel = appUnitsPerDevPixel;
   group.mClippedImageBounds = layerBounds.ToUnknownRect();
 
@@ -2169,8 +2161,14 @@ WebRenderCommandBuilder::GenerateFallbackData(
   if (visibleSize.IsEmpty()) {
     return nullptr;
   }
-  // Display item bounds should be unscaled
-  aImageRect = visibleRect / layerScale;
+
+  if (useBlobImage) {
+    // Display item bounds should be unscaled
+    aImageRect = visibleRect / layerScale;
+  } else {
+    // Display item bounds should be unscaled
+    aImageRect = dtRect / layerScale;
+  }
 
   // We always paint items at 0,0 so the visibleRect that we use inside the blob
   // is needs to be adjusted by the display item bounds top left.
@@ -2254,7 +2252,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
             new BasicLayerManager(BasicLayerManager::BLM_INACTIVE);
       }
       bool isInvalidated = PaintItemByDrawTarget(
-          aItem, dt, (dtRect/layerScale).TopLeft(),
+          aItem, dt, (dtRect / layerScale).TopLeft(),
           /*aVisibleRect: */ dt->GetRect(), aDisplayListBuilder,
           fallbackData->mBasicLayerManager, scale, highlight);
       if (!isInvalidated) {
@@ -2313,7 +2311,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
 
       {
         UpdateImageHelper helper(imageContainer, imageClient,
-                                 visibleSize.ToUnknownSize(), format);
+                                 dtRect.Size().ToUnknownSize(), format);
         {
           RefPtr<gfx::DrawTarget> dt = helper.GetDrawTarget();
           if (!dt) {
@@ -2359,10 +2357,9 @@ WebRenderCommandBuilder::GenerateFallbackData(
   }
 
   if (useBlobImage) {
-      aResources.SetBlobImageVisibleArea(
-            fallbackData->GetBlobImageKey().value(),
-            ViewAs<ImagePixel>(visibleRect,
-                               PixelCastJustification::LayerIsImage));
+    aResources.SetBlobImageVisibleArea(
+        fallbackData->GetBlobImageKey().value(),
+        ViewAs<ImagePixel>(visibleRect, PixelCastJustification::LayerIsImage));
   }
 
   // Update current bounds to fallback data
@@ -2421,9 +2418,6 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
 
   bool snap;
   nsRect bounds = aMaskItem->GetBounds(aDisplayListBuilder, &snap);
-  if (bounds.IsEmpty()) {
-    return Nothing();
-  }
 
   const int32_t appUnitsPerDevPixel =
       aMaskItem->Frame()->PresContext()->AppUnitsPerDevPixel();
@@ -2440,6 +2434,10 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
   LayerIntRect itemRect =
       LayerIntRect::FromUnknownRect(bounds.ScaleToOutsidePixels(
           scale.width, scale.height, appUnitsPerDevPixel));
+
+  if (itemRect.IsEmpty()) {
+    return Nothing();
+  }
 
   LayoutDeviceToLayerScale2D layerScale(scale.width, scale.height);
   LayoutDeviceRect imageRect = LayerRect(itemRect) / layerScale;

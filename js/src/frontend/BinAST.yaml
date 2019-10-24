@@ -118,14 +118,14 @@ hpp:
 
         using Tokenizer = Tok;
 
-        using BinASTFields = typename Tokenizer::BinASTFields;
         using AutoList = typename Tokenizer::AutoList;
         using AutoTaggedTuple = typename Tokenizer::AutoTaggedTuple;
         using Chars = typename Tokenizer::Chars;
-        using Context = typename BinASTTokenReaderBase::Context;
         using ListContext = typename BinASTTokenReaderBase::ListContext;
         using FieldContext = typename BinASTTokenReaderBase::FieldContext;
         using RootContext = typename BinASTTokenReaderBase::RootContext;
+        using FieldOrRootContext = BinASTTokenReaderBase::FieldOrRootContext;
+        using FieldOrListContext = BinASTTokenReaderBase::FieldOrListContext;
 
        public:
         // Auto-generated types.
@@ -202,6 +202,9 @@ hpp:
         using Base::prependDirectivesToBody;
 
         using Base::forceStrictIfNecessary;
+
+        using Base::isInvalidKindPossible;
+        using Base::isInvalidVariantPossible;
 
        public:
     footer: |
@@ -659,7 +662,7 @@ BreakStatement:
       block:
         replace: |
           RootedAtom label(cx_);
-          MOZ_TRY_VAR(label, tokenizer_->readMaybeAtom(Context(FieldContext(BinASTInterfaceAndField::BreakStatement__Label))));
+          MOZ_TRY_VAR(label, tokenizer_->readMaybeAtom(FieldContext(BinASTInterfaceAndField::BreakStatement__Label)));
 
   build: |
     if (label) {
@@ -803,7 +806,7 @@ ContinueStatement:
       block:
         replace: |
           RootedAtom label(cx_);
-          MOZ_TRY_VAR(label, tokenizer_->readMaybeAtom(Context(FieldContext(BinASTInterfaceAndField::ContinueStatement__Label))));
+          MOZ_TRY_VAR(label, tokenizer_->readMaybeAtom(FieldContext(BinASTInterfaceAndField::ContinueStatement__Label)));
 
   build: |
     if (label) {
@@ -977,7 +980,7 @@ EagerFunctionExpression:
                    NewLexicalScopeData(cx_, lexicalScope, alloc_, pc_));
     BINJS_TRY_DECL(bodyScope,
                    handler_.newLexicalScope(*lexicalScopeData, body));
-    BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, kind, funbox));
+    BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, syntax, funbox));
     MOZ_TRY(setFunctionParametersAndBody(result, params, bodyScope));
     MOZ_TRY(finishEagerFunction(funbox, nargs));
 
@@ -1012,7 +1015,7 @@ LazyFunctionExpression:
 
     forceStrictIfNecessary(funbox, directives);
 
-    BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, kind, funbox));
+    BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, syntax, funbox));
 
     auto skipStart = contentsSkip.startOffset();
     auto skipEnd = skipStart + contentsSkip.length();
@@ -1039,7 +1042,7 @@ EagerMethod:
                    NewLexicalScopeData(cx_, lexicalScope, alloc_, pc_));
     BINJS_TRY_DECL(bodyScope,
                    handler_.newLexicalScope(*lexicalScopeData, body));
-    BINJS_MOZ_TRY_DECL(method, makeEmptyFunctionNode(start, kind, funbox));
+    BINJS_MOZ_TRY_DECL(method, makeEmptyFunctionNode(start, syntax, funbox));
     MOZ_TRY(setFunctionParametersAndBody(method, params, bodyScope));
     BINJS_TRY_DECL(result,
                    handler_.newObjectMethodOrPropertyDefinition(name, method,
@@ -1310,7 +1313,7 @@ LiteralRegExpExpression:
       block:
         replace: |
           RegExpFlags reflags = JS::RegExpFlag::NoFlags;
-          auto flagsContext = Context(FieldContext(BinASTInterfaceAndField::LiteralRegExpExpression__Flags));
+          auto flagsContext = FieldContext(BinASTInterfaceAndField::LiteralRegExpExpression__Flags);
           if (mozilla::IsSame<Tok, BinASTTokenReaderContext>::value) {
             // Hack: optimized `readChars` is not implemented for `BinASTTokenReaderContext`.
             RootedAtom flags(cx_);
@@ -1369,7 +1372,7 @@ ReturnStatement:
   init: |
     if (!pc_->isFunctionBox()) {
       // Return statements are permitted only inside functions.
-      return raiseInvalidKind("Toplevel Statement", kind);
+      return raiseInvalidKind("Toplevel Statement", BinASTKind::ReturnStatement);
     }
 
     pc_->functionBox()->usesReturn = true;

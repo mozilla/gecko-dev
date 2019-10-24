@@ -61,6 +61,26 @@ let ACTORS = {
     allFrames: true,
   },
 
+  DOMFullscreen: {
+    parent: {
+      moduleURI: "resource:///actors/DOMFullscreenParent.jsm",
+    },
+
+    child: {
+      moduleURI: "resource:///actors/DOMFullscreenChild.jsm",
+      group: "browsers",
+      events: {
+        "MozDOMFullscreen:Request": {},
+        "MozDOMFullscreen:Entered": {},
+        "MozDOMFullscreen:NewOrigin": {},
+        "MozDOMFullscreen:Exit": {},
+        "MozDOMFullscreen:Exited": {},
+      },
+    },
+
+    allFrames: true,
+  },
+
   FormValidation: {
     parent: {
       moduleURI: "resource:///actors/FormValidationParent.jsm",
@@ -127,6 +147,21 @@ let ACTORS = {
     allFrames: true,
   },
 
+  ShieldFrame: {
+    parent: {
+      moduleURI: "resource://normandy-content/ShieldFrameParent.jsm",
+    },
+    child: {
+      moduleURI: "resource://normandy-content/ShieldFrameChild.jsm",
+      events: {
+        pageshow: {},
+        pagehide: {},
+        ShieldPageEvent: { wantUntrusted: true },
+      },
+    },
+    matches: ["about:studies"],
+  },
+
   SwitchDocumentDirection: {
     child: {
       moduleURI: "resource:///actors/SwitchDocumentDirectionChild.jsm",
@@ -155,6 +190,7 @@ let LEGACY_ACTORS = {
         AboutLoginsOpenPreferences: { wantUntrusted: true },
         AboutLoginsOpenSite: { wantUntrusted: true },
         AboutLoginsRecordTelemetryEvent: { wantUntrusted: true },
+        AboutLoginsSortChanged: { wantUntrusted: true },
         AboutLoginsSyncEnable: { wantUntrusted: true },
         AboutLoginsSyncOptions: { wantUntrusted: true },
         AboutLoginsUpdateLogin: { wantUntrusted: true },
@@ -164,6 +200,7 @@ let LEGACY_ACTORS = {
         "AboutLogins:LoginAdded",
         "AboutLogins:LoginModified",
         "AboutLogins:LoginRemoved",
+        "AboutLogins:MasterPasswordAuthRequired",
         "AboutLogins:MasterPasswordResponse",
         "AboutLogins:SendFavicons",
         "AboutLogins:SetBreaches",
@@ -227,31 +264,6 @@ let LEGACY_ACTORS = {
         ContentSearchClient: { capture: true, wantUntrusted: true },
       },
       messages: ["ContentSearch"],
-    },
-  },
-
-  ContextMenuSpecialProcess: {
-    child: {
-      module: "resource:///actors/ContextMenuSpecialProcessChild.jsm",
-      events: {
-        contextmenu: { mozSystemGroup: true },
-      },
-    },
-    allFrames: true,
-  },
-
-  DOMFullscreen: {
-    child: {
-      module: "resource:///actors/DOMFullscreenChild.jsm",
-      group: "browsers",
-      events: {
-        "MozDOMFullscreen:Request": {},
-        "MozDOMFullscreen:Entered": {},
-        "MozDOMFullscreen:NewOrigin": {},
-        "MozDOMFullscreen:Exit": {},
-        "MozDOMFullscreen:Exited": {},
-      },
-      messages: ["DOMFullscreen:Entered", "DOMFullscreen:CleanUp"],
     },
   },
 
@@ -322,16 +334,6 @@ let LEGACY_ACTORS = {
         DOMContentLoaded: {},
         pageshow: { mozSystemGroup: true },
       },
-    },
-  },
-
-  ShieldFrame: {
-    child: {
-      module: "resource://normandy-content/ShieldFrameChild.jsm",
-      events: {
-        ShieldPageEvent: { wantUntrusted: true },
-      },
-      matches: ["about:studies"],
     },
   },
 
@@ -479,7 +481,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
-  AutoCompletePopup: "resource://gre/modules/AutoCompletePopup.jsm",
   Blocklist: "resource://gre/modules/Blocklist.jsm",
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.jsm",
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.jsm",
@@ -536,7 +537,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AboutLoginsParent: "resource:///modules/AboutLoginsParent.jsm",
   AsyncPrefs: "resource://gre/modules/AsyncPrefs.jsm",
   ContentClick: "resource:///modules/ContentClick.jsm",
-  LoginManagerParent: "resource://gre/modules/LoginManagerParent.jsm",
   PluginManager: "resource:///actors/PluginParent.jsm",
   PictureInPicture: "resource://gre/modules/PictureInPicture.jsm",
   ReaderParent: "resource:///modules/ReaderParent.jsm",
@@ -600,8 +600,6 @@ const listeners = {
     "update-error": ["UpdateListener"],
     "gmp-plugin-crash": ["PluginManager"],
     "plugin-crashed": ["PluginManager"],
-    "passwordmgr-storage-changed": ["LoginManagerParent"],
-    "passwordmgr-autosaved-login-merged": ["LoginManagerParent"],
   },
 
   ppmm: {
@@ -633,6 +631,7 @@ const listeners = {
     "AboutLogins:OpenMobileAndroid": ["AboutLoginsParent"],
     "AboutLogins:OpenMobileIos": ["AboutLoginsParent"],
     "AboutLogins:OpenSite": ["AboutLoginsParent"],
+    "AboutLogins:SortChanged": ["AboutLoginsParent"],
     "AboutLogins:Subscribe": ["AboutLoginsParent"],
     "AboutLogins:SyncEnable": ["AboutLoginsParent"],
     "AboutLogins:SyncOptions": ["AboutLoginsParent"],
@@ -646,16 +645,6 @@ const listeners = {
     "PictureInPicture:OpenToggleContextMenu": ["PictureInPicture"],
     "Reader:FaviconRequest": ["ReaderParent"],
     "Reader:UpdateReaderButton": ["ReaderParent"],
-    // PLEASE KEEP THIS LIST IN SYNC WITH THE MOBILE LISTENERS IN BrowserCLH.js
-    "PasswordManager:findLogins": ["LoginManagerParent"],
-    "PasswordManager:findRecipes": ["LoginManagerParent"],
-    "PasswordManager:onFormSubmit": ["LoginManagerParent"],
-    "PasswordManager:onGeneratedPasswordFilledOrEdited": ["LoginManagerParent"],
-    "PasswordManager:autoCompleteLogins": ["LoginManagerParent"],
-    "PasswordManager:removeLogin": ["LoginManagerParent"],
-    "PasswordManager:insecureLoginFormPresent": ["LoginManagerParent"],
-    "PasswordManager:OpenPreferences": ["LoginManagerParent"],
-    // PLEASE KEEP THIS LIST IN SYNC WITH THE MOBILE LISTENERS IN BrowserCLH.js
     "rtcpeer:CancelRequest": ["webrtcUI"],
     "rtcpeer:Request": ["webrtcUI"],
     "webrtc:CancelRequest": ["webrtcUI"],
@@ -1626,7 +1615,6 @@ BrowserGlue.prototype = {
 
     this._checkForOldBuildUpdates();
 
-    AutoCompletePopup.init();
     // Check if Sync is configured
     if (Services.prefs.prefHasUserValue("services.sync.username")) {
       WeaveService.init();
@@ -1827,7 +1815,7 @@ BrowserGlue.prototype = {
       "saveas_download",
       "speculative",
     ].forEach(type => {
-      Services.telemetry.keyedScalarAdd(
+      Services.telemetry.keyedScalarSet(
         "security.contentblocker_permissions",
         type,
         Services.perms.getAllWithTypePrefix(type).length
@@ -1887,7 +1875,6 @@ BrowserGlue.prototype = {
     AboutNetErrorHandler.uninit();
     AboutPrivateBrowsingHandler.uninit();
     AboutProtectionsHandler.uninit();
-    AutoCompletePopup.uninit();
 
     Normandy.uninit();
     RFPHelper.uninit();

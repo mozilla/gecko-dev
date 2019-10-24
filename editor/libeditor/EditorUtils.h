@@ -7,21 +7,22 @@
 #define mozilla_EditorUtils_h
 
 #include "mozilla/ContentIterator.h"
-#include "mozilla/dom/Selection.h"
 #include "mozilla/EditAction.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EditorDOMPoint.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/RangeBoundary.h"
+#include "mozilla/dom/Selection.h"
+#include "mozilla/dom/StaticRange.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsIEditor.h"
+#include "nsRange.h"
 #include "nscore.h"
 
 class nsAtom;
 class nsISimpleEnumerator;
 class nsITransferable;
-class nsRange;
 
 namespace mozilla {
 class MoveNodeResult;
@@ -32,6 +33,65 @@ namespace dom {
 class Element;
 class Text;
 }  // namespace dom
+
+/***************************************************************************
+ * EditResult returns nsresult and preferred point where selection should be
+ * collapsed or the range where selection should select.
+ *
+ * NOTE: If we stop modifying selection at every DOM tree change, perhaps,
+ *       the following classes need to inherit this class.
+ */
+class MOZ_STACK_CLASS EditResult final {
+ public:
+  bool Succeeded() const { return NS_SUCCEEDED(mRv); }
+  bool Failed() const { return NS_FAILED(mRv); }
+  nsresult Rv() const { return mRv; }
+  bool EditorDestroyed() const { return mRv == NS_ERROR_EDITOR_DESTROYED; }
+  const EditorDOMPoint& PointRefToCollapseSelection() const {
+    MOZ_DIAGNOSTIC_ASSERT(mStartPoint.IsSet());
+    MOZ_DIAGNOSTIC_ASSERT(mStartPoint == mEndPoint);
+    return mStartPoint;
+  }
+  const EditorDOMPoint& StartPointRef() const { return mStartPoint; }
+  const EditorDOMPoint& EndPointRef() const { return mEndPoint; }
+  already_AddRefed<dom::StaticRange> CreateStaticRange() const {
+    return dom::StaticRange::Create(mStartPoint.ToRawRangeBoundary(),
+                                    mEndPoint.ToRawRangeBoundary(),
+                                    IgnoreErrors());
+  }
+  already_AddRefed<nsRange> CreateRange() const {
+    return nsRange::Create(mStartPoint.ToRawRangeBoundary(),
+                           mEndPoint.ToRawRangeBoundary(), IgnoreErrors());
+  }
+
+  EditResult() = delete;
+  explicit EditResult(nsresult aRv) : mRv(aRv) {
+    MOZ_DIAGNOSTIC_ASSERT(NS_FAILED(mRv));
+  }
+  template <typename PT, typename CT>
+  explicit EditResult(const EditorDOMPointBase<PT, CT>& aPointToPutCaret)
+      : mRv(aPointToPutCaret.IsSet() ? NS_OK : NS_ERROR_FAILURE),
+        mStartPoint(aPointToPutCaret),
+        mEndPoint(aPointToPutCaret) {}
+
+  template <typename SPT, typename SCT, typename EPT, typename ECT>
+  EditResult(const EditorDOMPointBase<SPT, SCT>& aStartPoint,
+             const EditorDOMPointBase<EPT, ECT>& aEndPoint)
+      : mRv(aStartPoint.IsSet() && aEndPoint.IsSet() ? NS_OK
+                                                     : NS_ERROR_FAILURE),
+        mStartPoint(aStartPoint),
+        mEndPoint(aEndPoint) {}
+
+  EditResult(const EditResult& aOther) = delete;
+  EditResult& operator=(const EditResult& aOther) = delete;
+  EditResult(EditResult&& aOther) = default;
+  EditResult& operator=(EditResult&& aOther) = default;
+
+ private:
+  nsresult mRv;
+  EditorDOMPoint mStartPoint;
+  EditorDOMPoint mEndPoint;
+};
 
 /***************************************************************************
  * EditActionResult is useful to return multiple results of an editor
@@ -329,6 +389,8 @@ class MOZ_STACK_CLASS SplitNodeResult final {
   bool Succeeded() const { return NS_SUCCEEDED(mRv); }
   bool Failed() const { return NS_FAILED(mRv); }
   nsresult Rv() const { return mRv; }
+  bool Handled() const { return mPreviousNode || mNextNode; }
+  bool EditorDestroyed() const { return mRv == NS_ERROR_EDITOR_DESTROYED; }
 
   /**
    * DidSplit() returns true if a node was actually split.
@@ -542,6 +604,88 @@ class MOZ_STACK_CLASS SplitRangeOffFromNodeResult final {
   nsresult mRv;
 
   SplitRangeOffFromNodeResult() = delete;
+};
+
+/***************************************************************************
+ * SplitRangeOffResult class is a simple class for methods which splits
+ * specific ancestor elements at 2 DOM points.
+ */
+class MOZ_STACK_CLASS SplitRangeOffResult final {
+ public:
+  bool Succeeded() const { return NS_SUCCEEDED(mRv); }
+  bool Failed() const { return NS_FAILED(mRv); }
+  nsresult Rv() const { return mRv; }
+  bool Handled() const { return mHandled; }
+  bool EditorDestroyed() const { return mRv == NS_ERROR_EDITOR_DESTROYED; }
+
+  /**
+   * This is at right node of split at start point.
+   */
+  const EditorDOMPoint& SplitPointAtStart() const { return mSplitPointAtStart; }
+  /**
+   * This is at right node of split at end point.  I.e., not in the range.
+   * This is after the range.
+   */
+  const EditorDOMPoint& SplitPointAtEnd() const { return mSplitPointAtEnd; }
+
+  SplitRangeOffResult() = delete;
+
+  /**
+   * Constructor for success case.
+   *
+   * @param aTrackedRangeStart          This should be at topmost right node
+   *                                    child at start point if actually split
+   *                                    there, or at start point to be tried
+   *                                    to split.  Note that if the method
+   *                                    allows to run script after splitting
+   *                                    at start point, the point should be
+   *                                    tracked with AutoTrackDOMPoint.
+   * @param aSplitNodeResultAtStart     Raw split node result at start point.
+   * @param aTrackedRangeEnd            This should be at topmost right node
+   *                                    child at end point if actually split
+   *                                    here, or at end point to be tried to
+   *                                    split.  As same as aTrackedRangeStart,
+   *                                    this value should be tracked while
+   *                                    running some script.
+   * @param aSplitNodeResultAtEnd       Raw split node result at start point.
+   */
+  SplitRangeOffResult(const EditorDOMPoint& aTrackedRangeStart,
+                      const SplitNodeResult& aSplitNodeResultAtStart,
+                      const EditorDOMPoint& aTrackedRangeEnd,
+                      const SplitNodeResult& aSplitNodeResultAtEnd)
+      : mSplitPointAtStart(aTrackedRangeStart),
+        mSplitPointAtEnd(aTrackedRangeEnd),
+        mRv(NS_OK),
+        mHandled(aSplitNodeResultAtStart.Handled() ||
+                 aSplitNodeResultAtEnd.Handled()) {
+    MOZ_ASSERT(mSplitPointAtStart.IsSet());
+    MOZ_ASSERT(mSplitPointAtEnd.IsSet());
+    MOZ_ASSERT(aSplitNodeResultAtStart.Succeeded());
+    MOZ_ASSERT(aSplitNodeResultAtEnd.Succeeded());
+  }
+
+  explicit SplitRangeOffResult(nsresult aRv) : mRv(aRv), mHandled(false) {
+    MOZ_DIAGNOSTIC_ASSERT(NS_FAILED(mRv));
+  }
+
+  SplitRangeOffResult(const SplitRangeOffResult& aOther) = delete;
+  SplitRangeOffResult& operator=(const SplitRangeOffResult& aOther) = delete;
+  SplitRangeOffResult(SplitRangeOffResult&& aOther) = default;
+  SplitRangeOffResult& operator=(SplitRangeOffResult&& aOther) = default;
+
+ private:
+  EditorDOMPoint mSplitPointAtStart;
+  EditorDOMPoint mSplitPointAtEnd;
+
+  // If you need to store previous and/or next node at start/end point,
+  // you might be able to use `SplitNodeResult::GetPreviousNode()` etc in the
+  // constructor only when `SplitNodeResult::Handled()` returns true.  But
+  // the node might have gone with another DOM tree mutation.  So, be careful
+  // if you do it.
+
+  nsresult mRv;
+
+  bool mHandled;
 };
 
 /***************************************************************************

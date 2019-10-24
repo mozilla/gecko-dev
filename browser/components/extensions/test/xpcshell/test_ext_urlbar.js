@@ -29,6 +29,10 @@ add_task(async function startup() {
   Services.prefs.setCharPref("browser.search.region", "US");
   Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", false);
   Services.prefs.setIntPref("browser.search.addonLoadTimeout", 0);
+  Services.prefs.setBoolPref(
+    "browser.search.separatePrivateDefault.ui.enabled",
+    false
+  );
   await AddonTestUtils.promiseStartupManager();
 
   // Add a test engine and make it default so that when we do searches below,
@@ -297,7 +301,9 @@ add_task(async function test_onProviderResultsRequested() {
       payload: {
         title: "Test remote_tab-tabs result",
         url: "http://example.com/remote_tab-tabs",
-        displayUrl: "example.com/remote_tab-tabs",
+        displayUrl:
+          (UrlbarPrefs.get("view.stripHttps") ? "http://" : "") +
+          "example.com/remote_tab-tabs",
       },
     },
     {
@@ -308,7 +314,9 @@ add_task(async function test_onProviderResultsRequested() {
       payload: {
         title: "Test tab-tabs result",
         url: "http://example.com/tab-tabs",
-        displayUrl: "example.com/tab-tabs",
+        displayUrl:
+          (UrlbarPrefs.get("view.stripHttps") ? "http://" : "") +
+          "example.com/tab-tabs",
       },
     },
     {
@@ -331,7 +339,9 @@ add_task(async function test_onProviderResultsRequested() {
       payload: {
         title: "Test url-history result",
         url: "http://example.com/url-history",
-        displayUrl: "example.com/url-history",
+        displayUrl:
+          (UrlbarPrefs.get("view.stripHttps") ? "http://" : "") +
+          "example.com/url-history",
       },
     },
   ];

@@ -78,6 +78,7 @@
   <html:link rel="localization" href="browser/browser.ftl"/>
   <html:link rel="localization" href="browser/menubar.ftl"/>
   <html:link rel="localization" href="browser/appmenu.ftl"/>
+  <html:link rel="localization" href="browser/readerView.ftl"/>
 </linkset>
 
 # All JS files which are needed by browser.xhtml and other top level windows to
@@ -643,8 +644,7 @@
       <menuitem data-lazy-l10n-id="synced-tabs-context-manage-devices"
                 id="syncedTabsManageDevices"
                 oncommand="gSync.openDevicesManagementPage('syncedtabs-sidebar');"/>
-      <menuitem label="&syncSyncNowItem.label;"
-                accesskey="&syncSyncNowItem.accesskey;"
+      <menuitem data-lazy-l10n-id="synced-tabs-context-sync-now"
                 id="syncedTabsRefresh"/>
     </menupopup>
     <menupopup id="SyncedTabsSidebarTabsFilterContext"
@@ -670,8 +670,7 @@
                 accesskey="&selectAllCmd.accesskey;"
                 cmd="cmd_selectAll"/>
       <menuseparator/>
-      <menuitem label="&syncSyncNowItem.label;"
-                accesskey="&syncSyncNowItem.accesskey;"
+      <menuitem data-lazy-l10n-id="synced-tabs-context-sync-now"
                 id="syncedTabsRefreshFilter"/>
     </menupopup>
 
@@ -865,6 +864,7 @@
             <hbox id="urlbar-input-container"
                   flex="1"
                   pageproxystate="invalid">
+              <box id="urlbar-search-icon"/>
               <!-- Use onclick instead of normal popup= syntax since the popup
                    code fires onmousedown, and hence eats our favicon drag events. -->
               <box id="tracking-protection-icon-container" align="center"

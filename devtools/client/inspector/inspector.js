@@ -66,11 +66,7 @@ loader.lazyRequireGetter(
   "saveScreenshot",
   "devtools/shared/screenshot/save"
 );
-loader.lazyRequireGetter(
-  this,
-  "ObjectClient",
-  "devtools/shared/client/object-client"
-);
+loader.lazyRequireGetter(this, "ObjectFront", "devtools/shared/fronts/object");
 
 loader.lazyImporter(
   this,
@@ -151,14 +147,21 @@ function Inspector(toolbox) {
   this.panelWin.inspector = this;
   this.telemetry = toolbox.telemetry;
   this.store = Store({
-    createObjectClient: object => {
-      return new ObjectClient(toolbox.target.client, object);
+    createObjectFront: object => {
+      return new ObjectFront(toolbox.target.client, object);
     },
     releaseActor: actor => {
       if (!actor) {
         return;
       }
-      toolbox.target.client.release(actor);
+      const objFront = toolbox.target.client.getFrontByID(actor);
+      if (objFront) {
+        objFront.release();
+        return;
+      }
+
+      // In case there's no object front, use the client's release method.
+      toolbox.target.client.release(actor).catch(() => {});
     },
   });
 
@@ -542,13 +545,20 @@ Inspector.prototype = {
     this.searchboxShortcuts.on(key, event => {
       // Prevent overriding same shortcut from the computed/rule views
       if (
-        event.target.closest("#sidebar-panel-ruleview") ||
-        event.target.closest("#sidebar-panel-computedview")
+        event.originalTarget.closest("#sidebar-panel-ruleview") ||
+        event.originalTarget.closest("#sidebar-panel-computedview")
       ) {
         return;
       }
-      event.preventDefault();
-      this.searchBox.focus();
+
+      const win = event.originalTarget.ownerGlobal;
+      // Check if the event is coming from an inspector window to avoid catching
+      // events from other panels. Note, we are testing both win and win.parent
+      // because the inspector uses iframes.
+      if (win === this.panelWin || win.parent === this.panelWin) {
+        event.preventDefault();
+        this.searchBox.focus();
+      }
     });
   },
 
@@ -969,6 +979,12 @@ Inspector.prototype = {
         );
         panel = new ChangesView(this, this.panelWin);
         break;
+      case "compatibilityview":
+        const CompatibilityView = this.browserRequire(
+          "devtools/client/inspector/compatibility/CompatibilityView"
+        );
+        panel = new CompatibilityView(this, this.panelWin);
+        break;
       case "computedview":
         const { ComputedViewTool } = this.browserRequire(
           "devtools/client/inspector/computed/computed"
@@ -1080,6 +1096,17 @@ Inspector.prototype = {
       sidebarPanels.push({
         id: "newruleview",
         title: INSPECTOR_L10N.getStr("inspector.sidebar.ruleViewTitle"),
+      });
+    }
+
+    if (
+      Services.prefs.getBoolPref("devtools.inspector.compatibility.enabled")
+    ) {
+      sidebarPanels.push({
+        id: "compatibilityview",
+        title: INSPECTOR_L10N.getStr(
+          "inspector.sidebar.compatibilityViewTitle"
+        ),
       });
     }
 
@@ -1676,6 +1703,7 @@ Inspector.prototype = {
     this._markupFrame.contentWindow.focus();
     this._markupBox.style.visibility = "visible";
     this.markup = new MarkupView(this, this._markupFrame, this._toolbox.win);
+    this.markup.init();
     this.emit("markuploaded");
   },
 
@@ -1769,11 +1797,12 @@ Inspector.prototype = {
     // turn off color picker when add node is triggered
     this.hideEyeDropper();
 
+    const nodeFront = this.selection.nodeFront;
     const html = "<div></div>";
 
     // Insert the html and expect a childList markup mutation.
     const onMutations = this.once("markupmutation");
-    await this.walker.insertAdjacentHTML(
+    await nodeFront.walkerFront.insertAdjacentHTML(
       this.selection.nodeFront,
       "beforeEnd",
       html
@@ -1781,7 +1810,7 @@ Inspector.prototype = {
     await onMutations;
 
     // Expand the parent node.
-    this.markup.expandNode(this.selection.nodeFront);
+    this.markup.expandNode(nodeFront);
   },
 
   /**
@@ -1791,13 +1820,13 @@ Inspector.prototype = {
     if (this.selection.isElementNode()) {
       const node = this.selection.nodeFront;
       if (node.hasPseudoClassLock(pseudo)) {
-        return this.walker.removePseudoClassLock(node, pseudo, {
+        return node.walkerFront.removePseudoClassLock(node, pseudo, {
           parents: true,
         });
       }
 
       const hierarchical = pseudo == ":hover" || pseudo == ":active";
-      return this.walker.addPseudoClassLock(node, pseudo, {
+      return node.walkerFront.addPseudoClassLock(node, pseudo, {
         parents: hierarchical,
       });
     }
@@ -1852,8 +1881,9 @@ Inspector.prototype = {
   },
 
   async inspectNodeActor(nodeActor, inspectFromAnnotation) {
-    // TODO: Bug1574506 - Use the contextual WalkerFront for gripToNodeFront.
-    const nodeFront = await this.walker.gripToNodeFront({ actor: nodeActor });
+    const nodeFront = await this.inspectorFront.getNodeFrontFromNodeGrip({
+      actor: nodeActor,
+    });
     if (!nodeFront) {
       console.error(
         "The object cannot be linked to the inspector, the " +

@@ -622,6 +622,22 @@ security:
       - 'geckoview'
     record_in_processes:
       - main
+  tls_delegated_credentials_txn:
+    bug_numbers:
+      - 1564179
+    description: >-
+      Count of how many transactions used delegated credentials (ietf-draft-tls-subcerts)
+    expires: "80"
+    kind: uint
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - kjacobs@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'geckoview'
+    record_in_processes:
+      - main
 
 pwmgr:
   potentially_breached_passwords:
@@ -1095,6 +1111,7 @@ webrtc.sdp:
     bug_numbers:
       - 1432955
       - 1529787
+      - 1588571
     description: >
       The number of differences between the C based sipcc SDP parser and
       the new rust based rsdparsa SDP parser keyed by predefined
@@ -1103,7 +1120,7 @@ webrtc.sdp:
       between the rsdparsa parsing result and the original sdp.
       This should help to improve the new rsdparsa to replace
       the sipcc parser.
-    expires: "73"
+    expires: "77"
     kind: uint
     keyed: true
     notification_emails:
@@ -1598,24 +1615,6 @@ devtools.inspector:
     record_in_processes:
       - 'main'
 
-  element_picker_used:
-    bug_numbers:
-      - 1529883
-    description: >
-      Number of times the element picker is used to select an element from the page.
-    expires: "70"
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - mbalfanz@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-    record_in_processes:
-      - 'main'
-
   node_selection_count:
     bug_numbers:
       - 1550794
@@ -1774,12 +1773,13 @@ devtools.tool:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Recorded on enable tool checkbox check/uncheck in Developer Tools options
       panel. Boolean stating if the tool was enabled or disabled by the user.
       Keyed by tool id. Current default tools with their id's are defined in
       https://dxr.mozilla.org/mozilla-central/source/devtools/client/definitions.js
-    expires: "70"
+    expires: never
     kind: boolean
     keyed: true
     notification_emails:
@@ -1798,10 +1798,11 @@ devtools.accessibility:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Number of times a DOM node was inspected from within the Accessibility
       tool.
-    expires: "70"
+    expires: never
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1818,9 +1819,10 @@ devtools.accessibility:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Number of times the DevTools Accessibility tool has been opened.
-    expires: "70"
+    expires: never
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1837,10 +1839,11 @@ devtools.accessibility:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Number of times the picker tool has been used in DevTools Accessibility
       panel.
-    expires: "70"
+    expires: never
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1857,11 +1860,12 @@ devtools.accessibility:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Number of times an accessible object was inspected from outside the
       Accessibility tool (navigation to Accessibility panel). Keyed by the
       source of user action (inspector context menu, browser context menu, etc).
-    expires: "70"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
@@ -1879,10 +1883,11 @@ devtools.accessibility:
     bug_numbers:
       - 1447302
       - 1503568
+      - 1587985
     description: >
       Number of times platform accessibility has been enabled in DevTools
       Accessibility panel.
-    expires: "70"
+    expires: never
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1898,10 +1903,11 @@ devtools.accessibility:
   accessible_context_menu_opened:
     bug_numbers:
       - 1507870
+      - 1587985
     description: >
       Number of times a context menu was opened for an accessible object in the
       accessibility tree.
-    expires: "70"
+    expires: never
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1917,11 +1923,12 @@ devtools.accessibility:
   accessible_context_menu_item_activated:
     bug_numbers:
       - 1507870
+      - 1587985
     description: >
       Number of times a context menu item for an accessible object was activated (with
       mouse or keyboard) from the context menu opened in the accessibility tree. Keyed by
       the id of the context menu item.
-    expires: "70"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
@@ -1938,11 +1945,12 @@ devtools.accessibility:
   audit_activated:
     bug_numbers:
       - 1548241
+      - 1587985
     description: >
       Number of times accessibility audit was activated (with mouse or keyboard)
       from the accessibility panel's toolbar. Keyed by the audit filter type
       (e.g. "CONTRAST").
-    expires: "73"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
@@ -1959,11 +1967,12 @@ devtools.accessibility:
   simulation_activated:
     bug_numbers:
       - 1567200
+      - 1587985
     description: >
       Number of times accessibility simulation was activated (with mouse or keyboard)
       from the accessibility panel's toolbar. Keyed by the simulation type
       (e.g. "DEUTERANOMALY").
-    expires: "74"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
@@ -2446,46 +2455,6 @@ telemetry:
     record_in_processes:
       - 'main'
       - 'content'
-
-  ecosystem_old_send_time:
-    bug_numbers:
-      - 1545365
-    description: >
-      The timestamp im milliseconds of the last time we tried to send an Ecosystem ping
-    expires: "73"
-    kind: string
-    notification_emails:
-      - jrediger@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-      - 'thunderbird'
-    record_in_processes:
-      - 'main'
-    record_into_store:
-      - 'pre-account'
-
-  ecosystem_new_send_time:
-    bug_numbers:
-      - 1545365
-    description: >
-      The timestamp im milliseconds of the last time we tried to send an Ecosystem ping
-    expires: "73"
-    kind: string
-    notification_emails:
-      - jrediger@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-      - 'thunderbird'
-    record_in_processes:
-      - 'main'
-    record_into_store:
-      - 'pre-account'
 
 telemetry.discarded:
   accumulations:
@@ -4431,6 +4400,42 @@ networking:
       - 'geckoview'
     record_in_processes:
       - 'main'
+
+  ftp_opened_channels_listings:
+    bug_numbers:
+      - 1579507
+    description: >
+      Number of FTP channels opened for directory listings.
+    expires: "77"
+    keyed: false
+    kind: uint
+    notification_emails:
+      - mnovotny@mozilla.com
+    products:
+      - 'firefox'
+      - 'fennec'
+      - 'geckoview'
+    record_in_processes:
+      - 'main'
+    release_channel_collection: opt-out
+
+  ftp_opened_channels_files:
+    bug_numbers:
+      - 1579507
+    description: >
+      Number of FTP channels opened for files.
+    expires: "77"
+    keyed: false
+    kind: uint
+    notification_emails:
+      - mnovotny@mozilla.com
+    products:
+      - 'firefox'
+      - 'fennec'
+      - 'geckoview'
+    record_in_processes:
+      - 'main'
+    release_channel_collection: opt-out
 
 blocklist:
   lastModified_xml:

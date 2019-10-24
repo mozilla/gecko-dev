@@ -34,6 +34,7 @@
 #include "VideoUtils.h"
 #include "GraphRunner.h"
 #include "Tracing.h"
+#include "UnderrunHandler.h"
 
 #include "webaudio/blink/DenormalDisabler.h"
 #include "webaudio/blink/HRTFDatabaseLoader.h"
@@ -866,6 +867,15 @@ void MediaTrackGraphImpl::DeviceChanged() {
     MediaTrackGraphImpl* mGraphImpl;
   };
 
+  if (mMainThreadTrackCount == 0 && mMainThreadPortCount == 0) {
+    // This is a special case where the origin of this event cannot control the
+    // lifetime of the graph, because the graph is controling the lifetime of
+    // the AudioCallbackDriver where the event originated.
+    // We know the graph is soon going away, so there's no need to notify about
+    // this device change.
+    return;
+  }
+
   // Reset the latency, it will get fetched again next time it's queried.
   MOZ_ASSERT(NS_IsMainThread());
   mAudioOutputLatency = 0.0;
@@ -1287,6 +1297,10 @@ bool MediaTrackGraphImpl::OneIteration(GraphTime aStateEnd) {
 
 bool MediaTrackGraphImpl::OneIterationImpl(GraphTime aStateEnd) {
   TRACE_AUDIO_CALLBACK();
+
+  if (SoftRealTimeLimitReached()) {
+    DemoteThreadFromRealTime();
+  }
 
   // Changes to LIFECYCLE_RUNNING occur before starting or reviving the graph
   // thread, and so the monitor need not be held to check mLifecycleState.
@@ -2645,6 +2659,7 @@ void SourceMediaTrack::SetEnabledImpl(DisabledTrackMode aMode) {
 
 void SourceMediaTrack::RemoveAllDirectListenersImpl() {
   GraphImpl()->AssertOnGraphThreadOrNotRunning();
+  MutexAutoLock lock(mMutex);
 
   auto directListeners(mDirectTrackListeners);
   for (auto& l : directListeners) {

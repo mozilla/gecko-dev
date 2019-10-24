@@ -262,10 +262,6 @@ nsStyleMargin::nsStyleMargin(const nsStyleMargin& aSrc)
 
 nsChangeHint nsStyleMargin::CalcDifference(
     const nsStyleMargin& aNewData) const {
-  if (mMargin == aNewData.mMargin && mScrollMargin == aNewData.mScrollMargin) {
-    return nsChangeHint(0);
-  }
-
   nsChangeHint hint = nsChangeHint(0);
 
   if (mMargin != aNewData.mMargin) {
@@ -296,11 +292,6 @@ nsStylePadding::nsStylePadding(const nsStylePadding& aSrc)
 
 nsChangeHint nsStylePadding::CalcDifference(
     const nsStylePadding& aNewData) const {
-  if (mPadding == aNewData.mPadding &&
-      mScrollPadding == aNewData.mScrollPadding) {
-    return nsChangeHint(0);
-  }
-
   nsChangeHint hint = nsChangeHint(0);
 
   if (mPadding != aNewData.mPadding) {
@@ -1176,7 +1167,7 @@ nsStylePosition::nsStylePosition(const Document& aDocument)
       mJustifyItems(NS_STYLE_JUSTIFY_NORMAL),
       mJustifySelf(NS_STYLE_JUSTIFY_AUTO),
       mFlexDirection(StyleFlexDirection::Row),
-      mFlexWrap(NS_STYLE_FLEX_WRAP_NOWRAP),
+      mFlexWrap(StyleFlexWrap::Nowrap),
       mObjectFit(NS_STYLE_OBJECT_FIT_FILL),
       mOrder(NS_STYLE_ORDER_INITIAL),
       mFlexGrow(0.0f),
@@ -2842,6 +2833,16 @@ static inline nsChangeHint CompareMotionValues(
   return result;
 }
 
+static bool ScrollbarGenerationChanged(const nsStyleDisplay& aOld,
+                                       const nsStyleDisplay& aNew) {
+  auto changed = [](StyleOverflow aOld, StyleOverflow aNew) {
+    return aOld != aNew &&
+           (aOld == StyleOverflow::Hidden || aNew == StyleOverflow::Hidden);
+  };
+  return changed(aOld.mOverflowX, aNew.mOverflowX) ||
+         changed(aOld.mOverflowY, aNew.mOverflowY);
+}
+
 nsChangeHint nsStyleDisplay::CalcDifference(
     const nsStyleDisplay& aNewData, const nsStylePosition& aOldPosition) const {
   nsChangeHint hint = nsChangeHint(0);
@@ -2874,7 +2875,37 @@ nsChangeHint nsStyleDisplay::CalcDifference(
   }
 
   if (mOverflowX != aNewData.mOverflowX || mOverflowY != aNewData.mOverflowY) {
-    hint |= nsChangeHint_ScrollbarChange;
+    const bool isScrollable = IsScrollableOverflow();
+    if (isScrollable != aNewData.IsScrollableOverflow()) {
+      // We may need to construct or destroy a scroll frame as a result of this
+      // change.
+      hint |= nsChangeHint_ScrollbarChange;
+    } else if (isScrollable) {
+      if (ScrollbarGenerationChanged(*this, aNewData)) {
+        // We need to reframe in the case of hidden -> non-hidden case though,
+        // since ScrollFrameHelper::CreateAnonymousContent avoids creating
+        // scrollbars altogether for overflow: hidden. That seems it could
+        // create some interesting perf cliffs...
+        //
+        // We reframe when non-hidden -> hidden too, for now.
+        //
+        // FIXME(bug 1590247): Seems we could avoid reframing once we've created
+        // scrollbars, which should get us the optimization for elements that
+        // have toggled scrollbars, but would prevent the cliff of toggling
+        // overflow causing jank.
+        hint |= nsChangeHint_ScrollbarChange;
+      } else {
+        // Otherwise, for changes where both overflow values are scrollable,
+        // means that scrollbars may appear or disappear. We need to reflow,
+        // since reflow is what determines which scrollbars if any are visible.
+        hint |= nsChangeHint_ReflowHintsForScrollbarChange;
+      }
+    } else {
+      // Otherwise this is a change between visible and
+      // -moz-hidden-unscrollable. Here only whether we have a clip changes, so
+      // just repaint and update our overflow areas in that case.
+      hint |= nsChangeHint_UpdateOverflow | nsChangeHint_RepaintFrame;
+    }
   }
 
   /* Note: When mScrollBehavior or mScrollSnapType are changed,
@@ -2888,6 +2919,9 @@ nsChangeHint nsStyleDisplay::CalcDifference(
    * if this does become common perhaps a faster-path might be worth while.
    *
    * FIXME(emilio): Can we do what we do for overflow changes?
+   *
+   * FIXME(emilio): These properties no longer propagate from the body to the
+   * viewport.
    */
 
   if (mFloat != aNewData.mFloat) {

@@ -212,7 +212,9 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.config.obscure_value", 13); // for MCD .cfg files
 
+#ifndef MOZ_BUILD_APP_IS_BROWSER
 pref("general.warnOnAboutConfig", true);
+#endif
 
 // maximum number of dated backups to keep at any time
 pref("browser.bookmarks.max_backups",       5);
@@ -493,6 +495,10 @@ pref("media.videocontrols.picture-in-picture.video-toggle.always-show", false);
   pref("media.peerconnection.ice.proxy_only", false);
   pref("media.peerconnection.turn.disable", false);
 
+  // 770 = DTLS 1.0, 771 = DTLS 1.2
+  pref("media.peerconnection.dtls.version.min", 770);
+  pref("media.peerconnection.dtls.version.max", 771);
+
   // These values (aec, agc, and noise) are from:
   // media/webrtc/trunk/webrtc/modules/audio_processing/include/audio_processing.h
   #if defined(MOZ_WEBRTC_HARDWARE_AEC_NS)
@@ -561,6 +567,10 @@ pref("media.cubeb.logging_level", "");
   pref("media.audioipc.stack_size", 262144);
 #else
   pref("media.cubeb.sandbox", false);
+#endif
+
+#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+  pref("media.cubeb.backend", "audiounit-rust");
 #endif
 
 // GraphRunner (fixed MediaTrackGraph thread) control
@@ -660,6 +670,7 @@ pref("gfx.webrender.debug.gpu-sample-queries", false);
 pref("gfx.webrender.debug.disable-batching", false);
 pref("gfx.webrender.debug.epochs", false);
 pref("gfx.webrender.debug.compact-profiler", false);
+pref("gfx.webrender.debug.smart-profiler", false);
 pref("gfx.webrender.debug.echo-driver-messages", false);
 pref("gfx.webrender.debug.new-frame-indicator", false);
 pref("gfx.webrender.debug.new-scene-indicator", false);
@@ -669,7 +680,6 @@ pref("gfx.webrender.debug.picture-caching", false);
 pref("gfx.webrender.debug.primitives", false);
 pref("gfx.webrender.debug.small-screen", false);
 pref("gfx.webrender.debug.obscure-images", false);
-pref("gfx.webrender.debug.log-transactions", false);
 
 pref("accessibility.warn_on_browsewithcaret", true);
 
@@ -818,6 +828,8 @@ pref("toolkit.dump.emit", false);
 #if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
   pref("devtools.recordreplay.enabled", true);
   pref("devtools.recordreplay.enableRewinding", true);
+#else
+  pref("devtools.recordreplay.enabled", false);
 #endif
 
 pref("devtools.recordreplay.mvp.enabled", false);
@@ -940,13 +952,11 @@ pref("dom.disable_window_open_feature.menubar",     false);
 pref("dom.disable_window_open_feature.resizable",   true);
 pref("dom.disable_window_open_feature.minimizable", false);
 pref("dom.disable_window_open_feature.status",      true);
-pref("dom.disable_window_showModalDialog",          true);
 
 pref("dom.allow_scripts_to_close_windows",          false);
 
 pref("dom.require_user_interaction_for_beforeunload", true);
 
-pref("dom.popup_maximum",                           20);
 pref("dom.popup_allowed_events", "change click dblclick auxclick mouseup pointerup notificationclick reset submit touchend contextmenu");
 
 pref("dom.serviceWorkers.disable_open_click_delay", 1000);
@@ -1244,9 +1254,6 @@ pref("network.protocol-handler.external.le", false);   // file
 // to override this value.
 pref("network.protocol-handler.expose-all", true);
 
-// Warning for about:networking page
-pref("network.warnOnAboutNetworking", false);
-
 // Example: make IMAP an exposed protocol
 // pref("network.protocol-handler.expose.imap", true);
 
@@ -1265,6 +1272,13 @@ pref("network.http.version", "1.1");      // default
 pref("network.http.proxy.version", "1.1");    // default
 // pref("network.http.proxy.version", "1.0"); // uncomment this out in case of problems
                                               // (required if using junkbuster proxy)
+
+// Whether we should respect the BE_CONSERVATIVE (aka nsIHttpChannelInternal.beConservative)
+// flag when connecting to a proxy.  If the configured proxy accepts only TLS 1.3, system
+// requests like updates will not pass through.  Setting this pref to false will fix that
+// problem.
+// Default at true to preserve the behavior we had before for backward compat.
+pref("network.http.proxy.respect-be-conservative", true);
 
 // this preference can be set to override the socket type used for normal
 // HTTP traffic.  an empty value indicates the normal TCP/IP socket type.
@@ -2303,7 +2317,12 @@ pref("services.settings.security.onecrl.signer", "onecrl.content-signature.mozil
 pref("services.settings.security.onecrl.checked", 0);
 
 pref("extensions.abuseReport.enabled", true);
+// Allow AMO to handoff reports to the Firefox integrated dialog.
+pref("extensions.abuseReport.amWebAPI.enabled", false);
+// Opened as a sub-frame of the about:addons page when set to false.
+pref("extensions.abuseReport.openDialog", false);
 pref("extensions.abuseReport.url", "https://services.addons.mozilla.org/api/v4/abuse/report/addon/");
+pref("extensions.abuseReport.amoDetailsURL", "https://services.addons.mozilla.org/api/v4/addons/addon/");
 
 // Blocklist preferences
 pref("extensions.blocklist.enabled", true);
@@ -3974,11 +3993,10 @@ pref("network.tcp.tcp_fastopen_http_check_for_stalls_only_if_idle_for", 10);
 pref("network.tcp.tcp_fastopen_http_stalls_limit", 3);
 pref("network.tcp.tcp_fastopen_http_stalls_timeout", 20);
 
-#ifdef MOZ_X11
-  #ifdef MOZ_WIDGET_GTK
-    pref("gfx.xrender.enabled",false);
-    pref("widget.content.allow-gtk-dark-theme", false);
-  #endif
+#ifdef MOZ_WIDGET_GTK
+  pref("gfx.xrender.enabled",false);
+  pref("widget.content.allow-gtk-dark-theme", false);
+  pref("widget.content.gtk-theme-override", "");
 #endif
 #ifdef MOZ_WAYLAND
   pref("widget.wayland_dmabuf_backend.enabled", false);
@@ -4257,6 +4275,9 @@ pref("network.trr.max-fails", 5);
 // Comma separated list of domains that we should not use TRR for
 pref("network.trr.excluded-domains", "");
 pref("network.trr.builtin-excluded-domains", "localhost,local");
+// When true, the DNS+TRR cache will be cleared when a relevant TRR pref
+// changes. (uri, bootstrapAddress, excluded-domains)
+pref("network.trr.clear-cache-on-pref-change", true);
 
 pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/success.txt");
 pref("captivedetect.canonicalContent", "success\n");
@@ -4425,10 +4446,12 @@ pref("browser.search.update", true);
 pref("browser.search.update.log", false);
 pref("browser.search.update.interval", 21600);
 pref("browser.search.suggest.enabled", true);
+pref("browser.search.suggest.enabled.private", false);
 pref("browser.search.geoSpecificDefaults", false);
 pref("browser.search.geoip.url", "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%");
 pref("browser.search.geoip.timeout", 3000);
 pref("browser.search.separatePrivateDefault", false);
+pref("browser.search.separatePrivateDefault.ui.enabled", false);
 
 #ifdef MOZ_OFFICIAL_BRANDING
   // {moz:official} expands to "official"
@@ -4709,13 +4732,7 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   pref("services.sync.engine.addons", true);
   pref("services.sync.engine.addresses", false);
   pref("services.sync.engine.bookmarks", true);
-  #ifdef EARLY_BETA_OR_EARLIER
-    // Enable the new bookmark sync engine through early Beta, but not release
-    // candidates or Release.
-    pref("services.sync.engine.bookmarks.buffer", true);
-  #else
-    pref("services.sync.engine.bookmarks.buffer", false);
-  #endif
+  pref("services.sync.engine.bookmarks.buffer", true);
   pref("services.sync.engine.creditcards", false);
   pref("services.sync.engine.history", true);
   pref("services.sync.engine.passwords", true);
@@ -4920,3 +4937,11 @@ pref("devtools.devices.url", "https://code.cdn.mozilla.net/devices/devices.json"
 
 // Enable Inactive CSS detection; used both by the client and the server.
 pref("devtools.inspector.inactive.css.enabled", true);
+
+#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
+// Define in StaticPrefList.yaml and override here since StaticPrefList.yaml
+// doesn't provide a way to lock the pref
+pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false);
+#else
+pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false, locked);
+#endif

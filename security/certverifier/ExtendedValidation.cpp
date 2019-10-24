@@ -345,17 +345,6 @@ static const struct EVInfo kEVInfos[] = {
     "BAAAAAABFUtaw5Q=",
   },
   {
-    // CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R2
-    "2.23.140.1.1",
-    "CA/Browser Forum EV OID",
-    { 0xCA, 0x42, 0xDD, 0x41, 0x74, 0x5F, 0xD0, 0xB8, 0x1E, 0xB9, 0x02,
-      0x36, 0x2C, 0xF9, 0xD8, 0xBF, 0x71, 0x9D, 0xA1, 0xBD, 0x1B, 0x1E,
-      0xFC, 0x94, 0x6F, 0x5B, 0x4C, 0x99, 0xF4, 0x2C, 0x1B, 0x9E },
-    "MEwxIDAeBgNVBAsTF0dsb2JhbFNpZ24gUm9vdCBDQSAtIFIyMRMwEQYDVQQKEwpH"
-    "bG9iYWxTaWduMRMwEQYDVQQDEwpHbG9iYWxTaWdu",
-    "BAAAAAABD4Ym5g0=",
-  },
-  {
     // CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R3
     "2.23.140.1.1",
     "CA/Browser Forum EV OID",
@@ -389,19 +378,6 @@ static const struct EVInfo kEVInfos[] = {
     "QTgyNzQzMjg3MRswGQYDVQQKExJBQyBDYW1lcmZpcm1hIFMuQS4xKTAnBgNVBAMT"
     "IENoYW1iZXJzIG9mIENvbW1lcmNlIFJvb3QgLSAyMDA4",
     "AKPaQn6ksa7a",
-  },
-  {
-    // CN=Global Chambersign Root - 2008,O=AC Camerfirma S.A.,serialNumber=A82743287,L=Madrid (see current address at www.camerfirma.com/address),C=EU
-    "1.3.6.1.4.1.17326.10.8.12.1.2",
-    "Camerfirma EV OID b",
-    { 0x13, 0x63, 0x35, 0x43, 0x93, 0x34, 0xA7, 0x69, 0x80, 0x16, 0xA0,
-      0xD3, 0x24, 0xDE, 0x72, 0x28, 0x4E, 0x07, 0x9D, 0x7B, 0x52, 0x20,
-      0xBB, 0x8F, 0xBD, 0x74, 0x78, 0x16, 0xEE, 0xBE, 0xBA, 0xCA },
-    "MIGsMQswCQYDVQQGEwJFVTFDMEEGA1UEBxM6TWFkcmlkIChzZWUgY3VycmVudCBh"
-    "ZGRyZXNzIGF0IHd3dy5jYW1lcmZpcm1hLmNvbS9hZGRyZXNzKTESMBAGA1UEBRMJ"
-    "QTgyNzQzMjg3MRswGQYDVQQKExJBQyBDYW1lcmZpcm1hIFMuQS4xJzAlBgNVBAMT"
-    "Hkdsb2JhbCBDaGFtYmVyc2lnbiBSb290IC0gMjAwOA==",
-    "AMnN0+nVfSPO",
   },
   {
     // CN=AffirmTrust Commercial,O=AffirmTrust,C=US

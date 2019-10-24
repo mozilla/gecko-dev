@@ -41,6 +41,11 @@ class nsDocShellLoadState final {
   static nsresult CreateFromPendingChannel(nsIChildChannel* aPendingChannel,
                                            nsDocShellLoadState** aResult);
 
+  static nsresult CreateFromLoadURIOptions(
+      nsISupports* aConsumer, nsIURIFixup* aURIFixup, const nsAString& aURI,
+      const mozilla::dom::LoadURIOptions& aLoadURIOptions,
+      nsDocShellLoadState** aResult);
+
   // Getters and Setters
 
   nsIReferrerInfo* GetReferrerInfo() const;
@@ -192,6 +197,20 @@ class nsDocShellLoadState final {
     return mPendingRedirectedChannel;
   }
 
+  void SetOriginalURIString(const nsCString& aOriginalURI) {
+    mOriginalURIString.emplace(aOriginalURI);
+  }
+  const mozilla::Maybe<nsCString>& GetOriginalURIString() const {
+    return mOriginalURIString;
+  }
+
+  void SetCancelContentJSEpoch(int32_t aCancelEpoch) {
+    mCancelContentJSEpoch.emplace(aCancelEpoch);
+  }
+  const mozilla::Maybe<int32_t>& GetCancelContentJSEpoch() const {
+    return mCancelContentJSEpoch;
+  }
+
   // When loading a document through nsDocShell::LoadURI(), a special set of
   // flags needs to be set based on other values in nsDocShellLoadState. This
   // function calculates those flags, before the LoadState is passed to
@@ -338,6 +357,15 @@ class nsDocShellLoadState final {
   // If set, a pending cross-process redirected channel should be used to
   // perform the load. The channel will be stored in this value.
   nsCOMPtr<nsIChildChannel> mPendingRedirectedChannel;
+
+  // An optional string representation of mURI, before any
+  // fixups were applied, so that we can send it to a search
+  // engine service if needed.
+  mozilla::Maybe<nsCString> mOriginalURIString;
+
+  // An optional value to pass to nsIDocShell::setCancelJSEpoch
+  // when initiating the load.
+  mozilla::Maybe<int32_t> mCancelContentJSEpoch;
 };
 
 #endif /* nsDocShellLoadState_h__ */

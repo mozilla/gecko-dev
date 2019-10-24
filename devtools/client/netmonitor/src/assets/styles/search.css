@@ -13,11 +13,13 @@
   width: 100%;
   height: 100%;
   overflow: auto;
+  outline: 0 !important;
 }
 
 .search-panel .treeTable {
   width: 100%;
   color: var(--table-text-color);
+  outline: 0 !important;
 }
 
 /* Custom tree styles for the Search results panel*/
@@ -28,6 +30,10 @@
 /* Color for resource label */
 .search-panel .resourceCell {
   color: var(--theme-text-color-inactive);
+}
+
+.search-panel .treeTable tbody {
+  outline: 0 !important;
 }
 
 .search-panel .treeTable .resultLabel {
@@ -71,8 +77,9 @@ button.case-sensitive-btn {
 
 /* Color for query matches */
 .search-panel .resultCell .query-match {
-  background-color: var(--yellow-70);
-  color: white;
+  background-color: var(--theme-contrast-background);
+  color: var(--theme-contrast-color);
+  border-bottom: 1px solid var(--theme-contrast-border);
 }
 
 .search-modifiers {

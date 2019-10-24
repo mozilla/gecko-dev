@@ -47,6 +47,7 @@
 #include "vm/JSScript.h"
 #include "vm/Opcodes.h"
 #include "vm/PIC.h"
+#include "vm/Printer.h"
 #include "vm/Scope.h"
 #include "vm/Shape.h"
 #include "vm/StringType.h"
@@ -429,8 +430,7 @@ bool js::RunScript(JSContext* cx, RunState& state) {
 
 STATIC_PRECONDITION_ASSUME(ubound(args.argv_) >= argc)
 MOZ_ALWAYS_INLINE bool CallJSNative(JSContext* cx, Native native,
-                                    CallReason reason,
-                                    const CallArgs& args) {
+                                    CallReason reason, const CallArgs& args) {
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
   AutoTraceLog traceLog(logger, TraceLogger_Call);
 
@@ -502,8 +502,7 @@ MOZ_ALWAYS_INLINE bool CallJSNativeConstructor(JSContext* cx, Native native,
  *       this step already!
  */
 bool js::InternalCallOrConstruct(JSContext* cx, const CallArgs& args,
-                                 MaybeConstruct construct,
-                                 CallReason reason) {
+                                 MaybeConstruct construct, CallReason reason) {
   MOZ_ASSERT(args.length() <= ARGS_LENGTH_MAX);
   MOZ_ASSERT(!cx->zone()->types.activeAnalysis);
 
@@ -1663,7 +1662,7 @@ void js::ReportInNotObjectError(JSContext* cx, HandleValue lref, int lindex,
         return nullptr;
       }
     }
-    return StringToNewUTF8CharsZ(cx, *str);
+    return QuoteString(cx, str, '"');
   };
 
   if (lref.isString() && rref.isString()) {
@@ -4497,7 +4496,7 @@ bool js::GetProperty(JSContext* cx, HandleValue v, HandlePropertyName name,
   // Optimize common cases like (2).toString() or "foo".valueOf() to not
   // create a wrapper object.
   if (v.isPrimitive() && !v.isNullOrUndefined()) {
-    NativeObject* proto;
+    JSObject* proto;
 
     switch (v.type()) {
       case ValueType::Double:

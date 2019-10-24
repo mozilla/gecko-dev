@@ -897,7 +897,6 @@ void nsImageFrame::EnsureIntrinsicSizeAndRatio() {
   UpdateIntrinsicRatio(mImage);
 }
 
-/* virtual */
 LogicalSize nsImageFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
@@ -933,7 +932,6 @@ nscoord nsImageFrame::GetContinuationOffset() const {
   return offset;
 }
 
-/* virtual */
 nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
@@ -945,7 +943,6 @@ nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
   return iSize.valueOr(0);
 }
 
-/* virtual */
 nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
@@ -957,12 +954,6 @@ nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
   // convert from normal twips to scaled twips (printing...)
   return iSize.valueOr(0);
 }
-
-/* virtual */
-IntrinsicSize nsImageFrame::GetIntrinsicSize() { return mIntrinsicSize; }
-
-/* virtual */
-AspectRatio nsImageFrame::GetIntrinsicRatio() { return mIntrinsicRatio; }
 
 void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
                           const ReflowInput& aReflowInput,
@@ -1268,14 +1259,14 @@ class nsDisplayAltFeedback final : public nsPaintedDisplayItem {
   nsDisplayAltFeedback(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {}
 
-  virtual nsDisplayItemGeometry* AllocateGeometry(
-      nsDisplayListBuilder* aBuilder) override {
+  nsDisplayItemGeometry* AllocateGeometry(
+      nsDisplayListBuilder* aBuilder) final {
     return new nsDisplayItemGenericImageGeometry(this, aBuilder);
   }
 
-  virtual void ComputeInvalidationRegion(
-      nsDisplayListBuilder* aBuilder, const nsDisplayItemGeometry* aGeometry,
-      nsRegion* aInvalidRegion) const override {
+  void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                 const nsDisplayItemGeometry* aGeometry,
+                                 nsRegion* aInvalidRegion) const final {
     auto geometry =
         static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
 
@@ -1289,14 +1280,12 @@ class nsDisplayAltFeedback final : public nsPaintedDisplayItem {
                                              aInvalidRegion);
   }
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) const override {
+  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const final {
     *aSnap = false;
     return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
   }
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     gfxContext* aCtx) override {
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) final {
     // Always sync decode, because these icons are UI, and since they're not
     // discardable we'll pay the price of sync decoding at most once.
     uint32_t flags = imgIContainer::FLAG_SYNC_DECODE;
@@ -1313,7 +1302,7 @@ class nsDisplayAltFeedback final : public nsPaintedDisplayItem {
       mozilla::wr::IpcResourceUpdateQueue& aResources,
       const StackingContextHelper& aSc,
       mozilla::layers::RenderRootStateManager* aManager,
-      nsDisplayListBuilder* aDisplayListBuilder) override {
+      nsDisplayListBuilder* aDisplayListBuilder) final {
     uint32_t flags = imgIContainer::FLAG_ASYNC_NOTIFY;
     nsImageFrame* f = static_cast<nsImageFrame*>(mFrame);
     ImgDrawResult result = f->DisplayAltFeedbackWithoutLayer(
@@ -1712,16 +1701,51 @@ static void PaintDebugImageMap(nsIFrame* aFrame, DrawTarget* aDrawTarget,
 }
 #endif
 
+// We want to sync-decode in this case, as otherwise we either need to flash
+// white while waiting to decode the new image, or paint the old image with a
+// different aspect-ratio, which would be bad as it'd be stretched.
+//
+// See bug 1589955.
+static bool OldImageHasDifferentRatio(const nsImageFrame& aFrame,
+                                      imgIContainer& aImage,
+                                      imgIContainer* aPrevImage) {
+  if (!aPrevImage || aPrevImage == &aImage) {
+    return false;
+  }
+
+  // If we don't depend on our intrinsic image size / ratio, we're good.
+  //
+  // FIXME(emilio): There's the case of the old image being painted
+  // intrinsically, and src and styles changing at the same time... Maybe we
+  // should keep track of the old GetPaintRect()'s ratio and the image's ratio,
+  // instead of checking this bit?
+  if (aFrame.HasAnyStateBits(IMAGE_SIZECONSTRAINED)) {
+    return false;
+  }
+
+  auto currentRatio = aFrame.GetComputedIntrinsicRatio();
+  MOZ_ASSERT(currentRatio == ComputeAspectRatio(&aImage, aFrame),
+             "aspect-ratio got out of sync during paint? How?");
+  auto oldRatio = ComputeAspectRatio(aPrevImage, aFrame);
+  return oldRatio != currentRatio;
+}
+
 void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
+  MOZ_ASSERT(mImage);
+  auto* frame = static_cast<nsImageFrame*>(mFrame);
+
+  const bool oldImageIsDifferent =
+      OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
+
   uint32_t flags = imgIContainer::FLAG_NONE;
-  if (aBuilder->ShouldSyncDecodeImages()) {
+  if (aBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent) {
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
   if (aBuilder->IsPaintingToWindow()) {
     flags |= imgIContainer::FLAG_HIGH_QUALITY_SCALING;
   }
 
-  ImgDrawResult result = static_cast<nsImageFrame*>(mFrame)->PaintImage(
+  ImgDrawResult result = frame->PaintImage(
       *aCtx, ToReferenceFrame(), GetPaintRect(), mImage, flags);
 
   if (result == ImgDrawResult::NOT_READY ||
@@ -1730,7 +1754,7 @@ void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
     // If the current image failed to paint because it's still loading or
     // decoding, try painting the previous image.
     if (mPrevImage) {
-      result = static_cast<nsImageFrame*>(mFrame)->PaintImage(
+      result = frame->PaintImage(
           *aCtx, ToReferenceFrame(), GetPaintRect(), mPrevImage, flags);
     }
   }
@@ -1828,7 +1852,6 @@ LayerState nsDisplayImage::GetLayerState(
   return LayerState::LAYER_ACTIVE;
 }
 
-/* virtual */
 nsRegion nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                          bool* aSnap) const {
   *aSnap = false;
@@ -1874,17 +1897,20 @@ bool nsDisplayImage::CreateWebRenderCommands(
 
   MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());
   // Image layer doesn't support draw focus ring for image map.
-  nsImageFrame* frame = static_cast<nsImageFrame*>(mFrame);
+  auto* frame = static_cast<nsImageFrame*>(mFrame);
   if (frame->HasImageMap()) {
     return false;
   }
 
+  const bool oldImageIsDifferent =
+      OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
+
   uint32_t flags = imgIContainer::FLAG_ASYNC_NOTIFY;
+  if (aDisplayListBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent) {
+    flags |= imgIContainer::FLAG_SYNC_DECODE;
+  }
   if (aDisplayListBuilder->IsPaintingToWindow()) {
     flags |= imgIContainer::FLAG_HIGH_QUALITY_SCALING;
-  }
-  if (aDisplayListBuilder->ShouldSyncDecodeImages()) {
-    flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
 
   const int32_t factor = mFrame->PresContext()->AppUnitsPerDevPixel();
@@ -2290,6 +2316,11 @@ Maybe<nsIFrame::Cursor> nsImageFrame::GetCursor(const nsPoint& aPoint) {
   // Use the cursor from the style of the *area* element.
   RefPtr<ComputedStyle> areaStyle =
       PresShell()->StyleSet()->ResolveStyleLazily(*area);
+
+  // This is one of the cases, like the <xul:tree> pseudo-style stuff, where we
+  // get styles out of the blue and expect to trigger image loads for those.
+  areaStyle->StartImageLoads(*PresContext()->Document());
+
   StyleCursorKind kind = areaStyle->StyleUI()->mCursor;
   if (kind == StyleCursorKind::Auto) {
     kind = StyleCursorKind::Default;
@@ -2613,7 +2644,6 @@ static bool IsInAutoWidthTableCellForQuirk(nsIFrame* aFrame) {
   return false;
 }
 
-/* virtual */
 void nsImageFrame::AddInlineMinISize(gfxContext* aRenderingContext,
                                      nsIFrame::InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(

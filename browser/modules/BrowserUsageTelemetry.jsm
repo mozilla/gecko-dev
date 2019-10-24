@@ -67,6 +67,7 @@ const KNOWN_SEARCH_SOURCES = [
   "contextmenu",
   "newtab",
   "searchbar",
+  "system",
   "urlbar",
   "webextension",
 ];
@@ -185,8 +186,10 @@ let URICountListener = {
   },
 
   onLocationChange(browser, webProgress, request, uri, flags) {
-    // By default, assume we no longer need to track this tab.
-    SearchTelemetry.stopTrackingBrowser(browser);
+    if (!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
+      // By default, assume we no longer need to track this tab.
+      SearchTelemetry.stopTrackingBrowser(browser);
+    }
 
     // Don't count this URI if it's an error page.
     if (flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
@@ -598,6 +601,7 @@ let BrowserUsageTelemetry = {
         this._recordSearch(engine, "about_newtab", "enter");
         break;
       case "contextmenu":
+      case "system":
       case "webextension":
         this._recordSearch(engine, source);
         break;

@@ -33,6 +33,11 @@ import type { Source, Context } from "../../types";
 
 type SourcesList = Source[];
 
+type OwnProps = {|
+  horizontal: boolean,
+  startPanelCollapsed: boolean,
+  endPanelCollapsed: boolean,
+|};
 type Props = {
   cx: Context,
   tabSources: SourcesList,
@@ -65,7 +70,7 @@ class Tabs extends PureComponent<Props, State> {
   renderEndPanelToggleButton: Function;
   onResize: Function;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       dropdownShown: false,
@@ -77,7 +82,7 @@ class Tabs extends PureComponent<Props, State> {
     });
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (!(prevProps === this.props)) {
       this.updateHiddenTabs();
     }
@@ -121,7 +126,7 @@ class Tabs extends PureComponent<Props, State> {
     this.setState({ hiddenTabs });
   };
 
-  toggleSourcesDropdown(e) {
+  toggleSourcesDropdown() {
     this.setState(prevState => ({
       dropdownShown: !prevState.dropdownShown,
     }));
@@ -234,7 +239,7 @@ const mapStateToProps = state => ({
   isPaused: getIsPaused(state, getCurrentThread(state)),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectSource: actions.selectSource,

@@ -18,6 +18,7 @@
 #include "js/Initialization.h"
 #include "js/Printf.h"
 #include "jsapi.h"
+#include "json/json.h"
 #include "mozilla/BlocksRingBufferGeckoExtensions.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "nsIThread.h"
@@ -25,7 +26,7 @@
 
 #include "gtest/gtest.h"
 
-#include <string.h>
+#include <cstring>
 
 // Note: profiler_init() has already been called in XRE_main(), so we can't
 // test it here. Likewise for profiler_shutdown(), and AutoProfilerInit
@@ -580,15 +581,17 @@ TEST(GeckoProfiler, Markers)
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
                  filters, MOZ_ARRAY_LENGTH(filters));
 
-  profiler_tracing("A", "B", JS::ProfilingCategoryPair::OTHER, TRACING_EVENT);
-  PROFILER_TRACING("A", "C", OTHER, TRACING_INTERVAL_START);
-  PROFILER_TRACING("A", "C", OTHER, TRACING_INTERVAL_END);
+  profiler_tracing("A", "tracing event", JS::ProfilingCategoryPair::OTHER,
+                   TRACING_EVENT);
+  PROFILER_TRACING("A", "tracing start", OTHER, TRACING_INTERVAL_START);
+  PROFILER_TRACING("A", "tracing end", OTHER, TRACING_INTERVAL_END);
 
   UniqueProfilerBacktrace bt = profiler_get_backtrace();
-  profiler_tracing("B", "A", JS::ProfilingCategoryPair::OTHER, TRACING_EVENT,
+  profiler_tracing("B", "tracing event with stack",
+                   JS::ProfilingCategoryPair::OTHER, TRACING_EVENT,
                    std::move(bt));
 
-  { AUTO_PROFILER_TRACING("C", "A", OTHER); }
+  { AUTO_PROFILER_TRACING("C", "auto tracing", OTHER); }
 
   PROFILER_ADD_MARKER("M1", OTHER);
   PROFILER_ADD_MARKER_WITH_PAYLOAD("M2", OTHER, TracingMarkerPayload,
@@ -596,21 +599,20 @@ TEST(GeckoProfiler, Markers)
   PROFILER_ADD_MARKER("M3", OTHER);
   PROFILER_ADD_MARKER_WITH_PAYLOAD(
       "M4", OTHER, TracingMarkerPayload,
-      ("C", TRACING_EVENT, mozilla::Nothing(), mozilla::Nothing(),
-       profiler_get_backtrace()));
+      ("C", TRACING_EVENT, mozilla::Nothing(), profiler_get_backtrace()));
 
   for (int i = 0; i < 10; i++) {
     PROFILER_ADD_MARKER_WITH_PAYLOAD("M5", OTHER, GTestMarkerPayload, (i));
   }
   // The GTestMarkerPayloads should have been created, serialized, and
   // destroyed.
-  ASSERT_EQ(GTestMarkerPayload::sNumCreated, 10);
-  ASSERT_EQ(GTestMarkerPayload::sNumSerialized, 10);
-  ASSERT_EQ(GTestMarkerPayload::sNumDeserialized, 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumStreamed, 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDestroyed, 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumCreated, 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumSerialized, 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumDeserialized, 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumStreamed, 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDestroyed, 10);
 
-  // Create two strings: one that is the maximum allowed length, and one that
+  // Create three strings: two that are the maximum allowed length, and one that
   // is one char longer.
   static const size_t kMax = ProfileBuffer::kMaxFrameKeyLength;
   UniquePtr<char[]> okstr1 = MakeUnique<char[]>(kMax);
@@ -624,42 +626,603 @@ TEST(GeckoProfiler, Markers)
   okstr1[kMax - 1] = '\0';
   okstr2[kMax - 1] = '\0';
   longstr[kMax] = '\0';
+  // Should be output as-is.
   AUTO_PROFILER_LABEL_DYNAMIC_CSTR("", LAYOUT, okstr1.get());
+  // Should be output as label + space + okstr2.
   AUTO_PROFILER_LABEL_DYNAMIC_CSTR("okstr2", LAYOUT, okstr2.get());
+  // Should be output as "(too long)".
   AUTO_PROFILER_LABEL_DYNAMIC_CSTR("", LAYOUT, longstr.get());
+
+  // Used in markers below.
+  TimeStamp ts1 = TimeStamp::NowUnfuzzed();
 
   // Sleep briefly to ensure a sample is taken and the pending markers are
   // processed.
   PR_Sleep(PR_MillisecondsToInterval(500));
 
-  SpliceableChunkedJSONWriter w;
-  ASSERT_TRUE(profiler_stream_json_for_this_process(w));
+  // Used in markers below.
+  TimeStamp ts2 = TimeStamp::NowUnfuzzed();
+  // ts1 and ts2 should be different thanks to the sleep.
+  EXPECT_NE(ts1, ts2);
 
-  UniquePtr<char[]> profile = w.WriteFunc()->CopyData();
+  // Test most marker payloads.
+
+  // Keep this one first! (It's used to record `ts1` and `ts2`, to compare
+  // to serialized numbers in other markers.)
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "FileIOMarkerPayload marker", OTHER, FileIOMarkerPayload,
+      ("operation", "source", "filename", ts1, ts2, nullptr));
+
+  // Other markers in alphabetical order of payload class names.
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "DOMEventMarkerPayload marker", OTHER, DOMEventMarkerPayload,
+      (NS_LITERAL_STRING("dom event"), ts1, "category", TRACING_EVENT,
+       mozilla::Nothing()));
+
+  {
+    const char gcMajorJSON[] = "42";
+    const auto len = strlen(gcMajorJSON);
+    char* buffer =
+        static_cast<char*>(js::SystemAllocPolicy{}.pod_malloc<char>(len + 1));
+    strncpy(buffer, gcMajorJSON, len);
+    buffer[len] = '\0';
+    PROFILER_ADD_MARKER_WITH_PAYLOAD("GCMajorMarkerPayload marker", OTHER,
+                                     GCMajorMarkerPayload,
+                                     (ts1, ts2, JS::UniqueChars(buffer)));
+  }
+
+  {
+    const char gcMinorJSON[] = "43";
+    const auto len = strlen(gcMinorJSON);
+    char* buffer =
+        static_cast<char*>(js::SystemAllocPolicy{}.pod_malloc<char>(len + 1));
+    strncpy(buffer, gcMinorJSON, len);
+    buffer[len] = '\0';
+    PROFILER_ADD_MARKER_WITH_PAYLOAD("GCMinorMarkerPayload marker", OTHER,
+                                     GCMinorMarkerPayload,
+                                     (ts1, ts2, JS::UniqueChars(buffer)));
+  }
+
+  {
+    const char gcSliceJSON[] = "44";
+    const auto len = strlen(gcSliceJSON);
+    char* buffer =
+        static_cast<char*>(js::SystemAllocPolicy{}.pod_malloc<char>(len + 1));
+    strncpy(buffer, gcSliceJSON, len);
+    buffer[len] = '\0';
+    PROFILER_ADD_MARKER_WITH_PAYLOAD("GCSliceMarkerPayload marker", OTHER,
+                                     GCSliceMarkerPayload,
+                                     (ts1, ts2, JS::UniqueChars(buffer)));
+  }
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("HangMarkerPayload marker", OTHER,
+                                   HangMarkerPayload, (ts1, ts2));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("LogMarkerPayload marker", OTHER,
+                                   LogMarkerPayload, ("module", "text", ts1));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("LongTaskMarkerPayload marker", OTHER,
+                                   LongTaskMarkerPayload, (ts1, ts2));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("NativeAllocationMarkerPayload marker",
+                                   OTHER, NativeAllocationMarkerPayload,
+                                   (ts1, 9876543210, nullptr));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "PrefMarkerPayload marker", OTHER, PrefMarkerPayload,
+      ("preference name", mozilla::Nothing(), mozilla::Nothing(),
+       NS_LITERAL_CSTRING("preference value"), ts1));
+
+  nsCString screenshotURL = NS_LITERAL_CSTRING("url");
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "ScreenshotPayload marker", OTHER, ScreenshotPayload,
+      (ts1, std::move(screenshotURL), mozilla::gfx::IntSize(12, 34),
+       uintptr_t(0x45678u)));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("TextMarkerPayload marker 1", OTHER,
+                                   TextMarkerPayload,
+                                   (NS_LITERAL_CSTRING("text"), ts1));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("TextMarkerPayload marker 2", OTHER,
+                                   TextMarkerPayload,
+                                   (NS_LITERAL_CSTRING("text"), ts1, ts2));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "UserTimingMarkerPayload marker mark", OTHER, UserTimingMarkerPayload,
+      (NS_LITERAL_STRING("mark name"), ts1, mozilla::Nothing()));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD(
+      "UserTimingMarkerPayload marker measure", OTHER, UserTimingMarkerPayload,
+      (NS_LITERAL_STRING("measure name"), Some(NS_LITERAL_STRING("start mark")),
+       Some(NS_LITERAL_STRING("end mark")), ts1, ts2, mozilla::Nothing()));
+
+  PROFILER_ADD_MARKER_WITH_PAYLOAD("VsyncMarkerPayload marker", OTHER,
+                                   VsyncMarkerPayload, (ts1));
+
+  SpliceableChunkedJSONWriter w;
+  w.Start();
+  EXPECT_TRUE(profiler_stream_json_for_this_process(w));
+  w.End();
 
   // The GTestMarkerPayloads should have been deserialized, streamed, and
   // destroyed.
-  ASSERT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10);
-  ASSERT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10);
-  ASSERT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10);
-  for (int i = 0; i < 10; i++) {
-    char buf[64];
-    SprintfLiteral(buf, "\"gtest-%d\"", i);
-    ASSERT_TRUE(strstr(profile.get(), buf));
+  EXPECT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10);
+
+  UniquePtr<char[]> profile = w.WriteFunc()->CopyData();
+  ASSERT_TRUE(!!profile.get());
+
+  // Expected markers, in order.
+  enum State {
+    S_tracing_event,
+    S_tracing_start,
+    S_tracing_end,
+    S_tracing_event_with_stack,
+    S_tracing_auto_tracing_start,
+    S_tracing_auto_tracing_end,
+    S_M1,
+    S_tracing_M2_C,
+    S_M3,
+    S_tracing_M4_C_stack,
+    S_M5_gtest0,
+    S_M5_gtest1,
+    S_M5_gtest2,
+    S_M5_gtest3,
+    S_M5_gtest4,
+    S_M5_gtest5,
+    S_M5_gtest6,
+    S_M5_gtest7,
+    S_M5_gtest8,
+    S_M5_gtest9,
+    S_FileIOMarkerPayload,
+    S_DOMEventMarkerPayload,
+    S_GCMajorMarkerPayload,
+    S_GCMinorMarkerPayload,
+    S_GCSliceMarkerPayload,
+    S_HangMarkerPayload,
+    S_LogMarkerPayload,
+    S_LongTaskMarkerPayload,
+    S_NativeAllocationMarkerPayload,
+    S_PrefMarkerPayload,
+    S_ScreenshotPayload,
+    S_TextMarkerPayload1,
+    S_TextMarkerPayload2,
+    S_UserTimingMarkerPayload_mark,
+    S_UserTimingMarkerPayload_measure,
+    S_VsyncMarkerPayload,
+
+    S_LAST,
+  } state = State(0);
+
+  // These will be set when first read from S_FileIOMarkerPayload, then
+  // compared in following markers.
+  // TODO: Compute these values from the timestamps.
+  double ts1Double = 0.0;
+  double ts2Double = 0.0;
+
+  // Extract JSON.
+  Json::Value parsedRoot;
+  Json::CharReaderBuilder builder;
+  const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  ASSERT_TRUE(reader->parse(profile.get(), strchr(profile.get(), '\0'),
+                            &parsedRoot, nullptr));
+
+  // Use const root, we only want to test what's in the profile, not change it.
+  const Json::Value& root = parsedRoot;
+  ASSERT_TRUE(root.isObject());
+
+  // We have a root object.
+
+  // Most common test: Checks that the given value is present, is of the
+  // expected type, and has the expected value.
+#define EXPECT_EQ_JSON(GETTER, TYPE, VALUE)  \
+  if ((GETTER).isNull()) {                   \
+    EXPECT_FALSE((GETTER).isNull());         \
+  } else if (!(GETTER).is##TYPE()) {         \
+    EXPECT_TRUE((GETTER).is##TYPE());        \
+  } else {                                   \
+    EXPECT_EQ((GETTER).as##TYPE(), (VALUE)); \
   }
 
-  // okstr1 should appear as is.
-  ASSERT_TRUE(strstr(profile.get(), okstr1.get()));
+  // Checks that the given value is present, and is a valid index into the
+  // stringTable, pointing at the expected string.
+#define EXPECT_EQ_STRINGTABLE(GETTER, STRING)                         \
+  if ((GETTER).isNull()) {                                            \
+    EXPECT_FALSE((GETTER).isNull());                                  \
+  } else if (!(GETTER).isUInt()) {                                    \
+    EXPECT_TRUE((GETTER).isUInt());                                   \
+  } else {                                                            \
+    EXPECT_LT((GETTER).asUInt(), stringTable.size());                 \
+    EXPECT_EQ_JSON(stringTable[(GETTER).asUInt()], String, (STRING)); \
+  }
 
-  // okstr2 should appear, slightly truncated with "okstr2 " in front of it.
-  // (Nb: this only checks the front part of the marker string.)
-  ASSERT_TRUE(strstr(profile.get(), "okstr2 bbbbbbbbb"));
+  {
+    const Json::Value& threads = root["threads"];
+    ASSERT_TRUE(!threads.isNull());
+    ASSERT_TRUE(threads.isArray());
+    ASSERT_EQ(threads.size(), 1u);
 
-  // longstr should be replaced with "(too long)".
-  ASSERT_TRUE(!strstr(profile.get(), longstr.get()));
-  ASSERT_TRUE(strstr(profile.get(), "(too long)"));
+    // root.threads is a 1-element array.
+
+    {
+      const Json::Value& thread0 = threads[0];
+      ASSERT_TRUE(thread0.isObject());
+
+      // root.threads[0] is an object.
+
+      // Keep a reference to the string table in this block, it will be used
+      // below.
+      const Json::Value& stringTable = thread0["stringTable"];
+      ASSERT_TRUE(stringTable.isArray());
+
+      // Test the expected labels in the string table.
+      bool foundOkstr1 = false;
+      bool foundOkstr2 = false;
+      const std::string okstr2Label = std::string("okstr2 ") + okstr2.get();
+      bool foundTooLong = false;
+      for (const auto& s : stringTable) {
+        ASSERT_TRUE(s.isString());
+        std::string sString = s.asString();
+        if (sString == okstr1.get()) {
+          EXPECT_FALSE(foundOkstr1);
+          foundOkstr1 = true;
+        } else if (sString == okstr2Label) {
+          EXPECT_FALSE(foundOkstr2);
+          foundOkstr2 = true;
+        } else if (sString == "(too long)") {
+          EXPECT_FALSE(foundTooLong);
+          foundTooLong = true;
+        } else {
+          EXPECT_NE(sString, longstr.get());
+        }
+      }
+      EXPECT_TRUE(foundOkstr1);
+      EXPECT_TRUE(foundOkstr2);
+      EXPECT_TRUE(foundTooLong);
+
+      {
+        const Json::Value& markers = thread0["markers"];
+        ASSERT_TRUE(markers.isObject());
+
+        // root.threads[0].markers is an object.
+
+        {
+          const Json::Value& data = markers["data"];
+          ASSERT_TRUE(data.isArray());
+
+          // root.threads[0].markers.data is an array.
+
+          for (const Json::Value& marker : data) {
+            ASSERT_TRUE(marker.isArray());
+            ASSERT_GE(marker.size(), 3u);
+            ASSERT_LE(marker.size(), 4u);
+
+            // root.threads[0].markers.data[i] is an array with 3 or 4 elements.
+
+            ASSERT_TRUE(marker[0].isUInt());  // name id
+            const Json::Value& name = stringTable[marker[0].asUInt()];
+            ASSERT_TRUE(name.isString());
+            std::string nameString = name.asString();
+
+            EXPECT_TRUE(marker[1].isNumeric());  // timestamp
+
+            EXPECT_TRUE(marker[2].isUInt());  // category
+
+            if (marker.size() == 3u) {
+              // root.threads[0].markers.data[i] is an array with 3 elements,
+              // so there is no payload.
+              if (nameString == "M1") {
+                ASSERT_EQ(state, S_M1);
+                state = State(state + 1);
+              } else if (nameString == "M3") {
+                ASSERT_EQ(state, S_M3);
+                state = State(state + 1);
+              }
+            } else {
+              // root.threads[0].markers.data[i] is an array with 4 elements,
+              // so there is a payload.
+              const Json::Value& payload = marker[3];
+              ASSERT_TRUE(payload.isObject());
+
+              // root.threads[0].markers.data[i][3] is an object (payload).
+
+              // It should at least have a "type" string.
+              const Json::Value& type = payload["type"];
+              ASSERT_TRUE(type.isString());
+              std::string typeString = type.asString();
+
+              if (nameString == "tracing event") {
+                EXPECT_EQ(state, S_tracing_event);
+                state = State(S_tracing_event + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "A");
+                EXPECT_TRUE(payload["interval"].isNull());
+                EXPECT_TRUE(payload["stack"].isNull());
+
+              } else if (nameString == "tracing start") {
+                EXPECT_EQ(state, S_tracing_start);
+                state = State(S_tracing_start + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "A");
+                EXPECT_EQ_JSON(payload["interval"], String, "start");
+                EXPECT_TRUE(payload["stack"].isNull());
+
+              } else if (nameString == "tracing end") {
+                EXPECT_EQ(state, S_tracing_end);
+                state = State(S_tracing_end + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "A");
+                EXPECT_EQ_JSON(payload["interval"], String, "end");
+                EXPECT_TRUE(payload["stack"].isNull());
+
+              } else if (nameString == "tracing event with stack") {
+                EXPECT_EQ(state, S_tracing_event_with_stack);
+                state = State(S_tracing_event_with_stack + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "B");
+                EXPECT_TRUE(payload["interval"].isNull());
+                EXPECT_TRUE(payload["stack"].isObject());
+
+              } else if (nameString == "auto tracing") {
+                switch (state) {
+                  case S_tracing_auto_tracing_start:
+                    state = State(S_tracing_auto_tracing_start + 1);
+                    EXPECT_EQ_JSON(payload["category"], String, "C");
+                    EXPECT_EQ_JSON(payload["interval"], String, "start");
+                    EXPECT_TRUE(payload["stack"].isNull());
+                    break;
+                  case S_tracing_auto_tracing_end:
+                    state = State(S_tracing_auto_tracing_end + 1);
+                    EXPECT_EQ_JSON(payload["category"], String, "C");
+                    EXPECT_EQ_JSON(payload["interval"], String, "end");
+                    ASSERT_TRUE(payload["stack"].isNull());
+                    break;
+                  default:
+                    EXPECT_TRUE(state == S_tracing_auto_tracing_start ||
+                                state == S_tracing_auto_tracing_end);
+                    break;
+                }
+
+              } else if (nameString == "M2") {
+                EXPECT_EQ(state, S_tracing_M2_C);
+                state = State(S_tracing_M2_C + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "C");
+                EXPECT_TRUE(payload["interval"].isNull());
+                EXPECT_TRUE(payload["stack"].isNull());
+
+              } else if (nameString == "M4") {
+                EXPECT_EQ(state, S_tracing_M4_C_stack);
+                state = State(S_tracing_M4_C_stack + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_EQ_JSON(payload["category"], String, "C");
+                EXPECT_TRUE(payload["interval"].isNull());
+                EXPECT_TRUE(payload["stack"].isObject());
+
+              } else if (nameString == "M5") {
+                EXPECT_EQ(typeString, "gtest");
+                // It should only have one more element (apart from "type").
+                ASSERT_EQ(payload.size(), 2u);
+                const auto itEnd = payload.end();
+                for (auto it = payload.begin(); it != itEnd; ++it) {
+                  std::string key = it.name();
+                  if (key != "type") {
+                    const Json::Value& value = *it;
+                    ASSERT_TRUE(value.isInt());
+                    int valueInt = value.asInt();
+                    // We expect `"gtest-<i>" : <i>`.
+                    EXPECT_EQ(state, State(S_M5_gtest0 + valueInt));
+                    state = State(state + 1);
+                    EXPECT_EQ(key,
+                              std::string("gtest-") + std::to_string(valueInt));
+                  }
+                }
+
+              } else if (nameString == "FileIOMarkerPayload marker") {
+                EXPECT_EQ(state, S_FileIOMarkerPayload);
+                state = State(S_FileIOMarkerPayload + 1);
+                EXPECT_EQ(typeString, "FileIO");
+
+                // Record start and end times, to compare with timestamps in
+                // following markers.
+                EXPECT_EQ(ts1Double, 0.0);
+                ts1Double = payload["startTime"].asDouble();
+                EXPECT_NE(ts1Double, 0.0);
+                EXPECT_EQ(ts2Double, 0.0);
+                ts2Double = payload["endTime"].asDouble();
+                EXPECT_NE(ts2Double, 0.0);
+
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["operation"], String, "operation");
+                EXPECT_EQ_JSON(payload["source"], String, "source");
+                EXPECT_EQ_JSON(payload["filename"], String, "filename");
+
+              } else if (nameString == "DOMEventMarkerPayload marker") {
+                EXPECT_EQ(state, S_DOMEventMarkerPayload);
+                state = State(S_DOMEventMarkerPayload + 1);
+                EXPECT_EQ(typeString, "tracing");
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["category"], String, "category");
+                EXPECT_TRUE(payload["interval"].isNull());
+                EXPECT_EQ_JSON(payload["timeStamp"], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["eventType"], String, "dom event");
+
+              } else if (nameString == "GCMajorMarkerPayload marker") {
+                EXPECT_EQ(state, S_GCMajorMarkerPayload);
+                state = State(S_GCMajorMarkerPayload + 1);
+                EXPECT_EQ(typeString, "GCMajor");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["timings"], Int, 42);
+
+              } else if (nameString == "GCMinorMarkerPayload marker") {
+                EXPECT_EQ(state, S_GCMinorMarkerPayload);
+                state = State(S_GCMinorMarkerPayload + 1);
+                EXPECT_EQ(typeString, "GCMinor");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["nursery"], Int, 43);
+
+              } else if (nameString == "GCSliceMarkerPayload marker") {
+                EXPECT_EQ(state, S_GCSliceMarkerPayload);
+                state = State(S_GCSliceMarkerPayload + 1);
+                EXPECT_EQ(typeString, "GCSlice");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["timings"], Int, 44);
+
+              } else if (nameString == "HangMarkerPayload marker") {
+                EXPECT_EQ(state, S_HangMarkerPayload);
+                state = State(S_HangMarkerPayload + 1);
+                EXPECT_EQ(typeString, "BHR-detected hang");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+
+              } else if (nameString == "LogMarkerPayload marker") {
+                EXPECT_EQ(state, S_LogMarkerPayload);
+                state = State(S_LogMarkerPayload + 1);
+                EXPECT_EQ(typeString, "Log");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "text");
+                EXPECT_EQ_JSON(payload["module"], String, "module");
+
+              } else if (nameString == "LongTaskMarkerPayload marker") {
+                EXPECT_EQ(state, S_LongTaskMarkerPayload);
+                state = State(S_LongTaskMarkerPayload + 1);
+                EXPECT_EQ(typeString, "MainThreadLongTask");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["category"], String, "LongTask");
+
+              } else if (nameString == "NativeAllocationMarkerPayload marker") {
+                EXPECT_EQ(state, S_NativeAllocationMarkerPayload);
+                state = State(S_NativeAllocationMarkerPayload + 1);
+                EXPECT_EQ(typeString, "Native allocation");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["size"], Int64, 9876543210);
+
+              } else if (nameString == "PrefMarkerPayload marker") {
+                EXPECT_EQ(state, S_PrefMarkerPayload);
+                state = State(S_PrefMarkerPayload + 1);
+                EXPECT_EQ(typeString, "PreferenceRead");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["prefAccessTime"], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["prefName"], String, "preference name");
+                EXPECT_EQ_JSON(payload["prefKind"], String, "Shared");
+                EXPECT_EQ_JSON(payload["prefType"], String,
+                               "Preference not found");
+                EXPECT_EQ_JSON(payload["prefValue"], String,
+                               "preference value");
+
+              } else if (nameString == "ScreenshotPayload marker") {
+                EXPECT_EQ(state, S_ScreenshotPayload);
+                state = State(S_ScreenshotPayload + 1);
+                EXPECT_EQ(typeString, "CompositorScreenshot");
+                EXPECT_EQ_STRINGTABLE(payload["url"], "url");
+                EXPECT_EQ_JSON(payload["windowID"], String, "0x45678");
+                EXPECT_EQ_JSON(payload["windowWidth"], Int, 12);
+                EXPECT_EQ_JSON(payload["windowHeight"], Int, 34);
+
+              } else if (nameString == "TextMarkerPayload marker 1") {
+                EXPECT_EQ(state, S_TextMarkerPayload1);
+                state = State(S_TextMarkerPayload1 + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "text");
+
+              } else if (nameString == "TextMarkerPayload marker 2") {
+                EXPECT_EQ(state, S_TextMarkerPayload2);
+                state = State(S_TextMarkerPayload2 + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "text");
+
+              } else if (nameString == "UserTimingMarkerPayload marker mark") {
+                EXPECT_EQ(state, S_UserTimingMarkerPayload_mark);
+                state = State(S_UserTimingMarkerPayload_mark + 1);
+                EXPECT_EQ(typeString, "UserTiming");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "mark name");
+                EXPECT_EQ_JSON(payload["entryType"], String, "mark");
+
+              } else if (nameString ==
+                         "UserTimingMarkerPayload marker measure") {
+                EXPECT_EQ(state, S_UserTimingMarkerPayload_measure);
+                state = State(S_UserTimingMarkerPayload_measure + 1);
+                EXPECT_EQ(typeString, "UserTiming");
+                EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                // Start timestamp is also stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "measure name");
+                EXPECT_EQ_JSON(payload["entryType"], String, "measure");
+                EXPECT_EQ_JSON(payload["startMark"], String, "start mark");
+                EXPECT_EQ_JSON(payload["endMark"], String, "end mark");
+
+              } else if (nameString == "VsyncMarkerPayload marker") {
+                EXPECT_EQ(state, S_VsyncMarkerPayload);
+                state = State(S_VsyncMarkerPayload + 1);
+                EXPECT_EQ(typeString, "VsyncTimestamp");
+                // Timestamp is stored in marker outside of payload.
+                EXPECT_EQ_JSON(marker[1], Double, ts1Double);
+                EXPECT_TRUE(payload["stack"].isNull());
+              }
+            }  // marker with payload
+          }    // for (marker:data)
+        }      // markers.data
+      }        // markers
+    }          // thread0
+  }            // threads
+
+  // We should have read all expected markers.
+  EXPECT_EQ(state, S_LAST);
 
   Maybe<ProfilerBufferInfo> info = profiler_get_buffer_info();
   MOZ_RELEASE_ASSERT(info.isSome());
@@ -693,12 +1256,13 @@ TEST(GeckoProfiler, Markers)
   profiler_stop();
 
   // Nothing more should have happened to the GTestMarkerPayloads.
-  ASSERT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10 + 0);
 
+  // Try to add markers while the profiler is stopped.
   for (int i = 0; i < 10; i++) {
     PROFILER_ADD_MARKER_WITH_PAYLOAD("M5", OTHER, GTestMarkerPayload, (i));
   }
@@ -707,17 +1271,17 @@ TEST(GeckoProfiler, Markers)
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
                  filters, MOZ_ARRAY_LENGTH(filters));
 
-  ASSERT_TRUE(profiler_stream_json_for_this_process(w));
+  EXPECT_TRUE(profiler_stream_json_for_this_process(w));
 
   profiler_stop();
 
   // The second set of GTestMarkerPayloads should not have been serialized or
   // streamed.
-  ASSERT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0 + 0 + 10);
-  ASSERT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0 + 0 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10 + 0 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10 + 0 + 0);
-  ASSERT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10 + 0 + 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumCreated, 10 + 0 + 0 + 10);
+  EXPECT_EQ(GTestMarkerPayload::sNumSerialized, 10 + 0 + 0 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDeserialized, 0 + 10 + 0 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumStreamed, 0 + 10 + 0 + 0);
+  EXPECT_EQ(GTestMarkerPayload::sNumDestroyed, 10 + 10 + 0 + 10);
 }
 
 TEST(GeckoProfiler, DurationLimit)

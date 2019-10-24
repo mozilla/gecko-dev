@@ -158,13 +158,13 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
     return static_cast<nsPIDOMWindowInner*>(aFrom);
   }
 
-  // Returns true if this object has an outer window and it is the current inner
-  // window of that outer.
-  inline bool IsCurrentInnerWindow() const;
+  // Returns true if this object is the currently-active inner window for its
+  // BrowsingContext.
+  bool IsCurrentInnerWindow() const;
 
   // Returns true if the document of this window is the active document.  This
-  // is not identical to IsCurrentInnerWindow() because document.open() will
-  // keep the same document active but create a new window.
+  // is identical to IsCurrentInnerWindow() now that document.open() no longer
+  // creates new inner windows for the document it is called on.
   inline bool HasActiveDocument();
 
   // Returns true if this window is the same as mTopInnerWindow
@@ -919,6 +919,8 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
    */
   virtual void FinishFullscreenChange(bool aIsFullscreen) = 0;
 
+  virtual void ForceFullScreenInWidget() = 0;
+
   // XXX: These focus methods all forward to the inner, could we change
   // consumers to call these on the inner directly?
 
@@ -973,18 +975,6 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
    * reset the focus state.
    */
   virtual void PageHidden() = 0;
-
-  /**
-   * Set a arguments for this window. This will be set on the window
-   * right away (if there's an existing document) and it will also be
-   * installed on the window when the next document is loaded.
-   *
-   * This function serves double-duty for passing both |arguments| and
-   * |dialogArguments| back from nsWindowWatcher to nsGlobalWindow. For the
-   * latter, the array is an array of length 0 whose only element is a
-   * DialogArgumentsHolder representing the JS value passed to showModalDialog.
-   */
-  virtual nsresult SetArguments(nsIArray* aArguments) = 0;
 
   /**
    * Return the window id of this window

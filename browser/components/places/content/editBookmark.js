@@ -6,8 +6,6 @@ var { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const MAX_FOLDER_ITEM_IN_MENU_LIST = 5;
-
 var gEditItemOverlay = {
   // Array of PlacesTransactions accumulated by internal changes. It can be used
   // to wait for completion.
@@ -328,7 +326,7 @@ var gEditItemOverlay = {
       // The focusedElement possible values are:
       //  * preferred: focus the field that the user touched first the last
       //    time the pane was shown (either namePicker or tagsField)
-      //  * first: focus the first non collapsed textbox
+      //  * first: focus the first non collapsed input
       // Note: since all controls are collapsed by default, we don't get the
       // default XUL dialog behavior, that selects the first control, so we set
       // the focus explicitly.
@@ -340,7 +338,7 @@ var gEditItemOverlay = {
           )
         );
       } else if (focusedElement === "first") {
-        elt = document.querySelector("textbox:not([collapsed=true])");
+        elt = document.querySelector("vbox:not([collapsed=true]) > input");
       }
       if (elt) {
         elt.focus();
@@ -474,7 +472,7 @@ var gEditItemOverlay = {
     }
 
     var numberOfItems = Math.min(
-      MAX_FOLDER_ITEM_IN_MENU_LIST,
+      PlacesUIUtils.maxRecentFolders,
       this._recentFolders.length
     );
     for (let i = 0; i < numberOfItems; i++) {
@@ -809,8 +807,9 @@ var gEditItemOverlay = {
   /**
    * Get the corresponding menu-item in the folder-menu-list for a bookmarks
    * folder if such an item exists. Otherwise, this creates a menu-item for the
-   * folder. If the items-count limit (see MAX_FOLDERS_IN_MENU_LIST) is reached,
-   * the new item replaces the last menu-item.
+   * folder. If the items-count limit (see
+   * browser.bookmarks.editDialog.maxRecentFolders preference) is reached, the
+   * new item replaces the last menu-item.
    * @param aFolderGuid
    *        The identifier of the bookmarks folder.
    * @param aTitle
@@ -828,7 +827,7 @@ var gEditItemOverlay = {
     }
 
     // 3 special folders + separator + folder-items-count limit
-    if (menupopup.children.length == 4 + MAX_FOLDER_ITEM_IN_MENU_LIST) {
+    if (menupopup.children.length == 4 + PlacesUIUtils.maxRecentFolders) {
       menupopup.removeChild(menupopup.lastElementChild);
     }
 

@@ -284,8 +284,6 @@
  * is not usually necessary and should be done with caution.
  */
 
-class JSFlatString;
-
 namespace js {
 
 class NativeObject;
@@ -944,17 +942,6 @@ struct HeapPtrHasher {
   static void rekey(Key& k, const Key& newKey) { k.unsafeSet(newKey); }
 };
 
-/* Useful for hashtables with a GCPtr as key. */
-template <class T>
-struct GCPtrHasher {
-  typedef GCPtr<T> Key;
-  typedef T Lookup;
-
-  static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
-  static bool match(const Key& k, Lookup l) { return k.get() == l; }
-  static void rekey(Key& k, const Key& newKey) { k.unsafeSet(newKey); }
-};
-
 template <class T>
 struct PreBarrieredHasher {
   typedef PreBarriered<T> Key;
@@ -997,18 +984,18 @@ class MOZ_STACK_CLASS StackGCCellPtr {
 
 namespace mozilla {
 
-/* Specialized hashing policy for HeapPtrs. */
 template <class T>
 struct DefaultHasher<js::HeapPtr<T>> : js::HeapPtrHasher<T> {};
 
-/* Specialized hashing policy for GCPtrs. */
 template <class T>
-struct DefaultHasher<js::GCPtr<T>> : js::GCPtrHasher<T> {};
+struct DefaultHasher<js::GCPtr<T>> {
+  // Not implemented. GCPtr can't be used as a hash table key because it has a
+  // post barrier but doesn't support relocation.
+};
 
 template <class T>
 struct DefaultHasher<js::PreBarriered<T>> : js::PreBarrieredHasher<T> {};
 
-/* Specialized hashing policy for WeakHeapPtrs. */
 template <class T>
 struct DefaultHasher<js::WeakHeapPtr<T>> : js::WeakHeapPtrHasher<T> {};
 
@@ -1033,6 +1020,7 @@ namespace jit {
 class JitCode;
 }  // namespace jit
 
+using PreBarrieredId = PreBarriered<jsid>;
 using PreBarrieredObject = PreBarriered<JSObject*>;
 using PreBarrieredValue = PreBarriered<Value>;
 
@@ -1041,8 +1029,8 @@ using GCPtrArrayObject = GCPtr<ArrayObject*>;
 using GCPtrBaseShape = GCPtr<BaseShape*>;
 using GCPtrAtom = GCPtr<JSAtom*>;
 using GCPtrBigInt = GCPtr<BigInt*>;
-using GCPtrFlatString = GCPtr<JSFlatString*>;
 using GCPtrFunction = GCPtr<JSFunction*>;
+using GCPtrLinearString = GCPtr<JSLinearString*>;
 using GCPtrObject = GCPtr<JSObject*>;
 using GCPtrScript = GCPtr<JSScript*>;
 using GCPtrString = GCPtr<JSString*>;

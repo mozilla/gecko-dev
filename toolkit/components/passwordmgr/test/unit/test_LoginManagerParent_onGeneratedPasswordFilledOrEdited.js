@@ -5,7 +5,7 @@
 "use strict";
 
 const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
-const { LoginManagerParent: LMP } = ChromeUtils.import(
+const { LoginManagerParent } = ChromeUtils.import(
   "resource://gre/modules/LoginManagerParent.jsm"
 );
 const { LoginManagerPrompter } = ChromeUtils.import(
@@ -18,6 +18,8 @@ const loginTemplate = Object.freeze({
   origin: "https://www.example.com",
   formActionOrigin: "https://www.mozilla.org",
 });
+
+let LMP = new LoginManagerParent();
 
 function stubPrompter() {
   let fakePromptToSavePassword = sinon.stub();
@@ -57,14 +59,17 @@ function stubPrompter() {
 }
 
 function stubGeneratedPasswordForBrowsingContextId(id) {
-  ok(LMP._browsingContextGlobal, "Check _browsingContextGlobal exists");
   ok(
-    !LMP._browsingContextGlobal.get(id),
+    LoginManagerParent._browsingContextGlobal,
+    "Check _browsingContextGlobal exists"
+  );
+  ok(
+    !LoginManagerParent._browsingContextGlobal.get(id),
     `BrowsingContext ${id} shouldn't exist yet`
   );
   info(`Stubbing BrowsingContext.get(${id})`);
   let stub = sinon
-    .stub(LMP._browsingContextGlobal, "get")
+    .stub(LoginManagerParent._browsingContextGlobal, "get")
     .withArgs(id)
     .callsFake(() => {
       return {
@@ -79,7 +84,7 @@ function stubGeneratedPasswordForBrowsingContextId(id) {
       };
     });
   ok(
-    LMP._browsingContextGlobal.get(id),
+    LoginManagerParent._browsingContextGlobal.get(id),
     `Checking BrowsingContext.get(${id}) stub`
   );
 
@@ -90,15 +95,19 @@ function stubGeneratedPasswordForBrowsingContextId(id) {
     LoginTestUtils.generation.LENGTH,
     "Check password length"
   );
-  equal(LMP._generatedPasswordsByPrincipalOrigin.size, 1, "1 added to cache");
   equal(
-    LMP._generatedPasswordsByPrincipalOrigin.get(
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().size,
+    1,
+    "1 added to cache"
+  );
+  equal(
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
       "https://www.example.com^userContextId=6"
     ).value,
     generatedPassword,
     "Cache key and value"
   );
-  LMP._browsingContextGlobal.get.resetHistory();
+  LoginManagerParent._browsingContextGlobal.get.resetHistory();
 
   return {
     stub,
@@ -138,17 +147,15 @@ function checkEditTelemetryRecorded(expectedCount, msg) {
 }
 
 function startTestConditions(contextId) {
+  LMP.useBrowsingContext(contextId);
+
   ok(
     LMP._onGeneratedPasswordFilledOrEdited,
     "LMP._onGeneratedPasswordFilledOrEdited exists"
   );
+  equal(LMP.getGeneratedPassword(), null, "Null with no BrowsingContext");
   equal(
-    LMP.getGeneratedPassword(contextId),
-    null,
-    "Null with no BrowsingContext"
-  );
-  equal(
-    LMP._generatedPasswordsByPrincipalOrigin.size,
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().size,
     0,
     "Empty cache to start"
   );
@@ -242,7 +249,7 @@ add_task(async function test_onGeneratedPasswordFilledOrEdited() {
     username: "someusername",
     password: newPassword,
   });
-  let generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+  let generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
     "https://www.example.com^userContextId=6"
   );
   ok(generatedPW.edited, "Cached edited boolean should be true");
@@ -271,7 +278,7 @@ add_task(async function test_onGeneratedPasswordFilledOrEdited() {
     username: "someusername",
     password: newerPassword,
   });
-  generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+  generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
     "https://www.example.com^userContextId=6"
   );
   ok(generatedPW.edited, "Cached edited state should remain true");
@@ -288,9 +295,9 @@ add_task(async function test_onGeneratedPasswordFilledOrEdited() {
 
   checkEditTelemetryRecorded(1, "with auto-save");
 
-  LMP._browsingContextGlobal.get.restore();
+  LoginManagerParent._browsingContextGlobal.get.restore();
   restorePrompter();
-  LMP._generatedPasswordsByPrincipalOrigin.clear();
+  LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   Services.logins.removeAllLogins();
   Services.telemetry.clearEvents();
 });
@@ -350,7 +357,7 @@ add_task(async function test_onGeneratedPasswordFilledOrEdited_editToEmpty() {
     username: "someusername",
     password: newPassword,
   });
-  let generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+  let generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
     "https://www.example.com^userContextId=6"
   );
   ok(!generatedPW.edited, "Cached edited boolean should be false");
@@ -362,9 +369,9 @@ add_task(async function test_onGeneratedPasswordFilledOrEdited_editToEmpty() {
 
   checkEditTelemetryRecorded(0, "Blanking doesn't count as an edit");
 
-  LMP._browsingContextGlobal.get.restore();
+  LoginManagerParent._browsingContextGlobal.get.restore();
   restorePrompter();
-  LMP._generatedPasswordsByPrincipalOrigin.clear();
+  LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   Services.logins.removeAllLogins();
   Services.telemetry.clearEvents();
 });
@@ -433,7 +440,7 @@ add_task(async function test_addUsernameBeforeAutoSaveEdit() {
     username: "someusername",
     password: newPassword,
   });
-  let generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+  let generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
     "https://www.example.com^userContextId=6"
   );
   ok(generatedPW.edited, "Cached edited boolean should be true");
@@ -463,7 +470,7 @@ add_task(async function test_addUsernameBeforeAutoSaveEdit() {
     username: "someusername",
     password: newerPassword,
   });
-  generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+  generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
     "https://www.example.com^userContextId=6"
   );
   ok(generatedPW.edited, "Cached edited state should remain true");
@@ -481,9 +488,9 @@ add_task(async function test_addUsernameBeforeAutoSaveEdit() {
 
   checkEditTelemetryRecorded(1, "with auto-save");
 
-  LMP._browsingContextGlobal.get.restore();
+  LoginManagerParent._browsingContextGlobal.get.restore();
   restorePrompter();
-  LMP._generatedPasswordsByPrincipalOrigin.clear();
+  LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   Services.logins.removeAllLogins();
   Services.telemetry.clearEvents();
 });
@@ -509,9 +516,9 @@ add_task(
     ok(LMP._getPrompter.notCalled, "Checking _getPrompter wasn't called");
 
     // Clean up
-    LMP._browsingContextGlobal.get.restore();
+    LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
-    LMP._generatedPasswordsByPrincipalOrigin.clear();
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     Services.logins.setLoginSavingEnabled("https://www.example.com", true);
     Services.logins.removeAllLogins();
   }
@@ -519,7 +526,7 @@ add_task(
 
 add_task(
   async function test_onGeneratedPasswordFilledOrEdited_withSavedEmptyUsername() {
-    startTestConditions();
+    startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "",
       password: "qweqweq",
@@ -571,7 +578,7 @@ add_task(
       username: "someusername",
       password: newPassword,
     });
-    let generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+    let generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
       "https://www.example.com^userContextId=6"
     );
     ok(generatedPW.edited, "Cached edited boolean should be true");
@@ -587,9 +594,9 @@ add_task(
 
     checkEditTelemetryRecorded(1, "Updating cache, not storage (no auto-save)");
 
-    LMP._browsingContextGlobal.get.restore();
+    LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
-    LMP._generatedPasswordsByPrincipalOrigin.clear();
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     Services.logins.removeAllLogins();
     Services.telemetry.clearEvents();
   }
@@ -598,7 +605,7 @@ add_task(
 add_task(
   async function test_onGeneratedPasswordFilledOrEdited_withSavedEmptyUsernameAndUsernameValue() {
     // Save as the above task but with a non-empty username field value.
-    startTestConditions();
+    startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "",
       password: "qweqweq",
@@ -676,7 +683,7 @@ add_task(
       "promptToSavePassword had a falsey 'notifySaved' argument"
     );
 
-    let generatedPW = LMP._generatedPasswordsByPrincipalOrigin.get(
+    let generatedPW = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
       "https://www.example.com^userContextId=6"
     );
     ok(generatedPW.edited, "Cached edited boolean should be true");
@@ -695,9 +702,9 @@ add_task(
       "Updating cache, not storage (no auto-save) with username in field"
     );
 
-    LMP._browsingContextGlobal.get.restore();
+    LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
-    LMP._generatedPasswordsByPrincipalOrigin.clear();
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     Services.logins.removeAllLogins();
     Services.telemetry.clearEvents();
   }
@@ -705,7 +712,7 @@ add_task(
 
 add_task(
   async function test_onGeneratedPasswordFilledOrEdited_withEmptyUsernameDifferentFormActionOrigin() {
-    startTestConditions();
+    startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "",
       password: "qweqweq",
@@ -754,16 +761,16 @@ add_task(
       "promptToChangePassword had a truthy 'notifySaved' argument"
     );
 
-    LMP._browsingContextGlobal.get.restore();
+    LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
-    LMP._generatedPasswordsByPrincipalOrigin.clear();
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     Services.logins.removeAllLogins();
   }
 );
 
 add_task(
   async function test_onGeneratedPasswordFilledOrEdited_withSavedUsername() {
-    startTestConditions();
+    startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "previoususer",
       password: "qweqweq",
@@ -810,9 +817,9 @@ add_task(
       "promptToChangePassword had a truthy 'notifySaved' argument"
     );
 
-    LMP._browsingContextGlobal.get.restore();
+    LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
-    LMP._generatedPasswordsByPrincipalOrigin.clear();
+    LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     Services.logins.removeAllLogins();
   }
 );

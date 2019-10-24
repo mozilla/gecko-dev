@@ -80,7 +80,7 @@ const char* js::TypeIdStringImpl(jsid id) {
   static char bufs[4][100];
   static unsigned which = 0;
   which = (which + 1) & 3;
-  PutEscapedString(bufs[which], 100, JSID_TO_FLAT_STRING(id), 0);
+  PutEscapedString(bufs[which], 100, JSID_TO_LINEAR_STRING(id), 0);
   return bufs[which];
 }
 
@@ -4542,7 +4542,7 @@ AutoClearTypeInferenceStateOnOOM::AutoClearTypeInferenceStateOnOOM(Zone* zone)
 
 AutoClearTypeInferenceStateOnOOM::~AutoClearTypeInferenceStateOnOOM() {
   if (zone->types.hadOOMSweepingTypes()) {
-    gc::AutoSetThreadIsSweeping threadIsSweeping;
+    gc::AutoSetThreadIsSweeping threadIsSweeping(zone);
     JSRuntime* rt = zone->runtimeFromMainThread();
     JSFreeOp fop(rt);
     js::CancelOffThreadIonCompile(rt);

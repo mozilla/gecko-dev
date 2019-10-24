@@ -234,17 +234,11 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD SetTopLevelContentWindowId(uint64_t aContentWindowId) override;
   NS_IMETHOD GetTopLevelOuterContentWindowId(uint64_t* aWindowId) override;
   NS_IMETHOD SetTopLevelOuterContentWindowId(uint64_t aWindowId) override;
-  NS_IMETHOD IsTrackingResource(bool* aIsTrackingResource) override;
-  NS_IMETHOD IsThirdPartyTrackingResource(bool* aIsTrackingResource) override;
-  NS_IMETHOD GetClassificationFlags(uint32_t* aIsClassificationFlags) override;
-  NS_IMETHOD GetFirstPartyClassificationFlags(
-      uint32_t* aIsClassificationFlags) override;
-  NS_IMETHOD GetThirdPartyClassificationFlags(
-      uint32_t* aIsClassificationFlags) override;
+
   NS_IMETHOD GetFlashPluginState(
       nsIHttpChannel::FlashPluginState* aState) override;
 
-  using nsIHttpChannel::IsThirdPartyTrackingResource;
+  using nsIClassifiedChannel::IsThirdPartyTrackingResource;
 
   virtual void SetSource(UniqueProfilerBacktrace aSource) override {
     mSource = std::move(aSource);
@@ -319,15 +313,15 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD CancelByURLClassifier(nsresult aErrorCode) override;
   virtual void SetIPv4Disabled(void) override;
   virtual void SetIPv6Disabled(void) override;
-  NS_IMETHOD GetCrossOriginOpenerPolicy(
+  NS_IMETHOD ComputeCrossOriginOpenerPolicy(
       nsILoadInfo::CrossOriginOpenerPolicy aInitiatorPolicy,
       nsILoadInfo::CrossOriginOpenerPolicy* aOutPolicy) override;
-  virtual bool GetHasSandboxedAuxiliaryNavigations() override {
-    return mHasSandboxedNavigations;
+  virtual bool GetHasNonEmptySandboxingFlag() override {
+    return mHasNonEmptySandboxingFlag;
   }
-  virtual void SetHasSandboxedAuxiliaryNavigations(
-      bool aHasSandboxedAuxiliaryNavigations) override {
-    mHasSandboxedNavigations = aHasSandboxedAuxiliaryNavigations;
+  virtual void SetHasNonEmptySandboxingFlag(
+      bool aHasNonEmptySandboxingFlag) override {
+    mHasNonEmptySandboxingFlag = aHasNonEmptySandboxingFlag;
   }
 
   inline void CleanRedirectCacheChainIfNecessary() {
@@ -596,10 +590,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   nsresult GetResponseEmbedderPolicy(
       nsILoadInfo::CrossOriginEmbedderPolicy* aResponseEmbedderPolicy);
 
-  nsresult GetCrossOriginOpenerPolicyWithInitiator(
-      nsILoadInfo::CrossOriginOpenerPolicy aInitiatorPolicy,
-      nsILoadInfo::CrossOriginOpenerPolicy* aOutPolicy);
-
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
   friend class InterceptFailedOnStop;
 
@@ -804,8 +794,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // to upgrade the request to a secure channel.
   uint32_t mUpgradableToSecure : 1;
 
-  // Is true if the docshell has the SANDBOXED_AUXILIARY_NAVIGATION flag set.
-  uint32_t mHasSandboxedNavigations : 1;
+  // True if the docshell's sandboxing flag set is not empty.
+  uint32_t mHasNonEmptySandboxingFlag : 1;
 
   // An opaque flags for non-standard behavior of the TLS system.
   // It is unlikely this will need to be set outside of telemetry studies

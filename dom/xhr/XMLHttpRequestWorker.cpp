@@ -1027,10 +1027,8 @@ bool EventRunnable::PreDispatch(WorkerPrivate* /* unused */) {
   RefPtr<XMLHttpRequestMainThread>& xhr = mProxy->mXHR;
   MOZ_ASSERT(xhr);
 
-  const EnumEntry& entry =
-      XMLHttpRequestResponseTypeValues::strings[static_cast<uint32_t>(
-          xhr->ResponseType())];
-  mResponseType.AssignASCII(entry.value, entry.length);
+  mResponseType.AssignASCII(
+      XMLHttpRequestResponseTypeValues::GetString(xhr->ResponseType()));
 
   ErrorResult rv;
   xhr->GetResponseText(mResponseText, rv);
@@ -1948,7 +1946,7 @@ void XMLHttpRequestWorker::Send(
     return;
   }
 
-  if (!mProxy) {
+  if (!mProxy || mStateData.mFlagSend) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }

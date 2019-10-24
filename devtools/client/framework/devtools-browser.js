@@ -151,14 +151,10 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     );
 
     // Enable record/replay menu items?
-    try {
-      const recordReplayEnabled = Services.prefs.getBoolPref(
-        "devtools.recordreplay.enabled"
-      );
-      toggleMenuItem("menu_webreplay", recordReplayEnabled);
-    } catch (e) {
-      // devtools.recordreplay.enabled only exists on certain platforms.
-    }
+    const recordReplayEnabled = Services.prefs.getBoolPref(
+      "devtools.recordreplay.enabled"
+    );
+    toggleMenuItem("menu_webreplay", recordReplayEnabled);
 
     // The profiler's popup is experimental. The plan is to eventually turn it on
     // everywhere, but while it's under active development we don't want everyone
@@ -411,7 +407,7 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     for (let i = 1; i < childCount; i++) {
       const child = Services.ppmm.getChildAt(i);
       if (child == mm) {
-        processId = i;
+        processId = mm.osPid;
         break;
       }
     }

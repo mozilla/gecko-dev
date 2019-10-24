@@ -14,11 +14,9 @@ import {
   getActiveSearch,
   getSelectedSource,
   getSourceContent,
-  getSelectedLocation,
   getFileSearchQuery,
   getFileSearchModifiers,
   getFileSearchResults,
-  getHighlightedLineRange,
   getContext,
 } from "../../selectors";
 
@@ -57,10 +55,15 @@ type State = {
   inputFocused: boolean,
 };
 
+type OwnProps = {|
+  editor: SourceEditor,
+  showClose?: boolean,
+  size?: string,
+|};
 type Props = {
   cx: Context,
   editor: SourceEditor,
-  selectedSource?: Source,
+  selectedSource: ?Source,
   selectedContentLoaded: boolean,
   searchOn: boolean,
   searchResults: SearchResults,
@@ -366,7 +369,7 @@ SearchBar.contextTypes = {
   shortcuts: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, p: OwnProps) => {
   const selectedSource = getSelectedSource(state);
 
   return {
@@ -375,16 +378,14 @@ const mapStateToProps = state => {
     selectedSource,
     selectedContentLoaded: selectedSource
       ? !!getSourceContent(state, selectedSource.id)
-      : null,
-    selectedLocation: getSelectedLocation(state),
+      : false,
     query: getFileSearchQuery(state),
     modifiers: getFileSearchModifiers(state),
-    highlightedLineRange: getHighlightedLineRange(state),
     searchResults: getFileSearchResults(state),
   };
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     toggleFileSearchModifier: actions.toggleFileSearchModifier,

@@ -10,6 +10,7 @@ members = [
   "js/src/wasm/cranelift",
   "js/rust",
   "js/src/frontend/binast", # Code generator.
+  "security/manager/ssl/osclientcerts",
   "testing/geckodriver",
   "toolkit/crashreporter/rust",
   "toolkit/library/gtest/rust",
@@ -59,16 +60,15 @@ codegen-units = 1
 
 [patch.crates-io]
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
-winapi = { git = "https://github.com/froydnj/winapi-rs", branch = "aarch64" }
 packed_simd = { git = "https://github.com/hsivonen/packed_simd", branch = "rust_1_32" }
 
 [patch.crates-io.cranelift-codegen]
 git = "https://github.com/CraneStation/Cranelift"
-rev = "182414f15c18538dfebbe040469ec8001e93ecc5"
+rev = "da179e4fd83d49b7ad6c9f286b1ea04d4f64907e"
 
 [patch.crates-io.cranelift-wasm]
 git = "https://github.com/CraneStation/Cranelift"
-rev = "182414f15c18538dfebbe040469ec8001e93ecc5"
+rev = "da179e4fd83d49b7ad6c9f286b1ea04d4f64907e"
 
 [patch.crates-io.coreaudio-sys]
 path = "third_party/rust/coreaudio-sys"

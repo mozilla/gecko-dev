@@ -2,6 +2,63 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! A picture represents a dynamically rendered image.
+//!
+//! # Overview
+//!
+//! Pictures consists of:
+//!
+//! - A number of primitives that are drawn onto the picture.
+//! - A composite operation describing how to composite this
+//!   picture into its parent.
+//! - A configuration describing how to draw the primitives on
+//!   this picture (e.g. in screen space or local space).
+//!
+//! The tree of pictures are generated during scene building.
+//!
+//! Depending on their composite operations pictures can be rendered into
+//! intermediate targets or folded into their parent picture.
+//!
+//! ## Picture caching
+//!
+//! Pictures can be cached to reduce the amount of rasterization happening per
+//! frame.
+//!
+//! When picture caching is enabled, the scene is cut into a small number of slices,
+//! typically:
+//!
+//! - content slice
+//! - UI slice
+//! - background UI slice which is hidden by the other two slices most of the time.
+//!
+//! Each of these slice is made up of fixed-size large tiles of 2048x512 pixels
+//! (or 128x128 for the UI slice).
+//!
+//! Tiles can be either cached rasterized content into a texture or "clear tiles"
+//! that contain only a solid color rectangle rendered directly during the composite
+//! pass.
+//!
+//! ## Invalidation
+//!
+//! Each tile keeps track of the elements that affect it, which can be:
+//!
+//! - primitives
+//! - clips
+//! - image keys
+//! - opacity bindings
+//! - transforms
+//!
+//! These dependency lists are built each frame and compared to the previous frame to
+//! see if the tile changed.
+//!
+//! The tile's primitive dependency information is organized in a quadtree, each node
+//! storing an index buffer of tile primitive dependencies.
+//!
+//! The union of the invalidated leaves of each quadtree produces a per-tile dirty rect
+//! which defines the scissor rect used when replaying the tile's drawing commands and
+//! can be used for partial present.
+//!
+
 use api::{MixBlendMode, PipelineId, PremultipliedColorF, FilterPrimitiveKind};
 use api::{PropertyBinding, PropertyBindingId, FilterPrimitive, FontRenderMode};
 use api::{DebugFlags, RasterSpace, ImageKey, ColorF, PrimitiveFlags};
@@ -11,13 +68,14 @@ use crate::clip::{ClipStore, ClipChainInstance, ClipDataHandle, ClipChainId};
 use crate::clip_scroll_tree::{ROOT_SPATIAL_NODE_INDEX,
     ClipScrollTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace, CoordinateSystemId
 };
+use crate::composite::{CompositeMode, CompositeState, NativeSurfaceId};
 use crate::debug_colors;
 use euclid::{vec3, Point2D, Scale, Size2D, Vector2D, Rect};
 use euclid::approxeq::ApproxEq;
 use crate::filterdata::SFilterData;
 use crate::frame_builder::{FrameVisibilityContext, FrameVisibilityState};
 use crate::intern::ItemUid;
-use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter, PlaneSplitAnchor};
+use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter, PlaneSplitAnchor, TextureSource};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureState, PictureContext};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use crate::gpu_types::UvRectKind;
@@ -37,18 +95,8 @@ use smallvec::SmallVec;
 use std::{mem, u8, marker};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::texture_cache::TextureCacheHandle;
-use crate::util::{TransformedRectKind, MatrixHelpers, MaxRect, scale_factors, VecHelper, subtract_rect};
+use crate::util::{TransformedRectKind, MatrixHelpers, MaxRect, scale_factors, VecHelper};
 use crate::filterdata::{FilterDataHandle};
-
-/*
- A picture represents a dynamically rendered image. It consists of:
-
- * A number of primitives that are drawn onto the picture.
- * A composite operation describing how to composite this
-   picture into its parent.
- * A configuration describing how to draw the primitives on
-   this picture (e.g. in screen space or local space).
- */
 
 /// Specify whether a surface allows subpixel AA text rendering.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -272,12 +320,6 @@ struct TilePreUpdateContext {
 
 // Immutable context passed to picture cache tiles during post_update
 struct TilePostUpdateContext<'a> {
-    /// Current set of WR debug flags
-    debug_flags: DebugFlags,
-
-    /// The global scale factor from world -> device coords.
-    global_device_pixel_scale: DevicePixelScale,
-
     /// The visible part of the screen in world coords.
     global_screen_world_rect: WorldRect,
 
@@ -290,26 +332,17 @@ struct TilePostUpdateContext<'a> {
     /// Information about opacity bindings from the picture cache.
     opacity_bindings: &'a FastHashMap<PropertyBindingId, OpacityBindingInfo>,
 
-    /// Helper to map picture coordinates to world space
-    pic_to_world_mapper: SpaceMapper<PicturePixel, WorldPixel>,
-
     /// Current size in device pixels of tiles for this cache
     current_tile_size: DeviceIntSize,
 }
 
 // Mutable state passed to picture cache tiles during post_update
 struct TilePostUpdateState<'a> {
-    /// Scratch buffer for drawing debug information.
-    scratch: &'a mut PrimitiveScratchBuffer,
-
-    /// Current dirty region of this cache.
-    dirty_region: &'a mut DirtyRegion,
-
     /// Allow access to the texture cache for requesting tiles
-    resource_cache: &'a mut ResourceCache,
+    resource_cache: &'a ResourceCache,
 
-    /// Needed when requesting tile cache handles.
-    gpu_cache: &'a mut GpuCache,
+    /// Current configuration and setup for compositing all the picture cache tiles in renderer.
+    composite_state: &'a mut CompositeState,
 }
 
 /// Information about the dependencies of a single primitive instance.
@@ -363,16 +396,84 @@ impl PrimitiveDependencyInfo {
     }
 }
 
-/// A stable ID for a given tile, to help debugging.
+/// A stable ID for a given tile, to help debugging. These are also used
+/// as unique identfiers for tile surfaces when using a native compositor.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct TileId(usize);
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct TileId(pub usize);
+
+/// A descriptor for the kind of texture that a picture cache tile will
+/// be drawn into.
+#[derive(Debug)]
+pub enum SurfaceTextureDescriptor {
+    /// When using the WR compositor, the tile is drawn into an entry
+    /// in the WR texture cache.
+    TextureCache {
+        handle: TextureCacheHandle
+    },
+    /// When using an OS compositor, the tile is drawn into a native
+    /// surface identified by arbitrary id.
+    NativeSurface {
+        /// The arbitrary id of this surface.
+        id: NativeSurfaceId,
+        /// Size in device pixels of the native surface.
+        size: DeviceIntSize,
+    },
+}
+
+/// This is the same as a `SurfaceTextureDescriptor` but has been resolved
+/// into a texture cache handle (if appropriate) that can be used by the
+/// batching and compositing code in the renderer.
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub enum ResolvedSurfaceTexture {
+    TextureCache {
+        /// The texture ID to draw to.
+        texture: TextureSource,
+        /// Slice index in the texture array to draw to.
+        layer: i32,
+    },
+    NativeSurface {
+        /// The arbitrary id of this surface.
+        id: NativeSurfaceId,
+        /// Size in device pixels of the native surface.
+        size: DeviceIntSize,
+    }
+}
+
+impl SurfaceTextureDescriptor {
+    /// Create a resolved surface texture for this descriptor
+    pub fn resolve(
+        &self,
+        resource_cache: &ResourceCache,
+    ) -> ResolvedSurfaceTexture {
+        match self {
+            SurfaceTextureDescriptor::TextureCache { handle } => {
+                let cache_item = resource_cache.texture_cache.get(handle);
+
+                ResolvedSurfaceTexture::TextureCache {
+                    texture: cache_item.texture_id,
+                    layer: cache_item.texture_layer,
+                }
+            }
+            SurfaceTextureDescriptor::NativeSurface { id, size } => {
+                ResolvedSurfaceTexture::NativeSurface {
+                    id: *id,
+                    size: *size,
+                }
+            }
+        }
+    }
+}
 
 /// The backing surface for this tile.
 #[derive(Debug)]
 pub enum TileSurface {
     Texture {
-        /// Handle to the texture cache entry which gets drawn to.
-        handle: TextureCacheHandle,
+        /// Descriptor for the surface that this tile draws into.
+        descriptor: SurfaceTextureDescriptor,
         /// Bitfield specifying the dirty region(s) that are relevant to this tile.
         visibility_mask: PrimitiveVisibilityMask,
     },
@@ -426,7 +527,7 @@ pub struct Tile {
     /// The world space dirty rect for this tile.
     /// TODO(gw): We have multiple dirty rects available due to the quadtree above. In future,
     ///           expose these as multiple dirty rects, which will help in some cases.
-    world_dirty_rect: WorldRect,
+    pub world_dirty_rect: WorldRect,
     /// The last rendered background color on this tile.
     background_color: Option<ColorF>,
 }
@@ -639,28 +740,43 @@ impl Tile {
             return false;
         }
 
-        // For small tiles, only allow splitting once, since otherwise we
-        // end up splitting into tiny dirty rects that aren't saving much
-        // in the way of pixel work.
-        let max_split_level = if ctx.current_tile_size == TILE_SIZE_LARGE {
-            3
-        } else {
-            1
-        };
+        // If we are using native composite mode, we don't currently support
+        // dirty rects and must update the entire tile. A simple way to
+        // achieve this is to never consider splitting the dirty rect!
+        // TODO(gw): Support dirty rect updates for native compositor mode
+        //           on operating systems that support this.
+        // TODO(gw): Consider using smaller tiles and/or tile splits for
+        //           native compositors that don't support dirty rects.
+        if state.composite_state.composite_mode == CompositeMode::Draw {
+            // For small tiles, only allow splitting once, since otherwise we
+            // end up splitting into tiny dirty rects that aren't saving much
+            // in the way of pixel work.
+            let max_split_level = if ctx.current_tile_size == TILE_SIZE_LARGE {
+                3
+            } else {
+                1
+            };
 
-        // Consider splitting / merging dirty regions
-        self.root.maybe_merge_or_split(
-            0,
-            &self.current_descriptor.prims,
-            max_split_level,
-        );
+            // Consider splitting / merging dirty regions
+            self.root.maybe_merge_or_split(
+                0,
+                &self.current_descriptor.prims,
+                max_split_level,
+            );
+        }
 
         // See if this tile is a simple color, in which case we can just draw
         // it as a rect, and avoid allocating a texture surface and drawing it.
-        let is_simple_prim = self.current_descriptor.prims.len() == 1 && self.is_opaque;
+        // TODO(gw): Initial native compositor interface doesn't support simple
+        //           color tiles. We can definitely support this in DC, so this
+        //           should be added as a follow up.
+        let is_simple_prim =
+            self.current_descriptor.prims.len() == 1 &&
+            self.is_opaque &&
+            state.composite_state.composite_mode == CompositeMode::Draw;
 
         // Set up the backing surface for this tile.
-        let mut surface = if is_simple_prim {
+        let surface = if is_simple_prim {
             // If we determine the tile can be represented by a color, set the
             // surface unconditionally (this will drop any previously used
             // texture cache backing surface).
@@ -684,97 +800,35 @@ impl Tile {
                     old_surface
                 }
                 Some(TileSurface::Color { .. }) | Some(TileSurface::Clear) | None => {
+                    // This is the case where we are constructing a tile surface that
+                    // involves drawing to a texture. Create the correct surface
+                    // descriptor depending on the compositing mode that will read
+                    // the output.
+                    let descriptor = match state.composite_state.composite_mode {
+                        CompositeMode::Draw => {
+                            // For a texture cache entry, create an invalid handle that
+                            // will be allocated when update_picture_cache is called.
+                            SurfaceTextureDescriptor::TextureCache {
+                                handle: TextureCacheHandle::invalid(),
+                            }
+                        }
+                        CompositeMode::Native => {
+                            // For a new native OS surface, we need to queue up creation
+                            // of a native surface to be passed to the compositor interface.
+                            state.composite_state.create_surface(
+                                NativeSurfaceId(self.id.0 as u64),
+                                ctx.current_tile_size,
+                            )
+                        }
+                    };
+
                     TileSurface::Texture {
-                        handle: TextureCacheHandle::invalid(),
+                        descriptor,
                         visibility_mask: PrimitiveVisibilityMask::empty(),
                     }
                 }
             }
         };
-
-        if let TileSurface::Texture { ref handle, .. } = surface {
-            // Invalidate if the backing texture was evicted.
-            if state.resource_cache.texture_cache.is_allocated(handle) {
-                // Request the backing texture so it won't get evicted this frame.
-                // We specifically want to mark the tile texture as used, even
-                // if it's detected not visible below and skipped. This is because
-                // we maintain the set of tiles we care about based on visibility
-                // during pre_update. If a tile still exists after that, we are
-                // assuming that it's either visible or we want to retain it for
-                // a while in case it gets scrolled back onto screen soon.
-                // TODO(gw): Consider switching to manual eviction policy?
-                state.resource_cache.texture_cache.request(handle, state.gpu_cache);
-            } else {
-                // If the texture was evicted on a previous frame, we need to assume
-                // that the entire tile rect is dirty.
-                self.is_valid = false;
-                self.dirty_rect = self.rect;
-            }
-        }
-
-        // Update the world dirty rect
-        self.world_dirty_rect = ctx.pic_to_world_mapper.map(&self.dirty_rect).expect("bug");
-
-        if ctx.debug_flags.contains(DebugFlags::PICTURE_CACHING_DBG) {
-            self.root.draw_debug_rects(
-                &ctx.pic_to_world_mapper,
-                self.is_opaque,
-                state.scratch,
-                ctx.global_device_pixel_scale,
-            );
-
-            let label_offset = DeviceVector2D::new(20.0, 30.0);
-            let tile_device_rect = self.world_rect * ctx.global_device_pixel_scale;
-            if tile_device_rect.size.height >= label_offset.y {
-                state.scratch.push_debug_string(
-                    tile_device_rect.origin + label_offset,
-                    debug_colors::RED,
-                    format!("{:?}: is_opaque={} surface={}",
-                            self.id,
-                            self.is_opaque,
-                            surface.kind(),
-                    ),
-                );
-            }
-        }
-
-        // Decide how to handle this tile when drawing this frame.
-        if !self.is_valid {
-            // Ensure that this texture is allocated.
-            if let TileSurface::Texture { ref mut handle, ref mut visibility_mask } = surface {
-                if !state.resource_cache.texture_cache.is_allocated(handle) {
-                    state.resource_cache.texture_cache.update_picture_cache(
-                        ctx.current_tile_size,
-                        handle,
-                        state.gpu_cache,
-                    );
-                }
-
-                *visibility_mask = PrimitiveVisibilityMask::empty();
-                let dirty_region_index = state.dirty_region.dirty_rects.len();
-
-                // If we run out of dirty regions, then force the last dirty region to
-                // be a union of any remaining regions. This is an inefficiency, in that
-                // we'll add items to batches later on that are redundant / outside this
-                // tile, but it's really rare except in pathological cases (even on a
-                // 4k screen, the typical dirty region count is < 16).
-                if dirty_region_index < PrimitiveVisibilityMask::MAX_DIRTY_REGIONS {
-                    visibility_mask.set_visible(dirty_region_index);
-
-                    state.dirty_region.push(
-                        self.world_dirty_rect,
-                        *visibility_mask,
-                    );
-                } else {
-                    visibility_mask.set_visible(PrimitiveVisibilityMask::MAX_DIRTY_REGIONS - 1);
-
-                    state.dirty_region.include_rect(
-                        PrimitiveVisibilityMask::MAX_DIRTY_REGIONS - 1,
-                        self.world_dirty_rect,
-                    );
-                }
-            }
-        }
 
         // Store the current surface backing info for use during batching.
         self.surface = Some(surface);
@@ -1345,6 +1399,11 @@ impl TileCacheInstance {
         //           threshold above. If we ever see this happening we can improve
         //           the theshold logic above.
         if desired_tile_size != self.current_tile_size {
+            // Destroy any native surfaces on the tiles that will be dropped due
+            // to resizing.
+            frame_state.composite_state.destroy_native_surfaces(
+                self.tiles.values(),
+            );
             self.tiles.clear();
             self.current_tile_size = desired_tile_size;
         }
@@ -1501,6 +1560,14 @@ impl TileCacheInstance {
                 self.tiles.insert(key, tile);
             }
         }
+
+        // Any old tiles that remain after the loop above are going to be dropped. For
+        // simple composite mode, the texture cache handle will expire and be collected
+        // by the texture cache. For native compositor mode, we need to explicitly
+        // invoke a callback to the client to destroy that surface.
+        frame_state.composite_state.destroy_native_surfaces(
+            old_tiles.values(),
+        );
 
         world_culling_rect
     }
@@ -1753,10 +1820,8 @@ impl TileCacheInstance {
     /// set of tile blits.
     pub fn post_update(
         &mut self,
-        resource_cache: &mut ResourceCache,
-        gpu_cache: &mut GpuCache,
         frame_context: &FrameVisibilityContext,
-        scratch: &mut PrimitiveScratchBuffer,
+        frame_state: &mut FrameVisibilityState,
     ) {
         self.tiles_to_draw.clear();
         self.dirty_region.clear();
@@ -1774,6 +1839,7 @@ impl TileCacheInstance {
         let root_transform_changed = root_transform != self.root_transform;
         if root_transform_changed {
             self.root_transform = root_transform;
+            frame_state.composite_state.dirty_rects_are_valid = false;
         }
 
         // Diff the state of the spatial nodes between last frame build and now.
@@ -1809,29 +1875,17 @@ impl TileCacheInstance {
             });
         }
 
-        let pic_to_world_mapper = SpaceMapper::new_with_target(
-            ROOT_SPATIAL_NODE_INDEX,
-            self.spatial_node_index,
-            frame_context.global_screen_world_rect,
-            frame_context.clip_scroll_tree,
-        );
-
         let ctx = TilePostUpdateContext {
-            debug_flags: frame_context.debug_flags,
-            global_device_pixel_scale: frame_context.global_device_pixel_scale,
             global_screen_world_rect: frame_context.global_screen_world_rect,
             backdrop: self.backdrop,
             spatial_nodes: &self.spatial_nodes,
             opacity_bindings: &self.opacity_bindings,
-            pic_to_world_mapper,
             current_tile_size: self.current_tile_size,
         };
 
         let mut state = TilePostUpdateState {
-            resource_cache,
-            gpu_cache,
-            scratch,
-            dirty_region: &mut self.dirty_region,
+            resource_cache: frame_state.resource_cache,
+            composite_state: frame_state.composite_state,
         };
 
         // Step through each tile and invalidate if the dependencies have changed.
@@ -1840,57 +1894,14 @@ impl TileCacheInstance {
                 &ctx,
                 &mut state,
             ) {
-                // If we have dirty tiles and a scroll didn't occur (e.g. video
-                // playback or animation) we can produce a valid dirty rect for
-                // Gecko to use as partial present.
-                if !root_transform_changed && !tile.dirty_rect.is_empty() {
-                    state.scratch.dirty_rects.push(
-                        (tile.world_dirty_rect * frame_context.global_device_pixel_scale).to_i32()
-                    );
-                }
-
                 self.tiles_to_draw.push(*key);
-            }
-        }
-
-        // If the cache was scrolled / scaled, just push a full-screen dirty rect
-        // for now, to ensure correctness. This won't be required once we fully
-        // support OS compositors, where we can pass the transform of the cache slice.
-        if root_transform_changed {
-            scratch.dirty_rects.push(
-                (frame_context.global_screen_world_rect * frame_context.global_device_pixel_scale).to_i32()
-            );
-        } else {
-            // TODO(gw): This is a total hack! While experimenting with dirty rects and
-            //           partial present, we need to include a dirty rect for the area
-            //           of the screen that is _not_ picture cached. Since we know there
-            //           is only a single picture cache right now, we can derive this
-            //           area by subtracting the picture cache rect from the screen rect.
-            //           This only works reliably while we can assume that (a) there is
-            //           only a single picture cache slice and (b) it's opaque. In future,
-            //           once we enable multiple picture cache slices, we won't need to
-            //           do this at all, since all content will be in a cache slice that
-            //           can provide valid dirty rects.
-            let world_clip_rect = ctx.pic_to_world_mapper
-                .map(&self.local_clip_rect)
-                .expect("bug - unable to map picture clip rect to world");
-            let mut non_cached_rects = Vec::new();
-            subtract_rect(
-                &ctx.global_screen_world_rect,
-                &world_clip_rect,
-                &mut non_cached_rects,
-            );
-            for rect in non_cached_rects {
-                scratch.dirty_rects.push(
-                    (rect * frame_context.global_device_pixel_scale).to_i32()
-                );
             }
         }
 
         // When under test, record a copy of the dirty region to support
         // invalidation testing in wrench.
         if frame_context.config.testing {
-            scratch.recorded_dirty_regions.push(self.dirty_region.record());
+            frame_state.scratch.recorded_dirty_regions.push(self.dirty_region.record());
         }
     }
 }
@@ -2780,6 +2791,7 @@ impl PicturePrimitive {
         parent_subpixel_mode: SubpixelMode,
         frame_state: &mut FrameBuildingState,
         frame_context: &FrameBuildingContext,
+        scratch: &mut PrimitiveScratchBuffer,
     ) -> Option<(PictureContext, PictureState, PrimitiveList)> {
         if !self.is_visible() {
             return None;
@@ -3124,12 +3136,94 @@ impl PicturePrimitive {
                                 frame_state.resource_cache.set_image_active(*image_key);
                             }
 
+                            let surface = tile.surface.as_mut().expect("no tile surface set!");
+
+                            if frame_context.debug_flags.contains(DebugFlags::PICTURE_CACHING_DBG) {
+                                tile.root.draw_debug_rects(
+                                    &map_pic_to_world,
+                                    tile.is_opaque,
+                                    scratch,
+                                    frame_context.global_device_pixel_scale,
+                                );
+
+                                let label_offset = DeviceVector2D::new(20.0, 30.0);
+                                let tile_device_rect = tile.world_rect * frame_context.global_device_pixel_scale;
+                                if tile_device_rect.size.height >= label_offset.y {
+                                    scratch.push_debug_string(
+                                        tile_device_rect.origin + label_offset,
+                                        debug_colors::RED,
+                                        format!("{:?}: is_opaque={} surface={}",
+                                                tile.id,
+                                                tile.is_opaque,
+                                                surface.kind(),
+                                        ),
+                                    );
+                                }
+                            }
+
+                            if let TileSurface::Texture { descriptor: SurfaceTextureDescriptor::TextureCache { ref handle, .. }, .. } = surface {
+                                // Invalidate if the backing texture was evicted.
+                                if frame_state.resource_cache.texture_cache.is_allocated(handle) {
+                                    // Request the backing texture so it won't get evicted this frame.
+                                    // We specifically want to mark the tile texture as used, even
+                                    // if it's detected not visible below and skipped. This is because
+                                    // we maintain the set of tiles we care about based on visibility
+                                    // during pre_update. If a tile still exists after that, we are
+                                    // assuming that it's either visible or we want to retain it for
+                                    // a while in case it gets scrolled back onto screen soon.
+                                    // TODO(gw): Consider switching to manual eviction policy?
+                                    frame_state.resource_cache.texture_cache.request(handle, frame_state.gpu_cache);
+                                } else {
+                                    // If the texture was evicted on a previous frame, we need to assume
+                                    // that the entire tile rect is dirty.
+                                    tile.is_valid = false;
+                                    tile.dirty_rect = tile.rect;
+                                }
+                            }
+
+                            // Update the world dirty rect
+                            tile.world_dirty_rect = map_pic_to_world.map(&tile.dirty_rect).expect("bug");
+
                             if tile.is_valid {
                                 continue;
                             }
 
-                            let surface = tile.surface.as_ref().expect("no tile surface set!");
-                            if let TileSurface::Texture { ref handle, visibility_mask } = surface {
+                            // Ensure that this texture is allocated.
+                            if let TileSurface::Texture { ref mut descriptor, ref mut visibility_mask } = surface {
+                                if let SurfaceTextureDescriptor::TextureCache { ref mut handle } = descriptor {
+                                    if !frame_state.resource_cache.texture_cache.is_allocated(handle) {
+                                        frame_state.resource_cache.texture_cache.update_picture_cache(
+                                            tile_cache.current_tile_size,
+                                            handle,
+                                            frame_state.gpu_cache,
+                                        );
+                                    }
+                                }
+
+                                *visibility_mask = PrimitiveVisibilityMask::empty();
+                                let dirty_region_index = tile_cache.dirty_region.dirty_rects.len();
+
+                                // If we run out of dirty regions, then force the last dirty region to
+                                // be a union of any remaining regions. This is an inefficiency, in that
+                                // we'll add items to batches later on that are redundant / outside this
+                                // tile, but it's really rare except in pathological cases (even on a
+                                // 4k screen, the typical dirty region count is < 16).
+                                if dirty_region_index < PrimitiveVisibilityMask::MAX_DIRTY_REGIONS {
+                                    visibility_mask.set_visible(dirty_region_index);
+
+                                    tile_cache.dirty_region.push(
+                                        tile.world_dirty_rect,
+                                        *visibility_mask,
+                                    );
+                                } else {
+                                    visibility_mask.set_visible(PrimitiveVisibilityMask::MAX_DIRTY_REGIONS - 1);
+
+                                    tile_cache.dirty_region.include_rect(
+                                        PrimitiveVisibilityMask::MAX_DIRTY_REGIONS - 1,
+                                        tile.world_dirty_rect,
+                                    );
+                                }
+
                                 let content_origin_f = tile.world_rect.origin * device_pixel_scale;
                                 let content_origin = content_origin_f.round();
                                 debug_assert!((content_origin_f.x - content_origin.x).abs() < 0.01);
@@ -3146,13 +3240,12 @@ impl PicturePrimitive {
                                 // CPUs). Round the rect here before casting to integer device pixels
                                 // to ensure the scissor rect is correct.
                                 let scissor_rect = (scissor_rect * device_pixel_scale).round();
-                                let cache_item = frame_state.resource_cache.texture_cache.get(handle);
+                                let surface = descriptor.resolve(frame_state.resource_cache);
 
                                 let task = RenderTask::new_picture(
                                     RenderTaskLocation::PictureCache {
-                                        texture: cache_item.texture_id,
-                                        layer: cache_item.texture_layer,
                                         size: tile_cache.current_tile_size,
+                                        surface,
                                     },
                                     tile_cache.current_tile_size.to_f32(),
                                     pic_index,
@@ -4548,6 +4641,29 @@ impl TileNode {
                 } else {
                     *dirty_rect = self.rect.union(dirty_rect);
                     *dirty_tracker = *dirty_tracker | 1;
+                }
+            }
+        }
+    }
+}
+
+impl CompositeState {
+    // A helper function to destroy all native surfaces for a given list of tiles
+    fn destroy_native_surfaces<'a, I: Iterator<Item = &'a Tile>>(
+        &mut self,
+        tiles_iter: I,
+    ) {
+        // Any old tiles that remain after the loop above are going to be dropped. For
+        // simple composite mode, the texture cache handle will expire and be collected
+        // by the texture cache. For native compositor mode, we need to explicitly
+        // invoke a callback to the client to destroy that surface.
+        if let CompositeMode::Native = self.composite_mode {
+            for tile in tiles_iter {
+                // Only destroy native surfaces that have been allocated. It's
+                // possible for display port tiles to be created that never
+                // come on screen, and thus never get a native surface allocated.
+                if let Some(TileSurface::Texture { descriptor: SurfaceTextureDescriptor::NativeSurface { id, .. }, .. }) = tile.surface {
+                    self.destroy_surface(id);
                 }
             }
         }

@@ -1245,8 +1245,10 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
 #endif
       dtoaState(this, nullptr),
       suppressGC(this, 0),
-      gcSweeping(this, false),
 #ifdef DEBUG
+      gcSweeping(this, false),
+      gcSweepingZone(this, nullptr),
+      gcMarking(this, false),
       isTouchingGrayThings(this, false),
       noNurseryAllocationCheck(this, 0),
       disableStrictProxyCheckingCount(this, 0),
@@ -1514,8 +1516,13 @@ void AutoEnterOOMUnsafeRegion::crash(const char* reason) {
   char msgbuf[1024];
   js::NoteIntentionalCrash();
   SprintfLiteral(msgbuf, "[unhandlable oom] %s", reason);
-  MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
-  MOZ_CRASH();
+#ifndef DEBUG
+  // In non-DEBUG builds MOZ_CRASH normally doesn't print to stderr so we have
+  // to do this explicitly (the jit-test allow-unhandlable-oom annotation and
+  // fuzzers depend on it).
+  MOZ_ReportCrash(msgbuf, __FILE__, __LINE__);
+#endif
+  MOZ_CRASH_UNSAFE(msgbuf);
 }
 
 AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback

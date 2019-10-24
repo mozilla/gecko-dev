@@ -56,31 +56,30 @@ class RangeBoundaryBase {
  public:
   RangeBoundaryBase(nsINode* aContainer, nsIContent* aRef)
       : mParent(aContainer), mRef(aRef) {
-    if (!mRef) {
-      mOffset = mozilla::Some(0);
-    } else {
+    if (mRef) {
       NS_WARNING_ASSERTION(mRef->GetParentNode() == mParent,
                            "Initializing RangeBoundary with invalid value");
-      mOffset.reset();
+    } else {
+      mOffset.emplace(0);
     }
   }
 
-  RangeBoundaryBase(nsINode* aContainer, int32_t aOffset)
+  RangeBoundaryBase(nsINode* aContainer, uint32_t aOffset)
       : mParent(aContainer), mRef(nullptr), mOffset(mozilla::Some(aOffset)) {
     if (mParent && mParent->IsContainerNode()) {
       // Find a reference node
-      if (aOffset == static_cast<int32_t>(aContainer->GetChildCount())) {
-        mRef = aContainer->GetLastChild();
-      } else if (aOffset != 0) {
+      if (aOffset == mParent->GetChildCount()) {
+        mRef = mParent->GetLastChild();
+      } else if (aOffset > 0) {
         mRef = mParent->GetChildAt_Deprecated(aOffset - 1);
       }
 
       NS_WARNING_ASSERTION(mRef || aOffset == 0,
                            "Constructing RangeBoundary with invalid value");
-    }
 
-    NS_WARNING_ASSERTION(!mRef || mRef->GetParentNode() == mParent,
-                         "Constructing RangeBoundary with invalid value");
+      NS_WARNING_ASSERTION(!mRef || mRef->GetParentNode() == mParent,
+                           "Constructing RangeBoundary with invalid value");
+    }
   }
 
   RangeBoundaryBase() : mParent(nullptr), mRef(nullptr) {}
@@ -166,41 +165,6 @@ class RangeBoundaryBase {
       return;
     }
     mOffset.reset();
-  }
-
-  void Set(nsINode* aContainer, int32_t aOffset) {
-    mParent = aContainer;
-    if (mParent && mParent->IsContainerNode()) {
-      // Find a reference node
-      if (aOffset == static_cast<int32_t>(aContainer->GetChildCount())) {
-        mRef = aContainer->GetLastChild();
-      } else if (aOffset == 0) {
-        mRef = nullptr;
-      } else {
-        mRef = mParent->GetChildAt_Deprecated(aOffset - 1);
-        MOZ_ASSERT(mRef);
-      }
-
-      NS_WARNING_ASSERTION(mRef || aOffset == 0,
-                           "Setting RangeBoundary to invalid value");
-    } else {
-      mRef = nullptr;
-    }
-
-    mOffset = mozilla::Some(aOffset);
-
-    NS_WARNING_ASSERTION(!mRef || mRef->GetParentNode() == mParent,
-                         "Setting RangeBoundary to invalid value");
-  }
-
-  void SetAfterRef(nsINode* aParent, nsIContent* aRef) {
-    mParent = aParent;
-    mRef = aRef;
-    if (!mRef) {
-      mOffset = mozilla::Some(0);
-    } else {
-      mOffset.reset();
-    }
   }
 
   bool IsSet() const { return mParent && (mRef || mOffset.isSome()); }

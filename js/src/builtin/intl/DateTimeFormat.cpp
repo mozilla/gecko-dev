@@ -46,7 +46,6 @@ using JS::TimeClip;
 
 using js::intl::CallICU;
 using js::intl::DateTimeFormatOptions;
-using js::intl::GetAvailableLocales;
 using js::intl::IcuLocale;
 using js::intl::INITIAL_CHAR_BUFFER_SIZE;
 using js::intl::SharedIntlData;
@@ -64,8 +63,11 @@ const JSClassOps DateTimeFormatObject::classOps_ = {
 const JSClass DateTimeFormatObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_RESERVED_SLOTS(DateTimeFormatObject::SLOT_COUNT) |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_DateTimeFormat) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &DateTimeFormatObject::classOps_};
+    &DateTimeFormatObject::classOps_, &DateTimeFormatObject::classSpec_};
+
+const JSClass& DateTimeFormatObject::protoClass_ = PlainObject::class_;
 
 static bool dateTimeFormat_toSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -89,6 +91,18 @@ static const JSPropertySpec dateTimeFormat_properties[] = {
     JS_SELF_HOSTED_GET("format", "$Intl_DateTimeFormat_format_get", 0),
     JS_STRING_SYM_PS(toStringTag, "Object", JSPROP_READONLY), JS_PS_END};
 
+static bool DateTimeFormat(JSContext* cx, unsigned argc, Value* vp);
+
+const ClassSpec DateTimeFormatObject::classSpec_ = {
+    GenericCreateConstructor<DateTimeFormat, 0, gc::AllocKind::FUNCTION>,
+    GenericCreatePrototype<DateTimeFormatObject>,
+    dateTimeFormat_static_methods,
+    nullptr,
+    dateTimeFormat_methods,
+    dateTimeFormat_properties,
+    nullptr,
+    ClassSpec::DontDefineConstructor};
+
 /**
  * 12.2.1 Intl.DateTimeFormat([ locales [, options]])
  *
@@ -99,20 +113,16 @@ static bool DateTimeFormat(JSContext* cx, const CallArgs& args, bool construct,
   // Step 1 (Handled by OrdinaryCreateFromConstructor fallback code).
 
   // Step 2 (Inlined 9.1.14, OrdinaryCreateFromConstructor).
+  JSProtoKey protoKey = dtfOptions == DateTimeFormatOptions::Standard
+                            ? JSProto_DateTimeFormat
+                            : JSProto_Null;
   RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_Null, &proto)) {
+  if (!GetPrototypeFromBuiltinConstructor(cx, args, protoKey, &proto)) {
     return false;
   }
 
-  if (!proto) {
-    proto = GlobalObject::getOrCreateDateTimeFormatPrototype(cx, cx->global());
-    if (!proto) {
-      return false;
-    }
-  }
-
   Rooted<DateTimeFormatObject*> dateTimeFormat(cx);
-  dateTimeFormat = NewObjectWithGivenProto<DateTimeFormatObject>(cx, proto);
+  dateTimeFormat = NewObjectWithClassProto<DateTimeFormatObject>(cx, proto);
   if (!dateTimeFormat) {
     return false;
   }
@@ -166,73 +176,42 @@ void js::DateTimeFormatObject::finalize(JSFreeOp* fop, JSObject* obj) {
   }
 }
 
-JSObject* js::CreateDateTimeFormatPrototype(
-    JSContext* cx, JS::Handle<JSObject*> Intl, JS::Handle<GlobalObject*> global,
-    JS::MutableHandle<JSObject*> constructor,
-    DateTimeFormatOptions dtfOptions) {
-  RootedFunction ctor(cx);
-  ctor = dtfOptions == DateTimeFormatOptions::EnableMozExtensions
-             ? GlobalObject::createConstructor(cx, MozDateTimeFormat,
-                                               cx->names().DateTimeFormat, 0)
-             : GlobalObject::createConstructor(cx, DateTimeFormat,
-                                               cx->names().DateTimeFormat, 0);
+bool js::AddMozDateTimeFormatConstructor(JSContext* cx,
+                                         JS::Handle<JSObject*> intl) {
+  RootedObject ctor(
+      cx, GlobalObject::createConstructor(cx, MozDateTimeFormat,
+                                          cx->names().DateTimeFormat, 0));
   if (!ctor) {
-    return nullptr;
+    return false;
   }
 
   RootedObject proto(
-      cx, GlobalObject::createBlankPrototype<PlainObject>(cx, global));
+      cx, GlobalObject::createBlankPrototype<PlainObject>(cx, cx->global()));
   if (!proto) {
-    return nullptr;
+    return false;
   }
 
   if (!LinkConstructorAndPrototype(cx, ctor, proto)) {
-    return nullptr;
+    return false;
   }
 
   // 12.3.2
   if (!JS_DefineFunctions(cx, ctor, dateTimeFormat_static_methods)) {
-    return nullptr;
+    return false;
   }
 
   // 12.4.4 and 12.4.5
   if (!JS_DefineFunctions(cx, proto, dateTimeFormat_methods)) {
-    return nullptr;
+    return false;
   }
 
   // 12.4.2 and 12.4.3
   if (!JS_DefineProperties(cx, proto, dateTimeFormat_properties)) {
-    return nullptr;
+    return false;
   }
 
-  // 8.1
   RootedValue ctorValue(cx, ObjectValue(*ctor));
-  if (!DefineDataProperty(cx, Intl, cx->names().DateTimeFormat, ctorValue, 0)) {
-    return nullptr;
-  }
-
-  constructor.set(ctor);
-  return proto;
-}
-
-bool js::AddMozDateTimeFormatConstructor(JSContext* cx,
-                                         JS::Handle<JSObject*> intl) {
-  Handle<GlobalObject*> global = cx->global();
-
-  RootedObject mozDateTimeFormat(cx);
-  JSObject* mozDateTimeFormatProto =
-      CreateDateTimeFormatPrototype(cx, intl, global, &mozDateTimeFormat,
-                                    DateTimeFormatOptions::EnableMozExtensions);
-  return mozDateTimeFormatProto != nullptr;
-}
-
-bool js::intl_DateTimeFormat_availableLocales(JSContext* cx, unsigned argc,
-                                              Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 0);
-
-  return GetAvailableLocales(cx, udat_countAvailable, udat_getAvailable,
-                             args.rval());
+  return DefineDataProperty(cx, intl, cx->names().DateTimeFormat, ctorValue, 0);
 }
 
 static bool DefaultCalendar(JSContext* cx, const UniqueChars& locale,
@@ -734,11 +713,19 @@ static FieldType GetFieldTypeForFormatField(UDateFormatField fieldName) {
   switch (fieldName) {
     case UDAT_ERA_FIELD:
       return &JSAtomState::era;
+
     case UDAT_YEAR_FIELD:
     case UDAT_YEAR_WOY_FIELD:
     case UDAT_EXTENDED_YEAR_FIELD:
-    case UDAT_YEAR_NAME_FIELD:
       return &JSAtomState::year;
+
+    case UDAT_YEAR_NAME_FIELD:
+#ifdef NIGHTLY_BUILD
+      return &JSAtomState::yearName;
+#else
+      // Currently restricted to Nightly.
+      return &JSAtomState::year;
+#endif
 
     case UDAT_MONTH_FIELD:
     case UDAT_STANDALONE_MONTH_FIELD:
@@ -780,6 +767,16 @@ static FieldType GetFieldTypeForFormatField(UDateFormatField fieldName) {
       return &JSAtomState::unknown;
 #endif
 
+#ifndef U_HIDE_INTERNAL_API
+    case UDAT_RELATED_YEAR_FIELD:
+#  ifdef NIGHTLY_BUILD
+      return &JSAtomState::relatedYear;
+#  else
+      // Currently restricted to Nightly.
+      return &JSAtomState::unknown;
+#  endif
+#endif
+
     case UDAT_DAY_OF_YEAR_FIELD:
     case UDAT_WEEK_OF_YEAR_FIELD:
     case UDAT_WEEK_OF_MONTH_FIELD:
@@ -792,9 +789,6 @@ static FieldType GetFieldTypeForFormatField(UDateFormatField fieldName) {
     case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
     case UDAT_TIMEZONE_ISO_FIELD:
     case UDAT_TIMEZONE_ISO_LOCAL_FIELD:
-#ifndef U_HIDE_INTERNAL_API
-    case UDAT_RELATED_YEAR_FIELD:
-#endif
     case UDAT_AM_PM_MIDNIGHT_NOON_FIELD:
     case UDAT_FLEXIBLE_DAY_PERIOD_FIELD:
 #ifndef U_HIDE_INTERNAL_API

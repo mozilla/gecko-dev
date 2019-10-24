@@ -82,8 +82,8 @@ pref("extensions.langpacks.signatures.required", true);
 pref("xpinstall.signatures.required", true);
 pref("xpinstall.signatures.devInfoURL", "https://wiki.mozilla.org/Addons/Extension_Signing");
 
-// Disable extensionStorage storage actor by default
-pref("devtools.storage.extensionStorage.enabled", false);
+// Enable extensionStorage storage actor by default
+pref("devtools.storage.extensionStorage.enabled", true);
 
 // Dictionary download preference
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/language-tools/");
@@ -332,8 +332,10 @@ pref("browser.urlbar.usepreloadedtopurls.expire_days", 14);
 // Whether the quantum bar displays the major design update.
 #ifdef NIGHTLY_BUILD
   pref("browser.urlbar.megabar", true);
+  pref("browser.urlbar.view.stripHttps", true);
 #else
   pref("browser.urlbar.megabar", false);
+  pref("browser.urlbar.view.stripHttps", false);
 #endif
 
 pref("browser.urlbar.openViewOnFocus", false);
@@ -391,7 +393,11 @@ pref("browser.search.widget.inNavBar", false);
 
 // Enables display of the options for the user using a separate default search
 // engine in private browsing mode.
-pref("browser.search.separatePrivateDefault.ui.enabled", false);
+#ifdef EARLY_BETA_OR_EARLIER
+  pref("browser.search.separatePrivateDefault.ui.enabled", true);
+#endif
+// The maximum amount of times the private default banner is shown.
+pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
 
 pref("browser.sessionhistory.max_entries", 50);
 
@@ -406,7 +412,7 @@ pref("permissions.default.geo", 0);
 pref("permissions.default.desktop-notification", 0);
 pref("permissions.default.shortcuts", 0);
 
-#ifdef EARLY_BETA_OR_EARLIER
+#ifdef NIGHTLY_BUILD
   pref("permissions.desktop-notification.postPrompt.enabled", true);
 #else
   pref("permissions.desktop-notification.postPrompt.enabled", false);
@@ -596,7 +602,6 @@ pref("privacy.history.custom",              false);
 // 5 - Last 5 minutes
 // 6 - Last 24 hours
 pref("privacy.sanitize.timeSpan", 1);
-pref("privacy.sanitize.sanitizeOnShutdown", false);
 
 pref("privacy.sanitize.migrateFx3Prefs",    false);
 
@@ -604,12 +609,6 @@ pref("privacy.panicButton.enabled",         true);
 
 // Time until temporary permissions expire, in ms
 pref("privacy.temporary_permission_expire_time_ms",  3600000);
-
-// If Accept-Language should be spoofed by en-US
-// 0 - will prompt
-// 1 - don't spoof
-// 2 - spoof
-pref("privacy.spoof_english", 0);
 
 pref("network.proxy.share_proxy_settings",  false); // use the same proxy settings for all protocols
 
@@ -1013,6 +1012,9 @@ pref("browser.bookmarks.editDialog.showForNewBookmarks", true);
 // bookmarking dialog
 pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
+// The number of recently selected folders in the edit bookmarks dialog.
+pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
+
 pref("dom.ipc.plugins.flash.disable-protected-mode", false);
 
 // Feature-disable the protected-mode auto-flip
@@ -1319,6 +1321,10 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.whats-new-panel", "{
 // repackager of this code using an alternate snippet url, please keep your users safe
 pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":true,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
 
+// The pref that controls if ASRouter uses the remote fluent files.
+// It's enabled by default, but could be disabled to force ASRouter to use the local files.
+pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
+
 // These prefs control if Discovery Stream is enabled.
 pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
@@ -1331,7 +1337,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
   pref("browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar", false);
 #endif
 
-pref("trailhead.firstrun.branches", "join-supercharge");
+pref("trailhead.firstrun.branches", "");
 
 // The pref that controls if the What's New panel is enabled.
 pref("browser.messaging-system.whatsNewPanel.enabled", true);
@@ -1632,9 +1638,9 @@ pref("browser.contentblocking.report.proxy.enabled", false);
 
 pref("browser.contentblocking.report.monitor.url", "https://monitor.firefox.com/?entrypoint=protection_report_monitor&utm_source=about-protections");
 pref("browser.contentblocking.report.monitor.sign_in_url", "https://monitor.firefox.com/oauth/init?entrypoint=protection_report_monitor&utm_source=about-protections&email=");
-pref("browser.contentblocking.report.lockwise.url", "https://lockwise.firefox.com/");
+pref("browser.contentblocking.report.lockwise.url", "https://lockwise.firefox.com/?utm_source=firefox-desktop&utm_medium=referral&utm_campaign=about-protections&utm_content=about-protections");
 pref("browser.contentblocking.report.manage_devices.url", "https://accounts.firefox.com/settings/clients");
-pref("browser.contentblocking.report.proxy_extension.url", "https://private-network.firefox.com/");
+pref("browser.contentblocking.report.proxy_extension.url", "https://fpn.firefox.com/browser?utm_source=firefox-desktop&utm_medium=referral&utm_campaign=about-protections&utm_content=about-protections");
 
 // Protection Report's SUMO urls
 pref("browser.contentblocking.report.monitor.how_it_works.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/monitor-faq");
@@ -1644,6 +1650,10 @@ pref("browser.contentblocking.report.cookie.url", "https://support.mozilla.org/1
 pref("browser.contentblocking.report.tracker.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/tracking-content-report");
 pref("browser.contentblocking.report.fingerprinter.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/fingerprinters-report");
 pref("browser.contentblocking.report.cryptominer.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/cryptominers-report");
+
+pref("browser.contentblocking.cfr-milestone.enabled", true);
+pref("browser.contentblocking.cfr-milestone.milestone-achieved", 0);
+pref("browser.contentblocking.cfr-milestone.milestones", "[1000, 5000, 10000, 25000, 50000, 100000, 500000]");
 
 // Enables the new Protections Panel.
 #ifdef NIGHTLY_BUILD
@@ -1784,12 +1794,10 @@ pref("signon.privateBrowsingCapture.enabled", true);
 pref("signon.showAutoCompleteFooter", true);
 pref("signon.management.page.enabled", true);
 pref("signon.management.page.breach-alerts.enabled", true);
+pref("signon.management.page.sort", "name");
 pref("signon.management.overrideURI", "about:logins?filter=%DOMAIN%");
-#ifdef NIGHTLY_BUILD
-  // Bug 1563330 tracks shipping this by default.
-  pref("signon.showAutoCompleteOrigins", true);
-  pref("signon.includeOtherSubdomainsInLookup", true);
-#endif
+pref("signon.showAutoCompleteOrigins", true);
+pref("signon.includeOtherSubdomainsInLookup", true);
 // The utm_creative value is appended within the code (specific to the location on
 // where it is clicked). Be sure that if these two prefs are updated, that
 // the utm_creative param be last.
@@ -1960,6 +1968,15 @@ pref("devtools.toolbox.tabsOrder", "");
 // ⚠ This is a work in progress. Expect weirdness when the pref is enabled. ⚠
 pref("devtools.browsertoolbox.fission", false);
 
+// This pref is also related to fission, but not only. It allows the toolbox
+// to stay open even if the debugged tab switches to another process.
+// It can happen between two documents, one running in the parent process like
+// about:sessionrestore and another one running in the content process like
+// any web page. Or between two distinct domain when running with fission turned
+// on. See bug 1565263.
+// ⚠ This is a work in progress. Expect weirdness when the pref is flipped on ⚠
+pref("devtools.target-switching.enabled", false);
+
 // Toolbox Button preferences
 pref("devtools.command-button-pick.enabled", true);
 pref("devtools.command-button-frames.enabled", true);
@@ -1971,6 +1988,9 @@ pref("devtools.command-button-screenshot.enabled", false);
 pref("devtools.command-button-rulers.enabled", false);
 pref("devtools.command-button-measure.enabled", false);
 pref("devtools.command-button-noautohide.enabled", false);
+#ifndef MOZILLA_OFFICIAL
+  pref("devtools.command-button-fission-prefs.enabled", true);
+#endif
 
 // Inspector preferences
 // Enable the Inspector
@@ -1995,6 +2015,10 @@ pref("devtools.inspector.showAllAnonymousContent", false);
 pref("devtools.inspector.showUserAgentShadowRoots", false);
 // Enable the new Rules View
 pref("devtools.inspector.new-rulesview.enabled", false);
+// Enable the compatibility tool in the inspector.
+pref("devtools.inspector.compatibility.enabled", false);
+// Enable the new Box Model Highlighter with renderer in parent process
+pref("devtools.inspector.use-new-box-model-highlighter", false);
 
 // Grid highlighter preferences
 pref("devtools.gridinspector.gridOutlineMaxColumns", 50);
@@ -2111,7 +2135,12 @@ pref("devtools.netmonitor.enabled", true);
 #else
   pref("devtools.netmonitor.features.search", false);
 #endif
-pref("devtools.netmonitor.features.requestBlocking", false);
+
+#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
+  pref("devtools.netmonitor.features.requestBlocking", true);
+#else
+  pref("devtools.netmonitor.features.requestBlocking", false);
+#endif
 
 // Enable the Application panel
 pref("devtools.application.enabled", false);
@@ -2239,13 +2268,6 @@ pref("devtools.webconsole.timestampMessages", false);
   pref("devtools.webconsole.sidebarToggle", true);
 #else
   pref("devtools.webconsole.sidebarToggle", false);
-#endif
-
-// Enable editor mode in the console in Nightly and DevEdition builds.
-#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
-  pref("devtools.webconsole.features.editor", true);
-#else
-  pref("devtools.webconsole.features.editor", false);
 #endif
 
 // Saved editor mode state in the console.

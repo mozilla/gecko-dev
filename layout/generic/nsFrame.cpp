@@ -546,8 +546,7 @@ static bool IsFontSizeInflationContainer(nsIFrame* aFrame,
   nsIContent* content = aFrame->GetContent();
   LayoutFrameType frameType = aFrame->Type();
   bool isInline =
-      (nsStyleDisplay::DisplayInside(aFrame->GetDisplay()) ==
-           StyleDisplayInside::Inline ||
+      (nsStyleDisplay::IsInlineFlow(aFrame->GetDisplay()) ||
        RubyUtils::IsRubyBox(frameType) ||
        (aFrame->IsFloating() && frameType == LayoutFrameType::Letter) ||
        // Given multiple frames for the same node, only the
@@ -638,6 +637,15 @@ void nsFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     PresContext()->ConstructedFrame();
   }
   if (GetParent()) {
+    if (MOZ_UNLIKELY(mContent == PresContext()->Document()->GetRootElement() &&
+                     mContent == GetParent()->GetContent())) {
+      // Our content is the root element and we have the same content as our
+      // parent. That is, we are the internal anonymous frame of the root
+      // element. Copy the used mWritingMode from our parent because
+      // mDocElementContainingBlock gets its mWritingMode from <body>.
+      mWritingMode = GetParent()->GetWritingMode();
+    }
+
     // Copy some state bits from our parent (the bits that should apply
     // recursively throughout a subtree). The bits are sorted according to their
     // order in nsFrameStateBits.h.
@@ -1237,27 +1245,23 @@ void nsFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
 
     if (mInScrollAnchorChain) {
       const nsStylePosition* oldPosition = aOldComputedStyle->StylePosition();
-      if (oldPosition->mOffset != StylePosition()->mOffset ||
-          oldPosition->mWidth != StylePosition()->mWidth ||
-          oldPosition->mMinWidth != StylePosition()->mMinWidth ||
-          oldPosition->mMaxWidth != StylePosition()->mMaxWidth ||
-          oldPosition->mHeight != StylePosition()->mHeight ||
-          oldPosition->mMinHeight != StylePosition()->mMinHeight ||
-          oldPosition->mMaxHeight != StylePosition()->mMaxHeight) {
+      if (!needAnchorSuppression &&
+          (oldPosition->mOffset != StylePosition()->mOffset ||
+           oldPosition->mWidth != StylePosition()->mWidth ||
+           oldPosition->mMinWidth != StylePosition()->mMinWidth ||
+           oldPosition->mMaxWidth != StylePosition()->mMaxWidth ||
+           oldPosition->mHeight != StylePosition()->mHeight ||
+           oldPosition->mMinHeight != StylePosition()->mMinHeight ||
+           oldPosition->mMaxHeight != StylePosition()->mMaxHeight ||
+           oldDisp->mPosition != StyleDisplay()->mPosition ||
+           oldDisp->mTransform != StyleDisplay()->mTransform)) {
         needAnchorSuppression = true;
       }
 
-      // TODO(emilio): Should this do something about other transform-like
-      // properties?
-      if (oldDisp->mPosition != StyleDisplay()->mPosition ||
-          oldDisp->mTransform != StyleDisplay()->mTransform) {
-        needAnchorSuppression = true;
+      if (needAnchorSuppression &&
+          StaticPrefs::layout_css_scroll_anchoring_suppressions_enabled()) {
+        ScrollAnchorContainer::FindFor(this)->SuppressAdjustments();
       }
-    }
-
-    if (mInScrollAnchorChain && needAnchorSuppression &&
-        StaticPrefs::layout_css_scroll_anchoring_suppressions_enabled()) {
-      ScrollAnchorContainer::FindFor(this)->SuppressAdjustments();
     }
   }
 
@@ -5312,8 +5316,7 @@ static nsIFrame::ContentOffsets OffsetsForSingleFrame(nsIFrame* aFrame,
   // Figure out whether the offsets should be over, after, or before the frame
   nsRect rect(nsPoint(0, 0), aFrame->GetSize());
 
-  bool isBlock = nsStyleDisplay::DisplayInside(aFrame->GetDisplay()) !=
-                 StyleDisplayInside::Inline;
+  bool isBlock = !aFrame->StyleDisplay()->IsInlineFlow();
   bool isRtl =
       (aFrame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL);
   if ((isBlock && rect.y < aPoint.y) ||
@@ -9912,7 +9915,12 @@ ComputedStyle* nsFrame::DoGetParentComputedStyle(
           /* if next is true then it's really a request for the table frame's
              parent context, see nsTable[Outer]Frame::GetParentComputedStyle. */
           pseudo == PseudoStyleType::tableWrapper) {
-        if (Servo_Element_IsDisplayContents(parentElement)) {
+        // In some edge cases involving display: contents, we may end up here
+        // for something that's pending to be reframed. In this case we return
+        // the wrong style from here (because we've already lost track of it!),
+        // but it's not a big deal as we're going to be reframed anyway.
+        if (MOZ_LIKELY(parentElement->HasServoData()) &&
+            Servo_Element_IsDisplayContents(parentElement)) {
           RefPtr<ComputedStyle> style =
               ServoStyleSet::ResolveServoStyle(*parentElement);
           // NOTE(emilio): we return a weak reference because the element also

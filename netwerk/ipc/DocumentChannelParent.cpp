@@ -14,6 +14,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentProcessManager.h"
 #include "mozilla/dom/ipc/IdType.h"
+#include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/net/RedirectChannelRegistrar.h"
 #include "nsDocShell.h"
@@ -68,15 +69,15 @@ bool DocumentChannelParent::Init(const DocumentChannelCreationArgs& aArgs) {
   bool result = nsDocShell::CreateChannelForLoadState(
       loadState, loadInfo, mListener, nullptr,
       aArgs.initiatorType().ptrOr(nullptr), aArgs.loadFlags(), aArgs.loadType(),
-      aArgs.cacheKey(), aArgs.isActive(), aArgs.isTopLevelDoc(), rv,
-      getter_AddRefs(mChannel));
+      aArgs.cacheKey(), aArgs.isActive(), aArgs.isTopLevelDoc(),
+      aArgs.hasNonEmptySandboxingFlags(), rv, getter_AddRefs(mChannel));
   if (!result) {
     return SendFailedAsyncOpen(rv);
   }
 
-  nsDocShell::ConfigureChannel(mChannel, loadState,
-                               aArgs.initiatorType().ptrOr(nullptr),
-                               aArgs.loadType(), aArgs.cacheKey());
+  nsDocShell::ConfigureChannel(
+      mChannel, loadState, aArgs.initiatorType().ptrOr(nullptr),
+      aArgs.loadType(), aArgs.cacheKey(), aArgs.hasNonEmptySandboxingFlags());
 
   // Computation of the top window uses the docshell tree, so only
   // works in the source process. We compute it manually and override
@@ -144,36 +145,22 @@ void DocumentChannelParent::ActorDestroy(ActorDestroyReason why) {
   }
 }
 
-void DocumentChannelParent::CancelChildForProcessSwitch() {
-  MOZ_ASSERT(!mDoingProcessSwitch, "Already in the middle of switching?");
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mDoingProcessSwitch = true;
-  if (CanSend()) {
-    Unused << SendCancelForProcessSwitch();
-  }
-}
-
 bool DocumentChannelParent::RecvCancel(const nsresult& aStatusCode) {
-  if (mDoingProcessSwitch) {
-    return IPC_OK();
-  }
-
-  if (mChannel) {
+  if (mChannel && !mDoingProcessSwitch) {
     mChannel->Cancel(aStatusCode);
   }
   return true;
 }
 
 bool DocumentChannelParent::RecvSuspend() {
-  if (mChannel) {
+  if (mChannel && !mDoingProcessSwitch) {
     mChannel->Suspend();
   }
   return true;
 }
 
 bool DocumentChannelParent::RecvResume() {
-  if (mChannel) {
+  if (mChannel && !mDoingProcessSwitch) {
     mChannel->Resume();
   }
   return true;
@@ -220,6 +207,10 @@ DocumentChannelParent::ReadyToVerify(nsresult aResultCode) {
 
 void DocumentChannelParent::FinishReplacementChannelSetup(bool aSucceeded) {
   nsresult rv;
+
+  if (mDoingProcessSwitch && CanSend()) {
+    Unused << SendCancelForProcessSwitch();
+  }
 
   nsCOMPtr<nsIParentChannel> redirectChannel;
   if (mRedirectChannelId) {
@@ -360,7 +351,11 @@ void DocumentChannelParent::FinishReplacementChannelSetup(bool aSucceeded) {
 
 void DocumentChannelParent::TriggerCrossProcessSwitch() {
   MOZ_ASSERT(mRedirectContentProcessIdPromise);
-  CancelChildForProcessSwitch();
+  MOZ_ASSERT(!mDoingProcessSwitch, "Already in the middle of switching?");
+  MOZ_ASSERT(NS_IsMainThread());
+
+  mDoingProcessSwitch = true;
+
   RefPtr<DocumentChannelParent> self = this;
   mRedirectContentProcessIdPromise->Then(
       GetMainThreadSerialEventTarget(), __func__,
@@ -538,6 +533,34 @@ void DocumentChannelParent::TriggerRedirectToRealChannel(
                     Get<1>(aResponse), getter_AddRefs(newLoadInfo)));
 
                 if (newLoadInfo) {
+                  // Since the old reservedClientInfo might be controlled by a
+                  // ServiceWorker when opening the channel, we need to update
+                  // the controlled ClientInfo in ServiceWorkerManager to make
+                  // sure the same origin subresource load can be intercepted by
+                  // the ServiceWorker.
+                  nsCOMPtr<nsILoadInfo> oldLoadInfo;
+                  self->mChannel->GetLoadInfo(getter_AddRefs(oldLoadInfo));
+                  MOZ_ASSERT(oldLoadInfo);
+                  Maybe<ClientInfo> oldClientInfo =
+                      oldLoadInfo->GetReservedClientInfo();
+                  Maybe<ServiceWorkerDescriptor> oldController =
+                      oldLoadInfo->GetController();
+                  Maybe<ClientInfo> newClientInfo =
+                      newLoadInfo->GetReservedClientInfo();
+                  Maybe<ServiceWorkerDescriptor> newController =
+                      newLoadInfo->GetController();
+
+                  if (oldClientInfo.isSome() && newClientInfo.isSome() &&
+                      newController.isSome() && oldController.isSome() &&
+                      newController.ref() == oldController.ref()) {
+                    RefPtr<ServiceWorkerManager> swMgr =
+                        ServiceWorkerManager::GetInstance();
+                    MOZ_ASSERT(swMgr);
+                    swMgr->UpdateControlledClient(oldClientInfo.ref(),
+                                                  newClientInfo.ref(),
+                                                  newController.ref());
+                  }
+
                   self->mChannel->SetLoadInfo(newLoadInfo);
                 }
               }
@@ -742,6 +765,11 @@ DocumentChannelParent::SetClassifierMatchedTrackingInfo(
 NS_IMETHODIMP
 DocumentChannelParent::NotifyClassificationFlags(uint32_t aClassificationFlags,
                                                  bool aIsThirdParty) {
+  if (CanSend()) {
+    Unused << SendNotifyClassificationFlags(aClassificationFlags,
+                                            aIsThirdParty);
+  }
+
   mIParentChannelFunctions.AppendElement(IParentChannelFunction{
       VariantIndex<3>{},
       ClassificationFlagsParams{aClassificationFlags, aIsThirdParty}});
@@ -772,6 +800,17 @@ DocumentChannelParent::AsyncOnChannelRedirect(
   // uri of the new channel with the original pre-redirect URI, so grab
   // a copy of it now.
   aNewChannel->GetOriginalURI(getter_AddRefs(mChannelCreationURI));
+
+  // Since we're redirecting away from aOldChannel, we should check if it
+  // had a COOP mismatch, since we want the final result for this to
+  // include the state of all channels we redirected through.
+  nsCOMPtr<nsHttpChannel> httpChannel = do_QueryInterface(aOldChannel);
+  if (httpChannel) {
+    bool mismatch = false;
+    MOZ_ALWAYS_SUCCEEDS(
+        httpChannel->HasCrossOriginOpenerPolicyMismatch(&mismatch));
+    mHasCrossOriginOpenerPolicyMismatch |= mismatch;
+  }
 
   // We don't need to confirm internal redirects or record any
   // history for them, so just immediately verify and return.
@@ -867,6 +906,13 @@ DocumentChannelParent::HasCrossOriginOpenerPolicyMismatch(bool* aMismatch) {
     return NS_ERROR_INVALID_ARG;
   }
 
+  // If we found a COOP mismatch on an earlier channel and then
+  // redirected away from that, we should use that result.
+  if (mHasCrossOriginOpenerPolicyMismatch) {
+    *aMismatch = true;
+    return NS_OK;
+  }
+
   nsCOMPtr<nsHttpChannel> channel = do_QueryInterface(mChannel);
   if (!channel) {
     // Not an nsHttpChannel assume it's okay to switch.
@@ -875,6 +921,23 @@ DocumentChannelParent::HasCrossOriginOpenerPolicyMismatch(bool* aMismatch) {
   }
 
   return channel->HasCrossOriginOpenerPolicyMismatch(aMismatch);
+}
+
+NS_IMETHODIMP
+DocumentChannelParent::GetCrossOriginOpenerPolicy(
+    nsILoadInfo::CrossOriginOpenerPolicy* aPolicy) {
+  MOZ_ASSERT(aPolicy);
+  if (!aPolicy) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsCOMPtr<nsHttpChannel> channel = do_QueryInterface(mChannel);
+  if (!channel) {
+    *aPolicy = nsILoadInfo::OPENER_POLICY_NULL;
+    return NS_OK;
+  }
+
+  return channel->GetCrossOriginOpenerPolicy(aPolicy);
 }
 
 }  // namespace net

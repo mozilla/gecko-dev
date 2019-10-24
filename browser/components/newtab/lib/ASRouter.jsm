@@ -62,11 +62,18 @@ const TRAILHEAD_CONFIG = {
   INTERRUPTS_EXPERIMENT_PREF: "trailhead.firstrun.interruptsExperiment",
   TRIPLETS_ENROLLED_PREF: "trailhead.firstrun.tripletsEnrolled",
   BRANCHES: {
-    interrupts: [["join"], ["sync"], ["nofirstrun"], ["cards"]],
+    interrupts: [
+      ["modal_control"],
+      ["modal_variant_a"],
+      ["modal_variant_b"],
+      ["modal_variant_c"],
+      ["modal_variant_f"],
+      ["full_page_d"],
+      ["full_page_e"],
+    ],
     triplets: [["supercharge"], ["payoff"], ["multidevice"], ["privacy"]],
   },
-  LOCALES: ["en-US", "en-GB", "en-CA", "de", "de-DE", "fr", "fr-FR"],
-  EXPERIMENT_RATIOS: [["", 0], ["interrupts", 1], ["triplets", 3]],
+  EXPERIMENT_RATIOS: [["", 0], ["interrupts", 1], ["triplets", 0]],
   // Per bug 1574003, for those who meet the targeting criteria of extended
   // triplets, 95% users (control group) will see the extended triplets, and
   // the rest 5% (holdback group) won't.
@@ -105,6 +112,9 @@ const RS_DOWNLOAD_MAX_RETRIES = 2;
 
 // To observe the app locale change notification.
 const TOPIC_INTL_LOCALE_CHANGED = "intl:app-locales-changed";
+// To observe the pref that controls if ASRouter should use the remote Fluent files for l10n.
+const USE_REMOTE_L10N_PREF =
+  "browser.newtabpage.activity-stream.asrouter.useRemoteL10n";
 
 /**
  * chooseBranch<T> -  Choose an item from a list of "branches" pseudorandomly using a seed / ratio configuration
@@ -759,6 +769,14 @@ class _ASRouter {
     await this._maybeUpdateL10nAttachment();
   }
 
+  observe(aSubject, aTopic, aPrefName) {
+    switch (aPrefName) {
+      case USE_REMOTE_L10N_PREF:
+        CFRPageActions.reloadL10n();
+        break;
+    }
+  }
+
   /**
    * init - Initializes the MessageRouter.
    * It is ready when it has been connected to a RemotePageManager instance.
@@ -833,6 +851,7 @@ class _ASRouter {
     );
 
     Services.obs.addObserver(this._onLocaleChanged, TOPIC_INTL_LOCALE_CHANGED);
+    Services.prefs.addObserver(USE_REMOTE_L10N_PREF, this);
     // sets .initialized to true and resolves .waitForInitialized promise
     this._finishInitializing();
   }
@@ -864,6 +883,7 @@ class _ASRouter {
       this._onLocaleChanged,
       TOPIC_INTL_LOCALE_CHANGED
     );
+    Services.prefs.removeObserver(USE_REMOTE_L10N_PREF, this);
     // If we added any CFR recommendations, they need to be removed
     CFRPageActions.clearRecommendations();
     this._resetInitialization();
@@ -1009,35 +1029,28 @@ class _ASRouter {
       return { experiment, interrupt, triplet: triplet || "" };
     }
 
-    const locale = Services.locale.appLocaleAsLangTag;
+    const { userId } = ClientEnvironment;
+    experiment = await chooseBranch(
+      `${userId}-trailhead-experiments`,
+      TRAILHEAD_CONFIG.EXPERIMENT_RATIOS
+    );
 
-    if (TRAILHEAD_CONFIG.LOCALES.includes(locale)) {
-      const { userId } = ClientEnvironment;
-      experiment = await chooseBranch(
-        `${userId}-trailhead-experiments`,
-        TRAILHEAD_CONFIG.EXPERIMENT_RATIOS
+    // For the interrupts experiment,
+    // we randomly assign an interrupt and always use the "supercharge" triplet.
+    if (experiment === "interrupts") {
+      interrupt = await chooseBranch(
+        `${userId}-interrupts-branch`,
+        TRAILHEAD_CONFIG.BRANCHES.interrupts
       );
-
-      // For the interrupts experiment,
-      // we randomly assign an interrupt and always use the "supercharge" triplet.
-      if (experiment === "interrupts") {
-        interrupt = await chooseBranch(
-          `${userId}-interrupts-branch`,
-          TRAILHEAD_CONFIG.BRANCHES.interrupts
-        );
-        if (["join", "sync", "cards"].includes(interrupt)) {
-          triplet = "supercharge";
-        }
-
-        // For the triplets experiment or non-experiment experience,
-        // we randomly assign a triplet and always use the "join" interrupt.
-      } else {
-        interrupt = "join";
-        triplet = await chooseBranch(
-          `${userId}-triplets-branch`,
-          TRAILHEAD_CONFIG.BRANCHES.triplets
-        );
-      }
+      triplet = "supercharge";
+      // For the triplets experiment or non-experiment experience,
+      // we randomly assign a triplet and always use the "join" interrupt.
+    } else if (experiment === "triplets") {
+      interrupt = "join";
+      triplet = await chooseBranch(
+        `${userId}-triplets-branch`,
+        TRAILHEAD_CONFIG.BRANCHES.triplets
+      );
     } else {
       // If the user is not in a trailhead-compabtible locale, return the join + supercharge (default) experience and no experiment.
       interrupt = "join";
@@ -1424,6 +1437,9 @@ class _ASRouter {
       case "toolbar_badge":
       case "update_action":
         ToolbarBadgeHub.registerBadgeNotificationListener(message, { force });
+        break;
+      case "milestone_message":
+        CFRPageActions.showMilestone(target, message, this.dispatch, { force });
         break;
       default:
         try {
@@ -1880,6 +1896,20 @@ class _ASRouter {
       case ra.OPEN_APPLICATIONS_MENU:
         UITour.showMenu(target.browser.ownerGlobal, action.data.args);
         break;
+      case ra.HIGHLIGHT_FEATURE:
+        const highlight = await UITour.getTarget(
+          target.browser.ownerGlobal,
+          action.data.args
+        );
+        if (highlight) {
+          await UITour.showHighlight(
+            target.browser.ownerGlobal,
+            highlight,
+            "none",
+            { autohide: true }
+          );
+        }
+        break;
       case ra.INSTALL_ADDON_FROM_URL:
         this._updateOnboardingState();
         await MessageLoaderUtils.installAddonFromURL(
@@ -1909,6 +1939,9 @@ class _ASRouter {
       case ra.OPEN_PROTECTION_PANEL:
         let { gProtectionsHandler } = target.browser.ownerGlobal;
         gProtectionsHandler.showProtectionsPopup({});
+        break;
+      case ra.OPEN_PROTECTION_REPORT:
+        target.browser.ownerGlobal.gProtectionsHandler.openProtections();
         break;
     }
   }

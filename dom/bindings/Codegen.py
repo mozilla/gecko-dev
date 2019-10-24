@@ -2344,36 +2344,6 @@ class MethodDefiner(PropertyDefiner):
         self.chrome = []
         self.regular = []
         for m in methods:
-            if m.identifier.name == 'QueryInterface':
-                # QueryInterface is special, because instead of generating an
-                # impl we just call out directly to our shared one.
-                if m.isStatic():
-                    raise TypeError("Legacy QueryInterface member shouldn't be static")
-                signatures = m.signatures()
-
-                if (len(signatures) > 1 or len(signatures[0][1]) > 1 or
-                    not signatures[0][1][0].type.isAny()):
-                    raise TypeError("There should be only one QueryInterface method with 1 argument of type any")
-
-                # Make sure to not stick QueryInterface on abstract interfaces.
-                if (not self.descriptor.interface.hasInterfacePrototypeObject() or
-                    not self.descriptor.concrete):
-                    raise TypeError("QueryInterface is only supported on "
-                                    "interfaces that are concrete: " +
-                                    self.descriptor.name)
-
-                if not isChromeOnly(m):
-                    raise TypeError("QueryInterface must be ChromeOnly")
-
-                self.chrome.append({
-                    "name": 'QueryInterface',
-                    "methodInfo": False,
-                    "length": 1,
-                    "flags": "0",
-                    "condition": PropertyDefiner.getControllingCondition(m, descriptor)
-                })
-                continue
-
             method = self.methodData(m, descriptor)
 
             if m.isStatic():
@@ -8967,6 +8937,8 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
 
     @staticmethod
     def makeNativeName(descriptor, method):
+        if method.underlyingAttr:
+            return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
         return MakeNativeName(descriptor.binaryNameFor(name))
 
@@ -10124,10 +10096,34 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
         self.enum = enum
+        entryDecl = fill(
+            """
+            extern const EnumEntry ${entry_array}[${entry_count}];
+
+            static constexpr size_t Count = ${real_entry_count};
+
+            // Our "${entry_array}" contains an extra entry with a null string.
+            static_assert(mozilla::ArrayLength(${entry_array}) - 1 == Count,
+                          "Mismatch between enum strings and enum count");
+
+            static_assert(static_cast<size_t>(${name}::EndGuard_) == Count,
+                          "Mismatch between enum value and enum count");
+
+            inline Span<const char> GetString(${name} stringId) {
+              MOZ_ASSERT(static_cast<${type}>(stringId) < Count);
+              const EnumEntry& entry = ${entry_array}[static_cast<${type}>(stringId)];
+              return MakeSpan(entry.value, entry.length);
+            }
+            """,
+            entry_array=ENUM_ENTRY_VARIABLE_NAME,
+            entry_count=self.nEnumStrings(),
+            # -1 because nEnumStrings() includes a string for EndGuard_
+            real_entry_count=self.nEnumStrings() - 1,
+            name=self.enum.identifier.name,
+            type=self.underlyingType())
         strings = CGNamespace(
             self.stringsNamespace(),
-            CGGeneric(declare=("extern const EnumEntry %s[%d];\n" %
-                               (ENUM_ENTRY_VARIABLE_NAME, self.nEnumStrings())),
+            CGGeneric(declare=entryDecl,
                       define=fill(
                           """
                           extern const EnumEntry ${name}[${count}] = {
@@ -10168,9 +10164,7 @@ class CGEnum(CGThing):
             name=self.enum.identifier.name,
             ty=self.underlyingType(),
             enums=",\n".join(map(getEnumValueName, self.enum.values())) + ",\n")
-        strings = CGNamespace(self.stringsNamespace(),
-                              CGGeneric(declare="extern const EnumEntry %s[%d];\n"
-                                        % (ENUM_ENTRY_VARIABLE_NAME, self.nEnumStrings())))
+
         return decl + "\n" + self.cgThings.declare()
 
     def define(self):
@@ -10274,11 +10268,13 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider,
                    "tryNext = true;\n"
                    "return true;\n" % (prefix, name))
 
+    sourceDescription = "member of %s" % unionType
+
     conversionInfo = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode=tryNextCode,
         isDefinitelyObject=not type.isDictionary(),
         isMember=("OwningUnion" if ownsMembers else None),
-        sourceDescription="member of %s" % unionType)
+        sourceDescription=sourceDescription)
 
     if conversionInfo.holderType is not None:
         assert not ownsMembers
@@ -10309,13 +10305,15 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider,
         # It's a bit sketchy to do the security check after setting the value,
         # but it keeps the code cleaner and lets us avoid rooting |obj| over the
         # call to CallerSubsumes().
-        body = body + dedent("""
+        body = body + fill(
+            """
             if (passedToJSImpl && !CallerSubsumes(obj)) {
-              ThrowErrorMessage(cx, MSG_PERMISSION_DENIED_TO_PASS_ARG, "%s");
+              ThrowErrorMessage(cx, MSG_PERMISSION_DENIED_TO_PASS_ARG, "${sourceDescription}");
               return false;
             }
             return true;
-            """)
+            """,
+            sourceDescription=sourceDescription)
 
         setter = ClassMethod("SetToObject", "bool",
                              [Argument("JSContext*", "cx"),
@@ -11776,6 +11774,129 @@ class CGProxyUnwrap(CGAbstractMethod):
             """,
             type=self.descriptor.nativeType)
 
+MISSING_PROP_PREF = "dom.missing_prop_counters.enabled"
+
+def missingPropUseCountersForDescriptor(desc):
+    instrumentedProps = desc.instrumentedProps
+    if not instrumentedProps:
+        return ""
+
+    def gen_switch(switchDecriptor):
+        """
+        Generate a switch from the switch descriptor.  The descriptor
+        dictionary must have the following properties:
+
+        1) A "precondition" property that contains code to run before the
+           switch statement.  Its value ie a string.
+        2) A "condition" property for the condition.  Its value is a string.
+        3) A "cases" property.  Its value is an object that has property names
+           corresponding to the case labels.  The values of those properties
+           are either new switch descriptor dictionaries (which will then
+           generate nested switches) or strings to use for case bodies.
+        """
+        cases = []
+        for label, body in sorted(switchDecriptor['cases'].iteritems()):
+            if isinstance(body, dict):
+                body = gen_switch(body)
+            cases.append(fill(
+                """
+                case ${label}: {
+                  $*{body}
+                  break;
+                }
+                """,
+                label=label,
+                body=body))
+        return fill(
+            """
+            $*{precondition}
+            switch (${condition}) {
+              $*{cases}
+            }
+            """,
+            precondition=switchDecriptor['precondition'],
+            condition=switchDecriptor['condition'],
+            cases="".join(cases))
+
+    def charSwitch(props, charIndex):
+        """
+        Create a switch for the given props, based on the first char where
+        they start to differ at index charIndex or more.  Each prop is a tuple
+        containing interface name and prop name.
+
+        Incoming props should be a sorted list.
+        """
+        if len(props) == 1:
+            # We're down to one string: just check whether we match it.
+            return fill(
+                """
+                if (JS_LinearStringEqualsLiteral(str, "${name}")) {
+                  counter.emplace(eUseCounter_${iface}_${name});
+                }
+                """,
+                iface=props[0][0],
+                name=props[0][1])
+
+        switch = dict()
+        if charIndex == 0:
+            switch['precondition'] = \
+                'StringIdChars chars(nogc, str);\n'
+        else:
+            switch['precondition'] = ""
+
+        # Find the first place where we might actually have a difference.
+        while all(prop[1][charIndex] == props[0][1][charIndex]
+                  for prop in props):
+            charIndex += 1
+
+        switch['condition'] = 'chars[%d]' % charIndex
+        switch['cases'] = dict()
+        current_props = None
+        curChar = None
+        idx = 0
+        while idx < len(props):
+            nextChar = "'%s'" % props[idx][1][charIndex]
+            if nextChar != curChar:
+                if curChar:
+                    switch['cases'][curChar] = charSwitch(current_props,
+                                                          charIndex + 1)
+                current_props = []
+                curChar = nextChar
+            current_props.append(props[idx])
+            idx += 1
+        switch['cases'][curChar] = charSwitch(current_props, charIndex + 1)
+        return switch
+
+    lengths = set(len(prop[1]) for prop in instrumentedProps)
+    switchDesc = { 'condition': 'js::GetLinearStringLength(str)',
+                   'precondition': '' }
+    switchDesc['cases'] = dict()
+    for length in sorted(lengths):
+        switchDesc['cases'][str(length)] = charSwitch(
+            list(sorted(prop for prop in instrumentedProps
+                        if len(prop[1]) == length)),
+            0)
+
+    return fill(
+        """
+        if (StaticPrefs::${pref}() && JSID_IS_ATOM(id)) {
+          Maybe<UseCounter> counter;
+          {
+            // Scope for our no-GC section, so we don't need to rely on SetUseCounter not GCing.
+            JS::AutoCheckCannotGC nogc;
+            JSLinearString* str = js::AtomToLinearString(JSID_TO_ATOM(id));
+            // Don't waste time fetching the chars until we've done the length switch.
+            $*{switch}
+          }
+          if (counter) {
+            SetUseCounter(proxy, *counter);
+          }
+        }
+
+        """,
+        pref=prefIdentifier(MISSING_PROP_PREF),
+        switch=gen_switch(switchDesc))
+
 
 class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
     def __init__(self, descriptor):
@@ -11827,6 +11948,8 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
                 callGetter=CGProxyIndexedGetter(self.descriptor, templateValues).define())
         else:
             getIndexed = ""
+
+        missingPropUseCounters = missingPropUseCountersForDescriptor(self.descriptor)
 
         if self.descriptor.supportsNamedProperties():
             operations = self.descriptor.operations
@@ -11883,6 +12006,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             """
             $*{xrayDecl}
             $*{getIndexed}
+            $*{missingPropUseCounters}
             JS::Rooted<JSObject*> expando(cx);
             if (${xrayCheck}(expando = GetExpandoObject(proxy))) {
               if (!JS_GetOwnPropertyDescriptorById(cx, expando, id, desc)) {
@@ -11902,6 +12026,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             xrayDecl=xrayDecl,
             xrayCheck=xrayCheck,
             getIndexed=getIndexed,
+            missingPropUseCounters=missingPropUseCounters,
             namedGet=namedGet)
 
 
@@ -12392,12 +12517,15 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
         else:
             named = "*bp = false;\n"
 
+        missingPropUseCounters = missingPropUseCountersForDescriptor(self.descriptor)
+
         return fill(
             """
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
                       "Should not have a XrayWrapper here");
             $*{maybeCrossOrigin}
             $*{indexed}
+            $*{missingPropUseCounters}
 
             JS::Rooted<JSObject*> expando(cx, GetExpandoObject(proxy));
             if (expando) {
@@ -12414,6 +12542,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             """,
             maybeCrossOrigin=maybeCrossOrigin,
             indexed=indexed,
+            missingPropUseCounters=missingPropUseCounters,
             named=named)
 
 
@@ -12439,6 +12568,8 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                 """)
         else:
             maybeCrossOriginGet = ""
+
+        missingPropUseCounters = missingPropUseCountersForDescriptor(self.descriptor)
 
         getUnforgeableOrExpando = dedent("""
             { // Scope for expando
@@ -12578,6 +12709,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
             $*{maybeCrossOriginGet}
             JS::Rooted<JS::Value> rootedReceiver(cx, receiver);
 
+            $*{missingPropUseCounters}
             $*{indexedOrExpando}
 
             $*{named}
@@ -12585,6 +12717,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
             return true;
             """,
             maybeCrossOriginGet=maybeCrossOriginGet,
+            missingPropUseCounters=missingPropUseCounters,
             indexedOrExpando=getIndexedOrExpando,
             named=getNamed)
 
@@ -13195,10 +13328,6 @@ class CGDescriptor(CGThing):
             elif m.isMaplikeOrSetlike():
                 cgThings.append(CGMaplikeOrSetlikeHelperGenerator(descriptor, m))
             elif m.isAttr():
-                if m.stringifier:
-                    raise TypeError("Stringifier attributes not supported yet. "
-                                    "See bug 824857.\n"
-                                    "%s" % m.location)
                 if m.getExtendedAttribute("Unscopable"):
                     assert not m.isStatic()
                     unscopableNames.append(m.identifier.name)
@@ -14397,11 +14526,11 @@ class CGGlobalNames(CGGeneric):
         phfCodegen = phf.codegen('WebIDLGlobalNameHash::sEntries',
                                  'WebIDLNameTableEntry')
         entries = phfCodegen.gen_entries(lambda e: e[1])
-        getter = phfCodegen.gen_jsflatstr_getter(
+        getter = phfCodegen.gen_jslinearstr_getter(
             name='WebIDLGlobalNameHash::GetEntry',
             return_type='const WebIDLNameTableEntry*',
             return_entry=dedent("""
-                if (JS_FlatStringEqualsAscii(aKey, sNames + entry.mNameOffset, entry.mNameLength)) {
+                if (JS_LinearStringEqualsAscii(aKey, sNames + entry.mNameOffset, entry.mNameLength)) {
                   return &entry;
                 }
                 return nullptr;
@@ -14807,6 +14936,9 @@ class CGBindingRoot(CGThing):
         enums = config.getEnums(webIDLFile)
         cgthings.extend(CGEnum(e) for e in enums)
 
+        bindingDeclareHeaders["mozilla/Span.h"] = enums
+        bindingDeclareHeaders["mozilla/ArrayUtils.h"] = enums
+
         hasCode = (descriptors or callbackDescriptors or dictionaries or
                    callbacks)
         bindingHeaders["mozilla/dom/BindingUtils.h"] = hasCode
@@ -14824,12 +14956,20 @@ class CGBindingRoot(CGThing):
             bindingHeaders[CGHeaders.getDeclarationFilename(enums[0])] = True
             bindingHeaders["jsapi.h"] = True
 
-        # For things that have [UseCounter]
-        def descriptorRequiresTelemetry(desc):
-            iface = desc.interface
-            return any(m.getExtendedAttribute("UseCounter") for m in iface.members)
-        bindingHeaders["mozilla/UseCounter.h"] = any(
-            descriptorRequiresTelemetry(d) for d in descriptors)
+        # For things that have [UseCounter] or [InstrumentedProps]
+        descriptorsHaveUseCounters = any(
+            m.getExtendedAttribute("UseCounter")
+            for d in descriptors
+            for m in d.interface.members)
+        descriptorsHaveInstrumentedProps = any(
+            d.instrumentedProps for d in descriptors if d.concrete)
+
+        bindingHeaders["mozilla/UseCounter.h"] = (
+            descriptorsHaveUseCounters or descriptorsHaveInstrumentedProps)
+        # Make sure to not overwrite existing pref header bits!
+        bindingHeaders[prefHeader(MISSING_PROP_PREF)] = (
+            bindingHeaders.get(prefHeader(MISSING_PROP_PREF)) or
+            descriptorsHaveInstrumentedProps)
         bindingHeaders["mozilla/dom/SimpleGlobalObject.h"] = any(
             CGDictionary.dictionarySafeToJSONify(d) for d in dictionaries)
         bindingHeaders["XrayWrapper.h"] = any(
@@ -15627,8 +15767,13 @@ class CGBindingImplClass(CGClass):
         return None
 
     def getGetParentObjectReturnType(self):
-        return ("// TODO: return something sensible here, and change the return type\n"
-                "%s*" % self.descriptor.nativeType.split('::')[-1])
+        # The lack of newline before the end of the string is on purpose.
+        return dedent(
+            """
+            // This should return something that eventually allows finding a
+            // path to the global this object is associated with.  Most simply,
+            // returning an actual global works.
+            nsIGlobalObject*""")
 
     def getGetParentObjectBody(self):
         return None

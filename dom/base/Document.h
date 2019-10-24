@@ -52,7 +52,6 @@
 #include "ReferrerInfo.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CORSMode.h"
-#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ContentBlockingLog.h"
 #include "mozilla/dom/DispatcherTrait.h"
 #include "mozilla/dom/DocumentOrShadowRoot.h"
@@ -86,8 +85,11 @@ class ElementCreationOptionsOrString;
 
 class gfxUserFontSet;
 class imgIRequest;
+#ifdef MOZ_XBL
 class nsBindingManager;
+#endif
 class nsCachableElementsByNameNodeList;
+class nsCommandManager;
 class nsContentList;
 class nsIDocShell;
 class nsDocShell;
@@ -219,6 +221,8 @@ class XPathEvaluator;
 class XPathExpression;
 class XPathNSResolver;
 class XPathResult;
+class BrowsingContext;
+
 template <typename>
 class Sequence;
 
@@ -570,6 +574,8 @@ class Document : public nsINode,
   nsIPrincipal* IntrinsicStoragePrincipal() const {
     return mIntrinsicStoragePrincipal;
   }
+
+  void ClearActiveStoragePrincipal() { mActiveStoragePrincipal = nullptr; }
 
   nsIPrincipal* GetContentBlockingAllowListPrincipal() const {
     return mContentBlockingAllowListPrincipal;
@@ -1787,7 +1793,9 @@ class Document : public nsINode,
 
   void DoUnblockOnload();
 
+#ifdef MOZ_XBL
   void MaybeEndOutermostXBLUpdate();
+#endif
 
   void RetrieveRelevantHeaders(nsIChannel* aChannel);
 
@@ -2146,7 +2154,8 @@ class Document : public nsINode,
 
   // This is called asynchronously by Document::AsyncRequestFullscreen()
   // to move this document into fullscreen mode if allowed.
-  void RequestFullscreen(UniquePtr<FullscreenRequest> aRequest);
+  void RequestFullscreen(UniquePtr<FullscreenRequest> aRequest,
+                         bool applyFullScreenDirectly = false);
 
   // Removes all elements from the fullscreen stack, removing full-scren
   // styles from the top element in the stack.
@@ -2365,9 +2374,11 @@ class Document : public nsINode,
     DoUpdateSVGUseElementShadowTrees();
   }
 
+#ifdef MOZ_XBL
   nsBindingManager* BindingManager() const {
     return mNodeInfoManager->GetBindingManager();
   }
+#endif
 
   /**
    * Only to be used inside Gecko, you can't really do anything with the
@@ -3402,23 +3413,8 @@ class Document : public nsINode,
   // Add aLink to the set of links that need their status resolved.
   void RegisterPendingLinkUpdate(Link* aLink);
 
-  // Update state on links in mLinksToUpdate.  This function must be called
-  // prior to selector matching that needs to differentiate between :link and
-  // :visited.  In particular, it does _not_ need to be called before doing any
-  // selector matching that uses TreeMatchContext::eNeverMatchVisited.  The only
-  // reason we haven't moved all calls to this function entirely inside the
-  // TreeMatchContext constructor is to not call it all the time during various
-  // style system and frame construction operations (though it would likely be a
-  // no-op for all but the first call).
-  //
-  // XXXbz Does this really need to be called before selector matching?  All it
-  // will do is ensure all the links involved are registered to observe history,
-  // which won't synchronously change their state to :visited anyway!  So
-  // calling this won't affect selector matching done immediately afterward, as
-  // far as I can tell.
+  // Update state on links in mLinksToUpdate.
   void FlushPendingLinkUpdates();
-
-  void FlushPendingLinkUpdatesFromRunnable();
 
 #define DEPRECATED_OPERATION(_op) e##_op,
   enum DeprecatedOperations {
@@ -3716,8 +3712,7 @@ class Document : public nsINode,
                                           const nsAString& aAttrName,
                                           const nsAString& aAttrValue);
   Element* GetBindingParent(nsINode& aNode);
-  void LoadBindingDocument(const nsAString& aURI,
-                           nsIPrincipal& aSubjectPrincipal, ErrorResult& rv);
+
   XPathExpression* CreateExpression(const nsAString& aExpression,
                                     XPathNSResolver* aResolver,
                                     ErrorResult& rv);
@@ -4055,6 +4050,10 @@ class Document : public nsINode,
   // mScaleMinFloat, mScaleMaxFloat and mScaleFloat respectively.
   // Returns true if there is any valid scale value in the |aViewportMetaData|.
   bool ParseScalesInViewportMetaData(const ViewportMetaData& aViewportMetaData);
+
+  // Get parent FeaturePolicy from container. The parent FeaturePolicy is
+  // stored in parent iframe or container's browsingContext (cross process)
+  already_AddRefed<mozilla::dom::FeaturePolicy> GetParentFeaturePolicy();
 
   // Returns a ViewportMetaData for this document.
   ViewportMetaData GetViewportMetaData() const;
@@ -5272,7 +5271,9 @@ class Document : public nsINode,
 
   RefPtr<EventListenerManager> mListenerManager;
 
+#ifdef MOZ_XBL
   nsCOMPtr<nsIRunnable> mMaybeEndOutermostXBLUpdateRunner;
+#endif
   nsCOMPtr<nsIRequest> mOnloadBlocker;
 
   nsTArray<RefPtr<StyleSheet>> mAdditionalSheets[AdditionalSheetTypeCount];
@@ -5349,6 +5350,11 @@ class Document : public nsINode,
 
   // The principal to use for the storage area of this document.
   nsCOMPtr<nsIPrincipal> mIntrinsicStoragePrincipal;
+
+  // The cached storage principal for this document.
+  // This is mutable so that we can keep EffectiveStoragePrincipal() const
+  // which is required due to its CloneDocHelper() call site.  :-(
+  mutable nsCOMPtr<nsIPrincipal> mActiveStoragePrincipal;
 
   // The principal to use for the content blocking allow list.
   nsCOMPtr<nsIPrincipal> mContentBlockingAllowListPrincipal;

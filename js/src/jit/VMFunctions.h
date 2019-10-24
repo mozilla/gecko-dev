@@ -130,7 +130,7 @@ enum MaybeTailCall : bool { TailCall, NonTailCall };
 
 // Data for a VM function. All VMFunctionDatas are stored in a constexpr array.
 struct VMFunctionData {
-#if defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
+#if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
   // Informative name of the wrapped function. The name should not be present
   // in release builds in order to save memory.
   const char* name_;
@@ -225,7 +225,7 @@ struct VMFunctionData {
     return ((argumentPassedInFloatRegs >> explicitArg) & 1) == 1;
   }
 
-#if defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
+#if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
   const char* name() const { return name_; }
 #endif
 
@@ -300,7 +300,7 @@ struct VMFunctionData {
                            uint8_t extraValuesToPop = 0,
                            MaybeTailCall expectTailCall = NonTailCall)
       :
-#if defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
+#if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_TRACE_LOGGING)
         name_(name),
 #endif
         argumentRootTypes(argRootTypes),
@@ -390,9 +390,10 @@ struct TypeToDataType<JSString*> {
   static const DataType result = Type_Object;
 };
 template <>
-struct TypeToDataType<JSFlatString*> {
+struct TypeToDataType<JSLinearString*> {
   static const DataType result = Type_Object;
 };
+
 template <>
 struct TypeToDataType<HandleObject> {
   static const DataType result = Type_Handle;
@@ -884,7 +885,7 @@ MOZ_MUST_USE bool SetArrayLength(JSContext* cx, HandleObject obj,
 
 MOZ_MUST_USE bool CharCodeAt(JSContext* cx, HandleString str, int32_t index,
                              uint32_t* code);
-JSFlatString* StringFromCharCode(JSContext* cx, int32_t code);
+JSLinearString* StringFromCharCode(JSContext* cx, int32_t code);
 JSString* StringFromCodePoint(JSContext* cx, int32_t codePoint);
 
 MOZ_MUST_USE bool SetProperty(JSContext* cx, HandleObject obj,
@@ -1115,6 +1116,8 @@ bool IsPossiblyWrappedTypedArray(JSContext* cx, JSObject* obj, bool* result);
 
 bool DoToNumber(JSContext* cx, HandleValue arg, MutableHandleValue ret);
 bool DoToNumeric(JSContext* cx, HandleValue arg, MutableHandleValue ret);
+
+void* AllocateBigIntNoGC(JSContext* cx);
 
 enum class TailCallVMFunctionId;
 enum class VMFunctionId;

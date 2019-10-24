@@ -210,7 +210,7 @@ HttpBaseChannel::HttpBaseChannel()
       mAddedAsNonTailRequest(false),
       mAsyncOpenWaitingForStreamLength(false),
       mUpgradableToSecure(true),
-      mHasSandboxedNavigations(false),
+      mHasNonEmptySandboxingFlag(false),
       mTlsFlags(0),
       mSuspendCount(0),
       mInitialRwin(0),
@@ -4463,7 +4463,7 @@ nsILoadInfo::CrossOriginOpenerPolicy CreateCrossOriginOpenerPolicy(
 // Obtain a cross-origin opener-policy from a response response and a
 // cross-origin opener policy initiator.
 // https://gist.github.com/annevk/6f2dd8c79c77123f39797f6bdac43f3e
-NS_IMETHODIMP HttpBaseChannel::GetCrossOriginOpenerPolicy(
+NS_IMETHODIMP HttpBaseChannel::ComputeCrossOriginOpenerPolicy(
     nsILoadInfo::CrossOriginOpenerPolicy aInitiatorPolicy,
     nsILoadInfo::CrossOriginOpenerPolicy* aOutPolicy) {
   MOZ_ASSERT(aOutPolicy);

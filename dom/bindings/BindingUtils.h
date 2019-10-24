@@ -1528,8 +1528,8 @@ static inline JSObject* WrapNativeISupports(JSContext* cx, T* p,
     JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
     JS::Rooted<JS::Value> v(cx);
     retval = XPCOMObjectToJsval(cx, scope, helper, nullptr, false, &v)
-      ? v.toObjectOrNull()
-      : nullptr;
+                 ? v.toObjectOrNull()
+                 : nullptr;
   }
   return retval;
 }
@@ -1764,17 +1764,6 @@ static inline bool AtomizeAndPinJSString(JSContext* cx, jsid& id,
 }
 
 bool InitIds(JSContext* cx, const NativeProperties* properties);
-
-bool QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp);
-
-template <class T>
-struct WantsQueryInterface {
-  static_assert(IsBaseOf<nsISupports, T>::value,
-                "QueryInterface can't work without an nsISupports.");
-  static bool Enabled(JSContext* aCx, JSObject* aGlobal) {
-    return NS_IsMainThread() && IsChromeOrXBL(aCx, aGlobal);
-  }
-};
 
 void GetInterfaceImpl(JSContext* aCx, nsIInterfaceRequestor* aRequestor,
                       nsWrapperCache* aCache, JS::Handle<JS::Value> aIID,
@@ -3134,6 +3123,43 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
 bool IsGetterEnabled(JSContext* aCx, JS::Handle<JSObject*> aObj,
                      JSJitGetterOp aGetter,
                      const Prefable<const JSPropertySpec>* aAttributes);
+
+// A class that can be used to examine the chars of a linear string.
+class StringIdChars {
+ public:
+  // Require a non-const ref to an AutoRequireNoGC to prevent callers
+  // from passing temporaries.
+  StringIdChars(JS::AutoRequireNoGC& nogc, JSLinearString* str) {
+    mIsLatin1 = js::LinearStringHasLatin1Chars(str);
+    if (mIsLatin1) {
+      mLatin1Chars = js::GetLatin1LinearStringChars(nogc, str);
+    } else {
+      mTwoByteChars = js::GetTwoByteLinearStringChars(nogc, str);
+    }
+#ifdef DEBUG
+    mLength = js::GetLinearStringLength(str);
+#endif  // DEBUG
+  }
+
+  MOZ_ALWAYS_INLINE char16_t operator[](size_t index) {
+    MOZ_ASSERT(index < mLength);
+    if (mIsLatin1) {
+      return mLatin1Chars[index];
+    }
+    return mTwoByteChars[index];
+  }
+
+ private:
+  bool mIsLatin1;
+  union {
+    const JS::Latin1Char* mLatin1Chars;
+    const char16_t* mTwoByteChars;
+  };
+#ifdef DEBUG
+  size_t mLength;
+#endif  // DEBUG
+};
+
 }  // namespace binding_detail
 
 }  // namespace dom

@@ -518,7 +518,6 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
 
   JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCb, this);
   JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallback, this);
-  JS_SetExternalStringSizeofCallback(aCx, SizeofExternalStringCallback);
   JS::SetWarningReporter(aCx, MozCrashWarningReporter);
 
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
@@ -629,9 +628,9 @@ void CycleCollectedJSRuntime::DescribeGCThing(
       JSFunction* fun = JS_GetObjectFunction(obj);
       JSString* str = JS_GetFunctionDisplayId(fun);
       if (str) {
-        JSFlatString* flat = JS_ASSERT_STRING_IS_FLAT(str);
+        JSLinearString* linear = JS_ASSERT_STRING_IS_LINEAR(str);
         nsAutoString chars;
-        AssignJSFlatString(chars, flat);
+        AssignJSLinearString(chars, linear);
         NS_ConvertUTF16toUTF8 fname(chars);
         SprintfLiteral(name, "JS Object (Function - %s)", fname.get());
       } else {
@@ -953,25 +952,6 @@ void CycleCollectedJSRuntime::OutOfMemoryCallback(JSContext* aContext,
   self->OnOutOfMemory();
 }
 
-/* static */
-size_t CycleCollectedJSRuntime::SizeofExternalStringCallback(
-    JSString* aStr, MallocSizeOf aMallocSizeOf) {
-  // We promised the JS engine we would not GC.  Enforce that:
-  JS::AutoCheckCannotGC autoCannotGC;
-
-  if (!XPCStringConvert::IsDOMString(aStr)) {
-    // Might be a literal or something we don't understand.  Just claim 0.
-    return 0;
-  }
-
-  const char16_t* chars = JS_GetTwoByteExternalStringChars(aStr);
-  const nsStringBuffer* buf = nsStringBuffer::FromData((void*)chars);
-  // We want sizeof including this, because the entire string buffer is owned by
-  // the external string.  But only report here if we're unshared; if we're
-  // shared then we don't know who really owns this data.
-  return buf->SizeOfIncludingThisIfUnshared(aMallocSizeOf);
-}
-
 struct JsGcTracer : public TraceCallbacks {
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const override {
@@ -985,10 +965,9 @@ struct JsGcTracer : public TraceCallbacks {
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
-  virtual void Trace(JSObject** aPtr, const char* aName,
+  virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const override {
-    js::UnsafeTraceManuallyBarrieredEdge(static_cast<JSTracer*>(aClosure), aPtr,
-                                         aName);
+    aPtr->TraceWrapper(static_cast<JSTracer*>(aClosure), aName);
   }
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
@@ -1055,9 +1034,9 @@ struct ClearJSHolder : public TraceCallbacks {
     *aPtr = nullptr;
   }
 
-  virtual void Trace(JSObject** aPtr, const char* aName,
+  virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const override {
-    *aPtr = nullptr;
+    aPtr->ClearWrapper();
   }
 
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char*,

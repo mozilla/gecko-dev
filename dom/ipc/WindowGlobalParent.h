@@ -111,11 +111,6 @@ class WindowGlobalParent final : public WindowGlobalActor,
 
   bool HasBeforeUnload() { return mHasBeforeUnload; }
 
-  already_AddRefed<Promise> ChangeFrameRemoteness(dom::BrowsingContext* aBc,
-                                                  const nsAString& aRemoteType,
-                                                  uint64_t aPendingSwitchId,
-                                                  ErrorResult& aRv);
-
   already_AddRefed<mozilla::dom::Promise> DrawSnapshot(
       const DOMRect* aRect, double aScale, const nsAString& aBackgroundColor,
       mozilla::ErrorResult& aRv);
@@ -140,7 +135,8 @@ class WindowGlobalParent final : public WindowGlobalActor,
 
   // IPC messages
   mozilla::ipc::IPCResult RecvLoadURI(dom::BrowsingContext* aTargetBC,
-                                      nsDocShellLoadState* aLoadState);
+                                      nsDocShellLoadState* aLoadState,
+                                      bool aSetNavigating);
   mozilla::ipc::IPCResult RecvUpdateDocumentURI(nsIURI* aURI);
   mozilla::ipc::IPCResult RecvSetIsInitialDocument(bool aIsInitialDocument) {
     mIsInitialDocument = aIsInitialDocument;
@@ -157,6 +153,10 @@ class WindowGlobalParent final : public WindowGlobalActor,
   void DrawSnapshotInternal(gfx::CrossProcessPaint* aPaint,
                             const Maybe<IntRect>& aRect, float aScale,
                             nscolor aBackgroundColor, uint32_t aFlags);
+
+  // WebShare API - try to share
+  mozilla::ipc::IPCResult RecvShare(IPCWebShareData&& aData,
+                                    ShareResolver&& aResolver);
 
  private:
   ~WindowGlobalParent();

@@ -7,6 +7,7 @@
 #include "jit/CacheIRCompiler.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/FunctionTypeTraits.h"
 #include "mozilla/ScopeExit.h"
 
 #include <utility>
@@ -18,6 +19,7 @@
 #include "jit/SharedICHelpers.h"
 #include "jit/SharedICRegisters.h"
 #include "proxy/Proxy.h"
+#include "vm/ArrayBufferObject.h"
 #include "vm/GeneratorObject.h"
 
 #include "builtin/Boolean-inl.h"
@@ -131,9 +133,32 @@ void CacheRegisterAllocator::ensureDoubleRegister(MacroAssembler& masm,
       return;
     }
 
-    case OperandLocation::Constant:
-    case OperandLocation::PayloadStack:
-    case OperandLocation::PayloadReg:
+    case OperandLocation::Constant: {
+      MOZ_ASSERT(loc.constant().isNumber(),
+                 "Caller must ensure the operand is a number value");
+      masm.loadConstantDouble(loc.constant().toNumber(), dest);
+      return;
+    }
+
+    case OperandLocation::PayloadReg: {
+      // Doubles can't be stored in payload registers, so this must be an int32.
+      MOZ_ASSERT(loc.payloadType() == JSVAL_TYPE_INT32,
+                 "Caller must ensure the operand is a number value");
+      masm.convertInt32ToDouble(loc.payloadReg(), dest);
+      return;
+    }
+
+    case OperandLocation::PayloadStack: {
+      // Doubles can't be stored in payload registers, so this must be an int32.
+      MOZ_ASSERT(loc.payloadType() == JSVAL_TYPE_INT32,
+                 "Caller must ensure the operand is a number value");
+      MOZ_ASSERT(loc.payloadStack() <= stackPushed_);
+      masm.convertInt32ToDouble(
+          Address(masm.getStackPointer(), stackPushed_ - loc.payloadStack()),
+          dest);
+      return;
+    }
+
     case OperandLocation::Uninitialized:
       MOZ_CRASH("Unhandled operand type in ensureDoubleRegister");
       return;
@@ -256,6 +281,8 @@ Register CacheRegisterAllocator::useRegister(MacroAssembler& masm,
         masm.movePtr(ImmGCPtr(v.toString()), reg);
       } else if (v.isSymbol()) {
         masm.movePtr(ImmGCPtr(v.toSymbol()), reg);
+      } else if (v.isBigInt()) {
+        masm.movePtr(ImmGCPtr(v.toBigInt()), reg);
       } else {
         MOZ_CRASH("Unexpected Value");
       }
@@ -1526,6 +1553,68 @@ bool CacheIRCompiler::emitGuardToInt32() {
   return true;
 }
 
+// Infallible |emitDouble| emitters can use this implementation to avoid
+// generating extra clean-up instructions to restore the scratch float register.
+// To select this function simply omit the |Label* fail| parameter for the
+// emitter lambda function.
+template <typename EmitDouble>
+static typename std::enable_if_t<
+    mozilla::FunctionTypeTraits<EmitDouble>::arity == 1, void>
+EmitGuardDouble(CacheIRCompiler* compiler, MacroAssembler& masm,
+                ValueOperand input, FailurePath* failure,
+                EmitDouble emitDouble) {
+  AutoScratchFloatRegister floatReg(compiler);
+
+  masm.unboxDouble(input, floatReg);
+  emitDouble(floatReg.get());
+}
+
+template <typename EmitDouble>
+static typename std::enable_if_t<
+    mozilla::FunctionTypeTraits<EmitDouble>::arity == 2, void>
+EmitGuardDouble(CacheIRCompiler* compiler, MacroAssembler& masm,
+                ValueOperand input, FailurePath* failure,
+                EmitDouble emitDouble) {
+  AutoScratchFloatRegister floatReg(compiler, failure);
+
+  masm.unboxDouble(input, floatReg);
+  emitDouble(floatReg.get(), floatReg.failure());
+}
+
+template <typename EmitInt32, typename EmitDouble>
+static void EmitGuardInt32OrDouble(CacheIRCompiler* compiler,
+                                   MacroAssembler& masm, ValueOperand input,
+                                   Register output, FailurePath* failure,
+                                   EmitInt32 emitInt32, EmitDouble emitDouble) {
+  Label done;
+
+  {
+    ScratchTagScope tag(masm, input);
+    masm.splitTagForTest(input, tag);
+
+    Label notInt32;
+    masm.branchTestInt32(Assembler::NotEqual, tag, &notInt32);
+    {
+      ScratchTagScopeRelease _(&tag);
+
+      masm.unboxInt32(input, output);
+      emitInt32();
+
+      masm.jump(&done);
+    }
+    masm.bind(&notInt32);
+
+    masm.branchTestDouble(Assembler::NotEqual, tag, failure->label());
+    {
+      ScratchTagScopeRelease _(&tag);
+
+      EmitGuardDouble(compiler, masm, input, failure, emitDouble);
+    }
+  }
+
+  masm.bind(&done);
+}
+
 bool CacheIRCompiler::emitGuardToInt32Index() {
   JitSpew(JitSpew_Codegen, __FUNCTION__);
   ValOperandId inputId = reader.valOperandId();
@@ -1544,36 +1633,88 @@ bool CacheIRCompiler::emitGuardToInt32Index() {
     return false;
   }
 
-  Label notInt32, done;
-  masm.branchTestInt32(Assembler::NotEqual, input, &notInt32);
-  masm.unboxInt32(input, output);
-  masm.jump(&done);
+  EmitGuardInt32OrDouble(
+      this, masm, input, output, failure,
+      []() {
+        // No-op if the value is already an int32.
+      },
+      [&](FloatRegister floatReg, Label* fail) {
+        // ToPropertyKey(-0.0) is "0", so we can truncate -0.0 to 0 here.
+        masm.convertDoubleToInt32(floatReg, output, fail, false);
+      });
 
-  masm.bind(&notInt32);
+  return true;
+}
 
-  masm.branchTestDouble(Assembler::NotEqual, input, failure->label());
+bool CacheIRCompiler::emitGuardToInt32ModUint32() {
+  JitSpew(JitSpew_Codegen, __FUNCTION__);
+  ValOperandId inputId = reader.valOperandId();
+  Register output = allocator.defineRegister(masm, reader.int32OperandId());
 
-  // If we're compiling a Baseline IC, FloatReg0 is always available.
-  Label failurePopReg;
-  if (mode_ != Mode::Baseline) {
-    masm.push(FloatReg0);
+  if (allocator.knownType(inputId) == JSVAL_TYPE_INT32) {
+    ConstantOrRegister input = allocator.useConstantOrRegister(masm, inputId);
+    if (input.constant()) {
+      masm.move32(Imm32(input.value().toInt32()), output);
+    } else {
+      MOZ_ASSERT(input.reg().type() == MIRType::Int32);
+      masm.move32(input.reg().typedReg().gpr(), output);
+    }
+    return true;
   }
 
-  masm.unboxDouble(input, FloatReg0);
-  // ToPropertyKey(-0.0) is "0", so we can truncate -0.0 to 0 here.
-  masm.convertDoubleToInt32(
-      FloatReg0, output,
-      (mode_ == Mode::Baseline) ? failure->label() : &failurePopReg, false);
-  if (mode_ != Mode::Baseline) {
-    masm.pop(FloatReg0);
-    masm.jump(&done);
+  ValueOperand input = allocator.useValueRegister(masm, inputId);
 
-    masm.bind(&failurePopReg);
-    masm.pop(FloatReg0);
-    masm.jump(failure->label());
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
   }
 
-  masm.bind(&done);
+  EmitGuardInt32OrDouble(
+      this, masm, input, output, failure,
+      []() {
+        // No-op if the value is already an int32.
+      },
+      [&](FloatRegister floatReg, Label* fail) {
+        masm.branchTruncateDoubleMaybeModUint32(floatReg, output, fail);
+      });
+
+  return true;
+}
+
+bool CacheIRCompiler::emitGuardToUint8Clamped() {
+  JitSpew(JitSpew_Codegen, __FUNCTION__);
+  ValOperandId inputId = reader.valOperandId();
+  Register output = allocator.defineRegister(masm, reader.int32OperandId());
+
+  if (allocator.knownType(inputId) == JSVAL_TYPE_INT32) {
+    ConstantOrRegister input = allocator.useConstantOrRegister(masm, inputId);
+    if (input.constant()) {
+      masm.move32(Imm32(ClampDoubleToUint8(input.value().toInt32())), output);
+    } else {
+      MOZ_ASSERT(input.reg().type() == MIRType::Int32);
+      masm.move32(input.reg().typedReg().gpr(), output);
+      masm.clampIntToUint8(output);
+    }
+    return true;
+  }
+
+  ValueOperand input = allocator.useValueRegister(masm, inputId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  EmitGuardInt32OrDouble(
+      this, masm, input, output, failure,
+      [&]() {
+        // |output| holds the unboxed int32 value.
+        masm.clampIntToUint8(output);
+      },
+      [&](FloatRegister floatReg) {
+        masm.clampDoubleToUint8(floatReg, output);
+      });
+
   return true;
 }
 
@@ -2510,28 +2651,12 @@ bool CacheIRCompiler::emitDoubleNegationResult() {
     return false;
   }
 
-  // If we're compiling a Baseline IC, FloatReg0 is always available.
-  Label failurePopReg, done;
-  if (mode_ != Mode::Baseline) {
-    masm.push(FloatReg0);
-  }
+  AutoScratchFloatRegister floatReg(this, failure);
 
-  masm.ensureDouble(
-      val, FloatReg0,
-      (mode_ != Mode::Baseline) ? &failurePopReg : failure->label());
-  masm.negateDouble(FloatReg0);
-  masm.boxDouble(FloatReg0, output.valueReg(), FloatReg0);
+  masm.ensureDouble(val, floatReg, floatReg.failure());
+  masm.negateDouble(floatReg);
+  masm.boxDouble(floatReg, output.valueReg(), floatReg);
 
-  if (mode_ != Mode::Baseline) {
-    masm.pop(FloatReg0);
-    masm.jump(&done);
-
-    masm.bind(&failurePopReg);
-    masm.pop(FloatReg0);
-    masm.jump(failure->label());
-  }
-
-  masm.bind(&done);
   return true;
 }
 
@@ -2544,36 +2669,20 @@ bool CacheIRCompiler::emitDoubleIncDecResult(bool isInc) {
     return false;
   }
 
-  // If we're compiling a Baseline IC, FloatReg0 is always available.
-  Label failurePopReg, done;
-  if (mode_ != Mode::Baseline) {
-    masm.push(FloatReg0);
-  }
+  AutoScratchFloatRegister floatReg(this, failure);
 
-  masm.ensureDouble(
-      val, FloatReg0,
-      (mode_ != Mode::Baseline) ? &failurePopReg : failure->label());
+  masm.ensureDouble(val, floatReg, floatReg.failure());
   {
     ScratchDoubleScope fpscratch(masm);
     masm.loadConstantDouble(1.0, fpscratch);
     if (isInc) {
-      masm.addDouble(fpscratch, FloatReg0);
+      masm.addDouble(fpscratch, floatReg);
     } else {
-      masm.subDouble(fpscratch, FloatReg0);
+      masm.subDouble(fpscratch, floatReg);
     }
   }
-  masm.boxDouble(FloatReg0, output.valueReg(), FloatReg0);
+  masm.boxDouble(floatReg, output.valueReg(), floatReg);
 
-  if (mode_ != Mode::Baseline) {
-    masm.pop(FloatReg0);
-    masm.jump(&done);
-
-    masm.bind(&failurePopReg);
-    masm.pop(FloatReg0);
-    masm.jump(failure->label());
-  }
-
-  masm.bind(&done);
   return true;
 }
 
@@ -2593,37 +2702,35 @@ bool CacheIRCompiler::emitTruncateDoubleToUInt32() {
   Label int32, done;
   masm.branchTestInt32(Assembler::Equal, val, &int32);
 
-  Label doneTruncate, truncateABICall;
-  if (mode_ != Mode::Baseline) {
-    masm.push(FloatReg0);
+  {
+    Label doneTruncate, truncateABICall;
+
+    AutoScratchFloatRegister floatReg(this);
+
+    masm.unboxDouble(val, floatReg);
+    masm.branchTruncateDoubleMaybeModUint32(floatReg, res, &truncateABICall);
+    masm.jump(&doneTruncate);
+
+    masm.bind(&truncateABICall);
+    LiveRegisterSet save(GeneralRegisterSet::Volatile(),
+                         liveVolatileFloatRegs());
+    save.takeUnchecked(floatReg);
+    // Bug 1451976
+    save.takeUnchecked(floatReg.get().asSingle());
+    masm.PushRegsInMask(save);
+
+    masm.setupUnalignedABICall(res);
+    masm.passABIArg(floatReg, MoveOp::DOUBLE);
+    masm.callWithABI(BitwiseCast<void*, int32_t (*)(double)>(JS::ToInt32),
+                     MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
+    masm.storeCallInt32Result(res);
+
+    LiveRegisterSet ignore;
+    ignore.add(res);
+    masm.PopRegsInMaskIgnore(save, ignore);
+
+    masm.bind(&doneTruncate);
   }
-
-  masm.unboxDouble(val, FloatReg0);
-  masm.branchTruncateDoubleMaybeModUint32(FloatReg0, res, &truncateABICall);
-  masm.jump(&doneTruncate);
-
-  masm.bind(&truncateABICall);
-  LiveRegisterSet save(GeneralRegisterSet::Volatile(), liveVolatileFloatRegs());
-  save.takeUnchecked(FloatReg0);
-  // Bug 1451976
-  save.takeUnchecked(FloatReg0.asSingle());
-  masm.PushRegsInMask(save);
-
-  masm.setupUnalignedABICall(res);
-  masm.passABIArg(FloatReg0, MoveOp::DOUBLE);
-  masm.callWithABI(BitwiseCast<void*, int32_t (*)(double)>(JS::ToInt32),
-                   MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
-  masm.storeCallInt32Result(res);
-
-  LiveRegisterSet ignore;
-  ignore.add(res);
-  masm.PopRegsInMaskIgnore(save, ignore);
-
-  masm.bind(&doneTruncate);
-  if (mode_ != Mode::Baseline) {
-    masm.pop(FloatReg0);
-  }
-
   masm.jump(&done);
   masm.bind(&int32);
 
@@ -2841,7 +2948,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanDenseInitLength() {
   Register obj = allocator.useRegister(masm, reader.objOperandId());
   Register index = allocator.useRegister(masm, reader.int32OperandId());
   AutoScratchRegister scratch(allocator, masm);
-  AutoScratchRegister scratch2(allocator, masm);
+  AutoSpectreBoundsScratchRegister spectreScratch(allocator, masm);
 
   FailurePath* failure;
   if (!addFailurePath(&failure)) {
@@ -2854,7 +2961,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanDenseInitLength() {
   // Ensure index >= initLength.
   Label outOfBounds;
   Address capacity(scratch, ObjectElements::offsetOfInitializedLength());
-  masm.spectreBoundsCheck32(index, capacity, scratch2, &outOfBounds);
+  masm.spectreBoundsCheck32(index, capacity, spectreScratch, &outOfBounds);
   masm.jump(failure->label());
   masm.bind(&outOfBounds);
 
@@ -2866,7 +2973,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanDenseCapacity() {
   Register obj = allocator.useRegister(masm, reader.objOperandId());
   Register index = allocator.useRegister(masm, reader.int32OperandId());
   AutoScratchRegister scratch(allocator, masm);
-  AutoScratchRegister scratch2(allocator, masm);
+  AutoSpectreBoundsScratchRegister spectreScratch(allocator, masm);
 
   FailurePath* failure;
   if (!addFailurePath(&failure)) {
@@ -2879,7 +2986,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanDenseCapacity() {
   // Ensure index >= capacity.
   Label outOfBounds;
   Address capacity(scratch, ObjectElements::offsetOfCapacity());
-  masm.spectreBoundsCheck32(index, capacity, scratch2, &outOfBounds);
+  masm.spectreBoundsCheck32(index, capacity, spectreScratch, &outOfBounds);
   masm.jump(failure->label());
   masm.bind(&outOfBounds);
 
@@ -2891,7 +2998,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanArrayLength() {
   Register obj = allocator.useRegister(masm, reader.objOperandId());
   Register index = allocator.useRegister(masm, reader.int32OperandId());
   AutoScratchRegister scratch(allocator, masm);
-  AutoScratchRegister scratch2(allocator, masm);
+  AutoSpectreBoundsScratchRegister spectreScratch(allocator, masm);
 
   FailurePath* failure;
   if (!addFailurePath(&failure)) {
@@ -2904,7 +3011,7 @@ bool CacheIRCompiler::emitGuardIndexGreaterThanArrayLength() {
   // Ensure index >= length;
   Label outOfBounds;
   Address length(scratch, ObjectElements::offsetOfLength());
-  masm.spectreBoundsCheck32(index, length, scratch2, &outOfBounds);
+  masm.spectreBoundsCheck32(index, length, spectreScratch, &outOfBounds);
   masm.jump(failure->label());
   masm.bind(&outOfBounds);
   return true;
@@ -2915,7 +3022,7 @@ bool CacheIRCompiler::emitGuardIndexIsValidUpdateOrAdd() {
   Register obj = allocator.useRegister(masm, reader.objOperandId());
   Register index = allocator.useRegister(masm, reader.int32OperandId());
   AutoScratchRegister scratch(allocator, masm);
-  AutoScratchRegister scratch2(allocator, masm);
+  AutoSpectreBoundsScratchRegister spectreScratch(allocator, masm);
 
   FailurePath* failure;
   if (!addFailurePath(&failure)) {
@@ -2935,7 +3042,7 @@ bool CacheIRCompiler::emitGuardIndexIsValidUpdateOrAdd() {
 
   // Otherwise, ensure index is in bounds.
   Address length(scratch, ObjectElements::offsetOfLength());
-  masm.spectreBoundsCheck32(index, length, scratch2,
+  masm.spectreBoundsCheck32(index, length, spectreScratch,
                             /* failure = */ failure->label());
   masm.bind(&success);
   return true;
@@ -3291,6 +3398,123 @@ bool CacheIRCompiler::emitArrayJoinResult() {
   return true;
 }
 
+bool CacheIRCompiler::emitStoreTypedElement() {
+  JitSpew(JitSpew_Codegen, __FUNCTION__);
+  Register obj = allocator.useRegister(masm, reader.objOperandId());
+  TypedThingLayout layout = reader.typedThingLayout();
+  Scalar::Type type = reader.scalarType();
+  Register index = allocator.useRegister(masm, reader.int32OperandId());
+
+  Maybe<Register> valInt32;
+  Maybe<Register> valBigInt;
+  switch (type) {
+    case Scalar::Int8:
+    case Scalar::Uint8:
+    case Scalar::Int16:
+    case Scalar::Uint16:
+    case Scalar::Int32:
+    case Scalar::Uint32:
+    case Scalar::Uint8Clamped:
+      valInt32.emplace(allocator.useRegister(masm, reader.int32OperandId()));
+      break;
+
+    case Scalar::Float32:
+    case Scalar::Float64:
+      // Float register must be preserved. The SetProp ICs use the fact that
+      // baseline has them available, as well as fixed temps on
+      // LSetPropertyCache.
+      allocator.ensureDoubleRegister(masm, reader.numberOperandId(), FloatReg0);
+      break;
+
+    case Scalar::BigInt64:
+    case Scalar::BigUint64:
+      valBigInt.emplace(allocator.useRegister(masm, reader.bigIntOperandId()));
+      break;
+
+    case Scalar::MaxTypedArrayViewType:
+    case Scalar::Int64:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+
+  bool handleOOB = reader.readBool();
+
+  AutoScratchRegister scratch1(allocator, masm);
+  Maybe<AutoScratchRegister> scratch2;
+  Maybe<AutoSpectreBoundsScratchRegister> spectreScratch;
+  if (Scalar::isBigIntType(type)) {
+    scratch2.emplace(allocator, masm);
+  } else {
+    spectreScratch.emplace(allocator, masm);
+  }
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  // Bounds check.
+  Label done;
+  Register spectreTemp = scratch2 ? scratch2->get() : spectreScratch->get();
+  LoadTypedThingLength(masm, layout, obj, scratch1);
+  masm.spectreBoundsCheck32(index, scratch1, spectreTemp,
+                            handleOOB ? &done : failure->label());
+
+  // Load the elements vector.
+  LoadTypedThingData(masm, layout, obj, scratch1);
+
+  BaseIndex dest(scratch1, index, ScaleFromElemWidth(Scalar::byteSize(type)));
+
+  if (Scalar::isBigIntType(type)) {
+#ifdef JS_PUNBOX64
+    Register64 temp(scratch2->get());
+#else
+    // We don't have more registers available on x86, so spill |obj|.
+    masm.push(obj);
+    Register64 temp(scratch2->get(), obj);
+#endif
+
+    masm.loadBigInt64(*valBigInt, temp);
+    masm.storeToTypedBigIntArray(type, temp, dest);
+
+#ifndef JS_PUNBOX64
+    masm.pop(obj);
+#endif
+  } else if (type == Scalar::Float32) {
+    ScratchFloat32Scope fpscratch(masm);
+    masm.convertDoubleToFloat32(FloatReg0, fpscratch);
+    masm.storeToTypedFloatArray(type, fpscratch, dest);
+  } else if (type == Scalar::Float64) {
+    masm.storeToTypedFloatArray(type, FloatReg0, dest);
+  } else {
+    masm.storeToTypedIntArray(type, *valInt32, dest);
+  }
+
+  masm.bind(&done);
+  return true;
+}
+
+static void EmitAllocateBigInt(MacroAssembler& masm, Register result,
+                               Register temp, const LiveRegisterSet& liveSet,
+                               Label* fail) {
+  Label fallback, done;
+  masm.newGCBigInt(result, temp, &fallback);
+  masm.jump(&done);
+  {
+    masm.bind(&fallback);
+    masm.PushRegsInMask(liveSet);
+
+    masm.setupUnalignedABICall(temp);
+    masm.loadJSContext(temp);
+    masm.passABIArg(temp);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, jit::AllocateBigIntNoGC));
+    masm.storeCallPointerResult(result);
+
+    masm.PopRegsInMask(liveSet);
+    masm.branchPtr(Assembler::Equal, result, ImmWord(0), fail);
+  }
+  masm.bind(&done);
+}
+
 bool CacheIRCompiler::emitLoadTypedElementResult() {
   JitSpew(JitSpew_Codegen, __FUNCTION__);
   AutoOutputRegister output(*this);
@@ -3300,7 +3524,16 @@ bool CacheIRCompiler::emitLoadTypedElementResult() {
   Scalar::Type type = reader.scalarType();
 
   AutoScratchRegister scratch1(allocator, masm);
+#ifdef JS_PUNBOX64
+  AutoScratchRegister scratch2(allocator, masm);
+#else
+  // There are too few registers available on x86, so we may need to reuse the
+  // output's scratch register.
   AutoScratchRegisterMaybeOutput scratch2(allocator, masm, output);
+#endif
+
+  // BigInt values are always boxed.
+  MOZ_ASSERT_IF(Scalar::isBigIntType(type), output.hasValue());
 
   if (!output.hasValue()) {
     if (type == Scalar::Float32 || type == Scalar::Float64) {
@@ -3328,14 +3561,49 @@ bool CacheIRCompiler::emitLoadTypedElementResult() {
   LoadTypedThingLength(masm, layout, obj, scratch1);
   masm.spectreBoundsCheck32(index, scratch1, scratch2, failure->label());
 
+  // Allocate BigInt if needed. The code after this should be infallible.
+  Maybe<Register> bigInt;
+  if (Scalar::isBigIntType(type)) {
+    bigInt.emplace(output.valueReg().scratchReg());
+
+    LiveRegisterSet save(GeneralRegisterSet::Volatile(),
+                         liveVolatileFloatRegs());
+    save.takeUnchecked(scratch1);
+    save.takeUnchecked(scratch2);
+    save.takeUnchecked(output);
+
+    EmitAllocateBigInt(masm, *bigInt, scratch1, save, failure->label());
+  }
+
   // Load the elements vector.
   LoadTypedThingData(masm, layout, obj, scratch1);
 
   // Load the value.
   BaseIndex source(scratch1, index, ScaleFromElemWidth(Scalar::byteSize(type)));
+
   if (output.hasValue()) {
-    masm.loadFromTypedArray(type, source, output.valueReg(),
-                            *allowDoubleResult_, scratch1, failure->label());
+    if (Scalar::isBigIntType(type)) {
+#ifdef JS_PUNBOX64
+      Register64 temp(scratch2);
+#else
+      // We don't have more registers available on x86, so spill |obj| and
+      // additionally use the output's type register.
+      MOZ_ASSERT(output.valueReg().scratchReg() != output.valueReg().typeReg());
+      masm.push(obj);
+      Register64 temp(output.valueReg().typeReg(), obj);
+#endif
+
+      masm.loadFromTypedBigIntArray(type, source, *bigInt, temp);
+
+#ifndef JS_PUNBOX64
+      masm.pop(obj);
+#endif
+
+      masm.tagValue(JSVAL_TYPE_BIGINT, *bigInt, output.valueReg());
+    } else {
+      masm.loadFromTypedArray(type, source, output.valueReg(),
+                              *allowDoubleResult_, scratch1, failure->label());
+    }
   } else {
     bool needGpr = (type == Scalar::Int8 || type == Scalar::Uint8 ||
                     type == Scalar::Int16 || type == Scalar::Uint16 ||
@@ -3353,16 +3621,144 @@ bool CacheIRCompiler::emitLoadTypedElementResult() {
   return true;
 }
 
-void CacheIRCompiler::emitLoadTypedObjectResultShared(
-    const Address& fieldAddr, Register scratch, uint32_t typeDescr,
-    const AutoOutputRegister& output) {
+bool CacheIRCompiler::emitStoreTypedObjectScalarProperty() {
   JitSpew(JitSpew_Codegen, __FUNCTION__);
+  Register obj = allocator.useRegister(masm, reader.objOperandId());
+  StubFieldOffset offset(reader.stubOffset(), StubField::Type::RawWord);
+  TypedThingLayout layout = reader.typedThingLayout();
+  Scalar::Type type = reader.scalarType();
+
+  Maybe<Register> valInt32;
+  Maybe<Register> valBigInt;
+  switch (type) {
+    case Scalar::Int8:
+    case Scalar::Uint8:
+    case Scalar::Int16:
+    case Scalar::Uint16:
+    case Scalar::Int32:
+    case Scalar::Uint32:
+    case Scalar::Uint8Clamped:
+      valInt32.emplace(allocator.useRegister(masm, reader.int32OperandId()));
+      break;
+
+    case Scalar::Float32:
+    case Scalar::Float64:
+      // Float register must be preserved. The SetProp ICs use the fact that
+      // baseline has them available, as well as fixed temps on
+      // LSetPropertyCache.
+      allocator.ensureDoubleRegister(masm, reader.numberOperandId(), FloatReg0);
+      break;
+
+    case Scalar::BigInt64:
+    case Scalar::BigUint64:
+      valBigInt.emplace(allocator.useRegister(masm, reader.bigIntOperandId()));
+      break;
+
+    case Scalar::MaxTypedArrayViewType:
+    case Scalar::Int64:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+
+  AutoScratchRegister scratch(allocator, masm);
+  Maybe<AutoScratchRegister> bigIntScratch;
+  if (Scalar::isBigIntType(type)) {
+    bigIntScratch.emplace(allocator, masm);
+  }
+
+  // Compute the address being written to.
+  LoadTypedThingData(masm, layout, obj, scratch);
+  Address dest = emitAddressFromStubField(offset, scratch);
+
+  if (Scalar::isBigIntType(type)) {
+#ifdef JS_PUNBOX64
+    Register64 temp(bigIntScratch->get());
+#else
+    // We don't have more registers available on x86, so spill |obj|.
+    masm.push(obj);
+    Register64 temp(bigIntScratch->get(), obj);
+#endif
+
+    masm.loadBigInt64(*valBigInt, temp);
+    masm.storeToTypedBigIntArray(type, temp, dest);
+
+#ifndef JS_PUNBOX64
+    masm.pop(obj);
+#endif
+  } else if (type == Scalar::Float32) {
+    ScratchFloat32Scope fpscratch(masm);
+    masm.convertDoubleToFloat32(FloatReg0, fpscratch);
+    masm.storeToTypedFloatArray(type, fpscratch, dest);
+  } else if (type == Scalar::Float64) {
+    masm.storeToTypedFloatArray(type, FloatReg0, dest);
+  } else {
+    masm.storeToTypedIntArray(type, *valInt32, dest);
+  }
+  return true;
+}
+
+bool CacheIRCompiler::emitLoadTypedObjectResult() {
+  JitSpew(JitSpew_Codegen, __FUNCTION__);
+  AutoOutputRegister output(*this);
   MOZ_ASSERT(output.hasValue());
+  Register obj = allocator.useRegister(masm, reader.objOperandId());
+  AutoScratchRegister scratch1(allocator, masm);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  TypedThingLayout layout = reader.typedThingLayout();
+  uint32_t typeDescr = reader.typeDescrKey();
+  StubFieldOffset offset(reader.stubOffset(), StubField::Type::RawWord);
+
+  // Allocate BigInt if needed. The code after this should be infallible.
+  Maybe<Register> bigInt;
+  if (SimpleTypeDescrKeyIsScalar(typeDescr)) {
+    Scalar::Type type = ScalarTypeFromSimpleTypeDescrKey(typeDescr);
+    if (Scalar::isBigIntType(type)) {
+      FailurePath* failure;
+      if (!addFailurePath(&failure)) {
+        return false;
+      }
+
+      bigInt.emplace(output.valueReg().scratchReg());
+
+      LiveRegisterSet save(GeneralRegisterSet::Volatile(),
+                           liveVolatileFloatRegs());
+      save.takeUnchecked(scratch1);
+      save.takeUnchecked(scratch2);
+      save.takeUnchecked(output);
+
+      EmitAllocateBigInt(masm, *bigInt, scratch1, save, failure->label());
+    }
+  }
+
+  // Get the object's data pointer.
+  LoadTypedThingData(masm, layout, obj, scratch1);
+
+  // Get the address being written to.
+  Address fieldAddr = emitAddressFromStubField(offset, scratch1);
 
   if (SimpleTypeDescrKeyIsScalar(typeDescr)) {
     Scalar::Type type = ScalarTypeFromSimpleTypeDescrKey(typeDescr);
-    masm.loadFromTypedArray(type, fieldAddr, output.valueReg(),
-                            /* allowDouble = */ true, scratch, nullptr);
+
+    if (Scalar::isBigIntType(type)) {
+#ifdef JS_PUNBOX64
+      Register64 temp(scratch2);
+#else
+      // We don't have more registers available on x86, so spill |obj|.
+      masm.push(obj);
+      Register64 temp(scratch2, obj);
+#endif
+
+      masm.loadFromTypedBigIntArray(type, fieldAddr, *bigInt, temp);
+
+#ifndef JS_PUNBOX64
+      masm.pop(obj);
+#endif
+
+      masm.tagValue(JSVAL_TYPE_BIGINT, *bigInt, output.valueReg());
+    } else {
+      masm.loadFromTypedArray(type, fieldAddr, output.valueReg(),
+                              /* allowDouble = */ true, scratch2, nullptr);
+    }
   } else {
     ReferenceType type = ReferenceTypeFromSimpleTypeDescrKey(typeDescr);
     switch (type) {
@@ -3375,25 +3771,26 @@ void CacheIRCompiler::emitLoadTypedObjectResultShared(
         // more complicated.
       case ReferenceType::TYPE_OBJECT: {
         Label notNull, done;
-        masm.loadPtr(fieldAddr, scratch);
-        masm.branchTestPtr(Assembler::NonZero, scratch, scratch, &notNull);
+        masm.loadPtr(fieldAddr, scratch2);
+        masm.branchTestPtr(Assembler::NonZero, scratch2, scratch2, &notNull);
         masm.moveValue(NullValue(), output.valueReg());
         masm.jump(&done);
         masm.bind(&notNull);
-        masm.tagValue(JSVAL_TYPE_OBJECT, scratch, output.valueReg());
+        masm.tagValue(JSVAL_TYPE_OBJECT, scratch2, output.valueReg());
         masm.bind(&done);
         break;
       }
 
       case ReferenceType::TYPE_STRING:
-        masm.loadPtr(fieldAddr, scratch);
-        masm.tagValue(JSVAL_TYPE_STRING, scratch, output.valueReg());
+        masm.loadPtr(fieldAddr, scratch2);
+        masm.tagValue(JSVAL_TYPE_STRING, scratch2, output.valueReg());
         break;
 
       default:
         MOZ_CRASH("Invalid ReferenceTypeDescr");
     }
   }
+  return true;
 }
 
 bool CacheIRCompiler::emitLoadObjectResult() {
@@ -3496,25 +3893,19 @@ bool CacheIRCompiler::emitLoadDoubleTruthyResult() {
   AutoOutputRegister output(*this);
   ValueOperand val = allocator.useValueRegister(masm, reader.valOperandId());
 
-  Label ifFalse, done, failurePopReg;
+  AutoScratchFloatRegister floatReg(this);
 
-  // If we're compiling a Baseline IC, FloatReg0 is always available.
-  if (mode_ != Mode::Baseline) {
-    masm.push(FloatReg0);
-  }
+  Label ifFalse, done;
 
-  masm.unboxDouble(val, FloatReg0);
+  masm.unboxDouble(val, floatReg);
 
-  masm.branchTestDoubleTruthy(false, FloatReg0, &ifFalse);
+  masm.branchTestDoubleTruthy(false, floatReg, &ifFalse);
   masm.moveValue(BooleanValue(true), output.valueReg());
   masm.jump(&done);
 
   masm.bind(&ifFalse);
   masm.moveValue(BooleanValue(false), output.valueReg());
 
-  if (mode_ != Mode::Baseline) {
-    masm.pop(FloatReg0);
-  }
   masm.bind(&done);
   return true;
 }
@@ -4031,8 +4422,7 @@ void CacheIRCompiler::emitLoadStubFieldConstant(StubFieldOffset val,
       masm.movePtr(ImmGCPtr(objectStubField(val.getOffset())), dest);
       break;
     case StubField::Type::RawWord:
-      masm.move32(
-          Imm32(readStubWord(val.getOffset(), StubField::Type::RawWord)), dest);
+      masm.move32(Imm32(int32StubField(val.getOffset())), dest);
       break;
     default:
       MOZ_CRASH("Unhandled stub field constant type");
@@ -4055,6 +4445,21 @@ void CacheIRCompiler::emitLoadStubField(StubFieldOffset val, Register dest) {
     Address load(ICStubReg, stubDataOffset_ + val.getOffset());
     masm.loadPtr(load, dest);
   }
+}
+
+Address CacheIRCompiler::emitAddressFromStubField(StubFieldOffset val,
+                                                  Register base) {
+  JitSpew(JitSpew_Codegen, __FUNCTION__);
+  MOZ_ASSERT(val.getStubFieldType() == StubField::Type::RawWord);
+
+  if (stubFieldPolicy_ == StubFieldPolicy::Constant) {
+    int32_t offset = int32StubField(val.getOffset());
+    return Address(base, offset);
+  }
+
+  Address offsetAddr(ICStubReg, stubDataOffset_ + val.getOffset());
+  masm.addPtr(offsetAddr, base);
+  return Address(base, 0);
 }
 
 bool CacheIRCompiler::emitLoadInstanceOfObjectResult() {
@@ -4566,4 +4971,47 @@ AutoCallVM::~AutoCallVM() {
   }
   MOZ_ASSERT(compiler_->mode_ == CacheIRCompiler::Mode::Baseline);
   stubFrame_->leave(masm_);
+}
+
+AutoScratchFloatRegister::AutoScratchFloatRegister(CacheIRCompiler* compiler,
+                                                   FailurePath* failure)
+    : compiler_(compiler), failure_(failure) {
+  // If we're compiling a Baseline IC, FloatReg0 is always available.
+  if (!compiler_->isBaseline()) {
+    MacroAssembler& masm = compiler_->masm;
+    masm.push(FloatReg0);
+  }
+
+  if (failure_) {
+    failure_->setHasAutoScratchFloatRegister();
+  }
+}
+
+AutoScratchFloatRegister::~AutoScratchFloatRegister() {
+  if (failure_) {
+    failure_->clearHasAutoScratchFloatRegister();
+  }
+
+  if (!compiler_->isBaseline()) {
+    MacroAssembler& masm = compiler_->masm;
+    masm.pop(FloatReg0);
+
+    if (failure_) {
+      Label done;
+      masm.jump(&done);
+      masm.bind(&failurePopReg_);
+      masm.pop(FloatReg0);
+      masm.jump(failure_->label());
+      masm.bind(&done);
+    }
+  }
+}
+
+Label* AutoScratchFloatRegister::failure() {
+  MOZ_ASSERT(failure_);
+
+  if (!compiler_->isBaseline()) {
+    return &failurePopReg_;
+  }
+  return failure_->labelUnchecked();
 }

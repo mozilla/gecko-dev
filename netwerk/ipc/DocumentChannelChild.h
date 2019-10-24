@@ -32,7 +32,7 @@ class DocumentChannelChild final : public PDocumentChannelChild,
                        class LoadInfo* aLoadInfo,
                        const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
                        uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
-                       bool aIsTopLevelDoc);
+                       bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags);
 
   NS_DECL_ISUPPORTS_INHERITED;
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
@@ -69,6 +69,8 @@ class DocumentChannelChild final : public PDocumentChannelChild,
       const Maybe<nsString>& aContentDispositionFilename,
       RedirectToRealChannelResolver&& aResolve);
 
+  mozilla::ipc::IPCResult RecvNotifyClassificationFlags(
+      const uint32_t& aClassificationFlags, const bool& aIsThirdParty);
   mozilla::ipc::IPCResult RecvNotifyChannelClassifierProtectionDisabled(
       const uint32_t& aAcceptedReason);
   mozilla::ipc::IPCResult RecvNotifyCookieAllowed();
@@ -103,6 +105,8 @@ class DocumentChannelChild final : public PDocumentChannelChild,
   nsTArray<DocumentChannelRedirect> mRedirects;
 
   // Classified channel's matched information
+  uint32_t mFirstPartyClassificationFlags = 0;
+  uint32_t mThirdPartyClassificationFlags = 0;
   nsCString mMatchedList;
   nsCString mMatchedProvider;
   nsCString mMatchedFullHash;
@@ -117,6 +121,7 @@ class DocumentChannelChild final : public PDocumentChannelChild,
   const uint32_t mCacheKey;
   const bool mIsActive;
   const bool mIsTopLevelDoc;
+  const bool mHasNonEmptySandboxingFlags;
 
   bool mCanceled = false;
   uint32_t mSuspendCount = 0;

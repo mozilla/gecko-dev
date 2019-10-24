@@ -18,6 +18,7 @@ import json
 import mozpack.path as mozpath
 
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.transforms.cached_tasks import order_tasks
 from taskgraph.util.schema import (
     validate_schema,
     Schema,
@@ -149,6 +150,18 @@ def set_implementation(config, jobs):
         yield job
 
 
+@transforms.add
+def set_label(config, jobs):
+    for job in jobs:
+        if 'label' not in job:
+            if 'name' not in job:
+                raise Exception("job has neither a name nor a label")
+            job['label'] = '{}-{}'.format(config.kind, job['name'])
+        if job.get('name'):
+            del job['name']
+        yield job
+
+
 def get_attribute(dict, key, attributes, attribute_name):
     '''Get `attribute_name` from the given `attributes` dict, and if there
     is a corresponding value, set `key` in `dict` to that value.'''
@@ -162,16 +175,16 @@ def use_fetches(config, jobs):
     artifact_names = {}
     aliases = {}
 
-    if config.kind == 'toolchain':
+    if config.kind in ('toolchain', 'fetch'):
         jobs = list(jobs)
         for job in jobs:
             run = job.get('run', {})
-            label = 'toolchain-{}'.format(job['name'])
+            label = job['label']
             get_attribute(
                 artifact_names, label, run, 'toolchain-artifact')
-            value = run.get('toolchain-alias')
+            value = run.get('{}-alias'.format(config.kind))
             if value:
-                aliases['toolchain-{}'.format(value)] = label
+                aliases['{}-{}'.format(config.kind, value)] = label
 
     for task in config.kind_dependencies_tasks:
         if task.kind in ('fetch', 'toolchain'):
@@ -183,8 +196,11 @@ def use_fetches(config, jobs):
             if value:
                 aliases['{}-{}'.format(task.kind, value)] = task.label
 
-    for job in jobs:
-        fetches = job.pop('fetches', None)
+    artifact_prefixes = {}
+    for job in order_tasks(config, jobs):
+        artifact_prefixes[job["label"]] = get_artifact_prefix(job)
+
+        fetches = job.pop("fetches", None)
         if not fetches:
             yield job
             continue
@@ -204,14 +220,6 @@ def use_fetches(config, jobs):
                             kind=config.kind, name=name, fetch=fetch_name))
 
                     path = artifact_names[label]
-                    if not path.startswith('public/'):
-                        # Use taskcluster-proxy and request appropriate scope.  For example, add
-                        # 'scopes: [queue:get-artifact:path/to/*]' for 'path/to/artifact.tar.xz'.
-                        worker['taskcluster-proxy'] = True
-                        dirname = mozpath.dirname(path)
-                        scope = 'queue:get-artifact:{}/*'.format(dirname)
-                        if scope not in job.setdefault('scopes', []):
-                            job['scopes'].append(scope)
 
                     dependencies[label] = label
                     job_fetches.append({
@@ -226,6 +234,29 @@ def use_fetches(config, jobs):
                 if kind not in dependencies:
                     raise Exception("{name} can't fetch {kind} artifacts because "
                                     "it has no {kind} dependencies!".format(name=name, kind=kind))
+                dep_label = dependencies[kind]
+                if dep_label in artifact_prefixes:
+                    prefix = artifact_prefixes[dep_label]
+                else:
+                    dep_tasks = [
+                        task
+                        for task in config.kind_dependencies_tasks
+                        if task.label == dep_label
+                    ]
+                    if len(dep_tasks) != 1:
+                        raise Exception(
+                            "{name} can't fetch {kind} artifacts because "
+                            "there are {tasks} with label {label} in kind dependencies!".format(
+                                name=name,
+                                kind=kind,
+                                label=dependencies[kind],
+                                tasks="no tasks"
+                                if len(dep_tasks) == 0
+                                else "multiple tasks",
+                            )
+                        )
+
+                    prefix = get_artifact_prefix(dep_tasks[0])
 
                 for artifact in artifacts:
                     if isinstance(artifact, basestring):
@@ -247,6 +278,20 @@ def use_fetches(config, jobs):
                         fetch['dest'] = dest
                     job_fetches.append(fetch)
 
+        job_artifact_prefixes = {
+            mozpath.dirname(fetch["artifact"])
+            for fetch in job_fetches
+            if not fetch["artifact"].startswith("public/")
+        }
+        if job_artifact_prefixes:
+            # Use taskcluster-proxy and request appropriate scope.  For example, add
+            # 'scopes: [queue:get-artifact:path/to/*]' for 'path/to/artifact.tar.xz'.
+            worker["taskcluster-proxy"] = True
+            for prefix in sorted(job_artifact_prefixes):
+                scope = "queue:get-artifact:{}/*".format(prefix)
+                if scope not in job.setdefault("scopes", []):
+                    job["scopes"].append(scope)
+
         env = worker.setdefault('env', {})
         env['MOZ_FETCHES'] = {'task-reference': json.dumps(job_fetches, sort_keys=True)}
         # The path is normalized to an absolute path in run-task
@@ -262,13 +307,6 @@ def make_task_description(config, jobs):
     import_sibling_modules(exceptions=('common.py',))
 
     for job in jobs:
-        if 'label' not in job:
-            if 'name' not in job:
-                raise Exception("job has neither a name nor a label")
-            job['label'] = '{}-{}'.format(config.kind, job['name'])
-        if job.get('name'):
-            del job['name']
-
         # always-optimized tasks never execute, so have no workdir
         if job['run']['using'] != 'always-optimized':
             job['run'].setdefault('workdir', '/builds/worker')

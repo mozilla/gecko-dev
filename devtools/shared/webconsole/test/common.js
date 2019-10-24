@@ -4,14 +4,14 @@
 
 "use strict";
 
-/* exported ObjectClient, attachConsole, attachConsoleToTab, attachConsoleToWorker,
+/* exported ObjectFront, attachConsole, attachConsoleToTab, attachConsoleToWorker,
    closeDebugger, checkConsoleAPICalls, checkRawHeaders, runTests, nextTest, Ci, Cc,
    withActiveServiceWorker, Services, consoleAPICall */
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 const { DebuggerServer } = require("devtools/server/debugger-server");
 const { DebuggerClient } = require("devtools/shared/client/debugger-client");
-const ObjectClient = require("devtools/shared/client/object-client");
+const ObjectFront = require("devtools/shared/fronts/object");
 const Services = require("Services");
 
 function initCommon() {
@@ -83,17 +83,21 @@ var _attachConsole = async function(listeners, attachToTab, attachToWorker) {
       }
     }
 
-    // Attach the Target in order to instantiate the console client
+    // Attach the Target and the target thread in order to instantiate the console client.
     await target.attach();
-    const webConsoleClient = target.activeConsole;
+    const [, threadFront] = await target.attachThread();
+    await threadFront.resume();
+
+    const webConsoleFront = target.activeConsole;
+
     // By default the console isn't listening for anything,
     // request listeners from here
-    const response = await webConsoleClient.startListeners(listeners);
+    const response = await webConsoleFront.startListeners(listeners);
     return {
       state: {
         dbgClient: client,
-        client: webConsoleClient,
-        actor: webConsoleClient.actor,
+        webConsoleFront,
+        actor: webConsoleFront.actor,
         // Keep a strong reference to the Worker to avoid it being
         // GCd during the test (bug 1237492).
         // eslint-disable-next-line camelcase

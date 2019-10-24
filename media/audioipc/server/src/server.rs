@@ -3,6 +3,8 @@
 // This program is made available under an ISC-style license.  See the
 // accompanying file LICENSE for details
 
+#[cfg(target_os = "linux")]
+use audio_thread_priority::{promote_thread_to_real_time, RtPriorityThreadInfo};
 use audioipc;
 use audioipc::codec::LengthDelimitedCodec;
 use audioipc::frame::{framed, Framed};
@@ -150,8 +152,7 @@ struct CubebContextState {
     manager: CubebDeviceCollectionManager,
 }
 
-type ContextKey = RefCell<Option<CubebContextState>>;
-thread_local!(static CONTEXT_KEY:ContextKey = RefCell::new(None));
+thread_local!(static CONTEXT_KEY: RefCell<Option<CubebContextState>> = RefCell::new(None));
 
 fn with_local_context<T, F>(f: F) -> T
 where
@@ -167,6 +168,7 @@ where
             } else {
                 None
             };
+            audioipc::server_platform_init();
             let context = cubeb::Context::init(context_name, backend_name);
             let manager = CubebDeviceCollectionManager::new();
             *state = Some(CubebContextState { context, manager });
@@ -240,8 +242,11 @@ impl ServerStreamCallbacks {
                 frames
             }
             _ => {
-                debug!("Unexpected message {:?} during data_callback", r);
-                -1
+                error!("Unexpected message {:?} during data_callback", r);
+                // TODO: Return a CUBEB_ERROR result here once
+                // https://github.com/kinetiknz/cubeb/issues/553 is
+                // fixed.
+                0
             }
         }
     }
@@ -283,7 +288,7 @@ impl Drop for ServerStream {
     }
 }
 
-type StreamSlab = slab::Slab<ServerStream, usize>;
+type StreamSlab = slab::Slab<ServerStream>;
 
 struct CubebServerCallbacks {
     rpc: rpc::ClientProxy<DeviceCollectionReq, DeviceCollectionResp>,
@@ -442,12 +447,6 @@ impl CubebServer {
                 .map(|_| ClientMessage::StreamVolumeSet)
                 .unwrap_or_else(error),
 
-            ServerMessage::StreamSetPanning(stm_tok, panning) => self.streams[stm_tok]
-                .stream
-                .set_panning(panning)
-                .map(|_| ClientMessage::StreamPanningSet)
-                .unwrap_or_else(error),
-
             ServerMessage::StreamGetCurrentDevice(stm_tok) => self.streams[stm_tok]
                 .stream
                 .current_device()
@@ -523,6 +522,20 @@ impl CubebServer {
                     enable,
                 )
                 .unwrap_or_else(error),
+
+            #[cfg(target_os = "linux")]
+            ServerMessage::PromoteThreadToRealTime(thread_info) => {
+                let info = RtPriorityThreadInfo::deserialize(thread_info);
+                match promote_thread_to_real_time(info, 0, 48000) {
+                    Ok(_) => {
+                        info!("Promotion of content process thread to real-time OK");
+                    }
+                    Err(_) => {
+                        warn!("Promotion of content process thread to real-time error");
+                    }
+                }
+                ClientMessage::ThreadPromoted
+            }
         };
 
         trace!("process_msg: req={:?}, resp={:?}", msg, resp);
@@ -584,10 +597,11 @@ impl CubebServer {
 
         let (stm1, stm2) = MessageStream::anonymous_ipc_pair()?;
         debug!("Created callback pair: {:?}-{:?}", stm1, stm2);
-        let (input_shm, input_file) =
-            SharedMemWriter::new(&audioipc::get_shm_path("input"), audioipc::SHM_AREA_SIZE)?;
-        let (output_shm, output_file) =
-            SharedMemReader::new(&audioipc::get_shm_path("output"), audioipc::SHM_AREA_SIZE)?;
+        let mut shm_path = audioipc::get_shm_path();
+        shm_path.set_extension("input");
+        let (input_shm, input_file) = SharedMemWriter::new(&shm_path, audioipc::SHM_AREA_SIZE)?;
+        shm_path.set_extension("output");
+        let (output_shm, output_file) = SharedMemReader::new(&shm_path, audioipc::SHM_AREA_SIZE)?;
 
         // This code is currently running on the Client/Server RPC
         // handling thread.  We need to move the registration of the
@@ -653,7 +667,7 @@ impl CubebServer {
                     user_ptr,
                 )
                 .and_then(|stream| {
-                    if !self.streams.has_available() {
+                    if self.streams.len() == self.streams.capacity() {
                         trace!(
                             "server connection ran out of stream slots. reserving {} more.",
                             STREAM_CONN_CHUNK_SIZE
@@ -661,25 +675,17 @@ impl CubebServer {
                         self.streams.reserve_exact(STREAM_CONN_CHUNK_SIZE);
                     }
 
-                    let stm_tok = match self.streams.vacant_entry() {
-                        Some(entry) => {
-                            debug!("Registering stream {:?}", entry.index(),);
+                    let entry = self.streams.vacant_entry();
+                    let key = entry.key();
+                    debug!("Registering stream {:?}", key);
 
-                            entry
-                                .insert(ServerStream {
-                                    stream: ManuallyDrop::new(stream),
-                                    cbs: ManuallyDrop::new(cbs),
-                                })
-                                .index()
-                        }
-                        None => {
-                            // TODO: Turn into error
-                            panic!("Failed to insert stream into slab. No entries")
-                        }
-                    };
+                    entry.insert(ServerStream {
+                        stream: ManuallyDrop::new(stream),
+                        cbs: ManuallyDrop::new(cbs),
+                    });
 
                     Ok(ClientMessage::StreamCreated(StreamCreate {
-                        token: stm_tok,
+                        token: key,
                         platform_handles: [
                             PlatformHandle::from(stm1),
                             PlatformHandle::from(input_file),
@@ -717,6 +723,8 @@ unsafe extern "C" fn data_cb_c(
         };
         cbs.data_callback(input, output, nframes as isize) as c_long
     });
+    // TODO: Return a CUBEB_ERROR result here once
+    // https://github.com/kinetiknz/cubeb/issues/553 is fixed.
     ok.unwrap_or(0)
 }
 

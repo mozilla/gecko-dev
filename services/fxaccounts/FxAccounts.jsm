@@ -37,6 +37,7 @@ const {
   FXA_PWDMGR_SECURE_FIELDS,
   FX_OAUTH_CLIENT_ID,
   KEY_LIFETIME,
+  ON_ACCOUNT_STATE_CHANGE_NOTIFICATION,
   ONLOGIN_NOTIFICATION,
   ONLOGOUT_NOTIFICATION,
   ONVERIFIED_NOTIFICATION,
@@ -69,12 +70,6 @@ ChromeUtils.defineModuleGetter(
 
 ChromeUtils.defineModuleGetter(
   this,
-  "FxAccountsOAuthGrantClient",
-  "resource://gre/modules/FxAccountsOAuthGrantClient.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
   "FxAccountsCommands",
   "resource://gre/modules/FxAccountsCommands.js"
 );
@@ -95,6 +90,12 @@ ChromeUtils.defineModuleGetter(
   this,
   "FxAccountsProfile",
   "resource://gre/modules/FxAccountsProfile.jsm"
+);
+
+ChromeUtils.defineModuleGetter(
+  this,
+  "FxAccountsTelemetry",
+  "resource://gre/modules/FxAccountsTelemetry.jsm"
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
@@ -251,8 +252,8 @@ AccountState.prototype = {
   },
 
   // Set a cached token. |tokenData| must have a 'token' element, but may also
-  // have additional fields (eg, it probably specifies the server to revoke
-  // from). The 'get' functions below return the entire |tokenData| value.
+  // have additional fields.
+  // The 'get' functions below return the entire |tokenData| value.
   setCachedToken(scopeArray, tokenData) {
     this._cachePreamble();
     if (!tokenData.token) {
@@ -414,6 +415,10 @@ class FxAccounts {
     return this._internal.keys;
   }
 
+  get telemetry() {
+    return this._internal.telemetry;
+  }
+
   _withCurrentAccountState(func) {
     return this._internal.withCurrentAccountState(func);
   }
@@ -461,7 +466,7 @@ class FxAccounts {
   }
 
   /**
-   * Retrieves an OAuth authorization code
+   * Retrieves an OAuth authorization code.
    *
    * @param {Object} options
    * @param options.client_id
@@ -475,8 +480,7 @@ class FxAccounts {
    */
   authorizeOAuthCode(options) {
     return this._withVerifiedAccountState(async state => {
-      const client = this._internal.oauthClient;
-      const oAuthURL = client.serverURL.href;
+      const { sessionToken } = await state.getUserAccountData(["sessionToken"]);
       const params = { ...options };
       if (params.keys_jwk) {
         const jwk = JSON.parse(
@@ -492,8 +496,10 @@ class FxAccounts {
         delete params.keys_jwk;
       }
       try {
-        const assertion = await this._internal.getAssertion(oAuthURL);
-        return await client.authorizeCodeFromAssertion(assertion, params);
+        return await this._internal.fxAccountsClient.oauthAuthorize(
+          sessionToken,
+          params
+        );
       } catch (err) {
         throw this._internal._errorToErrorClass(err);
       }
@@ -541,29 +547,32 @@ class FxAccounts {
   }
 
   /**
-   * Get the user currently signed in to Firefox Accounts.
+   * Get details about the user currently signed in to Firefox Accounts.
    *
    * @return Promise
    *        The promise resolves to the credentials object of the signed-in user:
    *        {
-   *          email: The user's email address
-   *          uid: The user's unique id
-   *          sessionToken: Session for the FxA server
-   *          kSync: An encryption key for Sync
-   *          kXCS: A key hash of kB for the X-Client-State header
-   *          kExtSync: An encryption key for WebExtensions syncing
-   *          kExtKbHash: A key hash of kB for WebExtensions syncing
-   *          verified: email verification status
-   *          authAt: The time (seconds since epoch) that this record was
-   *                  authenticated
+   *          email: String: The user's email address
+   *          uid: String: The user's unique id
+   *          verified: Boolean: email verification status
+   *          displayName: String or null if not known.
+   *          avatar: URL of the avatar for the user. May be the default
+   *                  avatar, or null in edge-cases (eg, if there's an account
+   *                  issue, etc
+   *          avatarDefault: boolean - whether `avatar` is specific to the user
+   *                         or the default avatar.
    *        }
-   *        or null if no user is signed in.
+   *
+   *        or null if no user is signed in. This function never fails except
+   *        in pathological cases (eg, file-system errors, etc)
    */
-  // XXX - for the public API we should consolidate this with
-  // getSignedInUserProfile - bug 1574052.
   getSignedInUser() {
+    // Note we don't return the session token, but use it to see if we
+    // should fetch the profile.
+    const ACCT_DATA_FIELDS = ["email", "uid", "verified", "sessionToken"];
+    const PROFILE_FIELDS = ["displayName", "avatar", "avatarDefault"];
     return this._withCurrentAccountState(async currentState => {
-      const data = await currentState.getUserAccountData();
+      const data = await currentState.getUserAccountData(ACCT_DATA_FIELDS);
       if (!data) {
         return null;
       }
@@ -577,56 +586,55 @@ class FxAccounts {
         // that might not be fulfilled for a long time.
         this._internal.startVerifiedCheck(data);
       }
+
+      let profileData = null;
+      if (data.sessionToken) {
+        delete data.sessionToken;
+        try {
+          profileData = await this._internal.profile.getProfile();
+        } catch (error) {
+          log.error("Could not retrieve profile data", error);
+        }
+      }
+      for (let field of PROFILE_FIELDS) {
+        data[field] = profileData ? profileData[field] : null;
+      }
+      // and email is a special case - if we have profile data we prefer the
+      // email from that, as the email we stored for the account itself might
+      // not have been updated if the email changed since the user signed in.
+      if (profileData && profileData.email) {
+        data.email = profileData.email;
+      }
       return data;
     });
   }
 
-  // XXX - consolidate with getSignedInUser - bug 1574052.
   /**
-   * Get the user's account and profile data if it is locally cached. If
-   * not cached it will return null, but cause the profile data to be fetched
-   * in the background, after which a ON_PROFILE_CHANGE_NOTIFICATION
-   * observer notification will be sent, at which time this can be called
-   * again to obtain the most recent profile info.
+   * Checks the status of the account. Resolves with Promise<boolean>, where
+   * true indicates the account status is OK and false indicates there's some
+   * issue with the account - either that there's no user currently signed in,
+   * the entire account has been deleted (in which case there will be no user
+   * signed in after this call returns), or that the user must reauthenticate (in
+   * which case `this.hasLocalSession()` will return `false` after this call
+   * returns).
    *
-   * @return Promise.<object | Error>
-   *        The promise resolves to an accountData object with extra profile
-   *        information such as profileImageUrl, or rejects with
-   *        an error object ({error: ERROR, details: {}}) of the following:
-   *          INVALID_PARAMETER
-   *          NO_ACCOUNT
-   *          UNVERIFIED_ACCOUNT
-   *          NETWORK_ERROR
-   *          AUTH_ERROR
-   *          UNKNOWN_ERROR
+   * Typically used when some external code which uses, for example, oauth tokens
+   * received a 401 error using the token, or that this external code has some
+   * other reason to believe the account status may be bad. Note that this will
+   * be called automatically in many cases - for example, if calls to fetch the
+   * profile, or fetch keys, etc return a 401, there's no need to call this
+   * function.
+   *
+   * Because this hits the server, you should only call this method when you have
+   * good reason to believe the session very recently became invalid (eg, because
+   * you saw an auth related exception from a remote service.)
    */
-  getSignedInUserProfile() {
-    return this._withCurrentAccountState(async currentState => {
-      try {
-        let profileData = await this._internal.profile.getProfile();
-        let profile = Cu.cloneInto(profileData, {});
-        return profile;
-      } catch (error) {
-        log.error("Could not retrieve profile data", error);
-        throw this._internal._errorToErrorClass(error);
-      }
-    });
-  }
-
-  /**
-   * Checks if the current account still exists.
-   */
-  // This should be killed as part of bug 1574051 - we are doing something wrong
-  // if our public API says a user is logged in, but to an account which doesn't
-  // exist!
-  accountStatus() {
-    return this._withCurrentAccountState(async state => {
-      let data = await state.getUserAccountData();
-      if (!data) {
-        return false;
-      }
-      return this._internal.fxAccountsClient.accountStatus(data.uid);
-    });
+  checkAccountStatus() {
+    // Note that we don't use _withCurrentAccountState here because that will
+    // cause an exception to be thrown if we end up signing out due to the
+    // account not existing, which isn't what we want here.
+    let state = this._internal.currentAccountState;
+    return this._internal.checkAccountStatus(state);
   }
 
   /**
@@ -638,31 +646,15 @@ class FxAccounts {
    *        with the content server to obtain one.
    *        Note that this only checks local state, although typically that's
    *        OK, because we drop the local session information whenever we detect
-   *        we are in this state. However, see sessionStatus() for a way to
-   *        check the session token with the server, which can be considered the
-   *        canonical way to determine if we have a valid local session.
-   *
-   * XXX - this will be refactored in bug 1574051.
+   *        we are in this state. However, see checkAccountStatus() for a way to
+   *        check the account and session status with the server, which can be
+   *        considered the canonical, albiet expensive, way to determine the
+   *        status of the account.
    */
-  async hasLocalSession() {
-    let data = await this.getSignedInUser();
-    return data && data.sessionToken;
-  }
-
-  /**
-   *
-   * @return Promise
-   *        Resolves with a boolean indicating if the session is still valid.
-   *
-   * Because this hits the server, you should only call this method when you have
-   * reason to believe the session very recently became invalid (eg, because
-   * you saw an auth related exception from a remote service.)
-   *
-   * XXX - this will be refactored in bug 1574051.
-   */
-  sessionStatus() {
-    return this._withCurrentAccountState(async currentState => {
-      return this._internal.sessionStatus(currentState);
+  hasLocalSession() {
+    return this._withCurrentAccountState(async state => {
+      let data = await state.getUserAccountData(["sessionToken"]);
+      return !!(data && data.sessionToken);
     });
   }
 
@@ -862,18 +854,12 @@ FxAccountsInternal.prototype = {
     return this._device;
   },
 
-  _oauthClient: null,
-  get oauthClient() {
-    if (!this._oauthClient) {
-      const serverURL = Services.urlFormatter.formatURLPref(
-        "identity.fxaccounts.remote.oauth.uri"
-      );
-      this._oauthClient = new FxAccountsOAuthGrantClient({
-        serverURL,
-        client_id: FX_OAUTH_CLIENT_ID,
-      });
+  _telemetry: null,
+  get telemetry() {
+    if (!this._telemetry) {
+      this._telemetry = new FxAccountsTelemetry();
     }
-    return this._oauthClient;
+    return this._telemetry;
   },
 
   // A hook-point for tests who may want a mocked AccountState or mocked storage.
@@ -925,14 +911,6 @@ FxAccountsInternal.prototype = {
    */
   get localtimeOffsetMsec() {
     return this.fxAccountsClient.localtimeOffsetMsec;
-  },
-
-  async sessionStatus(currentState) {
-    let data = await currentState.getUserAccountData();
-    if (!data.sessionToken) {
-      throw new Error("sessionStatus called without a session token");
-    }
-    return this.fxAccountsClient.sessionStatus(data.sessionToken);
   },
 
   /**
@@ -1121,15 +1099,6 @@ FxAccountsInternal.prototype = {
     return this.currentAccountState.abort();
   },
 
-  accountStatus: function accountStatus() {
-    return this.currentAccountState.getUserAccountData().then(data => {
-      if (!data) {
-        return false;
-      }
-      return this.fxAccountsClient.accountStatus(data.uid);
-    });
-  },
-
   async checkVerificationStatus() {
     log.trace("checkVerificationStatus");
     let state = this.currentAccountState;
@@ -1147,11 +1116,10 @@ FxAccountsInternal.prototype = {
   },
 
   _destroyOAuthToken(tokenData) {
-    let client = new FxAccountsOAuthGrantClient({
-      serverURL: tokenData.server,
-      client_id: FX_OAUTH_CLIENT_ID,
-    });
-    return client.destroyToken(tokenData.token);
+    return this.fxAccountsClient.oauthDestroy(
+      FX_OAUTH_CLIENT_ID,
+      tokenData.token
+    );
   },
 
   _destroyAllOAuthTokens(tokenInfos) {
@@ -1566,17 +1534,16 @@ FxAccountsInternal.prototype = {
   },
 
   // Does the actual fetch of an oauth token for getOAuthToken()
-  async _doTokenFetch(client, scopeString) {
-    let oAuthURL = client.serverURL.href;
-    try {
-      log.debug("getOAuthToken fetching new token from", oAuthURL);
-      let assertion = await this.getAssertion(oAuthURL);
-      let result = await client.getTokenFromAssertion(assertion, scopeString);
-      let token = result.access_token;
-      return token;
-    } catch (err) {
-      throw this._errorToErrorClass(err);
-    }
+  async _doTokenFetch(scopeString) {
+    return this.withVerifiedAccountState(async state => {
+      const { sessionToken } = await state.getUserAccountData(["sessionToken"]);
+      const result = await this.fxAccountsClient.oauthToken(
+        sessionToken,
+        FX_OAUTH_CLIENT_ID,
+        scopeString
+      );
+      return result.access_token;
+    });
   },
 
   getOAuthToken(options = {}) {
@@ -1606,8 +1573,6 @@ FxAccountsInternal.prototype = {
       // Build the string we use in our "inflight" map and that we send to the
       // server. Because it's used as a key in the map we sort the scopes.
       let scopeString = scope.sort().join(" ");
-      let client = options.client || this.oauthClient;
-      let oAuthURL = client.serverURL.href;
 
       // We keep a map of in-flight requests to avoid multiple promise-based
       // consumers concurrently requesting the same token.
@@ -1619,7 +1584,7 @@ FxAccountsInternal.prototype = {
 
       // We need to start a new fetch and stick the promise in our in-flight map
       // and remove it when it resolves.
-      let promise = this._doTokenFetch(client, scopeString)
+      let promise = this._doTokenFetch(scopeString)
         .then(token => {
           // As a sanity check, ensure something else hasn't raced getting a token
           // of the same scope. If something has we just make noise rather than
@@ -1629,7 +1594,7 @@ FxAccountsInternal.prototype = {
           }
           // If we got one, cache it.
           if (token) {
-            let entry = { token, server: oAuthURL };
+            let entry = { token };
             currentState.setCachedToken(scope, entry);
           }
           return token;
@@ -1808,23 +1773,53 @@ FxAccountsInternal.prototype = {
     return state.updateUserAccountData(updateData);
   },
 
-  _handleTokenError(err) {
+  async checkAccountStatus(state) {
+    log.info("checking account status...");
+    let data = await state.getUserAccountData(["uid", "sessionToken"]);
+    if (!data) {
+      log.info("account status: no user");
+      return false;
+    }
+    // If we have a session token, then check if that remains valid - if this
+    // works we know the account must also be OK.
+    if (data.sessionToken) {
+      if (await this.fxAccountsClient.sessionStatus(data.sessionToken)) {
+        log.info("account status: ok");
+        return true;
+      }
+    }
+    let exists = await this.fxAccountsClient.accountStatus(data.uid);
+    if (!exists) {
+      // Delete all local account data. Since the account no longer
+      // exists, we can skip the remote calls.
+      log.info("account status: deleted");
+      await this._handleAccountDestroyed(data.uid);
+    } else {
+      // Note that we may already have been in a "needs reauth" state (ie, if
+      // this function was called when we already had no session token), but
+      // that's OK - re-notifying etc should cause no harm.
+      log.info("account status: needs reauthentication");
+      await this.dropCredentials(this.currentAccountState);
+      // Notify the account state has changed so the UI updates.
+      await this.notifyObservers(ON_ACCOUNT_STATE_CHANGE_NOTIFICATION);
+    }
+    return false;
+  },
+
+  async _handleTokenError(err) {
     if (!err || err.code != 401 || err.errno != ERRNO_INVALID_AUTH_TOKEN) {
       throw err;
     }
-    log.warn("recovering from invalid token error", err);
-    return this.accountStatus()
-      .then(exists => {
-        if (!exists) {
-          // Delete all local account data. Since the account no longer
-          // exists, we can skip the remote calls.
-          log.info("token invalidated because the account no longer exists");
-          return this.signOut(true);
-        }
-        log.info("clearing credentials to handle invalid token error");
-        return this.dropCredentials(this.currentAccountState);
-      })
-      .then(() => Promise.reject(err));
+    log.warn("handling invalid token error", err);
+    // Note that we don't use `withCurrentAccountState` here as that will cause
+    // an error to be thrown if we sign out due to the account not existing.
+    let state = this.currentAccountState;
+    let ok = await this.checkAccountStatus(state);
+    if (ok) {
+      log.warn("invalid token error, but account state appears ok?");
+    }
+    // always re-throw the error.
+    throw err;
   },
 };
 

@@ -3,7 +3,7 @@
 
 "use strict";
 
-// Test that ObjectClient.prototype.getDefinitionSite and the "definitionSite"
+// Test that ObjectFront.prototype.getDefinitionSite and the "definitionSite"
 // request work properly.
 
 var gDebuggee;
@@ -56,15 +56,14 @@ function eval_code() {
   );
 }
 
-function test_definition_site(func, obj) {
-  func.getDefinitionSite(({ error, source, line, column }) => {
-    Assert.ok(!error);
-    Assert.equal(source.url, getFilePath("test_objectgrips-13.js"));
-    Assert.equal(line, gDebuggee.line0 + 1);
-    Assert.equal(column, 0);
+async function test_definition_site(func, obj) {
+  const response = await func.getDefinitionSite();
+  Assert.ok(!response.error);
+  Assert.equal(response.source.url, getFilePath("test_objectgrips-13.js"));
+  Assert.equal(response.line, gDebuggee.line0 + 1);
+  Assert.equal(response.column, 0);
 
-    test_bad_definition_site(obj);
-  });
+  test_bad_definition_site(obj);
 }
 
 function test_bad_definition_site(obj) {

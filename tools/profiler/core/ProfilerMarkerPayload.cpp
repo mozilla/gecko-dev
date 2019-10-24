@@ -112,8 +112,7 @@ ProfilerMarkerPayload::CommonPropsTagAndSerializationBytes() const {
   return sizeof(DeserializerTag) +
          BlocksRingBuffer::SumBytes(mCommonProps.mStartTime,
                                     mCommonProps.mEndTime, mCommonProps.mStack,
-                                    mCommonProps.mDocShellId,
-                                    mCommonProps.mDocShellHistoryId);
+                                    mCommonProps.mInnerWindowID);
 }
 
 void ProfilerMarkerPayload::SerializeTagAndCommonProps(
@@ -123,8 +122,7 @@ void ProfilerMarkerPayload::SerializeTagAndCommonProps(
   aEntryWriter.WriteObject(mCommonProps.mStartTime);
   aEntryWriter.WriteObject(mCommonProps.mEndTime);
   aEntryWriter.WriteObject(mCommonProps.mStack);
-  aEntryWriter.WriteObject(mCommonProps.mDocShellId);
-  aEntryWriter.WriteObject(mCommonProps.mDocShellHistoryId);
+  aEntryWriter.WriteObject(mCommonProps.mInnerWindowID);
 }
 
 // static
@@ -135,8 +133,7 @@ ProfilerMarkerPayload::DeserializeCommonProps(
   aEntryReader.ReadIntoObject(props.mStartTime);
   aEntryReader.ReadIntoObject(props.mEndTime);
   aEntryReader.ReadIntoObject(props.mStack);
-  aEntryReader.ReadIntoObject(props.mDocShellId);
-  aEntryReader.ReadIntoObject(props.mDocShellHistoryId);
+  aEntryReader.ReadIntoObject(props.mInnerWindowID);
   return props;
 }
 
@@ -146,13 +143,13 @@ void ProfilerMarkerPayload::StreamCommonProps(
   StreamType(aMarkerType, aWriter);
   WriteTime(aWriter, aProcessStartTime, mCommonProps.mStartTime, "startTime");
   WriteTime(aWriter, aProcessStartTime, mCommonProps.mEndTime, "endTime");
-  if (mCommonProps.mDocShellId) {
-    aWriter.StringProperty("docShellId",
-                           nsIDToCString(*mCommonProps.mDocShellId).get());
-  }
-  if (mCommonProps.mDocShellHistoryId) {
-    aWriter.DoubleProperty("docshellHistoryId",
-                           mCommonProps.mDocShellHistoryId.ref());
+  if (mCommonProps.mInnerWindowID) {
+    // Here, we are converting uint64_t to double. Both Browsing Context and
+    // Inner Window IDs are creating using
+    // `nsContentUtils::GenerateProcessSpecificId`, which is specifically
+    // designed to only use 53 of the 64 bits to be lossless when passed into
+    // and out of JS as a double.
+    aWriter.DoubleProperty("innerWindowID", mCommonProps.mInnerWindowID.ref());
   }
   if (mCommonProps.mStack) {
     aWriter.StartObjectProperty("stack");
@@ -882,13 +879,6 @@ void LongTaskMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   aWriter.StringProperty("category", "LongTask");
 }
 
-UniqueFreePtr<const char16_t> mTypeName;
-UniqueFreePtr<const char> mClassName;
-UniqueFreePtr<const char16_t> mDescriptiveTypeName;
-const char* mCoarseType;
-uint64_t mSize;
-bool mInNursery;
-
 BlocksRingBuffer::Length JsAllocationMarkerPayload::TagAndSerializationBytes()
     const {
   return CommonPropsTagAndSerializationBytes() +
@@ -976,4 +966,54 @@ void NativeAllocationMarkerPayload::StreamPayload(
   StreamCommonProps("Native allocation", aWriter, aProcessStartTime,
                     aUniqueStacks);
   aWriter.IntProperty("size", mSize);
+}
+
+BlocksRingBuffer::Length IPCMarkerPayload::TagAndSerializationBytes() const {
+  return CommonPropsTagAndSerializationBytes() +
+         BlocksRingBuffer::SumBytes(mOtherPid, mMessageSeqno, mMessageType,
+                                    mSide, mDirection, mSync);
+}
+
+void IPCMarkerPayload::SerializeTagAndPayload(
+    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+  static const DeserializerTag tag = TagForDeserializer(Deserialize);
+  SerializeTagAndCommonProps(tag, aEntryWriter);
+  aEntryWriter.WriteObject(mOtherPid);
+  aEntryWriter.WriteObject(mMessageSeqno);
+  aEntryWriter.WriteObject(mMessageType);
+  aEntryWriter.WriteObject(mSide);
+  aEntryWriter.WriteObject(mDirection);
+  aEntryWriter.WriteObject(mSync);
+}
+
+// static
+UniquePtr<ProfilerMarkerPayload> IPCMarkerPayload::Deserialize(
+    BlocksRingBuffer::EntryReader& aEntryReader) {
+  ProfilerMarkerPayload::CommonProps props =
+      DeserializeCommonProps(aEntryReader);
+  auto otherPid = aEntryReader.ReadObject<int32_t>();
+  auto messageSeqno = aEntryReader.ReadObject<int32_t>();
+  auto messageType = aEntryReader.ReadObject<IPC::Message::msgid_t>();
+  auto mSide = aEntryReader.ReadObject<ipc::Side>();
+  auto mDirection = aEntryReader.ReadObject<ipc::MessageDirection>();
+  auto mSync = aEntryReader.ReadObject<bool>();
+  return UniquePtr<ProfilerMarkerPayload>(
+      new IPCMarkerPayload(std::move(props), otherPid, messageSeqno,
+                           messageType, mSide, mDirection, mSync));
+}
+
+void IPCMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                     const TimeStamp& aProcessStartTime,
+                                     UniqueStacks& aUniqueStacks) const {
+  using namespace mozilla::ipc;
+  StreamCommonProps("IPC", aWriter, aProcessStartTime, aUniqueStacks);
+  aWriter.IntProperty("otherPid", mOtherPid);
+  aWriter.IntProperty("messageSeqno", mMessageSeqno);
+  aWriter.StringProperty("messageType",
+                         IPC::StringFromIPCMessageType(mMessageType));
+  aWriter.StringProperty("side", mSide == ParentSide ? "parent" : "child");
+  aWriter.StringProperty("direction", mDirection == MessageDirection::eSending
+                                          ? "sending"
+                                          : "receiving");
+  aWriter.BoolProperty("sync", mSync);
 }

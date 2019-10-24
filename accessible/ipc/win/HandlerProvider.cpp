@@ -103,10 +103,12 @@ void HandlerProvider::GetAndSerializePayload(
 
   IA2Payload payload{};
 
-  if (!mscom::InvokeOnMainThread("HandlerProvider::BuildInitialIA2Data", this,
-                                 &HandlerProvider::BuildInitialIA2Data,
-                                 aInterceptor, &payload.mStaticData,
-                                 &payload.mDynamicData) ||
+  if (!mscom::InvokeOnMainThread(
+          "HandlerProvider::BuildInitialIA2Data", this,
+          &HandlerProvider::BuildInitialIA2Data,
+          std::forward<NotNull<mscom::IInterceptor*>>(aInterceptor),
+          std::forward<StaticIA2Data*>(&payload.mStaticData),
+          std::forward<DynamicIA2Data*>(&payload.mDynamicData)) ||
       !payload.mDynamicData.mUniqueId) {
     return;
   }
@@ -503,7 +505,7 @@ HandlerProvider::Refresh(DynamicIA2Data* aOutData) {
 
   if (!mscom::InvokeOnMainThread("HandlerProvider::BuildDynamicIA2Data", this,
                                  &HandlerProvider::BuildDynamicIA2Data,
-                                 aOutData)) {
+                                 std::forward<DynamicIA2Data*>(aOutData))) {
     return E_FAIL;
   }
 
@@ -628,8 +630,12 @@ HandlerProvider::get_AllTextInfo(BSTR* aText,
   HRESULT hr;
   if (!mscom::InvokeOnMainThread(
           "HandlerProvider::GetAllTextInfoMainThread", this,
-          &HandlerProvider::GetAllTextInfoMainThread, aText, aHyperlinks,
-          aNHyperlinks, aAttribRuns, aNAttribRuns, &hr)) {
+          &HandlerProvider::GetAllTextInfoMainThread,
+          std::forward<BSTR*>(aText),
+          std::forward<IAccessibleHyperlink***>(aHyperlinks),
+          std::forward<long*>(aNHyperlinks),
+          std::forward<IA2TextSegment**>(aAttribRuns),
+          std::forward<long*>(aNAttribRuns), std::forward<HRESULT*>(&hr))) {
     return E_FAIL;
   }
 
@@ -694,10 +700,11 @@ HandlerProvider::get_RelationsInfo(IARelationData** aRelations,
   }
 
   HRESULT hr;
-  if (!mscom::InvokeOnMainThread("HandlerProvider::GetRelationsInfoMainThread",
-                                 this,
-                                 &HandlerProvider::GetRelationsInfoMainThread,
-                                 aRelations, aNRelations, &hr)) {
+  if (!mscom::InvokeOnMainThread(
+          "HandlerProvider::GetRelationsInfoMainThread", this,
+          &HandlerProvider::GetRelationsInfoMainThread,
+          std::forward<IARelationData**>(aRelations),
+          std::forward<long*>(aNRelations), std::forward<HRESULT*>(&hr))) {
     return E_FAIL;
   }
 
@@ -835,10 +842,11 @@ HandlerProvider::get_AllChildren(AccChildData** aChildren, ULONG* aNChildren) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
 
   HRESULT hr;
-  if (!mscom::InvokeOnMainThread("HandlerProvider::GetAllChildrenMainThread",
-                                 this,
-                                 &HandlerProvider::GetAllChildrenMainThread,
-                                 aChildren, aNChildren, &hr)) {
+  if (!mscom::InvokeOnMainThread(
+          "HandlerProvider::GetAllChildrenMainThread", this,
+          &HandlerProvider::GetAllChildrenMainThread,
+          std::forward<AccChildData**>(aChildren),
+          std::forward<ULONG*>(aNChildren), std::forward<HRESULT*>(&hr))) {
     return E_FAIL;
   }
 

@@ -652,8 +652,6 @@ class ScriptSource {
   // The bytecode cache encoder is used to encode only the content of function
   // which are delazified.  If this value is not nullptr, then each delazified
   // function should be recorded before their first execution.
-  // This value is logically owned by the canonical ScriptSourceObject, and
-  // will be released in the canonical SSO's finalizer.
   UniquePtr<XDRIncrementalEncoder> xdrEncoder_ = nullptr;
 
   // Instant at which the first parse of this source started, or null
@@ -731,8 +729,7 @@ class ScriptSource {
 
   explicit ScriptSource() : id_(++idCount_) {}
 
-  void finalizeGCData();
-  ~ScriptSource();
+  ~ScriptSource() { MOZ_ASSERT(refs == 0); }
 
   void incref() { refs++; }
   void decref() {
@@ -1009,14 +1006,15 @@ class ScriptSource {
     return data.match(UncompressedLengthMatcher());
   }
 
-  JSFlatString* substring(JSContext* cx, size_t start, size_t stop);
-  JSFlatString* substringDontDeflate(JSContext* cx, size_t start, size_t stop);
+  JSLinearString* substring(JSContext* cx, size_t start, size_t stop);
+  JSLinearString* substringDontDeflate(JSContext* cx, size_t start,
+                                       size_t stop);
 
   MOZ_MUST_USE bool appendSubstring(JSContext* cx, js::StringBuffer& buf,
                                     size_t start, size_t stop);
 
   bool isFunctionBody() { return parameterListEnd_ != 0; }
-  JSFlatString* functionBodyString(JSContext* cx);
+  JSLinearString* functionBodyString(JSContext* cx);
 
   void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                               JS::ScriptSourceInfo* info) const;
@@ -2331,6 +2329,75 @@ using RuntimeScriptDataTable =
 
 extern void SweepScriptData(JSRuntime* rt);
 
+// ScriptWarmUpData represents a pointer-sized field in JSScript that stores
+// one of the following:
+//
+// * The script's warm-up count. This is only used until the script has a
+//   JitScript. The Baseline Interpreter and JITs use the warm-up count stored
+//   in JitScript.
+//
+// * A pointer to the JitScript, when the script is warm enough for the Baseline
+//   Interpreter.
+//
+// Pointer tagging is used to distinguish those states.
+class ScriptWarmUpData {
+  static constexpr uintptr_t NumTagBits = 2;
+  static constexpr uint32_t MaxWarmUpCount = UINT32_MAX >> NumTagBits;
+
+ public:
+  // Public only for the JITs.
+  static constexpr uintptr_t TagMask = (1 << NumTagBits) - 1;
+  static constexpr uintptr_t JitScriptTag = 0;
+  static constexpr uintptr_t WarmUpCountTag = 1;
+
+ private:
+  uintptr_t data_ = 0 | WarmUpCountTag;
+
+  void setWarmUpCount(uint32_t count) {
+    if (count > MaxWarmUpCount) {
+      count = MaxWarmUpCount;
+    }
+    data_ = (uintptr_t(count) << NumTagBits) | WarmUpCountTag;
+  }
+
+ public:
+  void trace(JSTracer* trc);
+
+  bool isWarmUpCount() const { return (data_ & TagMask) == WarmUpCountTag; }
+  bool isJitScript() const { return (data_ & TagMask) == JitScriptTag; }
+
+  uint32_t toWarmUpCount() const {
+    MOZ_ASSERT(isWarmUpCount());
+    return data_ >> NumTagBits;
+  }
+  void resetWarmUpCount(uint32_t count) {
+    MOZ_ASSERT(isWarmUpCount());
+    setWarmUpCount(count);
+  }
+  void incWarmUpCount(uint32_t amount) {
+    MOZ_ASSERT(isWarmUpCount());
+    data_ += uintptr_t(amount) << NumTagBits;
+  }
+
+  jit::JitScript* toJitScript() const {
+    MOZ_ASSERT(isJitScript());
+    static_assert(JitScriptTag == 0, "Code depends on JitScriptTag being zero");
+    return reinterpret_cast<jit::JitScript*>(data_);
+  }
+  void setJitScript(jit::JitScript* jitScript) {
+    MOZ_ASSERT(isWarmUpCount());
+    MOZ_ASSERT((uintptr_t(jitScript) & TagMask) == 0);
+    data_ = uintptr_t(jitScript) | JitScriptTag;
+  }
+  void clearJitScript() {
+    MOZ_ASSERT(isJitScript());
+    setWarmUpCount(0);
+  }
+};
+
+static_assert(sizeof(ScriptWarmUpData) == sizeof(uintptr_t),
+              "JIT code depends on ScriptWarmUpData being pointer-sized");
+
 } /* namespace js */
 
 namespace JS {
@@ -2352,20 +2419,10 @@ class JSScript : public js::BaseScript {
   js::PrivateScriptData* data_ = nullptr;
 
  private:
-  // JIT and type inference data for this script. May be purged on GC.
-  js::jit::JitScript* jitScript_ = nullptr;
+  js::ScriptWarmUpData warmUpData_ = {};
 
   /* Information used to re-lazify a lazily-parsed interpreted function. */
   js::LazyScript* lazyScript = nullptr;
-
-  // 32-bit fields.
-
-  // Number of times the script has been called or has had backedges taken.
-  // When running in ion, also increased for any inlined scripts. Reset if
-  // the script's JIT code is forcibly discarded.
-  mozilla::Atomic<uint32_t, mozilla::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      warmUpCount = {};
 
   //
   // End of fields.  Start methods.
@@ -2652,8 +2709,8 @@ class JSScript : public js::BaseScript {
   static constexpr size_t offsetOfPrivateScriptData() {
     return offsetof(JSScript, data_);
   }
-  static constexpr size_t offsetOfJitScript() {
-    return offsetof(JSScript, jitScript_);
+  static constexpr size_t offsetOfWarmUpData() {
+    return offsetof(JSScript, warmUpData_);
   }
 
   void updateJitCodeRaw(JSRuntime* rt);
@@ -2715,7 +2772,7 @@ class JSScript : public js::BaseScript {
   // directly, via lazy arguments or a rest parameter.
   bool mayReadFrameArgsDirectly();
 
-  static JSFlatString* sourceData(JSContext* cx, JS::HandleScript script);
+  static JSLinearString* sourceData(JSContext* cx, JS::HandleScript script);
 
   MOZ_MUST_USE bool appendSourceDataForToString(JSContext* cx,
                                                 js::StringBuffer& buf);
@@ -2761,11 +2818,11 @@ class JSScript : public js::BaseScript {
   /* Ensure the script has a JitScript. */
   inline bool ensureHasJitScript(JSContext* cx, js::jit::AutoKeepJitScripts&);
 
-  bool hasJitScript() const { return jitScript_ != nullptr; }
+  bool hasJitScript() const { return warmUpData_.isJitScript(); }
 
   js::jit::JitScript* jitScript() const {
     MOZ_ASSERT(hasJitScript());
-    return jitScript_;
+    return warmUpData_.toJitScript();
   }
   js::jit::JitScript* maybeJitScript() const {
     return hasJitScript() ? jitScript() : nullptr;
@@ -2853,20 +2910,9 @@ class JSScript : public js::BaseScript {
   void freeScriptData();
 
  public:
-  uint32_t getWarmUpCount() const { return warmUpCount; }
-  uint32_t incWarmUpCounter(uint32_t amount = 1) {
-    return warmUpCount += amount;
-  }
-  uint32_t* addressOfWarmUpCounter() {
-    return reinterpret_cast<uint32_t*>(&warmUpCount);
-  }
-  static size_t offsetOfWarmUpCounter() {
-    return offsetof(JSScript, warmUpCount);
-  }
-  void resetWarmUpCounterForGC() {
-    incWarmUpResetCounter();
-    warmUpCount = 0;
-  }
+  inline uint32_t getWarmUpCount() const;
+  inline void incWarmUpCounter(uint32_t amount = 1);
+  inline void resetWarmUpCounterForGC();
 
   void resetWarmUpCounterToDelayIonCompilation();
 
@@ -2910,6 +2956,10 @@ class JSScript : public js::BaseScript {
 
   js::BytecodeLocation endLocation() const {
     return js::BytecodeLocation(this, codeEnd());
+  }
+
+  js::BytecodeLocation offsetToLocation(uint32_t offset) const {
+    return js::BytecodeLocation(this, offsetToPC(offset));
   }
 
   /*
@@ -3300,6 +3350,15 @@ class LazyScript : public BaseScript {
                                                 Handle<LazyScript*>);
   JSFunction* functionNonDelazifying() const {
     return &functionOrGlobal_->as<JSFunction>();
+  }
+
+  bool canRelazify() const {
+    // Only functions without inner functions or direct eval are re-lazified.
+    // Functions with either of those are on the static scope chain of their
+    // inner functions, or in the case of eval, possibly eval'd inner
+    // functions. Note that if this ever changes, XDRRelazificationInfo will
+    // have to be fixed.
+    return !hasInnerFunctions() && !hasDirectEval();
   }
 
   void initScript(JSScript* script);

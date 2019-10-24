@@ -19,13 +19,12 @@ struct UCollator;
 
 namespace js {
 
-class GlobalObject;
-
 /******************** Collator ********************/
 
 class CollatorObject : public NativeObject {
  public:
   static const JSClass class_;
+  static const JSClass& protoClass_;
 
   static constexpr uint32_t INTERNALS_SLOT = 0;
   static constexpr uint32_t UCOLLATOR_SLOT = 1;
@@ -49,13 +48,10 @@ class CollatorObject : public NativeObject {
 
  private:
   static const JSClassOps classOps_;
+  static const ClassSpec classSpec_;
 
   static void finalize(JSFreeOp* fop, JSObject* obj);
 };
-
-extern JSObject* CreateCollatorPrototype(JSContext* cx,
-                                         JS::Handle<JSObject*> Intl,
-                                         JS::Handle<GlobalObject*> global);
 
 /**
  * Returns a new instance of the standard built-in Collator constructor.
@@ -66,18 +62,6 @@ extern JSObject* CreateCollatorPrototype(JSContext* cx,
  */
 extern MOZ_MUST_USE bool intl_Collator(JSContext* cx, unsigned argc,
                                        JS::Value* vp);
-
-/**
- * Returns an object indicating the supported locales for collation
- * by having a true-valued property for each such locale with the
- * canonicalized language tag as the property name. The object has no
- * prototype.
- *
- * Usage: availableLocales = intl_Collator_availableLocales()
- */
-extern MOZ_MUST_USE bool intl_Collator_availableLocales(JSContext* cx,
-                                                        unsigned argc,
-                                                        JS::Value* vp);
 
 /**
  * Returns an array with the collation type identifiers per Unicode

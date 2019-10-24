@@ -12,6 +12,7 @@ import {
   getSelectedSource,
   visibleColumnBreakpoints,
   getContext,
+  getCanRewind,
 } from "../../selectors";
 import { connect } from "../../utils/connect";
 import { makeBreakpointId } from "../../utils/breakpoint";
@@ -22,12 +23,16 @@ import type { Source, Context } from "../../types";
 // eslint-disable-next-line max-len
 import type { ColumnBreakpoint as ColumnBreakpointType } from "../../selectors/visibleColumnBreakpoints";
 
+type OwnProps = {|
+  editor: Object,
+|};
 type Props = {
   cx: Context,
   editor: Object,
-  selectedSource: Source,
+  selectedSource: ?Source,
   columnBreakpoints: ColumnBreakpointType[],
   breakpointActions: BreakpointItemActions,
+  canRewind: boolean,
 };
 
 class ColumnBreakpoints extends Component<Props> {
@@ -40,6 +45,7 @@ class ColumnBreakpoints extends Component<Props> {
       columnBreakpoints,
       selectedSource,
       breakpointActions,
+      canRewind,
     } = this.props;
 
     if (
@@ -60,6 +66,7 @@ class ColumnBreakpoints extends Component<Props> {
           editor={editor}
           source={selectedSource}
           breakpointActions={breakpointActions}
+          canRewind={canRewind}
         />
       ));
     });
@@ -71,9 +78,10 @@ const mapStateToProps = state => ({
   cx: getContext(state),
   selectedSource: getSelectedSource(state),
   columnBreakpoints: visibleColumnBreakpoints(state),
+  canRewind: getCanRewind(state),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   dispatch => ({ breakpointActions: breakpointItemActions(dispatch) })
 )(ColumnBreakpoints);

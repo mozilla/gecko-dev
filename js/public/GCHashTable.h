@@ -23,6 +23,11 @@ struct DefaultMapSweepPolicy {
   static bool needsSweep(Key* key, Value* value) {
     return GCPolicy<Key>::needsSweep(key) || GCPolicy<Value>::needsSweep(value);
   }
+
+  static bool traceWeak(JSTracer* trc, Key* key, Value* value) {
+    return GCPolicy<Key>::traceWeak(trc, key) &&
+           GCPolicy<Value>::traceWeak(trc, value);
+  }
 };
 
 // A GCHashMap is a GC-aware HashMap, meaning that it has additional trace and
@@ -61,7 +66,6 @@ class GCHashMap : public js::HashMap<Key, Value, HashPolicy, AllocPolicy> {
   explicit GCHashMap(size_t length) : Base(length) {}
   GCHashMap(AllocPolicy a, size_t length) : Base(std::move(a), length) {}
 
-  static void trace(GCHashMap* map, JSTracer* trc) { map->trace(trc); }
   void trace(JSTracer* trc) {
     for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
       GCPolicy<Value>::trace(trc, &e.front().value(), "hashmap value");
@@ -74,6 +78,15 @@ class GCHashMap : public js::HashMap<Key, Value, HashPolicy, AllocPolicy> {
   void sweep() {
     for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
       if (MapSweepPolicy::needsSweep(&e.front().mutableKey(),
+                                     &e.front().value())) {
+        e.removeFront();
+      }
+    }
+  }
+
+  void traceWeak(JSTracer* trc) {
+    for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
+      if (!MapSweepPolicy::traceWeak(trc, &e.front().mutableKey(),
                                      &e.front().value())) {
         e.removeFront();
       }
@@ -121,6 +134,17 @@ class GCRekeyableHashMap : public JS::GCHashMap<Key, Value, HashPolicy,
     for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
       Key key(e.front().key());
       if (MapSweepPolicy::needsSweep(&key, &e.front().value())) {
+        e.removeFront();
+      } else if (!HashPolicy::match(key, e.front().key())) {
+        e.rekeyFront(key);
+      }
+    }
+  }
+
+  void traceWeak(JSTracer* trc) {
+    for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
+      Key key(e.front().key());
+      if (!MapSweepPolicy::traceWeak(trc, &key, &e.front().value())) {
         e.removeFront();
       } else if (!HashPolicy::match(key, e.front().key())) {
         e.rekeyFront(key);
@@ -237,7 +261,6 @@ class GCHashSet : public js::HashSet<T, HashPolicy, AllocPolicy> {
   explicit GCHashSet(size_t length) : Base(length) {}
   GCHashSet(AllocPolicy a, size_t length) : Base(std::move(a), length) {}
 
-  static void trace(GCHashSet* set, JSTracer* trc) { set->trace(trc); }
   void trace(JSTracer* trc) {
     for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
       GCPolicy<T>::trace(trc, &e.mutableFront(), "hashset element");
@@ -249,6 +272,14 @@ class GCHashSet : public js::HashSet<T, HashPolicy, AllocPolicy> {
   void sweep() {
     for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
       if (GCPolicy<T>::needsSweep(&e.mutableFront())) {
+        e.removeFront();
+      }
+    }
+  }
+
+  void traceWeak(JSTracer* trc) {
+    for (typename Base::Enum e(*this); !e.empty(); e.popFront()) {
+      if (!GCPolicy<T>::traceWeak(trc, &e.mutableFront())) {
         e.removeFront();
       }
     }

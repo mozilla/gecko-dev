@@ -125,8 +125,10 @@ class HitTestingTreeNode {
 
   /* Fixed pos info */
 
-  void SetFixedPosData(ScrollableLayerGuid::ViewID aFixedPosTarget);
+  void SetFixedPosData(ScrollableLayerGuid::ViewID aFixedPosTarget,
+                       SideBits aFixedPosSides);
   ScrollableLayerGuid::ViewID GetFixedPosTarget() const;
+  SideBits GetFixedPosSides() const;
 
   /* Convert |aPoint| into the LayerPixel space for the layer corresponding to
    * this node. |aTransform| is the complete (content + async) transform for
@@ -183,6 +185,7 @@ class HitTestingTreeNode {
   ScrollbarData mScrollbarData;
 
   ScrollableLayerGuid::ViewID mFixedPosTarget;
+  SideBits mFixedPosSides;
 
   /* Let {L,M} be the {layer, scrollable metrics} pair that this node
    * corresponds to in the layer tree. mEventRegions contains the event regions
@@ -234,14 +237,17 @@ class HitTestingTreeNode {
  * Clear() being called, it unlocks the underlying node at which point it can
  * be recycled or freed.
  */
-class MOZ_RAII HitTestingTreeNodeAutoLock final {
+class HitTestingTreeNodeAutoLock final {
  public:
   HitTestingTreeNodeAutoLock();
-  HitTestingTreeNodeAutoLock(const HitTestingTreeNodeAutoLock&) = delete;
-  HitTestingTreeNodeAutoLock& operator=(const HitTestingTreeNodeAutoLock&) =
-      delete;
-  HitTestingTreeNodeAutoLock(HitTestingTreeNodeAutoLock&&) = delete;
   ~HitTestingTreeNodeAutoLock();
+  // Make it move-only. Note that the default implementations of the move
+  // constructor and assignment operator are correct: they'll call the
+  // move constructor of mNode, which will null out mNode on the moved-from
+  // object, and Clear() will early-exit when the moved-from object's
+  // destructor is called.
+  HitTestingTreeNodeAutoLock(HitTestingTreeNodeAutoLock&&) = default;
+  HitTestingTreeNodeAutoLock& operator=(HitTestingTreeNodeAutoLock&&) = default;
 
   void Initialize(const RecursiveMutexAutoLock& aProofOfTreeLock,
                   already_AddRefed<HitTestingTreeNode> aNode,

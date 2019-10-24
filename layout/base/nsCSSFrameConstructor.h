@@ -389,7 +389,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                  nsIContent* aContent,
                                  bool aSuppressWhiteSpaceOptimizations,
                                  const InsertionPoint& aInsertion,
-                                 FrameConstructionItemList& aItems);
+                                 FrameConstructionItemList& aItems,
+                                 uint32_t aFlags = 0);
 
   // Helper method for AddFrameConstructionItems etc.
   // Unsets the need-frame/restyle bits on aContent.
@@ -405,7 +406,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                    ComputedStyle* aComputedStyle,
                                    bool aSuppressWhiteSpaceOptimizations,
                                    nsContainerFrame* aParentFrame,
-                                   FrameConstructionItemList& aItems);
+                                   FrameConstructionItemList& aItems,
+                                   uint32_t aFlags = 0);
 
   // Construct the frames for the document element.  This can return null if the
   // document element is display:none, or if the document element has a
@@ -767,6 +769,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
      pseudo-frames as needed */
   static const PseudoParentData sPseudoParentData[eParentTypeCount];
 
+#ifdef MOZ_XBL
   // The information that concerns the frame constructor after loading an XBL
   // binding.
   //
@@ -784,6 +787,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // Returns null mStyle member to signal an error.
   XBLBindingLoadInfo LoadXBLBindingIfNeeded(nsIContent&, const ComputedStyle&,
                                             uint32_t aFlags);
+#endif
 
   const FrameConstructionData* FindDataForContent(nsIContent&, ComputedStyle&,
                                                   nsIFrame* aParentFrame,
@@ -1904,14 +1908,19 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // rebuild the entire subtree when we insert or append new content under
   // aFrame.
   //
+  // [aStartChild, aEndChild) is the range of the children to be inserted.
+  // aStartChild must be non-null; aEndChild may be null to indicate that we are
+  // appending the range includes all kids after aStartChild.
+  //
   // This is similar to WipeContainingBlock(), but is called before constructing
-  // any frame construction items. Any container frames which need reframing
-  // regardless of the content inserted or appended can add a check in this
-  // method.
+  // any frame construction items. Any container frames which need reframing by
+  // checking only the content inserted or appended, not the style of the
+  // content, can add a check in this method.
   //
   // @return true if we reconstructed the insertion parent frame; false
   // otherwise
-  bool WipeInsertionParent(nsContainerFrame* aFrame);
+  bool WipeInsertionParent(nsContainerFrame* aFrame, nsIContent* aStartChild,
+                           nsIContent* aEndChild);
 
   // Determine whether we need to wipe out what we just did and start over
   // because we're doing something like adding block kids to an inline frame

@@ -22,6 +22,8 @@
 #include "jit/Lowering.h"
 #include "jit/MIRGraph.h"
 #include "vm/ArgumentsObject.h"
+#include "vm/BytecodeIterator.h"
+#include "vm/BytecodeLocation.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/EnvironmentObject.h"
 #include "vm/Instrumentation.h"
@@ -33,6 +35,8 @@
 #include "gc/Nursery-inl.h"
 #include "jit/CompileInfo-inl.h"
 #include "jit/shared/Lowering-shared-inl.h"
+#include "vm/BytecodeIterator-inl.h"
+#include "vm/BytecodeLocation-inl.h"
 #include "vm/BytecodeUtil-inl.h"
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/JSScript-inl.h"
@@ -626,49 +630,54 @@ AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(
     }
   }
 
-  // Get the start and end pc of this loop.
-  jsbytecode* start = loopEntryBlock->stopPc();
-  start += GetBytecodeLength(start);
-  jsbytecode* end = loopEntry->loopStopPc();
+  // Get the start and end bytecode locations of this loop.
+  BytecodeLocation start(script_, loopEntryBlock->stopPc());
+  start = start.next();
+  BytecodeLocation end(script_, loopEntry->loopStopPc());
 
   // Iterate the bytecode quickly to seed possible types in the loopheader.
-  jsbytecode* last = nullptr;
-  jsbytecode* earlier = nullptr;
-  for (jsbytecode* pc = start; pc != end;
-       earlier = last, last = pc, pc += GetBytecodeLength(pc)) {
+  BytecodeLocation last = start;
+  BytecodeLocation earlier = last;
+
+  for (auto it : BytecodeLocationRange(start, end)) {
+    // Keeping track of previous BytecodeLocation values
+    earlier = last;
+    last = it;
+
     uint32_t slot;
-    if (*pc == JSOP_SETLOCAL) {
-      slot = info().localSlot(GET_LOCALNO(pc));
-    } else if (*pc == JSOP_SETARG) {
-      slot = info().argSlotUnchecked(GET_ARGNO(pc));
+
+    if (it.is(JSOP_SETLOCAL)) {
+      slot = info().localSlot(it.local());
+    } else if (it.is(JSOP_SETARG)) {
+      slot = info().argSlotUnchecked(it.arg());
     } else {
       continue;
     }
     if (slot >= info().firstStackSlot()) {
       continue;
     }
-    if (!last) {
+    if (!last.isValid(script_)) {
       continue;
     }
 
     MPhi* phi = entry->getSlot(slot)->toPhi();
 
-    if (*last == JSOP_POS || *last == JSOP_TONUMERIC) {
+    if (last.is(JSOP_POS) || last.is(JSOP_TONUMERIC)) {
       last = earlier;
     }
 
-    if (BytecodeOpHasTypeSet(JSOp(*last))) {
-      TemporaryTypeSet* typeSet = bytecodeTypes(last);
+    if (last.opHasTypeSet()) {
+      TemporaryTypeSet* typeSet = bytecodeTypes(last.toRawBytecode());
       if (!typeSet->empty()) {
         MIRType type = typeSet->getKnownMIRType();
         if (!phi->addBackedgeType(alloc(), type, typeSet)) {
           return abort(AbortReason::Alloc);
         }
       }
-    } else if (*last == JSOP_GETLOCAL || *last == JSOP_GETARG) {
-      uint32_t slot = (*last == JSOP_GETLOCAL)
-                          ? info().localSlot(GET_LOCALNO(last))
-                          : info().argSlotUnchecked(GET_ARGNO(last));
+    } else if (last.is(JSOP_GETLOCAL) || last.is(JSOP_GETARG)) {
+      uint32_t slot = (last.is(JSOP_GETLOCAL))
+                          ? info().localSlot(last.local())
+                          : info().argSlotUnchecked(last.arg());
       if (slot < info().firstStackSlot()) {
         MPhi* otherPhi = entry->getSlot(slot)->toPhi();
         if (otherPhi->hasBackedgeType()) {
@@ -680,7 +689,7 @@ AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(
       }
     } else {
       MIRType type = MIRType::None;
-      switch (*last) {
+      switch (last.getOp()) {
         case JSOP_VOID:
         case JSOP_UNDEFINED:
           type = MIRType::Undefined;
@@ -746,7 +755,7 @@ AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(
         case JSOP_NEG:
         case JSOP_INC:
         case JSOP_DEC:
-          type = inspector->expectedResultType(last);
+          type = inspector->expectedResultType(last.toRawBytecode());
           break;
         case JSOP_BIGINT:
           type = MIRType::BigInt;
@@ -8430,12 +8439,8 @@ AbortReasonOr<Ok> IonBuilder::jsop_getimport(PropertyName* name) {
   ModuleEnvironmentObject* targetEnv;
   MOZ_ALWAYS_TRUE(env->lookupImport(NameToId(name), &targetEnv, &shape));
 
-  TypeSet::ObjectKey* staticKey = TypeSet::ObjectKey::get(targetEnv);
   TemporaryTypeSet* types = bytecodeTypes(pc);
-  BarrierKind barrier = PropertyReadNeedsTypeBarrier(
-      analysisContext, alloc(), constraints(), staticKey, name, types,
-      /* updateObserved = */ true);
-
+  BarrierKind barrier = BarrierKind::TypeSet;
   MOZ_TRY(loadStaticSlot(targetEnv, barrier, types, shape->slot()));
 
   // In the rare case where this import hasn't been initialized already (we
@@ -8676,6 +8681,11 @@ bool IonBuilder::checkTypedObjectIndexInBounds(
   return indexAsByteOffset->add(index, AssertedCast<int32_t>(elemSize));
 }
 
+static bool CheckTypedObjectSupportedType(Scalar::Type type) {
+  // FIXME: https://bugzil.la/1536699
+  return !Scalar::isBigIntType(type);
+}
+
 AbortReasonOr<Ok> IonBuilder::getElemTryScalarElemOfTypedObject(
     bool* emitted, MDefinition* obj, MDefinition* index,
     TypedObjectPrediction objPrediction, TypedObjectPrediction elemPrediction,
@@ -8685,6 +8695,10 @@ AbortReasonOr<Ok> IonBuilder::getElemTryScalarElemOfTypedObject(
   // Must always be loading the same scalar type
   ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
   MOZ_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
+
+  if (!CheckTypedObjectSupportedType(elemType)) {
+    return Ok();
+  }
 
   LinearSum indexAsByteOffset(alloc());
   if (!checkTypedObjectIndexInBounds(elemSize, index, objPrediction,
@@ -9769,6 +9783,10 @@ AbortReasonOr<Ok> IonBuilder::setElemTryScalarElemOfTypedObject(
   // Must always be loading the same scalar type
   ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
   MOZ_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
+
+  if (!CheckTypedObjectSupportedType(elemType)) {
+    return Ok();
+  }
 
   LinearSum indexAsByteOffset(alloc());
   if (!checkTypedObjectIndexInBounds(elemSize, index, objPrediction,
@@ -11343,6 +11361,10 @@ AbortReasonOr<Ok> IonBuilder::getPropTryScalarPropOfTypedObject(
   // Must always be loading the same scalar type
   Scalar::Type fieldType = fieldPrediction.scalarType();
 
+  if (!CheckTypedObjectSupportedType(fieldType)) {
+    return Ok();
+  }
+
   // Don't optimize if the typed object's underlying buffer may be detached.
   TypeSet::ObjectKey* globalKey = TypeSet::ObjectKey::get(&script()->global());
   if (globalKey->hasFlags(constraints(),
@@ -12366,6 +12388,10 @@ AbortReasonOr<Ok> IonBuilder::setPropTryScalarPropOfTypedObject(
     TypedObjectPrediction fieldPrediction) {
   // Must always be loading the same scalar type
   Scalar::Type fieldType = fieldPrediction.scalarType();
+
+  if (!CheckTypedObjectSupportedType(fieldType)) {
+    return Ok();
+  }
 
   // Don't optimize if the typed object's underlying buffer may be detached.
   TypeSet::ObjectKey* globalKey = TypeSet::ObjectKey::get(&script()->global());

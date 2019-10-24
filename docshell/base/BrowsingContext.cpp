@@ -16,6 +16,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/LocationBinding.h"
+#include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/UserActivationIPCUtils.h"
 #include "mozilla/dom/WindowBinding.h"
@@ -24,9 +25,11 @@
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Components.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPtr.h"
+#include "nsIURIFixup.h"
 
 #include "nsDocShell.h"
 #include "nsGlobalWindowOuter.h"
@@ -306,6 +309,10 @@ void BrowsingContext::Attach(bool aFromIPC) {
 
   children->AppendElement(this);
 
+  if (mIsPopupSpam) {
+    PopupBlocker::RegisterOpenPopupSpam();
+  }
+
   if (!aFromIPC) {
     // Send attach to our parent if we need to.
     if (XRE_IsContentProcess()) {
@@ -355,6 +362,13 @@ void BrowsingContext::Detach(bool aFromIPC) {
   // NOTE: Doesn't use SetClosed, as it will be set in all processes
   // automatically by calls to Detach()
   mClosed = true;
+
+  if (mIsPopupSpam) {
+    PopupBlocker::UnregisterOpenPopupSpam();
+    // NOTE: Doesn't use SetIsPopupSpam, as it will be set all processes
+    // automatically.
+    mIsPopupSpam = false;
+  }
 
   if (!aFromIPC && XRE_IsContentProcess()) {
     auto cc = ContentChild::GetSingleton();
@@ -738,11 +752,30 @@ bool BrowsingContext::ConsumeTransientUserGestureActivation() {
   return true;
 }
 
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowsingContext)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
+
 NS_IMPL_CYCLE_COLLECTION_CLASS(BrowsingContext)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(BrowsingContext)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(BrowsingContext)
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(BrowsingContext)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BrowsingContext)
   if (sBrowsingContexts) {
     sBrowsingContexts->Remove(tmp->Id());
+  }
+
+  if (tmp->mIsPopupSpam) {
+    PopupBlocker::UnregisterOpenPopupSpam();
+    // NOTE: Doesn't use SetIsPopupSpam, as it will be set all processes
+    // automatically.
+    tmp->mIsPopupSpam = false;
   }
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocShell, mChildren, mParent, mGroup,
@@ -760,11 +793,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BrowsingContext)
     CanonicalBrowsingContext::Cast(tmp)->Traverse(cb);
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(BrowsingContext)
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(BrowsingContext, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(BrowsingContext, Release)
 
 class RemoteLocationProxy
     : public RemoteObjectProxy<BrowsingContext::LocationProxy,
@@ -805,8 +833,40 @@ void BrowsingContext::Location(JSContext* aCx,
   }
 }
 
+void BrowsingContext::LoadURI(const nsAString& aURI,
+                              const LoadURIOptions& aOptions,
+                              ErrorResult& aError) {
+  nsCOMPtr<nsIURIFixup> uriFixup = components::URIFixup::Service();
+
+  nsCOMPtr<nsISupports> consumer = mDocShell.get();
+  if (!consumer) {
+    consumer = mEmbedderElement;
+  }
+  if (!consumer) {
+    aError.Throw(NS_ERROR_UNEXPECTED);
+    return;
+  }
+
+  RefPtr<nsDocShellLoadState> loadState;
+  nsresult rv = nsDocShellLoadState::CreateFromLoadURIOptions(
+      consumer, uriFixup, aURI, aOptions, getter_AddRefs(loadState));
+
+  if (rv == NS_ERROR_MALFORMED_URI) {
+    DisplayLoadError(aURI);
+    return;
+  }
+
+  if (NS_FAILED(rv)) {
+    aError.Throw(rv);
+    return;
+  }
+
+  LoadURI(nullptr, loadState, true);
+}
+
 nsresult BrowsingContext::LoadURI(BrowsingContext* aAccessor,
-                                  nsDocShellLoadState* aLoadState) {
+                                  nsDocShellLoadState* aLoadState,
+                                  bool aSetNavigating) {
   // Per spec, most load attempts are silently ignored when a BrowsingContext is
   // null (which in our code corresponds to discarded), so we simply fail
   // silently in those cases. Regardless, we cannot trigger loads in/from
@@ -816,24 +876,52 @@ nsresult BrowsingContext::LoadURI(BrowsingContext* aAccessor,
   }
 
   if (mDocShell) {
-    return mDocShell->LoadURI(aLoadState);
+    return mDocShell->LoadURI(aLoadState, aSetNavigating);
   }
 
   if (!aAccessor && XRE_IsParentProcess()) {
     Unused << Canonical()->GetCurrentWindowGlobal()->SendLoadURIInChild(
-        aLoadState);
+        aLoadState, aSetNavigating);
   } else {
     MOZ_DIAGNOSTIC_ASSERT(aAccessor);
     MOZ_DIAGNOSTIC_ASSERT(aAccessor->Group() == Group());
+
+    if (!aAccessor->CanAccess(this)) {
+      return NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    }
 
     nsCOMPtr<nsPIDOMWindowOuter> win(aAccessor->GetDOMWindow());
     MOZ_DIAGNOSTIC_ASSERT(win);
     if (WindowGlobalChild* wgc =
             win->GetCurrentInnerWindow()->GetWindowGlobalChild()) {
-      wgc->SendLoadURI(this, aLoadState);
+      wgc->SendLoadURI(this, aLoadState, aSetNavigating);
     }
   }
   return NS_OK;
+}
+
+void BrowsingContext::DisplayLoadError(const nsAString& aURI) {
+  MOZ_LOG(GetLog(), LogLevel::Debug, ("DisplayLoadError"));
+  MOZ_DIAGNOSTIC_ASSERT(!IsDiscarded());
+  MOZ_DIAGNOSTIC_ASSERT(mDocShell || XRE_IsParentProcess());
+
+  if (mDocShell) {
+    bool didDisplayLoadError = false;
+    mDocShell->DisplayLoadError(NS_ERROR_MALFORMED_URI, nullptr,
+                                PromiseFlatString(aURI).get(), nullptr,
+                                &didDisplayLoadError);
+  } else {
+    Unused << Canonical()->GetCurrentWindowGlobal()->SendDisplayLoadError(
+        PromiseFlatString(aURI));
+  }
+}
+
+WindowProxyHolder BrowsingContext::Window() {
+  return WindowProxyHolder(Self());
+}
+
+WindowProxyHolder BrowsingContext::GetFrames(ErrorResult& aError) {
+  return Window();
 }
 
 void BrowsingContext::Close(CallerType aCallerType, ErrorResult& aError) {
@@ -914,17 +1002,25 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
                                      const Sequence<JSObject*>& aTransfer,
                                      nsIPrincipal& aSubjectPrincipal,
                                      ErrorResult& aError) {
+  if (mIsDiscarded) {
+    return;
+  }
+
   RefPtr<BrowsingContext> sourceBc;
   PostMessageData data;
   data.targetOrigin() = aTargetOrigin;
   data.subjectPrincipal() = &aSubjectPrincipal;
   RefPtr<nsGlobalWindowInner> callerInnerWindow;
+  // We don't need to get the caller's agentClusterId since that is used for
+  // checking whehter it's okay to sharing memory (and it's not allowed to share
+  // memory cross processes)
   if (!nsGlobalWindowOuter::GatherPostMessageData(
           aCx, aTargetOrigin, getter_AddRefs(sourceBc), data.origin(),
           getter_AddRefs(data.targetOriginURI()),
           getter_AddRefs(data.callerPrincipal()),
           getter_AddRefs(callerInnerWindow),
-          getter_AddRefs(data.callerDocumentURI()), aError)) {
+          getter_AddRefs(data.callerDocumentURI()),
+          /* aCallerAgentClusterId */ nullptr, aError)) {
     return;
   }
   data.source() = sourceBc;
@@ -1174,6 +1270,19 @@ bool BrowsingContext::MaySetEmbedderInnerWindowId(const uint64_t& aValue,
   }
 
   return true;
+}
+
+bool BrowsingContext::MaySetIsPopupSpam(const bool& aValue,
+                                        ContentParent* aSource) {
+  // Ensure that we only mark a browsing context as popup spam once and never
+  // unmark it.
+  return aValue && !mIsPopupSpam;
+}
+
+void BrowsingContext::DidSetIsPopupSpam() {
+  if (mIsPopupSpam) {
+    PopupBlocker::RegisterOpenPopupSpam();
+  }
 }
 
 }  // namespace dom

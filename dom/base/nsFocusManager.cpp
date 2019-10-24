@@ -35,7 +35,9 @@
 #include "nsIPrincipal.h"
 #include "nsIObserverService.h"
 #include "nsIObjectFrame.h"
-#include "nsBindingManager.h"
+#ifdef MOZ_XBL
+#  include "nsBindingManager.h"
+#endif
 #include "BrowserChild.h"
 #include "nsFrameLoader.h"
 #include "nsHTMLDocument.h"
@@ -335,17 +337,12 @@ Element* nsFocusManager::GetRedirectedFocus(nsIContent* aContent) {
 
 #ifdef MOZ_XUL
   if (aContent->IsXULElement()) {
-    if (aContent->IsXULElement(nsGkAtoms::textbox)) {
-      return aContent->OwnerDoc()->GetAnonymousElementByAttribute(
-          aContent, nsGkAtoms::anonid, NS_LITERAL_STRING("input"));
-    } else {
-      nsCOMPtr<nsIDOMXULMenuListElement> menulist =
-          aContent->AsElement()->AsXULMenuList();
-      if (menulist) {
-        RefPtr<Element> inputField;
-        menulist->GetInputField(getter_AddRefs(inputField));
-        return inputField;
-      }
+    nsCOMPtr<nsIDOMXULMenuListElement> menulist =
+        aContent->AsElement()->AsXULMenuList();
+    if (menulist) {
+      RefPtr<Element> inputField;
+      menulist->GetInputField(getter_AddRefs(inputField));
+      return inputField;
     }
   }
 #endif

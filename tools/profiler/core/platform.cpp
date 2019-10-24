@@ -63,6 +63,7 @@
 #include "BaseProfiler.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsIDocShell.h"
 #include "nsIHttpProtocolHandler.h"
 #include "nsIObserverService.h"
 #include "nsIPropertyBag2.h"
@@ -302,15 +303,22 @@ class MOZ_RAII PSAutoLock {
 // fields.
 typedef const PSAutoLock& PSLockRef;
 
-#define PS_GET(type_, name_) \
-  static type_ name_(PSLockRef) { return sInstance->m##name_; }
+#define PS_GET(type_, name_)      \
+  static type_ name_(PSLockRef) { \
+    MOZ_ASSERT(sInstance);        \
+    return sInstance->m##name_;   \
+  }
 
 #define PS_GET_LOCKLESS(type_, name_) \
-  static type_ name_() { return sInstance->m##name_; }
+  static type_ name_() {              \
+    MOZ_ASSERT(sInstance);            \
+    return sInstance->m##name_;       \
+  }
 
 #define PS_GET_AND_SET(type_, name_)                  \
   PS_GET(type_, name_)                                \
   static void Set##name_(PSLockRef, type_ a##name_) { \
+    MOZ_ASSERT(sInstance);                            \
     sInstance->m##name_ = a##name_;                   \
   }
 
@@ -354,9 +362,13 @@ class CorePS {
   ~CorePS() {}
 
  public:
-  static void Create(PSLockRef aLock) { sInstance = new CorePS(); }
+  static void Create(PSLockRef aLock) {
+    MOZ_ASSERT(!sInstance);
+    sInstance = new CorePS();
+  }
 
   static void Destroy(PSLockRef aLock) {
+    MOZ_ASSERT(sInstance);
     delete sInstance;
     sInstance = nullptr;
   }
@@ -368,6 +380,8 @@ class CorePS {
 
   static void AddSizeOf(PSLockRef, MallocSizeOf aMallocSizeOf,
                         size_t& aProfSize, size_t& aLulSize) {
+    MOZ_ASSERT(sInstance);
+
     aProfSize += aMallocSizeOf(sInstance);
 
     for (auto& registeredThread : sInstance->mRegisteredThreads) {
@@ -403,12 +417,14 @@ class CorePS {
 
   static void AppendRegisteredThread(
       PSLockRef, UniquePtr<RegisteredThread>&& aRegisteredThread) {
+    MOZ_ASSERT(sInstance);
     MOZ_RELEASE_ASSERT(
         sInstance->mRegisteredThreads.append(std::move(aRegisteredThread)));
   }
 
   static void RemoveRegisteredThread(PSLockRef,
                                      RegisteredThread* aRegisteredThread) {
+    MOZ_ASSERT(sInstance);
     // Remove aRegisteredThread from mRegisteredThreads.
     for (UniquePtr<RegisteredThread>& rt : sInstance->mRegisteredThreads) {
       if (rt.get() == aRegisteredThread) {
@@ -422,36 +438,51 @@ class CorePS {
 
   static void AppendRegisteredPage(PSLockRef,
                                    RefPtr<PageInformation>&& aRegisteredPage) {
-    // Disabling this assertion for now until we fix the same page registration
-    // issue. See Bug 1542918.
-#if 0
+    MOZ_ASSERT(sInstance);
     struct RegisteredPageComparator {
       PageInformation* aA;
       bool operator()(PageInformation* aB) const { return aA->Equals(aB); }
     };
-    MOZ_RELEASE_ASSERT(std::none_of(
+
+    auto foundPageIter = std::find_if(
         sInstance->mRegisteredPages.begin(), sInstance->mRegisteredPages.end(),
-        RegisteredPageComparator{aRegisteredPage.get()}));
-#endif
+        RegisteredPageComparator{aRegisteredPage.get()});
+
+    if (foundPageIter != sInstance->mRegisteredPages.end()) {
+      if ((*foundPageIter)->Url().EqualsLiteral("about:blank")) {
+        // When a BrowsingContext is loaded, the first url loaded in it will be
+        // about:blank, and if the principal matches, the first document loaded
+        // in it will share an inner window. That's why we should delete the
+        // intermittent about:blank if they share the inner window.
+        sInstance->mRegisteredPages.erase(foundPageIter);
+      } else {
+        // Do not register the same page again.
+        return;
+      }
+    }
+
     MOZ_RELEASE_ASSERT(
         sInstance->mRegisteredPages.append(std::move(aRegisteredPage)));
   }
 
-  static void RemoveRegisteredPages(PSLockRef,
-                                    const nsID& aRegisteredDocShellId) {
-    // Remove RegisteredPage from mRegisteredPages by given DocShell Id.
+  static void RemoveRegisteredPage(PSLockRef,
+                                   uint64_t aRegisteredInnerWindowID) {
+    MOZ_ASSERT(sInstance);
+    // Remove RegisteredPage from mRegisteredPages by given inner window ID.
     sInstance->mRegisteredPages.eraseIf([&](const RefPtr<PageInformation>& rd) {
-      return rd->DocShellId().Equals(aRegisteredDocShellId);
+      return rd->InnerWindowID() == aRegisteredInnerWindowID;
     });
   }
 
   static void ClearRegisteredPages(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     sInstance->mRegisteredPages.clear();
   }
 
   PS_GET(const Vector<BaseProfilerCount*>&, Counters)
 
   static void AppendCounter(PSLockRef, BaseProfilerCount* aCounter) {
+    MOZ_ASSERT(sInstance);
     // we don't own the counter; they may be stored in static objects
     MOZ_RELEASE_ASSERT(sInstance->mCounters.append(aCounter));
   }
@@ -468,8 +499,12 @@ class CorePS {
   }
 
 #ifdef USE_LUL_STACKWALK
-  static lul::LUL* Lul(PSLockRef) { return sInstance->mLul.get(); }
+  static lul::LUL* Lul(PSLockRef) {
+    MOZ_ASSERT(sInstance);
+    return sInstance->mLul.get();
+  }
   static void SetLul(PSLockRef, UniquePtr<lul::LUL> aLul) {
+    MOZ_ASSERT(sInstance);
     sInstance->mLul = std::move(aLul);
   }
 #endif
@@ -499,7 +534,7 @@ class CorePS {
   Vector<UniquePtr<RegisteredThread>> mRegisteredThreads;
 
   // Info on all the registered pages.
-  // DocShellId and DocShellHistoryId pairs in mRegisteredPages are unique.
+  // InnerWindowIDs in mRegisteredPages are unique.
   Vector<RefPtr<PageInformation>> mRegisteredPages;
 
   // Non-owning pointers to all active counters
@@ -557,9 +592,8 @@ class ActivePS {
         mInterval(aInterval),
         mFeatures(AdjustFeatures(aFeatures, aFilterCount)),
         // 8 bytes per entry.
-        mProfileBuffer(
-            MakeUnique<ProfileBuffer>(CorePS::CoreBlocksRingBuffer(),
-                                      PowerOfTwo32(aCapacity.Value() * 8))),
+        mProfileBuffer(CorePS::CoreBlocksRingBuffer(),
+                       PowerOfTwo32(aCapacity.Value() * 8)),
         // The new sampler thread doesn't start sampling immediately because the
         // main loop within Run() is blocked until this function's caller
         // unlocks gPSMutex.
@@ -620,8 +654,6 @@ class ActivePS {
   }
 
   bool ThreadSelected(const char* aThreadName) {
-    MOZ_RELEASE_ASSERT(sInstance);
-
     if (mFilters.empty()) {
       return true;
     }
@@ -654,11 +686,13 @@ class ActivePS {
   static void Create(PSLockRef aLock, PowerOfTwo32 aCapacity, double aInterval,
                      uint32_t aFeatures, const char** aFilters,
                      uint32_t aFilterCount, const Maybe<double>& aDuration) {
+    MOZ_ASSERT(!sInstance);
     sInstance = new ActivePS(aLock, aCapacity, aInterval, aFeatures, aFilters,
                              aFilterCount, aDuration);
   }
 
   static MOZ_MUST_USE SamplerThread* Destroy(PSLockRef aLock) {
+    MOZ_ASSERT(sInstance);
     auto samplerThread = sInstance->mSamplerThread;
     delete sInstance;
     sInstance = nullptr;
@@ -672,6 +706,7 @@ class ActivePS {
                      const Maybe<double>& aDuration, double aInterval,
                      uint32_t aFeatures, const char** aFilters,
                      uint32_t aFilterCount) {
+    MOZ_ASSERT(sInstance);
     if (sInstance->mCapacity != aCapacity ||
         sInstance->mDuration != aDuration ||
         sInstance->mInterval != aInterval ||
@@ -689,9 +724,11 @@ class ActivePS {
   }
 
   static size_t SizeOf(PSLockRef, MallocSizeOf aMallocSizeOf) {
+    MOZ_ASSERT(sInstance);
+
     size_t n = aMallocSizeOf(sInstance);
 
-    n += sInstance->mProfileBuffer->SizeOfIncludingThis(aMallocSizeOf);
+    n += sInstance->mProfileBuffer.SizeOfIncludingThis(aMallocSizeOf);
 
     // Measurement of the following members may be added later if DMD finds it
     // is worthwhile:
@@ -703,10 +740,58 @@ class ActivePS {
   }
 
   static bool ShouldProfileThread(PSLockRef aLock, ThreadInfo* aInfo) {
-    MOZ_RELEASE_ASSERT(sInstance);
-
+    MOZ_ASSERT(sInstance);
     return ((aInfo->IsMainThread() || FeatureThreads(aLock)) &&
             sInstance->ThreadSelected(aInfo->Name()));
+  }
+
+  // Writes out the current active configuration of the profile.
+  static void WriteActiveConfiguration(PSLockRef aLock, JSONWriter& aWriter,
+                                       const char* aPropertyName = nullptr) {
+    if (!sInstance) {
+      if (aPropertyName) {
+        aWriter.NullProperty(aPropertyName);
+      } else {
+        aWriter.NullElement();
+      }
+      return;
+    };
+
+    if (aPropertyName) {
+      aWriter.StartObjectProperty(aPropertyName);
+    } else {
+      aWriter.StartObjectElement();
+    }
+
+    {
+      aWriter.StartArrayProperty("features", aWriter.SingleLineStyle);
+#define WRITE_ACTIVE_FEATURES(n_, str_, Name_, desc_)    \
+  if (profiler_feature_active(ProfilerFeature::Name_)) { \
+    aWriter.StringElement(str_);                         \
+  }
+
+      PROFILER_FOR_EACH_FEATURE(WRITE_ACTIVE_FEATURES)
+#undef WRITE_ACTIVE_FEATURES
+      aWriter.EndArray();
+    }
+    {
+      aWriter.StartArrayProperty("threads", aWriter.SingleLineStyle);
+      for (const auto& filter : sInstance->mFilters) {
+        aWriter.StringElement(filter.c_str());
+      }
+      aWriter.EndArray();
+    }
+    {
+      // Now write all the simple values.
+
+      // The interval is also available on profile.meta.interval
+      aWriter.DoubleProperty("interval", sInstance->mInterval);
+      aWriter.IntProperty("capacity", sInstance->mCapacity.Value());
+      if (sInstance->mDuration) {
+        aWriter.DoubleProperty("duration", sInstance->mDuration.value());
+      }
+    }
+    aWriter.EndObject();
   }
 
   PS_GET(uint32_t, Generation)
@@ -721,6 +806,7 @@ class ActivePS {
 
 #define PS_GET_FEATURE(n_, str_, Name_, desc_)                \
   static bool Feature##Name_(PSLockRef) {                     \
+    MOZ_ASSERT(sInstance);                                    \
     return ProfilerFeature::Has##Name_(sInstance->mFeatures); \
   }
 
@@ -746,9 +832,13 @@ class ActivePS {
 
   PS_GET(const Vector<std::string>&, Filters)
 
-  static ProfileBuffer& Buffer(PSLockRef) { return *sInstance->mProfileBuffer; }
+  static ProfileBuffer& Buffer(PSLockRef) {
+    MOZ_ASSERT(sInstance);
+    return sInstance->mProfileBuffer;
+  }
 
   static const Vector<LiveProfiledThreadData>& LiveProfiledThreads(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     return sInstance->mLiveProfiledThreads;
   }
 
@@ -763,6 +853,7 @@ class ActivePS {
   // restarts.
   static Vector<Pair<RegisteredThread*, ProfiledThreadData*>> ProfiledThreads(
       PSLockRef) {
+    MOZ_ASSERT(sInstance);
     Vector<Pair<RegisteredThread*, ProfiledThreadData*>> array;
     MOZ_RELEASE_ASSERT(
         array.initCapacity(sInstance->mLiveProfiledThreads.length() +
@@ -786,6 +877,7 @@ class ActivePS {
   }
 
   static Vector<RefPtr<PageInformation>> ProfiledPages(PSLockRef aLock) {
+    MOZ_ASSERT(sInstance);
     Vector<RefPtr<PageInformation>> array;
     for (auto& d : CorePS::RegisteredPages(aLock)) {
       MOZ_RELEASE_ASSERT(array.append(d));
@@ -793,7 +885,7 @@ class ActivePS {
     for (auto& d : sInstance->mDeadProfiledPages) {
       MOZ_RELEASE_ASSERT(array.append(d));
     }
-    // We don't need to sort the DocShells like threads since we won't show them
+    // We don't need to sort the pages like threads since we won't show them
     // as a list.
     return array;
   }
@@ -802,6 +894,7 @@ class ActivePS {
   // ProfiledThreadData object for a RegisteredThread.
   static ProfiledThreadData* GetProfiledThreadData(
       PSLockRef, RegisteredThread* aRegisteredThread) {
+    MOZ_ASSERT(sInstance);
     for (const LiveProfiledThreadData& thread :
          sInstance->mLiveProfiledThreads) {
       if (thread.mRegisteredThread == aRegisteredThread) {
@@ -814,6 +907,7 @@ class ActivePS {
   static ProfiledThreadData* AddLiveProfiledThread(
       PSLockRef, RegisteredThread* aRegisteredThread,
       UniquePtr<ProfiledThreadData>&& aProfiledThreadData) {
+    MOZ_ASSERT(sInstance);
     MOZ_RELEASE_ASSERT(
         sInstance->mLiveProfiledThreads.append(LiveProfiledThreadData{
             aRegisteredThread, std::move(aProfiledThreadData)}));
@@ -824,6 +918,8 @@ class ActivePS {
 
   static void UnregisterThread(PSLockRef aLockRef,
                                RegisteredThread* aRegisteredThread) {
+    MOZ_ASSERT(sInstance);
+
     DiscardExpiredDeadProfiledThreads(aLockRef);
 
     // Find the right entry in the mLiveProfiledThreads array and remove the
@@ -834,7 +930,7 @@ class ActivePS {
       LiveProfiledThreadData& thread = sInstance->mLiveProfiledThreads[i];
       if (thread.mRegisteredThread == aRegisteredThread) {
         thread.mProfiledThreadData->NotifyUnregistered(
-            sInstance->mProfileBuffer->BufferRangeEnd());
+            sInstance->mProfileBuffer.BufferRangeEnd());
         MOZ_RELEASE_ASSERT(sInstance->mDeadProfiledThreads.append(
             std::move(thread.mProfiledThreadData)));
         sInstance->mLiveProfiledThreads.erase(
@@ -851,7 +947,8 @@ class ActivePS {
 #endif
 
   static void DiscardExpiredDeadProfiledThreads(PSLockRef) {
-    uint64_t bufferRangeStart = sInstance->mProfileBuffer->BufferRangeStart();
+    MOZ_ASSERT(sInstance);
+    uint64_t bufferRangeStart = sInstance->mProfileBuffer.BufferRangeStart();
     // Discard any dead threads that were unregistered before bufferRangeStart.
     sInstance->mDeadProfiledThreads.eraseIf(
         [bufferRangeStart](
@@ -864,13 +961,14 @@ class ActivePS {
         });
   }
 
-  static void UnregisterPages(PSLockRef aLock,
-                              const nsID& aRegisteredDocShellId) {
+  static void UnregisterPage(PSLockRef aLock,
+                             uint64_t aRegisteredInnerWindowID) {
+    MOZ_ASSERT(sInstance);
     auto& registeredPages = CorePS::RegisteredPages(aLock);
     for (size_t i = 0; i < registeredPages.length(); i++) {
       RefPtr<PageInformation>& page = registeredPages[i];
-      if (page->DocShellId().Equals(aRegisteredDocShellId)) {
-        page->NotifyUnregistered(sInstance->mProfileBuffer->BufferRangeEnd());
+      if (page->InnerWindowID() == aRegisteredInnerWindowID) {
+        page->NotifyUnregistered(sInstance->mProfileBuffer.BufferRangeEnd());
         MOZ_RELEASE_ASSERT(
             sInstance->mDeadProfiledPages.append(std::move(page)));
         registeredPages.erase(&registeredPages[i--]);
@@ -879,7 +977,8 @@ class ActivePS {
   }
 
   static void DiscardExpiredPages(PSLockRef) {
-    uint64_t bufferRangeStart = sInstance->mProfileBuffer->BufferRangeStart();
+    MOZ_ASSERT(sInstance);
+    uint64_t bufferRangeStart = sInstance->mProfileBuffer.BufferRangeStart();
     // Discard any dead pages that were unregistered before
     // bufferRangeStart.
     sInstance->mDeadProfiledPages.eraseIf(
@@ -893,11 +992,13 @@ class ActivePS {
   }
 
   static void ClearUnregisteredPages(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     sInstance->mDeadProfiledPages.clear();
   }
 
 #if !defined(RELEASE_OR_BETA)
   static void UnregisterIOInterposer(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     if (!sInstance->mInterposeObserver) {
       return;
     }
@@ -909,6 +1010,7 @@ class ActivePS {
   }
 
   static void PauseIOInterposer(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     if (!sInstance->mInterposeObserver) {
       return;
     }
@@ -918,6 +1020,7 @@ class ActivePS {
   }
 
   static void ResumeIOInterposer(PSLockRef) {
+    MOZ_ASSERT(sInstance);
     if (!sInstance->mInterposeObserver) {
       return;
     }
@@ -928,7 +1031,8 @@ class ActivePS {
 #endif
 
   static void ClearExpiredExitProfiles(PSLockRef) {
-    uint64_t bufferRangeStart = sInstance->mProfileBuffer->BufferRangeStart();
+    MOZ_ASSERT(sInstance);
+    uint64_t bufferRangeStart = sInstance->mProfileBuffer.BufferRangeStart();
     // Discard exit profiles that were gathered before our buffer RangeStart.
 #ifdef MOZ_BASE_PROFILER
     if (bufferRangeStart != 0 && sInstance->mBaseProfileThreads) {
@@ -944,10 +1048,13 @@ class ActivePS {
 #ifdef MOZ_BASE_PROFILER
   static void AddBaseProfileThreads(PSLockRef aLock,
                                     UniquePtr<char[]> aBaseProfileThreads) {
+    MOZ_ASSERT(sInstance);
     sInstance->mBaseProfileThreads = std::move(aBaseProfileThreads);
   }
 
   static UniquePtr<char[]> MoveBaseProfileThreads(PSLockRef aLock) {
+    MOZ_ASSERT(sInstance);
+
     ClearExpiredExitProfiles(aLock);
 
     return std::move(sInstance->mBaseProfileThreads);
@@ -955,13 +1062,17 @@ class ActivePS {
 #endif
 
   static void AddExitProfile(PSLockRef aLock, const nsCString& aExitProfile) {
+    MOZ_ASSERT(sInstance);
+
     ClearExpiredExitProfiles(aLock);
 
-    MOZ_RELEASE_ASSERT(sInstance->mExitProfiles.append(ExitProfile{
-        aExitProfile, sInstance->mProfileBuffer->BufferRangeEnd()}));
+    MOZ_RELEASE_ASSERT(sInstance->mExitProfiles.append(
+        ExitProfile{aExitProfile, sInstance->mProfileBuffer.BufferRangeEnd()}));
   }
 
   static Vector<nsCString> MoveExitProfiles(PSLockRef aLock) {
+    MOZ_ASSERT(sInstance);
+
     ClearExpiredExitProfiles(aLock);
 
     Vector<nsCString> profiles;
@@ -1013,9 +1124,8 @@ class ActivePS {
   // Substrings of names of threads we want to profile.
   Vector<std::string> mFilters;
 
-  // The buffer into which all samples are recorded. Always non-null. Always
-  // used in conjunction with CorePS::m{Live,Dead}Threads.
-  const UniquePtr<ProfileBuffer> mProfileBuffer;
+  // The buffer into which all samples are recorded.
+  ProfileBuffer mProfileBuffer;
 
   // ProfiledThreadData objects for any threads that were profiled at any point
   // during this run of the profiler:
@@ -1952,7 +2062,7 @@ static void StreamMetaJSCustomObject(PSLockRef aLock,
                                      bool aIsShuttingDown) {
   MOZ_RELEASE_ASSERT(CorePS::Exists() && ActivePS::Exists(aLock));
 
-  aWriter.IntProperty("version", 16);
+  aWriter.IntProperty("version", 17);
 
   // The "startTime" field holds the number of milliseconds since midnight
   // January 1, 1970 GMT. This grotty code computes (Now - (Now -
@@ -1974,6 +2084,8 @@ static void StreamMetaJSCustomObject(PSLockRef aLock,
   aWriter.StartArrayProperty("categories");
   StreamCategories(aWriter);
   aWriter.EndArray();
+
+  ActivePS::WriteActiveConfiguration(aLock, aWriter, "configuration");
 
   if (!NS_IsMainThread()) {
     // Leave the rest of the properties out if we're not on the main thread.
@@ -3909,6 +4021,12 @@ bool profiler_feature_active(uint32_t aFeature) {
   return RacyFeatures::IsActiveWithFeature(aFeature);
 }
 
+void profiler_write_active_configuration(JSONWriter& aWriter) {
+  MOZ_RELEASE_ASSERT(CorePS::Exists());
+  PSAutoLock lock(gPSMutex);
+  ActivePS::WriteActiveConfiguration(lock, aWriter);
+}
+
 void profiler_add_sampled_counter(BaseProfilerCount* aCounter) {
   DEBUG_LOG("profiler_add_sampled_counter(%s)", aCounter->mLabel);
   PSAutoLock lock(gPSMutex);
@@ -3983,24 +4101,22 @@ void profiler_unregister_thread() {
   }
 }
 
-void profiler_register_page(const nsID& aDocShellId, uint32_t aHistoryId,
-                            const nsCString& aUrl, bool aIsSubFrame) {
-  DEBUG_LOG("profiler_register_page(%s, %u, %s, %d)",
-            nsIDToCString(aDocShellId).get(), aHistoryId, aUrl.get(),
-            aIsSubFrame);
+void profiler_register_page(uint64_t aBrowsingContextID,
+                            uint64_t aInnerWindowID, const nsCString& aUrl,
+                            uint64_t aEmbedderInnerWindowID) {
+  DEBUG_LOG("profiler_register_page(%" PRIu64 ", %" PRIu64 ", %s, %" PRIu64 ")",
+            aBrowsingContextID, aInnerWindowID, aUrl.get(),
+            aEmbedderInnerWindowID);
 
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
   PSAutoLock lock(gPSMutex);
 
-  // If profiler is not active, delete all the previous page entries of the
-  // given DocShell since we won't need those.
-  if (!ActivePS::Exists(lock)) {
-    CorePS::RemoveRegisteredPages(lock, aDocShellId);
-  }
-
-  RefPtr<PageInformation> pageInfo =
-      new PageInformation(aDocShellId, aHistoryId, aUrl, aIsSubFrame);
+  // When a Browsing context is first loaded, the first url loaded in it will be
+  // about:blank. Because of that, this call keeps the first non-about:blank
+  // registration of window and discards the previous one.
+  RefPtr<PageInformation> pageInfo = new PageInformation(
+      aBrowsingContextID, aInnerWindowID, aUrl, aEmbedderInnerWindowID);
   CorePS::AppendRegisteredPage(lock, std::move(pageInfo));
 
   // After appending the given page to CorePS, look for the expired
@@ -4010,7 +4126,7 @@ void profiler_register_page(const nsID& aDocShellId, uint32_t aHistoryId,
   }
 }
 
-void profiler_unregister_pages(const nsID& aRegisteredDocShellId) {
+void profiler_unregister_page(uint64_t aRegisteredInnerWindowID) {
   PSAutoLock lock(gPSMutex);
 
   if (!CorePS::Exists()) {
@@ -4023,9 +4139,9 @@ void profiler_unregister_pages(const nsID& aRegisteredDocShellId) {
   // page. But if profiler is not active. we have no reason to keep the
   // page information here because there can't be any marker associated with it.
   if (ActivePS::Exists(lock)) {
-    ActivePS::UnregisterPages(lock, aRegisteredDocShellId);
+    ActivePS::UnregisterPage(lock, aRegisteredInnerWindowID);
   } else {
-    CorePS::RemoveRegisteredPages(lock, aRegisteredDocShellId);
+    CorePS::RemoveRegisteredPage(lock, aRegisteredInnerWindowID);
   }
 }
 
@@ -4047,6 +4163,21 @@ void profiler_clear_all_pages() {
 
   // gPSMutex must be unlocked when we notify, to avoid potential deadlocks.
   ProfilerParent::ClearAllPages();
+}
+
+Maybe<uint64_t> profiler_get_inner_window_id_from_docshell(
+    nsIDocShell* aDocshell) {
+  Maybe<uint64_t> innerWindowID = Nothing();
+  if (aDocshell) {
+    auto outerWindow = aDocshell->GetWindow();
+    if (outerWindow) {
+      auto innerWindow = outerWindow->GetCurrentInnerWindow();
+      if (innerWindow) {
+        innerWindowID = Some(innerWindow->WindowID());
+      }
+    }
+  }
+  return innerWindowID;
 }
 
 void profiler_thread_sleep() {
@@ -4312,8 +4443,8 @@ void profiler_add_marker_for_thread(int aThreadId,
 
 void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
                       JS::ProfilingCategoryPair aCategoryPair,
-                      TracingKind aKind, const Maybe<nsID>& aDocShellId,
-                      const Maybe<uint32_t>& aDocShellHistoryId) {
+                      TracingKind aKind,
+                      const Maybe<uint64_t>& aInnerWindowID) {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
   VTUNE_TRACING(aMarkerName, aKind);
@@ -4324,16 +4455,15 @@ void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
   }
 
   AUTO_PROFILER_STATS(add_marker_with_TracingMarkerPayload);
-  profiler_add_marker(aMarkerName, aCategoryPair,
-                      TracingMarkerPayload(aCategoryString, aKind, aDocShellId,
-                                           aDocShellHistoryId));
+  profiler_add_marker(
+      aMarkerName, aCategoryPair,
+      TracingMarkerPayload(aCategoryString, aKind, aInnerWindowID));
 }
 
 void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
                       JS::ProfilingCategoryPair aCategoryPair,
                       TracingKind aKind, UniqueProfilerBacktrace aCause,
-                      const Maybe<nsID>& aDocShellId,
-                      const Maybe<uint32_t>& aDocShellHistoryId) {
+                      const Maybe<uint64_t>& aInnerWindowID) {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
   VTUNE_TRACING(aMarkerName, aKind);
@@ -4343,25 +4473,21 @@ void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
     return;
   }
 
-  AUTO_PROFILER_STATS(add_marker_with_TracingMarkerPayload);
-  profiler_add_marker(
-      aMarkerName, aCategoryPair,
-      TracingMarkerPayload(aCategoryString, aKind, aDocShellId,
-                           aDocShellHistoryId, std::move(aCause)));
+  profiler_add_marker(aMarkerName, aCategoryPair,
+                      TracingMarkerPayload(aCategoryString, aKind,
+                                           aInnerWindowID, std::move(aCause)));
 }
 
-void profiler_add_text_marker(
-    const char* aMarkerName, const nsACString& aText,
-    JS::ProfilingCategoryPair aCategoryPair,
-    const mozilla::TimeStamp& aStartTime, const mozilla::TimeStamp& aEndTime,
-    const mozilla::Maybe<nsID>& aDocShellId,
-    const mozilla::Maybe<uint32_t>& aDocShellHistoryId,
-    UniqueProfilerBacktrace aCause) {
+void profiler_add_text_marker(const char* aMarkerName, const nsACString& aText,
+                              JS::ProfilingCategoryPair aCategoryPair,
+                              const mozilla::TimeStamp& aStartTime,
+                              const mozilla::TimeStamp& aEndTime,
+                              const mozilla::Maybe<uint64_t>& aInnerWindowID,
+                              UniqueProfilerBacktrace aCause) {
   AUTO_PROFILER_STATS(add_marker_with_TextMarkerPayload);
-  profiler_add_marker(
-      aMarkerName, aCategoryPair,
-      TextMarkerPayload(aText, aStartTime, aEndTime, aDocShellId,
-                        aDocShellHistoryId, std::move(aCause)));
+  profiler_add_marker(aMarkerName, aCategoryPair,
+                      TextMarkerPayload(aText, aStartTime, aEndTime,
+                                        aInnerWindowID, std::move(aCause)));
 }
 
 void profiler_set_js_context(JSContext* aCx) {

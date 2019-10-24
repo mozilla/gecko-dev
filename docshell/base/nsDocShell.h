@@ -479,12 +479,18 @@ class nsDocShell final : public nsDocLoader,
       nsIInterfaceRequestor* aCallbacks, nsDocShell* aDocShell,
       const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
       uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
-      bool aIsTopLevelDoc, nsresult& rv, nsIChannel** aChannel);
+      bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags, nsresult& rv,
+      nsIChannel** aChannel);
 
   static nsresult ConfigureChannel(nsIChannel* aChannel,
                                    nsDocShellLoadState* aLoadState,
                                    const nsString* aInitiatorType,
-                                   uint32_t aLoadType, uint32_t aCacheKey);
+                                   uint32_t aLoadType, uint32_t aCacheKey,
+                                   bool aHasNonEmptySandboxingFlags);
+
+  // Notify consumers of a search being loaded through the observer service:
+  static void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
+                                              const nsString& aKeyword);
 
  private:  // member functions
   friend class nsDSURIContentListener;
@@ -522,8 +528,7 @@ class nsDocShell final : public nsDocLoader,
                              nsIDocShellTreeItem* aTargetTreeItem);
 
   static inline uint32_t PRTimeToSeconds(PRTime aTimeUsec) {
-    PRTime usecPerSec = PR_USEC_PER_SEC;
-    return uint32_t(aTimeUsec /= usecPerSec);
+    return uint32_t(aTimeUsec / PR_USEC_PER_SEC);
   }
 
   static const nsCString FrameTypeToString(uint32_t aFrameType) {
@@ -956,10 +961,6 @@ class nsDocShell final : public nsDocLoader,
   // Helper assertion to enforce that mInPrivateBrowsing is in sync with
   // OriginAttributes.mPrivateBrowsingId
   void AssertOriginAttributesMatchPrivateBrowsing();
-
-  // Notify consumers of a search being loaded through the observer service:
-  void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
-                                       const nsString& aKeyword);
 
   // Internal implementation of nsIDocShell::FirePageHideNotification.
   // If aSkipCheckingDynEntries is true, it will not try to remove dynamic

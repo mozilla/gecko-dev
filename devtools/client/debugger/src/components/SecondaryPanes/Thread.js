@@ -15,6 +15,9 @@ import AccessibleImage from "../shared/AccessibleImage";
 
 import type { Context, Thread as ThreadType } from "../../types";
 
+type OwnProps = {|
+  thread: ThreadType,
+|};
 type Props = {
   cx: Context,
   selectThread: typeof actions.selectThread,
@@ -57,13 +60,13 @@ export class Thread extends Component<Props> {
   }
 }
 
-const mapStateToProps = (state, props: Props) => ({
+const mapStateToProps = (state, props) => ({
   cx: getContext(state),
   currentThread: getCurrentThread(state),
   isPaused: getIsPaused(state, props.thread.actor),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectThread: actions.selectThread,

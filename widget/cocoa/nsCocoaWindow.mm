@@ -21,6 +21,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIXULWindow.h"
 #include "nsToolkit.h"
+#include "nsTouchBarNativeAPIDefines.h"
 #include "nsPIDOMWindow.h"
 #include "nsThreadUtils.h"
 #include "nsMenuBarX.h"
@@ -153,6 +154,7 @@ nsCocoaWindow::nsCocoaWindow()
       mInReportMoveEvent(false),
       mInResize(false),
       mWindowTransformIsIdentity(true),
+      mAlwaysOnTop(false),
       mNumModalDescendents(0),
       mWindowAnimationBehavior(NSWindowAnimationBehaviorDefault) {
   if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
@@ -301,6 +303,7 @@ nsresult nsCocoaWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   mParent = aParent;
   mAncestorLink = aParent;
+  mAlwaysOnTop = aInitData->mAlwaysOnTop;
 
   // Applications that use native popups don't want us to create popup windows.
   if ((mWindowType == eWindowType_popup) && UseNativePopupWindows()) return NS_OK;
@@ -479,6 +482,10 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect, nsBorderStyle aB
     // Make sure that regular windows are opaque from the start, so that
     // nsChildView::WidgetTypeSupportsAcceleration returns true for them.
     [mWindow setOpaque:YES];
+  }
+
+  if (mAlwaysOnTop) {
+    [mWindow setLevel:NSFloatingWindowLevel];
   }
 
   [mWindow setContentMinSize:NSMakeSize(60, 60)];
@@ -3205,8 +3212,17 @@ static const NSString* kStateWantsTitleDrawn = @"wantsTitleDrawn";
   return YES;
 }
 
-- (NSView*)hitTest:(NSPoint)aPoint {
-  return nil;
+- (void)mouseUp:(NSEvent*)event {
+  if ([event clickCount] == 2) {
+    // Handle titlebar double click. We don't get the window's default behavior here because the
+    // window uses NSFullSizeContentViewWindowMask, and this view (the titlebar gradient view) is
+    // technically part of the window "contents" (it's a subview of the content view).
+    if (nsCocoaUtils::ShouldZoomOnTitlebarDoubleClick()) {
+      [[self window] performZoom:nil];
+    } else if (nsCocoaUtils::ShouldMinimizeOnTitlebarDoubleClick()) {
+      [[self window] performMiniaturize:nil];
+    }
+  }
 }
 
 @end
@@ -3312,7 +3328,7 @@ static const NSString* kStateWantsTitleDrawn = @"wantsTitleDrawn";
   if (needTitlebarView && !mTitlebarGradientView) {
     mTitlebarGradientView = [[TitlebarGradientView alloc] initWithFrame:[self titlebarRect]];
     mTitlebarGradientView.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
-    [self.contentView addSubview:mTitlebarGradientView];
+    [self.contentView addSubview:mTitlebarGradientView positioned:NSWindowBelow relativeTo:nil];
   } else if (!needTitlebarView && mTitlebarGradientView) {
     [mTitlebarGradientView removeFromSuperview];
     [mTitlebarGradientView release];

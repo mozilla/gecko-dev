@@ -43,11 +43,17 @@ import {
   getContext,
 } from "../../../selectors";
 
+type OwnProps = {|
+  source: Source,
+  selectedSource: ?Source,
+  breakpoint: BreakpointType,
+  editor: SourceEditor,
+|};
 type Props = {
   cx: Context,
   breakpoint: BreakpointType,
   breakpoints: BreakpointType[],
-  selectedSource: Source,
+  selectedSource: ?Source,
   source: Source,
   frame: FormattedFrame,
   editor: SourceEditor,
@@ -65,7 +71,7 @@ type Props = {
 };
 
 class Breakpoint extends PureComponent<Props> {
-  onContextMenu = e => {
+  onContextMenu = (e: SyntheticEvent<HTMLElement>) => {
     showContextMenu({ ...this.props, contextMenuEvent: e });
   };
 
@@ -83,13 +89,13 @@ class Breakpoint extends PureComponent<Props> {
     }
   };
 
-  selectBreakpoint = event => {
+  selectBreakpoint = (event: SyntheticEvent<>) => {
     event.preventDefault();
     const { cx, selectSpecificLocation } = this.props;
     selectSpecificLocation(cx, this.selectedLocation);
   };
 
-  removeBreakpoint = event => {
+  removeBreakpoint = (event: SyntheticEvent<>) => {
     const { cx, removeBreakpoint, breakpoint } = this.props;
     event.stopPropagation();
     removeBreakpoint(cx, breakpoint);
@@ -139,7 +145,7 @@ class Breakpoint extends PureComponent<Props> {
   }
 
   highlightText = memoize(
-    (text = "", editor) => {
+    (text: string = "", editor: SourceEditor) => {
       const node = document.createElement("div");
       editor.CodeMirror.runMode(text, "application/javascript", node);
       return { __html: node.innerHTML };
@@ -211,13 +217,13 @@ const getFormattedFrame = createSelector(
   }
 );
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state, p: OwnProps) => ({
   cx: getContext(state),
   breakpoints: getBreakpointsList(state),
   frame: getFormattedFrame(state, getCurrentThread(state)),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     enableBreakpoint: actions.enableBreakpoint,

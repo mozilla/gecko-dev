@@ -132,6 +132,7 @@
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 #include "nsIAppStartup.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/TextEvents.h"  // For WidgetKeyboardEvent
@@ -4098,6 +4099,25 @@ bool nsWindow::DispatchPluginEvent(UINT aMessage, WPARAM aWParam,
   return ret;
 }
 
+void nsWindow::DispatchPluginSettingEvents() {
+  // Update scroll wheel properties.
+  {
+    LRESULT lresult;
+    MSGResult msgResult(&lresult);
+    MSG msg =
+        WinUtils::InitMSG(WM_SETTINGCHANGE, SPI_SETWHEELSCROLLLINES, 0, mWnd);
+    ProcessMessageForPlugin(msg, msgResult);
+  }
+
+  {
+    LRESULT lresult;
+    MSGResult msgResult(&lresult);
+    MSG msg =
+        WinUtils::InitMSG(WM_SETTINGCHANGE, SPI_SETWHEELSCROLLCHARS, 0, mWnd);
+    ProcessMessageForPlugin(msg, msgResult);
+  }
+}
+
 bool nsWindow::TouchEventShouldStartDrag(EventMessage aEventMessage,
                                          LayoutDeviceIntPoint aEventPoint) {
   // Allow users to start dragging by double-tapping.
@@ -4806,7 +4826,7 @@ const char16_t* GetQuitType() {
 // The result means whether this method processed the native
 // event for plugin. If false, the native event should be
 // processed by the caller self.
-bool nsWindow::ProcessMessageForPlugin(const MSG& aMsg, MSGResult& aResult) {
+bool nsWindow::ProcessMessageForPlugin(MSG aMsg, MSGResult& aResult) {
   aResult.mResult = 0;
   aResult.mConsumed = true;
 
@@ -4826,6 +4846,27 @@ bool nsWindow::ProcessMessageForPlugin(const MSG& aMsg, MSGResult& aResult) {
     case WM_SYSKEYDOWN:
       aResult.mResult = ProcessKeyDownMessage(aMsg, &eventDispatched);
       break;
+
+    case WM_SETTINGCHANGE: {
+      // If there was a change in scroll wheel settings then shove the new
+      // value into the unused lParam so that the client doesn't need to ask
+      // for it.
+      if ((aMsg.wParam != SPI_SETWHEELSCROLLLINES) &&
+          (aMsg.wParam != SPI_SETWHEELSCROLLCHARS)) {
+        return false;
+      }
+      UINT wheelDelta = 0;
+      UINT getMsg = (aMsg.wParam == SPI_SETWHEELSCROLLLINES)
+                        ? SPI_GETWHEELSCROLLLINES
+                        : SPI_GETWHEELSCROLLCHARS;
+      if (NS_WARN_IF(!::SystemParametersInfo(getMsg, 0, &wheelDelta, 0))) {
+        // Use system default scroll amount, 3, when
+        // SPI_GETWHEELSCROLLLINES/CHARS isn't available.
+        wheelDelta = 3;
+      }
+      aMsg.lParam = wheelDelta;
+      break;
+    }
 
     case WM_DEADCHAR:
     case WM_SYSDEADCHAR:
@@ -7231,8 +7272,8 @@ bool nsWindow::HasBogusPopupsDropShadowOnMultiMonitor() {
                                                                : TRI_FALSE;
     if (!sHasBogusPopupsDropShadowOnMultiMonitor) {
       // Otherwise check if Direct3D 9 may be used.
-      if (gfxConfig::IsEnabled(Feature::HW_COMPOSITING) &&
-          !gfxConfig::IsEnabled(Feature::OPENGL_COMPOSITING)) {
+      if (gfxConfig::IsEnabled(gfx::Feature::HW_COMPOSITING) &&
+          !gfxConfig::IsEnabled(gfx::Feature::OPENGL_COMPOSITING)) {
         nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
         if (gfxInfo) {
           int32_t status;
@@ -7241,7 +7282,7 @@ bool nsWindow::HasBogusPopupsDropShadowOnMultiMonitor() {
                   nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, discardFailureId,
                   &status))) {
             if (status == nsIGfxInfo::FEATURE_STATUS_OK ||
-                gfxConfig::IsForcedOnByUser(Feature::HW_COMPOSITING)) {
+                gfxConfig::IsForcedOnByUser(gfx::Feature::HW_COMPOSITING)) {
               sHasBogusPopupsDropShadowOnMultiMonitor = TRI_TRUE;
             }
           }
@@ -7455,6 +7496,29 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode) {
     mCompositorWidgetDelegate->UpdateTransparency(aMode);
   }
   UpdateGlass();
+
+  // Clear window by transparent black when compositor window is used in GPU
+  // process and non-client area rendering by DWM is enabled.
+  // It is for showing non-client area rendering. See nsWindow::UpdateGlass().
+  if (HasGlass() && GetLayerManager()->AsKnowsCompositor() &&
+      GetLayerManager()->AsKnowsCompositor()->GetUseCompositorWnd()) {
+    HDC hdc;
+    RECT rect;
+    hdc = ::GetWindowDC(mWnd);
+    ::GetWindowRect(mWnd, &rect);
+    ::MapWindowPoints(nullptr, mWnd, (LPPOINT)&rect, 2);
+    ::FillRect(hdc, &rect,
+               reinterpret_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+    ReleaseDC(mWnd, hdc);
+  }
+
+  // Disable double buffering with D3D compositor for disabling compositor
+  // window usage.
+  if (HasGlass() && !gfxVars::UseWebRender() &&
+      gfxVars::UseDoubleBufferingWithCompositor()) {
+    gfxVars::SetUseDoubleBufferingWithCompositor(false);
+    GPUProcessManager::Get()->ResetCompositors();
+  }
 }
 
 #endif  // MOZ_XUL

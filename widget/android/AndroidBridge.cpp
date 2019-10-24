@@ -235,20 +235,26 @@ bool AndroidBridge::GetHandlersForMimeType(const nsAString& aMimeType,
   return true;
 }
 
-bool AndroidBridge::GetHWEncoderCapability() {
-  ALOG_BRIDGE("AndroidBridge::GetHWEncoderCapability");
+bool AndroidBridge::HasHWVP8Encoder() {
+  ALOG_BRIDGE("AndroidBridge::HasHWVP8Encoder");
 
-  bool value = GeckoAppShell::GetHWEncoderCapability();
+  bool value = GeckoAppShell::HasHWVP8Encoder();
 
   return value;
 }
 
-bool AndroidBridge::GetHWDecoderCapability() {
-  ALOG_BRIDGE("AndroidBridge::GetHWDecoderCapability");
+bool AndroidBridge::HasHWVP8Decoder() {
+  ALOG_BRIDGE("AndroidBridge::HasHWVP8Decoder");
 
-  bool value = GeckoAppShell::GetHWDecoderCapability();
+  bool value = GeckoAppShell::HasHWVP8Decoder();
 
   return value;
+}
+
+bool AndroidBridge::HasHWH264() {
+  ALOG_BRIDGE("AndroidBridge::HasHWH264");
+
+  return HardwareCodecCapabilityUtils::HasHWH264();
 }
 
 bool AndroidBridge::GetHandlersForURL(const nsAString& aURL,
@@ -292,12 +298,12 @@ void AndroidBridge::GetExtensionFromMimeType(const nsACString& aMimeType,
   }
 }
 
-gfx::Rect AndroidBridge::getScreenSize()
-{
+gfx::Rect AndroidBridge::getScreenSize() {
   ALOG_BRIDGE("AndroidBridge::getScreenSize");
 
   java::sdk::Rect::LocalRef screenrect = GeckoAppShell::GetScreenSize();
-  gfx::Rect screensize(screenrect->Left(), screenrect->Top(), screenrect->Width(), screenrect->Height());
+  gfx::Rect screensize(screenrect->Left(), screenrect->Top(),
+                       screenrect->Width(), screenrect->Height());
 
   return screensize;
 }

@@ -399,17 +399,10 @@ static bool PrincipalImmuneToScriptPolicy(nsIPrincipal* aPrincipal) {
   // Check whether our URI is an "about:" URI that allows scripts.  If it is,
   // we need to allow JS to run.
   if (aPrincipal->SchemeIs("about")) {
-    nsCOMPtr<nsIURI> principalURI;
-    aPrincipal->GetURI(getter_AddRefs(principalURI));
-    MOZ_ASSERT(principalURI);
-    nsCOMPtr<nsIAboutModule> module;
-    nsresult rv = NS_GetAboutModule(principalURI, getter_AddRefs(module));
-    if (NS_SUCCEEDED(rv)) {
-      uint32_t flags;
-      rv = module->GetURIFlags(principalURI, &flags);
-      if (NS_SUCCEEDED(rv) && (flags & nsIAboutModule::ALLOW_SCRIPT)) {
-        return true;
-      }
+    uint32_t flags;
+    nsresult rv = aPrincipal->GetAboutModuleFlags(&flags);
+    if (NS_SUCCEEDED(rv) && (flags & nsIAboutModule::ALLOW_SCRIPT)) {
+      return true;
     }
   }
 
@@ -2901,10 +2894,9 @@ static nsresult ReadSourceFromFilename(JSContext* cx, const char* filename,
     ptr += bytesRead;
   }
 
-  size_t bytesAllocated;
   if (utf8Source) {
     // |buf| is already UTF-8, so we can directly return it.
-    *len = bytesAllocated = rawLen;
+    *len = rawLen;
     *utf8Source = buf.release();
   } else {
     MOZ_ASSERT(twoByteSource != nullptr);
@@ -2920,8 +2912,6 @@ static nsresult ReadSourceFromFilename(JSContext* cx, const char* filename,
     if (!*twoByteSource) {
       return NS_ERROR_FAILURE;
     }
-
-    bytesAllocated = *len * sizeof(char16_t);
   }
 
   return NS_OK;
@@ -3023,7 +3013,7 @@ js::UniquePtr<EdgeRange> ReflectorNode::edges(JSContext* cx,
   // to guard against uninitialized objects.
   nsISupports* supp = UnwrapDOMObjectToISupports(&get());
   if (supp) {
-    JS::AutoSuppressGCAnalysis nogc; // bug 1582326
+    JS::AutoSuppressGCAnalysis nogc;  // bug 1582326
 
     nsINode* node;
     // UnwrapDOMObjectToISupports can only return non-null if its argument is
@@ -3284,7 +3274,7 @@ JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
     RefPtr<BasePrincipal> key = BasePrincipal::Cast(principal);
     if (Principal2JSObjectMap::Ptr p = mUAWidgetScopeMap.lookup(key)) {
       scope = p->value();
-      break; // Need ~RefPtr to run, and potentially GC, before returning.
+      break;  // Need ~RefPtr to run, and potentially GC, before returning.
     }
 
     SandboxOptions options;
@@ -3298,12 +3288,12 @@ JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
     nsTArray<nsCOMPtr<nsIPrincipal>> principalAsArray(1);
     principalAsArray.AppendElement(principal);
     RefPtr<ExpandedPrincipal> ep = ExpandedPrincipal::Create(
-      principalAsArray, principal->OriginAttributesRef());
+        principalAsArray, principal->OriginAttributesRef());
 
     // Create the sandbox.
     RootedValue v(cx);
     nsresult rv = CreateSandboxObject(
-      cx, &v, static_cast<nsIExpandedPrincipal*>(ep), options);
+        cx, &v, static_cast<nsIExpandedPrincipal*>(ep), options);
     NS_ENSURE_SUCCESS(rv, nullptr);
     scope = &v.toObject();
 

@@ -9,9 +9,6 @@
 </head>
 <body>
 <script type="application/javascript">
-const LMCBackstagePass = SpecialPowers.Cu.import("resource://gre/modules/LoginManagerContent.jsm");
-const { LoginManagerContent } = LMCBackstagePass;
-
 SimpleTest.requestFlakyTimeout("Testing that a message doesn't arrive");
 
 let loadPromise = new Promise(resolve => {

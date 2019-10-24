@@ -1681,7 +1681,8 @@ SECStatus ssl_SetAuthKeyBits(sslSocket *ss, const SECKEYPublicKey *pubKey);
 SECStatus ssl3_AuthCertificate(sslSocket *ss);
 SECStatus ssl_ReadCertificateStatus(sslSocket *ss, PRUint8 *b,
                                     PRUint32 length);
-SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, sslBuffer *buf);
+SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion,
+                             sslBuffer *buf);
 SECStatus ssl_GetCertificateRequestCAs(const sslSocket *ss,
                                        unsigned int *calenp,
                                        const SECItem **namesp,
@@ -1736,6 +1737,8 @@ SECStatus ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes);
 SECStatus ssl_InsertRecordHeader(const sslSocket *ss, ssl3CipherSpec *cwSpec,
                                  SSLContentType contentType, sslBuffer *wrBuf,
                                  PRBool *needsLength);
+PRBool ssl_SignatureSchemeValid(SSLSignatureScheme scheme, SECOidTag spkiOid,
+                                PRBool isTls13);
 
 /* Pull in DTLS functions */
 #include "dtlscon.h"

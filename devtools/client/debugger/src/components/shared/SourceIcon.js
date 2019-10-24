@@ -19,13 +19,19 @@ import type { Symbols } from "../../reducers/types";
 
 import "./SourceIcon.css";
 
+type OwnProps = {|
+  source: Source,
+
+  // An additional validator for the icon returned
+  shouldHide?: string => boolean,
+|};
 type Props = {
   source: Source,
+  shouldHide?: string => boolean,
+
   // symbols will provide framework information
-  symbols: Symbols,
-  // An additional validator for the icon returned
-  shouldHide?: Function,
-  framework?: string,
+  symbols: ?Symbols,
+  framework: ?string,
 };
 
 class SourceIcon extends PureComponent<Props> {
@@ -43,7 +49,7 @@ class SourceIcon extends PureComponent<Props> {
   }
 }
 
-export default connect((state, props) => ({
+export default connect<Props, OwnProps, _, _, _, _>((state, props) => ({
   symbols: getSymbols(state, props.source),
   framework: getFramework(getTabs(state), props.source.url),
 }))(SourceIcon);

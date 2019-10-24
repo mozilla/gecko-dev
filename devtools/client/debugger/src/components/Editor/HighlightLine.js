@@ -17,21 +17,28 @@ import {
 } from "../../selectors";
 
 import type {
-  Frame,
   SourceLocation,
   SourceWithContent,
   SourceDocuments,
 } from "../../types";
 import type { Command } from "../../reducers/types";
 
+type HighlightFrame = {
+  location: SourceLocation,
+};
+
+type OwnProps = {||};
 type Props = {
   pauseCommand: Command,
-  selectedFrame: Frame,
+  selectedFrame: ?HighlightFrame,
   selectedLocation: SourceLocation,
   selectedSource: ?SourceWithContent,
 };
 
-function isDebugLine(selectedFrame: Frame, selectedLocation: SourceLocation) {
+function isDebugLine(
+  selectedFrame: ?HighlightFrame,
+  selectedLocation: SourceLocation
+) {
   if (!selectedFrame) {
     return;
   }
@@ -49,6 +56,13 @@ function isDocumentReady(selectedSource: ?SourceWithContent, selectedLocation) {
     selectedSource.content &&
     hasDocument(selectedLocation.sourceId)
   );
+}
+
+function getCSSTiming(style: Object, variable: string): number {
+  const value = style.getPropertyValue(variable);
+  const variableNumber = value.match(/\d+/);
+
+  return variableNumber.length ? Number(variableNumber[0]) : 0;
 }
 
 export class HighlightLine extends Component<Props> {
@@ -110,7 +124,7 @@ export class HighlightLine extends Component<Props> {
 
   setHighlightLine(
     selectedLocation: SourceLocation,
-    selectedFrame: Frame,
+    selectedFrame: ?HighlightFrame,
     selectedSource: ?SourceWithContent
   ) {
     const { sourceId, line } = selectedLocation;
@@ -141,14 +155,12 @@ export class HighlightLine extends Component<Props> {
     }
 
     const style = getComputedStyle(editorWrapper);
-    const durationString = style.getPropertyValue("--highlight-line-duration");
-
-    let duration = durationString.match(/\d+/);
-    duration = duration.length ? Number(duration[0]) : 0;
+    const duration = getCSSTiming(style, "--highlight-line-duration");
+    const delay = getCSSTiming(style, "--highlight-line-delay");
 
     setTimeout(
       () => doc && doc.removeLineClass(editorLine, "line", "highlight-line"),
-      duration
+      duration + delay
     );
   }
 
@@ -171,9 +183,16 @@ export class HighlightLine extends Component<Props> {
   }
 }
 
-export default connect(state => ({
-  pauseCommand: getPauseCommand(state, getCurrentThread(state)),
-  selectedFrame: getVisibleSelectedFrame(state),
-  selectedLocation: getSelectedLocation(state),
-  selectedSource: getSelectedSourceWithContent(state),
-}))(HighlightLine);
+export default connect<Props, OwnProps, _, _, _, _>(state => {
+  const selectedLocation = getSelectedLocation(state);
+
+  if (!selectedLocation) {
+    throw new Error("must have selected location");
+  }
+  return {
+    pauseCommand: getPauseCommand(state, getCurrentThread(state)),
+    selectedFrame: getVisibleSelectedFrame(state),
+    selectedLocation,
+    selectedSource: getSelectedSourceWithContent(state),
+  };
+})(HighlightLine);

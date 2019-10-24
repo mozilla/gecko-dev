@@ -1335,7 +1335,7 @@ HttpTrafficCategory nsHttpChannel::CreateTrafficCategory() {
     uint32_t flags = isThirdParty ? mThirdPartyClassificationFlags
                                   : mFirstPartyClassificationFlags;
 
-    using CF = nsIHttpChannel::ClassificationFlags;
+    using CF = nsIClassifiedChannel::ClassificationFlags;
     using TC = HttpTrafficAnalyzer::TrackingClassification;
 
     if (flags & CF::CLASSIFIED_TRACKING_CONTENT) {
@@ -1766,6 +1766,8 @@ nsresult nsHttpChannel::CallOnStartRequest() {
     LOG(("CallOnStartRequest already invoked before"));
     return mStatus;
   }
+
+  ReportContentTypeTelemetryForCrossOriginStylesheets();
 
   mTracingEnabled = false;
 
@@ -2571,9 +2573,8 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
 
   rv = NS_OK;
   if (!mCanceled) {
-    ComputeCrossOriginOpenerPolicyMismatch();
-    if (mHasCrossOriginOpenerPolicyMismatch &&
-        GetHasSandboxedAuxiliaryNavigations()) {
+    rv = ComputeCrossOriginOpenerPolicyMismatch();
+    if (rv == NS_ERROR_BLOCKED_BY_POLICY) {
       // this navigates the doc's browsing context to a network error.
       mStatus = NS_ERROR_BLOCKED_BY_POLICY;
       HandleAsyncAbort();
@@ -7288,6 +7289,23 @@ nsHttpChannel::HasCrossOriginOpenerPolicyMismatch(bool* aMismatch) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsHttpChannel::GetCrossOriginOpenerPolicy(
+    nsILoadInfo::CrossOriginOpenerPolicy* aPolicy) {
+  MOZ_ASSERT(aPolicy);
+  if (!aPolicy) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  // If this method is called before OnStartRequest (ie. before we call
+  // ComputeCrossOriginOpenerPolicy) or if we were unable to compute the
+  // policy we'll throw an error.
+  if (!mComputedCrossOriginOpenerPolicy.isSome()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  *aPolicy = mComputedCrossOriginOpenerPolicy.value();
+  return NS_OK;
+}
+
 nsresult nsHttpChannel::StartCrossProcessRedirect() {
   nsresult rv;
 
@@ -7378,7 +7396,18 @@ nsresult nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch() {
   nsILoadInfo::CrossOriginOpenerPolicy documentPolicy = ctx->GetOpenerPolicy();
   nsILoadInfo::CrossOriginOpenerPolicy resultPolicy =
       nsILoadInfo::OPENER_POLICY_NULL;
-  Unused << GetCrossOriginOpenerPolicy(documentPolicy, &resultPolicy);
+  Unused << ComputeCrossOriginOpenerPolicy(documentPolicy, &resultPolicy);
+  mComputedCrossOriginOpenerPolicy = Some(resultPolicy);
+
+  // If bc's popup sandboxing flag set is not empty and potentialCOOP is
+  // non-null, then navigate bc to a network error and abort these steps.
+  if (resultPolicy != nsILoadInfo::OPENER_POLICY_NULL &&
+      GetHasNonEmptySandboxingFlag()) {
+    LOG(
+        ("nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch network error "
+         "for non empty sandboxing and non null COOP"));
+    return NS_ERROR_BLOCKED_BY_POLICY;
+  }
 
   if (!ctx->Canonical()->GetCurrentWindowGlobal()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -7706,10 +7735,9 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
   rv = NS_OK;
   if (!mCanceled) {
     // notify "http-on-may-change-process" observers
-    ComputeCrossOriginOpenerPolicyMismatch();
+    rv = ComputeCrossOriginOpenerPolicyMismatch();
 
-    if (mHasCrossOriginOpenerPolicyMismatch &&
-        GetHasSandboxedAuxiliaryNavigations()) {
+    if (rv == NS_ERROR_BLOCKED_BY_POLICY) {
       // this navigates the doc's browsing context to a network error.
       mStatus = NS_ERROR_BLOCKED_BY_POLICY;
       HandleAsyncAbort();
@@ -8072,6 +8100,93 @@ nsresult nsHttpChannel::ContinueOnStopRequestAfterAuthRetry(
   }
 
   return ContinueOnStopRequest(aStatus, aIsFromNet, aContentComplete);
+}
+
+class HeaderValuesVisitor final : public nsIHttpHeaderVisitor {
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIHTTPHEADERVISITOR
+
+  nsTArray<nsCString>& Get() { return mHeaderValues; }
+
+ private:
+  nsTArray<nsCString> mHeaderValues;
+  ~HeaderValuesVisitor() = default;
+};
+
+NS_IMETHODIMP HeaderValuesVisitor::VisitHeader(const nsACString& aHeader,
+                                               const nsACString& aValue) {
+  mHeaderValues.AppendElement(aValue);
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS(HeaderValuesVisitor, nsIHttpHeaderVisitor)
+
+void nsHttpChannel::ReportContentTypeTelemetryForCrossOriginStylesheets() {
+  // Only record for successful requests.
+  if (NS_FAILED(mStatus)) {
+    return;
+  }
+  // Only record for stylesheet requests
+  if (!mContentTypeHint.EqualsLiteral("text/css") &&
+      mLoadInfo->GetExternalContentPolicyType() !=
+          nsIContentPolicy::TYPE_STYLESHEET) {
+    return;
+  }
+
+  if (!mLoadInfo->LoadingPrincipal()) {
+    // No loading principal to check if it's same-origin
+    return;
+  }
+
+  nsCOMPtr<nsIURI> docURI = mLoadInfo->LoadingPrincipal()->GetURI();
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  bool isPrivateWin = mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+  nsresult rv = ssm->CheckSameOriginURI(mURI, docURI, false, isPrivateWin);
+  bool isSameOrigin = NS_SUCCEEDED(rv);
+
+  // Only report cross origin stylesheet requests
+  if (isSameOrigin) {
+    return;
+  }
+
+  RefPtr<HeaderValuesVisitor> visitor = new HeaderValuesVisitor();
+  rv = GetOriginalResponseHeader(NS_LITERAL_CSTRING("Content-Type"), visitor);
+
+  auto allEmptyValues = [&visitor]() {
+    for (const auto& v : visitor->Get()) {
+      if (!v.IsEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  nsAutoCString contentType;
+  if (mResponseHead) {
+    mResponseHead->ContentType(contentType);
+  }
+
+  typedef Telemetry::LABELS_NETWORK_CROSS_ORIGIN_STYLESHEET_CONTENT_TYPE
+      CTLabels;
+  CTLabels label;
+  if (rv == NS_ERROR_NOT_AVAILABLE) {
+    // No Content-Type header
+    label = CTLabels::NoHeader;
+  } else if (allEmptyValues()) {
+    // Any/all Content-Type headers are empty
+    label = CTLabels::EmptyHeader;
+  } else if (contentType.IsEmpty()) {
+    // failed to parse
+    label = CTLabels::FailedToParse;
+  } else if (contentType.EqualsLiteral("text/css")) {
+    // text/css
+    label = CTLabels::ParsedTextCSS;
+  } else {
+    // some other value
+    label = CTLabels::ParsedOther;
+  }
+
+  Telemetry::AccumulateCategorical(label);
 }
 
 nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,

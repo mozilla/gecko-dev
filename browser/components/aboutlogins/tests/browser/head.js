@@ -65,6 +65,7 @@ async function addLogin(login) {
 }
 
 let EXPECTED_BREACH = null;
+let EXPECTED_ERROR_MESSAGE = null;
 add_task(async function setup() {
   const collection = await RemoteSettings(
     LoginBreaches.REMOTE_SETTINGS_COLLECTION
@@ -81,7 +82,40 @@ add_task(async function setup() {
       { data: { current: [EXPECTED_BREACH] } }
     );
   }
+
+  SpecialPowers.registerConsoleListener(function onConsoleMessage(msg) {
+    if (msg.isWarning || !msg.errorMessage) {
+      // Ignore warnings and non-errors.
+      return;
+    }
+    if (
+      msg.errorMessage == "Refreshing device list failed." ||
+      msg.errorMessage == "Skipping device list refresh; not signed in"
+    ) {
+      // Ignore errors from browser-sync.js.
+      return;
+    }
+    if (
+      msg.errorMessage.includes(
+        "ReferenceError: MigrationWizard is not defined"
+      )
+    ) {
+      // todo(Bug 1587237): Ignore error when loading the Migration Wizard in automation.
+      return;
+    }
+    if (msg.errorMessage.includes("Can't find profile directory.")) {
+      // Ignore error messages for no profile found in old XULStore.jsm
+      return;
+    }
+    if (msg.errorMessage.includes(EXPECTED_ERROR_MESSAGE)) {
+      return;
+    }
+    ok(false, msg.message || msg.errorMessage);
+  });
+
   registerCleanupFunction(async () => {
+    EXPECTED_ERROR_MESSAGE = null;
     await collection.clear();
+    SpecialPowers.postConsoleSentinel();
   });
 });

@@ -2260,12 +2260,6 @@ AttachDecision GetPropIRGenerator::tryAttachTypedElement(
     return AttachDecision::NoAction;
   }
 
-  // BigInt boxing not yet implemented.
-  if (obj->is<TypedArrayObject>() &&
-      Scalar::isBigIntType(obj->as<TypedArrayObject>().type())) {
-    return AttachDecision::NoAction;
-  }
-
   // Don't attach typed object stubs if the underlying storage could be
   // detached, as the stub will always bail out.
   if (IsPrimitiveArrayTypedObject(obj) && cx_->zone()->detachedTypedObjects) {
@@ -3411,8 +3405,39 @@ AttachDecision SetPropIRGenerator::tryAttachTypedObjectProperty(
   // Scalar types can always be stored without a type update stub.
   if (fieldDescr->is<ScalarTypeDescr>()) {
     Scalar::Type type = fieldDescr->as<ScalarTypeDescr>().type();
+
+    Maybe<OperandId> rhsValId;
+    switch (type) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+      case Scalar::Int16:
+      case Scalar::Uint16:
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        rhsValId.emplace(writer.guardToInt32ModUint32(rhsId));
+        break;
+
+      case Scalar::Float32:
+      case Scalar::Float64:
+        rhsValId.emplace(writer.guardIsNumber(rhsId));
+        break;
+
+      case Scalar::Uint8Clamped:
+        rhsValId.emplace(writer.guardToUint8Clamped(rhsId));
+        break;
+
+      case Scalar::BigInt64:
+      case Scalar::BigUint64:
+        rhsValId.emplace(writer.guardToBigInt(rhsId));
+        break;
+
+      case Scalar::MaxTypedArrayViewType:
+      case Scalar::Int64:
+        MOZ_CRASH("Unsupported TypedArray type");
+    }
+
     writer.storeTypedObjectScalarProperty(objId, fieldOffset, layout, type,
-                                          rhsId);
+                                          *rhsValId);
     writer.returnFromIC();
 
     trackAttached("TypedObject");
@@ -3885,16 +3910,6 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedElement(
     return AttachDecision::NoAction;
   }
 
-  if (!rhsVal_.isNumber()) {
-    return AttachDecision::NoAction;
-  }
-
-  // bigIntArray[index] = rhsVal_ will throw as the RHS is a number.
-  if (obj->is<TypedArrayObject>() &&
-      Scalar::isBigIntType(obj->as<TypedArrayObject>().type())) {
-    return AttachDecision::NoAction;
-  }
-
   bool handleOutOfBounds = false;
   if (obj->is<TypedArrayObject>()) {
     handleOutOfBounds = (index >= obj->as<TypedArrayObject>().length());
@@ -3915,6 +3930,17 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedElement(
   Scalar::Type elementType = TypedThingElementType(obj);
   TypedThingLayout layout = GetTypedThingLayout(obj->getClass());
 
+  // Don't attach if the input type doesn't match the guard added below.
+  if (Scalar::isBigIntType(elementType)) {
+    if (!rhsVal_.isBigInt()) {
+      return AttachDecision::NoAction;
+    }
+  } else {
+    if (!rhsVal_.isNumber()) {
+      return AttachDecision::NoAction;
+    }
+  }
+
   if (IsPrimitiveArrayTypedObject(obj)) {
     writer.guardNoDetachedTypedObjects();
     writer.guardGroupForLayout(objId, obj->group());
@@ -3922,7 +3948,37 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedElement(
     writer.guardShapeForClass(objId, obj->as<TypedArrayObject>().shape());
   }
 
-  writer.storeTypedElement(objId, indexId, rhsId, layout, elementType,
+  Maybe<OperandId> rhsValId;
+  switch (elementType) {
+    case Scalar::Int8:
+    case Scalar::Uint8:
+    case Scalar::Int16:
+    case Scalar::Uint16:
+    case Scalar::Int32:
+    case Scalar::Uint32:
+      rhsValId.emplace(writer.guardToInt32ModUint32(rhsId));
+      break;
+
+    case Scalar::Float32:
+    case Scalar::Float64:
+      rhsValId.emplace(writer.guardIsNumber(rhsId));
+      break;
+
+    case Scalar::Uint8Clamped:
+      rhsValId.emplace(writer.guardToUint8Clamped(rhsId));
+      break;
+
+    case Scalar::BigInt64:
+    case Scalar::BigUint64:
+      rhsValId.emplace(writer.guardToBigInt(rhsId));
+      break;
+
+    case Scalar::MaxTypedArrayViewType:
+    case Scalar::Int64:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+
+  writer.storeTypedElement(objId, layout, elementType, indexId, *rhsValId,
                            handleOutOfBounds);
   writer.returnFromIC();
 

@@ -26,6 +26,9 @@ function addNewLine(doc: Object) {
   doc.replaceRange("\n", pos);
 }
 
+type OwnProps = {|
+  editor: Object,
+|};
 type Props = {
   cx: Context,
   breakpoint: ?Object,
@@ -234,10 +237,11 @@ export class ConditionalPanel extends PureComponent<Props> {
 const mapStateToProps = state => {
   const location = getConditionalPanelLocation(state);
 
-  // location type could be null.
-  const breakpoint: ?Breakpoint = location
-    ? getClosestBreakpoint(state, location)
-    : undefined;
+  if (!location) {
+    throw new Error("Conditional panel location needed.");
+  }
+
+  const breakpoint: ?Breakpoint = getClosestBreakpoint(state, location);
 
   return {
     cx: getContext(state),
@@ -259,7 +263,7 @@ const mapDispatchToProps = {
   closeConditionalPanel,
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   mapDispatchToProps
 )(ConditionalPanel);

@@ -113,7 +113,9 @@
 #include "nsAttrName.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
-#include "nsBindingManager.h"
+#ifdef MOZ_XBL
+#  include "nsBindingManager.h"
+#endif
 #include "nsCanvasFrame.h"
 #include "nsCaret.h"
 #include "nsCCUncollectableMarker.h"
@@ -167,6 +169,7 @@
 #include "nsIForm.h"
 #include "nsIFragmentContentSink.h"
 #include "nsContainerFrame.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIIdleService.h"
 #include "nsIImageLoadingContent.h"
@@ -552,12 +555,6 @@ class nsContentUtils::UserInteractionObserver final
  private:
   ~UserInteractionObserver() {}
 };
-
-/* static */
-TimeDuration nsContentUtils::HandlingUserInputTimeout() {
-  return TimeDuration::FromMilliseconds(
-      StaticPrefs::dom_event_handling_user_input_time_limit());
-}
 
 // static
 nsresult nsContentUtils::Init() {
@@ -2152,9 +2149,13 @@ bool nsContentUtils::ThreadsafeIsSystemCaller(JSContext* aCx) {
 bool nsContentUtils::LookupBindingMember(
     JSContext* aCx, nsIContent* aContent, JS::Handle<jsid> aId,
     JS::MutableHandle<JS::PropertyDescriptor> aDesc) {
+#ifdef MOZ_XBL
   nsXBLBinding* binding = aContent->GetXBLBinding();
   if (!binding) return true;
   return binding->LookupMember(aCx, aId, aDesc);
+#else
+  return true;
+#endif
 }
 
 // static
@@ -6413,38 +6414,6 @@ bool nsContentUtils::ChannelShouldInheritPrincipal(
 }
 
 /* static */
-const char* nsContentUtils::CheckRequestFullscreenAllowed(
-    CallerType aCallerType) {
-  if (!StaticPrefs::full_screen_api_allow_trusted_requests_only() ||
-      aCallerType == CallerType::System) {
-    return nullptr;
-  }
-
-  if (!UserActivation::IsHandlingUserInput()) {
-    return "FullscreenDeniedNotInputDriven";
-  }
-
-  // If more time has elapsed since the user input than is specified by the
-  // dom.event.handling-user-input-time-limit pref (default 1 second),
-  // disallow fullscreen
-  TimeDuration timeout = HandlingUserInputTimeout();
-  if (timeout > TimeDuration(nullptr) &&
-      (TimeStamp::Now() - UserActivation::GetHandlingInputStart()) > timeout) {
-    return "FullscreenDeniedNotInputDriven";
-  }
-
-  // Entering full-screen on mouse mouse event is only allowed with left mouse
-  // button
-  if (StaticPrefs::full_screen_api_mouse_event_allow_left_button_only() &&
-      (EventStateManager::sCurrentMouseBtn == MouseButton::eMiddle ||
-       EventStateManager::sCurrentMouseBtn == MouseButton::eRight)) {
-    return "FullscreenDeniedMouseEventOnlyLeftBtn";
-  }
-
-  return nullptr;
-}
-
-/* static */
 bool nsContentUtils::IsCutCopyAllowed(nsIPrincipal* aSubjectPrincipal) {
   if (StaticPrefs::dom_allow_cut_copy() &&
       UserActivation::IsHandlingUserInput()) {
@@ -8025,13 +7994,13 @@ bool nsContentUtils::IsTrackingResourceWindow(nsPIDOMWindowInner* aWindow) {
     return false;
   }
 
-  nsCOMPtr<nsIHttpChannel> httpChannel =
+  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
       do_QueryInterface(document->GetChannel());
-  if (!httpChannel) {
+  if (!classifiedChannel) {
     return false;
   }
 
-  return httpChannel->IsTrackingResource();
+  return classifiedChannel->IsTrackingResource();
 }
 
 // static public
@@ -8044,13 +8013,13 @@ bool nsContentUtils::IsThirdPartyTrackingResourceWindow(
     return false;
   }
 
-  nsCOMPtr<nsIHttpChannel> httpChannel =
+  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
       do_QueryInterface(document->GetChannel());
-  if (!httpChannel) {
+  if (!classifiedChannel) {
     return false;
   }
 
-  return httpChannel->IsThirdPartyTrackingResource();
+  return classifiedChannel->IsThirdPartyTrackingResource();
 }
 
 namespace {

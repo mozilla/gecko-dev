@@ -46,6 +46,17 @@ const PROMPT_NOTNOW = 2;
 const PROMPT_NEVER = 3;
 
 /**
+ * The minimum age of a doorhanger in ms before it will get removed after a locationchange
+ */
+const NOTIFICATION_TIMEOUT_MS = 10 * 1000; // 10 seconds
+
+/**
+ * The minimum age of an attention-requiring dismissed doorhanger in ms
+ * before it will get removed after a locationchange
+ */
+const ATTENTION_NOTIFICATION_TIMEOUT_MS = 60 * 1000; // 1 minute
+
+/**
  * A helper module to prevent modal auth prompt abuse.
  */
 const PromptAbuseHelper = {
@@ -1086,15 +1097,10 @@ LoginManagerPrompter.prototype = {
     };
 
     let writeDataToUI = () => {
-      // setAttribute is used in addition to setting the property since the
-      // <textbox> binding may not be attached yet.
-      chromeDoc
-        .getElementById("password-notification-username")
-        .setAttribute("placeholder", usernamePlaceholder);
       let nameField = chromeDoc.getElementById(
         "password-notification-username"
       );
-      nameField.setAttribute("value", login.username);
+      nameField.placeholder = usernamePlaceholder;
       nameField.value = login.username;
 
       let toggleCheckbox = chromeDoc.getElementById(
@@ -1105,8 +1111,7 @@ LoginManagerPrompter.prototype = {
         "password-notification-password"
       );
       // Ensure the type is reset so the field is masked.
-      passwordField.setAttribute("type", "password");
-      passwordField.setAttribute("value", login.password);
+      passwordField.type = "password";
       passwordField.value = login.password;
       updateButtonLabel();
     };
@@ -1292,6 +1297,11 @@ LoginManagerPrompter.prototype = {
 
     let popupNote = this._getPopupNote();
     let notificationID = "password";
+    // keep attention notifications around for longer after a locationchange
+    const timeoutMs =
+      showOptions.dismissed && showOptions.extraAttr == "attention"
+        ? ATTENTION_NOTIFICATION_TIMEOUT_MS
+        : NOTIFICATION_TIMEOUT_MS;
     popupNote.show(
       browser,
       notificationID,
@@ -1301,7 +1311,7 @@ LoginManagerPrompter.prototype = {
       secondaryActions,
       Object.assign(
         {
-          timeout: Date.now() + 10000,
+          timeout: Date.now() + timeoutMs,
           persistWhileVisible: true,
           passwordNotificationType: type,
           hideClose: true,

@@ -307,13 +307,80 @@ module.exports = {
     "rules": {
       "no-async-promise-executor": "off",
     }
-  },{
+  }, {
     "files": [
-      "toolkit/**",
-      "browser/**",
+      "browser/base/content/test/chrome/test_aboutCrashed.xhtml",
+      "browser/base/content/test/chrome/test_aboutRestartRequired.xhtml",
+      "browser/base/content/test/general/browser_tab_dragdrop2_frame1.xhtml",
+      "browser/components/places/tests/chrome/test_0_bug510634.xhtml",
+      "browser/components/places/tests/chrome/test_bug1163447_selectItems_through_shortcut.xhtml",
+      "browser/components/places/tests/chrome/test_0_bug510634.xhtml",
+      "browser/components/places/tests/chrome/test_bug1163447_selectItems_through_shortcut.xhtml",
+      "browser/components/places/tests/chrome/test_bug549192.xhtml",
+      "browser/components/places/tests/chrome/test_bug549491.xhtml",
+      "browser/components/places/tests/chrome/test_selectItems_on_nested_tree.xhtml",
+      "browser/components/places/tests/chrome/test_treeview_date.xhtml",
     ],
     "rules": {
-      "mozilla/prefer-boolean-length-check": "error",
+      "mozilla/no-arbitrary-setTimeout": "off",
+      "object-shorthand": "off",
+      "no-undef": "off",
+      "no-unused-vars": "off",
+    }
+  }, {
+    "files": [
+      "accessible/tests/mochitest/actions/test_keys_menu.xhtml",
+      "accessible/tests/mochitest/elm/test_listbox.xhtml",
+      "accessible/tests/mochitest/events/test_focus_autocomplete.xhtml",
+      "accessible/tests/mochitest/events/test_focus_contextmenu.xhtml",
+      "accessible/tests/mochitest/events/test_tree.xhtml",
+      "accessible/tests/mochitest/hittest/test_zoom_tree.xhtml",
+      "accessible/tests/mochitest/name/test_general.xhtml",
+      "accessible/tests/mochitest/name/test_tree.xhtml",
+      "accessible/tests/mochitest/selectable/test_listbox.xhtml",
+      "accessible/tests/mochitest/states/test_expandable.xhtml",
+      "accessible/tests/mochitest/tree/test_button.xhtml",
+      "accessible/tests/mochitest/tree/test_tree.xhtml",
+      "accessible/tests/mochitest/treeupdate/test_contextmenu.xhtml",
+      "accessible/tests/mochitest/treeupdate/test_menu.xhtml",
+    ],
+    "rules": {
+      "object-shorthand": "off",
+      "mozilla/no-compare-against-boolean-literals": "off",
+      "mozilla/use-cc-etc": "off",
+      "consistent-return": "off",
+      "no-redeclare": "off",
+      "no-sequences": "off",
+      "no-shadow": "off",
+      "no-unused-vars": "off",
+      "no-useless-call": "off",
+    }
+  }, {
+    "files": [
+      "accessible/**",
+      "devtools/**",
+      "dom/**",
+      "docshell/**",
+      "editor/libeditor/tests/**",
+      "editor/spellchecker/tests/test_bug338427.html",
+      "gfx/**",
+      "image/test/browser/browser_image.js",
+      "js/src/builtin/**",
+      "layout/**",
+      "mobile/android/**",
+      "modules/**",
+      "netwerk/**",
+      "remote/**",
+      "security/manager/**",
+      "services/**",
+      "storage/test/unit/test_vacuum.js",
+      "taskcluster/docker/periodic-updates/scripts/**",
+      "testing/**",
+      "tools/**",
+      "widget/tests/test_assign_event_data.html",
+    ],
+    "rules": {
+      "mozilla/prefer-boolean-length-check": "off",
     }
   }]
 };

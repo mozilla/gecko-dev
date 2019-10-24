@@ -59,6 +59,16 @@ nsNetworkLinkService::GetNetworkID(nsACString& aNetworkID) {
 }
 
 NS_IMETHODIMP
+nsNetworkLinkService::GetDnsSuffixList(nsTArray<nsCString>& aDnsSuffixList) {
+  if (!mNetlinkSvc) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  mNetlinkSvc->GetDnsSuffixList(aDnsSuffixList);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsNetworkLinkService::Observe(nsISupports* subject, const char* topic,
                               const char16_t* data) {
   if (!strcmp("xpcom-shutdown-threads", topic)) {

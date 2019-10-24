@@ -114,6 +114,10 @@ class PictureInPictureToggleChild extends ActorChild {
         // This is a DeferredTask to hide the toggle after a period of mouse
         // inactivity.
         hideToggleDeferredTask: null,
+        // If we reach a point where we're tracking videos for mouse movements,
+        // then this will be true. If there are no videos worth tracking, then
+        // this is false.
+        isTrackingVideos: false,
       };
       this.weakDocStates.set(this.content.document, state);
     }
@@ -162,6 +166,14 @@ class PictureInPictureToggleChild extends ActorChild {
       }
       case "mousemove": {
         this.onMouseMove(event);
+        break;
+      }
+      case "pageshow": {
+        this.onPageShow(event);
+        break;
+      }
+      case "pagehide": {
+        this.onPageHide(event);
         break;
       }
     }
@@ -330,7 +342,14 @@ class PictureInPictureToggleChild extends ActorChild {
       mozSystemGroup: true,
       capture: true,
     });
+    this.content.addEventListener("pageshow", this, {
+      mozSystemGroup: true,
+    });
+    this.content.addEventListener("pagehide", this, {
+      mozSystemGroup: true,
+    });
     this.addMouseButtonListeners();
+    state.isTrackingVideos = true;
   }
 
   /**
@@ -345,10 +364,49 @@ class PictureInPictureToggleChild extends ActorChild {
       mozSystemGroup: true,
       capture: true,
     });
+    this.content.removeEventListener("pageshow", this, {
+      mozSystemGroup: true,
+    });
+    this.content.removeEventListener("pagehide", this, {
+      mozSystemGroup: true,
+    });
     this.removeMouseButtonListeners();
     let oldOverVideo = state.weakOverVideo && state.weakOverVideo.get();
     if (oldOverVideo) {
       this.onMouseLeaveVideo(oldOverVideo);
+    }
+    state.isTrackingVideos = false;
+  }
+
+  /**
+   * This pageshow event handler will get called if and when we complete a tab
+   * tear out or in. If we happened to be tracking videos before the tear
+   * occurred, we re-add the mouse event listeners so that they're attached to
+   * the right WindowRoot.
+   *
+   * @param {Event} event The pageshow event fired when completing a tab tear
+   * out or in.
+   */
+  onPageShow(event) {
+    let state = this.docState;
+    if (state.isTrackingVideos) {
+      this.addMouseButtonListeners();
+    }
+  }
+
+  /**
+   * This pagehide event handler will get called if and when we start a tab
+   * tear out or in. If we happened to be tracking videos before the tear
+   * occurred, we remove the mouse event listeners. We'll re-add them when the
+   * pageshow event fires.
+   *
+   * @param {Event} event The pagehide event fired when starting a tab tear
+   * out or in.
+   */
+  onPageHide(event) {
+    let state = this.docState;
+    if (state.isTrackingVideos) {
+      this.removeMouseButtonListeners();
     }
   }
 
@@ -947,21 +1005,8 @@ class PictureInPictureChild extends ActorChild {
     }
 
     let doc = this.content.document;
-    // Clone the original video to get its MediaInfo (specifically, it's dimensions)
-    // set right away, but also pause the video since we don't need two copies of it
-    // playing at the same time. The originating video will be "projected" onto the
-    // cloned Picture-in-Picture player video via cloneElementVisually.
-    let playerVideo = originatingVideo.cloneNode();
-    playerVideo.pause();
-    playerVideo.removeAttribute("controls");
+    let playerVideo = doc.createElement("video");
 
-    // Mute the video and rely on the originating video's audio playback.
-    // This way, we sidestep the AutoplayPolicy blocking stuff.
-    playerVideo.muted = true;
-
-    // Strip any inline styles off of the video, and try to get rid of any surrounding
-    // whitespace.
-    playerVideo.setAttribute("style", "");
     doc.body.style.overflow = "hidden";
     doc.body.style.margin = "0";
 
@@ -969,6 +1014,8 @@ class PictureInPictureChild extends ActorChild {
     // containing window
     playerVideo.style.height = "100vh";
     playerVideo.style.width = "100vw";
+    playerVideo.style.backgroundImage =
+      'url("chrome://global/skin/media/imagedoc-darknoise.png")';
 
     doc.body.appendChild(playerVideo);
 

@@ -92,21 +92,13 @@ html, body, #app, #memory-tool {
   margin-inline-end: 5px;
 }
 
-.devtools-toolbar > .toolbar-group > label.display-by > span {
-  margin-inline-end: 5px;
-}
-
-.devtools-toolbar > .toolbar-group > label.label-by > span {
-  margin-inline-end: 5px;
-}
-
 .devtools-toolbar > label {
   margin-inline-end: 5px;
   display: flex;
   align-items: center;
 }
 
-#select-view {
+.devtools-toolbar-select {
   margin-inline-start: 5px;
 }
 
@@ -405,7 +397,10 @@ html, body, #app, #memory-tool {
 }
 
 .children-pointer {
-  padding-inline-end: 5px;
+  display: inline-block;
+  /* We use transform to reverse the icon in RTL,
+   * so `padding-right` will get reversed as well. */
+  padding-right: 5px;
 }
 
 .children-pointer:dir(rtl) {

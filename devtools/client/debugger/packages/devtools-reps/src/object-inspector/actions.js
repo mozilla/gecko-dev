@@ -7,7 +7,7 @@
 import type { GripProperties, Node, Props, ReduxAction } from "./types";
 
 const { loadItemProperties } = require("./utils/load-properties");
-const { getPathExpression, getValue } = require("./utils/node");
+const { getPathExpression, getValue, nodeIsBucket } = require("./utils/node");
 const { getLoadedProperties, getActors, getWatchpoints } = require("./reducer");
 
 type Dispatch = ReduxAction => void;
@@ -37,7 +37,7 @@ function nodeCollapse(node: Node) {
 
 /*
  * This action checks if we need to fetch properties, entries, prototype and
- * symbols for a given node. If we do, it will call the appropriate ObjectClient
+ * symbols for a given node. If we do, it will call the appropriate ObjectFront
  * functions.
  */
 function nodeLoadProperties(node: Node, actor) {
@@ -79,7 +79,12 @@ function nodePropertiesLoaded(
 function addWatchpoint(item, watchpoint: string) {
   return async function({ dispatch, client }: ThunkArgs) {
     const { parent, name } = item;
-    const object = getValue(parent);
+    let object = getValue(parent);
+
+    if (nodeIsBucket(parent)) {
+      object = getValue(parent.parent);
+    }
+
     if (!object) {
       return;
     }
@@ -103,9 +108,15 @@ function addWatchpoint(item, watchpoint: string) {
  */
 function removeWatchpoint(item) {
   return async function({ dispatch, client }: ThunkArgs) {
-    const object = getValue(item.parent);
-    const property = item.name;
-    const path = item.parent.path;
+    const { parent, name } = item;
+    let object = getValue(parent);
+
+    if (nodeIsBucket(parent)) {
+      object = getValue(parent.parent);
+    }
+
+    const property = name;
+    const path = parent.path;
     const actor = object.actor;
 
     await client.removeWatchpoint(object, property);
@@ -173,11 +184,8 @@ function invokeGetter(
 ) {
   return async ({ dispatch, client, getState }: ThunkArg) => {
     try {
-      const objectClient = client.createObjectClient(targetGrip);
-      const result = await objectClient.getPropertyValue(
-        getterName,
-        receiverId
-      );
+      const objectFront = client.createObjectFront(targetGrip);
+      const result = await objectFront.getPropertyValue(getterName, receiverId);
       dispatch({
         type: "GETTER_INVOKED",
         data: {

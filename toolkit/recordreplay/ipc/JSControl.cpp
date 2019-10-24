@@ -265,7 +265,7 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
       return false;
     }
 
-    nsDependentCString dataCString((const char*)dataChars, dataLength);
+    nsDependentCSubstring dataCString((const char*)dataChars, dataLength);
     nsresult rv = Base64Decode(dataCString, dataBinary);
     decodeFailed = NS_FAILED(rv);
   }
@@ -599,7 +599,8 @@ static bool FetchContent(JSContext* aCx, HandleString aURL,
   // the HTML itself and for each inline script.
   ContentInfo* best = nullptr;
   for (ContentInfo& info : gContent) {
-    if (JS_FlatStringEqualsAscii(JS_ASSERT_STRING_IS_FLAT(aURL), info.mURL)) {
+    if (JS_LinearStringEqualsAscii(JS_ASSERT_STRING_IS_LINEAR(aURL),
+                                   info.mURL)) {
       if (!best || info.Length() > best->Length()) {
         best = &info;
       }

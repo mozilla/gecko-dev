@@ -129,7 +129,9 @@ const CFR_MESSAGES = [
       layout: "addon_recommendation",
       category: "cfrAddons",
       bucket_id: "CFR_M1",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: {
+        string_id: "cfr-doorhanger-extension-notification2",
+      },
       heading_text: { string_id: "cfr-doorhanger-extension-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -198,7 +200,9 @@ const CFR_MESSAGES = [
       layout: "addon_recommendation",
       category: "cfrAddons",
       bucket_id: "CFR_M1",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: {
+        string_id: "cfr-doorhanger-extension-notification2",
+      },
       heading_text: { string_id: "cfr-doorhanger-extension-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -268,7 +272,9 @@ const CFR_MESSAGES = [
       layout: "addon_recommendation",
       category: "cfrAddons",
       bucket_id: "CFR_M1",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: {
+        string_id: "cfr-doorhanger-extension-notification2",
+      },
       heading_text: { string_id: "cfr-doorhanger-extension-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -339,7 +345,9 @@ const CFR_MESSAGES = [
       layout: "addon_recommendation",
       category: "cfrAddons",
       bucket_id: "CFR_M1",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: {
+        string_id: "cfr-doorhanger-extension-notification2",
+      },
       heading_text: { string_id: "cfr-doorhanger-extension-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -413,7 +421,9 @@ const CFR_MESSAGES = [
       layout: "addon_recommendation",
       category: "cfrAddons",
       bucket_id: "CFR_M1",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: {
+        string_id: "cfr-doorhanger-extension-notification2",
+      },
       heading_text: { string_id: "cfr-doorhanger-extension-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -483,7 +493,7 @@ const CFR_MESSAGES = [
       layout: "message_and_animation",
       category: "cfrFeatures",
       bucket_id: "CFR_PIN_TAB",
-      notification_text: { string_id: "cfr-doorhanger-extension-notification" },
+      notification_text: { string_id: "cfr-doorhanger-feature-notification" },
       heading_text: { string_id: "cfr-doorhanger-pintab-heading" },
       info_icon: {
         label: { string_id: "cfr-doorhanger-extension-sumo-link" },
@@ -597,7 +607,7 @@ const CFR_MESSAGES = [
         sumo_path: "extensionrecommendations",
       },
       notification_text: {
-        string_id: "cfr-doorhanger-extension-notification",
+        string_id: "cfr-doorhanger-feature-notification",
       },
       category: "cfrFeatures",
     },
@@ -641,14 +651,18 @@ const CFR_MESSAGES = [
         ],
       },
     },
-    targeting: "pageLoad >= 4",
+    targeting: "pageLoad >= 4 && firefoxVersion >= 71",
     frequency: {
       lifetime: 2,
       custom: [{ period: 2 * 86400 * 1000, cap: 1 }],
     },
     trigger: {
       id: "trackingProtection",
-      params: [Ci.nsIWebProgressListener.STATE_BLOCKED_SOCIALTRACKING_CONTENT],
+      params: [
+        Ci.nsIWebProgressListener.STATE_BLOCKED_SOCIALTRACKING_CONTENT,
+        Ci.nsIWebProgressListener.STATE_LOADED_SOCIALTRACKING_CONTENT |
+          Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_TRACKER,
+      ],
     },
   },
   {
@@ -687,7 +701,7 @@ const CFR_MESSAGES = [
         ],
       },
     },
-    targeting: "pageLoad >= 4",
+    targeting: "pageLoad >= 4 && firefoxVersion >= 71",
     frequency: {
       lifetime: 2,
       custom: [{ period: 2 * 86400 * 1000, cap: 1 }],
@@ -733,7 +747,7 @@ const CFR_MESSAGES = [
         ],
       },
     },
-    targeting: "pageLoad >= 4",
+    targeting: "pageLoad >= 4 && firefoxVersion >= 71",
     frequency: {
       lifetime: 2,
       custom: [{ period: 2 * 86400 * 1000, cap: 1 }],
@@ -741,6 +755,35 @@ const CFR_MESSAGES = [
     trigger: {
       id: "trackingProtection",
       params: [Ci.nsIWebProgressListener.STATE_BLOCKED_CRYPTOMINING_CONTENT],
+    },
+  },
+  {
+    id: "MILESTONE_MESSAGE",
+    template: "milestone_message",
+    content: {
+      layout: "short_message",
+      category: "cfrFeatures",
+      anchor_id: "tracking-protection-icon-box",
+      skip_address_bar_notifier: true,
+      bucket_id: "CFR_MILESTONE_MESSAGE",
+      heading_text: { string_id: "cfr-doorhanger-milestone-heading" },
+      notification_text: "",
+      text: "",
+      buttons: {
+        primary: {
+          label: { string_id: "cfr-doorhanger-milestone-ok-button" },
+          action: { type: "OPEN_PROTECTION_REPORT" },
+          event: "PROTECTION",
+        },
+      },
+    },
+    targeting: "pageLoad >= 4",
+    frequency: {
+      lifetime: 7, // Length of privacy.trackingprotection.cfr-milestone.milestones pref
+    },
+    trigger: {
+      id: "trackingProtection",
+      params: ["ContentBlockingMilestone"],
     },
   },
 ];

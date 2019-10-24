@@ -817,9 +817,11 @@ nsPresContext* nsPresContext::GetToplevelContentDocumentPresContext() {
 
 nsIWidget* nsPresContext::GetNearestWidget(nsPoint* aOffset) {
   NS_ENSURE_TRUE(mPresShell, nullptr);
-  nsIFrame* frame = mPresShell->GetRootFrame();
-  NS_ENSURE_TRUE(frame, nullptr);
-  return frame->GetView()->GetNearestWidget(aOffset);
+  nsViewManager* vm = mPresShell->GetViewManager();
+  NS_ENSURE_TRUE(vm, nullptr);
+  nsView* rootView = vm->GetRootView();
+  NS_ENSURE_TRUE(rootView, nullptr);
+  return rootView->GetNearestWidget(aOffset);
 }
 
 nsIWidget* nsPresContext::GetRootWidget() const {
@@ -1037,19 +1039,15 @@ static bool CheckOverflow(const ComputedStyle* aComputedStyle,
     return false;
   }
 
-  if (display->mOverflowX == StyleOverflow::Visible &&
-      display->mOverscrollBehaviorX == StyleOverscrollBehavior::Auto &&
-      display->mOverscrollBehaviorY == StyleOverscrollBehavior::Auto &&
-      display->mScrollSnapType.strictness == StyleScrollSnapStrictness::None) {
+  if (display->mOverflowX == StyleOverflow::Visible) {
+    MOZ_ASSERT(display->mOverflowY == StyleOverflow::Visible);
     return false;
   }
 
-  WritingMode writingMode = WritingMode(aComputedStyle);
   if (display->mOverflowX == StyleOverflow::MozHiddenUnscrollable) {
-    *aStyles = ScrollStyles(writingMode, StyleOverflow::Hidden,
-                            StyleOverflow::Hidden, display);
+    *aStyles = ScrollStyles(StyleOverflow::Hidden, StyleOverflow::Hidden);
   } else {
-    *aStyles = ScrollStyles(writingMode, display);
+    *aStyles = ScrollStyles(*display);
   }
   return true;
 }
@@ -2372,8 +2370,9 @@ void nsPresContext::NotifyContentfulPaint() {
             Some(rootPresContext->mRefreshDriver->LastTransactionId().Next());
 #if defined(MOZ_WIDGET_ANDROID)
         (new AsyncEventDispatcher(mDocument,
-            NS_LITERAL_STRING("MozFirstContentfulPaint"), CanBubble::eYes,
-            ChromeOnlyDispatch::eYes))->PostDOMEvent();
+                                  NS_LITERAL_STRING("MozFirstContentfulPaint"),
+                                  CanBubble::eYes, ChromeOnlyDispatch::eYes))
+            ->PostDOMEvent();
 #endif
       }
     }

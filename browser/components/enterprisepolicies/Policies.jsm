@@ -112,17 +112,33 @@ var Policies = {
         );
       }
       if ("AllowNonFQDN" in param) {
-        if (param.AllowNonFQDN.NTLM) {
+        if ("NTLM" in param.AllowNonFQDN) {
           setDefaultPref(
             "network.automatic-ntlm-auth.allow-non-fqdn",
             param.AllowNonFQDN.NTLM,
             locked
           );
         }
-        if (param.AllowNonFQDN.SPNEGO) {
+        if ("SPNEGO" in param.AllowNonFQDN) {
           setDefaultPref(
             "network.negotiate-auth.allow-non-fqdn",
             param.AllowNonFQDN.SPNEGO,
+            locked
+          );
+        }
+      }
+      if ("AllowProxies" in param) {
+        if ("NTLM" in param.AllowProxies) {
+          setDefaultPref(
+            "network.automatic-ntlm-auth.allow-proxies",
+            param.AllowProxies.NTLM,
+            locked
+          );
+        }
+        if ("SPNEGO" in param.AllowProxies) {
+          setDefaultPref(
+            "network.negotiate-auth.allow-proxies",
+            param.AllowProxies.SPNEGO,
             locked
           );
         }
@@ -446,6 +462,14 @@ var Policies = {
     onBeforeUIStartup(manager, param) {
       if (param) {
         manager.disallowFeature("createMasterPassword");
+      }
+    },
+  },
+
+  DisablePasswordReveal: {
+    onBeforeUIStartup(manager, param) {
+      if (param) {
+        manager.disallowFeature("passwordReveal");
       }
     },
   },
@@ -1282,6 +1306,40 @@ var Policies = {
                   await Services.search.setDefault(defaultEngine);
                 } catch (ex) {
                   log.error("Unable to set the default search engine", ex);
+                }
+              }
+            }
+          );
+        }
+        if (param.DefaultPrivate) {
+          await runOncePerModification(
+            "setDefaultPrivateSearchEngine",
+            param.DefaultPrivate,
+            async () => {
+              let defaultPrivateEngine;
+              try {
+                defaultPrivateEngine = Services.search.getEngineByName(
+                  param.DefaultPrivate
+                );
+                if (!defaultPrivateEngine) {
+                  throw new Error("No engine by that name could be found");
+                }
+              } catch (ex) {
+                log.error(
+                  `Search engine lookup failed when attempting to set ` +
+                    `the default private engine. Requested engine was ` +
+                    `"${param.DefaultPrivate}".`,
+                  ex
+                );
+              }
+              if (defaultPrivateEngine) {
+                try {
+                  await Services.search.setDefaultPrivate(defaultPrivateEngine);
+                } catch (ex) {
+                  log.error(
+                    "Unable to set the default private search engine",
+                    ex
+                  );
                 }
               }
             }

@@ -12,9 +12,11 @@ describe("CFRPageActions", () => {
   let globals;
   let containerElem;
   let elements;
+  let announceStub;
 
   const elementIDs = [
     "urlbar",
+    "urlbar-input",
     "contextual-feature-recommendation",
     "cfr-button",
     "cfr-label",
@@ -40,6 +42,8 @@ describe("CFRPageActions", () => {
     sandbox = sinon.createSandbox();
     clock = sandbox.useFakeTimers();
 
+    announceStub = sandbox.stub();
+    const A11yUtils = { announce: announceStub };
     fakeRecommendation = { ...FAKE_RECOMMENDATION };
     fakeHost = "mozilla.org";
     fakeBrowser = {
@@ -63,6 +67,7 @@ describe("CFRPageActions", () => {
       },
       PrivateBrowsingUtils: { isWindowPrivate: sandbox.stub().returns(false) },
       gBrowser: { selectedBrowser: fakeBrowser },
+      A11yUtils,
     });
     document.createXULElement = document.createElement;
 
@@ -93,22 +98,19 @@ describe("CFRPageActions", () => {
 
   describe("PageAction", () => {
     let pageAction;
-    let getStringsStub;
 
     beforeEach(() => {
       pageAction = new PageAction(window, dispatchStub);
-      getStringsStub = sandbox.stub(pageAction, "getStrings").resolves("");
     });
 
     describe("#showAddressBarNotifier", () => {
       it("should un-hideAddressBarNotifier the element and set the right label value", async () => {
-        const FAKE_NOTIFICATION_TEXT = "FAKE_NOTIFICATION_TEXT";
-        getStringsStub
-          .withArgs(fakeRecommendation.content.notification_text)
-          .resolves(FAKE_NOTIFICATION_TEXT);
         await pageAction.showAddressBarNotifier(fakeRecommendation);
         assert.isFalse(pageAction.container.hidden);
-        assert.equal(pageAction.label.value, FAKE_NOTIFICATION_TEXT);
+        assert.equal(
+          pageAction.label.value,
+          fakeRecommendation.content.notification_text
+        );
       });
       it("should wait for the document layout to flush", async () => {
         sandbox.spy(pageAction.label, "getClientRects");
@@ -355,7 +357,6 @@ describe("CFRPageActions", () => {
       ];
 
       beforeEach(() => {
-        getStringsStub.restore();
         formatMessagesStub = sandbox
           .stub()
           .withArgs({ id: "hello_world" })
@@ -432,6 +433,7 @@ describe("CFRPageActions", () => {
     describe("#_showPopupOnClick", () => {
       let translateElementsStub;
       let setAttributesStub;
+      let getStringsStub;
       beforeEach(async () => {
         CFRPageActions.PageActionMap.set(fakeBrowser.ownerGlobal, pageAction);
         await CFRPageActions.addRecommendation(
@@ -440,6 +442,7 @@ describe("CFRPageActions", () => {
           fakeRecommendation,
           dispatchStub
         );
+        getStringsStub = sandbox.stub(pageAction, "getStrings").resolves("");
         getStringsStub
           .callsFake(async a => a) // eslint-disable-line max-nested-callbacks
           .withArgs({ string_id: "primary_button_id" })
@@ -745,6 +748,46 @@ describe("CFRPageActions", () => {
           "event",
           "PIN"
         );
+      });
+    });
+
+    describe("#_createDOML10n", () => {
+      let domL10nStub;
+      beforeEach(() => {
+        domL10nStub = sandbox.stub();
+
+        globals.set("DOMLocalization", domL10nStub);
+      });
+      it("should load the remote Fluent file if USE_REMOTE_L10N_PREF is true", () => {
+        sandbox.stub(global.Services.prefs, "getBoolPref").returns(true);
+        pageAction._createDOML10n();
+
+        assert.calledOnce(domL10nStub);
+        const { args } = domL10nStub.firstCall;
+        // The first arg is the resource array, and the second one is the bundle generator.
+        assert.equal(args.length, 2);
+        assert.deepEqual(args[0], [
+          "browser/newtab/asrouter.ftl",
+          "browser/branding/brandings.ftl",
+          "browser/branding/sync-brand.ftl",
+          "branding/brand.ftl",
+        ]);
+        assert.isFunction(args[1]);
+      });
+      it("should load the local Fluent file if USE_REMOTE_L10N_PREF is false", () => {
+        sandbox.stub(global.Services.prefs, "getBoolPref").returns(false);
+        pageAction._createDOML10n();
+
+        const { args } = domL10nStub.firstCall;
+        // The first arg is the resource array, and the second one should be null.
+        assert.equal(args.length, 2);
+        assert.deepEqual(args[0], [
+          "browser/newtab/asrouter.ftl",
+          "browser/branding/brandings.ftl",
+          "browser/branding/sync-brand.ftl",
+          "branding/brand.ftl",
+        ]);
+        assert.isUndefined(args[1]);
       });
     });
   });
@@ -1065,6 +1108,32 @@ describe("CFRPageActions", () => {
         for (const browser of browsers) {
           assert.isFalse(CFRPageActions.RecommendationMap.has(browser));
         }
+      });
+    });
+
+    describe("reloadL10n", () => {
+      const createFakePageAction = () => ({
+        hideAddressBarNotifier() {},
+        reloadL10n: sandbox.stub(),
+      });
+      const windows = [{}, {}, { closed: true }];
+
+      beforeEach(() => {
+        CFRPageActions.PageActionMap.set(windows[0], createFakePageAction());
+        CFRPageActions.PageActionMap.set(windows[2], createFakePageAction());
+        globals.set({ Services: { wm: { getEnumerator: () => windows } } });
+      });
+
+      it("should call reloadL10n for all the PageActions of any existing, non-closed windows", () => {
+        const pageActions = windows.map(win =>
+          CFRPageActions.PageActionMap.get(win)
+        );
+        CFRPageActions.reloadL10n();
+
+        // Only the first window had a PageAction and wasn't closed
+        assert.calledOnce(pageActions[0].reloadL10n);
+        assert.isUndefined(pageActions[1]);
+        assert.notCalled(pageActions[2].reloadL10n);
       });
     });
   });

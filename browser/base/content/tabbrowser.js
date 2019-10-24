@@ -1332,9 +1332,6 @@
       // In full screen mode, only bother making the location bar visible
       // if the tab is a blank one.
       if (newBrowser._urlbarFocused && gURLBar) {
-        // Explicitly close the popup if the URL bar retains focus
-        gURLBar.view.close();
-
         // If the user happened to type into the URL bar for this browser
         // by the time we got here, focusing will cause the text to be
         // selected which could cause them to overwrite what they've
@@ -1612,6 +1609,7 @@
       var aFocusUrlBar;
       var aName;
       var aCsp;
+      var aSkipLoad;
       if (
         arguments.length == 2 &&
         typeof arguments[1] == "object" &&
@@ -1642,6 +1640,7 @@
         aFocusUrlBar = params.focusUrlBar;
         aName = params.name;
         aCsp = params.csp;
+        aSkipLoad = params.skipLoad;
       }
 
       // all callers of loadOneTab need to pass a valid triggeringPrincipal.
@@ -1682,6 +1681,7 @@
         focusUrlBar: aFocusUrlBar,
         name: aName,
         csp: aCsp,
+        skipLoad: aSkipLoad,
       });
       if (!bgLoad) {
         this.selectedTab = tab;
@@ -2094,6 +2094,7 @@
       sameProcessAsFrameLoader,
       uriIsAboutBlank,
       userContextId,
+      skipLoad,
     } = {}) {
       let b = document.createXULElement("browser");
       // Use the JSM global to create the permanentKey, so that if the
@@ -2210,7 +2211,7 @@
 
       // Prevent the superfluous initial load of a blank document
       // if we're going to load something other than about:blank.
-      if (!uriIsAboutBlank) {
+      if (!uriIsAboutBlank || skipLoad) {
         b.setAttribute("nodefaultsrc", "true");
       }
 
@@ -2577,6 +2578,7 @@
         recordExecution,
         replayExecution,
         csp,
+        skipLoad,
       } = {}
     ) {
       // all callers of addTab that pass a params object need to pass
@@ -2810,6 +2812,7 @@
             name,
             recordExecution,
             replayExecution,
+            skipLoad,
           });
         }
 
@@ -2903,7 +2906,8 @@
       // then let's just continue loading the page normally.
       if (
         !usingPreloadedContent &&
-        (!uriIsAboutBlank || !allowInheritPrincipal)
+        (!uriIsAboutBlank || !allowInheritPrincipal) &&
+        !skipLoad
       ) {
         // pretend the user typed this so it'll be available till
         // the document successfully loads

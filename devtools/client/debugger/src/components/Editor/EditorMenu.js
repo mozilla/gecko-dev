@@ -25,6 +25,12 @@ import type { SourceWithContent, ThreadContext } from "../../types";
 import type { EditorItemActions } from "./menus/editor";
 import type SourceEditor from "../../utils/editor/source-editor";
 
+type OwnProps = {|
+  selectedSource: SourceWithContent,
+  contextMenu: ?MouseEvent,
+  clearContextMenu: () => void,
+  editor: SourceEditor,
+|};
 type Props = {
   cx: ThreadContext,
   contextMenu: ?MouseEvent,
@@ -37,8 +43,6 @@ type Props = {
 };
 
 class EditorMenu extends Component<Props> {
-  props: Props;
-
   componentWillUpdate(nextProps: Props) {
     this.props.clearContextMenu();
     if (nextProps.contextMenu) {
@@ -46,7 +50,7 @@ class EditorMenu extends Component<Props> {
     }
   }
 
-  showMenu(props) {
+  showMenu(props: Props) {
     const {
       cx,
       editor,
@@ -98,7 +102,7 @@ const mapDispatchToProps = dispatch => ({
   editorActions: editorItemActions(dispatch),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   mapDispatchToProps
 )(EditorMenu);

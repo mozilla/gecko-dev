@@ -5,22 +5,6 @@ const BASIC_FORM_PAGE_PATH = DIRECTORY_PATH + "form_basic.html";
 const BASIC_FORM_NO_USERNAME_PAGE_PATH =
   DIRECTORY_PATH + "form_basic_no_username.html";
 
-function getSubmitMessage() {
-  info("getSubmitMessage");
-  return new Promise((resolve, reject) => {
-    Services.mm.addMessageListener(
-      "PasswordManager:onFormSubmit",
-      function onFormSubmit() {
-        Services.mm.removeMessageListener(
-          "PasswordManager:onFormSubmit",
-          onFormSubmit
-        );
-        resolve();
-      }
-    );
-  });
-}
-
 add_task(async function test() {
   let nsLoginInfo = new Components.Constructor(
     "@mozilla.org/login-manager/loginInfo;1",
@@ -57,15 +41,15 @@ add_task(async function test() {
 
     // Convert the login object to a plain JS object for passing across process boundaries.
     login = LoginHelper.loginToVanillaObject(login);
-    ContentTask.spawn(
+    await ContentTask.spawn(
       tab.linkedBrowser,
       { login, usernameRequested },
       async ({ login: addedLogin, usernameRequested: aUsernameRequested }) => {
         const { LoginFormFactory } = ChromeUtils.import(
           "resource://gre/modules/LoginFormFactory.jsm"
         );
-        const { LoginManagerContent } = ChromeUtils.import(
-          "resource://gre/modules/LoginManagerContent.jsm"
+        const { LoginManagerChild } = ChromeUtils.import(
+          "resource://gre/modules/LoginManagerChild.jsm"
         );
         const { LoginHelper } = ChromeUtils.import(
           "resource://gre/modules/LoginHelper.jsm"
@@ -75,12 +59,17 @@ add_task(async function test() {
         let formLike = LoginFormFactory.createFromField(password);
         info("Calling _fillForm with FormLike");
         addedLogin = LoginHelper.vanillaObjectToLogin(addedLogin);
-        LoginManagerContent._fillForm(formLike, [addedLogin], null, {
-          autofillForm: true,
-          clobberUsername: true,
-          clobberPassword: true,
-          userTriggered: true,
-        });
+        LoginManagerChild.forWindow(content)._fillForm(
+          formLike,
+          [addedLogin],
+          null,
+          {
+            autofillForm: true,
+            clobberUsername: true,
+            clobberPassword: true,
+            userTriggered: true,
+          }
+        );
 
         if (aUsernameRequested) {
           let username = content.document.querySelector("#form-basic-username");
@@ -90,7 +79,7 @@ add_task(async function test() {
       }
     );
 
-    let processedPromise = getSubmitMessage();
+    let processedPromise = listenForTestNotification("FormSubmit");
     ContentTask.spawn(tab.linkedBrowser, null, () => {
       content.document.getElementById("form-basic").submit();
     });

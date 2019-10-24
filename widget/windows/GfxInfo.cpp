@@ -905,11 +905,9 @@ NS_IMETHODIMP
 GfxInfo::GetDisplayInfo(nsTArray<nsString>& aDisplayInfo) {
   for (auto displayInfo : mDisplayInfo) {
     nsString value;
-    value.AppendPrintf(
-      "%dx%d@%dHz %s",
-      displayInfo.mScreenWidth, displayInfo.mScreenHeight,
-      displayInfo.mRefreshRate, displayInfo.mIsPseudoDisplay ? "Pseudo Display" : ""
-    );
+    value.AppendPrintf("%dx%d@%dHz %s", displayInfo.mScreenWidth,
+                       displayInfo.mScreenHeight, displayInfo.mRefreshRate,
+                       displayInfo.mIsPseudoDisplay ? "Pseudo Display" : "");
 
     aDisplayInfo.AppendElement(value);
   }
@@ -1152,6 +1150,22 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         GfxDriverInfo::allDevices, GfxDriverInfo::allFeatures,
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_EQUAL,
         V(8, 783, 2, 2000), "FEATURE_FAILURE_BUG_1118695");
+
+    // Bug 1587155
+    //
+    // There are a several reports of strange rendering corruptions with this
+    // driver version, with and without webrender. We weren't able to
+    // reproduce these problems, but the users were able to update their
+    // drivers and it went away. So just to be safe, let's blacklist all
+    // gpu use with this particular (very old) driver, restricted
+    // to Win10 since we only have reports from that platform.
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows10,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorAMD),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, GfxDriverInfo::allFeatures,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_EQUAL,
+        V(22, 19, 162, 4), "FEATURE_FAILURE_BUG_1587155");
 
     // Bug 1198815
     APPEND_TO_DRIVER_BLOCKLIST_RANGE(
@@ -1773,6 +1787,48 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN,
         GfxDriverInfo::allDriverVersions,
         "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_8_1");
+
+    // Bug 1525084 - Window jumps with certain Intel drivers
+    // On nightly, we use a more conversative range of drivers that we have
+    // confirmed the issue occurs with. On beta/release, we block everything
+    // earlier to minimize the probability of missing a particular driver.
+#ifdef NIGHTLY_BUILD
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(10, 18, 15, 4256), V(10, 18, 15, 4281),
+        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
+        "Intel driver >= 21.20.16.4590");
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(20, 19, 15, 4285), V(20, 19, 15, 4835),
+        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
+        "Intel driver >= 21.20.16.4590");
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(21, 20, 16, 4471), V(21, 20, 16, 4565),
+        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
+        "Intel driver >= 21.20.16.4590");
+#else
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
+        V(21, 20, 16, 4590), "Intel driver >= 21.20.16.4590");
+#endif
   }
   return *sDriverInfo;
 }
@@ -1853,16 +1909,20 @@ nsresult GfxInfo::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray) {
   for (auto displayInfo : mDisplayInfo) {
     JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
-    JS::Rooted<JS::Value> screenWidth(aCx, JS::Int32Value(displayInfo.mScreenWidth));
+    JS::Rooted<JS::Value> screenWidth(aCx,
+                                      JS::Int32Value(displayInfo.mScreenWidth));
     JS_SetProperty(aCx, obj, "screenWidth", screenWidth);
 
-    JS::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value(displayInfo.mScreenHeight));
+    JS::Rooted<JS::Value> screenHeight(
+        aCx, JS::Int32Value(displayInfo.mScreenHeight));
     JS_SetProperty(aCx, obj, "screenHeight", screenHeight);
 
-    JS::Rooted<JS::Value> refreshRate(aCx, JS::Int32Value(displayInfo.mRefreshRate));
+    JS::Rooted<JS::Value> refreshRate(aCx,
+                                      JS::Int32Value(displayInfo.mRefreshRate));
     JS_SetProperty(aCx, obj, "refreshRate", refreshRate);
 
-    JS::Rooted<JS::Value> pseudoDisplay(aCx, JS::BooleanValue(displayInfo.mIsPseudoDisplay));
+    JS::Rooted<JS::Value> pseudoDisplay(
+        aCx, JS::BooleanValue(displayInfo.mIsPseudoDisplay));
     JS_SetProperty(aCx, obj, "pseudoDisplay", pseudoDisplay);
 
     JS::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));

@@ -25,9 +25,10 @@ import {
 
 import type { SourceLocation, Why, SourceWithContent } from "../../types";
 
+type OwnProps = {||};
 type Props = {
-  location: SourceLocation,
-  why: Why,
+  location: ?SourceLocation,
+  why: ?Why,
   source: ?SourceWithContent,
 };
 
@@ -36,7 +37,10 @@ type TextClasses = {
   lineClass: string,
 };
 
-function isDocumentReady(source: ?SourceWithContent, location) {
+function isDocumentReady(
+  source: ?SourceWithContent,
+  location: ?SourceLocation
+) {
   return location && source && source.content && hasDocument(location.sourceId);
 }
 
@@ -62,11 +66,15 @@ export class DebugLine extends PureComponent<Props> {
     endOperation();
   }
 
-  setDebugLine(why: Why, location: SourceLocation, source: ?SourceWithContent) {
-    if (!isDocumentReady(source, location)) {
+  setDebugLine(
+    why: ?Why,
+    location: ?SourceLocation,
+    source: ?SourceWithContent
+  ) {
+    if (!location || !isDocumentReady(source, location)) {
       return;
     }
-    const sourceId = location.sourceId;
+    const { sourceId } = location;
     const doc = getDocument(sourceId);
 
     let { line, column } = toEditorPosition(location);
@@ -92,11 +100,11 @@ export class DebugLine extends PureComponent<Props> {
   }
 
   clearDebugLine(
-    why: Why,
-    location: SourceLocation,
+    why: ?Why,
+    location: ?SourceLocation,
     source: ?SourceWithContent
   ) {
-    if (!isDocumentReady(source, location)) {
+    if (!location || !isDocumentReady(source, location)) {
       return;
     }
 
@@ -104,14 +112,13 @@ export class DebugLine extends PureComponent<Props> {
       this.debugExpression.clear();
     }
 
-    const sourceId = location.sourceId;
     const { line } = toEditorPosition(location);
-    const doc = getDocument(sourceId);
+    const doc = getDocument(location.sourceId);
     const { lineClass } = this.getTextClasses(why);
     doc.removeLineClass(line, "line", lineClass);
   }
 
-  getTextClasses(why: Why): TextClasses {
+  getTextClasses(why: ?Why): TextClasses {
     if (why && isException(why)) {
       return {
         markTextClass: "debug-expression-error",
@@ -139,4 +146,4 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(mapStateToProps)(DebugLine);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps)(DebugLine);

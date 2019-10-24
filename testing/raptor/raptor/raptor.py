@@ -12,6 +12,7 @@ import os
 import posixpath
 import shutil
 import signal
+import six
 import sys
 import tempfile
 import time
@@ -21,6 +22,7 @@ import requests
 import mozcrash
 import mozinfo
 import mozprocess
+import mozproxy.utils as mpu
 from logger.logger import RaptorLogger
 from mozdevice import ADBDevice
 from mozlog import commandline
@@ -65,6 +67,9 @@ from utils import view_gecko_profile, write_yml_file
 from cpu import start_android_cpu_profiler
 
 LOG = RaptorLogger(component='raptor-main')
+# Bug 1547943 - Intermittent mozrunner.errors.RunnerNotStartedError
+# - mozproxy.utils LOG displayed INFO messages even when LOG.error() was used in mitm.py
+mpu.LOG = RaptorLogger(component='raptor-mitmproxy')
 
 
 class SignalHandler:
@@ -163,6 +168,7 @@ either Raptor or browsertime."""
 
         # share the profile dir with the config and the control server
         self.config['local_profile_dir'] = self.profile.profile
+        LOG.info('Local browser profile: {}'.format(self.profile.profile))
 
     @property
     def profile_data_dir(self):
@@ -356,6 +362,26 @@ class Browsertime(Perftest):
             except Exception as e:
                 LOG.info("{}: {}".format(k, e))
 
+    def build_browser_profile(self):
+        super(Browsertime, self).build_browser_profile()
+        self.remove_mozprofile_delimiters_from_profile()
+
+    def remove_mozprofile_delimiters_from_profile(self):
+        # Perftest.build_browser_profile uses mozprofile to create the profile and merge in prefs;
+        # while merging, mozprofile adds in special delimiters; these delimiters are not recognized
+        # by selenium-webdriver ultimately causing Firefox launch to fail. So we must remove these
+        # delimiters from the browser profile before passing into btime via firefox.profileTemplate
+        LOG.info("Removing mozprofile delimiters from browser profile")
+        userjspath = os.path.join(self.profile.profile, 'user.js')
+        try:
+            with open(userjspath) as userjsfile:
+                lines = userjsfile.readlines()
+            lines = [line for line in lines if not line.startswith('#MozRunner')]
+            with open(userjspath, 'w') as userjsfile:
+                userjsfile.writelines(lines)
+        except Exception as e:
+            LOG.critical("Exception {} while removing mozprofile delimiters".format(e))
+
     def set_browser_test_prefs(self, raw_prefs):
         # add test specific preferences
         LOG.info("setting test-specific Firefox preferences")
@@ -449,7 +475,8 @@ class Browsertime(Perftest):
         cmd = ([self.browsertime_node, self.browsertime_browsertimejs] +
                self.driver_paths +
                browsertime_script +
-               ['--skipHar',
+               ['--firefox.profileTemplate', str(self.profile.profile),
+                '--skipHar',
                 '--video', 'false',
                 '--visualMetrics', 'false',
                 '--timeouts.pageLoad', str(timeout),
@@ -469,7 +496,7 @@ class Browsertime(Perftest):
             ffmpeg_dir = os.path.dirname(os.path.abspath(self.browsertime_ffmpeg))
             old_path = env.setdefault('PATH', '')
             new_path = os.pathsep.join([ffmpeg_dir, old_path])
-            if isinstance(new_path, unicode):
+            if isinstance(new_path, six.text_type):
                 # Python 2 doesn't like unicode in the environment.
                 new_path = new_path.encode('utf-8', 'strict')
             env['PATH'] = new_path
@@ -515,6 +542,11 @@ class BrowsertimeAndroid(Browsertime):
         LOG.info("Merging profile: {}".format(path))
         self.profile.merge(path)
         self.profile.set_preferences({'browser.tabs.remote.autostart': self.config['e10s']})
+
+        # There's no great way to have "after" advice in Python, so we do this
+        # in super and then again here since the profile merging re-introduces
+        # the "#MozRunner" delimiters.
+        self.remove_mozprofile_delimiters_from_profile()
 
 
 class Raptor(Perftest):
@@ -692,27 +724,27 @@ class Raptor(Perftest):
     def control_server_wait_set(self, state):
         response = requests.post("http://127.0.0.1:%s/" % self.control_server.port,
                                  json={"type": "wait-set", "data": state})
-        return response.content
+        return response.text
 
     def control_server_wait_timeout(self, timeout):
         response = requests.post("http://127.0.0.1:%s/" % self.control_server.port,
                                  json={"type": "wait-timeout", "data": timeout})
-        return response.content
+        return response.text
 
     def control_server_wait_get(self):
         response = requests.post("http://127.0.0.1:%s/" % self.control_server.port,
                                  json={"type": "wait-get", "data": ""})
-        return response.content
+        return response.text
 
     def control_server_wait_continue(self):
         response = requests.post("http://127.0.0.1:%s/" % self.control_server.port,
                                  json={"type": "wait-continue", "data": ""})
-        return response.content
+        return response.text
 
     def control_server_wait_clear(self, state):
         response = requests.post("http://127.0.0.1:%s/" % self.control_server.port,
                                  json={"type": "wait-clear", "data": state})
-        return response.content
+        return response.text
 
 
 class RaptorDesktop(Raptor):
@@ -843,6 +875,9 @@ class RaptorDesktop(Raptor):
                 # initial browser profile was already created before run_test was called;
                 # now additional browser cycles we want to create a new one each time
                 self.build_browser_profile()
+
+                # Update runner profile
+                self.runner.profile = self.profile
 
                 self.run_test_setup(test)
 
@@ -1476,7 +1511,7 @@ def main(args=sys.argv[1:]):
         for _page in pages_that_timed_out:
             message = [("TEST-UNEXPECTED-FAIL", "test '%s'" % _page['test_name']),
                        ("timed out loading test page", _page['url'])]
-            if raptor_test.get("type") == 'pageload':
+            if _page.get('pending_metrics') is not None:
                 message.append(("pending metrics", _page['pending_metrics']))
 
             LOG.critical(" ".join("%s: %s" % (subject, msg) for subject, msg in message))

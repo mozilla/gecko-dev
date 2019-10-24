@@ -10,18 +10,8 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "Utils",
-  "resource://gre/modules/sessionstore/Utils.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "E10SUtils",
-  "resource://gre/modules/E10SUtils.jsm"
 );
 
 function RemoteWebNavigation() {
@@ -39,27 +29,6 @@ RemoteWebNavigation.prototype = {
   swapBrowser(aBrowser) {
     this._browser = aBrowser;
   },
-
-  LOAD_FLAGS_MASK: 65535,
-  LOAD_FLAGS_NONE: 0,
-  LOAD_FLAGS_IS_REFRESH: 16,
-  LOAD_FLAGS_IS_LINK: 32,
-  LOAD_FLAGS_BYPASS_HISTORY: 64,
-  LOAD_FLAGS_REPLACE_HISTORY: 128,
-  LOAD_FLAGS_BYPASS_CACHE: 256,
-  LOAD_FLAGS_BYPASS_PROXY: 512,
-  LOAD_FLAGS_CHARSET_CHANGE: 1024,
-  LOAD_FLAGS_STOP_CONTENT: 2048,
-  LOAD_FLAGS_FROM_EXTERNAL: 4096,
-  LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP: 8192,
-  LOAD_FLAGS_FIRST_LOAD: 16384,
-  LOAD_FLAGS_ALLOW_POPUPS: 32768,
-  LOAD_FLAGS_BYPASS_CLASSIFIER: 65536,
-  LOAD_FLAGS_FORCE_ALLOW_COOKIES: 131072,
-
-  STOP_NETWORK: 1,
-  STOP_CONTENT: 2,
-  STOP_ALL: 3,
 
   canGoBack: false,
   canGoForward: false,
@@ -98,6 +67,12 @@ RemoteWebNavigation.prototype = {
         aURI,
         aLoadURIOptions.loadFlags
       );
+      let isBrowserPrivate = PrivateBrowsingUtils.isBrowserPrivate(
+        this._browser
+      );
+      if (isBrowserPrivate) {
+        fixupFlags |= Services.uriFixup.FIXUP_FLAG_PRIVATE_CONTEXT;
+      }
       uri = fixup.createFixupURI(aURI, fixupFlags);
 
       // We know the url is going to be loaded, let's start requesting network
@@ -113,11 +88,7 @@ RemoteWebNavigation.prototype = {
         if (!principal || principal.isSystemPrincipal) {
           let attrs = {
             userContextId: this._browser.getAttribute("usercontextid") || 0,
-            privateBrowsingId: PrivateBrowsingUtils.isBrowserPrivate(
-              this._browser
-            )
-              ? 1
-              : 0,
+            privateBrowsingId: isBrowserPrivate ? 1 : 0,
           };
           principal = Services.scriptSecurityManager.createContentPrincipal(
             uri,
@@ -136,28 +107,8 @@ RemoteWebNavigation.prototype = {
       Ci.nsIRemoteTab.NAVIGATE_URL,
       { uri, epoch: cancelContentJSEpoch }
     );
-    this._sendMessage("WebNavigation:LoadURI", {
-      uri: aURI,
-      loadFlags: aLoadURIOptions.loadFlags,
-      referrerInfo: E10SUtils.serializeReferrerInfo(
-        aLoadURIOptions.referrerInfo
-      ),
-      postData: aLoadURIOptions.postData
-        ? Utils.serializeInputStream(aLoadURIOptions.postData)
-        : null,
-      headers: aLoadURIOptions.headers
-        ? Utils.serializeInputStream(aLoadURIOptions.headers)
-        : null,
-      baseURI: aLoadURIOptions.baseURI ? aLoadURIOptions.baseURI.spec : null,
-      triggeringPrincipal: E10SUtils.serializePrincipal(
-        aLoadURIOptions.triggeringPrincipal ||
-          Services.scriptSecurityManager.createNullPrincipal({})
-      ),
-      csp: aLoadURIOptions.csp
-        ? E10SUtils.serializeCSP(aLoadURIOptions.csp)
-        : null,
-      cancelContentJSEpoch,
-    });
+    aLoadURIOptions.cancelContentJSEpoch = cancelContentJSEpoch;
+    this._browser.frameLoader.browsingContext.loadURI(aURI, aLoadURIOptions);
   },
   setOriginAttributesBeforeLoading(aOriginAttributes) {
     this._sendMessage("WebNavigation:SetOriginAttributes", {

@@ -7,7 +7,7 @@ import React, { PureComponent } from "react";
 import { showMenu } from "devtools-contextmenu";
 import { connect } from "../../utils/connect";
 import actions from "../../actions";
-import { createObjectClient } from "../../client/firefox";
+import { createObjectFront } from "../../client/firefox";
 import { features } from "../../utils/prefs";
 
 import {
@@ -33,13 +33,14 @@ import "./Scopes.css";
 
 const { ObjectInspector } = objectInspector;
 
+type OwnProps = {||};
 type Props = {
   cx: ThreadContext,
   selectedFrame: Object,
   generatedFrameScopes: Object,
   originalFrameScopes: Object | null,
   isLoading: boolean,
-  why: Why,
+  why: ?Why,
   mapScopesEnabled: boolean,
   openLink: typeof actions.openLink,
   openElementInInspector: typeof actions.openElementInInspectorCommand,
@@ -59,7 +60,7 @@ type State = {
 };
 
 class Scopes extends PureComponent<Props, State> {
-  constructor(props: Props, ...args) {
+  constructor(props: Props) {
     const {
       why,
       selectedFrame,
@@ -67,7 +68,7 @@ class Scopes extends PureComponent<Props, State> {
       generatedFrameScopes,
     } = props;
 
-    super(props, ...args);
+    super(props);
 
     this.state = {
       originalScopes: getScopes(why, selectedFrame, originalFrameScopes),
@@ -76,7 +77,7 @@ class Scopes extends PureComponent<Props, State> {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     const {
       cx,
       selectedFrame,
@@ -115,15 +116,10 @@ class Scopes extends PureComponent<Props, State> {
     this.props.toggleMapScopes();
   };
 
-  onContextMenu = (event, item) => {
+  onContextMenu = (event: any, item: any) => {
     const { addWatchpoint, removeWatchpoint } = this.props;
 
-    if (
-      !features.watchpoints ||
-      !item.parent ||
-      !item.parent.contents ||
-      !item.contents.configurable
-    ) {
+    if (!features.watchpoints || !item.parent || !item.contents.configurable) {
       return;
     }
 
@@ -202,7 +198,7 @@ class Scopes extends PureComponent<Props, State> {
             disableWrap={true}
             dimTopLevelWindow={true}
             openLink={openLink}
-            createObjectClient={grip => createObjectClient(grip)}
+            createObjectFront={grip => createObjectFront(grip)}
             onDOMNodeClick={grip => openElementInInspector(grip)}
             onInspectIconClick={grip => openElementInInspector(grip)}
             onDOMNodeMouseOver={grip => highlightDomElement(grip)}
@@ -275,7 +271,7 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     openLink: actions.openLink,

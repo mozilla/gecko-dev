@@ -128,8 +128,6 @@ class GCVector {
     return vector.sizeOfIncludingThis(mallocSizeOf);
   }
 
-  static void trace(GCVector* vec, JSTracer* trc) { vec->trace(trc); }
-
   void trace(JSTracer* trc) {
     for (auto& elem : vector) {
       GCPolicy<T>::trace(trc, &elem, "vector element");
@@ -139,19 +137,13 @@ class GCVector {
   bool needsSweep() const { return !this->empty(); }
 
   void sweep() {
-    uint32_t src, dst = 0;
-    for (src = 0; src < length(); src++) {
-      if (!GCPolicy<T>::needsSweep(&vector[src])) {
-        if (dst != src) {
-          vector[dst] = vector[src].unbarrieredGet();
-        }
-        dst++;
-      }
-    }
+    // This is similar to Vector::eraseIf, but passes a non-const pointer to
+    // needsSweep().
+    T* newEnd = std::remove_if(
+        begin(), end(), [](T& t) { return GCPolicy<T>::needsSweep(&t); });
 
-    if (dst != length()) {
-      vector.shrinkTo(dst);
-    }
+    MOZ_ASSERT(newEnd <= end());
+    shrinkBy(end() - newEnd);
   }
 };
 

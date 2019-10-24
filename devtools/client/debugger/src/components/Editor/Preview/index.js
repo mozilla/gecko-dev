@@ -16,6 +16,10 @@ import type { ThreadContext } from "../../../types";
 
 import type { Preview as PreviewType } from "../../../reducers/types";
 
+type OwnProps = {|
+  editor: any,
+  editorRef: ?HTMLDivElement,
+|};
 type Props = {
   cx: ThreadContext,
   editor: any,
@@ -32,7 +36,7 @@ type State = {
 
 class Preview extends PureComponent<Props, State> {
   target = null;
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = { selecting: false };
   }
@@ -60,7 +64,7 @@ class Preview extends PureComponent<Props, State> {
     codeMirrorWrapper.addEventListener("mousedown", this.onMouseDown);
   }
 
-  onTokenEnter = ({ target, tokenPos }) => {
+  onTokenEnter = ({ target, tokenPos }: any) => {
     const { cx, editor, updatePreview } = this.props;
 
     if (cx.isPaused && !this.state.selecting) {
@@ -109,7 +113,7 @@ const mapStateToProps = state => ({
   preview: getPreview(state),
 });
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     clearPreview: actions.clearPreview,

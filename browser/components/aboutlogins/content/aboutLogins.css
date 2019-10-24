@@ -17,7 +17,7 @@ header {
   grid-area: header;
   align-items: center;
   background-color: var(--in-content-page-background);
-  border-bottom: 1px solid var(--in-content-box-border-color);
+  border-bottom: 1px solid var(--in-content-border-color);
   padding-inline-end: 23px;
 }
 
@@ -54,10 +54,6 @@ login-item {
   grid-area: login;
 }
 
-login-item {
-  max-width: 700px;
-}
-
 #branding-logo {
   flex-basis: var(--sidebar-width);
   flex-shrink: 0;
@@ -76,4 +72,22 @@ login-item {
 
 :root:not(.official-branding) #branding-logo {
   display: none;
+}
+
+:root:not(.master-password-auth-required) #master-password-required-overlay {
+  display: none;
+}
+
+.master-password-auth-required > body > header,
+.master-password-auth-required > body > login-list,
+.master-password-auth-required > body > login-intro {
+  filter: blur(2px)
+}
+
+#master-password-required-overlay {
+  z-index: 1;
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.2);
 }

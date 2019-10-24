@@ -14,6 +14,15 @@
 #include "builtin/BigInt.h"
 #include "builtin/DataViewObject.h"
 #include "builtin/Eval.h"
+#ifdef ENABLE_INTL_API
+#  include "builtin/intl/Collator.h"
+#  include "builtin/intl/DateTimeFormat.h"
+#  include "builtin/intl/ListFormat.h"
+#  include "builtin/intl/Locale.h"
+#  include "builtin/intl/NumberFormat.h"
+#  include "builtin/intl/PluralRules.h"
+#  include "builtin/intl/RelativeTimeFormat.h"
+#endif
 #include "builtin/MapObject.h"
 #include "builtin/ModuleObject.h"
 #include "builtin/Object.h"
@@ -22,7 +31,7 @@
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/Stream.h"
 #include "builtin/streams/QueueingStrategies.h"  // js::{ByteLength,Count}QueueingStrategy
-#include "builtin/streams/ReadableStream.h"      // js::ReadableStream
+#include "builtin/streams/ReadableStream.h"  // js::ReadableStream
 #include "builtin/streams/ReadableStreamController.h"  // js::Readable{StreamDefault,ByteStream}Controller
 #include "builtin/streams/ReadableStreamReader.h"  // js::ReadableStreamDefaultReader
 #include "builtin/streams/WritableStream.h"        // js::WritableStream
@@ -33,8 +42,11 @@
 #include "debugger/DebugAPI.h"
 #include "gc/FreeOp.h"
 #include "js/ProtoKey.h"
+#include "vm/AsyncFunction.h"
+#include "vm/AsyncIteration.h"
 #include "vm/DateObject.h"
 #include "vm/EnvironmentObject.h"
+#include "vm/GeneratorObject.h"
 #include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
 #include "vm/PIC.h"
@@ -391,7 +403,9 @@ bool GlobalObject::resolveOffThreadConstructor(JSContext* cx,
 
   MOZ_ASSERT(global->zone()->createdForHelperThread());
   MOZ_ASSERT(key == JSProto_Object || key == JSProto_Function ||
-             key == JSProto_Array || key == JSProto_RegExp);
+             key == JSProto_Array || key == JSProto_RegExp ||
+             key == JSProto_AsyncFunction || key == JSProto_GeneratorFunction ||
+             key == JSProto_AsyncGeneratorFunction);
 
   Rooted<OffThreadPlaceholderObject*> placeholder(cx);
   placeholder = OffThreadPlaceholderObject::New(cx, prototypeSlot(key));
@@ -428,10 +442,8 @@ JSObject* GlobalObject::createOffThreadObject(JSContext* cx,
   // compartment.
 
   MOZ_ASSERT(global->zone()->createdForHelperThread());
-  MOZ_ASSERT(slot == GENERATOR_FUNCTION_PROTO || slot == ASYNC_FUNCTION_PROTO ||
-             slot == ASYNC_GENERATOR || slot == MODULE_PROTO ||
-             slot == IMPORT_ENTRY_PROTO || slot == EXPORT_ENTRY_PROTO ||
-             slot == REQUESTED_MODULE_PROTO);
+  MOZ_ASSERT(slot == MODULE_PROTO || slot == IMPORT_ENTRY_PROTO ||
+             slot == EXPORT_ENTRY_PROTO || slot == REQUESTED_MODULE_PROTO);
 
   auto placeholder = OffThreadPlaceholderObject::New(cx, slot);
   if (!placeholder) {
@@ -844,31 +856,6 @@ bool js::DefineToStringTag(JSContext* cx, HandleObject obj, JSAtom* tag) {
                          SYMBOL_TO_JSID(cx->wellKnownSymbols().toStringTag));
   RootedValue tagString(cx, StringValue(tag));
   return DefineDataProperty(cx, obj, toStringTagId, tagString, JSPROP_READONLY);
-}
-
-GlobalObject::DebuggerVector* GlobalObject::getDebuggers() const {
-  Value debuggers = getReservedSlot(DEBUGGERS);
-  if (debuggers.isUndefined()) {
-    return nullptr;
-  }
-  return DebugAPI::getGlobalDebuggers(&debuggers.toObject());
-}
-
-/* static */ GlobalObject::DebuggerVector* GlobalObject::getOrCreateDebuggers(
-    JSContext* cx, Handle<GlobalObject*> global) {
-  cx->check(global);
-  DebuggerVector* debuggers = global->getDebuggers();
-  if (debuggers) {
-    return debuggers;
-  }
-
-  JSObject* obj = DebugAPI::newGlobalDebuggersHolder(cx);
-  if (!obj) {
-    return nullptr;
-  }
-
-  global->setReservedSlot(DEBUGGERS, ObjectValue(*obj));
-  return global->getDebuggers();
 }
 
 /* static */

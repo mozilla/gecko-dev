@@ -9,6 +9,7 @@
 
 #include "js/TypeDecls.h"
 #include "vm/BytecodeUtil.h"
+#include "vm/StringType.h"
 
 namespace js {
 
@@ -49,6 +50,9 @@ class BytecodeLocation {
   }
 
  public:
+  // Disallow the creation of an uninitialized location.
+  BytecodeLocation() = delete;
+
   BytecodeLocation(const JSScript* script, RawBytecode pc)
       : rawBytecode_(pc)
 #ifdef DEBUG
@@ -69,9 +73,30 @@ class BytecodeLocation {
   // bytecode for a given script.
   bool isInBounds(const JSScript* script) const;
 
-  uint32_t bytecodeToOffset(JSScript* script);
+  uint32_t bytecodeToOffset(const JSScript* script) const;
+
+  uint32_t tableSwitchCaseOffset(const JSScript* script,
+                                 uint32_t caseIndex) const;
+
+  uint32_t getJumpTargetOffset(const JSScript* script) const;
+
+  uint32_t getTableSwitchDefaultOffset(const JSScript* script) const;
+
+  uint32_t useCount() const;
+
+  uint32_t defCount() const;
+
+  int32_t jumpOffset() const { return GET_JUMP_OFFSET(rawBytecode_); }
 
   PropertyName* getPropertyName(const JSScript* script) const;
+
+#ifdef DEBUG
+  bool hasSameScript(const BytecodeLocation& other) const {
+    return debugOnlyScript_ == other.debugOnlyScript_;
+  }
+#endif
+
+  // Overloaded operators
 
   bool operator==(const BytecodeLocation& other) const {
     MOZ_ASSERT(this->debugOnlyScript_ == other.debugOnlyScript_);
@@ -116,13 +141,23 @@ class BytecodeLocation {
     return getOp() == op;
   }
 
+  // Accessors:
+
+  uint32_t length() const { return GetBytecodeLength(rawBytecode_); }
+
   bool isJumpTarget() const { return BytecodeIsJumpTarget(getOp()); }
 
   bool isJump() const { return IsJumpOpcode(getOp()); }
 
+  bool opHasTypeSet() const { return BytecodeOpHasTypeSet(getOp()); }
+
   bool fallsThrough() const { return BytecodeFallsThrough(getOp()); }
 
   uint32_t icIndex() const { return GET_ICINDEX(rawBytecode_); }
+
+  uint32_t local() const { return GET_LOCALNO(rawBytecode_); }
+
+  uint16_t arg() const { return GET_ARGNO(rawBytecode_); }
 
   bool isEqualityOp() const { return IsEqualityOp(getOp()); }
 

@@ -7,12 +7,7 @@
 
 const TEST_URL = toDataURL("default-test-page");
 
-add_task(async function() {
-  // Start the CDP server
-  await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
-
-  const CDP = await getCDP();
-
+add_task(async function(_, CDP) {
   // Use gBrowser.addTab instead of BrowserTestUtils as it creates the tab differently.
   // It demonstrates a race around tab.linkedBrowser.browsingContext being undefined
   // when accessing this property early.
@@ -36,6 +31,4 @@ add_task(async function() {
     !targets.some(target => target.url == TEST_URL),
     "Tab has been removed from the target list"
   );
-
-  await RemoteAgent.close();
 });

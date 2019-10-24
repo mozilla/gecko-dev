@@ -1319,9 +1319,6 @@ BufferedBookmarksStore.prototype = {
 
     return SyncedBookmarksMirror.open({
       path: mirrorPath,
-      recordTelemetryEvent: (object, method, value, extra) => {
-        this.engine.service.recordTelemetryEvent(object, method, value, extra);
-      },
       recordStepTelemetry: (name, took, counts) => {
         Observers.notify(
           "weave:engine:sync:step",
@@ -1350,10 +1347,7 @@ BufferedBookmarksStore.prototype = {
 
   async applyIncomingBatch(records) {
     let buf = await this.ensureOpenMirror();
-    for (let [, chunk] of PlacesSyncUtils.chunkArray(
-      records,
-      this._batchChunkSize
-    )) {
+    for (let chunk of PlacesUtils.chunkArray(records, this._batchChunkSize)) {
       await buf.store(chunk);
     }
     // Array of failed records.

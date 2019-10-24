@@ -7,6 +7,7 @@
 
 #include "nsIContentSecurityPolicy.idl"
 #include "nsISerializable.idl"
+#include "nsIAboutModule.idl"
 
 %{C++
 struct JSPrincipals;
@@ -199,6 +200,16 @@ interface nsIPrincipal : nsISerializable
     readonly attribute ACString origin;
 
     /**
+      * Returns the ASCII Spec from the Principals URI.
+      * Might return the empty string, e.g. for the case of
+      * a SystemPrincipal or an EpxandedPrincipal.
+      *
+      * WARNING: DO NOT USE FOR SECURITY CHECKS.
+      * just for logging purposes!
+     */
+     readonly attribute ACString AsciiSpec;
+
+    /**
     * Checks if the Principal's URI Scheme matches with the parameter
     *
     * @param scheme    The scheme to be checked
@@ -213,6 +224,12 @@ interface nsIPrincipal : nsISerializable
         return ret;
       }
     %}
+
+    /**
+     * Returns the Flags of the Principals 
+     * associated AboutModule, in case there is one.
+     */
+    uint32_t GetAboutModuleFlags();
 
     /**
      * The base part of |origin| without the concatenation with |originSuffix|.

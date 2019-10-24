@@ -10,7 +10,12 @@ import re
 import subprocess
 import sys
 from distutils.spawn import find_executable
+from distutils.version import StrictVersion
+from datetime import datetime, timedelta
+import requests
+import json
 
+from mozbuild.base import MozbuildObject
 from mozboot.util import get_state_dir
 from mozterm import Terminal
 
@@ -21,6 +26,17 @@ from ..push import check_working_directory, push_to_try, generate_try_task_confi
 terminal = Terminal()
 
 here = os.path.abspath(os.path.dirname(__file__))
+build = MozbuildObject.from_environment(cwd=here)
+
+PREVIEW_SCRIPT = os.path.join(build.topsrcdir, 'tools/tryselect/formatters/preview.py')
+TASK_DURATION_URL = 'https://storage.googleapis.com/mozilla-mach-data/task_duration_history.json'
+GRAPH_QUANTILES_URL = 'https://storage.googleapis.com/mozilla-mach-data/machtry_quantiles.csv'
+TASK_DURATION_CACHE = os.path.join(get_state_dir(
+    srcdir=True), 'cache', 'task_duration_history.json')
+GRAPH_QUANTILE_CACHE = os.path.join(get_state_dir(
+    srcdir=True), 'cache', 'graph_quantile_cache.csv')
+TASK_DURATION_TAG_FILE = os.path.join(get_state_dir(
+    srcdir=True), 'cache', 'task_duration_tag.json')
 
 # Some tasks show up in the target task set, but are either special cases
 # or uncommon enough that they should only be selectable with --full.
@@ -36,6 +52,21 @@ Could not find the `fzf` binary.
 
 The `mach try fuzzy` command depends on fzf. Please install it following the
 appropriate instructions for your platform:
+
+    https://github.com/junegunn/fzf#installation
+
+Only the binary is required, if you do not wish to install the shell and
+editor integrations, download the appropriate binary and put it on your $PATH:
+
+    https://github.com/junegunn/fzf-bin/releases
+""".lstrip()
+
+FZF_VERSION_FAILED = """
+Could not obtain the 'fzf' version.
+
+The 'mach try fuzzy' command depends on fzf, and requires version > 0.18.0
+for some of the features. Please install it following the appropriate
+instructions for your platform:
 
     https://github.com/junegunn/fzf#installation
 
@@ -82,6 +113,87 @@ fzf_header_shortcuts = [
 ]
 
 
+def check_downloaded_history():
+    if not os.path.isfile(TASK_DURATION_TAG_FILE):
+        return False
+
+    try:
+        with open(TASK_DURATION_TAG_FILE) as f:
+            duration_tags = json.load(f)
+        download_date = datetime.strptime(duration_tags.get('download_date'), '%Y-%M-%d')
+        if download_date < datetime.now() - timedelta(days=30):
+            return False
+    except (IOError, ValueError):
+        return False
+
+    if not os.path.isfile(TASK_DURATION_CACHE):
+        return False
+    if not os.path.isfile(GRAPH_QUANTILE_CACHE):
+        return False
+
+    return True
+
+
+def download_task_history_data():
+    """Fetch task duration data exported from BigQuery."""
+
+    if check_downloaded_history():
+        return
+
+    try:
+        os.unlink(TASK_DURATION_TAG_FILE)
+        os.unlink(TASK_DURATION_CACHE)
+        os.unlink(GRAPH_QUANTILE_CACHE)
+    except OSError:
+        print("No existing task history to clean up.")
+
+    try:
+        r = requests.get(TASK_DURATION_URL, stream=True)
+    except requests.exceptions.RequestException as exc:
+        # This is fine, the durations just won't be in the preview window.
+        print("Error fetching task duration cache from {}: {}".format(TASK_DURATION_URL, exc))
+        return
+
+    # The data retrieved from google storage is a newline-separated
+    # list of json entries, which Python's json module can't parse.
+    duration_data = list()
+    for line in r.content.splitlines():
+        duration_data.append(json.loads(line))
+
+    with open(TASK_DURATION_CACHE, 'w') as f:
+        json.dump(duration_data, f, indent=4)
+
+    try:
+        r = requests.get(GRAPH_QUANTILES_URL, stream=True)
+    except requests.exceptions.RequestException as exc:
+        # This is fine, the percentile just won't be in the preview window.
+        print("Error fetching task group percentiles from {}: {}".format(GRAPH_QUANTILES_URL, exc))
+        return
+
+    with open(GRAPH_QUANTILE_CACHE, 'w') as f:
+        f.write(r.content)
+
+    with open(TASK_DURATION_TAG_FILE, 'w') as f:
+        json.dump({
+            'download_date': datetime.now().strftime('%Y-%m-%d')
+            }, f, indent=4)
+
+
+def make_trimmed_taskgraph_cache(graph_cache, dep_cache):
+    """Trim the taskgraph cache used for dependencies.
+
+    Speeds up the fzf preview window to less human-perceptible
+    ranges."""
+    if not os.path.isfile(graph_cache):
+        return
+
+    with open(graph_cache) as f:
+        graph = json.load(f)
+    graph = {name: list(defn['dependencies'].values()) for name, defn in graph.items()}
+    with open(dep_cache, 'w') as f:
+        json.dump(graph, f, indent=4)
+
+
 class FuzzyParser(BaseTryParser):
     name = 'fuzzy'
     arguments = [
@@ -119,6 +231,12 @@ class FuzzyParser(BaseTryParser):
           'default': False,
           'help': "Update fzf before running.",
           }],
+        [['-s', '--show-estimates'],
+         {'action': 'store_true',
+          'default': False,
+          'help': "Show task duration estimates.",
+          }],
+
     ]
     common_groups = ['push', 'task', 'preset']
     templates = [
@@ -151,6 +269,25 @@ def run_fzf_install_script(fzf_path):
         sys.exit(1)
 
 
+def should_force_fzf_update(fzf_bin):
+    cmd = [fzf_bin, '--version']
+    try:
+        fzf_version = subprocess.check_output(cmd)
+    except subprocess.CalledProcessError:
+        print(FZF_VERSION_FAILED)
+        sys.exit(1)
+
+    # Some fzf versions have extra, e.g 0.18.0 (ff95134)
+    fzf_version = fzf_version.split()[0]
+
+    # 0.18.0 introduced FZF_PREVIEW_COLUMNS as an env variable
+    # in preview subprocesses, which is a feature we use.
+    if StrictVersion(fzf_version) < StrictVersion('0.18.0'):
+        print("fzf version is old, forcing update.")
+        return True
+    return False
+
+
 def fzf_bootstrap(update=False):
     """Bootstrap fzf if necessary and return path to the executable.
 
@@ -181,10 +318,10 @@ def fzf_bootstrap(update=False):
 
     if os.path.isdir(fzf_path):
         fzf_bin = get_fzf()
-        if fzf_bin:
-            return fzf_bin
-        # Fzf is cloned, but binary doesn't exist. Try running the install script
-        return fzf_bootstrap(update=True)
+        if not fzf_bin or should_force_fzf_update(fzf_bin):
+            return fzf_bootstrap(update=True)
+
+        return fzf_bin
 
     install = raw_input("Could not detect fzf, install it now? [y/n]: ")
     if install.lower() != 'y':
@@ -232,7 +369,7 @@ def filter_target_task(task):
 
 def run(update=False, query=None, intersect_query=None, try_config=None, full=False,
         parameters=None, save_query=False, push=True, message='{msg}',
-        test_paths=None, exact=False, closed_tree=False):
+        test_paths=None, exact=False, closed_tree=False, show_estimates=False):
     fzf = fzf_bootstrap(update)
 
     if not fzf:
@@ -242,6 +379,18 @@ def run(update=False, query=None, intersect_query=None, try_config=None, full=Fa
     check_working_directory(push)
     tg = generate_tasks(parameters, full)
     all_tasks = sorted(tg.tasks.keys())
+
+    cache_dir = os.path.join(get_state_dir(srcdir=True), 'cache', 'taskgraph')
+    if full:
+        graph_cache = os.path.join(cache_dir, 'full_task_graph')
+        dep_cache = os.path.join(cache_dir, 'full_task_dependencies')
+    else:
+        graph_cache = os.path.join(cache_dir, 'target_task_graph')
+        dep_cache = os.path.join(cache_dir, 'target_task_dependencies')
+
+    if show_estimates:
+        download_task_history_data()
+        make_trimmed_taskgraph_cache(graph_cache, dep_cache)
 
     if not full:
         all_tasks = filter(filter_target_task, all_tasks)
@@ -256,12 +405,19 @@ def run(update=False, query=None, intersect_query=None, try_config=None, full=Fa
         fzf, '-m',
         '--bind', ','.join(key_shortcuts),
         '--header', format_header(),
-        # Using python to split the preview string is a bit convoluted,
-        # but is guaranteed to be available on all platforms.
-        '--preview', 'python -c "print(\\"\\n\\".join(sorted([s.strip(\\"\'\\") for s in \\"{+}\\".split()])))"',  # noqa
         '--preview-window=right:30%',
         '--print-query',
     ]
+
+    if show_estimates and os.path.isfile(TASK_DURATION_CACHE):
+        base_cmd.extend([
+            '--preview', 'python {} -g {} -d {} -q {} "{{+}}"'.format(
+                PREVIEW_SCRIPT, dep_cache, TASK_DURATION_CACHE, GRAPH_QUANTILE_CACHE),
+        ])
+    else:
+        base_cmd.extend([
+            '--preview', 'python {} "{{+}}"'.format(PREVIEW_SCRIPT),
+        ])
 
     if exact:
         base_cmd.append('--exact')

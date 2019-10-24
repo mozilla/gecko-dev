@@ -26,7 +26,6 @@
 namespace js {
 
 class Debugger;
-class WasmBreakpoint;
 class WasmBreakpointSite;
 class WasmInstanceObject;
 
@@ -69,6 +68,9 @@ class DebugState {
 
  public:
   DebugState(const Code& code, const Module& module);
+
+  void trace(JSTracer* trc);
+  void finalize(JSFreeOp* fop);
 
   const Bytes& bytecode() const { return module_->debugBytecode(); }
 

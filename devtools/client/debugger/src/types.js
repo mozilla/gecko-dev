@@ -294,7 +294,12 @@ export type Why =
   | ExceptionReason
   | {
       type: string,
+      message?: string,
       frameFinished?: Object,
+      nodeGrip?: Object,
+      ancestorGrip?: Object,
+      exception?: string,
+      action?: string,
     };
 
 /**
@@ -340,6 +345,8 @@ export type Expression = {
   value: Object,
   from: string,
   updating: boolean,
+  exception?: string,
+  error?: string,
 };
 
 /**

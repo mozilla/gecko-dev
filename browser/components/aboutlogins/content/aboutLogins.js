@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { recordTelemetryEvent } from "./aboutLoginsUtils.js";
+import {
+  recordTelemetryEvent,
+  setKeyboardAccessForNonDialogElements,
+} from "./aboutLoginsUtils.js";
 
 // The init code isn't wrapped in a DOMContentLoaded/load event listener so the
 // page works properly when restored from session restore.
@@ -35,11 +38,16 @@ function handleAllLogins(logins) {
 function handleSyncState(syncState) {
   gElements.fxAccountsButton.updateState(syncState);
   gElements.loginFooter.hidden = syncState.hideMobileFooter;
+  gElements.loginIntro.updateState(syncState);
 }
 
 window.addEventListener("AboutLoginsChromeToContent", event => {
   switch (event.detail.messageType) {
     case "AllLogins": {
+      document.documentElement.classList.remove(
+        "master-password-auth-required"
+      );
+      setKeyboardAccessForNonDialogElements(true);
       handleAllLogins(event.detail.value);
       break;
     }
@@ -65,6 +73,10 @@ window.addEventListener("AboutLoginsChromeToContent", event => {
       updateNoLogins();
       break;
     }
+    case "MasterPasswordAuthRequired":
+      document.documentElement.classList.add("master-password-auth-required");
+      setKeyboardAccessForNonDialogElements(false);
+      break;
     case "SendFavicons": {
       gElements.loginList.addFavicons(event.detail.value);
       break;
@@ -80,6 +92,7 @@ window.addEventListener("AboutLoginsChromeToContent", event => {
         event.detail.value.selectedBadgeLanguages
       );
       handleSyncState(event.detail.value.syncState);
+      gElements.loginList.setSortDirection(event.detail.value.selectedSort);
       document.documentElement.classList.add("initialized");
       break;
     }

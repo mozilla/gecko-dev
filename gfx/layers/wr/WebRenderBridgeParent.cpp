@@ -37,6 +37,10 @@
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/widget/CompositorWidget.h"
 
+#ifdef XP_WIN
+#  include "mozilla/widget/WinCompositorWidget.h"
+#endif
+
 #ifdef MOZ_GECKO_PROFILER
 #  include "ProfilerMarkerPayload.h"
 #endif
@@ -150,8 +154,8 @@ void record_telemetry_time(mozilla::wr::TelemetryProbe aProbe,
       mozilla::Telemetry::Accumulate(mozilla::Telemetry::WR_SCENESWAP_TIME,
                                      time_ms);
       break;
-    case mozilla::wr::TelemetryProbe::RenderTime:
-      mozilla::Telemetry::Accumulate(mozilla::Telemetry::WR_RENDER_TIME,
+    case mozilla::wr::TelemetryProbe::FrameBuildTime:
+      mozilla::Telemetry::Accumulate(mozilla::Telemetry::WR_FRAMEBUILD_TIME,
                                      time_ms);
       break;
     default:
@@ -329,6 +333,9 @@ WebRenderBridgeParent::WebRenderBridgeParent(
       mWrEpoch{0},
       mIdNamespace(aApis[0]->GetNamespace()),
       mRenderRootRectMutex("WebRenderBridgeParent::mRenderRootRectMutex"),
+#if defined(MOZ_WIDGET_ANDROID)
+      mScreenPixelsTarget(nullptr),
+#endif
       mPaused(false),
       mDestroyed(false),
       mReceivedDisplayList(false),
@@ -1713,6 +1720,49 @@ void WebRenderBridgeParent::FlushFramePresentation() {
   mApis[wr::RenderRoot::Default]->WaitFlushed();
 }
 
+#if defined(MOZ_WIDGET_ANDROID)
+void WebRenderBridgeParent::RequestScreenPixels(
+    UiCompositorControllerParent* aController) {
+  mScreenPixelsTarget = aController;
+}
+
+void WebRenderBridgeParent::MaybeCaptureScreenPixels() {
+  if (!mScreenPixelsTarget) {
+    return;
+  }
+
+  if (mDestroyed) {
+    return;
+  }
+  MOZ_ASSERT(!mPaused);
+
+  // This function should only get called in the root WRBP.
+  MOZ_ASSERT(IsRootWebRenderBridgeParent());
+
+  SurfaceFormat format = SurfaceFormat::R8G8B8A8;  // On android we use RGBA8
+  auto client_size = mWidget->GetClientSize();
+  size_t buffer_size =
+      client_size.width * client_size.height * BytesPerPixel(format);
+
+  ipc::Shmem mem;
+  if (!mScreenPixelsTarget->AllocPixelBuffer(buffer_size, &mem)) {
+    // Failed to alloc shmem, Just bail out.
+    return;
+  }
+
+  IntSize size(client_size.width, client_size.height);
+
+  mApis[wr::RenderRoot::Default]->Readback(
+      TimeStamp::Now(), size, format,
+      Range<uint8_t>(mem.get<uint8_t>(), buffer_size));
+
+  Unused << mScreenPixelsTarget->SendScreenPixels(
+      std::move(mem), ScreenIntSize(client_size.width, client_size.height));
+
+  mScreenPixelsTarget = nullptr;
+}
+#endif
+
 mozilla::ipc::IPCResult WebRenderBridgeParent::RecvGetSnapshot(
     PTextureParent* aTexture) {
   if (mDestroyed) {
@@ -2015,6 +2065,14 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvCapture() {
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult WebRenderBridgeParent::RecvSetTransactionLogging(
+  const bool& aValue) {
+  if (!mDestroyed) {
+    mApis[wr::RenderRoot::Default]->SetTransactionLogging(aValue);
+  }
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult WebRenderBridgeParent::RecvSyncWithCompositor() {
   FlushSceneBuilds();
   if (RefPtr<WebRenderBridgeParent> root = GetRootWebRenderBridgeParent()) {
@@ -2245,6 +2303,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
       TimeStamp now = TimeStamp::Now();
       cbp->NotifyPipelineRendered(mPipelineId, mWrEpoch, VsyncId(), now, now,
                                   now);
+      return;
     }
   }
 
@@ -2343,6 +2402,10 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
     }
   }
   wr::WebRenderAPI::SendTransactions(mApis, generateFrameTxns);
+
+#if defined(MOZ_WIDGET_ANDROID)
+  MaybeCaptureScreenPixels();
+#endif
 
   mMostRecentComposite = TimeStamp::Now();
 }
@@ -2719,7 +2782,8 @@ TextureFactoryIdentifier WebRenderBridgeParent::GetTextureFactoryIdentifier() {
       LayersBackend::LAYERS_WR, XRE_GetProcessType(),
       mApis[wr::RenderRoot::Default]->GetMaxTextureSize(), false,
       mApis[wr::RenderRoot::Default]->GetUseANGLE(),
-      mApis[wr::RenderRoot::Default]->GetUseDComp(), false, false, false,
+      mApis[wr::RenderRoot::Default]->GetUseDComp(),
+      mAsyncImageManager->UseCompositorWnd(), false, false, false,
       mApis[wr::RenderRoot::Default]->GetSyncHandle());
 }
 

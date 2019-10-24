@@ -78,6 +78,64 @@ function checkURLMatch(aLocationURI, { hosts, matchPatternSet }, aRequest) {
  */
 this.ASRouterTriggerListeners = new Map([
   [
+    "openArticleURL",
+    {
+      id: "openArticleURL",
+      _initialized: false,
+      _triggerHandler: null,
+      _hosts: new Set(),
+      _matchPatternSet: null,
+      readerModeEvent: "Reader:UpdateReaderButton",
+
+      init(triggerHandler, hosts, patterns) {
+        if (!this._initialized) {
+          this.receiveMessage = this.receiveMessage.bind(this);
+          Services.mm.addMessageListener(this.readerModeEvent, this);
+          this._triggerHandler = triggerHandler;
+          this._initialized = true;
+        }
+        if (patterns) {
+          if (this._matchPatternSet) {
+            this._matchPatternSet = new MatchPatternSet(
+              new Set([...this._matchPatternSet.patterns, ...patterns]),
+              MATCH_PATTERN_OPTIONS
+            );
+          } else {
+            this._matchPatternSet = new MatchPatternSet(
+              patterns,
+              MATCH_PATTERN_OPTIONS
+            );
+          }
+        }
+        if (hosts) {
+          hosts.forEach(h => this._hosts.add(h));
+        }
+      },
+
+      receiveMessage({ data, target }) {
+        if (data && data.isArticle) {
+          const match = checkURLMatch(target.currentURI, {
+            hosts: this._hosts,
+            matchPatternSet: this._matchPatternSet,
+          });
+          if (match) {
+            this._triggerHandler(target, { id: this.id, param: match });
+          }
+        }
+      },
+
+      uninit() {
+        if (this._initialized) {
+          Services.mm.removeMessageListener(this.readerModeEvent, this);
+          this._initialized = false;
+          this._triggerHandler = null;
+          this._hosts = new Set();
+          this._matchPatternSet = null;
+        }
+      },
+    },
+  ],
+  [
     "openBookmarkedURL",
     {
       id: "openBookmarkedURL",
@@ -409,6 +467,10 @@ this.ASRouterTriggerListeners = new Map([
 
         if (!this._initialized) {
           Services.obs.addObserver(this, "SiteProtection:ContentBlockingEvent");
+          Services.obs.addObserver(
+            this,
+            "SiteProtection:ContentBlockingMilestone"
+          );
           this.onLocationChange = this._onLocationChange.bind(this);
           EveryWindow.registerCallback(
             this.id,
@@ -435,14 +497,11 @@ this.ASRouterTriggerListeners = new Map([
             this,
             "SiteProtection:ContentBlockingEvent"
           );
-
-          for (let win of Services.wm.getEnumerator("navigator:browser")) {
-            if (isPrivateWindow(win)) {
-              continue;
-            }
-            win.gBrowser.removeTabsProgressListener(this);
-          }
-
+          Services.obs.removeObserver(
+            this,
+            "SiteProtection:ContentBlockingMilestone"
+          );
+          EveryWindow.unregisterCallback(this.id);
           this.onLocationChange = null;
           this._initialized = false;
         }
@@ -455,17 +514,37 @@ this.ASRouterTriggerListeners = new Map([
         switch (aTopic) {
           case "SiteProtection:ContentBlockingEvent":
             const { browser, host, event } = aSubject.wrappedJSObject;
-            if (this._events.includes(event)) {
+            for (let ev of this._events) {
+              if ((ev & event) !== ev) {
+                continue;
+              }
               this._triggerHandler(browser, {
                 id: "trackingProtection",
                 param: {
                   host,
-                  type: event,
+                  type: ev,
                 },
                 context: {
                   pageLoad: this._sessionPageLoad,
                 },
               });
+            }
+            break;
+          case "SiteProtection:ContentBlockingMilestone":
+            if (this._events.includes(aSubject.wrappedJSObject.event)) {
+              this._triggerHandler(
+                Services.wm.getMostRecentBrowserWindow().gBrowser
+                  .selectedBrowser,
+                {
+                  id: "trackingProtection",
+                  context: {
+                    pageLoad: this._sessionPageLoad,
+                  },
+                  param: {
+                    type: aSubject.wrappedJSObject.event,
+                  },
+                }
+              );
             }
             break;
         }

@@ -760,6 +760,8 @@ class IDLInterfaceOrInterfaceMixinOrNamespace(IDLObjectWithScope, IDLExposureMix
             # specified, it already has a nonempty exposure global names set.
             if len(m._exposureGlobalNames) == 0:
                 m._exposureGlobalNames.update(self._exposureGlobalNames)
+            if m.isAttr() and m.stringifier:
+                m.expand(self.members)
 
         # resolve() will modify self.members, so we need to iterate
         # over a copy of the member list here.
@@ -1084,18 +1086,11 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
                     "Can't have both a constructor and [Global]",
                     [self.location, ctor.location])
 
-            assert(len(ctor._exposureGlobalNames) == 0 or
-                   ctor._exposureGlobalNames == self._exposureGlobalNames)
+            assert(ctor._exposureGlobalNames == self._exposureGlobalNames)
             ctor._exposureGlobalNames.update(self._exposureGlobalNames)
-            if ctor in self.members:
-                # constructor operation.
-                self.members.remove(ctor)
-            else:
-                # extended attribute.  This can only happen with
-                # [HTMLConstructor] and this is the only way we can get into this
-                # code with len(ctor._exposureGlobalNames) !=
-                # self._exposureGlobalNames.
-                ctor.finish(scope)
+            # Remove the constructor operation from our member list so
+            # it doesn't get in the way later.
+            self.members.remove(ctor)
 
         for ctor in self.namedConstructors:
             if self.globalNames:
@@ -1653,60 +1648,45 @@ class IDLInterface(IDLInterfaceOrNamespace):
                                       [attr.location])
 
                 self._noInterfaceObject = True
-            elif identifier == "NamedConstructor" or identifier == "HTMLConstructor":
-                if identifier == "NamedConstructor" and not attr.hasValue():
+            elif identifier == "NamedConstructor":
+                if not attr.hasValue():
                     raise WebIDLError("NamedConstructor must either take an identifier or take a named argument list",
                                       [attr.location])
 
-                if identifier == "HTMLConstructor":
-                    if not attr.noArguments():
-                        raise WebIDLError(str(identifier) + " must take no arguments",
-                                          [attr.location])
 
                 args = attr.args() if attr.hasArgs() else []
 
                 retType = IDLWrapperType(self.location, self)
 
-                if identifier == "HTMLConstructor":
-                    name = "constructor"
-                    allowForbidden = True
-                else:
-                    name = attr.value()
-                    allowForbidden = False
-
-                method = IDLConstructor(
-                    attr.location, args, name,
-                    htmlConstructor=(identifier == "HTMLConstructor"))
+                method = IDLConstructor(attr.location, args, attr.value())
                 method.reallyInit(self)
 
-                # Are always assumed to be able to throw (since there's no way to
-                # indicate otherwise).
+                # Named constructors are always assumed to be able to
+                # throw (since there's no way to indicate otherwise).
                 method.addExtendedAttributes(
                     [IDLExtendedAttribute(self.location, ("Throws",))])
 
-                if identifier == "HTMLConstructor":
-                    method.resolve(self)
-                else:
-                    # We need to detect conflicts for NamedConstructors across
-                    # interfaces. We first call resolve on the parentScope,
-                    # which will merge all NamedConstructors with the same
-                    # identifier accross interfaces as overloads.
-                    method.resolve(self.parentScope)
+                # We need to detect conflicts for NamedConstructors across
+                # interfaces. We first call resolve on the parentScope,
+                # which will merge all NamedConstructors with the same
+                # identifier accross interfaces as overloads.
+                method.resolve(self.parentScope)
 
-                    # Then we look up the identifier on the parentScope. If the
-                    # result is the same as the method we're adding then it
-                    # hasn't been added as an overload and it's the first time
-                    # we've encountered a NamedConstructor with that identifier.
-                    # If the result is not the same as the method we're adding
-                    # then it has been added as an overload and we need to check
-                    # whether the result is actually one of our existing
-                    # NamedConstructors.
-                    newMethod = self.parentScope.lookupIdentifier(method.identifier)
-                    if newMethod == method:
-                        self.namedConstructors.append(method)
-                    elif newMethod not in self.namedConstructors:
-                        raise WebIDLError("NamedConstructor conflicts with a NamedConstructor of a different interface",
-                                          [method.location, newMethod.location])
+                # Then we look up the identifier on the parentScope. If the
+                # result is the same as the method we're adding then it
+                # hasn't been added as an overload and it's the first time
+                # we've encountered a NamedConstructor with that identifier.
+                # If the result is not the same as the method we're adding
+                # then it has been added as an overload and we need to check
+                # whether the result is actually one of our existing
+                # NamedConstructors.
+                newMethod = self.parentScope.lookupIdentifier(method.identifier)
+                if newMethod == method:
+                    self.namedConstructors.append(method)
+                elif newMethod not in self.namedConstructors:
+                    raise WebIDLError("NamedConstructor conflicts with a "
+                                      "NamedConstructor of a different interface",
+                                      [method.location, newMethod.location])
             elif (identifier == "ExceptionClass"):
                 if not attr.noArguments():
                     raise WebIDLError("[ExceptionClass] must take no arguments",
@@ -1774,6 +1754,11 @@ class IDLInterface(IDLInterfaceOrNamespace):
                 # Known extended attributes that take a string value
                 if not attr.hasValue():
                     raise WebIDLError("[%s] must have a value" % identifier,
+                                      [attr.location])
+            elif identifier == "InstrumentedProps":
+                # Known extended attributes that take a list
+                if not attr.hasArgs():
+                    raise WebIDLError("[%s] must have arguments" % identifier,
                                       [attr.location])
             else:
                 raise WebIDLError("Unknown extended attribute %s on interface" % identifier,
@@ -4629,6 +4614,40 @@ class IDLAttribute(IDLInterfaceMember):
     def _getDependentObjects(self):
         return set([self.type])
 
+    def expand(self, members):
+        assert self.stringifier
+        if not self.type.isDOMString() and not self.type.isUSVString():
+            raise WebIDLError("The type of a stringifer attribute must be "
+                              "either DOMString or USVString",
+                              [self.location])
+        identifier = IDLUnresolvedIdentifier(self.location, "__stringifier",
+                                             allowDoubleUnderscore=True)
+        method = IDLMethod(self.location,
+                           identifier,
+                           returnType=self.type, arguments=[],
+                           stringifier=True, underlyingAttr=self)
+        allowedExtAttrs = ["Throws", "NeedsSubjectPrincipal"]
+        # Safe to ignore these as they are only meaningful for attributes
+        attributeOnlyExtAttrs = [
+            "CEReactions",
+            "CrossOriginWritable",
+            "SetterThrows",
+        ]
+        for (key, value) in self._extendedAttrDict.items():
+            if key in allowedExtAttrs:
+                if value is not True:
+                    raise WebIDLError("[%s] with a value is currently "
+                                      "unsupported in stringifier attributes, "
+                                      "please file a bug to add support" % key,
+                                      [self.location])
+                method.addExtendedAttributes([IDLExtendedAttribute(self.location, (key,))])
+            elif not key in attributeOnlyExtAttrs:
+                raise WebIDLError("[%s] is currently unsupported in "
+                                  "stringifier attributes, please file a bug "
+                                  "to add support" % key,
+                                  [self.location])
+        members.append(method)
+
 
 class IDLArgument(IDLObjectWithIdentifier):
     def __init__(self, location, identifier, type, optional=False, defaultValue=None, variadic=False, dictionaryMember=False, allowTypeAttributes=False):
@@ -4874,7 +4893,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                  static=False, getter=False, setter=False,
                  deleter=False, specialType=NamedOrIndexed.Neither,
                  legacycaller=False, stringifier=False,
-                 maplikeOrSetlikeOrIterable=None, htmlConstructor=False):
+                 maplikeOrSetlikeOrIterable=None,
+                 underlyingAttr=None):
         # REVIEW: specialType is NamedOrIndexed -- wow, this is messed up.
         IDLInterfaceMember.__init__(self, location, identifier,
                                     IDLInterfaceMember.Tags.Method)
@@ -4900,10 +4920,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         self._stringifier = stringifier
         assert maplikeOrSetlikeOrIterable is None or isinstance(maplikeOrSetlikeOrIterable, IDLMaplikeOrSetlikeOrIterableBase)
         self.maplikeOrSetlikeOrIterable = maplikeOrSetlikeOrIterable
-        assert isinstance(htmlConstructor, bool)
-        # The identifier of a HTMLConstructor must be 'constructor'.
-        assert not htmlConstructor or identifier.name == "constructor"
-        self._htmlConstructor = htmlConstructor
+        self._htmlConstructor = False
+        self.underlyingAttr = underlyingAttr
         self._specialType = specialType
         self._unforgeable = False
         self.dependsOn = "Everything"
@@ -4943,7 +4961,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             assert len(self._overloads) == 1
             overload = self._overloads[0]
             assert len(overload.arguments) == 0
-            assert overload.returnType == BuiltinTypes[IDLBuiltinType.Types.domstring]
+            if not self.underlyingAttr:
+                assert overload.returnType == BuiltinTypes[IDLBuiltinType.Types.domstring]
 
     def isStatic(self):
         return self._static
@@ -5398,14 +5417,13 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
 
 
 class IDLConstructor(IDLMethod):
-    def __init__(self, location, args, name, htmlConstructor=False):
+    def __init__(self, location, args, name):
         # We can't actually init our IDLMethod yet, because we do not know the
         # return type yet.  Just save the info we have for now and we will init
         # it later.
         self._initLocation = location
         self._initArgs = args
         self._initName = name
-        self._htmlConstructor = htmlConstructor
         self._inited = False
         self._initExtendedAttrs = []
 
@@ -5422,6 +5440,18 @@ class IDLConstructor(IDLMethod):
             identifier == "SecureContext" or
             identifier == "Throws"):
             IDLMethod.handleExtendedAttribute(self, attr)
+        elif identifier == "HTMLConstructor":
+            if not attr.noArguments():
+                raise WebIDLError("[HTMLConstructor] must take no arguments",
+                                  [attr.location])
+            # We shouldn't end up here for named constructors.
+            assert(self.identifier.name == "constructor")
+
+            if any(len(sig[1]) != 0 for sig in self.signatures()):
+                raise WebIDLError("[HTMLConstructor] must not be applied to a "
+                                  "constructor operation that has arguments.",
+                                  [attr.location])
+            self._htmlConstructor = True
         else:
             raise WebIDLError("Unknown extended attribute %s on method" % identifier,
                               [attr.location])
@@ -5432,7 +5462,7 @@ class IDLConstructor(IDLMethod):
         identifier = IDLUnresolvedIdentifier(location, name, allowForbidden=True)
         retType = IDLWrapperType(parentInterface.location, parentInterface)
         IDLMethod.__init__(self, location, identifier, retType, self._initArgs,
-                           static=True, htmlConstructor=self._htmlConstructor)
+                           static=True)
         self._inited = True;
         # Propagate through whatever extended attributes we already had
         self.addExtendedAttributes(self._initExtendedAttrs)
@@ -5650,6 +5680,8 @@ class Tokenizer(object):
         "namespace": "NAMESPACE",
         "ReadableStream": "READABLESTREAM",
         "constructor": "CONSTRUCTOR",
+        "symbol": "SYMBOL",
+        "async": "ASYNC",
         }
 
     tokens.extend(keywords.values())
@@ -6736,37 +6768,54 @@ class Parser(Tokenizer):
     def p_ArgumentName(self, p):
         """
             ArgumentName : IDENTIFIER
-                         | ATTRIBUTE
-                         | CALLBACK
-                         | CONST
-                         | CONSTRUCTOR
-                         | DELETER
-                         | DICTIONARY
-                         | ENUM
-                         | EXCEPTION
-                         | GETTER
-                         | INHERIT
-                         | INTERFACE
-                         | ITERABLE
-                         | LEGACYCALLER
-                         | MAPLIKE
-                         | PARTIAL
-                         | REQUIRED
-                         | SERIALIZER
-                         | SETLIKE
-                         | SETTER
-                         | STATIC
-                         | STRINGIFIER
-                         | TYPEDEF
-                         | UNRESTRICTED
-                         | NAMESPACE
+                         | ArgumentNameKeyword
+        """
+        p[0] = p[1]
+
+    def p_ArgumentNameKeyword(self, p):
+        """
+            ArgumentNameKeyword : ASYNC
+                                | ATTRIBUTE
+                                | CALLBACK
+                                | CONST
+                                | CONSTRUCTOR
+                                | DELETER
+                                | DICTIONARY
+                                | ENUM
+                                | EXCEPTION
+                                | GETTER
+                                | INCLUDES
+                                | INHERIT
+                                | INTERFACE
+                                | ITERABLE
+                                | LEGACYCALLER
+                                | MAPLIKE
+                                | MIXIN
+                                | NAMESPACE
+                                | PARTIAL
+                                | READONLY
+                                | REQUIRED
+                                | SERIALIZER
+                                | SETLIKE
+                                | SETTER
+                                | STATIC
+                                | STRINGIFIER
+                                | TYPEDEF
+                                | UNRESTRICTED
         """
         p[0] = p[1]
 
     def p_AttributeName(self, p):
         """
             AttributeName : IDENTIFIER
-                          | REQUIRED
+                          | AttributeNameKeyword
+        """
+        p[0] = p[1]
+
+    def p_AttributeNameKeyword(self, p):
+        """
+            AttributeNameKeyword : ASYNC
+                                 | REQUIRED
         """
         p[0] = p[1]
 
@@ -6858,36 +6907,27 @@ class Parser(Tokenizer):
                   | BYTESTRING
                   | USVSTRING
                   | JSSTRING
+                  | PROMISE
                   | ANY
-                  | ATTRIBUTE
                   | BOOLEAN
                   | BYTE
-                  | LEGACYCALLER
-                  | CONST
-                  | CONSTRUCTOR
-                  | DELETER
                   | DOUBLE
-                  | EXCEPTION
                   | FALSE
                   | FLOAT
-                  | GETTER
-                  | INHERIT
-                  | INTERFACE
                   | LONG
                   | NULL
                   | OBJECT
                   | OCTET
+                  | OR
                   | OPTIONAL
-                  | SEQUENCE
                   | RECORD
-                  | SETTER
+                  | SEQUENCE
                   | SHORT
-                  | STATIC
-                  | STRINGIFIER
+                  | SYMBOL
                   | TRUE
-                  | TYPEDEF
                   | UNSIGNED
                   | VOID
+                  | ArgumentNameKeyword
         """
         pass
 

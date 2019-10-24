@@ -562,6 +562,15 @@ MarkupContainer.prototype = {
       event.preventDefault();
     }
 
+    // Middle clicks will trigger the scroll lock feature to turn on.
+    // The toolbox is normally responsible for calling preventDefault when
+    // needed, but we prevent markup-view mousedown events from bubbling up (via
+    // stopPropagation). So we have to preventDefault here as well in order to
+    // avoid this issue.
+    if (isMiddleClick) {
+      event.preventDefault();
+    }
+
     // Follow attribute links if middle or meta click.
     if (isMiddleClick || isMetaClick) {
       const link = target.dataset.link;
@@ -591,17 +600,13 @@ MarkupContainer.prototype = {
     if (this.isDragging) {
       this.cancelDragging();
 
-      const dropTargetNodes = this.markup.dropTargetNodes;
-
-      if (!dropTargetNodes) {
+      if (!this.markup.dropTargetNodes) {
         return;
       }
 
-      await this.markup.walker.insertBefore(
-        this.node,
-        dropTargetNodes.parent,
-        dropTargetNodes.nextSibling
-      );
+      const { nextSibling, parent } = this.markup.dropTargetNodes;
+      const { walkerFront } = parent;
+      await walkerFront.insertBefore(this.node, parent, nextSibling);
       this.markup.emit("drop-completed");
     }
   },

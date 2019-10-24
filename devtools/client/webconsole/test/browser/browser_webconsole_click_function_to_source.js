@@ -20,12 +20,6 @@ const TEST_SCRIPT_URI =
 add_task(async function() {
   const hud = await openNewTabAndConsole(TEST_URI);
 
-  info("Open the Debugger panel.");
-  await openDebugger();
-
-  info("And right after come back to the Console panel.");
-  await openConsole();
-
   info("Log a function");
   const onLoggedFunction = waitForMessage(hud, "function foo");
   ContentTask.spawn(gBrowser.selectedBrowser, {}, function() {
@@ -38,11 +32,15 @@ add_task(async function() {
   info("Click on the jump to definition button.");
   jumpIcon.click();
 
+  info("Wait for the Debugger panel to open.");
   const toolbox = hud.toolbox;
+  await toolbox.getPanelWhenReady("jsdebugger");
+
   const dbg = createDebuggerContext(toolbox);
   await waitForSelectedSource(dbg, TEST_SCRIPT_URI);
 
   const pendingLocation = dbg.selectors.getPendingSelectedLocation();
-  const { line } = pendingLocation;
+  const { line, column } = pendingLocation;
   is(line, 9, "Debugger is open at the expected line");
+  is(column, 12, "Debugger is open at the expected column");
 });

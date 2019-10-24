@@ -9,14 +9,14 @@ use crate::batch::{AlphaBatchBuilder, AlphaBatchContainer, BatchTextures, resolv
 use crate::batch::{ClipBatcher, BatchBuilder};
 use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX};
 use crate::clip::ClipStore;
-use crate::composite::CompositeConfig;
+use crate::composite::CompositeState;
 use crate::device::Texture;
 use crate::frame_builder::{FrameGlobalResources};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress};
 use crate::gpu_types::{BorderInstance, SvgFilterInstance, BlurDirection, BlurInstance, PrimitiveHeaders, ScalingInstance};
 use crate::gpu_types::{TransformPalette, ZBufferIdGenerator};
 use crate::internal_types::{FastHashMap, TextureSource, LayerIndex, Swizzle, SavedTargetIndex};
-use crate::picture::SurfaceInfo;
+use crate::picture::{SurfaceInfo, ResolvedSurfaceTexture};
 use crate::prim_store::{PrimitiveStore, DeferredResolve, PrimitiveScratchBuffer, PrimitiveVisibilityMask};
 use crate::prim_store::gradient::GRADIENT_FP_STOPS;
 use crate::render_backend::DataStores;
@@ -102,7 +102,7 @@ pub trait RenderTarget {
         _prim_headers: &mut PrimitiveHeaders,
         _transforms: &mut TransformPalette,
         _z_generator: &mut ZBufferIdGenerator,
-        _composite_config: &mut CompositeConfig,
+        _composite_state: &mut CompositeState,
     ) {
     }
 
@@ -203,7 +203,7 @@ impl<T: RenderTarget> RenderTargetList<T> {
         prim_headers: &mut PrimitiveHeaders,
         transforms: &mut TransformPalette,
         z_generator: &mut ZBufferIdGenerator,
-        composite_config: &mut CompositeConfig,
+        composite_state: &mut CompositeState,
     ) {
         debug_assert_eq!(None, self.saved_index);
         self.saved_index = saved_index;
@@ -217,7 +217,7 @@ impl<T: RenderTarget> RenderTargetList<T> {
                 prim_headers,
                 transforms,
                 z_generator,
-                composite_config,
+                composite_state,
             );
         }
     }
@@ -336,7 +336,7 @@ impl RenderTarget for ColorRenderTarget {
         prim_headers: &mut PrimitiveHeaders,
         transforms: &mut TransformPalette,
         z_generator: &mut ZBufferIdGenerator,
-        composite_config: &mut CompositeConfig,
+        composite_state: &mut CompositeState,
     ) {
         let mut merged_batches = AlphaBatchContainer::new(None);
 
@@ -404,7 +404,7 @@ impl RenderTarget for ColorRenderTarget {
                         raster_spatial_node_index,
                         pic_task.surface_spatial_node_index,
                         z_generator,
-                        composite_config,
+                        composite_state,
                     );
 
                     let alpha_batch_builders = batch_builder.finalize();
@@ -719,8 +719,7 @@ impl RenderTarget for AlphaRenderTarget {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct PictureCacheTarget {
-    pub texture: TextureSource,
-    pub layer: usize,
+    pub surface: ResolvedSurfaceTexture,
     pub alpha_batch_container: AlphaBatchContainer,
     pub clear_color: Option<ColorF>,
 }

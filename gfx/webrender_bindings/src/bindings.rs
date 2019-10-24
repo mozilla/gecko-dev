@@ -514,7 +514,7 @@ fn get_proc_address(glcontext_ptr: *mut c_void,
 pub enum TelemetryProbe {
     SceneBuildTime = 0,
     SceneSwapTime = 1,
-    RenderTime = 2,
+    FrameBuildTime = 2,
 }
 
 extern "C" {
@@ -582,7 +582,7 @@ impl RenderNotifier for CppNotifier {
                        render_time_ns: Option<u64>) {
         unsafe {
             if let Some(time) = render_time_ns {
-                record_telemetry_time(TelemetryProbe::RenderTime, time);
+                record_telemetry_time(TelemetryProbe::FrameBuildTime, time);
             }
             if composite_needed {
                 wr_notifier_new_frame_ready(self.window_id);
@@ -1862,6 +1862,14 @@ pub extern "C" fn wr_api_capture(
 
     let bits = CaptureBits::from_bits(bits_raw as _).unwrap();
     dh.api.save_capture(path, bits);
+}
+
+#[no_mangle]
+pub extern "C" fn wr_api_set_transaction_logging(
+    dh: &mut DocumentHandle,
+    aValue: bool
+) {
+    dh.api.send_debug_cmd(DebugCommand::SetTransactionLogging(aValue));
 }
 
 #[cfg(target_os = "windows")]

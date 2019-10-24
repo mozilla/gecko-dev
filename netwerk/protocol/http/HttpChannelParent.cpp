@@ -156,7 +156,7 @@ bool HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs) {
           a.launchServiceWorkerEnd(), a.dispatchFetchEventStart(),
           a.dispatchFetchEventEnd(), a.handleFetchEventStart(),
           a.handleFetchEventEnd(), a.forceMainDocumentChannel(),
-          a.navigationStartTimeStamp(), a.hasSandboxedAuxiliaryNavigations());
+          a.navigationStartTimeStamp(), a.hasNonEmptySandboxingFlag());
     }
     case HttpChannelCreationArgs::THttpChannelConnectArgs: {
       const HttpChannelConnectArgs& cArgs = aArgs.get_HttpChannelConnectArgs();
@@ -418,7 +418,7 @@ bool HttpChannelParent::DoAsyncOpen(
     const TimeStamp& aHandleFetchEventEnd,
     const bool& aForceMainDocumentChannel,
     const TimeStamp& aNavigationStartTimeStamp,
-    const bool& hasSandboxedAuxiliaryNavigations) {
+    const bool& aHasNonEmptySandboxingFlag) {
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri) {
     // URIParams does MOZ_ASSERT if null, but we need to protect opt builds from
@@ -507,8 +507,8 @@ bool HttpChannelParent::DoAsyncOpen(
     httpChannel->SetIsMainDocumentChannel(true);
   }
 
-  if (hasSandboxedAuxiliaryNavigations) {
-    httpChannel->SetHasSandboxedAuxiliaryNavigations(true);
+  if (aHasNonEmptySandboxingFlag) {
+    httpChannel->SetHasNonEmptySandboxingFlag(true);
   }
 
   for (uint32_t i = 0; i < requestHeaders.Length(); i++) {
@@ -938,7 +938,9 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvRedirect2Verify(
 
   // If the redirect is vetoed, reason is set on the source (current) channel's
   // load info, so we must carry iver the change.
-  if (aSourceRequestBlockingReason) {
+  // The channel may have already been cleaned up, so there is nothing we can
+  // do.
+  if (MOZ_UNLIKELY(aSourceRequestBlockingReason) && mChannel) {
     nsCOMPtr<nsILoadInfo> sourceLoadInfo = mChannel->LoadInfo();
     if (sourceLoadInfo) {
       sourceLoadInfo->SetRequestBlockingReason(aSourceRequestBlockingReason);
@@ -1801,10 +1803,18 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvOpenAltDataCacheInputStream(
 NS_IMETHODIMP
 HttpChannelParent::OnProgress(nsIRequest* aRequest, nsISupports* aContext,
                               int64_t aProgress, int64_t aProgressMax) {
-  LOG(("HttpChannelParent::OnStatus [this=%p progress=%" PRId64 "max=%" PRId64
+  LOG(("HttpChannelParent::OnProgress [this=%p progress=%" PRId64 "max=%" PRId64
        "]\n",
        this, aProgress, aProgressMax));
   MOZ_ASSERT(NS_IsMainThread());
+  // Either IPC channel is closed or background channel
+  // is ready to send OnProgress.
+  MOZ_ASSERT(mIPCClosed || mBgParent);
+
+  // If IPC channel is closed, there is nothing we can do. Just return NS_OK.
+  if (mIPCClosed || !mBgParent) {
+    return NS_OK;
+  }
 
   // If it indicates this precedes OnDataAvailable, child can derive the value
   // in ODA.
@@ -1813,15 +1823,10 @@ HttpChannelParent::OnProgress(nsIRequest* aRequest, nsISupports* aContext,
     return NS_OK;
   }
 
-  // Either IPC channel is closed or background channel
-  // is ready to send OnProgress.
-  MOZ_ASSERT(mIPCClosed || mBgParent);
-
   // Send OnProgress events to the child for data upload progress notifications
   // (i.e. status == NS_NET_STATUS_SENDING_TO) or if the channel has
   // LOAD_BACKGROUND set.
-  if (mIPCClosed || !mBgParent ||
-      !mBgParent->OnProgress(aProgress, aProgressMax)) {
+  if (!mBgParent->OnProgress(aProgress, aProgressMax)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -1834,6 +1839,14 @@ HttpChannelParent::OnStatus(nsIRequest* aRequest, nsISupports* aContext,
   LOG(("HttpChannelParent::OnStatus [this=%p status=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(aStatus)));
   MOZ_ASSERT(NS_IsMainThread());
+  // Either IPC channel is closed or background channel
+  // is ready to send OnStatus.
+  MOZ_ASSERT(mIPCClosed || mBgParent);
+
+  // If IPC channel is closed, there is nothing we can do. Just return NS_OK.
+  if (mIPCClosed || !mBgParent) {
+    return NS_OK;
+  }
 
   // If this precedes OnDataAvailable, transportStatus will be derived in ODA.
   if (aStatus == NS_NET_STATUS_RECEIVING_FROM ||
@@ -1845,12 +1858,8 @@ HttpChannelParent::OnStatus(nsIRequest* aRequest, nsISupports* aContext,
     return NS_OK;
   }
 
-  // Either IPC channel is closed or background channel
-  // is ready to send OnStatus.
-  MOZ_ASSERT(mIPCClosed || mBgParent);
-
   // Otherwise, send to child now
-  if (mIPCClosed || !mBgParent || !mBgParent->OnStatus(aStatus)) {
+  if (!mBgParent->OnStatus(aStatus)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -2112,16 +2121,6 @@ HttpChannelParent::StartRedirect(nsIChannel* newChannel, uint32_t redirectFlags,
   mRedirectChannel = newChannel;
   mRedirectCallback = callback;
   return NS_OK;
-}
-
-void HttpChannelParent::CancelChildCrossProcessRedirect() {
-  MOZ_ASSERT(!mDoingCrossProcessRedirect, "Already redirected");
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mDoingCrossProcessRedirect = true;
-  if (!mIPCClosed) {
-    Unused << SendCancelRedirected();
-  }
 }
 
 NS_IMETHODIMP
@@ -2642,7 +2641,13 @@ HttpChannelParent::OnRedirectResult(bool succeeded) {
 
 nsresult HttpChannelParent::TriggerCrossProcessSwitch(nsIHttpChannel* aChannel,
                                                       uint64_t aIdentifier) {
-  CancelChildCrossProcessRedirect();
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // Mark ourselves as performing a cross-process redirect. This will prevent
+  // messages being communicated to the underlying channel, allowing us to keep
+  // it open.
+  MOZ_ASSERT(!mDoingCrossProcessRedirect, "Already redirected");
+  mDoingCrossProcessRedirect = true;
 
   nsCOMPtr<nsIChannel> channel = aChannel;
   RefPtr<nsHttpChannel> httpChannel = do_QueryObject(channel);
@@ -2672,6 +2677,12 @@ nsresult HttpChannelParent::TriggerCrossProcessSwitch(nsIHttpChannel* aChannel,
       GetMainThreadSerialEventTarget(), __func__,
       [=](uint64_t cpId) {
         nsresult rv;
+
+        // Cancel the channel in the original process, as the switch is
+        // happening in earnest.
+        if (!self->mIPCClosed) {
+          Unused << self->SendCancelRedirected();
+        }
 
         // Register the new channel and obtain id for it
         nsCOMPtr<nsIRedirectChannelRegistrar> registrar =
@@ -2742,8 +2753,14 @@ nsresult HttpChannelParent::TriggerCrossProcessSwitch(nsIHttpChannel* aChannel,
                   self->CrossProcessRedirectDone(NS_ERROR_FAILURE, Nothing());
                 });
       },
-      [httpChannel](nsresult aStatus) {
+      [=](nsresult aStatus) {
         MOZ_ASSERT(NS_FAILED(aStatus), "Status should be error");
+
+        // We failed to do a process switch. Make sure the content process has
+        // canceled the channel, and then resume the load process with an error.
+        if (!self->mIPCClosed) {
+          Unused << self->SendCancelRedirected();
+        }
         httpChannel->OnRedirectVerifyCallback(aStatus);
       });
 

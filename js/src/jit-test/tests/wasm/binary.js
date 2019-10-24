@@ -138,21 +138,6 @@ assertErrorMessage(() => wasmEval(moduleWithSections([v2vSigSection, declSection
 assertErrorMessage(() => wasmEval(moduleWithSections([v2vSigSection, declSection([0]), bodySection([funcBody({locals:[], body:[UnreachableCode,EndCode]})])])), CompileError, bodyMismatch);
 assertErrorMessage(() => wasmEval(moduleWithSections([v2vSigSection, declSection([0]), bodySection([funcBody({locals:[], body:[EndCode,UnreachableCode]})])])), CompileError, bodyMismatch);
 
-// Deep nesting shouldn't crash or even throw. This test takes a long time to
-// run with the JITs disabled, so to avoid occasional timeout, disable. Also
-// in eager mode, this triggers pathological recompilation, so only run for
-// "normal" JIT modes. This test is totally independent of the JITs so this
-// shouldn't matter.
-var jco = getJitCompilerOptions();
-if (jco["ion.enable"] && jco["baseline.enable"] && jco["baseline.warmup.trigger"] > 0 && jco["ion.warmup.trigger"] > 10) {
-    var manyBlocks = [];
-    for (var i = 0; i < 20000; i++)
-        manyBlocks.push(BlockCode, VoidCode);
-    for (var i = 0; i < 20000; i++)
-        manyBlocks.push(EndCode);
-    wasmEval(moduleWithSections([v2vSigSection, declSection([0]), bodySection([funcBody({locals:[], body:manyBlocks})])]));
-}
-
 // Ignore errors in name section.
 var tooBigNameSection = {
     name: userDefinedId,
@@ -234,13 +219,12 @@ assertErrorMessage(() => wasmEval(moduleWithSections([
 for (var bad of [0xff, 1, 0x3f])
     assertErrorMessage(() => wasmEval(moduleWithSections([sigSection([v2vSig]), declSection([0]), bodySection([funcBody({locals:[], body:[BlockCode, bad, EndCode]})])])), CompileError, /invalid .*block type/);
 
+const multiValueModule = moduleWithSections([sigSection([v2vSig]), declSection([0]), bodySection([funcBody({locals:[], body:[BlockCode, 0, EndCode]})])]);
 if (wasmMultiValueEnabled()) {
     // In this test module, 0 denotes a void-to-void block type.
-    let binary = moduleWithSections([sigSection([v2vSig]), declSection([0]), bodySection([funcBody({locals:[], body:[BlockCode, 0, EndCode]})])]);
-    assertEq(WebAssembly.validate(binary), true);
+    assertEq(WebAssembly.validate(multiValueModule), true);
 } else {
-    const bad = 0;
-    assertErrorMessage(() => wasmEval(moduleWithSections([sigSection([v2vSig]), declSection([0]), bodySection([funcBody({locals:[], body:[BlockCode, bad, EndCode]})])])), CompileError, /invalid .*block type/);
+    assertErrorMessage(() => wasmEval(multiValueModule), CompileError, /invalid .*block type/);
 }
 
 // Ensure all invalid opcodes rejected

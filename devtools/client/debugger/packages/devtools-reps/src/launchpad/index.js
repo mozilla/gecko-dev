@@ -27,14 +27,22 @@ function onConnect(connection) {
         connection.tabConnection.tabTarget.activeConsole.evaluateJSAsync(input),
     },
 
-    createObjectClient: function(grip) {
+    createObjectFront: function(grip) {
       return connection.tabConnection.threadFront.pauseGrip(grip);
     },
     createLongStringClient: function(grip) {
       return connection.tabConnection.tabTarget.activeConsole.longString(grip);
     },
     releaseActor: function(actor) {
-      return connection.tabConnection.debuggerClient.release(actor);
+      const debuggerClient = connection.tabConnection.debuggerClient;
+      const objFront = debuggerClient.getFrontByID(actor);
+
+      if (objFront) {
+        return objFront.release();
+      }
+
+      // In case there's no object front, use the client's release method.
+      return debuggerClient.release(actor).catch(() => {});
     },
   };
 

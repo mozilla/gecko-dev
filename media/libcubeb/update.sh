@@ -30,8 +30,6 @@ cp $1/src/cubeb-jni.h src
 cp $1/src/android/cubeb-output-latency.h src/android
 cp $1/src/android/cubeb_media_library.h src/android
 cp $1/src/cubeb_osx_run_loop.h src
-cp $1/src/cubeb_panner.cpp src
-cp $1/src/cubeb_panner.h src
 cp $1/src/cubeb_pulse.c src
 cp $1/src/cubeb_resampler.cpp src
 cp $1/src/cubeb_resampler.h src
@@ -91,3 +89,5 @@ fi
 
 echo "Applying disable-assert.patch on top of $rev"
 patch -p3 < disable-assert.patch
+echo "Applying disable-iaudioclient3.patch on top of $rev"
+patch -p3 < disable-iaudioclient3.patch

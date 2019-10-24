@@ -115,6 +115,15 @@ struct FrameScriptInfo
   bool runInGlobalScope;
 };
 
+struct FeaturePolicyInfo
+{
+  nsString[]   inheritedDeniedFeatureNames;
+  nsString     declaredString;
+  nsIPrincipal defaultOrigin;
+  nsIPrincipal selfOrigin;
+  nsIPrincipal srcOrigin;
+};
+
 /**
  * The information required to complete a window creation request.
  */
@@ -231,6 +240,9 @@ struct DocShellLoadStateInit
   // also the CSP that will be applied to the load in case the load
   // encounters a server side redirect.
   nsIContentSecurityPolicy Csp;
+
+  nsCString? OriginalURIString;
+  int32_t? CancelContentJSEpoch;
 
   nsIInputStream PostDataStream;
   nsIInputStream HeadersStream;

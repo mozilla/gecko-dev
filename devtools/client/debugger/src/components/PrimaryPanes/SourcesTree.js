@@ -55,20 +55,23 @@ import type {
 } from "../../reducers/types";
 import type { Item } from "../shared/ManagedTree";
 
+type OwnProps = {|
+  threads: Thread[],
+|};
 type Props = {
   cx: Context,
   threads: Thread[],
   sources: SourcesMapByThread,
   sourceCount: number,
-  shownSource?: Source,
-  selectedSource?: Source,
+  shownSource: ?Source,
+  selectedSource: ?Source,
   debuggeeUrl: string,
   projectRoot: string,
   expanded: Set<string>,
   selectSource: typeof actions.selectSource,
   setExpandedState: typeof actions.setExpandedState,
   focusItem: typeof actions.focusItem,
-  focused: TreeNode,
+  focused: ?TreeNode,
 };
 
 type State = {
@@ -93,7 +96,7 @@ function shouldAutoExpand(depth, item, debuggeeUrl, projectRoot) {
 function findSource({ threads, sources }, itemPath, source) {
   const targetThread = threads.find(thread => itemPath.includes(thread.actor));
   if (targetThread && source) {
-    const actor = targetThread.actor;
+    const { actor } = targetThread;
     if (sources[actor]) {
       return sources[actor][source.id];
     }
@@ -219,7 +222,7 @@ class SourcesTree extends Component<Props, State> {
     return sourceTree.contents.length === 0;
   }
 
-  renderEmptyElement(message) {
+  renderEmptyElement(message: string) {
     return (
       <div key="empty" className="no-sources-message">
         {message}
@@ -227,7 +230,7 @@ class SourcesTree extends Component<Props, State> {
     );
   }
 
-  getRoots = (sourceTree, projectRoot) => {
+  getRoots = (sourceTree: TreeDirectory, projectRoot: string) => {
     const sourceContents = sourceTree.contents[0];
 
     if (projectRoot && sourceContents) {
@@ -248,7 +251,7 @@ class SourcesTree extends Component<Props, State> {
     item: TreeNode,
     depth: number,
     focused: boolean,
-    _,
+    _: mixed,
     expanded: boolean,
     { setExpanded }: { setExpanded: SetExpanded }
   ) => {
@@ -301,7 +304,7 @@ class SourcesTree extends Component<Props, State> {
     return <ManagedTree {...treeProps} />;
   }
 
-  renderPane(...children) {
+  renderPane(child: React$Node) {
     const { projectRoot } = this.props;
 
     return (
@@ -311,7 +314,7 @@ class SourcesTree extends Component<Props, State> {
           "sources-list-custom-root": projectRoot,
         })}
       >
-        {children}
+        {child}
       </div>
     );
   }
@@ -364,7 +367,7 @@ const mapStateToProps = (state, props) => {
   };
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectSource: actions.selectSource,

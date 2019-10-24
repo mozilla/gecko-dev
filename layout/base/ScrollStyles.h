@@ -16,37 +16,19 @@ struct nsStyleDisplay;
 
 namespace mozilla {
 
+// NOTE: Only styles that are propagated from the <body> should end up in this
+// class.
 struct ScrollStyles {
   // Always one of Scroll, Hidden, or Auto
   StyleOverflow mHorizontal;
   StyleOverflow mVertical;
-  // Always one of NS_STYLE_SCROLL_BEHAVIOR_AUTO or
-  // NS_STYLE_SCROLL_BEHAVIOR_SMOOTH
-  StyleOverscrollBehavior mOverscrollBehaviorX;
-  StyleOverscrollBehavior mOverscrollBehaviorY;
-  StyleScrollSnapStrictness mScrollSnapStrictnessX;
-  StyleScrollSnapStrictness mScrollSnapStrictnessY;
 
   ScrollStyles(StyleOverflow aH, StyleOverflow aV)
-      : mHorizontal(aH),
-        mVertical(aV),
-        mOverscrollBehaviorX(StyleOverscrollBehavior::Auto),
-        mOverscrollBehaviorY(StyleOverscrollBehavior::Auto),
-        mScrollSnapStrictnessX(StyleScrollSnapStrictness::None),
-        mScrollSnapStrictnessY(StyleScrollSnapStrictness::None) {}
+      : mHorizontal(aH), mVertical(aV) {}
 
-  ScrollStyles(WritingMode aWritingMode, const nsStyleDisplay* aDisplay);
-  ScrollStyles(WritingMode aWritingMode, StyleOverflow aH, StyleOverflow aV,
-               const nsStyleDisplay* aDisplay);
-  void InitializeScrollSnapStrictness(WritingMode aWritingMode,
-                                      const nsStyleDisplay* aDisplay);
+  explicit ScrollStyles(const nsStyleDisplay&);
   bool operator==(const ScrollStyles& aStyles) const {
-    return aStyles.mHorizontal == mHorizontal &&
-           aStyles.mVertical == mVertical &&
-           aStyles.mOverscrollBehaviorX == mOverscrollBehaviorX &&
-           aStyles.mOverscrollBehaviorY == mOverscrollBehaviorY &&
-           aStyles.mScrollSnapStrictnessX == mScrollSnapStrictnessX &&
-           aStyles.mScrollSnapStrictnessY == mScrollSnapStrictnessY;
+    return aStyles.mHorizontal == mHorizontal && aStyles.mVertical == mVertical;
   }
   bool operator!=(const ScrollStyles& aStyles) const {
     return !(*this == aStyles);

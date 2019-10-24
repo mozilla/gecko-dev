@@ -27,17 +27,21 @@ import "./Outline.css";
 import PreviewFunction from "../shared/PreviewFunction";
 import { uniq, sortBy } from "lodash";
 
+import type { Symbols } from "../../reducers/ast";
+
 import type {
-  AstLocation,
-  SymbolDeclarations,
   SymbolDeclaration,
   FunctionDeclaration,
 } from "../../workers/parser";
 import type { Source, Context, SourceLocation } from "../../types";
 
+type OwnProps = {|
+  alphabetizeOutline: boolean,
+  onAlphabetizeClick: Function,
+|};
 type Props = {
   cx: Context,
-  symbols: SymbolDeclarations,
+  symbols: ?Symbols,
   selectedSource: ?Source,
   alphabetizeOutline: boolean,
   onAlphabetizeClick: Function,
@@ -105,7 +109,12 @@ export class Outline extends Component<Props, State> {
 
   setFocus(cursorPosition: SourceLocation) {
     const { symbols } = this.props;
-    const { classes, functions } = symbols;
+    let classes = [];
+    let functions = [];
+
+    if (symbols && !symbols.loading) {
+      ({ classes, functions } = symbols);
+    }
 
     // Find items that enclose the selected location
     const enclosedItems = [...functions, ...classes].filter(
@@ -126,17 +135,19 @@ export class Outline extends Component<Props, State> {
     this.setState({ focusedItem: closestItem });
   }
 
-  selectItem(location: AstLocation) {
+  selectItem(selectedItem: ?SymbolDeclaration) {
     const { cx, selectedSource, selectLocation } = this.props;
-    if (!selectedSource) {
+    if (!selectedSource || !selectedItem) {
       return;
     }
 
     selectLocation(cx, {
       sourceId: selectedSource.id,
-      line: location.start.line,
-      column: location.start.column,
+      line: selectedItem.location.start.line,
+      column: selectedItem.location.start.column,
     });
+
+    this.setState({ focusedItem: selectedItem });
   }
 
   onContextMenu(event: SyntheticEvent<HTMLElement>, func: SymbolDeclaration) {
@@ -205,7 +216,7 @@ export class Outline extends Component<Props, State> {
             this.focusedElRef = el;
           }
         }}
-        onClick={() => this.selectItem(location)}
+        onClick={() => this.selectItem(func)}
         onContextMenu={e => this.onContextMenu(e, func)}
       >
         <span className="outline-list__element-icon">λ</span>
@@ -223,16 +234,19 @@ export class Outline extends Component<Props, State> {
   }
 
   renderClassFunctions(klass: ?string, functions: FunctionDeclaration[]) {
-    if (klass == null || functions.length == 0) {
+    const { symbols } = this.props;
+
+    if (!symbols || symbols.loading || klass == null || functions.length == 0) {
       return null;
     }
 
     const { focusedItem } = this.state;
     const classFunc = functions.find(func => func.name === klass);
     const classFunctions = functions.filter(func => func.klass === klass);
-    const classInfo = this.props.symbols.classes.find(c => c.name === klass);
+    const classInfo = symbols.classes.find(c => c.name === klass);
 
-    const isFocused = focusedItem === (classFunc || classInfo);
+    const item = classFunc || classInfo;
+    const isFocused = focusedItem === item;
 
     return (
       <li
@@ -246,7 +260,7 @@ export class Outline extends Component<Props, State> {
       >
         <h2
           className={classnames("", { focused: isFocused })}
-          onClick={classInfo ? () => this.selectItem(classInfo.location) : null}
+          onClick={() => this.selectItem(item)}
         >
           {classFunc
             ? this.renderFunction(classFunc)
@@ -355,7 +369,7 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(
+export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectLocation: actions.selectLocation,

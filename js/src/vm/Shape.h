@@ -655,9 +655,9 @@ class BaseShape : public gc::TenuredCell {
 
  private:
   const JSClass* clasp_; /* Class of referring object. */
-  uint32_t flags;      /* Vector of above flags. */
-  uint32_t slotSpan_;  /* Object slot span for BaseShapes at
-                        * dictionary last properties. */
+  uint32_t flags;        /* Vector of above flags. */
+  uint32_t slotSpan_;    /* Object slot span for BaseShapes at
+                          * dictionary last properties. */
 
   /* For owned BaseShapes, the canonical unowned BaseShape. */
   GCPtrUnownedBaseShape unowned_;
@@ -1629,10 +1629,7 @@ struct StackShape {
         mozilla::HashGeneric(base, attrs, maybeSlot(), rawGetter, rawSetter));
   }
 
-  // Traceable implementation.
-  static void trace(StackShape* stackShape, JSTracer* trc) {
-    stackShape->trace(trc);
-  }
+  // StructGCPolicy implementation.
   void trace(JSTracer* trc);
 };
 

@@ -94,6 +94,7 @@
 
 #include "mozilla/dom/Attr.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/CSPDictionariesBinding.h"
 #include "mozilla/dom/Element.h"
@@ -181,7 +182,9 @@
 #include "nsContentCreatorFunctions.h"
 
 #include "nsIScriptContext.h"
-#include "nsBindingManager.h"
+#ifdef MOZ_XBL
+#  include "nsBindingManager.h"
+#endif
 #include "nsHTMLDocument.h"
 #include "nsIRequest.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
@@ -1987,12 +1990,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
     return NS_SUCCESS_INTERRUPTED_TRAVERSE;
   }
 
+#ifdef MOZ_XBL
   if (tmp->mMaybeEndOutermostXBLUpdateRunner) {
     // The cached runnable keeps a reference to the document object..
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
         cb, "mMaybeEndOutermostXBLUpdateRunner.mObj");
     cb.NoteXPCOMChild(ToSupports(tmp));
   }
+#endif
 
   tmp->mExternalResourceMap.Traverse(&cb);
 
@@ -2122,7 +2127,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
 
   tmp->mCachedRootElement = nullptr;  // Avoid a dangling pointer
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDisplayDocument)
+#ifdef MOZ_XBL
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMaybeEndOutermostXBLUpdateRunner)
+#endif
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDOMImplementation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mImageMaps)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCachedEncoder)
@@ -3054,17 +3061,8 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     aChannel->Cancel(NS_ERROR_CSP_FRAME_ANCESTOR_VIOLATION);
   }
 
-  // Let's take the CookieSettings from the loadInfo or from the parent
-  // document.
-  if (loadInfo) {
-    rv = loadInfo->GetCookieSettings(getter_AddRefs(mCookieSettings));
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    nsCOMPtr<Document> parentDocument = GetInProcessParentDocument();
-    if (parentDocument) {
-      mCookieSettings = parentDocument->CookieSettings();
-    }
-  }
+  rv = loadInfo->GetCookieSettings(getter_AddRefs(mCookieSettings));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -3280,23 +3278,42 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
     SetPrincipals(principal, principal);
   }
 
-  // ----- Enforce frame-ancestor policy on any applied policies
-  nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
-  if (docShell) {
-    bool safeAncestry = false;
-
-    // PermitsAncestry sends violation reports when necessary
-    rv = mCSP->PermitsAncestry(docShell, &safeAncestry);
-
-    if (NS_FAILED(rv) || !safeAncestry) {
-      MOZ_LOG(gCspPRLog, LogLevel::Debug,
-              ("CSP doesn't like frame's ancestry, not loading."));
-      // stop!  ERROR page!
-      aChannel->Cancel(NS_ERROR_CSP_FRAME_ANCESTOR_VIOLATION);
-    }
-  }
   ApplySettingsFromCSP(false);
   return NS_OK;
+}
+
+already_AddRefed<mozilla::dom::FeaturePolicy>
+Document::GetParentFeaturePolicy() {
+  if (!mDocumentContainer) {
+    return nullptr;
+  }
+
+  nsPIDOMWindowOuter* containerWindow = mDocumentContainer->GetWindow();
+  if (!containerWindow) {
+    return nullptr;
+  }
+
+  BrowsingContext* context = containerWindow->GetBrowsingContext();
+  if (!context) {
+    return nullptr;
+  }
+
+  RefPtr<mozilla::dom::FeaturePolicy> parentPolicy;
+  if (context->IsContentSubframe() && !context->GetParent()->IsInProcess()) {
+    // We are in cross process, so try to get feature policy from
+    // container's BrowsingContext
+    parentPolicy = context->GetFeaturePolicy();
+    return parentPolicy.forget();
+  }
+
+  nsCOMPtr<nsINode> node = containerWindow->GetFrameElementInternal();
+  HTMLIFrameElement* iframe = HTMLIFrameElement::FromNodeOrNull(node);
+  if (!iframe) {
+    return nullptr;
+  }
+
+  parentPolicy = iframe->FeaturePolicy();
+  return parentPolicy.forget();
 }
 
 nsresult Document::InitFeaturePolicy(nsIChannel* aChannel) {
@@ -3310,18 +3327,7 @@ nsresult Document::InitFeaturePolicy(nsIChannel* aChannel) {
 
   mFeaturePolicy->SetDefaultOrigin(NodePrincipal());
 
-  RefPtr<mozilla::dom::FeaturePolicy> parentPolicy = nullptr;
-  if (mDocumentContainer) {
-    nsPIDOMWindowOuter* containerWindow = mDocumentContainer->GetWindow();
-    if (containerWindow) {
-      nsCOMPtr<nsINode> node = containerWindow->GetFrameElementInternal();
-      HTMLIFrameElement* iframe = HTMLIFrameElement::FromNodeOrNull(node);
-      if (iframe) {
-        parentPolicy = iframe->FeaturePolicy();
-      }
-    }
-  }
-
+  RefPtr<mozilla::dom::FeaturePolicy> parentPolicy = GetParentFeaturePolicy();
   if (parentPolicy) {
     // Let's inherit the policy from the parent HTMLIFrameElement if it exists.
     mFeaturePolicy->InheritPolicy(parentPolicy);
@@ -5961,6 +5967,7 @@ static inline void AssertNoStaleServoDataIn(nsINode& aSubtreeRoot) {
       continue;
     }
     MOZ_ASSERT(!element->HasServoData());
+#  ifdef MOZ_XBL
     if (nsXBLBinding* binding = element->GetXBLBinding()) {
       if (nsXBLBinding* bindingWithContent = binding->GetBindingWithContent()) {
         nsIContent* content = bindingWithContent->GetAnonymousContent();
@@ -5975,6 +5982,7 @@ static inline void AssertNoStaleServoDataIn(nsINode& aSubtreeRoot) {
         }
       }
     }
+#  endif
   }
 #endif
 }
@@ -6970,6 +6978,7 @@ bool Document::RemoveObserver(nsIDocumentObserver* aObserver) {
   return mObservers.Contains(aObserver);
 }
 
+#ifdef MOZ_XBL
 void Document::MaybeEndOutermostXBLUpdate() {
   // Only call BindingManager()->EndOutermostUpdate() when
   // we're not in an update and it is safe to run scripts.
@@ -6987,6 +6996,7 @@ void Document::MaybeEndOutermostXBLUpdate() {
     }
   }
 }
+#endif
 
 void Document::BeginUpdate() {
   // If the document is going away, then it's probably okay to do things to it
@@ -7000,10 +7010,12 @@ void Document::BeginUpdate() {
     mDocGroup->ValidateAccess();
   }
 
+#ifdef MOZ_XBL
   if (mUpdateNestLevel == 0 && !mInXBLUpdate) {
     mInXBLUpdate = true;
     BindingManager()->BeginOutermostUpdate();
   }
+#endif
 
   ++mUpdateNestLevel;
   nsContentUtils::AddScriptBlocker();
@@ -7020,9 +7032,11 @@ void Document::EndUpdate() {
 
   --mUpdateNestLevel;
 
+#ifdef MOZ_XBL
   // This set of updates may have created XBL bindings.  Let the
   // binding manager know we're done.
   MaybeEndOutermostXBLUpdate();
+#endif
 
   MaybeInitializeFinalizeFrameLoaders();
   if (mXULBroadcastManager) {
@@ -7906,18 +7920,6 @@ already_AddRefed<nsINode> Document::ImportNode(nsINode& aNode, bool aDeep,
   return nullptr;
 }
 
-void Document::LoadBindingDocument(const nsAString& aURI,
-                                   nsIPrincipal& aSubjectPrincipal,
-                                   ErrorResult& rv) {
-  nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), aURI, mCharacterSet, GetDocBaseURI());
-  if (rv.Failed()) {
-    return;
-  }
-
-  BindingManager()->LoadBindingDocument(this, uri, &aSubjectPrincipal);
-}
-
 Element* Document::GetBindingParent(nsINode& aNode) {
   nsCOMPtr<nsIContent> content(do_QueryInterface(&aNode));
   if (!content) return nullptr;
@@ -7926,6 +7928,7 @@ Element* Document::GetBindingParent(nsINode& aNode) {
   return bindingParent ? bindingParent->AsElement() : nullptr;
 }
 
+#ifdef MOZ_XBL
 static Element* GetElementByAttribute(Element* aElement, nsAtom* aAttrName,
                                       const nsAString& aAttrValue,
                                       bool aUniversalMatch) {
@@ -7948,10 +7951,12 @@ static Element* GetElementByAttribute(Element* aElement, nsAtom* aAttrName,
 
   return nullptr;
 }
+#endif
 
 Element* Document::GetAnonymousElementByAttribute(
     nsIContent* aElement, nsAtom* aAttrName,
     const nsAString& aAttrValue) const {
+#ifdef MOZ_XBL
   nsINodeList* nodeList = BindingManager()->GetAnonymousNodesFor(aElement);
   if (!nodeList) return nullptr;
 
@@ -7971,18 +7976,29 @@ Element* Document::GetAnonymousElementByAttribute(
   }
 
   return nullptr;
+#else
+  return nullptr;
+#endif
 }
 
 Element* Document::GetAnonymousElementByAttribute(Element& aElement,
                                                   const nsAString& aAttrName,
                                                   const nsAString& aAttrValue) {
+#ifdef MOZ_XBL
   RefPtr<nsAtom> attribute = NS_Atomize(aAttrName);
 
   return GetAnonymousElementByAttribute(&aElement, attribute, aAttrValue);
+#else
+  return nullptr;
+#endif
 }
 
 nsINodeList* Document::GetAnonymousNodes(Element& aElement) {
+#ifdef MOZ_XBL
   return BindingManager()->GetAnonymousNodesFor(&aElement);
+#else
+  return nullptr;
+#endif
 }
 
 already_AddRefed<nsRange> Document::CreateRange(ErrorResult& rv) {
@@ -8747,9 +8763,6 @@ Document* Document::Open(const Optional<nsAString>& /* unused */,
 
   // Step 5 -- if we have an active parser with a nonzero script nesting level,
   // just no-op.
-  //
-  // The mParserAborted check here is probably wrong.  Removing it is
-  // tracked in https://bugzilla.mozilla.org/show_bug.cgi?id=1475000
   if ((mParser && mParser->HasNonzeroScriptNestingLevel()) || mParserAborted) {
     return this;
   }
@@ -9344,6 +9357,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
       } else {
         MOZ_ASSERT(!adoptedNode->IsInUncomposedDoc());
 
+#ifdef MOZ_XBL
         // If we're adopting a node that's not in a document, it might still
         // have a binding applied. Remove the binding from the element now
         // that it's getting adopted into a new document.
@@ -9351,6 +9365,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
         if (Element* element = Element::FromNode(adoptedNode)) {
           element->SetXBLBinding(nullptr);
         }
+#endif
       }
 
       break;
@@ -11956,8 +11971,8 @@ void Document::RegisterPendingLinkUpdate(Link* aLink) {
 
   if (!mHasLinksToUpdateRunnable && !mFlushingPendingLinkUpdates) {
     nsCOMPtr<nsIRunnable> event =
-        NewRunnableMethod("Document::FlushPendingLinkUpdatesFromRunnable", this,
-                          &Document::FlushPendingLinkUpdatesFromRunnable);
+        NewRunnableMethod("Document::FlushPendingLinkUpdates", this,
+                          &Document::FlushPendingLinkUpdates);
     // Do this work in a second in the worst case.
     nsresult rv = NS_DispatchToCurrentThreadQueue(event.forget(), 1000,
                                                   EventQueuePriority::Idle);
@@ -11972,16 +11987,10 @@ void Document::RegisterPendingLinkUpdate(Link* aLink) {
   mLinksToUpdate.InfallibleAppend(aLink);
 }
 
-void Document::FlushPendingLinkUpdatesFromRunnable() {
+void Document::FlushPendingLinkUpdates() {
+  MOZ_DIAGNOSTIC_ASSERT(!mFlushingPendingLinkUpdates);
   MOZ_ASSERT(mHasLinksToUpdateRunnable);
   mHasLinksToUpdateRunnable = false;
-  FlushPendingLinkUpdates();
-}
-
-void Document::FlushPendingLinkUpdates() {
-  if (mFlushingPendingLinkUpdates) {
-    return;
-  }
 
   auto restore = MakeScopeExit([&] { mFlushingPendingLinkUpdates = false; });
   mFlushingPendingLinkUpdates = true;
@@ -12069,7 +12078,7 @@ already_AddRefed<Document> Document::CreateStaticClone(
 
       clonedDoc->mReferrerInfo =
           static_cast<dom::ReferrerInfo*>(mReferrerInfo.get())->Clone();
-      clonedDoc->mPreloadReferrerInfo = clonedDoc->mPreloadReferrerInfo;
+      clonedDoc->mPreloadReferrerInfo = clonedDoc->mReferrerInfo;
     }
   }
   mCreatingStaticClone = false;
@@ -13451,7 +13460,7 @@ nsresult Document::RemoteFrameFullscreenChanged(Element* aFrameElement) {
   // If the frame element is already the fullscreen element in this document,
   // this has no effect.
   auto request = FullscreenRequest::CreateForRemote(aFrameElement);
-  RequestFullscreen(std::move(request));
+  RequestFullscreen(std::move(request), XRE_IsContentProcess());
   return NS_OK;
 }
 
@@ -13605,14 +13614,15 @@ static bool ShouldApplyFullscreenDirectly(Document* aDoc,
   }
 }
 
-void Document::RequestFullscreen(UniquePtr<FullscreenRequest> aRequest) {
+void Document::RequestFullscreen(UniquePtr<FullscreenRequest> aRequest,
+                                 bool applyFullScreenDirectly) {
   nsCOMPtr<nsPIDOMWindowOuter> rootWin = GetRootWindow(this);
   if (!rootWin) {
     aRequest->MayRejectPromise();
     return;
   }
 
-  if (ShouldApplyFullscreenDirectly(this, rootWin)) {
+  if (applyFullScreenDirectly || ShouldApplyFullscreenDirectly(this, rootWin)) {
     ApplyFullscreen(std::move(aRequest));
     return;
   }
@@ -14244,12 +14254,14 @@ void Document::AddSizeOfNodeTree(nsINode& aNode, nsWindowSizes& aWindowSizes) {
         AddSizeOfNodeTree(*shadow, aWindowSizes);
       }
 
+#ifdef MOZ_XBL
       for (nsXBLBinding* binding = element->GetXBLBinding(); binding;
            binding = binding->GetBaseBinding()) {
         if (nsIContent* anonContent = binding->GetAnonymousContent()) {
           AddSizeOfNodeTree(*anonContent, aWindowSizes);
         }
       }
+#endif
     }
   }
 
@@ -16039,12 +16051,17 @@ nsIPrincipal* Document::EffectiveStoragePrincipal() const {
     return NodePrincipal();
   }
 
+  // Return our cached storage principal if one exists.
+  if (mActiveStoragePrincipal) {
+    return mActiveStoragePrincipal;
+  }
+
   // We use the lower-level AntiTrackingCommon API here to ensure this
   // check doesn't send notifications.
   uint32_t rejectedReason = 0;
   if (AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
           inner, GetDocumentURI(), &rejectedReason)) {
-    return NodePrincipal();
+    return mActiveStoragePrincipal = NodePrincipal();
   }
 
   // Let's use the storage principal only if we need to partition the cookie
@@ -16053,10 +16070,10 @@ nsIPrincipal* Document::EffectiveStoragePrincipal() const {
   if (ShouldPartitionStorage(rejectedReason) &&
       !StoragePartitioningEnabled(
           rejectedReason, const_cast<Document*>(this)->CookieSettings())) {
-    return NodePrincipal();
+    return mActiveStoragePrincipal = NodePrincipal();
   }
 
-  return mIntrinsicStoragePrincipal;
+  return mActiveStoragePrincipal = mIntrinsicStoragePrincipal;
 }
 
 void Document::SetIsInitialDocument(bool aIsInitialDocument) {

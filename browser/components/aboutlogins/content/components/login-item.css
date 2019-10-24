@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
+  overflow: auto;
   padding: 40px;
-  display: flex;
-  flex-direction: column;
 
   --reveal-checkbox-opacity: .8;
   --reveal-checkbox-opacity-hover: .6;
@@ -24,6 +23,18 @@
   :host {
     --in-content-deemphasized-text: #737373;
   }
+}
+
+.container {
+  box-sizing: border-box;
+  height: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  min-width: 100px;
 }
 
 form {
@@ -80,7 +91,7 @@ input[type="url"][readOnly] {
 .header {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--in-content-box-border-color);
+  border-bottom: 1px solid var(--in-content-border-color);
   margin-bottom: 40px;
 }
 
@@ -214,7 +225,7 @@ input[type="url"][readOnly]:hover:active {
   content: "";
   display: block;
   margin-bottom: 20px;
-  border-top: 1px solid var(--in-content-box-border-color);
+  border-top: 1px solid var(--in-content-border-color);
   width: 40px;
 }
 
@@ -297,7 +308,7 @@ input[name="password"] {
 .breach-alert-link {
   color: inherit;
   text-decoration: underline;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .breach-icon {
@@ -320,9 +331,16 @@ input[name="password"] {
   line-height: 0;
 }
 
-.dismiss-breach-alert,
-.dismiss-breach-alert:hover {
+.dismiss-breach-alert {
   background-color: transparent;
+}
+
+.dismiss-breach-alert:enabled:hover {
+  background-color: var(--grey-90-a20);
+}
+
+.dismiss-breach-alert:enabled:hover:active {
+  background-color: var(--grey-90-a30);
 }
 
 .dismiss-breach-alert-icon {

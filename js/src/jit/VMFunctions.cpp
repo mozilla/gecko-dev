@@ -578,7 +578,7 @@ bool CharCodeAt(JSContext* cx, HandleString str, int32_t index,
   return true;
 }
 
-JSFlatString* StringFromCharCode(JSContext* cx, int32_t code) {
+JSLinearString* StringFromCharCode(JSContext* cx, int32_t code) {
   char16_t c = char16_t(code);
 
   if (StaticStrings::hasUnit(c)) {
@@ -810,12 +810,12 @@ int32_t GetIndexFromString(JSString* str) {
   // We shouldn't GC here as this is called directly from IC code.
   AutoUnsafeCallWithABI unsafe;
 
-  if (!str->isFlat()) {
+  if (!str->isLinear()) {
     return -1;
   }
 
   uint32_t index = UINT32_MAX;
-  if (!str->asFlat().isIndex(&index) || index > INT32_MAX) {
+  if (!str->asLinear().isIndex(&index) || index > INT32_MAX) {
     return -1;
   }
 
@@ -1422,10 +1422,9 @@ void AssertValidStringPtr(JSContext* cx, JSString* str) {
     MOZ_ASSERT(kind == gc::AllocKind::EXTERNAL_STRING);
   } else if (str->isAtom()) {
     MOZ_ASSERT(kind == gc::AllocKind::ATOM);
-  } else if (str->isFlat()) {
+  } else if (str->isLinear()) {
     MOZ_ASSERT(kind == gc::AllocKind::STRING ||
-               kind == gc::AllocKind::FAT_INLINE_STRING ||
-               kind == gc::AllocKind::EXTERNAL_STRING);
+               kind == gc::AllocKind::FAT_INLINE_STRING);
   } else {
     MOZ_ASSERT(kind == gc::AllocKind::STRING);
   }
@@ -2047,6 +2046,11 @@ bool DoToNumber(JSContext* cx, HandleValue arg, MutableHandleValue ret) {
 bool DoToNumeric(JSContext* cx, HandleValue arg, MutableHandleValue ret) {
   ret.set(arg);
   return ToNumeric(cx, ret);
+}
+
+void* AllocateBigIntNoGC(JSContext* cx) {
+  AutoUnsafeCallWithABI unsafe;
+  return js::Allocate<BigInt, NoGC>(cx);
 }
 
 }  // namespace jit

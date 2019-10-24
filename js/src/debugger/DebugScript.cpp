@@ -14,7 +14,7 @@
 #include "jsapi.h"
 
 #include "debugger/DebugAPI.h"  // for DebugAPI
-#include "debugger/Debugger.h"  // for BreakpointSite, Breakpoint
+#include "debugger/Debugger.h"  // for JSBreakpointSite, Breakpoint
 #include "gc/Barrier.h"         // for GCPtrNativeObject, WriteBarriered
 #include "gc/Cell.h"            // for TenuredCell
 #include "gc/FreeOp.h"          // for JSFreeOp
@@ -97,16 +97,16 @@ DebugScript* DebugScript::getOrCreate(JSContext* cx, JSScript* script) {
 }
 
 /* static */
-BreakpointSite* DebugScript::getBreakpointSite(JSScript* script,
-                                               jsbytecode* pc) {
+JSBreakpointSite* DebugScript::getBreakpointSite(JSScript* script,
+                                                 jsbytecode* pc) {
   uint32_t offset = script->pcToOffset(pc);
   return script->hasDebugScript() ? get(script)->breakpoints[offset] : nullptr;
 }
 
 /* static */
-BreakpointSite* DebugScript::getOrCreateBreakpointSite(JSContext* cx,
-                                                       JSScript* script,
-                                                       jsbytecode* pc) {
+JSBreakpointSite* DebugScript::getOrCreateBreakpointSite(JSContext* cx,
+                                                         JSScript* script,
+                                                         jsbytecode* pc) {
   AutoRealm ar(cx, script);
 
   DebugScript* debug = getOrCreate(cx, script);
@@ -114,7 +114,7 @@ BreakpointSite* DebugScript::getOrCreateBreakpointSite(JSContext* cx,
     return nullptr;
   }
 
-  BreakpointSite*& site = debug->breakpoints[script->pcToOffset(pc)];
+  JSBreakpointSite*& site = debug->breakpoints[script->pcToOffset(pc)];
 
   if (!site) {
     site = cx->new_<JSBreakpointSite>(script, pc);
@@ -123,6 +123,10 @@ BreakpointSite* DebugScript::getOrCreateBreakpointSite(JSContext* cx,
     }
     debug->numSites++;
     AddCellMemory(script, sizeof(JSBreakpointSite), MemoryUse::BreakpointSite);
+
+    if (script->hasBaselineScript()) {
+      script->baselineScript()->toggleDebugTraps(script, pc);
+    }
   }
 
   return site;
@@ -132,18 +136,21 @@ BreakpointSite* DebugScript::getOrCreateBreakpointSite(JSContext* cx,
 void DebugScript::destroyBreakpointSite(JSFreeOp* fop, JSScript* script,
                                         jsbytecode* pc) {
   DebugScript* debug = get(script);
-  BreakpointSite*& site = debug->breakpoints[script->pcToOffset(pc)];
+  JSBreakpointSite*& site = debug->breakpoints[script->pcToOffset(pc)];
   MOZ_ASSERT(site);
+  MOZ_ASSERT(site->type() == BreakpointSite::Type::JS);
+  MOZ_ASSERT(site->isEmpty());
 
-  size_t size = site->type() == BreakpointSite::Type::JS
-                    ? sizeof(JSBreakpointSite)
-                    : sizeof(WasmBreakpointSite);
-  fop->delete_(script, site, size, MemoryUse::BreakpointSite);
+  site->delete_(fop);
   site = nullptr;
 
   debug->numSites--;
   if (!debug->needed()) {
     DebugAPI::destroyDebugScript(fop, script);
+  }
+
+  if (script->hasBaselineScript()) {
+    script->baselineScript()->toggleDebugTraps(script, pc);
   }
 }
 
@@ -161,19 +168,24 @@ void DebugScript::clearBreakpointsIn(JSFreeOp* fop, Realm* realm, Debugger* dbg,
 /* static */
 void DebugScript::clearBreakpointsIn(JSFreeOp* fop, JSScript* script,
                                      Debugger* dbg, JSObject* handler) {
+  // Breakpoints hold wrappers in the script's compartment for the handler. Make
+  // sure we don't try to search for the unwrapped handler.
+  MOZ_ASSERT_IF(script && handler,
+                script->compartment() == handler->compartment());
+
   if (!script->hasDebugScript()) {
     return;
   }
 
   for (jsbytecode* pc = script->code(); pc < script->codeEnd(); pc++) {
-    BreakpointSite* site = getBreakpointSite(script, pc);
+    JSBreakpointSite* site = getBreakpointSite(script, pc);
     if (site) {
       Breakpoint* nextbp;
       for (Breakpoint* bp = site->firstBreakpoint(); bp; bp = nextbp) {
         nextbp = bp->nextInSite();
         if ((!dbg || bp->debugger == dbg) &&
             (!handler || bp->getHandler() == handler)) {
-          bp->destroy(fop);
+          bp->remove(fop);
         }
       }
     }
@@ -246,7 +258,7 @@ bool DebugScript::incrementGeneratorObserverCount(JSContext* cx,
 
   // It is our caller's responsibility, before bumping the generator observer
   // count, to make sure that the baseline code includes the necessary
-  // JS_AFTERYIELD instrumentation by calling
+  // JSOP_AFTERYIELD instrumentation by calling
   // {ensure,update}ExecutionObservabilityOfScript.
   MOZ_ASSERT_IF(script->hasBaselineScript(),
                 script->baselineScript()->hasDebugInstrumentation());
@@ -269,6 +281,22 @@ void DebugScript::decrementGeneratorObserverCount(JSFreeOp* fop,
 }
 
 /* static */
+void DebugAPI::traceDebugScript(JSTracer* trc, JSScript* script) {
+  MOZ_ASSERT(script->hasDebugScript());
+  DebugScript::get(script)->trace(trc, script);
+}
+
+void DebugScript::trace(JSTracer* trc, JSScript* owner) {
+  size_t length = owner->length();
+  for (size_t i = 0; i < length; i++) {
+    JSBreakpointSite* site = breakpoints[i];
+    if (site) {
+      site->trace(trc);
+    }
+  }
+}
+
+/* static */
 void DebugAPI::destroyDebugScript(JSFreeOp* fop, JSScript* script) {
   if (script->hasDebugScript()) {
     DebugScriptMap* map = script->zone()->debugScriptMap.get();
@@ -279,56 +307,35 @@ void DebugAPI::destroyDebugScript(JSFreeOp* fop, JSScript* script) {
     map->remove(p);
     script->setHasDebugScript(false);
 
-    fop->free_(script, debug, DebugScript::allocSize(script->length()),
-               MemoryUse::ScriptDebugScript);
+    debug->delete_(fop, script);
   }
+}
+
+void DebugScript::delete_(JSFreeOp* fop, JSScript* owner) {
+  size_t length = owner->length();
+  for (size_t i = 0; i < length; i++) {
+    JSBreakpointSite* site = breakpoints[i];
+    if (site) {
+      site->delete_(fop);
+    }
+  }
+
+  fop->free_(owner, this, allocSize(owner->length()),
+             MemoryUse::ScriptDebugScript);
 }
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 /* static */
 void DebugAPI::checkDebugScriptAfterMovingGC(DebugScript* ds) {
   for (uint32_t i = 0; i < ds->numSites; i++) {
-    BreakpointSite* site = ds->breakpoints[i];
-    if (site && site->type() == BreakpointSite::Type::JS) {
-      CheckGCThingAfterMovingGC(site->asJS()->script);
+    JSBreakpointSite* site = ds->breakpoints[i];
+    if (site) {
+      MOZ_ASSERT(site->type() == BreakpointSite::Type::JS);
+      CheckGCThingAfterMovingGC(site->asJS()->script.get());
     }
   }
 }
 #endif  // JSGC_HASH_TABLE_CHECKS
-
-/* static */
-void DebugAPI::sweepBreakpointsSlow(JSFreeOp* fop, JSScript* script) {
-  bool scriptGone = IsAboutToBeFinalizedUnbarriered(&script);
-  for (unsigned i = 0; i < script->length(); i++) {
-    BreakpointSite* site =
-        DebugScript::getBreakpointSite(script, script->offsetToPC(i));
-    if (!site) {
-      continue;
-    }
-
-    Breakpoint* nextbp;
-    for (Breakpoint* bp = site->firstBreakpoint(); bp; bp = nextbp) {
-      nextbp = bp->nextInSite();
-      GCPtrNativeObject& dbgobj = bp->debugger->toJSObjectRef();
-
-      // If we are sweeping, then we expect the script and the
-      // debugger object to be swept in the same sweep group, except
-      // if the breakpoint was added after we computed the sweep
-      // groups. In this case both script and debugger object must be
-      // live.
-      MOZ_ASSERT_IF(
-          script->zone()->isGCSweeping() && dbgobj->zone()->isCollecting(),
-          dbgobj->zone()->isGCSweeping() ||
-              (!scriptGone && dbgobj->asTenured().isMarkedAny()));
-
-      bool dying = scriptGone || IsAboutToBeFinalized(&dbgobj);
-      MOZ_ASSERT_IF(!dying, !IsAboutToBeFinalized(&bp->getHandlerRef()));
-      if (dying) {
-        bp->destroy(fop);
-      }
-    }
-  }
-}
 
 /* static */
 bool DebugAPI::stepModeEnabledSlow(JSScript* script) {
@@ -337,8 +344,8 @@ bool DebugAPI::stepModeEnabledSlow(JSScript* script) {
 
 /* static */
 bool DebugAPI::hasBreakpointsAtSlow(JSScript* script, jsbytecode* pc) {
-  BreakpointSite* site = DebugScript::getBreakpointSite(script, pc);
-  return site && site->enabledCount > 0;
+  JSBreakpointSite* site = DebugScript::getBreakpointSite(script, pc);
+  return !!site;
 }
 
 }  // namespace js

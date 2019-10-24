@@ -35,7 +35,6 @@ using namespace js;
 using mozilla::AssertedCast;
 
 using js::intl::CallICU;
-using js::intl::GetAvailableLocales;
 using js::intl::IcuLocale;
 
 const JSClassOps PluralRulesObject::classOps_ = {nullptr, /* addProperty */
@@ -49,8 +48,11 @@ const JSClassOps PluralRulesObject::classOps_ = {nullptr, /* addProperty */
 const JSClass PluralRulesObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_RESERVED_SLOTS(PluralRulesObject::SLOT_COUNT) |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_PluralRules) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &PluralRulesObject::classOps_};
+    &PluralRulesObject::classOps_, &PluralRulesObject::classSpec_};
+
+const JSClass& PluralRulesObject::protoClass_ = PlainObject::class_;
 
 static bool pluralRules_toSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -69,6 +71,18 @@ static const JSFunctionSpec pluralRules_methods[] = {
     JS_SELF_HOSTED_FN("select", "Intl_PluralRules_select", 1, 0),
     JS_FN(js_toSource_str, pluralRules_toSource, 0, 0), JS_FS_END};
 
+static bool PluralRules(JSContext* cx, unsigned argc, Value* vp);
+
+const ClassSpec PluralRulesObject::classSpec_ = {
+    GenericCreateConstructor<PluralRules, 0, gc::AllocKind::FUNCTION>,
+    GenericCreatePrototype<PluralRulesObject>,
+    pluralRules_static_methods,
+    nullptr,
+    pluralRules_methods,
+    nullptr,
+    nullptr,
+    ClassSpec::DontDefineConstructor};
+
 /**
  * PluralRules constructor.
  * Spec: ECMAScript 402 API, PluralRules, 13.2.1
@@ -83,19 +97,13 @@ static bool PluralRules(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 2 (Inlined 9.1.14, OrdinaryCreateFromConstructor).
   RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_Null, &proto)) {
+  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_PluralRules,
+                                          &proto)) {
     return false;
   }
 
-  if (!proto) {
-    proto = GlobalObject::getOrCreatePluralRulesPrototype(cx, cx->global());
-    if (!proto) {
-      return false;
-    }
-  }
-
   Rooted<PluralRulesObject*> pluralRules(cx);
-  pluralRules = NewObjectWithGivenProto<PluralRulesObject>(cx, proto);
+  pluralRules = NewObjectWithClassProto<PluralRulesObject>(cx, proto);
   if (!pluralRules) {
     return false;
   }
@@ -131,52 +139,6 @@ void js::PluralRulesObject::finalize(JSFreeOp* fop, JSObject* obj) {
   if (formatted) {
     unumf_closeResult(formatted);
   }
-}
-
-JSObject* js::CreatePluralRulesPrototype(JSContext* cx, HandleObject Intl,
-                                         Handle<GlobalObject*> global) {
-  RootedFunction ctor(cx);
-  ctor =
-      global->createConstructor(cx, &PluralRules, cx->names().PluralRules, 0);
-  if (!ctor) {
-    return nullptr;
-  }
-
-  RootedObject proto(
-      cx, GlobalObject::createBlankPrototype<PlainObject>(cx, global));
-  if (!proto) {
-    return nullptr;
-  }
-
-  if (!LinkConstructorAndPrototype(cx, ctor, proto)) {
-    return nullptr;
-  }
-
-  if (!JS_DefineFunctions(cx, ctor, pluralRules_static_methods)) {
-    return nullptr;
-  }
-
-  if (!JS_DefineFunctions(cx, proto, pluralRules_methods)) {
-    return nullptr;
-  }
-
-  RootedValue ctorValue(cx, ObjectValue(*ctor));
-  if (!DefineDataProperty(cx, Intl, cx->names().PluralRules, ctorValue, 0)) {
-    return nullptr;
-  }
-
-  return proto;
-}
-
-bool js::intl_PluralRules_availableLocales(JSContext* cx, unsigned argc,
-                                           Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 0);
-
-  // We're going to use ULocale availableLocales as per ICU recommendation:
-  // https://ssl.icu-project.org/trac/ticket/12756
-  return GetAvailableLocales(cx, uloc_countAvailable, uloc_getAvailable,
-                             args.rval());
 }
 
 /**

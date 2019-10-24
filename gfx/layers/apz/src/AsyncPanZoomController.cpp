@@ -1859,25 +1859,17 @@ nsEventStatus AsyncPanZoomController::HandleEndOfPan() {
   return nsEventStatus_eConsumeNoDefault;
 }
 
-bool AsyncPanZoomController::ConvertToGecko(const ScreenIntPoint& aPoint,
-                                            LayoutDevicePoint* aOut) {
+Maybe<LayoutDevicePoint> AsyncPanZoomController::ConvertToGecko(
+    const ScreenIntPoint& aPoint) {
   if (APZCTreeManager* treeManagerLocal = GetApzcTreeManager()) {
-    ScreenToScreenMatrix4x4 transformScreenToGecko =
-        treeManagerLocal->GetScreenToApzcTransform(this) *
-        treeManagerLocal->GetApzcToGeckoTransform(this);
-
-    Maybe<ScreenIntPoint> layoutPoint =
-        UntransformBy(transformScreenToGecko, aPoint);
-    if (!layoutPoint) {
-      return false;
+    if (Maybe<ScreenIntPoint> layoutPoint =
+            treeManagerLocal->ConvertToGecko(aPoint, this)) {
+      return Some(LayoutDevicePoint(ViewAs<LayoutDevicePixel>(
+          *layoutPoint,
+          PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent)));
     }
-
-    *aOut = LayoutDevicePoint(ViewAs<LayoutDevicePixel>(
-        *layoutPoint,
-        PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent));
-    return true;
   }
-  return false;
+  return Nothing();
 }
 
 CSSCoord AsyncPanZoomController::ConvertScrollbarPoint(
@@ -2009,11 +2001,17 @@ nsEventStatus AsyncPanZoomController::OnKeyboard(const KeyboardInput& aEvent) {
   if (!StaticPrefs::general_smoothScroll()) {
     CancelAnimation();
 
-    // CallDispatchScroll interprets the start and end points as the start and
-    // end of a touch scroll so they need to be reversed.
-    ParentLayerPoint startPoint = destination * Metrics().GetZoom();
-    ParentLayerPoint endPoint =
-        Metrics().GetScrollOffset() * Metrics().GetZoom();
+    ParentLayerPoint startPoint, endPoint;
+
+    {
+      RecursiveMutexAutoLock lock(mRecursiveMutex);
+
+      // CallDispatchScroll interprets the start and end points as the start and
+      // end of a touch scroll so they need to be reversed.
+      startPoint = destination * Metrics().GetZoom();
+      endPoint = Metrics().GetScrollOffset() * Metrics().GetZoom();
+    }
+
     ParentLayerPoint delta = endPoint - startPoint;
 
     ScreenPoint distance = ToScreenCoordinates(
@@ -2710,8 +2708,8 @@ nsEventStatus AsyncPanZoomController::OnLongPress(
   APZC_LOG("%p got a long-press in state %d\n", this, mState);
   RefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
-    LayoutDevicePoint geckoScreenPoint;
-    if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
+    if (Maybe<LayoutDevicePoint> geckoScreenPoint =
+            ConvertToGecko(aEvent.mPoint)) {
       TouchBlockState* touch = GetCurrentTouchBlock();
       if (!touch) {
         APZC_LOG(
@@ -2725,7 +2723,7 @@ nsEventStatus AsyncPanZoomController::OnLongPress(
         return nsEventStatus_eIgnore;
       }
       uint64_t blockId = GetInputQueue()->InjectNewTouchBlock(this);
-      controller->HandleTap(TapType::eLongTap, geckoScreenPoint,
+      controller->HandleTap(TapType::eLongTap, *geckoScreenPoint,
                             aEvent.modifiers, GetGuid(), blockId);
       return nsEventStatus_eConsumeNoDefault;
     }
@@ -2745,8 +2743,7 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(
     mozilla::Modifiers aModifiers) {
   RefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
-    LayoutDevicePoint geckoScreenPoint;
-    if (ConvertToGecko(aPoint, &geckoScreenPoint)) {
+    if (Maybe<LayoutDevicePoint> geckoScreenPoint = ConvertToGecko(aPoint)) {
       TouchBlockState* touch = GetCurrentTouchBlock();
       // |touch| may be null in the case where this function is
       // invoked by GestureEventListener on a timeout. In that case we already
@@ -2773,7 +2770,7 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(
           NewRunnableMethod<TapType, LayoutDevicePoint, mozilla::Modifiers,
                             ScrollableLayerGuid, uint64_t>(
               "layers::GeckoContentController::HandleTap", controller,
-              &GeckoContentController::HandleTap, aType, geckoScreenPoint,
+              &GeckoContentController::HandleTap, aType, *geckoScreenPoint,
               aModifiers, GetGuid(), touch ? touch->GetBlockId() : 0);
 
       controller->PostDelayedTask(runnable.forget(), 0);
@@ -2821,9 +2818,9 @@ nsEventStatus AsyncPanZoomController::OnDoubleTap(
     MOZ_ASSERT(GetCurrentTouchBlock());
     if (mZoomConstraints.mAllowDoubleTapZoom &&
         GetCurrentTouchBlock()->TouchActionAllowsDoubleTapZoom()) {
-      LayoutDevicePoint geckoScreenPoint;
-      if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-        controller->HandleTap(TapType::eDoubleTap, geckoScreenPoint,
+      if (Maybe<LayoutDevicePoint> geckoScreenPoint =
+              ConvertToGecko(aEvent.mPoint)) {
+        controller->HandleTap(TapType::eDoubleTap, *geckoScreenPoint,
                               aEvent.modifiers, GetGuid(),
                               GetCurrentTouchBlock()->GetBlockId());
       }

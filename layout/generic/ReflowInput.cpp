@@ -772,7 +772,7 @@ void ReflowInput::InitDynamicReflowRoot() {
   if (mFrame->IsFrameOfType(nsIFrame::eLineParticipant) ||
       nsStyleDisplay::IsRubyDisplayType(display) ||
       mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE ||
-      display == StyleDisplay::Table || display == StyleDisplay::InlineTable ||
+      nsStyleDisplay::DisplayInside(display) == StyleDisplayInside::Table ||
       (mFrame->GetParent() && mFrame->GetParent()->IsXULBoxFrame())) {
     // We have a display type where 'width' and 'height' don't actually
     // set the width or height (i.e., the size depends on content).
@@ -1328,7 +1328,7 @@ void ReflowInput::CalculateHypotheticalPosition(
   // the element had been in the flow
   nscoord boxISize;
   bool knowBoxISize = false;
-  if ((StyleDisplay::Inline == mStyleDisplay->mOriginalDisplay) &&
+  if (mStyleDisplay->IsOriginalDisplayInlineOutside() &&
       !NS_FRAME_IS_REPLACED(mFrameType)) {
     // For non-replaced inline-level elements the 'inline size' property
     // doesn't apply, so we don't know what the inline size would have

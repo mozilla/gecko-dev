@@ -19,15 +19,16 @@
 #include "builtin/streams/WritableStream.h"  // js::WritableStream
 #include "builtin/streams/WritableStreamDefaultController.h"  // js::WritableStreamDefaultController
 #include "builtin/streams/WritableStreamOperations.h"  // js::WritableStream{DealWithRejection,FinishErroring,UpdateBackpressure}
-#include "js/CallArgs.h"                     // JS::CallArgs{,FromVp}
-#include "js/RootingAPI.h"                   // JS::Handle, JS::Rooted
-#include "js/Value.h"                        // JS::{,Object}Value
-#include "vm/JSContext.h"                    // JSContext
-#include "vm/JSObject.h"                     // JSObject
-#include "vm/List.h"                         // js::ListObject
-#include "vm/Runtime.h"                      // JSAtomState
+#include "js/CallArgs.h"    // JS::CallArgs{,FromVp}
+#include "js/RootingAPI.h"  // JS::Handle, JS::Rooted
+#include "js/Value.h"       // JS::{,Object}Value
+#include "vm/JSContext.h"   // JSContext
+#include "vm/JSObject.h"    // JSObject
+#include "vm/List.h"        // js::ListObject
+#include "vm/Runtime.h"     // JSAtomState
 
 #include "builtin/streams/HandlerFunction-inl.h"  // js::TargetFromHandler
+#include "vm/JSContext-inl.h"                     // JSContext::check
 #include "vm/JSObject-inl.h"  // js::NewBuiltinClassInstance, js::NewObjectWithClassProto
 
 using JS::CallArgs;
@@ -259,6 +260,10 @@ MOZ_MUST_USE bool js::SetUpWritableStreamDefaultController(
 MOZ_MUST_USE bool js::SetUpWritableStreamDefaultControllerFromUnderlyingSink(
     JSContext* cx, Handle<WritableStream*> stream, Handle<Value> underlyingSink,
     double highWaterMark, Handle<Value> sizeAlgorithm) {
+  cx->check(stream);
+  cx->check(underlyingSink);
+  cx->check(sizeAlgorithm);
+
   // Step 1: Assert: underlyingSink is not undefined.
   MOZ_ASSERT(!underlyingSink.isUndefined());
 
@@ -307,6 +312,21 @@ MOZ_MUST_USE bool js::SetUpWritableStreamDefaultControllerFromUnderlyingSink(
   return SetUpWritableStreamDefaultController(
       cx, stream, sinkAlgorithms, underlyingSink, writeMethod, closeMethod,
       abortMethod, highWaterMark, sizeAlgorithm);
+}
+
+/**
+ * Streams spec, 4.8.5.
+ *      WritableStreamDefaultControllerClose ( controller )
+ */
+MOZ_MUST_USE bool js::WritableStreamDefaultControllerClose(
+    JSContext* cx,
+    Handle<WritableStreamDefaultController*> unwrappedController) {
+  // Step 1: Perform ! EnqueueValueWithSize(controller, "close", 0).
+  // Step 2: Perform
+  //         ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+  // XXX jwalden fill me in!
+  JS_ReportErrorASCII(cx, "nope");
+  return false;
 }
 
 /**
@@ -371,6 +391,7 @@ MOZ_MUST_USE bool WritableStreamDefaultControllerAdvanceQueueIfNeeded(
  *      WritableStreamDefaultControllerGetBackpressure ( controller )
  */
 bool js::WritableStreamDefaultControllerGetBackpressure(
-    const WritableStreamDefaultController* controller) {
-  return WritableStreamDefaultControllerGetDesiredSize(controller) <= 0.0;
+    const WritableStreamDefaultController* unwrappedController) {
+  return WritableStreamDefaultControllerGetDesiredSize(unwrappedController) <=
+         0.0;
 }

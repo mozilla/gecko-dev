@@ -1,7 +1,7 @@
 const DIRECTORY_PATH = "/browser/toolkit/components/passwordmgr/test/browser/";
 
 ChromeUtils.import("resource://gre/modules/LoginHelper.jsm", this);
-const { LoginManagerParent: LMP } = ChromeUtils.import(
+const { LoginManagerParent } = ChromeUtils.import(
   "resource://gre/modules/LoginManagerParent.jsm"
 );
 ChromeUtils.import("resource://testing-common/LoginTestUtils.jsm", this);
@@ -510,12 +510,17 @@ async function openACPopup(popup, browser, inputSelector) {
 async function openPasswordContextMenu(
   browser,
   passwordInput,
-  assertCallback = null
+  assertCallback = null,
+  browsingContext = null
 ) {
   const doc = browser.ownerDocument;
   const CONTEXT_MENU = doc.getElementById("contentAreaContextMenu");
   const POPUP_HEADER = doc.getElementById("fill-login");
   const LOGIN_POPUP = doc.getElementById("fill-login-popup");
+
+  if (!browsingContext) {
+    browsingContext = browser.browsingContext;
+  }
 
   let contextMenuShownPromise = BrowserTestUtils.waitForEvent(
     CONTEXT_MENU,
@@ -529,14 +534,14 @@ async function openPasswordContextMenu(
   await BrowserTestUtils.synthesizeMouseAtCenter(
     passwordInput,
     eventDetails,
-    browser
+    browsingContext
   );
   // Synthesize a contextmenu event to actually open the context menu.
   eventDetails = { type: "contextmenu", button: 2 };
   await BrowserTestUtils.synthesizeMouseAtCenter(
     passwordInput,
     eventDetails,
-    browser
+    browsingContext
   );
 
   await contextMenuShownPromise;
@@ -554,6 +559,30 @@ async function openPasswordContextMenu(
   );
   EventUtils.synthesizeMouseAtCenter(POPUP_HEADER, {}, browser.ownerGlobal);
   await popupShownPromise;
+}
+
+/**
+ * Listen for the login manager test notification specified by
+ * expectedMessage. Possible messages:
+ *   FormProcessed - a form was processed after page load.
+ *   FormSubmit - a form was just submitted.
+ *   PasswordFilledOrEdited - a password was filled in or modified.
+ *
+ * The count is the number of that messages to wait for. This should
+ * typically be used when waiting for the FormProcessed message for a page
+ * that has subframes to ensure all have been handled.
+ *
+ * Returns a promise that will passed additional data specific to the message.
+ */
+function listenForTestNotification(expectedMessage, count = 1) {
+  return new Promise(resolve => {
+    LoginManagerParent.setListenerForTests((msg, data) => {
+      if (msg == expectedMessage && --count == 0) {
+        LoginManagerParent.setListenerForTests(null);
+        resolve(data);
+      }
+    });
+  });
 }
 
 /**
@@ -590,21 +619,12 @@ async function doFillGeneratedPasswordContextMenuItem(browser, passwordInput) {
       await ContentTaskUtils.waitForEvent(input, "input");
     }
   );
-  let messagePromise = new Promise(resolve => {
-    const eventName = "PasswordManager:onGeneratedPasswordFilledOrEdited";
-    browser.messageManager.addMessageListener(eventName, function mgsHandler(
-      msg
-    ) {
-      if (msg.target != browser) {
-        return;
-      }
-      browser.messageManager.removeMessageListener(eventName, mgsHandler);
-      info(
-        "doFillGeneratedPasswordContextMenuItem: Got onGeneratedPasswordFilledOrEdited, resolving"
-      );
-      // allow LMP to handle the message, then resolve
-      SimpleTest.executeSoon(resolve);
-    });
+
+  let passwordGeneratedPromise = listenForTestNotification(
+    "PasswordFilledOrEdited"
+  );
+  await new Promise(resolve => {
+    SimpleTest.executeSoon(resolve);
   });
 
   EventUtils.synthesizeMouseAtCenter(generatedPasswordItem, {});
@@ -612,5 +632,5 @@ async function doFillGeneratedPasswordContextMenuItem(browser, passwordInput) {
     "doFillGeneratedPasswordContextMenuItem: Waiting for content input event"
   );
   await passwordChangedPromise;
-  await messagePromise;
+  await passwordGeneratedPromise;
 }

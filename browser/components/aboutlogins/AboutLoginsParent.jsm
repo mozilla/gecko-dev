@@ -251,6 +251,10 @@ var AboutLoginsParent = {
         Services.prefs.setBoolPref(HIDE_MOBILE_FOOTER_PREF, true);
         break;
       }
+      case "AboutLogins:SortChanged": {
+        Services.prefs.setCharPref("signon.management.page.sort", message.data);
+        break;
+      }
       case "AboutLogins:SyncEnable": {
         message.target.ownerGlobal.gSync.openFxAEmailFirstPage(
           "password-manager"
@@ -382,10 +386,9 @@ var AboutLoginsParent = {
 
         const logins = await this.getAllLogins();
         try {
-          let syncState;
+          let syncState = this.getSyncState();
           if (FXA_ENABLED) {
-            syncState = this.getSyncState();
-            this.updatePasswordSyncNotificationState();
+            this.updatePasswordSyncNotificationState(syncState);
           }
 
           const playStoreBadgeLanguage = Services.locale.negotiateLanguages(
@@ -409,9 +412,16 @@ var AboutLoginsParent = {
 
           messageManager.sendAsyncMessage("AboutLogins:Setup", {
             logins,
+            selectedSort: Services.prefs.getCharPref(
+              "signon.management.page.sort",
+              "name"
+            ),
             syncState,
             selectedBadgeLanguages,
             masterPasswordEnabled: LoginHelper.isMasterPasswordSet(),
+            passwordRevealVisible: Services.policies.isAllowed(
+              "passwordReveal"
+            ),
           });
 
           await this._sendAllLoginRelatedObjects(logins, messageManager);
@@ -589,6 +599,7 @@ var AboutLoginsParent = {
         browser.reload();
       },
     });
+    this.messageSubscribers("AboutLogins:MasterPasswordAuthRequired");
   },
 
   showPasswordSyncNotifications() {
@@ -760,19 +771,25 @@ var AboutLoginsParent = {
       email: state.email,
       avatarURL: state.avatarURL,
       hideMobileFooter: !loggedIn || dismissedMobileFooter,
+      fxAccountsEnabled: FXA_ENABLED,
     };
   },
 
-  updatePasswordSyncNotificationState() {
-    const state = this.getSyncState();
+  updatePasswordSyncNotificationState(
+    syncState,
     // Need to explicitly call the getter on lazy preference getters
     // to activate their observer.
-    let passwordSyncEnabled = PASSWORD_SYNC_ENABLED;
-    if (state.loggedIn && !passwordSyncEnabled) {
+    passwordSyncEnabled = PASSWORD_SYNC_ENABLED
+  ) {
+    if (syncState.loggedIn && !passwordSyncEnabled) {
       this.showPasswordSyncNotifications();
       return;
     }
     this.removeNotifications(PASSWORD_SYNC_NOTIFICATION_ID);
+  },
+
+  onPasswordSyncEnabledPreferenceChange(data, previous, latest) {
+    this.updatePasswordSyncNotificationState(this.getSyncState(), latest);
   },
 };
 
@@ -781,5 +798,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "PASSWORD_SYNC_ENABLED",
   "services.sync.engine.passwords",
   false,
-  AboutLoginsParent.updatePasswordSyncNotificationState.bind(AboutLoginsParent)
+  AboutLoginsParent.onPasswordSyncEnabledPreferenceChange.bind(
+    AboutLoginsParent
+  )
 );

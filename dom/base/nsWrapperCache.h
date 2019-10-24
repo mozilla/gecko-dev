@@ -136,9 +136,7 @@ class nsWrapperCache {
    * anywhere or pass it into JSAPI functions that may cause the value to
    * escape.
    */
-  JSObject* GetWrapperMaybeDead() const {
-    return mWrapper;
-  }
+  JSObject* GetWrapperMaybeDead() const { return mWrapper; }
 
 #ifdef DEBUG
  private:
@@ -234,7 +232,7 @@ class nsWrapperCache {
 
   void TraceWrapper(const TraceCallbacks& aCallbacks, void* aClosure) {
     if (PreservingWrapper() && mWrapper) {
-      aCallbacks.Trace(&mWrapper, "Preserved wrapper", aClosure);
+      aCallbacks.Trace(this, "Preserved wrapper", aClosure);
     }
   }
 
@@ -306,13 +304,13 @@ class nsWrapperCache {
 
   void ReleaseWrapper(void* aScriptObjectHolder);
 
- protected:
   void TraceWrapper(JSTracer* aTrc, const char* name) {
     if (mWrapper) {
       js::UnsafeTraceManuallyBarrieredEdge(aTrc, &mWrapper, name);
     }
   }
 
+ protected:
   void PoisonWrapper() {
     if (mWrapper) {
       // Set the pointer to a value that will cause a crash if it is

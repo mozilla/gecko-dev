@@ -171,7 +171,7 @@ function inspectChangeRecords(changeRecords) {
 async function promiseManyDatesAdded(guids) {
   let datesAdded = new Map();
   let db = await PlacesUtils.promiseDBConnection();
-  for (let [, chunk] of PlacesSyncUtils.chunkArray(guids, 100)) {
+  for (let chunk of PlacesUtils.chunkArray(guids, 100)) {
     let rows = await db.executeCached(
       `
       SELECT guid, dateAdded FROM moz_bookmarks
@@ -272,11 +272,6 @@ async function fetchAllKeywords(info) {
 async function openMirror(name, options = {}) {
   let buf = await SyncedBookmarksMirror.open({
     path: `${name}_buf.sqlite`,
-    recordTelemetryEvent(...args) {
-      if (options.recordTelemetryEvent) {
-        options.recordTelemetryEvent.call(this, ...args);
-      }
-    },
     recordStepTelemetry(...args) {
       if (options.recordStepTelemetry) {
         options.recordStepTelemetry.call(this, ...args);

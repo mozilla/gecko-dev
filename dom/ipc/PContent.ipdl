@@ -65,6 +65,10 @@ include HangTypes;
 include PrefsTypes;
 include NeckoChannelParams;
 
+#if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
+include protocol PSandboxTesting;
+#endif
+
 using refcounted class nsIDOMGeoPosition from "nsGeoPositionIPCSerialiser.h";
 using refcounted class nsIAlertNotification from "mozilla/AlertNotificationIPCSerializer.h";
 
@@ -820,6 +824,11 @@ child:
     // value for every individual BrowsingContext.
     async RegisterBrowsingContextGroup(BrowsingContextInitializer[] aInits);
 
+#if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
+    // Initialize top-level actor for testing content process sandbox.
+    async InitSandboxTesting(Endpoint<PSandboxTestingChild> aEndpoint);
+#endif
+
 parent:
     async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
 
@@ -1011,7 +1020,7 @@ parent:
 
     async DeviceReset();
 
-    sync KeywordToURI(nsCString keyword)
+    sync KeywordToURI(nsCString keyword, bool isPrivateContext)
         returns (nsString providerName, nsIInputStream postData, URIParams? uri);
 
     sync NotifyKeywordSearchLoading(nsString providerName, nsString keyword);
@@ -1082,7 +1091,8 @@ parent:
      *   To identify which tab owns the app.
      */
     async POfflineCacheUpdate(URIParams manifestURI, URIParams documentURI,
-                              PrincipalInfo loadingPrincipal, bool stickDocument);
+                              PrincipalInfo loadingPrincipal, bool stickDocument,
+                              CookieSettingsArgs cookieSettings);
 
     /**
      * Sets "offline-app" permission for the principal.  Called when we hit

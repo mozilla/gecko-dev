@@ -231,7 +231,6 @@ menupopup {
 }
 
 panel {
-  -moz-binding: url("chrome://global/content/bindings/popup.xml#panel");
   -moz-box-orient: vertical;
 }
 
@@ -247,10 +246,6 @@ tooltip {
   -moz-box-orient: vertical;
   white-space: pre-wrap;
   margin-top: 21px;
-}
-
-panel[type="arrow"] {
-  -moz-binding: url("chrome://global/content/bindings/popup.xml#arrowpanel");
 }
 
 @supports -moz-bool-pref("xul.panel-animations.enabled") {
@@ -439,8 +434,7 @@ tooltip[titletip="true"] {
 
 /********** textbox **********/
 
-textbox {
-  -moz-binding: url("chrome://global/content/bindings/textbox.xml#textbox");
+search-textbox {
   -moz-user-select: text;
   text-shadow: none;
 }
@@ -456,10 +450,6 @@ textbox {
        in a -moz-box being emulated by modified modern flex. */
     display: block;
   }
-}
-
-.textbox-contextmenu:-moz-locale-dir(rtl) {
-  direction: rtl;
 }
 
 /********** autocomplete textbox **********/
@@ -551,8 +541,8 @@ dialog:root /* override :root from above */ {
 
 /********** wizard **********/
 
-wizard,
-wizard:root /* override :root from above */ {
+wizard {
+  -moz-box-flex: 1;
   -moz-box-orient: vertical;
   width: 40em;
   height: 30em;
@@ -635,3 +625,7 @@ tabmodalprompt {
   [ordinal="9"] { -moz-box-ordinal-group: 9; }
   [ordinal="1000"] { -moz-box-ordinal-group: 1000; }
 }
+
+%ifndef MOZ_XBL
+* { -moz-binding: none !important }
+%endif

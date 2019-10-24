@@ -668,7 +668,7 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
   }
 
   // Here, we know that |len - 1| cannot underflow.
-  bool mustTrap = false;
+  bool isOOB = false;
 
   // As we're supposed to write data until we trap we have to deal with
   // arithmetic overflow in the limit calculation.
@@ -692,8 +692,10 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
       MOZ_ASSERT(len > Min(srcAvail, dstAvail));
       len = uint32_t(Min(srcAvail, dstAvail));
     }
-    mustTrap = true;
+    isOOB = true;
   }
+
+  bool isOOM = false;
 
   if (len > 0) {
     // The required write direction is indicated by `copyDown`, but apart from
@@ -703,23 +705,31 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
     // overlaps.
     if (&srcTable == &dstTable && dstOffset > srcOffset) {
       for (uint32_t i = len; i > 0; i--) {
-        dstTable->copy(*srcTable, dstOffset + (i - 1), srcOffset + (i - 1));
+        if (!dstTable->copy(*srcTable, dstOffset + (i - 1),
+                            srcOffset + (i - 1))) {
+          isOOM = true;
+          break;
+        }
       }
     } else if (&srcTable == &dstTable && dstOffset == srcOffset) {
       // No-op
     } else {
       for (uint32_t i = 0; i < len; i++) {
-        dstTable->copy(*srcTable, dstOffset + i, srcOffset + i);
+        if (!dstTable->copy(*srcTable, dstOffset + i, srcOffset + i)) {
+          isOOM = true;
+          break;
+        }
       }
     }
   }
 
-  if (!mustTrap) {
+  if (!isOOB && !isOOM) {
     return 0;
   }
-
-  JS_ReportErrorNumberASCII(TlsContext.get(), GetErrorMessage, nullptr,
-                            JSMSG_WASM_OUT_OF_BOUNDS);
+  if (isOOB && !isOOM) {
+    JS_ReportErrorNumberASCII(TlsContext.get(), GetErrorMessage, nullptr,
+                              JSMSG_WASM_OUT_OF_BOUNDS);
+  }
   return -1;
 }
 
@@ -743,7 +753,7 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
   return 0;
 }
 
-void Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
+bool Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
                          uint32_t dstOffset, uint32_t srcOffset, uint32_t len) {
   Table& table = *tables_[tableIndex];
   MOZ_ASSERT(dstOffset <= table.length());
@@ -763,6 +773,13 @@ void Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
     uint32_t funcIndex = elemFuncIndices[srcOffset + i];
     if (funcIndex == NullFuncIndex) {
       table.setNull(dstOffset + i);
+    } else if (!table.isFunction()) {
+      // Note, fnref must be rooted if we do anything more than just store it.
+      void* fnref = Instance::funcRef(this, funcIndex);
+      if (fnref == AnyRef::invalid().forCompiledCode()) {
+        return false;  // OOM, which has already been reported.
+      }
+      table.fillAnyRef(dstOffset + i, 1, AnyRef::fromCompiledCode(fnref));
     } else {
       if (funcIndex < funcImports.length()) {
         FuncImportTls& import = funcImportTls(funcImports[funcIndex]);
@@ -791,6 +808,7 @@ void Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
       table.setFuncRef(dstOffset + i, code, this);
     }
   }
+  return true;
 }
 
 /* static */ int32_t Instance::tableInit(Instance* instance, uint32_t dstOffset,
@@ -814,10 +832,6 @@ void Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
 
   const Table& table = *instance->tables()[tableIndex];
   const uint32_t tableLen = table.length();
-
-  // Element segments cannot currently contain arbitrary values, and anyref
-  // tables cannot be initialized from segments.
-  MOZ_ASSERT(table.kind() == TableKind::FuncRef);
 
   // We are proposing to copy
   //
@@ -850,7 +864,9 @@ void Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
   }
 
   if (len > 0) {
-    instance->initElems(tableIndex, seg, dstOffset, srcOffset, len);
+    if (!instance->initElems(tableIndex, seg, dstOffset, srcOffset, len)) {
+      return -1;  // OOM, which has already been reported.
+    }
   }
 
   if (!mustTrap) {
@@ -1480,6 +1496,10 @@ void Instance::tracePrivate(JSTracer* trc) {
 
   TraceNullableEdge(trc, &memory_, "wasm buffer");
   structTypeDescrs_.trace(trc);
+
+  if (maybeDebug_) {
+    maybeDebug_->trace(trc);
+  }
 }
 
 void Instance::trace(JSTracer* trc) {

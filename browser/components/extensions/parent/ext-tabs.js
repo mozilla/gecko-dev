@@ -214,14 +214,6 @@ class TabsUpdateFilterEventManager extends EventManager {
         // Default is to listen for all events.
         needsModified = filter.properties.some(p => allAttrs.has(p));
         filter.properties = new Set(filter.properties);
-        // TODO Bug 1465520 remove warning when ready.
-        if (filter.properties.has("isarticle")) {
-          extension.logger.warn(
-            "The isarticle filter name is deprecated, use isArticle."
-          );
-          filter.properties.delete("isarticle");
-          filter.properties.add("isArticle");
-        }
       } else {
         filter.properties = allProperties;
       }
@@ -835,12 +827,8 @@ this.tabs = class extends ExtensionAPI {
             nativeTab.linkedBrowser.loadURI(url, options);
           }
 
-          if (updateProperties.active !== null) {
-            if (updateProperties.active) {
-              tabbrowser.selectedTab = nativeTab;
-            } else {
-              // Not sure what to do here? Which tab should we select?
-            }
+          if (updateProperties.active) {
+            tabbrowser.selectedTab = nativeTab;
           }
           if (updateProperties.highlighted !== null) {
             if (!gMultiSelectEnabled) {

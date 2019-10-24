@@ -19,7 +19,11 @@ const SOURCE_MAP_PREF = "devtools.source-map.client-service.enabled";
  */
 function SourceMapURLService(toolbox, sourceMapService) {
   this._toolbox = toolbox;
-  this._target = toolbox.target;
+  Object.defineProperty(this, "_target", {
+    get() {
+      return toolbox.target;
+    },
+  });
   this._sourceMapService = sourceMapService;
   // Map from content URLs to descriptors.  Descriptors are later
   // passed to the source map worker.
@@ -120,7 +124,7 @@ SourceMapURLService.prototype.destroy = function() {
     this._stylesheetsFront.off("stylesheet-added", this._onNewStyleSheet);
   }
   Services.prefs.removeObserver(SOURCE_MAP_PREF, this._onPrefChanged);
-  this._target = this._urls = this._subscriptions = this._idMap = null;
+  this._urls = this._subscriptions = this._idMap = null;
 };
 
 /**
@@ -317,10 +321,10 @@ SourceMapURLService.prototype._callOneCallback = async function(
 
   const resolvedLocation = await subscriptionEntry.promise;
   if (resolvedLocation) {
-    const { line, column, sourceUrl } = resolvedLocation;
+    const { line, column, sourceUrl, sourceId } = resolvedLocation;
     // In case we're racing a pref change, pass the current value
     // here, not plain "true".
-    callback(this._prefValue, sourceUrl, line, column);
+    callback(this._prefValue, sourceUrl, line, column, sourceId);
   }
 };
 

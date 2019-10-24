@@ -25,7 +25,7 @@ load chrome://reftest/content/crashtests/layout/generic/crashtests/321224.xul
 load chrome://reftest/content/crashtests/layout/generic/crashtests/322780-1.xul
 load 323381-1.html
 load 323381-2.html
-asserts-if(Android&&asyncPan,1) load 323386-1.html # Bug 718883
+load 323386-1.html
 load 323389-1.html
 load 323389-2.html
 load 323493-1.html
@@ -97,8 +97,8 @@ load 371566-1.xhtml
 load 372376-1.xhtml
 load 373859-1.html
 load 373868-1.xhtml
-load 374090.html
-load 374420.xhtml
+skip-if(!xbl) load 374090.html
+skip-if(!xbl) load 374420.xhtml
 load 375462-1.html
 load 375831.html
 load 376419.html
@@ -115,7 +115,7 @@ load 382199-1.html
 load 382208-1.xhtml
 load 382262-1.html
 load 382396-1.xhtml
-load 382745-1.xhtml # Bug 758695
+skip-if(!xbl) load 382745-1.xhtml # Bug 758695
 load 383089-1.html
 load 385265-1.xhtml
 load 385295-1.xhtml
@@ -126,7 +126,7 @@ load 385414-2.html
 load 385426-1.html
 load 385526.html
 load 385681.html
-load chrome://reftest/content/crashtests/layout/generic/crashtests/385885-1.xul
+skip-if(!xbl) load chrome://reftest/content/crashtests/layout/generic/crashtests/385885-1.xul
 load 386799-1.html
 load 386807-1.html
 load 386812-1.html
@@ -190,7 +190,7 @@ load 400232-1.html
 load 400244-1.html
 load 400768-1.xhtml
 load 400768-2.xhtml
-load 401042-1.xhtml
+skip-if(!xbl) load 401042-1.xhtml
 load 401042-2.html
 load 402380-1.html
 load 402380-2.html
@@ -246,7 +246,7 @@ load 415818.xhtml
 load 416165.html
 load 416264-1.html
 load 416476-1.html
-load 417109-1.xhtml
+skip-if(!xbl) load 417109-1.xhtml
 load 417848-1.xhtml
 load 417902-1.html
 load 417902-2.html
@@ -255,7 +255,7 @@ load 418932-1.html
 load 419352.html
 load 420000-1.html
 load 420718.html
-load 420785-1.xhtml
+skip-if(!xbl) load 420785-1.xhtml
 load 421404-1.html
 load 421671.html
 load 422283-1.html
@@ -268,7 +268,7 @@ load 425253-1.html
 load 426040-1.html
 load 426272-1.html
 load 428263-1.html
-load 429458.xhtml
+skip-if(!xbl) load 429458.xhtml
 load 429960-1.html
 load 429960-2.html
 load 429969-1.html
@@ -315,7 +315,7 @@ load 455171-3.html
 load 455643-1.xhtml
 load 457375.html
 load 457380-1.html
-asserts-if(!Android,1) load 459968.html # bug 1067022
+asserts(1) asserts-if(Android,0-1) load 459968.html # bug 1067022
 load 460910-1.xml
 load 461294-1.html
 load 462968.xhtml
@@ -323,7 +323,7 @@ load 463350-1.html
 load 463350-2.html
 load 463350-3.html
 load 463741-1.html
-load 463785.xhtml
+skip-if(!xbl) load 463785.xhtml
 load 465651-1.html
 load 467137-1.html
 load 467213-1.html
@@ -370,7 +370,7 @@ load 496742.html
 load 499138.html
 load 499857-1.html
 load 499862-1.html
-asserts(0-3) load 499885-1.xhtml # Bug 1220265
+skip-if(!xbl) asserts(0-3) load 499885-1.xhtml # Bug 1220265
 load 501535-1.html
 load 503961-1.xhtml
 load 503961-2.html
@@ -509,7 +509,7 @@ load 790252-2.html
 load 790260-1.html
 test-pref(font.size.inflation.emPerLine,15) load 791601.xhtml
 test-pref(font.size.inflation.minTwips,120) load 794693.html
-asserts-if(!Android,1) load 798020-1.html
+asserts(1) asserts-if(Android,0-1) load 798020-1.html
 load 798235-1.html
 load 799207-1.html
 load 799207-2.html
@@ -522,7 +522,7 @@ load 810726.html
 load 812822-1.html
 load 812879-1.html
 load 812879-2.html
-pref(layout.css.column-span.enabled,true) asserts(4-26) load 812893.html # bug 1581653
+pref(layout.css.column-span.enabled,true) asserts(4-26) asserts-if(Android,4-34) load 812893.html # bug 1581653
 load 814995.html
 load 822910.xhtml
 load 824297-1.html
@@ -581,10 +581,10 @@ load 1001258-1.html
 load 1001994.html
 load chrome://reftest/content/crashtests/layout/generic/crashtests/1003441.xul
 load 1015562.html
-asserts(1-2) load 1015563-1.html
+asserts(1-2) asserts-if(Android,1-3) load 1015563-1.html
 asserts(1-2) load 1015563-2.html
-load 1015844.html
-pref(font.size.inflation.minTwips,200) load 1032450.html
+asserts-if(Android,18) load 1015844.html
+asserts-if(Android,0-24) pref(font.size.inflation.minTwips,200) load 1032450.html
 load 1032613-1.svg
 load 1032613-2.html
 load 1037903.html
@@ -593,6 +593,7 @@ load 1042489.html
 load 1054010-1.html
 load 1058954-1.html
 skip-if(verify&&isDebugBuild&&(gtkWidget||OSX)) load 1059138-1.html
+load 1102175-2.html
 load 1134531.html
 load 1134667.html
 load 1137723-1.html
@@ -710,7 +711,7 @@ load 1474768.html
 load 1478178.html
 load 1483972.html
 load 1486457.html
-asserts(9) load 1488762-1.html # asserts from integer overflow & bogus sizes
+asserts(9) asserts-if(Android,14) load 1488762-1.html # asserts from integer overflow & bogus sizes
 load 1489287.html
 load 1489863.html
 load 1489770.html
@@ -724,6 +725,7 @@ load 1505817.html
 pref(layout.css.column-span.enabled,true) load 1506216.html
 pref(layout.css.column-span.enabled,true) load 1506306.html
 pref(layout.css.column-span.enabled,true) load 1507196.html
+load 1513282.html
 load 1515124.html
 pref(layout.css.column-span.enabled,true) load 1517033.html
 pref(layout.css.column-span.enabled,true) load 1517297.html
@@ -753,3 +755,5 @@ pref(layout.css.column-span.enabled,true) load 1572901.html
 pref(layout.css.column-span.enabled,true) load 1573216.html
 load 1574552.html
 pref(layout.css.column-span.enabled,true) load 1574993.html
+pref(layout.css.column-span.enabled,true) load 1582019.html
+load 1586470.html

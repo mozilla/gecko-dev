@@ -14,11 +14,43 @@ const { RemoteAgentError } = ChromeUtils.import(
  * Override `add_task` in order to translate chrome-remote-interface exceptions
  * into something that logs better errors on stdout
  */
-const original_add_task = add_task.bind(this);
-this.add_task = function(test) {
-  original_add_task(async function() {
+const add_plain_task = add_task.bind(this);
+this.add_task = function(taskFn, opts = {}) {
+  const { createTab = true } = opts;
+
+  add_plain_task(async function() {
+    info("Start the CDP server");
+    await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
+
     try {
-      await test();
+      const CDP = await getCDP();
+
+      // By default run each test in its own tab
+      if (createTab) {
+        const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+        const browsingContextId = tab.linkedBrowser.browsingContext.id;
+
+        const client = await CDP({
+          target(list) {
+            return list.find(target => target.id === browsingContextId);
+          },
+        });
+        info("CDP client instantiated");
+
+        await taskFn(client, CDP, tab);
+
+        // taskFn may resolve within a tick after opening a new tab.
+        // We shouldn't remove the newly opened tab in the same tick.
+        // Wait for the next tick here.
+        await TestUtils.waitForTick();
+        BrowserTestUtils.removeTab(tab);
+
+        await client.close();
+        info("CDP client closed");
+      } else {
+        const client = await CDP({});
+        await taskFn(client, CDP);
+      }
     } catch (e) {
       // Display better error message with the server side stacktrace
       // if an error happened on the server side:
@@ -26,6 +58,14 @@ this.add_task = function(test) {
         throw RemoteAgentError.fromJSON(e.response);
       } else {
         throw e;
+      }
+    } finally {
+      info("Stop the CDP server");
+      await RemoteAgent.close();
+
+      // Close any additional tabs, so that only a single tab remains open
+      while (gBrowser.tabs.length > 1) {
+        gBrowser.removeCurrentTab();
       }
     }
   });
@@ -101,36 +141,6 @@ function getTargets(CDP) {
   });
 }
 
-/**
- * Set up test environment in same fashion as setupForURL(),
- * except using an empty document.
- */
-async function setup() {
-  return setupForURL(toDataURL(""));
-}
-
-/**
- * Set up test environment by starting the remote agent, connecting
- * the CDP client over loopback, and creating a fresh tab to avoid
- * state bleedover from previous test.
- */
-async function setupForURL(url) {
-  const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
-
-  await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
-  const CDP = await getCDP();
-
-  const client = await CDP({
-    target(list) {
-      // ensure we are debugging the right target, i.e. the requested URL
-      return list.find(target => target.url == url);
-    },
-  });
-  info("CDP client instantiated");
-
-  return { client, tab };
-}
-
 /** Creates a data URL for the given source document. */
 function toDataURL(src, doctype = "html") {
   let doc, mime;
@@ -144,6 +154,17 @@ function toDataURL(src, doctype = "html") {
   }
 
   return `data:${mime},${encodeURIComponent(doc)}`;
+}
+
+/**
+ * Load a given URL in the currently selected tab
+ */
+async function loadURL(url) {
+  const browser = gBrowser.selectedTab.linkedBrowser;
+  const loaded = BrowserTestUtils.browserLoaded(browser, false, url);
+
+  BrowserTestUtils.loadURI(browser, url);
+  await loaded;
 }
 
 /**

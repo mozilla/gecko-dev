@@ -64,6 +64,18 @@ var gSync = {
   },
 
   getSendTabTargets() {
+    // If sync is not enabled, then there's no point looking for sync clients.
+    // If sync is simply not ready or hasn't yet synced the clients engine, we
+    // just assume the fxa device doesn't have a sync record - in practice,
+    // that just means we don't attempt to fall back to the "old" sendtab should
+    // "new" sendtab fail.
+    // We should just kill "old" sendtab now all our mobile browsers support
+    // "new".
+    let getClientRecord = () => undefined;
+    if (UIState.get().syncEnabled && Weave.Service.clientsEngine) {
+      getClientRecord = id =>
+        Weave.Service.clientsEngine.getClientByFxaDeviceId(id);
+    }
     let targets = [];
     if (!fxAccounts.device.recentDeviceList) {
       return targets;
@@ -72,9 +84,8 @@ var gSync = {
       if (d.isCurrentDevice) {
         continue;
       }
-      let clientRecord = Weave.Service.clientsEngine.getClientByFxaDeviceId(
-        d.id
-      );
+
+      let clientRecord = getClientRecord(d.id);
       if (clientRecord || fxAccounts.commands.sendTab.isDeviceCompatible(d)) {
         targets.push({
           clientRecord,
@@ -156,9 +167,6 @@ var gSync = {
       // setting this._initialized, so we don't attempt to remove observers.
       return;
     }
-    let syncNow = document.getElementById("PanelUI-remotetabs-syncnow");
-    let label = this.syncStrings.GetStringFromName("syncnow.label");
-    syncNow.setAttribute("label", label);
     // We start with every menuitem hidden (except for the "setup sync" state),
     // so that we don't need to init the sync UI on windows like pageInfo.xul
     // (see bug 1384856).
@@ -634,7 +642,7 @@ var gSync = {
   },
 
   updateSyncStatus(state) {
-    let syncNow = document.getElementById("PanelUI-remotetabs-syncnow");
+    let syncNow = document.querySelector(".syncNowBtn");
     const syncingUI = syncNow.getAttribute("syncstatus") == "active";
     if (state.syncing != syncingUI) {
       // Do we need to update the UI?
@@ -933,7 +941,9 @@ var gSync = {
       } else {
         // For phones, FxA uses "mobile" and Sync clients uses "phone".
         type = target.type == "mobile" ? "phone" : target.type;
-        lastModified = null;
+        lastModified = target.lastAccessTime
+          ? new Date(target.lastAccessTime)
+          : null;
       }
       addTargetDevice(target.id, target.name, type, lastModified);
     }
@@ -1158,26 +1168,11 @@ var gSync = {
   onActivityStart() {
     clearTimeout(this._syncAnimationTimer);
     this._syncStartTime = Date.now();
-
-    let label = this.syncStrings.GetStringFromName("syncingtabs.label");
-    let remotetabsSyncNowEl = document.getElementById(
-      "PanelUI-remotetabs-syncnow"
-    );
-    let fxaMenuSyncNowEl = document.getElementById(
-      "PanelUI-fxa-menu-syncnow-button"
-    );
-    let syncElements = [remotetabsSyncNowEl, fxaMenuSyncNowEl];
-
-    syncElements.forEach(el => {
+    document.querySelectorAll(".syncNowBtn").forEach(el => {
       el.setAttribute("syncstatus", "active");
       el.setAttribute("disabled", "true");
+      document.l10n.setAttributes(el, el.getAttribute("syncinglabel"));
     });
-
-    remotetabsSyncNowEl.setAttribute("label", label);
-    fxaMenuSyncNowEl.setAttribute(
-      "label",
-      fxaMenuSyncNowEl.getAttribute("syncinglabel")
-    );
   },
 
   _onActivityStop() {
@@ -1185,16 +1180,10 @@ var gSync = {
       return;
     }
 
-    let label = this.syncStrings.GetStringFromName("syncnow.label");
-    let syncElements = [
-      document.getElementById("PanelUI-remotetabs-syncnow"),
-      document.getElementById("PanelUI-fxa-menu-syncnow-button"),
-    ];
-
-    syncElements.forEach(el => {
+    document.querySelectorAll(".syncNowBtn").forEach(el => {
       el.removeAttribute("syncstatus");
       el.removeAttribute("disabled");
-      el.setAttribute("label", label);
+      document.l10n.setAttributes(el, "fxa-toolbar-sync-now");
     });
 
     Services.obs.notifyObservers(null, "test:browser-sync:activity-stop");
@@ -1365,14 +1354,13 @@ var gSync = {
       tooltiptext = this.formatLastSyncDate(state.lastSync);
     }
 
-    if (this.appMenuLabel) {
-      let syncNow = document.getElementById("PanelUI-remotetabs-syncnow");
+    document.querySelectorAll(".syncNowBtn").forEach(el => {
       if (tooltiptext) {
-        syncNow.setAttribute("tooltiptext", tooltiptext);
+        el.setAttribute("tooltiptext", tooltiptext);
       } else {
-        syncNow.removeAttribute("tooltiptext");
+        el.removeAttribute("tooltiptext");
       }
-    }
+    });
   },
 
   get relativeTimeFormat() {
@@ -1388,10 +1376,17 @@ var gSync = {
       // Date can be null before the first sync!
       return null;
     }
-    const relativeDateStr = this.relativeTimeFormat.formatBestUnit(date);
-    return this.syncStrings.formatStringFromName("lastSync2.label", [
-      relativeDateStr,
-    ]);
+    try {
+      const relativeDateStr = this.relativeTimeFormat.formatBestUnit(date);
+      return this.syncStrings.formatStringFromName("lastSync2.label", [
+        relativeDateStr,
+      ]);
+    } catch (ex) {
+      // shouldn't happen, but one client having an invalid date shouldn't
+      // break the entire feature.
+      console.log("failed to format lastSync time", date, ex);
+      return null;
+    }
   },
 
   onClientsSynced() {

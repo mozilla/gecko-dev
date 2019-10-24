@@ -37,6 +37,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   LightweightThemeConsumer:
     "resource://gre/modules/LightweightThemeConsumer.jsm",
   Log: "resource://gre/modules/Log.jsm",
+  LoginHelper: "resource://gre/modules/LoginHelper.jsm",
   LoginManagerParent: "resource://gre/modules/LoginManagerParent.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
@@ -311,61 +312,12 @@ XPCOMUtils.defineLazyGetter(this, "gNavToolbox", () => {
   return document.getElementById("navigator-toolbox");
 });
 
-XPCOMUtils.defineLazyGetter(this, "gURLBar", () => gURLBarHandler.urlbar);
-
-/**
- * Tracks the urlbar object, allowing to reinitiate it when necessary, e.g. on
- * customization.
- */
-var gURLBarHandler = {
-  /**
-   * The urlbar binding or object.
-   */
-  get urlbar() {
-    if (!this._urlbar) {
-      let textbox = document.getElementById("urlbar");
-      this._urlbar = new UrlbarInput({
-        textbox,
-        eventTelemetryCategory: "urlbar",
-      });
-      if (this._lastValue) {
-        this._urlbar.value = this._lastValue;
-        delete this._lastValue;
-      }
-      gBrowser.tabContainer.addEventListener("TabSelect", this._urlbar);
-    }
-    return this._urlbar;
-  },
-
-  /**
-   * Invoked by CustomizationHandler when a customization starts.
-   */
-  customizeStart() {
-    if (this._urlbar) {
-      this._urlbar.removeCopyCutController();
-    }
-  },
-
-  /**
-   * Invoked by CustomizationHandler when a customization ends.
-   */
-  customizeEnd() {
-    this._reset();
-  },
-
-  /**
-   *  Used to reset the gURLBar value.
-   */
-  _reset() {
-    if (this._urlbar) {
-      gBrowser.tabContainer.removeEventListener("TabSelect", this._urlbar);
-      this._lastValue = this._urlbar.value;
-      this._urlbar.uninit();
-      delete this._urlbar;
-      gURLBar = this.urlbar;
-    }
-  },
-};
+XPCOMUtils.defineLazyGetter(this, "gURLBar", () => {
+  return new UrlbarInput({
+    textbox: document.getElementById("urlbar"),
+    eventTelemetryCategory: "urlbar",
+  });
+});
 
 XPCOMUtils.defineLazyGetter(this, "ReferrerInfo", () =>
   Components.Constructor(
@@ -1279,18 +1231,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "privacy.popups.maxReported"
 );
 
-function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
-  let deserializeURI = url => {
-    if (url instanceof Ci.nsIURI) {
-      return url;
-    }
-    return url ? makeURI(url) : null;
-  };
-
+function doURIFixup(browser, fixupInfo) {
   // We get called irrespective of whether we did a keyword search, or
   // whether the original input would be vaguely interpretable as a URL,
   // so figure that out first.
-  let alternativeURI = deserializeURI(fixupInfo.fixedURI);
+  let alternativeURI = fixupInfo.fixedURI;
   if (
     !fixupInfo.keywordProviderName ||
     !alternativeURI ||
@@ -1310,7 +1255,7 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
   // We keep track of the currentURI to detect case (1) in the DNS lookup
   // callback.
   let previousURI = browser.currentURI;
-  let preferredURI = deserializeURI(fixupInfo.preferredURI);
+  let preferredURI = fixupInfo.preferredURI;
 
   // now swap for a weak ref so we don't hang on to browser needlessly
   // even if the DNS query takes forever
@@ -1434,6 +1379,35 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
       Cu.reportError(ex);
     }
   }
+}
+
+function gKeywordURIFixupObs(fixupInfo, topic, data) {
+  fixupInfo.QueryInterface(Ci.nsIURIFixupInfo);
+
+  if (!fixupInfo.consumer || fixupInfo.consumer.ownerGlobal != window) {
+    return;
+  }
+
+  doURIFixup(fixupInfo.consumer, {
+    fixedURI: fixupInfo.fixedURI,
+    keywordProviderName: fixupInfo.keywordProviderName,
+    preferredURI: fixupInfo.preferredURI,
+  });
+}
+
+function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
+  let deserializeURI = url => {
+    if (url instanceof Ci.nsIURI) {
+      return url;
+    }
+    return url ? makeURI(url) : null;
+  };
+
+  doURIFixup(browser, {
+    fixedURI: deserializeURI(fixupInfo.fixedURI),
+    keywordProviderName: fixupInfo.keywordProviderName,
+    preferredURI: deserializeURI(fixupInfo.preferredURI),
+  });
 }
 
 function serializeInputStream(aStream) {
@@ -1935,55 +1909,6 @@ var gBrowserInit = {
     }
 
     this._loadHandled = true;
-    let reloadHistogram = Services.telemetry.getHistogramById(
-      "FX_PAGE_RELOAD_KEY_COMBO"
-    );
-    let reloadCommand = document.getElementById("Browser:Reload");
-    reloadCommand.addEventListener("command", function(event) {
-      let { target } = event.sourceEvent || {};
-      if (target.getAttribute("keycode") == "VK_F5") {
-        reloadHistogram.add("only_f5", 1);
-      } else if (target.id == "key_reload") {
-        reloadHistogram.add("accel_reloadKey", 1);
-      }
-    });
-
-    let reloadSkipCacheCommand = document.getElementById(
-      "Browser:ReloadSkipCache"
-    );
-    reloadSkipCacheCommand.addEventListener("command", function(event) {
-      let { target } = event.sourceEvent || {};
-      if (target.getAttribute("keycode") == "VK_F5") {
-        reloadHistogram.add("ctrl_f5", 1);
-      } else if (target.id == "key_reload_skip_cache") {
-        reloadHistogram.add("accel_shift_reload", 1);
-      }
-    });
-
-    let reloadOrDuplicateCommand = document.getElementById(
-      "Browser:ReloadOrDuplicate"
-    );
-    reloadOrDuplicateCommand.addEventListener("command", function(event) {
-      let { target } = event.sourceEvent || {};
-      if (target.id == "reload-button") {
-        let accelKeyPressed =
-          AppConstants.platform == "macosx" ? event.metaKey : event.ctrlKey;
-        let auxiliaryPressed = false;
-        let { sourceEvent } = event.sourceEvent || {};
-        if (sourceEvent) {
-          auxiliaryPressed = sourceEvent.button == 1;
-        }
-        if (auxiliaryPressed) {
-          reloadHistogram.add("auxiliary_toolbar", 1);
-        } else if (accelKeyPressed) {
-          reloadHistogram.add("accel_toolbar", 1);
-        } else if (event.shiftKey) {
-          reloadHistogram.add("shift_toolbar", 1);
-        } else {
-          reloadHistogram.add("toolbar", 1);
-        }
-      }
-    });
   },
 
   _cancelDelayedStartup() {
@@ -2054,6 +1979,7 @@ var gBrowserInit = {
       "Browser:URIFixup",
       gKeywordURIFixup
     );
+    Services.obs.addObserver(gKeywordURIFixupObs, "keyword-uri-fixup");
 
     BrowserOffline.init();
     IndexedDBPromptHelper.init();
@@ -2072,7 +1998,7 @@ var gBrowserInit = {
     BrowserSearch.delayedStartupInit();
     AutoShowBookmarksToolbar.init();
     gProtectionsHandler.init();
-    HomePage.init().catch(Cu.reportError);
+    HomePage.delayedStartup().catch(Cu.reportError);
 
     let safeMode = document.getElementById("helpSafeMode");
     if (Services.appinfo.inSafeMode) {
@@ -2589,6 +2515,7 @@ var gBrowserInit = {
         "Browser:URIFixup",
         gKeywordURIFixup
       );
+      Services.obs.removeObserver(gKeywordURIFixupObs, "keyword-uri-fixup");
       window.messageManager.removeMessageListener(
         "Browser:LoadURI",
         RedirectLoad
@@ -2886,7 +2813,7 @@ function loadOneOrMoreURIs(aURIString, aTriggeringPrincipal, aCsp) {
 }
 
 /**
- * Focuses the location bar input field and selects its contents.
+ * Focuses and expands the location bar input field and selects its contents.
  */
 function focusAndSelectUrlBar() {
   // In customize mode, the url bar is disabled. If a new tab is opened or the
@@ -2906,6 +2833,9 @@ function focusAndSelectUrlBar() {
   }
 
   gURLBar.select();
+  // In cases where the Urlbar is focused but not expanded, the select call
+  // above may not result in an expansion.
+  gURLBar.startLayoutExtend();
 }
 
 function openLocation(event) {
@@ -4425,7 +4355,7 @@ const BrowserSearch = {
     // Asynchronously initialize the search service if necessary, to get the
     // current engine for working out the placeholder.
     this._updateURLBarPlaceholderFromDefaultEngine(
-      this._usePrivateSettings,
+      PrivateBrowsingUtils.isWindowPrivate(window),
       // Delay the update for this until so that we don't change it while
       // the user is looking at it / isn't expecting it.
       true
@@ -4461,29 +4391,22 @@ const BrowserSearch = {
         this._removeMaybeOfferedEngine(engineName);
         break;
       case "engine-default":
-        if (this._searchInitComplete && !this._usePrivateSettings) {
+        if (
+          this._searchInitComplete &&
+          !PrivateBrowsingUtils.isWindowPrivate(window)
+        ) {
           this._updateURLBarPlaceholder(engineName, false);
         }
         break;
       case "engine-default-private":
-        if (this._searchInitComplete && this._usePrivateSettings) {
+        if (
+          this._searchInitComplete &&
+          PrivateBrowsingUtils.isWindowPrivate(window)
+        ) {
           this._updateURLBarPlaceholder(engineName, true);
         }
         break;
     }
-  },
-
-  /**
-   * @returns True if we are using a separate default private engine, and
-   *          we are in a private window.
-   */
-  get _usePrivateSettings() {
-    return (
-      Services.prefs.getBoolPref(
-        "browser.search.separatePrivateDefault",
-        true
-      ) && PrivateBrowsingUtils.isWindowPrivate(window)
-    );
   },
 
   _addMaybeOfferedEngine(engineName) {
@@ -4543,7 +4466,7 @@ const BrowserSearch = {
   initPlaceHolder() {
     const prefName =
       "browser.urlbar.placeholderName" +
-      (this._usePrivateSettings ? ".private" : "");
+      (PrivateBrowsingUtils.isWindowPrivate(window) ? ".private" : "");
     let engineName = Services.prefs.getStringPref(prefName, "");
     if (engineName) {
       // We can do this directly, since we know we're at DOMContentLoaded.
@@ -4796,21 +4719,31 @@ const BrowserSearch = {
    * @param searchText
    *        The search terms to use for the search.
    *
-   * @param useNewTab
-   *        Boolean indicating whether or not the search should load in a new
-   *        tab.
+   * @param where
+   *        String indicating where the search should load. Most commonly used
+   *        are 'tab' or 'window', defaults to 'current'.
+   *
+   * @param usePrivate
+   *        Whether to use the Private Browsing mode default search engine.
+   *        Defaults to `false`.
    *
    * @param purpose [optional]
    *        A string meant to indicate the context of the search request. This
    *        allows the search service to provide a different nsISearchSubmission
    *        depending on e.g. where the search is triggered in the UI.
    *
+   * @param triggeringPrincipal
+   *        The principal to use for a new window or tab.
+   *
+   * @param csp
+   *        The content security policy to use for a new window or tab.
+   *
    * @return engine The search engine used to perform a search, or null if no
    *                search was performed.
    */
-  _loadSearch(
+  async _loadSearch(
     searchText,
-    useNewTab,
+    where,
     usePrivate,
     purpose,
     triggeringPrincipal,
@@ -4822,8 +4755,9 @@ const BrowserSearch = {
       );
     }
 
-    let engine =
-      Services.search[usePrivate ? "defaultPrivateEngine" : "defaultEngine"];
+    let engine = usePrivate
+      ? await Services.search.getDefaultPrivate()
+      : await Services.search.getDefault();
 
     let submission = engine.getSubmission(searchText, null, purpose); // HTML response
 
@@ -4838,7 +4772,8 @@ const BrowserSearch = {
     let inBackground = Services.prefs.getBoolPref(
       "browser.search.context.loadInBackground"
     );
-    openLinkIn(submission.uri.spec, useNewTab ? "tab" : "current", {
+    openLinkIn(submission.uri.spec, where || "current", {
+      private: usePrivate && !PrivateBrowsingUtils.isWindowPrivate(window),
       postData: submission.postData,
       inBackground,
       relatedToCurrent: true,
@@ -4855,10 +4790,12 @@ const BrowserSearch = {
    * This should only be called from the context menu. See
    * BrowserSearch.loadSearch for the preferred API.
    */
-  loadSearchFromContext(terms, usePrivate, triggeringPrincipal, csp) {
-    let engine = BrowserSearch._loadSearch(
+  async loadSearchFromContext(terms, usePrivate, triggeringPrincipal, csp) {
+    let engine = await BrowserSearch._loadSearch(
       terms,
-      true,
+      usePrivate && !PrivateBrowsingUtils.isWindowPrivate(window)
+        ? "window"
+        : "tab",
       usePrivate,
       "contextmenu",
       triggeringPrincipal,
@@ -4866,6 +4803,23 @@ const BrowserSearch = {
     );
     if (engine) {
       BrowserSearch.recordSearchInTelemetry(engine, "contextmenu");
+    }
+  },
+
+  /**
+   * Perform a search initiated from the command line.
+   */
+  async loadSearchFromCommandLine(terms, usePrivate, triggeringPrincipal, csp) {
+    let engine = await BrowserSearch._loadSearch(
+      terms,
+      "current",
+      usePrivate,
+      "system",
+      triggeringPrincipal,
+      csp
+    );
+    if (engine) {
+      BrowserSearch.recordSearchInTelemetry(engine, "system");
     }
   },
 
@@ -6429,7 +6383,8 @@ nsBrowserAccess.prototype = {
     aTriggeringPrincipal = null,
     aNextRemoteTabId = 0,
     aName = "",
-    aCsp = null
+    aCsp = null,
+    aSkipLoad = false
   ) {
     let win, needToFocusWin;
 
@@ -6468,6 +6423,7 @@ nsBrowserAccess.prototype = {
       nextRemoteTabId: aNextRemoteTabId,
       name: aName,
       csp: aCsp,
+      skipLoad: aSkipLoad,
     });
     let browser = win.gBrowser.getBrowserForTab(tab);
 
@@ -6492,7 +6448,8 @@ nsBrowserAccess.prototype = {
       aWhere,
       aFlags,
       aTriggeringPrincipal,
-      aCsp
+      aCsp,
+      true
     );
   },
 
@@ -6507,7 +6464,8 @@ nsBrowserAccess.prototype = {
       aWhere,
       aFlags,
       aTriggeringPrincipal,
-      aCsp
+      aCsp,
+      false
     );
   },
 
@@ -6517,7 +6475,8 @@ nsBrowserAccess.prototype = {
     aWhere,
     aFlags,
     aTriggeringPrincipal,
-    aCsp
+    aCsp,
+    aSkipLoad
   ) {
     // This function should only ever be called if we're opening a URI
     // from a non-remote browser window (via nsContentTreeOwner).
@@ -6647,7 +6606,8 @@ nsBrowserAccess.prototype = {
           aTriggeringPrincipal,
           0,
           "",
-          aCsp
+          aCsp,
+          aSkipLoad
         );
         if (browser) {
           browsingContext = browser.browsingContext;
@@ -6685,14 +6645,17 @@ nsBrowserAccess.prototype = {
     aNextRemoteTabId,
     aName
   ) {
-    // Passing a null-URI to only create the content window.
+    // Passing a null-URI to only create the content window,
+    // and pass true for aSkipLoad to prevent loading of
+    // about:blank
     return this.getContentWindowOrOpenURIInFrame(
       null,
       aParams,
       aWhere,
       aFlags,
       aNextRemoteTabId,
-      aName
+      aName,
+      true
     );
   },
 
@@ -6710,7 +6673,8 @@ nsBrowserAccess.prototype = {
       aWhere,
       aFlags,
       aNextRemoteTabId,
-      aName
+      aName,
+      false
     );
   },
 
@@ -6720,7 +6684,8 @@ nsBrowserAccess.prototype = {
     aWhere,
     aFlags,
     aNextRemoteTabId,
-    aName
+    aName,
+    aSkipLoad
   ) {
     if (aWhere != Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
       dump("Error: openURIInFrame can only open in new tabs");
@@ -6747,7 +6712,8 @@ nsBrowserAccess.prototype = {
       aParams.triggeringPrincipal,
       aNextRemoteTabId,
       aName,
-      aParams.csp
+      aParams.csp,
+      aSkipLoad
     );
   },
 

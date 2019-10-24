@@ -42,15 +42,21 @@ ${helpers.single_keyword(
     spec="Internal (not web-exposed)",
 )}
 
-${helpers.single_keyword(
-    "position",
-    "static absolute relative fixed" + (" sticky" if engine in ["gecko", "servo-2013"] else ""),
-    engines="gecko servo-2013 servo-2020",
-    animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
-    spec="https://drafts.csswg.org/css-position/#position-property",
-    servo_restyle_damage="rebuild_and_reflow",
-)}
+<%helpers:single_keyword
+    name="position"
+    values="static absolute relative fixed ${'sticky' if engine in ['gecko', 'servo-2013'] else ''}"
+    engines="gecko servo-2013 servo-2020"
+    animation_value_type="discrete"
+    flags="CREATES_STACKING_CONTEXT ABSPOS_CB"
+    spec="https://drafts.csswg.org/css-position/#position-property"
+    servo_restyle_damage="rebuild_and_reflow"
+>
+impl computed_value::T {
+    pub fn is_absolutely_positioned(self) -> bool {
+        matches!(self, Self::Absolute | Self::Fixed)
+    }
+}
+</%helpers:single_keyword>
 
 ${helpers.predefined_type(
     "float",
@@ -448,7 +454,6 @@ ${helpers.predefined_type(
     "ScrollSnapAlign",
     "computed::ScrollSnapAlign::none()",
     engines="gecko",
-    gecko_pref="layout.css.scroll-snap-v1.enabled",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align",
     animation_value_type="discrete",
 )}

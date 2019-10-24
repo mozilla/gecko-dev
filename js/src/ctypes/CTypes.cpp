@@ -994,7 +994,8 @@ static void BuildConversionPosition(JSContext* cx, ConversionType convType,
   }
 }
 
-static JSFlatString* GetFieldName(HandleObject structObj, unsigned fieldIndex) {
+static JSLinearString* GetFieldName(HandleObject structObj,
+                                    unsigned fieldIndex) {
   const FieldInfoHash* fields = StructType::GetFieldInfo(structObj);
   for (FieldInfoHash::Range r = fields->all(); !r.empty(); r.popFront()) {
     if (r.front().value().mIndex == fieldIndex) {
@@ -1274,7 +1275,7 @@ static bool CannotConstructError(JSContext* cx, const char* type) {
   return false;
 }
 
-static bool DuplicateFieldError(JSContext* cx, Handle<JSFlatString*> name) {
+static bool DuplicateFieldError(JSContext* cx, Handle<JSLinearString*> name) {
   JS::UniqueChars nameStr = JS_EncodeStringToUTF8(cx, name);
   if (!nameStr) {
     return false;
@@ -1423,7 +1424,7 @@ static bool FieldDescriptorTypeError(JSContext* cx, HandleValue poroVal,
 }
 
 static bool FieldMissingError(JSContext* cx, JSObject* typeObj,
-                              JSFlatString* name_) {
+                              JSLinearString* name_) {
   JS::UniqueChars typeBytes;
   RootedString name(cx, name_);
   RootedValue typeVal(cx, ObjectValue(*typeObj));
@@ -3327,8 +3328,9 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
         // also.
         JSString* sourceString = val.toString();
         size_t sourceLength = sourceString->length();
-        Rooted<JSFlatString*> sourceFlat(cx, sourceString->ensureFlat(cx));
-        if (!sourceFlat) {
+        Rooted<JSLinearString*> sourceLinear(cx,
+                                             sourceString->ensureLinear(cx));
+        if (!sourceLinear) {
           return false;
         }
 
@@ -3337,12 +3339,12 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
           case TYPE_signed_char:
           case TYPE_unsigned_char: {
             // Reject if unpaired surrogate characters are present.
-            if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceFlat)) {
+            if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceLinear)) {
               return false;
             }
 
             // Convert from UTF-16 to UTF-8.
-            size_t nbytes = JS::GetDeflatedUTF8StringLength(sourceFlat);
+            size_t nbytes = JS::GetDeflatedUTF8StringLength(sourceLinear);
 
             char** charBuffer = static_cast<char**>(buffer);
             *charBuffer = cx->pod_malloc<char>(nbytes + 1);
@@ -3351,8 +3353,8 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
             }
 
             nbytes = JS::DeflateStringToUTF8Buffer(
-                sourceFlat, mozilla::MakeSpan(*charBuffer, nbytes));
-            (*charBuffer)[nbytes] = 0;
+                sourceLinear, mozilla::MakeSpan(*charBuffer, nbytes));
+            (*charBuffer)[nbytes] = '\0';
             *freePointer = true;
             break;
           }
@@ -3367,16 +3369,9 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
             }
 
             *freePointer = true;
-            if (sourceFlat->hasLatin1Chars()) {
-              AutoCheckCannotGC nogc;
-              CopyAndInflateChars(*char16Buffer, sourceFlat->latin1Chars(nogc),
-                                  sourceLength);
-            } else {
-              AutoCheckCannotGC nogc;
-              mozilla::PodCopy(*char16Buffer, sourceFlat->twoByteChars(nogc),
-                               sourceLength);
-            }
-            (*char16Buffer)[sourceLength] = 0;
+
+            CopyChars(*char16Buffer, *sourceLinear);
+            (*char16Buffer)[sourceLength] = '\0';
             break;
           }
           default:
@@ -3454,8 +3449,9 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
       if (val.isString()) {
         JSString* sourceString = val.toString();
         size_t sourceLength = sourceString->length();
-        Rooted<JSFlatString*> sourceFlat(cx, sourceString->ensureFlat(cx));
-        if (!sourceFlat) {
+        Rooted<JSLinearString*> sourceLinear(cx,
+                                             sourceString->ensureLinear(cx));
+        if (!sourceLinear) {
           return false;
         }
 
@@ -3464,12 +3460,12 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
           case TYPE_signed_char:
           case TYPE_unsigned_char: {
             // Reject if unpaired surrogate characters are present.
-            if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceFlat)) {
+            if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceLinear)) {
               return false;
             }
 
             // Convert from UTF-16 or Latin1 to UTF-8.
-            size_t nbytes = JS::GetDeflatedUTF8StringLength(sourceFlat);
+            size_t nbytes = JS::GetDeflatedUTF8StringLength(sourceLinear);
 
             if (targetLength < nbytes) {
               MOZ_ASSERT(!funObj);
@@ -3479,10 +3475,10 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
 
             char* charBuffer = static_cast<char*>(buffer);
             nbytes = JS::DeflateStringToUTF8Buffer(
-                sourceFlat, mozilla::MakeSpan(charBuffer, nbytes));
+                sourceLinear, mozilla::MakeSpan(charBuffer, nbytes));
 
             if (targetLength > nbytes) {
-              charBuffer[nbytes] = 0;
+              charBuffer[nbytes] = '\0';
             }
 
             break;
@@ -3497,18 +3493,10 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
             }
 
             char16_t* dest = static_cast<char16_t*>(buffer);
-            if (sourceFlat->hasLatin1Chars()) {
-              AutoCheckCannotGC nogc;
-              CopyAndInflateChars(dest, sourceFlat->latin1Chars(nogc),
-                                  sourceLength);
-            } else {
-              AutoCheckCannotGC nogc;
-              mozilla::PodCopy(dest, sourceFlat->twoByteChars(nogc),
-                               sourceLength);
-            }
+            CopyChars(dest, *sourceLinear);
 
             if (targetLength > sourceLength) {
-              dest[sourceLength] = 0;
+              dest[sourceLength] = '\0';
             }
 
             break;
@@ -3646,7 +3634,7 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
                                           argIndex);
           }
 
-          JSFlatString* name = JSID_TO_FLAT_STRING(id);
+          JSLinearString* name = JSID_TO_LINEAR_STRING(id);
           const FieldInfo* field =
               StructType::LookupField(cx, targetType, name);
           if (!field) {
@@ -5156,7 +5144,7 @@ bool PointerType::OffsetBy(JSContext* cx, const CallArgs& args, int offset,
 
   size_t elementSize = CType::GetSize(baseType);
   char* data = static_cast<char*>(*static_cast<void**>(CData::GetData(obj)));
-  void* address = data + offset * elementSize;
+  void* address = data + offset * ptrdiff_t(elementSize);
 
   // Create a PointerType CData object containing the new address.
   JSObject* result = CData::Create(cx, typeObj, nullptr, &address, true);
@@ -5359,8 +5347,8 @@ bool ArrayType::ConstructData(JSContext* cx, HandleObject obj_,
       // including space for the terminator.
       JSString* sourceString = args[0].toString();
       size_t sourceLength = sourceString->length();
-      Rooted<JSFlatString*> sourceFlat(cx, sourceString->ensureFlat(cx));
-      if (!sourceFlat) {
+      Rooted<JSLinearString*> sourceLinear(cx, sourceString->ensureLinear(cx));
+      if (!sourceLinear) {
         return false;
       }
 
@@ -5369,12 +5357,12 @@ bool ArrayType::ConstructData(JSContext* cx, HandleObject obj_,
         case TYPE_signed_char:
         case TYPE_unsigned_char: {
           // Reject if unpaired surrogate characters are present.
-          if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceFlat)) {
+          if (!ReportErrorIfUnpairedSurrogatePresent(cx, sourceLinear)) {
             return false;
           }
 
           // Determine the UTF-8 length.
-          length = JS::GetDeflatedUTF8StringLength(sourceFlat);
+          length = JS::GetDeflatedUTF8StringLength(sourceLinear);
 
           ++length;
           break;
@@ -5705,8 +5693,8 @@ bool ArrayType::AddressOfElement(JSContext* cx, unsigned argc, Value* vp) {
 
 // For a struct field descriptor 'val' of the form { name : type }, extract
 // 'name' and 'type'.
-static JSFlatString* ExtractStructField(JSContext* cx, HandleValue val,
-                                        MutableHandleObject typeObj) {
+static JSLinearString* ExtractStructField(JSContext* cx, HandleValue val,
+                                          MutableHandleObject typeObj) {
   if (val.isPrimitive()) {
     FieldDescriptorNameTypeError(cx, val);
     return nullptr;
@@ -5750,15 +5738,15 @@ static JSFlatString* ExtractStructField(JSContext* cx, HandleValue val,
     return nullptr;
   }
 
-  return JSID_TO_FLAT_STRING(nameid);
+  return JSID_TO_LINEAR_STRING(nameid);
 }
 
 // For a struct field with 'name' and 'type', add an element of the form
 // { name : type }.
 static bool AddFieldToArray(JSContext* cx, MutableHandleValue element,
-                            JSFlatString* name_, JSObject* typeObj_) {
+                            JSLinearString* name_, JSObject* typeObj_) {
   RootedObject typeObj(cx, typeObj_);
-  Rooted<JSFlatString*> name(cx, name_);
+  Rooted<JSLinearString*> name(cx, name_);
   RootedObject fieldObj(cx, JS_NewPlainObject(cx));
   if (!fieldObj) {
     return false;
@@ -5876,7 +5864,8 @@ bool StructType::DefineInternal(JSContext* cx, JSObject* typeObj_,
       }
 
       RootedObject fieldType(cx, nullptr);
-      Rooted<JSFlatString*> name(cx, ExtractStructField(cx, item, &fieldType));
+      Rooted<JSLinearString*> name(cx,
+                                   ExtractStructField(cx, item, &fieldType));
       if (!name) {
         return false;
       }
@@ -5900,7 +5889,7 @@ bool StructType::DefineInternal(JSContext* cx, JSObject* typeObj_,
         return false;
       }
       SetFunctionNativeReserved(getter, StructType::SLOT_FIELDNAME,
-                                StringValue(JS_FORGET_STRING_FLATNESS(name)));
+                                StringValue(JS_FORGET_STRING_LINEARNESS(name)));
       RootedObject getterObj(cx, JS_GetFunctionObject(getter));
 
       RootedFunction setter(
@@ -5910,7 +5899,7 @@ bool StructType::DefineInternal(JSContext* cx, JSObject* typeObj_,
         return false;
       }
       SetFunctionNativeReserved(setter, StructType::SLOT_FIELDNAME,
-                                StringValue(JS_FORGET_STRING_FLATNESS(name)));
+                                StringValue(JS_FORGET_STRING_LINEARNESS(name)));
       RootedObject setterObj(cx, JS_GetFunctionObject(setter));
 
       if (!JS_DefineUCProperty(cx, prototype, nameChars.twoByteChars(),
@@ -6197,7 +6186,7 @@ const FieldInfoHash* StructType::GetFieldInfo(JSObject* obj) {
 }
 
 const FieldInfo* StructType::LookupField(JSContext* cx, JSObject* obj,
-                                         JSFlatString* name) {
+                                         JSLinearString* name) {
   MOZ_ASSERT(CType::IsCType(obj));
   MOZ_ASSERT(CType::GetTypeCode(obj) == TYPE_struct);
 
@@ -6301,7 +6290,8 @@ bool StructType::FieldGetter(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedValue nameVal(
       cx, GetFunctionNativeReserved(&args.callee(), SLOT_FIELDNAME));
-  Rooted<JSFlatString*> name(cx, JS_FlattenString(cx, nameVal.toString()));
+  Rooted<JSLinearString*> name(cx,
+                               JS_EnsureLinearString(cx, nameVal.toString()));
   if (!name) {
     return false;
   }
@@ -6338,7 +6328,8 @@ bool StructType::FieldSetter(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedValue nameVal(
       cx, GetFunctionNativeReserved(&args.callee(), SLOT_FIELDNAME));
-  Rooted<JSFlatString*> name(cx, JS_FlattenString(cx, nameVal.toString()));
+  Rooted<JSLinearString*> name(cx,
+                               JS_EnsureLinearString(cx, nameVal.toString()));
   if (!name) {
     return false;
   }
@@ -6385,7 +6376,7 @@ bool StructType::AddressOfField(JSContext* cx, unsigned argc, Value* vp) {
                                 "a string");
   }
 
-  JSFlatString* str = JS_FlattenString(cx, args[0].toString());
+  JSLinearString* str = JS_EnsureLinearString(cx, args[0].toString());
   if (!str) {
     return false;
   }
@@ -8703,7 +8694,7 @@ bool Int64::Join(JSContext* cx, unsigned argc, Value* vp) {
     return ArgumentConvError(cx, args[1], "Int64.join", 1);
   }
 
-  int64_t i = (int64_t(hi) << 32) + int64_t(lo);
+  int64_t i = mozilla::WrapToSigned((uint64_t(hi) << 32) + lo);
 
   // Get Int64.prototype from the function's reserved slot.
   JSObject* callee = &args.callee();

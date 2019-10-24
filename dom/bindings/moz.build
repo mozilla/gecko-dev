@@ -77,7 +77,6 @@ LOCAL_INCLUDES += [
     '/dom/media/webaudio',
     '/dom/media/webspeech/recognition',
     '/dom/svg',
-    '/dom/xbl',
     '/dom/xml',
     '/dom/xslt/base',
     '/dom/xslt/xpath',
@@ -93,6 +92,9 @@ LOCAL_INCLUDES += [
     '/media/webrtc/signaling/src/peerconnection',
     '/media/webrtc/trunk/',
 ]
+
+if CONFIG['MOZ_XBL']:
+    LOCAL_INCLUDES += ['/dom/xbl']
 
 LOCAL_INCLUDES += ['/third_party/msgpack/include']
 
@@ -175,10 +177,10 @@ if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     ]
 
 if CONFIG['COMPILE_ENVIRONMENT']:
-    GENERATED_FILES += ['CSS2Properties.webidl']
-    css_props = GENERATED_FILES['CSS2Properties.webidl']
-    css_props.script = 'GenerateCSS2PropertiesWebIDL.py:generate'
-    css_props.inputs = [
-        '/dom/webidl/CSS2Properties.webidl.in',
-        '!/layout/style/ServoCSSPropList.py',
-    ]
+    GeneratedFile('CSS2Properties.webidl',
+                  script='GenerateCSS2PropertiesWebIDL.py',
+                  entry_point='generate',
+                  inputs=[
+                      '/dom/webidl/CSS2Properties.webidl.in',
+                      '!/layout/style/ServoCSSPropList.py',
+                  ])

@@ -354,6 +354,11 @@ applications-type-pdf-with-type = { applications-type-pdf } ({ $type })
 applications-type-description-with-type = { $type-description } ({ $type })
 
 # Variables:
+#   $extension (String) - file extension (e.g .TXT)
+#   $type (String) - the MIME type (e.g application/binary)
+applications-file-ending-with-type = { applications-file-ending } ({ $type })
+
+# Variables:
 #   $plugin-name (String) - Name of a plugin (e.g Adobe Flash)
 applications-use-plugin-in =
     .label = Use { $plugin-name } (in { -brand-short-name })
@@ -628,8 +633,8 @@ search-bar-shown =
     .label = Add search bar in toolbar
 
 search-engine-default-header = Default Search Engine
-search-engine-default-desc = Choose the default search engine to use in the address bar and search bar.
-search-engine-default-private-desc = Choose the default search engine to use in Private Windows.
+search-engine-default-desc-2 = This is your default search engine in the address bar and search bar. You can switch it at any time.
+search-engine-default-private-desc-2 = Choose a different default search engine for Private Windows only
 search-separate-default-engine =
     .label = Use this search engine in Private Windows
     .accesskey = U
@@ -652,6 +657,9 @@ search-show-suggestions-url-bar-option =
 # (appearing before).
 search-show-suggestions-above-history-option =
     .label = Show search suggestions ahead of browsing history in address bar results
+
+search-show-suggestions-private-windows =
+    .label = Show search suggestions in Private Windows
 
 suggestions-addressbar-settings = Change preferences for browsing history, bookmarks, and tab suggestions
 
@@ -781,6 +789,10 @@ sync-currently-syncing-prefs =
         [windows] Options
        *[other] Preferences
     }
+
+sync-change-options =
+    .label = Change…
+    .accesskey = C
 
 ## The "Choose what to sync" dialog.
 

@@ -322,14 +322,18 @@ void ScrollAnchorContainer::ApplyAdjustments() {
       mScrollFrame->HasPendingScrollRestoration() ||
       mScrollFrame->IsProcessingScrollEvent() ||
       mScrollFrame->IsProcessingAsyncScroll()) {
-    mSuppressAnchorAdjustment = false;
     ANCHOR_LOG(
         "Ignoring post-reflow (anchor=%p, dirty=%d, pendingRestoration=%d, "
-        "scrollevent=%d asyncScroll=%d container=%p).\n",
+        "scrollevent=%d asyncScroll=%d pendingSuppression=%d container=%p).\n",
         mAnchorNode, mAnchorNodeIsDirty,
         mScrollFrame->HasPendingScrollRestoration(),
         mScrollFrame->IsProcessingScrollEvent(),
-        mScrollFrame->IsProcessingAsyncScroll(), this);
+        mScrollFrame->IsProcessingAsyncScroll(), mSuppressAnchorAdjustment,
+        this);
+    if (mSuppressAnchorAdjustment) {
+      mSuppressAnchorAdjustment = false;
+      InvalidateAnchor();
+    }
     return;
   }
 
@@ -372,7 +376,7 @@ void ScrollAnchorContainer::ApplyAdjustments() {
     }
   }
 
-  MOZ_ASSERT(!mApplyingAnchorAdjustment);
+  MOZ_RELEASE_ASSERT(!mApplyingAnchorAdjustment);
   // We should use AutoRestore here, but that doesn't work with bitfields
   mApplyingAnchorAdjustment = true;
   mScrollFrame->ScrollTo(mScrollFrame->GetScrollPosition() + physicalAdjustment,
@@ -470,7 +474,8 @@ ScrollAnchorContainer::ExamineAnchorCandidate(nsIFrame* aFrame) const {
   // altogether.
   if (!isText && (isNonReplacedInline || isAnonBox)) {
     ANCHOR_LOG(
-        "\t\tSearching descendants of anon or non-replaced inline box (a=%d, i=%d).\n",
+        "\t\tSearching descendants of anon or non-replaced inline box (a=%d, "
+        "i=%d).\n",
         isAnonBox, isNonReplacedInline);
     if (canDescend) {
       return ExamineResult::PassThrough;

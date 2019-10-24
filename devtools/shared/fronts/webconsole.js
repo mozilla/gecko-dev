@@ -13,7 +13,7 @@ const {
 const { webconsoleSpec } = require("devtools/shared/specs/webconsole");
 
 /**
- * A WebConsoleClient is used as a front end for the WebConsoleActor that is
+ * A WebConsoleFront is used as a front end for the WebConsoleActor that is
  * created on the server, hiding implementation details.
  *
  * @param object client
@@ -464,7 +464,7 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
   }
 
   /**
-   * Close the WebConsoleClient.
+   * Close the WebConsoleFront.
    *
    */
   destroy() {
@@ -484,7 +484,10 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
   }
 
   clearNetworkRequests() {
-    this._networkRequests.clear();
+    // Prevent exception if the front has already been destroyed.
+    if (this._networkRequests) {
+      this._networkRequests.clear();
+    }
   }
 
   /**

@@ -149,10 +149,14 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // are styled to look like search engine results instead of the usual history
   // results.
   ["restyleSearches", false],
+
+  // If true, we strip https:// instead of http:// from URLs in the results view.
+  ["view.stripHttps", false],
 ]);
 const PREF_OTHER_DEFAULTS = new Map([
   ["keyword.enabled", true],
   ["browser.search.suggest.enabled", true],
+  ["browser.search.suggest.enabled.private", false],
   ["ui.popup.disable_autohide", false],
   ["browser.fixup.dns_first_for_single_words", false],
 ]);

@@ -40,6 +40,9 @@ const FAKE_BUNDLE = [FAKE_LOCAL_MESSAGES[1], FAKE_LOCAL_MESSAGES[2]];
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 const FAKE_RESPONSE_HEADERS = { get() {} };
 
+const USE_REMOTE_L10N_PREF =
+  "browser.newtabpage.activity-stream.asrouter.useRemoteL10n";
+
 // Creates a message object that looks like messages returned by
 // RemotePageManager listeners
 function fakeAsyncMessage(action) {
@@ -331,6 +334,17 @@ describe("ASRouter", () => {
         "intl:app-locales-changed"
       );
     });
+    it("should add a pref observer", async () => {
+      sandbox.spy(global.Services.prefs, "addObserver");
+      await createRouterAndInit();
+
+      assert.calledOnce(global.Services.prefs.addObserver);
+      assert.calledWithExactly(
+        global.Services.prefs.addObserver,
+        USE_REMOTE_L10N_PREF,
+        Router
+      );
+    });
     describe("lazily loading local test providers", () => {
       afterEach(() => {
         Router.uninit();
@@ -498,6 +512,7 @@ describe("ASRouter", () => {
     beforeEach(() => {
       sandbox.stub(CFRPageActions, "forceRecommendation");
       sandbox.stub(CFRPageActions, "addRecommendation");
+      sandbox.stub(CFRPageActions, "showMilestone");
       target = { sendAsyncMessage: sandbox.stub() };
     });
     it("should route whatsnew_panel_message message to the right hub", () => {
@@ -513,6 +528,7 @@ describe("ASRouter", () => {
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(CFRPageActions.addRecommendation);
       assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
     });
     it("should route toolbar_badge message to the right hub", () => {
@@ -523,6 +539,18 @@ describe("ASRouter", () => {
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(CFRPageActions.addRecommendation);
       assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
+      assert.notCalled(target.sendAsyncMessage);
+    });
+    it("should route milestone_message to the right hub", () => {
+      Router.routeMessageToTarget({ template: "milestone_message" }, target);
+
+      assert.calledOnce(CFRPageActions.showMilestone);
+      assert.notCalled(CFRPageActions.addRecommendation);
+      assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
+      assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
+      assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
       assert.notCalled(target.sendAsyncMessage);
     });
     it("should route fxa_bookmark_panel message to the right hub force = true", () => {
@@ -538,6 +566,7 @@ describe("ASRouter", () => {
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
       assert.notCalled(CFRPageActions.addRecommendation);
       assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
     });
     it("should route cfr_doorhanger message to the right hub force = false", () => {
@@ -553,6 +582,7 @@ describe("ASRouter", () => {
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
       assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
     });
     it("should route cfr_doorhanger message to the right hub force = true", () => {
@@ -566,6 +596,7 @@ describe("ASRouter", () => {
       assert.calledOnce(CFRPageActions.forceRecommendation);
       assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
       assert.notCalled(CFRPageActions.addRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
       assert.notCalled(target.sendAsyncMessage);
@@ -577,6 +608,7 @@ describe("ASRouter", () => {
       assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
       assert.notCalled(CFRPageActions.forceRecommendation);
       assert.notCalled(CFRPageActions.addRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
     });
@@ -1111,6 +1143,14 @@ describe("ASRouter", () => {
         global.Services.obs.removeObserver.args[0][1],
         "intl:app-locales-changed"
       );
+    });
+    it("should remove the pref observer for `USE_REMOTE_L10N_PREF`", async () => {
+      sandbox.spy(global.Services.prefs, "removeObserver");
+      Router.uninit();
+
+      // Grab the last call as #uninit() also involves multiple calls of `Services.prefs.removeObserver`.
+      const call = global.Services.prefs.removeObserver.lastCall;
+      assert.calledWithExactly(call, USE_REMOTE_L10N_PREF, Router);
     });
   });
 
@@ -2096,6 +2136,17 @@ describe("ASRouter", () => {
       });
     });
 
+    describe("#onMessage: OPEN_PROTECTION_REPORT", () => {
+      it("should open protection report", async () => {
+        const msg = fakeExecuteUserAction({ type: "OPEN_PROTECTION_REPORT" });
+        let { gProtectionsHandler } = msg.target.browser.ownerGlobal;
+
+        await Router.onMessage(msg);
+
+        assert.calledOnce(gProtectionsHandler.openProtections);
+      });
+    });
+
     describe("#dispatch(action, target)", () => {
       it("should an action and target to onMessage", async () => {
         // use the IMPRESSION action to make sure actions are actually getting processed
@@ -2282,9 +2333,17 @@ describe("ASRouter", () => {
 
   describe("#UITour", () => {
     let showMenuStub;
+    const highlightTarget = { target: "target" };
     beforeEach(() => {
       showMenuStub = sandbox.stub();
-      globals.set("UITour", { showMenu: showMenuStub });
+      globals.set("UITour", {
+        showMenu: showMenuStub,
+        getTarget: sandbox
+          .stub()
+          .withArgs(sinon.match.object, "pageAaction-sendToDevice")
+          .resolves(highlightTarget),
+        showHighlight: sandbox.stub(),
+      });
     });
     it("should call UITour.showMenu with the correct params on OPEN_APPLICATIONS_MENU", async () => {
       const msg = fakeExecuteUserAction({
@@ -2298,6 +2357,21 @@ describe("ASRouter", () => {
         showMenuStub,
         msg.target.browser.ownerGlobal,
         "appMenu"
+      );
+    });
+    it("should call UITour.showHighlight with the correct params on HIGHLIGHT_FEATURE", async () => {
+      const msg = fakeExecuteUserAction({
+        type: "HIGHLIGHT_FEATURE",
+        data: { args: "pageAction-sendToDevice" },
+      });
+      await Router.onMessage(msg);
+
+      assert.calledOnce(UITour.getTarget);
+      assert.calledOnce(UITour.showHighlight);
+      assert.calledWith(
+        UITour.showHighlight,
+        msg.target.browser.ownerGlobal,
+        highlightTarget
       );
     });
   });
@@ -2420,6 +2494,7 @@ describe("ASRouter", () => {
           document: { getElementById },
           promiseDocumentFlushed: sandbox.stub().resolves([{ width: 0 }]),
           setTimeout: sandbox.stub(),
+          A11yUtils: { announce: sandbox.stub() },
         };
         const firstMessage = { ...FAKE_RECOMMENDATION, id: "first_message" };
         const secondMessage = { ...FAKE_RECOMMENDATION, id: "second_message" };
@@ -3242,6 +3317,23 @@ describe("ASRouter", () => {
 
       assert.notCalled(Router.setState);
       assert.notCalled(Router.loadMessagesFromAllProviders);
+    });
+  });
+
+  describe("#observe", () => {
+    it("should reload l10n for CFRPageActions when the `USE_REMOTE_L10N_PREF` pref is changed", () => {
+      sandbox.spy(CFRPageActions, "reloadL10n");
+
+      Router.observe("", "", USE_REMOTE_L10N_PREF);
+
+      assert.calledOnce(CFRPageActions.reloadL10n);
+    });
+    it("should not react to other pref changes", () => {
+      sandbox.spy(CFRPageActions, "reloadL10n");
+
+      Router.observe("", "", "foo");
+
+      assert.notCalled(CFRPageActions.reloadL10n);
     });
   });
 });

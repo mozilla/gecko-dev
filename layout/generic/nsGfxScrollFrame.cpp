@@ -1708,7 +1708,7 @@ NS_QUERYFRAME_HEAD(nsXULScrollFrame)
   NS_QUERYFRAME_ENTRY(nsIScrollbarMediator)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
-  //-------------------- Helper ----------------------
+//-------------------- Helper ----------------------
 
 // AsyncSmoothMSDScroll has ref counting.
 class ScrollFrameHelper::AsyncSmoothMSDScroll final
@@ -2243,12 +2243,6 @@ void ScrollFrameHelper::ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
   ScrollToWithOrigin(aScrollPosition, aMode, aOrigin, aRange, aSnap);
 }
 
-static nsIScrollbarMediator::ScrollSnapMode DefaultSnapMode() {
-  return StaticPrefs::layout_css_scroll_snap_v1_enabled()
-             ? nsIScrollableFrame::ENABLE_SNAP
-             : nsIScrollableFrame::DISABLE_SNAP;
-}
-
 void ScrollFrameHelper::ScrollToCSSPixels(
     const CSSIntPoint& aScrollPosition, ScrollMode aMode,
     nsIScrollbarMediator::ScrollSnapMode aSnap, nsAtom* aOrigin) {
@@ -2256,7 +2250,7 @@ void ScrollFrameHelper::ScrollToCSSPixels(
   CSSIntPoint currentCSSPixels = GetScrollPositionCSSPixels();
   nsPoint pt = CSSPoint::ToAppUnits(aScrollPosition);
   if (aSnap == nsIScrollableFrame::DEFAULT) {
-    aSnap = DefaultSnapMode();
+    aSnap = nsIScrollableFrame::ENABLE_SNAP;
   }
 
   if (aOrigin == nullptr) {
@@ -3561,9 +3555,10 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
   nsDisplayListCollection set(aBuilder);
 
+  bool isRootContent =
+      mIsRoot && mOuter->PresContext()->IsRootContentDocumentCrossProcess();
   bool willBuildAsyncZoomContainer =
-      aBuilder->ShouldBuildAsyncZoomContainer() && mIsRoot &&
-      mOuter->PresContext()->IsRootContentDocument();
+      aBuilder->ShouldBuildAsyncZoomContainer() && isRootContent;
 
   nsRect scrollPortClip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
   nsRect clipRect = scrollPortClip;
@@ -3783,11 +3778,9 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         // confirmation does not arrive within the timeout period). Otherwise,
         // APZ's fallback behaviour of scrolling the enclosing scroll frame
         // would violate the specified overscroll-behavior.
-        ScrollStyles scrollStyles = GetScrollStylesFromFrame();
-        if (scrollStyles.mOverscrollBehaviorX !=
-                StyleOverscrollBehavior::Auto ||
-            scrollStyles.mOverscrollBehaviorY !=
-                StyleOverscrollBehavior::Auto) {
+        auto overscroll = GetOverscrollBehaviorInfo();
+        if (overscroll.mBehaviorX != OverscrollBehavior::Auto ||
+            overscroll.mBehaviorY != OverscrollBehavior::Auto) {
           info += CompositorHitTestFlags::eRequiresTargetConfirmation;
         }
         nsDisplayCompositorHitTestInfo* hitInfo =
@@ -4035,7 +4028,7 @@ Maybe<ScrollMetadata> ScrollFrameHelper::ComputeScrollMetadata(
   }
 
   bool isRootContent =
-      mIsRoot && mOuter->PresContext()->IsRootContentDocument();
+      mIsRoot && mOuter->PresContext()->IsRootContentDocumentCrossProcess();
 
   MOZ_ASSERT(mScrolledFrame->GetContent());
 
@@ -4102,6 +4095,17 @@ static void HandleScrollPref(nsIScrollable* aScrollable, int32_t aOrientation,
   }
 }
 
+OverscrollBehaviorInfo ScrollFrameHelper::GetOverscrollBehaviorInfo() const {
+  nsIFrame* frame = GetFrameForStyle();
+  if (!frame) {
+    return {};
+  }
+
+  auto& disp = *frame->StyleDisplay();
+  return OverscrollBehaviorInfo::FromStyleConstants(disp.mOverscrollBehaviorX,
+                                                    disp.mOverscrollBehaviorY);
+}
+
 ScrollStyles ScrollFrameHelper::GetScrollStylesFromFrame() const {
   nsPresContext* presContext = mOuter->PresContext();
   if (!presContext->IsDynamic() &&
@@ -4110,8 +4114,7 @@ ScrollStyles ScrollFrameHelper::GetScrollStylesFromFrame() const {
   }
 
   if (!mIsRoot) {
-    const nsStyleDisplay* disp = mOuter->StyleDisplay();
-    return ScrollStyles(mOuter->GetWritingMode(), disp);
+    return ScrollStyles(*mOuter->StyleDisplay());
   }
 
   ScrollStyles result = presContext->GetViewportScrollStylesOverride();
@@ -4360,7 +4363,7 @@ void ScrollFrameHelper::ScrollByCSSPixels(
   nsPoint pt = CSSPoint::ToAppUnits(currentCSSPixels + aDelta);
 
   if (aSnap == nsIScrollableFrame::DEFAULT) {
-    aSnap = DefaultSnapMode();
+    aSnap = nsIScrollableFrame::ENABLE_SNAP;
   }
 
   if (aOrigin == nullptr) {
@@ -4434,16 +4437,19 @@ nsSize ScrollFrameHelper::GetLineScrollAmount() const {
 }
 
 /**
- * Compute the scrollport size excluding any fixed-pos headers and
- * footers. A header or footer is an box that spans that entire width
- * of the viewport and touches the top (or bottom, respectively) of the
- * viewport. We also want to consider fixed elements that stack or overlap
- * to effectively create a larger header or footer. Headers and footers that
- * cover more than a third of the the viewport are ignored since they
+ * Compute the scrollport size excluding any fixed-pos and sticky-pos (that are
+ * stuck) headers and footers. A header or footer is an box that spans that
+ * entire width of the viewport and touches the top (or bottom, respectively) of
+ * the viewport. We also want to consider fixed/sticky elements that stack or
+ * overlap to effectively create a larger header or footer. Headers and footers
+ * that cover more than a third of the the viewport are ignored since they
  * probably aren't true headers and footers and we don't want to restrict
  * scrolling too much in such cases. This is a bit conservative --- some
  * pages use elements as headers or footers that don't span the entire width
  * of the viewport --- but it should be a good start.
+ *
+ * If aViewportFrame is non-null then the scroll frame is the root scroll
+ * frame and we should consider fixed-pos items.
  */
 struct TopAndBottom {
   TopAndBottom(nscoord aTop, nscoord aBottom) : top(aTop), bottom(aBottom) {}
@@ -4466,20 +4472,46 @@ struct ReverseBottomComparator {
     return A.bottom > B.bottom;
   }
 };
+
+static void AddToListIfHeaderFooter(nsIFrame* aFrame,
+                                    nsIFrame* aScrollPortFrame,
+                                    const nsRect& aScrollPort,
+                                    nsTArray<TopAndBottom>& aList) {
+  nsRect r = aFrame->GetRectRelativeToSelf();
+  r = nsLayoutUtils::TransformFrameRectToAncestor(aFrame, r, aScrollPortFrame);
+  r = r.Intersect(aScrollPort);
+  if ((r.width >= aScrollPort.width / 2 ||
+       r.width >= NSIntPixelsToAppUnits(800, AppUnitsPerCSSPixel())) &&
+      r.height <= aScrollPort.height / 3) {
+    aList.AppendElement(TopAndBottom(r.y, r.YMost()));
+  }
+}
+
 static nsSize GetScrollPortSizeExcludingHeadersAndFooters(
-    nsIFrame* aViewportFrame, const nsRect& aScrollPort) {
-  AutoTArray<TopAndBottom, 50> list;
-  nsFrameList fixedFrames = aViewportFrame->GetChildList(nsIFrame::kFixedList);
-  for (nsFrameList::Enumerator iterator(fixedFrames); !iterator.AtEnd();
-       iterator.Next()) {
-    nsIFrame* f = iterator.get();
-    nsRect r = f->GetRectRelativeToSelf();
-    r = nsLayoutUtils::TransformFrameRectToAncestor(f, r, aViewportFrame);
-    r = r.Intersect(aScrollPort);
-    if ((r.width >= aScrollPort.width / 2 ||
-         r.width >= NSIntPixelsToAppUnits(800, AppUnitsPerCSSPixel())) &&
-        r.height <= aScrollPort.height / 3) {
-      list.AppendElement(TopAndBottom(r.y, r.YMost()));
+    nsIFrame* aScrollFrame, nsIFrame* aViewportFrame,
+    const nsRect& aScrollPort) {
+  AutoTArray<TopAndBottom, 10> list;
+  if (aViewportFrame) {
+    nsFrameList fixedFrames =
+        aViewportFrame->GetChildList(nsIFrame::kFixedList);
+    for (nsFrameList::Enumerator iterator(fixedFrames); !iterator.AtEnd();
+         iterator.Next()) {
+      AddToListIfHeaderFooter(iterator.get(), aViewportFrame, aScrollPort,
+                              list);
+    }
+  }
+
+  // Add sticky frames that are currently in "fixed" positions
+  StickyScrollContainer* ssc =
+      StickyScrollContainer::GetStickyScrollContainerForScrollFrame(
+          aScrollFrame);
+  if (ssc) {
+    const nsTArray<nsIFrame*>& stickyFrames = ssc->GetFrames();
+    for (nsIFrame* f : stickyFrames) {
+      // If it's acting like fixed position.
+      if (ssc->IsStuckInYDirection(f)) {
+        AddToListIfHeaderFooter(f, aScrollFrame, aScrollPort, list);
+      }
     }
   }
 
@@ -4507,16 +4539,13 @@ static nsSize GetScrollPortSizeExcludingHeadersAndFooters(
 
 nsSize ScrollFrameHelper::GetPageScrollAmount() const {
   nsSize lineScrollAmount = GetLineScrollAmount();
-  nsSize effectiveScrollPortSize;
-  if (mIsRoot) {
-    // Reduce effective scrollport height by the height of any fixed-pos
-    // headers or footers
-    nsIFrame* root = mOuter->PresShell()->GetRootFrame();
-    effectiveScrollPortSize =
-        GetScrollPortSizeExcludingHeadersAndFooters(root, mScrollPort);
-  } else {
-    effectiveScrollPortSize = mScrollPort.Size();
-  }
+
+  // Reduce effective scrollport height by the height of any
+  // fixed-pos/sticky-pos headers or footers
+  nsSize effectiveScrollPortSize = GetScrollPortSizeExcludingHeadersAndFooters(
+      mOuter, mIsRoot ? mOuter->PresShell()->GetRootFrame() : nullptr,
+      mScrollPort);
+
   // The page increment is the size of the page, minus the smaller of
   // 10% of the size or 2 lines.
   return nsSize(effectiveScrollPortSize.width -
@@ -5461,18 +5490,12 @@ nsIFrame* ScrollFrameHelper::GetFrameForStyle() const {
 }
 
 bool ScrollFrameHelper::NeedsScrollSnap() const {
-  if (StaticPrefs::layout_css_scroll_snap_v1_enabled()) {
-    nsIFrame* scrollSnapFrame = GetFrameForStyle();
-    if (!scrollSnapFrame) {
-      return false;
-    }
-    return scrollSnapFrame->StyleDisplay()->mScrollSnapType.strictness !=
-           StyleScrollSnapStrictness::None;
+  nsIFrame* scrollSnapFrame = GetFrameForStyle();
+  if (!scrollSnapFrame) {
+    return false;
   }
-
-  ScrollStyles styles = GetScrollStylesFromFrame();
-  return styles.mScrollSnapStrictnessY != StyleScrollSnapStrictness::None ||
-         styles.mScrollSnapStrictnessX != StyleScrollSnapStrictness::None;
+  return scrollSnapFrame->StyleDisplay()->mScrollSnapType.strictness !=
+         StyleScrollSnapStrictness::None;
 }
 
 bool ScrollFrameHelper::IsScrollbarOnRight() const {
@@ -6833,8 +6856,6 @@ static void CollectScrollPositionsForSnap(
     nsIFrame* aFrame, nsIFrame* aScrolledFrame, const nsRect& aScrolledRect,
     const nsMargin& aScrollPadding, const Maybe<nsRect>& aSnapport,
     WritingMode aWritingModeOnScroller, ScrollSnapInfo& aSnapInfo) {
-  MOZ_ASSERT(StaticPrefs::layout_css_scroll_snap_v1_enabled());
-
   // Snap positions only affect the nearest ancestor scroll container on the
   // element's containing block chain.
   nsIScrollableFrame* sf = do_QueryFrame(aFrame);
@@ -6917,8 +6938,6 @@ nsMargin ScrollFrameHelper::GetScrollPadding() const {
 
 layers::ScrollSnapInfo ScrollFrameHelper::ComputeScrollSnapInfo(
     const Maybe<nsPoint>& aDestination) const {
-  MOZ_ASSERT(StaticPrefs::layout_css_scroll_snap_v1_enabled());
-
   ScrollSnapInfo result;
 
   nsIFrame* scrollSnapFrame = GetFrameForStyle();
@@ -6956,9 +6975,6 @@ layers::ScrollSnapInfo ScrollFrameHelper::ComputeScrollSnapInfo(
 
 layers::ScrollSnapInfo ScrollFrameHelper::GetScrollSnapInfo(
     const Maybe<nsPoint>& aDestination) const {
-  if (!StaticPrefs::layout_css_scroll_snap_v1_enabled()) {
-    return {};
-  }
   // TODO(botond): Should we cache it?
   return ComputeScrollSnapInfo(aDestination);
 }

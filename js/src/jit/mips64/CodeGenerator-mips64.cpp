@@ -186,12 +186,16 @@ void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   Register lhsReg = ToRegister64(lhs).reg;
   Register output = ToRegister(lir->output());
   Register rhsReg;
+  ScratchRegisterScope scratch(masm);
 
   if (IsConstant(rhs)) {
-    rhsReg = ScratchRegister;
+    rhsReg = scratch;
     masm.ma_li(rhsReg, ImmWord(ToInt64(rhs)));
-  } else {
+  } else if (rhs.value().isGeneralReg()) {
     rhsReg = ToRegister64(rhs).reg;
+  } else {
+    rhsReg = scratch;
+    masm.loadPtr(ToAddress(rhs.value()), rhsReg);
   }
 
   bool isSigned = mir->compareType() == MCompare::Compare_Int64;
@@ -208,12 +212,16 @@ void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
   const LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
   Register lhsReg = ToRegister64(lhs).reg;
   Register rhsReg;
+  ScratchRegisterScope scratch(masm);
 
   if (IsConstant(rhs)) {
-    rhsReg = ScratchRegister;
+    rhsReg = scratch;
     masm.ma_li(rhsReg, ImmWord(ToInt64(rhs)));
-  } else {
+  } else if (rhs.value().isGeneralReg()) {
     rhsReg = ToRegister64(rhs).reg;
+  } else {
+    rhsReg = scratch;
+    masm.loadPtr(ToAddress(rhs.value()), rhsReg);
   }
 
   bool isSigned = mir->compareType() == MCompare::Compare_Int64;
@@ -250,14 +258,20 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     masm.bind(&notOverflow);
   }
 
+#ifdef MIPSR6
+  if (lir->mir()->isMod()) {
+    masm.as_dmod(output, lhs, rhs);
+  } else {
+    masm.as_ddiv(output, lhs, rhs);
+  }
+#else
   masm.as_ddiv(lhs, rhs);
-
   if (lir->mir()->isMod()) {
     masm.as_mfhi(output);
   } else {
     masm.as_mflo(output);
   }
-
+#endif
   masm.bind(&done);
 }
 
@@ -276,14 +290,20 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
     masm.bind(&nonZero);
   }
 
+#ifdef MIPSR6
+  if (lir->mir()->isMod()) {
+    masm.as_dmodu(output, lhs, rhs);
+  } else {
+    masm.as_ddivu(output, lhs, rhs);
+  }
+#else
   masm.as_ddivu(lhs, rhs);
-
   if (lir->mir()->isMod()) {
     masm.as_mfhi(output);
   } else {
     masm.as_mflo(output);
   }
-
+#endif
   masm.bind(&done);
 }
 

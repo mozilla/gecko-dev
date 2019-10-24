@@ -12,7 +12,9 @@
 #include "mozilla/Tuple.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/dom/LocationBase.h"
+#include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/UserActivation.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -94,7 +96,9 @@ class BrowsingContextBase {
 // Trees of BrowsingContexts should only ever contain nodes of the
 // same BrowsingContext::Type. This is enforced by asserts in the
 // BrowsingContext::Create* methods.
-class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
+class BrowsingContext : public nsISupports,
+                        public nsWrapperCache,
+                        public BrowsingContextBase {
  public:
   enum class Type { Chrome, Content };
 
@@ -185,7 +189,13 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
   // Triggers a load in the process which currently owns this BrowsingContext.
   // aAccessor is the context which initiated the load, and may be null only for
   // in-process BrowsingContexts.
-  nsresult LoadURI(BrowsingContext* aAccessor, nsDocShellLoadState* aLoadState);
+  nsresult LoadURI(BrowsingContext* aAccessor, nsDocShellLoadState* aLoadState,
+                   bool aSetNavigating = false);
+
+  void LoadURI(const nsAString& aURI, const LoadURIOptions& aOptions,
+               ErrorResult& aError);
+
+  void DisplayLoadError(const nsAString& aURI);
 
   // Determine if the current BrowsingContext was 'cached' by the logic in
   // CacheChildren.
@@ -300,6 +310,10 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
 
   // Return the window proxy object that corresponds to this browsing context.
   inline JSObject* GetWindowProxy() const { return mWindowProxy; }
+  inline JSObject* GetUnbarrieredWindowProxy() const {
+    return mWindowProxy.unbarrieredGet();
+  }
+
   // Set the window proxy object that corresponds to this browsing context.
   void SetWindowProxy(JS::Handle<JSObject*> aWindowProxy) {
     mWindowProxy = aWindowProxy;
@@ -308,8 +322,9 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
   Nullable<WindowProxyHolder> GetWindow();
 
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(BrowsingContext)
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(BrowsingContext)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(BrowsingContext)
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(BrowsingContext)
 
   const Children& GetChildren() { return mChildren; }
 
@@ -331,7 +346,7 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
   }
 
   // Window APIs that are cross-origin-accessible (from the HTML spec).
-  BrowsingContext* Window() { return Self(); }
+  WindowProxyHolder Window();
   BrowsingContext* Self() { return this; }
   void Location(JSContext* aCx, JS::MutableHandle<JSObject*> aLocation,
                 ErrorResult& aError);
@@ -339,7 +354,7 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
   bool GetClosed(ErrorResult&) { return mClosed; }
   void Focus(ErrorResult& aError);
   void Blur(ErrorResult& aError);
-  BrowsingContext* GetFrames(ErrorResult& aError) { return Self(); }
+  WindowProxyHolder GetFrames(ErrorResult& aError);
   int32_t Length() const { return mChildren.Length(); }
   Nullable<WindowProxyHolder> GetTop(ErrorResult& aError);
   void GetOpener(JSContext* aCx, JS::MutableHandle<JS::Value> aOpener,
@@ -531,6 +546,10 @@ class BrowsingContext : public nsWrapperCache, public BrowsingContextBase {
 
   bool MaySetEmbedderInnerWindowId(const uint64_t& aValue,
                                    ContentParent* aSource);
+
+  bool MaySetIsPopupSpam(const bool& aValue, ContentParent* aSource);
+
+  void DidSetIsPopupSpam();
 
   // Type of BrowsingContent
   const Type mType;

@@ -14,19 +14,23 @@ import {
 
 import type { Frame } from "../../types";
 
+type OwnProps = {|
+  editor: Object,
+  selectedSource: Object,
+|};
 type Props = {
   editor: Object,
-  selectedFrame: Frame,
+  +selectedFrame: ?Frame,
   selectedSource: Object,
-  previews: Object,
+  +previews: ?Object,
 };
 
-function hasPreviews(previews) {
+function hasPreviews(previews: ?Object) {
   return !!previews && Object.keys(previews).length > 0;
 }
 
 class InlinePreviews extends Component<Props> {
-  shouldComponentUpdate({ previews }) {
+  shouldComponentUpdate({ previews }: Props) {
     return hasPreviews(previews);
   }
 
@@ -41,10 +45,11 @@ class InlinePreviews extends Component<Props> {
     ) {
       return null;
     }
+    const previewsObj: Object = previews;
 
     let inlinePreviewRows;
     editor.codeMirror.operation(() => {
-      inlinePreviewRows = Object.keys(previews).map((line: string) => {
+      inlinePreviewRows = Object.keys(previewsObj).map((line: string) => {
         const lineNum: number = parseInt(line, 10);
 
         return (
@@ -52,7 +57,7 @@ class InlinePreviews extends Component<Props> {
             editor={editor}
             key={line}
             line={lineNum}
-            previews={previews[line]}
+            previews={previewsObj[line]}
           />
         );
       });
@@ -62,11 +67,21 @@ class InlinePreviews extends Component<Props> {
   }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (
+  state
+): {|
+  selectedFrame: ?Frame,
+  previews: ?Object,
+|} => {
   const thread = getCurrentThread(state);
   const selectedFrame = getSelectedFrame(state, thread);
 
-  if (!selectedFrame) return {};
+  if (!selectedFrame) {
+    return {
+      selectedFrame: null,
+      previews: null,
+    };
+  }
 
   return {
     selectedFrame,
@@ -74,4 +89,6 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(mapStateToProps)(InlinePreviews);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps)(
+  InlinePreviews
+);
