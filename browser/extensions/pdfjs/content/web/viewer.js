@@ -10997,7 +10997,6 @@ class Toolbar {
     this._updateUIState(true);
   }
 
-
   _updateUIState(resetNumPages = false) {
     if (!this._wasLocalized) {
       return;
