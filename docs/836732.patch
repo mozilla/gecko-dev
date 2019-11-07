@@ -1,5 +1,6 @@
-User: Kory <kory.mclean@mail.utoronto.ca>
-Date: Wed, 6 Nov 2019 19:25:35 -0500
+User: Kory McLean <krock0606@candw.ky>
+From: b2b0077c2e6a516a76bf8077d6f0237c58f5959a Thu Nov 7 11:47:48 2019
+Date: Wed, 7 Nov 2019 19:25:35 -0500
 Subject: [PATCH] BUG 836732 - Buttons in pdf.js remain in gover state after selection fix
 
 ---
