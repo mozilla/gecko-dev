@@ -10919,21 +10919,25 @@ class Toolbar {
       eventBus.dispatch('previouspage', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.next.addEventListener('click', function () {
       eventBus.dispatch('nextpage', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.zoomIn.addEventListener('click', function () {
       eventBus.dispatch('zoomin', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.zoomOut.addEventListener('click', function () {
       eventBus.dispatch('zoomout', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.pageNumber.addEventListener('click', function () {
       this.select();
@@ -10953,26 +10957,31 @@ class Toolbar {
         source: self,
         value: this.value
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.presentationModeButton.addEventListener('click', function () {
       eventBus.dispatch('presentationmode', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.openFile.addEventListener('click', function () {
       eventBus.dispatch('openfile', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.print.addEventListener('click', function () {
       eventBus.dispatch('print', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.download.addEventListener('click', function () {
       eventBus.dispatch('download', {
         source: self
       });
+      if (this === document.activeElement) {this.blur();}
     });
     items.scaleSelect.oncontextmenu = _ui_utils.noContextMenuHandler;
     eventBus.on('localized', () => {

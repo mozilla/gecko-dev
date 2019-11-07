@@ -1,0 +1,79 @@
+User: Kory McLean <krock0606@candw.ky>
+From: b2b0077c2e6a516a76bf8077d6f0237c58f5959a Thu Nov 7 11:47:48 2019
+Date: Wed, 7 Nov 2019 19:25:35 -0500
+Subject: [PATCH] BUG 836732 - Buttons in pdf.js remain in gover state after selection fix
+
+---
+ browser/extensions/pdfjs/content/web/viewer.js b/browser/extensions/pdfjs/content/web/viewer.js | 11 +-
+ 1 file changed, 10 insertion(+), 1 deletion(-)
+
+diff --git a/browser/extensions/pdfjs/content/web/viewer.js b/browser/extensions/pdfjs/content/web/viewer.js
+old mode 100755
+new mode 100644
+--- a/browser/extensions/pdfjs/content/web/viewer.js
++++ b/browser/extensions/pdfjs/content/web/viewer.js
+@@ -10919,21 +10919,25 @@ class Toolbar {
+       eventBus.dispatch('previouspage', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.next.addEventListener('click', function () {
+       eventBus.dispatch('nextpage', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.zoomIn.addEventListener('click', function () {
+       eventBus.dispatch('zoomin', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.zoomOut.addEventListener('click', function () {
+       eventBus.dispatch('zoomout', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.pageNumber.addEventListener('click', function () {
+       this.select();
+@@ -10953,26 +10957,31 @@ class Toolbar {
+         source: self,
+         value: this.value
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.presentationModeButton.addEventListener('click', function () {
+       eventBus.dispatch('presentationmode', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.openFile.addEventListener('click', function () {
+       eventBus.dispatch('openfile', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.print.addEventListener('click', function () {
+       eventBus.dispatch('print', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.download.addEventListener('click', function () {
+       eventBus.dispatch('download', {
+         source: self
+       });
++      if (this === document.activeElement) {this.blur();}
+     });
+     items.scaleSelect.oncontextmenu = _ui_utils.noContextMenuHandler;
+     eventBus.on('localized', () => {
+@@ -11905,4 +11914,4 @@ FirefoxPrintService.prototype = {
+ };
+
+ /***/ })
+-/******/ ]);
+\ No newline at end of file
++/******/ ]);
