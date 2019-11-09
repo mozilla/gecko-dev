@@ -109,6 +109,7 @@ public class UiThreadUtils {
     }
 
     public interface Condition {
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         boolean test();
     }
 

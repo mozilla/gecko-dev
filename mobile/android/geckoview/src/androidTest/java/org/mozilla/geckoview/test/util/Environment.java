@@ -30,6 +30,7 @@ public class Environment {
         return "";
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isAutomation() {
         return !getEnvVar("MOZ_IN_AUTOMATION").isEmpty();
     }
@@ -52,6 +53,7 @@ public class Environment {
         return "generic".equals(Build.DEVICE) || Build.DEVICE.startsWith("generic_");
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isDebugBuild() {
         return BuildConfig.DEBUG_BUILD;
     }

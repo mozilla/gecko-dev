@@ -469,6 +469,7 @@ public class WebExtension {
          * @return true if the MessageSender was sent from the top level frame,
          *         false otherwise.
          * */
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean isTopLevel() {
             return this.isTopLevel;
         }

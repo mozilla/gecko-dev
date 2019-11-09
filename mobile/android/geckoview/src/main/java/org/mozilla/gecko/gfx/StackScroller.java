@@ -612,6 +612,7 @@ import org.mozilla.gecko.annotation.WrapForJNI;
             mDuration = -(int) (1000.0f * mVelocity / mDeceleration);
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         boolean continueWhenFinished(final long time) {
             switch (mState) {
                 case SPLINE:

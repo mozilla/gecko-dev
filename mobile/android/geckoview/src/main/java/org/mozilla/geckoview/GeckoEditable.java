@@ -730,6 +730,7 @@ import android.view.inputmethod.EditorInfo;
         });
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean onIcThread() {
         return mIcRunHandler.getLooper() == Looper.myLooper();
     }
@@ -1261,6 +1262,7 @@ import android.view.inputmethod.EditorInfo;
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private synchronized boolean binderCheckToken(final IBinder token,
                                                   final boolean allowNull) {
         // Verify that we're getting an IME notification from the currently focused child.

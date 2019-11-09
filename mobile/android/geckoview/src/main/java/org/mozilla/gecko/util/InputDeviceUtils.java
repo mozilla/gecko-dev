@@ -8,6 +8,7 @@ package org.mozilla.gecko.util;
 import android.view.InputDevice;
 
 public class InputDeviceUtils {
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean isPointerTypeDevice(final InputDevice inputDevice) {
         int sources = inputDevice.getSources();
         return (sources & (InputDevice.SOURCE_CLASS_JOYSTICK |

@@ -46,6 +46,7 @@ public final class MediaDrmProxy {
     private GeckoMediaDrm mImpl;
     private String mDrmStubId;
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean isSystemSupported() {
         // Support versions >= Marshmallow
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
@@ -229,6 +230,7 @@ public final class MediaDrmProxy {
         }
     } // MediaDrmProxyCallbacks
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isDestroyed() {
         return mDestroyed;
     }

@@ -614,6 +614,7 @@ public class SessionAccessibility {
         });
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isInTest() {
         return Build.VERSION.SDK_INT >= 17 && mView != null && mView.getDisplay() == null;
     }

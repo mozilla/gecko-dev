@@ -455,6 +455,7 @@ public class GeckoMediaDrmBridgeV21 implements GeckoMediaDrm {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     protected boolean sessionExists(final ByteBuffer session) {
         if (mCryptoSessionId == null) {
             if (DEBUG) Log.d(LOGTAG, "Session doesn't exist because media crypto session is not created.");

@@ -134,6 +134,7 @@ import org.mozilla.gecko.gfx.GeckoSurface;
 
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private boolean isValidBuffer(final int index) {
             try {
                 return mCodec.getInputBuffer(index) != null;

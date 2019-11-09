@@ -1,0 +1,134 @@
+diff --git a/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/Environment.java b/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/Environment.java
+--- a/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/Environment.java
++++ b/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/Environment.java
+@@ -30,6 +30,7 @@ public class Environment {
+         return "";
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     public boolean isAutomation() {
+         return !getEnvVar("MOZ_IN_AUTOMATION").isEmpty();
+     }
+@@ -52,6 +53,7 @@ public class Environment {
+         return "generic".equals(Build.DEVICE) || Build.DEVICE.startsWith("generic_");
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     public boolean isDebugBuild() {
+         return BuildConfig.DEBUG_BUILD;
+     }
+diff --git a/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/UiThreadUtils.java b/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/UiThreadUtils.java
+--- a/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/UiThreadUtils.java
++++ b/mobile/android/geckoview/src/androidTest/java/org/mozilla/geckoview/test/util/UiThreadUtils.java
+@@ -109,6 +109,7 @@ public class UiThreadUtils {
+     }
+ 
+     public interface Condition {
++        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+         boolean test();
+     }
+ 
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/gfx/StackScroller.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/gfx/StackScroller.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/gfx/StackScroller.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/gfx/StackScroller.java
+@@ -612,6 +612,7 @@ import org.mozilla.gecko.annotation.Wrap
+             mDuration = -(int) (1000.0f * mVelocity / mDeceleration);
+         }
+ 
++        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+         boolean continueWhenFinished(final long time) {
+             switch (mState) {
+                 case SPLINE:
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/Codec.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/Codec.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/Codec.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/Codec.java
+@@ -134,6 +134,7 @@ import org.mozilla.gecko.gfx.GeckoSurfac
+ 
+         }
+ 
++        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+         private boolean isValidBuffer(final int index) {
+             try {
+                 return mCodec.getInputBuffer(index) != null;
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoMediaDrmBridgeV21.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoMediaDrmBridgeV21.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoMediaDrmBridgeV21.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/GeckoMediaDrmBridgeV21.java
+@@ -455,6 +455,7 @@ public class GeckoMediaDrmBridgeV21 impl
+         }
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     protected boolean sessionExists(final ByteBuffer session) {
+         if (mCryptoSessionId == null) {
+             if (DEBUG) Log.d(LOGTAG, "Session doesn't exist because media crypto session is not created.");
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/MediaDrmProxy.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/MediaDrmProxy.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/MediaDrmProxy.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/media/MediaDrmProxy.java
+@@ -46,6 +46,7 @@ public final class MediaDrmProxy {
+     private GeckoMediaDrm mImpl;
+     private String mDrmStubId;
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     private static boolean isSystemSupported() {
+         // Support versions >= Marshmallow
+         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+@@ -229,6 +230,7 @@ public final class MediaDrmProxy {
+         }
+     } // MediaDrmProxyCallbacks
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     public boolean isDestroyed() {
+         return mDestroyed;
+     }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/InputDeviceUtils.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/InputDeviceUtils.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/InputDeviceUtils.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/util/InputDeviceUtils.java
+@@ -8,6 +8,7 @@ package org.mozilla.gecko.util;
+ import android.view.InputDevice;
+ 
+ public class InputDeviceUtils {
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     public static boolean isPointerTypeDevice(final InputDevice inputDevice) {
+         int sources = inputDevice.getSources();
+         return (sources & (InputDevice.SOURCE_CLASS_JOYSTICK |
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoEditable.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoEditable.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoEditable.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoEditable.java
+@@ -730,6 +730,7 @@ import android.view.inputmethod.EditorIn
+         });
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     private boolean onIcThread() {
+         return mIcRunHandler.getLooper() == Looper.myLooper();
+     }
+@@ -1261,6 +1262,7 @@ import android.view.inputmethod.EditorIn
+         }
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     private synchronized boolean binderCheckToken(final IBinder token,
+                                                   final boolean allowNull) {
+         // Verify that we're getting an IME notification from the currently focused child.
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionAccessibility.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionAccessibility.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionAccessibility.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/SessionAccessibility.java
+@@ -614,6 +614,7 @@ public class SessionAccessibility {
+         });
+     }
+ 
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+     private boolean isInTest() {
+         return Build.VERSION.SDK_INT >= 17 && mView != null && mView.getDisplay() == null;
+     }
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebExtension.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebExtension.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebExtension.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebExtension.java
+@@ -469,6 +469,7 @@ public class WebExtension {
+          * @return true if the MessageSender was sent from the top level frame,
+          *         false otherwise.
+          * */
++        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+         public boolean isTopLevel() {
+             return this.isTopLevel;
+         }
