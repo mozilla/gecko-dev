@@ -813,9 +813,10 @@ async function setCertErrorDetails(event) {
     window.parent == window &&
     // Also don't bother if it's just the user's clock being off...
     !clockSkew &&
-    // Symantec distrust is likely harmless as well.
-    // Below error code only happens in Symantec Distrust, should not display yellow border 
-    failedCertInfo.errorCodeString != "MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED"
+    // Symantec distrust is likely harmless as well
+    // Below error code only happens in Symantec Distrust, should not display yellow border
+    failedCertInfo.errorCodeString !=
+      "MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED"
   ) {
     document.body.classList.add("caution");
   }
