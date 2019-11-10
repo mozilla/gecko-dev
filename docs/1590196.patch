@@ -1,0 +1,28 @@
+# HG changeset patch
+# User ltrefai <lina.refai@mail.utoronto.ca>
+# Date 1573395015 18000
+#      Sun Nov 10 09:10:15 2019 -0500
+# Node ID 21d2fa8a1b3f3bf8c415cecd2e9ecefa91c3e9f6
+# Parent  f60e7f5f8557d4f385cb182a995fb537f2cb7611
+Bug 1590196 - Removed redundant check for hasAccessibilityProperties in updateAllMenuItem function. r=gl
+
+diff --git a/devtools/client/inspector/markup/markup-context-menu.js b/devtools/client/inspector/markup/markup-context-menu.js
+--- a/devtools/client/inspector/markup/markup-context-menu.js
++++ b/devtools/client/inspector/markup/markup-context-menu.js
+@@ -947,16 +947,6 @@ class MarkupContextMenu {
+   }
+ 
+   async _updateA11YMenuItem(menuItem) {
+-    const hasMethod = await this.target
+-      .actorHasMethod("domwalker", "hasAccessibilityProperties")
+-      .catch(
+-        // Connection to DOMWalker might have been already closed.
+-        error => console.warn(error)
+-      );
+-    if (!hasMethod) {
+-      return;
+-    }
+-
+     const hasA11YProps = await this.walker.hasAccessibilityProperties(
+       this.selection.nodeFront
+     );
