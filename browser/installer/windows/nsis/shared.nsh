@@ -444,6 +444,13 @@
     WriteRegStr SHCTX "$0\.xhtml" "" "FirefoxHTML$5"
   ${EndIf}
 
+  ReadRegStr $6 SHCTX "$0\.webp" ""
+  ${WordFind} "$6" "-" "+1{" $6
+  ${If} "$6" != "FirefoxHTML"
+    WriteRegStr SHCTX "$0\.webp" "" "FirefoxHTML$5"
+  ${EndIf}
+
+
   ${AddAssociationIfNoneExist} ".pdf" "FirefoxHTML$5"
   ${AddAssociationIfNoneExist} ".oga" "FirefoxHTML$5"
   ${AddAssociationIfNoneExist} ".ogg" "FirefoxHTML$5"
@@ -451,6 +458,7 @@
   ${AddAssociationIfNoneExist} ".pdf" "FirefoxHTML$5"
   ${AddAssociationIfNoneExist} ".webm" "FirefoxHTML$5"
   ${AddAssociationIfNoneExist} ".svg" "FirefoxHTML$5"
+  ${AddAssociationIfNoneExist} ".webp" "FirefoxHTML$5"
 
   ; An empty string is used for the 5th param because FirefoxHTML is not a
   ; protocol handler
@@ -535,6 +543,7 @@
   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xht"   "FirefoxHTML$2"
   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xhtml" "FirefoxHTML$2"
   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".svg" "FirefoxHTML$2"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".webp" "FirefoxHTML$2"
 
   WriteRegStr ${RegKey} "$0\Capabilities\StartMenu" "StartMenuInternet" "$1"
 
