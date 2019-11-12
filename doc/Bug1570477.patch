@@ -1,0 +1,59 @@
+From b1c947af8b6fdf4ba3133af2f314609f8309c8bb Mon Sep 17 00:00:00 2001
+From: Xueli <xuelitan123@gmail.com>
+Date: Mon, 11 Nov 2019 23:11:27 -0500
+Subject: [PATCH] Bug 1570477 - Add webp tag to firefox installer. r=mhowell
+
+---
+ browser/installer/windows/nsis/shared.nsh      | 9 +++++++++
+ browser/installer/windows/nsis/uninstaller.nsi | 1 +
+ 2 files changed, 10 insertions(+)
+
+diff --git a/browser/installer/windows/nsis/shared.nsh b/browser/installer/windows/nsis/shared.nsh
+index b9a9775e7b16..6a0576602210 100755
+--- a/browser/installer/windows/nsis/shared.nsh
++++ b/browser/installer/windows/nsis/shared.nsh
+@@ -444,6 +444,13 @@
+     WriteRegStr SHCTX "$0\.xhtml" "" "FirefoxHTML$5"
+   ${EndIf}
+ 
++  ReadRegStr $6 SHCTX "$0\.webp" ""
++  ${WordFind} "$6" "-" "+1{" $6
++  ${If} "$6" != "FirefoxHTML"
++    WriteRegStr SHCTX "$0\.webp" "" "FirefoxHTML$5"
++  ${EndIf}
++
++
+   ${AddAssociationIfNoneExist} ".pdf" "FirefoxHTML$5"
+   ${AddAssociationIfNoneExist} ".oga" "FirefoxHTML$5"
+   ${AddAssociationIfNoneExist} ".ogg" "FirefoxHTML$5"
+@@ -451,6 +458,7 @@
+   ${AddAssociationIfNoneExist} ".pdf" "FirefoxHTML$5"
+   ${AddAssociationIfNoneExist} ".webm" "FirefoxHTML$5"
+   ${AddAssociationIfNoneExist} ".svg" "FirefoxHTML$5"
++  ${AddAssociationIfNoneExist} ".webp" "FirefoxHTML$5"
+ 
+   ; An empty string is used for the 5th param because FirefoxHTML is not a
+   ; protocol handler
+@@ -535,6 +543,7 @@
+   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xht"   "FirefoxHTML$2"
+   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xhtml" "FirefoxHTML$2"
+   WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".svg" "FirefoxHTML$2"
++  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".webp" "FirefoxHTML$2"
+ 
+   WriteRegStr ${RegKey} "$0\Capabilities\StartMenu" "StartMenuInternet" "$1"
+ 
+diff --git a/browser/installer/windows/nsis/uninstaller.nsi b/browser/installer/windows/nsis/uninstaller.nsi
+index 22c1e200c86a..f3caa4dc4a00 100755
+--- a/browser/installer/windows/nsis/uninstaller.nsi
++++ b/browser/installer/windows/nsis/uninstaller.nsi
+@@ -339,6 +339,7 @@ Section "Uninstall"
+   ${un.RegCleanFileHandler}  ".pdf"  "FirefoxHTML-$AppUserModelID"
+   ${un.RegCleanFileHandler}  ".webm"  "FirefoxHTML-$AppUserModelID"
+   ${un.RegCleanFileHandler} ".svg" "FirefoxHTML-$AppUserModelID"
++  ${un.RegCleanFileHandler} ".webp" "FirefoxHTML-$AppUserModelID"
+ 
+   SetShellVarContext all  ; Set SHCTX to HKLM
+   ${un.GetSecondInstallPath} "Software\Mozilla" $R9
+-- 
+2.21.0.windows.1
+
