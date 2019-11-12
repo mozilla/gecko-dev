@@ -1,0 +1,21 @@
+# HG changeset patch
+# User kevin <kevinmkang97@gmail.com>
+# Date 1573524021 18000
+#      Mon Nov 11 21:00:21 2019 -0500
+# Node ID 9e3f0b8b8080f14fc3bb1ec75e58b172fc36dfef
+# Parent  49320c7fe8b3a547856dc67e7d57a64db6b56ffd
+Bug 1593772 - Fix request blocking label to use text cursor
+ 
+Specified text cursor in request blocking label CSS.
+ 
+diff --git a/devtools/client/netmonitor/src/assets/styles/RequestBlockingPanel.css b/devtools/client/netmonitor/src/assets/styles/RequestBlockingPanel.css
+--- a/devtools/client/netmonitor/src/assets/styles/RequestBlockingPanel.css
++++ b/devtools/client/netmonitor/src/assets/styles/RequestBlockingPanel.css
+@@ -32,6 +32,7 @@
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
++  cursor: text;
+ }
+ 
+ /* The "Enable Blocking Requests" bar */
