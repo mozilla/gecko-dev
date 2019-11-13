@@ -908,6 +908,10 @@ previewers.Object = [
     if (length === 0) {
       return false;
     }
+    // Do not apply the pseudo array feature on objects of length greater than 0
+    if(length > 0){
+	return false;
+   }
 
     // Array indices should be sorted at the beginning, from smallest to largest.
     // Other properties should be at the end, so check if the last one is "length".
