@@ -1582,7 +1582,7 @@ public class GeckoSession implements Parcelable {
     /**
      * Bypass the cache.
      */
-    public static final int LOAD_FLAGS_BYPASS_CACHE = 1 << 0;
+    public static final int LOAD_FLAGS_BYPASS_CACHE = 1;
 
     /**
      * Bypass the proxy, if one has been configured.
@@ -5475,7 +5475,7 @@ public class GeckoSession implements Parcelable {
              */
             public static class Status {
                 public static final long RECORDING = 0;
-                public static final long INACTIVE = 1 << 0;
+                public static final long INACTIVE = 1;
 
                 // Do not instantiate this class.
                 protected Status() {}
@@ -5486,7 +5486,7 @@ public class GeckoSession implements Parcelable {
              */
             public static class Type {
                 public static final long CAMERA = 0;
-                public static final long MICROPHONE = 1 << 0;
+                public static final long MICROPHONE = 1;
 
                 // Do not instantiate this class.
                 protected Type() {}
@@ -5623,7 +5623,7 @@ public class GeckoSession implements Parcelable {
         // should be kept in sync with `GeckoViewHistory::GeckoViewVisitFlags`.
 
         /** The URL was visited a top-level window. */
-        final int VISIT_TOP_LEVEL = 1 << 0;
+        final int VISIT_TOP_LEVEL = 1;
         /** The URL is the target of a temporary redirect. */
         final int VISIT_REDIRECT_TEMPORARY = 1 << 1;
         /** The URL is the target of a permanent redirect. */
