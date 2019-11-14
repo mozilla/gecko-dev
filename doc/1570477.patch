@@ -1,5 +1,5 @@
 From b1c947af8b6fdf4ba3133af2f314609f8309c8bb Mon Sep 17 00:00:00 2001
-From: Xueli <xuelitan123@gmail.com>
+From: Xueli Tan <xuelitan123@gmail.com>
 Date: Mon, 11 Nov 2019 23:11:27 -0500
 Subject: [PATCH] Bug 1570477 - Add webp tag to firefox installer. r=mhowell
 
