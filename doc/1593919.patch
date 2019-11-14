@@ -1,0 +1,439 @@
+diff --git a/devtools/client/netmonitor/src/components/MonitorPanel.js b/devtools/client/netmonitor/src/components/MonitorPanel.js
+--- a/devtools/client/netmonitor/src/components/MonitorPanel.js
++++ b/devtools/client/netmonitor/src/components/MonitorPanel.js
+@@ -27,7 +27,7 @@ const {
+ const SplitBox = createFactory(
+   require("devtools/client/shared/components/splitter/SplitBox")
+ );
+-const RequestList = createFactory(require("./RequestList"));
++const RequestList = createFactory(require("./request-list/RequestList"));
+ const Toolbar = createFactory(require("./Toolbar"));
+ 
+ loader.lazyGetter(this, "NetworkDetailsPanel", function() {
+diff --git a/devtools/client/netmonitor/src/components/moz.build b/devtools/client/netmonitor/src/components/moz.build
+--- a/devtools/client/netmonitor/src/components/moz.build
++++ b/devtools/client/netmonitor/src/components/moz.build
+@@ -4,6 +4,7 @@
+ 
+ DIRS += [
+     'request-blocking',
++    'request-list',
+     'search',
+     'websockets',
+ ]
+@@ -22,28 +23,6 @@ DevToolsModules(
+     'NetworkDetailsPanel.js',
+     'ParamsPanel.js',
+     'PropertiesView.js',
+-    'RequestList.js',
+-    'RequestListColumnCause.js',
+-    'RequestListColumnContentSize.js',
+-    'RequestListColumnCookies.js',
+-    'RequestListColumnDomain.js',
+-    'RequestListColumnFile.js',
+-    'RequestListColumnMethod.js',
+-    'RequestListColumnProtocol.js',
+-    'RequestListColumnRemoteIP.js',
+-    'RequestListColumnResponseHeader.js',
+-    'RequestListColumnScheme.js',
+-    'RequestListColumnSetCookies.js',
+-    'RequestListColumnStatus.js',
+-    'RequestListColumnTime.js',
+-    'RequestListColumnTransferredSize.js',
+-    'RequestListColumnType.js',
+-    'RequestListColumnUrl.js',
+-    'RequestListColumnWaterfall.js',
+-    'RequestListContent.js',
+-    'RequestListEmptyNotice.js',
+-    'RequestListHeader.js',
+-    'RequestListItem.js',
+     'ResponsePanel.js',
+     'SecurityPanel.js',
+     'SecurityState.js',
+diff --git a/devtools/client/netmonitor/src/components/RequestList.js b/devtools/client/netmonitor/src/components/request-list/RequestList.js
+rename from devtools/client/netmonitor/src/components/RequestList.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestList.js
+--- a/devtools/client/netmonitor/src/components/RequestList.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestList.js
+@@ -10,7 +10,7 @@ const { div } = dom;
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+ 
+ // Components
+-const StatusBar = createFactory(require("./StatusBar"));
++const StatusBar = createFactory(require("../StatusBar"));
+ 
+ loader.lazyGetter(this, "RequestListContent", function() {
+   return createFactory(require("./RequestListContent"));
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnCause.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnCause.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnCause.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnCause.js
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnContentSize.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnContentSize.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnContentSize.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnContentSize.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnContentSize.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnContentSize.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedSize } = require("../utils/format-utils");
++const { getFormattedSize } = require("../../utils/format-utils");
+ 
+ class RequestListColumnContentSize extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnCookies.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnCookies.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnCookies.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnCookies.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnCookies.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnCookies.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { fetchNetworkUpdatePacket } = require("../utils/request-utils");
++const { fetchNetworkUpdatePacket } = require("../../utils/request-utils");
+ 
+ class RequestListColumnCookies extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnDomain.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnDomain.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnDomain.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnDomain.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnDomain.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnDomain.js
+@@ -10,9 +10,9 @@ const {
+ } = require("devtools/client/shared/vendor/react");
+ const { td } = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedIPAndPort } = require("../utils/format-utils");
+-const { propertiesEqual } = require("../utils/request-utils");
+-const SecurityState = createFactory(require("./SecurityState"));
++const { getFormattedIPAndPort } = require("../../utils/format-utils");
++const { propertiesEqual } = require("../../utils/request-utils");
++const SecurityState = createFactory(require("../SecurityState"));
+ 
+ const UPDATED_DOMAIN_PROPS = ["remoteAddress", "securityState", "urlDetails"];
+ 
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnFile.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnFile.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnFile.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnFile.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnFile.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnFile.js
+@@ -6,9 +6,9 @@
+ 
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+-const { L10N } = require("../utils/l10n");
++const { L10N } = require("../../utils/l10n");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { propertiesEqual } = require("../utils/request-utils");
++const { propertiesEqual } = require("../../utils/request-utils");
+ 
+ const UPDATED_FILE_PROPS = ["urlDetails"];
+ 
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnMethod.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnMethod.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnMethod.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnMethod.js
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnProtocol.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnProtocol.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnProtocol.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnProtocol.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnProtocol.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnProtocol.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedProtocol } = require("../utils/request-utils");
++const { getFormattedProtocol } = require("../../utils/request-utils");
+ 
+ class RequestListColumnProtocol extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnRemoteIP.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnRemoteIP.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnRemoteIP.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnRemoteIP.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnRemoteIP.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnRemoteIP.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedIPAndPort } = require("../utils/format-utils");
++const { getFormattedIPAndPort } = require("../../utils/format-utils");
+ 
+ class RequestListColumnRemoteIP extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnResponseHeader.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnResponseHeader.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnResponseHeader.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnResponseHeader.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnResponseHeader.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnResponseHeader.js
+@@ -10,7 +10,7 @@ const PropTypes = require("devtools/clie
+ const {
+   getResponseHeader,
+   fetchNetworkUpdatePacket,
+-} = require("../utils/request-utils");
++} = require("../../utils/request-utils");
+ 
+ /**
+  * Renders a response header column in the requests list.  The actual
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnScheme.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnScheme.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnScheme.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnScheme.js
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnSetCookies.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnSetCookies.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnSetCookies.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnSetCookies.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnSetCookies.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnSetCookies.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { fetchNetworkUpdatePacket } = require("../utils/request-utils");
++const { fetchNetworkUpdatePacket } = require("../../utils/request-utils");
+ 
+ class RequestListColumnSetCookies extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnStatus.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnStatus.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnStatus.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnStatus.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnStatus.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnStatus.js
+@@ -13,7 +13,7 @@ const PropTypes = require("devtools/clie
+ 
+ // Components
+ 
+-const StatusCode = createFactory(require("./StatusCode"));
++const StatusCode = createFactory(require("../StatusCode"));
+ 
+ class RequestListColumnStatus extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnTime.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnTime.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnTime.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnTime.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnTime.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnTime.js
+@@ -7,13 +7,13 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedTime } = require("../utils/format-utils");
++const { getFormattedTime } = require("../../utils/format-utils");
+ const {
+   fetchNetworkUpdatePacket,
+   getResponseTime,
+   getStartTime,
+   getEndTime,
+-} = require("../utils/request-utils");
++} = require("../../utils/request-utils");
+ 
+ /**
+  * This component represents a column displaying selected
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnTransferredSize.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnTransferredSize.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnTransferredSize.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnTransferredSize.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnTransferredSize.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnTransferredSize.js
+@@ -7,10 +7,10 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedSize } = require("../utils/format-utils");
+-const { L10N } = require("../utils/l10n");
+-const { propertiesEqual } = require("../utils/request-utils");
+-const { BLOCKED_REASON_MESSAGES } = require("../constants");
++const { getFormattedSize } = require("../../utils/format-utils");
++const { L10N } = require("../../utils/l10n");
++const { propertiesEqual } = require("../../utils/request-utils");
++const { BLOCKED_REASON_MESSAGES } = require("../../constants");
+ 
+ const SIZE_CACHED = L10N.getStr("networkMenu.sizeCached");
+ const SIZE_SERVICE_WORKER = L10N.getStr("networkMenu.sizeServiceWorker");
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnType.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnType.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnType.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnType.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnType.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnType.js
+@@ -7,7 +7,7 @@
+ const { Component } = require("devtools/client/shared/vendor/react");
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getAbbreviatedMimeType } = require("../utils/request-utils");
++const { getAbbreviatedMimeType } = require("../../utils/request-utils");
+ 
+ class RequestListColumnType extends Component {
+   static get propTypes() {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnUrl.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnUrl.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnUrl.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnUrl.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnUrl.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnUrl.js
+@@ -9,11 +9,11 @@ const {
+   createFactory,
+ } = require("devtools/client/shared/vendor/react");
+ const { td } = require("devtools/client/shared/vendor/react-dom-factories");
+-const { L10N } = require("../utils/l10n");
++const { L10N } = require("../../utils/l10n");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+-const { getFormattedIPAndPort } = require("../utils/format-utils");
+-const { propertiesEqual } = require("../utils/request-utils");
+-const SecurityState = createFactory(require("./SecurityState"));
++const { getFormattedIPAndPort } = require("../../utils/format-utils");
++const { propertiesEqual } = require("../../utils/request-utils");
++const SecurityState = createFactory(require("../SecurityState"));
+ const UPDATED_FILE_PROPS = ["remoteAddress", "securityState", "urlDetails"];
+ 
+ class RequestListColumnUrl extends Component {
+diff --git a/devtools/client/netmonitor/src/components/RequestListColumnWaterfall.js b/devtools/client/netmonitor/src/components/request-list/RequestListColumnWaterfall.js
+rename from devtools/client/netmonitor/src/components/RequestListColumnWaterfall.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListColumnWaterfall.js
+--- a/devtools/client/netmonitor/src/components/RequestListColumnWaterfall.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListColumnWaterfall.js
+@@ -8,14 +8,14 @@ const { Component } = require("devtools/
+ const dom = require("devtools/client/shared/vendor/react-dom-factories");
+ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+ 
+-const { L10N } = require("../utils/l10n");
++const { L10N } = require("../../utils/l10n");
+ const {
+   fetchNetworkUpdatePacket,
+   propertiesEqual,
+-} = require("../utils/request-utils");
++} = require("../../utils/request-utils");
+ 
+ // List of properties of the timing info we want to create boxes for
+-const { TIMING_KEYS } = require("../constants");
++const { TIMING_KEYS } = require("../../constants");
+ 
+ const { div } = dom;
+ 
+diff --git a/devtools/client/netmonitor/src/components/RequestListContent.js b/devtools/client/netmonitor/src/components/request-list/RequestListContent.js
+rename from devtools/client/netmonitor/src/components/RequestListContent.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListContent.js
+--- a/devtools/client/netmonitor/src/components/RequestListContent.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListContent.js
+@@ -17,14 +17,14 @@ const {
+   HTMLTooltip,
+ } = require("devtools/client/shared/widgets/tooltip/HTMLTooltip");
+ 
+-const Actions = require("../actions/index");
+-const { formDataURI } = require("../utils/request-utils");
++const Actions = require("../../actions/index");
++const { formDataURI } = require("../../utils/request-utils");
+ const {
+   getDisplayedRequests,
+   getColumns,
+   getSelectedRequest,
+   getWaterfallScale,
+-} = require("../selectors/index");
++} = require("../../selectors/index");
+ 
+ loader.lazyRequireGetter(
+   this,
+@@ -44,7 +44,7 @@ loader.lazyGetter(this, "getImageDimensi
+ // Components
+ const RequestListHeader = createFactory(require("./RequestListHeader"));
+ const RequestListItem = createFactory(require("./RequestListItem"));
+-const RequestListContextMenu = require("../widgets/RequestListContextMenu");
++const RequestListContextMenu = require("../../widgets/RequestListContextMenu");
+ 
+ const { div } = dom;
+ 
+diff --git a/devtools/client/netmonitor/src/components/RequestListEmptyNotice.js b/devtools/client/netmonitor/src/components/request-list/RequestListEmptyNotice.js
+rename from devtools/client/netmonitor/src/components/RequestListEmptyNotice.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListEmptyNotice.js
+--- a/devtools/client/netmonitor/src/components/RequestListEmptyNotice.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListEmptyNotice.js
+@@ -13,10 +13,10 @@ const PropTypes = require("devtools/clie
+ const {
+   connect,
+ } = require("devtools/client/shared/redux/visibility-handler-connect");
+-const Actions = require("../actions/index");
+-const { ACTIVITY_TYPE } = require("../constants");
+-const { L10N } = require("../utils/l10n");
+-const { getPerformanceAnalysisURL } = require("../utils/mdn-utils");
++const Actions = require("../../actions/index");
++const { ACTIVITY_TYPE } = require("../../constants");
++const { L10N } = require("../../utils/l10n");
++const { getPerformanceAnalysisURL } = require("../../utils/mdn-utils");
+ 
+ // Components
+ const MDNLink = createFactory(
+diff --git a/devtools/client/netmonitor/src/components/RequestListHeader.js b/devtools/client/netmonitor/src/components/request-list/RequestListHeader.js
+rename from devtools/client/netmonitor/src/components/RequestListHeader.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListHeader.js
+--- a/devtools/client/netmonitor/src/components/RequestListHeader.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListHeader.js
+@@ -19,18 +19,18 @@ const {
+   addThemeObserver,
+   removeThemeObserver,
+ } = require("devtools/client/shared/theme");
+-const Actions = require("../actions/index");
++const Actions = require("../../actions/index");
+ const {
+   HEADERS,
+   REQUESTS_WATERFALL,
+   MIN_COLUMN_WIDTH,
+   DEFAULT_COLUMN_WIDTH,
+-} = require("../constants");
+-const { getColumns, getWaterfallScale } = require("../selectors/index");
+-const { getFormattedTime } = require("../utils/format-utils");
+-const { L10N } = require("../utils/l10n");
+-const RequestListHeaderContextMenu = require("../widgets/RequestListHeaderContextMenu");
+-const WaterfallBackground = require("../widgets/WaterfallBackground");
++} = require("../../constants");
++const { getColumns, getWaterfallScale } = require("../../selectors/index");
++const { getFormattedTime } = require("../../utils/format-utils");
++const { L10N } = require("../../utils/l10n");
++const RequestListHeaderContextMenu = require("../../widgets/RequestListHeaderContextMenu");
++const WaterfallBackground = require("../../widgets/WaterfallBackground");
+ const Draggable = createFactory(
+   require("devtools/client/shared/components/splitter/Draggable")
+ );
+diff --git a/devtools/client/netmonitor/src/components/RequestListItem.js b/devtools/client/netmonitor/src/components/request-list/RequestListItem.js
+rename from devtools/client/netmonitor/src/components/RequestListItem.js
+rename to devtools/client/netmonitor/src/components/request-list/RequestListItem.js
+--- a/devtools/client/netmonitor/src/components/RequestListItem.js
++++ b/devtools/client/netmonitor/src/components/request-list/RequestListItem.js
+@@ -13,8 +13,8 @@ const PropTypes = require("devtools/clie
+ const {
+   fetchNetworkUpdatePacket,
+   propertiesEqual,
+-} = require("../utils/request-utils");
+-const { RESPONSE_HEADERS } = require("../constants");
++} = require("../../utils/request-utils");
++const { RESPONSE_HEADERS } = require("../../constants");
+ 
+ // Components
+ /* global
+diff --git a/devtools/client/netmonitor/src/components/request-list/moz.build b/devtools/client/netmonitor/src/components/request-list/moz.build
+new file mode 100644
+--- /dev/null
++++ b/devtools/client/netmonitor/src/components/request-list/moz.build
+@@ -0,0 +1,28 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++
++DevToolsModules(
++    'RequestList.js',
++    'RequestListColumnCause.js',
++    'RequestListColumnContentSize.js',
++    'RequestListColumnCookies.js',
++    'RequestListColumnDomain.js',
++    'RequestListColumnFile.js',
++    'RequestListColumnMethod.js',
++    'RequestListColumnProtocol.js',
++    'RequestListColumnRemoteIP.js',
++    'RequestListColumnResponseHeader.js',
++    'RequestListColumnScheme.js',
++    'RequestListColumnSetCookies.js',
++    'RequestListColumnStatus.js',
++    'RequestListColumnTime.js',
++    'RequestListColumnTransferredSize.js',
++    'RequestListColumnType.js',
++    'RequestListColumnUrl.js',
++    'RequestListColumnWaterfall.js',
++    'RequestListContent.js',
++    'RequestListEmptyNotice.js',
++    'RequestListHeader.js',
++    'RequestListItem.js',
++)
