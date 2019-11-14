@@ -57,7 +57,7 @@ public final class CacheDataSource implements DataSource {
    * A flag indicating whether we will block reads if the cache key is locked. If this flag is
    * set, then we will read from upstream if the cache key is locked.
    */
-  public static final int FLAG_BLOCK_ON_CACHE = 1 << 0;
+  public static final int FLAG_BLOCK_ON_CACHE = 1;
 
   /**
    * A flag indicating whether the cache is bypassed following any cache related error. If set
