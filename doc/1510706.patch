@@ -1,0 +1,107 @@
+# HG changeset patch
+# User Alexander Cherkaski <alexander.cherkaski@mail.utoronto.ca>
+# Date 1573703695 18000
+#      Wed Nov 13 22:54:55 2019 -0500
+# Node ID 183b2e4e1b3b3a99f188bcc10e1e76f2ecaef6fe
+# Parent  7a55cb6e7aecdd0d3fb786fefe8cc165558b78e0
+Bug 1510706 - Remove pointless bitwise expressions causing Java warnings.
+
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoScreenOrientation.java
+@@ -31,7 +31,7 @@ public class GeckoScreenOrientation {
+     // Make sure that any change in hal/HalScreenConfiguration.h happens here too.
+     public enum ScreenOrientation {
+         NONE(0),
+-        PORTRAIT_PRIMARY(1 << 0),
++        PORTRAIT_PRIMARY(1),
+         PORTRAIT_SECONDARY(1 << 1),
+         PORTRAIT(PORTRAIT_PRIMARY.value | PORTRAIT_SECONDARY.value),
+         LANDSCAPE_PRIMARY(1 << 2),
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoThread.java
+@@ -131,7 +131,7 @@ public class GeckoThread extends Thread 
+     private static TelemetryUtils.Timer sInitTimer;
+ 
+     // Main process parameters
+-    public static final int FLAG_DEBUGGING = 1 << 0; // Debugging mode.
++    public static final int FLAG_DEBUGGING = 1; // Debugging mode.
+     public static final int FLAG_PRELOAD_CHILD = 1 << 1; // Preload child during main thread start.
+     public static final int FLAG_ENABLE_NATIVE_CRASHREPORTER = 1 << 2; // Enable native crash reporting.
+ 
+diff --git a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/GeckoSession.java
+@@ -1582,7 +1582,7 @@ public class GeckoSession implements Par
+     /**
+      * Bypass the cache.
+      */
+-    public static final int LOAD_FLAGS_BYPASS_CACHE = 1 << 0;
++    public static final int LOAD_FLAGS_BYPASS_CACHE = 1;
+ 
+     /**
+      * Bypass the proxy, if one has been configured.
+@@ -5475,7 +5475,7 @@ public class GeckoSession implements Par
+              */
+             public static class Status {
+                 public static final long RECORDING = 0;
+-                public static final long INACTIVE = 1 << 0;
++                public static final long INACTIVE = 1;
+ 
+                 // Do not instantiate this class.
+                 protected Status() {}
+@@ -5486,7 +5486,7 @@ public class GeckoSession implements Par
+              */
+             public static class Type {
+                 public static final long CAMERA = 0;
+-                public static final long MICROPHONE = 1 << 0;
++                public static final long MICROPHONE = 1;
+ 
+                 // Do not instantiate this class.
+                 protected Type() {}
+@@ -5623,7 +5623,7 @@ public class GeckoSession implements Par
+         // should be kept in sync with `GeckoViewHistory::GeckoViewVisitFlags`.
+ 
+         /** The URL was visited a top-level window. */
+-        final int VISIT_TOP_LEVEL = 1 << 0;
++        final int VISIT_TOP_LEVEL = 1;
+         /** The URL is the target of a temporary redirect. */
+         final int VISIT_REDIRECT_TEMPORARY = 1 << 1;
+         /** The URL is the target of a permanent redirect. */
+diff --git a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/text/tx3g/Tx3gDecoder.java b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/text/tx3g/Tx3gDecoder.java
+--- a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/text/tx3g/Tx3gDecoder.java
++++ b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/text/tx3g/Tx3gDecoder.java
+@@ -57,7 +57,7 @@ public final class Tx3gDecoder extends S
+   private static final int FONT_FACE_UNDERLINE = 0x0004;
+ 
+   private static final int SPAN_PRIORITY_LOW = (0xFF << Spanned.SPAN_PRIORITY_SHIFT);
+-  private static final int SPAN_PRIORITY_HIGH = (0x00 << Spanned.SPAN_PRIORITY_SHIFT);
++  private static final int SPAN_PRIORITY_HIGH = 0;
+ 
+   private static final int DEFAULT_FONT_FACE = 0;
+   private static final int DEFAULT_COLOR = Color.WHITE;
+diff --git a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/DataSpec.java b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/DataSpec.java
+--- a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/DataSpec.java
++++ b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/DataSpec.java
+@@ -45,7 +45,7 @@ public final class DataSpec {
+    * {@link DataSource#open(DataSpec)} will typically be {@link C#LENGTH_UNSET}. The data read from
+    * {@link DataSource#read(byte[], int, int)} will be the decompressed data.
+    */
+-  public static final int FLAG_ALLOW_GZIP = 1 << 0;
++  public static final int FLAG_ALLOW_GZIP = 1;
+ 
+   /**
+    * Permits content to be cached even if its length can not be resolved.
+diff --git a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/cache/CacheDataSource.java b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/cache/CacheDataSource.java
+--- a/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/cache/CacheDataSource.java
++++ b/mobile/android/geckoview/src/thirdparty/java/com/google/android/exoplayer2/upstream/cache/CacheDataSource.java
+@@ -57,7 +57,7 @@ public final class CacheDataSource imple
+    * A flag indicating whether we will block reads if the cache key is locked. If this flag is
+    * set, then we will read from upstream if the cache key is locked.
+    */
+-  public static final int FLAG_BLOCK_ON_CACHE = 1 << 0;
++  public static final int FLAG_BLOCK_ON_CACHE = 1;
+ 
+   /**
+    * A flag indicating whether the cache is bypassed following any cache related error. If set
