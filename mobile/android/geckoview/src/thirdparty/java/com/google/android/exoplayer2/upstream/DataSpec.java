@@ -45,7 +45,7 @@ public final class DataSpec {
    * {@link DataSource#open(DataSpec)} will typically be {@link C#LENGTH_UNSET}. The data read from
    * {@link DataSource#read(byte[], int, int)} will be the decompressed data.
    */
-  public static final int FLAG_ALLOW_GZIP = 1 << 0;
+  public static final int FLAG_ALLOW_GZIP = 1;
 
   /**
    * Permits content to be cached even if its length can not be resolved.
