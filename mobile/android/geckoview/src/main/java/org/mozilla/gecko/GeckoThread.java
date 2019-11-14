@@ -131,7 +131,7 @@ public class GeckoThread extends Thread {
     private static TelemetryUtils.Timer sInitTimer;
 
     // Main process parameters
-    public static final int FLAG_DEBUGGING = 1 << 0; // Debugging mode.
+    public static final int FLAG_DEBUGGING = 1; // Debugging mode.
     public static final int FLAG_PRELOAD_CHILD = 1 << 1; // Preload child during main thread start.
     public static final int FLAG_ENABLE_NATIVE_CRASHREPORTER = 1 << 2; // Enable native crash reporting.
 
