@@ -31,7 +31,7 @@ public class GeckoScreenOrientation {
     // Make sure that any change in hal/HalScreenConfiguration.h happens here too.
     public enum ScreenOrientation {
         NONE(0),
-        PORTRAIT_PRIMARY(1 << 0),
+        PORTRAIT_PRIMARY(1),
         PORTRAIT_SECONDARY(1 << 1),
         PORTRAIT(PORTRAIT_PRIMARY.value | PORTRAIT_SECONDARY.value),
         LANDSCAPE_PRIMARY(1 << 2),
