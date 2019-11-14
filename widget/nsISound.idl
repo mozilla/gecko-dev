@@ -21,8 +21,6 @@ interface nsISound : nsISupports
   void init();
 
   /**
-   * In some situations, playEventSound will be called.  Then, each
-   * implementations will play a system sound for the event if it's necessary.
    *
    * NOTE: Don't change these values because they are used in
    * nsPIPromptService.idl. So, if they are changed, that makes big impact for
@@ -36,5 +34,4 @@ interface nsISound : nsISupports
   const unsigned long EVENT_MENU_EXECUTE                = 5;
   const unsigned long EVENT_MENU_POPUP                  = 6;
   const unsigned long EVENT_EDITOR_MAX_LEN              = 7;
-  void playEventSound(in unsigned long aEventId);
 };

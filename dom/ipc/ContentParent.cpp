@@ -2955,8 +2955,6 @@ mozilla::ipc::IPCResult ContentParent::RecvPlayEventSound(
   nsCOMPtr<nsISound> sound(do_GetService(NS_SOUND_CID, &rv));
   NS_ENSURE_SUCCESS(rv, IPC_OK());
 
-  sound->PlayEventSound(aEventId);
-
   return IPC_OK();
 }
 

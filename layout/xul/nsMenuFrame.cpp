@@ -1043,7 +1043,6 @@ void nsMenuFrame::Execute(WidgetGUIEvent* aEvent) {
   }
 
   nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
-  if (sound) sound->PlayEventSound(nsISound::EVENT_MENU_EXECUTE);
 
   StartBlinking(aEvent, needToFlipChecked);
 }
