@@ -1,0 +1,200 @@
+From 6ea9aa07ed8a224078f68dfa6903f88a37429733 Mon Sep 17 00:00:00 2001
+From: Jacob Buol <makuer4@gmail.com>
+Date: Thu, 14 Nov 2019 22:27:07 -0500
+Subject: [PATCH] Removing pseudoArray feature
+
+---
+ devtools/server/actors/object/previewers.js   | 66 --------------
+ .../test_objectgrips-array-like-object.js     | 90 -------------------
+ devtools/server/tests/unit/xpcshell.ini       |  1 -
+ 3 files changed, 157 deletions(-)
+ delete mode 100644 devtools/server/tests/unit/test_objectgrips-array-like-object.js
+
+diff --git a/devtools/server/actors/object/previewers.js b/devtools/server/actors/object/previewers.js
+index 1e958562a0d8..ea1b493fe38f 100644
+--- a/devtools/server/actors/object/previewers.js
++++ b/devtools/server/actors/object/previewers.js
+@@ -883,72 +883,6 @@ previewers.Object = [
+     return true;
+   },
+ 
+-  function PseudoArray({ obj, hooks }, grip, rawObj) {
+-    // An object is considered a pseudo-array if all the following apply:
+-    // - All its properties are array indices except, optionally, a "length" property.
+-    // - At least it has the "0" array index.
+-    // - The array indices are consecutive.
+-    // - The value of "length", if present, is the number of array indices.
+-
+-    // Don't generate pseudo array previews when replaying. We don't want to
+-    // have to enumerate all the properties in order to determine this.
+-    if (isReplaying) {
+-      return false;
+-    }
+-
+-    let keys;
+-    try {
+-      keys = obj.getOwnPropertyNames();
+-    } catch (err) {
+-      // The above can throw when the debuggee does not subsume the object's
+-      // compartment, or for some WrappedNatives like Cu.Sandbox.
+-      return false;
+-    }
+-    let { length } = keys;
+-    if (length === 0) {
+-      return false;
+-    }
+-
+-    // Array indices should be sorted at the beginning, from smallest to largest.
+-    // Other properties should be at the end, so check if the last one is "length".
+-    if (keys[length - 1] === "length") {
+-      --length;
+-      if (length === 0 || length !== DevToolsUtils.getProperty(obj, "length")) {
+-        return false;
+-      }
+-    }
+-
+-    // Check that the last key is the array index expected at that position.
+-    const lastKey = keys[length - 1];
+-    if (!ObjectUtils.isArrayIndex(lastKey) || +lastKey !== length - 1) {
+-      return false;
+-    }
+-
+-    grip.preview = {
+-      kind: "ArrayLike",
+-      length: length,
+-    };
+-
+-    // Avoid recursive object grips.
+-    if (hooks.getGripDepth() > 1) {
+-      return true;
+-    }
+-
+-    const items = (grip.preview.items = []);
+-    const numItems = Math.min(OBJECT_PREVIEW_MAX_ITEMS, length);
+-
+-    for (let i = 0; i < numItems; ++i) {
+-      const desc = obj.getOwnPropertyDescriptor(i);
+-      if (desc && "value" in desc) {
+-        items.push(hooks.createValueGrip(desc.value));
+-      } else {
+-        items.push(null);
+-      }
+-    }
+-
+-    return true;
+-  },
+-
+   function Object(objectActor, grip, rawObj) {
+     return GenericObject(
+       objectActor,
+diff --git a/devtools/server/tests/unit/test_objectgrips-array-like-object.js b/devtools/server/tests/unit/test_objectgrips-array-like-object.js
+deleted file mode 100644
+index 9e0fee435efd..000000000000
+--- a/devtools/server/tests/unit/test_objectgrips-array-like-object.js
++++ /dev/null
+@@ -1,90 +0,0 @@
+-/* Any copyright is dedicated to the Public Domain.
+-   http://creativecommons.org/publicdomain/zero/1.0/ */
+-
+-"use strict";
+-
+-// Test that objects are labeled as ArrayLike only when they have sequential
+-// numeric keys, and if they have a length property, that it matches the number
+-// of numeric keys. (See Bug 1371936)
+-
+-Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+-registerCleanupFunction(() => {
+-  Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+-});
+-
+-add_task(
+-  threadFrontTest(async ({ threadFront, debuggee, client }) => {
+-    debuggee.eval(
+-      function stopMe(arg1) {
+-        debugger;
+-      }.toString()
+-    );
+-
+-    // Currying test function so we don't have to pass the debuggee and clients
+-    const isArrayLike = object =>
+-      test_object_grip_is_array_like(debuggee, client, threadFront, object);
+-
+-    equal(await isArrayLike({}), false, "An empty object is not ArrayLike");
+-    equal(
+-      await isArrayLike({ length: 0 }),
+-      false,
+-      "An object with only a length property is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 2: "two" }),
+-      false,
+-      "Object not starting at 0 is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 0: "zero", 2: "two" }),
+-      false,
+-      "Object with non-consecutive numeric keys is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 0: "zero", 2: "two", length: 2 }),
+-      false,
+-      "Object with non-consecutive numeric keys is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 0: "zero", 1: "one", 2: "two", three: 3 }),
+-      false,
+-      "Object with a non-numeric property other than `length` is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 0: "zero", 1: "one", 2: "two", three: 3, length: 3 }),
+-      false,
+-      "Object with a non-numeric property other than `length` is not ArrayLike"
+-    );
+-    equal(
+-      await isArrayLike({ 0: "zero", 1: "one", 2: "two", length: 30 }),
+-      false,
+-      "Object with a wrongful `length` property is not ArrayLike"
+-    );
+-
+-    equal(await isArrayLike({ 0: "zero" }), true);
+-    equal(await isArrayLike({ 0: "zero", 1: "two" }), true);
+-    equal(
+-      await isArrayLike({ 0: "zero", 1: "one", 2: "two", length: 3 }),
+-      true
+-    );
+-  })
+-);
+-
+-async function test_object_grip_is_array_like(
+-  debuggee,
+-  dbgClient,
+-  threadFront,
+-  object
+-) {
+-  return new Promise((resolve, reject) => {
+-    threadFront.once("paused", async function(packet) {
+-      const [grip] = packet.frame.arguments;
+-      await threadFront.resume();
+-      resolve(grip.preview.kind === "ArrayLike");
+-    });
+-
+-    debuggee.eval(`
+-      stopMe(${JSON.stringify(object)});
+-    `);
+-  });
+-}
+diff --git a/devtools/server/tests/unit/xpcshell.ini b/devtools/server/tests/unit/xpcshell.ini
+index f0b038017394..95b823f670cd 100644
+--- a/devtools/server/tests/unit/xpcshell.ini
++++ b/devtools/server/tests/unit/xpcshell.ini
+@@ -162,7 +162,6 @@ skip-if = true # breakpoint sliding is not supported bug 1525685
+ [test_objectgrips-21.js]
+ [test_objectgrips-22.js]
+ [test_objectgrips-23.js]
+-[test_objectgrips-array-like-object.js]
+ [test_objectgrips-property-value-01.js]
+ [test_objectgrips-property-value-02.js]
+ [test_objectgrips-property-value-03.js]
+-- 
+2.17.1
+
