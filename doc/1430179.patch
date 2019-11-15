@@ -1,0 +1,158 @@
+diff --git a/doc/a3.md b/doc/a3.md
+deleted file mode 100644
+index 61e245bb6b0a..000000000000
+--- a/doc/a3.md
++++ /dev/null
+@@ -1,14 +0,0 @@
+-Bug URL https://bugzilla.mozilla.org/show_bug.cgi?id=1430179
+-
+-The bug is that there is a defined function `nsISound.playSystemSound` inside the widget folder that is never used.
+-Implementations of this method also exist in `widget/gtk/nsSound.cpp` and `widget/nsSoundProxy.cpp`
+-
+-The benefit of removing this will be that there is less unused code, and the behaviour of the application is less confusing.
+-
+-The Solution is to remove the unused function declaration, and it's unused implementations.
+-
+-## Testing
+-
+-Testing will be done by running `./mach xpcshell-test` to ensure that the function is really no longer needed, and does not cause any problems.
+-
+-If all the tests pass, this has been a succesful fix.
+diff --git a/dom/ipc/ContentParent.cpp b/dom/ipc/ContentParent.cpp
+index 8751b2a23c58..4124b0fddcfd 100644
+--- a/dom/ipc/ContentParent.cpp
++++ b/dom/ipc/ContentParent.cpp
+@@ -2960,6 +2960,8 @@ mozilla::ipc::IPCResult ContentParent::RecvPlayEventSound(
+   nsCOMPtr<nsISound> sound(do_GetService(NS_SOUND_CID, &rv));
+   NS_ENSURE_SUCCESS(rv, IPC_OK());
+ 
++  sound->PlayEventSound(aEventId);
++
+   return IPC_OK();
+ }
+ 
+diff --git a/layout/xul/nsMenuFrame.cpp b/layout/xul/nsMenuFrame.cpp
+index 2f42c073868c..588ba9b0a292 100644
+--- a/layout/xul/nsMenuFrame.cpp
++++ b/layout/xul/nsMenuFrame.cpp
+@@ -1043,6 +1043,7 @@ void nsMenuFrame::Execute(WidgetGUIEvent* aEvent) {
+   }
+ 
+   nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
++  if (sound) sound->PlayEventSound(nsISound::EVENT_MENU_EXECUTE);
+ 
+   StartBlinking(aEvent, needToFlipChecked);
+ }
+diff --git a/layout/xul/nsMenuPopupFrame.cpp b/layout/xul/nsMenuPopupFrame.cpp
+index ab7fdf8388b1..0eead4dbbbab 100644
+--- a/layout/xul/nsMenuPopupFrame.cpp
++++ b/layout/xul/nsMenuPopupFrame.cpp
+@@ -877,6 +877,7 @@ void nsMenuPopupFrame::ShowPopup(bool aIsContextMenu) {
+ 
+     if (mPopupType == ePopupTypeMenu) {
+       nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
++      if (sound) sound->PlayEventSound(nsISound::EVENT_MENU_POPUP);
+     }
+   }
+ 
+diff --git a/widget/gtk/nsSound.cpp b/widget/gtk/nsSound.cpp
+index 61da051315d1..9f1d32418d81 100644
+--- a/widget/gtk/nsSound.cpp
++++ b/widget/gtk/nsSound.cpp
+@@ -343,3 +343,46 @@ NS_IMETHODIMP nsSound::Play(nsIURL* aURL) {
+ 
+   return rv;
+ }
++
++NS_IMETHODIMP nsSound::PlayEventSound(uint32_t aEventId) {
++  if (!mInited) Init();
++
++  if (!libcanberra) return NS_OK;
++
++  // Do we even want alert sounds?
++  GtkSettings* settings = gtk_settings_get_default();
++
++  if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings),
++                                   "gtk-enable-event-sounds")) {
++    gboolean enable_sounds = TRUE;
++    g_object_get(settings, "gtk-enable-event-sounds", &enable_sounds, nullptr);
++
++    if (!enable_sounds) {
++      return NS_OK;
++    }
++  }
++
++  ca_context* ctx = ca_context_get_default();
++  if (!ctx) {
++    return NS_ERROR_OUT_OF_MEMORY;
++  }
++
++  switch (aEventId) {
++    case EVENT_ALERT_DIALOG_OPEN:
++      ca_context_play(ctx, 0, "event.id", "dialog-warning", nullptr);
++      break;
++    case EVENT_CONFIRM_DIALOG_OPEN:
++      ca_context_play(ctx, 0, "event.id", "dialog-question", nullptr);
++      break;
++    case EVENT_NEW_MAIL_RECEIVED:
++      ca_context_play(ctx, 0, "event.id", "message-new-email", nullptr);
++      break;
++    case EVENT_MENU_EXECUTE:
++      ca_context_play(ctx, 0, "event.id", "menu-click", nullptr);
++      break;
++    case EVENT_MENU_POPUP:
++      ca_context_play(ctx, 0, "event.id", "menu-popup", nullptr);
++      break;
++  }
++  return NS_OK;
++}
+diff --git a/widget/headless/HeadlessSound.cpp b/widget/headless/HeadlessSound.cpp
+index cc61732051e3..537b4fdfd89a 100644
+--- a/widget/headless/HeadlessSound.cpp
++++ b/widget/headless/HeadlessSound.cpp
+@@ -30,5 +30,7 @@ NS_IMETHODIMP HeadlessSound::Beep() { return NS_OK; }
+ 
+ NS_IMETHODIMP HeadlessSound::Play(nsIURL* aURL) { return NS_OK; }
+ 
++NS_IMETHODIMP HeadlessSound::PlayEventSound(uint32_t aEventId) { return NS_OK; }
++
+ }  // namespace widget
+ }  // namespace mozilla
+diff --git a/widget/nsISound.idl b/widget/nsISound.idl
+index e3b2ca8dcf82..b2adcc0fc10d 100644
+--- a/widget/nsISound.idl
++++ b/widget/nsISound.idl
+@@ -21,6 +21,8 @@ interface nsISound : nsISupports
+   void init();
+ 
+   /**
++   * In some situations, playEventSound will be called.  Then, each
++   * implementations will play a system sound for the event if it's necessary.
+    *
+    * NOTE: Don't change these values because they are used in
+    * nsPIPromptService.idl. So, if they are changed, that makes big impact for
+@@ -34,4 +36,5 @@ interface nsISound : nsISupports
+   const unsigned long EVENT_MENU_EXECUTE                = 5;
+   const unsigned long EVENT_MENU_POPUP                  = 6;
+   const unsigned long EVENT_EDITOR_MAX_LEN              = 7;
++  void playEventSound(in unsigned long aEventId);
+ };
+diff --git a/widget/nsSoundProxy.cpp b/widget/nsSoundProxy.cpp
+index a5c0f12c3b3e..bbd1234f1955 100644
+--- a/widget/nsSoundProxy.cpp
++++ b/widget/nsSoundProxy.cpp
+@@ -42,4 +42,12 @@ nsSoundProxy::Init() {
+   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content);
+   MOZ_DIAGNOSTIC_ASSERT(false, "Only called by XUL in the parent process.");
+   return NS_ERROR_NOT_IMPLEMENTED;
+-}
+\ No newline at end of file
++}
++
++NS_IMETHODIMP
++nsSoundProxy::PlayEventSound(uint32_t aEventId) {
++  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content);
++
++  ContentChild::GetSingleton()->SendPlayEventSound(aEventId);
++  return NS_OK;
++}
