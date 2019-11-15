@@ -1,0 +1,32 @@
+diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
+index c782150beffd..413933b28e11 100644
+--- a/browser/app/profile/firefox.js
++++ b/browser/app/profile/firefox.js
+@@ -403,6 +403,7 @@ pref("permissions.default.microphone", 0);
+ pref("permissions.default.geo", 0);
+ pref("permissions.default.desktop-notification", 0);
+ pref("permissions.default.shortcuts", 0);
++pref("permissions.default.autoplay-media", 0);
+ 
+ pref("permissions.desktop-notification.postPrompt.enabled", true);
+ pref("permissions.desktop-notification.notNow.enabled", false);
+diff --git a/browser/components/enterprisepolicies/Policies.jsm b/browser/components/enterprisepolicies/Policies.jsm
+index e53dbd75dbfe..fd6873cfc357 100644
+--- a/browser/components/enterprisepolicies/Policies.jsm
++++ b/browser/components/enterprisepolicies/Policies.jsm
+@@ -1093,6 +1093,15 @@ var Policies = {
+ 
+   Permissions: {
+     onBeforeUIStartup(manager, param) {
++      if (param["autoplay-media"]) {
++        addAllowDenyPermissions(
++          "autoplay-media",
++          param["autoplay-media"].Allow,
++          param["autoplay-media"].Block
++        );
++        setDefaultPermission("autoplay-media", param["autoplay-media"]);
++      }
++
+       if (param.Camera) {
+         addAllowDenyPermissions(
+           "camera",

@@ -1093,6 +1093,15 @@ var Policies = {
 
   Permissions: {
     onBeforeUIStartup(manager, param) {
+      if (param["autoplay-media"]) {
+        addAllowDenyPermissions(
+          "autoplay-media",
+          param["autoplay-media"].Allow,
+          param["autoplay-media"].Block
+        );
+        setDefaultPermission("autoplay-media", param["autoplay-media"]);
+      }
+
       if (param.Camera) {
         addAllowDenyPermissions(
           "camera",
