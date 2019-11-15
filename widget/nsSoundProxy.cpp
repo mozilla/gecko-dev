@@ -43,11 +43,3 @@ nsSoundProxy::Init() {
   MOZ_DIAGNOSTIC_ASSERT(false, "Only called by XUL in the parent process.");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
-
-NS_IMETHODIMP
-nsSoundProxy::PlayEventSound(uint32_t aEventId) {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content);
-
-  ContentChild::GetSingleton()->SendPlayEventSound(aEventId);
-  return NS_OK;
-}

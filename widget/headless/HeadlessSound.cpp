@@ -30,7 +30,5 @@ NS_IMETHODIMP HeadlessSound::Beep() { return NS_OK; }
 
 NS_IMETHODIMP HeadlessSound::Play(nsIURL* aURL) { return NS_OK; }
 
-NS_IMETHODIMP HeadlessSound::PlayEventSound(uint32_t aEventId) { return NS_OK; }
-
 }  // namespace widget
 }  // namespace mozilla
