@@ -34,16 +34,15 @@ import org.junit.*
 
 import org.junit.rules.ExpectedException
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.GeckoResult
 
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebRequest
 import org.mozilla.geckoview.WebRequestError
 import org.mozilla.geckoview.WebResponse
 
-import org.mozilla.geckoview.test.util.Environment
 import org.mozilla.geckoview.test.util.HttpBin
 import org.mozilla.geckoview.test.util.RuntimeCreator
+import java.io.IOException
 import java.net.UnknownHostException
 import java.util.*
 
@@ -303,6 +302,32 @@ class WebExecutorTest {
         val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
         assertThat("Hashes should match", response.headers["X-SHA-256"],
                 equalTo(String.format("%064x", BigInteger(1, digest))))
+    }
+
+    @Test(expected = IOException::class)
+    fun readClosedStream() {
+        val response = executor.fetch(WebRequest("$TEST_ENDPOINT/anything")).pollDefault()!!
+
+        assertThat("Status code should match", response.statusCode, equalTo(200))
+
+        val stream = response.body!!
+        stream.close()
+        stream.readBytes()
+    }
+
+    @Test(expected = IOException::class)
+    fun readTimeout() {
+        val expectedCount = 1 * 1024 * 1024 // 1MB
+        val response = executor.fetch(WebRequest("$TEST_ENDPOINT/bytes/$expectedCount")).pollDefault()!!
+
+        assertThat("Status code should match", response.statusCode, equalTo(200))
+        assertThat("Content-Length should match", response.headers["Content-Length"]!!.toInt(), equalTo(expectedCount))
+
+        // Only allow 1ms of blocking. This should reliably timeout with 1MB of data.
+        response.setReadTimeoutMillis(1)
+
+        val stream = response.body!!
+        stream.readBytes()
     }
 
     @Test

@@ -51,62 +51,9 @@ static LazyLogModule gNotifyAddrLog("nsNotifyAddr");
 #define LOG(args) MOZ_LOG(gNotifyAddrLog, mozilla::LogLevel::Debug, args)
 #define LOG_ENABLED() MOZ_LOG_TEST(gNotifyAddrLog, mozilla::LogLevel::Debug)
 
-static HMODULE sNetshell;
-static decltype(NcFreeNetconProperties)* sNcFreeNetconProperties;
-
-static HMODULE sIphlpapi;
-static decltype(NotifyIpInterfaceChange)* sNotifyIpInterfaceChange;
-static decltype(CancelMibChangeNotify2)* sCancelMibChangeNotify2;
-
-#define NETWORK_NOTIFY_CHANGED_PREF "network.notify.changed"
-#define NETWORK_NOTIFY_IPV6_PREF "network.notify.IPv6"
-
 // period during which to absorb subsequent network change events, in
 // milliseconds
 static const unsigned int kNetworkChangeCoalescingPeriod = 1000;
-
-static void InitIphlpapi(void) {
-  if (!sIphlpapi) {
-    sIphlpapi = LoadLibraryW(L"Iphlpapi.dll");
-    if (sIphlpapi) {
-      sNotifyIpInterfaceChange =
-          (decltype(NotifyIpInterfaceChange)*)GetProcAddress(
-              sIphlpapi, "NotifyIpInterfaceChange");
-      sCancelMibChangeNotify2 =
-          (decltype(CancelMibChangeNotify2)*)GetProcAddress(
-              sIphlpapi, "CancelMibChangeNotify2");
-    } else {
-      NS_WARNING(
-          "Failed to load Iphlpapi.dll - cannot detect network"
-          " changes!");
-    }
-  }
-}
-
-static void InitNetshellLibrary(void) {
-  if (!sNetshell) {
-    sNetshell = LoadLibraryW(L"Netshell.dll");
-    if (sNetshell) {
-      sNcFreeNetconProperties =
-          (decltype(NcFreeNetconProperties)*)GetProcAddress(
-              sNetshell, "NcFreeNetconProperties");
-    }
-  }
-}
-
-static void FreeDynamicLibraries(void) {
-  if (sNetshell) {
-    sNcFreeNetconProperties = nullptr;
-    FreeLibrary(sNetshell);
-    sNetshell = nullptr;
-  }
-  if (sIphlpapi) {
-    sNotifyIpInterfaceChange = nullptr;
-    sCancelMibChangeNotify2 = nullptr;
-    FreeLibrary(sIphlpapi);
-    sIphlpapi = nullptr;
-  }
-}
 
 NS_IMPL_ISUPPORTS(nsNotifyAddrListener, nsINetworkLinkService, nsIRunnable,
                   nsIObserver)
@@ -119,13 +66,10 @@ nsNotifyAddrListener::nsNotifyAddrListener()
       mCheckEvent(nullptr),
       mShutdown(false),
       mIPInterfaceChecksum(0),
-      mCoalescingActive(false) {
-  InitIphlpapi();
-}
+      mCoalescingActive(false) {}
 
 nsNotifyAddrListener::~nsNotifyAddrListener() {
   NS_ASSERTION(!mThread, "nsNotifyAddrListener thread shutdown failed");
-  FreeDynamicLibraries();
 }
 
 NS_IMETHODIMP
@@ -324,61 +268,31 @@ nsNotifyAddrListener::Run() {
 
   DWORD waitTime = INFINITE;
 
-  if (!sNotifyIpInterfaceChange || !sCancelMibChangeNotify2 ||
-      !StaticPrefs::network_notify_IPv6()) {
-    // For Windows versions which are older than Vista which lack
-    // NotifyIpInterfaceChange. Note this means no IPv6 support.
-    HANDLE ev = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    NS_ENSURE_TRUE(ev, NS_ERROR_OUT_OF_MEMORY);
+  // Windows Vista and newer versions.
+  HANDLE interfacechange;
+  // The callback will simply invoke CheckLinkStatus()
+  DWORD ret = NotifyIpInterfaceChange(
+      StaticPrefs::network_notify_IPv6() ? AF_UNSPEC
+                                         : AF_INET,  // IPv4 and IPv6
+      (PIPINTERFACE_CHANGE_CALLBACK)OnInterfaceChange,
+      this,   // pass to callback
+      false,  // no initial notification
+      &interfacechange);
 
-    HANDLE handles[2] = {ev, mCheckEvent};
-    OVERLAPPED overlapped = {0};
-    bool shuttingDown = false;
-
-    overlapped.hEvent = ev;
-    while (!shuttingDown) {
-      HANDLE h;
-      DWORD ret = NotifyAddrChange(&h, &overlapped);
-
-      if (ret == ERROR_IO_PENDING) {
-        ret = WaitForMultipleObjects(2, handles, FALSE, waitTime);
-        if (ret == WAIT_OBJECT_0) {
-          CheckLinkStatus();
-        } else if (!mShutdown) {
-          waitTime = nextCoalesceWaitTime();
-        } else {
-          shuttingDown = true;
-        }
+  if (ret == NO_ERROR) {
+    do {
+      ret = WaitForSingleObject(mCheckEvent, waitTime);
+      if (!mShutdown) {
+        waitTime = nextCoalesceWaitTime();
       } else {
-        shuttingDown = true;
+        break;
       }
-    }
-    CloseHandle(ev);
+    } while (ret != WAIT_FAILED);
+    CancelMibChangeNotify2(interfacechange);
   } else {
-    // Windows Vista and newer versions.
-    HANDLE interfacechange;
-    // The callback will simply invoke CheckLinkStatus()
-    DWORD ret = sNotifyIpInterfaceChange(
-        AF_UNSPEC,  // IPv4 and IPv6
-        (PIPINTERFACE_CHANGE_CALLBACK)OnInterfaceChange,
-        this,   // pass to callback
-        false,  // no initial notification
-        &interfacechange);
-
-    if (ret == NO_ERROR) {
-      do {
-        ret = WaitForSingleObject(mCheckEvent, waitTime);
-        if (!mShutdown) {
-          waitTime = nextCoalesceWaitTime();
-        } else {
-          break;
-        }
-      } while (ret != WAIT_FAILED);
-      sCancelMibChangeNotify2(interfacechange);
-    } else {
-      LOG(("Link Monitor: sNotifyIpInterfaceChange returned %d\n", (int)ret));
-    }
+    LOG(("Link Monitor: NotifyIpInterfaceChange returned %d\n", (int)ret));
   }
+
   return NS_OK;
 }
 
@@ -481,94 +395,6 @@ nsNotifyAddrListener::ChangeEvent::Run() {
   return NS_OK;
 }
 
-// Bug 465158 features an explanation for this check. ICS being "Internet
-// Connection Sharing). The description says it is always IP address
-// 192.168.0.1 for this case.
-bool nsNotifyAddrListener::CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter) {
-  if (!aAdapter->FirstUnicastAddress) return false;
-
-  LPSOCKADDR aAddress = aAdapter->FirstUnicastAddress->Address.lpSockaddr;
-  if (!aAddress) return false;
-
-  PSOCKADDR_IN in_addr = (PSOCKADDR_IN)aAddress;
-  bool isGateway = (aAddress->sa_family == AF_INET &&
-                    in_addr->sin_addr.S_un.S_un_b.s_b1 == 192 &&
-                    in_addr->sin_addr.S_un.S_un_b.s_b2 == 168 &&
-                    in_addr->sin_addr.S_un.S_un_b.s_b3 == 0 &&
-                    in_addr->sin_addr.S_un.S_un_b.s_b4 == 1);
-
-  if (isGateway) isGateway = CheckICSStatus(aAdapter->FriendlyName);
-
-  return isGateway;
-}
-
-bool nsNotifyAddrListener::CheckICSStatus(PWCHAR aAdapterName) {
-  InitNetshellLibrary();
-
-  // This method enumerates all privately shared connections and checks if some
-  // of them has the same name as the one provided in aAdapterName. If such
-  // connection is found in the collection the adapter is used as ICS gateway
-  bool isICSGatewayAdapter = false;
-
-  HRESULT hr;
-  RefPtr<INetSharingManager> netSharingManager;
-  hr = CoCreateInstance(CLSID_NetSharingManager, nullptr, CLSCTX_INPROC_SERVER,
-                        IID_INetSharingManager,
-                        getter_AddRefs(netSharingManager));
-
-  RefPtr<INetSharingPrivateConnectionCollection> privateCollection;
-  if (SUCCEEDED(hr)) {
-    hr = netSharingManager->get_EnumPrivateConnections(
-        ICSSC_DEFAULT, getter_AddRefs(privateCollection));
-  }
-
-  RefPtr<IEnumNetSharingPrivateConnection> privateEnum;
-  if (SUCCEEDED(hr)) {
-    RefPtr<IUnknown> privateEnumUnknown;
-    hr = privateCollection->get__NewEnum(getter_AddRefs(privateEnumUnknown));
-    if (SUCCEEDED(hr)) {
-      hr = privateEnumUnknown->QueryInterface(
-          IID_IEnumNetSharingPrivateConnection, getter_AddRefs(privateEnum));
-    }
-  }
-
-  if (SUCCEEDED(hr)) {
-    ULONG fetched;
-    VARIANT connectionVariant;
-    while (!isICSGatewayAdapter &&
-           SUCCEEDED(hr = privateEnum->Next(1, &connectionVariant, &fetched)) &&
-           fetched) {
-      if (connectionVariant.vt != VT_UNKNOWN) {
-        // We should call VariantClear here but it needs to link
-        // with oleaut32.lib that produces a Ts incrase about 10ms
-        // that is undesired. As it is quit unlikely the result would
-        // be of a different type anyway, let's pass the variant
-        // unfreed here.
-        NS_ERROR(
-            "Variant of unexpected type, expecting VT_UNKNOWN, we probably "
-            "leak it!");
-        continue;
-      }
-
-      RefPtr<INetConnection> connection;
-      if (SUCCEEDED(connectionVariant.punkVal->QueryInterface(
-              IID_INetConnection, getter_AddRefs(connection)))) {
-        connectionVariant.punkVal->Release();
-
-        NETCON_PROPERTIES* properties;
-        if (SUCCEEDED(connection->GetProperties(&properties))) {
-          if (!wcscmp(properties->pszwName, aAdapterName))
-            isICSGatewayAdapter = true;
-
-          if (sNcFreeNetconProperties) sNcFreeNetconProperties(properties);
-        }
-      }
-    }
-  }
-
-  return isICSGatewayAdapter;
-}
-
 DWORD
 nsNotifyAddrListener::CheckAdaptersAddresses(void) {
   ULONG len = 16384;
@@ -610,8 +436,7 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
          adapter = adapter->Next) {
       if (adapter->OperStatus != IfOperStatusUp ||
           !adapter->FirstUnicastAddress ||
-          adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
-          CheckICSGateway(adapter)) {
+          adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
         continue;
       }
 

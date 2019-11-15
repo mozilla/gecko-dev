@@ -21,6 +21,7 @@
 #include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 #include "mozilla/gfx/Matrix.h"
 #include "mozilla/dom/ChildSHistory.h"
+#include "mozilla/dom/WindowProxyHolder.h"
 
 #include "nsIAuthPromptProvider.h"
 #include "nsIBaseWindow.h"
@@ -448,9 +449,9 @@ class nsDocShell final : public nsDocLoader,
   // shift while triggering reload)
   bool IsForceReloading();
 
-  mozilla::dom::BrowsingContext* GetWindowProxy() {
+  mozilla::dom::WindowProxyHolder GetWindowProxy() {
     EnsureScriptEnvironment();
-    return mBrowsingContext;
+    return mozilla::dom::WindowProxyHolder(mBrowsingContext);
   }
 
   /**
@@ -1275,7 +1276,6 @@ class nsDocShell final : public nsDocLoader,
   bool mAllowAuth : 1;
   bool mAllowKeywordFixup : 1;
   bool mIsOffScreenBrowser : 1;
-  bool mIsActive : 1;
   bool mDisableMetaRefreshWhenInactive : 1;
   bool mIsAppTab : 1;
   bool mUseGlobalHistory : 1;

@@ -81,6 +81,7 @@ const PREFS_WHITELIST = [
   "plugins.",
   "print.",
   "privacy.",
+  "remote.enabled",
   "security.",
   "services.sync.declinedEngines",
   "services.sync.lastPing",
@@ -818,5 +819,19 @@ if (AppConstants.MOZ_SANDBOX) {
     }
 
     done(data);
+  };
+}
+
+if (AppConstants.ENABLE_REMOTE_AGENT) {
+  dataProviders.remoteAgent = function remoteAgent(done) {
+    const { RemoteAgent } = ChromeUtils.import(
+      "chrome://remote/content/RemoteAgent.jsm"
+    );
+    const { listening, scheme, host, port } = RemoteAgent;
+    let url = "";
+    if (listening) {
+      url = `${scheme}://${host}:${port}/`;
+    }
+    done({ listening, url });
   };
 }

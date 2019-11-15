@@ -42,6 +42,8 @@ Please note that some targeting attributes require stricter controls on the tele
 * [userPrefs](#userprefs)
 * [attachedFxAOAuthClients](#attachedfxaoauthclients)
 * [platformName](#platformname)
+* [personalizedCfrScores](#personalizedcfrscores)
+* [personalizedCfrThreshold](#personalizedcfrthreshold)
 
 ## Detailed usage
 
@@ -561,6 +563,7 @@ declare const userPrefs: {
 ### `attachedFxAOAuthClients`
 
 Information about connected services associated with the FxA Account.
+Return an empty array if no account is found or an error occurs.
 
 #### Definition
 
@@ -572,7 +575,7 @@ interface OAuthClient {
   lastAccessTime: UnixEpochNumber;
 }
 
-declare const attachedFxAOAuthClients: Array<OAuthClient>
+declare const attachedFxAOAuthClients: Promise<OAuthClient[]>
 ```
 
 #### Examples
@@ -592,4 +595,24 @@ declare const attachedFxAOAuthClients: Array<OAuthClient>
 
 ```
 declare const platformName = "linux" | "win" | "macosx" | "android" | "other";
+```
+
+### `personalizedCfrScores`
+
+#### Definition
+
+See more in [CFR Machine Learning Experiment](https://bugzilla.mozilla.org/show_bug.cgi?id=1594422).
+
+```
+declare const personalizedCfrScores = { [cfrId: string]: number (float); }
+```
+
+### `personalizedCfrThreshold`
+
+#### Definition
+
+See more in [CFR Machine Learning Experiment](https://bugzilla.mozilla.org/show_bug.cgi?id=1594422).
+
+```
+declare const personalizedCfrThreshold = float;
 ```

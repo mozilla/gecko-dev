@@ -1187,6 +1187,11 @@ class _ASRouter {
       trailheadTriplet,
     } = this.state;
 
+    const {
+      personalizedCfrScores,
+      personalizedCfrThreshold,
+    } = ASRouterPreferences.personalizedCfr;
+
     return {
       get messageImpressions() {
         return messageImpressions;
@@ -1199,6 +1204,12 @@ class _ASRouter {
       },
       get trailheadTriplet() {
         return trailheadTriplet;
+      },
+      get scores() {
+        return personalizedCfrScores;
+      },
+      get scoreThreshold() {
+        return personalizedCfrThreshold;
       },
     };
   }
@@ -1217,7 +1228,7 @@ class _ASRouter {
     });
   }
 
-  _findMessage(candidateMessages, trigger) {
+  _findMessage(candidateMessages, trigger, ordered = false) {
     const messages = candidateMessages.filter(m =>
       this.isBelowFrequencyCaps(m)
     );
@@ -1230,6 +1241,7 @@ class _ASRouter {
       trigger,
       context,
       onError: this._handleTargetingError,
+      ordered,
     });
   }
 
@@ -1339,7 +1351,8 @@ class _ASRouter {
         // Find a message that matches the targeting context - or break if there are no matching messages
         const message = await this._findMessage(
           bundledMessagesOfSameTemplate,
-          trigger
+          trigger,
+          true
         );
         if (!message) {
           /* istanbul ignore next */ // Code coverage in mochitests
@@ -1626,7 +1639,10 @@ class _ASRouter {
       if (template && m.template !== template) {
         return false;
       }
-      if (m.trigger && m.trigger.id !== triggerId) {
+      if (triggerId && !m.trigger) {
+        return false;
+      }
+      if (triggerId && m.trigger.id !== triggerId) {
         return false;
       }
 

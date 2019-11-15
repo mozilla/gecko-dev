@@ -34,16 +34,31 @@ export interface Toolbox {
 }
 
 /**
+ * The actor version of the ActorReadyGeckoProfilerInterface returns promises,
+ * while if it's instantiated directly it will not return promises.
+ */
+type MaybePromise<T> = Promise<T> | T;
+
+/**
  * TS-TODO - Stub.
+ *
+ * Any method here that returns a MaybePromise<T> is because the
+ * ActorReadyGeckoProfilerInterface returns T while the PerfFront returns Promise<T>.
+ * Any method here that returns Promise<T> is because both the
+ * ActorReadyGeckoProfilerInterface and the PerfFront return promises.
  */
 export interface PerfFront {
-  startProfiler: any;
-  getProfileAndStopProfiler: any;
-  stopProfilerAndDiscardProfile: any;
-  getSymbolTable: any;
-  isActive: any;
-  isSupportedPlatform: any;
-  isLockedForPrivateBrowsing: any;
+  startProfiler: (options: RecordingStateFromPreferences) => MaybePromise<boolean>;
+  getProfileAndStopProfiler: () => Promise<any>;
+  stopProfilerAndDiscardProfile: () => MaybePromise<void>;
+  getSymbolTable: (path: string, breakpadId: string) => Promise<[number[], number[], number[]]>;
+  isActive: () => MaybePromise<boolean>;
+  isSupportedPlatform: () => MaybePromise<boolean>;
+  isLockedForPrivateBrowsing: () => MaybePromise<boolean>;
+  /**
+   * This method was was added in Firefox 72.
+   */
+  getSupportedFeatures: () => MaybePromise<string[]>
 }
 
 /**
@@ -88,6 +103,7 @@ export interface State {
   threads: string[];
   objdirs: string[];
   initializedValues: InitializedValues | null;
+  promptEnvRestart: null | string
 }
 
 export type Selector<T> = (state: State) => T;
@@ -135,7 +151,20 @@ export type ReceiveProfile = (
   getSymbolTableCallback: GetSymbolTableCallback
 ) => void;
 
-export type SetRecordingPreferences = (settings: object) => void;
+export type SetRecordingPreferences = (settings: RecordingStateFromPreferences) => MaybePromise<void>;
+
+/**
+ * This is the type signature for a function to restart the browser with a given
+ * environment variable. Currently only implemented for the popup.
+ */
+export type RestartBrowserWithEnvironmentVariable =
+    (envName: string, value: string) => void;
+
+/**
+ * This is the type signature for a function to query the browser for an
+ * environment variable. Currently only implemented for the popup.
+ */
+export type GetEnvironmentVariable = (envName: string) => string;
 
 /**
  * This interface is injected into profiler.firefox.com
@@ -152,7 +181,7 @@ export interface RecordingStateFromPreferences {
   threads: string[];
   objdirs: string[];
   // The duration is currently not wired up to the UI yet. See Bug 1587165.
-  duration: number;
+  duration?: number;
 }
 
 /**
@@ -172,6 +201,11 @@ export interface InitializedValues {
   isPopup: boolean;
   // The popup and devtools panel use different codepaths for getting symbol tables.
   getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
+  // The list of profiler features that the current target supports. Note that
+  // this value is only null to support older Firefox browsers that are targeted
+  // by the actor system. This compatibility can be required when the ESR version
+  // is running at least Firefox 72.
+  supportedFeatures: string[] | null
 }
 
 /**
@@ -202,6 +236,7 @@ export type Action =
   | {
       type: "CHANGE_FEATURES";
       features: string[];
+      promptEnvRestart: string | null
     }
   | {
       type: "CHANGE_THREADS";
@@ -219,7 +254,18 @@ export type Action =
       isPopup: boolean;
       recordingSettingsFromPreferences: RecordingStateFromPreferences;
       getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
+      supportedFeatures: string[] | null;
     };
+
+export interface InitializeStoreValues {
+  perfFront: PerfFront;
+  receiveProfile: ReceiveProfile;
+  setRecordingPreferences: SetRecordingPreferences;
+  isPopup: boolean;
+  recordingPreferences: RecordingStateFromPreferences;
+  supportedFeatures: string[] | null;
+  getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
+}
 
 export type PopupBackgroundFeatures = { [feature: string]: boolean };
 
@@ -295,4 +341,12 @@ export interface PerformancePref {
    * and update it elsewhere.
    */
   PopupEnabled: "devtools.performance.popup.enabled";
+}
+
+/**
+ * This interface represents the global values that are potentially on the window
+ * object in the popup. Coerce the "window" object into this interface.
+ */
+export interface PopupWindow extends Window {
+  gResizePopup?: (height: number) => void;
 }

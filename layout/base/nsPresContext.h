@@ -369,15 +369,27 @@ class nsPresContext : public nsISupports,
    * Set the currently visible area. The units for r are standard
    * nscoord units (as scaled by the device context).
    */
-  void SetVisibleArea(const nsRect& r) {
-    if (!r.IsEqualEdges(mVisibleArea)) {
-      mVisibleArea = r;
-      // Visible area does not affect media queries when paginated.
-      if (!IsPaginated()) {
-        MediaFeatureValuesChanged(
-            {mozilla::MediaFeatureChangeReason::ViewportChange});
-      }
-    }
+  void SetVisibleArea(const nsRect& r);
+
+  nsSize GetSizeForViewportUnits() const { return mSizeForViewportUnits; }
+
+  /**
+   * Set the maximum height of the dynamic toolbar in nscoord units.
+   */
+  MOZ_CAN_RUN_SCRIPT
+  void SetDynamicToolbarMaxHeight(mozilla::ScreenIntCoord aHeight);
+
+  mozilla::ScreenIntCoord GetDynamicToolbarMaxHeight() const {
+    MOZ_ASSERT(IsRootContentDocumentCrossProcess());
+    return mDynamicToolbarMaxHeight;
+  }
+
+  /**
+   * Returns true if we are using the dynamic toolbar.
+   */
+  bool HasDynamicToolbar() const {
+    MOZ_ASSERT(IsRootContentDocumentCrossProcess());
+    return mDynamicToolbarMaxHeight > 0;
   }
 
   /**
@@ -1109,6 +1121,10 @@ class nsPresContext : public nsISupports,
   };
   TransactionInvalidations* GetInvalidations(TransactionId aTransactionId);
 
+  // This should be called only when we update mVisibleArea or
+  // mDynamicToolbarMaxHeight or `app units per device pixels` changes.
+  void AdjustSizeForViewportUnits();
+
   // IMPORTANT: The ownership implicit in the following member variables
   // has been explicitly checked.  If you add any members to this class,
   // please make the ownership explicit (pinkerton, scc).
@@ -1168,6 +1184,12 @@ class nsPresContext : public nsISupports,
   mozilla::UniquePtr<gfxMissingFontRecorder> mMissingFonts;
 
   nsRect mVisibleArea;
+  // This value is used to resolve viewport units.
+  // On mobile this size is including the dynamic toolbar maximum height below.
+  // On desktops this size is pretty much the same as |mVisibleArea|.
+  nsSize mSizeForViewportUnits;
+  // The maximum height of the dynamic toolbar on mobile.
+  mozilla::ScreenIntCoord mDynamicToolbarMaxHeight;
   nsSize mPageSize;
   float mPageScale;
   float mPPScale;

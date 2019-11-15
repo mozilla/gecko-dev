@@ -7276,12 +7276,13 @@ class MTypedArrayElementShift : public MUnaryInstruction,
 // If the input is non-finite, not an integer, negative, or outside the Int32
 // range, produces a value which is known to trigger an out-of-bounds access.
 class MTypedArrayIndexToInt32 : public MUnaryInstruction,
-                                public NoTypePolicy::Data {
+                                public TypedArrayIndexPolicy::Data {
   explicit MTypedArrayIndexToInt32(MDefinition* def)
       : MUnaryInstruction(classOpcode, def) {
     MOZ_ASSERT(def->type() == MIRType::Int32 || def->type() == MIRType::Double);
     setResultType(MIRType::Int32);
     setMovable();
+    specialization_ = def->type();
   }
 
  public:
@@ -10714,6 +10715,25 @@ class MIsObject : public MUnaryInstruction, public BoxInputsPolicy::Data {
   INSTRUCTION_HEADER(IsObject)
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, object))
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
+class MIsNullOrUndefined : public MUnaryInstruction,
+                           public BoxInputsPolicy::Data {
+  explicit MIsNullOrUndefined(MDefinition* value)
+      : MUnaryInstruction(classOpcode, value) {
+    setResultType(MIRType::Boolean);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(IsNullOrUndefined)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, value))
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins);

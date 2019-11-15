@@ -9,7 +9,7 @@
  */
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
-const TEST_URI = CHROME_URL_ROOT + "doc_html_tooltip-05.xul";
+const TEST_URI = CHROME_URL_ROOT + "doc_html_tooltip-05.xhtml";
 
 const {
   HTMLTooltip,
@@ -40,7 +40,7 @@ add_task(async function() {
   registerCleanupFunction(() => {
     info("Restore original window dimensions and position.");
     win.resizeTo(originalWidth, originalHeight);
-    win.moveTo(originalTop, originalLeft);
+    win.moveTo(originalLeft, originalTop);
   });
 
   info("Create HTML tooltip");

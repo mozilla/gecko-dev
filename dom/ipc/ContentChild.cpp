@@ -110,7 +110,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIStringBundle.h"
 #include "nsIWorkerDebuggerManager.h"
-#include "nsGeolocation.h"
+#include "Geolocation.h"
 #include "audio_thread_priority.h"
 #include "nsIConsoleService.h"
 #include "audio_thread_priority.h"
@@ -1350,7 +1350,17 @@ void ContentChild::InitXPCOM(
 
   ClientManager::Startup();
 
-  RemoteWorkerService::Initialize();
+  // Respecting COOP and COEP requires processing headers in the parent process
+  // in order to choose an appropriate content process, but the workers'
+  // ScriptLoader processes headers in content processes. An intermediary step
+  // that provides security guarantees is to simply never allow SharedWorkers
+  // and ServiceWorkers to exist in a COOP+COEP process. The ultimate goal
+  // is to allow these worker types to be put in such processes based on their
+  // script response headers.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1595206
+  if (!IsWebCoopCoepRemoteType(GetRemoteType())) {
+    RemoteWorkerService::Initialize();
+  }
 
   nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
   if (!svc) {

@@ -9,6 +9,9 @@ const {
   translatePreferencesToState,
   translatePreferencesFromState,
 } = require("devtools/client/performance-new/preference-management");
+const {
+  getEnvironmentVariable,
+} = require("devtools/client/performance-new/browser");
 
 /**
  * @typedef {import("../@types/perf").Action} Action
@@ -16,6 +19,7 @@ const {
  * @typedef {import("../@types/perf").PerfFront} PerfFront
  * @typedef {import("../@types/perf").SymbolTableAsTuple} SymbolTableAsTuple
  * @typedef {import("../@types/perf").RecordingState} RecordingState
+ * @typedef {import("../@types/perf").InitializeStoreValues} InitializeStoreValues
  */
 
 /**
@@ -100,11 +104,29 @@ exports.changeEntries = entries =>
  * @param {object} features
  * @return {ThunkAction<void>}
  */
-exports.changeFeatures = features =>
-  _dispatchAndUpdatePreferences({
-    type: "CHANGE_FEATURES",
-    features,
-  });
+exports.changeFeatures = features => {
+  return (dispatch, getState) => {
+    let promptEnvRestart = null;
+    if (selectors.getIsPopup(getState())) {
+      // The popup supports checks to restart the browser for environment
+      // variables.
+      if (
+        !getEnvironmentVariable("JS_TRACE_LOGGING") &&
+        features.includes("jstracer")
+      ) {
+        promptEnvRestart = "JS_TRACE_LOGGING";
+      }
+    }
+
+    dispatch(
+      _dispatchAndUpdatePreferences({
+        type: "CHANGE_FEATURES",
+        features,
+        promptEnvRestart,
+      })
+    );
+  };
+};
 
 /**
  * Updates the recording settings for the threads.
@@ -131,8 +153,8 @@ exports.changeObjdirs = objdirs =>
 /**
  * Receive the values to initialize the store. See the reducer for what values
  * are expected.
- * @param {object} values
- * @return {ThunkAction<void>}
+ * @param {InitializeStoreValues} values
+ * @return {Action}
  */
 exports.initializeStore = values => {
   const { recordingPreferences, ...initValues } = values;

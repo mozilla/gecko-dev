@@ -8424,6 +8424,19 @@ bool nsLayoutUtils::GetContentViewerSize(nsPresContext* aPresContext,
 
   nsIntRect bounds;
   cv->GetBounds(bounds);
+
+  if (aPresContext->HasDynamicToolbar() && !bounds.IsEmpty()) {
+    MOZ_ASSERT(aPresContext->IsRootContentDocumentCrossProcess());
+    MOZ_ASSERT(bounds.height > aPresContext->GetDynamicToolbarMaxHeight());
+    bounds.height -= aPresContext->GetDynamicToolbarMaxHeight();
+    // Collapse the size in the case the dynamic toolbar max height is greater
+    // than the content bound height so that hopefully embedders of GeckoView
+    // may notice they set wrong dynamic toolbar max height.
+    if (bounds.height < 0) {
+      bounds.height = 0;
+    }
+  }
+
   aOutSize = LayoutDeviceIntRect::FromUnknownRect(bounds).Size();
   return true;
 }
@@ -8988,6 +9001,18 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
             CSSPoint::FromAppUnits(visualUpdate->mVisualScrollOffset));
         metrics.SetVisualScrollUpdateType(visualUpdate->mUpdateType);
         presShell->AcknowledgePendingVisualScrollUpdate();
+      }
+      // Expand the layout viewport to the size including the area covered by
+      // the dynamic toolbar in the case where the dynamic toolbar is being
+      // used, otherwise when the dynamic toolbar transitions on the compositor,
+      // the layout viewport will be smaller than the visual viewport on the
+      // compositor, thus the layout viewport offset will be forced to be moved
+      // in FrameMetrics::KeepLayoutViewportEnclosingVisualViewport.
+      if (presContext->HasDynamicToolbar()) {
+        CSSRect viewport = metrics.GetLayoutViewport();
+        viewport.SizeTo(nsLayoutUtils::ExpandHeightForViewportUnits(
+            presContext, viewport.Size()));
+        metrics.SetLayoutViewport(viewport);
       }
     }
 

@@ -184,10 +184,7 @@ bool RenderCompositorANGLE::Initialize() {
     desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
-    // DXGI_USAGE_SHADER_INPUT is set for improving performanc of copying from
-    // framebuffer to texture on intel gpu.
-    desc.BufferUsage =
-        DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 
     if (gfx::gfxVars::UseWebRenderFlipSequentialWin()) {
       useTripleBuffering = gfx::gfxVars::UseWebRenderTripleBufferingWin();
@@ -224,10 +221,7 @@ bool RenderCompositorANGLE::Initialize() {
     swapDesc.BufferDesc.RefreshRate.Denominator = 1;
     swapDesc.SampleDesc.Count = 1;
     swapDesc.SampleDesc.Quality = 0;
-    // DXGI_USAGE_SHADER_INPUT is set for improving performanc of copying from
-    // framebuffer to texture on intel gpu.
-    swapDesc.BufferUsage =
-        DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+    swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapDesc.BufferCount = 1;
     swapDesc.OutputWindow = hwnd;
     swapDesc.Windowed = TRUE;
@@ -339,9 +333,7 @@ RefPtr<IDXGISwapChain1> RenderCompositorANGLE::CreateSwapChainForDComp(
   desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
-  // DXGI_USAGE_SHADER_INPUT is set for improving performanc of copying from
-  // framebuffer to texture on intel gpu.
-  desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+  desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   if (aUseTripleBuffering) {
     desc.BufferCount = 3;
   } else {
@@ -386,6 +378,11 @@ bool RenderCompositorANGLE::BeginFrame() {
           mSwapChain = swapChain1;
           mUseAlpha = useAlpha;
           mDCLayerTree->SetDefaultSwapChain(swapChain1);
+          // When alpha is used, we want to disable partial present.
+          // See Bug 1595027.
+          if (useAlpha) {
+            mFullRender = true;
+          }
         } else {
           gfxCriticalNote << "Failed to re-create SwapChain";
           RenderThread::Get()->HandleWebRenderError(
@@ -433,7 +430,13 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
 
     const LayoutDeviceIntSize& bufferSize = mBufferSize.ref();
 
-    if (mUsePartialPresent) {
+    // During high contrast mode, alpha is used. In this case,
+    // IDXGISwapChain1::Present1 shows nothing with compositor window.
+    // In this case, we want to disable partial present by full render.
+    // See Bug 1595027
+    MOZ_ASSERT_IF(mUsePartialPresent && mUseAlpha, mFullRender);
+
+    if (mUsePartialPresent && !mUseAlpha) {
       // Clear full render flag.
       mFullRender = false;
       // If there is no diry rect, we skip SwapChain present.

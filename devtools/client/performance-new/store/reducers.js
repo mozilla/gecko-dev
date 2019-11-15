@@ -154,7 +154,23 @@ function initializedValues(state = null, action) {
         setRecordingPreferences: action.setRecordingPreferences,
         isPopup: Boolean(action.isPopup),
         getSymbolTableGetter: action.getSymbolTableGetter,
+        supportedFeatures: action.supportedFeatures,
       };
+    default:
+      return state;
+  }
+}
+
+/**
+ * Some features may need a browser restart with an environment flag. Request
+ * one here.
+ *
+ * @type {Reducer<string | null>}
+ */
+function promptEnvRestart(state = null, action) {
+  switch (action.type) {
+    case "CHANGE_FEATURES":
+      return action.promptEnvRestart;
     default:
       return state;
   }
@@ -177,4 +193,5 @@ module.exports = combineReducers({
   threads,
   objdirs,
   initializedValues,
+  promptEnvRestart,
 });

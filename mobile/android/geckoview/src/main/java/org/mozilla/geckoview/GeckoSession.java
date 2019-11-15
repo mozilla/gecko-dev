@@ -12,12 +12,16 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.AbstractSequentialList;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 import org.json.JSONException;
@@ -139,6 +143,7 @@ public class GeckoSession implements Parcelable {
     private int mHeight; // Height of the surface (including toolbar);
     private int mClientHeight; // Height of the client area (i.e. excluding toolbar);
     private int mFixedBottomOffset; // The margin for fixed elements attached to the bottom of the viewport.
+    private int mDynamicToolbarMaxHeight = 0; // The maximum height of the dynamic toolbar
     private float mViewportLeft;
     private float mViewportTop;
     private float mViewportZoom = 1.0f;
@@ -203,6 +208,9 @@ public class GeckoSession implements Parcelable {
 
         @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
         public native void onBoundsChanged(int left, int top, int width, int height);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+        public native void setDynamicToolbarMaxHeight(int height);
 
         // Gecko thread pauses compositor; blocks UI thread.
         @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
@@ -877,23 +885,12 @@ public class GeckoSession implements Parcelable {
                                       final GeckoBundle message,
                                       final EventCallback callback) {
                 if ("GeckoView:ShowSelectionAction".equals(event)) {
+                    final @SelectionActionDelegateAction HashSet<String> actionsSet =
+                            new HashSet<>(Arrays.asList(message.getStringArray("actions")));
                     final SelectionActionDelegate.Selection selection =
-                            new SelectionActionDelegate.Selection(message);
+                            new SelectionActionDelegate.Selection(message, actionsSet, callback);
 
-                    final @SelectionActionDelegateAction String[] actions = message.getStringArray("actions");
-                    final int seqNo = message.getInt("seqNo");
-                    final GeckoResponse<String> response = new GeckoResponse<String>() {
-                        @Override
-                        public void respond(final String action) {
-                            final GeckoBundle response = new GeckoBundle(2);
-                            response.putString("id", action);
-                            response.putInt("seqNo", seqNo);
-                            callback.sendSuccess(response);
-                        }
-                    };
-
-                    delegate.onShowActionRequest(GeckoSession.this, selection,
-                                                 actions, response);
+                    delegate.onShowActionRequest(GeckoSession.this, selection);
 
                 } else if ("GeckoView:HideSelectionAction".equals(event)) {
                     final String reasonString = message.getString("reason");
@@ -3270,7 +3267,18 @@ public class GeckoSession implements Parcelable {
              */
             public final @Nullable RectF clientRect;
 
-            /* package */ Selection(final GeckoBundle bundle) {
+            /**
+             * Set of valid actions available through {@link Selection#execute(String)}
+             */
+            public final @NonNull @SelectionActionDelegateAction Collection<String> availableActions;
+
+            private final int mSeqNo;
+
+            private final EventCallback mEventCallback;
+
+            /* package */ Selection(final GeckoBundle bundle,
+                                    final @NonNull @SelectionActionDelegateAction Set<String> actions,
+                                    final EventCallback callback) {
                 flags = (bundle.getBoolean("collapsed") ?
                          SelectionActionDelegate.FLAG_IS_COLLAPSED : 0) |
                         (bundle.getBoolean("editable") ?
@@ -3288,6 +3296,10 @@ public class GeckoSession implements Parcelable {
                                            (float) rectBundle.getDouble("right"),
                                            (float) rectBundle.getDouble("bottom"));
                 }
+
+                availableActions = actions;
+                mSeqNo = bundle.getInt("seqNo");
+                mEventCallback = callback;
             }
 
             /**
@@ -3297,6 +3309,126 @@ public class GeckoSession implements Parcelable {
                 flags = 0;
                 text = "";
                 clientRect = null;
+                availableActions = new HashSet<>();
+                mSeqNo = 0;
+                mEventCallback = null;
+            }
+
+            /**
+             * Checks if the passed action is available
+             * @param action An {@link SelectionActionDelegateAction} to perform
+             * @return True if the action is available.
+             */
+            @AnyThread
+            public boolean isActionAvailable(@NonNull @SelectionActionDelegateAction final String action) {
+                return availableActions.contains(action);
+            }
+
+            /**
+             * Execute an {@link SelectionActionDelegateAction} action.
+             *
+             * @throws IllegalStateException If the action was not available.
+             * @param action A {@link SelectionActionDelegateAction} action.
+             */
+            @AnyThread
+            public void execute(@NonNull @SelectionActionDelegateAction final String action) {
+                if (!isActionAvailable(action)) {
+                    throw new IllegalStateException("Action not available");
+                }
+                final GeckoBundle response = new GeckoBundle(2);
+                response.putString("id", action);
+                response.putInt("seqNo", mSeqNo);
+                mEventCallback.sendSuccess(response);
+            }
+
+            /**
+             * Hide selection actions and cause {@link #onHideAction} to be called.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void hide() {
+                execute(ACTION_HIDE);
+            }
+
+            /**
+             * Copy onto the clipboard then delete the selected content.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void cut() {
+                execute(ACTION_CUT);
+            }
+
+            /**
+             * Copy the selected content onto the clipboard.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void copy() {
+                execute(ACTION_COPY);
+            }
+
+            /**
+             * Delete the selected content.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void delete() {
+                execute(ACTION_DELETE);
+            }
+
+            /**
+             * Replace the selected content with the clipboard content.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void paste() {
+                execute(ACTION_PASTE);
+            }
+
+            /**
+             * Select the entire content of the document or editor.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void selectAll() {
+                execute(ACTION_SELECT_ALL);
+            }
+
+            /**
+             * Clear the current selection.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void unselect() {
+                execute(ACTION_UNSELECT);
+            }
+
+            /**
+             * Collapse the current selection to its start position.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void collapseToStart() {
+                execute(ACTION_COLLAPSE_TO_START);
+            }
+
+            /**
+             * Collapse the current selection to its end position.
+             *
+             * @throws IllegalStateException If the action was not available.
+             */
+            @AnyThread
+            public void collapseToEnd() {
+                execute(ACTION_COLLAPSE_TO_END);
             }
         }
 
@@ -3307,26 +3439,21 @@ public class GeckoSession implements Parcelable {
          * editor action UI, for example by tapping on the caret handle.
          *
          * In response to this callback, applications typically display a toolbar
-         * containing the selection actions. To perform a certain action, pass the Action
-         * object back through the response parameter, which may be used multiple times to
-         * perform multiple actions at once.
+         * containing the selection actions. To perform a certain action, check if the action
+         * is available with {@link Selection#isActionAvailable} then either use the relevant
+         * helper method or {@link Selection#execute}
          *
-         * Once a {@link #onHideAction} call (with particular reasons) or another {@link
-         * #onShowActionRequest} call is received, any previously received actions are no
-         * longer unavailable.
+         * Once an {@link #onHideAction} call (with particular reasons) or another {@link
+         * #onShowActionRequest} call is received, the previous Selection object is no longer
+         * usable.
          *
          * @param session The GeckoSession that initiated the callback.
-         * @param selection Current selection attributes.
-         * @param actions Array of built-in actions available; possible values
-         * come from the {@link #ACTION_HIDE ACTION_*} constants.
-         * @param response Callback object for performing built-in actions. For example,
-         * {@code response.respond(actions[0])} performs the first action. May be used
-         * multiple times to perform multiple actions at once.
+         * @param selection Current selection attributes and Callback object for performing built-in
+         *                  actions. May be used multiple times to perform multiple actions at once.
          */
         @UiThread
-        default void onShowActionRequest(@NonNull GeckoSession session, @NonNull Selection selection,
-                                         @NonNull @SelectionActionDelegateAction String[] actions,
-                                         @NonNull GeckoResponse<String> response) {}
+        default void onShowActionRequest(@NonNull GeckoSession session,
+                                         @NonNull Selection selection) {}
 
         /**
          * Actions are no longer available due to the user clearing the selection.
@@ -5268,6 +5395,26 @@ public class GeckoSession implements Parcelable {
         onWindowBoundsChanged();
     }
 
+    /* package */ void setDynamicToolbarMaxHeight(final int height) {
+        if (mDynamicToolbarMaxHeight == height) {
+            return;
+        }
+
+        if (mHeight != 0 && height != 0 && mHeight < height) {
+            throw new AssertionError("The maximum height of the dynamic toolbar (" +
+                                     height +
+                                     ") should be smaller than GeckoView height (" +
+                                     mHeight + ")");
+        }
+
+        mDynamicToolbarMaxHeight = height;
+
+        if (mAttachedCompositor) {
+            mCompositor.setDynamicToolbarMaxHeight(mDynamicToolbarMaxHeight);
+        }
+    }
+
+
     /* package */ void setFixedBottomOffset(final int offset) {
         mFixedBottomOffset = offset;
 
@@ -5292,6 +5439,7 @@ public class GeckoSession implements Parcelable {
         }
 
         mCompositor.sendToolbarAnimatorMessage(IS_COMPOSITOR_CONTROLLER_OPEN);
+        mCompositor.setDynamicToolbarMaxHeight(mDynamicToolbarMaxHeight);
     }
 
     /* package */ void onCompositorDetached() {
@@ -5442,6 +5590,14 @@ public class GeckoSession implements Parcelable {
     /* protected */ void onWindowBoundsChanged() {
         if (DEBUG) {
             ThreadUtils.assertOnUiThread();
+        }
+
+        if (mHeight != 0 && mDynamicToolbarMaxHeight != 0 &&
+            mHeight < mDynamicToolbarMaxHeight) {
+            throw new AssertionError("The maximum height of the dynamic toolbar (" +
+                                     mDynamicToolbarMaxHeight +
+                                     ") should be smaller than GeckoView height (" +
+                                     mHeight + ")");
         }
 
         final int toolbarHeight;

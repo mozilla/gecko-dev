@@ -75,6 +75,11 @@ loader.lazyGetter(
 );
 loader.lazyGetter(
   this,
+  "WhatsNewPanel",
+  () => require("devtools/client/whats-new/panel").WhatsNewPanel
+);
+loader.lazyGetter(
+  this,
   "reloadAndRecordTab",
   () => require("devtools/client/webreplay/menu.js").reloadAndRecordTab
 );
@@ -242,7 +247,7 @@ Tools.styleEditor = {
   visibilityswitch: "devtools.styleeditor.enabled",
   accesskey: l10n("open.accesskey"),
   icon: "chrome://devtools/skin/images/tool-styleeditor.svg",
-  url: "chrome://devtools/content/styleeditor/index.xul",
+  url: "chrome://devtools/content/styleeditor/index.xhtml",
   label: l10n("ToolboxStyleEditor.label"),
   panelLabel: l10n("ToolboxStyleEditor.panelLabel"),
   get tooltip() {
@@ -297,7 +302,7 @@ function switchPerformancePanel() {
       return target.isLocalTab;
     };
   } else {
-    Tools.performance.url = "chrome://devtools/content/performance/index.xul";
+    Tools.performance.url = "chrome://devtools/content/performance/index.xhtml";
     Tools.performance.build = function(frame, target) {
       return new PerformancePanel(frame, target);
     };
@@ -368,7 +373,7 @@ Tools.storage = {
   accesskey: l10n("storage.accesskey"),
   visibilityswitch: "devtools.storage.enabled",
   icon: "chrome://devtools/skin/images/tool-storage.svg",
-  url: "chrome://devtools/content/storage/index.xul",
+  url: "chrome://devtools/content/storage/index.xhtml",
   label: l10n("storage.label"),
   menuLabel: l10n("storage.menuLabel"),
   panelLabel: l10n("storage.panelLabel"),
@@ -472,6 +477,44 @@ Tools.application = {
   },
 };
 
+Tools.whatsnew = {
+  id: "whatsnew",
+  ordinal: 12,
+  visibilityswitch: "devtools.whatsnew.enabled",
+  icon: "chrome://browser/skin/whatsnew.svg",
+  url: "chrome://devtools/content/whats-new/index.html",
+  // TODO: This panel is currently for english users only.
+  // This should be properly localized in Bug 1596038
+  label: "What’s New",
+  panelLabel: "What’s New",
+  tooltip: "What’s New",
+  inMenu: false,
+
+  isTargetSupported: function(target) {
+    // The panel is currently not localized and should only be displayed to
+    // english users. See Bug 1596038 for cleanup.
+    const isEnglishUser = Services.locale.negotiateLanguages(
+      ["en"],
+      [Services.locale.appLocaleAsBCP47]
+    ).length;
+
+    // In addition to the basic visibility switch preference, we also have a
+    // higher level preference to disable the whole panel regardless of other
+    // settings. Should be removed in Bug 1596037.
+    const isFeatureEnabled = Services.prefs.getBoolPref(
+      "devtools.whatsnew.feature-enabled",
+      false
+    );
+
+    // This panel should only be enabled for regular web toolboxes.
+    return target.isLocalTab && isEnglishUser && isFeatureEnabled;
+  },
+
+  build: function(iframeWindow, toolbox) {
+    return new WhatsNewPanel(iframeWindow, toolbox);
+  },
+};
+
 var defaultTools = [
   Tools.options,
   Tools.webConsole,
@@ -485,6 +528,7 @@ var defaultTools = [
   Tools.dom,
   Tools.accessibility,
   Tools.application,
+  Tools.whatsnew,
 ];
 
 exports.defaultTools = defaultTools;

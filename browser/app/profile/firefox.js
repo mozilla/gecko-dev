@@ -1329,6 +1329,9 @@ pref("trailhead.firstrun.branches", "");
 pref("browser.messaging-system.whatsNewPanel.enabled", true);
 // Whether to use Messaging System to add a badge to the FxA toolbar button
 pref("browser.messaging-system.fxatoolbarbadge.enabled", true);
+// Used for CFR messages with scores. See Bug 1594422.
+pref("browser.messaging-system.personalized-cfr.scores", "{}");
+pref("browser.messaging-system.personalized-cfr.score-threshold", "0.0");
 
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);
@@ -1716,28 +1719,12 @@ pref("browser.tabs.crashReporting.email", "");
 
 pref("extensions.legacy.enabled", false);
 
-// How often to check for CPOW timeouts. CPOWs are only timed out by
-// the hang monitor.
-pref("dom.ipc.cpow.timeout", 500);
-
 // Causes access on unsafe CPOWs from browser code to throw by default.
 pref("dom.ipc.cpows.forbid-unsafe-from-browser", true);
-
-// Enable e10s hang monitoring (slow script checking and plugin hang
-// detection).
-pref("dom.ipc.processHangMonitor", true);
 
 #if defined(XP_WIN)
   // Allows us to deprioritize the processes of background tabs at an OS level
   pref("dom.ipc.processPriorityManager.enabled", true);
-#endif
-
-#ifdef DEBUG
-  // Don't report hangs in DEBUG builds. They're too slow and often a
-  // debugger is attached.
-  pref("dom.ipc.reportProcessHangs", false);
-#else
-  pref("dom.ipc.reportProcessHangs", true);
 #endif
 
 // Don't limit how many nodes we care about on desktop:
@@ -2350,6 +2337,13 @@ pref("devtools.popup.disable_autohide", false);
 // tests that started failing when using type=content, but this ultimately
 // should be removed.
 pref("devtools.toolbox.content-frame", true);
+
+// Visibility switch preference for the WhatsNew panel.
+pref("devtools.whatsnew.enabled", true);
+
+// Temporary preference to fully disable the WhatsNew panel on any target.
+// Should be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1596037
+pref("devtools.whatsnew.feature-enabled", true);
 
 // FirstStartup service time-out in ms
 pref("first-startup.timeout", 30000);

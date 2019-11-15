@@ -17,7 +17,7 @@ const { DOMHelpers } = require("devtools/shared/dom-helpers");
 const { Hosts } = require("devtools/client/framework/toolbox-hosts");
 
 const TEST_URI_ROOT = "http://example.com/browser/devtools/client/shared/test/";
-const OPTIONS_VIEW_URL = CHROME_URL_ROOT + "doc_options-view.xul";
+const OPTIONS_VIEW_URL = CHROME_URL_ROOT + "doc_options-view.xhtml";
 
 const EXAMPLE_URL =
   "chrome://mochitests/content/browser/devtools/client/shared/test/";
@@ -224,30 +224,3 @@ const showFilterPopupPresetsAndCreatePreset = async function(
 
   await onRender;
 };
-
-/**
- * Our calculations are slightly off so we add offsets for hidpi and non-hidpi
- * screens.
- *
- * @param {Document} doc
- *        The document that owns the tooltip.
- */
-function getOffsets(doc) {
-  let offsetTop = 0;
-  let offsetLeft = 0;
-
-  if (doc && doc.defaultView.devicePixelRatio === 2) {
-    // On hidpi screens our calculations are off by 2 vertical pixels.
-    offsetTop = 2;
-  } else {
-    // On non-hidpi screens our calculations are off by 1 vertical pixel.
-    offsetTop = 1;
-  }
-
-  if (doc && doc.defaultView.devicePixelRatio !== 2) {
-    // On hidpi screens our calculations are off by 1 horizontal pixel.
-    offsetLeft = 1;
-  }
-
-  return { offsetTop, offsetLeft };
-}

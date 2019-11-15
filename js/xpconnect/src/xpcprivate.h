@@ -879,12 +879,6 @@ class XPCWrappedNativeScope final
 
   void AddSizeOfIncludingThis(JSContext* cx, ScopeSizeInfo* scopeSizeInfo);
 
-  // Gets the appropriate scope object for XBL in this compartment. This method
-  // relies on compartment-per-global still (and release-asserts this). The
-  // context must be same-realm with this compartment's single global upon
-  // entering, and the scope object is wrapped into this compartment.
-  JSObject* EnsureContentXBLScope(JSContext* cx);
-
   // Check whether our mAllowContentXBLScope state matches the given
   // principal.  This is used to avoid sharing compartments on
   // mismatch.
@@ -905,9 +899,6 @@ class XPCWrappedNativeScope final
     return js::GetFirstGlobalInCompartment(Compartment());
   }
 
-  bool IsContentXBLScope() {
-    return xpc::IsContentXBLCompartment(Compartment());
-  }
   bool AllowContentXBLScope(JS::Realm* aRealm);
 
   // ID Object prototype caches.
@@ -2352,7 +2343,6 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
         sameZoneAs(cx),
         freshCompartment(false),
         freshZone(false),
-        isContentXBLScope(false),
         isUAWidgetScope(false),
         invisibleToDebugger(false),
         discardSource(false),
@@ -2372,7 +2362,6 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
   JS::RootedObject sameZoneAs;
   bool freshCompartment;
   bool freshZone;
-  bool isContentXBLScope;
   bool isUAWidgetScope;
   bool invisibleToDebugger;
   bool discardSource;
@@ -2650,8 +2639,7 @@ class CompartmentPrivate {
 
     // Don't share if we have any weird state set.
     return !wantXrays && !isWebExtensionContentScript &&
-           !isContentXBLCompartment && !isUAWidgetCompartment &&
-           !universalXPConnectEnabled &&
+           !isUAWidgetCompartment && !universalXPConnectEnabled &&
            mScope->XBLScopeStateMatches(principal);
   }
 
@@ -2678,10 +2666,6 @@ class CompartmentPrivate {
   // to opt into CPOWs. It's necessary for the implementation of
   // RemoteAddonsParent.jsm.
   bool allowCPOWs;
-
-  // True if this compartment is a content XBL compartment. Every global in
-  // such a compartment is a content XBL scope.
-  bool isContentXBLCompartment;
 
   // True if this compartment is a UA widget compartment.
   bool isUAWidgetCompartment;

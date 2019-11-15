@@ -769,8 +769,8 @@ CompositorOGL::RenderTargetForNativeLayer(NativeLayer* aNativeLayer,
   IntRect layerRect = aNativeLayer->GetRect();
   IntRegion invalidRelativeToLayer =
       aInvalidRegion.MovedBy(-layerRect.TopLeft());
-  aNativeLayer->InvalidateRegionThroughoutSwapchain(invalidRelativeToLayer);
-  Maybe<GLuint> fbo = aNativeLayer->NextSurfaceAsFramebuffer(false);
+  Maybe<GLuint> fbo =
+      aNativeLayer->NextSurfaceAsFramebuffer(invalidRelativeToLayer, false);
   if (!fbo) {
     return nullptr;
   }
@@ -2057,13 +2057,11 @@ void CompositorOGL::InsertFrameDoneSync() {
 #ifdef XP_MACOSX
   // Only do this on macOS.
   // On other platforms, SwapBuffers automatically applies back-pressure.
-  if (StaticPrefs::gfx_core_animation_enabled_AtStartup()) {
-    if (mThisFrameDoneSync) {
-      mGLContext->fDeleteSync(mThisFrameDoneSync);
-    }
-    mThisFrameDoneSync =
-        mGLContext->fFenceSync(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+  if (mThisFrameDoneSync) {
+    mGLContext->fDeleteSync(mThisFrameDoneSync);
   }
+  mThisFrameDoneSync =
+      mGLContext->fFenceSync(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
 }
 

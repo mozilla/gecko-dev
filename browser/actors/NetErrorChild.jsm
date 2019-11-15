@@ -5,30 +5,40 @@
 
 var EXPORTED_SYMBOLS = ["NetErrorChild"];
 
-const { ActorChild } = ChromeUtils.import(
-  "resource://gre/modules/ActorChild.jsm"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+const { ChildMessagePort } = ChromeUtils.import(
+  "resource://gre/modules/remotepagemanager/RemotePageManagerChild.jsm"
 );
 
-function getSerializedSecurityInfo(docShell) {
-  let serhelper = Cc["@mozilla.org/network/serialization-helper;1"].getService(
-    Ci.nsISerializationHelper
-  );
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "gSerializationHelper",
+  "@mozilla.org/network/serialization-helper;1",
+  "nsISerializationHelper"
+);
 
-  let securityInfo =
-    docShell.failedChannel && docShell.failedChannel.securityInfo;
-  if (!securityInfo) {
-    return "";
+class NetErrorChild extends JSWindowActorChild {
+  actorCreated() {
+    this.messagePort = new ChildMessagePort(this, this.contentWindow);
   }
-  securityInfo
-    .QueryInterface(Ci.nsITransportSecurityInfo)
-    .QueryInterface(Ci.nsISerializable);
 
-  return serhelper.serializeToString(securityInfo);
-}
+  getSerializedSecurityInfo(docShell) {
+    let securityInfo =
+      docShell.failedChannel && docShell.failedChannel.securityInfo;
+    if (!securityInfo) {
+      return "";
+    }
+    securityInfo
+      .QueryInterface(Ci.nsITransportSecurityInfo)
+      .QueryInterface(Ci.nsISerializable);
 
-class NetErrorChild extends ActorChild {
-  isAboutNetError(doc) {
-    return doc.documentURI.startsWith("about:neterror");
+    return gSerializationHelper.serializeToString(securityInfo);
+  }
+
+  receiveMessage(aMessage) {
+    this.messagePort.handleMessage(aMessage);
   }
 
   handleEvent(aEvent) {
@@ -39,10 +49,10 @@ class NetErrorChild extends ActorChild {
       case "click":
         let elem = aEvent.originalTarget;
         if (elem.id == "viewCertificate") {
-          this.mm.sendAsyncMessage("Browser:CertExceptionError", {
+          this.sendAsyncMessage("Browser:CertExceptionError", {
             location: doc.location.href,
             elementId: elem.id,
-            securityInfoAsString: getSerializedSecurityInfo(
+            securityInfoAsString: this.getSerializedSecurityInfo(
               doc.defaultView.docShell
             ),
           });

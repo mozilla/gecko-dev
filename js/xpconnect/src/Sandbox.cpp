@@ -1173,8 +1173,6 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     MOZ_RELEASE_ASSERT(priv->allowWaivers == options.allowWaivers);
     MOZ_RELEASE_ASSERT(priv->isWebExtensionContentScript ==
                        options.isWebExtensionContentScript);
-    MOZ_RELEASE_ASSERT(priv->isContentXBLCompartment ==
-                       options.isContentXBLScope);
     MOZ_RELEASE_ASSERT(priv->isUAWidgetCompartment == options.isUAWidgetScope);
     MOZ_RELEASE_ASSERT(priv->hasExclusiveExpandos == hasExclusiveExpandos);
     MOZ_RELEASE_ASSERT(priv->wantXrays == wantXrays);
@@ -1182,7 +1180,6 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     CompartmentPrivate* priv = CompartmentPrivate::Get(sandbox);
     priv->allowWaivers = options.allowWaivers;
     priv->isWebExtensionContentScript = options.isWebExtensionContentScript;
-    priv->isContentXBLCompartment = options.isContentXBLScope;
     priv->isUAWidgetCompartment = options.isUAWidgetScope;
     priv->hasExclusiveExpandos = hasExclusiveExpandos;
     priv->wantXrays = wantXrays;

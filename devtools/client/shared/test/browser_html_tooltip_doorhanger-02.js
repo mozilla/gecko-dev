@@ -10,7 +10,7 @@
  */
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
-const TEST_URI = CHROME_URL_ROOT + "doc_html_tooltip_doorhanger-02.xul";
+const TEST_URI = CHROME_URL_ROOT + "doc_html_tooltip_doorhanger-02.xhtml";
 
 const {
   HTMLTooltip,
@@ -64,7 +64,7 @@ async function runTests(doc) {
       `anchor: ${describeBounds(anchorBounds)}, ` +
       `arrow: ${describeBounds(arrowBounds)}`;
     ok(
-      delta <= 1,
+      delta < 1,
       `Arrow center is roughly aligned with anchor center (${params})`
     );
 

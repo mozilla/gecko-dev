@@ -986,6 +986,8 @@ void gfxPlatform::Init() {
   gPlatform->InitAcceleration();
   gPlatform->InitWebRenderConfig();
 
+  gPlatform->InitWebGPUConfig();
+
   // When using WebRender, we defer initialization of the D3D11 devices until
   // the (rare) cases where they're used. Note that the GPU process where
   // WebRender runs doesn't initialize gfxPlatform and performs explicit
@@ -2193,6 +2195,30 @@ qcms_transform* gfxPlatform::GetCMSBGRATransform() {
   }
 
   return gCMSBGRATransform;
+}
+
+qcms_transform* gfxPlatform::GetCMSOSRGBATransform() {
+  switch (SurfaceFormat::OS_RGBA) {
+    case SurfaceFormat::B8G8R8A8:
+      return GetCMSBGRATransform();
+    case SurfaceFormat::R8G8B8A8:
+      return GetCMSRGBATransform();
+    default:
+      // We do not support color management with big endian.
+      return nullptr;
+  }
+}
+
+qcms_data_type gfxPlatform::GetCMSOSRGBAType() {
+  switch (SurfaceFormat::OS_RGBA) {
+    case SurfaceFormat::B8G8R8A8:
+      return QCMS_DATA_BGRA_8;
+    case SurfaceFormat::R8G8B8A8:
+      return QCMS_DATA_RGBA_8;
+    default:
+      // We do not support color management with big endian.
+      return QCMS_DATA_RGBA_8;
+  }
 }
 
 /* Shuts down various transforms and profiles for CMS. */

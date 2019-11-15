@@ -137,6 +137,22 @@ let ACTORS = {
     },
   },
 
+  NetError: {
+    parent: {
+      moduleURI: "resource:///actors/NetErrorParent.jsm",
+    },
+    child: {
+      moduleURI: "resource:///actors/NetErrorChild.jsm",
+      events: {
+        DOMWindowCreated: {},
+        click: {},
+      },
+    },
+
+    matches: ["about:certerror?*", "about:neterror?*"],
+    allFrames: true,
+  },
+
   PageInfo: {
     child: {
       moduleURI: "resource:///actors/PageInfoChild.jsm",
@@ -335,17 +351,6 @@ let LEGACY_ACTORS = {
     },
   },
 
-  NetError: {
-    child: {
-      module: "resource:///actors/NetErrorChild.jsm",
-      events: {
-        click: {},
-      },
-      matches: ["about:certerror?*", "about:neterror?*"],
-      allFrames: true,
-    },
-  },
-
   OfflineApps: {
     child: {
       module: "resource:///actors/OfflineAppsChild.jsm",
@@ -501,8 +506,6 @@ XPCOMUtils.defineLazyGetter(
 // lazy module getters
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  AboutNetErrorHandler:
-    "resource:///modules/aboutpages/AboutNetErrorHandler.jsm",
   AboutPrivateBrowsingHandler:
     "resource:///modules/aboutpages/AboutPrivateBrowsingHandler.jsm",
   AboutProtectionsHandler:
@@ -1647,8 +1650,6 @@ BrowserGlue.prototype = {
 
     NewTabUtils.init();
 
-    AboutNetErrorHandler.init();
-
     AboutPrivateBrowsingHandler.init();
 
     AboutProtectionsHandler.init();
@@ -1959,7 +1960,6 @@ BrowserGlue.prototype = {
 
     PageThumbs.uninit();
     NewTabUtils.uninit();
-    AboutNetErrorHandler.uninit();
     AboutPrivateBrowsingHandler.uninit();
     AboutProtectionsHandler.uninit();
 
@@ -2859,7 +2859,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 88;
+    const UI_VERSION = 89;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     let currentUIVersion;
@@ -3298,6 +3298,14 @@ BrowserGlue.prototype = {
           );
         }
       }
+    }
+
+    if (currentUIVersion < 89) {
+      // This file was renamed in https://bugzilla.mozilla.org/show_bug.cgi?id=1595636.
+      this._migrateXULStoreForDocument(
+        "chrome://devtools/content/framework/toolbox-window.xul",
+        "chrome://devtools/content/framework/toolbox-window.xhtml"
+      );
     }
 
     // Update the migration version.

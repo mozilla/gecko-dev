@@ -135,9 +135,23 @@ this.urlbar = class extends ExtensionAPI {
   getAPI(context) {
     return {
       urlbar: {
-        search(searchString) {
+        closeView() {
           let window = windowTracker.getTopNormalWindow(context);
-          window.gURLBar.search(searchString);
+          window.gURLBar.view.close();
+        },
+
+        focus(select = false) {
+          let window = windowTracker.getTopNormalWindow(context);
+          if (select) {
+            window.focusAndSelectUrlBar();
+          } else {
+            window.gURLBar.focus();
+          }
+        },
+
+        search(searchString, options = {}) {
+          let window = windowTracker.getTopNormalWindow(context);
+          window.gURLBar.search(searchString, options);
         },
 
         onBehaviorRequested: new EventManager({

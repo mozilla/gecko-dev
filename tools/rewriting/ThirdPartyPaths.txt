@@ -1,4 +1,5 @@
 browser/components/newtab/vendor/
+browser/components/pocket/content/panels/js/vendor/
 browser/components/translation/cld2/
 browser/extensions/screenshots/build/raven.js
 build/pymake
@@ -7,6 +8,7 @@ devtools/client/shared/build/babel.js
 devtools/client/shared/sourceeditor/codemirror/
 devtools/client/shared/sourceeditor/tern/
 devtools/client/shared/vendor/
+devtools/shared/acorn/
 devtools/shared/heapsnapshot/CoreDump.pb.cc
 devtools/shared/heapsnapshot/CoreDump.pb.h
 devtools/shared/jsbeautify/

@@ -65,6 +65,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -2592,6 +2593,15 @@ void nsHttpChannel::AssertNotDocumentChannel() {
   if (!mLoadInfo || !IsDocument()) {
     return;
   }
+
+#ifndef DEBUG
+  if (!StaticPrefs::fission_autostart()) {
+    // This assertion is firing in the wild (Bug 1593545) and its not clear
+    // why. Disable the assertion in non-fission non-debug configurations to
+    // avoid crashing user's browsers until we're done dogfooding fission.
+    return;
+  }
+#endif
 
   nsCOMPtr<nsIParentChannel> parentChannel;
   NS_QueryNotificationCallbacks(this, parentChannel);

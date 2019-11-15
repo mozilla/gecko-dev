@@ -151,7 +151,7 @@
 #include "nsICycleCollectorListener.h"
 #include "nsIDocShellTreeOwner.h"
 #include "mozilla/dom/Document.h"
-#include "nsGeolocation.h"
+#include "Geolocation.h"
 #include "nsIDragService.h"
 #include "mozilla/dom/WakeLock.h"
 #include "nsIExternalProtocolService.h"
@@ -727,6 +727,11 @@ bool IsWebRemoteType(const nsAString& aContentProcessType) {
                           NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE));
 }
 
+bool IsWebCoopCoepRemoteType(const nsAString& aContentProcessType) {
+  return StringBeginsWith(aContentProcessType,
+                          NS_LITERAL_STRING(WITH_COOP_COEP_REMOTE_TYPE_PREFIX));
+}
+
 /*static*/
 uint32_t ContentParent::GetMaxProcessCount(
     const nsAString& aContentProcessType) {
@@ -806,7 +811,7 @@ already_AddRefed<ContentParent> ContentParent::MinTabSelect(
     ContentParent* p = aContentParents[i];
     NS_ASSERTION(p->IsAlive(),
                  "Non-alive contentparent in sBrowserContentParents?");
-    if (p->mOpener == aOpener) {
+    if (!p->mShutdownPending && p->mOpener == aOpener) {
       uint32_t tabCount = cpm->GetBrowserParentCountByProcessId(p->ChildID());
       if (tabCount < min) {
         candidate = p;
@@ -2240,7 +2245,7 @@ void ContentParent::LaunchSubprocessInternal(
     mHangMonitorActor = ProcessHangMonitor::AddProcess(this);
 
     // Set a reply timeout for CPOWs.
-    SetReplyTimeoutMs(Preferences::GetInt("dom.ipc.cpow.timeout", 0));
+    SetReplyTimeoutMs(StaticPrefs::dom_ipc_cpow_timeout());
 
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
