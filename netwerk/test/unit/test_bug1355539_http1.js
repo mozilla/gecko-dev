@@ -24,8 +24,8 @@ server.start(-1);
 var baseURL = "http://localhost:" + server.identity.primaryPort + "/";
 var maxConnections = 0;
 var debug = false;
-var dummyResponseQueue = new Array();
-var responseQueue = new Array();
+var dummyResponseQueue = [];
+var responseQueue = [];
 
 function log(msg) {
   if (!debug) {

@@ -30,7 +30,7 @@ XPCOMUtils.defineLazyGetter(this, "URL", function() {
 var httpserver = new HttpServer();
 var index = 0;
 var nextTest = firstTest;
-var test_flags = new Array();
+var test_flags = [];
 var testPathBase = "/test_headers";
 
 function run_test() {

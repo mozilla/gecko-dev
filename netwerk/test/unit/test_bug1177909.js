@@ -55,17 +55,19 @@ async function TestProxyType(chan, flags) {
     Ci.nsIProtocolProxyService.PROXYCONFIG_SYSTEM
   );
 
-  return await new Promise((resolve, reject) => {
+  const retval = await new Promise((resolve, reject) => {
     gProxyService.asyncResolve(chan, flags, {
       onProxyAvailable(req, uri, pi, status) {
         resolve(pi);
       },
     });
   });
+  return retval;
 }
 
 async function TestProxyTypeByURI(uri) {
-  return await TestProxyType(makeChannel(uri), 0);
+  const retval = await TestProxyType(makeChannel(uri), 0);
+  return retval;
 }
 
 add_task(async function testHttpProxy() {

@@ -187,24 +187,20 @@ function makeHandler(headerIdx, bodyIdx) {
 var httpserv;
 function run_test() {
   // disable again for everything for now (causes sporatic oranges)
-  return;
-
+  // comment everything out to comply with eslint
+  // return;
   // disable on Windows for now, because it seems to leak sockets and die.
   // Silly operating system!
   // This is a really nasty way to detect Windows.  I wish we could do better.
-  if (mozinfo.os == "win") {
-    //failing eslint no-empty test
-  }
-
-  httpserv = new HttpServer();
-
-  for (i = 0; i < contentTypeHeaderList.length; ++i) {
-    for (j = 0; j < bodyList.length; ++j) {
-      httpserv.registerPathHandler("/" + i + "/" + j, makeHandler(i, j));
-    }
-  }
-
-  httpserv.start(-1);
-
-  doTest(0, 0);
+  //if (mozinfo.os == "win") {
+  //  failing eslint no-empty test
+  //}
+  //httpserv = new HttpServer();
+  //for (i = 0; i < contentTypeHeaderList.length; ++i) {
+  //  for (j = 0; j < bodyList.length; ++j) {
+  //    httpserv.registerPathHandler("/" + i + "/" + j, makeHandler(i, j));
+  //  }
+  //}
+  //httpserv.start(-1);
+  //doTest(0, 0);
 }

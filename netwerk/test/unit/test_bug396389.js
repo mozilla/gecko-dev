@@ -45,9 +45,7 @@ function run_test() {
     Ci.nsIPrefBranch
   );
   for (var pref of prefData) {
-    try {
-      pref.oldVal = prefs.getBoolPref(pref.name);
-    } catch (e) {}
+    pref.oldVal = prefs.getBoolPref(pref.name);
     prefs.setBoolPref(pref.name, pref.newVal);
   }
 

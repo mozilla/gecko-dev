@@ -144,22 +144,22 @@ function TestCacheEntrySize(
     secondExpectedReply = repeatToLargerThan1K(secondExpectedReply);
   }
 
-  (this.start = function() {
+  this.start = function() {
     setSizeFunc();
     var channel = setupChannel("/bug650995", firstRequest);
     channel.asyncOpen(new ChannelListener(this.initialLoad, this));
-  }),
-    (this.initialLoad = function(request, data, ctx) {
-      Assert.equal(firstRequest, data);
-      var channel = setupChannel("/bug650995", secondRequest);
-      executeSoon(function() {
-        channel.asyncOpen(new ChannelListener(ctx.testAndTriggerNext, ctx));
-      });
-    }),
-    (this.testAndTriggerNext = function(request, data, ctx) {
-      Assert.equal(secondExpectedReply, data);
-      executeSoon(nextTest);
+  };
+  this.initialLoad = function(request, data, ctx) {
+    Assert.equal(firstRequest, data);
+    var channel = setupChannel("/bug650995", secondRequest);
+    executeSoon(function() {
+      channel.asyncOpen(new ChannelListener(ctx.testAndTriggerNext, ctx));
     });
+  };
+  this.testAndTriggerNext = function(request, data, ctx) {
+    Assert.equal(secondExpectedReply, data);
+    executeSoon(nextTest);
+  };
 }
 
 function run_test() {

@@ -1,4 +1,4 @@
-var callbacks = new Array();
+var callbacks = [];
 
 // Expect an existing entry
 const NORMAL = 0;

@@ -21,8 +21,7 @@ var test = function(s, funcName) {
     Assert.ok(true); // make sure it throws an exception instead of crashing
     return x;
   }
-  // should always have an exception to catch
-  Assert.ok(false);
+  // code should never reach here, should always have an exception to catch
 };
 var s = null;
 var funcs = [

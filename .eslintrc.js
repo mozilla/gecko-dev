@@ -131,27 +131,18 @@ module.exports = {
       "netwerk/test/unit*/**",
     ],
     "rules": {
-      "mozilla/consistent-if-bracing": "off",
-      "mozilla/reject-importGlobalProperties": "off",
       "mozilla/no-arbitrary-setTimeout": "off",
       "mozilla/no-define-cc-etc": "off",
-      "mozilla/use-default-preference-values": "off",
       "mozilla/use-services": "off",
       "consistent-return": "off",
-      "no-array-constructor": "off",
       "no-eval": "off",
       "no-global-assign": "off",
       "no-nested-ternary": "off",
-      "no-new-wrappers": "off",
       "no-redeclare": "off",
-      "no-return-await": "off",
-      "no-sequences": "off",
       "no-shadow": "off",
       "no-throw-literal": "off",
       "no-undef": "off",
-      "no-unreachable": "off",
       "no-unused-vars": "off",
-      "no-useless-return": "off",
     }
   }, {
     "files": [

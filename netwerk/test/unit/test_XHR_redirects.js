@@ -9,8 +9,6 @@ const { Preferences } = ChromeUtils.import(
   "resource://gre/modules/Preferences.jsm"
 );
 
-Cu.importGlobalProperties(["XMLHttpRequest"]);
-
 var sSame;
 var sOther;
 var sRedirectPromptPref;

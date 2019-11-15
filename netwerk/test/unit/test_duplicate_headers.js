@@ -14,7 +14,7 @@ XPCOMUtils.defineLazyGetter(this, "URL", function() {
 
 var httpserver = new HttpServer();
 var index = 0;
-var test_flags = new Array();
+var test_flags = [];
 var testPathBase = "/dupe_hdrs";
 
 function run_test() {

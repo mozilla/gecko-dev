@@ -1,7 +1,5 @@
 // test HTTP/2
 
-Cu.importGlobalProperties(["XMLHttpRequest"]);
-
 // Generate a small and a large post with known pre-calculated md5 sums
 function generateContent(size) {
   var content = "";
