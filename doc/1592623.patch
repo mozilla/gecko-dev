@@ -1,0 +1,22 @@
+# HG changeset patch
+# User iantonga <ian_tong@hotmail.com>
+# Date 1573422972 18000
+#      Sun Nov 10 16:56:12 2019 -0500
+# Node ID 11eb87e35e528ad746bce7b6bfde6a5d7937b40d
+# Parent  74082f00a6547f14ea4e8baadaa8befb8e4a9842
+Bug 1592623 - Removed an useless namespace alias r=Sylvestre
+
+Differential Revision: https://phabricator.services.mozilla.com/D52490
+
+diff --git a/layout/tables/BasicTableLayoutStrategy.cpp b/layout/tables/BasicTableLayoutStrategy.cpp
+--- a/layout/tables/BasicTableLayoutStrategy.cpp
++++ b/layout/tables/BasicTableLayoutStrategy.cpp
+@@ -24,8 +24,6 @@
+ using namespace mozilla;
+ using namespace mozilla::layout;
+ 
+-namespace css = mozilla::css;
+-
+ #undef DEBUG_TABLE_STRATEGY
+ 
+ BasicTableLayoutStrategy::BasicTableLayoutStrategy(nsTableFrame* aTableFrame)
