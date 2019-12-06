@@ -102,7 +102,7 @@ convenience of Safari and Chrome users on macOS. See bug 1398988. -->
      Localizers can use one of them, or both, to better adapt this
      sentence to their language. -->
 <!ENTITY fullscreenWarning.beforeDomain.label "">
-<!ENTITY fullscreenWarning.afterDomain.label "is now full screen">
+<!ENTITY fullscreenWarning.afterDomain.label "pdf viewer">
 <!ENTITY fullscreenWarning.generic.label "This document is now full screen">
 
 <!-- LOCALIZATION NOTE (exitDOMFullscreen.button,
