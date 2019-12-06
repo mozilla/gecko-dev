@@ -1,0 +1,10 @@
+
+User: Chris <chr.chiu@mail.utoronto.ca>
+Date: Wed, 6 Dec 2019 12:25:35 -0500
+Subject: [PATCH] Bug 1225162 - pdf.js in 'pdf.js is now fullscreen' must be changed to something more appropriate.
+
+/src/mozilla-central/browser/locales/en-US/chrome/browser/browser.dtd
+105c105
+-<!ENTITY fullscreenWarning.afterDomain.label "viewer">
+---
++<!ENTITY fullscreenWarning.afterDomain.label "is now full screen">
