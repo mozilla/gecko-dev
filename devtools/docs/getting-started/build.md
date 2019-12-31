@@ -1,8 +1,6 @@
 # Set up to build Firefox Developer Tools
 
-Since the tools are part of Firefox, we need to get and build Firefox's source code.
-
-These are the steps we're going to look at:
+Since DevTools is part of Firefox, we need to get and build Firefox's source code.
 
 * [Installing Mercurial](#installing-mercurial)
 * [Getting the code](#getting-the-code)
@@ -15,7 +13,7 @@ These are the steps we're going to look at:
 
 Firefox's source code is hosted on [a Mercurial repository](https://hg.mozilla.org/mozilla-central/).
 
-Please [install Mercurial](https://www.mercurial-scm.org/) if it's not already installed in your system. Its website provides [files for downloading](https://www.mercurial-scm.org/downloads) and also instructions for the most popular package managers. For example, if using Homebrew in macOS:
+Please [install Mercurial](https://www.mercurial-scm.org/) if it's not already installed in your system. Its website provides  instructions for the most popular package managers. For example, if using Homebrew in macOS:
 
 ```bash
 brew install mercurial
@@ -29,9 +27,7 @@ apt-get install mercurial
 
 ## Getting the code
 
-This will take a long time, because the repository is **B&nbsp;&nbsp;I&nbsp;&nbsp;G** (Firefox is more than 10 years old and there are lots of commits every day!). So please be patient.
-
-You will also need a lot of disk space (about ~40Gb free).
+This will take a while, because the repository is **B&nbsp;&nbsp;I&nbsp;&nbsp;G** (about 40 GB).
 
 ```bash
 cd ~ # or the folder where you store your projects, for example ~/projects
@@ -47,6 +43,7 @@ If you're a web developer, you might not be familiar with these tools, but fortu
 Try building Firefox and downloading dependencies by running the following commands:
 
 ```bash
+cd mozilla-central/ # go to the new folder that was created
 ./mach bootstrap
 ```
 
