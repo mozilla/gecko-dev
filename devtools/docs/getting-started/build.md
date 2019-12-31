@@ -1,4 +1,4 @@
-# Build and Run Firefox Developer Tools
+# Build and Run Firefox
 
 The first big step to working on DevTools is building Firefox's source code.
 
@@ -32,24 +32,18 @@ You can go with the recommended defaults for the rest of the questions. *Note: w
 
 [Full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) 
 
-## Build and Run Firefox
+## Build and run Firefox
 
-Run this:
+Build Firefox:
 
 ```bash
 ./mach configure
 ./mach build
 ```
 
-Please note, if this fails it might be possible you need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.
+Note: If this fails it might be possible you need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.
 
-**Note:** if using Windows, you might need to type the commands without the `./`:
-
-```bash
-mach bootstrap
-mach configure
-mach build
-```
+Note: if using Windows, you might need to type the commands without the `./`:
 
 If your system needs additional dependencies installed (for example, Python, or a compiler, etc) the above commands might fail, and various diagnostic messages will be printed to your screen. Follow their advice and then try running the command that failed again, until the three of them complete successfully.
 
