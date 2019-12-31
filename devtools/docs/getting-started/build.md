@@ -6,7 +6,6 @@ The first big step to working on DevTools is building Firefox's source code.
 * [Getting the code](#getting-the-code)
 * [Building and running locally](#building-and-running-locally)
   * [Rebuilding](#rebuilding)
-  * [Artifact builds](#building-even-faster-with-artifact-builds) for even faster builds
   * [Maybe you don't even need to build](#maybe-you-dont-even-need-to-build)
 
 ## Install Mercurial
@@ -108,26 +107,6 @@ It is a bit tedious to do this manually, but fortunately you can add an entry to
 # Automatically clobber when an incremental build is not possible
 mk_add_options AUTOCLOBBER=1
 ```
-
-### Building even faster with artifact builds
-
-It is unusual to modify C/C++ code when working on DevTools. This means that we can use *artifact builds*. This method downloads prebuilt binary components, and then the build process becomes faster.
-
-Add the following content to `mozconfig`:
-
-```bash
-# Automatically download and use compiled C++ components:
-ac_add_options --enable-artifact-builds
- 
-# Write build artifacts to:
-mk_add_options MOZ_OBJDIR=./objdir-frontend
-```
-
-And then you can follow the normal build process again (only *faster*!)
-
-**Note**: On macOS you might want to use `MOZ_OBJDIR=./objdir-frontend.noindex` instead. Using the `.noindex` file extension prevents the Spotlight from indexing your `objdir`, which is slow.
-
-For more information on aspects such as technical limitations of artifact builds, read the [Artifact Builds](https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Artifact_builds) page.
 
 ## Maybe you don't even need to build
 
