@@ -26,11 +26,13 @@ cd mozilla-central/
 ./mach bootstrap
 ```
 
-The script will ask which version of Firefox you want to build. Choose **1. Firefox for Desktop Artifact Mode**. This is the fastest option, and is recommended for DevTools contributing since you generally won't need to write Rust or C++.
+The script will ask which version of Firefox you want to build. Choose **1. Firefox for Desktop Artifact Mode**. (This is the fastest option, and is recommended for DevTools contributing since you generally won't need to write Rust or C++.) You can go with the recommended defaults for the rest of the questions. 
 
-You can go with the recommended defaults for the rest of the questions. *Note: when you are prompted for your name, adding unicode characters can crash the process. The workaround here is to use ascii-friendly characters and later on edit your `~/.hgrc` file manually to use the unicode characters in your name.*
+*Note: when you are prompted for your name, adding unicode characters can crash the process. The workaround here is to use ascii-friendly characters and later on edit your `~/.hgrc` file manually to use the unicode characters in your name.*
 
-[Full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) 
+After this script successfully completes, create a file called `mozconfig` in your mozilla-central directory and paste in this line:
+
+```ac_add_options --enable-artifact-builds```
 
 ## Build and run Firefox
 
@@ -43,19 +45,13 @@ Build Firefox:
 
 Note: If this fails it might be possible you need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.
 
-Note: if using Windows, you might need to type the commands without the `./`:
+Note: If using Windows, you might need to type the commands without the `./`.
 
-If your system needs additional dependencies installed (for example, Python, or a compiler, etc) the above commands might fail, and various diagnostic messages will be printed to your screen. Follow their advice and then try running the command that failed again, until the three of them complete successfully.
+If your system needs additional dependencies installed, the above commands might fail, and error messages will be printed to your screen. Follow their advice and then try running the command that failed until it completes successfully. (For example, some MacOS users may need to run `brew install python`, `brew link python`.)
 
-Some error messages can be quite cryptic. It is a good idea to consult the [documentation](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) specific to the platform you're using. Sometimes searching in the internet for the specific error message you get can help, and you can also [get in touch](https://firefox-dev.tools/#getting-in-touch) if you get stuck.
+If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with us via Slack.
 
-Once you complete a first successful build, you should be able to build again by running only this command:
-
-```bash
-./mach build
-```
-
-By the way, building takes a long time (specially on slow computers).
+Once you complete a first successful build, you should be able to build again by running just `./mach build`.
 
 ### Running your own compiled version of Firefox
 
@@ -67,7 +63,9 @@ To run the Firefox you just compiled:
 
 This will run using an empty temporary profile which is discarded when you close the browser. We will look into [persistent development profiles later](./development-profiles.md). But first...
 
-⭐️  **Time for some congratulations!** You managed to get Firefox's code, build tools and dependencies, and just run your very own copy of Firefox! Well done! ⭐   ️ 
+⭐️  **Time for some congratulations!** You managed to get Firefox's code, build tools and dependencies, and run your very own copy of Firefox! Well done! ⭐   ️
+
+Note: The Firefox build that you've just created is called Nightly (note the blue globe icon). If you also have Firefox installed as your browser (with the orange fox icon), that's called the Release version. 
 
 ### Rebuilding
 
