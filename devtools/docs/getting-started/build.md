@@ -6,7 +6,6 @@ The first big step to working on DevTools is building Firefox's source code.
 * [Getting the code](#getting-the-code)
 * [Building and running locally](#building-and-running-locally)
   * [Rebuilding](#rebuilding)
-  * [Maybe you don't even need to build](#maybe-you-dont-even-need-to-build)
 
 ## Install Mercurial
 
@@ -107,26 +106,3 @@ It is a bit tedious to do this manually, but fortunately you can add an entry to
 # Automatically clobber when an incremental build is not possible
 mk_add_options AUTOCLOBBER=1
 ```
-
-## Maybe you don't even need to build
-
-Working in DevTools generally involves editing JavaScript files only. This means that often you don't even need to run `./mach build`.
-
-Instead, you just need to save the files you modified, and restart Firefox. To achieve this, you *could* quit Firefox, and reopen it again with `./mach run`. Or you could use the `Restart (Developer)` option that is available under the `File` menu in local builds (or its respective shortcut).
-
-![Image of Restart (Developer) option under File menu](restart.png)
-
-That would be equivalent to the following pseudocode, performed manually:
-
-```bash
-# 1. Build
-./mach build
-# 2. Run
-./mach run
-# 3. you try out things in the browser that opens
-# 4. fully close the browser, e.g. ⌘Q in MacOS
-# 5. edit JS files on the `devtools` folder, save
-# 6. Back to step 2!
-./mach run
-```
-
