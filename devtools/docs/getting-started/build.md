@@ -2,11 +2,6 @@
 
 The first big step to working on DevTools is building Firefox's source code.
 
-* [Installing Mercurial](#installing-mercurial)
-* [Getting the code](#getting-the-code)
-* [Building and running locally](#building-and-running-locally)
-  * [Rebuilding](#rebuilding)
-
 ## Install Mercurial
 
 Firefox's source code is hosted on a [Mercurial repository](https://hg.mozilla.org/mozilla-central/). If you don't already have it, [install Mercurial](https://www.mercurial-scm.org/downloads). Its website provides instructions for the most popular package managers like `brew` and `apt-get`.
