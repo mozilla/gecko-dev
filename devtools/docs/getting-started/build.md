@@ -32,7 +32,9 @@ The script will ask which version of Firefox you want to build. Choose **1. Fire
 
 After this script successfully completes, create a file called `mozconfig` in your mozilla-central directory and paste in this line:
 
-```ac_add_options --enable-artifact-builds```
+```bash
+ac_add_options --enable-artifact-builds
+```
 
 ## Build Firefox
 
