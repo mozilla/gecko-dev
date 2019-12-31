@@ -11,21 +11,11 @@ The first big step to working on DevTools is building Firefox's source code.
 
 ## Install Mercurial
 
-Firefox's source code is hosted on [a Mercurial repository](https://hg.mozilla.org/mozilla-central/). If you don't already have it, [install Mercurial](https://www.mercurial-scm.org/) onto your system. Its website provides instructions for the most popular package managers. For example, if using Homebrew in macOS:
-
-```bash
-brew install mercurial
-```
-
-Or in Debian/Ubuntu Linux with apt-get:
-
-```bash
-apt-get install mercurial
-```
+Firefox's source code is hosted on a [Mercurial repository](https://hg.mozilla.org/mozilla-central/). If you don't already have it, [install Mercurial](https://www.mercurial-scm.org/downloads). Its website provides instructions for the most popular package managers like `brew` and `apt-get`.
 
 ## Get the code
 
-The repository is **B&nbsp;I&nbsp;G** (about 40 GB), so it will take a while to download—about 30 minutes depending on your connection.
+The repository is about 5 GB (20 GB after building). It will take about 30 minutes to download, depending on your connection.
 
 ```bash
 cd ~ # or the folder where you store your projects, for example ~/projects
@@ -47,9 +37,9 @@ The script will ask which version of Firefox you want to build. Choose **1. Fire
 
 You can go with the recommended defaults for the rest of the questions. *Note: when you are prompted for your name, adding unicode characters can crash the process. The workaround here is to use ascii-friendly characters and later on edit your `~/.hgrc` file manually to use the unicode characters in your name.*
 
-[Full build docs.](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) 
+[Full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) 
 
-## Build Firefox
+## Build and Run Firefox
 
 Run this:
 
