@@ -1,6 +1,6 @@
-# Set up to build Firefox Developer Tools
+# Build and Run Firefox Developer Tools
 
-Since DevTools is part of Firefox, we need to get and build Firefox's source code.
+The first big step to working on DevTools is building Firefox's source code.
 
 * [Installing Mercurial](#installing-mercurial)
 * [Getting the code](#getting-the-code)
@@ -9,11 +9,9 @@ Since DevTools is part of Firefox, we need to get and build Firefox's source cod
   * [Artifact builds](#building-even-faster-with-artifact-builds) for even faster builds
   * [Maybe you don't even need to build](#maybe-you-dont-even-need-to-build)
 
-## Installing Mercurial
+## Install Mercurial
 
-Firefox's source code is hosted on [a Mercurial repository](https://hg.mozilla.org/mozilla-central/).
-
-Please [install Mercurial](https://www.mercurial-scm.org/) if it's not already installed in your system. Its website provides  instructions for the most popular package managers. For example, if using Homebrew in macOS:
+Firefox's source code is hosted on [a Mercurial repository](https://hg.mozilla.org/mozilla-central/). If you don't already have it, [install Mercurial](https://www.mercurial-scm.org/) onto your system. Its website provides instructions for the most popular package managers. For example, if using Homebrew in macOS:
 
 ```bash
 brew install mercurial
@@ -25,16 +23,16 @@ Or in Debian/Ubuntu Linux with apt-get:
 apt-get install mercurial
 ```
 
-## Getting the code
+## Get the code
 
-This will take a while, because the repository is **B&nbsp;&nbsp;I&nbsp;&nbsp;G** (about 40 GB).
+The repository is **B&nbsp;I&nbsp;G** (about 40 GB), so it will take a while to download—about 30 minutes depending on your connection.
 
 ```bash
 cd ~ # or the folder where you store your projects, for example ~/projects
 hg clone https://hg.mozilla.org/mozilla-central
 ```
 
-## Building and running locally
+## Build and run locally
 
 Although DevTools is written in JavaScript, the core of Firefox is not—we need tools such as compilers to build the C/C++/Rust code and turn it into binaries that our computer can run.
 
