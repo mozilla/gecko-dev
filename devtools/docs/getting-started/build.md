@@ -32,26 +32,26 @@ cd ~ # or the folder where you store your projects, for example ~/projects
 hg clone https://hg.mozilla.org/mozilla-central
 ```
 
-## Build and run locally
+## Install dependencies
 
-Although DevTools is written in JavaScript, the core of Firefox is not—we need tools such as compilers to build the C/C++/Rust code and turn it into binaries that our computer can run.
+The following section is for Linux and MacOS users. Window users, [follow these instructions](https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Windows_Prerequisites) instead.
 
-If you're a web developer, you might not be familiar with these tools, but fortunately, the Firefox team has made a very good job of automating the process of installing them with bootstrap scripts, and putting [documentation](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) together. You don't *need* to read it now; as we'll provide a simplified way to build the code, but if you have any issues, please refer to the documentation.
-
-Try building Firefox and downloading dependencies by running the following commands:
+Go to the new folder that was created and run Firefox's bootstrap script.
 
 ```bash
-cd mozilla-central/ # go to the new folder that was created
+cd mozilla-central/
 ./mach bootstrap
 ```
 
-This script might ask you questions, so it's recommended to keep an eye on the terminal while it's running—otherwise it will never finish!
+The script will ask which version of Firefox you want to build. Choose **1. Firefox for Desktop Artifact Mode**. This is the fastest option, and is recommended for DevTools contributing since you generally won't need to write Rust or C++.
 
-*Please note, when you are prompted for your name and add unicode characters this can crash the process. The workaround here is to use ascii-friendly characters and later on edit your `~/.hgrc` file manually to use the unicode characters in your name.*
+You can go with the recommended defaults for the rest of the questions. *Note: when you are prompted for your name, adding unicode characters can crash the process. The workaround here is to use ascii-friendly characters and later on edit your `~/.hgrc` file manually to use the unicode characters in your name.*
 
-After it finishes, you might be asked to add some lines to a `mozconfig` file. Create this file in the repository folder (i.e. in `~/mozilla-central`), then add the lines.
+[Full build docs.](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) 
 
-Then run this:
+## Build Firefox
+
+Run this:
 
 ```bash
 ./mach configure
