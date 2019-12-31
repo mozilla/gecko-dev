@@ -40,6 +40,8 @@ hg clone https://hg.mozilla.org/mozilla-central
 
 ## Building and running locally
 
+Note: If you are working on a patch that only affects HTML, CSS, and/or JS (which is common in DevTools), be sure to follow the instructions for [artifact builds](#building-even-faster-with-artifact-builds) for much faster builds.
+
 Although DevTools is written in JavaScript, the core of Firefox is not—we need tools such as compilers to build the C/C++/Rust code and turn it into binaries that our computer can run.
 
 If you're a web developer, you might not be familiar with these tools, but fortunately, the Firefox team has made a very good job of automating the process of installing them with bootstrap scripts, and putting [documentation](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build) together. You don't *need* to read it now; as we'll provide a simplified way to build the code, but if you have any issues, please refer to the documentation.
