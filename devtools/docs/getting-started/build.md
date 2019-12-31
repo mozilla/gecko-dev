@@ -19,7 +19,7 @@ hg clone https://hg.mozilla.org/mozilla-central
 
 The following section is for Linux and MacOS users. Window users, [follow these instructions](https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Windows_Prerequisites) instead.
 
-Go to the new folder that was created and run Firefox's bootstrap script.
+Go to the new folder that was created and run the bootstrap script.
 
 ```bash
 cd mozilla-central/
@@ -34,54 +34,50 @@ After this script successfully completes, create a file called `mozconfig` in yo
 
 ```ac_add_options --enable-artifact-builds```
 
-## Build and run Firefox
+## Build Firefox
 
-Build Firefox:
+Open a new terminal window and run these commands:
 
 ```bash
 ./mach configure
 ./mach build
 ```
 
-Note: If this fails it might be possible you need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.
-
-Note: If using Windows, you might need to type the commands without the `./`.
-
 If your system needs additional dependencies installed, the above commands might fail, and error messages will be printed to your screen. Follow their advice and then try running the command that failed until it completes successfully. (For example, some MacOS users may need to run `brew install python`, `brew link python`.)
+
+*Note: If this fails you might need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.*
+
+*Note: If using Windows, you might need to type the commands without the `./`.*
 
 If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with us via Slack.
 
-Once you complete a first successful build, you should be able to build again by running just `./mach build`.
+## Run Firefox
 
-### Running your own compiled version of Firefox
-
-To run the Firefox you just compiled:
+To run the local Firefox build you just compiled:
 
 ```bash
 ./mach run
 ```
 
-This will run using an empty temporary profile which is discarded when you close the browser. We will look into [persistent development profiles later](./development-profiles.md). But first...
+You'll see a new Firefox window open up called Nightly—note the blue globe icon. If you also have Firefox installed as your browser (with the orange fox icon), that's called the Release version.
+
+Your local Firefox will run using an empty temporary profile which is discarded when you close the browser. We will look into [persistent development profiles later](./development-profiles.md). But first...
 
 ⭐️  **Time for some congratulations!** You managed to get Firefox's code, build tools and dependencies, and run your very own copy of Firefox! Well done! ⭐   ️
 
-Note: The Firefox build that you've just created is called Nightly (note the blue globe icon). If you also have Firefox installed as your browser (with the orange fox icon), that's called the Release version. 
-
-### Rebuilding
+## Rebuild Firefox
 
 <!--TODO: it would be valuable to explain how to pull changes! -->
 
-Suppose you pulled the latest changes from the remote repository (or made some changes, to experiment and see what happens) and want to build again.
+Once you complete a first successful build, you can build again by running `./mach build`. 
 
-You can ask the `mach` script to build only changed files:
+You can also ask the `mach` script to build only changed files for a faster process:
 
 ```bash
 ./mach build faster
 ```
 
-This should be faster (a matter of seconds).
-
-Sometimes, if you haven't updated in a while, you'll be told that you need to *clobber*, or basically delete precompiled stuff and start from scratch, because there are too many changes. The way to do it is:
+Sometimes, if you haven't updated in a while, you'll be told that you need to *clobber*, or basically delete precompiled stuff and start from scratch, because there are too many changes:
 
 ```bash
 ./mach clobber
