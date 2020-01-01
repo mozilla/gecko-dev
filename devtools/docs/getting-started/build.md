@@ -47,7 +47,7 @@ Open a new terminal window and run these commands:
 
 If your system needs additional dependencies, the above commands will fail, and error messages will be printed to your screen. Follow their advice and then try running the commands again until they complete successfully. (For example, some MacOS users may need to run `brew link python`.)
 
-If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with the DevToolos community via Slack.
+If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with the DevTools community via Slack.
 
 ## Run Firefox
 
