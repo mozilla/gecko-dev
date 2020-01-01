@@ -45,13 +45,9 @@ Open a new terminal window and run these commands:
 ./mach build
 ```
 
-If your system needs additional dependencies installed, the above commands might fail, and error messages will be printed to your screen. Follow their advice and then try running the command that failed until it completes successfully. (For example, some MacOS users may need to run `brew install python`, `brew link python`.)
+If your system needs additional dependencies, the above commands will fail, and error messages will be printed to your screen. Follow their advice and then try running the commands again until they complete successfully. (For example, some MacOS users may need to run `brew link python`.)
 
-*Note: If this fails you might need to run the `bootstrap.py` script first. Download the [bootstrap.py script](https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py) and save it in your project directory. Then run `python bootstrap.py` and follow the prompted steps.*
-
-*Note: If using Windows, you might need to type the commands without the `./`.*
-
-If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with us via Slack.
+If you get stuck, you can consult the [full build docs](https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_build), search the internet for a specific error message, or [get in touch](https://firefox-dev.tools/) with the DevToolos community via Slack.
 
 ## Run Firefox
 
@@ -61,7 +57,7 @@ To run the local Firefox build you just compiled:
 ./mach run
 ```
 
-You'll see a new Firefox window open up called Nightly—note the blue globe icon. If you also have Firefox installed as your browser (with the orange fox icon), that's called the Release version.
+If successful, your local Firefox will open—it's called Nightly and has a blue globe icon.
 
 Your local Firefox will run using an empty temporary profile which is discarded when you close the browser. We will look into [persistent development profiles later](./development-profiles.md). But first...
 
