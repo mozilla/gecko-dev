@@ -22,8 +22,17 @@
 #include "nsNSSHelper.h"
 #include "nsPK11TokenDB.h"
 #include "pk11func.h"
+
+// temporary includes for key3.db cleanup
+#include "nsAppDirectoryServiceDefs.h"
+#include "pk11pub.h"
+
 #include "pk11sdr.h"  // For PK11SDR_Encrypt, PK11SDR_Decrypt
 #include "ssl.h"      // For SSL_ClearSessionCache
+
+#ifdef XP_WIN
+#  include "nsILocalFileWin.h"
+#endif
 
 using namespace mozilla;
 using dom::Promise;
@@ -181,6 +190,109 @@ SecretDecoderRing::AsyncEncryptStrings(uint32_t plaintextsCount,
   return NS_OK;
 }
 
+//// Function TEMPORARILY copied from nsNSSComponent.cpp
+// Helper function to take a path and a file name and create a handle for the
+// file in that location, if it exists. |path| is encoded in UTF-8.
+static nsresult GetFileIfExists(const nsACString& path,
+                                const nsACString& filename,
+                                /* out */ nsIFile** result) {
+  MOZ_ASSERT(result);
+  if (!result) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  *result = nullptr;
+  nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+  if (!file) {
+    return NS_ERROR_FAILURE;
+  }
+#  ifdef XP_WIN
+  // |path| is encoded in UTF-8 because SQLite always takes UTF-8 file paths
+  // regardless of the current system code page.
+  nsresult rv = file->InitWithPath(NS_ConvertUTF8toUTF16(path));
+#  else
+  nsresult rv = file->InitWithNativePath(path);
+#  endif
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  rv = file->AppendNative(filename);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  bool exists;
+  rv = file->Exists(&exists);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  if (exists) {
+    file.forget(result);
+  }
+  return NS_OK;
+}
+
+//// Function TEMPORARILY copied from nsNSSComponent.cpp
+static nsresult GetNSSProfilePath(nsAutoCString& aProfilePath) {
+  aProfilePath.Truncate();
+  nsCOMPtr<nsIFile> profileFile;
+  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                       getter_AddRefs(profileFile));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+#if defined(XP_WIN)
+  // SQLite always takes UTF-8 file paths regardless of the current system
+  // code page.
+  nsCOMPtr<nsILocalFileWin> profileFileWin(do_QueryInterface(profileFile));
+  if (!profileFileWin) {
+    return NS_ERROR_FAILURE;
+  }
+  nsAutoString u16ProfilePath;
+  rv = profileFileWin->GetCanonicalPath(u16ProfilePath);
+  CopyUTF16toUTF8(u16ProfilePath, aProfilePath);
+#else
+  rv = profileFile->GetNativePath(aProfilePath);
+#endif
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  return NS_OK;
+}
+
+static void CleanupKey3DB()
+{
+  UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
+
+  if (PK11_IsReadOnly(slot.get()) || !PK11_IsLoggedIn(slot.get(), nullptr))
+    return;
+
+  nsAutoCString profileStr;
+  nsresult rv = GetNSSProfilePath(profileStr);
+  if (NS_FAILED(rv))
+    return;
+
+  NS_NAMED_LITERAL_CSTRING(newKeyDBFilename, "key4.db");
+  nsCOMPtr<nsIFile> newDBFile;
+  rv = GetFileIfExists(profileStr, newKeyDBFilename,
+                       getter_AddRefs(newDBFile));
+  if (NS_FAILED(rv) || !newDBFile) {
+    // If we don't have key4, then we shouldn't delete key3.
+    // Potentially we're a patched application that doesn't use sql:
+    return;
+  }
+
+  NS_NAMED_LITERAL_CSTRING(oldKeyDBFilename, "key3.db");
+  nsCOMPtr<nsIFile> oldDBFile;
+  rv = GetFileIfExists(profileStr, oldKeyDBFilename,
+                       getter_AddRefs(oldDBFile));
+  if (!oldDBFile) {
+    return;
+  }
+  // Since this isn't a directory, the `recursive` argument to `Remove` is
+  // irrelevant.
+  Unused << oldDBFile->Remove(false);
+}
+
 NS_IMETHODIMP
 SecretDecoderRing::DecryptString(const nsACString& encryptedBase64Text,
                                  /*out*/ nsACString& decryptedText) {
@@ -193,6 +305,14 @@ SecretDecoderRing::DecryptString(const nsACString& encryptedBase64Text,
   rv = Decrypt(encryptedText, decryptedText);
   if (NS_FAILED(rv)) {
     return rv;
+  }
+
+  // This is a good time to perform a necessary key3.db cleanup,
+  // see bug 1606619. Only do it once per session.
+  static bool alreadyCheckedKey3Cleanup = false;
+  if (!alreadyCheckedKey3Cleanup) {
+    alreadyCheckedKey3Cleanup = true;
+    CleanupKey3DB();
   }
 
   return NS_OK;
