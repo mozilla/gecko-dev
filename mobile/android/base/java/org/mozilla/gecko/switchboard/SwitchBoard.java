@@ -33,6 +33,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.Experiments;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.search.SearchEngineManager;
 import org.mozilla.gecko.util.HardwareUtils;
@@ -154,6 +155,17 @@ public class SwitchBoard {
         final Boolean override = Preferences.getOverrideValue(c, experimentName);
         if (override != null) {
             return override;
+        }
+
+        // Leanplum should be enabled for anyone that has master password enabled otherwise
+        // make the normal checks
+        if (experimentName.equalsIgnoreCase(Experiments.LEANPLUM_DEBUG) ||
+                (experimentName.equalsIgnoreCase(Experiments.LEANPLUM))) {
+            final boolean isMasterPasswordEnabled = GeckoSharedPrefs.forProfile(c)
+                    .getBoolean("android.not_a_preference.master_password_enabled", false);
+            if (isMasterPasswordEnabled) {
+                return true;
+            }
         }
 
         final String config = Preferences.getDynamicConfigJson(c);
