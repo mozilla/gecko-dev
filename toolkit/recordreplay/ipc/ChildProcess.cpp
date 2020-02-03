@@ -162,6 +162,9 @@ void ChildProcessInfo::LaunchSubprocess(
 
     SendGraphicsMemoryToChild();
   } else {
+    UniquePtr<Message> jsmsg(ReplayJSMessage::New(
+        0, 0, child::gReplayJS.BeginReading(), child::gReplayJS.Length()));
+    SendMessage(std::move(*jsmsg));
     if (gRecordingContents.length()) {
       UniquePtr<Message> msg(RecordingDataMessage::New(
           0, 0, gRecordingContents.begin(), gRecordingContents.length()));

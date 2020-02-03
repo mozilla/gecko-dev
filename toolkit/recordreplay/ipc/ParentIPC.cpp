@@ -472,7 +472,7 @@ bool gActiveChildIsRecording;
 
 static void ExtractCloudRecordingName(const char* aFileName,
                                       nsAutoCString& aRecordingName) {
-  const char prefix[] = "cloud-replay://";
+  const char prefix[] = "webreplay://";
   if (!strncmp(aFileName, prefix, strlen(prefix))) {
     aRecordingName = nsCString(aFileName + strlen(prefix));
   }

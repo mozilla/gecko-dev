@@ -87,6 +87,8 @@ void AddPendingRecordingData();
 // In a root replaying process, save all recording data to the cloud.
 void SaveCloudRecording(const char* aName);
 
+extern nsCString gReplayJS;
+
 }  // namespace child
 }  // namespace recordreplay
 }  // namespace mozilla

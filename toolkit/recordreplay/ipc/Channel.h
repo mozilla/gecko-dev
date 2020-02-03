@@ -79,6 +79,12 @@ namespace recordreplay {
   /* Tell a replaying process to fetch recording data from the cloud. */ \
   _Macro(FetchCloudRecordingData)                              \
                                                                \
+  /* Get recording data that is stored in the root process. */ \
+  _Macro(UpdateRecordingFromRoot)                              \
+                                                               \
+  /* Set the JS which will run in the replaying process. */    \
+  _Macro(ReplayJS)                                             \
+                                                               \
   /* Messages sent from the child process to the middleman. */ \
                                                                \
   /* Pause after executing a manifest, specifying its response. */ \
@@ -161,8 +167,10 @@ struct Message {
            mType == MessageType::Terminate ||
            mType == MessageType::Crash ||
            mType == MessageType::Introduction ||
+           mType == MessageType::ReplayJS ||
            mType == MessageType::RecordingData ||
-           mType == MessageType::FetchCloudRecordingData;
+           mType == MessageType::FetchCloudRecordingData ||
+           mType == MessageType::UpdateRecordingFromRoot;
   }
 
  protected:
@@ -331,6 +339,20 @@ typedef BinaryMessage<MessageType::ExternalCallResponse>
 
 // The tag is the start offset of the recording data needed.
 typedef BinaryMessage<MessageType::RecordingData> RecordingDataMessage;
+
+struct UpdateRecordingFromRootMessage : public Message {
+  uint64_t mStart;
+  uint32_t mSize;
+
+  UpdateRecordingFromRootMessage(uint32_t aForkId, uint64_t aStart,
+                                 uint32_t aSize)
+      : Message(MessageType::UpdateRecordingFromRoot, sizeof(*this), aForkId),
+        mStart(aStart),
+        mSize(aSize) {}
+};
+
+// The tag is not used.
+typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
 
 struct PingMessage : public Message {
   uint32_t mId;

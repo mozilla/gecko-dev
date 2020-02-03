@@ -65,8 +65,10 @@ static FileHandle gCheckpointReadFd;
 // receipt and then processed during InitRecordingOrReplayingProcess.
 static UniquePtr<IntroductionMessage, Message::FreePolicy> gIntroductionMessage;
 
-// Data we've received which hasn't been incorporated into the recording yet.
-static StaticInfallibleVector<char> gPendingRecordingData;
+// All recording contents we have received, protected by gMonitor. This may not
+// have all been incorporated into the recording, which happens on the main
+// thread.
+static StaticInfallibleVector<char> gRecordingContents;
 
 // Any response received to the last ExternalCallRequest message.
 static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
@@ -76,26 +78,11 @@ static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
 // gCallResponseMessage to be filled in.
 static bool gWaitingForCallResponse;
 
-// The recording contents are maintained in the root replaying process, for use
-// when saving cloud recordings.
-StaticInfallibleVector<char> gRecordingContents;
-
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
-  if (ReplayingInCloud() &&
-      !gForkId &&
-      aMsg->mType == MessageType::RecordingData) {
-    MonitorAutoLock lock(*gMonitor);
-    const auto& nmsg = static_cast<const RecordingDataMessage&>(*aMsg);
-    MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
-    if (nmsg.mTag == gRecordingContents.length()) {
-      gRecordingContents.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
-    }
-  }
-
   if (aMsg->mForkId != gForkId) {
     MOZ_RELEASE_ASSERT(!gForkId);
     HandleMessageToForkedProcess(std::move(aMsg));
@@ -165,12 +152,22 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       gMonitor->NotifyAll();
       break;
     }
+    case MessageType::ReplayJS: {
+      MonitorAutoLock lock(*gMonitor);
+      const ReplayJSMessage& nmsg = (const ReplayJSMessage&)*aMsg;
+
+      // We are off the main thread, but this is OK because the recording data
+      // itself has not been received yet, and the JS module will not be read
+      // until we have reached the first checkpoint.
+      MOZ_RELEASE_ASSERT(IsReplaying());
+      js::SetWebReplayJS(nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize()));
+      break;
+    }
     case MessageType::RecordingData: {
       MonitorAutoLock lock(*gMonitor);
       const RecordingDataMessage& nmsg = (const RecordingDataMessage&)*aMsg;
-      MOZ_RELEASE_ASSERT(
-          nmsg.mTag == gRecording->Size() + gPendingRecordingData.length());
-      gPendingRecordingData.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
+      MOZ_RELEASE_ASSERT(nmsg.mTag == gRecordingContents.length());
+      gRecordingContents.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
       gMonitor->NotifyAll();
       break;
     }
@@ -179,7 +176,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       char* buf;
       size_t size;
       FetchCloudRecordingData(&buf, &size);
-      gPendingRecordingData.append(buf, size);
+      gRecordingContents.append(buf, size);
       gMonitor->NotifyAll();
       break;
     }
@@ -280,7 +277,7 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
 
   // If we're replaying, we also need to wait for some recording data.
   if (IsReplaying()) {
-    while (gPendingRecordingData.empty()) {
+    while (gRecordingContents.empty()) {
       gMonitor->Wait();
     }
   }
@@ -425,7 +422,21 @@ static bool MaybeHandleExternalCallResponse(const Message& aMsg) {
 
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg) {
   MaybeHandleExternalCallResponse(*aMsg);
-  SendMessageToForkedProcess(std::move(aMsg));
+
+  // Transform UpdateRecordingFromRoot messages into RecordingData messages,
+  // so that the recording data only has to be uploaded once to the root process
+  // and then redistributed via IPC to forks.
+  if (aMsg->mType == MessageType::UpdateRecordingFromRoot) {
+    MOZ_RELEASE_ASSERT(!gForkId);
+    const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
+    MOZ_RELEASE_ASSERT(nmsg.mStart + nmsg.mSize <= gRecordingContents.length());
+    Message::UniquePtr newMessage(RecordingDataMessage::New(
+        nmsg.mForkId, nmsg.mStart,
+        gRecordingContents.begin() + nmsg.mStart, nmsg.mSize));
+    SendMessageToForkedProcess(std::move(newMessage));
+  } else {
+    SendMessageToForkedProcess(std::move(aMsg));
+  }
 }
 
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
@@ -562,20 +573,22 @@ size_t GetId() { return gChannel->GetId(); }
 size_t GetForkId() { return gForkId; }
 
 void AddPendingRecordingData() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   Thread::WaitForIdleThreads();
 
   InfallibleVector<Stream*> updatedStreams;
   {
     MonitorAutoLock lock(*gMonitor);
 
-    if (gPendingRecordingData.empty()) {
+    if (gRecordingContents.length() == gRecording->Size()) {
       Print("Hit end of recording, crashing...\n");
       MOZ_CRASH("AddPendingRecordingData");
     }
 
-    gRecording->NewContents((const uint8_t*)gPendingRecordingData.begin(),
-                            gPendingRecordingData.length(), &updatedStreams);
-    gPendingRecordingData.clear();
+    gRecording->NewContents(
+        (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),
+        gRecordingContents.length() - gRecording->Size(),
+        &updatedStreams);
   }
 
   for (Stream* stream : updatedStreams) {
@@ -599,8 +612,17 @@ static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
 }
 
+// In the middleman, JS to send to new replaying processes. This matches up
+// with the control JS running in this process.
+nsCString gReplayJS;
+
 void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
-  js::SetWebReplayJS(IsRecordingOrReplaying() ? aReplayJS : aControlJS);
+  if (IsMiddleman()) {
+    js::SetWebReplayJS(aControlJS);
+    gReplayJS = aReplayJS;
+  } else if (IsRecording()) {
+    js::SetWebReplayJS(aReplayJS);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

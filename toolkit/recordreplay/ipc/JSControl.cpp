@@ -80,6 +80,7 @@ static void InitializeScriptHits();
 static nsCString gModuleText;
 
 void SetWebReplayJS(const nsCString& aModule) {
+  MOZ_RELEASE_ASSERT(gModuleText.IsEmpty());
   gModuleText = aModule;
 }
 
@@ -499,8 +500,15 @@ static bool Middleman_UpdateRecording(JSContext* aCx, unsigned aArgc,
 
   size_t start = args.get(2).toNumber();
   size_t end = args.get(3).toNumber();
+  MOZ_RELEASE_ASSERT(start < end);
+  MOZ_RELEASE_ASSERT(end <= parent::gRecordingContents.length());
 
-  if (start < parent::gRecordingContents.length()) {
+  bool fromRoot = ToBoolean(args.get(4));
+
+  if (fromRoot) {
+    child->SendMessage(UpdateRecordingFromRootMessage(forkId, start, end - start));
+  } else {
+    MOZ_RELEASE_ASSERT(!forkId);
     UniquePtr<Message> msg(RecordingDataMessage::New(
         forkId, start, parent::gRecordingContents.begin() + start,
         end - start));
@@ -1509,7 +1517,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("terminate", Middleman_Terminate, 2, 0),
     JS_FN("crashHangedChild", Middleman_CrashHangedChild, 2, 0),
     JS_FN("recordingLength", Middleman_RecordingLength, 0, 0),
-    JS_FN("updateRecording", Middleman_UpdateRecording, 4, 0),
+    JS_FN("updateRecording", Middleman_UpdateRecording, 5, 0),
     JS_FN("setActiveChildIsRecording", Middleman_SetActiveChildIsRecording, 1, 0),
     JS_FS_END};
 
