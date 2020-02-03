@@ -569,8 +569,10 @@ class ContentChild final : public PContentChild,
       const Maybe<base::SharedMemoryHandle>& aSharedUASheetHandle,
       const uintptr_t& aSharedUASheetAddress);
 
-  mozilla::ipc::IPCResult RecvSetWebReplayJS(
-      const nsCString& aControlJS, const nsCString& aReplayJS);
+  mozilla::ipc::IPCResult RecvSetWebReplayJS(const nsCString& aControlJS,
+                                             const nsCString& aReplayJS);
+
+  mozilla::ipc::IPCResult RecvRecordReplayLog(const nsString& aText);
 
   mozilla::ipc::IPCResult RecvProvideAnonymousTemporaryFile(
       const uint64_t& aID, const FileDescOrError& aFD);

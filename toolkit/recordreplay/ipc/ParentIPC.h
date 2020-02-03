@@ -86,6 +86,9 @@ bool UseCloudForReplayingProcesses();
 void CreateReplayingCloudProcess(base::ProcessId aProcessId,
                                  uint32_t aChannelId);
 
+// This can be called in middleman and recording/replaying processes.
+void AddToLog(bool aIncludePrefix, const nsAString& aText);
+
 }  // namespace parent
 }  // namespace recordreplay
 }  // namespace mozilla

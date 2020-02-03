@@ -92,6 +92,8 @@ void SaveCloudRecording(const char* aName);
 
 extern nsCString gReplayJS;
 
+void PrintLog(const nsAString& aText);
+
 }  // namespace child
 }  // namespace recordreplay
 }  // namespace mozilla

@@ -5583,16 +5583,24 @@ var XULBrowserWindow = {
   },
 
   updateRecordingButton() {
+    const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+    const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
+
+    if (recording || replaying) {
+      const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
+      ChromeUtils.recordReplaySetActiveTab(remoteTab);
+    } else {
+      ChromeUtils.recordReplaySetActiveTab(null);
+    }
+
     const recordingButton = document.getElementById("recording-button");
     if (recordingButton) {
-      const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
       if (recording) {
         recordingButton.classList.add("recordingButtonRecording");
       } else {
         recordingButton.classList.remove("recordingButtonRecording");
       }
 
-      const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
       if (replaying) {
         recordingButton.classList.add("recordingButtonReplaying");
       } else {

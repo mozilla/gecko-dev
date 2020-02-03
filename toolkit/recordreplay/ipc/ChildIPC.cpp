@@ -163,6 +163,11 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       js::SetWebReplayJS(nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize()));
       break;
     }
+    case MessageType::LogText: {
+      const LogTextMessage& nmsg = (const LogTextMessage&)*aMsg;
+      DirectPrint(nmsg.BinaryData());
+      break;
+    }
     case MessageType::RecordingData: {
       MonitorAutoLock lock(*gMonitor);
       const RecordingDataMessage& nmsg = (const RecordingDataMessage&)*aMsg;
@@ -283,10 +288,14 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
   }
 }
 
+static double gStartTime;
+
 void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
   if (!IsRecordingOrReplaying()) {
     return;
   }
+
+  gStartTime = CurrentTime();
 
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
@@ -304,6 +313,10 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
 
   // Process the introduction message to fill in arguments.
   MOZ_RELEASE_ASSERT(gParentArgv.empty());
+
+  if (IsReplaying() && gIntroductionMessage->mLoggingEnabled) {
+    parent::EnableLogging();
+  }
 
   // Record/replay the introduction message itself so we get consistent args
   // between recording and replaying.
@@ -641,6 +654,15 @@ void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
   } else if (IsRecording()) {
     js::SetWebReplayJS(aReplayJS);
   }
+}
+
+void PrintLog(const nsAString& aText) {
+  double elapsed = (CurrentTime() - gStartTime) / 1e6;
+  char buf[2048];
+  snprintf(buf, sizeof(buf), "[#%lu:%lu %.2f] %s\n", GetId(), gForkId, elapsed,
+           NS_ConvertUTF16toUTF8(aText).get());
+  buf[sizeof(buf) - 1] = 0;
+  DirectPrint(buf);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

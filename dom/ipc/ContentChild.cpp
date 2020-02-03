@@ -637,6 +637,11 @@ mozilla::ipc::IPCResult ContentChild::RecvSetWebReplayJS(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentChild::RecvRecordReplayLog(const nsString& aText) {
+  recordreplay::parent::AddToLog(false, aText);
+  return IPC_OK();
+}
+
 bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
                         const char* aParentBuildID, IPC::Channel* aChannel,
                         uint64_t aChildID, bool aIsForBrowser) {

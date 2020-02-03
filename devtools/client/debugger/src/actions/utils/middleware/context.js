@@ -30,6 +30,9 @@ function context({ dispatch, getState }: ThunkArgs) {
     if ("cx" in action) {
       validateActionContext(getState, action);
     }
+
+    ChromeUtils.recordReplayLog(`Debugger:${action.type}`);
+
     return next(action);
   };
 }

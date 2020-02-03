@@ -90,6 +90,7 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
       // Record/replay specific messages.
       type == dom::PContent::Msg_SaveRecording__ID ||
       type == dom::PContent::Msg_SaveCloudRecording__ID ||
+      type == dom::PContent::Msg_RecordReplayLog__ID ||
       // Teardown that should only happen in the middleman.
       type == dom::PContent::Msg_Shutdown__ID) {
     ipc::IProtocol::Result r =

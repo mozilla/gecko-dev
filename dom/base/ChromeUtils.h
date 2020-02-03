@@ -205,6 +205,11 @@ class ChromeUtils {
                                            JS::HandleValue aCallback);
   static void SetCloudRecordingSavedCallback(const GlobalObject& aGlobal,
                                              JS::HandleValue aCallback);
+
+  static void RecordReplayLog(const GlobalObject& aGlobal,
+                              const nsAString& aText);
+  static void RecordReplaySetActiveTab(const GlobalObject& aGlobal,
+                                       nsISupports* aTab);
 };
 
 }  // namespace dom

@@ -827,6 +827,13 @@ pref("devtools.console.stdout.content", false, sticky);
 // Controls whether EventEmitter module throws dump message on each emit
 pref("toolkit.dump.emit", false);
 
+// Controls whether behavior when recording/replaying will be logged and
+// submitted to the cloud server. Logs are anonymized and do not contain
+// identifying information about the user or visited sites. They are used to
+// improve performance and stability.
+pref("devtools.recordreplay.logging.enabled", true);
+
+// Address of the cloud server to connect to for record/replay sessions.
 pref("devtools.recordreplay.cloudServer", "https://webreplay.org/internal/server.txt");
 
 // Preferences for the new performance panel.

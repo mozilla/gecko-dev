@@ -169,8 +169,11 @@ class ChildProcessInfo {
   void SendMessage(Message&& aMessage);
 
   static void SetIntroductionMessage(IntroductionMessage* aMessage);
+  static void EnableLoggingInChildProcesses();
   static void MaybeProcessNextMessage();
 };
+
+void EnableLogging();
 
 }  // namespace parent
 }  // namespace recordreplay

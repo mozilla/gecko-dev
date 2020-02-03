@@ -1237,6 +1237,8 @@ class ContentParent final : public PContentParent,
 
   static bool ShouldSyncPreference(const char16_t* aData);
 
+  TimeDuration TimeSinceLaunch();
+
  private:
   // Released in ActorDealloc; deliberately not exposed to the CC.
   RefPtr<ContentParent> mSelfRef;

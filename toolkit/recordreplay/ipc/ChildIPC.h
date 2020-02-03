@@ -42,6 +42,8 @@ inline void CreateCheckpoint() {
 // This will be used in both the middleman and child processes.
 void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS);
 
+void PrintToLog(const nsAString& aText);
+
 ///////////////////////////////////////////////////////////////////////////////
 // Painting Coordination
 ///////////////////////////////////////////////////////////////////////////////

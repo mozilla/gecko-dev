@@ -22,6 +22,11 @@ void ChildProcessInfo::SetIntroductionMessage(IntroductionMessage* aMessage) {
   gIntroductionMessage = aMessage;
 }
 
+/* static */
+void ChildProcessInfo::EnableLoggingInChildProcesses() {
+  gIntroductionMessage->mLoggingEnabled = true;
+}
+
 ChildProcessInfo::ChildProcessInfo(
     size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData)
     : mRecording(aRecordingProcessData.isSome()) {

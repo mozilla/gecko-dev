@@ -85,6 +85,9 @@ namespace recordreplay {
   /* Set the JS which will run in the replaying process. */    \
   _Macro(ReplayJS)                                             \
                                                                \
+  /* Send some logging text to print. */                       \
+  _Macro(LogText)                                              \
+                                                               \
   /* Messages sent from the child process to the middleman. */ \
                                                                \
   /* Pause after executing a manifest, specifying its response. */ \
@@ -168,6 +171,7 @@ struct Message {
            mType == MessageType::Crash ||
            mType == MessageType::Introduction ||
            mType == MessageType::ReplayJS ||
+           mType == MessageType::LogText ||
            mType == MessageType::RecordingData ||
            mType == MessageType::FetchCloudRecordingData ||
            mType == MessageType::UpdateRecordingFromRoot;
@@ -205,18 +209,23 @@ struct IntroductionMessage : public Message {
   // Used when recording to specify the parent process pid.
   base::ProcessId mParentPid;
 
+  // Used when recording or replaying to indicate whether logging is enabled.
+  bool mLoggingEnabled;
+
   uint32_t mArgc;
 
   IntroductionMessage(uint32_t aSize, base::ProcessId aParentPid,
-                      uint32_t aArgc)
+                      bool aLoggingEnabled, uint32_t aArgc)
       : Message(MessageType::Introduction, aSize, 0),
         mParentPid(aParentPid),
+        mLoggingEnabled(aLoggingEnabled),
         mArgc(aArgc) {}
 
   char* ArgvString() { return Data<IntroductionMessage, char>(); }
   const char* ArgvString() const { return Data<IntroductionMessage, char>(); }
 
-  static IntroductionMessage* New(base::ProcessId aParentPid, int aArgc,
+  static IntroductionMessage* New(base::ProcessId aParentPid,
+                                  bool aLoggingEnabled, int aArgc,
                                   char* aArgv[]) {
     size_t argsLen = 0;
     for (int i = 0; i < aArgc; i++) {
@@ -224,7 +233,7 @@ struct IntroductionMessage : public Message {
     }
 
     IntroductionMessage* res =
-        NewWithData<IntroductionMessage, char>(argsLen, aParentPid, aArgc);
+      NewWithData<IntroductionMessage, char>(argsLen, aParentPid, aLoggingEnabled, aArgc);
 
     size_t offset = 0;
     for (int i = 0; i < aArgc; i++) {
@@ -353,6 +362,7 @@ struct UpdateRecordingFromRootMessage : public Message {
 
 // The tag is not used.
 typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
+typedef BinaryMessage<MessageType::LogText> LogTextMessage;
 
 struct PingMessage : public Message {
   uint32_t mId;

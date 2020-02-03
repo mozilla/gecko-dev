@@ -6166,6 +6166,11 @@ mozilla::ipc::IPCResult ContentParent::RecvCommitBrowsingContextTransaction(
   aTransaction.Apply(aContext);
   return IPC_OK();
 }
+
+TimeDuration ContentParent::TimeSinceLaunch() {
+  return TimeStamp::Now() - mLaunchTS;
+}
+
 }  // namespace dom
 }  // namespace mozilla
 

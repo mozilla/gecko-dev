@@ -80,6 +80,16 @@ static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 static nsString gCloudReplayStatus;
 
+bool UseCloudForReplayingProcesses() {
+  if (getenv("WEBREPLAY_OFFLINE")) {
+    return false;
+  }
+
+  nsAutoString cloudServer;
+  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
+  return cloudServer.Length() != 0;
+}
+
 void EnsureUIStateInitialized() {
   if (!UseCloudForReplayingProcesses()) {
     if (!gControlJS.empty()) {
@@ -280,18 +290,29 @@ void SpawnReplayingChild(size_t aChannelId) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Preferences
+// Preferences / Logging
 ///////////////////////////////////////////////////////////////////////////////
 
 static bool gChromeRegistered;
+static bool gLoggingEnabled;
+
+void EnableLogging() {
+  gLoggingEnabled = true;
+}
 
 void ChromeRegistered() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(IsMiddleman());
 
   if (gChromeRegistered) {
     return;
   }
   gChromeRegistered = true;
+
+  if (Preferences::GetBool("devtools.recordreplay.logging.enabled")) {
+    EnableLogging();
+    ChildProcessInfo::EnableLoggingInChildProcesses();
+  }
 
   Maybe<size_t> recordingChildId;
 
@@ -300,6 +321,38 @@ void ChromeRegistered() {
   }
 
   js::SetupMiddlemanControl(recordingChildId);
+}
+
+static TimeStamp gStartupTime;
+
+void AddToLog(bool aIncludePrefix, const nsAString& aText) {
+  if (!gLoggingEnabled) {
+    return;
+  }
+
+  if (IsRecordingOrReplaying()) {
+    child::PrintLog(aText);
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(IsMiddleman());
+
+  nsCString text;
+  if (aIncludePrefix) {
+    double elapsed = (TimeStamp::Now() - gStartupTime).ToSeconds();
+    text = nsPrintfCString("[Control %.2f] %s\n", elapsed,
+                           NS_ConvertUTF16toUTF8(aText).get());
+  } else {
+    text = NS_ConvertUTF16toUTF8(aText);
+  }
+
+  for (const auto& child : gReplayingChildren) {
+    if (child) {
+      UniquePtr<Message> msg(LogTextMessage::New(
+          0, 0, text.BeginReading(), text.Length() + 1));
+      child->SendMessage(std::move(*msg));
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,12 +395,6 @@ void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription) {
 ///////////////////////////////////////////////////////////////////////////////
 // Cloud Processes
 ///////////////////////////////////////////////////////////////////////////////
-
-bool UseCloudForReplayingProcesses() {
-  nsAutoString cloudServer;
-  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
-  return cloudServer.Length() != 0;
-}
 
 static StaticInfallibleVector<Channel*> gConnectionChannels;
 
@@ -484,13 +531,15 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
                          const ipc::FileDescriptor& aPrefMapHandle) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
+  gStartupTime = TimeStamp::Now();
+
   CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::RecordReplay,
                                      true);
 
   gParentPid = aParentPid;
 
   // Construct the message that will be sent to each child when starting up.
-  IntroductionMessage* msg = IntroductionMessage::New(aParentPid, aArgc, aArgv);
+  IntroductionMessage* msg = IntroductionMessage::New(aParentPid, false, aArgc, aArgv);
   GetCurrentBuildId(&msg->mBuildId);
 
   ChildProcessInfo::SetIntroductionMessage(msg);
