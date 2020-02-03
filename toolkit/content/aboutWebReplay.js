@@ -115,21 +115,10 @@ window.onload = async function() {
       index: tab._tPos + 1,
     });
     gBrowser.removeTab(tab);
-    const newTab = gBrowser.selectedTab;
 
-    const listener = {
-      receiveMessage() {
-        Services.ppmm.removeMessageListener("RecordingLoaded", listener);
-        if (newTab == gBrowser.selectedTab) {
-          const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
-          const {
-            gDevToolsBrowser,
-          } = require("devtools/client/framework/devtools-browser");
-          gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
-        }
-      },
-    };
-    Services.ppmm.addMessageListener("RecordingLoaded", listener);
+    const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+    const { gDevToolsBrowser } = require("devtools/client/framework/devtools-browser");
+    gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
     return;
   }
 
