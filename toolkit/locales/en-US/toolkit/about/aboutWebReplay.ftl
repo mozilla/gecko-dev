@@ -14,5 +14,6 @@ UnknownError = Unknown error
 CloudMissingBuild = Build not found on cloud server
 CloudMissingRecording = Recording not found on cloud server
 CloudNotConnected = Not connected to cloud server
+CloudSpawnError = Could not create replaying process on cloud server
 OutOfMemory = Out of memory exception thrown
 OverRecursed = JS stack overflowed

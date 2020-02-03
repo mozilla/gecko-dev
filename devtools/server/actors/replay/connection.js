@@ -5,6 +5,8 @@
 
 "use strict";
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
 // This file provides an interface for connecting middleman processes with
 // replaying processes living remotely in the cloud.
 
@@ -36,6 +38,9 @@ function onMessage(evt) {
       break;
     case "message":
       gMessageCallback(evt.data.id, evt.data.buf);
+      break;
+    case "connectionFailed":
+      Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
       break;
   }
 }
