@@ -78,21 +78,6 @@ loader.lazyGetter(
   "WhatsNewPanel",
   () => require("devtools/client/whats-new/panel").WhatsNewPanel
 );
-loader.lazyGetter(
-  this,
-  "reloadAndRecordTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndRecordTab
-);
-loader.lazyGetter(
-  this,
-  "reloadAndStopRecordingTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndStopRecordingTab
-);
-loader.lazyRequireGetter(
-  this,
-  "WebReplayCloudMenu",
-  "devtools/client/webreplay/components/CloudMenu"
-);
 
 // Other dependencies
 loader.lazyRequireGetter(
@@ -574,37 +559,6 @@ exports.ToolboxButtons = [
     isChecked(toolbox) {
       return toolbox.isPaintFlashing;
     },
-  },
-  {
-    id: "command-button-replay-cloud",
-    description: "Replay cloud options",
-    isTargetSupported: target =>
-      Services.prefs.getStringPref("devtools.recordreplay.cloudServer") &&
-      target.isLocalTab,
-    onClick: (event, toolbox) => WebReplayCloudMenu.showMenu(toolbox),
-    isChecked: () => false,
-  },
-  {
-    id: "command-button-replay",
-    description: l10n("toolbox.buttons.replay"),
-    isTargetSupported: target =>
-      Services.prefs.getBoolPref("devtools.recordreplay.enabled") &&
-      !target.canRewind &&
-      target.isLocalTab,
-    onClick: () => reloadAndRecordTab(),
-    isChecked: () => false,
-    experimentalURL:
-      "https://developer.mozilla.org/en-US/docs/Mozilla/Projects/WebReplay",
-  },
-  {
-    id: "command-button-stop-replay",
-    description: l10n("toolbox.buttons.stopReplay"),
-    isTargetSupported: target =>
-      Services.prefs.getBoolPref("devtools.recordreplay.enabled") &&
-      target.canRewind &&
-      target.isLocalTab,
-    onClick: () => reloadAndStopRecordingTab(),
-    isChecked: () => true,
   },
   {
     id: "command-button-fission-prefs",

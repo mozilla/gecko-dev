@@ -228,9 +228,9 @@ pref("browser.defaultbrowser.notificationbar", false);
 // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
 // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
 pref("browser.startup.page",                1);
-pref("browser.startup.homepage",            "about:home");
+pref("browser.startup.homepage",            "http://google.com");
 // Whether we should skip the homepage when opening the first-run page
-pref("browser.startup.firstrunSkipsHomepage", true);
+pref("browser.startup.firstrunSkipsHomepage", false);
 
 // Show an about:blank window as early as possible for quick startup feedback.
 // Held to nightly on Linux due to bug 1450626.
@@ -1421,7 +1421,7 @@ pref("browser.uiCustomization.state", "");
 
 // If set to false, FxAccounts and Sync will be unavailable.
 // A restart is mandatory after flipping that preference.
-pref("identity.fxaccounts.enabled", true);
+pref("identity.fxaccounts.enabled", false);
 
 // The remote FxA root content URL. Must use HTTPS.
 pref("identity.fxaccounts.remote.root", "https://accounts.firefox.com/");
@@ -1745,7 +1745,7 @@ pref("browser.migrate.chrome.history.maxAgeInDays", 180);
 pref("dom.mozBrowserFramesEnabled", true);
 
 pref("extensions.pocket.api", "api.getpocket.com");
-pref("extensions.pocket.enabled", true);
+pref("extensions.pocket.enabled", false);
 pref("extensions.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
 pref("extensions.pocket.site", "getpocket.com");
 

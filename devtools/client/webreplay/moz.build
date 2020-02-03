@@ -8,10 +8,6 @@ DIRS += [
     'components',
 ]
 
-DevToolsModules(
-    'menu.js',
-)
-
 with Files('**'):
     BUG_COMPONENT = ('Core', 'Web Replay')
 

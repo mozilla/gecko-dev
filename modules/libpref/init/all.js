@@ -827,15 +827,6 @@ pref("devtools.console.stdout.content", false, sticky);
 // Controls whether EventEmitter module throws dump message on each emit
 pref("toolkit.dump.emit", false);
 
-// Enable recording/replaying executions.
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-  pref("devtools.recordreplay.enabled", true);
-  pref("devtools.recordreplay.enableRewinding", true);
-#else
-  pref("devtools.recordreplay.enabled", false);
-#endif
-
-pref("devtools.recordreplay.mvp.enabled", false);
 pref("devtools.recordreplay.allowRepaintFailures", true);
 pref("devtools.recordreplay.includeSystemScripts", false);
 pref("devtools.recordreplay.logging", false);
@@ -4724,7 +4715,7 @@ pref("fission.rebuild_frameloaders_on_remoteness_change", false);
 pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
 
 #ifdef MOZ_DATA_REPORTING
-  pref("datareporting.policy.dataSubmissionEnabled", true);
+  pref("datareporting.policy.dataSubmissionEnabled", false);
   pref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "0");
   pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 0);
   pref("datareporting.policy.dataSubmissionPolicyBypassNotification", false);

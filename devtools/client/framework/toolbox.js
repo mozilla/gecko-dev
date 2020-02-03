@@ -157,17 +157,6 @@ loader.lazyGetter(this, "registerHarOverlay", () => {
   return require("devtools/client/netmonitor/src/har/toolbox-overlay").register;
 });
 
-loader.lazyGetter(
-  this,
-  "reloadAndRecordTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndRecordTab
-);
-loader.lazyGetter(
-  this,
-  "reloadAndStopRecordingTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndStopRecordingTab
-);
-
 loader.lazyRequireGetter(
   this,
   "defaultThreadOptions",
@@ -2139,12 +2128,7 @@ Toolbox.prototype = {
   _commandIsVisible: function(button) {
     const { isTargetSupported, isCurrentlyVisible, visibilityswitch } = button;
 
-    const defaultValue =
-      button.id !== "command-button-replay"
-        ? true
-        : Services.prefs.getBoolPref("devtools.recordreplay.mvp.enabled");
-
-    if (!Services.prefs.getBoolPref(visibilityswitch, defaultValue)) {
+    if (!Services.prefs.getBoolPref(visibilityswitch, true)) {
       return false;
     }
 
@@ -3531,11 +3515,7 @@ Toolbox.prototype = {
   },
 
   closeToolbox: async function() {
-    const shouldStopRecording = this.target.isReplayEnabled();
     await this.destroy();
-    if (shouldStopRecording) {
-      reloadAndStopRecordingTab();
-    }
   },
 
   /**
@@ -4087,3 +4067,20 @@ Toolbox.prototype = {
     return id;
   },
 };
+
+function reloadAndRecordTab() {
+  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+  const url = gBrowser.currentURI.spec;
+  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+    recordExecution: "*",
+    newFrameloader: true,
+    remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+  });
+  Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
+    Services.ppmm.removeMessageListener("RecordingInitialized", listener);
+    gBrowser.loadURI(url, {
+      triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
+    });
+  });
+  Services.telemetry.scalarAdd("devtools.webreplay.reload_recording", 1);
+}

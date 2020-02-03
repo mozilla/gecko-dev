@@ -301,8 +301,6 @@ exports.addMenus = function(doc) {
   addTopLevelItems(doc);
 
   addAllToolsToMenu(doc);
-
-  require("../webreplay/menu").addWebReplayMenu(doc);
 };
 
 /**

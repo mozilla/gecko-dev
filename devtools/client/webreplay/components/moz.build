@@ -1,4 +1,3 @@
 DevToolsModules(
-    'CloudMenu.js',
     'WebReplayPlayer.js',
 )

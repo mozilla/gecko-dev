@@ -12,11 +12,11 @@
 ##
 ## Reference: https://www.mozilla.org/styleguide/communications/translation/
 
--brand-shorter-name = Nightly
--brand-short-name = Nightly
--brand-full-name = Nightly
+-brand-shorter-name = Web Replay
+-brand-short-name = Web Replay
+-brand-full-name = Web Replay
 # This brand name can be used in messages where the product name needs to
 # remain unchanged across different versions (Nightly, Beta, etc.).
--brand-product-name = Firefox
--vendor-short-name = Mozilla
+-brand-product-name = Web Replay
+-vendor-short-name = Web Replay LLC
 trademarkInfo = { " " }

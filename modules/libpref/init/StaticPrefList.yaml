@@ -894,7 +894,7 @@
 # Malware protection
 - name: browser.safebrowsing.malware.enabled
   type: bool
-  value: true
+  value: false
   mirror: always
 
 # Password protection
