@@ -10,14 +10,16 @@
 
 let gCloudAddress;
 let gWorker;
+let gStatusCallback;
 let gLoadedCallback;
 let gMessageCallback;
 let gNextConnectionId = 1;
 
 // eslint-disable-next-line no-unused-vars
-function Initialize(address, loadedCallback, messageCallback) {
+function Initialize(address, statusCallback, loadedCallback, messageCallback) {
   gWorker = new Worker("connection-worker.js");
   gWorker.addEventListener("message", onMessage);
+  gStatusCallback = statusCallback;
   gLoadedCallback = loadedCallback;
   gMessageCallback = messageCallback;
 
@@ -25,7 +27,10 @@ function Initialize(address, loadedCallback, messageCallback) {
 }
 
 function onMessage(evt) {
-  switch (evt.data.kind)  {
+  switch (evt.data.kind) {
+    case "updateStatus":
+      gStatusCallback(evt.data.status);
+      break;
     case "loaded":
       gLoadedCallback(evt.data.controlJS, evt.data.replayJS);
       break;

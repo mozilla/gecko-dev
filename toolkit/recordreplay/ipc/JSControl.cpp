@@ -820,8 +820,8 @@ static bool RecordReplay_SetProgressCounter(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
-                                     nsAutoCString& aResult) {
+void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
+                              nsAutoCString& aResult) {
   size_t len = JS_GetStringLength(aString);
 
   nsAutoString chars;

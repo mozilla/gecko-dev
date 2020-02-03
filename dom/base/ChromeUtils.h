@@ -198,6 +198,11 @@ class ChromeUtils {
 
   static void PrivateNoteIntentionalCrash(const GlobalObject& aGlobal,
                                           ErrorResult& aError);
+
+  static void GetCloudReplayStatus(const GlobalObject& aGlobal,
+                                   nsAString& aResult);
+  static void SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
+                                           JS::HandleValue aCallback);
 };
 
 }  // namespace dom

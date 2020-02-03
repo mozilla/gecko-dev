@@ -580,6 +580,11 @@ DevToolsStartup.prototype = {
         // View Recordings
         const itemsToDisplay = [];
 
+        const statusItem = doc.createXULElement("menuitem");
+        statusItem.setAttribute("label", "");
+        statusItem.setAttribute("disabled", true);
+        itemsToDisplay.push(statusItem);
+
         function addItem(label, command) {
           const item = doc.createXULElement("menuitem");
           item.setAttribute("label", StartupBundle.GetStringFromName(label));
@@ -618,8 +623,22 @@ DevToolsStartup.prototype = {
 
         addItem("viewRecordings.label", viewRecordings);
 
+        cloudStatusUpdated(ChromeUtils.getCloudReplayStatus());
+        ChromeUtils.setCloudReplayStatusCallback(newStatus => {
+          cloudStatusUpdated(newStatus);
+          CustomizableUI.clearSubview(recordingItems);
+          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+        });
+
         CustomizableUI.clearSubview(recordingItems);
         CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+
+        function cloudStatusUpdated(status) {
+          statusItem.setAttribute("label", status);
+          itemsToDisplay.forEach(item => {
+            item.setAttribute("hidden", (item == statusItem) == (status == ""));
+          });
+        }
       },
       onInit(anchor) {
         this.onBeforeCreated(anchor.ownerDocument);

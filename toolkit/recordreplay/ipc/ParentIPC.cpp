@@ -74,8 +74,11 @@ static StaticRefPtr<rrIConnection> gConnection;
 static StaticInfallibleVector<char> gControlJS;
 static StaticInfallibleVector<char> gReplayJS;
 
+static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
+static nsString gCloudReplayStatus;
 
 void EnsureUIStateInitialized() {
   if (!UseCloudForReplayingProcesses()) {
@@ -85,8 +88,8 @@ void EnsureUIStateInitialized() {
 
     const char* path = getenv("WEBREPLAY_OFFLINE");
     if (!path) {
-      fprintf(stderr, "WEBREPLAY_OFFLINE not set, exiting...");
-      exit(0);
+      gCloudReplayStatus.AssignLiteral("Cloud server address not set");
+      return;
     }
 
     ReadFileSync(nsPrintfCString("%s/control.js", path), gControlJS);
@@ -111,6 +114,10 @@ void EnsureUIStateInitialized() {
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
   JSFunction* fun;
 
+  fun = JS_NewFunction(cx, StatusCallback, 1, 0, "StatusCallback");
+  MOZ_RELEASE_ASSERT(fun);
+  JS::RootedValue statusCallback(cx, JS::ObjectValue(*(JSObject*)fun));
+
   fun = JS_NewFunction(cx, LoadedCallback, 2, 0, "LoadedCallback");
   MOZ_RELEASE_ASSERT(fun);
   JS::RootedValue loadedCallback(cx, JS::ObjectValue(*(JSObject*)fun));
@@ -119,9 +126,12 @@ void EnsureUIStateInitialized() {
   MOZ_RELEASE_ASSERT(fun);
   JS::RootedValue messageCallback(cx, JS::ObjectValue(*(JSObject*)fun));
 
-  if (NS_FAILED(gConnection->Initialize(cloudServer, loadedCallback, messageCallback))) {
+  if (NS_FAILED(gConnection->Initialize(cloudServer, statusCallback,
+                                        loadedCallback, messageCallback))) {
     MOZ_CRASH("CreateReplayingCloudProcess");
   }
+
+  gCloudReplayStatus.AssignLiteral("Connecting to cloud...");
 }
 
 void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
@@ -132,6 +142,78 @@ void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
 
   aReplayJS.SetLength(gReplayJS.length());
   memcpy(aReplayJS.BeginWriting(), gReplayJS.begin(), gReplayJS.length());
+}
+
+void GetCloudReplayStatus(nsAString& aResult) {
+  aResult = gCloudReplayStatus;
+}
+
+static PersistentRootedObject* gStatusCallback;
+
+void SetCloudReplayStatusCallback(JS::HandleValue aCallback) {
+  AutoSafeJSContext cx;
+
+  if (!gStatusCallback) {
+    gStatusCallback = new PersistentRootedObject(cx);
+  }
+
+  *gStatusCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
+}
+
+static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string");
+    return false;
+  }
+
+  nsAutoCString status;
+  js::ConvertJSStringToCString(aCx, args.get(0).toString(), status);
+  gCloudReplayStatus = NS_ConvertUTF8toUTF16(status);
+
+  if (gStatusCallback && *gStatusCallback) {
+    JSAutoRealm ar(aCx, *gStatusCallback);
+    JS::RootedValue arg(aCx, args.get(0));
+    JS_WrapValue(aCx, &arg);
+    JS::RootedObject thisv(aCx);
+    JS::RootedValue fval(aCx, ObjectValue(**gStatusCallback));
+    JS::RootedValue rv(aCx);
+    if (!JS_CallFunctionValue(aCx, thisv, fval, JS::HandleValueArray(arg), &rv)) {
+      return false;
+    }
+  }
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static void ExtractJSString(JSContext* aCx, JSString* aString,
+                            StaticInfallibleVector<char>& aBuffer) {
+  MOZ_RELEASE_ASSERT(JS_StringHasLatin1Chars(aString));
+
+  JS::AutoAssertNoGC nogc(aCx);
+  size_t dataLength;
+  const JS::Latin1Char* dataChars =
+      JS_GetLatin1StringCharsAndLength(aCx, nogc, aString, &dataLength);
+  MOZ_RELEASE_ASSERT(dataChars);
+
+  aBuffer.append(dataChars, dataLength);
+}
+
+static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString() || !args.get(1).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected strings");
+    return false;
+  }
+
+  ExtractJSString(aCx, args.get(0).toString(), gControlJS);
+  ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
+
+  args.rval().setUndefined();
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,33 +355,6 @@ class SendMessageToCloudRunnable : public Runnable {
     return NS_OK;
   }
 };
-
-static void ExtractJSString(JSContext* aCx, JSString* aString,
-                            StaticInfallibleVector<char>& aBuffer) {
-  MOZ_RELEASE_ASSERT(JS_StringHasLatin1Chars(aString));
-
-  JS::AutoAssertNoGC nogc(aCx);
-  size_t dataLength;
-  const JS::Latin1Char* dataChars =
-      JS_GetLatin1StringCharsAndLength(aCx, nogc, aString, &dataLength);
-  MOZ_RELEASE_ASSERT(dataChars);
-
-  aBuffer.append(dataChars, dataLength);
-}
-
-static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isString() || !args.get(1).isString()) {
-    return false;
-  }
-
-  ExtractJSString(aCx, args.get(0).toString(), gControlJS);
-  ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
-
-  args.rval().setUndefined();
-  return true;
-}
 
 static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);

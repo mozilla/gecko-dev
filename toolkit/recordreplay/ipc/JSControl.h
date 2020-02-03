@@ -87,6 +87,9 @@ bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 void BeginIdleTime();
 void EndIdleTime();
 
+void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
+                              nsAutoCString& aResult);
+
 }  // namespace js
 }  // namespace recordreplay
 }  // namespace mozilla

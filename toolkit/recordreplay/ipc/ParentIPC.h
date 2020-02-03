@@ -43,6 +43,9 @@ void EnsureUIStateInitialized();
 // Get the JS that was loaded during initialization.
 void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS);
 
+void GetCloudReplayStatus(nsAString& aResult);
+void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
+
 // Middleman process API
 
 // Get the pid of the UI process.
