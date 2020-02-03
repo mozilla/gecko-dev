@@ -198,6 +198,7 @@ static void ExtractJSString(JSContext* aCx, JSString* aString,
       JS_GetLatin1StringCharsAndLength(aCx, nogc, aString, &dataLength);
   MOZ_RELEASE_ASSERT(dataChars);
 
+  aBuffer.clear();
   aBuffer.append(dataChars, dataLength);
 }
 
