@@ -57,6 +57,8 @@ function updateRecordings(recordings) {
 let gLastCopyLink = null;
 
 async function showRecordings() {
+  document.querySelector(".error-title").style.visibility = "hidden";
+
   const container = document.querySelector(".recordings-list");
   const template = document.querySelector("#recording-row");
 
@@ -102,6 +104,12 @@ window.onload = async function() {
   let match;
 
   if (match = /recording=(.*)/.exec(window.location)) {
+    const status = ChromeUtils.getCloudReplayStatus();
+    if (status) {
+      window.location = "about:webreplay?error=CloudNotConnected";
+      return;
+    }
+
     const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
     const tab = gBrowser.selectedTab;
     gBrowser.selectedTab = gBrowser.addWebTab(null, {

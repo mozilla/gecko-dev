@@ -12,5 +12,7 @@ error-title = Fatal Error!
 # Different kinds of fatal errors
 UnknownError = Unknown error
 CloudMissingBuild = Build not found on cloud server
+CloudMissingRecording = Recording not found on cloud server
+CloudNotConnected = Not connected to cloud server
 OutOfMemory = Out of memory exception thrown
 OverRecursed = JS stack overflowed
