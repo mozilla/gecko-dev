@@ -75,6 +75,8 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/network/Connection.h"
 
+#include "mozilla/recordreplay/ParentIPC.h"
+
 #include "nsNSSComponent.h"
 
 #if defined(XP_UNIX)
@@ -459,25 +461,14 @@ nsresult nsHttpHandler::Init() {
                                        gCallbackPrefs, this);
   PrefsChanged(nullptr);
 
-  mMisc.AssignLiteral("rv:" MOZILLA_UAVERSION);
+  const char* uaVersion = recordreplay::parent::CurrentFirefoxVersion();
 
-  mCompatFirefox.AssignLiteral("Firefox/" MOZILLA_UAVERSION);
+  mMisc.Assign(nsPrintfCString("rv:%s", uaVersion));
 
-  nsCOMPtr<nsIXULAppInfo> appInfo =
-      do_GetService("@mozilla.org/xre/app-info;1");
+  mCompatFirefox.Assign(nsPrintfCString("Firefox/%s", uaVersion));
 
-  mAppName.AssignLiteral(MOZ_APP_UA_NAME);
-  if (mAppName.Length() == 0 && appInfo) {
-    // Try to get the UA name from appInfo, falling back to the name
-    appInfo->GetUAName(mAppName);
-    if (mAppName.Length() == 0) {
-      appInfo->GetName(mAppName);
-    }
-    appInfo->GetVersion(mAppVersion);
-    mAppName.StripChars(R"( ()<>@,;:\"/[]?={})");
-  } else {
-    mAppVersion.AssignLiteral(MOZ_APP_UA_VERSION);
-  }
+  mAppName.AssignLiteral("Firefox");
+  mAppVersion.Assign(uaVersion);
 
   // Generate the spoofed User Agent for fingerprinting resistance.
   nsRFPService::GetSpoofedUserAgent(mSpoofedUserAgent, true);
@@ -491,7 +482,7 @@ nsresult nsHttpHandler::Init() {
   mRequestContextService = RequestContextService::GetOrCreate();
 
 #if defined(ANDROID)
-  mProductSub.AssignLiteral(MOZILLA_UAVERSION);
+  mProductSub.AssignLiteral(uaVersion);
 #else
   mProductSub.AssignLiteral(LEGACY_UA_GECKO_TRAIL);
 #endif

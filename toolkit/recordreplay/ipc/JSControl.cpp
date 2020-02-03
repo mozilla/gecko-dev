@@ -239,12 +239,6 @@ static bool Middleman_RegisterReplayDebugger(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool Middleman_CanRewind(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-  args.rval().setBoolean(parent::CanRewind());
-  return true;
-}
-
 static bool Middleman_SpawnReplayingChild(JSContext* aCx, unsigned aArgc,
                                           Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -1520,7 +1514,6 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
 
 static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("registerReplayDebugger", Middleman_RegisterReplayDebugger, 1, 0),
-    JS_FN("canRewind", Middleman_CanRewind, 0, 0),
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),

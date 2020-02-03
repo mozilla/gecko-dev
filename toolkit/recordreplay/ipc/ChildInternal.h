@@ -55,9 +55,6 @@ size_t GetForkId();
 // Monitor used for various synchronization tasks.
 extern Monitor* gMonitor;
 
-// Whether the middleman runs developer tools server code.
-bool DebuggerRunsInMiddleman();
-
 // Notify the middleman that the last manifest was finished.
 void ManifestFinished(const js::CharBuffer& aResponse);
 

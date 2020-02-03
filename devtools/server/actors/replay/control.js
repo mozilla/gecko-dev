@@ -528,10 +528,6 @@ let gNextRootId = 1;
 
 // Spawn the single trunk child.
 async function spawnTrunkChild() {
-  if (!RecordReplayControl.canRewind()) {
-    return;
-  }
-
   const id = gNextRootId++;
   RecordReplayControl.spawnReplayingChild(id);
   gRootChild = new ChildProcess(
@@ -1980,7 +1976,7 @@ const gControl = {
   // possible.
   maybeSwitchToReplayingChild() {
     assert(gControl.pausePoint());
-    if (gPauseMode == PauseModes.RECORDING && RecordReplayControl.canRewind()) {
+    if (gPauseMode == PauseModes.RECORDING) {
       const point = gActiveChild.pausePoint();
 
       if (point.position) {

@@ -2240,8 +2240,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvActivateFrameEvent(
 // addition to any child recording process they have.
 static bool LoadScriptInMiddleman(const nsString& aURL) {
   return  // Middleman processes run devtools server side scripts.
-      (StringBeginsWith(aURL, NS_LITERAL_STRING("resource://devtools/")) &&
-       recordreplay::parent::DebuggerRunsInMiddleman())
+      StringBeginsWith(aURL, NS_LITERAL_STRING("resource://devtools/"))
       // This script includes event listeners needed to propagate document
       // title changes.
       || aURL.EqualsLiteral("chrome://global/content/browser-child.js")

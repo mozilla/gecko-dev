@@ -34,6 +34,9 @@ void InitializeUIProcess(int aArgc, char** aArgv);
 // Get any directory where content process recordings should be saved.
 const char* SaveAllRecordingsDirectory();
 
+// Get the firefox version to include in user agent strings.
+const char* CurrentFirefoxVersion();
+
 // Middleman process API
 
 // Get the pid of the UI process.
@@ -66,9 +69,6 @@ void GetArgumentsForChildProcess(base::ProcessId aMiddlemanPid,
                                  uint32_t aChannelId,
                                  const char* aRecordingFile, bool aRecording,
                                  std::vector<std::string>& aExtraArgs);
-
-// Return whether the middleman will be running developer tools server code.
-bool DebuggerRunsInMiddleman();
 
 // Return whether to create replaying processes on a remote machine.
 bool UseCloudForReplayingProcesses();

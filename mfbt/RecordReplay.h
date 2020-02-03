@@ -75,9 +75,6 @@ namespace recordreplay {
 // Public API
 ///////////////////////////////////////////////////////////////////////////////
 
-// Recording and replaying is only enabled on Mac nightlies.
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-
 extern MFBT_DATA bool gIsRecordingOrReplaying;
 extern MFBT_DATA bool gIsRecording;
 extern MFBT_DATA bool gIsReplaying;
@@ -88,16 +85,6 @@ static inline bool IsRecordingOrReplaying() { return gIsRecordingOrReplaying; }
 static inline bool IsRecording() { return gIsRecording; }
 static inline bool IsReplaying() { return gIsReplaying; }
 static inline bool IsMiddleman() { return gIsMiddleman; }
-
-#else  // XP_MACOSX && NIGHTLY_BUILD
-
-// On unsupported platforms, getting the kind of process is a no-op.
-static inline bool IsRecordingOrReplaying() { return false; }
-static inline bool IsRecording() { return false; }
-static inline bool IsReplaying() { return false; }
-static inline bool IsMiddleman() { return false; }
-
-#endif  // XP_MACOSX && NIGHTLY_BUILD
 
 // Mark a region which occurs atomically wrt the recording. No two threads can
 // be in an atomic region at once, and the order in which atomic sections are
@@ -336,9 +323,6 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
 // API inline function implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-// Define inline wrappers on builds where recording/replaying is enabled.
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-
 #  define MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(aName, aFormals, aActuals) \
     MFBT_API void Internal##aName aFormals;                              \
     static inline void aName aFormals {                                  \
@@ -356,20 +340,6 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
       }                                                                     \
       return aDefaultValue;                                                 \
     }
-
-// Define inline wrappers on other builds. Avoiding references to the out of
-// line method avoids link errors when e.g. using Atomic<> but not linking
-// against MFBT.
-#else
-
-#  define MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(aName, aFormals, aActuals) \
-    static inline void aName aFormals {}
-
-#  define MOZ_MAKE_RECORD_REPLAY_WRAPPER(aName, aReturnType, aDefaultValue, \
-                                         aFormals, aActuals)                \
-    static inline aReturnType aName aFormals { return aDefaultValue; }
-
-#endif
 
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginOrderedAtomicAccess,
                                     (const void* aValue), (aValue))

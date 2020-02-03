@@ -27,10 +27,6 @@ MessageLoop* MainThreadMessageLoop();
 // Called when chrome JS can start running and initialization can finish.
 void ChromeRegistered();
 
-// Return whether replaying processes are allowed to save checkpoints and
-// rewind. Can only be called after PreferencesLoaded().
-bool CanRewind();
-
 // Get the current active child process.
 ChildProcessInfo* GetActiveChild();
 

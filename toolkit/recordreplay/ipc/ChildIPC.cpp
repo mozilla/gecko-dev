@@ -68,9 +68,6 @@ static UniquePtr<IntroductionMessage, Message::FreePolicy> gIntroductionMessage;
 // Data we've received which hasn't been incorporated into the recording yet.
 static StaticInfallibleVector<char> gPendingRecordingData;
 
-// When recording, whether developer tools server code runs in the middleman.
-static bool gDebuggerRunsInMiddleman;
-
 // Any response received to the last ExternalCallRequest message.
 static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
     gCallResponseMessage;
@@ -125,12 +122,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
         uint8_t data = 0;
         DirectWrite(gCheckpointWriteFd, &data, 1);
       }
-      break;
-    }
-    case MessageType::SetDebuggerRunsInMiddleman: {
-      MOZ_RELEASE_ASSERT(IsRecording());
-      PauseMainThreadAndInvokeCallback(
-          [=]() { gDebuggerRunsInMiddleman = true; });
       break;
     }
     case MessageType::Ping: {
@@ -349,10 +340,6 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
 base::ProcessId MiddlemanProcessId() { return gMiddlemanPid; }
 
 base::ProcessId ParentProcessId() { return gParentPid; }
-
-bool DebuggerRunsInMiddleman() {
-  return RecordReplayValue(gDebuggerRunsInMiddleman);
-}
 
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg);
 

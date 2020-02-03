@@ -1956,10 +1956,6 @@ toolbar#nav-bar {
             prefs['media.cubeb.output_device'] = "Null Output"
             prefs['media.volume_scale'] = "1.0"
 
-        # Disable web replay rewinding by default if recordings are being saved.
-        if options.recordingPath:
-            prefs["devtools.recordreplay.enableRewinding"] = False
-
         self.profile.set_preferences(prefs)
 
         # Extra prefs from --setpref

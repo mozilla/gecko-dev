@@ -261,12 +261,6 @@ const browsingContextTargetPrototype = {
     // Used by the ParentProcessTargetActor to list all frames in the Browser Toolbox
     this.listenForNewDocShells = false;
 
-    let canRewind = false;
-    if (isReplaying) {
-      const replayDebugger = new ReplayDebugger();
-      canRewind = replayDebugger.canRewind();
-    }
-
     this.traits = {
       reconfigure: true,
       // Supports frame listing via `listFrames` request and `frameUpdate` events
@@ -275,7 +269,7 @@ const browsingContextTargetPrototype = {
       // Supports the logInPage request.
       logInPage: true,
       // Supports requests related to rewinding.
-      canRewind,
+      canRewind: isReplaying,
       // Supports watchpoints in the server for Fx71+
       watchpoints: true,
     };

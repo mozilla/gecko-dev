@@ -5,10 +5,9 @@
 "use strict";
 
 // Test for saving a recording with rewinding disabled and then replaying it
-// in a new tab.
+// in a new tab. This doesn't do much anymore now that the rewinding pref
+// has been removed.
 add_task(async function() {
-  await pushPref("devtools.recordreplay.enableRewinding", false);
-
   const recordingFile = newRecordingFile();
   const recordingTab = await openRecordingTab("doc_rr_basic.html");
   await once(Services.ppmm, "RecordingFinished");

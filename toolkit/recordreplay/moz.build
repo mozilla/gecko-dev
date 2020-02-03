@@ -9,33 +9,28 @@ EXPORTS.mozilla.recordreplay += [
     'ipc/ParentIPC.h',
 ]
 
-if CONFIG['OS_ARCH'] == 'Darwin' and CONFIG['NIGHTLY_BUILD']:
-    UNIFIED_SOURCES += [
-        'Assembler.cpp',
-        'Callback.cpp',
-        'ExternalCall.cpp',
-        'HashTable.cpp',
-        'ipc/Channel.cpp',
-        'ipc/ChildIPC.cpp',
-        'ipc/ChildProcess.cpp',
-        'ipc/JSControl.cpp',
-        'ipc/ParentForwarding.cpp',
-        'ipc/ParentGraphics.cpp',
-        'ipc/ParentIPC.cpp',
-        'Lock.cpp',
-        'ProcessRecordReplay.cpp',
-        'ProcessRedirect.cpp',
-        'ProcessRedirectDarwin.cpp',
-        'ProcessRewind.cpp',
-        'Recording.cpp',
-        'Thread.cpp',
-        'ThreadSnapshot.cpp',
-        'ValueIndex.cpp',
-    ]
-else:
-    UNIFIED_SOURCES += [
-        'ipc/DisabledIPC.cpp',
-    ]
+UNIFIED_SOURCES += [
+    'Assembler.cpp',
+    'Callback.cpp',
+    'ExternalCall.cpp',
+    'HashTable.cpp',
+    'ipc/Channel.cpp',
+    'ipc/ChildIPC.cpp',
+    'ipc/ChildProcess.cpp',
+    'ipc/JSControl.cpp',
+    'ipc/ParentForwarding.cpp',
+    'ipc/ParentGraphics.cpp',
+    'ipc/ParentIPC.cpp',
+    'Lock.cpp',
+    'ProcessRecordReplay.cpp',
+    'ProcessRedirect.cpp',
+    'ProcessRedirectDarwin.cpp',
+    'ProcessRewind.cpp',
+    'Recording.cpp',
+    'Thread.cpp',
+    'ThreadSnapshot.cpp',
+    'ValueIndex.cpp',
+]
 
 LOCAL_INCLUDES += [
     '!/ipc/ipdl/_ipdlheaders',

@@ -11,16 +11,8 @@
 #include "mozilla/Casting.h"
 #include "mozilla/Utf8.h"
 
+#include <dlfcn.h>
 #include <stdlib.h>
-
-// Recording and replaying is only enabled on Mac nightlies.
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-#  define ENABLE_RECORD_REPLAY
-#endif
-
-#ifdef ENABLE_RECORD_REPLAY
-#  include <dlfcn.h>
-#endif
 
 namespace mozilla {
 namespace recordreplay {
@@ -92,16 +84,12 @@ FOR_EACH_INTERFACE_VOID(DECLARE_SYMBOL_VOID)
 #undef DECLARE_SYMBOL_VOID
 
 static void* LoadSymbol(const char* aName) {
-#ifdef ENABLE_RECORD_REPLAY
   void* rv = dlsym(RTLD_DEFAULT, aName);
   if (!rv) {
     fprintf(stderr, "Record/Replay LoadSymbol failed: %s\n", aName);
     MOZ_CRASH("LoadSymbol");
   }
   return rv;
-#else
-  return nullptr;
-#endif
 }
 
 void Initialize(int aArgc, char* aArgv[]) {
@@ -169,16 +157,10 @@ FOR_EACH_INTERFACE_VOID(DEFINE_WRAPPER_VOID)
 #undef DEFINE_WRAPPER
 #undef DEFINE_WRAPPER_VOID
 
-#ifdef ENABLE_RECORD_REPLAY
-
 bool gIsRecordingOrReplaying;
 bool gIsRecording;
 bool gIsReplaying;
 bool gIsMiddleman;
-
-#endif  // ENABLE_RECORD_REPLAY
-
-#undef ENABLE_RECORD_REPLAY
 
 }  // namespace recordreplay
 }  // namespace mozilla

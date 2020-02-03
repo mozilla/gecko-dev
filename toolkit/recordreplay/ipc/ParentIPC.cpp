@@ -27,6 +27,11 @@ using std::min;
 
 namespace mozilla {
 namespace recordreplay {
+
+const char* parent::CurrentFirefoxVersion() {
+  return "74.0a1";
+}
+
 namespace parent {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,7 +95,6 @@ void SpawnReplayingChild(size_t aChannelId) {
 ///////////////////////////////////////////////////////////////////////////////
 
 static bool gChromeRegistered;
-static bool gRewindingEnabled;
 
 void ChromeRegistered() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -100,45 +104,13 @@ void ChromeRegistered() {
   }
   gChromeRegistered = true;
 
-  gRewindingEnabled =
-      Preferences::GetBool("devtools.recordreplay.enableRewinding");
-
-  // Force-disable rewinding and saving checkpoints with an env var for testing.
-  if (getenv("NO_REWIND")) {
-    gRewindingEnabled = false;
-  }
-
   Maybe<size_t> recordingChildId;
 
   if (gRecordingChild) {
-    // Inform the recording child if we will be running devtools server code in
-    // this process.
-    if (DebuggerRunsInMiddleman()) {
-      gRecordingChild->SendMessage(SetDebuggerRunsInMiddlemanMessage());
-    }
     recordingChildId.emplace(gRecordingChild->GetId());
   }
 
   js::SetupMiddlemanControl(recordingChildId);
-}
-
-bool CanRewind() {
-  MOZ_RELEASE_ASSERT(gChromeRegistered);
-  return gRewindingEnabled;
-}
-
-bool DebuggerRunsInMiddleman() {
-  if (IsRecordingOrReplaying()) {
-    // This can be called in recording/replaying processes as well as the
-    // middleman. Fetch the value which the middleman informed us of.
-    return child::DebuggerRunsInMiddleman();
-  }
-
-  // Middleman processes which are recording and can't rewind do not run
-  // developer tools server code. This will run in the recording process
-  // instead.
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-  return !gRecordingChild || CanRewind();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

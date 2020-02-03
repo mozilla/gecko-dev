@@ -53,10 +53,6 @@ namespace recordreplay {
                                                                \
   /* Messages sent from the middleman to the child process. */ \
                                                                \
-  /* Sent to recording processes to indicate that the middleman will be running */ \
-  /* developer tools server-side code instead of the recording process itself. */ \
-  _Macro(SetDebuggerRunsInMiddleman)                           \
-                                                               \
   /* Periodically sent to replaying processes to make sure they are */ \
   /* responsive and determine how much progress they have made. This can be */ \
   /* sent while the process is unpaused, but only when it will not be */ \
@@ -160,7 +156,6 @@ struct Message {
   // the child is unpaused.
   bool CanBeSentWhileUnpaused() const {
     return mType == MessageType::CreateCheckpoint ||
-           mType == MessageType::SetDebuggerRunsInMiddleman ||
            mType == MessageType::ExternalCallResponse ||
            mType == MessageType::Ping ||
            mType == MessageType::Terminate ||
@@ -250,8 +245,6 @@ struct EmptyMessage : public Message {
       : Message(Type, sizeof(*this), aForkId) {}
 };
 
-typedef EmptyMessage<MessageType::SetDebuggerRunsInMiddleman>
-    SetDebuggerRunsInMiddlemanMessage;
 typedef EmptyMessage<MessageType::Terminate> TerminateMessage;
 typedef EmptyMessage<MessageType::Crash> CrashMessage;
 typedef EmptyMessage<MessageType::CreateCheckpoint> CreateCheckpointMessage;
