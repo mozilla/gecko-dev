@@ -9,17 +9,18 @@
 <head>
   <meta http-equiv="Content-Security-Policy" content="default-src chrome:; object-src 'none'" />
 
-  <title data-l10n-id="about-recordings-title"></title>
+  <title data-l10n-id="about-webreplay-title"></title>
   <link rel="stylesheet" href="chrome://global/skin/in-content/info-pages.css" type="text/css"/>
   <link rel="stylesheet" href="chrome://global/content/aboutWebReplay.css" type="text/css"/>
+  <link rel="localization" href="toolkit/about/aboutWebReplay.ftl"/>
 </head>
 
 <body>
-  <h2 class="recordings-title">Saved Recordings</h2>
+  <h2 class="recordings-title" data-l10n-id="saved-recordings"></h2>
 
   <div class="container">
     <div class="recordings-list"></div>
-    <div class="no-recordings">Nothing Saved</div>
+    <div class="no-recordings" data-l10n-id="nothing-saved"></div>
   </div>
 
   <template id="recording-row">
@@ -28,12 +29,8 @@
       <div class="recording-url"></div>
       <div><span class="recording-start"></span> - <span class="recording-duration"></span></div>
       </div>
-    <div class="copylink">
-      Copy Link
-    </div>
-    <div class="remove">
-      Remove
-    </div>
+    <div class="copylink" data-l10n-id="copy-link"></div>
+    <div class="remove" data-l10n-id="remove"></div>
   </template>
 
   <script src="chrome://global/content/aboutWebReplay.js"></script>
