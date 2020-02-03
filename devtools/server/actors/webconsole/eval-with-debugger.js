@@ -299,14 +299,14 @@ function evalReplay(frame, dbg, string) {
   // If the debugger is replaying then we can't yet introduce new bindings
   // for the eval, so compute the result now.
   let result;
-  if (frame) {
-    try {
+  try {
+    if (frame) {
       result = frame.eval(string);
-    } catch (e) {
-      result = { throw: e };
+    } else {
+      result = dbg.replayGlobalEval(string);
     }
-  } else {
-    result = { throw: "Cannot evaluate while replaying without a frame" };
+  } catch (e) {
+    result = { throw: e };
   }
   return {
     result: result,
