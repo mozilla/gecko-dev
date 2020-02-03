@@ -91,19 +91,16 @@ bool UseCloudForReplayingProcesses() {
 }
 
 void EnsureUIStateInitialized() {
+  const char* sourcesPath = getenv("WEBREPLAY_SOURCES");
+  if (sourcesPath && gControlJS.empty()) {
+    ReadFileSync(nsPrintfCString("%s/control.js", sourcesPath), gControlJS);
+    ReadFileSync(nsPrintfCString("%s/replay.js", sourcesPath), gReplayJS);
+  }
+
   if (!UseCloudForReplayingProcesses()) {
-    if (!gControlJS.empty()) {
-      return;
-    }
-
-    const char* path = getenv("WEBREPLAY_OFFLINE");
-    if (!path) {
+    if (!sourcesPath) {
       gCloudReplayStatus.AssignLiteral("cloudNotSet.label");
-      return;
     }
-
-    ReadFileSync(nsPrintfCString("%s/control.js", path), gControlJS);
-    ReadFileSync(nsPrintfCString("%s/replay.js", path), gReplayJS);
     return;
   }
 
@@ -220,8 +217,10 @@ static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
     return false;
   }
 
-  ExtractJSString(aCx, args.get(0).toString(), gControlJS);
-  ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
+  if (!getenv("WEBREPLAY_SOURCES")) {
+    ExtractJSString(aCx, args.get(0).toString(), gControlJS);
+    ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
+  }
 
   args.rval().setUndefined();
   return true;

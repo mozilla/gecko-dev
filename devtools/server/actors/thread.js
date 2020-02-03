@@ -1356,6 +1356,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   addAllSources() {
+    // When replaying, sources and scripts will not be GCed.
+    if (isReplaying) {
+      this.dbg.findSources().forEach(source => this._addSource(source));
+      return;
+    }
+
     // Compare the sources we find with the source URLs which have been loaded
     // in debuggee realms. Count the number of sources associated with each
     // URL so that we can detect if an HTML file has had some inline sources
