@@ -246,7 +246,7 @@ bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
   return JS_CallFunctionName(cx, *gModuleObject, "RecoverFromCrash", args, &rv);
 }
 
-void FatalCloudError(const char* aWhy) {
+void OnCriticalError(const char* aWhy) {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
@@ -255,8 +255,8 @@ void FatalCloudError(const char* aWhy) {
 
   RootedValue rv(cx);
   RootedValue arg(cx, StringValue(str));
-  if (!JS_CallFunctionName(cx, *gModuleObject, "FatalCloudError", HandleValueArray(arg), &rv)) {
-    MOZ_CRASH("FatalCloudError");
+  if (!JS_CallFunctionName(cx, *gModuleObject, "OnCriticalError", HandleValueArray(arg), &rv)) {
+    MOZ_CRASH("OnCriticalError");
   }
 }
 

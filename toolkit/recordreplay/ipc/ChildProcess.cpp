@@ -51,9 +51,9 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
       OnCrash(nmsg.mForkId, nmsg.Error());
       return;
     }
-    case MessageType::CloudError: {
-      const auto& nmsg = static_cast<const CloudErrorMessage&>(aMsg);
-      js::FatalCloudError(nmsg.Error());
+    case MessageType::CriticalError: {
+      const auto& nmsg = static_cast<const CriticalErrorMessage&>(aMsg);
+      js::OnCriticalError(nmsg.Error());
       return;
     }
     case MessageType::Paint:

@@ -485,16 +485,24 @@ void RegisterFork(size_t aForkId) {
   gChannel->ExitIfNotInitializedBefore(deadline);
 }
 
+template <MessageType Type>
+static ErrorMessage<Type>* ConstructErrorMessageOnStack(
+    char* aBuf, size_t aSize, size_t aForkId, const char* aMessage) {
+  size_t header = sizeof(ErrorMessage<Type>);
+  size_t len = std::min(strlen(aMessage) + 1, aSize - header);
+  ErrorMessage<Type>* msg = new (aBuf) ErrorMessage<Type>(header + len, aForkId);
+  memcpy(&aBuf[header], aMessage, len);
+  aBuf[aSize - 1] = 0;
+  return msg;
+}
+
 static void SendFatalErrorMessage(size_t aForkId, const char* aMessage) {
   // Construct a FatalErrorMessage on the stack, to avoid touching the heap.
   char msgBuf[4096];
-  size_t header = sizeof(FatalErrorMessage);
-  size_t len = std::min(strlen(aMessage) + 1, sizeof(msgBuf) - header);
-  FatalErrorMessage* msg = new (msgBuf) FatalErrorMessage(header + len, aForkId);
-  memcpy(&msgBuf[header], aMessage, len);
-  msgBuf[sizeof(msgBuf) - 1] = 0;
+  FatalErrorMessage* msg =
+      ConstructErrorMessageOnStack<MessageType::FatalError>(
+          msgBuf, sizeof(msgBuf), aForkId, aMessage);
 
-  // Don't take the message lock when sending this, to avoid touching the heap.
   gChannel->SendMessage(std::move(*msg));
 
   Print("***** Fatal Record/Replay Error #%lu:%lu *****\n%s\n", GetId(), aForkId,
@@ -561,6 +569,16 @@ MOZ_EXPORT void RecordReplayInterface_ReportCrash(const char* aMessage) {
 }
 
 } // extern "C"
+
+void ReportCriticalError(const char* aMessage) {
+  char msgBuf[4096];
+  CriticalErrorMessage* msg =
+      ConstructErrorMessageOnStack<MessageType::CriticalError>(
+          msgBuf, sizeof(msgBuf), gForkId, aMessage);
+  gChannel->SendMessage(std::move(*msg));
+
+  Print("Critical Error: %s\n", aMessage);
+}
 
 void ReportUnhandledDivergence() {
   gChannel->SendMessage(UnhandledDivergenceMessage(gForkId));

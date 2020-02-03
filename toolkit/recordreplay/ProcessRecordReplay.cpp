@@ -218,12 +218,12 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayBytes(void* aData,
 
 MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(
     const char* aWhy) {
-  if (IsRecording()) {
-    child::ReportFatalError("Recording invalidated: %s", aWhy);
-  } else {
+  if (IsReplaying()) {
     child::ReportFatalError("Recording invalidated while replaying: %s", aWhy);
   }
-  Unreachable();
+
+  child::ReportCriticalError(aWhy);
+  Thread::WaitForeverNoIdle();
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEventsWithLocalReplay() {

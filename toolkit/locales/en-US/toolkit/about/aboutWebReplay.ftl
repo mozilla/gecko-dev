@@ -10,5 +10,7 @@ remove = Remove
 error-title = Fatal Error!
 
 # Different kinds of fatal errors
-CloudUnknownError = Unknown cloud server error
+UnknownError = Unknown error
 CloudMissingBuild = Build not found on cloud server
+OutOfMemory = Out of memory exception thrown
+OverRecursed = JS stack overflowed

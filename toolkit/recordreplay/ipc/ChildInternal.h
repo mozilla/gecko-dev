@@ -44,6 +44,9 @@ void ReportCrash(const MinidumpInfo& aMinidumpInfo, void* aFaultingAddress);
 // Generate a minidump and report a fatal error to the middleman process.
 void ReportFatalError(const char* aFormat, ...);
 
+// Report an error that will abort the record/replay tab's execution.
+void ReportCriticalError(const char* aMessage);
+
 // Report to the middleman that we had an unhandled recording divergence, and
 // that execution in this process cannot continue.
 void ReportUnhandledDivergence();

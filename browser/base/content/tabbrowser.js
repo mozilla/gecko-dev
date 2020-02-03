@@ -6522,5 +6522,5 @@ function EnsureRecordReplayWatcher() {
       }
     },
   };
-  Services.ppmm.addMessageListener("RecordReplayFatalError", gRecordReplayWatcher);
+  Services.ppmm.addMessageListener("RecordReplayCriticalError", gRecordReplayWatcher);
 }

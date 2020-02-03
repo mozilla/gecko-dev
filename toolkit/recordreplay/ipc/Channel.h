@@ -48,8 +48,8 @@ namespace recordreplay {
   /* Sent by the middleman at startup. */                      \
   _Macro(Introduction)                                         \
                                                                \
-  /* An error occurred in the cloud server. */                 \
-  _Macro(CloudError)                                           \
+  /* An error occurred and the record/replay session cannot continue. */ \
+  _Macro(CriticalError)                                        \
                                                                \
   /* Messages sent from the middleman to the child process. */ \
                                                                \
@@ -70,7 +70,7 @@ namespace recordreplay {
   _Macro(CreateCheckpoint)                                     \
                                                                \
   /* Unpause the child and perform a debugger-defined operation. */ \
-  _Macro(ManifestStart)                                             \
+  _Macro(ManifestStart)                                        \
                                                                \
   /* Respond to a ExternalCallRequest message. This is also sent between separate */ \
   /* replaying processes to fill the external call cache in root replaying processes. */ \
@@ -96,8 +96,8 @@ namespace recordreplay {
   /* An unhandled recording divergence occurred and execution cannot continue. */ \
   _Macro(UnhandledDivergence)                                  \
                                                                \
-  /* A critical error occurred and execution cannot continue. The child will */ \
-  /* stop executing after sending this message and will wait to be terminated. */ \
+  /* The child has crashed or had another error it cannot recover from. The child */ \
+  /* will stop executing after sending this message and will wait to be terminated. */ \
   /* A minidump for the child has been generated. */           \
   _Macro(FatalError)                                           \
                                                                \
@@ -289,7 +289,7 @@ struct ErrorMessage : public Message {
 };
 
 typedef ErrorMessage<MessageType::FatalError> FatalErrorMessage;
-typedef ErrorMessage<MessageType::CloudError> CloudErrorMessage;
+typedef ErrorMessage<MessageType::CriticalError> CriticalErrorMessage;
 
 typedef EmptyMessage<MessageType::UnhandledDivergence> UnhandledDivergenceMessage;
 
