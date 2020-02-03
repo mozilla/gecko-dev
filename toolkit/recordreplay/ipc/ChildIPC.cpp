@@ -440,7 +440,6 @@ static void HandleMessageToForkedProcess(Message::UniquePtr aMsg) {
   // so that the recording data only has to be uploaded once to the root process
   // and then redistributed via IPC to forks.
   if (aMsg->mType == MessageType::UpdateRecordingFromRoot) {
-    MOZ_RELEASE_ASSERT(!gForkId);
     const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
     MOZ_RELEASE_ASSERT(nmsg.mStart + nmsg.mSize <= gRecordingContents.length());
     Message::UniquePtr newMessage(RecordingDataMessage::New(

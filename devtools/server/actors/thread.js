@@ -1170,6 +1170,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     //this.dbg.replayPaintCurrentPoint();
   },
 
+  replayTriggerCrash(when) {
+    this.dbg.replayTriggerCrash(when);
+  },
+
   /**
    * Handle a protocol request to resume execution of the debuggee.
    */

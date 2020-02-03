@@ -239,8 +239,3 @@ async function checkMessageObjectContents(msg, expected, expandList = []) {
 
 PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_NOT_INITIALIZED/);
 PromiseTestUtils.whitelistRejectionsGlobally(/Error in asyncStorage/);
-
-// When running the full test suite, long delays can occur early on in tests,
-// before child processes have even been spawned. Allow a longer timeout to
-// avoid failures from this.
-requestLongerTimeout(4);

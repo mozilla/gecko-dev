@@ -1106,6 +1106,10 @@ static bool RecordReplay_Dump(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
+static bool RecordReplay_Crash(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  MOZ_CRASH("Intentional Crash");
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording/Replaying Script Hit Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -1570,6 +1574,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
+    JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FS_END};
 
 extern "C" {

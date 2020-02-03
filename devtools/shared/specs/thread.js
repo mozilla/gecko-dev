@@ -195,6 +195,12 @@ const threadSpec = generateActorSpec({
       request: {},
     },
 
+    replayTriggerCrash: {
+      request: {
+        when: Arg(0, "string"),
+      },
+    },
+
     toggleEventLogging: {
       request: {
         logEventBreakpoints: Arg(0, "string"),

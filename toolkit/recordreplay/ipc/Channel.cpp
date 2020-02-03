@@ -112,6 +112,8 @@ void Channel::ThreadMain(void* aChannelArg) {
     channel->mFd = HANDLE_EINTR(accept(channel->mConnectionFd, nullptr, 0));
     MOZ_RELEASE_ASSERT(channel->mFd > 0);
 
+    close(channel->mConnectionFd);
+
     HelloMessage msg;
     msg.mMagic = MagicValue;
 
@@ -211,6 +213,7 @@ Message::UniquePtr Channel::WaitForMessage() {
       } else {
         // Returning null will shut down the channel.
         PrintSpew("Channel disconnected, shutting down thread.\n");
+        close(mFd);
         return nullptr;
       }
     }
