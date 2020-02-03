@@ -263,6 +263,10 @@ toolbar[brighttext] {
   color: #ff4500 !important;
 }
 
+.recordingButtonReplaying {
+  color: #0080ff !important;
+}
+
 #profiler-button {
   list-style-image: url("chrome://devtools/skin/images/profiler-stopwatch.svg");
 }

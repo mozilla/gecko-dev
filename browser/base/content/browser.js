@@ -5590,6 +5590,13 @@ var XULBrowserWindow = {
       } else {
         recordingButton.classList.remove("recordingButtonRecording");
       }
+
+      const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
+      if (replaying) {
+        recordingButton.classList.add("recordingButtonReplaying");
+      } else {
+        recordingButton.classList.remove("recordingButtonReplaying");
+      }
     }
 
     if (FullZoom.updateBackgroundTabs) {

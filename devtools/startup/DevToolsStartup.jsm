@@ -570,6 +570,7 @@ DevToolsStartup.prototype = {
       onViewShowing: event => {
         const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
         const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+        const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
 
         const doc = event.target.ownerDocument;
         const recordingItems = doc.getElementById("PanelUI-recordingItems");
@@ -600,7 +601,10 @@ DevToolsStartup.prototype = {
         if (recording) {
           addItem("stopRecording.label", reloadAndStopRecordingTab);
         } else {
-          addItem("startRecording.label", reloadAndRecordTab);
+          const item = addItem("startRecording.label", reloadAndRecordTab);
+          if (replaying) {
+            item.setAttribute("disabled", "true");
+          }
         }
 
         const saveRecordingItem = addItem("saveRecording.label", async event => {
