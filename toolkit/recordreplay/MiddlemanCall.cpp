@@ -4,204 +4,212 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "MiddlemanCall.h"
+#include "ExternalCall.h"
 
 #include <unordered_map>
 
 namespace mozilla {
 namespace recordreplay {
 
-typedef std::unordered_map<const void*, MiddlemanCall*> MiddlemanCallMap;
+///////////////////////////////////////////////////////////////////////////////
+// Replaying and External Process State
+///////////////////////////////////////////////////////////////////////////////
 
-// State used for keeping track of middleman calls in either a replaying
-// process or middleman process.
-struct MiddlemanCallState {
-  // In a replaying or middleman process, all middleman calls that have been
-  // encountered, indexed by their ID.
-  InfallibleVector<MiddlemanCall*> mCalls;
+typedef std::unordered_map<ExternalCallId, ExternalCall*> CallsByIdMap;
+typedef std::unordered_map<const void*, ExternalCallId> CallsByValueMap;
 
-  // In a replaying or middleman process, association between values produced by
-  // a middleman call and the call itself.
-  MiddlemanCallMap mCallMap;
+// State used for keeping track of external calls in either a replaying
+// process or external process.
+struct ExternalCallState {
+  // In a replaying or external process, association between ExternalCallIds
+  // and the associated ExternalCall, for each encountered call.
+  CallsByIdMap mCallsById;
 
-  // In a middleman process, any buffers allocated for performed calls.
+  // In a replaying or external process, association between values produced by
+  // a external call and the call's ID. This is the inverse of each call's
+  // mValue field, except that if multiple calls have produced the same value
+  // this maps that value to the most recent one.
+  CallsByValueMap mCallsByValue;
+
+  // In an external process, any buffers allocated for performed calls.
   InfallibleVector<void*> mAllocatedBuffers;
 };
 
-// In a replaying process, all middleman call state. In a middleman process,
-// state for the child currently being processed.
-static MiddlemanCallState* gState;
+// In a replaying process, all external call state. In an external process,
+// state for the call currently being processed.
+static ExternalCallState* gState;
 
-// In a middleman process, middleman call state for each child process, indexed
-// by the child ID.
-static StaticInfallibleVector<MiddlemanCallState*> gStatePerChild;
+// In a replaying process, all external calls found in the recording that have
+// not been flushed to the root replaying process.
+static StaticInfallibleVector<ExternalCall*> gUnflushedCalls;
 
-// In a replaying process, lock protecting middleman call state. In the
-// middleman, all accesses occur on the main thread.
+// In a replaying process, lock protecting external call state. In the
+// external process, all accesses occur on the main thread.
 static Monitor* gMonitor;
 
-void InitializeMiddlemanCalls() {
+void InitializeExternalCalls() {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying() || IsMiddleman());
 
   if (IsReplaying()) {
-    gState = new MiddlemanCallState();
+    gState = new ExternalCallState();
     gMonitor = new Monitor();
   }
 }
 
-// Apply the ReplayInput phase to aCall and any calls it depends on that have
-// not been sent to the middleman yet, filling aOutgoingCalls with the set of
-// such calls.
-static bool GatherDependentCalls(
-    InfallibleVector<MiddlemanCall*>& aOutgoingCalls, MiddlemanCall* aCall) {
-  MOZ_RELEASE_ASSERT(!aCall->mSent);
-  aCall->mSent = true;
+static void SetExternalCallValue(ExternalCall* aCall, const void* aValue) {
+  aCall->mValue.reset();
+  aCall->mValue.emplace(aValue);
 
-  const Redirection& redirection = GetRedirection(aCall->mCallId);
+  gState->mCallsByValue.erase(aValue);
+  gState->mCallsByValue.insert(CallsByValueMap::value_type(aValue, aCall->mId));
+}
 
-  CallArguments arguments;
-  aCall->mArguments.CopyTo(&arguments);
-
-  InfallibleVector<MiddlemanCall*> dependentCalls;
-
-  MiddlemanCallContext cx(aCall, &arguments, MiddlemanCallPhase::ReplayInput);
-  cx.mDependentCalls = &dependentCalls;
-  redirection.mMiddlemanCall(cx);
-  if (cx.mFailed) {
-    if (child::CurrentRepaintCannotFail()) {
-      child::ReportFatalError(Nothing(), "Middleman call input failed: %s\n",
-                              redirection.mName);
-    }
-    return false;
-  }
-
-  for (MiddlemanCall* dependent : dependentCalls) {
-    if (!dependent->mSent && !GatherDependentCalls(aOutgoingCalls, dependent)) {
-      return false;
+static void GatherDependentCalls(
+    InfallibleVector<ExternalCall*>& aOutgoingCalls, ExternalCall* aCall) {
+  for (ExternalCall* existing : aOutgoingCalls) {
+    if (existing == aCall) {
+      return;
     }
   }
 
   aOutgoingCalls.append(aCall);
-  return true;
+
+  for (ExternalCallId dependentId : aCall->mDependentCalls) {
+    auto iter = gState->mCallsById.find(dependentId);
+    MOZ_RELEASE_ASSERT(iter != gState->mCallsById.end());
+    ExternalCall* dependent = iter->second;
+
+    GatherDependentCalls(aOutgoingCalls, dependent);
+  }
 }
 
-bool SendCallToMiddleman(size_t aCallId, CallArguments* aArguments,
-                         bool aDiverged) {
+bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
   const Redirection& redirection = GetRedirection(aCallId);
-  MOZ_RELEASE_ASSERT(redirection.mMiddlemanCall);
+  MOZ_RELEASE_ASSERT(redirection.mExternalCall);
+
+  const char* messageName = "";
+  if (!strcmp(redirection.mName, "objc_msgSend")) {
+    messageName = aArguments->Arg<1, const char*>();
+  }
+
+  if (aDiverged) {
+    PrintSpew("OnExternalCall Diverged %s %s\n", redirection.mName, messageName);
+  }
 
   MonitorAutoLock lock(*gMonitor);
 
-  // Allocate and fill in a new MiddlemanCall.
-  size_t id = gState->mCalls.length();
-  MiddlemanCall* newCall = new MiddlemanCall();
-  gState->mCalls.emplaceBack(newCall);
-  newCall->mId = id;
-  newCall->mCallId = aCallId;
-  newCall->mArguments.CopyFrom(aArguments);
+  // Allocate the new ExternalCall.
+  ExternalCall* call = new ExternalCall();
+  call->mCallId = aCallId;
 
-  // Perform the ReplayPreface phase on the new call.
+  // Save all the call's inputs.
   {
-    MiddlemanCallContext cx(newCall, aArguments,
-                            MiddlemanCallPhase::ReplayPreface);
-    redirection.mMiddlemanCall(cx);
+    ExternalCallContext cx(call, aArguments,
+                           ExternalCallPhase::SaveInput);
+    redirection.mExternalCall(cx);
     if (cx.mFailed) {
-      delete newCall;
-      gState->mCalls.popBack();
-      if (child::CurrentRepaintCannotFail()) {
-        child::ReportFatalError(Nothing(),
-                                "Middleman call preface failed: %s\n",
+      delete call;
+      if (child::CurrentRepaintCannotFail() && aDiverged) {
+        child::ReportFatalError("External call input failed: %s\n",
                                 redirection.mName);
       }
       return false;
     }
   }
 
-  // Other phases will not run if we have not diverged from the recording.
-  // Any outputs for the call have been handled by the SaveOutput hook.
+  call->ComputeId();
+
+  bool isNewCall = false;
+  auto iter = gState->mCallsById.find(call->mId);
+  if (iter == gState->mCallsById.end()) {
+    // We haven't seen this call before.
+    isNewCall = true;
+    gState->mCallsById.insert(CallsByIdMap::value_type(call->mId, call));
+  } else {
+    // We've seen this call before, so use the old copy.
+    delete call;
+    call = iter->second;
+
+    // Reuse this call's result if we need to restore the output.
+    if (aDiverged) {
+      ExternalCallContext cx(call, aArguments,
+                             ExternalCallPhase::RestoreOutput);
+      redirection.mExternalCall(cx);
+      return true;
+    }
+  }
+
+  // If we have not diverged from the recording, we already have the outputs
+  // we need. Run the SaveOutput phase to capture these so that we can reuse
+  // them later and associate any system outputs with the call.
   if (!aDiverged) {
+    ExternalCallContext cx(call, aArguments,
+                           ExternalCallPhase::SaveOutput);
+    redirection.mExternalCall(cx);
+    if (isNewCall) {
+      gUnflushedCalls.append(call);
+    }
     return true;
   }
 
-  // Perform the ReplayInput phase on the new call and any others it depends on.
-  InfallibleVector<MiddlemanCall*> outgoingCalls;
-  if (!GatherDependentCalls(outgoingCalls, newCall)) {
-    for (MiddlemanCall* call : outgoingCalls) {
-      call->mSent = false;
-    }
-    return false;
-  }
+  PrintSpew("OnExternalCall Send %s %s\n", redirection.mName, messageName);
 
-  // Encode all calls we are sending to the middleman.
+  // Gather any calls this one transitively depends on.
+  InfallibleVector<ExternalCall*> outgoingCalls;
+  GatherDependentCalls(outgoingCalls, call);
+
+  // Encode all calls that need to be performed, in the order to perform them.
   InfallibleVector<char> inputData;
   BufferStream inputStream(&inputData);
-  for (MiddlemanCall* call : outgoingCalls) {
-    call->EncodeInput(inputStream);
+  for (int i = outgoingCalls.length() - 1; i >= 0; i--) {
+    outgoingCalls[i]->EncodeInput(inputStream);
   }
 
-  // Perform the calls synchronously in the middleman.
+  // Synchronously wait for the call result.
   InfallibleVector<char> outputData;
-  child::SendMiddlemanCallRequest(inputData.begin(), inputData.length(),
-                                  &outputData);
+  child::SendExternalCallRequest(call->mId,
+                                 inputData.begin(), inputData.length(),
+                                 &outputData);
 
-  // Decode outputs for the calls just sent, and perform the ReplayOutput phase
-  // on any older dependent calls we sent.
+  // Decode the external call's output.
   BufferStream outputStream(outputData.begin(), outputData.length());
-  for (MiddlemanCall* call : outgoingCalls) {
-    call->DecodeOutput(outputStream);
+  call->DecodeOutput(outputStream);
 
-    if (call != newCall) {
-      CallArguments oldArguments;
-      call->mArguments.CopyTo(&oldArguments);
-      MiddlemanCallContext cx(call, &oldArguments,
-                              MiddlemanCallPhase::ReplayOutput);
-      cx.mReplayOutputIsOld = true;
-      GetRedirection(call->mCallId).mMiddlemanCall(cx);
-    }
-  }
-
-  // Perform the ReplayOutput phase to fill in outputs for the current call.
-  newCall->mArguments.CopyTo(aArguments);
-  MiddlemanCallContext cx(newCall, aArguments,
-                          MiddlemanCallPhase::ReplayOutput);
-  redirection.mMiddlemanCall(cx);
+  ExternalCallContext cx(call, aArguments, ExternalCallPhase::RestoreOutput);
+  redirection.mExternalCall(cx);
   return true;
 }
 
-void ProcessMiddlemanCall(size_t aChildId, const char* aInputData,
-                          size_t aInputSize,
-                          InfallibleVector<char>* aOutputData) {
+void ProcessExternalCall(const char* aInputData, size_t aInputSize,
+                         InfallibleVector<char>* aOutputData) {
   MOZ_RELEASE_ASSERT(IsMiddleman());
 
-  while (aChildId >= gStatePerChild.length()) {
-    gStatePerChild.append(nullptr);
-  }
-  if (!gStatePerChild[aChildId]) {
-    gStatePerChild[aChildId] = new MiddlemanCallState();
-  }
-  gState = gStatePerChild[aChildId];
+  gState = new ExternalCallState();
+  auto& calls = gState->mCallsById;
 
   BufferStream inputStream(aInputData, aInputSize);
-  BufferStream outputStream(aOutputData);
+  ExternalCall* lastCall = nullptr;
+
+  ExternalCallContext::ReleaseCallbackVector releaseCallbacks;
 
   while (!inputStream.IsEmpty()) {
-    MiddlemanCall* call = new MiddlemanCall();
+    ExternalCall* call = new ExternalCall();
     call->DecodeInput(inputStream);
 
     const Redirection& redirection = GetRedirection(call->mCallId);
-    MOZ_RELEASE_ASSERT(redirection.mMiddlemanCall);
+    MOZ_RELEASE_ASSERT(redirection.mExternalCall);
+
+    PrintSpew("ProcessExternalCall %lu %s\n", call->mId, redirection.mName);
 
     CallArguments arguments;
-    call->mArguments.CopyTo(&arguments);
 
     bool skipCall;
     {
-      MiddlemanCallContext cx(call, &arguments,
-                              MiddlemanCallPhase::MiddlemanInput);
-      redirection.mMiddlemanCall(cx);
-      skipCall = cx.mSkipCallInMiddleman;
+      ExternalCallContext cx(call, &arguments, ExternalCallPhase::RestoreInput);
+      redirection.mExternalCall(cx);
+      skipCall = cx.mSkipExecuting;
     }
 
     if (!skipCall) {
@@ -209,32 +217,42 @@ void ProcessMiddlemanCall(size_t aChildId, const char* aInputData,
     }
 
     {
-      MiddlemanCallContext cx(call, &arguments,
-                              MiddlemanCallPhase::MiddlemanOutput);
-      redirection.mMiddlemanCall(cx);
+      ExternalCallContext cx(call, &arguments, ExternalCallPhase::SaveOutput);
+      cx.mReleaseCallbacks = &releaseCallbacks;
+      redirection.mExternalCall(cx);
     }
 
-    call->mArguments.CopyFrom(&arguments);
-    call->EncodeOutput(outputStream);
+    lastCall = call;
 
-    while (call->mId >= gState->mCalls.length()) {
-      gState->mCalls.emplaceBack(nullptr);
-    }
-    MOZ_RELEASE_ASSERT(!gState->mCalls[call->mId]);
-    gState->mCalls[call->mId] = call;
+    MOZ_RELEASE_ASSERT(calls.find(call->mId) == calls.end());
+    calls.insert(CallsByIdMap::value_type(call->mId, call));
   }
 
+  BufferStream outputStream(aOutputData);
+  lastCall->EncodeOutput(outputStream);
+
+  for (const auto& callback : releaseCallbacks) {
+    callback();
+  }
+
+  for (auto iter = calls.begin(); iter != calls.end(); ++iter) {
+    delete iter->second;
+  }
+
+  for (auto buffer : gState->mAllocatedBuffers) {
+    free(buffer);
+  }
+
+  delete gState;
   gState = nullptr;
 }
 
-void* MiddlemanCallContext::AllocateBytes(size_t aSize) {
+void* ExternalCallContext::AllocateBytes(size_t aSize) {
   void* rv = malloc(aSize);
 
-  // In a middleman process, any buffers we allocate live until the calls are
-  // reset. In a replaying process, the buffers will either live forever
-  // (if they are allocated in the ReplayPreface phase, to match the lifetime
-  // of the MiddlemanCall itself) or will be recovered when we rewind after we
-  // are done with our divergence from the recording (any other phase).
+  // In an external process, any buffers we allocate live until the calls are
+  // reset. In a replaying process, the buffers will live forever, to match the
+  // lifetime of the ExternalCall itself.
   if (IsMiddleman()) {
     gState->mAllocatedBuffers.append(rv);
   }
@@ -242,212 +260,216 @@ void* MiddlemanCallContext::AllocateBytes(size_t aSize) {
   return rv;
 }
 
-void ResetMiddlemanCalls(size_t aChildId) {
-  MOZ_RELEASE_ASSERT(IsMiddleman());
+void FlushExternalCalls() {
+  MonitorAutoLock lock(*gMonitor);
 
-  if (aChildId >= gStatePerChild.length()) {
-    return;
+  for (ExternalCall* call : gUnflushedCalls) {
+    InfallibleVector<char> outputData;
+    BufferStream outputStream(&outputData);
+    call->EncodeOutput(outputStream);
+
+    child::SendExternalCallOutput(call->mId, outputData.begin(),
+                                  outputData.length());
   }
 
-  gState = gStatePerChild[aChildId];
-  if (!gState) {
-    return;
+  gUnflushedCalls.clear();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// External Call Caching
+///////////////////////////////////////////////////////////////////////////////
+
+// In root replaying processes, the outputs produced by assorted external calls
+// are cached for fulfilling future external call requests.
+struct ExternalCallOutput {
+  char* mOutput;
+  size_t mOutputSize;
+};
+
+// Protected by gMonitor. Accesses can occur on any thread.
+typedef std::unordered_map<ExternalCallId, ExternalCallOutput> CallOutputMap;
+static CallOutputMap* gCallOutputMap;
+
+void AddExternalCallOutput(ExternalCallId aId, const char* aOutput,
+                           size_t aOutputSize) {
+  MonitorAutoLock lock(*gMonitor);
+
+  if (!gCallOutputMap) {
+    gCallOutputMap = new CallOutputMap();
   }
 
-  for (MiddlemanCall* call : gState->mCalls) {
-    if (call) {
-      CallArguments arguments;
-      call->mArguments.CopyTo(&arguments);
+  ExternalCallOutput output;
+  output.mOutput = new char[aOutputSize];
+  memcpy(output.mOutput, aOutput, aOutputSize);
+  output.mOutputSize = aOutputSize;
+  gCallOutputMap->insert(CallOutputMap::value_type(aId, output));
+}
 
-      MiddlemanCallContext cx(call, &arguments,
-                              MiddlemanCallPhase::MiddlemanRelease);
-      GetRedirection(call->mCallId).mMiddlemanCall(cx);
-    }
+bool HasExternalCallOutput(ExternalCallId aId,
+                           InfallibleVector<char>* aOutput) {
+  MonitorAutoLock lock(*gMonitor);
+
+  if (!gCallOutputMap) {
+    return false;
   }
 
-  // Delete the calls in a second pass. The MiddlemanRelease phase depends on
-  // previous middleman calls still existing.
-  for (MiddlemanCall* call : gState->mCalls) {
-    delete call;
+  auto iter = gCallOutputMap->find(aId);
+  if (iter == gCallOutputMap->end()) {
+    return false;
   }
 
-  gState->mCalls.clear();
-  for (auto buffer : gState->mAllocatedBuffers) {
-    free(buffer);
-  }
-  gState->mAllocatedBuffers.clear();
-  gState->mCallMap.clear();
-
-  gState = nullptr;
+  aOutput->append(iter->second.mOutput, iter->second.mOutputSize);
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // System Values
 ///////////////////////////////////////////////////////////////////////////////
 
-static void AddMiddlemanCallValue(const void* aThing, MiddlemanCall* aCall) {
-  gState->mCallMap.erase(aThing);
-  gState->mCallMap.insert(MiddlemanCallMap::value_type(aThing, aCall));
-}
-
-static MiddlemanCall* LookupMiddlemanCall(const void* aThing) {
-  MiddlemanCallMap::const_iterator iter = gState->mCallMap.find(aThing);
-  if (iter != gState->mCallMap.end()) {
-    return iter->second;
+static ExternalCall* LookupExternalCall(const void* aThing) {
+  CallsByValueMap::const_iterator iter = gState->mCallsByValue.find(aThing);
+  if (iter != gState->mCallsByValue.end()) {
+    CallsByIdMap::const_iterator iter2 = gState->mCallsById.find(iter->second);
+    if (iter2 != gState->mCallsById.end()) {
+      return iter2->second;
+    }
   }
   return nullptr;
 }
 
-static const void* GetMiddlemanCallValue(size_t aId) {
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-  MOZ_RELEASE_ASSERT(aId < gState->mCalls.length() && gState->mCalls[aId] &&
-                     gState->mCalls[aId]->mMiddlemanValue.isSome());
-  return gState->mCalls[aId]->mMiddlemanValue.ref();
+static Maybe<const void*> GetExternalCallValue(ExternalCallId aId) {
+  auto iter = gState->mCallsById.find(aId);
+  if (iter != gState->mCallsById.end()) {
+    return iter->second->mValue;
+  }
+  return Nothing();
 }
 
-bool MM_SystemInput(MiddlemanCallContext& aCx, const void** aThingPtr) {
-  MOZ_RELEASE_ASSERT(aCx.AccessPreface());
+bool EX_SystemInput(ExternalCallContext& aCx, const void** aThingPtr) {
+  MOZ_RELEASE_ASSERT(aCx.AccessInput());
 
-  if (!*aThingPtr) {
-    // Null values are handled by the normal argument copying logic.
+  bool isNull = *aThingPtr == nullptr;
+  aCx.ReadOrWriteInputBytes(&isNull, sizeof(isNull));
+  if (isNull) {
+    *aThingPtr = nullptr;
     return true;
   }
 
-  Maybe<size_t> callId;
-  if (aCx.mPhase == MiddlemanCallPhase::ReplayPreface) {
-    // Determine any middleman call this object came from, before the pointer
-    // has a chance to be clobbered by another call between this and the
-    // ReplayInput phase.
-    MiddlemanCall* call = LookupMiddlemanCall(*aThingPtr);
+  ExternalCallId callId = 0;
+  if (aCx.mPhase == ExternalCallPhase::SaveInput) {
+    ExternalCall* call = LookupExternalCall(*aThingPtr);
     if (call) {
-      callId.emplace(call->mId);
+      callId = call->mId;
+      MOZ_RELEASE_ASSERT(callId);
+      aCx.mCall->mDependentCalls.append(call->mId);
     }
   }
-  aCx.ReadOrWritePrefaceBytes(&callId, sizeof(callId));
+  aCx.ReadOrWriteInputBytes(&callId, sizeof(callId));
 
-  switch (aCx.mPhase) {
-    case MiddlemanCallPhase::ReplayPreface:
-      return true;
-    case MiddlemanCallPhase::ReplayInput:
-      if (callId.isSome()) {
-        aCx.WriteInputScalar(callId.ref());
-        aCx.mDependentCalls->append(gState->mCalls[callId.ref()]);
-        return true;
-      }
-      return false;
-    case MiddlemanCallPhase::MiddlemanInput:
-      if (callId.isSome()) {
-        size_t callIndex = aCx.ReadInputScalar();
-        *aThingPtr = GetMiddlemanCallValue(callIndex);
-        return true;
-      }
-      return false;
-    default:
-      MOZ_CRASH("Bad phase");
+  if (aCx.mPhase == ExternalCallPhase::RestoreInput) {
+    if (callId) {
+      Maybe<const void*> value = GetExternalCallValue(callId);
+      MOZ_RELEASE_ASSERT(value.isSome());
+      *aThingPtr = value.ref();
+    }
   }
+
+  return callId != 0;
 }
 
-// Pointer system values are preserved during the replay so that null tests
-// and equality tests work as expected. We additionally mangle the
-// pointers here by setting one of the two highest bits, depending on whether
-// the pointer came from the recording or from the middleman. This avoids
-// accidentally conflating pointers that happen to have the same value but
-// which originate from different processes.
-static const void* MangleSystemValue(const void* aValue, bool aFromRecording) {
-  return (const void*)((size_t)aValue | (1ULL << (aFromRecording ? 63 : 62)));
+static const void* MangledSystemValue(ExternalCallId aId) {
+  return (const void*)((size_t)aId | (1ULL << 63));
 }
 
-void MM_SystemOutput(MiddlemanCallContext& aCx, const void** aOutput,
+void EX_SystemOutput(ExternalCallContext& aCx, const void** aOutput,
                      bool aUpdating) {
-  if (!*aOutput) {
-    if (aCx.mPhase == MiddlemanCallPhase::MiddlemanOutput) {
-      aCx.mCall->SetMiddlemanValue(*aOutput);
-    }
+  if (!aCx.AccessOutput()) {
     return;
   }
 
-  switch (aCx.mPhase) {
-    case MiddlemanCallPhase::ReplayPreface:
-      if (!HasDivergedFromRecording()) {
-        // If we haven't diverged from the recording, use the output value saved
-        // in the recording.
-        if (!aUpdating) {
-          *aOutput = MangleSystemValue(*aOutput, true);
-        }
-        aCx.mCall->SetRecordingValue(*aOutput);
-        AddMiddlemanCallValue(*aOutput, aCx.mCall);
-      }
-      break;
-    case MiddlemanCallPhase::MiddlemanOutput:
-      aCx.mCall->SetMiddlemanValue(*aOutput);
-      AddMiddlemanCallValue(*aOutput, aCx.mCall);
-      break;
-    case MiddlemanCallPhase::ReplayOutput: {
-      if (!aUpdating) {
-        *aOutput = MangleSystemValue(*aOutput, false);
-      }
-      aCx.mCall->SetMiddlemanValue(*aOutput);
+  bool isNull = false;
+  Maybe<ExternalCallId> aliasedCall;
+  if (aCx.mPhase == ExternalCallPhase::SaveOutput) {
+    SetExternalCallValue(aCx.mCall, *aOutput);
 
-      // Associate the value produced by the middleman with this call. If the
-      // call previously went through the ReplayPreface phase when we did not
-      // diverge from the recording, we will associate values from both the
-      // recording and middleman processes with this call. If a call made after
-      // diverging produced the same value as a call made before diverging, use
-      // the value saved in the recording for the first call, so that equality
-      // tests on the value work as expected.
-      MiddlemanCall* previousCall = LookupMiddlemanCall(*aOutput);
-      if (previousCall) {
-        if (previousCall->mRecordingValue.isSome()) {
-          *aOutput = previousCall->mRecordingValue.ref();
-        }
-      } else {
-        AddMiddlemanCallValue(*aOutput, aCx.mCall);
+    isNull = *aOutput == nullptr;
+    if (!isNull) {
+      ExternalCall* call = LookupExternalCall(*aOutput);
+      if (call) {
+        aliasedCall.emplace(call->mId);
       }
-      break;
     }
-    default:
-      return;
+  }
+  aCx.ReadOrWriteOutputBytes(&isNull, sizeof(isNull));
+  aCx.ReadOrWriteOutputBytes(&aliasedCall, sizeof(aliasedCall));
+
+  if (aCx.mPhase == ExternalCallPhase::RestoreOutput) {
+    do {
+      if (isNull) {
+        *aOutput = nullptr;
+        break;
+      }
+      if (aliasedCall.isSome()) {
+        auto iter = gState->mCallsById.find(aliasedCall.ref());
+        if (iter != gState->mCallsById.end()) {
+          *aOutput = iter->second;
+          break;
+        }
+        // If we haven't encountered the aliased call, fall through and generate
+        // a new value for it. Aliases might be spurious if they were derived from
+        // the recording and reflect a value that was released and had its memory
+        // reused.
+      }
+      *aOutput = MangledSystemValue(aCx.mCall->mId);
+    } while (false);
+
+    SetExternalCallValue(aCx.mCall, *aOutput);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// MiddlemanCall
+// ExternalCall
 ///////////////////////////////////////////////////////////////////////////////
 
-void MiddlemanCall::EncodeInput(BufferStream& aStream) const {
+void CallReturnRegisters::CopyFrom(CallArguments* aArguments) {
+  rval0 = aArguments->Rval<size_t, 0>();
+  rval1 = aArguments->Rval<size_t, 1>();
+  floatrval0 = aArguments->FloatRval<0>();
+  floatrval1 = aArguments->FloatRval<1>();
+}
+
+void CallReturnRegisters::CopyTo(CallArguments* aArguments) {
+  aArguments->Rval<size_t, 0>() = rval0;
+  aArguments->Rval<size_t, 1>() = rval1;
+  aArguments->FloatRval<0>() = floatrval0;
+  aArguments->FloatRval<1>() = floatrval1;
+}
+
+void ExternalCall::EncodeInput(BufferStream& aStream) const {
   aStream.WriteScalar(mId);
   aStream.WriteScalar(mCallId);
-  aStream.WriteBytes(&mArguments, sizeof(CallRegisterArguments));
-  aStream.WriteScalar(mPreface.length());
-  aStream.WriteBytes(mPreface.begin(), mPreface.length());
+  aStream.WriteScalar(mExcludeInput);
   aStream.WriteScalar(mInput.length());
   aStream.WriteBytes(mInput.begin(), mInput.length());
 }
 
-void MiddlemanCall::DecodeInput(BufferStream& aStream) {
+void ExternalCall::DecodeInput(BufferStream& aStream) {
   mId = aStream.ReadScalar();
   mCallId = aStream.ReadScalar();
-  aStream.ReadBytes(&mArguments, sizeof(CallRegisterArguments));
-  size_t prefaceLength = aStream.ReadScalar();
-  mPreface.appendN(0, prefaceLength);
-  aStream.ReadBytes(mPreface.begin(), prefaceLength);
+  mExcludeInput = aStream.ReadScalar();
   size_t inputLength = aStream.ReadScalar();
   mInput.appendN(0, inputLength);
   aStream.ReadBytes(mInput.begin(), inputLength);
 }
 
-void MiddlemanCall::EncodeOutput(BufferStream& aStream) const {
-  aStream.WriteBytes(&mArguments, sizeof(CallRegisterArguments));
+void ExternalCall::EncodeOutput(BufferStream& aStream) const {
+  aStream.WriteBytes(&mReturnRegisters, sizeof(CallReturnRegisters));
   aStream.WriteScalar(mOutput.length());
   aStream.WriteBytes(mOutput.begin(), mOutput.length());
 }
 
-void MiddlemanCall::DecodeOutput(BufferStream& aStream) {
-  // Only update the return value when decoding arguments, so that we don't
-  // clobber the call's arguments with any changes made in the middleman.
-  CallRegisterArguments newArguments;
-  aStream.ReadBytes(&newArguments, sizeof(CallRegisterArguments));
-  mArguments.CopyRvalFrom(&newArguments);
+void ExternalCall::DecodeOutput(BufferStream& aStream) {
+  aStream.ReadBytes(&mReturnRegisters, sizeof(CallReturnRegisters));
 
   size_t outputLength = aStream.ReadScalar();
   mOutput.appendN(0, outputLength);
