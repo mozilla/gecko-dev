@@ -87,14 +87,13 @@ async function showRecordings() {
     container.appendChild(newRow);
   }
 
-  const vis = gRecordings.length ? "hidden" : "visible";
-  document.querySelector(".no-recordings").style.visibility = vis;
+  document.querySelector(".no-recordings").hidden = !!gRecordings.length;
 }
 
 function showError(kind) {
-  document.querySelector(".recordings-title").style.visibility = "hidden";
-  document.querySelector(".no-recordings").style.visibility = "hidden";
-  document.querySelector(".error-title").style.visibility = "visible";
+  document.querySelector(".recordings-title").hidden = true;
+  document.querySelector(".no-recordings").hidden = true;
+  document.querySelector(".error-title").hidden = false;
 
   document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
 }

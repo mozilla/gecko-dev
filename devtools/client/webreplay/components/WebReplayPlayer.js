@@ -246,8 +246,8 @@ class WebReplayPlayer extends Component {
   }
 
   onPaused(packet) {
-    if (packet && packet.recordingEndpoint) {
-      const { executionPoint, recordingEndpoint } = packet;
+    if (packet) {
+      const { executionPoint } = packet;
       const closestMessage = this.getClosestMessage(executionPoint);
 
       const pausedMessage = this.state.messages
@@ -256,7 +256,6 @@ class WebReplayPlayer extends Component {
 
       this.setState({
         executionPoint,
-        recordingEndpoint,
         paused: true,
         seeking: false,
         recording: false,
@@ -274,6 +273,7 @@ class WebReplayPlayer extends Component {
     const {
       recording,
       executionPoint,
+      recordingEndpoint,
       unscannedRegions,
       cachedPoints,
     } = packet;
@@ -283,20 +283,15 @@ class WebReplayPlayer extends Component {
       return;
     }
 
-    // We want to prevent responding to interrupts
-    if (this.isRecording() && !recording) {
-      return;
-    }
-
     const newState = {
       recording,
+      recordingEndpoint,
       executionPoint,
       unscannedRegions,
       cachedPoints,
     };
 
     if (recording) {
-      newState.recordingEndpoint = executionPoint;
       newState.shouldAnimate = true;
     }
 

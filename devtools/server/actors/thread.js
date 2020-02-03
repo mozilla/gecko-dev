@@ -1531,7 +1531,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (this.dbg.replaying) {
       const point = this.dbg.replayCurrentExecutionPoint();
       packet.executionPoint = point;
-      packet.recordingEndpoint = this.dbg.replayRecordingEndpoint();
       if (point && point.position) {
         this.dbg
           .replayFramePositions(point)
