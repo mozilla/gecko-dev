@@ -53,6 +53,74 @@ const char* SaveAllRecordingsDirectory() {
   return gSaveAllRecordingsDirectory;
 }
 
+static void ReadFileSync(const nsCString& aFile,
+                         StaticInfallibleVector<char>& aContents) {
+  FileHandle fd = DirectOpenFile(aFile.BeginReading(), false);
+
+  char buf[4096];
+  while (true) {
+    size_t n = DirectRead(fd, buf, sizeof(buf));
+    if (!n) {
+      break;
+    }
+    aContents.append(buf, n);
+  }
+
+  DirectCloseFile(fd);
+}
+
+static StaticRefPtr<rrIConnection> gConnection;
+
+static StaticInfallibleVector<char> gControlJS;
+static StaticInfallibleVector<char> gReplayJS;
+
+static bool ConnectionCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
+void EnsureUIStateInitialized() {
+  if (!UseCloudForReplayingProcesses()) {
+    if (!gControlJS.empty()) {
+      return;
+    }
+
+    const char* path = getenv("WEBREPLAY_OFFLINE");
+    if (!path) {
+      fprintf(stderr, "WEBREPLAY_OFFLINE not set, exiting...");
+      exit(0);
+    }
+
+    ReadFileSync(nsPrintfCString("%s/control.js", path), gControlJS);
+    ReadFileSync(nsPrintfCString("%s/replay.js", path), gReplayJS);
+  }
+
+  if (gConnection) {
+    return;
+  }
+
+  nsCOMPtr<rrIConnection> connection =
+    do_ImportModule("resource://devtools/server/actors/replay/connection.js");
+  gConnection = connection.forget();
+  ClearOnShutdown(&gConnection);
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JSFunction* fun = JS_NewFunction(cx, ConnectionCallback, 2, 0,
+                                   "ConnectionCallback");
+  MOZ_RELEASE_ASSERT(fun);
+  JS::RootedValue callback(cx, JS::ObjectValue(*(JSObject*)fun));
+  if (NS_FAILED(gConnection->Initialize(callback))) {
+    MOZ_CRASH("CreateReplayingCloudProcess");
+  }
+}
+
+void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
+  aControlJS.SetLength(gControlJS.length());
+  memcpy(aControlJS.BeginWriting(), gControlJS.begin(), gControlJS.length());
+
+  aReplayJS.SetLength(gReplayJS.length());
+  memcpy(aReplayJS.BeginWriting(), gReplayJS.begin(), gReplayJS.length());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Child Processes
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,10 +135,6 @@ void Shutdown() {
   delete gRecordingChild;
   gReplayingChildren.clear();
   _exit(0);
-}
-
-bool IsMiddlemanWithRecordingChild() {
-  return IsMiddleman() && gRecordingChild;
 }
 
 ChildProcessInfo* GetChildProcess(size_t aId) {
@@ -160,7 +224,6 @@ bool UseCloudForReplayingProcesses() {
   return cloudServer.Length() != 0;
 }
 
-static StaticRefPtr<rrIConnection> gConnection;
 static StaticInfallibleVector<Channel*> gConnectionChannels;
 
 class SendMessageToCloudRunnable : public Runnable {
@@ -244,24 +307,7 @@ static bool ConnectionCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
 void CreateReplayingCloudProcess(base::ProcessId aProcessId,
                                  uint32_t aChannelId) {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
-
-  if (!gConnection) {
-    nsCOMPtr<rrIConnection> connection =
-        do_ImportModule("resource://devtools/server/actors/replay/connection.js");
-    gConnection = connection.forget();
-    ClearOnShutdown(&gConnection);
-
-    AutoSafeJSContext cx;
-    JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-    JSFunction* fun = JS_NewFunction(cx, ConnectionCallback, 2, 0,
-                                     "ConnectionCallback");
-    MOZ_RELEASE_ASSERT(fun);
-    JS::RootedValue callback(cx, JS::ObjectValue(*(JSObject*)fun));
-    if (NS_FAILED(gConnection->Initialize(callback))) {
-      MOZ_CRASH("CreateReplayingCloudProcess");
-    }
-  }
+  MOZ_RELEASE_ASSERT(gConnection);
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -352,18 +398,7 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
       SetBuildId(&msg->mBuildId, "cloud", cloudRecordingName.get());
     } else {
       // Load the entire recording into memory.
-      FileHandle fd = DirectOpenFile(gRecordingFilename, false);
-
-      char buf[4096];
-      while (true) {
-        size_t n = DirectRead(fd, buf, sizeof(buf));
-        if (!n) {
-          break;
-        }
-        gRecordingContents.append(buf, n);
-      }
-
-      DirectCloseFile(fd);
+      ReadFileSync(nsCString(gRecordingFilename), gRecordingContents);
 
       // Update the build ID in the introduction message according to what we
       // find in the recording. The introduction message is sent first to each

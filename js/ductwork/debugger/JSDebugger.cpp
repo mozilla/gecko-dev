@@ -61,8 +61,11 @@ JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
     // scripts that run in normal processes. DefineRecordReplayControlObject
     // can't be called in normal processes.
     JS::RootedObject staticObject(cx, JS_NewObject(cx, nullptr));
+    JS::RootedObject moduleObject(cx, JS_NewObject(cx, nullptr));
     if (!staticObject ||
-        !JS_DefineProperty(cx, obj, "RecordReplayControl", staticObject, 0)) {
+        !moduleObject ||
+        !JS_DefineProperty(cx, obj, "RecordReplayControl", staticObject, 0) ||
+        !JS_DefineProperty(cx, staticObject, "module", moduleObject, 0)) {
       return NS_ERROR_FAILURE;
     }
   }

@@ -54,7 +54,7 @@ const Services = require("Services");
 const protocol = require("devtools/shared/protocol");
 const { LongStringActor } = require("devtools/server/actors/string");
 const defer = require("devtools/shared/defer");
-const ReplayInspector = require("devtools/server/actors/replay/dominspector");
+const { ReplayInspector } = require("RecordReplayControl").module;
 
 const { inspectorSpec } = require("devtools/shared/specs/inspector");
 

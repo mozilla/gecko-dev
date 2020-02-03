@@ -2347,6 +2347,8 @@ ContentParent::ContentParent(ContentParent* aOpener,
   }
   sContentParents->insertBack(this);
 
+  recordreplay::parent::EnsureUIStateInitialized();
+
   mMessageManager = nsFrameMessageManager::NewProcessMessageManager(true);
 
   // From this point on, NS_WARNING, NS_ASSERTION, etc. should print out the
@@ -2532,6 +2534,12 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
   Unused << SendSetXPCOMProcessAttributes(xpcomInit, initialData, lnfCache,
                                           fontList, sharedUASheetHandle,
                                           sharedUASheetAddress);
+
+  if (IsRecordingOrReplaying()) {
+    nsAutoCString controlJS, replayJS;
+    recordreplay::parent::GetWebReplayJS(controlJS, replayJS);
+    Unused << SendSetWebReplayJS(controlJS, replayJS);
+  }
 
   ipc::WritableSharedMap* sharedData =
       nsFrameMessageManager::sParentProcessManager->SharedData();

@@ -248,6 +248,7 @@ struct MOZ_STACK_CLASS DebuggerScript::CallData {
   template <bool Successor>
   bool getSuccessorOrPredecessorOffsets();
   bool getEffectfulOffsets();
+  bool getBytecodeOffsets();
   bool getAllOffsets();
   bool getAllColumnOffsets();
   bool getLineOffsets();
@@ -1738,6 +1739,25 @@ bool DebuggerScript::CallData::getEffectfulOffsets() {
   return true;
 }
 
+bool DebuggerScript::CallData::getBytecodeOffsets() {
+  if (!ensureScript()) {
+    return false;
+  }
+
+  RootedObject result(cx, NewDenseEmptyArray(cx));
+  if (!result) {
+    return false;
+  }
+  for (BytecodeRange r(cx, script); !r.empty(); r.popFront()) {
+    if (!NewbornArrayPush(cx, result, NumberValue(r.frontOffset()))) {
+      return false;
+    }
+  }
+
+  args.rval().setObject(*result);
+  return true;
+}
+
 bool DebuggerScript::CallData::getAllOffsets() {
   if (!ensureScript()) {
     return false;
@@ -2493,6 +2513,7 @@ const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("getPredecessorOffsets",
                 getSuccessorOrPredecessorOffsets<false>, 1),
     JS_DEBUG_FN("getEffectfulOffsets", getEffectfulOffsets, 1),
+    JS_DEBUG_FN("getBytecodeOffsets", getBytecodeOffsets, 0),
     JS_DEBUG_FN("setInstrumentationId", setInstrumentationId, 1),
 
     // The following APIs are deprecated due to their reliance on the

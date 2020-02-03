@@ -34,6 +34,7 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
       type == dom::PContent::Msg_RegisterBrowsingContextGroup__ID ||
       type == dom::PContent::Msg_RegisterChrome__ID ||
       type == dom::PContent::Msg_SetXPCOMProcessAttributes__ID ||
+      type == dom::PContent::Msg_SetWebReplayJS__ID ||
       type == dom::PContent::Msg_UpdateSharedData__ID ||
       type == dom::PContent::Msg_SetProcessSandbox__ID ||
       // Graphics messages that affect both processes.

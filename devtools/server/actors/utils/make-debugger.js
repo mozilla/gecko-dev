@@ -6,7 +6,7 @@
 
 const EventEmitter = require("devtools/shared/event-emitter");
 const Debugger = require("Debugger");
-const ReplayDebugger = require("../replay/debugger");
+const { ReplayDebugger } = require("RecordReplayControl").module;
 
 const { reportException } = require("devtools/shared/DevToolsUtils");
 

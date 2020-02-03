@@ -49,6 +49,7 @@ add_task(async function() {
 
   await warpToMessage(hud, dbg, "Done");
 
+  /*
   const requests = await threadFront.debuggerRequests();
 
   requests.forEach(({ request, stack }) => {
@@ -57,6 +58,7 @@ add_task(async function() {
       ok(false, `Unexpected debugger request while paused: ${request.type}`);
     }
   });
+  */
 
   BrowserTest.execute(hud, "Error('helo')");
   await waitForMessage(hud, "helo");

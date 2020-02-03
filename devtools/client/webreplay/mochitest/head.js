@@ -166,7 +166,6 @@ async function warpToMessage(hud, dbg, text, maybeLine) {
   timeWarpItem.click();
 
   await hideConsoleContextMenu();
-  await once(Services.ppmm, "TimeWarpFinished");
   await waitForPaused(dbg);
 
   messages = findMessages(hud, "", ".paused");

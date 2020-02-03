@@ -3437,16 +3437,17 @@ void DirectSeekFile(FileHandle aFd, uint64_t aOffset) {
 }
 
 FileHandle DirectOpenFile(const char* aFilename, bool aWriting) {
+  static void* ptr = gOriginal_open ? gOriginal_open : BitwiseCast<void*>(open);
   int flags = aWriting ? (O_WRONLY | O_CREAT | O_TRUNC) : O_RDONLY;
   int perms = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-  int fd =
-      HANDLE_EINTR(CallFunction<int>(gOriginal_open, aFilename, flags, perms));
+  int fd = HANDLE_EINTR(CallFunction<int>(ptr, aFilename, flags, perms));
   MOZ_RELEASE_ASSERT(fd > 0);
   return fd;
 }
 
 void DirectCloseFile(FileHandle aFd) {
-  ssize_t rv = HANDLE_EINTR(CallFunction<int>(gOriginal_close, aFd));
+  static void* ptr = gOriginal_close ? gOriginal_close : BitwiseCast<void*>(close);
+  ssize_t rv = HANDLE_EINTR(CallFunction<int>(ptr, aFd));
   MOZ_RELEASE_ASSERT(rv >= 0);
 }
 
@@ -3466,8 +3467,8 @@ void DirectPrint(const char* aString) {
 }
 
 size_t DirectRead(FileHandle aFd, void* aData, size_t aSize) {
-  ssize_t rv =
-      HANDLE_EINTR(CallFunction<int>(gOriginal_read, aFd, aData, aSize));
+  static void* ptr = gOriginal_read ? gOriginal_read : BitwiseCast<void*>(read);
+  ssize_t rv = HANDLE_EINTR(CallFunction<int>(ptr, aFd, aData, aSize));
   MOZ_RELEASE_ASSERT(rv >= 0);
   return (size_t)rv;
 }

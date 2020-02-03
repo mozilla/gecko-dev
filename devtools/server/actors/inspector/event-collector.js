@@ -16,7 +16,7 @@ const {
   isNativeAnonymous,
 } = require("devtools/shared/layout/utils");
 const Debugger = require("Debugger");
-const ReplayInspector = require("devtools/server/actors/replay/dominspector");
+const { ReplayInspector } = require("RecordReplayControl").module;
 const {
   EXCLUDED_LISTENER,
 } = require("devtools/server/actors/inspector/constants");

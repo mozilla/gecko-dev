@@ -322,6 +322,10 @@ exports.isSafeJSObject = function(obj) {
     return false;
   }
 
+  if (isReplaying) {
+    return true;
+  }
+
   if (
     Cu.getGlobalForObject(obj) == Cu.getGlobalForObject(exports.isSafeJSObject)
   ) {

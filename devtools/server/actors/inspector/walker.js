@@ -11,7 +11,7 @@ const protocol = require("devtools/shared/protocol");
 const { walkerSpec } = require("devtools/shared/specs/walker");
 const { LongStringActor } = require("devtools/server/actors/string");
 const InspectorUtils = require("InspectorUtils");
-const ReplayInspector = require("devtools/server/actors/replay/dominspector");
+const { ReplayInspector } = require("RecordReplayControl").module;
 const {
   EXCLUDED_LISTENER,
 } = require("devtools/server/actors/inspector/constants");

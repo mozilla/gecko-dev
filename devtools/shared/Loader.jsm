@@ -142,9 +142,7 @@ this.DevToolsLoader = function DevToolsLoader({
   // created for objects in the recording/replaying process.
   if (globals.isReplaying) {
     const oldHook = this.loader.requireHook;
-    const ReplayInspector = this.require(
-      "devtools/server/actors/replay/dominspector"
-    );
+    const { ReplayInspector } = this.require("RecordReplayControl").module;
     this.loader.requireHook = ReplayInspector.wrapRequireHook(oldHook);
   }
 };

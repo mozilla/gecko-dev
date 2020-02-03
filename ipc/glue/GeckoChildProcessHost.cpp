@@ -1206,7 +1206,7 @@ bool PosixProcessLauncher::DoFinishLaunch() {
 #ifdef XP_MACOSX
 bool MacProcessLauncher::DoFinishLaunch() {
   // Wait for the child process to send us its 'task_t' data.
-  const int kTimeoutMs = 10000;
+  const int kTimeoutMs = 1000000;
 
   MachReceiveMessage child_message;
   kern_return_t err =

@@ -631,6 +631,12 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentChild::RecvSetWebReplayJS(
+    const nsCString& aControlJS, const nsCString& aReplayJS) {
+  recordreplay::child::SetWebReplayJS(aControlJS, aReplayJS);
+  return IPC_OK();
+}
+
 bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
                         const char* aParentBuildID, IPC::Channel* aChannel,
                         uint64_t aChildID, bool aIsForBrowser) {

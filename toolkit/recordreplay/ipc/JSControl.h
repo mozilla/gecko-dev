@@ -42,9 +42,8 @@ namespace js {
 // Buffer type used for encoding object data.
 typedef InfallibleVector<char16_t> CharBuffer;
 
-// Set up the JS sandbox in the current recording/replaying process and load
-// its target script.
-void SetupDevtoolsSandbox();
+// Set the contents of the JS module (control or replay) to execute.
+void SetWebReplayJS(const nsCString& aModule);
 
 // JS state is initialized when the first checkpoint is reached.
 bool IsInitialized();

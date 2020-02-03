@@ -568,7 +568,10 @@ void AddPendingRecordingData() {
   {
     MonitorAutoLock lock(*gMonitor);
 
-    MOZ_RELEASE_ASSERT(!gPendingRecordingData.empty());
+    if (gPendingRecordingData.empty()) {
+      Print("Hit end of recording, crashing...\n");
+      MOZ_CRASH("AddPendingRecordingData");
+    }
 
     gRecording->NewContents((const uint8_t*)gPendingRecordingData.begin(),
                             gPendingRecordingData.length(), &updatedStreams);
@@ -594,6 +597,10 @@ void SaveCloudRecording(const char* aName) {
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
   BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
+}
+
+void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
+  js::SetWebReplayJS(IsRecordingOrReplaying() ? aReplayJS : aControlJS);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -610,6 +610,8 @@ child:
                                     SharedMemoryHandle? sharedUASheetHandle,
                                     uintptr_t sharedUASheetAddress);
 
+    async SetWebReplayJS(nsCString controlJS, nsCString replayJS);
+
     // Notify child that last-pb-context-exited notification was observed
     async LastPrivateDocShellDestroyed();
 

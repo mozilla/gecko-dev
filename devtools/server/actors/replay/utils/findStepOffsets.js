@@ -19,10 +19,11 @@ function getNeighbors(frame, offset, rewinding) {
 function findStepOffsets(frame, rewinding, requireStepStart = true) {
   const seen = [];
   const result = [];
-  let worklist = getNeighbors(frame, frame.offset, rewinding);
+  let worklist = [...getNeighbors(frame, frame.offset, rewinding)];
 
   while (worklist.length) {
     const offset = worklist.pop();
+
     if (seen.includes(offset)) {
       continue;
     }

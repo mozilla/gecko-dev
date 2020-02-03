@@ -637,6 +637,8 @@ bool js::ErrorObject::getStack(JSContext* cx, unsigned argc, Value* vp) {
 bool js::ErrorObject::getStack_impl(JSContext* cx, const CallArgs& args) {
   RootedObject thisObj(cx, &args.thisv().toObject());
 
+  mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+
   RootedObject obj(cx);
   if (!FindErrorInstanceOrPrototype(cx, thisObj, &obj)) {
     return false;

@@ -37,14 +37,16 @@ const char* SaveAllRecordingsDirectory();
 // Get the firefox version to include in user agent strings.
 const char* CurrentFirefoxVersion();
 
+// Make sure that state in the UI process has been initialized.
+void EnsureUIStateInitialized();
+
+// Get the JS that was loaded during initialization.
+void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS);
+
 // Middleman process API
 
 // Get the pid of the UI process.
 base::ProcessId ParentProcessId();
-
-// Return whether this is a middleman process that forwards IPDL messages to
-// a recording child process.
-bool IsMiddlemanWithRecordingChild();
 
 // Save the recording up to the current point in execution.
 void SaveRecording(const ipc::FileDescriptor& aFile);

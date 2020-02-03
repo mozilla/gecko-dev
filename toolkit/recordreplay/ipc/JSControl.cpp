@@ -16,8 +16,7 @@
 #include "ChildInternal.h"
 #include "ParentInternal.h"
 #include "nsImportModule.h"
-#include "rrIControl.h"
-#include "rrIReplay.h"
+#include "rrIModule.h"
 #include "xpcprivate.h"
 
 using namespace JS;
@@ -76,30 +75,68 @@ static parent::ChildProcessInfo* ToChildProcess(JSContext* aCx,
   return ToChildProcess(aCx, aRootValue, forkValue, &forkId);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Middleman Control
-///////////////////////////////////////////////////////////////////////////////
+static void InitializeScriptHits();
 
-static StaticRefPtr<rrIControl> gControl;
+static nsCString gModuleText;
 
-void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId) {
-  MOZ_RELEASE_ASSERT(!gControl);
+void SetWebReplayJS(const nsCString& aModule) {
+  gModuleText = aModule;
+}
 
-  nsCOMPtr<rrIControl> control =
-      do_ImportModule("resource://devtools/server/actors/replay/control.js");
-  gControl = control.forget();
-  ClearOnShutdown(&gControl);
+// URL of the root module script.
+#define ModuleURL "resource://devtools/server/actors/replay/module.js"
 
-  MOZ_RELEASE_ASSERT(gControl);
+static StaticRefPtr<rrIModule> gModule;
+static PersistentRootedObject* gModuleObject;
+
+bool IsInitialized() {
+  return !!gModule;
+}
+
+static void EnsureInitialized() {
+  if (IsInitialized()) {
+    return;
+  }
+  MOZ_RELEASE_ASSERT(!gModuleText.IsEmpty());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
+  nsCOMPtr<rrIModule> module = do_ImportModule(ModuleURL);
+  gModule = module.forget();
+  ClearOnShutdown(&gModule);
+
+  RootedValue value(cx);
+  if (NS_FAILED(gModule->Initialize(gModuleText, &value))) {
+    MOZ_CRASH("SetupModule: Initialize failed");
+  }
+  MOZ_RELEASE_ASSERT(value.isObject());
+
+  gModuleObject = new PersistentRootedObject(cx);
+  *gModuleObject = &value.toObject();
+
+  if (IsRecordingOrReplaying()) {
+    InitializeScriptHits();
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Middleman Control
+///////////////////////////////////////////////////////////////////////////////
+
+void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId) {
+  EnsureInitialized();
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  RootedValue rv(cx);
   RootedValue recordingChildValue(cx);
   if (aRecordingChildId.isSome()) {
     recordingChildValue.setInt32(aRecordingChildId.ref());
   }
-  if (NS_FAILED(gControl->Initialize(recordingChildValue))) {
+  HandleValueArray args(recordingChildValue);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "Initialize", args, &rv)) {
     MOZ_CRASH("SetupMiddlemanControl");
   }
 }
@@ -107,17 +144,21 @@ void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId) {
 static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                                     size_t aForkId, const char16_t* aBuffer,
                                     size_t aBufferSize) {
-  MOZ_RELEASE_ASSERT(gControl);
+  MOZ_RELEASE_ASSERT(IsInitialized());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  RootedValue value(cx);
-  if (aBufferSize && !JS_ParseJSON(cx, aBuffer, aBufferSize, &value)) {
+  JS::AutoValueArray<3> args(cx);
+  args[0].setInt32(aChild->GetId());
+  args[1].setInt32(aForkId);
+
+  if (aBufferSize && !JS_ParseJSON(cx, aBuffer, aBufferSize, args[2])) {
     MOZ_CRASH("ForwardManifestFinished");
   }
 
-  if (NS_FAILED(gControl->ManifestFinished(aChild->GetId(), aForkId, value))) {
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "ManifestFinished", args, &rv)) {
     MOZ_CRASH("ForwardManifestFinished");
   }
 }
@@ -136,40 +177,46 @@ void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
 
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,
                          const PingResponseMessage& aMsg) {
-  MOZ_RELEASE_ASSERT(gControl);
+  MOZ_RELEASE_ASSERT(IsInitialized());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gControl->PingResponse(aChild->GetId(), aMsg.mForkId, aMsg.mId,
-                                       aMsg.mProgress))) {
-    MOZ_CRASH("ForwardManifestFinished");
+  JS::AutoValueArray<4> args(cx);
+  args[0].setInt32(aChild->GetId());
+  args[1].setInt32(aMsg.mForkId);
+  args[2].setNumber(aMsg.mId);
+  args[3].setNumber((double)aMsg.mProgress);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "PingResponse", args, &rv)) {
+    MOZ_CRASH("ForwardPingResponse");
   }
 }
 
 void BeforeSaveRecording() {
-  MOZ_RELEASE_ASSERT(gControl);
-
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gControl->BeforeSaveRecording())) {
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "BeforeSaveRecording", HandleValueArray::empty(), &rv)) {
     MOZ_CRASH("BeforeSaveRecording");
   }
 }
 
 void AfterSaveRecording() {
-  MOZ_RELEASE_ASSERT(gControl);
-
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gControl->AfterSaveRecording())) {
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "AfterSaveRecording", HandleValueArray::empty(), &rv)) {
     MOZ_CRASH("AfterSaveRecording");
   }
 }
 
 void SaveCloudRecording(const nsAString& aDescriptor) {
+  Print("SaveCloudRecording NYI, CRASHING\n");
+  /*
   MOZ_RELEASE_ASSERT(gControl);
 
   AutoSafeJSContext cx;
@@ -178,66 +225,24 @@ void SaveCloudRecording(const nsAString& aDescriptor) {
   if (NS_FAILED(gControl->SaveCloudRecording(aDescriptor))) {
     MOZ_CRASH("SaveCloudRecording");
   }
+  */
 }
 
 bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
-  MOZ_RELEASE_ASSERT(gControl);
-
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  return !NS_FAILED(gControl->ChildCrashed(aRootId, aForkId));
+  JS::AutoValueArray<2> args(cx);
+  args[0].setInt32(aRootId);
+  args[1].setInt32(aForkId);
+
+  RootedValue rv(cx);
+  return JS_CallFunctionName(cx, *gModuleObject, "RecoverFromCrash", args, &rv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Middleman Methods
 ///////////////////////////////////////////////////////////////////////////////
-
-// There can be at most one replay debugger in existence.
-static PersistentRootedObject* gReplayDebugger;
-
-static bool Middleman_RegisterReplayDebugger(JSContext* aCx, unsigned aArgc,
-                                             Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (gReplayDebugger) {
-    args.rval().setObject(**gReplayDebugger);
-    return JS_WrapValue(aCx, args.rval());
-  }
-
-  RootedObject obj(aCx, RequireObject(aCx, args.get(0)));
-  if (!obj) {
-    return false;
-  }
-
-  {
-    JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
-
-    RootedValue debuggerValue(aCx, ObjectValue(*obj));
-    if (!JS_WrapValue(aCx, &debuggerValue)) {
-      return false;
-    }
-
-    if (NS_FAILED(gControl->ConnectDebugger(debuggerValue))) {
-      JS_ReportErrorASCII(aCx, "ConnectDebugger failed\n");
-      return false;
-    }
-  }
-
-  // Who knows what values are being passed here.  Play it safe and do
-  // CheckedUnwrapDynamic.
-  obj = ::js::CheckedUnwrapDynamic(obj, aCx);
-  if (!obj) {
-    ::js::ReportAccessDenied(aCx);
-    return false;
-  }
-
-  gReplayDebugger = new PersistentRootedObject(aCx);
-  *gReplayDebugger = obj;
-
-  args.rval().setUndefined();
-  return true;
-}
 
 static bool Middleman_SpawnReplayingChild(JSContext* aCx, unsigned aArgc,
                                           Value* aVp) {
@@ -515,33 +520,6 @@ static bool Middleman_SetActiveChildIsRecording(JSContext* aCx, unsigned aArgc,
 // Devtools Sandbox
 ///////////////////////////////////////////////////////////////////////////////
 
-static StaticRefPtr<rrIReplay> gReplay;
-
-// URL of the root script that runs when recording/replaying.
-#define ReplayScriptURL "resource://devtools/server/actors/replay/replay.js"
-
-// Whether to expose chrome:// and resource:// scripts to the debugger.
-static bool gIncludeSystemScripts;
-
-static void InitializeScriptHits();
-
-void SetupDevtoolsSandbox() {
-  MOZ_RELEASE_ASSERT(!gReplay);
-
-  nsCOMPtr<rrIReplay> replay = do_ImportModule(ReplayScriptURL);
-  gReplay = replay.forget();
-  ClearOnShutdown(&gReplay);
-
-  MOZ_RELEASE_ASSERT(gReplay);
-
-  gIncludeSystemScripts =
-      Preferences::GetBool("devtools.recordreplay.includeSystemScripts");
-
-  InitializeScriptHits();
-}
-
-bool IsInitialized() { return !!gReplay; }
-
 extern "C" {
 
 MOZ_EXPORT bool RecordReplayInterface_ShouldUpdateProgressCounter(
@@ -549,16 +527,7 @@ MOZ_EXPORT bool RecordReplayInterface_ShouldUpdateProgressCounter(
   // Progress counters are only updated for scripts which are exposed to the
   // debugger. The devtools timeline is based on progress values and we don't
   // want gaps on the timeline which users can't seek to.
-  if (gIncludeSystemScripts) {
-    // Always exclude ReplayScriptURL, and any other code that it can invoke.
-    // Scripts in this file are internal to the record/replay infrastructure and
-    // run non-deterministically between recording and replaying.
-    return aURL && strcmp(aURL, ReplayScriptURL) &&
-           strcmp(aURL, "resource://devtools/server/actors/replay/replay-new.js") &&
-           strcmp(aURL, "resource://devtools/shared/execution-point-utils.js");
-  } else {
-    return aURL && strncmp(aURL, "resource:", 9) && strncmp(aURL, "chrome:", 7);
-  }
+  return aURL && strncmp(aURL, "resource:", 9) && strncmp(aURL, "chrome:", 7);
 }
 
 }  // extern "C"
@@ -575,7 +544,9 @@ void ManifestStart(const CharBuffer& aContents) {
     MOZ_CRASH("ManifestStart: ParseJSON failed");
   }
 
-  if (NS_FAILED(gReplay->ManifestStart(value))) {
+  RootedValue rv(cx);
+  HandleValueArray args(value);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "ManifestStart", args, &rv)) {
     MOZ_CRASH("ManifestStart: Handler failed");
   }
 
@@ -587,16 +558,17 @@ void ManifestStart(const CharBuffer& aContents) {
 }
 
 void HitCheckpoint(size_t aCheckpoint) {
-  if (!IsInitialized()) {
-    SetupDevtoolsSandbox();
-  }
+  EnsureInitialized();
 
   AutoDisallowThreadEvents disallow;
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gReplay->HitCheckpoint(aCheckpoint))) {
-    MOZ_CRASH("BeforeCheckpoint");
+  RootedValue rv(cx);
+  RootedValue arg(cx, Int32Value(aCheckpoint));
+  HandleValueArray args(arg);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "HitCheckpoint", args, &rv)) {
+    MOZ_CRASH("HitCheckpoint");
   }
 }
 
@@ -625,12 +597,13 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  int32_t counter = 0;
-  if (NS_FAILED(gReplay->NewTimeWarpTarget(&counter))) {
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "NewTimeWarpTarget", HandleValueArray::empty(), &rv)) {
     MOZ_CRASH("NewTimeWarpTarget");
   }
 
-  return counter;
+  MOZ_RELEASE_ASSERT(rv.isNumber());
+  return rv.toNumber();
 }
 
 }  // extern "C"
@@ -1369,13 +1342,11 @@ static bool RecordReplay_InstrumentationCallback(JSContext* aCx, unsigned aArgc,
   }
 
   if (kind == gEntryAtom) {
-    if (!args.get(1).isNumber()) {
-      JS_ReportErrorASCII(aCx, "Bad parameters");
-      return false;
-    }
-    uint32_t script = args.get(1).toNumber();
+    JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
 
-    if (NS_FAILED(gReplay->ScriptResumeFrame(script))) {
+    RootedValue rv(aCx);
+    HandleValueArray resumeArgs(args.get(1));
+    if (!JS_CallFunctionName(aCx, *gModuleObject, "ScriptResumeFrame", resumeArgs, &rv)) {
       MOZ_CRASH("RecordReplay_InstrumentationCallback");
     }
 
@@ -1513,7 +1484,6 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
 ///////////////////////////////////////////////////////////////////////////////
 
 static const JSFunctionSpec gMiddlemanMethods[] = {
-    JS_FN("registerReplayDebugger", Middleman_RegisterReplayDebugger, 1, 0),
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
@@ -1582,18 +1552,25 @@ MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
     return false;
   }
 
-  // FIXME Bug 1475901 Define this interface via WebIDL instead of raw JSAPI.
+  if (gModuleObject) {
+    // RecordReplayControl objects created while setting up the module itself
+    // don't get references to the module.
+    RootedObject obj(aCx, *gModuleObject);
+    if (!JS_WrapObject(aCx, &obj) ||
+        !JS_DefineProperty(aCx, staticObject, "module", obj, 0)) {
+      return false;
+    }
+  }
+
   if (IsMiddleman()) {
     if (!JS_DefineFunctions(aCx, staticObject, gMiddlemanMethods)) {
       return false;
     }
-  } else if (IsRecordingOrReplaying()) {
+  } else {
+    MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
     if (!JS_DefineFunctions(aCx, staticObject, gRecordReplayMethods)) {
       return false;
     }
-  } else {
-    // Leave RecordReplayControl as an empty object. We still define the object
-    // to avoid reference errors in scripts that run in normal processes.
   }
 
   return true;

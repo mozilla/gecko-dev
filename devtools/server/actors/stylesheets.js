@@ -39,16 +39,7 @@ loader.lazyRequireGetter(
   "devtools/shared/layout/utils",
   true
 );
-loader.lazyRequireGetter(
-  this,
-  "ReplayDebugger",
-  "devtools/server/actors/replay/debugger"
-);
-loader.lazyRequireGetter(
-  this,
-  "ReplayInspector",
-  "devtools/server/actors/replay/dominspector"
-);
+const { ReplayDebugger, ReplayInspector } = require("RecordReplayControl").module;
 
 var TRANSITION_PSEUDO_CLASS = ":-moz-styleeditor-transitioning";
 var TRANSITION_DURATION_MS = 500;

@@ -21,7 +21,7 @@ const {
 } = require("devtools/shared/inspector/css-logic");
 const InspectorUtils = require("InspectorUtils");
 const Debugger = require("Debugger");
-const ReplayInspector = require("devtools/server/actors/replay/dominspector");
+const { ReplayInspector } = require("RecordReplayControl").module;
 
 // Set up a dummy environment so that EventUtils works. We need to be careful to
 // pass a window object into each EventUtils method we call rather than having

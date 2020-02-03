@@ -583,6 +583,9 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   _onNewDebuggee(global) {
+    if (isReplaying) {
+      return;
+    }
     try {
       this._debuggerNotificationObserver.connect(global);
     } catch (e) {}
@@ -1160,11 +1163,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   paint: function(point) {
-    this.dbg.replayPaint(point);
+    //this.dbg.replayPaint(point);
   },
 
   paintCurrentPoint: function() {
-    this.dbg.replayPaintCurrentPoint();
+    //this.dbg.replayPaintCurrentPoint();
   },
 
   /**
@@ -1529,7 +1532,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       const point = this.dbg.replayCurrentExecutionPoint();
       packet.executionPoint = point;
       packet.recordingEndpoint = this.dbg.replayRecordingEndpoint();
-      if (point) {
+      if (point && point.position) {
         this.dbg
           .replayFramePositions(point)
           .then(positions => this.onFramePositions(positions, frame));
@@ -1557,7 +1560,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   onFramePositions: function(positions, frame) {
-    if (!positions) {
+    if (!positions || !frame) {
       return;
     }
 
