@@ -57,8 +57,6 @@ function updateRecordings(recordings) {
 let gLastCopyLink = null;
 
 async function showRecordings() {
-  document.querySelector(".error-title").style.visibility = "hidden";
-
   const container = document.querySelector(".recordings-list");
   const template = document.querySelector("#recording-row");
 
@@ -84,7 +82,7 @@ async function showRecordings() {
       gLastCopyLink = copylink;
     });
     newRow.querySelector(".remove").addEventListener("click", e => {
-      updateRecordings(gRecordings.filter(item => item.url != url));
+      updateRecordings(gRecordings.filter(item => item.uuid != uuid));
     });
     container.appendChild(newRow);
   }
@@ -96,6 +94,7 @@ async function showRecordings() {
 function showError(kind) {
   document.querySelector(".recordings-title").style.visibility = "hidden";
   document.querySelector(".no-recordings").style.visibility = "hidden";
+  document.querySelector(".error-title").style.visibility = "visible";
 
   document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
 }

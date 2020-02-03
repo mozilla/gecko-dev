@@ -51,3 +51,7 @@ body {
   text-align: center;
   font-style: italic;
 }
+
+.error-title {
+  visibility: hidden;
+}
