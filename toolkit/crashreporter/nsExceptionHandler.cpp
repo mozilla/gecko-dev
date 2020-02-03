@@ -1426,6 +1426,7 @@ static MINIDUMP_TYPE GetMinidumpType() {
 static bool ShouldReport() {
   // this environment variable prevents us from launching
   // the crash reporter client
+  /*
   const char* envvar = PR_GetEnv("MOZ_CRASHREPORTER_NO_REPORT");
   if (envvar && *envvar) {
     return false;
@@ -1435,6 +1436,7 @@ static bool ShouldReport() {
   if (envvar && *envvar) {
     return false;
   }
+  */
 
   return true;
 }
@@ -1483,6 +1485,7 @@ static nsresult LocateExecutable(nsIFile* aXREDirectory,
 nsresult SetExceptionHandler(nsIFile* aXREDirectory, bool force /*=false*/) {
   if (gExceptionHandler) return NS_ERROR_ALREADY_INITIALIZED;
 
+  /*
 #if defined(DEBUG)
   // In debug builds, disable the crash reporter by default, and allow to
   // enable it with the MOZ_CRASHREPORTER environment variable.
@@ -1494,6 +1497,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory, bool force /*=false*/) {
   const char* envvar = PR_GetEnv("MOZ_CRASHREPORTER_DISABLE");
   if (envvar && *envvar && !force) return NS_OK;
 #endif
+  */
 
   // this environment variable prevents us from launching
   // the crash reporter client

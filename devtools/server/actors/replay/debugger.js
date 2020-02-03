@@ -32,6 +32,12 @@ loader.lazyRequireGetter(
   "devtools/server/actors/replay/inspector"
 );
 
+loader.lazyRequireGetter(
+  this,
+  "ReplayDOMInspector",
+  "devtools/server/actors/replay/dominspector"
+);
+
 ///////////////////////////////////////////////////////////////////////////////
 // ReplayDebugger
 ///////////////////////////////////////////////////////////////////////////////
@@ -550,6 +556,7 @@ ReplayDebugger.prototype = {
   // Clear out all data that becomes invalid when the child unpauses.
   _invalidateAfterUnpause() {
     this._pool = new ReplayPool(this);
+    ReplayDOMInspector.invalidateAfterUnpause();
   },
 
   // Fill in the debugger with (hopefully) all data the client/server need to

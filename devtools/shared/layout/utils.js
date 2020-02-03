@@ -29,7 +29,7 @@ loader.lazyRequireGetter(
 exports.setIgnoreLayoutChanges = (...args) =>
   this.setIgnoreLayoutChanges(...args);
 
-const ReplayInspector = require("devtools/server/actors/replay/inspector");
+const ReplayInspector = require("devtools/server/actors/replay/dominspector");
 
 /**
  * Returns the `DOMWindowUtils` for the window given.

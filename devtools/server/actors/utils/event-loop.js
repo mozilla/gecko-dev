@@ -14,7 +14,8 @@ const { Cu } = require("chrome");
  * @param ThreadActor thread
  *        The thread actor instance that owns this EventLoopStack.
  */
-function EventLoopStack({ thread }) {
+function EventLoopStack({ window, thread }) {
+  this._window = window;
   this._thread = thread;
 }
 
@@ -43,6 +44,7 @@ EventLoopStack.prototype = {
    */
   push: function() {
     return new EventLoop({
+      window: this._window,
       thread: this._thread,
     });
   },
@@ -55,7 +57,8 @@ EventLoopStack.prototype = {
  * @param ThreadActor thread
  *        The thread actor that is creating this nested event loop.
  */
-function EventLoop({ thread }) {
+function EventLoop({ window, thread }) {
+  this._window = window;
   this._thread = thread;
 
   this.enter = this.enter.bind(this);
@@ -118,6 +121,9 @@ EventLoop.prototype = {
    * Retrieve the list of all DOM Windows debugged by the current thread actor.
    */
   getAllWindowDebuggees() {
+    if (isReplaying) {
+      return [this._window];
+    }
     return (
       this._thread.dbg
         .getDebuggees()

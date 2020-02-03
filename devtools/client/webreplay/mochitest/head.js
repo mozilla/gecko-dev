@@ -37,11 +37,9 @@ async function openRecordingTab(url) {
 
 async function attachRecordingDebugger(
   url,
-  { waitForRecording, disableLogging, skipInterrupt } = {}
+  { waitForRecording, skipInterrupt } = {}
 ) {
-  if (!disableLogging) {
-    await pushPref("devtools.recordreplay.logging", true);
-  }
+  await pushPref("devtools.recordreplay.logging", true);
 
   const tab = await openRecordingTab(url);
 

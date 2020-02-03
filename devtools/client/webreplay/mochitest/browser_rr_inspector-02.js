@@ -13,7 +13,6 @@ Services.scriptloader.loadSubScript(
 add_task(async function() {
   const dbg = await attachRecordingDebugger("doc_inspector_basic.html", {
     waitForRecording: true,
-    disableLogging: true,
   });
   const { toolbox } = dbg;
 
@@ -24,6 +23,7 @@ add_task(async function() {
 
   info("Waiting for element picker to become active.");
   toolbox.win.focus();
+
   await toolbox.nodePicker.start();
 
   info("Moving mouse over div.");

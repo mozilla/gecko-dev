@@ -58,9 +58,6 @@ static ChildProcessInfo* gRecordingChild;
 // Any replaying child processes that have been spawned.
 static StaticInfallibleVector<UniquePtr<ChildProcessInfo>> gReplayingChildren;
 
-// The currently active child process.
-static ChildProcessInfo* gActiveChild;
-
 void Shutdown() {
   delete gRecordingChild;
   gReplayingChildren.clear();
@@ -70,8 +67,6 @@ void Shutdown() {
 bool IsMiddlemanWithRecordingChild() {
   return IsMiddleman() && gRecordingChild;
 }
-
-ChildProcessInfo* GetActiveChild() { return gActiveChild; }
 
 ChildProcessInfo* GetChildProcess(size_t aId) {
   if (gRecordingChild && gRecordingChild->GetId() == aId) {
@@ -335,6 +330,7 @@ static base::ProcessId gParentPid;
 base::ProcessId ParentProcessId() { return gParentPid; }
 
 Monitor* gMonitor;
+bool gActiveChildIsRecording;
 
 static void ExtractCloudRecordingName(const char* aFileName,
                                       nsAutoCString& aRecordingName) {
@@ -372,10 +368,7 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
   if (gProcessKind == ProcessKind::MiddlemanRecording) {
     RecordingProcessData data(aPrefsHandle, aPrefMapHandle);
     gRecordingChild = new ChildProcessInfo(0, Some(data));
-
-    // Set the active child to the recording child initially, so that message
-    // forwarding works before the middleman control JS has been initialized.
-    gActiveChild = gRecordingChild;
+    gActiveChildIsRecording = true;
   }
 
   InitializeForwarding();

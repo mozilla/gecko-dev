@@ -16,7 +16,7 @@ const {
   isNativeAnonymous,
 } = require("devtools/shared/layout/utils");
 const Debugger = require("Debugger");
-const ReplayInspector = require("devtools/server/actors/replay/inspector");
+const ReplayInspector = require("devtools/server/actors/replay/dominspector");
 const {
   EXCLUDED_LISTENER,
 } = require("devtools/server/actors/inspector/constants");
@@ -287,6 +287,10 @@ class MainEventCollector {
 
     const global = this.unwrap(node.ownerGlobal);
     if (!global) {
+      return null;
+    }
+
+    if (isReplaying) {
       return null;
     }
 
@@ -712,6 +716,10 @@ class ReactEventCollector extends MainEventCollector {
 
   getProps(node) {
     node = this.unwrap(node);
+
+    if (isReplaying) {
+      return null;
+    }
 
     for (const key of Object.keys(node)) {
       if (key.startsWith("__reactInternalInstance$")) {

@@ -204,6 +204,8 @@ class Front extends Pool {
    * Send a two-way request on the connection.
    */
   request(packet) {
+    //dump(`SEND_REQUEST ${this.actorID} ${JSON.stringify(packet)}\n`);
+
     const deferred = defer();
     // Save packet basics for debugging
     const { to, type } = packet;
@@ -221,6 +223,8 @@ class Front extends Pool {
    * Handler for incoming packets from the client's actor.
    */
   onPacket(packet) {
+    //dump(`ON_PACKET ${JSON.stringify(packet)}\n`);
+
     // Pick off event packets
     const type = packet.type || undefined;
     if (this._clientSpec.events && this._clientSpec.events.has(type)) {

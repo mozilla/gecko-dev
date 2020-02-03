@@ -32,6 +32,7 @@ Cu.evalInSandbox(
   "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
     "Components.utils.import('resource://gre/modules/Services.jsm');" +
     "Components.utils.import('resource://devtools/shared/execution-point-utils.js');" +
+    "Components.utils.import('resource://devtools/server/actors/replay/replay-new.js');" +
     "addDebuggerToGlobal(this);",
   sandbox
 );
@@ -44,6 +45,7 @@ const {
   pointPrecedes,
   pointEquals,
   findClosestPoint,
+  ReplayNew,
 } = sandbox;
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
@@ -2049,31 +2051,6 @@ const gRequestHandlers = {
   // Inspector Requests
   /////////////////////////////////////////////////////////
 
-  getFixedObjects(request) {
-    divergeFromRecording();
-    const window = getWindow();
-    const objects = {
-      window: getObjectId(makeDebuggeeValue(window)),
-      document: getObjectId(makeDebuggeeValue(window.document)),
-      Services: getObjectId(makeDebuggeeValue(Services)),
-      InspectorUtils: getObjectId(makeDebuggeeValue(InspectorUtils)),
-    };
-    const preview = new PreviewedObjects();
-    Object.values(objects).forEach(obj => preview.addObject(obj));
-
-    // Add some preview data which is needed to populate style sheets.
-    preview.addObject(objects.window, PropertyLevels.FULL);
-    preview.addObject(objects.document, PropertyLevels.FULL);
-    preview.addObject(objects.InspectorUtils, PropertyLevels.FULL);
-
-    const nodePrincipal = getObjectId(
-      makeDebuggeeValue(window.document.nodePrincipal)
-    );
-    preview.addObject(nodePrincipal, PropertyLevels.FULL);
-
-    return { objects, preview };
-  },
-
   newDeepTreeWalker(request) {
     divergeFromRecording();
     const walker = Cc[
@@ -2134,13 +2111,26 @@ function processRequest(request) {
   if (gRequestHandlers[request.type]) {
     return gRequestHandlers[request.type](request);
   }
+  if (ReplayNew.requestHandlers[request.type]) {
+    const outer = {
+      assert,
+      divergeFromRecording,
+      getWindow,
+      getObjectId,
+      makeDebuggeeValue,
+      convertValue,
+      gPausedObjects,
+      InspectorUtils,
+    };
+    return ReplayNew.requestHandlers[request.type](outer, request);
+  }
   throwError(`"No handler for ${request.type}`);
 }
 
 function printError(why, e) {
   let msg;
   try {
-    msg = "" + e + " line " + e.lineNumber;
+    msg = `${e} stack ${e.stack}`;
   } catch (ee) {
     msg = "Unknown";
   }

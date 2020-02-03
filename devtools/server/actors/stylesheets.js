@@ -47,7 +47,7 @@ loader.lazyRequireGetter(
 loader.lazyRequireGetter(
   this,
   "ReplayInspector",
-  "devtools/server/actors/replay/inspector"
+  "devtools/server/actors/replay/dominspector"
 );
 
 var TRANSITION_PSEUDO_CLASS = ":-moz-styleeditor-transitioning";
@@ -790,7 +790,9 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
       const doc = win.document;
       // We have to set this flag in order to get the
       // StyleSheetApplicableStateChanged events.  See Document.webidl.
-      doc.styleSheetChangeEventsEnabled = true;
+      if (!isReplaying) {
+        doc.styleSheetChangeEventsEnabled = true;
+      }
 
       const documentOnly = !doc.nodePrincipal.isSystemPrincipal;
       const styleSheets = InspectorUtils.getAllStyleSheets(doc, documentOnly);

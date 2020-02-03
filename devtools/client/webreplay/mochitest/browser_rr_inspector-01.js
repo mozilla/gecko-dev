@@ -18,15 +18,13 @@ function getContainerForNodeFront(nodeFront, { markup }) {
 add_task(async function() {
   const dbg = await attachRecordingDebugger("doc_inspector_basic.html", {
     waitForRecording: true,
-    disableLogging: true,
     skipInterrupt: true,
   });
 
   const { inspector } = await openInspector();
 
   let nodeFront = await getNodeFront("#maindiv", inspector);
-  let container = getContainerForNodeFront(nodeFront, inspector);
-  ok(!container, "No node container while unpaused");
+  ok(!nodeFront, "No node front while unpaused");
 
   await interrupt(dbg);
 
@@ -34,7 +32,8 @@ add_task(async function() {
   await waitFor(
     () => inspector.markup && getContainerForNodeFront(nodeFront, inspector)
   );
-  container = getContainerForNodeFront(nodeFront, inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
+
   ok(
     container.editor.textEditor.textNode.state.value == "GOODBYE",
     "Correct late element text"

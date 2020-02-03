@@ -19,11 +19,6 @@ namespace mozilla {
 namespace recordreplay {
 namespace parent {
 
-static bool ActiveChildIsRecording() {
-  ChildProcessInfo* child = GetActiveChild();
-  return child && child->IsRecording();
-}
-
 static bool HandleMessageInMiddleman(ipc::Side aSide,
                                      const IPC::Message& aMessage) {
   IPC::Message::msgid_t type = aMessage.type();
@@ -105,7 +100,7 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
 
   // Send input events to the middleman when the active child is replaying,
   // so that UI elements such as the replay overlay can be interacted with.
-  if (!ActiveChildIsRecording() &&
+  if (!gActiveChildIsRecording &&
       nsContentUtils::IsMessageInputEvent(aMessage)) {
     ipc::IProtocol::Result r =
         dom::ContentChild::GetSingleton()->PContentChild::OnMessageReceived(
@@ -194,7 +189,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
 
   static void ForwardMessageAsync(MiddlemanProtocol* aProtocol,
                                   Message* aMessage) {
-    if (ActiveChildIsRecording() || AlwaysForwardMessage(*aMessage)) {
+    if (gActiveChildIsRecording || AlwaysForwardMessage(*aMessage)) {
       PrintSpew("ForwardAsyncMsg %s %s %d\n",
                 (aProtocol->mSide == ipc::ChildSide) ? "Child" : "Parent",
                 IPC::StringFromIPCMessageType(aMessage->type()),
@@ -340,7 +335,7 @@ static bool gParentProtocolOpened = false;
 
 // Main routine for the forwarding message loop thread.
 static void ForwardingMessageLoopMain(void*) {
-  MOZ_RELEASE_ASSERT(ActiveChildIsRecording());
+  MOZ_RELEASE_ASSERT(gActiveChildIsRecording);
 
   MessageLoop messageLoop;
   gForwardingMessageLoop = &messageLoop;

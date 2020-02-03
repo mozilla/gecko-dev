@@ -40,9 +40,6 @@ ChildProcessInfo* GetChildProcess(size_t aId);
 // Spawn a new replaying child process with the specified ID.
 void SpawnReplayingChild(size_t aId);
 
-// Specify the current active child.
-void SetActiveChild(ChildProcessInfo* aChild);
-
 // Immediately forward any sync child->parent IPDL message. These are sent on
 // the main thread, which might be blocked waiting for a response from the
 // recording child and unable to run an event loop.
@@ -61,6 +58,9 @@ extern StaticInfallibleVector<char> gRecordingContents;
 // Monitor used for synchronizing between the main and channel or message loop
 // threads.
 extern Monitor* gMonitor;
+
+// Whether there is a currently active recording child.
+extern bool gActiveChildIsRecording;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics

@@ -107,7 +107,7 @@ const walkerSpec = generateActorSpec({
     },
     document: {
       request: { node: Arg(0, "nullable:domnode") },
-      response: { node: RetVal("domnode") },
+      response: { node: RetVal("nullable:domnode") },
     },
     documentElement: {
       request: { node: Arg(0, "nullable:domnode") },

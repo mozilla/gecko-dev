@@ -284,7 +284,7 @@ defineLazyGetter(exports.modules, "RecordReplayControl", () => {
 
 defineLazyGetter(exports.modules, "InspectorUtils", () => {
   if (exports.modules.Debugger.recordReplayProcessKind() == "Middleman") {
-    const ReplayInspector = require("devtools/server/actors/replay/inspector");
+    const ReplayInspector = require("devtools/server/actors/replay/dominspector");
     return ReplayInspector.createInspectorUtils(InspectorUtils);
   }
   return InspectorUtils;
@@ -409,7 +409,7 @@ const inspectorGlobals = {
 for (const [name, value] of Object.entries(inspectorGlobals)) {
   lazyGlobal(name, () => {
     if (exports.modules.Debugger.recordReplayProcessKind() == "Middleman") {
-      const ReplayInspector = require("devtools/server/actors/replay/inspector");
+      const ReplayInspector = require("devtools/server/actors/replay/dominspector");
       return ReplayInspector[`create${name}`](value);
     }
     return value;

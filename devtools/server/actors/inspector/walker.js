@@ -11,7 +11,7 @@ const protocol = require("devtools/shared/protocol");
 const { walkerSpec } = require("devtools/shared/specs/walker");
 const { LongStringActor } = require("devtools/server/actors/string");
 const InspectorUtils = require("InspectorUtils");
-const ReplayInspector = require("devtools/server/actors/replay/inspector");
+const ReplayInspector = require("devtools/server/actors/replay/dominspector");
 const {
   EXCLUDED_LISTENER,
 } = require("devtools/server/actors/inspector/constants");
@@ -342,10 +342,6 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
       this.onShadowrootattached
     );
 
-    // Ensure that the root document node actor is ready and
-    // managed.
-    this.rootNode = this.document();
-
     this.layoutChangeObserver = getLayoutChangesObserver(this.targetActor);
     this._onReflows = this._onReflows.bind(this);
     this.layoutChangeObserver.on("reflows", this._onReflows);
@@ -381,7 +377,6 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   form: function() {
     return {
       actor: this.actorID,
-      root: this.rootNode.form(),
       traits: {
         // Firefox 71: getNodeActorFromContentDomReference is available.
         retrieveNodeFromContentDomReference: true,
@@ -671,6 +666,9 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    *        return the root.
    */
   document: function(node) {
+    if (isReplaying && !ReplayInspector.isPaused()) {
+      return null;
+    }
     const doc = isNodeDead(node) ? this.rootDoc : nodeDocument(node.rawNode);
     return this._ref(doc);
   },

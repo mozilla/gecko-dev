@@ -1131,6 +1131,8 @@ function setPauseState(mode, point, child) {
   if (mode == PauseModes.PAUSED) {
     simulateNearbyNavigation();
   }
+
+  RecordReplayControl.setActiveChildIsRecording(child && child.recording);
 }
 
 // Mark the debugger as paused, and asynchronously send a child to the pause
@@ -2003,6 +2005,8 @@ const gControl = {
   // Synchronously send a debugger request to a paused active child, returning
   // the response.
   sendRequest(request) {
+    dump(`SendRequest ${request.type} ${Error().stack}\n`);
+
     let data;
     gActiveChild.sendManifest(
       { kind: "debuggerRequest", request },

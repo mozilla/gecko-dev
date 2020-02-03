@@ -288,6 +288,10 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    * API.
    */
   watchDocument: function(doc, callback) {
+    if (isReplaying) {
+      return;
+    }
+
     const node = this.rawNode;
     // Create the observer on the node's actor.  The node will make sure
     // the observer is cleaned up when the actor is released.

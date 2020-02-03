@@ -1379,7 +1379,6 @@ Inspector.prototype = {
     this._defaultNode = null;
     this.selection.setNodeFront(null);
     this._destroyMarkup();
-    this.walker.reloadRoot();
 
     const onNodeSelected = defaultNode => {
       // Cancel this promise resolution as a new one had

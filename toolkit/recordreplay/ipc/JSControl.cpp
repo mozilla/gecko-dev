@@ -507,6 +507,16 @@ static bool Middleman_UpdateRecording(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
+static bool Middleman_SetActiveChildIsRecording(JSContext* aCx, unsigned aArgc,
+                                                Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  parent::gActiveChildIsRecording = ToBoolean(args.get(0));
+
+  args.rval().setUndefined();
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Devtools Sandbox
 ///////////////////////////////////////////////////////////////////////////////
@@ -550,6 +560,7 @@ MOZ_EXPORT bool RecordReplayInterface_ShouldUpdateProgressCounter(
     // Scripts in this file are internal to the record/replay infrastructure and
     // run non-deterministically between recording and replaying.
     return aURL && strcmp(aURL, ReplayScriptURL) &&
+           strcmp(aURL, "resource://devtools/server/actors/replay/replay-new.js") &&
            strcmp(aURL, "resource://devtools/shared/execution-point-utils.js");
   } else {
     return aURL && strncmp(aURL, "resource:", 9) && strncmp(aURL, "chrome:", 7);
@@ -1525,6 +1536,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("crashHangedChild", Middleman_CrashHangedChild, 2, 0),
     JS_FN("recordingLength", Middleman_RecordingLength, 0, 0),
     JS_FN("updateRecording", Middleman_UpdateRecording, 4, 0),
+    JS_FN("setActiveChildIsRecording", Middleman_SetActiveChildIsRecording, 1, 0),
     JS_FS_END};
 
 static const JSFunctionSpec gRecordReplayMethods[] = {

@@ -143,7 +143,7 @@ this.DevToolsLoader = function DevToolsLoader({
   if (globals.isReplaying) {
     const oldHook = this.loader.requireHook;
     const ReplayInspector = this.require(
-      "devtools/server/actors/replay/inspector"
+      "devtools/server/actors/replay/dominspector"
     );
     this.loader.requireHook = ReplayInspector.wrapRequireHook(oldHook);
   }

@@ -13,8 +13,10 @@ DevToolsModules(
     'connection.js',
     'control.js',
     'debugger.js',
+    'dominspector.js',
     'graphics.js',
     'inspector.js',
+    'replay-new.js',
     'replay.js',
 )
 
