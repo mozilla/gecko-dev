@@ -74,7 +74,8 @@ static StaticRefPtr<rrIConnection> gConnection;
 static StaticInfallibleVector<char> gControlJS;
 static StaticInfallibleVector<char> gReplayJS;
 
-static bool ConnectionCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 void EnsureUIStateInitialized() {
   if (!UseCloudForReplayingProcesses()) {
@@ -90,11 +91,16 @@ void EnsureUIStateInitialized() {
 
     ReadFileSync(nsPrintfCString("%s/control.js", path), gControlJS);
     ReadFileSync(nsPrintfCString("%s/replay.js", path), gReplayJS);
+    return;
   }
 
   if (gConnection) {
     return;
   }
+
+  nsAutoString cloudServer;
+  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
+  MOZ_RELEASE_ASSERT(cloudServer.Length() != 0);
 
   nsCOMPtr<rrIConnection> connection =
     do_ImportModule("resource://devtools/server/actors/replay/connection.js");
@@ -103,17 +109,24 @@ void EnsureUIStateInitialized() {
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+  JSFunction* fun;
 
-  JSFunction* fun = JS_NewFunction(cx, ConnectionCallback, 2, 0,
-                                   "ConnectionCallback");
+  fun = JS_NewFunction(cx, LoadedCallback, 2, 0, "LoadedCallback");
   MOZ_RELEASE_ASSERT(fun);
-  JS::RootedValue callback(cx, JS::ObjectValue(*(JSObject*)fun));
-  if (NS_FAILED(gConnection->Initialize(callback))) {
+  JS::RootedValue loadedCallback(cx, JS::ObjectValue(*(JSObject*)fun));
+
+  fun = JS_NewFunction(cx, MessageCallback, 2, 0, "MessageCallback");
+  MOZ_RELEASE_ASSERT(fun);
+  JS::RootedValue messageCallback(cx, JS::ObjectValue(*(JSObject*)fun));
+
+  if (NS_FAILED(gConnection->Initialize(cloudServer, loadedCallback, messageCallback))) {
     MOZ_CRASH("CreateReplayingCloudProcess");
   }
 }
 
 void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
+  MOZ_RELEASE_ASSERT(gControlJS.length() && gReplayJS.length());
+
   aControlJS.SetLength(gControlJS.length());
   memcpy(aControlJS.BeginWriting(), gControlJS.begin(), gControlJS.length());
 
@@ -261,7 +274,34 @@ class SendMessageToCloudRunnable : public Runnable {
   }
 };
 
-static bool ConnectionCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static void ExtractJSString(JSContext* aCx, JSString* aString,
+                            StaticInfallibleVector<char>& aBuffer) {
+  MOZ_RELEASE_ASSERT(JS_StringHasLatin1Chars(aString));
+
+  JS::AutoAssertNoGC nogc(aCx);
+  size_t dataLength;
+  const JS::Latin1Char* dataChars =
+      JS_GetLatin1StringCharsAndLength(aCx, nogc, aString, &dataLength);
+  MOZ_RELEASE_ASSERT(dataChars);
+
+  aBuffer.append(dataChars, dataLength);
+}
+
+static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString() || !args.get(1).isString()) {
+    return false;
+  }
+
+  ExtractJSString(aCx, args.get(0).toString(), gControlJS);
+  ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   if (!args.get(0).isNumber()) {
@@ -312,12 +352,8 @@ void CreateReplayingCloudProcess(base::ProcessId aProcessId,
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  nsAutoString cloudServer;
-  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
-  MOZ_RELEASE_ASSERT(cloudServer.Length() != 0);
-
   int32_t connectionId;
-  if (NS_FAILED(gConnection->Connect(aChannelId, cloudServer, &connectionId))) {
+  if (NS_FAILED(gConnection->Connect(aChannelId, &connectionId))) {
     MOZ_CRASH("CreateReplayingCloudProcess");
   }
 

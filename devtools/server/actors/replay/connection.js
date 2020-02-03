@@ -8,25 +8,37 @@
 // This file provides an interface for connecting middleman processes with
 // replaying processes living remotely in the cloud.
 
+let gCloudAddress;
 let gWorker;
-let gCallback;
+let gLoadedCallback;
+let gMessageCallback;
 let gNextConnectionId = 1;
 
 // eslint-disable-next-line no-unused-vars
-function Initialize(callback) {
+function Initialize(address, loadedCallback, messageCallback) {
   gWorker = new Worker("connection-worker.js");
   gWorker.addEventListener("message", onMessage);
-  gCallback = callback;
+  gLoadedCallback = loadedCallback;
+  gMessageCallback = messageCallback;
+
+  gWorker.postMessage({ type: "initialize", address });
 }
 
 function onMessage(evt) {
-  gCallback(evt.data.id, evt.data.buf);
+  switch (evt.data.kind)  {
+    case "loaded":
+      gLoadedCallback(evt.data.controlJS, evt.data.replayJS);
+      break;
+    case "message":
+      gMessageCallback(evt.data.id, evt.data.buf);
+      break;
+  }
 }
 
 // eslint-disable-next-line no-unused-vars
-function Connect(channelId, address, callback) {
+function Connect(channelId, callback) {
   const id = gNextConnectionId++;
-  gWorker.postMessage({ type: "connect", id, channelId, address });
+  gWorker.postMessage({ type: "connect", id, channelId });
   return id;
 }
 
