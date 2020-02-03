@@ -111,7 +111,7 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
     redirection.mExternalCall(cx);
     if (cx.mFailed) {
       delete call;
-      if (child::CurrentRepaintCannotFail() && aDiverged) {
+      if (!child::UnhandledDivergenceAllowed() && aDiverged) {
         child::ReportFatalError("External call input failed: %s\n",
                                 redirection.mName);
       }

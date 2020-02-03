@@ -95,7 +95,7 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
       }
     }
 
-    if (child::CurrentRepaintCannotFail()) {
+    if (!child::UnhandledDivergenceAllowed()) {
       // EnsureNotDivergedFromRecording is going to force us to crash, so fail
       // earlier with a more helpful error message.
       child::ReportFatalError("Could not perform external call: %s\n",

@@ -1544,7 +1544,7 @@ static void EX_objc_msgSend(ExternalCallContext& aCx) {
       }
       if (aCx.mFailed && HasDivergedFromRecording()) {
         PrintSpew("Middleman message failure: %s\n", message);
-        if (child::CurrentRepaintCannotFail()) {
+        if (!child::UnhandledDivergenceAllowed()) {
           child::ReportFatalError("Middleman message failure: %s\n", message);
         }
       }
@@ -1556,7 +1556,7 @@ static void EX_objc_msgSend(ExternalCallContext& aCx) {
     aCx.MarkAsFailed();
     if (HasDivergedFromRecording()) {
       PrintSpew("Middleman message failure: %s\n", message);
-      if (child::CurrentRepaintCannotFail()) {
+      if (!child::UnhandledDivergenceAllowed()) {
         child::ReportFatalError("Could not perform middleman message: %s\n",
                                 message);
       }

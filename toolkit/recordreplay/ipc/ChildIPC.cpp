@@ -592,7 +592,21 @@ void ReportCriticalError(const char* aMessage) {
   Print("Critical Error: %s\n", aMessage);
 }
 
+static bool gDisallowUnhandledDivergence;
+
+void DisallowUnhandledDivergence() {
+  gDisallowUnhandledDivergence = true;
+}
+
+bool UnhandledDivergenceAllowed() {
+  return !gDisallowUnhandledDivergence;
+}
+
 void ReportUnhandledDivergence() {
+  if (gDisallowUnhandledDivergence) {
+    ReportFatalError("Unhandled divergence not allowed");
+  }
+
   gChannel->SendMessage(UnhandledDivergenceMessage(gForkId));
 
   // Block until we get a terminate message and die.
@@ -725,8 +739,8 @@ static Atomic<int32_t, SequentiallyConsistent, Behavior::DontPreserve>
 static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve>
     gCompositorThreadId;
 
-// Whether repaint failures are allowed, or if the process should crash.
-static bool gAllowRepaintFailures;
+// Whether unhandled recording divergences are allowed.
+static bool gAllowUnhandledDivergence;
 
 already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
     LayoutDeviceIntSize aSize) {
@@ -806,11 +820,6 @@ void NotifyPaintStart() {
   static bool gPainted;
   if (!gPainted) {
     gPainted = true;
-
-    // Repaint failures are not allowed in the repaint stress mode.
-    gAllowRepaintFailures =
-        Preferences::GetBool("devtools.recordreplay.allowRepaintFailures") &&
-        !parent::InRepaintStressMode();
   }
 
   gNumPendingPaints++;
@@ -859,9 +868,6 @@ void NotifyPaintComplete() {
 // Whether we have repainted since diverging from the recording.
 static bool gDidRepaint;
 
-// Whether we are currently repainting.
-static bool gRepainting;
-
 bool Repaint(nsACString& aData) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
@@ -880,7 +886,6 @@ bool Repaint(nsACString& aData) {
     // case the last graphics we sent will still be correct.
     if (!gDidRepaint) {
       gDidRepaint = true;
-      gRepainting = true;
 
       // Create an artifical vsync to see if graphics have changed since the
       // last paint and a new paint is needed.
@@ -894,8 +899,6 @@ bool Repaint(nsACString& aData) {
           gMonitor->Wait();
         }
       }
-
-      gRepainting = false;
     }
   }
 
@@ -904,10 +907,6 @@ bool Repaint(nsACString& aData) {
   }
 
   return EncodeGraphics(aData);
-}
-
-bool CurrentRepaintCannotFail() {
-  return gRepainting && !gAllowRepaintFailures;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

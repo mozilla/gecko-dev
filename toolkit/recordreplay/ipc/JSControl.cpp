@@ -1086,6 +1086,16 @@ static bool RecordReplay_SaveCloudRecording(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
+static bool RecordReplay_DisallowUnhandledDivergence(JSContext* aCx,
+                                                     unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  child::DisallowUnhandledDivergence();
+
+  args.rval().setUndefined();
+  return true;
+}
+
 static bool RecordReplay_Dump(JSContext* aCx, unsigned aArgc, Value* aVp) {
   // This method is an alternative to dump() that can be used in places where
   // thread events are disallowed.
@@ -1573,6 +1583,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
     JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
+    JS_FN("disallowUnhandledDivergence", RecordReplay_DisallowUnhandledDivergence, 0, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FS_END};

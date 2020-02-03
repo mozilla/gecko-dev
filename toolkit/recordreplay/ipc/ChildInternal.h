@@ -51,6 +51,12 @@ void ReportCriticalError(const char* aMessage);
 // that execution in this process cannot continue.
 void ReportUnhandledDivergence();
 
+// Trigger a crash if we have an unhandled recording divergence.
+void DisallowUnhandledDivergence();
+
+// Return whether unhandled divergences are currently allowed.
+bool UnhandledDivergenceAllowed();
+
 // Get the unique ID of this child.
 size_t GetId();
 size_t GetForkId();
@@ -70,10 +76,6 @@ void SendExternalCallRequest(ExternalCallId aId,
 // to fill in its external call cache.
 void SendExternalCallOutput(ExternalCallId aId,
                             const char* aOutputData, size_t aOutputSize);
-
-// Return whether a repaint is in progress and is not allowed to trigger an
-// unhandled recording divergence per preferences.
-bool CurrentRepaintCannotFail();
 
 // Paint according to the current process state, then convert it to an image
 // and serialize it in aData.
