@@ -255,6 +255,14 @@ toolbar[brighttext] {
   list-style-image: url("chrome://browser/skin/developer.svg");
 }
 
+#recording-button {
+  list-style-image: url("chrome://devtools/skin/images/command-replay.svg");
+}
+
+.recordingButtonRecording {
+  color: #ff4500 !important;
+}
+
 #profiler-button {
   list-style-image: url("chrome://devtools/skin/images/profiler-stopwatch.svg");
 }

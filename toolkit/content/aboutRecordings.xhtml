@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome:; object-src 'none'" />
+
+  <title data-l10n-id="about-recordings-title"></title>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/info-pages.css" type="text/css"/>
+  <link rel="stylesheet" href="chrome://global/content/aboutRecordings.css" type="text/css"/>
+  <link rel="localization" href="toolkit/about/aboutRecordings.ftl"/>
+</head>
+
+<body>
+  <h2 class="recordings-title">Saved Recordings</h2>
+
+  <div class="container">
+    <div class="recordings-list"></div>
+    <div class="no-recordings">Nothing Saved</div>
+  </div>
+
+  <template id="recording-row">
+    <div class="recording">
+      <div class="recording-title"></div>
+      <div class="recording-url"></div>
+      <div><span class="recording-start"></span> - <span class="recording-duration"></span></div>
+      </div>
+    <div class="copylink">
+      Copy Link
+    </div>
+    <div class="remove">
+      Remove
+    </div>
+  </template>
+
+  <script src="chrome://global/content/aboutRecordings.js"></script>
+
+</body>
+</html>

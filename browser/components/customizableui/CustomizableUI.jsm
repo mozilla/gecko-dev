@@ -222,6 +222,7 @@ var CustomizableUIInternal = {
       "forward-button",
       "stop-reload-button",
       "home-button",
+      "recording-button",
       "spring",
       "urlbar-container",
       "spring",
@@ -232,7 +233,7 @@ var CustomizableUIInternal = {
     ];
 
     if (AppConstants.MOZ_DEV_EDITION) {
-      navbarPlacements.splice(7, 0, "developer-button");
+      navbarPlacements.splice(8, 0, "developer-button");
     }
 
     this.registerArea(

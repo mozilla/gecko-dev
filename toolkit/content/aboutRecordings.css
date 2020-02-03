@@ -1,0 +1,53 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+body {
+  justify-content: normal;
+}
+
+.recordings-list {
+  display: grid;
+  grid-template-columns: auto 10ch 10ch;
+  align-items: center;
+}
+
+.recording {
+  margin: 15px 0;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.recording:hover {
+  cursor: pointer;
+  background: #404043;
+}
+
+.copylink {
+  margin: 15px 0;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.copylink:hover {
+  cursor: pointer;
+  background: #404043;
+}
+
+.remove {
+  margin: 15px 0;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.remove:hover {
+  cursor: pointer;
+  background: #404043;
+}
+
+.no-recordings {
+  text-align: center;
+  font-style: italic;
+}

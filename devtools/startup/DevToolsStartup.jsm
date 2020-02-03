@@ -289,6 +289,8 @@ DevToolsStartup.prototype = {
    */
   developerToggleCreated: false,
 
+  recordingButtonCreated: false,
+
   /**
    * Flag that indicates if the profiler recording popup was already added to
    * customizableUI.
@@ -325,6 +327,7 @@ DevToolsStartup.prototype = {
           this.hookDeveloperToggle();
         }
 
+        this.hookRecordingButton();
         this.hookProfilerRecordingButton();
       }
 
@@ -449,6 +452,7 @@ DevToolsStartup.prototype = {
     // initialized before the first browser-delayed-startup-finished event is received.
     // We use a dedicated flag because we still need to hook the developer toggle.
     this.hookDeveloperToggle();
+    this.hookRecordingButton();
     this.hookProfilerRecordingButton();
 
     // The developer menu hook only needs to be added if devtools have not been
@@ -546,6 +550,97 @@ DevToolsStartup.prototype = {
     CustomizableWidgets.push(item);
 
     this.developerToggleCreated = true;
+  },
+
+  hookRecordingButton() {
+    if (this.recordingButtonCreated) {
+      return;
+    }
+
+    const id = "recording-button";
+    const widget = CustomizableUI.getWidget(id);
+    if (widget && widget.provider == CustomizableUI.PROVIDER_API) {
+      return;
+    }
+    const item = {
+      id: id,
+      type: "view",
+      viewId: "PanelUI-recording",
+      tooltiptext: "recording-button.tooltiptext2",
+      onViewShowing: event => {
+        const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+        const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+
+        const doc = event.target.ownerDocument;
+        const recordingItems = doc.getElementById("PanelUI-recordingItems");
+
+        // Buttons:
+        // Start Recording / Stop Recording / Stop Replaying
+        // Save Recording
+        // View Recordings
+        const itemsToDisplay = [];
+
+        function addItem(label, command) {
+          const item = doc.createXULElement("menuitem");
+          item.setAttribute("label", StartupBundle.GetStringFromName(label));
+          item.addEventListener("command", command);
+          itemsToDisplay.push(item);
+          return item;
+        }
+
+        if (recording) {
+          addItem("stopRecording.label", reloadAndStopRecordingTab);
+        } else {
+          addItem("startRecording.label", reloadAndRecordTab);
+        }
+
+        const saveRecordingItem = addItem("saveRecording.label", event => {
+          doc.getElementById("PanelUI-recordingItems").setAttribute("closemenu", "none");
+          saveRecording();
+
+          setTimeout(() => {
+            doc.getElementById("PanelUI-recordingItems").removeAttribute("closemenu");
+          });
+
+          CustomizableUI.clearSubview(recordingItems);
+          saveRecordingItem.setAttribute("label", "Saving...");
+          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+
+          setTimeout(() => {
+            CustomizableUI.clearSubview(recordingItems);
+            saveRecordingItem.setAttribute("label", "Saved! Link copied to clipboard.");
+            CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+          }, 500);
+        });
+        if (!recording) {
+          saveRecordingItem.setAttribute("disabled", "true");
+        }
+
+        addItem("viewRecordings.label", viewRecordings);
+
+        CustomizableUI.clearSubview(recordingItems);
+        CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+      },
+      onInit(anchor) {
+        this.onBeforeCreated(anchor.ownerDocument);
+      },
+      onBeforeCreated: doc => {
+        // Bug 1223127, CUI should make this easier to do.
+        if (doc.getElementById("PanelUI-recordingItems")) {
+          return;
+        }
+        const view = doc.createXULElement("panelview");
+        view.id = "PanelUI-recordingItems";
+        const panel = doc.createXULElement("vbox");
+        panel.setAttribute("class", "panel-subview-body");
+        view.appendChild(panel);
+        doc.getElementById("PanelUI-multiView").appendChild(view);
+      },
+    };
+    CustomizableUI.createWidget(item);
+    CustomizableWidgets.push(item);
+
+    this.recordingButtonCreated = true;
   },
 
   /**
@@ -1212,5 +1307,51 @@ const JsonView = {
     }
   },
 };
+
+const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  E10SUtils: "resource://gre/modules/E10SUtils.jsm",
+});
+
+function reloadAndRecordTab() {
+  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+  const url = gBrowser.currentURI.spec;
+  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+    recordExecution: "*",
+    newFrameloader: true,
+    remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+  });
+  Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
+    Services.ppmm.removeMessageListener("RecordingInitialized", listener);
+    gBrowser.loadURI(url, {
+      triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
+    });
+  });
+  Services.telemetry.scalarAdd("devtools.webreplay.reload_recording", 1);
+}
+
+function reloadAndStopRecordingTab() {
+  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+  const url = gBrowser.currentURI.spec;
+  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+    newFrameloader: true,
+    remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+  });
+  gBrowser.loadURI(url, {
+    triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
+  });
+  Services.telemetry.scalarAdd("devtools.webreplay.stop_recording", 1);
+}
+
+function saveRecording() {
+  dump(`SAVE_RECORDING ${Error().stack}\n`);
+}
+
+function viewRecordings() {
+  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+  const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  gBrowser.loadURI("about:recordings", { triggeringPrincipal });
+}
 
 var EXPORTED_SYMBOLS = ["DevToolsStartup"];

@@ -4897,11 +4897,7 @@ pref("remote.log.level", "Info");
 pref("devtools.jsonview.enabled", true);
 
 // Default theme ("dark" or "light").
-#ifdef MOZ_DEV_EDITION
-  pref("devtools.theme", "dark", sticky);
-#else
-  pref("devtools.theme", "light", sticky);
-#endif
+pref("devtools.theme", "light", sticky);
 
 // Completely disable DevTools entry points, as well as all DevTools command
 // line arguments This should be merged with devtools.enabled, see Bug 1440675.

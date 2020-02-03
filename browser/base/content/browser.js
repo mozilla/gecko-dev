@@ -5581,6 +5581,17 @@ var XULBrowserWindow = {
     aMessage,
     aTotalProgress
   ) {
+    // Update recording button color.
+    const recordingButton = document.getElementById("recording-button");
+    if (recordingButton) {
+      const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+      if (recording) {
+        recordingButton.classList.add("recordingButtonRecording");
+      } else {
+        recordingButton.classList.remove("recordingButtonRecording");
+      }
+    }
+
     if (FullZoom.updateBackgroundTabs) {
       FullZoom.onLocationChange(gBrowser.currentURI, true);
     }
