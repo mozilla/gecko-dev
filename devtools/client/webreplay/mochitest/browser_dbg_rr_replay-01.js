@@ -6,6 +6,8 @@
 
 // Basic test for saving a recording and then replaying it in a new tab.
 add_task(async function() {
+  await pushPref("devtools.recordreplay.logging", true);
+
   const recordingFile = newRecordingFile();
   const recordingTab = await openRecordingTab("doc_rr_basic.html");
   await once(Services.ppmm, "RecordingFinished");
@@ -19,7 +21,7 @@ add_task(async function() {
     replayExecution: recordingFile,
   });
   gBrowser.selectedTab = replayingTab;
-  await once(Services.ppmm, "HitRecordingEndpoint");
+  await once(Services.ppmm, "RecordingLoaded");
 
   const dbg = await attachDebugger(replayingTab);
 

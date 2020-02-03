@@ -102,9 +102,6 @@ namespace recordreplay {
   /* The child's graphics were repainted into the graphics shmem. */ \
   _Macro(Paint)                                                \
                                                                \
-  /* The child's graphics were repainted and have been encoded as an image. */ \
-  _Macro(PaintEncoded)                                         \
-                                                               \
   /* Get the result of performing an external call. */         \
   _Macro(ExternalCallRequest)                                  \
                                                                \
@@ -332,8 +329,6 @@ struct BinaryMessage : public Message {
     return res;
   }
 };
-
-typedef BinaryMessage<MessageType::PaintEncoded> PaintEncodedMessage;
 
 // The tag is the ID of the external call being performed.
 typedef BinaryMessage<MessageType::ExternalCallRequest>

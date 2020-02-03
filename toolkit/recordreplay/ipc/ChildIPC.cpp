@@ -717,6 +717,8 @@ already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
 }
 
 bool EncodeGraphics(nsACString& aData) {
+  AutoPassThroughThreadEvents pt;
+
   // Get an image encoder for the media type.
   nsCString encoderCID("@mozilla.org/image/encoder;2?type=image/png");
   nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get());
@@ -776,23 +778,9 @@ static void PaintFromMainThread() {
   // operating on the draw target buffer.
   MOZ_RELEASE_ASSERT(!gNumPendingPaints);
 
-  if (IsMainChild() && gDrawTargetBuffer) {
-    if (IsRecording()) {
-      memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
-      gChannel->SendMessage(PaintMessage(gPaintWidth, gPaintHeight));
-    } else {
-      AutoPassThroughThreadEvents pt;
-
-      nsAutoCString data;
-      if (!EncodeGraphics(data)) {
-        MOZ_CRASH("EncodeGraphics failed");
-      }
-
-      Message* msg = PaintEncodedMessage::New(gForkId, 0, data.BeginReading(),
-                                              data.Length());
-      gChannel->SendMessage(std::move(*msg));
-      free(msg);
-    }
+  if (IsRecording() && gDrawTargetBuffer) {
+    memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
+    gChannel->SendMessage(PaintMessage(gPaintWidth, gPaintHeight));
   }
 }
 
@@ -821,7 +809,6 @@ static bool gRepainting;
 
 bool Repaint(nsACString& aData) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
 
   EnsureNonMainThreadsAreSpawned();
 
@@ -830,26 +817,31 @@ bool Repaint(nsACString& aData) {
     return false;
   }
 
-  // Ignore the request to repaint if we already triggered a repaint, in which
-  // case the last graphics we sent will still be correct.
-  if (!gDidRepaint) {
-    gDidRepaint = true;
-    gRepainting = true;
+  // Don't repaint while recording, just return the current graphics data.
+  if (IsReplaying()) {
+    MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
 
-    // Create an artifical vsync to see if graphics have changed since the last
-    // paint and a new paint is needed.
-    NotifyVsyncObserver();
+    // Ignore the request to repaint if we already triggered a repaint, in which
+    // case the last graphics we sent will still be correct.
+    if (!gDidRepaint) {
+      gDidRepaint = true;
+      gRepainting = true;
 
-    // Wait for the compositor to finish all in flight paints, including any
-    // one we just triggered.
-    {
-      MonitorAutoLock lock(*gMonitor);
-      while (gNumPendingPaints) {
-        gMonitor->Wait();
+      // Create an artifical vsync to see if graphics have changed since the
+      // last paint and a new paint is needed.
+      NotifyVsyncObserver();
+
+      // Wait for the compositor to finish all in flight paints, including any
+      // one we just triggered.
+      {
+        MonitorAutoLock lock(*gMonitor);
+        while (gNumPendingPaints) {
+          gMonitor->Wait();
+        }
       }
-    }
 
-    gRepainting = false;
+      gRepainting = false;
+    }
   }
 
   if (!gDrawTargetBuffer) {

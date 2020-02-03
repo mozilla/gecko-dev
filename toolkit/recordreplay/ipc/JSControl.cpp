@@ -963,14 +963,36 @@ static bool RecordReplay_FlushExternalCalls(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool RecordReplay_SetMainChild(JSContext* aCx, unsigned aArgc,
-                                      Value* aVp) {
+static bool RecordReplay_SetRecordingSummary(JSContext* aCx, unsigned aArgc,
+                                             Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  SetMainChild();
-  size_t endpoint = RecordingEndpoint();
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string argument");
+    return false;
+  }
 
-  args.rval().setInt32(endpoint);
+  nsAutoCString str;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), str);
+  SetRecordingSummary(str);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool RecordReplay_GetRecordingSummary(JSContext* aCx, unsigned aArgc,
+                                             Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  nsAutoCString summary;
+  GetRecordingSummary(summary);
+
+  JSString* str = JS_NewStringCopyZ(aCx, summary.get());
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
   return true;
 }
 
@@ -1521,7 +1543,8 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("currentExecutionTime", RecordReplay_CurrentExecutionTime, 0, 0),
     JS_FN("flushRecording", RecordReplay_FlushRecording, 0, 0),
     JS_FN("flushExternalCalls", RecordReplay_FlushExternalCalls, 0, 0),
-    JS_FN("setMainChild", RecordReplay_SetMainChild, 0, 0),
+    JS_FN("setRecordingSummary", RecordReplay_SetRecordingSummary, 1, 0),
+    JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),
     JS_FN("getContent", RecordReplay_GetContent, 1, 0),
     JS_FN("repaint", RecordReplay_Repaint, 0, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),

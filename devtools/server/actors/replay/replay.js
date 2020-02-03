@@ -1000,9 +1000,15 @@ const gManifestStartHandlers = {
     RecordReplayControl.manifestFinished();
   },
 
-  setMainChild() {
-    const endpoint = RecordReplayControl.setMainChild();
-    RecordReplayControl.manifestFinished({ endpoint });
+  saveRecordingSummary() {
+    RecordReplayControl.setRecordingSummary(JSON.stringify(computeRecordingSummary()));
+    RecordReplayControl.flushRecording();
+    RecordReplayControl.manifestFinished();
+  },
+
+  getRecordingSummary() {
+    const data = JSON.parse(RecordReplayControl.getRecordingSummary());
+    RecordReplayControl.manifestFinished(data);
   },
 
   debuggerRequest({ request }) {
@@ -1118,19 +1124,33 @@ function currentScriptedExecutionPoint() {
   });
 }
 
+const gResumes = [];
+
 function finishResume(point) {
-  RecordReplayControl.manifestFinished({
+  const data = {
     point,
     duration: RecordReplayControl.currentExecutionTime() - gManifestStartTime,
     consoleMessages: gNewConsoleMessages,
     scripts: gNewScripts,
     debuggerStatements: gNewDebuggerStatements,
     events: gNewEvents,
-  });
+  };
+  gResumes.push(data);
+  RecordReplayControl.manifestFinished(data);
   gNewConsoleMessages.length = 0;
   gNewScripts.length = 0;
   gNewDebuggerStatements.length = 0;
   gNewEvents.length = 0;
+}
+
+let gFirstCheckpoint;
+
+function computeRecordingSummary() {
+  return {
+    firstCheckpoint: gFirstCheckpoint,
+    resumes: gResumes,
+    paintData: RecordReplayControl.repaint(),
+  };
 }
 
 // Handlers that run after a checkpoint is reached to see if the manifest has
@@ -1141,6 +1161,7 @@ const gManifestFinishedAfterCheckpointHandlers = {
     assert(point.checkpoint == FirstCheckpointId);
     const maxRunningProcesses = RecordReplayControl.maxRunningProcesses();
     RecordReplayControl.manifestFinished({ point, maxRunningProcesses });
+    gFirstCheckpoint = point;
   },
 
   resume(_, point) {

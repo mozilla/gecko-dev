@@ -55,8 +55,9 @@ enum class StreamName {
   // Per-lock list of threads in acquire order.
   Lock,
 
-  // Single stream containing endpoints of recording after flushing.
-  Endpoint,
+  // Single stream containing summaries from each time the recording was
+  // explicitly saved.
+  Summary,
 
   // Single stream describing recording sections to skip for local replay;.
   LocalReplaySkip,

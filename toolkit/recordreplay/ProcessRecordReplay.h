@@ -9,6 +9,7 @@
 
 #include "mozilla/PodOperations.h"
 #include "mozilla/RecordReplay.h"
+#include "nsString.h"
 
 #include <algorithm>
 
@@ -98,13 +99,12 @@ void FlushRecording();
 // Called when any thread hits the end of its event stream.
 void HitEndOfRecording();
 
-// Called in a replaying process to load the last checkpoint in the recording.
-size_t RecordingEndpoint();
+// Before saving the recording, set a summary which can be loaded when
+// replaying.
+void SetRecordingSummary(const nsACString& aString);
 
-// Access the flag for whether this is the main child. The main child never
-// rewinds and sends graphics updates to the middleman while running forward.
-bool IsMainChild();
-void SetMainChild();
+// Get the last summary which was set in the recording.
+void GetRecordingSummary(nsAutoCString& aString);
 
 // Whether we are replaying a recording on a machine in the cloud.
 bool ReplayingInCloud();

@@ -60,17 +60,6 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
     case MessageType::Paint:
       UpdateGraphicsAfterPaint(static_cast<const PaintMessage&>(aMsg));
       break;
-    case MessageType::PaintEncoded: {
-      const PaintEncodedMessage& nmsg =
-          static_cast<const PaintEncodedMessage&>(aMsg);
-      nsDependentCSubstring data(nmsg.BinaryData(), nmsg.BinaryDataSize());
-      nsAutoCString dataBinary;
-      if (NS_FAILED(Base64Decode(data, dataBinary))) {
-        MOZ_CRASH("Base64Decode failed");
-      }
-      UpdateGraphicsAfterRepaint(dataBinary);
-      break;
-    }
     case MessageType::ManifestFinished: {
       const auto& nmsg = static_cast<const ManifestFinishedMessage&>(aMsg);
       js::ForwardManifestFinished(this, nmsg);

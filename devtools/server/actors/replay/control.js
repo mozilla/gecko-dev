@@ -96,10 +96,8 @@ function processId(rootId, forkId) {
   return forkId ? `#${rootId}:${forkId}` : `#${rootId}`;
 }
 
-// Child which is always at the end of the recording. When there is a recording
-// child this is it, and when we are replaying an old execution this is a
-// replaying child that doesn't fork and is used like a recording child.
-let gMainChild;
+// Any child we have that is actively recording.
+let gRecordingChild;
 
 // All child processes, indexed by their ID.
 const gChildren = new Map();
@@ -152,11 +150,9 @@ function ChildProcess(rootId, forkId, recording, recordingLength, startPoint) {
     {
       manifest: { kind: "primordial" },
       onFinished: ({ point, maxRunningProcesses }) => {
-        if (this == gMainChild) {
+        if (recording) {
           getCheckpointInfo(FirstCheckpointId).point = point;
-          Services.tm.dispatchToMainThread(
-            recording ? maybeResumeRecording : setMainChild
-          );
+          Services.tm.dispatchToMainThread(maybeResumeRecording);
         }
         if (maxRunningProcesses) {
           gMaxRunningLeafChildren = maxRunningProcesses;
@@ -531,7 +527,7 @@ function terminateRunningLeafChild(child) {
 let gNextRootId = 1;
 
 // Spawn the single trunk child.
-function spawnTrunkChild() {
+async function spawnTrunkChild() {
   if (!RecordReplayControl.canRewind()) {
     return;
   }
@@ -545,14 +541,27 @@ function spawnTrunkChild() {
     RecordReplayControl.recordingLength()
   );
 
+  if (!gRecordingChild) {
+    await loadRecordingSummary();
+  }
+
   gTrunkChild = forkChild(
     gRootChild,
     checkpointExecutionPoint(FirstCheckpointId)
   );
 
-  // We should be at the beginning of the recording, and don't have enough space
-  // to create any branches yet.
-  assert(gLastSavedCheckpoint == InvalidCheckpointId);
+  if (gRecordingChild) {
+    // We should be at the beginning of the recording, and don't have enough
+    // space to create any branches yet.
+    assert(gLastSavedCheckpoint == InvalidCheckpointId);
+  } else {
+    forSavedCheckpointsInRange(
+      FirstCheckpointId,
+      gRecordingEndpoint,
+      checkpoint => forkBranchChild(checkpoint, nextSavedCheckpoint(checkpoint))
+    );
+    Services.cpmm.sendAsyncMessage("RecordingLoaded");
+  }
 }
 
 function forkBranchChild(lastSavedCheckpoint, nextSavedCheckpoint) {
@@ -560,11 +569,13 @@ function forkBranchChild(lastSavedCheckpoint, nextSavedCheckpoint) {
     return;
   }
 
-  // The recording is flushed and the trunk child updated every time we add
-  // a saved checkpoint, so the child we fork here will have the recording
-  // contents up to the next saved checkpoint. Branch children are only able to
-  // run up to the next saved checkpoint.
-  gTrunkChild.updateRecording(RecordReplayControl.recordingLength());
+  if (gRecordingChild) {
+    // The recording is flushed and the trunk child updated every time we add
+    // a saved checkpoint, so the child we fork here will have the recording
+    // contents up to the next saved checkpoint. Branch children are only able
+    // to run up to the next saved checkpoint.
+    gTrunkChild.updateRecording(RecordReplayControl.recordingLength());
+  }
 
   const point = checkpointExecutionPoint(lastSavedCheckpoint);
   const child = forkChild(gTrunkChild, point);
@@ -640,19 +651,12 @@ function Initialize(recordingChildId) {
   try {
     if (recordingChildId != undefined) {
       assert(recordingChildId == 0);
-      gMainChild = new ChildProcess(recordingChildId, 0, true);
+      gRecordingChild = new ChildProcess(recordingChildId, 0, true);
+      gActiveChild = gRecordingChild;
     } else {
-      // If there is no recording child, spawn a replaying child in its place.
-      const id = gNextRootId++;
-      RecordReplayControl.spawnReplayingChild(id);
-      gMainChild = new ChildProcess(
-        id,
-        0,
-        false,
-        RecordReplayControl.recordingLength
-      );
+      // If there is no recording child, start replaying immediately.
+      spawnTrunkChild();
     }
-    gActiveChild = gMainChild;
     return gControl;
   } catch (e) {
     dump(`ERROR: Initialize threw exception: ${e}\n`);
@@ -720,6 +724,9 @@ function CheckpointInfo() {
   this.events = [];
 }
 
+// When replaying, the last checkpoint in the recording.
+let gRecordingEndpoint;
+
 function getCheckpointInfo(id) {
   while (id >= gCheckpoints.length) {
     gCheckpoints.push(new CheckpointInfo());
@@ -755,7 +762,7 @@ function addSavedCheckpoint(checkpoint) {
     return;
   }
 
-  if (gLastSavedCheckpoint != InvalidCheckpointId) {
+  if (gTrunkChild && gLastSavedCheckpoint != InvalidCheckpointId) {
     forkBranchChild(gLastSavedCheckpoint, checkpoint);
   }
 
@@ -888,9 +895,9 @@ function unscannedRegions() {
     }
   });
 
-  const lastFlush = gLastSavedCheckpoint || FirstCheckpointId;
-  if (lastFlush != gRecordingEndpoint) {
-    addRegion(lastFlush, gMainChild.lastPausePoint.checkpoint);
+  if (gRecordingChild) {
+    const lastFlush = gLastSavedCheckpoint || FirstCheckpointId;
+    addRegion(lastFlush, gRecordingChild.lastPausePoint.checkpoint);
   }
 
   return result;
@@ -1079,9 +1086,9 @@ function cachedPoints() {
 
 // The pause mode classifies the current state of the debugger.
 const PauseModes = {
-  // The main child is the active child, and is either paused or actively
-  // recording. gPausePoint is the last point the main child reached.
-  RUNNING: "RUNNING",
+  // The recording child is the active child, and is either paused or actively
+  // recording. gPausePoint is the last point the child reached.
+  RECORDING: "RECORDING",
 
   // gActiveChild is a replaying child paused or being taken to gPausePoint.
   PAUSED: "PAUSED",
@@ -1093,7 +1100,7 @@ const PauseModes = {
 };
 
 // Current pause mode.
-let gPauseMode = PauseModes.RUNNING;
+let gPauseMode = PauseModes.RECORDING;
 
 // In PAUSED mode, the point we are paused at or sending the active child to.
 let gPausePoint = null;
@@ -1113,7 +1120,7 @@ function setPauseState(mode, point, child) {
   const idString = child ? ` ${child.id}` : "";
   dumpv(`SetPauseState ${mode} ${JSON.stringify(point)}${idString}`);
 
-  if (gActiveChild && gActiveChild != gMainChild && gActiveChild != child) {
+  if (gActiveChild && !gActiveChild.recording && gActiveChild != child) {
     terminateRunningLeafChild(gActiveChild);
   }
 
@@ -1249,6 +1256,10 @@ function resume(forward) {
       return;
     }
     ensureFlushed();
+  }
+  if (gPausePoint.checkpoint == gRecordingEndpoint && forward) {
+    gDebugger._hitRecordingBoundary();
+    return;
   }
   if (
     gPausePoint.checkpoint == FirstCheckpointId &&
@@ -1688,7 +1699,7 @@ function handleResumeManifestResponse({
 
 // If necessary, continue executing in the main child.
 function maybeResumeRecording() {
-  if (gActiveChild != gMainChild) {
+  if (gPauseMode != PauseModes.RECORDING) {
     return;
   }
 
@@ -1699,16 +1710,8 @@ function maybeResumeRecording() {
     ensureFlushed();
   }
 
-  const checkpoint = gMainChild.pausePoint().checkpoint;
-  if (!gMainChild.recording && checkpoint == gRecordingEndpoint) {
-    ensureFlushed();
-    Services.cpmm.sendAsyncMessage("HitRecordingEndpoint");
-    if (gDebugger) {
-      gDebugger._hitRecordingBoundary();
-    }
-    return;
-  }
-  gMainChild.sendManifest(
+  const checkpoint = gRecordingChild.pausePoint().checkpoint;
+  gRecordingChild.sendManifest(
     {
       kind: "resume",
       breakpoints: gBreakpoints,
@@ -1717,7 +1720,7 @@ function maybeResumeRecording() {
     response => {
       handleResumeManifestResponse(response);
 
-      gPausePoint = gMainChild.pausePoint();
+      gPausePoint = gRecordingChild.pausePoint();
       if (gDebugger) {
         gDebugger._onPause();
       } else {
@@ -1725,6 +1728,34 @@ function maybeResumeRecording() {
       }
     }
   );
+}
+
+// When there is no recording child, this is called at startup to fill in
+// all checkpoints and related information.
+async function loadRecordingSummary() {
+  const {
+    firstCheckpoint,
+    resumes,
+    paintData,
+  } = await gRootChild.sendManifest({ kind: "getRecordingSummary" });
+
+  getCheckpointInfo(FirstCheckpointId).point = firstCheckpoint;
+  addSavedCheckpoint(FirstCheckpointId);
+
+  for (const data of resumes) {
+    handleResumeManifestResponse(data);
+    if (
+      !data.point.position &&
+      timeSinceCheckpoint(gLastSavedCheckpoint) >= FlushMs
+    ) {
+      addSavedCheckpoint(data.point.checkpoint);
+    }
+  }
+
+  gRecordingEndpoint = gCheckpoints.length - 1;
+  addSavedCheckpoint(gRecordingEndpoint);
+
+  RecordReplayControl.hadRepaint(paintData);
 }
 
 // Resolve callbacks for any promises waiting on the recording to be flushed.
@@ -1743,18 +1774,20 @@ let gLastFlushTime = Date.now();
 
 // If necessary, synchronously flush the recording to disk.
 function ensureFlushed() {
-  gMainChild.waitUntilPaused(true);
-
-  gLastFlushTime = Date.now();
-
-  if (gLastSavedCheckpoint == gMainChild.pauseCheckpoint()) {
+  if (!gRecordingChild) {
     return;
   }
 
-  if (gMainChild.recording) {
-    gMainChild.sendManifest({ kind: "flushRecording" });
-    gMainChild.waitUntilPaused();
+  gRecordingChild.waitUntilPaused(true);
+
+  gLastFlushTime = Date.now();
+
+  if (gLastSavedCheckpoint == gRecordingChild.pauseCheckpoint()) {
+    return;
   }
+
+  gRecordingChild.sendManifest({ kind: "flushRecording" });
+  gRecordingChild.waitUntilPaused();
 
   // We now have a usable recording for replaying children, so spawn them if
   // necessary.
@@ -1763,7 +1796,7 @@ function ensureFlushed() {
   }
 
   const oldSavedCheckpoint = gLastSavedCheckpoint || FirstCheckpointId;
-  addSavedCheckpoint(gMainChild.pauseCheckpoint());
+  addSavedCheckpoint(gRecordingChild.pauseCheckpoint());
 
   // Checkpoints where the recording was flushed to disk are saved. This allows
   // the recording to be scanned as soon as it has been flushed.
@@ -1796,15 +1829,17 @@ function ensureFlushed() {
 const CheckFlushMs = 1000;
 
 setInterval(() => {
-  // Periodically make sure the recording is flushed. If the tab is sitting
-  // idle we still want to keep the recording up to date.
-  const elapsed = Date.now() - gLastFlushTime;
-  if (
-    elapsed > CheckFlushMs &&
-    gMainChild.lastPausePoint &&
-    gMainChild.lastPausePoint.checkpoint != gLastSavedCheckpoint
-  ) {
-    ensureFlushed();
+  if (gRecordingChild) {
+    // Periodically make sure the recording is flushed. If the tab is sitting
+    // idle we still want to keep the recording up to date.
+    const elapsed = Date.now() - gLastFlushTime;
+    if (
+      elapsed > CheckFlushMs &&
+      gRecordingChild.lastPausePoint &&
+      gRecordingChild.lastPausePoint.checkpoint != gLastSavedCheckpoint
+    ) {
+      ensureFlushed();
+    }
   }
 
   // Ping children that are executing manifests to ensure they haven't hanged.
@@ -1817,10 +1852,8 @@ setInterval(() => {
 
 // eslint-disable-next-line no-unused-vars
 function BeforeSaveRecording() {
-  if (gActiveChild == gMainChild) {
-    // The recording might not be up to date, ensure it flushes after pausing.
-    ensureFlushed();
-  }
+  gRecordingChild.sendManifest({ kind: "saveRecordingSummary" });
+  gRecordingChild.waitUntilPaused(true);
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -1830,28 +1863,18 @@ function AfterSaveRecording() {
 
 // eslint-disable-next-line no-unused-vars
 function SaveCloudRecording(name) {
-  // We must have an replaying child in the cloud which we can instruct to
+  // We must have a replaying child in the cloud which we can instruct to
   // save the recording.
   if (!gTrunkChild) {
     return;
   }
-  if (gActiveChild == gMainChild) {
+  if (gPauseMode == PauseModes.RECORDING) {
     // Make sure all recording data has been sent to the trunk child.
     // The root child will detect this and grow its own recording data to match.
     ensureFlushed();
     gTrunkChild.updateRecording(RecordReplayControl.recordingLength());
   }
   gRootChild.sendManifest({ kind: "saveCloudRecording", name });
-}
-
-let gRecordingEndpoint;
-
-async function setMainChild() {
-  assert(!gMainChild.recording);
-
-  const { endpoint } = await gMainChild.sendManifest({ kind: "setMainChild" });
-  gRecordingEndpoint = endpoint;
-  Services.tm.dispatchToMainThread(maybeResumeRecording);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1865,8 +1888,8 @@ async function setMainChild() {
 const gControl = {
   // Get the current point where the active child is paused, or null.
   pausePoint() {
-    if (gActiveChild && gActiveChild == gMainChild) {
-      return gActiveChild.paused ? gActiveChild.pausePoint() : null;
+    if (gPauseMode == PauseModes.RECORDING) {
+      return gRecordingChild.paused ? gRecordingChild.pausePoint() : null;
     }
     if (gPauseMode == PauseModes.PAUSED) {
       return gPausePoint;
@@ -1906,8 +1929,8 @@ const gControl = {
     // The debugger should not use this method while we are actively resuming.
     assert(gActiveChild);
 
-    if (gActiveChild == gMainChild) {
-      gActiveChild.waitUntilPaused(true);
+    if (gPauseMode == PauseModes.RECORDING) {
+      gRecordingChild.waitUntilPaused(true);
     }
   },
 
@@ -1923,7 +1946,7 @@ const gControl = {
       );
     }
 
-    if (gActiveChild == gMainChild) {
+    if (gPauseMode == PauseModes.RECORDING) {
       // The recording child will update its breakpoints when it reaches the
       // next checkpoint, so force it to create a checkpoint now.
       gActiveChild.waitUntilPaused(true);
@@ -1937,7 +1960,7 @@ const gControl = {
     dumpv(`ClearBreakpoints`);
     gBreakpoints.length = 0;
 
-    if (gActiveChild == gMainChild) {
+    if (gPauseMode == PauseModes.RECORDING) {
       // As for addBreakpoint(), update the active breakpoints in the recording
       // child immediately.
       gActiveChild.waitUntilPaused(true);
@@ -1946,20 +1969,22 @@ const gControl = {
 
   // Get the last known point in the recording.
   recordingEndpoint() {
-    return gMainChild.lastPausePoint;
+    return gRecordingChild
+      ? gRecordingChild.lastPausePoint
+      : checkpointExecutionPoint(gRecordingEndpoint);
   },
 
   // If the active child is currently recording, switch to a replaying one if
   // possible.
   maybeSwitchToReplayingChild() {
     assert(gControl.pausePoint());
-    if (gActiveChild == gMainChild && RecordReplayControl.canRewind()) {
+    if (gPauseMode == PauseModes.RECORDING && RecordReplayControl.canRewind()) {
       const point = gActiveChild.pausePoint();
 
       if (point.position) {
         // We can only flush the recording at checkpoints, so we need to send the
         // main child forward and pause/flush ASAP.
-        gMainChild.sendManifest(
+        gRecordingChild.sendManifest(
           {
             kind: "resume",
             breakpoints: [],
@@ -1967,7 +1992,7 @@ const gControl = {
           },
           handleResumeManifestResponse
         );
-        gMainChild.waitUntilPaused(true);
+        gRecordingChild.waitUntilPaused(true);
       }
 
       ensureFlushed();
@@ -2001,15 +2026,16 @@ const gControl = {
   // be at the end of the recording and can receive requests even when the
   // active child is not currently paused.
   sendRequestMainChild(request) {
-    gMainChild.waitUntilPaused(true);
+    const child = gRecordingChild ? gRecordingChild : gTrunkChild;
+    child.waitUntilPaused(true);
     let data;
-    gMainChild.sendManifest(
+    child.sendManifest(
       { kind: "debuggerRequest", request },
       finishData => {
         data = finishData;
       }
     );
-    gMainChild.waitUntilPaused();
+    child.waitUntilPaused();
     assert(!data.divergedFromRecording);
     return data.response;
   },
@@ -2095,6 +2121,10 @@ const loggingEnabled = loggingFullEnabled || getPreference("logging");
 function ConnectDebugger(dbg) {
   gDebugger = dbg;
   dbg._control = gControl;
+
+  if (!gRecordingChild) {
+    setReplayingPauseTarget(checkpointExecutionPoint(gRecordingEndpoint));
+  }
 }
 
 const startTime = Date.now();

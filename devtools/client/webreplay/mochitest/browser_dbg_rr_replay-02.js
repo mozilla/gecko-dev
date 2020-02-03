@@ -30,7 +30,7 @@ add_task(async function() {
     replayExecution: recordingFile,
   });
   gBrowser.selectedTab = replayingTab;
-  await once(Services.ppmm, "HitRecordingEndpoint");
+  await once(Services.ppmm, "RecordingLoaded");
 
   dbg = await attachDebugger(replayingTab);
 

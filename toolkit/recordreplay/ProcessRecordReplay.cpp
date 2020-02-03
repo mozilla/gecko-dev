@@ -58,9 +58,6 @@ static int gRecordingPid;
 // Whether to spew record/replay messages to stderr.
 static bool gSpewEnabled;
 
-// Whether this is the main child.
-static bool gMainChild;
-
 // Whether we are replaying on a cloud machine.
 static bool gReplayingInCloud;
 
@@ -190,8 +187,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   InitializeRewindState();
   gRecordingPid = RecordReplayValue(gPid);
 
-  gMainChild = IsRecording();
-
   gInitialized = true;
 }
 
@@ -268,12 +263,6 @@ void FlushRecording() {
   MOZ_RELEASE_ASSERT(IsRecording());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-  // The recording can only be flushed when we are at a checkpoint.
-  // Save this endpoint to the recording.
-  size_t endpoint = GetLastCheckpoint();
-  Stream* endpointStream = gRecording->OpenStream(StreamName::Endpoint, 0);
-  endpointStream->WriteScalar(endpoint);
-
   gRecording->PreventStreamWrites();
   gRecording->Flush();
   gRecording->AllowStreamWrites();
@@ -300,19 +289,27 @@ void HitEndOfRecording() {
   }
 }
 
-// When replaying, the last endpoint loaded from the recording.
-static size_t gRecordingEndpoint;
+void SetRecordingSummary(const nsACString& aString) {
+  MOZ_RELEASE_ASSERT(IsRecording());
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-size_t RecordingEndpoint() {
+  Stream* stream = gRecording->OpenStream(StreamName::Summary, 0);
+  stream->WriteScalar(aString.Length());
+  stream->WriteBytes(aString.BeginReading(), aString.Length());
+}
+
+void GetRecordingSummary(nsAutoCString& aString) {
   MOZ_RELEASE_ASSERT(IsReplaying());
-  MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-  Stream* endpointStream = gRecording->OpenStream(StreamName::Endpoint, 0);
-  while (!endpointStream->AtEnd()) {
-    gRecordingEndpoint = endpointStream->ReadScalar();
+  Stream* stream = gRecording->OpenStream(StreamName::Summary, 0);
+  MOZ_RELEASE_ASSERT(stream->StreamPosition() == 0);
+
+  while (!stream->AtEnd()) {
+    size_t len = stream->ReadScalar();
+    aString.SetLength(len);
+    stream->ReadBytes(aString.BeginWriting(), len);
   }
-
-  return gRecordingEndpoint;
 }
 
 bool SpewEnabled() { return gSpewEnabled; }
@@ -342,8 +339,6 @@ int GetRecordingPid() { return gRecordingPid; }
 
 void ResetPid() { gPid = getpid(); }
 
-bool IsMainChild() { return gMainChild; }
-void SetMainChild() { gMainChild = true; }
 bool ReplayingInCloud() { return gReplayingInCloud; }
 const char* InstallDirectory() { return gInstallDirectory; }
 

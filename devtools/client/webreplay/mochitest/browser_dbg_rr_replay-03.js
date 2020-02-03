@@ -4,8 +4,8 @@
 
 "use strict";
 
-// Test for saving a recording and then replaying it in a new tab,
-// with rewinding disabled.
+// Test for saving a recording with rewinding disabled and then replaying it
+// in a new tab.
 add_task(async function() {
   await pushPref("devtools.recordreplay.enableRewinding", false);
 
@@ -18,11 +18,13 @@ add_task(async function() {
   ok(remoteTab.saveRecording(recordingFile), "Saved recording");
   await once(Services.ppmm, "SaveRecordingFinished");
 
+  await pushPref("devtools.recordreplay.enableRewinding", true);
+
   const replayingTab = BrowserTestUtils.addTab(gBrowser, null, {
     replayExecution: recordingFile,
   });
   gBrowser.selectedTab = replayingTab;
-  await once(Services.ppmm, "HitRecordingEndpoint");
+  await once(Services.ppmm, "RecordingLoaded");
 
   ok(true, "Replayed to end of recording");
 
