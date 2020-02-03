@@ -57,6 +57,7 @@ const char* SaveAllRecordingsDirectory() {
 }
 
 void SaveRecording(const ipc::FileDescriptor& aFile) { MOZ_CRASH(); }
+void SaveCloudRecording(const nsAString& aDescriptor) { MOZ_CRASH(); }
 
 ipc::MessageChannel* ChannelToUIProcess() { MOZ_CRASH(); }
 

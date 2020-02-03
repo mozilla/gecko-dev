@@ -88,6 +88,11 @@ loader.lazyGetter(
   "reloadAndStopRecordingTab",
   () => require("devtools/client/webreplay/menu.js").reloadAndStopRecordingTab
 );
+loader.lazyRequireGetter(
+  this,
+  "WebReplayCloudMenu",
+  "devtools/client/webreplay/components/CloudMenu"
+);
 
 // Other dependencies
 loader.lazyRequireGetter(
@@ -565,6 +570,15 @@ exports.ToolboxButtons = [
     isChecked(toolbox) {
       return toolbox.isPaintFlashing;
     },
+  },
+  {
+    id: "command-button-replay-cloud",
+    description: "Replay cloud options",
+    isTargetSupported: target =>
+      Services.prefs.getStringPref("devtools.recordreplay.cloudServer") &&
+      target.isLocalTab,
+    onClick: (event, toolbox) => WebReplayCloudMenu.showMenu(toolbox),
+    isChecked: () => false,
   },
   {
     id: "command-button-replay",

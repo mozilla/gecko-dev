@@ -1217,6 +1217,7 @@ class ContentParent final : public PContentParent,
                                const Maybe<FileDescriptor>& aDMDFile) override;
 
   nsresult SaveRecording(nsIFile* aFile, bool* aRetval);
+  nsresult SaveCloudRecording(const nsAString& aDescriptor, bool* aRetval);
 
   bool IsRecordingOrReplaying() const {
     return mRecordReplayState != eNotRecordingOrReplaying;

@@ -45,6 +45,7 @@ bool IsMiddlemanWithRecordingChild();
 
 // Save the recording up to the current point in execution.
 void SaveRecording(const ipc::FileDescriptor& aFile);
+void SaveCloudRecording(const nsAString& aDescriptor);
 
 // Get the message channel used to communicate with the UI process.
 ipc::MessageChannel* ChannelToUIProcess();

@@ -87,6 +87,9 @@ void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize);
 
 void AddPendingRecordingData();
 
+// In a root replaying process, save all recording data to the cloud.
+void SaveCloudRecording(const char* aName);
+
 }  // namespace child
 }  // namespace recordreplay
 }  // namespace mozilla

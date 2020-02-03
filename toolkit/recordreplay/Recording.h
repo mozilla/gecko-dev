@@ -217,6 +217,9 @@ struct BuildId {
   }
 };
 
+// Write a build ID with the specified prefix and contents.
+void SetBuildId(BuildId* aBuildId, const char* aPrefix, const char* aName);
+
 // Get the build ID for the currently running process.
 void GetCurrentBuildId(BuildId* aBuildId);
 

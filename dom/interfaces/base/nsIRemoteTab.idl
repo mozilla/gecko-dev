@@ -117,6 +117,14 @@ interface nsIRemoteTab : nsISupports
    */
   Promise getContentBlockingLog();
 
+  /**
+   * Save a recording of the associated content process' behavior to a
+   * cloud service the content process is communicating with. aDescriptor
+   * describes the recording's name and other information. Returns whether
+   * the process is being recorded.
+   */
+  bool saveCloudRecording(in AString aDescriptor);
+
   cenum NavigationType : 8 {
     NAVIGATE_BACK = 0,
     NAVIGATE_FORWARD = 1,

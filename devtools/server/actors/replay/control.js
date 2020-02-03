@@ -290,8 +290,7 @@ ChildProcess.prototype = {
       return;
     }
     dumpv(`WaitUntilPaused ${this.id}`);
-    if (maybeCreateCheckpoint) {
-      assert(this.recording && !this.forkId);
+    if (maybeCreateCheckpoint && this.recording) {
       RecordReplayControl.createCheckpointInRecording(this.rootId);
     }
     while (!this.paused) {
@@ -1829,6 +1828,22 @@ function AfterSaveRecording() {
   Services.cpmm.sendAsyncMessage("SaveRecordingFinished");
 }
 
+// eslint-disable-next-line no-unused-vars
+function SaveCloudRecording(name) {
+  // We must have an replaying child in the cloud which we can instruct to
+  // save the recording.
+  if (!gTrunkChild) {
+    return;
+  }
+  if (gActiveChild == gMainChild) {
+    // Make sure all recording data has been sent to the trunk child.
+    // The root child will detect this and grow its own recording data to match.
+    ensureFlushed();
+    gTrunkChild.updateRecording(RecordReplayControl.recordingLength());
+  }
+  gRootChild.sendManifest({ kind: "saveCloudRecording", name });
+}
+
 let gRecordingEndpoint;
 
 async function setMainChild() {
@@ -1874,6 +1889,11 @@ const gControl = {
       point = await findParentFrameEntryPoint(point);
     }
     return point;
+  },
+
+  // Return whether the active child is currently recording.
+  childIsRecording() {
+    return gActiveChild && gActiveChild.recording;
   },
 
   // Return whether the active child is currently recording.
@@ -2117,6 +2137,7 @@ var EXPORTED_SYMBOLS = [
   "ManifestFinished",
   "BeforeSaveRecording",
   "AfterSaveRecording",
+  "SaveCloudRecording",
   "ChildCrashed",
   "PingResponse",
 ];

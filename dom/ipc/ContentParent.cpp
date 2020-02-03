@@ -5752,6 +5752,19 @@ nsresult ContentParent::SaveRecording(nsIFile* aFile, bool* aRetval) {
   return NS_OK;
 }
 
+nsresult ContentParent::SaveCloudRecording(const nsAString& aDescriptor,
+                                           bool* aRetval) {
+  if (mRecordReplayState != eRecording) {
+    *aRetval = false;
+    return NS_OK;
+  }
+
+  Unused << SendSaveCloudRecording(nsString(aDescriptor));
+
+  *aRetval = true;
+  return NS_OK;
+}
+
 mozilla::ipc::IPCResult ContentParent::RecvMaybeReloadPlugins() {
   RefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
   pluginHost->ReloadPlugins();

@@ -16,5 +16,6 @@ interface rrIControl : nsISupports {
                     in long progress);
   void BeforeSaveRecording();
   void AfterSaveRecording();
+  void SaveCloudRecording(in AString descriptor);
   void ChildCrashed(in long rootId, in long forkId);
 };

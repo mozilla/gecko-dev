@@ -80,6 +80,9 @@ namespace recordreplay {
   /* replaying processes to fill the external call cache in root replaying processes. */ \
   _Macro(ExternalCallResponse)                                 \
                                                                \
+  /* Tell a replaying process to fetch recording data from the cloud. */ \
+  _Macro(FetchCloudRecordingData)                              \
+                                                               \
   /* Messages sent from the child process to the middleman. */ \
                                                                \
   /* Pause after executing a manifest, specifying its response. */ \
@@ -166,7 +169,8 @@ struct Message {
            mType == MessageType::Terminate ||
            mType == MessageType::Crash ||
            mType == MessageType::Introduction ||
-           mType == MessageType::RecordingData;
+           mType == MessageType::RecordingData ||
+           mType == MessageType::FetchCloudRecordingData;
   }
 
  protected:
@@ -194,7 +198,8 @@ struct Message {
 };
 
 struct IntroductionMessage : public Message {
-  // Used when replaying to describe the build that must be used for the replay.
+  // Used when replaying to describe the build that must be used for the replay,
+  // or the name of a recording that is stored in the cloud.
   BuildId mBuildId;
 
   // Used when recording to specify the parent process pid.
@@ -253,6 +258,8 @@ typedef EmptyMessage<MessageType::SetDebuggerRunsInMiddleman>
 typedef EmptyMessage<MessageType::Terminate> TerminateMessage;
 typedef EmptyMessage<MessageType::Crash> CrashMessage;
 typedef EmptyMessage<MessageType::CreateCheckpoint> CreateCheckpointMessage;
+typedef EmptyMessage<MessageType::FetchCloudRecordingData>
+    FetchCloudRecordingDataMessage;
 
 template <MessageType Type>
 struct JSONMessage : public Message {

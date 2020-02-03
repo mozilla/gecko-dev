@@ -79,17 +79,33 @@ static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
 // gCallResponseMessage to be filled in.
 static bool gWaitingForCallResponse;
 
+// The recording contents are maintained in the root replaying process, for use
+// when saving cloud recordings.
+StaticInfallibleVector<char> gRecordingContents;
+
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
+static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
-  MOZ_RELEASE_ASSERT(MainThreadShouldPause() || aMsg->CanBeSentWhileUnpaused());
+  if (ReplayingInCloud() &&
+      !gForkId &&
+      aMsg->mType == MessageType::RecordingData) {
+    MonitorAutoLock lock(*gMonitor);
+    const auto& nmsg = static_cast<const RecordingDataMessage&>(*aMsg);
+    MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
+    if (nmsg.mTag == gRecordingContents.length()) {
+      gRecordingContents.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
+    }
+  }
 
   if (aMsg->mForkId != gForkId) {
     MOZ_RELEASE_ASSERT(!gForkId);
     HandleMessageToForkedProcess(std::move(aMsg));
     return;
   }
+
+  MOZ_RELEASE_ASSERT(MainThreadShouldPause() || aMsg->CanBeSentWhileUnpaused());
 
   switch (aMsg->mType) {
     case MessageType::Introduction: {
@@ -164,6 +180,15 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       MOZ_RELEASE_ASSERT(
           nmsg.mTag == gRecording->Size() + gPendingRecordingData.length());
       gPendingRecordingData.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
+      gMonitor->NotifyAll();
+      break;
+    }
+    case MessageType::FetchCloudRecordingData: {
+      MonitorAutoLock lock(*gMonitor);
+      char* buf;
+      size_t size;
+      FetchCloudRecordingData(&buf, &size);
+      gPendingRecordingData.append(buf, size);
       gMonitor->NotifyAll();
       break;
     }
@@ -570,6 +595,18 @@ void AddPendingRecordingData() {
   }
 
   Thread::ResumeIdleThreads();
+}
+
+void SaveCloudRecording(const char* aName) {
+  MonitorAutoLock lock(*gMonitor);
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SaveCloudRecording");
+  BitwiseCast<void(*)(const char*, const char*, size_t)>(ptr)(
+      aName, gRecordingContents.begin(), gRecordingContents.length());
+}
+
+static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
+  BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

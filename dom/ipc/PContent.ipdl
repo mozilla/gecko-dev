@@ -808,8 +808,17 @@ child:
      */
     async PClientOpenWindowOp(ClientOpenWindowArgs aArgs);
 
-    /* Save the execution up to the current point in a recording process. */
+    /*
+     * Save the execution up to the current point in a recording process
+     * to a local file.
+     */
     async SaveRecording(FileDescriptor file);
+
+    /*
+     * Save the execution up to the current point in a recording process
+     * to a cloud service the middleman process is communicating with.
+     */
+    async SaveCloudRecording(nsString descriptor);
 
     // This message is sent to content processes, and triggers the creation of a
     // new HttpChannelChild that will be connected to the parent channel

@@ -169,6 +169,17 @@ void AfterSaveRecording() {
   }
 }
 
+void SaveCloudRecording(const nsAString& aDescriptor) {
+  MOZ_RELEASE_ASSERT(gControl);
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gControl->SaveCloudRecording(aDescriptor))) {
+    MOZ_CRASH("SaveCloudRecording");
+  }
+}
+
 bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
   MOZ_RELEASE_ASSERT(gControl);
 
@@ -831,6 +842,21 @@ static bool RecordReplay_SetProgressCounter(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
+static void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
+                                     nsAutoCString& aResult) {
+  size_t len = JS_GetStringLength(aString);
+
+  nsAutoString chars;
+  chars.SetLength(len);
+  if (!JS_CopyStringChars(aCx, Range<char16_t>(chars.BeginWriting(), len),
+                          aString)) {
+    MOZ_CRASH("ConvertJSStringToCString");
+  }
+
+  NS_ConvertUTF16toUTF8 utf8(chars);
+  aResult = utf8;
+}
+
 static bool RecordReplay_ShouldUpdateProgressCounter(JSContext* aCx,
                                                      unsigned aArgc,
                                                      Value* aVp) {
@@ -844,18 +870,9 @@ static bool RecordReplay_ShouldUpdateProgressCounter(JSContext* aCx,
       return false;
     }
 
-    JSString* str = args.get(0).toString();
-    size_t len = JS_GetStringLength(str);
-
-    nsAutoString chars;
-    chars.SetLength(len);
-    if (!JS_CopyStringChars(aCx, Range<char16_t>(chars.BeginWriting(), len),
-                            str)) {
-      return false;
-    }
-
-    NS_ConvertUTF16toUTF8 utf8(chars);
-    args.rval().setBoolean(ShouldUpdateProgressCounter(utf8.get()));
+    nsAutoCString str;
+    ConvertJSStringToCString(aCx, args.get(0).toString(), str);
+    args.rval().setBoolean(ShouldUpdateProgressCounter(str.get()));
   }
 
   return true;
@@ -1016,6 +1033,23 @@ static bool RecordReplay_MaxRunningProcesses(JSContext* aCx, unsigned aArgc,
     }
   }
 
+  return true;
+}
+
+static bool RecordReplay_SaveCloudRecording(JSContext* aCx, unsigned aArgc,
+                                            Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string argument");
+    return false;
+  }
+
+  nsAutoCString str;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), str);
+  child::SaveCloudRecording(str.get());
+
+  args.rval().setUndefined();
   return true;
 }
 
@@ -1503,6 +1537,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("findScriptHits", RecordReplay_FindScriptHits, 3, 0),
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
     JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
+    JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FS_END};
 

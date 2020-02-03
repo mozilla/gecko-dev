@@ -335,10 +335,14 @@ void Stream::DumpEvents() {
 // We expect to find this at the start of every recording.
 static const uint64_t MagicValue = 0xd3e7f5fae445b3ac;
 
-void GetCurrentBuildId(BuildId* aBuildId) {
-  int n = snprintf(aBuildId->mContents, sizeof(aBuildId->mContents), "macOS-%s",
-                   PlatformBuildID());
+void SetBuildId(BuildId* aBuildId, const char* aPrefix, const char* aName) {
+  int n = snprintf(aBuildId->mContents, sizeof(aBuildId->mContents), "%s-%s",
+                   aPrefix, aName);
   MOZ_RELEASE_ASSERT((size_t)n + 1 <= sizeof(aBuildId->mContents));
+}
+
+void GetCurrentBuildId(BuildId* aBuildId) {
+  SetBuildId(aBuildId, "macOS", PlatformBuildID());
 }
 
 struct Header {

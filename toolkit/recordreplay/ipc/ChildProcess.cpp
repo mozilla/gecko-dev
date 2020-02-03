@@ -173,9 +173,13 @@ void ChildProcessInfo::LaunchSubprocess(
 
     SendGraphicsMemoryToChild();
   } else {
-    UniquePtr<Message> msg(RecordingDataMessage::New(
-        0, 0, gRecordingContents.begin(), gRecordingContents.length()));
-    SendMessage(std::move(*msg));
+    if (gRecordingContents.length()) {
+      UniquePtr<Message> msg(RecordingDataMessage::New(
+          0, 0, gRecordingContents.begin(), gRecordingContents.length()));
+      SendMessage(std::move(*msg));
+    } else {
+      SendMessage(FetchCloudRecordingDataMessage());
+    }
     dom::ContentChild::GetSingleton()->SendCreateReplayingProcess(aChannelId);
   }
 }

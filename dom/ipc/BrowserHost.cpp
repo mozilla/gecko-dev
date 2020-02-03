@@ -420,6 +420,15 @@ BrowserHost::GetContentBlockingLog(::mozilla::dom::Promise** aPromise) {
   return NS_OK;
 }
 
+/* bool saveCloudRecording (in AString aDescriptor); */
+NS_IMETHODIMP
+BrowserHost::SaveCloudRecording(const nsAString& aDescriptor, bool* _retval) {
+  if (!mRoot) {
+    return NS_OK;
+  }
+  return GetContentParent()->SaveCloudRecording(aDescriptor, _retval);
+}
+
 NS_IMETHODIMP
 BrowserHost::MaybeCancelContentJSExecutionFromScript(
     nsIRemoteTab::NavigationType aNavigationType,

@@ -1065,6 +1065,11 @@ const gManifestStartHandlers = {
 
     RecordReplayControl.manifestFinished({ result, resultData });
   },
+
+  saveCloudRecording({ name }) {
+    RecordReplayControl.saveCloudRecording(name);
+    RecordReplayControl.manifestFinished();
+  },
 };
 
 // eslint-disable-next-line no-unused-vars

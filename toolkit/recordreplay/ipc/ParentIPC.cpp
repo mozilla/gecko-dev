@@ -178,6 +178,11 @@ void SaveRecording(const ipc::FileDescriptor& aFile) {
   }
 }
 
+void SaveCloudRecording(const nsAString& aDescriptor) {
+  MOZ_RELEASE_ASSERT(IsMiddleman());
+  js::SaveCloudRecording(aDescriptor);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Cloud Processes
 ///////////////////////////////////////////////////////////////////////////////
@@ -331,6 +336,14 @@ base::ProcessId ParentProcessId() { return gParentPid; }
 
 Monitor* gMonitor;
 
+static void ExtractCloudRecordingName(const char* aFileName,
+                                      nsAutoCString& aRecordingName) {
+  const char prefix[] = "cloud-replay://";
+  if (!strncmp(aFileName, prefix, strlen(prefix))) {
+    aRecordingName = nsCString(aFileName + strlen(prefix));
+  }
+}
+
 void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
                          const base::SharedMemoryHandle& aPrefsHandle,
                          const ipc::FileDescriptor& aPrefMapHandle) {
@@ -368,26 +381,32 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
   InitializeForwarding();
 
   if (gProcessKind == ProcessKind::MiddlemanReplaying) {
-    // Load the entire recording into memory.
-    FileHandle fd = DirectOpenFile(gRecordingFilename, false);
+    nsAutoCString cloudRecordingName;
+    ExtractCloudRecordingName(gRecordingFilename, cloudRecordingName);
+    if (cloudRecordingName.Length()) {
+      SetBuildId(&msg->mBuildId, "cloud", cloudRecordingName.get());
+    } else {
+      // Load the entire recording into memory.
+      FileHandle fd = DirectOpenFile(gRecordingFilename, false);
 
-    char buf[4096];
-    while (true) {
-      size_t n = DirectRead(fd, buf, sizeof(buf));
-      if (!n) {
-        break;
+      char buf[4096];
+      while (true) {
+        size_t n = DirectRead(fd, buf, sizeof(buf));
+        if (!n) {
+          break;
+        }
+        gRecordingContents.append(buf, n);
       }
-      gRecordingContents.append(buf, n);
+
+      DirectCloseFile(fd);
+
+      // Update the build ID in the introduction message according to what we
+      // find in the recording. The introduction message is sent first to each
+      // replaying process, and when replaying in the cloud its contents will be
+      // analyzed to determine what binaries to use for the replay.
+      Recording::ExtractBuildId(gRecordingContents.begin(),
+                                gRecordingContents.length(), &msg->mBuildId);
     }
-
-    DirectCloseFile(fd);
-
-    // Update the build ID in the introduction message according to what we
-    // find in the recording. The introduction message is sent first to each
-    // replaying process, and when replaying in the cloud its contents will be
-    // analyzed to determine what binaries to use for the replay.
-    Recording::ExtractBuildId(gRecordingContents.begin(),
-                              gRecordingContents.length(), &msg->mBuildId);
   }
 }
 
