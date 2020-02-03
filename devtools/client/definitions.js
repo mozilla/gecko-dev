@@ -263,7 +263,7 @@ Tools.styleEditor = {
   },
   inMenu: true,
   isTargetSupported: function(target) {
-    return target.hasActor("styleSheets");
+    return target.hasActor("styleSheets") && !target.canRewind;
   },
 
   build: function(iframeWindow, toolbox) {
@@ -304,7 +304,7 @@ function switchPerformancePanel() {
       // We don't display the new performance panel for remote context in the
       // toolbox, because this has an overhead. Instead we should use
       // about:debugging.
-      return target.isLocalTab;
+      return target.isLocalTab && !target.canRewind;
     };
   } else {
     Tools.performance.url = "chrome://devtools/content/performance/index.xhtml";
@@ -312,7 +312,7 @@ function switchPerformancePanel() {
       return new PerformancePanel(frame, target);
     };
     Tools.performance.isTargetSupported = function(target) {
-      return target.hasActor("performance");
+      return target.hasActor("performance") && !target.canRewind;
     };
   }
 }
@@ -336,7 +336,8 @@ Tools.memory = {
     return (
       target.getTrait("heapSnapshots") &&
       !target.isAddon &&
-      !target.isWorkerTarget
+      !target.isWorkerTarget &&
+      !target.canRewind
     );
   },
 
@@ -364,7 +365,7 @@ Tools.netMonitor = {
   inMenu: true,
 
   isTargetSupported: function(target) {
-    return target.getTrait("networkMonitor") && !target.isWorkerTarget;
+    return target.getTrait("networkMonitor") && !target.isWorkerTarget && !target.canRewind;
   },
 
   build: function(iframeWindow, toolbox) {
@@ -391,6 +392,9 @@ Tools.storage = {
   inMenu: true,
 
   isTargetSupported: function(target) {
+    if (target.canRewind) {
+      return false;
+    }
     return (
       target.isLocalTab ||
       (target.hasActor("storage") && target.getTrait("storageInspector"))
@@ -421,7 +425,7 @@ Tools.dom = {
   inMenu: true,
 
   isTargetSupported: function(target) {
-    return target.getTrait("webConsoleCommands");
+    return target.getTrait("webConsoleCommands") && !target.canRewind;
   },
 
   build: function(iframeWindow, toolbox) {
@@ -448,7 +452,7 @@ Tools.accessibility = {
   inMenu: true,
 
   isTargetSupported(target) {
-    return target.hasActor("accessibility");
+    return target.hasActor("accessibility") && !target.canRewind;
   },
 
   build(iframeWindow, toolbox) {
@@ -474,7 +478,7 @@ Tools.application = {
   hiddenInOptions: true,
 
   isTargetSupported: function(target) {
-    return target.hasActor("manifest");
+    return target.hasActor("manifest") && !target.canRewind;
   },
 
   build: function(iframeWindow, toolbox) {
@@ -512,7 +516,7 @@ Tools.whatsnew = {
     );
 
     // This panel should only be enabled for regular web toolboxes.
-    return target.isLocalTab && isEnglishUser && isFeatureEnabled;
+    return target.isLocalTab && isEnglishUser && isFeatureEnabled && !target.canRewind;
   },
 
   build: function(iframeWindow, toolbox) {
@@ -605,7 +609,7 @@ exports.ToolboxButtons = [
   {
     id: "command-button-fission-prefs",
     description: "DevTools Fission preferences",
-    isTargetSupported: target => !AppConstants.MOZILLA_OFFICIAL,
+    isTargetSupported: target => false,
     onClick: (event, toolbox) => DevToolsFissionPrefs.showTooltip(toolbox),
     isChecked: () => DevToolsFissionPrefs.isAnyPreferenceEnabled(),
   },
@@ -615,7 +619,7 @@ exports.ToolboxButtons = [
       "toolbox.buttons.responsive",
       osString == "Darwin" ? "Cmd+Opt+M" : "Ctrl+Shift+M"
     ),
-    isTargetSupported: target => target.isLocalTab,
+    isTargetSupported: target => target.isLocalTab && !target.canRewind,
     onClick(event, toolbox) {
       const tab = toolbox.target.tab;
       const browserWindow = tab.ownerDocument.defaultView;

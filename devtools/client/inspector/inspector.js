@@ -1135,6 +1135,7 @@ Inspector.prototype = {
         id: "computedview",
         title: INSPECTOR_L10N.getStr("inspector.sidebar.computedViewTitle"),
       },
+      /*
       {
         id: "changesview",
         title: INSPECTOR_L10N.getStr("inspector.sidebar.changesViewTitle"),
@@ -1149,6 +1150,7 @@ Inspector.prototype = {
           "inspector.sidebar.animationInspectorTitle"
         ),
       },
+      */
     ];
 
     if (

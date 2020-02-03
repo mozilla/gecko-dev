@@ -28,6 +28,7 @@ import {
   getSourceFromId,
   getSkipPausing,
   shouldLogEventBreakpoints,
+  getCanRewind,
 } from "../../selectors";
 
 import AccessibleImage from "../shared/AccessibleImage";
@@ -106,6 +107,7 @@ type Props = {
   workers: ThreadList,
   skipPausing: boolean,
   logEventBreakpoints: boolean,
+  canRewind: boolean,
   source: ?Source,
   toggleShortcutsModal: () => void,
   toggleAllBreakpoints: typeof actions.toggleAllBreakpoints,
@@ -418,7 +420,7 @@ class SecondaryPanes extends Component<Props, State> {
 
   getStartItems(): AccordionPaneItem[] {
     const items: AccordionPaneItem[] = [];
-    const { horizontal, hasFrames } = this.props;
+    const { horizontal, hasFrames, canRewind } = this.props;
 
     if (horizontal) {
       if (features.workers && this.props.workers.length > 0) {
@@ -437,15 +439,15 @@ class SecondaryPanes extends Component<Props, State> {
       }
     }
 
-    if (features.xhrBreakpoints) {
+    if (features.xhrBreakpoints && !canRewind) {
       items.push(this.getXHRItem());
     }
 
-    if (features.eventListenersBreakpoints) {
+    if (features.eventListenersBreakpoints && !canRewind) {
       items.push(this.getEventListenersItem());
     }
 
-    if (features.domMutationBreakpoints) {
+    if (features.domMutationBreakpoints && !canRewind) {
       items.push(this.getDOMMutationsItem());
     }
 
@@ -572,6 +574,7 @@ const mapStateToProps = state => {
     logEventBreakpoints: shouldLogEventBreakpoints(state),
     source:
       selectedFrame && getSourceFromId(state, selectedFrame.location.sourceId),
+    canRewind: getCanRewind(state),
   };
 };
 

@@ -64,7 +64,7 @@ function RuleEditor(ruleView, rule) {
   this.telemetry = this.toolbox.telemetry;
   this.rule = rule;
 
-  this.isEditable = !rule.isSystem;
+  this.isEditable = false;//!rule.isSystem;
   // Flag that blocks updates of the selector and properties when it is
   // being edited
   this.isEditing = false;

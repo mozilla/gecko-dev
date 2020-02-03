@@ -48,6 +48,7 @@ class Selector extends PureComponent {
       return;
     }
 
+    /*
     editableItem(
       {
         element: this.selectorRef.current,
@@ -56,6 +57,7 @@ class Selector extends PureComponent {
         this.props.showSelectorEditor(element, this.props.id);
       }
     );
+    */
   }
 
   renderSelector() {

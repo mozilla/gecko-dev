@@ -2481,6 +2481,7 @@ static SystemRedirection gSystemRedirections[] = {
     // all resources will be cleaned up when its calls are reset.
     {"CFRelease", RR_ScalarRval, nullptr, nullptr, Preamble_Veto<0>},
     {"CGContextRelease", RR_ScalarRval, nullptr, nullptr, Preamble_Veto<0>},
+    {"CGFontRelease", RR_ScalarRval, nullptr, nullptr, Preamble_Veto<0>},
     {"CFRetain", RR_ScalarRval, nullptr, nullptr, MiddlemanPreamble_CFRetain},
     {"CGContextRetain", RR_ScalarRval, nullptr, nullptr,
      MiddlemanPreamble_CFRetain},

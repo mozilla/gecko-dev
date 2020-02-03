@@ -49,6 +49,7 @@ class Declaration extends PureComponent {
 
     const { ruleId, id } = this.props.declaration;
 
+    /*
     editableItem(
       {
         element: this.nameSpanRef.current,
@@ -66,6 +67,7 @@ class Declaration extends PureComponent {
         this.props.showDeclarationValueEditor(element, ruleId, id);
       }
     );
+    */
   }
 
   get hasComputed() {
@@ -236,6 +238,7 @@ class Declaration extends PureComponent {
       { className: declarationClassName },
       dom.div(
         { className: "ruleview-propertycontainer" },
+        /*
         dom.input({
           type: "checkbox",
           className: "ruleview-enableproperty",
@@ -244,6 +247,7 @@ class Declaration extends PureComponent {
           "aria-labelledby": this.props.declaration.id,
           tabindex: "-1",
         }),
+        */
         dom.span(
           { className: "ruleview-namecontainer" },
           dom.span(
