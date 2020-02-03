@@ -1253,6 +1253,15 @@ class UrlbarInput {
     }
     uri = this.makeURIReadable(uri);
 
+    const { gBrowser } = this.window;
+    if (gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
+      const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
+      const match = /^webreplay:\/\/(.*)/.exec(value);
+      if (match) {
+        uri = Services.io.newURI(`about:webreplay?recording=${match[1]}`);
+      }
+    }
+
     // If the entire URL is selected, just use the actual loaded URI,
     // unless we want a decoded URI, or it's a data: or javascript: URI,
     // since those are hard to read when encoded.
@@ -1447,6 +1456,16 @@ class UrlbarInput {
     resultDetails = null,
     browser = this.window.gBrowser.selectedBrowser
   ) {
+    if (browser.hasAttribute("replayExecution")) {
+      const { E10SUtils } = ChromeUtils.import(
+        "resource://gre/modules/E10SUtils.jsm"
+      );
+      this.window.gBrowser.updateBrowserRemoteness(browser, {
+        newFrameloader: true,
+        remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+      });
+    }
+
     // No point in setting these because we'll handleRevert() a few rows below.
     if (openUILinkWhere == "current") {
       this.value = url;

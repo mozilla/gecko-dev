@@ -5385,6 +5385,14 @@ var XULBrowserWindow = {
         this.reloadCommand.removeAttribute("disabled");
       }
 
+      if (gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
+        const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
+        const match = /^webreplay:\/\/(.*)/.exec(value);
+        if (match) {
+          aLocationURI = Services.io.newURI(`about:webreplay?recording=${match[1]}`);
+        }
+      }
+
       // We want to update the popup visibility if we received this notification
       // via simulated locationchange events such as switching between tabs, however
       // if this is a document navigation then PopupNotifications will be updated
@@ -5574,14 +5582,7 @@ var XULBrowserWindow = {
     gIdentityHandler.updateIdentity(this._state, uri);
   },
 
-  // simulate all change notifications after switching tabs
-  onUpdateCurrentBrowser: function XWB_onUpdateCurrentBrowser(
-    aStateFlags,
-    aStatus,
-    aMessage,
-    aTotalProgress
-  ) {
-    // Update recording button color.
+  updateRecordingButton() {
     const recordingButton = document.getElementById("recording-button");
     if (recordingButton) {
       const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
@@ -5598,6 +5599,16 @@ var XULBrowserWindow = {
         recordingButton.classList.remove("recordingButtonReplaying");
       }
     }
+  },
+
+  // simulate all change notifications after switching tabs
+  onUpdateCurrentBrowser: function XWB_onUpdateCurrentBrowser(
+    aStateFlags,
+    aStatus,
+    aMessage,
+    aTotalProgress
+  ) {
+    this.updateRecordingButton();
 
     if (FullZoom.updateBackgroundTabs) {
       FullZoom.onLocationChange(gBrowser.currentURI, true);

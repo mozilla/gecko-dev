@@ -1528,6 +1528,16 @@
               /* Do nothing. */
             }
           }
+        } else if (browser.hasAttribute("replayExecution")) {
+          const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
+          const match = /^webreplay:\/\/(.*)/.exec(value);
+
+          // FIXME localize replaying tab titles.
+          if (match) {
+            title = `Replaying ${match[1]}`;
+          } else {
+            title = "Replaying";
+          }
         } else {
           // No suitable URI? Fall back to our untitled string.
           title = this.tabContainer.emptyTabTitle;
@@ -1824,6 +1834,7 @@
         remoteType,
         sameProcessAsFrameLoader,
         recordExecution,
+        replayExecution,
         replaceBrowsingContext,
       } = {}
     ) {
@@ -1919,6 +1930,12 @@
         aBrowser.setAttribute("nodefaultsrc", "false");
       } else if (aBrowser.hasAttribute("recordExecution")) {
         aBrowser.removeAttribute("recordExecution");
+      }
+
+      if (replayExecution) {
+        aBrowser.setAttribute("replayExecution", replayExecution);
+      } else if (aBrowser.hasAttribute("replayExecution")) {
+        aBrowser.removeAttribute("replayExecution");
       }
 
       // NB: This works with the hack in the browser constructor that
@@ -2577,6 +2594,8 @@
         skipLoad,
       } = {}
     ) {
+      setTimeout(window.XULBrowserWindow.updateRecordingButton, 0);
+
       // all callers of addTab that pass a params object need to pass
       // a valid triggeringPrincipal.
       if (!triggeringPrincipal) {
