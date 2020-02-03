@@ -300,8 +300,8 @@ MOZ_NEVER_INLINE void RecordReplayInvokeCall(void* aFunction,
 ///////////////////////////////////////////////////////////////////////////////
 
 // Generate code to set %rax and enter RecordReplayRedirectCall.
-static uint8_t* GenerateRedirectStub(Assembler& aAssembler, size_t aCallId,
-                                     bool aPreserveCallerSaveRegisters) {
+uint8_t* GenerateRedirectStub(Assembler& aAssembler, size_t aCallId,
+                              bool aPreserveCallerSaveRegisters) {
   // Generate code to set %rax and enter RecordReplayRedirectCall.
   uint8_t* newFunction = aAssembler.Current();
   if (aPreserveCallerSaveRegisters) {
