@@ -634,7 +634,7 @@ DevToolsStartup.prototype = {
         CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
 
         function cloudStatusUpdated(status) {
-          statusItem.setAttribute("label", status);
+          statusItem.setAttribute("label", status ? StartupBundle.GetStringFromName(status) : "");
           itemsToDisplay.forEach(item => {
             item.setAttribute("hidden", (item == statusItem) == (status == ""));
           });

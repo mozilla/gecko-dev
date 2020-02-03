@@ -88,7 +88,7 @@ void EnsureUIStateInitialized() {
 
     const char* path = getenv("WEBREPLAY_OFFLINE");
     if (!path) {
-      gCloudReplayStatus.AssignLiteral("Cloud server address not set");
+      gCloudReplayStatus.AssignLiteral("cloudNotSet.label");
       return;
     }
 
@@ -131,7 +131,7 @@ void EnsureUIStateInitialized() {
     MOZ_CRASH("CreateReplayingCloudProcess");
   }
 
-  gCloudReplayStatus.AssignLiteral("Connecting to cloud...");
+  gCloudReplayStatus.AssignLiteral("cloudConnecting.label");
 }
 
 void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
