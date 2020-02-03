@@ -46,6 +46,21 @@ function openServerSocket() {
   gServerSocket.onerror = onServerError;
 }
 
+async function openServerSocket(address) {
+  const response = await fetch(address);
+  const text = await response.text();
+
+  if (!/^wss?:\/\//.test(text)) {
+    ThrowError(`Invalid websocket address ${text}`);
+  }
+
+  gServerSocket = new WebSocket(text);
+  gServerSocket.onopen = onServerOpen;
+  gServerSocket.onclose = onServerClose;
+  gServerSocket.onmessage = onServerMessage;
+  gServerSocket.onerror = onServerError;
+}
+
 function updateStatus(status) {
   postMessage({ kind: "updateStatus", status });
 }

@@ -827,7 +827,7 @@ pref("devtools.console.stdout.content", false, sticky);
 // Controls whether EventEmitter module throws dump message on each emit
 pref("toolkit.dump.emit", false);
 
-pref("devtools.recordreplay.cloudServer", "");
+pref("devtools.recordreplay.cloudServer", "https://webreplay.org/internal/server.txt");
 
 // Preferences for the new performance panel.
 // This pref configures the base URL for the profiler.firefox.com instance to
