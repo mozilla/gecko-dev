@@ -1966,6 +1966,11 @@ mozilla::ipc::IPCResult ContentParent::RecvGenerateReplayCrashReport(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentParent::RecvCloudRecordingSaved(const nsString& aUUID) {
+  recordreplay::parent::CloudRecordingSaved(aUUID);
+  return IPC_OK();
+}
+
 jsipc::CPOWManager* ContentParent::GetCPOWManager() {
   if (PJavaScriptParent* p =
           LoneManagedOrNullAsserts(ManagedPJavaScriptParent())) {
@@ -5760,14 +5765,14 @@ nsresult ContentParent::SaveRecording(nsIFile* aFile, bool* aRetval) {
   return NS_OK;
 }
 
-nsresult ContentParent::SaveCloudRecording(const nsAString& aDescriptor,
+nsresult ContentParent::SaveCloudRecording(const nsAString& aUUID,
                                            bool* aRetval) {
   if (mRecordReplayState != eRecording) {
     *aRetval = false;
     return NS_OK;
   }
 
-  Unused << SendSaveCloudRecording(nsString(aDescriptor));
+  Unused << SendSaveCloudRecording(nsString(aUUID));
 
   *aRetval = true;
   return NS_OK;

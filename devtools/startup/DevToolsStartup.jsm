@@ -568,7 +568,7 @@ DevToolsStartup.prototype = {
       viewId: "PanelUI-recording",
       tooltiptext: "recording-button.tooltiptext2",
       onViewShowing: event => {
-        const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+        const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
         const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
 
         const doc = event.target.ownerDocument;
@@ -585,9 +585,13 @@ DevToolsStartup.prototype = {
         statusItem.setAttribute("disabled", true);
         itemsToDisplay.push(statusItem);
 
+        function setLabel(item, label) {
+          item.setAttribute("label", label ? StartupBundle.GetStringFromName(label) : "");
+        }
+
         function addItem(label, command) {
           const item = doc.createXULElement("menuitem");
-          item.setAttribute("label", StartupBundle.GetStringFromName(label));
+          setLabel(item, label);
           item.addEventListener("command", command);
           itemsToDisplay.push(item);
           return item;
@@ -599,23 +603,37 @@ DevToolsStartup.prototype = {
           addItem("startRecording.label", reloadAndRecordTab);
         }
 
-        const saveRecordingItem = addItem("saveRecording.label", event => {
+        const saveRecordingItem = addItem("saveRecording.label", async event => {
+          // The menu should stay open after clicking this item.
           doc.getElementById("PanelUI-recordingItems").setAttribute("closemenu", "none");
-          saveRecording();
 
           setTimeout(() => {
             doc.getElementById("PanelUI-recordingItems").removeAttribute("closemenu");
           });
 
           CustomizableUI.clearSubview(recordingItems);
-          saveRecordingItem.setAttribute("label", "Saving...");
+          setLabel(saveRecordingItem, "recordingSaving.label");
           CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
 
-          setTimeout(() => {
+          const { generateUUID } = Cc["@mozilla.org/uuid-generator;1"].getService(
+            Ci.nsIUUIDGenerator
+          );
+          const uuid = generateUUID().toString();
+
+          const success = await saveRecording(uuid);
+
+          if (!success) {
             CustomizableUI.clearSubview(recordingItems);
-            saveRecordingItem.setAttribute("label", "Saved! Link copied to clipboard.");
+            setLabel(saveRecordingItem, "recordingSaveError.label");
             CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
-          }, 500);
+            return;
+          }
+
+          navigator.clipboard.writeText(`webreplay://${uuid}`);
+
+          CustomizableUI.clearSubview(recordingItems);
+          setLabel(saveRecordingItem, "recordingSaveFinished.label");
+          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
         });
         if (!recording) {
           saveRecordingItem.setAttribute("disabled", "true");
@@ -1363,8 +1381,20 @@ function reloadAndStopRecordingTab() {
   Services.telemetry.scalarAdd("devtools.webreplay.stop_recording", 1);
 }
 
-function saveRecording() {
-  dump(`SAVE_RECORDING ${Error().stack}\n`);
+let gCloudRecordingWaiters = {};
+
+function cloudRecordingSaved(uuid, success) {
+  gCloudRecordingWaiters[uuid](success);
+}
+
+function saveRecording(uuid) {
+  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+  const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
+  if (!remoteTab || !remoteTab.saveCloudRecording(uuid)) {
+    return false;
+  }
+  ChromeUtils.setCloudRecordingSavedCallback(cloudRecordingSaved);
+  return new Promise(resolve => (gCloudRecordingWaiters[uuid] = resolve));
 }
 
 function viewRecordings() {

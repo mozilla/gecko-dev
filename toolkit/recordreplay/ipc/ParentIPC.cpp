@@ -216,6 +216,34 @@ static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
+static PersistentRootedObject* gRecordingSavedCallback;
+
+void SetCloudRecordingSavedCallback(JS::HandleValue aCallback) {
+  AutoSafeJSContext cx;
+  if (!gRecordingSavedCallback) {
+    gRecordingSavedCallback = new PersistentRootedObject(cx);
+  }
+  *gRecordingSavedCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
+}
+
+void CloudRecordingSaved(const nsAString& aUUID) {
+  if (gRecordingSavedCallback && *gRecordingSavedCallback) {
+    AutoSafeJSContext cx;
+    JSAutoRealm ar(cx, *gRecordingSavedCallback);
+
+    JS::AutoValueArray<2> args(cx);
+    args[0].setString(js::ConvertStringToJSString(cx, aUUID));
+    args[1].setBoolean(true);
+
+    JS::RootedObject thisv(cx);
+    JS::RootedValue fval(cx, ObjectValue(**gRecordingSavedCallback));
+    JS::RootedValue rv(cx);
+    if (!JS_CallFunctionValue(cx, thisv, fval, args, &rv)) {
+      JS_ClearPendingException(cx);
+    }
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Child Processes
 ///////////////////////////////////////////////////////////////////////////////
@@ -304,9 +332,9 @@ void SaveRecording(const ipc::FileDescriptor& aFile) {
   }
 }
 
-void SaveCloudRecording(const nsAString& aDescriptor) {
+void SaveCloudRecording(const nsAString& aUUID) {
   MOZ_RELEASE_ASSERT(IsMiddleman());
-  js::SaveCloudRecording(aDescriptor);
+  js::SaveCloudRecording(aUUID);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

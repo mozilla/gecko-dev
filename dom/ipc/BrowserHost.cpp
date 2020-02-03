@@ -420,13 +420,13 @@ BrowserHost::GetContentBlockingLog(::mozilla::dom::Promise** aPromise) {
   return NS_OK;
 }
 
-/* bool saveCloudRecording (in AString aDescriptor); */
+/* bool saveCloudRecording (in AString aUUID); */
 NS_IMETHODIMP
-BrowserHost::SaveCloudRecording(const nsAString& aDescriptor, bool* _retval) {
+BrowserHost::SaveCloudRecording(const nsAString& aUUID, bool* _retval) {
   if (!mRoot) {
     return NS_OK;
   }
-  return GetContentParent()->SaveCloudRecording(aDescriptor, _retval);
+  return GetContentParent()->SaveCloudRecording(aUUID, _retval);
 }
 
 NS_IMETHODIMP

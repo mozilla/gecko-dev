@@ -119,11 +119,10 @@ interface nsIRemoteTab : nsISupports
 
   /**
    * Save a recording of the associated content process' behavior to a
-   * cloud service the content process is communicating with. aDescriptor
-   * describes the recording's name and other information. Returns whether
+   * cloud service the content process is communicating with. Returns whether
    * the process is being recorded.
    */
-  bool saveCloudRecording(in AString aDescriptor);
+  bool saveCloudRecording(in AString aUUID);
 
   cenum NavigationType : 8 {
     NAVIGATE_BACK = 0,

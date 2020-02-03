@@ -668,7 +668,7 @@ class ContentChild final : public PContentChild,
   bool DeallocPClientOpenWindowOpChild(PClientOpenWindowOpChild* aActor);
 
   mozilla::ipc::IPCResult RecvSaveRecording(const FileDescriptor& aFile);
-  mozilla::ipc::IPCResult RecvSaveCloudRecording(const nsAString& aDescriptor);
+  mozilla::ipc::IPCResult RecvSaveCloudRecording(const nsAString& aUUID);
 
   mozilla::ipc::IPCResult RecvCrossProcessRedirect(
       RedirectToRealChannelArgs&& aArgs,

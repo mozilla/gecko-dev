@@ -444,6 +444,7 @@ partial namespace ChromeUtils {
 
   DOMString getCloudReplayStatus();
   void setCloudReplayStatusCallback(any callback);
+  void setCloudRecordingSavedCallback(any callback);
 };
 
 /*

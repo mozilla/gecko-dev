@@ -4837,6 +4837,12 @@ int XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
   nsresult rv = NS_OK;
 
+  // These assertions are used to catch issues around app initialization.
+  // The arguments we're using are the actual ones passed in to the replaying
+  // process, and the paths we take must follow along with what occurred while
+  // recording.
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine START");
+
 #if defined(OS_WIN)
   CommandLine::Init(aArgc, aArgv);
 #else
@@ -4855,6 +4861,8 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
 
   canonArgs[0] = strdup(canonBinPath.get());
 
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #0");
+
   for (int i = 1; i < aArgc; ++i) {
     if (aArgv[i]) {
       canonArgs[i] = strdup(aArgv[i]);
@@ -4868,7 +4876,11 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
   delete[] canonArgs;
 #endif
 
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #0.1");
+
   recordreplay::parent::InitializeUIProcess(gArgc, gArgv);
+
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #1");
 
   const char* path = nullptr;
   ArgResult ar = CheckArg("greomni", &path);
@@ -4877,6 +4889,8 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
                "Error: argument --greomni requires a path argument\n");
     return NS_ERROR_FAILURE;
   }
+
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #2 %d", !!path);
 
   if (!path) return rv;
 
@@ -4894,6 +4908,8 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
     return NS_ERROR_FAILURE;
   }
 
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #3 %d", !!path);
+
   nsCOMPtr<nsIFile> appOmni;
   if (path) {
     rv = XRE_GetFileFromPath(path, getter_AddRefs(appOmni));
@@ -4903,6 +4919,8 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
       return rv;
     }
   }
+
+  recordreplay::RecordReplayAssert("XRE_InitCommandLine #4");
 
   mozilla::Omnijar::Init(greOmni, appOmni);
   return rv;

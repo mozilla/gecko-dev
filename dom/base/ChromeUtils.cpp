@@ -1178,5 +1178,11 @@ void ChromeUtils::SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
   recordreplay::parent::SetCloudReplayStatusCallback(aCallback);
 }
 
+/* static */
+void ChromeUtils::SetCloudRecordingSavedCallback(const GlobalObject& aGlobal,
+                                                 JS::HandleValue aCallback) {
+  recordreplay::parent::SetCloudRecordingSavedCallback(aCallback);
+}
+
 }  // namespace dom
 }  // namespace mozilla

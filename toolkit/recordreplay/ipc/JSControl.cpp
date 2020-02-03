@@ -214,18 +214,15 @@ void AfterSaveRecording() {
   }
 }
 
-void SaveCloudRecording(const nsAString& aDescriptor) {
-  Print("SaveCloudRecording NYI, CRASHING\n");
-  /*
-  MOZ_RELEASE_ASSERT(gControl);
-
+void SaveCloudRecording(const nsAString& aUUID) {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gControl->SaveCloudRecording(aDescriptor))) {
+  JS::RootedValue arg(cx, JS::StringValue(ConvertStringToJSString(cx, aUUID)));
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "SaveCloudRecording", HandleValueArray(arg), &rv)) {
     MOZ_CRASH("SaveCloudRecording");
   }
-  */
 }
 
 bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
@@ -818,6 +815,12 @@ static bool RecordReplay_SetProgressCounter(JSContext* aCx, unsigned aArgc,
 
   args.rval().setUndefined();
   return true;
+}
+
+JSString* ConvertStringToJSString(JSContext* aCx, const nsAString& aString) {
+  JSString* rv = JS_NewUCStringCopyN(aCx, aString.BeginReading(), aString.Length());
+  MOZ_RELEASE_ASSERT(rv);
+  return rv;
 }
 
 void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
