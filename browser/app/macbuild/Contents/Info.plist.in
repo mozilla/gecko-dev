@@ -163,7 +163,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>firefox</string>
+	<string>webreplay</string>
 	<key>CFBundleGetInfoString</key>
 	<string>%MAC_APP_NAME% %APP_VERSION%</string>
 	<key>CFBundleIconFile</key>
