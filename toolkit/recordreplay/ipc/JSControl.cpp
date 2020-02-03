@@ -246,6 +246,20 @@ bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
   return JS_CallFunctionName(cx, *gModuleObject, "RecoverFromCrash", args, &rv);
 }
 
+void FatalCloudError(const char* aWhy) {
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JSString* str = JS_NewStringCopyZ(cx, aWhy);
+  MOZ_RELEASE_ASSERT(str);
+
+  RootedValue rv(cx);
+  RootedValue arg(cx, StringValue(str));
+  if (!JS_CallFunctionName(cx, *gModuleObject, "FatalCloudError", HandleValueArray(arg), &rv)) {
+    MOZ_CRASH("FatalCloudError");
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Middleman Methods
 ///////////////////////////////////////////////////////////////////////////////

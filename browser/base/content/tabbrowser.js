@@ -1924,6 +1924,7 @@
 
       if (recordExecution) {
         aBrowser.setAttribute("recordExecution", recordExecution);
+        EnsureRecordReplayWatcher();
 
         // Web Replay middleman processes need the default URL to be loaded in
         // order to set up their rendering state.
@@ -1934,6 +1935,7 @@
 
       if (replayExecution) {
         aBrowser.setAttribute("replayExecution", replayExecution);
+        EnsureRecordReplayWatcher();
       } else if (aBrowser.hasAttribute("replayExecution")) {
         aBrowser.removeAttribute("replayExecution");
       }
@@ -2139,10 +2141,12 @@
 
       if (recordExecution) {
         b.setAttribute("recordExecution", recordExecution);
+        EnsureRecordReplayWatcher();
       }
 
       if (replayExecution) {
         b.setAttribute("replayExecution", replayExecution);
+        EnsureRecordReplayWatcher();
       }
 
       if (openerWindow) {
@@ -6500,3 +6504,23 @@ var TabContextMenu = {
     }
   },
 };
+
+let gRecordReplayWatcher;
+function EnsureRecordReplayWatcher() {
+  if (gRecordReplayWatcher) {
+    return;
+  }
+  gRecordReplayWatcher = {
+    receiveMessage(msg) {
+      if (gBrowser.selectedBrowser.hasAttribute("recordExecution") ||
+          gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
+        const tab = gBrowser.selectedTab;
+        gBrowser.selectedTab = gBrowser.addTrustedTab(`about:webreplay?error=${msg.data.kind}`, {
+          index: tab._tPos + 1,
+        });
+        gBrowser.removeTab(tab);
+      }
+    },
+  };
+  Services.ppmm.addMessageListener("RecordReplayFatalError", gRecordReplayWatcher);
+}

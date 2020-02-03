@@ -91,13 +91,22 @@ async function showRecordings() {
   document.querySelector(".no-recordings").style.visibility = vis;
 }
 
+function showError(kind) {
+  document.querySelector(".recordings-title").style.visibility = "hidden";
+  document.querySelector(".no-recordings").style.visibility = "hidden";
+
+  document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
+}
+
 window.onload = async function() {
-  const match = /recording=(.*)/.exec(window.location);
-  if (match) {
+  let match;
+
+  if (match = /recording=(.*)/.exec(window.location)) {
     const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
     const tab = gBrowser.selectedTab;
     gBrowser.selectedTab = gBrowser.addWebTab(null, {
       replayExecution: `webreplay://${match[1]}`,
+      index: tab._tPos + 1,
     });
     gBrowser.removeTab(tab);
     const newTab = gBrowser.selectedTab;
@@ -115,6 +124,11 @@ window.onload = async function() {
       },
     };
     Services.ppmm.addMessageListener("RecordingLoaded", listener);
+    return;
+  }
+
+  if (match = /error=(.*)/.exec(window.location)) {
+    showError(match[1]);
     return;
   }
 

@@ -72,6 +72,8 @@ void AfterSaveRecording();
 // Save the current recording contents to the cloud.
 void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription);
 
+void FatalCloudError(const char* aWhy);
+
 // The following hooks are used in the recording/replaying process to
 // call methods defined by the JS sandbox.
 
@@ -86,6 +88,8 @@ bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 // Mark a time span when the main thread is idle.
 void BeginIdleTime();
 void EndIdleTime();
+
+// Utilities.
 
 JSString* ConvertStringToJSString(JSContext* aCx, const nsAString& aString);
 void ConvertJSStringToCString(JSContext* aCx, JSString* aString,

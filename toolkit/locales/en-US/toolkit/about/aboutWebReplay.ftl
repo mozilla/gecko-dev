@@ -7,3 +7,8 @@ saved-recordings = Saved Recordings
 nothing-saved = Nothing Saved
 copy-link = Copy Link
 remove = Remove
+error-title = Fatal Error!
+
+# Different kinds of fatal errors
+CloudUnknownError = Unknown cloud server error
+CloudMissingBuild = Build not found on cloud server
