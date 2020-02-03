@@ -226,14 +226,15 @@ void SetCloudRecordingSavedCallback(JS::HandleValue aCallback) {
   *gRecordingSavedCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
 }
 
-void CloudRecordingSaved(const nsAString& aUUID) {
+void CloudRecordingSaved(const nsAString& aUUID,
+                         const nsAString& aDescription) {
   if (gRecordingSavedCallback && *gRecordingSavedCallback) {
     AutoSafeJSContext cx;
     JSAutoRealm ar(cx, *gRecordingSavedCallback);
 
     JS::AutoValueArray<2> args(cx);
     args[0].setString(js::ConvertStringToJSString(cx, aUUID));
-    args[1].setBoolean(true);
+    args[1].setString(js::ConvertStringToJSString(cx, aDescription));
 
     JS::RootedObject thisv(cx);
     JS::RootedValue fval(cx, ObjectValue(**gRecordingSavedCallback));
@@ -332,9 +333,9 @@ void SaveRecording(const ipc::FileDescriptor& aFile) {
   }
 }
 
-void SaveCloudRecording(const nsAString& aUUID) {
+void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription) {
   MOZ_RELEASE_ASSERT(IsMiddleman());
-  js::SaveCloudRecording(aUUID);
+  js::SaveCloudRecording(aUUID, aDescription);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -70,7 +70,7 @@ void BeforeSaveRecording();
 void AfterSaveRecording();
 
 // Save the current recording contents to the cloud.
-void SaveCloudRecording(const nsAString& aUUID);
+void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription);
 
 // The following hooks are used in the recording/replaying process to
 // call methods defined by the JS sandbox.

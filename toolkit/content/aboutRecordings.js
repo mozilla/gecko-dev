@@ -24,30 +24,34 @@ function formatDuration(duration) {
   return `${(duration / MsPerSecond) | 0} seconds`;
 }
 
-function replayDir() {
+// See also DevToolsStartup.jsm
+function getRecordingsPath() {
   let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  dir.append("Replay");
+  dir.append("Recordings");
 
   if (!dir.exists()) {
     OS.File.makeDir(dir.path);
   }
 
-  return dir;
-}
-
-function getRecordingsPath() {
-  const dir = replayDir();
   dir.append("recordings.json");
   return dir.path;
 }
 
 async function readRecordingsFile() {
-  if (!(await OS.File.exists(getRecordingsPath()))) {
-    return {};
+  const path = getRecordingsPath();
+
+  if (!(await OS.File.exists(path))) {
+    return [];
   }
-  const file = await OS.File.read(getRecordingsPath());
-  const string = new TextDecoder("utf-8").decode(file);
-  return JSON.parse(string);
+
+  const file = await OS.File.read(path);
+  return JSON.parse(new TextDecoder("utf-8").decode(file));
+}
+
+function updateRecordings(recordings) {
+  gRecordings = recordings;
+  OS.File.writeAtomic(getRecordingsPath(), JSON.stringify(recordings));
+  showRecordings();
 }
 
 let gLastCopyLink = null;
@@ -58,11 +62,11 @@ async function showRecordings() {
 
   container.innerHTML = "";
 
-  for (const { url, originalURL, title, time, duration } of gRecordings) {
+  for (const { url, originalUrl, title, date, duration } of gRecordings) {
     const newRow = document.importNode(template.content, true);
     newRow.querySelector(".recording-title").innerText = title;
-    newRow.querySelector(".recording-url").innerText = originalURL;
-    newRow.querySelector(".recording-start").innerText = formatTime(time);
+    newRow.querySelector(".recording-url").innerText = originalUrl;
+    newRow.querySelector(".recording-start").innerText = formatTime(date);
     newRow.querySelector(".recording-duration").innerText = formatDuration(duration);
     newRow.querySelector(".recording").addEventListener("click", e => {
       document.location = url;
@@ -77,8 +81,7 @@ async function showRecordings() {
       gLastCopyLink = copylink;
     });
     newRow.querySelector(".remove").addEventListener("click", e => {
-      gRecordings = gRecordings.filter(item => item.url != url);
-      showRecordings();
+      updateRecordings(gRecordings.filter(item => item.url != url));
     });
     container.appendChild(newRow);
   }
@@ -89,23 +92,6 @@ async function showRecordings() {
 
 window.onload = async function() {
   gRecordings = await readRecordingsFile();
-
-  gRecordings = [
-    {
-      url: "replay://85074cf9-d2ca-4958-848d-6c106b854293",
-      originalURL: "http://example.com",
-      title: "Page Title",
-      time: Date.now(),
-      duration: 1000 * 10,
-    },
-    {
-      url: "replay://5770642e-5835-4aa7-ab0c-1ad46e4fafa9",
-      originalURL: "http://foobar.org",
-      title: "Foobar Title",
-      time: Date.now() - 1000 * 10000,
-      duration: 1000 * 100,
-    },
-  ];
 
   showRecordings();
 };

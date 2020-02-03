@@ -214,7 +214,7 @@ void AfterSaveRecording() {
   }
 }
 
-void SaveCloudRecording(const nsAString& aUUID) {
+void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription) {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
@@ -223,6 +223,14 @@ void SaveCloudRecording(const nsAString& aUUID) {
   if (!JS_CallFunctionName(cx, *gModuleObject, "SaveCloudRecording", HandleValueArray(arg), &rv)) {
     MOZ_CRASH("SaveCloudRecording");
   }
+
+  nsAutoCString desc;
+  if (rv.isString()) {
+    ConvertJSStringToCString(cx, rv.toString(), desc);
+  } else {
+    desc.AssignLiteral("MissingDescription");
+  }
+  aDescription = NS_ConvertUTF8toUTF16(desc);
 }
 
 bool RecoverFromCrash(size_t aRootId, size_t aForkId) {

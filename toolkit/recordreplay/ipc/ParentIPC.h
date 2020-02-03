@@ -46,7 +46,7 @@ void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS);
 void GetCloudReplayStatus(nsAString& aResult);
 void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
 void SetCloudRecordingSavedCallback(JS::HandleValue aCallback);
-void CloudRecordingSaved(const nsAString& aUUID);
+void CloudRecordingSaved(const nsAString& aUUID, const nsAString& aDescription);
 
 // Middleman process API
 
@@ -55,7 +55,7 @@ base::ProcessId ParentProcessId();
 
 // Save the recording up to the current point in execution.
 void SaveRecording(const ipc::FileDescriptor& aFile);
-void SaveCloudRecording(const nsAString& aUUID);
+void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription);
 
 // Get the message channel used to communicate with the UI process.
 ipc::MessageChannel* ChannelToUIProcess();

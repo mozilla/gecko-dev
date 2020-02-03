@@ -620,16 +620,25 @@ DevToolsStartup.prototype = {
           );
           const uuid = generateUUID().toString();
 
-          const success = await saveRecording(uuid);
+          const description = await saveRecording(uuid);
 
-          if (!success) {
+          if (!description) {
             CustomizableUI.clearSubview(recordingItems);
             setLabel(saveRecordingItem, "recordingSaveError.label");
             CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
             return;
           }
 
-          navigator.clipboard.writeText(`webreplay://${uuid}`);
+          const url = `webreplay://${uuid}`;
+          navigator.clipboard.writeText(url);
+
+          await addRecordingDescription({
+            ...JSON.parse(description),
+            url,
+            originalUrl: gBrowser.selectedBrowser.currentURI.spec,
+            title: gBrowser.selectedBrowser.contentTitle,
+            date: Date.now(),
+          });
 
           CustomizableUI.clearSubview(recordingItems);
           setLabel(saveRecordingItem, "recordingSaveFinished.label");
@@ -1346,6 +1355,7 @@ const JsonView = {
 };
 
 const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
+const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
@@ -1383,18 +1393,43 @@ function reloadAndStopRecordingTab() {
 
 let gCloudRecordingWaiters = {};
 
-function cloudRecordingSaved(uuid, success) {
-  gCloudRecordingWaiters[uuid](success);
+function cloudRecordingSaved(uuid, description) {
+  gCloudRecordingWaiters[uuid](description);
 }
 
 function saveRecording(uuid) {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
   if (!remoteTab || !remoteTab.saveCloudRecording(uuid)) {
-    return false;
+    return null;
   }
   ChromeUtils.setCloudRecordingSavedCallback(cloudRecordingSaved);
   return new Promise(resolve => (gCloudRecordingWaiters[uuid] = resolve));
+}
+
+// See also aboutRecordings.js
+function getRecordingsPath() {
+  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
+  dir.append("Recordings");
+
+  if (!dir.exists()) {
+    OS.File.makeDir(dir.path);
+  }
+
+  dir.append("recordings.json");
+  return dir.path;
+}
+
+async function addRecordingDescription(description) {
+  const path = getRecordingsPath();
+
+  let recordings = [];
+  if (await OS.File.exists(path)) {
+    const file = await OS.File.read(path);
+    recordings = JSON.parse(new TextDecoder("utf-8").decode(file));
+  }
+
+  OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
 }
 
 function viewRecordings() {

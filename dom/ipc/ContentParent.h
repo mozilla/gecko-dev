@@ -312,7 +312,7 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvGenerateReplayCrashReport(
       const uint32_t& aChannelId);
   mozilla::ipc::IPCResult RecvCloudRecordingSaved(
-      const nsString& aUUID);
+      const nsString& aUUID, const nsString& aDescription);
 
   mozilla::ipc::IPCResult RecvCreateGMPService();
 

@@ -864,7 +864,7 @@ parent:
         returns (FileDescriptor connection);
     async CreateReplayingProcess(uint32_t channelId);
     async GenerateReplayCrashReport(uint32_t channelId);
-    async CloudRecordingSaved(nsString uuid);
+    async CloudRecordingSaved(nsString uuid, nsString description);
 
     async CreateGMPService();
 

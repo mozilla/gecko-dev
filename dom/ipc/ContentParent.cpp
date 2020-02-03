@@ -1966,8 +1966,9 @@ mozilla::ipc::IPCResult ContentParent::RecvGenerateReplayCrashReport(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvCloudRecordingSaved(const nsString& aUUID) {
-  recordreplay::parent::CloudRecordingSaved(aUUID);
+mozilla::ipc::IPCResult ContentParent::RecvCloudRecordingSaved(
+    const nsString& aUUID, const nsString& aDescription) {
+  recordreplay::parent::CloudRecordingSaved(aUUID, aDescription);
   return IPC_OK();
 }
 
