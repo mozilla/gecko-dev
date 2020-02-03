@@ -13,6 +13,18 @@ function getContainerForNodeFront(nodeFront, { markup }) {
   return markup.getContainer(nodeFront);
 }
 
+async function focusSearchBoxUsingShortcut(panelWin) {
+  info("Focusing search box");
+  const searchBox = panelWin.document.getElementById("inspector-searchbox");
+  const focused = once(searchBox, "focus");
+
+  panelWin.focus();
+
+  synthesizeKeyShortcut("CmdOrCtrl+F");
+
+  await focused;
+}
+
 // Test basic inspector functionality in web replay: the inspector is able to
 // show contents when paused according to the child's current position.
 add_task(async function() {
@@ -21,7 +33,7 @@ add_task(async function() {
     skipInterrupt: true,
   });
 
-  const { inspector } = await openInspector();
+  const { testActor, inspector } = await openInspector();
 
   let nodeFront = await getNodeFront("#maindiv", inspector);
   ok(!nodeFront, "No node front while unpaused");
@@ -51,6 +63,18 @@ add_task(async function() {
     container.editor.textEditor.textNode.state.value == "HELLO",
     "Correct early element text"
   );
+
+  // Test searching.
+  await dbg.toolbox.selectTool("inspector");
+  await focusSearchBoxUsingShortcut(inspector.panelWin);
+
+  for (const key of ["S", "T", "U", "F", "F", "VK_RETURN"]) {
+    EventUtils.synthesizeKey(key, {}, inspector.panelWin);
+  }
+
+  await waitForTime(1000);
+
+  await testActor.isNodeCorrectlyHighlighted("#div3", is);
 
   await shutdownDebugger(dbg);
 });
