@@ -730,7 +730,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
       isAfterPseudoElement(rawNode) ||
       isShadowHost(rawNode) ||
       rawNode.nodeType != Node.ELEMENT_NODE ||
-      rawNode.children.length > 0
+      (isReplaying ? rawNode.numChildren() : rawNode.children.length) > 0
     ) {
       return undefined;
     }

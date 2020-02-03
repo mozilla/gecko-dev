@@ -29,7 +29,7 @@ const BaseProxyHandler = {
 };
 
 function objectPropertyApply(thisId, name, args) {
-  assert(dbg()._paused);
+  assert(dbg().isPaused());
   const rv = dbg()._sendRequestAllowDiverge({
     type: "objectPropertyApply",
     thisId,
@@ -76,7 +76,7 @@ const ProxyHandler = {
       }
       if (name == Symbol.iterator && className == "CSSRuleList") {
         const items = data._items.map(convertValue);
-        return items[Symbol.iterator].bind(items);
+        return Array.prototype[Symbol.iterator].bind(items);
       }
       return undefined;
     }
@@ -112,7 +112,8 @@ const ProxyHandler = {
               getBounds() { return quad._bounds; },
             }));
           }
-          ThrowError(`Missing box quads for ${proxy} ${key}`);
+          Warn(`Missing box quads for ${proxy} ${key}`);
+          return [];
         };
       case "contains":
         return node => {
@@ -138,10 +139,23 @@ const ProxyHandler = {
           if (name == "style") {
             return data.styleAttribute;
           }
-          NYI();
+          Warn(`Unknown attribute ${name}`);
+          return "";
         };
       case "scrollIntoView":
         return () => {};
+
+      // Replay only APIs to avoid downloading children unnecessarily.
+      case "numChildren":
+        return () => {
+          return properties.children ? properties.children.length : 0;
+        };
+      case "numChildNodes":
+        return () => {
+          return properties.childNodes ? properties.childNodes.length : 0;
+        };
+      case "hasScrollbarChildren":
+        return () => false; // NYI
     }
 
     const key = `${className}.${name}`;
@@ -159,16 +173,16 @@ const ProxyHandler = {
         return (element, pseudo) => {
           pseudo = pseudo || "";
           const { computedStyles } = getProxyData(element);
-          if (!computedStyles) {
-            return new Proxy(
-              { cssText: "", properties: [] },
-              StyleDeclarationProxyHandler
-            );
-          }
           if (computedStyles && pseudo in computedStyles) {
             return convertValue(computedStyles[pseudo]);
           }
-          ThrowError(`Missing computed style for ${element} "${pseudo}"`);
+          if (computedStyles) {
+            Warn(`Missing computed style for ${element} "${pseudo}"`);
+          }
+          return new Proxy(
+            { cssText: "", properties: [] },
+            StyleDeclarationProxyHandler
+          );
         };
       case "Window.HTMLTemplateElement":
       case "Window.CSS":
@@ -186,15 +200,14 @@ const ProxyHandler = {
       return Node[name];
     }
 
-    dump(`ProxyHandler.get NYI ${key}\n`);
-    NYI();
+    Warn(`ProxyHandler.get unknown key ${key}`);
   },
 };
 
 let _DOM = null;
 function DOM() {
   if (!_DOM) {
-    assert(dbg()._paused);
+    assert(dbg().isPaused());
     _DOM = dbg()._sendRequestAllowDiverge({ type: "getDOM" });
 
     mapFixedProxy("window");
@@ -205,17 +218,21 @@ function DOM() {
 
 const gIdToProxyMap = new Map();
 const gProxyToIdMap = new Map();
+const gAllProxies = new WeakSet();
+const gUnpauseHooks = [];
 
 function invalidateAfterUnpause() {
   _DOM = null;
   gIdToProxyMap.clear();
   gProxyToIdMap.clear();
+  gUnpauseHooks.forEach(hook => hook());
 }
 
 function mapProxy(id, proxy) {
   assert(id);
   gIdToProxyMap.set(id, proxy);
   gProxyToIdMap.set(proxy, id);
+  gAllProxies.add(proxy);
 }
 
 function mapFixedProxy(name) {
@@ -226,10 +243,22 @@ function newFixedProxy(name) {
   return new Proxy({ fixedProxyKind: name }, ProxyHandler);
 }
 
+function growDOM(ids) {
+  const entries = dbg()._sendRequestAllowDiverge({ type: "growDOM", ids });
+  Object.entries(entries).forEach(([id, data]) => {
+    assert(!_DOM[id]);
+    _DOM[id] = data;
+  });
+}
+
 function ensureProxy(id) {
   assert(typeof id == "number");
   if (!gIdToProxyMap.has(id)) {
-    const data = DOM()[id];
+    let data = DOM()[id];
+    if (!data) {
+      growDOM([id]);
+    }
+    data = _DOM[id];
     assert(data);
     const proxy = new Proxy(data, ProxyHandler);
     mapProxy(id, proxy);
@@ -289,7 +318,8 @@ const ReplayInspector = {
         if (styleRules && pseudo in styleRules) {
           return convertValue(styleRules[pseudo]);
         }
-        ThrowError(`Missing style rules for ${element} "${pseudo}"`);
+        Warn(`Missing style rules for ${element} "${pseudo}"`);
+        return [];
       },
       "getRuleLine": rule => getProxyData(rule)._ruleLine,
       "getRuleColumn": rule => getProxyData(rule)._ruleColumn,
@@ -304,7 +334,8 @@ const ReplayInspector = {
         if (matchedSelectors && key in matchedSelectors) {
           return matchedSelectors[key];
         }
-        ThrowError(`Missing selector matching data for ${element} ${key}`);
+        Warn(`Missing selector matching data for ${element} ${key}`);
+        return false;
       },
       "hasRulesModifiedByCSSOM": sheet => getProxyData(sheet)._hasRulesModifiedByCSSOM,
       "getSpecificity": () => NYI(),
@@ -313,7 +344,11 @@ const ReplayInspector = {
   },
 
   isPaused() {
-    return dbg()._paused;
+    return dbg().isPaused();
+  },
+
+  addUnpauseHook(callback) {
+    gUnpauseHooks.push(callback);
   },
 
   invalidateAfterUnpause,
@@ -378,6 +413,7 @@ const DeepTreeWalkerProxyHandler = {
       case "firstChild":
       case "lastChild":
         return () => {
+          ensureChildrenLoaded();
           const children = target.currentNode.childNodes;
           if (children && children.length > 0) {
             const index = name == "firstChild" ? 0 : children.length - 1;
@@ -409,6 +445,16 @@ const DeepTreeWalkerProxyHandler = {
     }
 
     NYI();
+
+    function ensureChildrenLoaded() {
+      const { childNodes } = getProxyData(target.currentNode).properties;
+      if (childNodes) {
+        const missing = childNodes.map(v => v.object).filter(id => !DOM()[id]);
+        if (missing.length) {
+          growDOM(missing);
+        }
+      }
+    }
 
     function ensureSiblings() {
       if (
@@ -445,14 +491,18 @@ const StyleDeclarationProxyHandler = {
       return num < properties.length;
     }
 
-    dump(`StyleDeclaration.has NYI ${name}\n`);
-    NYI();
+    Warn(`StyleDeclaration.has unknown property ${name}\n`);
+    return false;
   },
 
   get({ cssText, properties }, name) {
     if (typeof name == "symbol") {
       if (name == Symbol.toStringTag) {
         return `StyleDeclarationProxy ${cssText}`;
+      }
+      if (name == Symbol.iterator) {
+        const names = properties.map(p => p.name);
+        return Array.prototype[Symbol.iterator].bind(names);
       }
       return undefined;
     }
@@ -490,8 +540,7 @@ const StyleDeclarationProxyHandler = {
       return properties[num].name;
     }
 
-    dump(`NYI StyleDeclaration.${name}\n`);
-    NYI();
+    Warn(`StyleDeclaration.get unknown property ${name}\n`);
   },
 
   ownKeys() { NotAllowed(); },
@@ -513,8 +562,8 @@ function getNewChrome(chrome) {
       }),
       Cu: makeSubstituteProxy(chrome.Cu, {
         isDeadWrapper(node) {
-          if (gProxyToIdMap.has(node)) {
-            return !_DOM;
+          if (gAllProxies.has(node)) {
+            return !gProxyToIdMap.has(node);
           }
           return chrome.Cu.isDeadWrapper(node);
         },
@@ -566,6 +615,10 @@ function ThrowError(msg) {
   const error = new Error(msg);
   dump(`ReplayInspector Server Error: ${msg} Stack: ${error.stack}\n`);
   throw error;
+}
+
+function Warn(msg) {
+  dump(`ReplayInspector Warning: ${msg} ${Error().stack}\n`);
 }
 
 // Get a proxy which returns mapping[name] if it exists, else target[name].

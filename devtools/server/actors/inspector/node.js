@@ -341,7 +341,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     }
 
     const rawNode = this.rawNode;
-    let numChildren = rawNode.childNodes.length;
+    let numChildren = isReplaying ? rawNode.numChildNodes() : rawNode.childNodes.length;
     const hasContentDocument = rawNode.contentDocument;
     const hasSVGDocument = rawNode.getSVGDocument && rawNode.getSVGDocument();
     if (numChildren === 0 && (hasContentDocument || hasSVGDocument)) {
@@ -422,6 +422,9 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
 
     // If it does, then check it also has scrollbars.
     try {
+      if (isReplaying) {
+        return node.hasScrollbarChildren();
+      }
       const walker = new DocumentWalker(
         this.rawNode,
         this.rawNode.ownerGlobal,

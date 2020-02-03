@@ -2,11 +2,34 @@
 
 "use strict";
 
+let assert,
+    divergeFromRecording,
+    getWindow,
+    getObjectId,
+    makeDebuggeeValue,
+    convertValue,
+    gPausedObjects,
+    InspectorUtils;
+function doImport(exports) {
+  ({
+    assert,
+    divergeFromRecording,
+    getWindow,
+    getObjectId,
+    makeDebuggeeValue,
+    convertValue,
+    gPausedObjects,
+    InspectorUtils,
+  } = exports);
+}
+
 const gDOMProperties = {
   CSSRuleList: [
     "length",
   ],
-  CSSStyleRule: [
+  CSSRulePrototype: [
+    "cssRules",
+    "media",
     "parentRule",
     "parentStyleSheet",
     "selectorText",
@@ -105,192 +128,172 @@ const gPseudoKinds = [
 
 const gBoxKinds = ["border", "content", "margin", "padding"];
 
-function getDOM(outer) {
-  outer.divergeFromRecording();
+// IDs of any DOM nodes that have already been sent up to the middleman.
+const gUploadedDOMNodes = new Set();
 
-  var rv = {};
-  let pending = [];
+let gDOMData;
 
-  const window = outer.getWindow();
-  rv.window = addObject(window);
-  rv.document = addObject(window.document);
+function addObject(obj, options) {
+  const dbgObj = makeDebuggeeValue(obj);
+  const id = getObjectId(dbgObj);
 
-  const walker = Cc["@mozilla.org/inspector/deep-tree-walker;1"].createInstance(
-    Ci.inIDeepTreeWalker
-  );
+  if (gUploadedDOMNodes.has(id)) {
+    return;
+  }
+  gUploadedDOMNodes.add(id);
 
-  walker.showAnonymousContent = true;
-  walker.showSubDocuments = true;
-  walker.showDocumentsAsNodes = true;
-  walker.init(window.document, 0xffffffff);
+  const data = { id, className: dbgObj.class };
+  gDOMData[id] = data;
 
-  while (true) {
-    const node = walker.nextNode();
-    if (!node) {
-      break;
-    }
-    addObject(node);
-    walker.currentNode = node;
+  assert(!isArrayLike(data.className));
+  addObjectProperties(data, obj, dbgObj, options);
+  return id;
+}
+
+function addObjectId(id, options) {
+  return addObject(gPausedObjects.getObject(id).unsafeDereference(), options);
+}
+
+function addObjectProperties(data, obj, dbgObj, options) {
+  data.properties = {};
+
+  const classNames = [];
+  for (let nobj = dbgObj; nobj; nobj = nobj.proto) {
+    classNames.push(nobj.class);
   }
 
-  while (pending.length) {
-    addObject(pending.pop());
-  }
+  //dump(`ObjectClassNames: ${data.id} ${classNames}\n`);
 
-  return rv;
-
-  function addObject(obj) {
-    const dbgObj = outer.makeDebuggeeValue(obj);
-    const id = outer.getObjectId(dbgObj);
-    if (rv[id]) {
-      return;
-    }
-
-    const data = { id, className: dbgObj.class };
-    rv[id] = data;
-
-    outer.assert(!isArrayLike(data.className));
-    addObjectProperties(data, obj, dbgObj);
-    return id;
-  }
-
-  function addObjectId(id) {
-    return addObject(outer.gPausedObjects.getObject(id).unsafeDereference());
-  }
-
-  function addObjectProperties(data, obj, dbgObj) {
-    data.properties = {};
-
-    const classNames = [];
-    for (let nobj = dbgObj; nobj; nobj = nobj.proto) {
-      classNames.push(nobj.class);
+  for (const className of classNames) {
+    const properties = gDOMProperties[className];
+    if (properties) {
+      for (const name of properties) {
+        data.properties[name] = addValue(obj[name], options);
+      }
     }
 
-    //dump(`ObjectClassNames: ${data.id} ${classNames}\n`);
-
-    for (const className of classNames) {
-      const properties = gDOMProperties[className];
-      if (properties) {
-        for (const name of properties) {
-          data.properties[name] = addValue(obj[name]);
+    switch (className) {
+      case "HTMLDocument": {
+        const sheets = InspectorUtils.getAllStyleSheets(obj, true);
+        if (sheets) {
+          data.styleSheets = addValue(sheets, options);
         }
+        break;
       }
-
-      switch (className) {
-        case "HTMLDocument": {
-          const sheets = outer.InspectorUtils.getAllStyleSheets(obj, true);
-          if (sheets) {
-            data.styleSheets = addValue(sheets);
-          }
-          break;
+      case "ElementPrototype":
+        addElementData(data, obj, options);
+        break;
+      case "NodePrototype":
+        addBoxQuads(data, obj, "border", undefined, false);
+        for (const box of gBoxKinds) {
+          addBoxQuads(data, obj, box, getWindow().document, false);
         }
-        case "ElementPrototype":
-          addElementData(data, obj);
-          break;
-        case "NodePrototype":
-          addBoxQuads(data, obj, "border", undefined, false);
-          for (const box of gBoxKinds) {
-            addBoxQuads(data, obj, box, window.document, false);
+        break;
+      case "CSSRuleList":
+        data._items = [];
+        for (let i = 0; i < obj.length; i++) {
+          data._items[i] = addValue(obj.item(i), options);
+        }
+        break;
+      case "CSSRulePrototype":
+        data._ruleLine = InspectorUtils.getRuleLine(obj);
+        data._ruleColumn = InspectorUtils.getRuleColumn(obj);
+        data._ruleRelativeLine = InspectorUtils.getRelativeRuleLine(obj);
+        break;
+      case "CSSStyleRule":
+        data._ruleSelectorCount = InspectorUtils.getSelectorCount(obj);
+        data._ruleSelectors = [];
+        for (let i = 0; i < data._ruleSelectorCount; i++) {
+          data._ruleSelectors[i] = InspectorUtils.getSelectorText(obj, i);
+        }
+        break;
+      case "CSSStyleSheet":
+        data._hasRulesModifiedByCSSOM = InspectorUtils.hasRulesModifiedByCSSOM(obj);
+        break;
+    }
+  }
+
+  if (CSSRule.isInstance(obj)) {
+    data.isInstance = "CSSRule";
+  } else if (Event.isInstance(obj)) {
+    data.isInstance = "Event";
+  }
+}
+
+function addElementData(data, obj, options) {
+  for (const pseudo of gPseudoKinds) {
+    addStyleInfo(data, obj, pseudo, options);
+  }
+  if (obj.getBoundingClientRect) {
+    data.boundingClientRect = rectToJSON(obj.getBoundingClientRect());
+  }
+  data.contentState = InspectorUtils.getContentState(obj);
+  data.styleAttribute = obj.getAttribute("style");
+}
+
+function addStyleInfo(data, obj, pseudo, options) {
+  const rules = InspectorUtils.getCSSStyleRules(obj, pseudo);
+  if (!data.styleRules) {
+    data.styleRules = {};
+  }
+  data.styleRules[pseudo] = addValue(rules, options);
+
+  if (!data.matchedSelectors) {
+    data.matchedSelectors = {};
+  }
+  for (const rule of rules) {
+    const ruleId = getObjectId(makeDebuggeeValue(rule));
+    const count = InspectorUtils.getSelectorCount(rule);
+    for (let i = 0; i < count; i++) {
+      const includeVisitedStyle = false;
+      const key = `${ruleId}:${i}:${pseudo}:${includeVisitedStyle}`;
+      data.matchedSelectors[key] = InspectorUtils.selectorMatchesElement(
+        obj,
+        rule,
+        i,
+        pseudo,
+        includeVisitedStyle
+      );
+    }
+  }
+
+  const style = obj.ownerGlobal.getComputedStyle(obj, pseudo);
+  if (!data.computedStyles) {
+    data.computedStyles = {};
+  }
+  data.computedStyles[pseudo] = addValue(style, { ...options, rules });
+}
+
+function addBoxQuads(data, obj, box, relativeTo, createFramesForSuppressedWhitespace) {
+  if (!obj.getBoxQuads) {
+    return;
+  }
+  const relativeId = getObjectId(makeDebuggeeValue(relativeTo));
+  const key = `${box}:${relativeId}:${createFramesForSuppressedWhitespace}`;
+  const quads = obj.getBoxQuads({ box, relativeTo, createFramesForSuppressedWhitespace });
+  if (!data.boxQuads) {
+    data.boxQuads = {};
+  }
+  data.boxQuads[key] = quads.map(quadToJSON);
+}
+
+function addValue(value, options) {
+  const converted = convertDebuggeeValue(value, options);
+  if (isNonNullObject(converted)) {
+    options = { ...options, depth: options.depth - 1};
+    if (converted instanceof Array) {
+      converted.forEach(v => {
+        if (v && v.object) {
+          if (options.depth) {
+            addObjectId(v.object, options);
           }
-          break;
-        case "CSSRuleList":
-          data._items = [];
-          for (let i = 0; i < obj.length; i++) {
-            data._items[i] = addValue(obj.item(i));
-          }
-          break;
-        case "CSSStyleRule":
-          data._ruleLine = outer.InspectorUtils.getRuleLine(obj);
-          data._ruleColumn = outer.InspectorUtils.getRuleColumn(obj);
-          data._ruleRelativeLine = outer.InspectorUtils.getRelativeRuleLine(obj);
-          data._ruleSelectorCount = outer.InspectorUtils.getSelectorCount(obj);
-          data._ruleSelectors = [];
-          for (let i = 0; i < data._ruleSelectorCount; i++) {
-            data._ruleSelectors[i] = outer.InspectorUtils.getSelectorText(obj, i);
-          }
-          break;
-        case "CSSStyleSheet":
-          data._hasRulesModifiedByCSSOM = outer.InspectorUtils.hasRulesModifiedByCSSOM(obj);
-          break;
-      }
-    }
-
-    if (CSSRule.isInstance(obj)) {
-      data.isInstance = "CSSRule";
-    } else if (Event.isInstance(obj)) {
-      data.isInstance = "Event";
+        }
+      });
+    } else if (converted.object) {
+      addObjectId(converted.object, options);
     }
   }
-
-  function addElementData(data, obj) {
-    for (const pseudo of gPseudoKinds) {
-      addStyleInfo(data, obj, pseudo);
-    }
-    if (obj.getBoundingClientRect) {
-      data.boundingClientRect = rectToJSON(obj.getBoundingClientRect());
-    }
-    data.contentState = outer.InspectorUtils.getContentState(obj);
-    data.styleAttribute = obj.getAttribute("style");
-  }
-
-  function addStyleInfo(data, obj, pseudo) {
-    const rules = outer.InspectorUtils.getCSSStyleRules(obj, pseudo);
-    if (!data.styleRules) {
-      data.styleRules = {};
-    }
-    data.styleRules[pseudo] = addValue(rules);
-
-    if (!data.matchedSelectors) {
-      data.matchedSelectors = {};
-    }
-    for (const rule of rules) {
-      const ruleId = outer.getObjectId(outer.makeDebuggeeValue(rule));
-      const count = outer.InspectorUtils.getSelectorCount(rule);
-      for (let i = 0; i < count; i++) {
-        const includeVisitedStyle = false;
-        const key = `${ruleId}:${i}:${pseudo}:${includeVisitedStyle}`;
-        data.matchedSelectors[key] = outer.InspectorUtils.selectorMatchesElement(
-          obj,
-          rule,
-          i,
-          pseudo,
-          includeVisitedStyle
-        );
-      }
-    }
-
-    const style = obj.ownerGlobal.getComputedStyle(obj, pseudo);
-    if (!data.computedStyles) {
-      data.computedStyles = {};
-    }
-    data.computedStyles[pseudo] = addValue(style, { rules });
-  }
-
-  function addBoxQuads(data, obj, box, relativeTo, createFramesForSuppressedWhitespace) {
-    const relativeId = outer.getObjectId(outer.makeDebuggeeValue(relativeTo));
-    const key = `${box}:${relativeId}:${createFramesForSuppressedWhitespace}`;
-    const quads = obj.getBoxQuads({ box, relativeTo, createFramesForSuppressedWhitespace });
-    if (!data.boxQuads) {
-      data.boxQuads = {};
-    }
-    data.boxQuads[key] = quads.map(quadToJSON);
-  }
-
-  function addValue(value, options) {
-    const converted = convertDebuggeeValue(outer, value, options);
-    if (isNonNullObject(converted)) {
-      if (converted instanceof Array) {
-        converted.forEach(v => {
-          if (v && v.object) {
-            addObjectId(v.object);
-          }
-        });
-      } else if (converted.object) {
-        addObjectId(converted.object);
-      }
-    }
-    return converted;
-  }
+  return converted;
 }
 
 function rectToJSON({ x, y, width, height, top, right, bottom, left }) {
@@ -327,31 +330,31 @@ function isStyleDeclaration(className) {
   return className == "CSS2Properties";
 }
 
-function objectPropertyApply(outer, { thisId, name, args }) {
-  const object = outer.gPausedObjects.getObject(thisId);
+function objectPropertyApply({ thisId, name, args }) {
+  const object = gPausedObjects.getObject(thisId);
   try {
     const rv = object.unsafeDereference()[name](...args);
-    return convertDebuggeeValue(outer, rv);
+    return convertDebuggeeValue(rv, {});
   } catch (e) {
-    return convertDebuggeeValue(outer, e);
+    return convertDebuggeeValue(e, {});
   }
 }
 
-function convertDebuggeeValue(outer, value, options) {
-  const dbgValue = outer.makeDebuggeeValue(value);
+function convertDebuggeeValue(value, options) {
+  const dbgValue = makeDebuggeeValue(value);
 
   if (isNonNullObject(dbgValue)) {
     if (isArrayLike(dbgValue.class)) {
       const rv = [];
       for (const v of value) {
-        const nv = convertDebuggeeValue(outer, v);
+        const nv = convertDebuggeeValue(v, options);
         rv.push(nv);
       }
       return rv;
     }
     if (isStyleDeclaration(dbgValue.class)) {
       const names = new Set();
-      if (options && "rules" in options) {
+      if ("rules" in options) {
         // Only include properties mentioned in one of the rules. Otherwise
         // the style might include every possible CSS property.
         for (const { style } of options.rules) {
@@ -377,12 +380,46 @@ function convertDebuggeeValue(outer, value, options) {
     }
   }
 
-  return outer.convertValue(dbgValue);
+  return convertValue(dbgValue);
 }
 
+function dumpJSON(obj, name = "root", indent = 0) {
+  const len = JSON.stringify(obj).length;
+  dump(`${" ".repeat(indent)}${name}: ${len}\n`);
+  if (len >= 100) {
+    Object.entries(obj).forEach(([name, value]) => {
+      if (isNonNullObject(value)) {
+        dumpJSON(value, name, indent + 2);
+      }
+    });
+  }
+}
+
+const gDefaultDepth = 4;
+
 const ReplayNew = {
+  doImport,
+
   requestHandlers: {
-    getDOM,
+    getDOM() {
+      divergeFromRecording();
+      const window = getWindow();
+
+      gDOMData = {};
+      gDOMData.window = addObject(window, { depth: gDefaultDepth });
+      gDOMData.document = addObject(window.document, { depth: gDefaultDepth });
+
+      return gDOMData;
+    },
+
+    growDOM({ ids }) {
+      divergeFromRecording();
+
+      gDOMData = {};
+      ids.forEach(id => addObjectId(id, { depth: gDefaultDepth }));
+      return gDOMData;
+    },
+
     objectPropertyApply,
   },
 };

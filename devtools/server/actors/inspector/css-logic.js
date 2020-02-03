@@ -42,6 +42,7 @@ const {
   STATUS,
 } = require("devtools/shared/inspector/css-logic");
 const InspectorUtils = require("InspectorUtils");
+const ReplayInspector = require("devtools/server/actors/replay/dominspector");
 
 const COMPAREMODE = {
   BOOLEAN: "bool",
@@ -50,6 +51,10 @@ const COMPAREMODE = {
 
 function CssLogic() {
   this._propertyInfos = {};
+
+  if (isReplaying) {
+    ReplayInspector.addUnpauseHook(() => this.reset());
+  }
 }
 
 exports.CssLogic = CssLogic;

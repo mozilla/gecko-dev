@@ -367,6 +367,10 @@ ReplayDebugger.prototype = {
     return !!this._control.pausePoint();
   },
 
+  isPaused() {
+    return this._paused && !this._resumeCallback;
+  },
+
   replayResumeBackward() {
     this._resume(/* forward = */ false);
   },

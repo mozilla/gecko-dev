@@ -2107,22 +2107,25 @@ const gRequestHandlers = {
   },
 };
 
+const exports = {
+  assert,
+  divergeFromRecording,
+  getWindow,
+  getObjectId,
+  makeDebuggeeValue,
+  convertValue,
+  gPausedObjects,
+  InspectorUtils,
+};
+
+ReplayNew.doImport(exports);
+
 function processRequest(request) {
   if (gRequestHandlers[request.type]) {
     return gRequestHandlers[request.type](request);
   }
   if (ReplayNew.requestHandlers[request.type]) {
-    const outer = {
-      assert,
-      divergeFromRecording,
-      getWindow,
-      getObjectId,
-      makeDebuggeeValue,
-      convertValue,
-      gPausedObjects,
-      InspectorUtils,
-    };
-    return ReplayNew.requestHandlers[request.type](outer, request);
+    return ReplayNew.requestHandlers[request.type](request);
   }
   throwError(`"No handler for ${request.type}`);
 }
