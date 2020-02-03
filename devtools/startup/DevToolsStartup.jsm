@@ -629,13 +629,12 @@ DevToolsStartup.prototype = {
             return;
           }
 
-          const url = `webreplay://${uuid}`;
-          navigator.clipboard.writeText(url);
+          navigator.clipboard.writeText(`about:webreplay?recording=${uuid}`);
 
           await addRecordingDescription({
             ...JSON.parse(description),
-            url,
-            originalUrl: gBrowser.selectedBrowser.currentURI.spec,
+            uuid,
+            url: gBrowser.selectedBrowser.currentURI.spec,
             title: gBrowser.selectedBrowser.contentTitle,
             date: Date.now(),
           });
@@ -1435,7 +1434,7 @@ async function addRecordingDescription(description) {
 function viewRecordings() {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-  gBrowser.loadURI("about:recordings", { triggeringPrincipal });
+  gBrowser.loadURI("about:webreplay", { triggeringPrincipal });
 }
 
 var EXPORTED_SYMBOLS = ["DevToolsStartup"];

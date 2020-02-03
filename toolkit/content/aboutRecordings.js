@@ -62,18 +62,19 @@ async function showRecordings() {
 
   container.innerHTML = "";
 
-  for (const { url, originalUrl, title, date, duration } of gRecordings) {
+  for (const { uuid, url, title, date, duration } of gRecordings) {
+    const recordingUrl = `about:webreplay?recording=${uuid}`;
     const newRow = document.importNode(template.content, true);
     newRow.querySelector(".recording-title").innerText = title;
-    newRow.querySelector(".recording-url").innerText = originalUrl;
+    newRow.querySelector(".recording-url").innerText = url;
     newRow.querySelector(".recording-start").innerText = formatTime(date);
     newRow.querySelector(".recording-duration").innerText = formatDuration(duration);
     newRow.querySelector(".recording").addEventListener("click", e => {
-      document.location = url;
+      document.location = recordingUrl;
     });
     const copylink = newRow.querySelector(".copylink");
     copylink.addEventListener("click", e => {
-      navigator.clipboard.writeText(url);
+      navigator.clipboard.writeText(recordingUrl);
       copylink.innerText = "Copied!";
       if (gLastCopyLink) {
         gLastCopyLink.innerText = "Copy Link";
@@ -91,6 +92,32 @@ async function showRecordings() {
 }
 
 window.onload = async function() {
+  const match = /recording=(.*)/.exec(window.location);
+  if (match) {
+    const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+    const tab = gBrowser.selectedTab;
+    gBrowser.selectedTab = gBrowser.addWebTab(null, {
+      replayExecution: `webreplay://${match[1]}`,
+    });
+    gBrowser.removeTab(tab);
+    const newTab = gBrowser.selectedTab;
+
+    const listener = {
+      receiveMessage() {
+        Services.ppmm.removeMessageListener("RecordingLoaded", listener);
+        if (newTab == gBrowser.selectedTab) {
+          const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+          const {
+            gDevToolsBrowser,
+          } = require("devtools/client/framework/devtools-browser");
+          gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
+        }
+      },
+    };
+    Services.ppmm.addMessageListener("RecordingLoaded", listener);
+    return;
+  }
+
   gRecordings = await readRecordingsFile();
 
   showRecordings();

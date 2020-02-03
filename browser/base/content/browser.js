@@ -1491,24 +1491,6 @@ function _loadURI(browser, uri, params = {}) {
     uri = "about:blank";
   }
 
-  if (uri.startsWith("webreplay://")) {
-    const replayExecution = uri;
-    setTimeout(() => {
-      const tab = gBrowser.selectedTab;
-      gBrowser.selectedTab = gBrowser.addWebTab(null, { replayExecution });
-      gBrowser.removeTab(tab);
-
-      /*
-      const {
-        gDevToolsBrowser,
-      } = require("devtools/client/framework/devtools-browser");
-      gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
-      */
-    }, 0);
-
-    uri = "about:blank";
-  }
-
   let { triggeringPrincipal, referrerInfo, postData, userContextId, csp } =
     params || {};
   let loadFlags =

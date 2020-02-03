@@ -23,9 +23,6 @@ toolkit.jar:
    content/global/aboutwebrtc/aboutWebrtc.css   (aboutwebrtc/aboutWebrtc.css)
    content/global/aboutwebrtc/aboutWebrtc.js    (aboutwebrtc/aboutWebrtc.js)
    content/global/aboutwebrtc/aboutWebrtc.html (aboutwebrtc/aboutWebrtc.html)
-   content/global/aboutRecordings.js
-   content/global/aboutRecordings.xhtml
-   content/global/aboutRecordings.css
    content/global/aboutSupport.js
 *  content/global/aboutSupport.xhtml
    content/global/aboutTelemetry.js
@@ -34,6 +31,9 @@ toolkit.jar:
    content/global/aboutUrlClassifier.js
    content/global/aboutUrlClassifier.xhtml
    content/global/aboutUrlClassifier.css
+   content/global/aboutWebReplay.js
+   content/global/aboutWebReplay.xhtml
+   content/global/aboutWebReplay.css
    content/global/plugins.html
    content/global/plugins.css
    content/global/plugins.js

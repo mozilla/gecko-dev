@@ -1965,21 +1965,6 @@ Search.prototype = {
     }
     let fixupInfo = null;
     let searchUrl = this._trimmedOriginalSearchString;
-
-    if (/^webreplay:\/\//.test(searchUrl)) {
-      let value = makeActionUrl("visiturl", {
-        url: searchUrl,
-        input: searchUrl,
-      });
-      let match = {
-        value,
-        comment: searchUrl,
-        style: "action visiturl",
-        frecency: Infinity,
-      };
-      this._addMatch(match);
-    }
-
     try {
       fixupInfo = Services.uriFixup.getFixupURIInfo(searchUrl, flags);
     } catch (e) {
