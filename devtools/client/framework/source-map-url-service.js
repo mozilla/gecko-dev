@@ -62,7 +62,7 @@ SourceMapURLService.prototype._getLoadingPromise = function() {
         return;
       }
       let styleSheetsLoadingPromise;
-      if (this._target.hasActor("styleSheets")) {
+      if (this._target.hasActor("styleSheets") && !this._target.canRewind) {
         this._stylesheetsFront = await this._target.getFront("stylesheets");
         this._stylesheetsFront.on("stylesheet-added", this._onNewStyleSheet);
         styleSheetsLoadingPromise = this._stylesheetsFront
