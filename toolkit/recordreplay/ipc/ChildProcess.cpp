@@ -22,11 +22,6 @@ void ChildProcessInfo::SetIntroductionMessage(IntroductionMessage* aMessage) {
   gIntroductionMessage = aMessage;
 }
 
-/* static */
-void ChildProcessInfo::EnableLoggingInChildProcesses() {
-  gIntroductionMessage->mLoggingEnabled = true;
-}
-
 ChildProcessInfo::ChildProcessInfo(
     size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData)
     : mRecording(aRecordingProcessData.isSome()) {
@@ -95,6 +90,11 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
       gRecordingContents.append(msg.BinaryData(), msg.BinaryDataSize());
       break;
     }
+    case MessageType::LogText: {
+      const auto& nmsg = static_cast<const LogTextMessage&>(aMsg);
+      AddToLog(false, NS_ConvertUTF8toUTF16(nsCString(nmsg.BinaryData())));
+      break;
+    }
     default:
       break;
   }
@@ -140,6 +140,10 @@ void ChildProcessInfo::LaunchSubprocess(
 
   MOZ_RELEASE_ASSERT(gIntroductionMessage);
   SendMessage(std::move(*gIntroductionMessage));
+
+  if (gLoggingEnabled) {
+    SendMessage(EnableLoggingMessage());
+  }
 
   if (IsRecording()) {
     std::vector<std::string> extraArgs;

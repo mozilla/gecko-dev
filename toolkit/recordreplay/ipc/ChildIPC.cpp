@@ -49,7 +49,10 @@ Monitor* gMonitor;
 // The singleton channel for communicating with the middleman.
 Channel* gChannel;
 
-// Fork ID of this process.
+// IDs of the tree of processes this is part of.
+static size_t gChildId;
+
+// ID for this fork, or zero.
 static size_t gForkId;
 
 static base::ProcessId gMiddlemanPid;
@@ -88,8 +91,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     HandleMessageToForkedProcess(std::move(aMsg));
     return;
   }
-
-  MOZ_RELEASE_ASSERT(MainThreadShouldPause() || aMsg->CanBeSentWhileUnpaused());
 
   switch (aMsg->mType) {
     case MessageType::Introduction: {
@@ -161,6 +162,10 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       // until we have reached the first checkpoint.
       MOZ_RELEASE_ASSERT(IsReplaying());
       js::SetWebReplayJS(nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize()));
+      break;
+    }
+    case MessageType::EnableLogging: {
+      parent::gLoggingEnabled = true;
       break;
     }
     case MessageType::LogText: {
@@ -267,6 +272,7 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
   gMonitor = new Monitor();
   gChannel = new Channel(channelID.ref(), Channel::Kind::RecordReplay,
                          ChannelMessageHandler, gMiddlemanPid);
+  gChildId = channelID.ref();
 
   // If we failed to initialize then report it to the user.
   if (gInitializationFailureMessage) {
@@ -313,10 +319,6 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
 
   // Process the introduction message to fill in arguments.
   MOZ_RELEASE_ASSERT(gParentArgv.empty());
-
-  if (IsReplaying() && gIntroductionMessage->mLoggingEnabled) {
-    parent::EnableLogging();
-  }
 
   // Record/replay the introduction message itself so we get consistent args
   // between recording and replaying.
@@ -613,7 +615,7 @@ void ReportUnhandledDivergence() {
   Thread::WaitForeverNoIdle();
 }
 
-size_t GetId() { return gChannel->GetId(); }
+size_t GetId() { return gChildId; }
 size_t GetForkId() { return gForkId; }
 
 void AddPendingRecordingData() {
@@ -671,11 +673,15 @@ void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
 
 void PrintLog(const nsAString& aText) {
   double elapsed = (CurrentTime() - gStartTime) / 1e6;
-  char buf[2048];
-  snprintf(buf, sizeof(buf), "[#%lu:%lu %.2f] %s\n", GetId(), gForkId, elapsed,
-           NS_ConvertUTF16toUTF8(aText).get());
-  buf[sizeof(buf) - 1] = 0;
-  DirectPrint(buf);
+  nsPrintfCString buf("[#%lu:%lu %.2f] %s\n", GetId(), gForkId, elapsed,
+                      NS_ConvertUTF16toUTF8(aText).get());
+  if (IsRecording()) {
+    UniquePtr<Message> msg(LogTextMessage::New(
+        0, 0, buf.BeginReading(), buf.Length() + 1));
+    gChannel->SendMessage(std::move(*msg));
+  } else {
+    DirectPrint(buf.get());
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

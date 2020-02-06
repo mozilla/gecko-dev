@@ -58,6 +58,10 @@ extern Monitor* gMonitor;
 // Whether there is a currently active recording child.
 extern bool gActiveChildIsRecording;
 
+// Whether logging has been enabled in this process.
+// This is used in both the middleman and child processes.
+extern Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> gLoggingEnabled;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,11 +173,8 @@ class ChildProcessInfo {
   void SendMessage(Message&& aMessage);
 
   static void SetIntroductionMessage(IntroductionMessage* aMessage);
-  static void EnableLoggingInChildProcesses();
   static void MaybeProcessNextMessage();
 };
-
-void EnableLogging();
 
 }  // namespace parent
 }  // namespace recordreplay

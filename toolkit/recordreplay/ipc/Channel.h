@@ -85,8 +85,8 @@ namespace recordreplay {
   /* Set the JS which will run in the replaying process. */    \
   _Macro(ReplayJS)                                             \
                                                                \
-  /* Send some logging text to print. */                       \
-  _Macro(LogText)                                              \
+  /* Enable logging in this process. */                        \
+  _Macro(EnableLogging)                                        \
                                                                \
   /* Messages sent from the child process to the middleman. */ \
                                                                \
@@ -114,7 +114,11 @@ namespace recordreplay {
                                                                \
   /* Send recording data from a recording process to the middleman, or from the */ \
   /* middleman to a replaying process. */                      \
-  _Macro(RecordingData)
+  _Macro(RecordingData)                                        \
+                                                               \
+  /* Send some logging text to print, from the recording process to the middleman or */ \
+  /* from the middleman to a replaying process. */             \
+  _Macro(LogText)
 
 enum class MessageType {
 #define DefineEnum(Kind) Kind,
@@ -161,22 +165,6 @@ struct Message {
     }
   }
 
-  // Return whether this is a middleman->child message that can be sent while
-  // the child is unpaused.
-  bool CanBeSentWhileUnpaused() const {
-    return mType == MessageType::CreateCheckpoint ||
-           mType == MessageType::ExternalCallResponse ||
-           mType == MessageType::Ping ||
-           mType == MessageType::Terminate ||
-           mType == MessageType::Crash ||
-           mType == MessageType::Introduction ||
-           mType == MessageType::ReplayJS ||
-           mType == MessageType::LogText ||
-           mType == MessageType::RecordingData ||
-           mType == MessageType::FetchCloudRecordingData ||
-           mType == MessageType::UpdateRecordingFromRoot;
-  }
-
  protected:
   template <typename T, typename Elem>
   Elem* Data() {
@@ -209,31 +197,25 @@ struct IntroductionMessage : public Message {
   // Used when recording to specify the parent process pid.
   base::ProcessId mParentPid;
 
-  // Used when recording or replaying to indicate whether logging is enabled.
-  bool mLoggingEnabled;
-
   uint32_t mArgc;
 
-  IntroductionMessage(uint32_t aSize, base::ProcessId aParentPid,
-                      bool aLoggingEnabled, uint32_t aArgc)
+  IntroductionMessage(uint32_t aSize, base::ProcessId aParentPid, uint32_t aArgc)
       : Message(MessageType::Introduction, aSize, 0),
         mParentPid(aParentPid),
-        mLoggingEnabled(aLoggingEnabled),
         mArgc(aArgc) {}
 
   char* ArgvString() { return Data<IntroductionMessage, char>(); }
   const char* ArgvString() const { return Data<IntroductionMessage, char>(); }
 
   static IntroductionMessage* New(base::ProcessId aParentPid,
-                                  bool aLoggingEnabled, int aArgc,
-                                  char* aArgv[]) {
+                                  int aArgc, char* aArgv[]) {
     size_t argsLen = 0;
     for (int i = 0; i < aArgc; i++) {
       argsLen += strlen(aArgv[i]) + 1;
     }
 
     IntroductionMessage* res =
-      NewWithData<IntroductionMessage, char>(argsLen, aParentPid, aLoggingEnabled, aArgc);
+      NewWithData<IntroductionMessage, char>(argsLen, aParentPid, aArgc);
 
     size_t offset = 0;
     for (int i = 0; i < aArgc; i++) {
@@ -267,6 +249,7 @@ typedef EmptyMessage<MessageType::Crash> CrashMessage;
 typedef EmptyMessage<MessageType::CreateCheckpoint> CreateCheckpointMessage;
 typedef EmptyMessage<MessageType::FetchCloudRecordingData>
     FetchCloudRecordingDataMessage;
+typedef EmptyMessage<MessageType::EnableLogging> EnableLoggingMessage;
 
 template <MessageType Type>
 struct JSONMessage : public Message {

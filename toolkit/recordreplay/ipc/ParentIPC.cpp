@@ -293,11 +293,8 @@ void SpawnReplayingChild(size_t aChannelId) {
 ///////////////////////////////////////////////////////////////////////////////
 
 static bool gChromeRegistered;
-static bool gLoggingEnabled;
 
-void EnableLogging() {
-  gLoggingEnabled = true;
-}
+Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> gLoggingEnabled;
 
 void ChromeRegistered() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -309,8 +306,10 @@ void ChromeRegistered() {
   gChromeRegistered = true;
 
   if (Preferences::GetBool("devtools.recordreplay.logging.enabled")) {
-    EnableLogging();
-    ChildProcessInfo::EnableLoggingInChildProcesses();
+    gLoggingEnabled = true;
+    if (gRecordingChild) {
+      gRecordingChild->SendMessage(EnableLoggingMessage());
+    }
   }
 
   Maybe<size_t> recordingChildId;
@@ -538,7 +537,7 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
   gParentPid = aParentPid;
 
   // Construct the message that will be sent to each child when starting up.
-  IntroductionMessage* msg = IntroductionMessage::New(aParentPid, false, aArgc, aArgv);
+  IntroductionMessage* msg = IntroductionMessage::New(aParentPid, aArgc, aArgv);
   GetCurrentBuildId(&msg->mBuildId);
 
   ChildProcessInfo::SetIntroductionMessage(msg);
