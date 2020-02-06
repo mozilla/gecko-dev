@@ -1022,6 +1022,9 @@ bool MessageChannel::Send(Message* aMsg) {
 }
 
 void MessageChannel::SendMessageToLink(Message* aMsg) {
+  recordreplay::RecordReplayAssert("MessageChannel::SendMessageToLink %s %lu",
+                                   IPC::StringFromIPCMessageType(aMsg->type()),
+                                   aMsg->size());
   if (mIsPostponingSends) {
     UniquePtr<Message> msg(aMsg);
     mPostponedSends.push_back(std::move(msg));
