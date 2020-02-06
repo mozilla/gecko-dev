@@ -38,6 +38,7 @@ from taskgraph.util.scriptworker import (
 from taskgraph.util.signed_artifacts import get_signed_artifacts
 from voluptuous import Any, Required, Optional, Extra, Match
 from taskgraph import GECKO, MAX_DEPENDENCIES
+from taskgraph.parameters import get_version
 from ..util import docker as dockerutil
 from ..util.workertypes import get_worker_type
 
@@ -1212,6 +1213,29 @@ def build_ship_it_shipped_payload(config, task, task_def):
 
     task_def['payload'] = {
         'release_name': worker['release-name']
+    }
+
+
+@payload_builder('shipit-maybe-release', schema={
+    Required('phase'): basestring,
+    Required('product-key'): basestring,
+})
+def build_ship_it_maybe_release_payload(config, task, task_def):
+    # expect branch name, including path
+    branch = config.params['head_repository'][len('https://hg.mozilla.org/'):]
+
+    # maybe-release task runs outside of release promotion context so it
+    # doesn't have useful data in `release_config()`, hence we're reading that
+    # value directly from in-tree
+    version = get_version(version_dir='mobile/android/config/version-files/beta')
+
+    task_def['payload'] = {
+        'product': task['shipping-product'],
+        'branch': branch,
+        'phase': task['worker']['phase'],
+        'version': version,
+        'cron_revision': config.params['head_rev'],
+        'product_key': task['worker']['product-key'],
     }
 
 
