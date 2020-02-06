@@ -351,6 +351,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (this.dbg.replaying) {
       this.dbg.replayingOnForcedPause = this.replayingOnForcedPause.bind(this);
       this.dbg.replayingOnStatusUpdate = this._makeReplayingOnStatusUpdate();
+      this.dbg.replayingOnTimeWarpClient = this.replayingOnTimeWarpClient.bind(this);
     }
 
     this._debuggerSourcesSeen = new WeakSet();
@@ -1937,6 +1938,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.emit("paused", packet);
       this._pushThreadPause();
     }
+  },
+
+  // Tell the client to warp to another execution point.
+  replayingOnTimeWarpClient(point) {
+    this.emit("replayTimeWarp", { point });
   },
 
   /**

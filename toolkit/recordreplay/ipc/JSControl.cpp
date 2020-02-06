@@ -19,6 +19,8 @@
 #include "rrIModule.h"
 #include "xpcprivate.h"
 
+#include "nsMediaFeatures.h"
+
 using namespace JS;
 
 namespace mozilla {
@@ -99,6 +101,10 @@ static void EnsureInitialized() {
     return;
   }
   MOZ_RELEASE_ASSERT(!gModuleText.IsEmpty());
+
+  // Initialization so we can repaint at the first checkpoint without having
+  // an unhandled recording divergence.
+  nsMediaFeatures::InitSystemMetrics();
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());

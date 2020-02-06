@@ -12,6 +12,10 @@ class ConsoleCommands {
     this.proxy = proxy;
     this.threadFront = threadFront;
     this.currentTarget = currentTarget;
+
+    threadFront.on("replayTimeWarp", ({ point }) => {
+      this.timeWarp(point);
+    });
   }
 
   evaluateJSAsync(expression, options = {}) {
