@@ -173,7 +173,9 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
                                  inputData.begin(), inputData.length(),
                                  &outputData, &call->mOutputUnavailable);
 
-  if (!call->mOutputUnavailable) {
+  if (call->mOutputUnavailable) {
+    Print("ExternalCall OutputUnavailable: %s\n", redirection.mName);
+  } else {
     // Decode the external call's output.
     BufferStream outputStream(outputData.begin(), outputData.length());
     call->DecodeOutput(outputStream);
