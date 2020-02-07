@@ -51,8 +51,9 @@ void ReportCriticalError(const char* aMessage);
 // that execution in this process cannot continue.
 void ReportUnhandledDivergence();
 
-// Trigger a crash if we have an unhandled recording divergence.
-void DisallowUnhandledDivergence();
+// If unhandled divergences are not allowed then we will crash instead of
+// reporting them.
+void SetUnhandledDivergenceAllowed(bool aAllowed);
 
 // Return whether unhandled divergences are currently allowed.
 bool UnhandledDivergenceAllowed();
@@ -70,7 +71,8 @@ void ManifestFinished(const js::CharBuffer& aResponse);
 // Send messages operating on external calls.
 void SendExternalCallRequest(ExternalCallId aId,
                              const char* aInputData, size_t aInputSize,
-                             InfallibleVector<char>* aOutputData);
+                             InfallibleVector<char>* aOutputData,
+                             bool* aOutputUnavailable);
 
 // Send the output from an external call to the root replaying process,
 // to fill in its external call cache.

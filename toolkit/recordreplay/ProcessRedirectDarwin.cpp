@@ -2713,7 +2713,7 @@ static SystemRedirection gSystemRedirections[] = {
                 EX_CreateCFTypeRval>},
     {"CGPathGetBoundingBox", RR_OversizeRval<sizeof(CGRect)>},
     {"CGPathGetCurrentPoint", RR_ComplexFloatRval},
-    {"CGPathIsEmpty", RR_ScalarRval},
+    {"CGPathIsEmpty", RR_ScalarRval, nullptr, EX_CFTypeArg<0>},
     {"CGRectApplyAffineTransform", RR_OversizeRval<sizeof(CGRect)>, nullptr,
      EX_Compose<EX_StackArgumentData<sizeof(CGRect) +
                                      sizeof(CGAffineTransform)>,

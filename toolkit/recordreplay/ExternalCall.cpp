@@ -171,11 +171,13 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
   InfallibleVector<char> outputData;
   child::SendExternalCallRequest(call->mId,
                                  inputData.begin(), inputData.length(),
-                                 &outputData);
+                                 &outputData, &call->mOutputUnavailable);
 
-  // Decode the external call's output.
-  BufferStream outputStream(outputData.begin(), outputData.length());
-  call->DecodeOutput(outputStream);
+  if (!call->mOutputUnavailable) {
+    // Decode the external call's output.
+    BufferStream outputStream(outputData.begin(), outputData.length());
+    call->DecodeOutput(outputStream);
+  }
 
   ExternalCallContext cx(call, aArguments, ExternalCallPhase::RestoreOutput);
   redirection.mExternalCall(cx);

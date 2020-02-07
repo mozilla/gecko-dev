@@ -326,6 +326,9 @@ struct BinaryMessage : public Message {
 // The tag is the ID of the external call being performed.
 typedef BinaryMessage<MessageType::ExternalCallRequest>
     ExternalCallRequestMessage;
+
+// The tag is the ID of the external call being performed, or zero if the result
+// to the last request is unavailable.
 typedef BinaryMessage<MessageType::ExternalCallResponse>
     ExternalCallResponseMessage;
 

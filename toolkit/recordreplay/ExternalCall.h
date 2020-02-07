@@ -79,8 +79,8 @@ typedef uintptr_t ExternalCallId;
 
 // Storage for the returned registers of a call which are automatically saved.
 struct CallReturnRegisters {
-  size_t rval0, rval1;
-  double floatrval0, floatrval1;
+  size_t rval0 = 0, rval1 = 0;
+  double floatrval0 = 0, floatrval1 = 0;
 
   void CopyFrom(CallArguments* aArguments);
   void CopyTo(CallArguments* aArguments);
@@ -106,6 +106,9 @@ struct ExternalCall {
 
   // All call outputs. Written in SaveOutput, read in RestoreOutput.
   InfallibleVector<char> mOutput;
+
+  // Whether output data is unavailable and dummy outputs must be constructed.
+  bool mOutputUnavailable = false;
 
   // Values of any returned registers after the call.
   CallReturnRegisters mReturnRegisters;
@@ -264,7 +267,11 @@ struct ExternalCallContext {
         mOutputStream.ref().WriteBytes(aBuffer, aSize);
         break;
       case ExternalCallPhase::RestoreOutput:
-        mOutputStream.ref().ReadBytes(aBuffer, aSize);
+        if (mCall->mOutputUnavailable) {
+          memset(aBuffer, 0, aSize);
+        } else {
+          mOutputStream.ref().ReadBytes(aBuffer, aSize);
+        }
         break;
       default:
         MOZ_CRASH();

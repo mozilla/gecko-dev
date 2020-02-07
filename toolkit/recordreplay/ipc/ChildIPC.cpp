@@ -466,6 +466,12 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
       SendMessageToForkedProcess(std::move(response));
       return;
     }
+
+    // The middleman is no longer used to perform external calls.
+    Message::UniquePtr response(ExternalCallResponseMessage::New(
+        nmsg.mForkId, 0, nullptr, 0));
+    SendMessageToForkedProcess(std::move(response));
+    return;
   }
 
   if (MaybeHandleExternalCallResponse(*aMsg)) {
@@ -594,18 +600,18 @@ void ReportCriticalError(const char* aMessage) {
   Print("Critical Error: %s\n", aMessage);
 }
 
-static bool gDisallowUnhandledDivergence;
+static bool gUnhandledDivergenceAllowed = true;;
 
-void DisallowUnhandledDivergence() {
-  gDisallowUnhandledDivergence = true;
+void SetUnhandledDivergenceAllowed(bool aAllowed) {
+  gUnhandledDivergenceAllowed = aAllowed;
 }
 
 bool UnhandledDivergenceAllowed() {
-  return !gDisallowUnhandledDivergence;
+  return gUnhandledDivergenceAllowed;
 }
 
 void ReportUnhandledDivergence() {
-  if (gDisallowUnhandledDivergence) {
+  if (!gUnhandledDivergenceAllowed) {
     ReportFatalError("Unhandled divergence not allowed");
   }
 
@@ -931,7 +937,8 @@ void ManifestFinished(const js::CharBuffer& aBuffer) {
 
 void SendExternalCallRequest(ExternalCallId aId,
                              const char* aInputData, size_t aInputSize,
-                             InfallibleVector<char>* aOutputData) {
+                             InfallibleVector<char>* aOutputData,
+                             bool* aOutputUnavailable) {
   AutoPassThroughThreadEvents pt;
   MonitorAutoLock lock(*gMonitor);
 
@@ -950,6 +957,9 @@ void SendExternalCallRequest(ExternalCallId aId,
 
   aOutputData->append(gCallResponseMessage->BinaryData(),
                       gCallResponseMessage->BinaryDataSize());
+  if (!gCallResponseMessage->mTag) {
+    *aOutputUnavailable = true;
+  }
 
   gCallResponseMessage = nullptr;
   gWaitingForCallResponse = false;

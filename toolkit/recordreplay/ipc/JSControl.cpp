@@ -1092,11 +1092,11 @@ static bool RecordReplay_SaveCloudRecording(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool RecordReplay_DisallowUnhandledDivergence(JSContext* aCx,
-                                                     unsigned aArgc, Value* aVp) {
+static bool RecordReplay_SetUnhandledDivergenceAllowed(JSContext* aCx,
+                                                       unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  child::DisallowUnhandledDivergence();
+  child::SetUnhandledDivergenceAllowed(ToBoolean(args.get(0)));
 
   args.rval().setUndefined();
   return true;
@@ -1589,7 +1589,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
     JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
-    JS_FN("disallowUnhandledDivergence", RecordReplay_DisallowUnhandledDivergence, 0, 0),
+    JS_FN("setUnhandledDivergenceAllowed", RecordReplay_SetUnhandledDivergenceAllowed, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FS_END};
