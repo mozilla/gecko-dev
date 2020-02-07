@@ -278,6 +278,22 @@ void xpc::ErrorNote::LogToStderr() {
 }
 
 void xpc::ErrorReport::LogToStderr() {
+  {
+    nsCString filename = NS_ConvertUTF16toUTF8(mFileName);
+    const char chromePrefix[] = "chrome://";
+    const char resourcePrefix[] = "resource://";
+
+    // Only log messages in chrome code.
+    if (!strncmp(filename.get(), chromePrefix, sizeof(chromePrefix) - 1) ||
+        !strncmp(filename.get(), resourcePrefix, sizeof(resourcePrefix) - 1)) {
+      nsPrintfCString log("ErrorReport %s:%u %s",
+                          filename.get(), mLineNumber,
+                          NS_ConvertUTF16toUTF8(mErrorMsg).get());
+      GlobalObject* global = nullptr;
+      ChromeUtils::RecordReplayLog(*global, NS_ConvertUTF8toUTF16(log));
+    }
+  }
+
   if (!nsJSUtils::DumpEnabled()) {
     return;
   }
