@@ -130,7 +130,7 @@ function getPendingMinidump(id) {
 
 async function synthesizeExtraFile(extra) {
   let data =
-    "ServerURL=https://crash-reports.mozilla.com/submit?id=" +
+    "ServerURL=https://crash-reports.webreplayaws.org:8002/submit?id=" +
     Services.appinfo.ID +
     "&version=" +
     Services.appinfo.version +
@@ -247,9 +247,18 @@ Submitter.prototype = {
 
     let formData = new FormData();
 
+    // When submitting Web Replay crash reports, only include keys of particular
+    // interest (none of which include personally identifiable information).
+    const permittedKeys = [
+      "RecordReplay",
+      "MozCrashReason",
+      "BuildID",
+      "StackTraces",
+    ];
+
     // add the data
     for (let [name, value] of Object.entries(this.extraKeyVals)) {
-      if (name != "ServerURL" && name != "StackTraces") {
+      if (permittedKeys.includes(name)) {
         formData.append(name, value);
       }
     }
@@ -257,32 +266,8 @@ Submitter.prototype = {
       // tell the server not to throttle this, since it was manually submitted
       formData.append("Throttleable", "0");
     }
-    // add the minidumps
-    let promises = [
-      File.createFromFileName(this.dump).then(file => {
-        formData.append("upload_file_minidump", file);
-      }),
-    ];
 
-    if (this.memory) {
-      promises.push(
-        File.createFromFileName(this.memory).then(file => {
-          formData.append("memory_report", file);
-        })
-      );
-    }
-
-    if (this.additionalDumps.length) {
-      let names = [];
-      for (let i of this.additionalDumps) {
-        names.push(i.name);
-        promises.push(
-          File.createFromFileName(i.dump).then(file => {
-            formData.append("upload_file_minidump_" + i.name, file);
-          })
-        );
-      }
-    }
+    const promises = [];
 
     let manager = Services.crashmanager;
     let submissionID = manager.generateSubmissionID();
