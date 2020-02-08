@@ -47,5 +47,5 @@ EnableProfileMigrator=1
 #if MOZ_CRASHREPORTER
 [Crash Reporter]
 Enabled=1
-ServerURL=https://crash-reports.webreplayaws.org:8002/submit?id=@MOZ_APP_ID@&version=@MOZ_APP_VERSION@&buildid=@MOZ_BUILDID@
+ServerURL=https://crash-reports.webreplay.io:8002/submit?id=@MOZ_APP_ID@&version=@MOZ_APP_VERSION@&buildid=@MOZ_BUILDID@
 #endif

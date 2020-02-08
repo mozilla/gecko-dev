@@ -834,7 +834,7 @@ pref("toolkit.dump.emit", false);
 pref("devtools.recordreplay.logging.enabled", true);
 
 // Address of the cloud server to connect to for record/replay sessions.
-pref("devtools.recordreplay.cloudServer", "wss://dispatch.webreplayaws.org:8000");
+pref("devtools.recordreplay.cloudServer", "wss://dispatch.webreplay.io:8000");
 
 // Preferences for the new performance panel.
 // This pref configures the base URL for the profiler.firefox.com instance to

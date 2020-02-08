@@ -130,7 +130,7 @@ function getPendingMinidump(id) {
 
 async function synthesizeExtraFile(extra) {
   let data =
-    "ServerURL=https://crash-reports.webreplayaws.org:8002/submit?id=" +
+    "ServerURL=https://crash-reports.webreplay.io:8002/submit?id=" +
     Services.appinfo.ID +
     "&version=" +
     Services.appinfo.version +
