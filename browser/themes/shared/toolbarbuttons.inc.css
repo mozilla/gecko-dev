@@ -264,6 +264,11 @@ toolbar .toolbarbutton-1:-moz-focusring {
   transition-duration: var(--toolbarbutton-hover-transition-duration);
 }
 
+:root:not([uidensity=compact]) #recording-button > .toolbarbutton-icon {
+  width: 34px;
+  height: 34px;
+}
+
 :root:not([uidensity=compact]) #back-button:-moz-focusring > .toolbarbutton-icon {
   -moz-outline-radius: 10000px;
 }

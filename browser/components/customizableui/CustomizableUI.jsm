@@ -221,14 +221,11 @@ var CustomizableUIInternal = {
       "back-button",
       "forward-button",
       "stop-reload-button",
-      "home-button",
       "recording-button",
       "spring",
       "urlbar-container",
       "spring",
       "downloads-button",
-      "library-button",
-      "sidebar-button",
       "fxa-toolbar-menu-button",
     ];
 
