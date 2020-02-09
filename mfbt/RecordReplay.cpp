@@ -33,7 +33,8 @@ namespace recordreplay {
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
   Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
   Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
-        (aCx, aObj))
+        (aCx, aObj))                                                           \
+  Macro(LoadedWithFileURI, bool, (), ())
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
   Macro(InternalBeginOrderedAtomicAccess, (const void* aValue), (aValue))      \

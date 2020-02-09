@@ -435,6 +435,10 @@ MOZ_EXPORT void RecordReplayInterface_InternalHoldJSObject(void* aJSObj) {
   }
 }
 
+MOZ_EXPORT bool RecordReplayInterface_LoadedWithFileURI() {
+  return RecordReplayValue(!strncmp(gRecordingFilename, "file://", 7));
+}
+
 }  // extern "C"
 
 static mach_port_t gCrashDetectorExceptionPort;

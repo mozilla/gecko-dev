@@ -251,6 +251,9 @@ static const char gProcessKindOption[] = "-recordReplayKind";
 // Command line option for specifying the recording file to use.
 static const char gRecordingFileOption[] = "-recordReplayFile";
 
+// Whether the process was originally loaded with a file URI.
+MFBT_API bool LoadedWithFileURI();
+
 ///////////////////////////////////////////////////////////////////////////////
 // JS interface
 ///////////////////////////////////////////////////////////////////////////////

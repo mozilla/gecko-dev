@@ -1366,18 +1366,35 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 
 function reloadAndRecordTab() {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-  const url = gBrowser.currentURI.spec;
+
+  let url = gBrowser.currentURI.spec;
+
+  let remoteType = E10SUtils.getRemoteTypeForURI(
+    url,
+    /* aMultiProcess */ true,
+    /* aRemoteSubframes */ false,
+    /* aPreferredRemoteType */ undefined,
+    /* aCurrentUri */ null
+  );
+  if (remoteType != E10SUtils.WEB_REMOTE_TYPE &&
+      remoteType != E10SUtils.FILE_REMOTE_TYPE) {
+    url = "about:blank";
+    remoteType = E10SUtils.WEB_REMOTE_TYPE;
+  }
+
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: "*",
+    recordExecution: url,
     newFrameloader: true,
-    remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+    remoteType,
   });
+
   Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
     Services.ppmm.removeMessageListener("RecordingInitialized", listener);
     gBrowser.loadURI(url, {
       triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
     });
   });
+
   Services.telemetry.scalarAdd("devtools.webreplay.reload_recording", 1);
 }
 

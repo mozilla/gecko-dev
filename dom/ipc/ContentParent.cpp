@@ -824,17 +824,6 @@ already_AddRefed<ContentParent> ContentParent::MinTabSelect(
   return candidate.forget();
 }
 
-static bool CreateTemporaryRecordingFile(nsAString& aResult) {
-  static int sNumTemporaryRecordings;
-  nsCOMPtr<nsIFile> file;
-  return !NS_FAILED(
-             NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file))) &&
-         !NS_FAILED(file->AppendNative(
-             nsPrintfCString("TempRecording.%d.%d", base::GetCurrentProcId(),
-                             ++sNumTemporaryRecordings))) &&
-         !NS_FAILED(file->GetPath(aResult));
-}
-
 /*static*/
 already_AddRefed<ContentParent> ContentParent::GetNewOrUsedBrowserProcess(
     Element* aFrameElement, const nsAString& aRemoteType,
@@ -856,10 +845,6 @@ already_AddRefed<ContentParent> ContentParent::GetNewOrUsedBrowserProcess(
         recordingFile.AssignLiteral("*");
       }
       if (!recordingFile.IsEmpty()) {
-        if (recordingFile.EqualsLiteral("*") &&
-            !CreateTemporaryRecordingFile(recordingFile)) {
-          return nullptr;
-        }
         recordReplayState = eRecording;
       }
     }
