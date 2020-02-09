@@ -1276,7 +1276,7 @@ pref("prompts.tab_modal.enabled", true);
 pref("browser.newtab.preload", true);
 
 // Indicates if about:newtab shows content (enabled) or just blank
-pref("browser.newtabpage.enabled", true);
+pref("browser.newtabpage.enabled", false);
 
 // Activity Stream prefs that control to which page to redirect
 #ifndef RELEASE_OR_BETA
