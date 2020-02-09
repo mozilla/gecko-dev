@@ -2,27 +2,25 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# NSIS branding defines for unofficial builds.
-# The official release build branding.nsi is located in other-license/branding/firefox/
-# The nightly build branding.nsi is located in browser/installer/windows/nsis/
+# NSIS branding defines for Web Replay
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "Mozilla Developer Preview"
-!define BrandFullName         "Mozilla Developer Preview"
-!define CompanyName           "mozilla.org"
-!define URLInfoAbout          "https://www.mozilla.org"
-!define HelpLink              "https://support.mozilla.org"
+!define BrandFullNameInternal "Web Replay"
+!define BrandFullName         "Web Replay"
+!define CompanyName           "webreplay.io"
+!define URLInfoAbout          "https://www.webreplay.io"
+!define HelpLink              "https://www.webreplay.io"
 
-!define URLStubDownloadX86 "https://download.mozilla.org/?os=win&lang=${AB_CD}&product=firefox-latest"
-!define URLStubDownloadAMD64 "https://download.mozilla.org/?os=win64&lang=${AB_CD}&product=firefox-latest"
-!define URLStubDownloadAArch64 "https://download.mozilla.org/?os=win64-aarch64&lang=${AB_CD}&product=firefox-latest"
-!define URLManualDownload "https://www.mozilla.org/${AB_CD}/firefox/installer-help/?channel=release&installer_lang=${AB_CD}"
-!define URLSystemRequirements "https://www.mozilla.org/firefox/system-requirements/"
-!define Channel "unofficial"
+!define URLStubDownloadX86 "https://www.webreplay.io"
+!define URLStubDownloadAMD64 "https://www.webreplay.io"
+!define URLStubDownloadAArch64 "https://www.webreplay.io"
+!define URLManualDownload "https://www.webreplay.io"
+!define URLSystemRequirements "https://www.webreplay.io"
+!define Channel "release"
 
 # The installer's certificate name and issuer expected by the stub installer
-!define CertNameDownload   "Mozilla Corporation"
+!define CertNameDownload   "Web Replay"
 !define CertIssuerDownload "DigiCert SHA2 Assured ID Code Signing CA"
 
 # Dialog units are used so the UI displays correctly with the system's DPI

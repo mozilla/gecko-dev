@@ -46,6 +46,7 @@ async function init(aEvent) {
   };
 
   let version = Services.appinfo.version;
+  /*
   if (/a\d+$/.test(version)) {
     versionId = "aboutDialog-version-nightly";
     let buildID = Services.appinfo.appBuildID;
@@ -57,6 +58,7 @@ async function init(aEvent) {
     document.getElementById("experimental").hidden = false;
     document.getElementById("communityDesc").hidden = true;
   }
+  */
 
   // Use Fluent arguments for append version and the architecture of the build
   let versionField = document.getElementById("version");
