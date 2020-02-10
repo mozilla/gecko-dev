@@ -1176,6 +1176,23 @@ static void RR_task_threads(Stream& aEvents, CallArguments* aArguments,
   aEvents.RecordOrReplayBytes(*buf, *count * sizeof(void*));
 }
 
+static void RR_dynamic_cast(Stream& aEvents, CallArguments* aArguments,
+                            ErrorType* aError) {
+  // Dynamic casts are tricky to emulate in the translation layer so we
+  // record/replay the result of the cast.
+  auto src = aArguments->Arg<0, char*>();
+  auto& rval = aArguments->Rval<char*>();
+
+  char* nsrc = src;
+  aEvents.RecordOrReplayValue(&nsrc);
+  aEvents.RecordOrReplayValue(&rval);
+
+  if (IsReplaying() && rval) {
+    ptrdiff_t offset = rval - nsrc;
+    rval = src + offset;
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // NSPR redirections
 ///////////////////////////////////////////////////////////////////////////////
@@ -1896,21 +1913,6 @@ static PreambleResult Preamble_CGContextRestoreGState(
   return IsRecording() ? PreambleResult::PassThrough : PreambleResult::Veto;
 }
 
-static void RR_CGDataProviderCreateWithData(Stream& aEvents,
-                                            CallArguments* aArguments,
-                                            ErrorType* aError) {
-  auto& info = aArguments->Arg<0, void*>();
-  auto& data = aArguments->Arg<1, const void*>();
-  auto& size = aArguments->Arg<2, size_t>();
-  auto& releaseData = aArguments->Arg<3, CGDataProviderReleaseDataCallback>();
-
-  if (IsReplaying() && releaseData) {
-    // Immediately release the data, since there is no data provider to do it
-    // for us.
-    releaseData(info, data, size);
-  }
-}
-
 static void ReleaseDataCallback(void*, const void* aData, size_t) {
   free((void*)aData);
 }
@@ -2170,6 +2172,7 @@ static SystemRedirection gSystemRedirections[] = {
      RR_SaveRvalHadErrorNegative<RR_WriteBufferFixedSize<0, 2 * sizeof(int)>>,
      nullptr, nullptr, Preamble_SetError},
     {"close", RR_close, nullptr, nullptr, Preamble_Veto<0>},
+    {"close$NOCANCEL", RR_SaveRvalHadErrorNegative},
     {"__close_nocancel", RR_SaveRvalHadErrorNegative},
     {"mkdir", RR_SaveRvalHadErrorNegative},
     {"dup", RR_SaveRvalHadErrorNegative},
@@ -2295,7 +2298,9 @@ static SystemRedirection gSystemRedirections[] = {
     {"dlopen", nullptr, Preamble_dlopen},
     {"dlsym", nullptr, Preamble_dlsym},
     {"fclose", RR_SaveRvalHadErrorNegative},
+    {"fflush", RR_SaveRvalHadErrorNegative},
     {"fprintf", RR_SaveRvalHadErrorNegative},
+    {"fputs", RR_SaveRvalHadErrorNegative},
     {"fopen", RR_SaveRvalHadErrorZero},
     {"fread", RR_Compose<RR_ScalarRval, RR_fread>},
     {"fseek", RR_SaveRvalHadErrorNegative},
@@ -2374,6 +2379,7 @@ static SystemRedirection gSystemRedirections[] = {
     /////////////////////////////////////////////////////////////////////////////
 
     {"_ZNSt3__16chrono12system_clock3nowEv", RR_ScalarRval},
+    {"__dynamic_cast", RR_dynamic_cast},
 
     /////////////////////////////////////////////////////////////////////////////
     // Gecko functions
@@ -2659,8 +2665,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"CGContextTranslateCTM", nullptr, nullptr,
      EX_Compose<EX_UpdateCFTypeArg<0>, EX_FloatArg<0>, EX_FloatArg<1>>},
     {"CGDataProviderCreateWithData",
-     RR_Compose<RR_ScalarRval, RR_CGDataProviderCreateWithData>, nullptr,
-     EX_CGDataProviderCreateWithData},
+     RR_ScalarRval, nullptr, EX_CGDataProviderCreateWithData},
     {"CGDataProviderRelease", nullptr, nullptr, nullptr, Preamble_Veto<0>},
     {"CGDisplayCopyColorSpace", RR_ScalarRval},
     {"CGDisplayIOServicePort", RR_ScalarRval},

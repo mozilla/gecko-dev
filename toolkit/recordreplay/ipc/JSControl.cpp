@@ -1102,6 +1102,22 @@ static bool RecordReplay_SetUnhandledDivergenceAllowed(JSContext* aCx,
   return true;
 }
 
+static bool RecordReplay_SetCrashNote(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string argument");
+    return false;
+  }
+
+  nsAutoCString str;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), str);
+  child::SetCrashNote(str.get());
+
+  args.rval().setUndefined();
+  return true;
+}
+
 static bool RecordReplay_Dump(JSContext* aCx, unsigned aArgc, Value* aVp) {
   // This method is an alternative to dump() that can be used in places where
   // thread events are disallowed.
@@ -1590,6 +1606,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
     JS_FN("setUnhandledDivergenceAllowed", RecordReplay_SetUnhandledDivergenceAllowed, 1, 0),
+    JS_FN("setCrashNote", RecordReplay_SetCrashNote, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FS_END};

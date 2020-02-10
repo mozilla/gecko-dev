@@ -123,8 +123,8 @@ var TabStateFlusherInternal = {
   flushWindow(window) {
     let promises = [];
     for (let browser of window.gBrowser.browsers) {
-      // Replaying tabs cannot be flushed.
-      if (browser.hasAttribute("replayExecution")) {
+      // Recording/replaying tabs can't be reliably flushed.
+      if (browser.hasAttribute("recordExecution") || browser.hasAttribute("replayExecution")) {
         continue;
       }
       if (window.gBrowser.getTabForBrowser(browser).linkedPanel) {

@@ -664,6 +664,12 @@ static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
 }
 
+void SetCrashNote(const char* aNote) {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SetCrashNote");
+  BitwiseCast<void(*)(const char*)>(ptr)(aNote);
+}
+
 // In the middleman, JS to send to new replaying processes. This matches up
 // with the control JS running in this process.
 nsCString gReplayJS;

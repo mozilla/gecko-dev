@@ -94,6 +94,9 @@ void AddPendingRecordingData();
 // In a root replaying process, save all recording data to the cloud.
 void SaveCloudRecording(const char* aName);
 
+// Set any text to be printed if this process crashes.
+void SetCrashNote(const char* aNote);
+
 extern nsCString gReplayJS;
 
 void PrintLog(const nsAString& aText);
