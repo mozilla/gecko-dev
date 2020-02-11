@@ -68,6 +68,13 @@ static FileHandle gCheckpointReadFd;
 // receipt and then processed during InitRecordingOrReplayingProcess.
 static UniquePtr<IntroductionMessage, Message::FreePolicy> gIntroductionMessage;
 
+// Manifests which we've been sent but haven't processed yet. Protected by gMonitor.
+static StaticInfallibleVector<js::CharBuffer*> gPendingManifests;
+
+// Whether we are currently processing a manifest and can't start another one.
+// Protected by gMonitor.
+static bool gProcessingManifest = true;
+
 // All recording contents we have received, protected by gMonitor. This may not
 // have all been incorporated into the recording, which happens on the main
 // thread.
@@ -81,6 +88,7 @@ static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
 // gCallResponseMessage to be filled in.
 static bool gWaitingForCallResponse;
 
+static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 
@@ -135,13 +143,12 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ManifestStart: {
+      MonitorAutoLock lock(*gMonitor);
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)*aMsg;
       js::CharBuffer* buf = new js::CharBuffer();
       buf->append(nmsg.Buffer(), nmsg.BufferSize());
-      PauseMainThreadAndInvokeCallback([=]() {
-        js::ManifestStart(*buf);
-        delete buf;
-      });
+      gPendingManifests.append(buf);
+      MaybeStartNextManifest(lock);
       break;
     }
     case MessageType::ExternalCallResponse: {
@@ -488,6 +495,14 @@ static const size_t ForkTimeoutSeconds = 10;
 void RegisterFork(size_t aForkId) {
   AutoPassThroughThreadEvents pt;
 
+  // Any pending manifests we have are for the original process. We can start
+  // getting new manifests for this process once we've registered our channel,
+  // so clear out the obsolete pending manifests first.
+  {
+    MonitorAutoLock lock(*gMonitor);
+    gPendingManifests.clear();
+  }
+
   gForkId = aForkId;
   gChannel = new Channel(0, Channel::Kind::ReplayForked, ChannelMessageHandler);
 
@@ -633,7 +648,8 @@ void AddPendingRecordingData() {
     MonitorAutoLock lock(*gMonitor);
 
     if (gRecordingContents.length() == gRecording->Size()) {
-      Print("Hit end of recording, crashing...\n");
+      Print("Hit end of recording (%lu), crashing...\n",
+            gRecordingContents.length());
       MOZ_CRASH("AddPendingRecordingData");
     }
 
@@ -667,7 +683,9 @@ static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
 void SetCrashNote(const char* aNote) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SetCrashNote");
-  BitwiseCast<void(*)(const char*)>(ptr)(aNote);
+  if (ptr) {
+    BitwiseCast<void(*)(const char*)>(ptr)(aNote);
+  }
 }
 
 // In the middleman, JS to send to new replaying processes. This matches up
@@ -931,13 +949,30 @@ bool Repaint(nsACString& aData) {
 // Message Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
+static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
+  if (!gPendingManifests.empty() && !gProcessingManifest) {
+    js::CharBuffer* buf = gPendingManifests[0];
+    gPendingManifests.erase(&gPendingManifests[0]);
+    gProcessingManifest = true;
+    PauseMainThreadAndInvokeCallback([=]() {
+      js::ManifestStart(*buf);
+      delete buf;
+    });
+  }
+}
+
 void ManifestFinished(const js::CharBuffer& aBuffer) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(gProcessingManifest);
   ManifestFinishedMessage* msg =
       ManifestFinishedMessage::New(gForkId, aBuffer.begin(), aBuffer.length());
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);
+
+    MonitorAutoLock lock(*gMonitor);
+    gProcessingManifest = false;
+    MaybeStartNextManifest(lock);
   });
 }
 
