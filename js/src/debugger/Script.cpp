@@ -2455,17 +2455,17 @@ bool DebuggerScript::CallData::setInstrumentationId() {
     return false;
   }
 
-  if (!obj->getInstrumentationId().isUndefined()) {
-    JS_ReportErrorASCII(cx, "Script instrumentation ID is already set");
-    return false;
-  }
-
   if (!args.get(0).isNumber()) {
     JS_ReportErrorASCII(cx, "Script instrumentation ID must be a number");
     return false;
   }
 
-  obj->setReservedSlot(INSTRUMENTATION_ID_SLOT, args.get(0));
+  if (obj->getInstrumentationId().isUndefined()) {
+    obj->setReservedSlot(INSTRUMENTATION_ID_SLOT, args.get(0));
+  } else if (obj->getInstrumentationId() != args.get(0)) {
+    JS_ReportErrorASCII(cx, "Script instrumentation ID mismatch");
+    return false;
+  }
 
   args.rval().setUndefined();
   return true;
