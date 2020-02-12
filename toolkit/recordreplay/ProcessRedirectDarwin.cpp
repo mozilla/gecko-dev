@@ -1559,25 +1559,12 @@ static void EX_objc_msgSend(ExternalCallContext& aCx) {
       if (info.mExternalCall && !aCx.mFailed) {
         info.mExternalCall(aCx);
       }
-      if (aCx.mFailed && HasDivergedFromRecording()) {
-        PrintSpew("Middleman message failure: %s\n", message);
-        if (!child::UnhandledDivergenceAllowed()) {
-          child::ReportFatalError("Middleman message failure: %s\n", message);
-        }
-      }
       return;
     }
   }
 
   if (aCx.mPhase == ExternalCallPhase::SaveInput) {
-    aCx.MarkAsFailed();
-    if (HasDivergedFromRecording()) {
-      PrintSpew("Middleman message failure: %s\n", message);
-      if (!child::UnhandledDivergenceAllowed()) {
-        child::ReportFatalError("Could not perform middleman message: %s\n",
-                                message);
-      }
-    }
+    aCx.MarkAsFailed(/* aCantSaveOutput */ true);
   }
 }
 
@@ -1851,7 +1838,10 @@ static void EX_CGBitmapContextCreateWithData(ExternalCallContext& aCx) {
     releaseInfo = nullptr;
   }
 
-  if (aCx.AccessOutput()) {
+  if (aCx.AccessOutput() ||
+      (aCx.mPhase == ExternalCallPhase::SaveInput &&
+       aCx.mFailed &&
+       !HasDivergedFromRecording())) {
     gContextData.emplaceBack(rval, data, height * bytesPerRow);
   }
 }

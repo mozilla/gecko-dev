@@ -146,10 +146,15 @@ struct ExternalCallContext {
   ExternalCallPhase mPhase;
 
   // During the SaveInput phase, whether capturing input data has failed.
-  // In such cases the call cannot be placed in the external call graph and,
-  // if the thread has diverged from the recording, an unhandled divergence
-  // will occur.
+  // In such cases the call cannot be placed in the external call graph.
   bool mFailed = false;
+
+  // If mFailed is set during the SaveInput phase and the thread has diverged
+  // from the recording, this describes how to handle the call's outputs.
+  // If this is false then dummy outputs will be used, as if the output was
+  // unavailable. If this is true then an unhandled recording divergence will
+  // occur.
+  bool mCantSaveOutput = false;
 
   // This can be set in the RestoreInput phase to avoid executing the call
   // in the external process.
@@ -194,9 +199,12 @@ struct ExternalCallContext {
     }
   }
 
-  void MarkAsFailed() {
+  void MarkAsFailed(bool aCantSaveOutput = false) {
     MOZ_RELEASE_ASSERT(mPhase == ExternalCallPhase::SaveInput);
     mFailed = true;
+    if (aCantSaveOutput) {
+      mCantSaveOutput = true;
+    }
   }
 
   void WriteInputBytes(const void* aBuffer, size_t aSize) {

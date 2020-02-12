@@ -109,13 +109,23 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
     ExternalCallContext cx(call, aArguments,
                            ExternalCallPhase::SaveInput);
     redirection.mExternalCall(cx);
+
     if (cx.mFailed) {
-      delete call;
-      if (!child::UnhandledDivergenceAllowed() && aDiverged) {
-        child::ReportFatalError("External call input failed: %s\n",
-                                redirection.mName);
+      // We weren't able to capture the call's inputs, so we can't compute its ID.
+      if (aDiverged) {
+        // Use dummy outputs for the call if possible.
+        Print("ExternalCall CantSaveInput: %s %s\n", redirection.mName, messageName);
+        if (cx.mCantSaveOutput) {
+          delete call;
+          return false;
+        }
+        call->mOutputUnavailable = true;
+        ExternalCallContext ncx(call, aArguments,
+                                ExternalCallPhase::RestoreOutput);
+        redirection.mExternalCall(ncx);
+        delete call;
       }
-      return false;
+      return true;
     }
   }
 

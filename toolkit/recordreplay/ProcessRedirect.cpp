@@ -88,22 +88,15 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
     }
 
     // If the redirection has an external call hook, try to get its result
-    // from another process.
+    // from another process or from call information stored in the recording.
     if (redirection.mExternalCall) {
       if (OnExternalCall(aCallId, aArguments, /* aPopulateOutput = */ true)) {
         return 0;
       }
     }
 
-    if (!child::UnhandledDivergenceAllowed()) {
-      // EnsureNotDivergedFromRecording is going to force us to crash, so fail
-      // earlier with a more helpful error message.
-      child::ReportFatalError("Could not perform external call: %s\n",
-                              redirection.mName);
-    }
-
-    // Calling any redirection which performs the standard steps will cause
-    // debugger operations that have diverged from the recording to fail.
+    // Without an external call hook we can't handle this call, and have an
+    // unhandled recording divergence.
     EnsureNotDivergedFromRecording(Some(aCallId));
     Unreachable();
   }
