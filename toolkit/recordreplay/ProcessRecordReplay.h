@@ -7,6 +7,7 @@
 #ifndef mozilla_recordreplay_ProcessRecordReplay_h
 #define mozilla_recordreplay_ProcessRecordReplay_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/RecordReplay.h"
 #include "nsString.h"
@@ -202,15 +203,17 @@ void InternalPrint(const char* aFormat, va_list aArgs);
 // process. Spew is only printed when enabled via the RECORD_REPLAY_SPEW
 // environment variable.
 MOZ_MakeRecordReplayPrinter(Print, false)
-    MOZ_MakeRecordReplayPrinter(PrintSpew, true)
+MOZ_MakeRecordReplayPrinter(PrintSpew, true)
 
 #undef MOZ_MakeRecordReplayPrinter
 
-    // Get the ID of the process that produced the recording.
-    int GetRecordingPid();
+// Get the ID of the process that produced the recording.
+int GetRecordingPid();
 
 // Update the current pid after a fork.
 void ResetPid();
+
+typedef Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> AtomicBool;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Profiling

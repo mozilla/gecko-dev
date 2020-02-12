@@ -294,7 +294,7 @@ void SpawnReplayingChild(size_t aChannelId) {
 
 static bool gChromeRegistered;
 
-Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> gLoggingEnabled;
+AtomicBool gLoggingEnabled;
 
 void ChromeRegistered() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());

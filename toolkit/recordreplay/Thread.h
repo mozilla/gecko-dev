@@ -101,8 +101,7 @@ class Thread {
 
   // Whether this thread should diverge from the recording at the next
   // opportunity. This can be set from any thread.
-  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve>
-      mShouldDivergeFromRecording;
+  AtomicBool mShouldDivergeFromRecording;
 
   // Start routine and argument which the thread is currently executing. This
   // is cleared after the routine finishes and another start routine may be
@@ -136,10 +135,10 @@ class Thread {
   FileHandle mNotifyfd;
 
   // Whether the thread should attempt to idle.
-  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> mShouldIdle;
+  AtomicBool mShouldIdle;
 
   // Whether the thread is waiting on idlefd.
-  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> mIdle;
+  AtomicBool mIdle;
 
   // While the thread is idling, whether to release or acquire its owned locks.
   Atomic<OwnedLockState, SequentiallyConsistent, Behavior::DontPreserve>

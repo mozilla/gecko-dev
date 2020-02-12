@@ -83,8 +83,8 @@ void SendExternalCallOutput(ExternalCallId aId,
 // and serialize it in aData.
 bool Repaint(nsACString& aData);
 
-// Mark this process as having forked from its parent.
-void RegisterFork(size_t aForkId);
+// Fork this process and assign a new fork ID to the new process.
+void PerformFork(size_t aForkId);
 
 // Send new recording data from a recording process to the middleman.
 void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize);

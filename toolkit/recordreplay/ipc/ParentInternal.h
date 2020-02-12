@@ -60,7 +60,7 @@ extern bool gActiveChildIsRecording;
 
 // Whether logging has been enabled in this process.
 // This is used in both the middleman and child processes.
-extern Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> gLoggingEnabled;
+extern AtomicBool gLoggingEnabled;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics

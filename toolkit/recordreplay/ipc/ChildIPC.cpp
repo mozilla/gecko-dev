@@ -92,8 +92,15 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 
+// Lock which allows non-main threads to prevent forks. Readers are the threads
+// preventing forks from happening, while the writer is the main thread during
+// a fork.
+static ReadWriteSpinLock gForkLock;
+
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
+  AutoReadSpinLock disallowFork(gForkLock);
+
   if (aMsg->mForkId != gForkId) {
     MOZ_RELEASE_ASSERT(!gForkId);
     HandleMessageToForkedProcess(std::move(aMsg));
@@ -382,6 +389,8 @@ static void ForkListenerThread(void*) {
     int nbytes = read(gForkReadFd, &process, sizeof(process));
     MOZ_RELEASE_ASSERT(nbytes == sizeof(process));
 
+    AutoReadSpinLock disallowFork(gForkLock);
+
     process.mChannel = new Channel(0, Channel::Kind::ReplayRoot,
                                    HandleMessageFromForkedProcess,
                                    process.mPid);
@@ -492,7 +501,20 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
 
 static const size_t ForkTimeoutSeconds = 10;
 
-void RegisterFork(size_t aForkId) {
+void PerformFork(size_t aForkId) {
+  gForkLock.WriteLock();
+
+  if (ForkProcess()) {
+    // This is the original process.
+    gForkLock.WriteUnlock();
+    return;
+  }
+
+  // We need to reset the fork lock, but its internal spin lock might be held by
+  // a thread which no longer exists. Reset the lock instead of unlocking it
+  // to avoid deadlocking in this case.
+  PodZero(&gForkLock);
+
   AutoPassThroughThreadEvents pt;
 
   // Any pending manifests we have are for the original process. We can start

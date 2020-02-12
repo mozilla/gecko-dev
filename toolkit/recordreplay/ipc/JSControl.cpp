@@ -794,9 +794,7 @@ static bool RecordReplay_Fork(JSContext* aCx, unsigned aArgc, Value* aVp) {
   }
 
   size_t id = args.get(0).toNumber();
-  if (!ForkProcess()) {
-    child::RegisterFork(id);
-  }
+  child::PerformFork(id);
 
   args.rval().setUndefined();
   return true;

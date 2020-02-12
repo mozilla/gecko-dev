@@ -30,7 +30,7 @@ class SpinLock {
   inline void Unlock();
 
  private:
-  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> mLocked;
+  AtomicBool mLocked;
 };
 
 // A basic read/write spin lock. This lock permits either multiple readers and
