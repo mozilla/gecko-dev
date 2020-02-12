@@ -106,6 +106,9 @@ function sameLocation(m1, m2) {
 }
 
 function getMessageLocation(message) {
+  if (!message.frame) {
+    return null;
+  }
   const {
     frame: { source, line, column },
   } = message;
@@ -393,7 +396,10 @@ class WebReplayPlayer extends Component {
 
   async previewLocation(closestMessage) {
     const dbg = await this.toolbox.loadTool("jsdebugger");
-    dbg.previewPausedLocation(getMessageLocation(closestMessage));
+    const location = getMessageLocation(closestMessage);
+    if (location) {
+      dbg.previewPausedLocation(location);
+    }
   }
 
   async clearPreviewLocation() {
