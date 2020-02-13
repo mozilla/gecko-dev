@@ -31,14 +31,34 @@ void InitializeRewindState() {
   gMainThreadCallbackMonitor = new Monitor();
 }
 
+static mozilla::TimeStamp gLastCheckpointTime;
+
 void NewCheckpoint() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
   gLastCheckpoint++;
+  gLastCheckpointTime = TimeStamp::Now();
 
   js::HitCheckpoint(gLastCheckpoint);
+}
+
+// Normally we only create checkpoints when painting or instructed to
+// by the middleman. If this much time has elapsed then we will create
+// checkpoints at the top of the main thread's message loop.
+static const size_t CheckpointThresholdMs = 200;
+
+void MaybeCreateCheckpoint() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
+  MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
+
+  if (gLastCheckpointTime &&
+      (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds() > CheckpointThresholdMs &&
+      js::CanCreateCheckpoint()) {
+    NewCheckpoint();
+  }
 }
 
 static bool gUnhandledDivergeAllowed;

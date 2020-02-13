@@ -85,6 +85,12 @@ void MessagePump::Run(MessagePump::Delegate* aDelegate) {
   for (;;) {
     autoReleasePool.Recycle();
 
+    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+        !mozilla::recordreplay::HasDivergedFromRecording() &&
+        NS_IsMainThread()) {
+      mozilla::recordreplay::MaybeCreateCheckpoint();
+    }
+
     bool did_work = NS_ProcessNextEvent(thisThread, false) ? true : false;
     if (!keep_running_) break;
 

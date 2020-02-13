@@ -18,6 +18,7 @@ class VsyncObserver;
 namespace recordreplay {
 
 void NewCheckpoint();
+void MaybeCreateCheckpoint();
 
 namespace child {
 

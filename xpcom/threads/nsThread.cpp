@@ -1443,6 +1443,10 @@ void nsThread::SetScriptObserver(
 void nsThread::DoMainThreadSpecificProcessing(bool aReallyWait) {
   MOZ_ASSERT(mIsMainThread);
 
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::MaybeCreateCheckpoint();
+  }
+
   ipc::CancelCPOWs();
 
   if (aReallyWait) {

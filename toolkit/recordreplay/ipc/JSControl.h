@@ -80,6 +80,9 @@ void OnCriticalError(const char* aWhy);
 // Called when running forward and a normal checkpoint was reached.
 void HitCheckpoint(size_t aCheckpoint);
 
+// Return whether creating a checkpoint now is allowed.
+bool CanCreateCheckpoint();
+
 // Called when a child crashes, returning whether the crash was recovered from.
 bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 

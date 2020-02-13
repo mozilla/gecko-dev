@@ -605,6 +605,21 @@ void HitCheckpoint(size_t aCheckpoint) {
   }
 }
 
+bool CanCreateCheckpoint() {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "CanCreateCheckpoint",
+                           JS::HandleValueArray::empty(), &rv)) {
+    MOZ_CRASH("CanCreateCheckpoint");
+  }
+
+  return ToBoolean(rv);
+}
+
 static ProgressCounter gProgressCounter;
 
 extern "C" {
