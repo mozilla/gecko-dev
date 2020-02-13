@@ -190,12 +190,13 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     case MessageType::RecordingData: {
       MonitorAutoLock lock(*gMonitor);
       const RecordingDataMessage& nmsg = (const RecordingDataMessage&)*aMsg;
-      if (nmsg.mTag != gRecordingContents.length()) {
-        Print("Expected recording data starting at %lu, got %lu, crashing...\n",
-              gRecordingContents.length(), nmsg.mTag);
-        MOZ_CRASH("ChannelMessageHandler RecordingData");
+      MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
+      size_t extent = nmsg.mTag + nmsg.BinaryDataSize();
+      if (extent > gRecordingContents.length()) {
+        size_t nbytes = extent - gRecordingContents.length();
+        gRecordingContents.append(nmsg.BinaryData() + nmsg.BinaryDataSize() - nbytes,
+                                  nbytes);
       }
-      gRecordingContents.append(nmsg.BinaryData(), nmsg.BinaryDataSize());
       gMonitor->NotifyAll();
       break;
     }
