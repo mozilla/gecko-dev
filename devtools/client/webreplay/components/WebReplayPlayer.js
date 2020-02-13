@@ -115,6 +115,17 @@ function getMessageLocation(message) {
   return { sourceUrl: source, line, column };
 }
 
+function similarProgress(p1, p2) {
+  // Status updates are ignored if they are sufficiently similar to the last one.
+  // We don't want to keep reflowing the timeline if there are continuous
+  // miniscule changes on the page, as can happen while recording.
+  return Math.abs(p1 - p2) / p1 < 0.001;
+}
+
+function similarExecutionPoint(p1, p2) {
+  return !!p1 == !!p2 && (!p1 || similarProgress(p1.progress, p2.progress));
+}
+
 /*
  *
  * The player has 4 valid states
@@ -273,6 +284,10 @@ class WebReplayPlayer extends Component {
   }
 
   onStatusUpdate({ status }) {
+    if (this.state.seeking || this.ignoreStatusUpdate(status)) {
+      return;
+    }
+
     const {
       recording,
       executionPoint,
@@ -281,10 +296,6 @@ class WebReplayPlayer extends Component {
       cachedPoints,
     } = status;
     log(`progress: ${recording ? "rec" : "play"} ${executionPoint.progress}`);
-
-    if (this.state.seeking) {
-      return;
-    }
 
     const newState = {
       recording,
@@ -299,6 +310,32 @@ class WebReplayPlayer extends Component {
     }
 
     this.setState(newState);
+  }
+
+  ignoreStatusUpdate(status) {
+    if (
+      status.recording != this.state.recording ||
+      !similarExecutionPoint(status.executionPoint, this.state.executionPoint) ||
+      !similarExecutionPoint(status.recordingEndpoint, this.state.recordingEndpoint) ||
+      status.unscannedRegions.length != this.state.unscannedRegions.length ||
+      status.cachedPoints.length != this.state.cachedPoints.length
+    ) {
+      return false;
+    }
+
+    for (let i = 0; i < status.unscannedRegions.length; i++) {
+      const newRegion = status.unscannedRegions[i];
+      const oldRegion = this.state.unscannedRegions[i];
+      if (
+        !similarProgress(newRegion.start, oldRegion.start) ||
+        !similarProgress(newRegion.end, oldRegion.end) ||
+        newRegion.traversed != oldRegion.traversed
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   onConsoleUpdate(consoleState) {
