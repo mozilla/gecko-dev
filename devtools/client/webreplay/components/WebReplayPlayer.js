@@ -497,13 +497,17 @@ class WebReplayPlayer extends Component {
   }
 
   onProgressBarClick(e) {
-    if (!e.altKey) {
-      return;
+    if (e.altKey) {
+      const direction = e.shiftKey ? "end" : "start";
+      const position = this.getMousePosition(e);
+      this.setTimelinePosition({ position, direction });
+    } else {
+      const { hoverPoint } = this.state;
+      if (hoverPoint) {
+        this.setState({ seeking: true });
+        this.threadFront.timeWarp(hoverPoint);
+      }
     }
-
-    const direction = e.shiftKey ? "end" : "start";
-    const position = this.getMousePosition(e);
-    this.setTimelinePosition({ position, direction });
   }
 
   onProgressBarMouseOver(e) {

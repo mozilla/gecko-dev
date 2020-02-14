@@ -455,13 +455,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       !this._parent.window.isChromeWindow &&
       this.pauseOverlay
     ) {
-      const reason = this._priorPause.why.type;
-
       // Do not show the pause overlay when scanning
       if (this.dbg.replaying) {
         return;
       }
 
+      const reason = this._priorPause.why.type;
       this.pauseOverlay.show(null, { reason });
     }
   },
