@@ -1039,11 +1039,35 @@ static PreambleResult Preamble__tlv_bootstrap(CallArguments* aArguments) {
 
 static void* FindRedirectionBinding(const char* aName);
 
+// Dynamic libraries which can be loaded at runtime.
+static const char* gAllowedDynamicLibraries[] = {
+  "liblgpllibs.dylib",
+  "libmozglue.dylib",
+  "libnss3.dylib",
+  "libsoftokn3.dylib",
+  "libfreebl3.dylib",
+};
+
+static bool DynamicLibraryAllowed(const char* aName) {
+  for (const char* library : gAllowedDynamicLibraries) {
+    if (strstr(aName, library)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static PreambleResult Preamble_dlopen(CallArguments* aArguments) {
   if (!AreThreadEventsPassedThrough()) {
     auto name = aArguments->Arg<0, const char*>();
     if (name) {
       AutoPassThroughThreadEvents pt;
+
+      if (!DynamicLibraryAllowed(name)) {
+        Print("Warning: Not loading image %s\n", name);
+        aArguments->Rval<void*>() = nullptr;
+        return PreambleResult::Veto;
+      }
 
       static void* fnptr = OriginalFunction("dlopen");
       RecordReplayInvokeCall(fnptr, aArguments);
