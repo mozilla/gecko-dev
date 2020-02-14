@@ -64,6 +64,10 @@ void MaybeCreateCheckpoint() {
 
   if (gLastCheckpointTime &&
       (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds() > CheckpointThresholdMs &&
+      // Scan children assume that painting one checkpoint finishes before the
+      // next checkpoint is reached.
+      !child::PaintingInProgress() &&
+      // The replay JS can veto creating checkpoints.
       js::CanCreateCheckpoint()) {
     NewCheckpoint();
   }

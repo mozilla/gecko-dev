@@ -79,9 +79,13 @@ void SendExternalCallRequest(ExternalCallId aId,
 void SendExternalCallOutput(ExternalCallId aId,
                             const char* aOutputData, size_t aOutputSize);
 
-// Paint according to the current process state, then convert it to an image
-// and serialize it in aData.
-bool Repaint(nsACString& aData);
+// Store graphics data in aData. If aRepaint is set then the graphics will be
+// repainted according to the current state, otherwise the most recently painted
+// graphics will be returned.
+bool GetGraphics(bool aRepaint, nsACString& aData);
+
+// Return whether a non-main thread is performing a paint.
+bool PaintingInProgress();
 
 // Fork this process and assign a new fork ID to the new process.
 void PerformFork(size_t aForkId);

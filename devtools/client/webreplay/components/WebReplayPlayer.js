@@ -125,7 +125,7 @@ function executionPointTime({ checkpoint, progress, position }) {
   const info = gCheckpoints[checkpoint];
   if (!info) {
     // We might pause at a checkpoint before we've received its information.
-    return this.recordingEndTime();
+    return recordingEndTime();
   }
   if (!position || !gCheckpoints[checkpoint + 1]) {
     return info.time;
@@ -133,6 +133,9 @@ function executionPointTime({ checkpoint, progress, position }) {
   const startProgress = info.point.progress;
   const nextInfo = gCheckpoints[checkpoint + 1];
   const fraction = (progress - startProgress) / (nextInfo.point.progress - startProgress);
+  if (Number.isNaN(fraction)) {
+    return info.time;
+  }
   return info.time + fraction * (nextInfo.time - info.time);
 }
 
@@ -144,6 +147,19 @@ function similarPoints(p1, p2) {
   const time1 = executionPointTime(p1);
   const time2 = executionPointTime(p2);
   return Math.abs(time1 - time2) / recordingEndTime() < 0.001;
+}
+
+function binarySearch(start, end, callback) {
+  while (start + 1 < end) {
+    const mid = ((start + end) / 2) | 0;
+    const rv = callback(mid);
+    if (rv < 0) {
+      end = mid;
+    } else {
+      start = mid;
+    }
+  }
+  return start;
 }
 
 /*
@@ -490,23 +506,21 @@ class WebReplayPlayer extends Component {
   }
 
   onProgressBarMouseOver(e) {
+    const { start, end } = this.state;
     const mousePosition = this.getMousePosition(e);
+    const time = (start + mousePosition * (end - start)) * recordingEndTime();
 
-    const closestMessage = sortBy(this.state.messages, message =>
-      Math.abs(this.getVisiblePosition(message.executionPoint) - mousePosition)
-    ).filter(message => this.isCached(message))[0];
+    const checkpoint = binarySearch(1, gCheckpoints.length, checkpoint => {
+      return time - gCheckpoints[checkpoint].time;
+    });
 
-    if (!closestMessage) {
-      return;
-    }
-
-    this.showMessage(closestMessage);
+    this.threadFront.paint(gCheckpoints[checkpoint].point);
   }
 
   onPlayerMouseLeave() {
     this.unhighlightConsoleMessage();
     this.clearPreviewLocation();
-    return this.threadFront.paintCurrentPoint();
+    this.threadFront.paintCurrentPoint();
   }
 
   seek(executionPoint) {
@@ -794,7 +808,6 @@ class WebReplayPlayer extends Component {
             recording: recording,
             paused: !recording,
           }),
-          onMouseLeave: this.onPlayerMouseLeave,
         },
         div(
           {
@@ -809,6 +822,7 @@ class WebReplayPlayer extends Component {
               onClick: this.onProgressBarClick,
               onDoubleClick: () => this.setState({ start: 0, end: 1 }),
               onMouseOver: this.onProgressBarMouseOver,
+              onMouseLeave: this.onPlayerMouseLeave,
             },
             div({
               className: "progress",

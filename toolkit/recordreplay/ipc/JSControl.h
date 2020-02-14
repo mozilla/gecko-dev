@@ -86,6 +86,9 @@ bool CanCreateCheckpoint();
 // Called when a child crashes, returning whether the crash was recovered from.
 bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 
+// Called when painting the last checkpoint finishes.
+void PaintComplete();
+
 // Accessors for state which can be accessed from JS.
 
 // Mark a time span when the main thread is idle.

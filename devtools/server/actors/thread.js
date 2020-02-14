@@ -1163,12 +1163,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
   },
 
-  paint: function(point) {
-    //this.dbg.replayPaint(point);
+  paint(point) {
+    this.dbg.replayPaint(point);
   },
 
-  paintCurrentPoint: function() {
-    //this.dbg.replayPaintCurrentPoint();
+  paintCurrentPoint() {
+    this.dbg.replayPaintCurrentPoint();
   },
 
   replayTriggerCrash(when) {

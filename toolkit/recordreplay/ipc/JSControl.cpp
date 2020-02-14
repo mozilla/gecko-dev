@@ -266,6 +266,16 @@ void OnCriticalError(const char* aWhy) {
   }
 }
 
+void PaintComplete() {
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "PaintComplete", HandleValueArray::empty(), &rv)) {
+    MOZ_CRASH("PaintComplete");
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Middleman Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -1049,11 +1059,11 @@ static bool RecordReplay_GetContent(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool RecordReplay_Repaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static bool RecordReplay_GetGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   nsCString data;
-  if (!child::Repaint(data)) {
+  if (!child::GetGraphics(ToBoolean(args.get(0)), data)) {
     args.rval().setNull();
     return true;
   }
@@ -1604,7 +1614,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setRecordingSummary", RecordReplay_SetRecordingSummary, 1, 0),
     JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),
     JS_FN("getContent", RecordReplay_GetContent, 1, 0),
-    JS_FN("repaint", RecordReplay_Repaint, 0, 0),
+    JS_FN("getGraphics", RecordReplay_GetGraphics, 1, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),
     JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 1, 0),
     JS_FN("getFrameDepth", RecordReplay_GetFrameDepth, 0, 0),

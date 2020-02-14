@@ -909,6 +909,10 @@ static void PaintFromMainThread() {
     memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
     gChannel->SendMessage(PaintMessage(gPaintWidth, gPaintHeight));
   }
+
+  if (IsReplaying() && !HasDivergedFromRecording()) {
+    js::PaintComplete();
+  }
 }
 
 void NotifyPaintComplete() {
@@ -931,7 +935,7 @@ void NotifyPaintComplete() {
 // Whether we have repainted since diverging from the recording.
 static bool gDidRepaint;
 
-bool Repaint(nsACString& aData) {
+bool GetGraphics(bool aRepaint, nsACString& aData) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   EnsureNonMainThreadsAreSpawned();
@@ -941,8 +945,8 @@ bool Repaint(nsACString& aData) {
     return false;
   }
 
-  // Don't repaint while recording, just return the current graphics data.
-  if (IsReplaying()) {
+  if (aRepaint) {
+    MOZ_RELEASE_ASSERT(IsReplaying());
     MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
 
     // Ignore the request to repaint if we already triggered a repaint, in which
@@ -963,6 +967,10 @@ bool Repaint(nsACString& aData) {
         }
       }
     }
+  } else {
+    // We don't have a good way of making sure this assert passes when saving
+    // recording summaries.
+    MOZ_RELEASE_ASSERT(!gNumPendingMainThreadPaints);
   }
 
   if (!gDrawTargetBuffer) {
@@ -970,6 +978,11 @@ bool Repaint(nsACString& aData) {
   }
 
   return EncodeGraphics(aData);
+}
+
+bool PaintingInProgress() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  return gNumPendingMainThreadPaints != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
