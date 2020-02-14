@@ -22,7 +22,7 @@
     "eslint-plugin-react": "7.14.3",
     "eslint-plugin-spidermonkey-js": "file:tools/lint/eslint/eslint-plugin-spidermonkey-js",
     "prettier": "1.17.0",
-    "yarn": "1.21.1"
+    "yarn": "1.22.0"
   },
   "notes(private)": "We don't want to publish to npm, so this is marked as private",
   "private": true
