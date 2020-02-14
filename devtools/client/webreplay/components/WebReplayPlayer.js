@@ -759,8 +759,8 @@ class WebReplayPlayer extends Component {
   }
 
   renderHoverPoint() {
-    const { hoverPoint } = this.state;
-    if (!hoverPoint) {
+    const { hoverPoint, hoveredMessageOffset } = this.state;
+    if (!hoverPoint || hoveredMessageOffset) {
       return [];
     }
     const offset = this.getPixelOffset(hoverPoint);

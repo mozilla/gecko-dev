@@ -32,10 +32,13 @@ void InitializeRewindState() {
 }
 
 // Time when the first checkpoint was taken.
-static mozilla::TimeStamp gFirstCheckpointTime;
+static TimeStamp gFirstCheckpointTime;
 
 // Time when the last checkpoint was taken.
-static mozilla::TimeStamp gLastCheckpointTime;
+static TimeStamp gLastCheckpointTime;
+
+// Total time when the recording process was paused.
+static TimeDuration gPausedTime;
 
 void NewCheckpoint() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
@@ -49,7 +52,8 @@ void NewCheckpoint() {
     gFirstCheckpointTime = gLastCheckpointTime;
   }
 
-  js::HitCheckpoint(gLastCheckpoint, gLastCheckpointTime - gFirstCheckpointTime);
+  RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
+  js::HitCheckpoint(gLastCheckpoint, gLastCheckpointTime - gFirstCheckpointTime - gPausedTime);
 }
 
 // Normally we only create checkpoints when painting or instructed to
@@ -130,6 +134,7 @@ bool MainThreadShouldPause() { return gMainThreadShouldPause; }
 
 void PauseMainThreadAndServiceCallbacks() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
   AssertEventsAreNotPassedThrough();
 
   // Whether there is a PauseMainThreadAndServiceCallbacks frame on the stack.
@@ -139,6 +144,12 @@ void PauseMainThreadAndServiceCallbacks() {
     return;
   }
   gMainThreadIsPaused = true;
+
+  TimeStamp startTime;
+  if (IsRecording()) {
+    AutoPassThroughThreadEvents pt;
+    startTime = TimeStamp::Now();
+  }
 
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
@@ -164,6 +175,12 @@ void PauseMainThreadAndServiceCallbacks() {
 
   // If we diverge from the recording we can't resume normal execution.
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
+
+  if (IsRecording()) {
+    AutoPassThroughThreadEvents pt;
+    TimeStamp endTime = TimeStamp::Now();
+    gPausedTime += endTime - startTime;
+  }
 
   gMainThreadIsPaused = false;
 }
