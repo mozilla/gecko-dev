@@ -183,6 +183,7 @@ class WebReplayPlayer extends Component {
     this.state = {
       executionPoint: FirstCheckpointExecutionPoint,
       recordingEndpoint: FirstCheckpointExecutionPoint,
+      hoverPoint: null,
       seeking: false,
       recording: true,
       paused: false,
@@ -506,21 +507,39 @@ class WebReplayPlayer extends Component {
   }
 
   onProgressBarMouseOver(e) {
-    const { start, end } = this.state;
+    const { start, end, hoverPoint } = this.state;
     const mousePosition = this.getMousePosition(e);
     const time = (start + mousePosition * (end - start)) * recordingEndTime();
 
-    const checkpoint = binarySearch(1, gCheckpoints.length, checkpoint => {
+    let checkpoint = binarySearch(1, gCheckpoints.length, checkpoint => {
       return time - gCheckpoints[checkpoint].time;
     });
 
-    this.threadFront.paint(gCheckpoints[checkpoint].point);
+    // This gives us the most recent checkpoint, but use the next one instead
+    // if we are closer to it.
+    if (
+      checkpoint + 1 < gCheckpoints.length &&
+      Math.abs(time - gCheckpoints[checkpoint + 1].time) <
+      Math.abs(time - gCheckpoints[checkpoint].time)
+    ) {
+      checkpoint++;
+    }
+
+    const point = gCheckpoints[checkpoint].point;
+    if (!hoverPoint || !pointEquals(point, hoverPoint)) {
+      this.threadFront.paint(point);
+      this.setState({ hoverPoint: point });
+    }
   }
 
   onPlayerMouseLeave() {
     this.unhighlightConsoleMessage();
     this.clearPreviewLocation();
     this.threadFront.paintCurrentPoint();
+
+    if (this.state.hoverPoint) {
+      this.setState({ hoverPoint: null });
+    }
   }
 
   seek(executionPoint) {
@@ -735,6 +754,21 @@ class WebReplayPlayer extends Component {
     return messages.map((message, index) => this.renderMessage(message, index));
   }
 
+  renderHoverPoint() {
+    const { hoverPoint } = this.state;
+    if (!hoverPoint) {
+      return [];
+    }
+    const offset = this.getPixelOffset(hoverPoint);
+    return [dom.span({
+      className: classname("hoverPoint"),
+      style: {
+        left: `${Math.max(offset - markerWidth / 2, 0)}px`,
+        zIndex: 1000,
+      },
+    })];
+  }
+
   renderTicks() {
     const tickSize = this.getTickSize();
     const ticks = Math.round(this.overlayWidth / tickSize);
@@ -837,6 +871,7 @@ class WebReplayPlayer extends Component {
               style: { left: `${percent}%`, width: `${100 - percent}%` },
             }),
             ...this.renderMessages(),
+            ...this.renderHoverPoint(),
             ...this.renderTicks(),
             ...this.renderUnscannedRegions()
           )
