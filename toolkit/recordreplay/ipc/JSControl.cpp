@@ -590,7 +590,7 @@ void ManifestStart(const CharBuffer& aContents) {
   DisallowUnhandledDivergeFromRecording();
 }
 
-void HitCheckpoint(size_t aCheckpoint) {
+void HitCheckpoint(size_t aCheckpoint, TimeDuration aTime) {
   EnsureInitialized();
 
   AutoDisallowThreadEvents disallow;
@@ -598,8 +598,9 @@ void HitCheckpoint(size_t aCheckpoint) {
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
   RootedValue rv(cx);
-  RootedValue arg(cx, Int32Value(aCheckpoint));
-  HandleValueArray args(arg);
+  JS::AutoValueArray<2> args(cx);
+  args[0].setInt32(aCheckpoint);
+  args[1].setInt32(aTime.ToMilliseconds());
   if (!JS_CallFunctionName(cx, *gModuleObject, "HitCheckpoint", args, &rv)) {
     MOZ_CRASH("HitCheckpoint");
   }

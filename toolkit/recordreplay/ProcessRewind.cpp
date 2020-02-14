@@ -31,6 +31,10 @@ void InitializeRewindState() {
   gMainThreadCallbackMonitor = new Monitor();
 }
 
+// Time when the first checkpoint was taken.
+static mozilla::TimeStamp gFirstCheckpointTime;
+
+// Time when the last checkpoint was taken.
 static mozilla::TimeStamp gLastCheckpointTime;
 
 void NewCheckpoint() {
@@ -41,7 +45,11 @@ void NewCheckpoint() {
   gLastCheckpoint++;
   gLastCheckpointTime = TimeStamp::Now();
 
-  js::HitCheckpoint(gLastCheckpoint);
+  if (gLastCheckpoint == FirstCheckpointId) {
+    gFirstCheckpointTime = gLastCheckpointTime;
+  }
+
+  js::HitCheckpoint(gLastCheckpoint, gLastCheckpointTime - gFirstCheckpointTime);
 }
 
 // Normally we only create checkpoints when painting or instructed to

@@ -78,7 +78,7 @@ void OnCriticalError(const char* aWhy);
 // call methods defined by the JS sandbox.
 
 // Called when running forward and a normal checkpoint was reached.
-void HitCheckpoint(size_t aCheckpoint);
+void HitCheckpoint(size_t aCheckpoint, TimeDuration aTime);
 
 // Return whether creating a checkpoint now is allowed.
 bool CanCreateCheckpoint();

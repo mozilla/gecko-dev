@@ -115,15 +115,35 @@ function getMessageLocation(message) {
   return { sourceUrl: source, line, column };
 }
 
-function similarProgress(p1, p2) {
-  // Status updates are ignored if they are sufficiently similar to the last one.
-  // We don't want to keep reflowing the timeline if there are continuous
-  // miniscule changes on the page, as can happen while recording.
-  return Math.abs(p1 - p2) / p1 < 0.001;
+const FirstCheckpointExecutionPoint = { checkpoint: 1, progress: 0 };
+
+// Information about the progress and time at each checkpoint. This only grows,
+// and is not part of the reducer store so we can update it without rerendering.
+const gCheckpoints = [{ point: FirstCheckpointExecutionPoint, time: 0 }];
+
+function executionPointTime({ checkpoint, progress, position }) {
+  const info = gCheckpoints[checkpoint];
+  if (!info) {
+    // We might pause at a checkpoint before we've received its information.
+    return this.recordingEndTime();
+  }
+  if (!position || !gCheckpoints[checkpoint + 1]) {
+    return info.time;
+  }
+  const startProgress = info.point.progress;
+  const nextInfo = gCheckpoints[checkpoint + 1];
+  const fraction = (progress - startProgress) / (nextInfo.point.progress - startProgress);
+  return info.time + fraction * (nextInfo.time - info.time);
 }
 
-function similarExecutionPoint(p1, p2) {
-  return !!p1 == !!p2 && (!p1 || similarProgress(p1.progress, p2.progress));
+function recordingEndTime() {
+  return gCheckpoints[gCheckpoints.length - 1].time;
+}
+
+function similarPoints(p1, p2) {
+  const time1 = executionPointTime(p1);
+  const time2 = executionPointTime(p2);
+  return Math.abs(time1 - time2) / recordingEndTime() < 0.001;
 }
 
 /*
@@ -145,8 +165,8 @@ class WebReplayPlayer extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      executionPoint: null,
-      recordingEndpoint: null,
+      executionPoint: FirstCheckpointExecutionPoint,
+      recordingEndpoint: FirstCheckpointExecutionPoint,
       seeking: false,
       recording: true,
       paused: false,
@@ -210,7 +230,7 @@ class WebReplayPlayer extends Component {
     if (!message.executionPoint) {
       return false;
     }
-    return this.state.cachedPoints.includes(message.executionPoint.progress);
+    return this.state.cachedPoints.some(p => pointEquals(p, message.executionPoint));
   }
 
   isRecording() {
@@ -288,38 +308,62 @@ class WebReplayPlayer extends Component {
   }
 
   onStatusUpdate({ status }) {
-    if (this.state.seeking || this.ignoreStatusUpdate(status)) {
-      return;
-    }
-
     const {
       recording,
+      checkpoints,
       executionPoint,
-      recordingEndpoint,
       unscannedRegions,
       cachedPoints,
     } = status;
 
     const newState = {};
 
-    if (recording !== undefined) {
+    if (recording !== undefined && recording != this.state.recording) {
       newState.recording = recording;
+    }
+
+    if (checkpoints !== undefined) {
+      for (const { point, time } of checkpoints) {
+        gCheckpoints[point.checkpoint] = { point, time };
+      }
+
+      const recordingEndpoint = checkpoints[checkpoints.length - 1].point;
+      if (!similarPoints(recordingEndpoint, this.state.recordingEndpoint)) {
+        this.state.recordingEndpoint = recordingEndpoint;
+      }
     }
 
     if (executionPoint !== undefined) {
       newState.executionPoint = executionPoint;
     }
 
-    if (recordingEndpoint !== undefined) {
-      newState.recordingEndpoint = recordingEndpoint;
-    }
-
     if (unscannedRegions !== undefined) {
-      newState.unscannedRegions = unscannedRegions;
+      let similar = unscannedRegions.length == this.state.unscannedRegions.length;
+      if (similar) {
+        for (let i = 0; i < unscannedRegions.length; i++) {
+          const newRegion = unscannedRegions[i];
+          const oldRegion = this.state.unscannedRegions[i];
+          if (
+            !similarPoints(newRegion.start, oldRegion.start) ||
+            !similarPoints(newRegion.end, oldRegion.end) ||
+            newRegion.traversed != oldRegion.traversed
+          ) {
+            similar = false;
+            break;
+          }
+        }
+      }
+
+      if (!similar) {
+        newState.unscannedRegions = unscannedRegions;
+      }
     }
 
     if (cachedPoints !== undefined) {
-      newState.cachedPoints.push(...cachedPoints);
+      newState.cachedPoints = [
+        ...this.state.cachedPoints,
+        ...cachedPoints,
+      ];
     }
 
     if (recording) {
@@ -327,32 +371,6 @@ class WebReplayPlayer extends Component {
     }
 
     this.setState(newState);
-  }
-
-  ignoreStatusUpdate(status) {
-    if (
-      status.recording != this.state.recording ||
-      !similarExecutionPoint(status.executionPoint, this.state.executionPoint) ||
-      !similarExecutionPoint(status.recordingEndpoint, this.state.recordingEndpoint) ||
-      status.unscannedRegions.length != this.state.unscannedRegions.length ||
-      status.cachedPoints.length != this.state.cachedPoints.length
-    ) {
-      return false;
-    }
-
-    for (let i = 0; i < status.unscannedRegions.length; i++) {
-      const newRegion = status.unscannedRegions[i];
-      const oldRegion = this.state.unscannedRegions[i];
-      if (
-        !similarProgress(newRegion.start, oldRegion.start) ||
-        !similarProgress(newRegion.end, oldRegion.end) ||
-        newRegion.traversed != oldRegion.traversed
-      ) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   onConsoleUpdate(consoleState) {
@@ -472,10 +490,10 @@ class WebReplayPlayer extends Component {
   }
 
   onProgressBarMouseOver(e) {
-    const mousePosition = this.getMousePosition(e) * 100;
+    const mousePosition = this.getMousePosition(e);
 
     const closestMessage = sortBy(this.state.messages, message =>
-      Math.abs(this.getVisiblePercent(message.executionPoint) - mousePosition)
+      Math.abs(this.getVisiblePosition(message.executionPoint) - mousePosition)
     ).filter(message => this.isCached(message))[0];
 
     if (!closestMessage) {
@@ -593,48 +611,39 @@ class WebReplayPlayer extends Component {
   }
 
   // calculate pixel distance from two points
-  getDistanceFrom(to, from) {
-    const toPercent = this.getPercent(to);
-    const fromPercent = this.getPercent(from);
+  getPixelDistance(to, from) {
+    const toPos = this.getVisiblePosition(to);
+    const fromPos = this.getVisiblePosition(from);
 
-    return ((toPercent - fromPercent) * this.overlayWidth) / 100;
+    return (toPos - fromPos) * this.overlayWidth;
   }
 
-  getOffset(point) {
-    const percent = this.getPercent(point);
-    return (percent * this.overlayWidth) / 100;
-  }
-
-  getPercent(executionPoint) {
-    const { recordingEndpoint } = this.state;
-
-    if (!recordingEndpoint) {
-      return 100;
-    }
+  // Get the position of an execution point on the visible part of the timeline,
+  // in the range [0, 1].
+  getVisiblePosition(executionPoint) {
+    const { start, end } = this.state;
 
     if (!executionPoint) {
       return 0;
     }
 
-    const ratio = executionPoint.progress / recordingEndpoint.progress;
-    return ratio * 100;
-  }
+    const time = executionPointTime(executionPoint);
+    const position = time / recordingEndTime();
 
-  getVisiblePercent(executionPoint) {
-    const { start, end } = this.state;
-
-    const position = this.getPercent(executionPoint) / 100;
-
-    if (position < start || position > end) {
-      return -1;
+    if (position < start) {
+      return 0;
     }
 
-    return ((position - start) / (end - start)) * 100;
+    if (position > end) {
+      return 1;
+    }
+
+    return (position - start) / (end - start);
   }
 
-  getVisibleOffset(point) {
-    const percent = this.getVisiblePercent(point);
-    return (percent * this.overlayWidth) / 100;
+  // Get the pixel offset for an execution point.
+  getPixelOffset(point) {
+    return this.getVisiblePosition(point) * this.overlayWidth;
   }
 
   renderMessage(message, index) {
@@ -645,7 +654,7 @@ class WebReplayPlayer extends Component {
       highlightedMessage,
     } = this.state;
 
-    const offset = this.getVisibleOffset(message.executionPoint);
+    const offset = this.getPixelOffset(message.executionPoint);
     const previousMessage = messages[index - 1];
 
     if (offset < 0) {
@@ -655,14 +664,14 @@ class WebReplayPlayer extends Component {
     // Check to see if two messages overlay each other on the timeline
     const isOverlayed =
       previousMessage &&
-      this.getDistanceFrom(
+      this.getPixelDistance(
         message.executionPoint,
         previousMessage.executionPoint
       ) < markerWidth;
 
     // Check to see if a message appears after the current execution point
     const isFuture =
-      this.getDistanceFrom(message.executionPoint, executionPoint) >
+      this.getPixelDistance(message.executionPoint, executionPoint) >
       markerWidth / 2;
 
     const isHighlighted = highlightedMessage == message.id;
@@ -721,7 +730,7 @@ class WebReplayPlayer extends Component {
   renderTick(index) {
     const { executionPoint, hoveredMessageOffset } = this.state;
     const tickSize = this.getTickSize();
-    const offset = Math.round(this.getOffset(executionPoint));
+    const offset = Math.round(this.getPixelOffset(executionPoint));
     const position = index * tickSize;
     const isFuture = position > offset;
     const shouldHighlight = hoveredMessageOffset > position;
@@ -745,10 +754,10 @@ class WebReplayPlayer extends Component {
   }
 
   renderUnscannedRegion({ start, end, traversed }) {
-    let startOffset = this.getVisibleOffset({ progress: start });
-    let endOffset = this.getVisibleOffset({ progress: end });
+    let startOffset = this.getPixelOffset(start);
+    let endOffset = this.getPixelOffset(end);
 
-    if (startOffset > this.overlayWidth || endOffset < 0) {
+    if (startOffset >= this.overlayWidth || endOffset <= 0) {
       return null;
     }
 
@@ -770,7 +779,8 @@ class WebReplayPlayer extends Component {
   }
 
   render() {
-    const percent = this.getVisiblePercent(this.state.executionPoint);
+    const percent = this.getVisiblePosition(this.state.executionPoint) * 100;
+
     const recording = this.isRecording();
     const { shouldAnimate } = this.state;
     return div(
