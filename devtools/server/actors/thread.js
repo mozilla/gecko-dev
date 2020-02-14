@@ -350,7 +350,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.dbg.onNewDebuggee = this._onNewDebuggee;
     if (this.dbg.replaying) {
       this.dbg.replayingOnForcedPause = this.replayingOnForcedPause.bind(this);
-      this.dbg.replayingOnStatusUpdate = this._makeReplayingOnStatusUpdate();
+      this.dbg.replayingOnStatusUpdate = this.replayingOnStatusUpdate.bind(this);
       this.dbg.replayingOnTimeWarpClient = this.replayingOnTimeWarpClient.bind(this);
     }
 
@@ -1569,6 +1569,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     });
   },
 
+  replayFetchStatus() {
+    this.dbg.replayFetchStatus();
+  },
+
   onFramePositions: function(positions, frame) {
     if (!positions || !frame) {
       return;
@@ -1909,12 +1913,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * in a way that affects the UI, such as switching between a recording and
    * replaying process or a change to the current execution point.
    */
-  _makeReplayingOnStatusUpdate() {
-    return throttle(status => {
-      if (this.attached) {
-        this.emit("replayStatusUpdate", { status });
-      }
-    }, 100);
+  replayingOnStatusUpdate(status) {
+    if (this.attached) {
+      this.emit("replayStatusUpdate", { status });
+    }
   },
 
   /**

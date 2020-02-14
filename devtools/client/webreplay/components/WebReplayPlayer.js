@@ -175,6 +175,10 @@ class WebReplayPlayer extends Component {
     this.threadFront.on("resumed", this.onResumed.bind(this));
     this.threadFront.on("replayStatusUpdate", this.onStatusUpdate.bind(this));
 
+    // Status updates normally only include deltas from the last status.
+    // This will cause an update to be emitted with the full status.
+    this.threadFront.replayFetchStatus();
+
     this.toolbox.getPanelWhenReady("webconsole").then(panel => {
       const consoleFrame = panel.hud.ui;
       consoleFrame.on("message-hover", this.onConsoleMessageHover.bind(this));
@@ -295,15 +299,28 @@ class WebReplayPlayer extends Component {
       unscannedRegions,
       cachedPoints,
     } = status;
-    log(`progress: ${recording ? "rec" : "play"} ${executionPoint.progress}`);
 
-    const newState = {
-      recording,
-      recordingEndpoint,
-      executionPoint,
-      unscannedRegions,
-      cachedPoints,
-    };
+    const newState = {};
+
+    if (recording !== undefined) {
+      newState.recording = recording;
+    }
+
+    if (executionPoint !== undefined) {
+      newState.executionPoint = executionPoint;
+    }
+
+    if (recordingEndpoint !== undefined) {
+      newState.recordingEndpoint = recordingEndpoint;
+    }
+
+    if (unscannedRegions !== undefined) {
+      newState.unscannedRegions = unscannedRegions;
+    }
+
+    if (cachedPoints !== undefined) {
+      newState.cachedPoints.push(...cachedPoints);
+    }
 
     if (recording) {
       newState.shouldAnimate = true;

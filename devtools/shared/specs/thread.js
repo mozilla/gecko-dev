@@ -130,6 +130,8 @@ const threadSpec = generateActorSpec({
         index: Arg(0, "number"),
       },
     },
+    replayFetchStatus: {
+    },
     dumpThread: {
       request: {},
       response: RetVal("json"),
