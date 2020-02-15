@@ -94,7 +94,9 @@ static void InitGraphicsSandbox() {
 static void* gBufferMemory;
 
 static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
-                                  void* aData) {
+                                  void* aData,
+                                  int aCursorX = -1, int aCursorY = -1,
+                                  int aClickX = -1, int aClickY = -1) {
   // Make sure the width and height are appropriately sized.
   CheckedInt<size_t> scaledWidth = CheckedInt<size_t>(aWidth) * 4;
   CheckedInt<size_t> scaledHeight = CheckedInt<size_t>(aHeight) * aStride;
@@ -132,7 +134,8 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   JS::Rooted<JS::Value> buffer(cx, JS::ObjectValue(*bufferObject));
 
   // Call into the graphics module to update the canvas it manages.
-  if (NS_FAILED(gGraphics->UpdateCanvas(buffer, aWidth, aHeight))) {
+  if (NS_FAILED(gGraphics->UpdateCanvas(buffer, aWidth, aHeight,
+                                        aCursorX, aCursorY, aClickX, aClickY))) {
     MOZ_CRASH("UpdateMiddlemanCanvas");
   }
 
@@ -165,7 +168,9 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
   UpdateMiddlemanCanvas(aMsg.mWidth, aMsg.mHeight, stride, gGraphicsMemory);
 }
 
-void UpdateGraphicsAfterRepaint(const nsACString& aImageData) {
+void UpdateGraphicsAfterRepaint(const nsACString& aImageData,
+                                int aCursorX, int aCursorY,
+                                int aClickX, int aClickY) {
   if (!gGraphics) {
     InitGraphicsSandbox();
   }
@@ -184,7 +189,8 @@ void UpdateGraphicsAfterRepaint(const nsACString& aImageData) {
                                         gfx::DataSourceSurface::READ);
 
   UpdateMiddlemanCanvas(surface->GetSize().width, surface->GetSize().height,
-                        map.GetStride(), map.GetData());
+                        map.GetStride(), map.GetData(),
+                        aCursorX, aCursorY, aClickX, aClickY);
 }
 
 void RestoreMainGraphics() {

@@ -40,6 +40,14 @@ static TimeStamp gLastCheckpointTime;
 // Total time when the recording process was paused.
 static TimeDuration gPausedTime;
 
+TimeDuration CurrentRecordingTime() {
+  MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
+
+  // gPausedTime is not updated when replaying.
+  RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
+  return TimeStamp::Now() - gFirstCheckpointTime - gPausedTime;
+}
+
 void NewCheckpoint() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
@@ -53,7 +61,7 @@ void NewCheckpoint() {
   }
 
   RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
-  js::HitCheckpoint(gLastCheckpoint, gLastCheckpointTime - gFirstCheckpointTime - gPausedTime);
+  js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
 }
 
 // Normally we only create checkpoints when painting or instructed to

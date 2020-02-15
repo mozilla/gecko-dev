@@ -276,6 +276,31 @@ void PaintComplete() {
   }
 }
 
+void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY) {
+  if (!IsInitialized()) {
+    return;
+  }
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JSString* str = JS_AtomizeString(cx, aType);
+  if (!str) {
+    MOZ_CRASH("OnMouseEvent");
+  }
+
+  JS::AutoValueArray<4> args(cx);
+  args[0].setInt32(aTime.ToMilliseconds());
+  args[1].setString(str);
+  args[2].setInt32(aX);
+  args[3].setInt32(aY);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "OnMouseEvent", args, &rv)) {
+    MOZ_CRASH("OnMouseEvent");
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Middleman Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -381,7 +406,19 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
     return false;
   }
 
-  parent::UpdateGraphicsAfterRepaint(dataBinary);
+  int cursorX = -1, cursorY = -1;
+  if (args.get(1).isNumber() && args.get(2).isNumber()) {
+    cursorX = args.get(1).toNumber();
+    cursorY = args.get(2).toNumber();
+  }
+
+  int clickX = -1, clickY = -1;
+  if (args.get(3).isNumber() && args.get(4).isNumber()) {
+    clickX = args.get(3).toNumber();
+    clickY = args.get(4).toNumber();
+  }
+
+  parent::UpdateGraphicsAfterRepaint(dataBinary, cursorX, cursorY, clickX, clickY);
 
   args.rval().setUndefined();
   return true;
@@ -1580,7 +1617,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
-    JS_FN("hadRepaint", Middleman_HadRepaint, 1, 0),
+    JS_FN("hadRepaint", Middleman_HadRepaint, 5, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
     JS_FN("clearGraphics", Middleman_ClearGraphics, 0, 0),
     JS_FN("inRepaintStressMode", Middleman_InRepaintStressMode, 0, 0),

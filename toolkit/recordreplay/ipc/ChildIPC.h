@@ -14,11 +14,17 @@
 namespace mozilla {
 
 class VsyncObserver;
+class WidgetEvent;
+
+namespace dom { class BrowserChild; }
 
 namespace recordreplay {
 
 void NewCheckpoint();
 void MaybeCreateCheckpoint();
+
+// Notify the record/replay system about an event of interest.
+void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent);
 
 namespace child {
 

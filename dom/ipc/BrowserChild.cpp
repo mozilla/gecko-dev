@@ -1633,6 +1633,10 @@ void BrowserChild::FlushAllCoalescedMouseData() {
 mozilla::ipc::IPCResult BrowserChild::RecvRealMouseMoveEvent(
     const WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId) {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::OnWidgetEvent(this, aEvent);
+  }
+
   if (mCoalesceMouseMoveEvents && mCoalescedMouseEventFlusher) {
     CoalescedMouseData* data =
         mCoalescedMouseData.LookupOrAdd(aEvent.pointerId);
@@ -1689,6 +1693,10 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPrioritySynthMouseMoveEvent(
 mozilla::ipc::IPCResult BrowserChild::RecvRealMouseButtonEvent(
     const WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId) {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::OnWidgetEvent(this, aEvent);
+  }
+
   if (mCoalesceMouseMoveEvents && mCoalescedMouseEventFlusher &&
       aEvent.mMessage != eMouseMove) {
     // When receiving a mouse event other than mousemove, we have to dispatch

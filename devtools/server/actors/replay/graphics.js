@@ -43,7 +43,35 @@ function getCanvas(window) {
   return window.middlemanCanvas;
 }
 
-function updateWindowCanvas(window, buffer, width, height) {
+function drawCursor(cx, x, y) {
+  const scale = 3;
+  const path = new Path2D(`
+M ${x} ${y}
+V ${y+10*scale}
+L ${x+2*scale} ${y+8*scale}
+L ${x+4*scale} ${y+13*scale}
+L ${x+5.5*scale} ${y+12.6*scale}
+L ${x+3.5*scale} ${y+7.6*scale}
+L ${x+6.5*scale} ${y+7.8*scale}
+Z
+`);
+  cx.fillStyle = "black";
+  cx.fill(path);
+  cx.strokeStyle = "white";
+  cx.lineWidth = 1;
+  cx.stroke(path);
+}
+
+function drawClick(cx, x, y) {
+  cx.strokeStyle = "black";
+  cx.lineWidth = 3;
+  cx.beginPath();
+  cx.arc(x, y, 50, 0, 2 * Math.PI);
+  cx.stroke();
+}
+
+function updateWindowCanvas(window, buffer, width, height,
+                            cursorX, cursorY, clickX, clickY) {
   // Make sure the window has a canvas filling the screen.
   const canvas = getCanvas(window);
 
@@ -55,8 +83,10 @@ function updateWindowCanvas(window, buffer, width, height) {
   // transform the canvas to undo the scaling.
   const scale = window.devicePixelRatio;
   if (scale != 1) {
-    canvas.style.transform = `scale(${1 / scale}) translate(-${width /
-      scale}px, -${height / scale}px)`;
+    canvas.style.transform = `
+      scale(${1 / scale})
+      translate(-${width / scale}px, -${height / scale}px)
+    `;
   }
 
   const cx = canvas.getContext("2d");
@@ -65,6 +95,14 @@ function updateWindowCanvas(window, buffer, width, height) {
   const imageData = cx.getImageData(0, 0, width, height);
   imageData.data.set(graphicsData);
   cx.putImageData(imageData, 0, 0);
+
+  if (cursorX >= 0 && cursorY >= 0) {
+    drawCursor(cx, cursorX, cursorY);
+  }
+
+  if (clickX >= 0 && clickY >= 0) {
+    drawClick(cx, clickX, clickY);
+  }
 }
 
 function clearWindowCanvas(window) {
@@ -77,11 +115,13 @@ function clearWindowCanvas(window) {
 // Entry point for when we have some new graphics data from the child process
 // to draw.
 // eslint-disable-next-line no-unused-vars
-function UpdateCanvas(buffer, width, height) {
+function UpdateCanvas(buffer, width, height,
+                      cursorX, cursorY, clickX, clickY) {
   try {
     // Paint to all windows we can find. Hopefully there is only one.
     for (const window of Services.ww.getWindowEnumerator()) {
-      updateWindowCanvas(window, buffer, width, height);
+      updateWindowCanvas(window, buffer, width, height,
+                         cursorX, cursorY, clickX, clickY);
     }
   } catch (e) {
     dump(`Middleman Graphics UpdateCanvas Exception: ${e}\n`);

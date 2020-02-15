@@ -94,7 +94,9 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg);
 
 // Update the graphics painted in the UI process after a repaint happened in
 // some replaying child.
-void UpdateGraphicsAfterRepaint(const nsACString& imageData);
+void UpdateGraphicsAfterRepaint(const nsACString& imageData,
+                                int aCursorX, int aCursorY,
+                                int aClickX, int aClickY);
 
 // Restore the graphics last painted by the main child.
 void RestoreMainGraphics();

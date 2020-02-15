@@ -89,6 +89,9 @@ bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 // Called when painting the last checkpoint finishes.
 void PaintComplete();
 
+// Called when a mouse event occurs.
+void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY);
+
 // Accessors for state which can be accessed from JS.
 
 // Mark a time span when the main thread is idle.

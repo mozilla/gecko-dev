@@ -1064,5 +1064,13 @@ void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize) {
 }
 
 }  // namespace child
+
+void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent) {
+  if (aEvent.mClass == eMouseEventClass) {
+    js::OnMouseEvent(CurrentRecordingTime(), ToChar(aEvent.mMessage),
+                     aEvent.mRefPoint.x, aEvent.mRefPoint.y);
+  }
+}
+
 }  // namespace recordreplay
 }  // namespace mozilla

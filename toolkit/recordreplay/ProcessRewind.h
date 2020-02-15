@@ -8,6 +8,7 @@
 #define mozilla_recordreplay_ProcessRewind_h
 
 #include "mozilla/RecordReplay.h"
+#include "mozilla/TimeStamp.h"
 
 #include <functional>
 
@@ -113,6 +114,11 @@ void EnsureNotDivergedFromRecording(const Maybe<int>& aCallId);
 
 // Note a checkpoint at the current execution position.
 void NewCheckpoint();
+
+// Time since recording started, except for time spent paused. This is the basis
+// of time measurements for checkpoints etc. and is consistent between recording
+// and replaying.
+TimeDuration CurrentRecordingTime();
 
 }  // namespace recordreplay
 }  // namespace mozilla

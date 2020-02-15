@@ -15,6 +15,12 @@ ChromeUtils.defineModuleGetter(
   "resource://devtools/shared/execution-point-utils.js"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "pointPrecedes",
+  "resource://devtools/shared/execution-point-utils.js"
+);
+
 const { LocalizationHelper } = require("devtools/shared/l10n");
 const L10N = new LocalizationHelper(
   "devtools/client/locales/toolbox.properties"
@@ -121,22 +127,39 @@ const FirstCheckpointExecutionPoint = { checkpoint: 1, progress: 0 };
 // and is not part of the reducer store so we can update it without rerendering.
 const gCheckpoints = [{ point: FirstCheckpointExecutionPoint, time: 0 }];
 
-function executionPointTime({ checkpoint, progress, position }) {
-  const info = gCheckpoints[checkpoint];
-  if (!info) {
+function executionPointTime(point) {
+  let previousInfo = gCheckpoints[point.checkpoint];
+  if (!previousInfo) {
     // We might pause at a checkpoint before we've received its information.
     return recordingEndTime();
   }
-  if (!position || !gCheckpoints[checkpoint + 1]) {
-    return info.time;
+  if (!gCheckpoints[point.checkpoint + 1]) {
+    return previousInfo.time;
   }
-  const startProgress = info.point.progress;
-  const nextInfo = gCheckpoints[checkpoint + 1];
-  const fraction = (progress - startProgress) / (nextInfo.point.progress - startProgress);
+  let nextInfo = gCheckpoints[point.checkpoint + 1];
+
+  function newPoint(info) {
+    if (pointPrecedes(previousInfo.point, info.point) && !pointPrecedes(point, info.point)) {
+      previousInfo = info;
+    }
+    if (pointPrecedes(info.point, nextInfo.point) && pointPrecedes(point, info.point)) {
+      nextInfo = info;
+    }
+  }
+
+  gCheckpoints[point.checkpoint].widgetEvents.forEach(newPoint);
+
+  if (pointEquals(point, previousInfo.point)) {
+    return previousInfo.time;
+  }
+
+  const previousProgress = previousInfo.progress;
+  const nextProgress = nextInfo.progress;
+  const fraction = (point.progress - previousProgress) / (nextProgress - previousProgress);
   if (Number.isNaN(fraction)) {
-    return info.time;
+    return previousInfo.time;
   }
-  return info.time + fraction * (nextInfo.time - info.time);
+  return previousInfo.time + fraction * (nextInfo.time - previousInfo.time);
 }
 
 function recordingEndTime() {
@@ -197,12 +220,11 @@ class WebReplayPlayer extends Component {
       end: 1,
     };
 
-    this.lastPaint = null;
     this.hoveredMessage = null;
     this.overlayWidth = 1;
 
     this.onProgressBarClick = this.onProgressBarClick.bind(this);
-    this.onProgressBarMouseOver = this.onProgressBarMouseOver.bind(this);
+    this.onProgressBarMouseMove = this.onProgressBarMouseMove.bind(this);
     this.onPlayerMouseLeave = this.onPlayerMouseLeave.bind(this);
   }
 
@@ -293,13 +315,6 @@ class WebReplayPlayer extends Component {
     return (end - start) * clickPosition + start;
   }
 
-  paint(point) {
-    if (point && this.lastPaint !== point) {
-      this.lastPaint = point;
-      this.threadFront.paint(point);
-    }
-  }
-
   onPaused(packet) {
     if (packet) {
       const { executionPoint } = packet;
@@ -331,6 +346,7 @@ class WebReplayPlayer extends Component {
       executionPoint,
       unscannedRegions,
       cachedPoints,
+      widgetEvents,
     } = status;
 
     const newState = {};
@@ -341,12 +357,18 @@ class WebReplayPlayer extends Component {
 
     if (checkpoints !== undefined) {
       for (const { point, time } of checkpoints) {
-        gCheckpoints[point.checkpoint] = { point, time };
+        gCheckpoints[point.checkpoint] = { point, time, widgetEvents: [] };
       }
 
       const recordingEndpoint = checkpoints[checkpoints.length - 1].point;
       if (!similarPoints(recordingEndpoint, this.state.recordingEndpoint)) {
         this.state.recordingEndpoint = recordingEndpoint;
+      }
+    }
+
+    if (widgetEvents !== undefined) {
+      for (const event of widgetEvents) {
+        gCheckpoints[event.point.checkpoint].widgetEvents.push(event);
       }
     }
 
@@ -470,7 +492,6 @@ class WebReplayPlayer extends Component {
   showMessage(message) {
     this.highlightConsoleMessage(message);
     this.scrollToMessage(message);
-    this.paint(message.executionPoint);
   }
 
   onMessageMouseEnter(message, offset) {
@@ -481,6 +502,7 @@ class WebReplayPlayer extends Component {
 
   onMessageMouseLeave() {
     this.setState({ hoveredMessageOffset: null });
+    this.clearPreviewLocation();
   }
 
   async previewLocation(closestMessage) {
@@ -510,7 +532,7 @@ class WebReplayPlayer extends Component {
     }
   }
 
-  onProgressBarMouseOver(e) {
+  onProgressBarMouseMove(e) {
     const { start, end, hoverPoint } = this.state;
     const mousePosition = this.getMousePosition(e);
     const time = (start + mousePosition * (end - start)) * recordingEndTime();
@@ -519,20 +541,24 @@ class WebReplayPlayer extends Component {
       return time - gCheckpoints[checkpoint].time;
     });
 
-    // This gives us the most recent checkpoint, but use the next one instead
-    // if we are closer to it.
-    if (
-      checkpoint + 1 < gCheckpoints.length &&
-      Math.abs(time - gCheckpoints[checkpoint + 1].time) <
-      Math.abs(time - gCheckpoints[checkpoint].time)
-    ) {
-      checkpoint++;
+    let closestPoint = gCheckpoints[checkpoint].point;
+    let closestTime = gCheckpoints[checkpoint].time;
+
+    function newPoint(info) {
+      if (Math.abs(time - info.time) < Math.abs(time - closestTime)) {
+        closestPoint = info.point;
+        closestTime = info.time;
+      }
     }
 
-    const point = gCheckpoints[checkpoint].point;
-    if (!hoverPoint || !pointEquals(point, hoverPoint)) {
-      this.threadFront.paint(point);
-      this.setState({ hoverPoint: point });
+    gCheckpoints[checkpoint].widgetEvents.forEach(newPoint);
+    if (checkpoint + 1 < gCheckpoints.length) {
+      newPoint(gCheckpoints[checkpoint + 1]);
+    }
+
+    if (!hoverPoint || !pointEquals(closestPoint, hoverPoint)) {
+      this.threadFront.paint(closestPoint);
+      this.setState({ hoverPoint: closestPoint });
     }
   }
 
@@ -859,7 +885,7 @@ class WebReplayPlayer extends Component {
               className: "progressBar",
               onClick: this.onProgressBarClick,
               onDoubleClick: () => this.setState({ start: 0, end: 1 }),
-              onMouseOver: this.onProgressBarMouseOver,
+              onMouseMove: this.onProgressBarMouseMove,
               onMouseLeave: this.onPlayerMouseLeave,
             },
             div({
