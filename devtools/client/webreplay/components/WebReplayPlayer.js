@@ -609,9 +609,11 @@ class WebReplayPlayer extends Component {
       return null;
     }
 
+    const time = executionPointTime(point);
+
     const { widgetEvents } = gCheckpoints[point.checkpoint];
     for (const event of widgetEvents) {
-      if (pointPrecedes(point, event.point)) {
+      if (pointPrecedes(point, event.point) && event.time >= time + 100) {
         return event.point;
       }
     }
