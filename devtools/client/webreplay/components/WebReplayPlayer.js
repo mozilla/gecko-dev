@@ -121,7 +121,8 @@ function getMessageLocation(message) {
   return { sourceUrl: source, line, column };
 }
 
-const FirstCheckpointExecutionPoint = { checkpoint: 1, progress: 0 };
+const FirstCheckpointId = 1;
+const FirstCheckpointExecutionPoint = { checkpoint: FirstCheckpointId, progress: 0 };
 
 // Information about the progress and time at each checkpoint. This only grows,
 // and is not part of the reducer store so we can update it without rerendering.
@@ -210,6 +211,7 @@ class WebReplayPlayer extends Component {
       seeking: false,
       recording: true,
       paused: false,
+      replaying: null,
       messages: [],
       highlightedMessage: null,
       hoveredMessageOffset: null,
@@ -233,6 +235,7 @@ class WebReplayPlayer extends Component {
     this.threadFront.on("paused", this.onPaused.bind(this));
     this.threadFront.on("resumed", this.onResumed.bind(this));
     this.threadFront.on("replayStatusUpdate", this.onStatusUpdate.bind(this));
+    this.threadFront.on("replayPaintFinished", this.replayPaintFinished.bind(this));
 
     // Status updates normally only include deltas from the last status.
     // This will cause an update to be emitted with the full status.
@@ -274,10 +277,6 @@ class WebReplayPlayer extends Component {
 
   isRecording() {
     return !this.isPaused() && this.state.recording;
-  }
-
-  isReplaying() {
-    return !this.isPaused() && !this.state.recording;
   }
 
   isPaused() {
@@ -582,88 +581,98 @@ class WebReplayPlayer extends Component {
     return this.threadFront.timeWarp(executionPoint);
   }
 
-  next() {
-    if (!this.isPaused()) {
+  doPrevious() {
+    const point = this.state.executionPoint;
+
+    let checkpoint = point.checkpoint;
+    if (pointEquals(checkpoint, point)) {
+      if (checkpoint == FirstCheckpointId) {
+        return;
+      }
+      checkpoint--;
+    }
+
+    this.seek(gCheckpoints[checkpoint].point);
+  }
+
+  doNext() {
+    const point = this.state.executionPoint;
+    if (pointEquals(point, gCheckpoints[gCheckpoints.length - 1].point)) {
+      return;
+    }
+
+    this.seek(gCheckpoints[point.checkpoint + 1].point);
+  }
+
+  nextReplayingPoint(point) {
+    if (pointEquals(point, gCheckpoints[gCheckpoints.length - 1].point)) {
       return null;
     }
 
-    const { messages, executionPoint, recordingEndpoint } = this.state;
-    let seekPoint = messages
-      .map(m => m.executionPoint)
-      .filter(point => point.progress > executionPoint.progress)
-      .slice(0)[0];
-
-    if (!seekPoint) {
-      seekPoint = recordingEndpoint;
+    const { widgetEvents } = gCheckpoints[point.checkpoint];
+    for (const event of widgetEvents) {
+      if (pointPrecedes(point, event.point)) {
+        return event.point;
+      }
     }
 
-    return this.seek(seekPoint);
+    return gCheckpoints[point.checkpoint + 1].point;
   }
 
-  async previous() {
-    if (this.isRecording()) {
-      await this.threadFront.interrupt();
+  replayPaintFinished({ point }) {
+    if (this.state.replaying && pointEquals(point, this.state.replaying.point)) {
+      const next = this.nextReplayingPoint(point);
+      if (next) {
+        this.threadFront.paint(next);
+        this.setState({ replaying: { point: next }, executionPoint: next });
+      } else {
+        this.seek(point);
+        this.setState({ replaying: null });
+      }
     }
-
-    if (!this.isPaused()) {
-      return null;
-    }
-
-    const { messages, executionPoint } = this.state;
-
-    const seekPoint = messages
-      .map(m => m.executionPoint)
-      .filter(point => point.progress < executionPoint.progress)
-      .slice(-1)[0];
-
-    return this.seek(seekPoint);
   }
 
-  resume() {
-    if (!this.isPaused()) {
-      return null;
+  startReplaying() {
+    let point = this.nextReplayingPoint(this.state.executionPoint);
+    if (!point) {
+      point = FirstCheckpointExecutionPoint;
     }
+    this.threadFront.paint(point);
 
-    return this.threadFront.resume();
+    this.setState({ replaying: { point }, executionPoint: point });
   }
 
-  async rewind() {
-    return this.threadFront.rewind();
-  }
-
-  pause() {
-    if (this.isPaused()) {
-      return null;
+  stopReplaying() {
+    if (this.state.replaying && this.state.replaying.point) {
+      this.seek(this.state.replaying.point);
     }
-
-    return this.threadFront.interrupt();
+    this.setState({ replaying: null });
   }
 
   renderCommands() {
     const paused = this.isPaused();
-    const recording = this.isRecording();
-    const seeking = this.isSeeking();
+    const { replaying } = this.state;
 
     return [
       CommandButton({
         className: "",
-        active: paused || recording,
-        img: "rewind",
-        onClick: () => this.rewind(),
+        active: paused,
+        img: "previous",
+        onClick: () => this.doPrevious(),
       }),
 
       CommandButton({
         className: "primary",
-        active: !paused || seeking,
-        img: "pause",
-        onClick: () => this.pause(),
+        active: paused,
+        img: replaying ? "pause" : "play",
+        onClick: () => replaying ? this.stopReplaying() : this.startReplaying(),
       }),
 
       CommandButton({
         className: "",
         active: paused,
-        img: "resume",
-        onClick: () => this.resume(),
+        img: "next",
+        onClick: () => this.doNext(),
       }),
     ];
   }

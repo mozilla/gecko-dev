@@ -76,6 +76,9 @@ const threadSpec = generateActorSpec({
     replayTimeWarp: {
       point: Option(0, "json"),
     },
+    replayPaintFinished: {
+      point: Option(0, "json"),
+    },
   },
 
   methods: {
