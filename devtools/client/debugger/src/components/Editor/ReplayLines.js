@@ -10,19 +10,10 @@ import {
   hasDocument,
   startOperation,
   endOperation,
-  getTokenEnd,
 } from "../../utils/editor";
-import { isException } from "../../utils/pause";
-import { getIndentation } from "../../utils/indentation";
 import { connect } from "../../utils/connect";
-import {
-  getFramePositions,
-  getVisibleSelectedFrame,
-  getPauseReason,
-  getSourceWithContent,
-  getCurrentThread,
-  getPausePreviewLocation,
-} from "../../selectors";
+import { getFramePositions } from "../../selectors";
+import actions from "../../actions";
 
 import type { SourceLocation, SourceWithContent } from "../../types";
 
@@ -30,54 +21,108 @@ type OwnProps = {||};
 type Props = {
   positions: any,
   unexecuted: any,
+  seekToPosition: typeof actions.seekToPosition,
 };
 
-function forEachDocument({ location, generatedLocation }, callback) {
-  if (hasDocument(location.sourceId)) {
-    callback(location);
+const jumpButton = document.createElement("img");
+jumpButton.src = "chrome://devtools/skin/images/next-circle.svg";
+
+function getEditorLine(location, generatedLocation, sourceId) {
+  const loc = location.sourceId == sourceId ? location : generatedLocation;
+  if (loc.sourceId != sourceId) {
+    return undefined;
   }
-  if (hasDocument(generatedLocation.sourceId)) {
-    callback(generatedLocation);
-  }
+  return toEditorPosition(loc).line;
 }
 
 export class ReplayLines extends PureComponent<Props> {
   componentDidMount() {
-    const { unexecuted } = this.props;
-    this.setUnexecutedLocations(unexecuted);
+    const { positions, unexecuted } = this.props;
+    this.jumps = [];
+    this.unexecutedLines = [];
+    this.setLocations(positions, unexecuted);
   }
 
   componentWillUnmount() {
-    const { unexecuted } = this.props;
-    this.clearUnexecutedLocations(unexecuted);
+    this.clearLocations();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const { unexecuted } = this.props;
+  componentDidUpdate() {
+    const { positions, unexecuted } = this.props;
 
     startOperation();
-    this.clearUnexecutedLocations(prevProps.unexecuted);
-    this.setUnexecutedLocations(unexecuted);
+    this.clearLocations();
+    this.setLocations(positions, unexecuted);
     endOperation();
   }
 
-  setUnexecutedLocations(unexecuted) {
-    for (const info of unexecuted) {
-      forEachDocument(info, location => {
-        const { line } = toEditorPosition(location);
-        const doc = getDocument(location.sourceId);
-        doc.addLineClass(line, "line", "unexecuted-line");
-      });
+  setLocations(positions, unexecuted) {
+    if (positions.length == 0) {
+      return;
+    }
+
+    // Figure out which document to apply these locations to, based on which
+    // documents are currently loaded.
+    let sourceId = positions[0].location.sourceId;
+    if (!hasDocument(sourceId)) {
+      sourceId = positions[0].generatedLocation.sourceId;
+      if (!hasDocument(sourceId)) {
+        return;
+      }
+    }
+
+    this.sourceId = sourceId;
+    const doc = getDocument(sourceId);
+    const seenLines = new Set();
+
+    // Place jump buttons on each line that is executed by the frame.
+    for (const { point, location, generatedLocation } of positions) {
+      const line = getEditorLine(location, generatedLocation, sourceId);
+      if (line === undefined || seenLines.has(line)) {
+        continue;
+      }
+      seenLines.add(line);
+
+      const widget = jumpButton.cloneNode(true);
+      widget.className = "line-jump";
+      widget.onclick = () => { this.props.seekToPosition(point) };
+
+      const jump = doc.setBookmark({ line, ch: 0 }, { widget });
+      this.jumps.push({ jump, line });
+    }
+
+    // Mark all unexecuted lines that don't have a jump button. It is possible
+    // for there to be code both executed and not executed on a line, in which
+    // case we will treat it as executed.
+    for (const { location, generatedLocation } of unexecuted) {
+      const line = getEditorLine(location, generatedLocation, sourceId);
+      if (line === undefined || seenLines.has(line)) {
+        continue;
+      }
+      seenLines.add(line);
+
+      doc.addLineClass(line, "line", "unexecuted-line");
     }
   }
 
-  clearUnexecutedLocations(unexecuted) {
-    for (const info of unexecuted) {
-      forEachDocument(info, location => {
-        const { line } = toEditorPosition(location);
-        const doc = getDocument(location.sourceId);
-        doc.removeLineClass(line, "line", "unexecuted-line");
-      });
+  clearLocations(unexecuted) {
+    this.jumps.forEach(({ jump, line }) => {
+      jump.clear();
+    });
+    this.jumps.length = 0;
+
+    if (!hasDocument(this.sourceId)) {
+      return;
+    }
+    const doc = getDocument(this.sourceId);
+
+    this.unexecutedLines.forEach(({ line, sourceId }) => {
+      doc.removeLineClass(line, "line", "unexecuted-line");
+    });
+    this.unexecutedLines.length = 0;
+
+    if (doc.cm) {
+      doc.cm.off("renderLine", this.onRenderLine);
     }
   }
 
@@ -91,4 +136,9 @@ const mapStateToProps = state => {
   return { positions, unexecuted };
 };
 
-export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps)(ReplayLines);
+export default connect<Props, OwnProps, _, _, _, _>(
+  mapStateToProps,
+  {
+    seekToPosition: actions.seekToPosition,
+  }
+)(ReplayLines);

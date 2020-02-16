@@ -159,6 +159,24 @@ html[dir="rtl"] .editor-mount {
   opacity: 0.8 !important;
 }
 
+.line-jump {
+  width: 14px;
+  height: 15px;
+  padding-top: 1px;
+  margin-top: -2px;
+  margin-bottom: -3px;
+  //margin-right: -1px;
+  margin-right: -14px;
+  z-index: 10000;
+  position: relative;
+  background-color: var(--theme-body-background);
+  cursor: pointer;
+}
+
+.CodeMirror-line:not(:hover) .line-jump {
+  visibility: hidden;
+}
+
 .new-debug-line-error > .CodeMirror-line {
   background-color: var(--debug-expression-error-background) !important;
   outline: var(--debug-line-error-border) solid 1px;
