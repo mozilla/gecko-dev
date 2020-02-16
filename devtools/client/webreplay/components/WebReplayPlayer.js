@@ -70,9 +70,7 @@ function CommandButton({ img, className, onClick, active }) {
     onClick,
   };
 
-  if (active) {
-    attrs.title = L10N.getStr(`toolbox.replay.${img}`);
-  }
+  attrs.title = L10N.getStr(`toolbox.replay.${img}`);
 
   return dom.div(
     attrs,
@@ -719,12 +717,17 @@ class WebReplayPlayer extends Component {
 
   renderCommands() {
     const paused = this.isPaused();
-    const { replaying } = this.state;
+    const { replaying, zoomStartpoint, zoomEndpoint, recordingEndpoint } = this.state;
+
+    const zoomed = (
+      !pointEquals(zoomStartpoint, FirstCheckpointExecutionPoint) ||
+      !pointEquals(zoomEndpoint, recordingEndpoint)
+    );
 
     return [
       CommandButton({
         className: "",
-        active: paused,
+        active: paused && !replaying,
         img: "previous",
         onClick: () => this.doPrevious(),
       }),
@@ -738,14 +741,14 @@ class WebReplayPlayer extends Component {
 
       CommandButton({
         className: "",
-        active: paused,
+        active: paused && !replaying,
         img: "next",
         onClick: () => this.doNext(),
       }),
 
       CommandButton({
         className: "",
-        active: true,
+        active: zoomed,
         img: "zoomout",
         onClick: () => this.doZoomOut(),
       }),
