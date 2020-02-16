@@ -52,4 +52,5 @@ DevToolsModules(
     'whole-word-match.svg',
     'window.svg',
     'worker.svg',
+    'zoom-out.svg',
 )

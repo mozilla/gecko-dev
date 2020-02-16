@@ -728,3 +728,8 @@
   background: #000000;
   opacity: 0.1;
 }
+
+.webreplay-player .zoomboundary {
+  padding-top: 7px;
+  padding-right: 4px;
+}
