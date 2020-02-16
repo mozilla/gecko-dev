@@ -25,7 +25,7 @@ import "./FrameTimeline.css";
 type Props = {
   framePositions: any,
   selectedLocation: ?SourceLocation,
-  previewLocation: typeof actions.previewPausedLocation,
+  previewLocation: typeof actions.previewPausedLocationBySourceId,
   seekToPosition: typeof actions.seekToPosition,
   selectedFrame: Frame,
 };
@@ -202,6 +202,7 @@ class FrameTimeline extends Component<Props, State> {
 
     if (
       !isEqual(displayedLocation, selectedLocation) &&
+      selectedFrame &&
       displayedFrame.index !== selectedFrame.index &&
       !scrubbing
     ) {
@@ -283,6 +284,6 @@ export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     seekToPosition: actions.seekToPosition,
-    previewLocation: actions.previewPausedLocation,
+    previewLocation: actions.previewPausedLocationBySourceId,
   }
 )(FrameTimeline);

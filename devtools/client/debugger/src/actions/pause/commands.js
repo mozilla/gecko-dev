@@ -54,6 +54,9 @@ export function selectThread(cx: Context, thread: ThreadId) {
 export function command(cx: ThreadContext, type: Command) {
   return async ({ dispatch, getState, client }: ThunkArgs) => {
     if (type) {
+      if (type == "resume" || type == "rewind") {
+        dispatch({ type: "CLEAR_FRAME_POSITIONS" });
+      }
       return dispatch({
         type: "COMMAND",
         command: type,

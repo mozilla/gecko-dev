@@ -48,9 +48,6 @@ type ThreadPauseState = {
   isWaitingOnBreak: boolean,
   frames: ?(any[]),
   framesLoading: boolean,
-  replayFramePositions: {
-    [FrameId]: Array<ExecutionPoint>,
-  },
   frameScopes: {
     generated: {
       [FrameId]: {
@@ -102,6 +99,10 @@ export type PauseState = {
   shouldPauseOnExceptions: boolean,
   shouldPauseOnCaughtExceptions: boolean,
   previewLocation: ?SourceLocation,
+  replayFramePositions: {
+    positions: any,
+    unexecuted: any,
+  },
 };
 
 function createPauseState(thread: ThreadId = "UnknownThread") {
@@ -281,12 +282,11 @@ function update(
 
     case "SET_FRAME_POSITIONS": {
       const { positions, unexecuted } = action;
-      return updateThreadState({
-        replayFramePositions: {
-          ...threadState().replayFramePositions,
-          [action.frame]: { positions, unexecuted },
-        },
-      });
+      return { ...state, replayFramePositions: { positions, unexecuted } };
+    }
+
+    case "CLEAR_FRAME_POSITIONS": {
+      return { ...state, replayFramePositions: null };
     }
 
     case "BREAK_ON_NEXT":

@@ -7,7 +7,7 @@
 import type { ActorId, ExecutionPoint } from "../../types";
 import type { ThunkArgs } from "../types";
 
-import { getSourceByActorId } from "../../selectors";
+import { getSourceByActorId, getCurrentThread, getSelectedFrame } from "../../selectors";
 import { zip } from "lodash";
 
 export function setFramePositions(
@@ -47,12 +47,20 @@ export function setFramePositions(
       ([location, generatedLocation]) => ({ location, generatedLocation })
     );
 
+    const currentThread = getCurrentThread(getState());
+    if (currentThread != thread) {
+      return;
+    }
+
+    const currentFrame = getSelectedFrame(getState(), thread);
+    if (!currentFrame || currentFrame.id != frame) {
+      return;
+    }
+
     dispatch({
       type: "SET_FRAME_POSITIONS",
       positions: combinedPositions,
       unexecuted: combinedUnexecuted,
-      frame,
-      thread,
     });
   };
 }

@@ -28,56 +28,56 @@ import type { SourceLocation, SourceWithContent } from "../../types";
 
 type OwnProps = {||};
 type Props = {
-  unexecutedLocations: SourceLocation[],
-  source: ?SourceWithContent,
+  positions: any,
+  unexecuted: any,
 };
 
-function isDocumentReady(
-  source: ?SourceWithContent,
-  location: ?SourceLocation
-) {
-  return location && source && source.content && hasDocument(location.sourceId);
+function forEachDocument({ location, generatedLocation }, callback) {
+  if (hasDocument(location.sourceId)) {
+    callback(location);
+  }
+  if (hasDocument(generatedLocation.sourceId)) {
+    callback(generatedLocation);
+  }
 }
 
 export class ReplayLines extends PureComponent<Props> {
   componentDidMount() {
-    const { unexecutedLocations, source } = this.props;
-    this.setUnexecutedLocations(unexecutedLocations, source);
+    const { unexecuted } = this.props;
+    this.setUnexecutedLocations(unexecuted);
   }
 
   componentWillUnmount() {
-    const { unexecutedLocations, source } = this.props;
-    this.clearUnexecutedLocations(unexecutedLocations, source);
+    const { unexecuted } = this.props;
+    this.clearUnexecutedLocations(unexecuted);
   }
 
   componentDidUpdate(prevProps: Props) {
-    const { unexecutedLocations, source } = this.props;
+    const { unexecuted } = this.props;
 
     startOperation();
-    this.clearUnexecutedLocations(prevProps.unexecutedLocations, prevProps.source);
-    this.setUnexecutedLocations(unexecutedLocations, source);
+    this.clearUnexecutedLocations(prevProps.unexecuted);
+    this.setUnexecutedLocations(unexecuted);
     endOperation();
   }
 
-  setUnexecutedLocations(unexecutedLocations, source) {
-    for (const location of unexecutedLocations) {
-      if (!isDocumentReady(source, location)) {
-        continue;
-      }
-      const { line } = toEditorPosition(location);
-      const doc = getDocument(location.sourceId);
-      doc.addLineClass(line, "line", "unexecuted-line");
+  setUnexecutedLocations(unexecuted) {
+    for (const info of unexecuted) {
+      forEachDocument(info, location => {
+        const { line } = toEditorPosition(location);
+        const doc = getDocument(location.sourceId);
+        doc.addLineClass(line, "line", "unexecuted-line");
+      });
     }
   }
 
-  clearUnexecutedLocations(unexecutedLocations, source) {
-    for (const location of unexecutedLocations) {
-      if (!isDocumentReady(source, location)) {
-        continue;
-      }
-      const { line } = toEditorPosition(location);
-      const doc = getDocument(location.sourceId);
-      doc.removeLineClass(line, "line", "unexecuted-line");
+  clearUnexecutedLocations(unexecuted) {
+    for (const info of unexecuted) {
+      forEachDocument(info, location => {
+        const { line } = toEditorPosition(location);
+        const doc = getDocument(location.sourceId);
+        doc.removeLineClass(line, "line", "unexecuted-line");
+      });
     }
   }
 
@@ -87,24 +87,8 @@ export class ReplayLines extends PureComponent<Props> {
 }
 
 const mapStateToProps = state => {
-  const framePositions = getFramePositions(state) || { positions: [], unexecuted: [] };
-
-  dump(`MAP_STATE ${JSON.stringify(framePositions)}\n`);
-
-  const frame = getVisibleSelectedFrame(state);
-  const previewLocation = getPausePreviewLocation(state) || (frame && frame.location);
-
-  const unexecutedLocations = framePositions.unexecuted.map(({ location, generatedLocation }) => {
-    if (previewLocation && previewLocation.sourceId == location.sourceId) {
-      return location;
-    }
-    return generatedLocation;
-  });
-
-  return {
-    unexecutedLocations,
-    source: previewLocation && getSourceWithContent(state, previewLocation.sourceId),
-  };
+  const { positions, unexecuted } = getFramePositions(state) || { positions: [], unexecuted: [] };
+  return { positions, unexecuted };
 };
 
 export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps)(ReplayLines);

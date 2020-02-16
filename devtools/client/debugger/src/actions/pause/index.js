@@ -32,8 +32,5 @@ export { toggleSkipPausing, setSkipPausing } from "./skipPausing";
 export { toggleMapScopes } from "./mapScopes";
 export { setExpandedScope } from "./expandScopes";
 export { generateInlinePreview } from "./inlinePreview";
-export {
-  previewPausedLocation,
-  clearPreviewPausedLocation,
-} from "./previewPausedLocation";
+export * from "./previewPausedLocation";
 export { setFramePositions } from "./setFramePositions";
