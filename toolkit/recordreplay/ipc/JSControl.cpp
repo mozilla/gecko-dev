@@ -381,27 +381,13 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
     return true;
   }
 
-  RootedString data(aCx, args.get(0).toString());
-
-  MOZ_RELEASE_ASSERT(JS_StringHasLatin1Chars(data));
+  nsAutoCString dataCString;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), dataCString);
 
   nsCString dataBinary;
-  bool decodeFailed;
-  {
-    JS::AutoAssertNoGC nogc(aCx);
-    size_t dataLength;
-    const JS::Latin1Char* dataChars =
-        JS_GetLatin1StringCharsAndLength(aCx, nogc, data, &dataLength);
-    if (!dataChars) {
-      return false;
-    }
+  nsresult rv = Base64Decode(dataCString, dataBinary);
 
-    nsDependentCSubstring dataCString((const char*)dataChars, dataLength);
-    nsresult rv = Base64Decode(dataCString, dataBinary);
-    decodeFailed = NS_FAILED(rv);
-  }
-
-  if (decodeFailed) {
+  if (NS_FAILED(rv)) {
     JS_ReportErrorASCII(aCx, "Base64 decode failed");
     return false;
   }
@@ -1114,22 +1100,29 @@ static bool RecordReplay_GetGraphics(JSContext* aCx, unsigned aArgc, Value* aVp)
   return true;
 }
 
-static bool RecordReplay_MaxRunningProcesses(JSContext* aCx, unsigned aArgc,
-                                             Value* aVp) {
+static bool RecordReplay_GetEnv(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
   args.rval().setUndefined();
 
-  // The number of processes we can run at a time is supplied via an environment
-  // variable. This is normally set by the translation layer when we are running
-  // in the cloud.
-  if (IsReplaying()) {
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string argument");
+    return false;
+  }
+
+  if (ReplayingInCloud()) {
     AutoEnsurePassThroughThreadEvents pt;
-    const char* env = getenv("MOZ_REPLAYING_MAX_RUNNING_PROCESSES");
-    if (env) {
-      int numProcesses = atoi(env);
-      if (numProcesses > 0) {
-        args.rval().setInt32(numProcesses);
+
+    nsAutoCString env;
+    ConvertJSStringToCString(aCx, args.get(0).toString(), env);
+
+    const char* value = getenv(env.get());
+    if (value) {
+      JSString* str = JS_NewStringCopyZ(aCx, value);
+      if (!str) {
+        return false;
       }
+
+      args.rval().setString(str);
     }
   }
 
@@ -1664,7 +1657,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
           0),
     JS_FN("findScriptHits", RecordReplay_FindScriptHits, 3, 0),
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
-    JS_FN("maxRunningProcesses", RecordReplay_MaxRunningProcesses, 0, 0),
+    JS_FN("getenv", RecordReplay_GetEnv, 1, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
     JS_FN("setUnhandledDivergenceAllowed", RecordReplay_SetUnhandledDivergenceAllowed, 1, 0),
     JS_FN("setCrashNote", RecordReplay_SetCrashNote, 1, 0),

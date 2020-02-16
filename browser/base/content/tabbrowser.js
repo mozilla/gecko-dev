@@ -6505,12 +6505,16 @@ var TabContextMenu = {
   },
 };
 
-let gRecordReplayWatcher;
+const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
+
+let gWatchingRecordReplaySessions;
 function EnsureRecordReplayWatcher() {
-  if (gRecordReplayWatcher) {
+  if (gWatchingRecordReplaySessions) {
     return;
   }
-  gRecordReplayWatcher = {
+  gWatchingRecordReplaySessions = true;
+
+  Services.ppmm.addMessageListener("RecordReplayCriticalError", {
     receiveMessage(msg) {
       if (gBrowser.selectedBrowser.hasAttribute("recordExecution") ||
           gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
@@ -6521,6 +6525,31 @@ function EnsureRecordReplayWatcher() {
         gBrowser.removeTab(tab);
       }
     },
-  };
-  Services.ppmm.addMessageListener("RecordReplayCriticalError", gRecordReplayWatcher);
+  });
+
+  Services.ppmm.addMessageListener("RecordReplayRememberLogId", {
+    async receiveMessage(msg) {
+      const { logId } = msg.data;
+      const description = { logId, date: Date.now() };
+
+      // See also crashes.js
+      const dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
+      dir.append("Recordings");
+
+      if (!dir.exists()) {
+        OS.File.makeDir(dir.path);
+      }
+
+      dir.append("logs.json");
+      const path = dir.path;
+
+      let logs = [];
+      if (await OS.File.exists(path)) {
+        const file = await OS.File.read(path);
+        logs = JSON.parse(new TextDecoder("utf-8").decode(file));
+      }
+
+      OS.File.writeAtomic(path, JSON.stringify([description, ...logs]));
+    },
+  });
 }

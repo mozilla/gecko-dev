@@ -28,6 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", () => {
       clearSubmittedReports().catch(Cu.reportError);
     });
+  document
+    .getElementById("clearLogs")
+    .addEventListener("click", () => {
+      clearLogs().catch(Cu.reportError);
+    });
 });
 
 const buildID = Services.appinfo.appBuildID;
@@ -38,7 +43,7 @@ const buildID = Services.appinfo.appBuildID;
  * If breakpad.reportURL is not set, displays a misconfiguration message
  * instead.
  */
-function populateReportLists() {
+async function populateReportLists() {
   try {
     reportURL = Services.prefs.getCharPref("breakpad.reportURL");
     // Ignore any non http/https urls
@@ -61,7 +66,42 @@ function populateReportLists() {
   reports.forEach(report =>
     addReportRow(report.pending, report.id, report.date, dateFormatter)
   );
+
+  const logs = await getExistingLogs();
+  logs.forEach(({ logId, date }) => {
+    addReportRow(false, logId, new Date(date), dateFormatter, true);
+  });
+
   showAppropriateSections();
+}
+
+// See also tabbrowser.js
+function getLogsPath() {
+  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
+  dir.append("Recordings");
+
+  if (!dir.exists()) {
+    OS.File.makeDir(dir.path);
+  }
+
+  dir.append("logs.json");
+  return dir.path;
+}
+
+async function getExistingLogs() {
+  const path = getLogsPath();
+
+  if (!(await OS.File.exists(path))) {
+    return [];
+  }
+
+  const file = await OS.File.read(path);
+  return JSON.parse(new TextDecoder("utf-8").decode(file));
+}
+
+async function clearLogs() {
+  OS.File.writeAtomic(getLogsPath(), JSON.stringify([]));
+  document.getElementById("reportListLogged").classList.add("hidden");
 }
 
 /**
@@ -74,7 +114,7 @@ function populateReportLists() {
  * @param {Date}    date          either the date of crash or date of submission
  * @param {Object}  dateFormatter formatter for presenting dates to users
  */
-function addReportRow(isPending, id, date, dateFormatter) {
+function addReportRow(isPending, id, date, dateFormatter, log) {
   const rowTemplate = document.getElementById("crashReportRow");
   const row = document
     .importNode(rowTemplate.content, true)
@@ -96,13 +136,9 @@ function addReportRow(isPending, id, date, dateFormatter) {
     );
     cells[2].appendChild(button);
     document.getElementById("unsubmitted").appendChild(row);
+  } else if (log) {
+    document.getElementById("logged").appendChild(row);
   } else {
-    const linkTemplate = document.getElementById("viewCrashLink");
-    const link = document
-      .importNode(linkTemplate.content, true)
-      .querySelector("a");
-    link.href = `${reportURL}${id}`;
-    cells[2].appendChild(link);
     document.getElementById("submitted").appendChild(row);
   }
 }
@@ -127,6 +163,11 @@ function showAppropriateSections() {
   document
     .getElementById("noSubmittedReports")
     .classList.toggle("hidden", hasSubmitted);
+
+  let hasLogs = document.getElementById("logged").childElementCount > 0;
+  document
+    .getElementById("reportListLogged")
+    .classList.toggle("hidden", !hasLogs);
 }
 
 /**

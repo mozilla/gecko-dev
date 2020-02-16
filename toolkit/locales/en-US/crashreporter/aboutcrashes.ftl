@@ -21,5 +21,8 @@ crashes-submitted-label = Submitted Crash Reports
 date-submitted-heading = Date Submitted
 view-crash-button-label = View
 
+logs-submitted-label = Web Replay Session Logs
+date-logged-heading = Date Created
+
 no-reports-label = No crash reports have been submitted.
 no-config-label = This application has not been configured to display crash reports. The preference <code>breakpad.reportURL</code> must be set.
