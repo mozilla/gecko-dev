@@ -120,9 +120,9 @@ function threadListChanged(type) {
 
 function replayFramePositions(
   threadFront: ThreadFront,
-  { positions, frame, thread }: Object
+  { positions, unexecutedLocations, frame, thread }: Object
 ) {
-  actions.setFramePositions(positions, frame, thread);
+  actions.setFramePositions(positions, unexecutedLocations, frame, thread);
 }
 
 const clientEvents = {

@@ -279,13 +279,15 @@ function update(
       });
     }
 
-    case "SET_FRAME_POSITIONS":
+    case "SET_FRAME_POSITIONS": {
+      const { positions, unexecuted } = action;
       return updateThreadState({
         replayFramePositions: {
           ...threadState().replayFramePositions,
-          [action.frame]: action.positions,
+          [action.frame]: { positions, unexecuted },
         },
       });
+    }
 
     case "BREAK_ON_NEXT":
       return updateThreadState({ isWaitingOnBreak: true });

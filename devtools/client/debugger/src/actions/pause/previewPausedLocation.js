@@ -17,21 +17,12 @@ type Location = {
 export function previewPausedLocation(location: Location) {
   return ({ dispatch, getState }: ThunkArgs) => {
     const cx = getContext(getState());
-    const source = getSourceByURL(getState(), location.sourceUrl);
-    if (!source) {
-      return;
-    }
 
-    const sourceLocation = {
-      line: location.line,
-      column: location.column,
-      sourceId: source.id,
-    };
-    dispatch(selectLocation(cx, sourceLocation));
+    dispatch(selectLocation(cx, location));
 
     dispatch({
       type: "PREVIEW_PAUSED_LOCATION",
-      location: sourceLocation,
+      location,
     });
   };
 }

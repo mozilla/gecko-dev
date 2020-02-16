@@ -24,6 +24,7 @@ CompiledModules(
     'InlinePreview.js',
     'InlinePreviewRow.js',
     'InlinePreviews.js',
+    'ReplayLines.js',
     'SearchBar.js',
     'Tab.js',
     'Tabs.js',

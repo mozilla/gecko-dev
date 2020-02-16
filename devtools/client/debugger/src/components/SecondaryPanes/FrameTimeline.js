@@ -42,14 +42,14 @@ function isSameLocation(
   frameLocation: SourceLocation,
   selectedLocation: ?SourceLocation
 ) {
-  if (!frameLocation.sourceUrl || !selectedLocation) {
+  if (!frameLocation || !selectedLocation) {
     return;
   }
 
   return (
     frameLocation.line === selectedLocation.line &&
     frameLocation.column === selectedLocation.column &&
-    selectedLocation.sourceId.includes(frameLocation.sourceUrl)
+    frameLocation.sourceId == selectedLocation.sourceId
   );
 }
 
@@ -119,14 +119,11 @@ class FrameTimeline extends Component<Props, State> {
       percentage = this.state.percentage;
     }
 
-    const displayedPositions = framePositions.filter(
-      point => point.position.kind === "OnStep"
-    );
     const displayIndex = Math.floor(
-      (percentage / 100) * displayedPositions.length
+      (percentage / 100) * framePositions.positions.length
     );
 
-    return displayedPositions[displayIndex];
+    return framePositions.positions[displayIndex];
   }
 
   displayPreview(percentage: number) {
@@ -156,7 +153,7 @@ class FrameTimeline extends Component<Props, State> {
     });
 
     if (position) {
-      seekToPosition(position);
+      seekToPosition(position.point);
     }
   };
 
@@ -179,15 +176,13 @@ class FrameTimeline extends Component<Props, State> {
       return progress;
     }
 
-    const displayedPositions = framePositions.filter(
-      point => point.position.kind === "OnStep"
-    );
-    const index = displayedPositions.findIndex(pos =>
-      isSameLocation(pos.location, selectedLocation)
+    const index = framePositions.positions.findIndex(pos =>
+      isSameLocation(pos.location, selectedLocation) ||
+      isSameLocation(pos.generatedLocation, selectedLocation)
     );
 
     if (index != -1) {
-      progress = Math.floor((index / displayedPositions.length) * 100);
+      progress = Math.floor((index / framePositions.positions.length) * 100);
       this.setState({ percentage: progress });
     }
 

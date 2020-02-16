@@ -70,6 +70,7 @@ const threadSpec = generateActorSpec({
     },
     replayFramePositions: {
       positions: Option(0, "array:json"),
+      unexecutedLocations: Option(0, "array:json"),
       frame: Option(0, "string"),
       thread: Option(0, "string"),
     },

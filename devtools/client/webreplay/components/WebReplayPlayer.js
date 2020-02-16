@@ -325,9 +325,12 @@ class WebReplayPlayer extends Component {
       const { executionPoint } = packet;
       const closestMessage = this.getClosestMessage(executionPoint);
 
-      const pausedMessage = this.state.messages
-        .filter(message => message.executionPoint)
-        .find(message => pointEquals(message.executionPoint, executionPoint));
+      let pausedMessage;
+      if (executionPoint) {
+        pausedMessage = this.state.messages
+          .filter(message => message.executionPoint)
+          .find(message => pointEquals(message.executionPoint, executionPoint));
+      }
 
       this.setState({
         executionPoint,

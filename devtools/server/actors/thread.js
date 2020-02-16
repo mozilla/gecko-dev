@@ -1574,28 +1574,46 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   onFramePositions: function(positions, frame) {
-    if (!positions || !frame) {
+    if (!positions || !frame || !frame.script) {
       return;
     }
 
-    const mappedPositions = positions.map(mappedPoint => {
-      let location = {};
-      if (mappedPoint.position.kind === "OnStep") {
-        const offsetLocation = this.sources.getScriptOffsetLocation(
-          frame.script,
-          mappedPoint.position.offset
-        );
-        location = {
-          line: offsetLocation.line,
-          column: offsetLocation.column,
-          sourceUrl: offsetLocation.url,
-        };
-      }
-      return { ...mappedPoint, location };
+    const location = this.sources.getFrameLocation(frame);
+    const actor = location.sourceActor.actorID;
+
+    const executed = new Set();
+
+    const mappedPositions = positions.filter(
+      point => point.position.kind == "OnStep"
+    ).map(point => {
+      const offsetLocation = this.sources.getScriptOffsetLocation(
+        frame.script,
+        point.position.offset
+      );
+      const location = {
+        line: offsetLocation.line,
+        column: offsetLocation.column,
+        actor,
+      };
+      executed.add(`${location.line}:${location.column}`);
+      return { point, location };
     });
+
+    const unexecutedLocations = frame.script.getPossibleBreakpoints().map(pos => {
+      const { lineNumber, columnNumber, isStepStart } = pos;
+      if (!isStepStart || executed.has(`${lineNumber}:${columnNumber}`)) {
+        return null;
+      }
+      return {
+        line: lineNumber,
+        column: columnNumber,
+        actor,
+      };
+    }).filter(location => !!location);
 
     this.emit("replayFramePositions", {
       positions: mappedPositions,
+      unexecutedLocations,
       frame: frame.actor.actorID,
       thread: this.actorID,
     });
