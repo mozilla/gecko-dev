@@ -48,20 +48,24 @@ TimeDuration CurrentRecordingTime() {
   return TimeStamp::Now() - gFirstCheckpointTime - gPausedTime;
 }
 
-void NewCheckpoint() {
+void CreateCheckpoint() {
+  MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
-  MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
-  gLastCheckpoint++;
-  gLastCheckpointTime = TimeStamp::Now();
+  if (!HasDivergedFromRecording() &&
+      !child::PaintingInProgress() &&
+      js::CanCreateCheckpoint()) {
+    gLastCheckpoint++;
+    gLastCheckpointTime = TimeStamp::Now();
 
-  if (gLastCheckpoint == FirstCheckpointId) {
-    gFirstCheckpointTime = gLastCheckpointTime;
+    if (gLastCheckpoint == FirstCheckpointId) {
+      gFirstCheckpointTime = gLastCheckpointTime;
+    }
+
+    RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
+    js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
   }
-
-  RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
-  js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
 }
 
 // Normally we only create checkpoints when painting or instructed to
@@ -70,18 +74,13 @@ void NewCheckpoint() {
 static const size_t CheckpointThresholdMs = 200;
 
 void MaybeCreateCheckpoint() {
+  MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
-  MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
   if (gLastCheckpointTime &&
-      (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds() > CheckpointThresholdMs &&
-      // Scan children assume that painting one checkpoint finishes before the
-      // next checkpoint is reached.
-      !child::PaintingInProgress() &&
-      // The replay JS can veto creating checkpoints.
-      js::CanCreateCheckpoint()) {
-    NewCheckpoint();
+      (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds() > CheckpointThresholdMs) {
+    CreateCheckpoint();
   }
 }
 

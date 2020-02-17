@@ -1210,7 +1210,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvShow(const ScreenIntSize& aSize,
   // create checkpoints. Create a checkpoint now, in case this process never
   // paints later on (the usual place where checkpoints occur).
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::CreateCheckpoint();
+    recordreplay::CreateCheckpoint();
   }
 
   UpdateVisibility();

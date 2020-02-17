@@ -112,9 +112,6 @@ void DisallowUnhandledDivergeFromRecording();
 // DivergeFromRecording.
 void EnsureNotDivergedFromRecording(const Maybe<int>& aCallId);
 
-// Note a checkpoint at the current execution position.
-void NewCheckpoint();
-
 // Time since recording started, except for time spent paused. This is the basis
 // of time measurements for checkpoints etc. and is consistent between recording
 // and replaying.

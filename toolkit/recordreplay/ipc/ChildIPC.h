@@ -20,7 +20,10 @@ namespace dom { class BrowserChild; }
 
 namespace recordreplay {
 
-void NewCheckpoint();
+// Create a checkpoint, if possible.
+void CreateCheckpoint();
+
+// Create a checkpoint, if possible and enough time has elapsed since the last checkpoint.
 void MaybeCreateCheckpoint();
 
 // Notify the record/replay system about an event of interest.
@@ -38,13 +41,6 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv);
 // Get the IDs of the middleman and parent processes.
 base::ProcessId MiddlemanProcessId();
 base::ProcessId ParentProcessId();
-
-// Create a normal checkpoint, if execution has not diverged from the recording.
-inline void CreateCheckpoint() {
-  if (IsRecordingOrReplaying() && !HasDivergedFromRecording()) {
-    NewCheckpoint();
-  }
-}
 
 // This will be used in both the middleman and child processes.
 void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS);

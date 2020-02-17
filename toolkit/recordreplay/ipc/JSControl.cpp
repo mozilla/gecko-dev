@@ -640,7 +640,9 @@ void HitCheckpoint(size_t aCheckpoint, TimeDuration aTime) {
 }
 
 bool CanCreateCheckpoint() {
-  MOZ_RELEASE_ASSERT(IsInitialized());
+  if (!IsInitialized()) {
+    return true;
+  }
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());

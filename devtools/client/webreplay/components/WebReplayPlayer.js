@@ -123,7 +123,10 @@ const FirstCheckpointExecutionPoint = { checkpoint: FirstCheckpointId, progress:
 
 // Information about the progress and time at each checkpoint. This only grows,
 // and is not part of the reducer store so we can update it without rerendering.
-const gCheckpoints = [null, { point: FirstCheckpointExecutionPoint, time: 0 }];
+const gCheckpoints = [
+  null,
+  { point: FirstCheckpointExecutionPoint, time: 0, widgetEvents: [] },
+];
 
 function executionPointTime(point) {
   let previousInfo = gCheckpoints[point.checkpoint];
