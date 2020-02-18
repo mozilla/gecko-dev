@@ -8,8 +8,6 @@ import {
   toEditorPosition,
   getDocument,
   hasDocument,
-  startOperation,
-  endOperation,
 } from "../../utils/editor";
 import { connect } from "../../utils/connect";
 import { getFramePositions } from "../../selectors";
@@ -50,10 +48,8 @@ export class ReplayLines extends PureComponent<Props> {
   componentDidUpdate() {
     const { positions, unexecuted } = this.props;
 
-    startOperation();
     this.clearLocations();
     this.setLocations(positions, unexecuted);
-    endOperation();
   }
 
   setLocations(positions, unexecuted) {
@@ -106,6 +102,10 @@ export class ReplayLines extends PureComponent<Props> {
   }
 
   clearLocations(unexecuted) {
+    if (!this.sourceId) {
+      return;
+    }
+
     this.jumps.forEach(({ jump, line }) => {
       jump.clear();
     });
@@ -121,9 +121,7 @@ export class ReplayLines extends PureComponent<Props> {
     });
     this.unexecutedLines.length = 0;
 
-    if (doc.cm) {
-      doc.cm.off("renderLine", this.onRenderLine);
-    }
+    this.sourceId = null;
   }
 
   render() {

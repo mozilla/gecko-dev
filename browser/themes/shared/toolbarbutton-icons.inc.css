@@ -267,6 +267,10 @@ toolbar[brighttext] {
   color: #0080ff !important;
 }
 
+#cloud-recordings-button {
+  list-style-image: url("chrome://devtools/skin/images/cloud-recordings.svg");
+}
+
 #profiler-button {
   list-style-image: url("chrome://devtools/skin/images/profiler-stopwatch.svg");
 }

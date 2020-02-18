@@ -110,6 +110,9 @@ namespace recordreplay {
   /* Get the result of performing an external call. */         \
   _Macro(ExternalCallRequest)                                  \
                                                                \
+  /* Inform the middleman about how much data has been received on the remote side. */ \
+  _Macro(UploadedData)                                         \
+                                                               \
   /* Messages sent in both directions. */                      \
                                                                \
   /* Send recording data from a recording process to the middleman, or from the */ \
@@ -300,6 +303,14 @@ struct PaintMessage : public Message {
         mHeight(aHeight) {}
 };
 
+struct UploadedDataMessage : public Message {
+  uint64_t mBytes;
+
+  UploadedDataMessage(uint64_t aBytes)
+      : Message(MessageType::UploadedData, sizeof(*this), 0),
+        mBytes(aBytes) {}
+};
+
 template <MessageType Type>
 struct BinaryMessage : public Message {
   // Associated value whose meaning depends on the message type.
@@ -425,6 +436,10 @@ class Channel {
 
   InfallibleVector<char> mPendingData;
 
+  // How many bytes have been sent/received over the channel.
+  size_t mSentBytes = 0;
+  size_t mReceivedBytes = 0;
+
   // If spew is enabled, print a message and associated info to stderr.
   void PrintMessage(const char* aPrefix, const Message& aMsg);
 
@@ -474,6 +489,8 @@ class Channel {
           base::ProcessId aParentPid = 0);
 
   size_t GetId() { return mId; }
+  size_t NumSentBytes() { return mSentBytes; }
+  size_t NumReceivedBytes() { return mReceivedBytes; }
 
   // Send a message to the other side of the channel.
   void SendMessage(Message&& aMsg);

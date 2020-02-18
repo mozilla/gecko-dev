@@ -3670,9 +3670,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSaveRecording(
 
 mozilla::ipc::IPCResult ContentChild::RecvSaveCloudRecording(
     const nsAString& aUUID) {
-  nsString description;
-  recordreplay::parent::SaveCloudRecording(aUUID, description);
-  SendCloudRecordingSaved(nsString(aUUID), description);
+  recordreplay::parent::SaveCloudRecording(aUUID);
   return IPC_OK();
 }
 

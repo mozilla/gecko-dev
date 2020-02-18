@@ -557,16 +557,79 @@ DevToolsStartup.prototype = {
       return;
     }
 
-    const id = "recording-button";
-    const widget = CustomizableUI.getWidget(id);
-    if (widget && widget.provider == CustomizableUI.PROVIDER_API) {
-      return;
-    }
-    const item = {
+    let id = "recording-button";
+    let item = {
+      id: id,
+      type: "button",
+      tooltiptext: "recording-button.tooltiptext2",
+      onClick() {
+        const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
+        const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+        const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
+
+        if (recording) {
+          reloadAndStopRecordingTab(gBrowser);
+        } else if (replaying) {
+          reloadAndStopReplayingTab(gBrowser);
+        } else {
+          reloadAndRecordTab(gBrowser);
+        }
+      },
+      onCreated(node) {
+        function selectedBrowserHasAttribute(attr) {
+          try {
+            return node.ownerDocument.defaultView.gBrowser.selectedBrowser.hasAttribute(attr);
+          } catch (e) {
+            return false;
+          }
+        }
+
+        node.refreshStatus = () => {
+          const recording = selectedBrowserHasAttribute("recordExecution");
+          const replaying = selectedBrowserHasAttribute("replayExecution");
+
+          if (recording) {
+            node.classList.add("recordingButtonRecording");
+          } else {
+            node.classList.remove("recordingButtonRecording");
+          }
+
+          if (replaying) {
+            node.classList.add("recordingButtonReplaying");
+          } else {
+            node.classList.remove("recordingButtonReplaying");
+          }
+
+          const status = ChromeUtils.getCloudReplayStatus();
+          let tooltip = status;
+          if (status) {
+            node.disabled = true;
+          } else if (recording) {
+            node.disabled = false;
+            tooltip = "stopRecording.label";
+          } else if (replaying) {
+            node.disabled = false;
+            tooltip = "stopReplaying.label";
+          } else {
+            node.disabled = false;
+            tooltip = "startRecording.label";
+          }
+
+          const text = StartupBundle.GetStringFromName(tooltip);
+          node.setAttribute("tooltiptext", text);
+        };
+        node.refreshStatus();
+      },
+    };
+    const recordingWidget = CustomizableUI.createWidget(item);
+    CustomizableWidgets.push(item);
+
+    id = "cloud-recordings-button";
+    item = {
       id: id,
       type: "view",
       viewId: "PanelUI-recording",
-      tooltiptext: "recording-button.tooltiptext2",
+      tooltiptext: "cloud-recordings-button.tooltiptext2",
       onViewShowing: event => {
         const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
         const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
@@ -575,10 +638,6 @@ DevToolsStartup.prototype = {
         const doc = event.target.ownerDocument;
         const recordingItems = doc.getElementById("PanelUI-recordingItems");
 
-        // Buttons:
-        // Start Recording / Stop Recording / Stop Replaying
-        // Save Recording
-        // View Recordings
         const itemsToDisplay = [];
 
         const statusItem = doc.createXULElement("menuitem");
@@ -598,33 +657,40 @@ DevToolsStartup.prototype = {
           return item;
         }
 
-        if (recording) {
-          addItem("stopRecording.label", reloadAndStopRecordingTab);
-        } else {
-          const item = addItem("startRecording.label", reloadAndRecordTab);
-          if (replaying) {
-            item.setAttribute("disabled", "true");
-          }
-        }
-
-        const saveRecordingItem = addItem("saveRecording.label", async event => {
-          // The menu should stay open after clicking this item.
+        function preventClose() {
           doc.getElementById("PanelUI-recordingItems").setAttribute("closemenu", "none");
 
           setTimeout(() => {
             doc.getElementById("PanelUI-recordingItems").removeAttribute("closemenu");
           });
+        }
 
-          CustomizableUI.clearSubview(recordingItems);
-          setLabel(saveRecordingItem, "recordingSaving.label");
-          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+        const saveRecordingItem = addItem("saveRecording.label", async event => {
+          preventClose();
 
           const { generateUUID } = Cc["@mozilla.org/uuid-generator;1"].getService(
             Ci.nsIUUIDGenerator
           );
           const uuid = generateUUID().toString();
 
-          const description = await saveRecording(uuid);
+          if (!saveRecording(uuid)) {
+            return;
+          }
+
+          if (lastUploadedData) {
+            // Assume the uploaded data is associated with the recording we are saving.
+            lastUploadedData.uuid = uuid;
+            uploadDataCallback();
+          }
+
+          saveRecordingItem.setAttribute("disabled", true);
+          CustomizableUI.clearSubview(recordingItems);
+          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+
+          const url = gBrowser.selectedBrowser.currentURI.spec;
+          const title = gBrowser.selectedBrowser.contentTitle;
+
+          const description = await waitForSavedRecording(uuid);
 
           if (!description) {
             CustomizableUI.clearSubview(recordingItems);
@@ -636,39 +702,67 @@ DevToolsStartup.prototype = {
           navigator.clipboard.writeText(`about:webreplay?recording=${uuid}`);
 
           await addRecordingDescription({
-            ...JSON.parse(description),
+            ...description,
             uuid,
-            url: gBrowser.selectedBrowser.currentURI.spec,
-            title: gBrowser.selectedBrowser.contentTitle,
+            url,
+            title,
             date: Date.now(),
           });
-
-          CustomizableUI.clearSubview(recordingItems);
-          setLabel(saveRecordingItem, "recordingSaveFinished.label");
-          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
         });
         if (!recording) {
           saveRecordingItem.setAttribute("disabled", "true");
         }
 
-        addItem("viewRecordings.label", viewRecordings);
+        const savedRecordingItem = addItem("recordingSaveFinished.label", () => {
+          preventClose();
 
-        cloudStatusUpdated(ChromeUtils.getCloudReplayStatus());
-        ChromeUtils.setCloudReplayStatusCallback(newStatus => {
-          cloudStatusUpdated(newStatus);
-          CustomizableUI.clearSubview(recordingItems);
-          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+          const uuid = lastUploadedData && lastUploadedData.uuid;
+          if (uuid) {
+            navigator.clipboard.writeText(`about:webreplay?recording=${uuid}`);
+          }
         });
 
-        CustomizableUI.clearSubview(recordingItems);
-        CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+        const uploadedDataItem = addItem("");
 
-        function cloudStatusUpdated(status) {
+        // For some bizarre reason this allows the item to not look disabled but
+        // not be clickable either.
+        uploadedDataItem.setAttribute("disabled", false);
+
+        addItem("viewRecordings.label", viewRecordings);
+
+        cloudStatusUpdatedCallback = function(status) {
           statusItem.setAttribute("label", status ? StartupBundle.GetStringFromName(status) : "");
           itemsToDisplay.forEach(item => {
             item.setAttribute("hidden", (item == statusItem) == (status == ""));
           });
-        }
+        };
+        cloudStatusUpdatedCallback(ChromeUtils.getCloudReplayStatus());
+
+        uploadDataCallback = function() {
+          if (lastUploadedData) {
+            const { uuid, sent, received } = lastUploadedData;
+
+            if (uuid && savedRecordings.has(uuid)) {
+              savedRecordingItem.setAttribute("hidden", false);
+              uploadedDataItem.setAttribute("hidden", true);
+            } else {
+              const fraction = `${formatBytes(received)} / ${formatBytes(sent)}`;
+              const label = `${uuid ? "Saving" : "Uploading"}... ${fraction}`;
+              uploadedDataItem.setAttribute("label", label);
+              savedRecordingItem.setAttribute("hidden", true);
+              uploadedDataItem.setAttribute("hidden", false);
+            }
+          } else {
+            savedRecordingItem.setAttribute("hidden", true);
+            uploadedDataItem.setAttribute("hidden", true);
+          }
+          CustomizableUI.clearSubview(recordingItems);
+          CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
+        };
+        uploadDataCallback();
+
+        CustomizableUI.clearSubview(recordingItems);
+        CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
       },
       onInit(anchor) {
         this.onBeforeCreated(anchor.ownerDocument);
@@ -690,6 +784,48 @@ DevToolsStartup.prototype = {
     CustomizableWidgets.push(item);
 
     this.recordingButtonCreated = true;
+
+    let cloudStatusUpdatedCallback;
+
+    ChromeUtils.setCloudReplayStatusCallback(status => {
+      for (const w of Services.wm.getEnumerator("navigator:browser")) {
+        const node = w.document.getElementById("recording-button");
+        if (node) {
+          node.refreshStatus();
+        }
+      }
+      if (cloudStatusUpdatedCallback) {
+        cloudStatusUpdatedCallback(status);
+      }
+    });
+
+    let uploadDataCallback;
+
+    let lastUploadedData;
+
+    Services.ppmm.addMessageListener("RecordingDataUploaded", {
+      receiveMessage(msg) {
+        lastUploadedData = msg.data;
+        if (uploadDataCallback) {
+          uploadDataCallback();
+        }
+      }
+    });
+
+    const cloudRecordingWaiters = {};
+    const savedRecordings = new Set();
+
+    function waitForSavedRecording(uuid) {
+      return new Promise(resolve => (cloudRecordingWaiters[uuid] = resolve));
+    }
+
+    Services.ppmm.addMessageListener("RecordingSaved", {
+      receiveMessage(msg) {
+        const { uuid, duration } = msg.data;
+        savedRecordings.add(uuid);
+        cloudRecordingWaiters[uuid]({ duration });
+      }
+    });
   },
 
   /**
@@ -1357,16 +1493,14 @@ const JsonView = {
   },
 };
 
-const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
+const { setTimeout, setInterval } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
 });
 
-function reloadAndRecordTab() {
-  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-
+function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
 
   let remoteType = E10SUtils.getRemoteTypeForURI(
@@ -1398,8 +1532,7 @@ function reloadAndRecordTab() {
   Services.telemetry.scalarAdd("devtools.webreplay.reload_recording", 1);
 }
 
-function reloadAndStopRecordingTab() {
-  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+function reloadAndStopRecordingTab(gBrowser) {
   const url = gBrowser.currentURI.spec;
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
     newFrameloader: true,
@@ -1411,20 +1544,21 @@ function reloadAndStopRecordingTab() {
   Services.telemetry.scalarAdd("devtools.webreplay.stop_recording", 1);
 }
 
-let gCloudRecordingWaiters = {};
-
-function cloudRecordingSaved(uuid, description) {
-  gCloudRecordingWaiters[uuid](description);
+function reloadAndStopReplayingTab(gBrowser) {
+  const tab = gBrowser.selectedTab;
+  gBrowser.selectedTab = gBrowser.addWebTab(null, {
+    index: tab._tPos + 1,
+  });
+  gBrowser.removeTab(tab);
+  gBrowser.loadURI("about:webreplay", {
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+  });
 }
 
 function saveRecording(uuid) {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
-  if (!remoteTab || !remoteTab.saveCloudRecording(uuid)) {
-    return null;
-  }
-  ChromeUtils.setCloudRecordingSavedCallback(cloudRecordingSaved);
-  return new Promise(resolve => (gCloudRecordingWaiters[uuid] = resolve));
+  return remoteTab && remoteTab.saveCloudRecording(uuid);
 }
 
 // See also aboutRecordings.js
@@ -1456,6 +1590,11 @@ function viewRecordings() {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
   gBrowser.loadURI("about:webreplay", { triggeringPrincipal });
+}
+
+function formatBytes(bytes) {
+  const MB = bytes / (1 << 20);
+  return `${((MB * 100) | 0) / 100} MB`;
 }
 
 var EXPORTED_SYMBOLS = ["DevToolsStartup"];

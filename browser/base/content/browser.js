@@ -5595,17 +5595,7 @@ var XULBrowserWindow = {
 
     const recordingButton = document.getElementById("recording-button");
     if (recordingButton) {
-      if (recording) {
-        recordingButton.classList.add("recordingButtonRecording");
-      } else {
-        recordingButton.classList.remove("recordingButtonRecording");
-      }
-
-      if (replaying) {
-        recordingButton.classList.add("recordingButtonReplaying");
-      } else {
-        recordingButton.classList.remove("recordingButtonReplaying");
-      }
+      recordingButton.refreshStatus();
     }
   },
 

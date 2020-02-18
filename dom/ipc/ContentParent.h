@@ -311,8 +311,6 @@ class ContentParent final : public PContentParent,
       const uint32_t& aChannelId);
   mozilla::ipc::IPCResult RecvGenerateReplayCrashReport(
       const uint32_t& aChannelId);
-  mozilla::ipc::IPCResult RecvCloudRecordingSaved(
-      const nsString& aUUID, const nsString& aDescription);
 
   mozilla::ipc::IPCResult RecvCreateGMPService();
 

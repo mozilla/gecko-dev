@@ -201,6 +201,24 @@ void ForwardPingResponse(parent::ChildProcessInfo* aChild,
   }
 }
 
+void ForwardUploadedData(parent::ChildProcessInfo* aChild,
+                         size_t aSentBytes, size_t aReceivedBytes) {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::AutoValueArray<3> args(cx);
+  args[0].setInt32(aChild->GetId());
+  args[1].setNumber((double)aSentBytes);
+  args[2].setNumber((double)aReceivedBytes);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "UploadedData", args, &rv)) {
+    MOZ_CRASH("UploadedData");
+  }
+}
+
 void BeforeSaveRecording() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -221,7 +239,7 @@ void AfterSaveRecording() {
   }
 }
 
-void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription) {
+void SaveCloudRecording(const nsAString& aUUID) {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
@@ -230,14 +248,6 @@ void SaveCloudRecording(const nsAString& aUUID, nsString& aDescription) {
   if (!JS_CallFunctionName(cx, *gModuleObject, "SaveCloudRecording", HandleValueArray(arg), &rv)) {
     MOZ_CRASH("SaveCloudRecording");
   }
-
-  nsAutoCString desc;
-  if (rv.isString()) {
-    ConvertJSStringToCString(cx, rv.toString(), desc);
-  } else {
-    desc.AssignLiteral("MissingDescription");
-  }
-  aDescription = NS_ConvertUTF8toUTF16(desc);
 }
 
 bool RecoverFromCrash(size_t aRootId, size_t aForkId) {
@@ -1709,3 +1719,5 @@ MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
 }  // namespace js
 }  // namespace recordreplay
 }  // namespace mozilla
+
+

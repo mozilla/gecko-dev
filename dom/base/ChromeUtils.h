@@ -203,8 +203,6 @@ class ChromeUtils {
                                    nsAString& aResult);
   static void SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
                                            JS::HandleValue aCallback);
-  static void SetCloudRecordingSavedCallback(const GlobalObject& aGlobal,
-                                             JS::HandleValue aCallback);
 
   static void RecordReplayLog(const GlobalObject& aGlobal,
                               const nsAString& aText);

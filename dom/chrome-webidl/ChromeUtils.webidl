@@ -444,7 +444,6 @@ partial namespace ChromeUtils {
 
   DOMString getCloudReplayStatus();
   void setCloudReplayStatusCallback(any callback);
-  void setCloudRecordingSavedCallback(any callback);
 
   // Log record/replay information in a UI, middleman, or replaying process.
   // Logging is controlled by the devtools.recordreplay.logging.enabled pref

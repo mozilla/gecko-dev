@@ -91,6 +91,7 @@ static bool gWaitingForCallResponse;
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
+static void MaybeSendUploadedDataMessage();
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
@@ -100,6 +101,10 @@ static ReadWriteSpinLock gForkLock;
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
   AutoReadSpinLock disallowFork(gForkLock);
+
+  if (!gForkId && ReplayingInCloud()) {
+    MaybeSendUploadedDataMessage();
+  }
 
   if (aMsg->mForkId != gForkId) {
     MOZ_RELEASE_ASSERT(!gForkId);
@@ -708,14 +713,29 @@ void AddPendingRecordingData() {
 
 void SaveCloudRecording(const char* aName) {
   MonitorAutoLock lock(*gMonitor);
-  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SaveCloudRecording");
+  static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SaveCloudRecording");
   BitwiseCast<void(*)(const char*, const char*, size_t)>(ptr)(
       aName, gRecordingContents.begin(), gRecordingContents.length());
 }
 
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
-  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
+  static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
   BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
+}
+
+// The last time we sent an UploadedData message.
+static double gLastUploadedDataTime;
+
+// How often to send an UploadedData message, in microseconds.
+static double gUploadDataFrequency = 1e6;
+
+static void MaybeSendUploadedDataMessage() {
+  double now = CurrentTime();
+  if (now - gLastUploadedDataTime < gUploadDataFrequency) {
+    return;
+  }
+  gLastUploadedDataTime = now;
+  gChannel->SendMessage(UploadedDataMessage(gChannel->NumReceivedBytes()));
 }
 
 void SetCrashNote(const char* aNote) {
