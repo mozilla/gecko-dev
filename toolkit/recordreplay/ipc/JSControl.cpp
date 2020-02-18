@@ -1719,5 +1719,3 @@ MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
 }  // namespace js
 }  // namespace recordreplay
 }  // namespace mozilla
-
-

@@ -824,6 +824,7 @@ DevToolsStartup.prototype = {
         const { uuid, duration } = msg.data;
         savedRecordings.add(uuid);
         cloudRecordingWaiters[uuid]({ duration });
+        uploadDataCallback();
       }
     });
   },
