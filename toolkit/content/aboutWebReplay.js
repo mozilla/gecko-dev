@@ -98,13 +98,24 @@ function showError(kind) {
   document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
 }
 
+function cloudStatusToFatalError(status) {
+  // Not all cloud status options are exposed in about:webreplay errors.
+  switch (status) {
+    case "cloudUpdateNeeded.label": return "CloudUpdateNeeded";
+    case "cloudUpdateDownloading.label": return "CloudUpdateDownloading";
+    case "cloudUpdateDownloaded.label": return "CloudUpdateDownloaded";
+    case "cloudUpdateManualDownload.label": return "CloudUpdateManualDownload";
+  }
+  return "CloudNotConnected";
+}
+
 window.onload = async function() {
   let match;
 
   if (match = /recording=(.*)/.exec(window.location)) {
     const status = ChromeUtils.getCloudReplayStatus();
     if (status) {
-      window.location = "about:webreplay?error=CloudNotConnected";
+      window.location = `about:webreplay?error=${cloudStatusToFatalError(status)}`;
       return;
     }
 

@@ -210,7 +210,9 @@ function CheckBrowserNeedsUpdate(
           QueryInterface: ChromeUtils.generateQI(["nsIUpdateCheckListener"]),
         };
 
-        if (UpdateChecker && now - this._lastUpdated >= updateInterval) {
+        // Disable this for Web Replay. Automatic updates will occur when
+        // communicating with the dispatcher.
+        if (false/*UpdateChecker && now - this._lastUpdated >= updateInterval*/) {
           const checkerInstance = UpdateChecker.createInstance(
             Ci.nsIUpdateChecker
           );

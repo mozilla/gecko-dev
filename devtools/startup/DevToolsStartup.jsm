@@ -563,6 +563,10 @@ DevToolsStartup.prototype = {
       type: "button",
       tooltiptext: "recording-button.tooltiptext2",
       onClick() {
+        if (ChromeUtils.getCloudReplayStatus()) {
+          return;
+        }
+
         const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
         const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
         const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
@@ -747,7 +751,7 @@ DevToolsStartup.prototype = {
               uploadedDataItem.setAttribute("hidden", true);
             } else {
               const fraction = `${formatBytes(received)} / ${formatBytes(sent)}`;
-              const label = `${uuid ? "Saving" : "Uploading"}... ${fraction}`;
+              const label = `${uuid ? "Saving" : "Uploading"}… ${fraction}`;
               uploadedDataItem.setAttribute("label", label);
               savedRecordingItem.setAttribute("hidden", true);
               uploadedDataItem.setAttribute("hidden", false);
@@ -787,7 +791,7 @@ DevToolsStartup.prototype = {
 
     let cloudStatusUpdatedCallback;
 
-    ChromeUtils.setCloudReplayStatusCallback(status => {
+    ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
       for (const w of Services.wm.getEnumerator("navigator:browser")) {
         const node = w.document.getElementById("recording-button");
         if (node) {

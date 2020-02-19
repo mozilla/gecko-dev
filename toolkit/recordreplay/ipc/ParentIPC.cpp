@@ -121,7 +121,7 @@ void EnsureUIStateInitialized() {
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
   JSFunction* fun;
 
-  fun = JS_NewFunction(cx, StatusCallback, 1, 0, "StatusCallback");
+  fun = JS_NewFunction(cx, StatusCallback, 3, 0, "StatusCallback");
   MOZ_RELEASE_ASSERT(fun);
   JS::RootedValue statusCallback(cx, JS::ObjectValue(*(JSObject*)fun));
 
@@ -181,12 +181,20 @@ static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
 
   if (gStatusCallback && *gStatusCallback) {
     JSAutoRealm ar(aCx, *gStatusCallback);
-    JS::RootedValue arg(aCx, args.get(0));
-    JS_WrapValue(aCx, &arg);
+
+    JS::AutoValueArray<3> newArgs(aCx);
+    newArgs[0].set(args.get(0));
+    newArgs[1].set(args.get(1));
+    newArgs[2].set(args.get(2));
+
+    JS_WrapValue(aCx, newArgs[0]);
+    JS_WrapValue(aCx, newArgs[1]);
+    JS_WrapValue(aCx, newArgs[2]);
+
     JS::RootedObject thisv(aCx);
     JS::RootedValue fval(aCx, ObjectValue(**gStatusCallback));
     JS::RootedValue rv(aCx);
-    if (!JS_CallFunctionValue(aCx, thisv, fval, JS::HandleValueArray(arg), &rv)) {
+    if (!JS_CallFunctionValue(aCx, thisv, fval, newArgs, &rv)) {
       return false;
     }
   }

@@ -9,12 +9,14 @@ let gServerSocket;
 const gConnections = [];
 
 let gServerAddress;
+let gBuildId;
 
 self.addEventListener("message", function({ data }) {
   switch (data.type) {
     case "initialize":
       try {
         gServerAddress = data.address;
+        gBuildId = data.buildId;
         openServerSocket();
       } catch (e) {
         ThrowError(e);
@@ -51,7 +53,7 @@ function updateStatus(status) {
 }
 
 function onServerOpen(evt) {
-  const msg = { kind: "initialize" };
+  const msg = { kind: "initialize", buildId: gBuildId };
   gServerSocket.send(JSON.stringify(msg));
   updateStatus("cloudInitialize.label");
 }
@@ -73,9 +75,16 @@ async function onServerMessage(evt) {
     const data = JSON.parse(evt.data);
     switch (data.kind) {
       case "modules": {
-        const { controlJS, replayJS } = data;
-        postMessage({ kind: "loaded", controlJS, replayJS });
-        updateStatus("");
+        const { controlJS, replayJS, updateNeeded, updateWanted } = data;
+        if (updateNeeded) {
+          updateStatus("cloudUpdateNeeded.label");
+        } else {
+          postMessage({ kind: "loaded", controlJS, replayJS });
+          updateStatus("");
+        }
+        if (updateNeeded || updateWanted) {
+          postMessage({ kind: "downloadUpdate" });
+        }
         break;
       }
       case "connectionAddress": {

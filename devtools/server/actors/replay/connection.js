@@ -6,6 +6,11 @@
 "use strict";
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AppUpdater: "resource:///modules/AppUpdater.jsm",
+});
 
 // This file provides an interface for connecting middleman processes with
 // replaying processes living remotely in the cloud.
@@ -25,7 +30,9 @@ function Initialize(address, statusCallback, loadedCallback, messageCallback) {
   gLoadedCallback = loadedCallback;
   gMessageCallback = messageCallback;
 
-  gWorker.postMessage({ type: "initialize", address });
+  const buildId = `macOS-${Services.appinfo.appBuildID}`;
+
+  gWorker.postMessage({ type: "initialize", address, buildId });
 }
 
 function onMessage(evt) {
@@ -42,6 +49,9 @@ function onMessage(evt) {
     case "connectionFailed":
       Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
       break;
+    case "downloadUpdate":
+      downloadUpdate();
+      break;
   }
 }
 
@@ -55,6 +65,48 @@ function Connect(channelId, callback) {
 // eslint-disable-next-line no-unused-vars
 function SendMessage(id, buf) {
   gWorker.postMessage({ type: "send", id, buf });
+}
+
+let gAppUpdater;
+
+function downloadStatusListener(status, ...args) {
+  switch (status) {
+    case AppUpdater.STATUS.READY_FOR_RESTART:
+      gStatusCallback("cloudUpdateDownloaded.label");
+      break;
+    case AppUpdater.STATUS.OTHER_INSTANCE_HANDLING_UPDATES:
+    case AppUpdater.STATUS.CHECKING:
+    case AppUpdater.STATUS.STAGING:
+      gStatusCallback("cloudUpdateDownloading.label");
+      break;
+    case AppUpdater.STATUS.DOWNLOADING:
+      if (!args.length) {
+        gStatusCallback("cloudUpdateDownloading.label",
+                        0, gAppUpdater.update.selectedPatch.size);
+      } else {
+        const [progress, max] = args;
+        gStatusCallback("cloudUpdateDownloading.label", progress, max);
+      }
+      break;
+    case AppUpdater.STATUS.UPDATE_DISABLED_BY_POLICY:
+    case AppUpdater.STATUS.NO_UPDATES_FOUND:
+    case AppUpdater.STATUS.UNSUPPORTED_SYSTEM:
+    case AppUpdater.STATUS.MANUAL_UPDATE:
+    case AppUpdater.STATUS.DOWNLOAD_AND_INSTALL:
+    case AppUpdater.STATUS.DOWNLOAD_FAILED:
+      gStatusCallback("cloudUpdateManualDownload.label");
+      break;
+  }
+}
+
+function downloadUpdate() {
+  return;
+  if (gAppUpdater) {
+    return;
+  }
+  gAppUpdater = new AppUpdater();
+  gAppUpdater.addListener(downloadStatusListener);
+  gAppUpdater.check();
 }
 
 // eslint-disable-next-line no-unused-vars
