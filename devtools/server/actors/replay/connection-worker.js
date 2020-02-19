@@ -83,7 +83,7 @@ async function onServerMessage(evt) {
           updateStatus("");
         }
         if (updateNeeded || updateWanted) {
-          postMessage({ kind: "downloadUpdate" });
+          postMessage({ kind: "downloadUpdate", updateNeeded });
         }
         break;
       }

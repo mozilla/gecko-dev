@@ -50,7 +50,7 @@ function onMessage(evt) {
       Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
       break;
     case "downloadUpdate":
-      downloadUpdate();
+      downloadUpdate(evt.data.updateNeeded);
       break;
   }
 }
@@ -99,13 +99,15 @@ function downloadStatusListener(status, ...args) {
   }
 }
 
-function downloadUpdate() {
-  return;
+function downloadUpdate(updateNeeded) {
   if (gAppUpdater) {
     return;
   }
+  gUpdateNeeded = updateNeeded;
   gAppUpdater = new AppUpdater();
-  gAppUpdater.addListener(downloadStatusListener);
+  if (updateNeeded) {
+    gAppUpdater.addListener(downloadStatusListener);
+  }
   gAppUpdater.check();
 }
 
