@@ -446,6 +446,11 @@ void MessageLoop::RunTask(already_AddRefed<nsIRunnable> aTask) {
 }
 
 bool MessageLoop::DeferOrRunPendingTask(PendingTask&& pending_task) {
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DeferOrRunPendingTask %d %d %d",
+                                            pending_task.nestable,
+                                            (int)state_->run_depth,
+                                            (int)run_depth_base_);
+
   if (pending_task.nestable || state_->run_depth <= run_depth_base_) {
     RunTask(pending_task.task.forget());
     // Show that we ran a task (Note: a new one might arrive as a
@@ -500,17 +505,23 @@ bool MessageLoop::DeletePendingTasks() {
 }
 
 bool MessageLoop::DoWork() {
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork BEGIN %d", nestable_tasks_allowed_);
+
   if (!nestable_tasks_allowed_) {
     // Task can't be executed right now.
     return false;
   }
 
   for (;;) {
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #1");
+
     ReloadWorkQueue();
     if (work_queue_.empty()) break;
 
     // Execute oldest task.
     do {
+      mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #2");
+
       PendingTask pending_task = std::move(work_queue_.front());
       work_queue_.pop();
       if (!pending_task.delayed_run_time.is_null()) {
@@ -524,6 +535,8 @@ bool MessageLoop::DoWork() {
       }
     } while (!work_queue_.empty());
   }
+
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork DONE");
 
   // Nothing happened.
   return false;

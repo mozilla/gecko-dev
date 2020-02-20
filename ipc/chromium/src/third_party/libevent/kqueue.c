@@ -253,6 +253,8 @@ kq_grow_events(struct kqop *kqop, size_t new_size)
 static int
 kq_dispatch(struct event_base *base, struct timeval *tv)
 {
+        RecordReplayAssert("kq_dispatch BEGIN");
+
 	struct kqop *kqop = base->evbase;
 	struct kevent *events = kqop->events;
 	struct kevent *changes;
@@ -268,8 +270,10 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 	/* Build "changes" from "base->changes" */
 	EVUTIL_ASSERT(kqop->changes);
 	n_changes = kq_build_changes_list(&base->changelist, kqop);
-	if (n_changes < 0)
+	if (n_changes < 0) {
+                RecordReplayAssert("kq_dispatch #1");
 		return -1;
+        }
 
 	event_changelist_remove_all_(&base->changelist, base);
 
@@ -299,6 +303,8 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
 
+        RecordReplayAssert("kq_dispatch #2");
+
 	res = kevent(kqop->kq, changes, n_changes,
 	    events, kqop->events_size, ts_p);
 
@@ -308,7 +314,9 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 	kqop->changes = changes;
 
 	if (res == -1) {
-		if (errno != EINTR) {
+                RecordReplayAssert("kq_dispatch #3");
+
+                if (errno != EINTR) {
 			event_warn("kevent");
 			return (-1);
 		}
@@ -412,6 +420,7 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 		kq_grow_events(kqop, kqop->events_size * 2);
 	}
 
+        RecordReplayAssert("kq_dispatch END");
 	return (0);
 }
 

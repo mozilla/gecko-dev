@@ -10,6 +10,7 @@ const { assert, fetch } = DevToolsUtils;
 const EventEmitter = require("devtools/shared/event-emitter");
 const { SourceLocation } = require("devtools/server/actors/common");
 const Services = require("Services");
+const ChromeUtils = require("ChromeUtils");
 
 loader.lazyRequireGetter(
   this,
@@ -138,6 +139,10 @@ TabSources.prototype = {
       isInlineSource,
       contentType,
     });
+
+    if (!this._thread) {
+      ChromeUtils.recordReplayLog(`Error: TabSources no thread ${Error().stack}`);
+    }
 
     this._thread.threadLifetimePool.addActor(actor);
 

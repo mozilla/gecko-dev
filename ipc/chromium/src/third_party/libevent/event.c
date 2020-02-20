@@ -1874,10 +1874,23 @@ event_loop(int flags)
 	return event_base_loop(current_base, flags);
 }
 
+#include <dlfcn.h>
+
+static void RecordReplayAssert(const char* aFormat, ...) {
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplayInterface_InternalRecordReplayAssert");
+
+  va_list ap;
+  va_start(ap, aFormat);
+  ((void(*)(const char*, va_list))ptr)(aFormat, ap);
+  va_end(ap);
+}
+
 int
 event_base_loop(struct event_base *base, int flags)
 {
-	const struct eventop *evsel = base->evsel;
+        RecordReplayAssert("event_base_loop BEGIN");
+
+        const struct eventop *evsel = base->evsel;
 	struct timeval tv;
 	struct timeval *tv_p;
 	int res, done, retval = 0;
@@ -1887,6 +1900,7 @@ event_base_loop(struct event_base *base, int flags)
 	EVBASE_ACQUIRE_LOCK(base, th_base_lock);
 
 	if (base->running_loop) {
+                RecordReplayAssert("event_base_loop #1");
 		event_warnx("%s: reentrant invocation.  Only one event_base_loop"
 		    " can run on each event_base at once.", __func__);
 		EVBASE_RELEASE_LOCK(base, th_base_lock);
@@ -1909,7 +1923,9 @@ event_base_loop(struct event_base *base, int flags)
 	base->event_gotterm = base->event_break = 0;
 
 	while (!done) {
-		base->event_continue = 0;
+                RecordReplayAssert("event_base_loop #1");
+
+                base->event_continue = 0;
 		base->n_deferreds_queued = 0;
 
 		/* Terminate the loop if we have been asked to */
@@ -1944,6 +1960,8 @@ event_base_loop(struct event_base *base, int flags)
 
 		clear_time_cache(base);
 
+                RecordReplayAssert("event_base_loop #2");
+
 		res = evsel->dispatch(base, tv_p);
 
 		if (res == -1) {
@@ -1974,6 +1992,7 @@ done:
 
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
 
+        RecordReplayAssert("event_base_loop DONE %d", (int)retval);
 	return (retval);
 }
 

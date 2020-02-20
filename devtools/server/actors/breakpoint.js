@@ -120,7 +120,9 @@ BreakpointActor.prototype = {
               arguments: rv,
               logpointId: logGroupId,
             };
-            this.threadActor._parent._consoleActor.onConsoleAPICall(message);
+            try {
+              this.threadActor._parent._consoleActor.onConsoleAPICall(message);
+            } catch (e) {}
           },
           validCallback: () => {
             return this.options && this.options.logGroupId == logGroupId;
