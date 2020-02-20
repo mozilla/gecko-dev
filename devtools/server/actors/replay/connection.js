@@ -103,7 +103,6 @@ function downloadUpdate(updateNeeded) {
   if (gAppUpdater) {
     return;
   }
-  gUpdateNeeded = updateNeeded;
   gAppUpdater = new AppUpdater();
   if (updateNeeded) {
     gAppUpdater.addListener(downloadStatusListener);
