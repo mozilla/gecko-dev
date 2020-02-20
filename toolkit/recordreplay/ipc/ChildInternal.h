@@ -55,9 +55,6 @@ void ReportUnhandledDivergence();
 // reporting them.
 void SetUnhandledDivergenceAllowed(bool aAllowed);
 
-// Return whether unhandled divergences are currently allowed.
-bool UnhandledDivergenceAllowed();
-
 // Get the unique ID of this child.
 size_t GetId();
 size_t GetForkId();

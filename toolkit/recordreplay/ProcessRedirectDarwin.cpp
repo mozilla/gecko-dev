@@ -667,6 +667,17 @@ static PreambleResult Preamble_sysctlbyname(CallArguments* aArguments) {
   return PreambleResult::Redirect;
 }
 
+static PreambleResult Preamble_syscall(CallArguments* aArguments) {
+  // Allow getting the current thread's id after diverging from the recording.
+  MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
+  auto callid = aArguments->Arg<0, size_t>();
+
+  if (callid == SYS_thread_selfid) {
+    return PreambleResult::PassThrough;
+  }
+  return PreambleResult::Redirect;
+}
+
 static PreambleResult Preamble___workq_kernreturn(CallArguments* aArguments) {
   // Busy-wait until initialization is complete.
   while (!gInitialized) {
@@ -2172,7 +2183,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"write", RR_SaveRvalHadErrorNegative, nullptr, nullptr,
      MiddlemanPreamble_write},
     {"__write_nocancel", RR_SaveRvalHadErrorNegative},
-    {"open", RR_open},
+    {"open", RR_open, nullptr, nullptr, Preamble_SetError<EPERM>},
     {"__open_nocancel", RR_SaveRvalHadErrorNegative},
     {"recv", RR_SaveRvalHadErrorNegative<RR_WriteBufferViaRval<1, 2>>},
     {"recvmsg", RR_SaveRvalHadErrorNegative<RR_recvmsg>, nullptr, nullptr,
@@ -2259,7 +2270,8 @@ static SystemRedirection gSystemRedirections[] = {
     {"sysctlbyname", RR_SaveRvalHadErrorNegative<RR_sysctl<1>>,
      Preamble_sysctlbyname, nullptr, Preamble_SetError},
     {"__mac_syscall", RR_SaveRvalHadErrorNegative},
-    {"syscall", RR_SaveRvalHadErrorNegative},
+    {"syscall", RR_SaveRvalHadErrorNegative, nullptr, nullptr,
+     Preamble_syscall},
     {"getaudit_addr",
      RR_SaveRvalHadErrorNegative<RR_OutParam<0, auditinfo_addr_t>>},
     {"umask", RR_ScalarRval},

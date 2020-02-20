@@ -2044,7 +2044,12 @@ void MessageChannel::MessageTask::Post() {
   if (eventTarget) {
     eventTarget->Dispatch(self.forget(), NS_DISPATCH_NORMAL);
   } else if (mChannel->mWorkerLoop) {
-    if (recordreplay::IsMiddleman() &&
+    // FIXME disabling this for now, we need to be able to forward messages on
+    // the main thread so that recording processes can finish their nested
+    // event loop and be able to pause, but we also don't want to dispatch
+    // events related to the debugger.
+    if (false &&
+        recordreplay::IsMiddleman() &&
         mChannel == recordreplay::parent::ChannelToUIProcess()) {
       recordreplay::parent::DispatchToMainThread(self.forget());
     } else {

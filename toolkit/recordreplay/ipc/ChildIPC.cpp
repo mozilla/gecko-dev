@@ -513,7 +513,7 @@ static const size_t ForkTimeoutSeconds = 10;
 void PerformFork(size_t aForkId) {
   gForkLock.WriteLock();
 
-  if (ForkProcess()) {
+  if (ForkProcess(aForkId)) {
     // This is the original process.
     gForkLock.WriteUnlock();
     return;
@@ -646,18 +646,14 @@ void ReportCriticalError(const char* aMessage) {
   Print("Critical Error: %s\n", aMessage);
 }
 
-static bool gUnhandledDivergenceAllowed = true;;
+static bool gUnhandledDivergenceAllowed = true;
 
 void SetUnhandledDivergenceAllowed(bool aAllowed) {
   gUnhandledDivergenceAllowed = aAllowed;
 }
 
-bool UnhandledDivergenceAllowed() {
-  return gUnhandledDivergenceAllowed;
-}
-
 void ReportUnhandledDivergence() {
-  if (!gUnhandledDivergenceAllowed) {
+  if (!Thread::CurrentIsMainThread() || !gUnhandledDivergenceAllowed) {
     ReportFatalError("Unhandled divergence not allowed");
   }
 

@@ -90,7 +90,7 @@ size_t GetLastCheckpoint();
 
 // Fork a new processs from this one. Returns true if this is the original
 // process, or false if this is the fork.
-bool ForkProcess();
+bool ForkProcess(size_t aForkId);
 
 // Ensure that non-main threads have been respawned after a fork.
 void EnsureNonMainThreadsAreSpawned();

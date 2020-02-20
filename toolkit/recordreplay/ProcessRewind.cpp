@@ -230,7 +230,7 @@ void ResumeExecution() {
   gMainThreadCallbackMonitor->Notify();
 }
 
-bool ForkProcess() {
+bool ForkProcess(size_t aForkId) {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
   if (!gNeedRespawnThreads) {
@@ -253,7 +253,7 @@ bool ForkProcess() {
     return true;
   }
 
-  Print("FORKED %d\n", getpid());
+  Print("FORKED %d #%lu\n", getpid(), aForkId);
 
   if (TestEnv("MOZ_REPLAYING_WAIT_AT_FORK")) {
     BusyWait();
