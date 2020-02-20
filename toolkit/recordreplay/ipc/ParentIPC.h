@@ -58,6 +58,10 @@ void SaveCloudRecording(const nsAString& aUUID);
 // Get the message channel used to communicate with the UI process.
 ipc::MessageChannel* ChannelToUIProcess();
 
+// Post a task to run on the main thread, even if it is blocked waiting to hear
+// from a child process.
+void DispatchToMainThread(already_AddRefed<nsIRunnable>&& aRunnable);
+
 // Initialize state in a middleman process.
 void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
                          const base::SharedMemoryHandle& aPrefsHandle,

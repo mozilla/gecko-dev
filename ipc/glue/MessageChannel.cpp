@@ -16,6 +16,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Move.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/Telemetry.h"
@@ -2043,7 +2044,12 @@ void MessageChannel::MessageTask::Post() {
   if (eventTarget) {
     eventTarget->Dispatch(self.forget(), NS_DISPATCH_NORMAL);
   } else if (mChannel->mWorkerLoop) {
-    mChannel->mWorkerLoop->PostTask(self.forget());
+    if (recordreplay::IsMiddleman() &&
+        mChannel == recordreplay::parent::ChannelToUIProcess()) {
+      recordreplay::parent::DispatchToMainThread(self.forget());
+    } else {
+      mChannel->mWorkerLoop->PostTask(self.forget());
+    }
   }
 }
 

@@ -36,10 +36,10 @@ ChildProcessInfo* GetChildProcess(size_t aId);
 // Spawn a new replaying child process with the specified ID.
 void SpawnReplayingChild(size_t aId);
 
-// Immediately forward any sync child->parent IPDL message. These are sent on
-// the main thread, which might be blocked waiting for a response from the
-// recording child and unable to run an event loop.
-void MaybeHandlePendingSyncMessage();
+// Immediately forward any parent->child or sync child->parent IPDL messages.
+// These are sent on the main thread, which might be blocked waiting for a
+// response from the recording child and unable to run an event loop.
+void MaybeHandleForwardedMessages();
 
 // Initialize state which handles incoming IPDL messages from the UI and
 // recording child processes.

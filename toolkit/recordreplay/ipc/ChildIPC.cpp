@@ -219,17 +219,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
   }
 }
 
-static void EnsureCheckpointCreated() {
-  // Watch for conditions where a checkpoint can't be created and continue
-  // reposting the runnable to make sure we do create a checkpoint.
-  if (PaintingInProgress() || !js::CanCreateCheckpoint()) {
-    NS_DispatchToMainThread(
-        NewRunnableFunction("EnsureCheckpointCreated", EnsureCheckpointCreated));
-    return;
-  }
-  CreateCheckpoint();
-}
-
 // Main routine for a thread whose sole purpose is to listen to requests from
 // the middleman process to create a new checkpoint. This is separate from the
 // channel thread because this thread is recorded and the latter is not
@@ -241,8 +230,7 @@ static void ListenForCheckpointThreadMain(void*) {
     uint8_t data = 0;
     ssize_t rv = HANDLE_EINTR(read(gCheckpointReadFd, &data, 1));
     if (rv > 0) {
-      NS_DispatchToMainThread(
-          NewRunnableFunction("EnsureCheckpointCreated", EnsureCheckpointCreated));
+      NS_DispatchToMainThread(NewRunnableFunction("CreateCheckpoint", CreateCheckpoint));
     } else {
       MOZ_RELEASE_ASSERT(errno == EIO);
       MOZ_RELEASE_ASSERT(HasDivergedFromRecording());

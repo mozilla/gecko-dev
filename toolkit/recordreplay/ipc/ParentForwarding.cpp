@@ -164,9 +164,40 @@ static void BeginShutdown() {
   MainThreadMessageLoop()->PostTask(NewRunnableFunction("Shutdown", Shutdown));
 }
 
+// Runnables forwarding messages which need to execute on the main thread.
+// Protected by gMonitor.
+static StaticInfallibleVector<RefPtr<nsIRunnable>> gMainThreadRunnables;
+
+// Whether a task has been posted to the main thread to process any runnables.
+// Protected by gMonitor.
+static bool gPostedProcessMainThreadRunnables;
+
+static void ProcessMainThreadRunnables() {
+  MonitorAutoLock lock(*gMonitor);
+  for (size_t i = 0; i < gMainThreadRunnables.length(); i++) {
+    RefPtr<nsIRunnable> runnable = gMainThreadRunnables[i];
+    MonitorAutoUnlock unlock(*gMonitor);
+    runnable->Run();
+  }
+  gMainThreadRunnables.clear();
+  gPostedProcessMainThreadRunnables = false;
+}
+
+void DispatchToMainThread(already_AddRefed<nsIRunnable>&& aRunnable) {
+  MonitorAutoLock lock(*gMonitor);
+  gMainThreadRunnables.append(aRunnable);
+  if (!gPostedProcessMainThreadRunnables) {
+    MainThreadMessageLoop()->PostTask(NewRunnableFunction(
+          "ProcessMainThreadRunnables", ProcessMainThreadRunnables));
+      gPostedProcessMainThreadRunnables = true;
+  }
+}
+
 class MiddlemanProtocol : public ipc::IToplevelProtocol {
  public:
+  // The side which the forwarded messages are being sent to.
   ipc::Side mSide;
+
   MiddlemanProtocol* mOpposite;
   MessageLoop* mOppositeMessageLoop;
 
@@ -187,6 +218,15 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
   virtual void AllManagedActors(
       nsTArray<RefPtr<ipc::ActorLifecycleProxy>>& aActors) const override {
     aActors.Clear();
+  }
+
+  // Post a runnable for the other message loop's thread.
+  void PostOppositeRunnable(already_AddRefed<nsIRunnable>&& aRunnable) {
+    if (mSide == ipc::ChildSide) {
+      mOppositeMessageLoop->PostTask(std::move(aRunnable));
+    } else {
+      DispatchToMainThread(std::move(aRunnable));
+    }
   }
 
   static void ForwardMessageAsync(MiddlemanProtocol* aProtocol,
@@ -224,7 +264,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
       return MsgProcessed;
     }
 
-    mOppositeMessageLoop->PostTask(NewRunnableFunction(
+    PostOppositeRunnable(NewRunnableFunction(
         "ForwardMessageAsync", ForwardMessageAsync, mOpposite, nMessage));
     return MsgProcessed;
   }
@@ -233,11 +273,8 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
   Message* mSyncMessageReply = nullptr;
   bool mSyncMessageIsCall = false;
 
-  void MaybeSendSyncMessage(bool aLockHeld) {
-    Maybe<MonitorAutoLock> lock;
-    if (!aLockHeld) {
-      lock.emplace(*gMonitor);
-    }
+  void MaybeSendSyncMessage() {
+    MonitorAutoLock lock(*gMonitor);
 
     if (!mSyncMessage) {
       return;
@@ -262,7 +299,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
   }
 
   static void StaticMaybeSendSyncMessage(MiddlemanProtocol* aProtocol) {
-    aProtocol->MaybeSendSyncMessage(false);
+    aProtocol->MaybeSendSyncMessage();
   }
 
   void HandleSyncMessage(const Message& aMessage, Message*& aReply,
@@ -273,7 +310,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
     mSyncMessage->CopyFrom(aMessage);
     mSyncMessageIsCall = aCall;
 
-    mOppositeMessageLoop->PostTask(NewRunnableFunction(
+    PostOppositeRunnable(NewRunnableFunction(
         "StaticMaybeSendSyncMessage", StaticMaybeSendSyncMessage, this));
 
     if (mSide == ipc::ChildSide) {
@@ -282,7 +319,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
       MonitorAutoLock lock(*gMonitor);
 
       // If the main thread is blocked waiting for the recording child to pause,
-      // wake it up so it can call MaybeHandlePendingSyncMessage().
+      // wake it up so it can call MaybeHandleForwardedMessages().
       gMonitor->NotifyAll();
 
       while (!mSyncMessageReply) {
@@ -316,13 +353,21 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
   virtual void OnChannelError() override { BeginShutdown(); }
 };
 
+// Protocol forwarding messages from the UI process to the recording process.
+// Messages are received on the main thread, and forwarded on the forwarding
+// message loop thread.
 static MiddlemanProtocol* gChildProtocol;
+
+// Protocol forwarding messages from the recording process to the UI process.
+// Messages are received on the forwarding message loop thread, and forwarded
+// on the main thread.
 static MiddlemanProtocol* gParentProtocol;
 
-void MaybeHandlePendingSyncMessage() {
+void MaybeHandleForwardedMessages() {
   if (gParentProtocol) {
-    gParentProtocol->MaybeSendSyncMessage(true);
+    gParentProtocol->MaybeSendSyncMessage();
   }
+  ProcessMainThreadRunnables();
 }
 
 ipc::MessageChannel* ChannelToUIProcess() {

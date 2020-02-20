@@ -260,10 +260,10 @@ static Message::UniquePtr ExtractChildMessage(ChildProcessInfo** aProcess) {
 void ChildProcessInfo::MaybeProcessNextMessage() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
+  MaybeHandleForwardedMessages();
+
   Maybe<MonitorAutoLock> lock;
   lock.emplace(*gMonitor);
-
-  MaybeHandlePendingSyncMessage();
 
   ChildProcessInfo* process;
   Message::UniquePtr msg = ExtractChildMessage(&process);
@@ -272,8 +272,8 @@ void ChildProcessInfo::MaybeProcessNextMessage() {
     lock.reset();
     process->OnIncomingMessage(*msg);
   } else {
-    // We wait for at most one second before returning to the caller.
-    TimeStamp deadline = TimeStamp::Now() + TimeDuration::FromSeconds(1);
+    // Limit how long we are willing to wait before returning to the caller.
+    TimeStamp deadline = TimeStamp::Now() + TimeDuration::FromMilliseconds(200);
     gMonitor->WaitUntil(deadline);
   }
 }
