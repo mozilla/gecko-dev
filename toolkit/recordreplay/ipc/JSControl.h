@@ -64,8 +64,6 @@ void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
                                 const UnhandledDivergenceMessage& aMsg);
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,
                          const PingResponseMessage& aMsg);
-void ForwardUploadedData(parent::ChildProcessInfo* aChild,
-                         size_t aSentBytes, size_t aReceivedBytes);
 
 // Prepare the child processes so that the recording file can be safely copied.
 void BeforeSaveRecording();

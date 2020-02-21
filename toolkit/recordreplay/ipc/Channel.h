@@ -79,9 +79,6 @@ namespace recordreplay {
   /* Tell a replaying process to fetch recording data from the cloud. */ \
   _Macro(FetchCloudRecordingData)                              \
                                                                \
-  /* Get recording data that is stored in the root process. */ \
-  _Macro(UpdateRecordingFromRoot)                              \
-                                                               \
   /* Set the JS which will run in the replaying process. */    \
   _Macro(ReplayJS)                                             \
                                                                \
@@ -110,8 +107,8 @@ namespace recordreplay {
   /* Get the result of performing an external call. */         \
   _Macro(ExternalCallRequest)                                  \
                                                                \
-  /* Inform the middleman about how much data has been received on the remote side. */ \
-  _Macro(UploadedData)                                         \
+  /* Get recording data that is stored in the root process. */ \
+  _Macro(UpdateRecordingFromRoot)                              \
                                                                \
   /* Messages sent in both directions. */                      \
                                                                \
@@ -282,14 +279,6 @@ struct PaintMessage : public Message {
         mHeight(aHeight) {}
 };
 
-struct UploadedDataMessage : public Message {
-  uint64_t mBytes;
-
-  UploadedDataMessage(uint64_t aBytes)
-      : Message(MessageType::UploadedData, sizeof(*this), 0),
-        mBytes(aBytes) {}
-};
-
 template <MessageType Type>
 struct BinaryMessage : public Message {
   // Associated value whose meaning depends on the message type.
@@ -327,13 +316,13 @@ typedef BinaryMessage<MessageType::RecordingData> RecordingDataMessage;
 
 struct UpdateRecordingFromRootMessage : public Message {
   uint64_t mStart;
-  uint32_t mSize;
+  uint64_t mRequiredLength;
 
   UpdateRecordingFromRootMessage(uint32_t aForkId, uint64_t aStart,
-                                 uint32_t aSize)
+                                 uint32_t aRequiredLength)
       : Message(MessageType::UpdateRecordingFromRoot, sizeof(*this), aForkId),
         mStart(aStart),
-        mSize(aSize) {}
+        mRequiredLength(aRequiredLength) {}
 };
 
 // The tag is not used.
@@ -417,10 +406,6 @@ class Channel {
 
   InfallibleVector<char> mPendingData;
 
-  // How many bytes have been sent/received over the channel.
-  size_t mSentBytes = 0;
-  size_t mReceivedBytes = 0;
-
   // If spew is enabled, print a message and associated info to stderr.
   void PrintMessage(const char* aPrefix, const Message& aMsg);
 
@@ -470,8 +455,6 @@ class Channel {
           base::ProcessId aParentPid = 0);
 
   size_t GetId() { return mId; }
-  size_t NumSentBytes() { return mSentBytes; }
-  size_t NumReceivedBytes() { return mReceivedBytes; }
 
   // Send a message to the other side of the channel.
   void SendMessage(Message&& aMsg);

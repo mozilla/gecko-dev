@@ -62,6 +62,9 @@ size_t GetForkId();
 // Monitor used for various synchronization tasks.
 extern Monitor* gMonitor;
 
+// Block until this child has loaded the specified amount of recording data.
+void EnsureRecordingLength(size_t aLength);
+
 // Notify the middleman that the last manifest was finished.
 void ManifestFinished(const js::CharBuffer& aResponse);
 

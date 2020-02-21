@@ -172,7 +172,6 @@ void Channel::SendRaw(const char* aData, size_t aSize) {
       // minidump that masks the original crash.
       return;
     }
-    mSentBytes += rv;
     aData += rv;
     aSize -= rv;
   }
@@ -219,7 +218,6 @@ Message::UniquePtr Channel::WaitForMessage() {
       }
     }
 
-    mReceivedBytes += nbytes;
     mMessageBytes += nbytes;
   }
 

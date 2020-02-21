@@ -203,24 +203,6 @@ void ForwardPingResponse(parent::ChildProcessInfo* aChild,
   }
 }
 
-void ForwardUploadedData(parent::ChildProcessInfo* aChild,
-                         size_t aSentBytes, size_t aReceivedBytes) {
-  MOZ_RELEASE_ASSERT(IsInitialized());
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  JS::AutoValueArray<3> args(cx);
-  args[0].setInt32(aChild->GetId());
-  args[1].setNumber((double)aSentBytes);
-  args[2].setNumber((double)aReceivedBytes);
-
-  RootedValue rv(cx);
-  if (!JS_CallFunctionName(cx, *gModuleObject, "UploadedData", args, &rv)) {
-    MOZ_CRASH("UploadedData");
-  }
-}
-
 void BeforeSaveRecording() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -553,34 +535,23 @@ static bool Middleman_UpdateRecording(JSContext* aCx, unsigned aArgc,
                                       Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  size_t forkId;
-  parent::ChildProcessInfo* child = ToChildProcess(aCx, args.get(0),
-                                                   args.get(1), &forkId);
+  parent::ChildProcessInfo* child = ToChildProcess(aCx, args.get(0));
   if (!child) {
     return false;
   }
 
-  if (!args.get(2).isNumber() || !args.get(3).isNumber()) {
+  if (!args.get(1).isNumber() || !args.get(2).isNumber()) {
     JS_ReportErrorASCII(aCx, "Expected numeric argument");
     return false;
   }
 
-  size_t start = args.get(2).toNumber();
-  size_t end = args.get(3).toNumber();
-  MOZ_RELEASE_ASSERT(start < end);
-  MOZ_RELEASE_ASSERT(end <= parent::gRecordingContents.length());
+  size_t start = args.get(1).toNumber();
+  size_t size = args.get(2).toNumber();
+  MOZ_RELEASE_ASSERT(start + size <= parent::gRecordingContents.length());
 
-  bool fromRoot = ToBoolean(args.get(4));
-
-  if (fromRoot) {
-    child->SendMessage(UpdateRecordingFromRootMessage(forkId, start, end - start));
-  } else {
-    MOZ_RELEASE_ASSERT(!forkId);
-    UniquePtr<Message> msg(RecordingDataMessage::New(
-        forkId, start, parent::gRecordingContents.begin() + start,
-        end - start));
-    child->SendMessage(std::move(*msg));
-  }
+  UniquePtr<Message> msg(RecordingDataMessage::New(
+      0, start, parent::gRecordingContents.begin() + start, size));
+  child->SendMessage(std::move(*msg));
 
   args.rval().setUndefined();
   return true;
@@ -876,6 +847,21 @@ static bool RecordReplay_ForkId(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   args.rval().setInt32(child::GetForkId());
+  return true;
+}
+
+static bool RecordReplay_EnsureRecordingLength(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isNumber()) {
+    JS_ReportErrorASCII(aCx, "Expected numeric argument");
+    return false;
+  }
+
+  size_t length = args.get(0).toNumber();
+  child::EnsureRecordingLength(length);
+
+  args.rval().setUndefined();
   return true;
 }
 
@@ -1637,7 +1623,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("terminate", Middleman_Terminate, 2, 0),
     JS_FN("crashHangedChild", Middleman_CrashHangedChild, 2, 0),
     JS_FN("recordingLength", Middleman_RecordingLength, 0, 0),
-    JS_FN("updateRecording", Middleman_UpdateRecording, 5, 0),
+    JS_FN("updateRecording", Middleman_UpdateRecording, 3, 0),
     JS_FN("setActiveChildIsRecording", Middleman_SetActiveChildIsRecording, 1, 0),
     JS_FS_END};
 
@@ -1645,6 +1631,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("fork", RecordReplay_Fork, 1, 0),
     JS_FN("childId", RecordReplay_ChildId, 0, 0),
     JS_FN("forkId", RecordReplay_ForkId, 0, 0),
+    JS_FN("ensureRecordingLength", RecordReplay_EnsureRecordingLength, 1, 0),
     JS_FN("areThreadEventsDisallowed", RecordReplay_AreThreadEventsDisallowed,
           0, 0),
     JS_FN("divergeFromRecording", RecordReplay_DivergeFromRecording, 0, 0),

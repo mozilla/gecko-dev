@@ -95,11 +95,6 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
       AddToLog(false, NS_ConvertUTF8toUTF16(nsCString(nmsg.BinaryData())));
       break;
     }
-    case MessageType::UploadedData: {
-      const auto& nmsg = static_cast<const UploadedDataMessage&>(aMsg);
-      js::ForwardUploadedData(this, mChannel->NumSentBytes(), nmsg.mBytes);
-      break;
-    }
     default:
       break;
   }

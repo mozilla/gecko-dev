@@ -89,9 +89,8 @@ static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
 static bool gWaitingForCallResponse;
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
-static void HandleMessageToForkedProcess(Message::UniquePtr aMsg);
+static void SendMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
-static void MaybeSendUploadedDataMessage();
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
@@ -102,13 +101,9 @@ static ReadWriteSpinLock gForkLock;
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
   AutoReadSpinLock disallowFork(gForkLock);
 
-  if (!gForkId && ReplayingInCloud()) {
-    MaybeSendUploadedDataMessage();
-  }
-
   if (aMsg->mForkId != gForkId) {
     MOZ_RELEASE_ASSERT(!gForkId);
-    HandleMessageToForkedProcess(std::move(aMsg));
+    SendMessageToForkedProcess(std::move(aMsg));
     return;
   }
 
@@ -450,60 +445,46 @@ static void SendMessageToForkedProcess(Message::UniquePtr aMsg) {
   gPendingForkMessages.append(std::move(aMsg));
 }
 
-static bool MaybeHandleExternalCallResponse(const Message& aMsg) {
-  // Remember the results of any external calls that have been made, in case
-  // they show up again later.
-  if (aMsg.mType == MessageType::ExternalCallResponse) {
-    const auto& nmsg = static_cast<const ExternalCallResponseMessage&>(aMsg);
-    AddExternalCallOutput(nmsg.mTag, nmsg.BinaryData(), nmsg.BinaryDataSize());
-    return true;
-  }
-  return false;
-}
-
-static void HandleMessageToForkedProcess(Message::UniquePtr aMsg) {
-  MaybeHandleExternalCallResponse(*aMsg);
-
-  // Transform UpdateRecordingFromRoot messages into RecordingData messages,
-  // so that the recording data only has to be uploaded once to the root process
-  // and then redistributed via IPC to forks.
-  if (aMsg->mType == MessageType::UpdateRecordingFromRoot) {
-    const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
-    MOZ_RELEASE_ASSERT(nmsg.mStart + nmsg.mSize <= gRecordingContents.length());
-    Message::UniquePtr newMessage(RecordingDataMessage::New(
-        nmsg.mForkId, nmsg.mStart,
-        gRecordingContents.begin() + nmsg.mStart, nmsg.mSize));
-    SendMessageToForkedProcess(std::move(newMessage));
-  } else {
-    SendMessageToForkedProcess(std::move(aMsg));
-  }
-}
-
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
-  // Try to handle external calls with data in this process, instead of
-  // forwarding them (potentially across a network connection) to the middleman.
-  if (aMsg->mType == MessageType::ExternalCallRequest) {
-    const auto& nmsg = static_cast<const ExternalCallRequestMessage&>(*aMsg);
+  // Certain messages from forked processes are intended for this one,
+  // instead of the middleman.
+  switch (aMsg->mType) {
+    case MessageType::UpdateRecordingFromRoot: {
+      const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
+      EnsureRecordingLength(nmsg.mRequiredLength);
 
-    InfallibleVector<char> outputData;
-    if (HasExternalCallOutput(nmsg.mTag, &outputData)) {
+      MonitorAutoLock lock(*gMonitor);
+      Message::UniquePtr newMessage(RecordingDataMessage::New(
+          nmsg.mForkId, nmsg.mStart,
+          gRecordingContents.begin() + nmsg.mStart,
+          nmsg.mRequiredLength - nmsg.mStart));
+      SendMessageToForkedProcess(std::move(newMessage));
+      break;
+    }
+    case MessageType::ExternalCallRequest: {
+      const auto& nmsg = static_cast<const ExternalCallRequestMessage&>(*aMsg);
+
+      InfallibleVector<char> outputData;
+      if (HasExternalCallOutput(nmsg.mTag, &outputData)) {
+        Message::UniquePtr response(ExternalCallResponseMessage::New(
+            nmsg.mForkId, nmsg.mTag, outputData.begin(), outputData.length()));
+        SendMessageToForkedProcess(std::move(response));
+        return;
+      }
+
+      // The call result was not found.
       Message::UniquePtr response(ExternalCallResponseMessage::New(
-          nmsg.mForkId, nmsg.mTag, outputData.begin(), outputData.length()));
+          nmsg.mForkId, 0, nullptr, 0));
       SendMessageToForkedProcess(std::move(response));
       return;
     }
-
-    // The middleman is no longer used to perform external calls.
-    Message::UniquePtr response(ExternalCallResponseMessage::New(
-        nmsg.mForkId, 0, nullptr, 0));
-    SendMessageToForkedProcess(std::move(response));
-    return;
-  }
-
-  if (MaybeHandleExternalCallResponse(*aMsg)) {
-    // CallResponse messages from forked processes are intended for this one.
-    // Don't notify the middleman.
-    return;
+    case MessageType::ExternalCallResponse: {
+      const auto& nmsg = static_cast<const ExternalCallResponseMessage&>(*aMsg);
+      AddExternalCallOutput(nmsg.mTag, nmsg.BinaryData(), nmsg.BinaryDataSize());
+      return;
+    }
+    default:
+      break;
   }
 
   gChannel->SendMessage(std::move(*aMsg));
@@ -706,21 +687,6 @@ void SaveCloudRecording(const char* aName) {
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
   BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
-}
-
-// The last time we sent an UploadedData message.
-static double gLastUploadedDataTime;
-
-// How often to send an UploadedData message, in microseconds.
-static double gUploadDataFrequency = 1e6;
-
-static void MaybeSendUploadedDataMessage() {
-  double now = CurrentTime();
-  if (now - gLastUploadedDataTime < gUploadDataFrequency) {
-    return;
-  }
-  gLastUploadedDataTime = now;
-  gChannel->SendMessage(UploadedDataMessage(gChannel->NumReceivedBytes()));
 }
 
 void SetCrashNote(const char* aNote) {
@@ -1004,6 +970,19 @@ bool PaintingInProgress() {
 ///////////////////////////////////////////////////////////////////////////////
 // Message Helpers
 ///////////////////////////////////////////////////////////////////////////////
+
+void EnsureRecordingLength(size_t aLength) {
+  MonitorAutoLock lock(*gMonitor);
+
+  if (gForkId && gRecordingContents.length() < aLength) {
+    gChannel->SendMessage(UpdateRecordingFromRootMessage(
+        gForkId, gRecordingContents.length(), aLength));
+  }
+
+  while (gRecordingContents.length() < aLength) {
+    gMonitor->Wait();
+  }
+}
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
   if (!gPendingManifests.empty() && !gProcessingManifest) {
