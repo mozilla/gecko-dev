@@ -100,6 +100,13 @@ function downloadStatusListener(status, ...args) {
 }
 
 function downloadUpdate(updateNeeded) {
+  // Allow connecting to the cloud with an unknown build.
+  var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  if (env.get("WEBREPLAY_NO_UPDATE")) {
+    gStatusCallback("");
+    return;
+  }
+
   if (gAppUpdater) {
     return;
   }
