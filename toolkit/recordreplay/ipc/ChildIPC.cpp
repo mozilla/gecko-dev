@@ -157,8 +157,9 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     case MessageType::ManifestStart: {
       MonitorAutoLock lock(*gMonitor);
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)*aMsg;
+      NS_ConvertUTF8toUTF16 converted(nmsg.BinaryData(), nmsg.BinaryDataSize());
       js::CharBuffer* buf = new js::CharBuffer();
-      buf->append(nmsg.Buffer(), nmsg.BufferSize());
+      buf->append(converted.get(), converted.Length());
       gPendingManifests.append(buf);
       MaybeStartNextManifest(lock);
       break;
@@ -1019,8 +1020,11 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
 void ManifestFinished(const js::CharBuffer& aBuffer) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gProcessingManifest);
+
+  NS_ConvertUTF16toUTF8 converted(aBuffer.begin(), aBuffer.length());
+
   ManifestFinishedMessage* msg =
-      ManifestFinishedMessage::New(gForkId, aBuffer.begin(), aBuffer.length());
+      ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);

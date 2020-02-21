@@ -255,27 +255,6 @@ typedef EmptyMessage<MessageType::FetchCloudRecordingData>
 typedef EmptyMessage<MessageType::EnableLogging> EnableLoggingMessage;
 
 template <MessageType Type>
-struct JSONMessage : public Message {
-  explicit JSONMessage(uint32_t aSize, uint32_t aForkId)
-      : Message(Type, aSize, aForkId) {}
-
-  const char16_t* Buffer() const { return Data<JSONMessage<Type>, char16_t>(); }
-  size_t BufferSize() const { return DataSize<JSONMessage<Type>, char16_t>(); }
-
-  static JSONMessage<Type>* New(uint32_t aForkId, const char16_t* aBuffer,
-                                size_t aBufferSize) {
-    JSONMessage<Type>* res =
-        NewWithData<JSONMessage<Type>, char16_t>(aBufferSize, aForkId);
-    MOZ_RELEASE_ASSERT(res->BufferSize() == aBufferSize);
-    PodCopy(res->Data<JSONMessage<Type>, char16_t>(), aBuffer, aBufferSize);
-    return res;
-  }
-};
-
-typedef JSONMessage<MessageType::ManifestStart> ManifestStartMessage;
-typedef JSONMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
-
-template <MessageType Type>
 struct ErrorMessage : public Message {
   explicit ErrorMessage(uint32_t aSize, uint32_t aForkId)
       : Message(Type, aSize, aForkId) {}
@@ -358,6 +337,8 @@ struct UpdateRecordingFromRootMessage : public Message {
 };
 
 // The tag is not used.
+typedef BinaryMessage<MessageType::ManifestStart> ManifestStartMessage;
+typedef BinaryMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
 typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
 typedef BinaryMessage<MessageType::LogText> LogTextMessage;
 

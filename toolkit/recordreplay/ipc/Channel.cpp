@@ -260,15 +260,13 @@ void Channel::PrintMessage(const char* aPrefix, const Message& aMsg) {
   switch (aMsg.mType) {
     case MessageType::ManifestStart: {
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)aMsg;
-      data = NS_ConvertUTF16toUTF8(
-          nsDependentSubstring(nmsg.Buffer(), nmsg.BufferSize()));
+      data = nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize());
       break;
     }
     case MessageType::ManifestFinished: {
       const ManifestFinishedMessage& nmsg =
           (const ManifestFinishedMessage&)aMsg;
-      data = NS_ConvertUTF16toUTF8(
-          nsDependentSubstring(nmsg.Buffer(), nmsg.BufferSize()));
+      data = nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize());
       break;
     }
     case MessageType::RecordingData: {

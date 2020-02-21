@@ -149,7 +149,7 @@ void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId) {
 }
 
 static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                                    size_t aForkId, const char16_t* aBuffer,
+                                    size_t aForkId, const char* aBuffer,
                                     size_t aBufferSize) {
   MOZ_RELEASE_ASSERT(IsInitialized());
 
@@ -160,7 +160,9 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
   args[0].setInt32(aChild->GetId());
   args[1].setInt32(aForkId);
 
-  if (aBufferSize && !JS_ParseJSON(cx, aBuffer, aBufferSize, args[2])) {
+  NS_ConvertUTF8toUTF16 buf(aBuffer, aBufferSize);
+
+  if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[2])) {
     MOZ_CRASH("ForwardManifestFinished");
   }
 
@@ -172,14 +174,14 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                              const ManifestFinishedMessage& aMsg) {
-  ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Buffer(),
-                          aMsg.BufferSize());
+  ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.BinaryData(),
+                          aMsg.BinaryDataSize());
 }
 
 void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
                                 const UnhandledDivergenceMessage& aMsg) {
-  char16_t buf[] = u"{\"unhandledDivergence\":true}";
-  ForwardManifestFinished(aChild, aMsg.mForkId, buf, ArrayLength(buf) - 1);
+  char buf[] = "{\"unhandledDivergence\":true}";
+  ForwardManifestFinished(aChild, aMsg.mForkId, buf, sizeof(buf) - 1);
 }
 
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,
@@ -351,8 +353,10 @@ static bool Middleman_SendManifest(JSContext* aCx, unsigned aArgc, Value* aVp) {
     return false;
   }
 
+  NS_ConvertUTF16toUTF8 buf(manifestBuffer.begin(), manifestBuffer.length());
+
   ManifestStartMessage* msg = ManifestStartMessage::New(
-      forkId, manifestBuffer.begin(), manifestBuffer.length());
+      forkId, 0, buf.get(), buf.Length());
   child->SendMessage(std::move(*msg));
   free(msg);
 
