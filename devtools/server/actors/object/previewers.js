@@ -620,7 +620,8 @@ previewers.Object = [
         obj.class == "CSSStyleSheet" ||
         obj.class == "Location" ||
         rawObj instanceof Ci.nsIDOMWindow
-      )
+      ) ||
+      isReplaying
     ) {
       return false;
     }

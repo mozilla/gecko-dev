@@ -467,27 +467,6 @@ static bool Middleman_MaybeProcessNextMessage(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool Middleman_Atomize(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isString()) {
-    JS_ReportErrorASCII(aCx, "Bad parameter");
-    return false;
-  }
-
-  RootedString str(aCx, args.get(0).toString());
-
-  // We shouldn't really be pinning the atom as well, but there isn't a JSAPI
-  // method for atomizing a JSString without pinning it.
-  JSString* atom = JS_AtomizeAndPinJSString(aCx, str);
-  if (!atom) {
-    return false;
-  }
-
-  args.rval().setString(atom);
-  return true;
-}
-
 static bool Middleman_Terminate(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
@@ -1619,7 +1598,6 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("createCheckpointInRecording", Middleman_CreateCheckpointInRecording,
           1, 0),
     JS_FN("maybeProcessNextMessage", Middleman_MaybeProcessNextMessage, 0, 0),
-    JS_FN("atomize", Middleman_Atomize, 1, 0),
     JS_FN("terminate", Middleman_Terminate, 2, 0),
     JS_FN("crashHangedChild", Middleman_CrashHangedChild, 2, 0),
     JS_FN("recordingLength", Middleman_RecordingLength, 0, 0),
